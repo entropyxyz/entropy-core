@@ -1,0 +1,13 @@
+Title: Node Signing Flow
+
+participant tx_sender
+participant recieving_api
+participant other_nodes
+participant signing_node
+
+# signing
+tx_sender -> recieving_api: sends tx
+recieving_api -> signing_node: bordcasts tx
+recieving_api -> other_nodes: brodcasts tx
+other_nodes -> signing_node: sends sender shard
+signing_node -> tx_sender: sends back assembled key
