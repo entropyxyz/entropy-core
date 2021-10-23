@@ -1,0 +1,163 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
+/// Edit this file to define custom logic or remove it if it is not needed.
+/// Learn more about FRAME and the core library of Substrate FRAME pallets:
+/// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
+pub use pallet::*;
+
+#[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod tests;
+
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
+#[frame_support::pallet]
+pub mod pallet {
+	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, traits::IsSubType, weights::{Pays}, inherent::Vec};
+	use frame_system::pallet_prelude::*;
+	use scale_info::TypeInfo;
+	use sp_std::{fmt::Debug};
+	use sp_runtime::{
+		traits::{CheckedSub, DispatchInfoOf, SignedExtension},
+		transaction_validity::{
+			InvalidTransaction, TransactionValidity, TransactionValidityError, ValidTransaction,
+		},
+		RuntimeDebug,
+	};
+	/// Configure the pallet by specifying the parameters and types on which it depends.
+	#[pallet::config]
+	pub trait Config: frame_system::Config {
+		/// Because this pallet emits events, it depends on the runtime's definition of an event.
+		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type EndpointLimit: Get<u32>;
+	}
+
+	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	pub struct Pallet<T>(_);
+
+	#[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
+	pub struct Message {
+		pub data_1: u128,
+		pub data_2: u128,
+	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn messages)]
+	pub type Messages<T: Config> = StorageValue<
+		_,
+		Vec<Message>,
+		ValueQuery,
+	>;
+
+	// Pallets use events to inform users when important changes are made.
+	// https://substrate.dev/docs/en/knowledgebase/runtime/events
+	#[pallet::event]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	pub enum Event<T: Config> {
+		/// Event documentation should end with an array that provides descriptive names for event
+		/// parameters. [something, who]
+		SomethingStored(u32, T::AccountId),
+	}
+
+	// Errors inform users that something went wrong.
+	#[pallet::error]
+	pub enum Error<T> {
+		EndpointSize
+	}
+
+	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
+	// These functions materialize as "extrinsics", which are often compared to transactions.
+	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
+		/// An example dispatchable that takes a singles value as a parameter, writes the value to
+		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
+		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+		pub fn prep_transaction(origin: OriginFor<T>, data_1: u128, data_2: u128) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			let new_message = Message {
+				data_1,
+				data_2,
+			};
+
+			Messages::<T>::try_mutate(|messages| -> Result<_, DispatchError> {
+				messages.push(new_message);
+				Ok(())
+			})?;
+
+			// Emit an event.
+			// Self::deposit_event(Event::SomethingStored(something, who));
+			Ok(())
+		}
+	}
+
+	/// Validate `attest` calls prior to execution. Needed to avoid a DoS attack since they are
+/// otherwise free to place on chain.
+#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct PrevalidateAttests<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
+where
+	<T as frame_system::Config>::Call: IsSubType<Call<T>>;
+
+impl<T: Config + Send + Sync> Debug for PrevalidateAttests<T>
+where
+	<T as frame_system::Config>::Call: IsSubType<Call<T>>,
+{
+	#[cfg(feature = "std")]
+	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+		write!(f, "PrevalidateAttests")
+	}
+
+	#[cfg(not(feature = "std"))]
+	fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+		Ok(())
+	}
+}
+
+impl<T: Config + Send + Sync> PrevalidateAttests<T>
+where
+	<T as frame_system::Config>::Call: IsSubType<Call<T>>,
+{
+	/// Create new `SignedExtension` to check runtime version.
+	pub fn new() -> Self {
+		Self(sp_std::marker::PhantomData)
+	}
+}
+
+impl<T: Config + Send + Sync> SignedExtension for PrevalidateAttests<T>
+where
+	<T as frame_system::Config>::Call: IsSubType<Call<T>>,
+{
+	type AccountId = T::AccountId;
+	type Call = <T as frame_system::Config>::Call;
+	type AdditionalSigned = ();
+	type Pre = ();
+	const IDENTIFIER: &'static str = "PrevalidateAttests";
+
+	fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
+		Ok(())
+	}
+
+	// <weight>
+	// The weight of this logic is included in the `attest` dispatchable.
+	// </weight>
+	fn validate(
+		&self,
+		who: &Self::AccountId,
+		call: &Self::Call,
+		_info: &DispatchInfoOf<Self::Call>,
+		_len: usize,
+	) -> TransactionValidity {
+		if let Some(local_call) = call.is_sub_type() {
+			if let Call::prep_transaction(data_1, data_2) = local_call {
+			}
+		}
+		Ok(ValidTransaction::default())
+	}
+  }
+}
