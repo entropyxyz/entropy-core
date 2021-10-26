@@ -5,13 +5,13 @@
 
 #![warn(missing_docs)]
 
-use std::sync::Arc;
 pub use node_primitives::{AccountId, Balance, Block, Index};
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
+use std::sync::Arc;
 
 /// Full client dependencies.
 pub struct FullDeps<C, P> {
