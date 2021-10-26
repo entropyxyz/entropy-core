@@ -16,7 +16,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{chain_spec, service, service::new_partial, 	cli::{Cli, Subcommand}};
+use crate::{
+	chain_spec,
+	cli::{Cli, Subcommand},
+	service,
+	service::new_partial,
+};
 use node_executor::ExecutorDispatch;
 use node_template_runtime::{Block, RuntimeApi};
 use sc_cli::{ChainSpec, Result, Role, RuntimeVersion, SubstrateCli};
@@ -139,6 +144,5 @@ pub fn run() -> Result<()> {
 				Ok((cmd.run(client, backend), task_manager))
 			})
 		},
-
 	}
 }

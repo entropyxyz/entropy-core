@@ -42,10 +42,10 @@ use frame_system::{
 pub use node_primitives::{AccountId, Signature};
 use node_primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment};
 use pallet_contracts::weights::WeightInfo;
+use pallet_election_provider_multi_phase::FallbackStrategy;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
-use pallet_election_provider_multi_phase::FallbackStrategy;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_session::historical as pallet_session_historical;
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
@@ -521,7 +521,7 @@ impl pallet_staking::Config for Runtime {
 	type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
 	type ElectionProvider = ElectionProviderMultiPhase;
 	type GenesisElectionProvider = onchain::OnChainSequentialPhragmen<
-	pallet_election_provider_multi_phase::OnChainConfig<Self>,
+		pallet_election_provider_multi_phase::OnChainConfig<Self>,
 	>;
 	type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
 }
@@ -1209,20 +1209,22 @@ impl pallet_transaction_storage::Config for Runtime {
 	type WeightInfo = pallet_transaction_storage::weights::SubstrateWeight<Runtime>;
 }
 
-impl pallet_template::Config for Runtime {
+impl pallet_propagation::Config for Runtime {
+	type Event = Event;
+}
+
+impl pallet_slashing::Config for Runtime {
 	type Event = Event;
 	type ReportBad = Offences;
 	type ValidatorSet = Historical;
-
-}
-
-parameter_types!{
-	pub const EndpointLimit: u32 = 10;
 }
 
 impl pallet_relayer::Config for Runtime {
 	type Event = Event;
-	type EndpointLimit = EndpointLimit;
+}
+
+impl pallet_constraints::Config for Runtime {
+	type Event = Event;
 }
 
 construct_runtime!(
@@ -1272,8 +1274,10 @@ construct_runtime!(
 		Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>},
 		TransactionStorage: pallet_transaction_storage::{Pallet, Call, Storage, Inherent, Config<T>, Event<T>},
 
-		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
+		Propagation: pallet_propagation::{Pallet, Call, Storage, Event<T>},
 		Relayer: pallet_relayer::{Pallet, Call, Storage, Event<T>},
+		Slashing: pallet_slashing::{Pallet, Call, Storage, Event<T>},
+		Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
 
 	}
 );
@@ -1301,7 +1305,7 @@ pub type SignedExtra = (
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
-	pallet_relayer::PrevalidateAttests<Runtime>
+	pallet_relayer::PrevalidateAttests<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;

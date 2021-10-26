@@ -3799,6 +3799,7 @@ dependencies = [
  "pallet-balances",
  "pallet-bounties",
  "pallet-collective",
+ "pallet-constraints",
  "pallet-contracts",
  "pallet-contracts-primitives",
  "pallet-contracts-rpc-runtime-api",
@@ -3816,6 +3817,7 @@ dependencies = [
  "pallet-multisig",
  "pallet-offences",
  "pallet-offences-benchmarking",
+ "pallet-propagation",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
  "pallet-recovery",
@@ -3823,11 +3825,11 @@ dependencies = [
  "pallet-scheduler",
  "pallet-session",
  "pallet-session-benchmarking",
+ "pallet-slashing",
  "pallet-society",
  "pallet-staking",
  "pallet-staking-reward-curve",
  "pallet-sudo",
- "pallet-template",
  "pallet-timestamp",
  "pallet-tips",
  "pallet-transaction-payment",
@@ -4124,6 +4126,25 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-constraints"
+version = "3.0.0-monthly-2021-09+1"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "lite-json",
+ "log",
+ "pallet-authorship",
+ "pallet-relayer",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-staking",
 ]
 
 [[package]]
@@ -4479,6 +4500,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-propagation"
+version = "3.0.0-monthly-2021-09+1"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "lite-json",
+ "log",
+ "pallet-authorship",
+ "pallet-relayer",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-staking",
+]
+
+[[package]]
 name = "pallet-proxy"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?rev=558a68f8328a004f153496a192c3ac9723c763c3#558a68f8328a004f153496a192c3ac9723c763c3"
@@ -4585,6 +4625,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-slashing"
+version = "3.0.0-monthly-2021-09+1"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "lite-json",
+ "log",
+ "pallet-authorship",
+ "pallet-relayer",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-staking",
+]
+
+[[package]]
 name = "pallet-society"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?rev=558a68f8328a004f153496a192c3ac9723c763c3#558a68f8328a004f153496a192c3ac9723c763c3"
@@ -4641,25 +4700,6 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-template"
-version = "3.0.0-monthly-2021-09+1"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "lite-json",
- "log",
- "pallet-authorship",
- "pallet-relayer",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-staking",
 ]
 
 [[package]]
