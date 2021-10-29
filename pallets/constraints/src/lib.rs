@@ -86,10 +86,6 @@ pub mod pallet {
 				whitelist_addresses.len() as u32 <= T::MaxWhitelist::get(),
 				Error::<T>::MaxWhitelist
 			);
-			ensure!(
-				whitelist_addresses.len() as u32 <= T::MaxWhitelist::get(),
-				Error::<T>::MaxWhitelist
-			);
 			let _whitelist_length = AddressWhitelist::<T>::try_mutate(
 				who,
 				|addresses| -> Result<usize, DispatchError> {
