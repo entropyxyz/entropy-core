@@ -26,6 +26,7 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		type MaxWhitelist: Get<u32>;
+		type MaxAddressLength: Get<u32>;
 	}
 
 	#[pallet::pallet]
@@ -39,7 +40,7 @@ pub mod pallet {
 	#[pallet::getter(fn address_whitelist)]
 	/// Mapping of whitelisted addresses
 	pub type AddressWhitelist<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<T::AccountId>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<Vec<u8>>, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -60,6 +61,7 @@ pub mod pallet {
 		StorageOverflow,
 		MaxWhitelist,
 		AlreadyWhitelisted,
+		AddressTooLong,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -70,9 +72,20 @@ pub mod pallet {
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
 		pub fn add_whitelist_address(
 			origin: OriginFor<T>,
-			whitelist_addresses: Vec<T::AccountId>,
+			whitelist_addresses: Vec<Vec<u8>>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			if whitelist_addresses
+				.clone()
+				.into_iter()
+				.any(|address| address.len() as u32 > T::MaxAddressLength::get())
+			{
+				Err(Error::<T>::AddressTooLong)?
+			}
+			ensure!(
+				whitelist_addresses.len() as u32 <= T::MaxWhitelist::get(),
+				Error::<T>::MaxWhitelist
+			);
 			ensure!(
 				whitelist_addresses.len() as u32 <= T::MaxWhitelist::get(),
 				Error::<T>::MaxWhitelist

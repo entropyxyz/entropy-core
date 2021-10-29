@@ -55,10 +55,13 @@ impl system::Config for Test {
 
 parameter_types! {
 	pub const MaxWhitelist: u32 = 3;
+	pub const MaxAddressLength: u32 = 2;
 }
+
 impl pallet_constraints::Config for Test {
 	type Event = Event;
 	type MaxWhitelist = MaxWhitelist;
+	type MaxAddressLength = MaxAddressLength;
 }
 
 // Build genesis storage according to the mock runtime.
