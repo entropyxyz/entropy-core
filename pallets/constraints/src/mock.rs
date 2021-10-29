@@ -54,7 +54,7 @@ impl system::Config for Test {
 }
 
 parameter_types! {
-	pub const MaxWhitelist: u32 = 2;
+	pub const MaxWhitelist: u32 = 3;
 }
 impl pallet_constraints::Config for Test {
 	type Event = Event;
