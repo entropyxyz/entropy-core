@@ -70,19 +70,30 @@ pub mod pallet {
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
 		pub fn add_whitelist_address(
 			origin: OriginFor<T>,
-			whitelist_address: T::AccountId,
+			whitelist_addresses: Vec<T::AccountId>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			ensure!(
+				whitelist_addresses.len() as u32 <= T::MaxWhitelist::get(),
+				Error::<T>::MaxWhitelist
+			);
 			let _whitelist_length = AddressWhitelist::<T>::try_mutate(
 				who,
 				|addresses| -> Result<usize, DispatchError> {
-					if (addresses.len() as u32) >= T::MaxWhitelist::get() {
+					if (addresses.len() as u32 + whitelist_addresses.len() as u32) >
+						T::MaxWhitelist::get()
+					{
 						Err(Error::<T>::MaxWhitelist)?
 					}
-					if addresses.into_iter().any(|address| *address == whitelist_address) {
+					if addresses.into_iter().any(|address| {
+						whitelist_addresses
+							.clone()
+							.into_iter()
+							.any(|address_to_whitelist| *address == address_to_whitelist)
+					}) {
 						Err(Error::<T>::AlreadyWhitelisted)?
 					}
-					addresses.push(whitelist_address);
+					addresses.extend(whitelist_addresses.into_iter().collect::<Vec<_>>());
 					Ok(addresses.len())
 				},
 			)?;
