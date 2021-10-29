@@ -16,54 +16,30 @@ mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{
-		dispatch::DispatchResult,
-		inherent::Vec,
-		pallet_prelude::*,
-		traits::{ValidatorSet, ValidatorSetWithIdentification},
-	};
+	use frame_support::{dispatch::DispatchResult, inherent::Vec, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
-	use lite_json::json::JsonValue;
-	use sp_runtime::{
-		offchain::{http, Duration},
-		sp_std::str,
-	};
-	use sp_staking::{
-		offence::{Kind, Offence, ReportOffence},
-		SessionIndex,
-	};
-
-	use frame_support::sp_runtime::{
-		traits::{Convert, Saturating},
-		Perbill, RuntimeDebug,
-	};
-	use scale_info::prelude::vec;
-
-	use codec::{Decode, Encode};
-
+	use sp_runtime::sp_std::str;
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config:
-		frame_system::Config + pallet_authorship::Config + pallet_relayer::Config
-	{
+	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+		type MaxWhitelist: Get<u32>;
 	}
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
-	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+	// #[pallet::hooks]
+	// impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
-	// The pallet's runtime storage items.
-	// https://substrate.dev/docs/en/knowledgebase/runtime/storage
 	#[pallet::storage]
-	#[pallet::getter(fn something)]
-	// Learn more about declaring storage items:
-	// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
-	pub type Something<T> = StorageValue<_, u32>;
+	#[pallet::getter(fn address_whitelist)]
+	/// Mapping of whitelisted addresses
+	pub type AddressWhitelist<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<T::AccountId>, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -82,11 +58,36 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+		MaxWhitelist,
+		AlreadyWhitelisted,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
 	// These functions materialize as "extrinsics", which are often compared to transactions.
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
+	impl<T: Config> Pallet<T> {
+		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+		pub fn add_whitelist_address(
+			origin: OriginFor<T>,
+			whitelist_address: T::AccountId,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let _whitelist_length = AddressWhitelist::<T>::try_mutate(
+				who,
+				|addresses| -> Result<usize, DispatchError> {
+					if (addresses.len() as u32) >= T::MaxWhitelist::get() {
+						Err(Error::<T>::MaxWhitelist)?
+					}
+					if addresses.into_iter().any(|address| *address == whitelist_address) {
+						Err(Error::<T>::AlreadyWhitelisted)?
+					}
+					addresses.push(whitelist_address);
+					Ok(addresses.len())
+				},
+			)?;
+
+			Ok(())
+		}
+	}
 }
