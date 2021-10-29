@@ -1,4 +1,4 @@
-use crate as pallet_template;
+use crate as pallet_constraints;
 use frame_support::parameter_types;
 use frame_system as system;
 use sp_core::H256;
@@ -18,7 +18,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
+		Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -53,8 +53,12 @@ impl system::Config for Test {
 	type OnSetCode = ();
 }
 
-impl pallet_template::Config for Test {
+parameter_types! {
+	pub const MaxWhitelist: u32 = 2;
+}
+impl pallet_constraints::Config for Test {
 	type Event = Event;
+	type MaxWhitelist = MaxWhitelist;
 }
 
 // Build genesis storage according to the mock runtime.
