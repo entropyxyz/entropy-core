@@ -23,11 +23,8 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
 	use sp_runtime::{
-		traits::{CheckedSub, DispatchInfoOf, SignedExtension},
-		transaction_validity::{
-			InvalidTransaction, TransactionValidity, TransactionValidityError, ValidTransaction,
-		},
-		RuntimeDebug,
+		traits::{DispatchInfoOf, SignedExtension},
+		transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
 	};
 	use sp_std::fmt::Debug;
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -56,15 +53,14 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Event documentation should end with an array that provides descriptive names for event
-		/// parameters. [something, who]
-		SomethingStored(u32, T::AccountId),
+		/// A transaction has been propagated to the network. [who]
+		TransactionPropagated(T::AccountId),
 	}
 
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
-		EndpointSize,
+		Test,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -89,8 +85,7 @@ pub mod pallet {
 				Ok(())
 			})?;
 
-			// Emit an event.
-			// Self::deposit_event(Event::SomethingStored(something, who));
+			Self::deposit_event(Event::TransactionPropagated(who));
 			Ok(())
 		}
 	}
@@ -99,17 +94,17 @@ pub mod pallet {
 	/// otherwise free to place on chain.
 	#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
 	#[scale_info(skip_type_params(T))]
-	pub struct PrevalidateAttests<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
+	pub struct PrevalidateRelayer<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
 	where
 		<T as frame_system::Config>::Call: IsSubType<Call<T>>;
 
-	impl<T: Config + Send + Sync> Debug for PrevalidateAttests<T>
+	impl<T: Config + Send + Sync> Debug for PrevalidateRelayer<T>
 	where
 		<T as frame_system::Config>::Call: IsSubType<Call<T>>,
 	{
 		#[cfg(feature = "std")]
 		fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-			write!(f, "PrevalidateAttests")
+			write!(f, "PrevalidateRelayer")
 		}
 
 		#[cfg(not(feature = "std"))]
@@ -118,7 +113,7 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config + Send + Sync> PrevalidateAttests<T>
+	impl<T: Config + Send + Sync> PrevalidateRelayer<T>
 	where
 		<T as frame_system::Config>::Call: IsSubType<Call<T>>,
 	{
@@ -128,7 +123,7 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config + Send + Sync> SignedExtension for PrevalidateAttests<T>
+	impl<T: Config + Send + Sync> SignedExtension for PrevalidateRelayer<T>
 	where
 		<T as frame_system::Config>::Call: IsSubType<Call<T>>,
 	{
@@ -136,7 +131,7 @@ pub mod pallet {
 		type Call = <T as frame_system::Config>::Call;
 		type AdditionalSigned = ();
 		type Pre = ();
-		const IDENTIFIER: &'static str = "PrevalidateAttests";
+		const IDENTIFIER: &'static str = "PrevalidateRelayer";
 
 		fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
 			Ok(())
@@ -147,13 +142,16 @@ pub mod pallet {
 		// </weight>
 		fn validate(
 			&self,
-			who: &Self::AccountId,
+			_who: &Self::AccountId,
 			call: &Self::Call,
 			_info: &DispatchInfoOf<Self::Call>,
 			_len: usize,
 		) -> TransactionValidity {
 			if let Some(local_call) = call.is_sub_type() {
-				if let Call::prep_transaction(data_1, data_2) = local_call {}
+				if let Call::prep_transaction(data_1, _data_2) = local_call {
+					ensure!(*data_1 != 43u128, InvalidTransaction::Custom(1.into()));
+					//TODO apply filter logic
+				}
 			}
 			Ok(ValidTransaction::default())
 		}
