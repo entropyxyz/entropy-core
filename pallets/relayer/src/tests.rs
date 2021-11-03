@@ -1,20 +1,45 @@
-use crate::{mock::*, Error};
-use frame_support::{assert_noop, assert_ok};
+use crate as pallet_relayer;
+use crate::{mock::*, Message, PrevalidateRelayer};
+use frame_support::{
+	assert_ok,
+	weights::{GetDispatchInfo, Pays},
+};
+use pallet_relayer::Call as RelayerCall;
+use sp_runtime::{
+	traits::SignedExtension,
+	transaction_validity::{TransactionValidity, ValidTransaction},
+};
 
 #[test]
-fn it_works_for_default_value() {
+fn it_preps_transaction() {
 	new_test_ext().execute_with(|| {
-		// Dispatch a signed extrinsic.
-		assert_ok!(TemplateModule::do_something(Origin::signed(1), 42));
-		// Read pallet storage and assert an expected result.
-		assert_eq!(TemplateModule::something(), Some(42));
+		assert_ok!(Relayer::prep_transaction(Origin::signed(1), 42, 42));
+
+		let message = Message { data_1: 42, data_2: 42 };
+
+		assert_eq!(Relayer::messages(), vec![message]);
 	});
 }
 
 #[test]
-fn correct_error_for_none_value() {
+fn it_provides_free_txs() {
 	new_test_ext().execute_with(|| {
-		// Ensure the expected error is thrown when no value is present.
-		assert_noop!(TemplateModule::cause_error(Origin::signed(1)), Error::<Test>::NoneValue);
+		let p = PrevalidateRelayer::<Test>::new();
+		let c = Call::Relayer(RelayerCall::prep_transaction(42, 42));
+		let di = c.get_dispatch_info();
+		assert_eq!(di.pays_fee, Pays::No);
+		let r = p.validate(&42, &c, &di, 20);
+		assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
+	});
+}
+
+#[test]
+fn it_fails_a_free_tx() {
+	new_test_ext().execute_with(|| {
+		let p = PrevalidateRelayer::<Test>::new();
+		let c = Call::Relayer(RelayerCall::prep_transaction(43, 42));
+		let di = c.get_dispatch_info();
+		let r = p.validate(&42, &c, &di, 20);
+		assert!(r.is_err());
 	});
 }
