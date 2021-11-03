@@ -47,9 +47,8 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Event documentation should end with an array that provides descriptive names for event
-		/// parameters. [something, who]
-		SomethingStored(u32, T::AccountId),
+		/// All whitelisted addresses in call. [who, whitelisted_addresses]
+		AddressesWhitelisted(T::AccountId, Vec<Vec<u8>>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -87,7 +86,7 @@ pub mod pallet {
 				Error::<T>::MaxWhitelist
 			);
 			let _whitelist_length = AddressWhitelist::<T>::try_mutate(
-				who,
+				who.clone(),
 				|addresses| -> Result<usize, DispatchError> {
 					if (addresses.len() as u32 + whitelist_addresses.len() as u32) >
 						T::MaxWhitelist::get()
@@ -102,11 +101,11 @@ pub mod pallet {
 					}) {
 						Err(Error::<T>::AlreadyWhitelisted)?
 					}
-					addresses.extend(whitelist_addresses.into_iter().collect::<Vec<_>>());
+					addresses.extend(whitelist_addresses.clone().into_iter().collect::<Vec<_>>());
 					Ok(addresses.len())
 				},
 			)?;
-
+			Self::deposit_event(Event::AddressesWhitelisted(who, whitelist_addresses));
 			Ok(())
 		}
 	}
