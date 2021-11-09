@@ -1,0 +1,49 @@
+[package]
+name = "alice"
+version = "0.1.0"
+edition = "2018"
+
+[[bin]]
+name = "register"
+path = "src/register.rs"
+
+[[bin]]
+name = "sign"
+path = "src/sign.rs"
+
+[dependencies]
+# We need a fork of substrate-api-client, because in this repo we have to specify the substrate-revision (rev) of the substrate pallets, otherwise entropy-core will not compile
+# substrate-api-client = {  version = "0.6.0", git = "https://github.com/scs/substrate-api-client.git"}
+
+##################################################################################
+####################################################################################
+# # this works
+# substrate-api-client = {  version = "0.6.0", path = '../../../substrate/substrate-api-client'} #  default-features = false}
+
+# 56521b01877ffb5ac2c7dad8b9f00b1923965552 is the s-api-client version that upgrades to 558a68f8328a004f153496a192c3ac9723c763c3, so this version should work.
+# but it does not
+ substrate-api-client = {  version = "0.6.0", git = "https://github.com/scs/substrate-api-client.git", rev = "56521b01877ffb5ac2c7dad8b9f00b1923965552",  default-features = false}
+##################################################################################
+##################################################################################
+
+
+clap = { version = "2.33", features = ["yaml"] }
+
+#sp-core = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", features = ["full_crypto"] }
+sp-core = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", features = ["full_crypto"] }
+
+#keyring = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", package = "sp-keyring" }
+keyring = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", package = "sp-keyring" }
+
+#pallet_balances = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", package = "pallet-balances", optional = true }
+pallet-balances = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", package = "pallet-balances" }
+
+rand = "0.8"
+k256 = { version = "0.9.6", features = ["ecdsa", "arithmetic"] }
+etp-lindell17 = { path = '../crypto/etp-lindell17', default-features = false }
+#version = '3.0.0-monthly-2021-09+1', #, features = ["ecdsa", "arithmetic"]
+
+
+[features]
+default = [ ]
+std = [  ]
