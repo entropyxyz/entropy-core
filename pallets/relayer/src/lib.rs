@@ -148,7 +148,7 @@ pub mod pallet {
 			_len: usize,
 		) -> TransactionValidity {
 			if let Some(local_call) = call.is_sub_type() {
-				if let Call::prep_transaction(data_1, _data_2) = local_call {
+				if let Call::prep_transaction{data_1, ..} = local_call {
 					ensure!(*data_1 != 43u128, InvalidTransaction::Custom(1.into()));
 					//TODO apply filter logic
 				}
