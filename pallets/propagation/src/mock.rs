@@ -1,5 +1,5 @@
-use crate as pallet_template;
-use frame_support::parameter_types;
+use crate as pallet_propagation;
+use frame_support::{parameter_types, traits::FindAuthor};
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
@@ -18,7 +18,9 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
+		Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
+		Relayer: pallet_relayer::{Pallet, Call, Storage, Event<T>},
+		Propagation: pallet_propagation::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -53,7 +55,33 @@ impl system::Config for Test {
 	type OnSetCode = ();
 }
 
-impl pallet_template::Config for Test {
+parameter_types! {
+	pub const UncleGenerations: u64 = 0;
+}
+
+/// Author of block is always 11
+pub struct Author11;
+impl FindAuthor<u64> for Author11 {
+	fn find_author<'a, I>(_digests: I) -> Option<u64>
+	where
+		I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])>,
+	{
+		Some(11)
+	}
+}
+
+impl pallet_authorship::Config for Test {
+	type FindAuthor = Author11;
+	type UncleGenerations = UncleGenerations;
+	type FilterUncle = ();
+	type EventHandler = ();
+}
+
+impl pallet_relayer::Config for Test {
+	type Event = Event;
+}
+
+impl pallet_propagation::Config for Test {
 	type Event = Event;
 }
 
