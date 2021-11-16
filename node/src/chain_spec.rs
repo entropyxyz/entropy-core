@@ -293,7 +293,6 @@ pub fn testnet_genesis(
 	GenesisConfig {
 		system: SystemConfig {
 			code: wasm_binary_unwrap().to_vec(),
-			changes_trie_config: Default::default(),
 		},
 		balances: BalancesConfig {
 			balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
@@ -413,9 +412,9 @@ pub fn local_testnet_config() -> ChainSpec {
 #[cfg(test)]
 pub(crate) mod tests {
 	use super::*;
-	use crate::service::{new_full_base, new_light_base, NewFullBase};
+	use crate::service::{new_full_base, NewFullBase};
 	use sc_service_test;
-	use sp_runtime::BuildStorage;
+	use sp_runtime::{BuildStorage, codec};
 
 	fn local_testnet_genesis_instant_single() -> GenesisConfig {
 		testnet_genesis(
@@ -468,15 +467,6 @@ pub(crate) mod tests {
 					new_full_base(config, |_, _| ())?;
 				Ok(sc_service_test::TestNetComponents::new(
 					task_manager,
-					client,
-					network,
-					transaction_pool,
-				))
-			},
-			|config| {
-				let (keep_alive, _, client, network, transaction_pool) = new_light_base(config)?;
-				Ok(sc_service_test::TestNetComponents::new(
-					keep_alive,
 					client,
 					network,
 					transaction_pool,

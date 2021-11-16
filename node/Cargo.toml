@@ -46,6 +46,10 @@ sc-authority-discovery = { version = "0.10.0-dev", git = 'https://github.com/par
 sp-authorship = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sc-consensus-uncles = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
+[dev-dependencies]
+sc-service-test = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sc-consensus-epochs = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+
 [dependencies.node-template-runtime]
 path = '../runtime'
 version = '3.0.0-monthly-2021-09+1'
