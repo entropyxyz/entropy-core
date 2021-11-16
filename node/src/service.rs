@@ -24,7 +24,7 @@ use futures::prelude::*;
 use node_executor::ExecutorDispatch;
 use node_primitives::Block;
 use node_template_runtime::RuntimeApi;
-use sc_client_api::{ExecutorProvider, RemoteBackend};
+use sc_client_api::{ExecutorProvider, BlockBackend};
 use sc_consensus_babe::{self, SlotProportion};
 use sc_executor::NativeElseWasmExecutor;
 use sc_network::{Event, NetworkService};
@@ -91,7 +91,7 @@ pub fn new_partial(
 	let client = Arc::new(client);
 
 	let telemetry = telemetry.map(|(worker, telemetry)| {
-		task_manager.spawn_handle().spawn("telemetry", worker.run());
+		task_manager.spawn_handle().spawn("telemetry", None, worker.run());
 		telemetry
 	});
 
@@ -252,7 +252,6 @@ pub fn new_full_base(
 			transaction_pool: transaction_pool.clone(),
 			spawn_handle: task_manager.spawn_handle(),
 			import_queue,
-			on_demand: None,
 			block_announce_validator_builder: None,
 			warp_sync: Some(warp_sync),
 		})?;
@@ -283,8 +282,6 @@ pub fn new_full_base(
 		rpc_extensions_builder: Box::new(rpc_extensions_builder),
 		transaction_pool: transaction_pool.clone(),
 		task_manager: &mut task_manager,
-		on_demand: None,
-		remote_blockchain: None,
 		system_rpc_tx,
 		telemetry: telemetry.as_mut(),
 	})?;
@@ -350,7 +347,7 @@ pub fn new_full_base(
 		};
 
 		let babe = sc_consensus_babe::start_babe(babe_config)?;
-		task_manager.spawn_essential_handle().spawn_blocking("babe-proposer", babe);
+		task_manager.spawn_essential_handle().spawn_blocking("babe-proposer", Some("block-authoring"), babe);
 	}
 
 	// Spawn authority discovery module.
@@ -377,9 +374,11 @@ pub fn new_full_base(
 				prometheus_registry.clone(),
 			);
 
-		task_manager
-			.spawn_handle()
-			.spawn("authority-discovery-worker", authority_discovery_worker.run());
+			task_manager.spawn_handle().spawn(
+				"authority-discovery-worker",
+				Some("networking"),
+				authority_discovery_worker.run(),
+			);
 	}
 
 	// if the node isn't actively participating in consensus then it doesn't
@@ -419,7 +418,7 @@ pub fn new_full_base(
 		// if it fails we take down the service with it.
 		task_manager
 			.spawn_essential_handle()
-			.spawn_blocking("grandpa-voter", grandpa::run_grandpa_voter(grandpa_config)?);
+			.spawn_blocking("grandpa-voter", None, grandpa::run_grandpa_voter(grandpa_config)?);
 	}
 
 	network_starter.start_network();
@@ -435,7 +434,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 #[cfg(test)]
 mod tests {
 	use crate::service::{new_full_base, NewFullBase};
-	use codec::Encode;
+	use sp_runtime::codec::Encode;
 	use node_primitives::{Block, DigestItem, Signature};
 	use node_template_runtime::{
 		constants::{currency::CENTS, time::SLOT_DURATION},
@@ -528,7 +527,7 @@ mod tests {
 					None,
 				);
 
-				let mut digest = Digest::<H256>::default();
+				let mut digest = Digest::default();
 
 				// even though there's only one authority some slots might be empty,
 				// so we must keep trying the next slots until we can claim one.
@@ -636,6 +635,8 @@ mod tests {
 				let check_nonce = frame_system::CheckNonce::from(index);
 				let check_weight = frame_system::CheckWeight::new();
 				let payment = pallet_transaction_payment::ChargeTransactionPayment::from(0);
+				let relayer = pallet_relayer::PrevalidateRelayer::new();
+
 				let extra = (
 					check_spec_version,
 					check_tx_version,
@@ -644,11 +645,12 @@ mod tests {
 					check_nonce,
 					check_weight,
 					payment,
+					relayer
 				);
 				let raw_payload = SignedPayload::from_raw(
 					function,
 					extra,
-					(spec_version, transaction_version, genesis_hash, genesis_hash, (), (), ()),
+					(spec_version, transaction_version, genesis_hash, genesis_hash, (), (), (), ()),
 				);
 				let signature = raw_payload.using_encoded(|payload| signer.sign(payload));
 				let (function, extra, _) = raw_payload.deconstruct();
