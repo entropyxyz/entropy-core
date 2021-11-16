@@ -25,7 +25,7 @@ fn it_preps_transaction() {
 fn it_provides_free_txs() {
 	new_test_ext().execute_with(|| {
 		let p = PrevalidateRelayer::<Test>::new();
-		let c = Call::Relayer(RelayerCall::prep_transaction(42, 42));
+		let c = Call::Relayer(RelayerCall::prep_transaction { data_1: 42, data_2: 42 });
 		let di = c.get_dispatch_info();
 		assert_eq!(di.pays_fee, Pays::No);
 		let r = p.validate(&42, &c, &di, 20);
@@ -37,7 +37,7 @@ fn it_provides_free_txs() {
 fn it_fails_a_free_tx() {
 	new_test_ext().execute_with(|| {
 		let p = PrevalidateRelayer::<Test>::new();
-		let c = Call::Relayer(RelayerCall::prep_transaction(43, 42));
+		let c = Call::Relayer(RelayerCall::prep_transaction { data_1: 43, data_2: 42 });
 		let di = c.get_dispatch_info();
 		let r = p.validate(&42, &c, &di, 20);
 		assert!(r.is_err());
