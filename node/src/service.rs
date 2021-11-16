@@ -434,7 +434,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 #[cfg(test)]
 mod tests {
 	use crate::service::{new_full_base, NewFullBase};
-	use codec::Encode;
+	use sp_runtime::codec::Encode;
 	use node_primitives::{Block, DigestItem, Signature};
 	use node_template_runtime::{
 		constants::{currency::CENTS, time::SLOT_DURATION},
@@ -527,7 +527,7 @@ mod tests {
 					None,
 				);
 
-				let mut digest = Digest::<H256>::default();
+				let mut digest = Digest::default();
 
 				// even though there's only one authority some slots might be empty,
 				// so we must keep trying the next slots until we can claim one.
@@ -635,6 +635,8 @@ mod tests {
 				let check_nonce = frame_system::CheckNonce::from(index);
 				let check_weight = frame_system::CheckWeight::new();
 				let payment = pallet_transaction_payment::ChargeTransactionPayment::from(0);
+				let relayer = pallet_relayer::PrevalidateRelayer::new();
+
 				let extra = (
 					check_spec_version,
 					check_tx_version,
@@ -643,11 +645,12 @@ mod tests {
 					check_nonce,
 					check_weight,
 					payment,
+					relayer
 				);
 				let raw_payload = SignedPayload::from_raw(
 					function,
 					extra,
-					(spec_version, transaction_version, genesis_hash, genesis_hash, (), (), ()),
+					(spec_version, transaction_version, genesis_hash, genesis_hash, (), (), (), ()),
 				);
 				let signature = raw_payload.using_encoded(|payload| signer.sign(payload));
 				let (function, extra, _) = raw_payload.deconstruct();

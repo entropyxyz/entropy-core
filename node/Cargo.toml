@@ -49,6 +49,14 @@ sc-consensus-uncles = { version = "0.10.0-dev", git = 'https://github.com/parity
 [dev-dependencies]
 sc-service-test = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sc-consensus-epochs = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-inherents = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-keyring = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-keystore = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-tracing = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+frame-system = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+pallet-transaction-payment = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+tempfile = "3.1.0"
+pallet-relayer = { version = "3.0.0", path = "../pallets/relayer" }
 
 [dependencies.node-template-runtime]
 path = '../runtime'

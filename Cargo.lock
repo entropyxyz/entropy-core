@@ -3932,6 +3932,7 @@ version = "3.0.0-monthly-2021-09+1"
 dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
+ "frame-system",
  "futures 0.3.17",
  "hex-literal",
  "jsonrpc-core",
@@ -3940,6 +3941,8 @@ dependencies = [
  "node-rpc",
  "node-template-runtime",
  "pallet-im-online",
+ "pallet-relayer",
+ "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
  "rand 0.7.3",
  "sc-authority-discovery",
@@ -3976,12 +3979,17 @@ dependencies = [
  "sp-consensus-babe",
  "sp-core",
  "sp-finality-grandpa",
+ "sp-inherents",
+ "sp-keyring",
+ "sp-keystore",
  "sp-runtime",
  "sp-timestamp",
+ "sp-tracing",
  "sp-transaction-storage-proof",
  "structopt",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
+ "tempfile",
 ]
 
 [[package]]
