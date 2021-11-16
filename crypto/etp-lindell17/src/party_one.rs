@@ -1,11 +1,11 @@
 //use k256::arithmetic::scalar::Scalar; // arithmetic is non-public module
 // use k256::ecdsa::SigningKey;
 pub use k256::{self, Scalar};
-//pub use k256::SecretKey;
-//use crate::SecretKey;
 use crate::{cryptoerror}; //::{self, CryptoError}; // SecretKey
+use crate::common::SecretKey;
 
-pub type SecretKey = k256::SecretKey;
+
+
 // enum _ByokError {
 //     ArithmeticError,
 // }
