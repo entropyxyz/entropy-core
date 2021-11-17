@@ -4762,9 +4762,11 @@ dependencies = [
  "pallet-authorship",
  "pallet-relayer",
  "parity-scale-codec",
+ "parking_lot",
  "scale-info",
  "sp-core",
  "sp-io",
+ "sp-keystore",
  "sp-runtime",
  "sp-staking",
 ]

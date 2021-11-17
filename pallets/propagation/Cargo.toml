@@ -67,6 +67,10 @@ sp-io = { version = "4.0.0-dev", default-features = false,  git = "https://githu
 lite-json = { version = "0.1", default-features = false }
 sp-runtime = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
 
+[dev-dependencies]
+sp-keystore = { git = "https://github.com/paritytech/substrate", branch = "master" }
+parking_lot = "0.11.2"
+
 [features]
 default = ['std']
 runtime-benchmarks = ['frame-benchmarking']

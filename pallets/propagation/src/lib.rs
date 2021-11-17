@@ -248,8 +248,8 @@ pub mod pallet {
 			Ok(body)
 		}
 
-		pub fn parse_price(price_str: &str) -> Option<u64> {
-			let val = lite_json::parse_json(price_str);
+		pub fn parse_price(returned_data: &str) -> Option<u64> {
+			let val = lite_json::parse_json(returned_data);
 			let price = match val.ok()? {
 				JsonValue::Object(obj) => {
 					let (_, v) =
