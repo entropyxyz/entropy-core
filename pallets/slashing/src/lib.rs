@@ -119,21 +119,18 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// An example dispatchable that may throw a custom error.
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn do_offence(origin: OriginFor<T>) -> DispatchResult {
+		pub fn demo_offence(origin: OriginFor<T>, offenders: Vec<IdentificationTuple<T>>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			Self::do_offence(who, offenders);
+			Ok(())
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		pub fn do_offence(who: T::AccountId, offenders: Vec<IdentificationTuple<T>>) -> DispatchResult {
 			let session_index = T::ValidatorSet::session_index();
 			let current_validators = T::ValidatorSet::validators();
 			let validator_set_count = current_validators.clone().len() as u32;
-			log::info!("current validators: {:?}", current_validators.clone());
-			let offenders = current_validators
-				.into_iter()
-				.enumerate()
-				.filter_map(|(_, id)| {
-					<T::ValidatorSet as ValidatorSetWithIdentification<T::AccountId>>::IdentificationOf::convert(
-					id.clone()
-				).map(|full_id| (id, full_id))
-				})
-				.collect::<Vec<IdentificationTuple<T>>>();
 
 			log::info!("session_index: {:?}", session_index);
 			log::info!("offenders: {:?}", offenders);
@@ -141,8 +138,9 @@ pub mod pallet {
 			let offence = TuxAngry {
 				session_index,
 				validator_set_count,
-				offenders: vec![offenders[1].clone()],
+				offenders,
 			};
+
 			log::info!("offence: {:?}", offence);
 			if let Err(e) = T::ReportBad::report_offence(vec![who], offence) {
 				log::error!("error: {:?}", e);
@@ -150,6 +148,7 @@ pub mod pallet {
 			Ok(())
 		}
 	}
+
 
 	/// An offence that is filed if a validator didn't send a heartbeat message.
 	#[derive(RuntimeDebug)]
