@@ -13,6 +13,7 @@ fn parse_price_works() {
 		("{\"2\":6536}", None),
 	];
 
+
 	for (json, expected) in test_data {
 		assert_eq!(expected, Propagation::parse_price(json));
 	}
