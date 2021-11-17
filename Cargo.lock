@@ -4938,6 +4938,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-staking-extention"
+version = "3.0.0-monthly-2021-10"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-staking",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-staking-reward-curve"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=master#9a00c43a1a81217548b3b7853271f07de6a6b858"
