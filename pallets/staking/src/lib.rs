@@ -13,24 +13,25 @@ mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, traits::{Currency, LockableCurrency}};
-	use frame_system::pallet_prelude::*;
-	use sp_runtime::{
-		traits::{StaticLookup},
+	use frame_support::{
+		dispatch::DispatchResult,
+		pallet_prelude::*,
+		traits::{Currency},
 	};
-	use pallet_staking::{RewardDestination};
+	use frame_system::pallet_prelude::*;
+	use pallet_staking::{RewardDestination, ValidatorPrefs};
+	use sp_runtime::traits::StaticLookup;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_staking::Config {
 		type Currency: Currency<Self::AccountId>;
-
 	}
 
 	/// The balance type of this pallet.
-	pub type BalanceOf<T> =
-	<<T as pallet_staking::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
+	pub type BalanceOf<T> = <<T as pallet_staking::Config>::Currency as Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::Balance;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -68,23 +69,6 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// An example dispatchable that takes a singles value as a parameter, writes the value to
-		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
-			// Check that the extrinsic was signed and get the signer.
-			// This function will return an error if the extrinsic is not signed.
-			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
-			let who = ensure_signed(origin)?;
-
-			// Update storage.
-			<Something<T>>::put(something);
-
-			// Return a successful DispatchResultWithPostInfo
-			Ok(())
-		}
-
-		/// An example dispatchable that may throw a custom error.
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn bond(
 			origin: OriginFor<T>,
@@ -92,9 +76,38 @@ pub mod pallet {
 			#[pallet::compact] value: BalanceOf<T>,
 			payee: RewardDestination<T::AccountId>,
 		) -> DispatchResult {
-			pallet_staking::Pallet::<T>::bond(origin, controller, value, payee);
-			Ok(())
-			}
+			pallet_staking::Pallet::<T>::bond(origin, controller, value, payee)
 		}
-	}
 
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn bond_extra(
+			origin: OriginFor<T>,
+			#[pallet::compact] max_additional: BalanceOf<T>,
+		) -> DispatchResult {
+			pallet_staking::Pallet::<T>::bond_extra(origin, max_additional)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn unbond(
+			origin: OriginFor<T>,
+			#[pallet::compact] value: BalanceOf<T>,
+		) -> DispatchResult {
+			pallet_staking::Pallet::<T>::unbond(origin, value)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn withdraw_unbonded(
+			origin: OriginFor<T>,
+			num_slashing_spans: u32,
+		) -> DispatchResultWithPostInfo {
+			pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn validate(origin: OriginFor<T>, prefs: ValidatorPrefs) -> DispatchResult {
+			pallet_staking::Pallet::<T>::validate(origin, prefs)
+
+		}
+
+	}
+}
