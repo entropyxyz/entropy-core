@@ -13,14 +13,10 @@ mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{
-		dispatch::DispatchResult,
-		pallet_prelude::*,
-		traits::{Currency},
-	};
+	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, traits::Currency};
 	use frame_system::pallet_prelude::*;
-	use pallet_staking::{RewardDestination, ValidatorPrefs};
-	use sp_runtime::traits::StaticLookup;
+	use pallet_staking::{EraIndex, RewardDestination, ValidatorPrefs};
+	use sp_runtime::{traits::StaticLookup, Percent};
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -106,8 +102,160 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn validate(origin: OriginFor<T>, prefs: ValidatorPrefs) -> DispatchResult {
 			pallet_staking::Pallet::<T>::validate(origin, prefs)
-
 		}
 
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn nominate(
+			origin: OriginFor<T>,
+			targets: Vec<<T::Lookup as StaticLookup>::Source>,
+		) -> DispatchResult {
+			pallet_staking::Pallet::<T>::nominate(origin, targets)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn chill(origin: OriginFor<T>) -> DispatchResult {
+			pallet_staking::Pallet::<T>::chill(origin)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn set_payee(
+			origin: OriginFor<T>,
+			payee: RewardDestination<T::AccountId>,
+		) -> DispatchResult {
+			pallet_staking::Pallet::<T>::set_payee(origin, payee)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn set_controller(
+			origin: OriginFor<T>,
+			controller: <T::Lookup as StaticLookup>::Source,
+		) -> DispatchResult {
+			pallet_staking::Pallet::<T>::set_controller(origin, controller)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn set_validator_count(
+			origin: OriginFor<T>,
+			#[pallet::compact] new: u32,
+		) -> DispatchResult {
+			pallet_staking::Pallet::<T>::set_validator_count(origin, new)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn scale_validator_count(origin: OriginFor<T>, factor: Percent) -> DispatchResult {
+			pallet_staking::Pallet::<T>::scale_validator_count(origin, factor)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn force_no_eras(origin: OriginFor<T>) -> DispatchResult {
+			pallet_staking::Pallet::<T>::force_no_eras(origin)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn force_new_era(origin: OriginFor<T>) -> DispatchResult {
+			pallet_staking::Pallet::<T>::force_new_era(origin)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn set_invulnerables(
+			origin: OriginFor<T>,
+			invulnerables: Vec<T::AccountId>,
+		) -> DispatchResult {
+			pallet_staking::Pallet::<T>::set_invulnerables(origin, invulnerables)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn force_unstake(
+			origin: OriginFor<T>,
+			stash: T::AccountId,
+			num_slashing_spans: u32,
+		) -> DispatchResult {
+			pallet_staking::Pallet::<T>::force_unstake(origin, stash, num_slashing_spans)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn force_new_era_always(origin: OriginFor<T>) -> DispatchResult {
+			pallet_staking::Pallet::<T>::force_new_era_always(origin)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn cancel_deferred_slash(
+			origin: OriginFor<T>,
+			era: EraIndex,
+			slash_indices: Vec<u32>,
+		) -> DispatchResult {
+			pallet_staking::Pallet::<T>::cancel_deferred_slash(origin, era, slash_indices)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn payout_stakers(
+			origin: OriginFor<T>,
+			validator_stash: T::AccountId,
+			era: EraIndex,
+		) -> DispatchResultWithPostInfo {
+			pallet_staking::Pallet::<T>::payout_stakers(origin, validator_stash, era)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn rebond(
+			origin: OriginFor<T>,
+			#[pallet::compact] value: BalanceOf<T>,
+		) -> DispatchResultWithPostInfo {
+			pallet_staking::Pallet::<T>::rebond(origin, value)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn set_history_depth(
+			origin: OriginFor<T>,
+			#[pallet::compact] new_history_depth: EraIndex,
+			#[pallet::compact] _era_items_deleted: u32,
+		) -> DispatchResult {
+			pallet_staking::Pallet::<T>::set_history_depth(
+				origin,
+				new_history_depth,
+				_era_items_deleted,
+			)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn reap_stash(
+			origin: OriginFor<T>,
+			stash: T::AccountId,
+			num_slashing_spans: u32,
+		) -> DispatchResultWithPostInfo {
+			pallet_staking::Pallet::<T>::reap_stash(origin, stash, num_slashing_spans)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn kick(
+			origin: OriginFor<T>,
+			who: Vec<<T::Lookup as StaticLookup>::Source>,
+		) -> DispatchResult {
+			pallet_staking::Pallet::<T>::kick(origin, who)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn set_staking_limits(
+			origin: OriginFor<T>,
+			min_nominator_bond: BalanceOf<T>,
+			min_validator_bond: BalanceOf<T>,
+			max_nominator_count: Option<u32>,
+			max_validator_count: Option<u32>,
+			threshold: Option<Percent>,
+		) -> DispatchResult {
+			pallet_staking::Pallet::<T>::set_staking_limits(
+				origin,
+				min_nominator_bond,
+				min_validator_bond,
+				max_nominator_count,
+				max_validator_count,
+				threshold,
+			)
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn chill_other(origin: OriginFor<T>, controller: T::AccountId) -> DispatchResult {
+			pallet_staking::Pallet::<T>::chill_other(origin, controller)
+		}
 	}
 }
