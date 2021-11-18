@@ -540,8 +540,13 @@ impl pallet_staking::Config for Runtime {
 	type SortedListProvider = BagsList;
 	type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
 }
+
+parameter_types! {
+	pub const MaxEndpointLength: u32 = 100;
+}
 impl pallet_staking_extension::Config for Runtime {
 	type Currency = Balances;
+	type MaxEndpointLength = MaxEndpointLength;
 }
 
 parameter_types! {

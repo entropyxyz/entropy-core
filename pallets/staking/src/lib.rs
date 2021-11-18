@@ -22,6 +22,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_staking::Config {
 		type Currency: Currency<Self::AccountId>;
+		type MaxEndpointLength: Get<u32>;
 	}
 
 	/// The balance type of this pallet.
@@ -33,13 +34,10 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
-	// The pallet's runtime storage items.
-	// https://substrate.dev/docs/en/knowledgebase/runtime/storage
 	#[pallet::storage]
-	#[pallet::getter(fn something)]
-	// Learn more about declaring storage items:
-	// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
-	pub type Something<T> = StorageValue<_, u32>;
+	#[pallet::getter(fn endpoint_register)]
+	pub type EndpointRegister<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, ValueQuery>;
 
 	// // Pallets use events to inform users when important changes are made.
 	// // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -54,15 +52,9 @@ pub mod pallet {
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Error names should be descriptive.
-		NoneValue,
-		/// Errors should have helpful documentation associated with them.
-		StorageOverflow,
+		EndpointTooLong
 	}
 
-	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
-	// These functions materialize as "extrinsics", which are often compared to transactions.
-	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
@@ -100,8 +92,15 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn validate(origin: OriginFor<T>, prefs: ValidatorPrefs) -> DispatchResult {
-			pallet_staking::Pallet::<T>::validate(origin, prefs)
+		pub fn validate(origin: OriginFor<T>, prefs: ValidatorPrefs, endpoint: Vec<u8>) -> DispatchResult {
+			let who = ensure_signed(origin.clone())?;
+			ensure!(
+				endpoint.len() as u32 <= T::MaxEndpointLength::get(),
+				Error::<T>::EndpointTooLong
+			);
+			pallet_staking::Pallet::<T>::validate(origin, prefs)?;
+			EndpointRegister::<T>::insert(who, endpoint);
+			Ok(())
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
