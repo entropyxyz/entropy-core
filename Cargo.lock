@@ -4044,6 +4044,7 @@ dependencies = [
  "pallet-slashing",
  "pallet-society",
  "pallet-staking",
+ "pallet-staking-extension",
  "pallet-staking-reward-curve",
  "pallet-sudo",
  "pallet-timestamp",
@@ -4938,7 +4939,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-staking-extention"
+name = "pallet-staking-extension"
 version = "3.0.0-monthly-2021-10"
 dependencies = [
  "frame-benchmarking",

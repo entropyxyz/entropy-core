@@ -13,7 +13,7 @@ mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, traits::Currency};
+	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, traits::Currency, inherent::Vec};
 	use frame_system::pallet_prelude::*;
 	use pallet_staking::{EraIndex, RewardDestination, ValidatorPrefs};
 	use sp_runtime::{traits::StaticLookup, Percent};

@@ -1,5 +1,5 @@
 [package]
-name = 'pallet-staking-extention'
+name = 'pallet-staking-extension'
 version = '3.0.0-monthly-2021-10'
 description = 'FRAME pallet template for defining custom runtime logic.'
 authors = ['Substrate DevHub <https://github.com/substrate-developer-hub>']
