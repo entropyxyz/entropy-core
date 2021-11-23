@@ -63,8 +63,28 @@ pub mod pallet {
 			controller: <T::Lookup as StaticLookup>::Source,
 			#[pallet::compact] value: BalanceOf<T>,
 			payee: RewardDestination<T::AccountId>,
+			endpoint: Vec<u8>
 		) -> DispatchResult {
-			pallet_staking::Pallet::<T>::bond(origin, controller, value, payee)
+			let who = ensure_signed(origin.clone())?;
+			ensure!(
+				endpoint.len() as u32 <= T::MaxEndpointLength::get(),
+				Error::<T>::EndpointTooLong
+			);
+			pallet_staking::Pallet::<T>::bond(origin, controller, value, payee)?;
+			EndpointRegister::<T>::insert(who, endpoint);
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn change_endpoint(origin: OriginFor<T>, endpoint: Vec<u8>) -> DispatchResult {
+			let who = ensure_signed(origin.clone())?;
+			ensure!(
+				endpoint.len() as u32 <= T::MaxEndpointLength::get(),
+				Error::<T>::EndpointTooLong
+			);
+			let stash = pallet_staking::Pallet::<T>::bonded(who.clone());
+			EndpointRegister::<T>::insert(who, endpoint);
+			Ok(())
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
@@ -92,15 +112,8 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn validate(origin: OriginFor<T>, prefs: ValidatorPrefs, endpoint: Vec<u8>) -> DispatchResult {
-			let who = ensure_signed(origin.clone())?;
-			ensure!(
-				endpoint.len() as u32 <= T::MaxEndpointLength::get(),
-				Error::<T>::EndpointTooLong
-			);
-			pallet_staking::Pallet::<T>::validate(origin, prefs)?;
-			EndpointRegister::<T>::insert(who, endpoint);
-			Ok(())
+		pub fn validate(origin: OriginFor<T>, prefs: ValidatorPrefs) -> DispatchResult {
+			pallet_staking::Pallet::<T>::validate(origin, prefs)
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
