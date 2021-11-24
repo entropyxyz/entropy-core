@@ -1,20 +1,21 @@
 use crate as pallet_staking_extension;
-use std::cell::RefCell;
-use pallet_session::historical as pallet_session_historical;
+use frame_election_provider_support::onchain;
 use frame_support::parameter_types;
 use frame_system as system;
+use pallet_session::historical as pallet_session_historical;
+use pallet_staking::{EraIndex, SessionInterface};
 use sp_core::H256;
 use sp_runtime::{
-	testing::{Header, UintAuthorityId, TestXt},
-	traits::{BlakeTwo256, IdentityLookup, ConvertInto},
+	curve::PiecewiseLinear,
+	testing::{Header, TestXt, UintAuthorityId},
+	traits::{BlakeTwo256, ConvertInto, IdentityLookup},
+	Perbill,
 };
 use sp_staking::{
 	offence::{OffenceError, ReportOffence},
 	SessionIndex,
 };
-use pallet_staking::{EraIndex, SessionInterface};
-use sp_runtime::{Perbill, curve::PiecewiseLinear};
-use frame_election_provider_support::onchain;
+use std::cell::RefCell;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -165,7 +166,6 @@ parameter_types! {
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
 }
 
-
 impl pallet_staking::Config for Test {
 	const MAX_NOMINATIONS: u32 = 16;
 	type RewardRemainder = ();
@@ -208,7 +208,7 @@ impl pallet_session::historical::Config for Test {
 }
 
 parameter_types! {
-	pub const MaxEndpointLength: u32 = 5;
+	pub const MaxEndpointLength: u32 = 3;
 }
 impl pallet_staking_extension::Config for Test {
 	type Currency = Balances;
@@ -217,5 +217,10 @@ impl pallet_staking_extension::Config for Test {
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	let genesis = pallet_balances::GenesisConfig::<Test> {
+		balances: vec![(1, 100), (2, 100), (3, 100), (4, 100)],
+	};
+	genesis.assimilate_storage(&mut t).unwrap();
+	t.into()
 }

@@ -13,7 +13,9 @@ mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, traits::Currency, inherent::Vec};
+	use frame_support::{
+		dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency,
+	};
 	use frame_system::pallet_prelude::*;
 	use pallet_staking::{EraIndex, RewardDestination, ValidatorPrefs};
 	use sp_runtime::{traits::StaticLookup, Percent};
@@ -52,7 +54,7 @@ pub mod pallet {
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
-		EndpointTooLong
+		EndpointTooLong,
 	}
 
 	#[pallet::call]
@@ -63,9 +65,9 @@ pub mod pallet {
 			controller: <T::Lookup as StaticLookup>::Source,
 			#[pallet::compact] value: BalanceOf<T>,
 			payee: RewardDestination<T::AccountId>,
-			endpoint: Vec<u8>
+			endpoint: Vec<u8>,
 		) -> DispatchResult {
-			let who = ensure_signed(origin.clone())?;
+			let who = T::Lookup::lookup(controller.clone())?;
 			ensure!(
 				endpoint.len() as u32 <= T::MaxEndpointLength::get(),
 				Error::<T>::EndpointTooLong
@@ -83,6 +85,7 @@ pub mod pallet {
 				Error::<T>::EndpointTooLong
 			);
 			let stash = pallet_staking::Pallet::<T>::bonded(who.clone());
+			dbg!(stash);
 			EndpointRegister::<T>::insert(who, endpoint);
 			Ok(())
 		}
