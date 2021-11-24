@@ -55,6 +55,7 @@ pub mod pallet {
 	#[pallet::error]
 	pub enum Error<T> {
 		EndpointTooLong,
+		NoBond
 	}
 
 	#[pallet::call]
@@ -84,8 +85,7 @@ pub mod pallet {
 				endpoint.len() as u32 <= T::MaxEndpointLength::get(),
 				Error::<T>::EndpointTooLong
 			);
-			let stash = pallet_staking::Pallet::<T>::bonded(who.clone());
-			dbg!(stash);
+			pallet_staking::Pallet::<T>::ledger(who.clone()).ok_or(Error::<T>::NoBond)?;
 			EndpointRegister::<T>::insert(who, endpoint);
 			Ok(())
 		}
@@ -111,7 +111,13 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			num_slashing_spans: u32,
 		) -> DispatchResultWithPostInfo {
-			pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)
+			let controller = ensure_signed(origin.clone())?;
+			pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
+			let ledger = pallet_staking::Pallet::<T>::ledger(&controller);
+			if ledger.is_none() {
+				EndpointRegister::<T>::remove(controller);
+			}
+			Ok(().into())
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
