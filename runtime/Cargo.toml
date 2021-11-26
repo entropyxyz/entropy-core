@@ -103,6 +103,7 @@ pallet-propagation = { version = '3.0.0-monthly-2021-09+1', default-features = f
 pallet-relayer = { version = '3.0.0-monthly-2021-09+1', default-features = false, path = '../pallets/relayer' }
 pallet-slashing = { version = '3.0.0-monthly-2021-09+1', default-features = false, path = '../pallets/slashing' }
 pallet-constraints = { version = '3.0.0-monthly-2021-09+1', default-features = false, path = '../pallets/constraints' }
+pallet-staking-extension = { version = '3.0.0-monthly-2021-09+1', default-features = false, path = '../pallets/staking' }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
@@ -157,6 +158,7 @@ std = [
 	"sp-runtime/std",
 	"sp-staking/std",
 	"pallet-staking/std",
+	"pallet-staking-extension/std",
 	"sp-keyring",
 	"sp-session/std",
 	"pallet-sudo/std",
