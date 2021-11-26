@@ -11,7 +11,7 @@ fn it_takes_in_an_endpoint() {
 			pallet_staking::RewardDestination::Account(1),
 			vec![20]
 		));
-		assert_eq!(Staking::endpoint_register(1), vec![20]);
+		assert_eq!(Staking::endpoint_register(1).unwrap(), vec![20]);
 		assert_noop!(
 			Staking::bond(
 				Origin::signed(4),
@@ -37,11 +37,48 @@ fn it_changes_endpoint() {
 		));
 
 		assert_ok!(Staking::change_endpoint(Origin::signed(1), vec![30]));
-		assert_eq!(Staking::endpoint_register(1), vec![30]);
+		assert_eq!(Staking::endpoint_register(1).unwrap(), vec![30]);
 
 		assert_noop!(Staking::change_endpoint(Origin::signed(3), vec![30]), Error::<Test>::NoBond);
-
-	})
+	});
 }
 
+#[test]
+fn it_deletes_when_no_bond_left() {
+	new_test_ext().execute_with(|| {
+		start_active_era(1);
+		assert_ok!(Staking::bond(
+			Origin::signed(2),
+			1,
+			100u64,
+			pallet_staking::RewardDestination::Account(1),
+			vec![20]
+		));
+		assert_eq!(Staking::endpoint_register(1).unwrap(), vec![20]);
+		let mut lock = Balances::locks(2);
+		assert_eq!(lock[0].amount, 100);
+		assert_eq!(lock.len(), 1);
 
+		assert_ok!(Staking::unbond(Origin::signed(1), 50u64,));
+
+		lock = Balances::locks(2);
+		assert_eq!(lock[0].amount, 100);
+		assert_eq!(lock.len(), 1);
+		println!(":{:?}", FrameStaking::ledger(1));
+
+		assert_ok!(Staking::withdraw_unbonded(Origin::signed(1), 0,));
+
+		lock = Balances::locks(2);
+		assert_eq!(lock[0].amount, 50);
+		assert_eq!(lock.len(), 1);
+
+		assert_eq!(Staking::endpoint_register(1).unwrap(), vec![20]);
+
+		assert_ok!(Staking::unbond(Origin::signed(1), 50u64,));
+
+		assert_ok!(Staking::withdraw_unbonded(Origin::signed(1), 0,));
+		lock = Balances::locks(2);
+		assert_eq!(lock.len(), 0);
+		assert_eq!(Staking::endpoint_register(1), None);
+	});
+}

@@ -39,7 +39,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn endpoint_register)]
 	pub type EndpointRegister<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, OptionQuery>;
 
 	// // Pallets use events to inform users when important changes are made.
 	// // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -55,7 +55,7 @@ pub mod pallet {
 	#[pallet::error]
 	pub enum Error<T> {
 		EndpointTooLong,
-		NoBond
+		NoBond,
 	}
 
 	#[pallet::call]
@@ -114,7 +114,7 @@ pub mod pallet {
 			let controller = ensure_signed(origin.clone())?;
 			pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
 			let ledger = pallet_staking::Pallet::<T>::ledger(&controller);
-			if ledger.is_none() {
+			if ledger.is_none() && Self::endpoint_register(&controller).is_some() {
 				EndpointRegister::<T>::remove(controller);
 			}
 			Ok(().into())

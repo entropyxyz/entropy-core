@@ -1,24 +1,27 @@
 use crate as pallet_staking_extension;
 use frame_election_provider_support::onchain;
-use frame_support::parameter_types;
+use frame_support::{
+	parameter_types,
+	traits::{Get, Hooks, OneSessionHandler},
+};
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
-use pallet_staking::{EraIndex, SessionInterface};
+use pallet_staking::EraIndex;
 use sp_core::H256;
 use sp_runtime::{
 	curve::PiecewiseLinear,
 	testing::{Header, TestXt, UintAuthorityId},
-	traits::{BlakeTwo256, ConvertInto, IdentityLookup},
+	traits::{BlakeTwo256, ConvertInto, IdentityLookup, Zero},
 	Perbill,
 };
-use sp_staking::{
-	offence::{OffenceError, ReportOffence},
-	SessionIndex,
-};
-use std::cell::RefCell;
+use sp_staking::SessionIndex;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+type BlockNumber = u64;
+
+pub const INIT_TIMESTAMP: u64 = 30_000;
+pub const BLOCK_TIME: u64 = 1000;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -62,7 +65,7 @@ impl system::Config for Test {
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
 	type PalletInfo = PalletInfo;
-	type AccountData = pallet_balances::AccountData<u64>;
+	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
@@ -83,9 +86,10 @@ impl pallet_timestamp::Config for Test {
 
 parameter_types! {
 	pub const ExistentialDeposit: Balance = 10;
+	pub const MaxLocks: u32 = 5;
 }
 impl pallet_balances::Config for Test {
-	type MaxLocks = ();
+	type MaxLocks = MaxLocks;
 	type MaxReserves = ();
 	type ReserveIdentifier = [u8; 8];
 	type Balance = Balance;
@@ -96,30 +100,39 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 }
 
-pub struct TestSessionHandler;
-impl pallet_session::SessionHandler<AccountId> for TestSessionHandler {
-	const KEY_TYPE_IDS: &'static [sp_runtime::KeyTypeId] = &[];
+pub struct OtherSessionHandler;
+impl OneSessionHandler<AccountId> for OtherSessionHandler {
+	type Key = UintAuthorityId;
 
-	fn on_genesis_session<Ks: sp_runtime::traits::OpaqueKeys>(_validators: &[(AccountId, Ks)]) {}
-
-	fn on_new_session<Ks: sp_runtime::traits::OpaqueKeys>(
-		_: bool,
-		_: &[(AccountId, Ks)],
-		_: &[(AccountId, Ks)],
-	) {
+	fn on_genesis_session<'a, I: 'a>(_: I)
+	where
+		I: Iterator<Item = (&'a AccountId, Self::Key)>,
+		AccountId: 'a,
+	{
 	}
 
-	fn on_disabled(_: u32) {}
+	fn on_new_session<'a, I: 'a>(_: bool, _: I, _: I)
+	where
+		I: Iterator<Item = (&'a AccountId, Self::Key)>,
+		AccountId: 'a,
+	{
+	}
+
+	fn on_disabled(_validator_index: u32) {}
+}
+
+impl sp_runtime::BoundToRuntimeAppPublic for OtherSessionHandler {
+	type Public = UintAuthorityId;
 }
 
 parameter_types! {
-	pub const Period: u64 = 1;
-	pub const Offset: u64 = 0;
+	pub const Period: BlockNumber = 5;
+	pub const Offset: BlockNumber = 0;
 }
 
 sp_runtime::impl_opaque_keys! {
 	pub struct SessionKeys {
-		pub foo: sp_runtime::testing::UintAuthorityId,
+		pub other: OtherSessionHandler,
 	}
 }
 
@@ -154,11 +167,9 @@ where
 	type Extrinsic = TestXt<Call, ()>;
 }
 
-pub type Extrinsic = sp_runtime::testing::TestXt<Call, ()>;
-
 parameter_types! {
-	pub const SessionsPerEra: SessionIndex = 3;
-	pub const BondingDuration: EraIndex = 3;
+	pub const SessionsPerEra: SessionIndex = 2;
+	pub const BondingDuration: EraIndex = 0;
 	pub const SlashDeferDuration: EraIndex = 0;
 	pub const AttestationPeriod: u64 = 100;
 	pub const ElectionLookahead: u64 = 0;
@@ -191,10 +202,10 @@ impl pallet_staking::Config for Test {
 }
 
 impl pallet_session::Config for Test {
-	type SessionManager = ();
+	type SessionManager = pallet_session::historical::NoteHistoricalRoot<Test, FrameStaking>;
 	type Keys = UintAuthorityId;
 	type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
-	type SessionHandler = TestSessionHandler;
+	type SessionHandler = (OtherSessionHandler,);
 	type Event = Event;
 	type ValidatorId = AccountId;
 	type ValidatorIdOf = ConvertInto;
@@ -223,4 +234,38 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	};
 	genesis.assimilate_storage(&mut t).unwrap();
 	t.into()
+}
+
+pub(crate) fn run_to_block(n: BlockNumber) {
+	FrameStaking::on_finalize(System::block_number());
+	for b in (System::block_number() + 1)..=n {
+		System::set_block_number(b);
+		Session::on_initialize(b);
+		<FrameStaking as Hooks<u64>>::on_initialize(b);
+		Timestamp::set_timestamp(System::block_number() * BLOCK_TIME + INIT_TIMESTAMP);
+		if b != n {
+			FrameStaking::on_finalize(System::block_number());
+		}
+	}
+}
+
+pub(crate) fn start_session(session_index: SessionIndex) {
+	let end: u64 = if Offset::get().is_zero() {
+		(session_index as u64) * Period::get()
+	} else {
+		Offset::get() + (session_index.saturating_sub(1) as u64) * Period::get()
+	};
+	run_to_block(end);
+	// session must have progressed properly.
+	assert_eq!(
+		Session::current_index(),
+		session_index,
+		"current session index = {}, expected = {}",
+		Session::current_index(),
+		session_index,
+	);
+}
+
+pub(crate) fn start_active_era(era_index: EraIndex) {
+	start_session((era_index * <SessionsPerEra as Get<u32>>::get()).into());
 }
