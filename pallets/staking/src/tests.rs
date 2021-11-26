@@ -9,15 +9,17 @@ fn it_takes_in_an_endpoint() {
 			1,
 			100u64,
 			pallet_staking::RewardDestination::Account(1),
+		));
+		assert_ok!(Staking::validate(
+			Origin::signed(1),
+			pallet_staking::ValidatorPrefs::default(),
 			vec![20]
 		));
 		assert_eq!(Staking::endpoint_register(1).unwrap(), vec![20]);
 		assert_noop!(
-			Staking::bond(
+			Staking::validate(
 				Origin::signed(4),
-				3,
-				100u64,
-				pallet_staking::RewardDestination::Account(1),
+				pallet_staking::ValidatorPrefs::default(),
 				vec![20, 20, 20, 20]
 			),
 			Error::<Test>::EndpointTooLong
@@ -33,6 +35,10 @@ fn it_changes_endpoint() {
 			1,
 			100u64,
 			pallet_staking::RewardDestination::Account(1),
+		));
+		assert_ok!(Staking::validate(
+			Origin::signed(1),
+			pallet_staking::ValidatorPrefs::default(),
 			vec![20]
 		));
 
@@ -52,8 +58,13 @@ fn it_deletes_when_no_bond_left() {
 			1,
 			100u64,
 			pallet_staking::RewardDestination::Account(1),
+		));
+		assert_ok!(Staking::validate(
+			Origin::signed(1),
+			pallet_staking::ValidatorPrefs::default(),
 			vec![20]
 		));
+
 		assert_eq!(Staking::endpoint_register(1).unwrap(), vec![20]);
 		let mut lock = Balances::locks(2);
 		assert_eq!(lock[0].amount, 100);
