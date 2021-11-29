@@ -2,23 +2,18 @@ use crate::{mock::*, Error};
 use frame_support::{assert_noop, assert_ok};
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 // use sp_keystore::{testing::KeyStore, KeystoreExt, SyncCryptoStore};
+use parking_lot::RwLock;
 use sp_io::TestExternalities;
 use std::sync::Arc;
-use parking_lot::RwLock;
 
 #[test]
 fn parse_price_works() {
-	let test_data = vec![
-		("{\"demo\":6536}", Some(6536)),
-		("{\"2\":6536}", None),
-	];
-
+	let test_data = vec![("{\"demo\":6536}", Some(6536)), ("{\"2\":6536}", None)];
 
 	for (json, expected) in test_data {
 		assert_eq!(expected, Propagation::parse_price(json));
 	}
 }
-
 
 #[test]
 fn knows_how_to_mock_several_http_calls() {
@@ -58,7 +53,6 @@ fn knows_how_to_mock_several_http_calls() {
 		assert_eq!(data3, 300);
 	})
 }
-
 
 fn offchain_worker_env(
 	state_updater: fn(&mut testing::OffchainState),

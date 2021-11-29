@@ -24,7 +24,7 @@ use futures::prelude::*;
 use node_executor::ExecutorDispatch;
 use node_primitives::Block;
 use node_template_runtime::RuntimeApi;
-use sc_client_api::{ExecutorProvider, BlockBackend};
+use sc_client_api::{BlockBackend, ExecutorProvider};
 use sc_consensus_babe::{self, SlotProportion};
 use sc_executor::NativeElseWasmExecutor;
 use sc_network::{Event, NetworkService};
@@ -347,7 +347,11 @@ pub fn new_full_base(
 		};
 
 		let babe = sc_consensus_babe::start_babe(babe_config)?;
-		task_manager.spawn_essential_handle().spawn_blocking("babe-proposer", Some("block-authoring"), babe);
+		task_manager.spawn_essential_handle().spawn_blocking(
+			"babe-proposer",
+			Some("block-authoring"),
+			babe,
+		);
 	}
 
 	// Spawn authority discovery module.
@@ -374,11 +378,11 @@ pub fn new_full_base(
 				prometheus_registry.clone(),
 			);
 
-			task_manager.spawn_handle().spawn(
-				"authority-discovery-worker",
-				Some("networking"),
-				authority_discovery_worker.run(),
-			);
+		task_manager.spawn_handle().spawn(
+			"authority-discovery-worker",
+			Some("networking"),
+			authority_discovery_worker.run(),
+		);
 	}
 
 	// if the node isn't actively participating in consensus then it doesn't
@@ -416,9 +420,11 @@ pub fn new_full_base(
 
 		// the GRANDPA voter task is considered infallible, i.e.
 		// if it fails we take down the service with it.
-		task_manager
-			.spawn_essential_handle()
-			.spawn_blocking("grandpa-voter", None, grandpa::run_grandpa_voter(grandpa_config)?);
+		task_manager.spawn_essential_handle().spawn_blocking(
+			"grandpa-voter",
+			None,
+			grandpa::run_grandpa_voter(grandpa_config)?,
+		);
 	}
 
 	network_starter.start_network();
@@ -430,11 +436,9 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 	new_full_base(config, |_, _| ()).map(|NewFullBase { task_manager, .. }| task_manager)
 }
 
-
 #[cfg(test)]
 mod tests {
 	use crate::service::{new_full_base, NewFullBase};
-	use sp_runtime::codec::Encode;
 	use node_primitives::{Block, DigestItem, Signature};
 	use node_template_runtime::{
 		constants::{currency::CENTS, time::SLOT_DURATION},
@@ -453,6 +457,7 @@ mod tests {
 	use sp_keyring::AccountKeyring;
 	use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 	use sp_runtime::{
+		codec::Encode,
 		generic::{BlockId, Digest, Era, SignedPayload},
 		key_types::BABE,
 		traits::{Block as BlockT, Header as HeaderT, IdentifyAccount, Verify},
@@ -645,7 +650,7 @@ mod tests {
 					check_nonce,
 					check_weight,
 					payment,
-					relayer
+					relayer,
 				);
 				let raw_payload = SignedPayload::from_raw(
 					function,
