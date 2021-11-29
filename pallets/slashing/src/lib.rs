@@ -43,9 +43,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config:
-		frame_system::Config
-	{
+	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
@@ -119,7 +117,10 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// An example dispatchable that may throw a custom error.
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn demo_offence(origin: OriginFor<T>, offenders: Vec<IdentificationTuple<T>>) -> DispatchResult {
+		pub fn demo_offence(
+			origin: OriginFor<T>,
+			offenders: Vec<IdentificationTuple<T>>,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			Self::do_offence(who, offenders);
 			Ok(())
@@ -127,7 +128,10 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		pub fn do_offence(who: T::AccountId, offenders: Vec<IdentificationTuple<T>>) -> DispatchResult {
+		pub fn do_offence(
+			who: T::AccountId,
+			offenders: Vec<IdentificationTuple<T>>,
+		) -> DispatchResult {
 			let session_index = T::ValidatorSet::session_index();
 			let current_validators = T::ValidatorSet::validators();
 			let validator_set_count = current_validators.clone().len() as u32;
@@ -135,11 +139,7 @@ pub mod pallet {
 			log::info!("session_index: {:?}", session_index);
 			log::info!("offenders: {:?}", offenders);
 
-			let offence = TuxAngry {
-				session_index,
-				validator_set_count,
-				offenders,
-			};
+			let offence = TuxAngry { session_index, validator_set_count, offenders };
 
 			log::info!("offence: {:?}", offence);
 			if let Err(e) = T::ReportBad::report_offence(vec![who], offence) {
@@ -148,7 +148,6 @@ pub mod pallet {
 			Ok(())
 		}
 	}
-
 
 	/// An offence that is filed if a validator didn't send a heartbeat message.
 	#[derive(RuntimeDebug)]

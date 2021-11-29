@@ -1,17 +1,17 @@
 use crate as pallet_slashing;
-use std::cell::RefCell;
-use pallet_session::historical as pallet_session_historical;
 use frame_support::parameter_types;
 use frame_system as system;
+use pallet_session::historical as pallet_session_historical;
 use sp_core::H256;
 use sp_runtime::{
 	testing::{Header, UintAuthorityId},
-	traits::{BlakeTwo256, IdentityLookup, ConvertInto},
+	traits::{BlakeTwo256, ConvertInto, IdentityLookup},
 };
 use sp_staking::{
 	offence::{OffenceError, ReportOffence},
 	SessionIndex,
 };
+use std::cell::RefCell;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -124,7 +124,6 @@ impl ReportOffence<u64, IdentificationTuple, Offence> for OffenceHandler {
 		false
 	}
 }
-
 
 impl pallet_slashing::Config for Test {
 	type Event = Event;
