@@ -11,7 +11,6 @@ fn slash_fraction_works() {
 	});
 }
 
-
 #[test]
 fn offence_test() {
 	new_test_ext().execute_with(|| {

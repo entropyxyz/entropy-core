@@ -26,8 +26,8 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
-		Currency, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, KeyOwnerProofSystem, LockIdentifier,
-		Nothing, OnUnbalanced, U128CurrencyToVote, Filter, Contains
+		Contains, Currency, EqualPrivilegeOnly, Everything, Filter, Imbalance, InstanceFilter,
+		KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, U128CurrencyToVote,
 	},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -191,12 +191,13 @@ parameter_types! {
 
 const_assert!(NORMAL_DISPATCH_RATIO.deconstruct() >= AVERAGE_ON_INITIALIZE_RATIO.deconstruct());
 
-
 pub struct BaseFilter;
 impl Contains<Call> for BaseFilter {
 	fn contains(c: &Call) -> bool {
-		!matches!(c,
-			Call::FrameStaking(_)
+		!matches!(
+			c,
+			Call::Staking(pallet_staking::Call::withdraw_unbonded { .. }) |
+				Call::Staking(pallet_staking::Call::validate { .. })
 		)
 	}
 }
@@ -1294,8 +1295,8 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		ElectionProviderMultiPhase: pallet_election_provider_multi_phase::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
 
-		FrameStaking: pallet_staking::{Pallet, Config<T>, Call, Storage, Event<T>},
-		Staking: pallet_staking_extension::{Pallet, Call, Storage},
+		Staking: pallet_staking::{Pallet, Config<T>, Call, Storage, Event<T>},
+		StakingExtension: pallet_staking_extension::{Pallet, Call, Storage},
 
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},

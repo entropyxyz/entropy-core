@@ -4,7 +4,7 @@ use frame_support::{assert_noop, assert_ok};
 #[test]
 fn it_takes_in_an_endpoint() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(Staking::bond(
+		assert_ok!(FrameStaking::bond(
 			Origin::signed(2),
 			1,
 			100u64,
@@ -30,7 +30,7 @@ fn it_takes_in_an_endpoint() {
 #[test]
 fn it_changes_endpoint() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(Staking::bond(
+		assert_ok!(FrameStaking::bond(
 			Origin::signed(2),
 			1,
 			100u64,
@@ -53,7 +53,7 @@ fn it_changes_endpoint() {
 fn it_deletes_when_no_bond_left() {
 	new_test_ext().execute_with(|| {
 		start_active_era(1);
-		assert_ok!(Staking::bond(
+		assert_ok!(FrameStaking::bond(
 			Origin::signed(2),
 			1,
 			100u64,
@@ -70,7 +70,7 @@ fn it_deletes_when_no_bond_left() {
 		assert_eq!(lock[0].amount, 100);
 		assert_eq!(lock.len(), 1);
 
-		assert_ok!(Staking::unbond(Origin::signed(1), 50u64,));
+		assert_ok!(FrameStaking::unbond(Origin::signed(1), 50u64,));
 
 		lock = Balances::locks(2);
 		assert_eq!(lock[0].amount, 100);
@@ -85,7 +85,7 @@ fn it_deletes_when_no_bond_left() {
 
 		assert_eq!(Staking::endpoint_register(1).unwrap(), vec![20]);
 
-		assert_ok!(Staking::unbond(Origin::signed(1), 50u64,));
+		assert_ok!(FrameStaking::unbond(Origin::signed(1), 50u64,));
 
 		assert_ok!(Staking::withdraw_unbonded(Origin::signed(1), 0,));
 		lock = Balances::locks(2);
