@@ -56,24 +56,8 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn offchain_worker(_block_number: T::BlockNumber) {
-			let messages = pallet_relayer::Pallet::<T>::messages();
-			log::info!("logging messages: {:#?}", messages);
-			log::info!("-----------testing get_enc------------");
-			let bad_struct = DemoStruct { demo: 1u32 };
-			let res: DemoStruct =
-				Self::get_enc(&"http://localhost:3001/bob").unwrap_or(bad_struct.clone());
-			log::info!("GET  receiving res.body: {:?}", res);
-			let number = res.demo + 1;
-
-			log::info!("-----------testing post--------------");
-			log::info!("POST sending   req.body: {:?}", DemoStruct { demo: number });
-			let res: DemoStruct =
-				Self::post_enc(&"http://localhost:3001/bob", DemoStruct { demo: number })
-					.unwrap_or(bad_struct);
-			log::info!("POST receiving res.body: {:?}", res);
-
-			//			pub fn post<S: Encode>(path: &str, data: S) -> Result<u64, http::Error> {
+		fn offchain_worker(block_number: T::BlockNumber) {
+			let messages = pallet_relayer::Pallet::<T>::messages(block_number);
 		}
 	}
 

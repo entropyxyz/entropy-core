@@ -46,7 +46,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn messages)]
-	pub type Messages<T: Config> = StorageValue<_, Vec<Message>, ValueQuery>;
+	pub type Messages<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -79,8 +79,8 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			let new_message = Message { data_1, data_2 };
-
-			Messages::<T>::try_mutate(|messages| -> Result<_, DispatchError> {
+			let blockNumber = <frame_system::Pallet<T>>::block_number();
+			Messages::<T>::try_mutate(blockNumber, |messages| -> Result<_, DispatchError> {
 				messages.push(new_message);
 				Ok(())
 			})?;
