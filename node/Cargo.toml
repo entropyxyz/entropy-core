@@ -8,7 +8,7 @@ license = 'AGPL-3.0-or-later'
 name = 'node-template'
 publish = false
 repository = 'https://github.com/substrate-developer-hub/substrate-node-template/'
-version = '3.0.0-monthly-2021-09+1'
+version = '3.0.0-monthly-2021-10'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
@@ -60,7 +60,7 @@ pallet-relayer = { version = "3.0.0", path = "../pallets/relayer" }
 
 [dependencies.node-template-runtime]
 path = '../runtime'
-version = '3.0.0-monthly-2021-09+1'
+version = '3.0.0-monthly-2021-10'
 
 [dependencies.frame-benchmarking]
 git = 'https://github.com/paritytech/substrate.git'

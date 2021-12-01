@@ -6,7 +6,7 @@ license = 'AGPL-3.0-or-later'
 name = 'node-template-runtime'
 publish = false
 repository = 'https://github.com/substrate-developer-hub/substrate-node-template/'
-version = '3.0.0-monthly-2021-09+1'
+version = '3.0.0-monthly-2021-10'
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -99,11 +99,11 @@ pallet-uniques = { version = "4.0.0-dev", default-features = false, git = 'https
 pallet-vesting = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
 
-pallet-propagation = { version = '3.0.0-monthly-2021-09+1', default-features = false, path = '../pallets/propagation' }
-pallet-relayer = { version = '3.0.0-monthly-2021-09+1', default-features = false, path = '../pallets/relayer' }
-pallet-slashing = { version = '3.0.0-monthly-2021-09+1', default-features = false, path = '../pallets/slashing' }
-pallet-constraints = { version = '3.0.0-monthly-2021-09+1', default-features = false, path = '../pallets/constraints' }
-pallet-staking-extension = { version = '3.0.0-monthly-2021-09+1', default-features = false, path = '../pallets/staking' }
+pallet-propagation = { version = '3.0.0-monthly-2021-10', default-features = false, path = '../pallets/propagation' }
+pallet-relayer = { version = '3.0.0-monthly-2021-10', default-features = false, path = '../pallets/relayer' }
+pallet-slashing = { version = '3.0.0-monthly-2021-10', default-features = false, path = '../pallets/slashing' }
+pallet-constraints = { version = '3.0.0-monthly-2021-10', default-features = false, path = '../pallets/constraints' }
+pallet-staking-extension = { version = '3.0.0-monthly-2021-10', default-features = false, path = '../pallets/staking' }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
