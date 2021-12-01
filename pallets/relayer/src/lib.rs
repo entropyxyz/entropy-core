@@ -23,7 +23,7 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
 	use sp_runtime::{
-		traits::{DispatchInfoOf, SignedExtension},
+		traits::{DispatchInfoOf, SignedExtension, Saturating},
 		transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
 	};
 	use sp_std::fmt::Debug;
@@ -32,6 +32,15 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type PruneBlock: Get<Self::BlockNumber>;
+	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(block_number: T::BlockNumber) -> Weight {
+			Self::move_active_to_pending(block_number);
+			0
+		}
 	}
 
 	#[pallet::pallet]
@@ -48,6 +57,9 @@ pub mod pallet {
 	#[pallet::getter(fn messages)]
 	pub type Messages<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn pending)]
+	pub type Pending<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
@@ -89,6 +101,24 @@ pub mod pallet {
 			Ok(())
 		}
 	}
+
+	impl<T: Config> Pallet<T> {
+		pub fn move_active_to_pending(block_number: T::BlockNumber) {
+			let target_block = block_number.saturating_sub(2u32.into());
+			let messages = 	Messages::<T>::take(target_block);
+
+			if messages.len() > 0 {
+				Messages::<T>::insert(target_block, messages);
+			}
+
+			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
+			Pending::<T>::remove(prune_block);
+
+			// TODO check and point a validator who does not declare done before prune
+
+		}
+	}
+
 
 	/// Validate `attest` calls prior to execution. Needed to avoid a DoS attack since they are
 	/// otherwise free to place on chain.
