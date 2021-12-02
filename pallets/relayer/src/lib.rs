@@ -29,7 +29,7 @@ pub mod pallet {
 	use sp_std::fmt::Debug;
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + pallet_authorship::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type PruneBlock: Get<Self::BlockNumber>;
@@ -39,6 +39,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(block_number: T::BlockNumber) -> Weight {
 			Self::move_active_to_pending(block_number);
+			Self::note_responsibility(block_number);
 			0
 		}
 	}
@@ -60,6 +61,10 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn pending)]
 	pub type Pending<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn responsibility)]
+	pub type Responsibility<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, ValueQuery>;
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
@@ -91,8 +96,8 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			let new_message = Message { data_1, data_2 };
-			let blockNumber = <frame_system::Pallet<T>>::block_number();
-			Messages::<T>::try_mutate(blockNumber, |messages| -> Result<_, DispatchError> {
+			let block_number = <frame_system::Pallet<T>>::block_number();
+			Messages::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
 				messages.push(new_message);
 				Ok(())
 			})?;
@@ -117,6 +122,17 @@ pub mod pallet {
 			// TODO check and point a validator who does not declare done before prune
 
 		}
+
+		pub fn note_responsibility(block_number: T::BlockNumber) {
+			let target_block = block_number.saturating_sub(1u32.into());
+			let block_author = pallet_authorship::Pallet::<T>::author();
+			Responsibility::<T>::insert(target_block, block_author);
+
+			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
+			Responsibility::<T>::remove(prune_block);
+
+		}
+
 	}
 
 

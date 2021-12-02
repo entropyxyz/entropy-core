@@ -62,6 +62,7 @@ version = '4.0.0-dev'
 
 [dependencies]
 sp-std = { package = "sp-std", git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+pallet-authorship = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
 [features]
 default = ['std']

@@ -26,7 +26,7 @@ pub mod pallet {
 	use lite_json::json::JsonValue;
 	use sp_runtime::{
 		offchain::{http, Duration},
-		sp_std::str,
+		sp_std::{str},
 	};
 	use sp_staking::{
 		offence::{Kind, Offence, ReportOffence},
@@ -98,24 +98,21 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {}
 
-	#[derive(Debug, Decode, Encode, Clone)]
-	struct DemoStruct {
-		demo: u32,
-	}
-
 	impl<T: Config> Pallet<T> {
 		pub fn post(block_number: T::BlockNumber) -> Result<(), http::Error> {
 			// get deadline, same as in fn get()
 			let messages = pallet_relayer::Pallet::<T>::messages(block_number.saturating_sub(1u32.into()));
+			let block_author = pallet_authorship::Pallet::<T>::author();
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
 			let path = &"http://localhost:3001";
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
 			let req_body = messages.encode();
 
+
 			// We construct the request
 			// important: the header->Content-Type must be added and match that of the receiving
 			// party!!
-			let pending = http::Request::post(path, vec![req_body])
+			let pending = http::Request::post(path, vec![block_author.encode(), req_body])
 				.deadline(deadline)
 				.add_header("Content-Type", "application/x-parity-scale-codec--DemoStruct")
 				.send()
