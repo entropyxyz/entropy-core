@@ -63,8 +63,12 @@ pub mod pallet {
 	pub type Pending<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn failures)]
+	pub type Failures<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<u32>, OptionQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn responsibility)]
-	pub type Responsibility<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, ValueQuery>;
+	pub type Responsibility<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, OptionQuery>;
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
@@ -78,6 +82,9 @@ pub mod pallet {
 	#[pallet::error]
 	pub enum Error<T> {
 		Test,
+		NotYourResponsibility,
+		NoResponsibility,
+		AlreadySubmitted
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -105,19 +112,42 @@ pub mod pallet {
 			Self::deposit_event(Event::TransactionPropagated(who));
 			Ok(())
 		}
+
+		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+		pub fn confirm_done(origin: OriginFor<T>, block_number: T::BlockNumber, failures: Vec<u32>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let responsibility = Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
+			ensure!(responsibility == who, Error::<T>::NotYourResponsibility);
+			let current_failures = Self::failures(block_number);
+
+			ensure!(current_failures.is_none(), Error::<T>::AlreadySubmitted);
+			Failures::<T>::insert(block_number, failures);
+
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
 		pub fn move_active_to_pending(block_number: T::BlockNumber) {
+			//TODO reo order this function to deal with possible failures
 			let target_block = block_number.saturating_sub(2u32.into());
 			let messages = 	Messages::<T>::take(target_block);
 
+
 			if messages.len() > 0 {
-				Messages::<T>::insert(target_block, messages);
+				Pending::<T>::insert(target_block, messages);
 			}
 
 			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
 			Pending::<T>::remove(prune_block);
+
+			let current_failures = Self::failures(block_number);
+			if current_failures.is_none() {
+				//TODO slash
+			} else {
+				Failures::<T>::remove(prune_block);
+			}
+
 
 			// TODO check and point a validator who does not declare done before prune
 
@@ -188,7 +218,7 @@ pub mod pallet {
 		// </weight>
 		fn validate(
 			&self,
-			_who: &Self::AccountId,
+			who: &Self::AccountId,
 			call: &Self::Call,
 			_info: &DispatchInfoOf<Self::Call>,
 			_len: usize,
@@ -198,6 +228,14 @@ pub mod pallet {
 					ensure!(*data_1 != 43u128, InvalidTransaction::Custom(1.into()));
 					//TODO apply filter logic
 				}
+
+				if let Call::confirm_done { block_number, .. } = local_call {
+					let responsibility = Responsibility::<T>::get(block_number).ok_or(InvalidTransaction::Custom(2.into()))?;
+					ensure!(responsibility == *who, InvalidTransaction::Custom(3.into()));
+					let current_failures = Failures::<T>::get(block_number);
+					ensure!(current_failures.is_none(), InvalidTransaction::Custom(4.into()));
+				}
+
 			}
 			Ok(ValidTransaction::default())
 		}
