@@ -1,5 +1,5 @@
 use crate as pallet_relayer;
-use crate::{mock::*, Message, PrevalidateRelayer, Error, Responsibility};
+use crate::{mock::*, Message, PrevalidateRelayer, Error, Responsibility, Failures};
 use frame_support::{
 	assert_ok, assert_noop,
 	weights::{GetDispatchInfo, Pays},
@@ -38,7 +38,7 @@ fn it_confirms_done() {
 }
 
 #[test]
-fn it_provides_free_txs() {
+fn it_provides_free_txs_prep_tx() {
 	new_test_ext().execute_with(|| {
 		let p = PrevalidateRelayer::<Test>::new();
 		let c = Call::Relayer(RelayerCall::prep_transaction { data_1: 42, data_2: 42 });
@@ -50,7 +50,7 @@ fn it_provides_free_txs() {
 }
 
 #[test]
-fn it_fails_a_free_tx() {
+fn it_fails_a_free_tx_prep_tx() {
 	new_test_ext().execute_with(|| {
 		let p = PrevalidateRelayer::<Test>::new();
 		let c = Call::Relayer(RelayerCall::prep_transaction { data_1: 43, data_2: 42 });
@@ -59,3 +59,56 @@ fn it_fails_a_free_tx() {
 		assert!(r.is_err());
 	});
 }
+
+#[test]
+fn it_provides_free_txs_confirm_done() {
+	new_test_ext().execute_with(|| {
+		Responsibility::<Test>::insert(5, 1);
+		let p = PrevalidateRelayer::<Test>::new();
+		let c = Call::Relayer(RelayerCall::confirm_done { block_number: 5, failures: vec![] });
+		let di = c.get_dispatch_info();
+		assert_eq!(di.pays_fee, Pays::No);
+		let r = p.validate(&1, &c, &di, 20);
+		assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
+	});
+}
+
+#[test]
+#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(2)"]
+fn it_fails_a_free_tx_confirm_done_err_2() {
+	new_test_ext().execute_with(|| {
+		let p = PrevalidateRelayer::<Test>::new();
+		let c = Call::Relayer(RelayerCall::confirm_done { block_number: 5, failures: vec![] });
+		let di = c.get_dispatch_info();
+		let r = p.validate(&1, &c, &di, 20);
+		r.unwrap()
+	});
+}
+
+#[test]
+#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(3)"]
+fn it_fails_a_free_tx_confirm_done_err_3() {
+	new_test_ext().execute_with(|| {
+		Responsibility::<Test>::insert(5, 1);
+		let p = PrevalidateRelayer::<Test>::new();
+		let c = Call::Relayer(RelayerCall::confirm_done { block_number: 5, failures: vec![] });
+		let di = c.get_dispatch_info();
+		let r = p.validate(&42, &c, &di, 20);
+		r.unwrap()
+	});
+}
+
+#[test]
+#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(4)"]
+fn it_fails_a_free_tx_confirm_done_err_4() {
+	new_test_ext().execute_with(|| {
+		Responsibility::<Test>::insert(5, 1);
+		Failures::<Test>::insert(5, vec![1]);
+		let p = PrevalidateRelayer::<Test>::new();
+		let c = Call::Relayer(RelayerCall::confirm_done { block_number: 5, failures: vec![] });
+		let di = c.get_dispatch_info();
+		let r = p.validate(&1, &c, &di, 20);
+		r.unwrap()
+	});
+}
+
