@@ -143,7 +143,7 @@ pub mod pallet {
 
 			let current_failures = Self::failures(block_number);
 			if current_failures.is_none() {
-				//TODO slash
+				//TODO slash or point for failure then slash after pointed a few times
 			} else {
 				Failures::<T>::remove(prune_block);
 			}
