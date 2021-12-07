@@ -8,7 +8,7 @@ name = 'pallet-slashing'
 publish = false
 readme = 'README.md'
 repository = 'https://github.com/substrate-developer-hub/substrate-node-template/'
-version = '3.0.0-monthly-2021-09+1'
+version = '3.0.0-monthly-2021-10'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
