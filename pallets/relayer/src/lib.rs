@@ -18,7 +18,7 @@ mod benchmarking;
 pub mod pallet {
 	use frame_support::{
 		dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::IsSubType,
-		weights::Pays,
+		weights::Pays
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
@@ -65,6 +65,10 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn failures)]
 	pub type Failures<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<u32>, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn unresponsive)]
+	pub type Unresponsive<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u32, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn responsibility)]
@@ -129,27 +133,32 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		pub fn move_active_to_pending(block_number: T::BlockNumber) {
-			//TODO reo order this function to deal with possible failures
 			let target_block = block_number.saturating_sub(2u32.into());
-			let messages = 	Messages::<T>::take(target_block);
-
-
-			if messages.len() > 0 {
-				Pending::<T>::insert(target_block, messages);
-			}
-
-			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
-			Pending::<T>::remove(prune_block);
-
 			let current_failures = Self::failures(block_number);
+			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
+
 			if current_failures.is_none() {
+				let responsibility = Self::responsibility(target_block);
+				if responsibility.is_none() {
+					log::warn!("responsibility not found {:?}", target_block)
+				}
+				// TODO review maybe use qed
+				let unwrapped = responsibility.unwrap_or_else(Default::default);
+				Unresponsive::<T>::mutate(unwrapped, |dings| *dings += 1);
+
 				//TODO slash or point for failure then slash after pointed a few times
 			} else {
 				Failures::<T>::remove(prune_block);
 			}
 
+			let messages = 	Messages::<T>::take(target_block);
 
-			// TODO check and point a validator who does not declare done before prune
+			if messages.len() > 0 {
+				dbg!(messages.clone(), target_block);
+				Pending::<T>::insert(target_block, messages);
+			}
+
+			Pending::<T>::remove(prune_block);
 
 		}
 

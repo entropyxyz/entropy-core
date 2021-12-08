@@ -37,6 +37,45 @@ fn it_confirms_done() {
 	});
 }
 
+
+#[test]
+fn moves_active_to_pending() {
+	new_test_ext().execute_with(|| {
+		// no failures pings unresponsive
+		System::set_block_number(3);
+		Responsibility::<Test>::insert(3, 1);
+		Relayer::move_active_to_pending(5);
+		assert_eq!(Relayer::unresponsive(1), 1);
+		let failures = vec![0u32, 3u32];
+		Failures::<Test>::insert(2, failures.clone());
+		Failures::<Test>::insert(5, failures.clone());
+
+		assert_ok!(Relayer::prep_transaction(Origin::signed(1), 42, 42));
+		let message = Message { data_1: 42, data_2: 42 };
+		assert_eq!(Relayer::messages(3), vec![message.clone()]);
+
+		// prunes old failure remove messages put into pending
+		assert_eq!(Relayer::failures(2), Some(failures.clone()));
+		Relayer::move_active_to_pending(5);
+		assert_eq!(Relayer::failures(2), None);
+		assert_eq!(Relayer::messages(3), vec![]);
+		assert_eq!(Relayer::pending(3), vec![message.clone()]);
+		// pending pruned
+		Relayer::move_active_to_pending(6);
+		assert_eq!(Relayer::pending(3), vec![]);
+
+	});
+}
+
+
+#[test]
+fn notes_responsibility() {
+	new_test_ext().execute_with(|| {
+
+
+	});
+}
+
 #[test]
 fn it_provides_free_txs_prep_tx() {
 	new_test_ext().execute_with(|| {

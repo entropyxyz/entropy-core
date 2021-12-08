@@ -77,7 +77,7 @@ impl pallet_authorship::Config for Test {
 }
 
 parameter_types! {
-	pub const PruneBlock: u64 = 0;
+	pub const PruneBlock: u64 = 3;
 }
 
 impl pallet_relayer::Config for Test {
