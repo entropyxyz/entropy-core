@@ -18,12 +18,12 @@ mod benchmarking;
 pub mod pallet {
 	use frame_support::{
 		dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::IsSubType,
-		weights::Pays
+		weights::Pays,
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
 	use sp_runtime::{
-		traits::{DispatchInfoOf, SignedExtension, Saturating},
+		traits::{DispatchInfoOf, Saturating, SignedExtension},
 		transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
 	};
 	use sp_std::fmt::Debug;
@@ -56,23 +56,28 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn messages)]
-	pub type Messages<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
+	pub type Messages<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn pending)]
-	pub type Pending<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
+	pub type Pending<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn failures)]
-	pub type Failures<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<u32>, OptionQuery>;
+	pub type Failures<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<u32>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn unresponsive)]
-	pub type Unresponsive<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u32, ValueQuery>;
+	pub type Unresponsive<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, u32, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn responsibility)]
-	pub type Responsibility<T: Config> = StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, OptionQuery>;
+	pub type Responsibility<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, OptionQuery>;
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
@@ -88,7 +93,7 @@ pub mod pallet {
 		Test,
 		NotYourResponsibility,
 		NoResponsibility,
-		AlreadySubmitted
+		AlreadySubmitted,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -118,9 +123,14 @@ pub mod pallet {
 		}
 
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
-		pub fn confirm_done(origin: OriginFor<T>, block_number: T::BlockNumber, failures: Vec<u32>) -> DispatchResult {
+		pub fn confirm_done(
+			origin: OriginFor<T>,
+			block_number: T::BlockNumber,
+			failures: Vec<u32>,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			let responsibility = Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
+			let responsibility =
+				Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
 			ensure!(responsibility == who, Error::<T>::NotYourResponsibility);
 			let current_failures = Self::failures(block_number);
 
@@ -136,22 +146,22 @@ pub mod pallet {
 			let target_block = block_number.saturating_sub(2u32.into());
 			let current_failures = Self::failures(block_number);
 			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
+			let responsibility = Self::responsibility(target_block);
+			if responsibility.is_none() {
+				log::warn!("responsibility not found {:?}", target_block)
+			}
+			let unwrapped = responsibility.unwrap_or_else(Default::default);
 
 			if current_failures.is_none() {
-				let responsibility = Self::responsibility(target_block);
-				if responsibility.is_none() {
-					log::warn!("responsibility not found {:?}", target_block)
-				}
-				// TODO review maybe use qed
-				let unwrapped = responsibility.unwrap_or_else(Default::default);
 				Unresponsive::<T>::mutate(unwrapped, |dings| *dings += 1);
 
-				//TODO slash or point for failure then slash after pointed a few times
+			//TODO slash or point for failure then slash after pointed a few times
 			} else {
 				Failures::<T>::remove(prune_block);
+				Unresponsive::<T>::remove(unwrapped);
 			}
 
-			let messages = 	Messages::<T>::take(target_block);
+			let messages = Messages::<T>::take(target_block);
 
 			if messages.len() > 0 {
 				dbg!(messages.clone(), target_block);
@@ -159,7 +169,6 @@ pub mod pallet {
 			}
 
 			Pending::<T>::remove(prune_block);
-
 		}
 
 		pub fn note_responsibility(block_number: T::BlockNumber) {
@@ -169,11 +178,8 @@ pub mod pallet {
 
 			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
 			Responsibility::<T>::remove(prune_block);
-
 		}
-
 	}
-
 
 	/// Validate `attest` calls prior to execution. Needed to avoid a DoS attack since they are
 	/// otherwise free to place on chain.
@@ -239,12 +245,12 @@ pub mod pallet {
 				}
 
 				if let Call::confirm_done { block_number, .. } = local_call {
-					let responsibility = Responsibility::<T>::get(block_number).ok_or(InvalidTransaction::Custom(2.into()))?;
+					let responsibility = Responsibility::<T>::get(block_number)
+						.ok_or(InvalidTransaction::Custom(2.into()))?;
 					ensure!(responsibility == *who, InvalidTransaction::Custom(3.into()));
 					let current_failures = Failures::<T>::get(block_number);
 					ensure!(current_failures.is_none(), InvalidTransaction::Custom(4.into()));
 				}
-
 			}
 			Ok(ValidTransaction::default())
 		}

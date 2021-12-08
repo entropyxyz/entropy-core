@@ -1,7 +1,7 @@
 use crate as pallet_relayer;
-use crate::{mock::*, Message, PrevalidateRelayer, Error, Responsibility, Failures};
+use crate::{mock::*, Error, Failures, Message, PrevalidateRelayer, Responsibility};
 use frame_support::{
-	assert_ok, assert_noop,
+	assert_noop, assert_ok,
 	weights::{GetDispatchInfo, Pays},
 };
 use pallet_relayer::Call as RelayerCall;
@@ -30,13 +30,20 @@ fn it_confirms_done() {
 		assert_ok!(Relayer::confirm_done(Origin::signed(1), 5, failures.clone()));
 		assert_eq!(Relayer::failures(5), Some(failures.clone()));
 
-		assert_noop!(Relayer::confirm_done(Origin::signed(1), 5, failures.clone()), Error::<Test>::AlreadySubmitted);
-		assert_noop!(Relayer::confirm_done(Origin::signed(1), 6, failures.clone()), Error::<Test>::NoResponsibility);
-		assert_noop!(Relayer::confirm_done(Origin::signed(2), 5, failures.clone()), Error::<Test>::NotYourResponsibility);
-
+		assert_noop!(
+			Relayer::confirm_done(Origin::signed(1), 5, failures.clone()),
+			Error::<Test>::AlreadySubmitted
+		);
+		assert_noop!(
+			Relayer::confirm_done(Origin::signed(1), 6, failures.clone()),
+			Error::<Test>::NoResponsibility
+		);
+		assert_noop!(
+			Relayer::confirm_done(Origin::signed(2), 5, failures.clone()),
+			Error::<Test>::NotYourResponsibility
+		);
 	});
 }
-
 
 #[test]
 fn moves_active_to_pending() {
@@ -60,19 +67,20 @@ fn moves_active_to_pending() {
 		assert_eq!(Relayer::failures(2), None);
 		assert_eq!(Relayer::messages(3), vec![]);
 		assert_eq!(Relayer::pending(3), vec![message.clone()]);
+		assert_eq!(Relayer::unresponsive(1), 0);
 		// pending pruned
 		Relayer::move_active_to_pending(6);
 		assert_eq!(Relayer::pending(3), vec![]);
-
 	});
 }
-
 
 #[test]
 fn notes_responsibility() {
 	new_test_ext().execute_with(|| {
-
-
+		Responsibility::<Test>::insert(2, 1);
+		Relayer::note_responsibility(5);
+		assert_eq!(Relayer::responsibility(4), Some(11));
+		assert_eq!(Relayer::responsibility(2), None);
 	});
 }
 
@@ -150,4 +158,3 @@ fn it_fails_a_free_tx_confirm_done_err_4() {
 		r.unwrap()
 	});
 }
-
