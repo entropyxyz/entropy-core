@@ -23,15 +23,25 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
 	use sp_runtime::{
-		traits::{DispatchInfoOf, SignedExtension},
+		traits::{DispatchInfoOf, Saturating, SignedExtension},
 		transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
 	};
 	use sp_std::fmt::Debug;
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + pallet_authorship::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type PruneBlock: Get<Self::BlockNumber>;
+	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(block_number: T::BlockNumber) -> Weight {
+			Self::move_active_to_pending(block_number);
+			Self::note_responsibility(block_number);
+			0
+		}
 	}
 
 	#[pallet::pallet]
@@ -46,8 +56,28 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn messages)]
-	pub type Messages<T: Config> = StorageValue<_, Vec<Message>, ValueQuery>;
+	pub type Messages<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn pending)]
+	pub type Pending<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn failures)]
+	pub type Failures<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<u32>, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn unresponsive)]
+	pub type Unresponsive<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, u32, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn responsibility)]
+	pub type Responsibility<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, OptionQuery>;
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
@@ -61,6 +91,9 @@ pub mod pallet {
 	#[pallet::error]
 	pub enum Error<T> {
 		Test,
+		NotYourResponsibility,
+		NoResponsibility,
+		AlreadySubmitted,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -79,14 +112,73 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			let new_message = Message { data_1, data_2 };
-
-			Messages::<T>::try_mutate(|messages| -> Result<_, DispatchError> {
+			let block_number = <frame_system::Pallet<T>>::block_number();
+			Messages::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
 				messages.push(new_message);
 				Ok(())
 			})?;
 
 			Self::deposit_event(Event::TransactionPropagated(who));
 			Ok(())
+		}
+
+		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+		pub fn confirm_done(
+			origin: OriginFor<T>,
+			block_number: T::BlockNumber,
+			failures: Vec<u32>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let responsibility =
+				Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
+			ensure!(responsibility == who, Error::<T>::NotYourResponsibility);
+			let current_failures = Self::failures(block_number);
+
+			ensure!(current_failures.is_none(), Error::<T>::AlreadySubmitted);
+			Failures::<T>::insert(block_number, failures);
+
+			Ok(())
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		pub fn move_active_to_pending(block_number: T::BlockNumber) {
+			let target_block = block_number.saturating_sub(2u32.into());
+			let current_failures = Self::failures(block_number);
+			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
+			let responsibility = Self::responsibility(target_block);
+			if responsibility.is_none() {
+				log::warn!("responsibility not found {:?}", target_block)
+			}
+			// EH is there a better way to handle this
+			let unwrapped = responsibility.unwrap_or_else(Default::default);
+
+			if current_failures.is_none() {
+				Unresponsive::<T>::mutate(unwrapped, |dings| *dings += 1);
+
+			//TODO slash or point for failure then slash after pointed a few times
+			// If someone is slashed they probably should reset their unresponsive dings
+			} else {
+				Failures::<T>::remove(prune_block);
+				Unresponsive::<T>::remove(unwrapped);
+			}
+
+			let messages = Messages::<T>::take(target_block);
+
+			if messages.len() > 0 {
+				Pending::<T>::insert(target_block, messages);
+			}
+
+			Pending::<T>::remove(prune_block);
+		}
+
+		pub fn note_responsibility(block_number: T::BlockNumber) {
+			let target_block = block_number.saturating_sub(1u32.into());
+			let block_author = pallet_authorship::Pallet::<T>::author();
+			Responsibility::<T>::insert(target_block, block_author);
+
+			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
+			Responsibility::<T>::remove(prune_block);
 		}
 	}
 
@@ -142,7 +234,7 @@ pub mod pallet {
 		// </weight>
 		fn validate(
 			&self,
-			_who: &Self::AccountId,
+			who: &Self::AccountId,
 			call: &Self::Call,
 			_info: &DispatchInfoOf<Self::Call>,
 			_len: usize,
@@ -151,6 +243,14 @@ pub mod pallet {
 				if let Call::prep_transaction { data_1, .. } = local_call {
 					ensure!(*data_1 != 43u128, InvalidTransaction::Custom(1.into()));
 					//TODO apply filter logic
+				}
+
+				if let Call::confirm_done { block_number, .. } = local_call {
+					let responsibility = Responsibility::<T>::get(block_number)
+						.ok_or(InvalidTransaction::Custom(2.into()))?;
+					ensure!(responsibility == *who, InvalidTransaction::Custom(3.into()));
+					let current_failures = Failures::<T>::get(block_number);
+					ensure!(current_failures.is_none(), InvalidTransaction::Custom(4.into()));
 				}
 			}
 			Ok(ValidTransaction::default())

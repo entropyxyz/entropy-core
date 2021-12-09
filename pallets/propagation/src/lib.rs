@@ -26,7 +26,7 @@ pub mod pallet {
 	use lite_json::json::JsonValue;
 	use sp_runtime::{
 		offchain::{http, Duration},
-		sp_std::str,
+		sp_std::{str},
 	};
 	use sp_staking::{
 		offence::{Kind, Offence, ReportOffence},
@@ -56,24 +56,8 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn offchain_worker(_block_number: T::BlockNumber) {
-			let messages = pallet_relayer::Pallet::<T>::messages();
-			log::info!("logging messages: {:#?}", messages);
-			log::info!("-----------testing get_enc------------");
-			let bad_struct = DemoStruct { demo: 1u32 };
-			let res: DemoStruct =
-				Self::get_enc(&"http://localhost:3001/bob").unwrap_or(bad_struct.clone());
-			log::info!("GET  receiving res.body: {:?}", res);
-			let number = res.demo + 1;
-
-			log::info!("-----------testing post--------------");
-			log::info!("POST sending   req.body: {:?}", DemoStruct { demo: number });
-			let res: DemoStruct =
-				Self::post_enc(&"http://localhost:3001/bob", DemoStruct { demo: number })
-					.unwrap_or(bad_struct);
-			log::info!("POST receiving res.body: {:?}", res);
-
-			//			pub fn post<S: Encode>(path: &str, data: S) -> Result<u64, http::Error> {
+		fn offchain_worker(block_number: T::BlockNumber) {
+			Self::post(block_number);
 		}
 	}
 
@@ -114,118 +98,23 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {}
 
-	#[derive(Debug, Decode, Encode, Clone)]
-	struct DemoStruct {
-		demo: u32,
-	}
-
 	impl<T: Config> Pallet<T> {
-		pub fn get() -> Result<u64, http::Error> {
-			// We want to keep the offchain worker execution time reasonable, so we set a hard-coded
-			// deadline to 2s to complete the external call.
-			// You can also wait idefinitely for the response, however you may still get a timeout
-			// coming from the host machine.
-			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
-			let request = http::Request::get(&"http://localhost:3001");
-
-			log::info!("request incoming {:#?}", &request);
-
-			// We set the deadline for sending of the request, note that awaiting response can
-			// have a separate deadline. Next we send the request, before that it's also possible
-			// to alter request headers or stream body content in case of non-GET requests.
-			let pending = request.deadline(deadline).send().map_err(|_| http::Error::IoError)?;
-
-			// The request is already being processed by the host, we are free to do anything
-			// else in the worker (we can send multiple concurrent requests too).
-			// At some point however we probably want to check the response though,
-			// so we can block current thread and wait for it to finish.
-			// Note that since the request is being driven by the host, we don't have to wait
-			// for the request to have it complete, we will just not read the response.
-			let response = pending.try_wait(deadline).map_err(|_| {
-				log::info!("DeadlineReached");
-				http::Error::DeadlineReached
-			})??;
-			// Let's check the status code before we proceed to reading the response.
-			if response.code != 200 {
-				log::warn!("Unexpected status code: {}", response.code);
-				return Err(http::Error::Unknown)
-			}
-
-			// Next we want to fully read the response body and collect it to a vector of bytes.
-			// Note that the return object allows you to read the body in chunks as well
-			// with a way to control the deadline.
-			let body = response.body().collect::<Vec<u8>>();
-
-			// Create a str slice from the body.
-			let body_str = sp_runtime::sp_std::str::from_utf8(&body).map_err(|_| {
-				log::warn!("No UTF8 body");
-				http::Error::Unknown
-			})?;
-
-			let price = match Self::parse_price(body_str) {
-				Some(price) => Ok(price),
-				None => {
-					log::warn!("Unable to extract price from the response: {:?}", body_str);
-					Err(http::Error::Unknown)
-				},
-			}?;
-
-			log::warn!("Got price: {} cents", price);
-
-			Ok(price)
-		}
-
-		/// POST-request, which sends and receives parity-scale-codec::decode()'ed data.
-		/// takes a struct that will be serialized by parity-scale-codec::encode(), see https://crates.io/crates/parity-scale-codec.
-		/// req.body will be this serialization
-		/// res.body will again be parity-scale-codec::encode()'ed and is then decoded.
-		pub fn post_enc<S: Encode, R: Decode>(path: &str, data: S) -> Result<R, http::Error> {
+		pub fn post(block_number: T::BlockNumber) -> Result<(), http::Error> {
 			// get deadline, same as in fn get()
+			let messages = pallet_relayer::Pallet::<T>::messages(block_number.saturating_sub(1u32.into()));
+			let block_author = pallet_authorship::Pallet::<T>::author();
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
-
+			let path = &"http://localhost:3001";
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
-			let req_body = data.encode();
+			let req_body = messages.encode();
+
 
 			// We construct the request
 			// important: the header->Content-Type must be added and match that of the receiving
 			// party!!
-			let pending = http::Request::post(path, vec![req_body])
+			let pending = http::Request::post(path, vec![block_author.encode(), req_body])
 				.deadline(deadline)
-				.add_header("Content-Type", "application/x-parity-scale-codec--DemoStruct")
-				.send()
-				.map_err(|_| http::Error::IoError)?;
-			// let request = http::Request::post(path, vec![req_body])
-			// 	.deadline(deadline)
-			// 	.add_header("Content-Type", "application/x-parity-scale-codec--DemoStruct");
-			// let pending = request.send().map_err(|_| http::Error::IoError)?;
-
-			// We await response, same as in fn get()
-			let response =
-				pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
-
-			// check response code
-			if response.code != 200 {
-				log::warn!("Unexpected status code: {}", response.code);
-				return Err(http::Error::Unknown)
-			}
-			let res_body = response.body().collect::<Vec<u8>>();
-
-			// the response is parity-scale-codec::encode()'ed, so we have to decode it.
-			// the type that the response is decoded to has to be passed indirectly to post() by
-			// implying the type.
-			let body = R::decode(&mut res_body.as_ref()).ok().unwrap();
-
-			Ok(body)
-		}
-
-		/// GET-method that receives parity-scale-codec::encode()'ed data and decodes it
-		pub fn get_enc<R: Decode>(path: &str) -> Result<R, http::Error> {
-			// Result<R, http::Error> {
-			// get deadline, same as in fn get()
-			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
-
-			let pending = http::Request::get(path)
-				.deadline(deadline)
+				.add_header("Content-Type", "application/x-parity-scale-codec")
 				.send()
 				.map_err(|_| http::Error::IoError)?;
 
@@ -240,28 +129,7 @@ pub mod pallet {
 			}
 			let res_body = response.body().collect::<Vec<u8>>();
 
-			// the response is parity-scale-codec::encode()'ed, so we have to decode it.
-			// the type that the response is decoded to has to be passed indirectly to post() by
-			// implying the type.
-			let body = R::decode(&mut res_body.as_ref()).ok().unwrap();
-
-			Ok(body)
+			Ok(())
 		}
-
-		pub fn parse_price(returned_data: &str) -> Option<u64> {
-			let val = lite_json::parse_json(returned_data);
-			let price = match val.ok()? {
-				JsonValue::Object(obj) => {
-					let (_, v) =
-						obj.into_iter().find(|(k, _)| k.iter().copied().eq("demo".chars()))?;
-					match v {
-						JsonValue::Number(number) => number,
-						_ => return None,
-					}
-				},
-				_ => return None,
-			};
-			Some(price.integer as u64)
-		}
-	}
+}
 }

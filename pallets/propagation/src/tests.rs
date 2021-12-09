@@ -7,50 +7,39 @@ use sp_io::TestExternalities;
 use std::sync::Arc;
 
 #[test]
-fn parse_price_works() {
-	let test_data = vec![("{\"demo\":6536}", Some(6536)), ("{\"2\":6536}", None)];
-
-	for (json, expected) in test_data {
-		assert_eq!(expected, Propagation::parse_price(json));
-	}
-}
-
-#[test]
 fn knows_how_to_mock_several_http_calls() {
 	let (mut t, _) = offchain_worker_env(|state| {
 		state.expect_request(testing::PendingRequest {
-			method: "GET".into(),
+			method: "POST".into(),
 			uri: "http://localhost:3001".into(),
-			response: Some(br#"{"demo": 100}"#.to_vec()),
+			headers: [("Content-Type".into(), "application/x-parity-scale-codec".into())].to_vec(),
 			sent: true,
+			response: Some([].to_vec()),
+			body: [11, 0, 0, 0, 0, 0, 0, 0, 0].to_vec(),
 			..Default::default()
 		});
 
 		state.expect_request(testing::PendingRequest {
-			method: "GET".into(),
+			method: "POST".into(),
 			uri: "http://localhost:3001".into(),
-			response: Some(br#"{"demo": 200}"#.to_vec()),
+			headers: [("Content-Type".into(), "application/x-parity-scale-codec".into())].to_vec(),
 			sent: true,
-			..Default::default()
-		});
-
-		state.expect_request(testing::PendingRequest {
-			method: "GET".into(),
-			uri: "http://localhost:3001".into(),
-			response: Some(br#"{"demo": 300}"#.to_vec()),
-			sent: true,
+			response: Some([].to_vec()),
+			body:  [11, 0, 0, 0, 0, 0, 0, 0, 4, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].to_vec(),
 			..Default::default()
 		});
 	});
 
 	t.execute_with(|| {
-		let data1 = Propagation::get().unwrap();
-		let data2 = Propagation::get().unwrap();
-		let data3 = Propagation::get().unwrap();
+		let data1 = Propagation::post(2).unwrap();
 
-		assert_eq!(data1, 100);
-		assert_eq!(data2, 200);
-		assert_eq!(data3, 300);
+		System::set_block_number(2);
+		assert_ok!(Relayer::prep_transaction(Origin::signed(1), 42, 42));
+		let data2 = Propagation::post(3).unwrap();
+
+		assert_eq!(data1, ());
+		assert_eq!(data2, ());
+
 	})
 }
 

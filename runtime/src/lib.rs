@@ -1251,8 +1251,13 @@ impl pallet_slashing::Config for Runtime {
 	type ValidatorSet = Historical;
 }
 
+parameter_types! {
+	pub const PruneBlock: BlockNumber = 10;
+}
+
 impl pallet_relayer::Config for Runtime {
 	type Event = Event;
+	type PruneBlock = PruneBlock;
 }
 
 parameter_types! {
