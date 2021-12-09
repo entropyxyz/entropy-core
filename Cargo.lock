@@ -4822,6 +4822,8 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "log",
+ "pallet-authorship",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
@@ -4940,7 +4942,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-extension"
-version = "3.0.0-monthly-2021-10"
+version = "3.0.0"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",

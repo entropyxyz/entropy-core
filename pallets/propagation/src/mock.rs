@@ -77,8 +77,14 @@ impl pallet_authorship::Config for Test {
 	type EventHandler = ();
 }
 
+parameter_types! {
+	pub const PruneBlock: u64 = 2;
+}
+
+
 impl pallet_relayer::Config for Test {
 	type Event = Event;
+	type PruneBlock = PruneBlock;
 }
 
 impl pallet_propagation::Config for Test {
