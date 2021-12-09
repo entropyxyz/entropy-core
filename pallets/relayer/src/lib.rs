@@ -164,7 +164,6 @@ pub mod pallet {
 			let messages = Messages::<T>::take(target_block);
 
 			if messages.len() > 0 {
-				dbg!(messages.clone(), target_block);
 				Pending::<T>::insert(target_block, messages);
 			}
 
