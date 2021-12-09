@@ -150,6 +150,7 @@ pub mod pallet {
 			if responsibility.is_none() {
 				log::warn!("responsibility not found {:?}", target_block)
 			}
+			// EH is there a better way to handle this
 			let unwrapped = responsibility.unwrap_or_else(Default::default);
 
 			if current_failures.is_none() {
