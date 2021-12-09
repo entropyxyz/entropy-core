@@ -156,6 +156,7 @@ pub mod pallet {
 				Unresponsive::<T>::mutate(unwrapped, |dings| *dings += 1);
 
 			//TODO slash or point for failure then slash after pointed a few times
+			// If someone is slashed they probably should reset their unresponsive dings
 			} else {
 				Failures::<T>::remove(prune_block);
 				Unresponsive::<T>::remove(unwrapped);
