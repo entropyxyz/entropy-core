@@ -78,6 +78,11 @@ pub mod pallet {
 	#[pallet::getter(fn responsibility)]
 	pub type Responsibility<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn registered)]
+	pub type Registered<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
@@ -101,8 +106,6 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// An example dispatchable that takes a singles value as a parameter, writes the value to
-		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
 		pub fn prep_transaction(
 			origin: OriginFor<T>,
@@ -119,6 +122,14 @@ pub mod pallet {
 			})?;
 
 			Self::deposit_event(Event::TransactionPropagated(who));
+			Ok(())
+		}
+
+		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+		pub fn register(origin: OriginFor<T>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			// TODO proof
+			Registered::<T>::insert(who, true);
 			Ok(())
 		}
 
@@ -240,9 +251,13 @@ pub mod pallet {
 			_len: usize,
 		) -> TransactionValidity {
 			if let Some(local_call) = call.is_sub_type() {
-				if let Call::prep_transaction { data_1, .. } = local_call {
-					ensure!(*data_1 != 43u128, InvalidTransaction::Custom(1.into()));
+				if let Call::prep_transaction { .. } = local_call {
+					ensure!(Registered::<T>::get(who), InvalidTransaction::Custom(1.into()));
 					//TODO apply filter logic
+				}
+
+				if let Call::register {} = local_call {
+					//TODO ensure proof
 				}
 
 				if let Call::confirm_done { block_number, .. } = local_call {

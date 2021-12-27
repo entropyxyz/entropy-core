@@ -22,6 +22,15 @@ fn it_preps_transaction() {
 }
 
 #[test]
+fn it_registers_a_user() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Relayer::register(Origin::signed(1)));
+
+		assert!(Relayer::registered(1));
+	});
+}
+
+#[test]
 fn it_confirms_done() {
 	new_test_ext().execute_with(|| {
 		Responsibility::<Test>::insert(5, 1);
@@ -87,11 +96,13 @@ fn notes_responsibility() {
 #[test]
 fn it_provides_free_txs_prep_tx() {
 	new_test_ext().execute_with(|| {
+		assert_ok!(Relayer::register(Origin::signed(1)));
+
 		let p = PrevalidateRelayer::<Test>::new();
 		let c = Call::Relayer(RelayerCall::prep_transaction { data_1: 42, data_2: 42 });
 		let di = c.get_dispatch_info();
 		assert_eq!(di.pays_fee, Pays::No);
-		let r = p.validate(&42, &c, &di, 20);
+		let r = p.validate(&1, &c, &di, 20);
 		assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
 	});
 }
@@ -156,5 +167,17 @@ fn it_fails_a_free_tx_confirm_done_err_4() {
 		let di = c.get_dispatch_info();
 		let r = p.validate(&1, &c, &di, 20);
 		r.unwrap()
+	});
+}
+
+#[test]
+fn it_provides_free_txs_register() {
+	new_test_ext().execute_with(|| {
+		let p = PrevalidateRelayer::<Test>::new();
+		let c = Call::Relayer(RelayerCall::register {});
+		let di = c.get_dispatch_info();
+		assert_eq!(di.pays_fee, Pays::No);
+		let r = p.validate(&1, &c, &di, 20);
+		assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
 	});
 }
