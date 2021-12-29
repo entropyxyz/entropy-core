@@ -56,6 +56,7 @@ pub mod pallet {
 
 		/// A type for retrieving the validators supposed to be online in a session.
 		type ValidatorSet: ValidatorSetWithIdentification<Self::AccountId>;
+		type MinValidators: Get<u32>;
 	}
 
 	/// A type for representing the validator id in a session.
@@ -135,17 +136,22 @@ pub mod pallet {
 			let session_index = T::ValidatorSet::session_index();
 			let current_validators = T::ValidatorSet::validators();
 			let validator_set_count = current_validators.clone().len() as u32;
+			if validator_set_count.saturating_sub(offenders.len() as u32) <= T::MinValidators::get()
+			{
+				log::info!("Min validators not slashed: {:?}", offenders);
+				Ok(())
+			} else {
+				log::info!("session_index: {:?}", session_index);
+				log::info!("offenders: {:?}", offenders);
 
-			log::info!("session_index: {:?}", session_index);
-			log::info!("offenders: {:?}", offenders);
+				let offence = TuxAngry { session_index, validator_set_count, offenders };
 
-			let offence = TuxAngry { session_index, validator_set_count, offenders };
-
-			log::info!("offence: {:?}", offence);
-			if let Err(e) = T::ReportBad::report_offence(vec![who], offence) {
-				log::error!("error: {:?}", e);
-			};
-			Ok(())
+				log::info!("offence: {:?}", offence);
+				if let Err(e) = T::ReportBad::report_offence(vec![who], offence) {
+					log::error!("error: {:?}", e);
+				};
+				Ok(())
+			}
 		}
 	}
 
@@ -185,8 +191,7 @@ pub mod pallet {
 		}
 
 		fn slash_fraction(offenders: u32, validator_set_count: u32) -> Perbill {
-			log::info!("Perbill::from_perthousand(500) {:?}", Perbill::from_perthousand(500));
-			Perbill::from_perthousand(500)
+			Perbill::from_perthousand(0)
 		}
 	}
 }

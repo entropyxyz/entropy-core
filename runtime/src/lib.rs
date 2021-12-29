@@ -1245,10 +1245,15 @@ impl pallet_propagation::Config for Runtime {
 	type Event = Event;
 }
 
+parameter_types! {
+	pub const MinValidators: u32 = 10;
+}
+
 impl pallet_slashing::Config for Runtime {
 	type Event = Event;
 	type ReportBad = Offences;
 	type ValidatorSet = Historical;
+	type MinValidators = MinValidators;
 }
 
 parameter_types! {
