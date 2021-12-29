@@ -4890,11 +4890,16 @@ name = "pallet-slashing"
 version = "3.0.0-monthly-2021-10"
 dependencies = [
  "frame-benchmarking",
+ "frame-election-provider-support",
  "frame-support",
  "frame-system",
  "lite-json",
  "log",
+ "pallet-balances",
  "pallet-session",
+ "pallet-staking",
+ "pallet-staking-reward-curve",
+ "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
