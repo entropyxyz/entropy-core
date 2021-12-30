@@ -22,8 +22,8 @@ use crate::{
 	service,
 	service::new_partial,
 };
+use entropy_runtime::Block;
 use node_executor::ExecutorDispatch;
-use entropy_runtime::{Block};
 use sc_cli::{ChainSpec, Result, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
 
