@@ -23,8 +23,8 @@ use crate::{
 	service::new_partial,
 };
 use node_executor::ExecutorDispatch;
-use node_template_runtime::{Block, RuntimeApi};
-use sc_cli::{ChainSpec, Result, Role, RuntimeVersion, SubstrateCli};
+use node_template_runtime::{Block};
+use sc_cli::{ChainSpec, Result, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
 
 impl SubstrateCli for Cli {
