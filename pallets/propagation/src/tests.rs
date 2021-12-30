@@ -1,5 +1,5 @@
-use crate::{mock::*, Error};
-use frame_support::{assert_noop, assert_ok};
+use crate::{mock::*};
+use frame_support::{assert_ok};
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 // use sp_keystore::{testing::KeyStore, KeystoreExt, SyncCryptoStore};
 use parking_lot::RwLock;

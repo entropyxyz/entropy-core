@@ -17,29 +17,20 @@ mod benchmarking;
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::{
-		dispatch::DispatchResult,
 		inherent::Vec,
 		pallet_prelude::*,
-		traits::{ValidatorSet, ValidatorSetWithIdentification},
 	};
 	use frame_system::pallet_prelude::*;
-	use lite_json::json::JsonValue;
 	use sp_runtime::{
 		offchain::{http, Duration},
 		sp_std::{str},
 	};
-	use sp_staking::{
-		offence::{Kind, Offence, ReportOffence},
-		SessionIndex,
-	};
-
 	use frame_support::sp_runtime::{
-		traits::{Convert, Saturating},
-		Perbill, RuntimeDebug,
+		traits::{Saturating},
 	};
 	use scale_info::prelude::vec;
 
-	use codec::{Decode, Encode};
+	use codec::{Encode};
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -57,7 +48,7 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn offchain_worker(block_number: T::BlockNumber) {
-			Self::post(block_number);
+			let _ = Self::post(block_number);
 		}
 	}
 
@@ -74,9 +65,9 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Event documentation should end with an array that provides descriptive names for event
-		/// parameters. [something, who]
-		SomethingStored(u32, T::AccountId),
+		/// Messages passed to this signer
+		/// parameters. [signer]
+		MessagesPassed(T::AccountId),
 	}
 
 	// Errors inform users that something went wrong.
@@ -86,8 +77,6 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
-		/// Error in the http protocols
-		httpError,
 		/// Error in the DKG.
 		KeyGenInternalError,
 	}
@@ -127,7 +116,8 @@ pub mod pallet {
 				log::warn!("Unexpected status code: {}", response.code);
 				return Err(http::Error::Unknown)
 			}
-			let res_body = response.body().collect::<Vec<u8>>();
+			let _res_body = response.body().collect::<Vec<u8>>();
+			Self::deposit_event(Event::MessagesPassed(block_author));
 
 			Ok(())
 		}
