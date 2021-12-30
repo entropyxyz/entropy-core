@@ -23,17 +23,13 @@ pub mod pallet {
 		traits::{ValidatorSet, ValidatorSetWithIdentification},
 	};
 	use frame_system::pallet_prelude::*;
-	use sp_runtime::{
-		sp_std::{str},
-	};
+	use sp_runtime::sp_std::str;
 	use sp_staking::{
 		offence::{Kind, Offence, ReportOffence},
 		SessionIndex,
 	};
 
-	use frame_support::sp_runtime::{
-		Perbill, RuntimeDebug,
-	};
+	use frame_support::sp_runtime::{Perbill, RuntimeDebug};
 	use scale_info::prelude::vec;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -101,10 +97,7 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		pub fn do_offence(
-			who: T::AccountId,
-			offenders: Vec<IdentificationTuple<T>>,
-		)  {
+		pub fn do_offence(who: T::AccountId, offenders: Vec<IdentificationTuple<T>>) {
 			let session_index = T::ValidatorSet::session_index();
 			let current_validators = T::ValidatorSet::validators();
 			let validator_set_count = current_validators.clone().len() as u32;

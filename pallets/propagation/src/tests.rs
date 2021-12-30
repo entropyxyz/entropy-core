@@ -1,5 +1,5 @@
-use crate::{mock::*};
-use frame_support::{assert_ok};
+use crate::mock::*;
+use frame_support::assert_ok;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 // use sp_keystore::{testing::KeyStore, KeystoreExt, SyncCryptoStore};
 use parking_lot::RwLock;
@@ -25,7 +25,11 @@ fn knows_how_to_mock_several_http_calls() {
 			headers: [("Content-Type".into(), "application/x-parity-scale-codec".into())].to_vec(),
 			sent: true,
 			response: Some([].to_vec()),
-			body:  [11, 0, 0, 0, 0, 0, 0, 0, 4, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].to_vec(),
+			body: [
+				11, 0, 0, 0, 0, 0, 0, 0, 4, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			]
+			.to_vec(),
 			..Default::default()
 		});
 	});
@@ -39,7 +43,6 @@ fn knows_how_to_mock_several_http_calls() {
 
 		assert_eq!(data1, ());
 		assert_eq!(data2, ());
-
 	})
 }
 

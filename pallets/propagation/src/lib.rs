@@ -16,21 +16,15 @@ mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{
-		inherent::Vec,
-		pallet_prelude::*,
-	};
+	use frame_support::{inherent::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
 	use frame_system::pallet_prelude::*;
+	use scale_info::prelude::vec;
 	use sp_runtime::{
 		offchain::{http, Duration},
-		sp_std::{str},
+		sp_std::str,
 	};
-	use frame_support::sp_runtime::{
-		traits::{Saturating},
-	};
-	use scale_info::prelude::vec;
 
-	use codec::{Encode};
+	use codec::Encode;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -90,13 +84,13 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		pub fn post(block_number: T::BlockNumber) -> Result<(), http::Error> {
 			// get deadline, same as in fn get()
-			let messages = pallet_relayer::Pallet::<T>::messages(block_number.saturating_sub(1u32.into()));
+			let messages =
+				pallet_relayer::Pallet::<T>::messages(block_number.saturating_sub(1u32.into()));
 			let block_author = pallet_authorship::Pallet::<T>::author();
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
 			let path = &"http://localhost:3001";
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
 			let req_body = messages.encode();
-
 
 			// We construct the request
 			// important: the header->Content-Type must be added and match that of the receiving
@@ -121,5 +115,5 @@ pub mod pallet {
 
 			Ok(())
 		}
-}
+	}
 }
