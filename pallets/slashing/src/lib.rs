@@ -23,10 +23,8 @@ pub mod pallet {
 		traits::{ValidatorSet, ValidatorSetWithIdentification},
 	};
 	use frame_system::pallet_prelude::*;
-	use lite_json::json::JsonValue;
 	use sp_runtime::{
-		offchain::{http, Duration},
-		sp_std::str,
+		sp_std::{str},
 	};
 	use sp_staking::{
 		offence::{Kind, Offence, ReportOffence},
@@ -34,19 +32,13 @@ pub mod pallet {
 	};
 
 	use frame_support::sp_runtime::{
-		traits::{Convert, Saturating},
 		Perbill, RuntimeDebug,
 	};
 	use scale_info::prelude::vec;
 
-	use codec::{Decode, Encode};
-
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		/// Because this pallet emits events, it depends on the runtime's definition of an event.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
 		/// A type that gives us the ability to submit unresponsiveness offence reports.
 		type ReportBad: ReportOffence<
 			Self::AccountId,
@@ -80,24 +72,6 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
-	// The pallet's runtime storage items.
-	// https://substrate.dev/docs/en/knowledgebase/runtime/storage
-	#[pallet::storage]
-	#[pallet::getter(fn something)]
-	// Learn more about declaring storage items:
-	// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
-	pub type Something<T> = StorageValue<_, u32>;
-
-	// Pallets use events to inform users when important changes are made.
-	// https://substrate.dev/docs/en/knowledgebase/runtime/events
-	#[pallet::event]
-	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	pub enum Event<T: Config> {
-		/// Event documentation should end with an array that provides descriptive names for event
-		/// parameters. [something, who]
-		SomethingStored(u32, T::AccountId),
-	}
-
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
@@ -105,8 +79,6 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
-		/// Error in the http protocols
-		httpError,
 		/// Error in the DKG.
 		KeyGenInternalError,
 	}
@@ -132,14 +104,13 @@ pub mod pallet {
 		pub fn do_offence(
 			who: T::AccountId,
 			offenders: Vec<IdentificationTuple<T>>,
-		) -> DispatchResult {
+		)  {
 			let session_index = T::ValidatorSet::session_index();
 			let current_validators = T::ValidatorSet::validators();
 			let validator_set_count = current_validators.clone().len() as u32;
 			if validator_set_count.saturating_sub(offenders.len() as u32) <= T::MinValidators::get()
 			{
 				log::info!("Min validators not slashed: {:?}", offenders);
-				Ok(())
 			} else {
 				log::info!("session_index: {:?}", session_index);
 				log::info!("offenders: {:?}", offenders);
@@ -150,7 +121,6 @@ pub mod pallet {
 				if let Err(e) = T::ReportBad::report_offence(vec![who], offence) {
 					log::error!("error: {:?}", e);
 				};
-				Ok(())
 			}
 		}
 	}
@@ -190,7 +160,7 @@ pub mod pallet {
 			self.session_index
 		}
 
-		fn slash_fraction(offenders: u32, validator_set_count: u32) -> Perbill {
+		fn slash_fraction(_offenders: u32, _validator_set_count: u32) -> Perbill {
 			Perbill::from_perthousand(0)
 		}
 	}

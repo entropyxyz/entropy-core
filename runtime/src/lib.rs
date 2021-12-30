@@ -1250,7 +1250,6 @@ parameter_types! {
 }
 
 impl pallet_slashing::Config for Runtime {
-	type Event = Event;
 	type ReportBad = Offences;
 	type ValidatorSet = Historical;
 	type MinValidators = MinValidators;
@@ -1342,7 +1341,7 @@ construct_runtime!(
 
 		Propagation: pallet_propagation::{Pallet, Call, Storage, Event<T>},
 		Relayer: pallet_relayer::{Pallet, Call, Storage, Event<T>},
-		Slashing: pallet_slashing::{Pallet, Call, Storage, Event<T>},
+		Slashing: pallet_slashing::{Pallet, Call, Storage},
 		Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
 
 	}

@@ -32,7 +32,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Slashing: pallet_slashing::{Pallet, Call, Storage, Event<T>},
+		Slashing: pallet_slashing::{Pallet, Call, Storage},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Historical: pallet_session_historical::{Pallet},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
@@ -92,7 +92,6 @@ impl pallet_session::SessionHandler<AccountId> for TestSessionHandler {
 	fn on_disabled(_: u32) {}
 }
 
-pub struct OtherSessionHandler;
 impl OneSessionHandler<AccountId> for TestSessionHandler {
 	type Key = UintAuthorityId;
 
@@ -248,7 +247,6 @@ parameter_types! {
 }
 
 impl pallet_slashing::Config for Test {
-	type Event = Event;
 	type ReportBad = OffenceHandler;
 	type ValidatorSet = Historical;
 	type MinValidators = MinValidators;
@@ -261,6 +259,5 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		keys: (0..5).map(|id| (id, id, SessionKeys { foo: id.into() })).collect(),
 	}
 	.assimilate_storage(&mut storage);
-	let mut ext = sp_io::TestExternalities::from(storage);
-	ext
+	sp_io::TestExternalities::from(storage)
 }
