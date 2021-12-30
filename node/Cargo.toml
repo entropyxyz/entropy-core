@@ -5,7 +5,7 @@ description = 'A fresh FRAME-based Substrate node, ready for hacking.'
 edition = '2021'
 homepage = 'https://substrate.dev'
 license = 'AGPL-3.0-or-later'
-name = 'node-template'
+name = 'entropy'
 publish = false
 repository = 'https://github.com/substrate-developer-hub/substrate-node-template/'
 version = '3.0.0-monthly-2021-10'
@@ -14,7 +14,7 @@ version = '3.0.0-monthly-2021-10'
 targets = ['x86_64-unknown-linux-gnu']
 
 [[bin]]
-name = 'node-template'
+name = 'entropy'
 
 [build-dependencies.substrate-build-script-utils]
 git = 'https://github.com/paritytech/substrate.git'
@@ -58,7 +58,7 @@ pallet-transaction-payment = { version = "4.0.0-dev", git = 'https://github.com/
 tempfile = "3.1.0"
 pallet-relayer = { version = "3.0.0", path = "../pallets/relayer" }
 
-[dependencies.node-template-runtime]
+[dependencies.entropy-runtime]
 path = '../runtime'
 version = '3.0.0-monthly-2021-10'
 
@@ -192,4 +192,4 @@ version = '4.0.0-dev'
 
 [features]
 default = []
-runtime-benchmarks = ['node-template-runtime/runtime-benchmarks']
+runtime-benchmarks = ['entropy-runtime/runtime-benchmarks']

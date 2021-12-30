@@ -1,6 +1,6 @@
 use super::*;
-use crate::{mock::*, Error};
-use frame_support::{assert_noop, assert_ok};
+use crate::mock::*;
+use frame_support::assert_ok;
 use sp_runtime::Perbill;
 use sp_staking::offence::Offence;
 

@@ -18,14 +18,14 @@
 
 //! Substrate chain configurations.
 
-use grandpa_primitives::AuthorityId as GrandpaId;
-use hex_literal::hex;
-use node_template_runtime::{
+use entropy_runtime::{
 	constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
 	BalancesConfig, Block, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
 	ImOnlineConfig, IndicesConfig, SessionConfig, SessionKeys, SocietyConfig, StakerStatus,
 	StakingConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, MAX_NOMINATIONS,
 };
+use grandpa_primitives::AuthorityId as GrandpaId;
+use hex_literal::hex;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_chain_spec::ChainSpecExtension;
 use sc_service::ChainType;
@@ -39,8 +39,8 @@ use sp_runtime::{
 	Perbill,
 };
 
+pub use entropy_runtime::GenesisConfig;
 pub use node_primitives::{AccountId, Balance, Signature};
-pub use node_template_runtime::GenesisConfig;
 
 type AccountPublic = <Signature as Verify>::Signer;
 
@@ -337,7 +337,7 @@ pub fn testnet_genesis(
 		sudo: SudoConfig { key: root_key },
 		babe: BabeConfig {
 			authorities: vec![],
-			epoch_config: Some(node_template_runtime::BABE_GENESIS_EPOCH_CONFIG),
+			epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
 		},
 		im_online: ImOnlineConfig { keys: vec![] },
 		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
@@ -412,7 +412,7 @@ pub(crate) mod tests {
 	use super::*;
 	use crate::service::{new_full_base, NewFullBase};
 	use sc_service_test;
-	use sp_runtime::{codec, BuildStorage};
+	use sp_runtime::BuildStorage;
 
 	fn local_testnet_genesis_instant_single() -> GenesisConfig {
 		testnet_genesis(
