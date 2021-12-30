@@ -23,7 +23,7 @@ use crate::{
 	service::new_partial,
 };
 use node_executor::ExecutorDispatch;
-use node_template_runtime::{Block};
+use entropy_runtime::{Block};
 use sc_cli::{ChainSpec, Result, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
 
@@ -69,7 +69,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-		&node_template_runtime::VERSION
+		&entropy_runtime::VERSION
 	}
 }
 

@@ -23,7 +23,7 @@
 use futures::prelude::*;
 use node_executor::ExecutorDispatch;
 use node_primitives::Block;
-use node_template_runtime::RuntimeApi;
+use entropy_runtime::RuntimeApi;
 use sc_client_api::{ExecutorProvider};
 use sc_consensus_babe::{self, SlotProportion};
 use sc_executor::NativeElseWasmExecutor;
@@ -440,7 +440,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 mod tests {
 	use crate::service::{new_full_base, NewFullBase};
 	use node_primitives::{Block, DigestItem, Signature};
-	use node_template_runtime::{
+	use entropy_runtime::{
 		constants::{currency::CENTS, time::SLOT_DURATION},
 		Address, BalancesCall, Call, UncheckedExtrinsic,
 	};

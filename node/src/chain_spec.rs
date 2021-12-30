@@ -20,7 +20,7 @@
 
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
-use node_template_runtime::{
+use entropy_runtime::{
 	constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
 	BalancesConfig, Block, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
 	ImOnlineConfig, IndicesConfig, SessionConfig, SessionKeys, SocietyConfig, StakerStatus,
@@ -40,7 +40,7 @@ use sp_runtime::{
 };
 
 pub use node_primitives::{AccountId, Balance, Signature};
-pub use node_template_runtime::GenesisConfig;
+pub use entropy_runtime::GenesisConfig;
 
 type AccountPublic = <Signature as Verify>::Signer;
 
@@ -337,7 +337,7 @@ pub fn testnet_genesis(
 		sudo: SudoConfig { key: root_key },
 		babe: BabeConfig {
 			authorities: vec![],
-			epoch_config: Some(node_template_runtime::BABE_GENESIS_EPOCH_CONFIG),
+			epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
 		},
 		im_online: ImOnlineConfig { keys: vec![] },
 		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
