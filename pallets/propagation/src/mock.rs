@@ -81,7 +81,6 @@ parameter_types! {
 	pub const PruneBlock: u64 = 2;
 }
 
-
 impl pallet_relayer::Config for Test {
 	type Event = Event;
 	type PruneBlock = PruneBlock;
@@ -89,9 +88,4 @@ impl pallet_relayer::Config for Test {
 
 impl pallet_propagation::Config for Test {
 	type Event = Event;
-}
-
-// Build genesis storage according to the mock runtime.
-pub fn new_test_ext() -> sp_io::TestExternalities {
-	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
 }
