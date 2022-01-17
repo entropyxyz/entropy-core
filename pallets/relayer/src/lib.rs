@@ -167,7 +167,6 @@ pub mod pallet {
 			// TODO EH is there a better way to handle this
 			let unwrapped = responsibility.unwrap();
 
-
 			if current_failures.is_none() {
 				Unresponsive::<T>::mutate(unwrapped, |dings| *dings += 1);
 
@@ -248,7 +247,6 @@ pub mod pallet {
 		fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
 			Ok(())
 		}
-
 
 		fn pre_dispatch(
 			self,

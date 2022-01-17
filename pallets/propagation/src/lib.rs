@@ -98,11 +98,12 @@ pub mod pallet {
 			// We construct the request
 			// important: the header->Content-Type must be added and match that of the receiving
 			// party!!
-			let pending = http::Request::post(path, vec![block_author.clone().unwrap().encode(), req_body])
-				.deadline(deadline)
-				.add_header("Content-Type", "application/x-parity-scale-codec")
-				.send()
-				.map_err(|_| http::Error::IoError)?;
+			let pending =
+				http::Request::post(path, vec![block_author.clone().unwrap().encode(), req_body])
+					.deadline(deadline)
+					.add_header("Content-Type", "application/x-parity-scale-codec")
+					.send()
+					.map_err(|_| http::Error::IoError)?;
 
 			// We await response, same as in fn get()
 			let response =

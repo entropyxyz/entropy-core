@@ -1,5 +1,5 @@
 use sp_keyring::AccountKeyring;
-use subxt::{ClientBuilder, PairSigner, DefaultExtra, DefaultConfig};
+use subxt::{ClientBuilder, DefaultConfig, DefaultExtra, PairSigner};
 
 #[subxt::subxt(runtime_metadata_path = "src/entropy_metadata.scale")]
 pub mod entropy {}
