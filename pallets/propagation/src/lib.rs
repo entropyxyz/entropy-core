@@ -87,6 +87,9 @@ pub mod pallet {
 			let messages =
 				pallet_relayer::Pallet::<T>::messages(block_number.saturating_sub(1u32.into()));
 			let block_author = pallet_authorship::Pallet::<T>::author();
+			if block_author.is_none() {
+				return Ok(())
+			}
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
 			let path = &"http://localhost:3001";
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
@@ -95,7 +98,7 @@ pub mod pallet {
 			// We construct the request
 			// important: the header->Content-Type must be added and match that of the receiving
 			// party!!
-			let pending = http::Request::post(path, vec![block_author.encode(), req_body])
+			let pending = http::Request::post(path, vec![block_author.clone().unwrap().encode(), req_body])
 				.deadline(deadline)
 				.add_header("Content-Type", "application/x-parity-scale-codec")
 				.send()
@@ -111,7 +114,7 @@ pub mod pallet {
 				return Err(http::Error::Unknown)
 			}
 			let _res_body = response.body().collect::<Vec<u8>>();
-			Self::deposit_event(Event::MessagesPassed(block_author));
+			Self::deposit_event(Event::MessagesPassed(block_author.unwrap()));
 
 			Ok(())
 		}

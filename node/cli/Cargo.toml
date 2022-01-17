@@ -39,27 +39,29 @@ node-executor = { version = "3.0.0-dev", git = 'https://github.com/paritytech/su
 sc-consensus-babe = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sc-network = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 grandpa = { version = "0.10.0-dev", package = "sc-finality-grandpa", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-node-rpc = { version = "3.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+node-rpc = { version = "3.0.0-dev", path = "../rpc" }
 sc-consensus-slots = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sp-transaction-storage-proof = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sc-authority-discovery = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sp-authorship = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sc-consensus-uncles = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sc-consensus-babe-rpc = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sc-consensus-epochs = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sc-finality-grandpa-rpc = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-keystore = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
 [dev-dependencies]
 sc-service-test = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-sc-consensus-epochs = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sp-inherents = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sp-keyring = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-sp-keystore = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sp-tracing = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 frame-system = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 pallet-transaction-payment = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 tempfile = "3.1.0"
-pallet-relayer = { version = "3.0.0", path = "../pallets/relayer" }
+pallet-relayer = { version = "3.0.0", path = "../../pallets/relayer" }
 
 [dependencies.entropy-runtime]
-path = '../runtime'
+path = '../../runtime'
 version = '3.0.0-monthly-2021-10'
 
 [dependencies.frame-benchmarking]
@@ -173,7 +175,7 @@ version = '0.10.0-dev'
 [dependencies.sp-core]
 git = 'https://github.com/paritytech/substrate.git'
  branch = "master"
-version = '4.0.0-dev'
+version = '4.1.0-dev'
 
 [dependencies.sp-runtime]
 git = 'https://github.com/paritytech/substrate.git'

@@ -161,8 +161,12 @@ pub mod pallet {
 			if responsibility.is_none() {
 				log::warn!("responsibility not found {:?}", target_block)
 			}
-			// EH is there a better way to handle this
-			let unwrapped = responsibility.unwrap_or_else(Default::default);
+			if responsibility.is_none() {
+				return
+			}
+			// TODO EH is there a better way to handle this
+			let unwrapped = responsibility.unwrap();
+
 
 			if current_failures.is_none() {
 				Unresponsive::<T>::mutate(unwrapped, |dings| *dings += 1);
@@ -186,7 +190,12 @@ pub mod pallet {
 		pub fn note_responsibility(block_number: T::BlockNumber) {
 			let target_block = block_number.saturating_sub(1u32.into());
 			let block_author = pallet_authorship::Pallet::<T>::author();
-			Responsibility::<T>::insert(target_block, block_author);
+
+			if block_author.is_none() {
+				return
+			}
+
+			Responsibility::<T>::insert(target_block, block_author.unwrap());
 
 			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
 			Responsibility::<T>::remove(prune_block);
@@ -238,6 +247,17 @@ pub mod pallet {
 
 		fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
 			Ok(())
+		}
+
+
+		fn pre_dispatch(
+			self,
+			who: &Self::AccountId,
+			call: &Self::Call,
+			info: &DispatchInfoOf<Self::Call>,
+			len: usize,
+		) -> Result<Self::Pre, TransactionValidityError> {
+			Ok(self.validate(who, call, info, len).map(|_| ())?)
 		}
 
 		// <weight>
