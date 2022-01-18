@@ -27,7 +27,7 @@ use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
 		ConstU32, Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Imbalance, InstanceFilter,
-		KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, U128CurrencyToVote,
+		KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, U128CurrencyToVote,
 	},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -1108,35 +1108,6 @@ impl pallet_vesting::Config for Runtime {
 	const MAX_VESTING_SCHEDULES: u32 = 28;
 }
 
-parameter_types! {
-	pub IgnoredIssuance: Balance = Treasury::pot();
-	pub const QueueCount: u32 = 300;
-	pub const MaxQueueLen: u32 = 1000;
-	pub const FifoQueueLen: u32 = 500;
-	pub const Period: BlockNumber = 30 * DAYS;
-	pub const MinFreeze: Balance = 100 * DOLLARS;
-	pub const IntakePeriod: BlockNumber = 10;
-	pub const MaxIntakeBids: u32 = 10;
-}
-
-impl pallet_gilt::Config for Runtime {
-	type Event = Event;
-	type Currency = Balances;
-	type CurrencyBalance = Balance;
-	type AdminOrigin = frame_system::EnsureRoot<AccountId>;
-	type Deficit = ();
-	type Surplus = ();
-	type IgnoredIssuance = IgnoredIssuance;
-	type QueueCount = QueueCount;
-	type MaxQueueLen = MaxQueueLen;
-	type FifoQueueLen = FifoQueueLen;
-	type Period = Period;
-	type MinFreeze = MinFreeze;
-	type IntakePeriod = IntakePeriod;
-	type MaxIntakeBids = MaxIntakeBids;
-	type WeightInfo = pallet_gilt::weights::SubstrateWeight<Runtime>;
-}
-
 impl pallet_transaction_storage::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
@@ -1198,51 +1169,54 @@ construct_runtime!(
 		NodeBlock = node_primitives::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Utility: pallet_utility::{Pallet, Call, Event},
-		Babe: pallet_babe::{Pallet, Call, Storage, Config, ValidateUnsigned},
-		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-		Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
-		Indices: pallet_indices::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
-		ElectionProviderMultiPhase: pallet_election_provider_multi_phase::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
+		System: frame_system = 1,
+		Utility: pallet_utility = 2,
+		Babe: pallet_babe = 3,
+		Timestamp: pallet_timestamp = 4,
+		Authorship: pallet_authorship = 5,
+		Indices: pallet_indices = 6,
+		Balances: pallet_balances = 7,
+		TransactionPayment: pallet_transaction_payment = 8,
+		ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 9,
 
-		Staking: pallet_staking::{Pallet, Config<T>, Call, Storage, Event<T>},
-		StakingExtension: pallet_staking_extension::{Pallet, Call, Storage},
+		// staking with our extra staking extension
+		Staking: pallet_staking = 11,
+		StakingExtension: pallet_staking_extension = 12,
 
-		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
-		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
-		TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
-		Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>},
-		TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
-		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event, ValidateUnsigned},
-		Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
-		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
-		ImOnline: pallet_im_online::{Pallet, Call, Storage, Event<T>, ValidateUnsigned, Config<T>},
-		AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config},
-		Offences: pallet_offences::{Pallet, Storage, Event},
-		Historical: pallet_session_historical::{Pallet},
-		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
-		Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
-		Society: pallet_society::{Pallet, Call, Storage, Event<T>, Config<T>},
-		Recovery: pallet_recovery::{Pallet, Call, Storage, Event<T>},
-		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
-		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
-		Preimage: pallet_preimage,
-		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>},
-		Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
-		Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>},
-		Tips: pallet_tips::{Pallet, Call, Storage, Event<T>},
-		Gilt: pallet_gilt::{Pallet, Call, Storage, Event<T>, Config},
-		TransactionStorage: pallet_transaction_storage::{Pallet, Call, Storage, Inherent, Config<T>, Event<T>},
-		BagsList: pallet_bags_list,
+		Session: pallet_session = 20,
+		Democracy: pallet_democracy = 21,
+		Council: pallet_collective::<Instance1> = 22,
+		TechnicalCommittee: pallet_collective::<Instance2> = 23,
+		Elections: pallet_elections_phragmen = 24,
+		TechnicalMembership: pallet_membership::<Instance1> = 25,
 
-		Propagation: pallet_propagation::{Pallet, Call, Storage, Event<T>},
-		Relayer: pallet_relayer::{Pallet, Call, Storage, Event<T>},
-		Slashing: pallet_slashing::{Pallet, Call, Storage},
-		Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
+		Grandpa: pallet_grandpa = 30,
+		Treasury: pallet_treasury = 31,
+		Sudo: pallet_sudo = 32,
+		ImOnline: pallet_im_online = 33,
+		AuthorityDiscovery: pallet_authority_discovery =34,
+		Offences: pallet_offences = 35,
+		Historical: pallet_session_historical = 36,
+		RandomnessCollectiveFlip: pallet_randomness_collective_flip = 37,
+		Identity: pallet_identity = 38,
+		Society: pallet_society = 39,
+
+		Recovery: pallet_recovery = 40,
+		Vesting: pallet_vesting = 41,
+		Scheduler: pallet_scheduler = 42,
+		Preimage: pallet_preimage = 43,
+		Proxy: pallet_proxy = 44,
+		Multisig: pallet_multisig = 45,
+		Bounties: pallet_bounties = 46,
+		Tips: pallet_tips = 47,
+		TransactionStorage: pallet_transaction_storage = 48,
+		BagsList: pallet_bags_list = 49,
+
+		// custom pallets
+		Propagation: pallet_propagation = 50,
+		Relayer: pallet_relayer = 51,
+		Slashing: pallet_slashing = 52,
+		Constraints: pallet_constraints = 53,
 
 	}
 );
@@ -1284,7 +1258,6 @@ pub type Executive = frame_executive::Executive<
 	Block,
 	frame_system::ChainContext<Runtime>,
 	Runtime,
-	AllPallets,
 	(),
 >;
 
@@ -1504,7 +1477,6 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, pallet_democracy, Democracy);
 			list_benchmark!(list, extra, pallet_election_provider_multi_phase, ElectionProviderMultiPhase);
 			list_benchmark!(list, extra, pallet_elections_phragmen, Elections);
-			list_benchmark!(list, extra, pallet_gilt, Gilt);
 			list_benchmark!(list, extra, pallet_grandpa, Grandpa);
 			list_benchmark!(list, extra, pallet_identity, Identity);
 			list_benchmark!(list, extra, pallet_im_online, ImOnline);
@@ -1573,7 +1545,6 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, pallet_democracy, Democracy);
 			add_benchmark!(params, batches, pallet_election_provider_multi_phase, ElectionProviderMultiPhase);
 			add_benchmark!(params, batches, pallet_elections_phragmen, Elections);
-			add_benchmark!(params, batches, pallet_gilt, Gilt);
 			add_benchmark!(params, batches, pallet_grandpa, Grandpa);
 			add_benchmark!(params, batches, pallet_identity, Identity);
 			add_benchmark!(params, batches, pallet_im_online, ImOnline);
