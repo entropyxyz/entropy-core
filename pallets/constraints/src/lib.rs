@@ -74,6 +74,7 @@ pub mod pallet {
 			whitelist_addresses: Vec<Vec<u8>>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			// TODO ensure registered
 			if whitelist_addresses
 				.clone()
 				.into_iter()
