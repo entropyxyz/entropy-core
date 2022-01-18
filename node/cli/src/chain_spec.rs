@@ -192,6 +192,7 @@ pub fn staging_testnet_config() -> ChainSpec {
 		),
 		None,
 		None,
+		None,
 		Default::default(),
 	)
 }
@@ -334,7 +335,7 @@ pub fn testnet_genesis(
 				.collect(),
 			phantom: Default::default(),
 		},
-		sudo: SudoConfig { key: root_key },
+		sudo: SudoConfig { key: Some(root_key) },
 		babe: BabeConfig {
 			authorities: vec![],
 			epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
@@ -379,6 +380,7 @@ pub fn development_config() -> ChainSpec {
 		None,
 		None,
 		None,
+		None,
 		Default::default(),
 	)
 }
@@ -400,6 +402,7 @@ pub fn local_testnet_config() -> ChainSpec {
 		ChainType::Local,
 		local_testnet_genesis,
 		vec![],
+		None,
 		None,
 		None,
 		None,
@@ -434,6 +437,7 @@ pub(crate) mod tests {
 			None,
 			None,
 			None,
+			None,
 			Default::default(),
 		)
 	}
@@ -446,6 +450,7 @@ pub(crate) mod tests {
 			ChainType::Development,
 			local_testnet_genesis,
 			vec![],
+			None,
 			None,
 			None,
 			None,
