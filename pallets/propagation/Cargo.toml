@@ -66,6 +66,7 @@ sp-staking = { version = "4.0.0-dev", default-features = false, git = 'https://g
 sp-io = { version = "4.0.0-dev", default-features = false,  git = "https://github.com/paritytech/substrate",  branch = "master"}
 lite-json = { version = "0.1", default-features = false }
 sp-runtime = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-core = { default-features = false,  git = "https://github.com/paritytech/substrate", branch = "master" }
 
 [dev-dependencies]
 sp-keystore = { git = "https://github.com/paritytech/substrate", branch = "master" }
