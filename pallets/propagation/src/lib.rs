@@ -16,15 +16,15 @@ mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use codec::Encode;
 	use frame_support::{inherent::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
 	use frame_system::pallet_prelude::*;
 	use scale_info::prelude::vec;
+	use sp_core;
 	use sp_runtime::{
 		offchain::{http, Duration},
 		sp_std::str,
 	};
-
-	use codec::Encode;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -91,7 +91,11 @@ pub mod pallet {
 				return Ok(())
 			}
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
-			let path = &"http://localhost:3001";
+			let kind = sp_core::offchain::StorageKind::PERSISTENT;
+			let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
+				.unwrap_or_else(|| b"http://localhost:3001".to_vec());
+			let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001");
+			// let url = base;
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
 			let req_body = messages.encode();
 
@@ -99,7 +103,7 @@ pub mod pallet {
 			// important: the header->Content-Type must be added and match that of the receiving
 			// party!!
 			let pending =
-				http::Request::post(path, vec![block_author.clone().unwrap().encode(), req_body])
+				http::Request::post(&url, vec![block_author.clone().unwrap().encode(), req_body])
 					.deadline(deadline)
 					.add_header("Content-Type", "application/x-parity-scale-codec")
 					.send()
