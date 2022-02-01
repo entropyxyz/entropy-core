@@ -5308,6 +5308,7 @@ dependencies = [
  "log",
  "pallet-authorship",
  "parity-scale-codec",
+ "protocol",
  "scale-info",
  "sp-core",
  "sp-io",
@@ -6173,7 +6174,14 @@ dependencies = [
 name = "protocol"
 version = "0.1.0"
 dependencies = [
+ "async-std",
+ "async-trait",
  "multi-party-ecdsa",
+ "parity-scale-codec",
+ "parity-scale-codec-derive",
+ "scale-info",
+ "sp-keyring",
+ "subxt",
 ]
 
 [[package]]

@@ -6,4 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+async-std = { version = "1.9.0", features = ["attributes", "tokio1"] }
+async-trait = "0.1.51"
 multi-party-ecdsa ={ git = "https://github.com/ZenGo-X/multi-party-ecdsa"}
+sp-keyring = { package = "sp-keyring", git = "https://github.com/paritytech/substrate/", branch = "master" }
+subxt = { git = "https://github.com/paritytech/subxt.git" }
+codec = { package = "parity-scale-codec", version = "2", default-features = false, features = ["derive", "full", "bit-vec"] }
+parity-scale-codec-derive = "2.3.1"
+
+[dependencies.scale-info]
+default-features = false
+features = ['derive']
+version = '1.0'
