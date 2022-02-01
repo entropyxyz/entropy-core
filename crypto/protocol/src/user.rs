@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use sp_keyring::AccountKeyring;
 use subxt::{ClientBuilder, PairSigner, sp_runtime::PerThing};
 
+// This is needed so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "src/entropy_metadata.scale")]
 pub mod entropy {}
 
