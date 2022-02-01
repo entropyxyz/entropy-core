@@ -5,6 +5,7 @@
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
+/// body of a signature generation request by the user to the entropy network
 #[derive(Clone, Encode, Decode, Debug, PartialEq, TypeInfo)] 
 pub struct RequestSigBody {
     // TypeInfo marco lets parity-scale-codec .encode() the fields in this struct

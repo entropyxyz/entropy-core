@@ -23,10 +23,12 @@ impl User {
 		Self {}
 	}
 	/// Submit tx to network
-	// fn send_tx() {
-	// 	todo!();
-	// }
-	async fn send_tx(&self) -> Result<(), Box<dyn std::error::Error   >> {
+	fn send_tx() {
+		todo!();
+	}
+
+
+	async fn request_sig_gen(&self) -> Result<(), Box<dyn std::error::Error   >> {
 
 		println!("register is called");
 		let signer = PairSigner::new(AccountKeyring::Alice.pair());
@@ -38,16 +40,16 @@ impl User {
 			.await?
 			.to_runtime_api::<entropy::RuntimeApi<entropy::DefaultConfig>>();
 
-		// User sends the registration-message to any node.
+		// User sends an extrinsic requesting the endpoints of the signer nodes to generate a signature
 		// User expects a reply
 		// This reply contains the endpoint of the current signer-node or an error message
+		// Todo: how can the signer node endpoints passed to the user in the reply?
 		// Todo: handle the result message and forward the Signer's endpoint
 		let result = api
 				.tx()
 				.relayer()
-				.account_registration(
+				.prep_transaction(
 					entropy::runtime_types::protocol::common::RequestSigBody{
-						//user_public_key:&self, 
 						keyshards: 123, 
 						test: 369
 					}

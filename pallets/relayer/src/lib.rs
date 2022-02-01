@@ -54,7 +54,7 @@ pub mod pallet {
 		pub data_2: u128,
 	}
 
-	//type RequestSigBody = crypto_protocol::RequestSigBody;
+	type RequestSigBody = protocol::RequestSigBody;
 
 	#[pallet::storage]
 	#[pallet::getter(fn messages)]
