@@ -3,7 +3,7 @@
 set -e
 
 sudo apt install -y libssl-dev clang libclang-dev
-rustup default nightly-x86_64-unknown-linux-gnu
+rustup default nightly
 rustup update
 rustup update nightly
 rustup target add wasm32-unknown-unknown --toolchain nightly
