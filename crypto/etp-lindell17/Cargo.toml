@@ -12,3 +12,5 @@ k256 = { version = "0.9.6", default-features = false, features = ["ecdsa", "arit
 std = [  ]
 default = [ ]
 party_one = ["rand"]
+
+[workspace]
