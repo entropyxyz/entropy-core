@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [ np/playground ]
+    branches: [ np/ci-playground ]
   pull_request:
     branches: [ master ]
   workflow_dispatch:
