@@ -1,0 +1,24 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Compile
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: bash .github/workflows/scripts/install_dependencies.sh
+      - run: SKIP_WASM_BUILD=1 cargo check --release
+  benchmark:
+    name: Benchmark
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: bash .github/workflows/scripts/install_dependencies.sh
+      - run: pushd node && cargo check --features=runtime-benchmarks --release
