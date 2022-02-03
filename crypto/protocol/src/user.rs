@@ -3,7 +3,7 @@ use std::panic::take_hook;
 
 use async_trait::async_trait;
 use sp_keyring::AccountKeyring;
-use subxt::{ClientBuilder, PairSigner, sp_runtime::PerThing};
+use subxt::{ClientBuilder, DefaultConfig, DefaultExtra, PairSigner};
 
 // This is needed so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "src/entropy_metadata.scale")]
@@ -36,10 +36,9 @@ impl User {
 
 		let api = ClientBuilder::new()
 			.set_url("ws://localhost:9944")
-			.accept_weak_inclusion()
 			.build()
 			.await?
-			.to_runtime_api::<entropy::RuntimeApi<entropy::DefaultConfig>>();
+			.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, DefaultExtra<_>>>();
 
 		// User sends an extrinsic requesting the endpoints of the signer nodes to generate a signature
 		// User expects a reply
@@ -50,10 +49,12 @@ impl User {
 				.tx()
 				.relayer()
 				.prep_transaction(
-					entropy::runtime_types::protocol::common::RequestSigBody{
-						keyshards: 123, 
-						test: 369
-					}
+					// entropy::runtime_types::protocol::common::RequestSigBody{
+					// 	keyshards: 123, 
+					// 	test: 369
+					// }
+					123,
+					369
 				)
 				.sign_and_submit_then_watch(&signer) 
 				.await?;
