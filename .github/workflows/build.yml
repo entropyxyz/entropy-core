@@ -13,16 +13,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - name: Install dependencies
-        run: sudo apt install -y libssl-dev clang libclang-dev
-      - name: Setup Rust toolchain
-        run: |
-          rustup update nightly
-          rustup target add wasm32-unknown-unknown --toolchain nightly
-
-      - name: Check Build
-        run: |
-          SKIP_WASM_BUILD=1 cargo check --release
+      - run: sh .github/workflows/scripts/install_dependencies.sh
+      - run: SKIP_WASM_BUILD=1 cargo check --release
 
 #       - name: Check Build for Benchmarking
 #         run: >
