@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 multi-party-ecdsa ={ git = "https://github.com/ZenGo-X/multi-party-ecdsa"}
+clap = {version = "3.0.14", features = ["derive"]}
