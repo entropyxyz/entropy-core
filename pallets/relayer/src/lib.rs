@@ -54,7 +54,7 @@ pub mod pallet {
 		pub data_2: u128,
 	}
 
-	type RequestSigBody = protocol::RequestSigBody;
+	type RequestSigBody = common::common::RegistrationMessage;
 
 	#[pallet::storage]
 	#[pallet::getter(fn messages)]

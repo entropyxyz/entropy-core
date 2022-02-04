@@ -886,6 +886,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5302,13 +5310,13 @@ dependencies = [
 name = "pallet-relayer"
 version = "3.0.0"
 dependencies = [
+ "common",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
  "pallet-authorship",
  "parity-scale-codec",
- "protocol",
  "scale-info",
  "sp-core",
  "sp-io",
