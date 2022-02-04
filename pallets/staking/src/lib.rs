@@ -76,8 +76,8 @@ pub mod pallet {
 				endpoint.len() as u32 <= T::MaxEndpointLength::get(),
 				Error::<T>::EndpointTooLong
 			);
-			pallet_staking::Pallet::<T>::ledger(who.clone()).ok_or(Error::<T>::NoBond)?;
-			EndpointRegister::<T>::insert(who.clone(), endpoint.clone());
+			pallet_staking::Pallet::<T>::ledger(&who).ok_or(Error::<T>::NoBond)?;
+			EndpointRegister::<T>::insert(&who, &endpoint);
 			Self::deposit_event(Event::EndpointChanged(who, endpoint));
 			Ok(())
 		}
@@ -91,7 +91,7 @@ pub mod pallet {
 			pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
 			let ledger = pallet_staking::Pallet::<T>::ledger(&controller);
 			if ledger.is_none() && Self::endpoint_register(&controller).is_some() {
-				EndpointRegister::<T>::remove(controller.clone());
+				EndpointRegister::<T>::remove(&controller);
 				Self::deposit_event(Event::EndpointRemoved(controller));
 			}
 			Ok(().into())
@@ -109,7 +109,7 @@ pub mod pallet {
 				Error::<T>::EndpointTooLong
 			);
 			pallet_staking::Pallet::<T>::validate(origin, prefs)?;
-			EndpointRegister::<T>::insert(who.clone(), endpoint.clone());
+			EndpointRegister::<T>::insert(&who, &endpoint);
 			Self::deposit_event(Event::EndpointChanged(who, endpoint));
 			Ok(())
 		}

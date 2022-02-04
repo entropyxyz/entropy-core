@@ -133,7 +133,7 @@ pub mod pallet {
 		pub fn register(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			// TODO proof
-			Registered::<T>::insert(who, true);
+			Registered::<T>::insert(&who, true);
 			Self::deposit_event(Event::AccountRegistered(who));
 			Ok(())
 		}
@@ -151,7 +151,7 @@ pub mod pallet {
 			let current_failures = Self::failures(block_number);
 
 			ensure!(current_failures.is_none(), Error::<T>::AlreadySubmitted);
-			Failures::<T>::insert(block_number, failures);
+			Failures::<T>::insert(block_number, &failures);
 			Self::deposit_event(Event::ConfirmedDone(who, block_number, failures));
 			Ok(())
 		}
