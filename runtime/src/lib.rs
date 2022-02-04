@@ -534,6 +534,7 @@ parameter_types! {
 	pub const MaxEndpointLength: u32 = 100;
 }
 impl pallet_staking_extension::Config for Runtime {
+	type Event = Event;
 	type Currency = Balances;
 	type MaxEndpointLength = MaxEndpointLength;
 }
@@ -1125,6 +1126,7 @@ parameter_types! {
 }
 
 impl pallet_slashing::Config for Runtime {
+	type Event = Event;
 	type ReportBad = Offences;
 	type ValidatorSet = Historical;
 	type MinValidators = MinValidators;
