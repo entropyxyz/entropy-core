@@ -2,7 +2,7 @@ use crate as pallet_staking_extension;
 use frame_election_provider_support::onchain;
 use frame_support::{
 	parameter_types,
-	traits::{Get, Hooks, OneSessionHandler},
+	traits::{Get, Hooks, OneSessionHandler, ConstU32},
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
@@ -33,7 +33,7 @@ frame_support::construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-		Staking: pallet_staking_extension::{Pallet, Call, Storage},
+		Staking: pallet_staking_extension::{Pallet, Call, Storage, Event<T>},
 		FrameStaking: pallet_staking::{Pallet, Call, Storage, Event<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Historical: pallet_session_historical::{Pallet},
@@ -71,6 +71,7 @@ impl system::Config for Test {
 	type SystemWeightInfo = ();
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -177,6 +178,12 @@ parameter_types! {
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
 }
 
+pub struct StakingBenchmarkingConfig;
+impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
+	type MaxNominators = ConstU32<1000>;
+	type MaxValidators = ConstU32<1000>;
+}
+
 impl pallet_staking::Config for Test {
 	const MAX_NOMINATIONS: u32 = 16;
 	type RewardRemainder = ();
@@ -198,6 +205,7 @@ impl pallet_staking::Config for Test {
 	type ElectionProvider = onchain::OnChainSequentialPhragmen<Self>;
 	type GenesisElectionProvider = Self::ElectionProvider;
 	type SortedListProvider = pallet_staking::UseNominatorsMap<Self>;
+	type BenchmarkingConfig = StakingBenchmarkingConfig;
 	type WeightInfo = ();
 }
 
@@ -222,6 +230,7 @@ parameter_types! {
 	pub const MaxEndpointLength: u32 = 3;
 }
 impl pallet_staking_extension::Config for Test {
+	type Event = Event;
 	type Currency = Balances;
 	type MaxEndpointLength = MaxEndpointLength;
 }

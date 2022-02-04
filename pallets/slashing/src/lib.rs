@@ -35,6 +35,7 @@ pub mod pallet {
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
+		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// A type that gives us the ability to submit unresponsiveness offence reports.
 		type ReportBad: ReportOffence<
 			Self::AccountId,
@@ -79,6 +80,13 @@ pub mod pallet {
 		KeyGenInternalError,
 	}
 
+	#[pallet::event]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	pub enum Event<T: Config> {
+		/// A custom offence has been logged. [who, offenders]
+		Offence(T::AccountId, Vec<IdentificationTuple<T>>),
+	}
+
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
 	// These functions materialize as "extrinsics", which are often compared to transactions.
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
@@ -108,13 +116,14 @@ pub mod pallet {
 				log::info!("session_index: {:?}", session_index);
 				log::info!("offenders: {:?}", offenders);
 
-				let offence = TuxAngry { session_index, validator_set_count, offenders };
+				let offence = TuxAngry { session_index, validator_set_count, offenders: offenders.clone() };
 
 				log::info!("offence: {:?}", offence);
-				if let Err(e) = T::ReportBad::report_offence(vec![who], offence) {
+				if let Err(e) = T::ReportBad::report_offence(vec![who.clone()], offence) {
 					log::error!("error: {:?}", e);
 				};
 			}
+			Self::deposit_event(Event::Offence(who, offenders));
 		}
 	}
 

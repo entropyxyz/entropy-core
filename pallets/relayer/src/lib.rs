@@ -90,6 +90,10 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// A transaction has been propagated to the network. [who]
 		TransactionPropagated(T::AccountId),
+		/// An account has been registered. [who]
+		AccountRegistered(T::AccountId),
+		/// An account has been registered. [who, block_number, failures]
+		ConfirmedDone(T::AccountId, T::BlockNumber, Vec<u32>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -130,6 +134,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			// TODO proof
 			Registered::<T>::insert(who, true);
+			Self::deposit_event(Event::AccountRegistered(who));
 			Ok(())
 		}
 
@@ -147,7 +152,7 @@ pub mod pallet {
 
 			ensure!(current_failures.is_none(), Error::<T>::AlreadySubmitted);
 			Failures::<T>::insert(block_number, failures);
-
+			Self::deposit_event(Event::ConfirmedDone(who, block_number, failures));
 			Ok(())
 		}
 	}

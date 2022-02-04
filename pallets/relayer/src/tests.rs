@@ -78,6 +78,7 @@ fn moves_active_to_pending() {
 		assert_eq!(Relayer::pending(3), vec![message.clone()]);
 		assert_eq!(Relayer::unresponsive(1), 0);
 		// pending pruned
+		Responsibility::<Test>::insert(4, 1);
 		Relayer::move_active_to_pending(6);
 		assert_eq!(Relayer::pending(3), vec![]);
 	});
