@@ -2,7 +2,7 @@ use crate as pallet_staking_extension;
 use frame_election_provider_support::onchain;
 use frame_support::{
 	parameter_types,
-	traits::{Get, Hooks, OneSessionHandler, ConstU32},
+	traits::{ConstU32, Get, Hooks, OneSessionHandler},
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;

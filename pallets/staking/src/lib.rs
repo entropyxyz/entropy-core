@@ -65,7 +65,6 @@ pub mod pallet {
 		EndpointChanged(T::AccountId, Vec<u8>),
 		/// An Endpoint has been removed [who]
 		EndpointRemoved(T::AccountId),
-
 	}
 
 	#[pallet::call]

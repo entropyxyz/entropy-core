@@ -116,7 +116,8 @@ pub mod pallet {
 				log::info!("session_index: {:?}", session_index);
 				log::info!("offenders: {:?}", offenders);
 
-				let offence = TuxAngry { session_index, validator_set_count, offenders: offenders.clone() };
+				let offence =
+					TuxAngry { session_index, validator_set_count, offenders: offenders.clone() };
 
 				log::info!("offence: {:?}", offence);
 				if let Err(e) = T::ReportBad::report_offence(vec![who.clone()], offence) {

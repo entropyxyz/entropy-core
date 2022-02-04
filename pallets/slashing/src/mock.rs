@@ -168,11 +168,11 @@ impl onchain::Config for Test {
 	type DataProvider = Staking;
 }
 
-	pub struct StakingBenchmarkingConfig;
-	impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
-		type MaxNominators = ConstU32<1000>;
-		type MaxValidators = ConstU32<1000>;
-	}
+pub struct StakingBenchmarkingConfig;
+impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
+	type MaxNominators = ConstU32<1000>;
+	type MaxValidators = ConstU32<1000>;
+}
 
 impl pallet_staking::Config for Test {
 	const MAX_NOMINATIONS: u32 = 16;
