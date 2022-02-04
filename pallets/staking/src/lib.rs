@@ -22,6 +22,7 @@ pub mod pallet {
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_staking::Config {
+		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type Currency: Currency<Self::AccountId>;
 		type MaxEndpointLength: Get<u32>;
 	}
@@ -57,6 +58,15 @@ pub mod pallet {
 		NoBond,
 	}
 
+	#[pallet::event]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	pub enum Event<T: Config> {
+		/// An endpoint has been added or edited. [who, endpoint]
+		EndpointChanged(T::AccountId, Vec<u8>),
+		/// An Endpoint has been removed [who]
+		EndpointRemoved(T::AccountId),
+	}
+
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
@@ -66,8 +76,9 @@ pub mod pallet {
 				endpoint.len() as u32 <= T::MaxEndpointLength::get(),
 				Error::<T>::EndpointTooLong
 			);
-			pallet_staking::Pallet::<T>::ledger(who.clone()).ok_or(Error::<T>::NoBond)?;
-			EndpointRegister::<T>::insert(who, endpoint);
+			pallet_staking::Pallet::<T>::ledger(&who).ok_or(Error::<T>::NoBond)?;
+			EndpointRegister::<T>::insert(&who, &endpoint);
+			Self::deposit_event(Event::EndpointChanged(who, endpoint));
 			Ok(())
 		}
 
@@ -80,7 +91,8 @@ pub mod pallet {
 			pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
 			let ledger = pallet_staking::Pallet::<T>::ledger(&controller);
 			if ledger.is_none() && Self::endpoint_register(&controller).is_some() {
-				EndpointRegister::<T>::remove(controller);
+				EndpointRegister::<T>::remove(&controller);
+				Self::deposit_event(Event::EndpointRemoved(controller));
 			}
 			Ok(().into())
 		}
@@ -97,7 +109,8 @@ pub mod pallet {
 				Error::<T>::EndpointTooLong
 			);
 			pallet_staking::Pallet::<T>::validate(origin, prefs)?;
-			EndpointRegister::<T>::insert(who, endpoint);
+			EndpointRegister::<T>::insert(&who, &endpoint);
+			Self::deposit_event(Event::EndpointChanged(who, endpoint));
 			Ok(())
 		}
 	}
