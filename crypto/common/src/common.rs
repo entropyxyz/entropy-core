@@ -1,0 +1,25 @@
+
+
+
+use codec::{Decode, Encode};
+use scale_info::TypeInfo;
+
+#[derive(Clone, Encode, Decode, Debug, PartialEq, TypeInfo)] 
+pub struct RegistrationMessage {
+    // ToDo: TypeInfo marco only works for basic types out of the box. 
+    // Out of the box it does not work for types like SecretKey or PublicKey
+    // TypeInfo needs to be implemented for these types. 
+    // see https://github.com/Entropyxyz/entropy-core/issues/29
+
+	// /// Session ID/nonce. Check that this ID has not beed used before
+	// /// This will be 0 for account creation. 
+	// sid: u32, 
+	// // PublicKey of the account of the user
+	//pub pub_group_key: PublicKey, 
+	// // PublicKey of the user's secret keyshare
+	//pub user_public_key: PublicKey,
+	// // ConstraintSet: alternativeley, a default ConstraintSet will always be loaded at account creation
+	pub keyshards: u128, /* this will be Vec<FieldElements>, where FieldElements are BigInt mod
+	                      * Order, i.e. \mathbb{Z_q} */
+	pub test: u128,
+}

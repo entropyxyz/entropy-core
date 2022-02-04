@@ -1,0 +1,27 @@
+[package]
+name = "common"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# codec = { package = "parity-scale-codec", version = "2,0,0", default-features = false, features = ["derive", "full", "bit-vec"] }
+# codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
+
+# parity-scale-codec-derive = "2.3.1"
+
+
+[dependencies.codec]
+default-features = false
+# features = ['derive']
+package = 'parity-scale-codec'
+version = '2.0.0'
+
+[dependencies.scale-info]
+default-features = false
+features = ['derive']
+version = '1.0'
+
+[features]
+# std = [  ]
+default = [ ]
+party_one = [ ] # ["rand"]
