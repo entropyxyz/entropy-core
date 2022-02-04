@@ -13,6 +13,7 @@ sp-keyring = { package = "sp-keyring", git = "https://github.com/paritytech/subs
 subxt = { git = "https://github.com/paritytech/subxt.git" }
 codec = { package = "parity-scale-codec", version = "2", default-features = false, features = ["derive", "full", "bit-vec"] }
 parity-scale-codec-derive = "2.3.1"
+common = { path = "../../crypto/common", default-features = false }
 
 [dependencies.scale-info]
 default-features = false

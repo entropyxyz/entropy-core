@@ -6184,6 +6184,7 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
+ "common",
  "multi-party-ecdsa",
  "parity-scale-codec",
  "parity-scale-codec-derive",

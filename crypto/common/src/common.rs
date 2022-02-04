@@ -4,6 +4,7 @@
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
+/// RegistrationMessage holds the information sent by the User to the extropy-network during account-registration
 #[derive(Clone, Encode, Decode, Debug, PartialEq, TypeInfo)] 
 pub struct RegistrationMessage {
     // ToDo: TypeInfo marco only works for basic types out of the box. 
