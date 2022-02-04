@@ -54,8 +54,6 @@ pub mod pallet {
 		pub data_2: u128,
 	}
 
-	type RequestSigBody = common::common::RegistrationMessage;
-
 	#[pallet::storage]
 	#[pallet::getter(fn messages)]
 	pub type Messages<T: Config> =
@@ -65,6 +63,12 @@ pub mod pallet {
 	#[pallet::getter(fn pending)]
 	pub type Pending<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
+
+	type RegistrationMessage = common::RegistrationMessage;
+	#[pallet::storage]
+	#[pallet::getter(fn registrationmessages)]
+	pub type RegistrationMessages<T: Config> =
+		StorageValue<_, Vec<RegistrationMessage>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn failures)]
@@ -127,6 +131,26 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Register a account with the entropy-network
+		/// accounts are identified by the public group key of the user.
+		/// 
+		// ToDo: see https://github.com/Entropyxyz/entropy-core/issues/29
+		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+		pub fn account_registration(
+			origin: OriginFor<T>,
+			registration_msg: RegistrationMessage,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			RegistrationMessages::<T>::try_mutate(|dummy| -> Result<_, DispatchError> {
+				dummy.push(registration_msg);
+				Ok(())
+			})?;
+
+			//Self::deposit_event(Event::TransactionPropagated(who));
+			///////// for now - end prep_transaction///////////
+			Ok(())
+		}
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
 		pub fn register(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
