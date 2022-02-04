@@ -11,6 +11,7 @@
 // use codec::{Decode, Encode};
 // use scale_info::TypeInfo;
 
-pub mod common;
+mod common;
 
 pub type RegistrationMessage = common::RegistrationMessage;
+pub type SigRequest = common::SigRequest;

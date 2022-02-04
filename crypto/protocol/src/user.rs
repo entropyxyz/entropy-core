@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use sp_keyring::AccountKeyring;
 use subxt::{ClientBuilder, DefaultConfig, DefaultExtra, PairSigner};
 
-// This is needed so that subxt knows what types can be handled by the entropy network
+// load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "src/entropy_metadata.scale")]
 pub mod entropy {}
 
@@ -13,8 +13,6 @@ pub mod entropy {}
 pub struct User {
 	// key_share: PrivateKey
 }
-
-
 
 impl User {
 	/// User generates
@@ -28,8 +26,12 @@ impl User {
 		todo!();
 	}
 
-
-	async fn request_sig_gen(&self) -> Result<(), Box<dyn std::error::Error   >> {
+	/// User sends an extrinsic requesting the endpoints of the signer nodes to generate a signature
+	/// User expects a reply
+	/// This reply contains the endpoint of the current signer-node or an error message. Or read the endpoints on-chain??
+	// Todo: how can the signer node endpoints passed to the user in the reply?
+	// Todo: handle the result message and forward the Signer's endpoint	
+	async fn request_sig_gen(&self) -> Result<(), Box<dyn std::error::Error>> {
 
 		println!("register is called");
 		let signer = PairSigner::new(AccountKeyring::Alice.pair());
@@ -40,21 +42,15 @@ impl User {
 			.await?
 			.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, DefaultExtra<_>>>();
 
-		// User sends an extrinsic requesting the endpoints of the signer nodes to generate a signature
-		// User expects a reply
-		// This reply contains the endpoint of the current signer-node or an error message
-		// Todo: how can the signer node endpoints passed to the user in the reply?
-		// Todo: handle the result message and forward the Signer's endpoint
+		// send extrinsic
 		let result = api
 				.tx()
 				.relayer()
 				.prep_transaction(
-					// entropy::runtime_types::protocol::common::RequestSigBody{
-					// 	keyshards: 123, 
-					// 	test: 369
-					// }
-					123,
-					369
+					entropy::runtime_types::common::common::SigRequest{
+						hash_msg: 123, 
+						test: 369
+					}
 				)
 				.sign_and_submit_then_watch(&signer) 
 				.await?;

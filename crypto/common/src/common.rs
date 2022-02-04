@@ -24,3 +24,22 @@ pub struct RegistrationMessage {
 	                      * Order, i.e. \mathbb{Z_q} */
 	pub test: u128,
 }
+
+/// body of a signature generation request by the user to the entropy network
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)] 
+pub struct SigRequest {
+    // TypeInfo marco lets parity-scale-codec .encode() the fields in this struct
+	// only works for basic types out of the box. 
+    // Out of the box it does not work for types like SecretKey or PublicKey
+    // TypeInfo needs to be implemented for these types. 
+    // see https://github.com/Entropyxyz/entropy-core/issues/29
+	//
+	// hash of message to be signed
+	pub hash_msg: u128, 
+	// dummy-content
+	pub test: u128,
+	// /// Session ID/nonce. Check that this ID has not beed used before
+	// sid: u32, 	
+	// /// signature to authenticate the user
+	// sig: u32,
+}

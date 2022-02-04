@@ -48,10 +48,11 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
+
+	// type SigRequest = common::SigRequest;
 	#[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
 	pub struct Message {
-		pub data_1: u128,
-		pub data_2: u128,
+		sig_request: common::SigRequest,
 	}
 
 	#[pallet::storage]
@@ -115,17 +116,15 @@ pub mod pallet {
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
 		pub fn prep_transaction(
 			origin: OriginFor<T>,
-			data_1: u128,
-			data_2: u128,
+			sig_request: common::SigRequest,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			let new_message = Message { data_1, data_2 };
 			let block_number = <frame_system::Pallet<T>>::block_number();
-			Messages::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-				messages.push(new_message);
+			Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
+				request.push(Message {sig_request});
 				Ok(())
-			})?;
+			})?;			
 
 			Self::deposit_event(Event::TransactionPropagated(who));
 			Ok(())

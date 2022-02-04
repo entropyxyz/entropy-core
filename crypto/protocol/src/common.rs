@@ -7,7 +7,7 @@ use scale_info::TypeInfo;
 
 /// body of a signature generation request by the user to the entropy network
 #[derive(Clone, Encode, Decode, Debug, PartialEq, TypeInfo)] 
-pub struct RequestSigBody {
+pub struct SigRequest {
     // TypeInfo marco lets parity-scale-codec .encode() the fields in this struct
 	// only works for basic types out of the box. 
     // Out of the box it does not work for types like SecretKey or PublicKey
