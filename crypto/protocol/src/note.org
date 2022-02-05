@@ -1,0 +1,12 @@
+* Notes from keygen
+https://github.com/ZenGo-X/multi-party-ecdsa/blob/master/examples/gg20_keygen.rs
+example given uses an async protocol to generate keys, referencing several crates I'm familiar with (tokio, anyhow, structopt), and several I'm less familiar with (futures, round_based).
+I can copy the protocol verbatim for a possible signature implementation, but I'm concerned about the details of the example (async in particular) becoming a problem for future.
+
+Anyhow, goal is to implement async first, then worry about the details.
+
+What does round-based do?
+https://docs.rs/round-based/0.1.1/round_based/index.html
+sets up an n-party protocol across several rounds; at each round, party may p2p or broadcast a message. So, reasonably straight-forward.
+
+What does async do? Lots of things. I really should get around to reading ye neu async booke.
