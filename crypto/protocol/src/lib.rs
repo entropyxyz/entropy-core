@@ -6,8 +6,8 @@ use clap::{AppSettings, Parser, Subcommand};
 use std::path::PathBuf;
 
 /// Generate `SHARES` of `threshold` key shares
-pub const SHARES: u8 = 6;
-pub const THRESHOLD: u8 = 6;
+pub const SHARES: u16 = 6;
+pub const THRESHOLD: u16= 6;
 
 /// Arguments to CLI, default to 6 of 6. Usage:
 /// `$ entro <subcommand>`
@@ -24,9 +24,9 @@ enum Commands {
 	#[clap(setting(AppSettings::ArgRequiredElseHelp))]
 	Keygen {
 		#[clap(short, long, default_value_t = SHARES)]
-		shares: u8,
+		shares: u16,
 		#[clap(short, long, default_value_t = THRESHOLD)]
-		threshold: u8,
+		threshold: u16,
 		/// Where keys are written to
 		#[clap(short, long)]
 		output: PathBuf,
@@ -40,11 +40,11 @@ enum Commands {
 async fn main() {
 	let args = Cli::parse();
 	match &args.commands {
-
+ 
 		Commands::Keygen { shares, threshold, output } => {
 			keygen::keygen(shares, threshold, output);
 		},
-		Commands::Sign => todo!(),
+		Commands::Sign => todo!(), 
 		Commands::DeleteAccount => todo!(),
 	}
 }
