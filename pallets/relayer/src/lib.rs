@@ -122,7 +122,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			sig_request: common::SigRequest,
 		) -> DispatchResult {
-			log::info!("prep_transaction::sig_request: {:?}", sig_request);
+			log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
 			let who = ensure_signed(origin)?;
 
 			let block_number = <frame_system::Pallet<T>>::block_number();
@@ -138,27 +138,21 @@ pub mod pallet {
 		/// Register a account with the entropy-network
 		/// accounts are identified by the public group key of the user.
 		/// 
-		// ToDo: see https://github.com/Entropyxyz/entropy-core/issues/29
+		// ToDo: see https://github.com/Entropyxyz/entropy-core/issues/29		
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
-		pub fn account_registration(
+		pub fn register(
 			origin: OriginFor<T>,
 			registration_msg: RegistrationMessage,
 		) -> DispatchResult {
-			log::info!("account_registration::registration_msg: {:?}", registration_msg);
-			let who = ensure_signed(origin)?;		
-			
+			// delete the following line ( log::info!(...) ) eventually
+			log::warn!("relayer::register::registration_msg: {:?}", registration_msg);
+			let who = ensure_signed(origin)?;
+
 			RegistrationMessages::<T>::try_mutate(|dummy| -> Result<_, DispatchError> {
 				dummy.push(registration_msg);
 				Ok(())
 			})?;
 
-			//Self::deposit_event(Event::TransactionPropagated(who));
-			///////// for now - end prep_transaction///////////
-			Ok(())
-		}
-		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
-		pub fn register(origin: OriginFor<T>) -> DispatchResult {
-			let who = ensure_signed(origin)?;
 			// TODO proof
 			Registered::<T>::insert(&who, true);
 			Self::deposit_event(Event::AccountRegistered(who));
@@ -306,7 +300,7 @@ pub mod pallet {
 					//TODO apply filter logic
 				}
 
-				if let Call::register {} = local_call {
+				if let Call::register { .. }  = local_call {
 					//TODO ensure proof
 				}
 

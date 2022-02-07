@@ -32,7 +32,7 @@ impl User {
 		let result = api
 				.tx()
 				.relayer()
-				.account_registration(
+				.register(
 					entropy::runtime_types::common::common::RegistrationMessage{
 						keyshards: 123, 
 						test: 369

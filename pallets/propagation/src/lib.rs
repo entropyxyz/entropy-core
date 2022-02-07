@@ -96,6 +96,8 @@ pub mod pallet {
 				.unwrap_or_else(|| b"http://localhost:3001".to_vec());
 			let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001");
 			// let url = base;
+
+			log::warn!("propagation::post::messages: {:?}", &messages);
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
 			let req_body = messages.encode();
 
