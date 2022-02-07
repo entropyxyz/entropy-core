@@ -122,6 +122,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			sig_request: common::SigRequest,
 		) -> DispatchResult {
+			log::info!("prep_transaction::sig_request: {:?}", sig_request);
 			let who = ensure_signed(origin)?;
 
 			let block_number = <frame_system::Pallet<T>>::block_number();
@@ -143,8 +144,9 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			registration_msg: RegistrationMessage,
 		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-
+			log::info!("account_registration::registration_msg: {:?}", registration_msg);
+			let who = ensure_signed(origin)?;		
+			
 			RegistrationMessages::<T>::try_mutate(|dummy| -> Result<_, DispatchError> {
 				dummy.push(registration_msg);
 				Ok(())

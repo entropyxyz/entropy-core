@@ -33,7 +33,7 @@ impl User {
 	// Todo: handle the result message and forward the Signer's endpoint	
 	async fn request_sig_gen(&self) -> Result<(), Box<dyn std::error::Error>> {
 
-		println!("register is called");
+		println!("request_sig_gen is called");
 		let signer = PairSigner::new(AccountKeyring::Alice.pair());
 
 		let api = ClientBuilder::new()
@@ -65,4 +65,13 @@ impl User {
 	fn delete_account() {
 		todo!();
 	}
+}
+
+#[async_std::main]
+async fn main() -> Result<(),Box<dyn std::error::Error>> {
+	println!("test_sign");
+	let user = User{};
+	user.request_sig_gen().await?;
+	Ok(())
+
 }
