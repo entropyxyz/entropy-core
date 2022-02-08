@@ -46,19 +46,19 @@ version = '1.0'
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 branch = "master"
-version = '4.1.0-dev'
+version = '5.0.0'
 
 [dev-dependencies.sp-io]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 branch = "master"
-version = '4.0.0-dev'
+version = '5.0.0'
 
 [dependencies.sp-runtime]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 branch = "master"
-version = '4.0.0-dev'
+version = '5.0.0'
 
 [dependencies]
 sp-std = { package = "sp-std", git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }

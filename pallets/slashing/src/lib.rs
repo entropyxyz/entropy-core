@@ -23,7 +23,8 @@ pub mod pallet {
 		traits::{ValidatorSet, ValidatorSetWithIdentification},
 	};
 	use frame_system::pallet_prelude::*;
-	use sp_runtime::sp_std::str;
+	use sp_application_crypto::RuntimeAppPublic;
+	use sp_runtime::{sp_std::str, traits::Convert};
 	use sp_staking::{
 		offence::{Kind, Offence, ReportOffence},
 		SessionIndex,
@@ -36,12 +37,19 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type AuthorityId: Member
+			+ Parameter
+			+ RuntimeAppPublic
+			+ Ord
+			+ MaybeSerializeDeserialize
+			+ MaxEncodedLen;
 		/// A type that gives us the ability to submit unresponsiveness offence reports.
 		type ReportBad: ReportOffence<
 			Self::AccountId,
 			IdentificationTuple<Self>,
 			TuxAngry<IdentificationTuple<Self>>,
 		>;
+		type ValidatorIdOf: Convert<Self::AccountId, Option<ValidatorId<Self>>>;
 
 		/// A type for retrieving the validators supposed to be online in a session.
 		type ValidatorSet: ValidatorSetWithIdentification<Self::AccountId>;
@@ -78,13 +86,14 @@ pub mod pallet {
 		StorageOverflow,
 		/// Error in the DKG.
 		KeyGenInternalError,
+		NoAssociatedValidatorId,
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// A custom offence has been logged. [who, offenders]
-		Offence(T::AccountId, Vec<IdentificationTuple<T>>),
+		Offence(T::AccountId, Vec<T::AccountId>),
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -94,18 +103,33 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// An example dispatchable that may throw a custom error.
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn demo_offence(
-			origin: OriginFor<T>,
-			offenders: Vec<IdentificationTuple<T>>,
-		) -> DispatchResult {
+		pub fn demo_offence<'a>(origin: OriginFor<T>, offenders: Vec<T::AccountId>) -> DispatchResult  {
 			let who = ensure_signed(origin)?;
-			Self::do_offence(who, offenders);
+			// Self::do_offence(who, offenders)?;
 			Ok(())
 		}
 	}
 
 	impl<T: Config> Pallet<T> {
-		pub fn do_offence(who: T::AccountId, offenders: Vec<IdentificationTuple<T>>) {
+		pub fn do_offence<'a, I: 'a>(
+			who: T::AccountId,
+			offender_addresses: Vec<T::AccountId>,
+		) -> DispatchResult
+		where
+		I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
+		{
+
+			let offenders = offender_addresses
+				.clone()
+				.into_iter()
+				.filter_map(|account| T::ValidatorIdOf::convert(account))
+				.filter_map(|id| {
+					<T::ValidatorSet as ValidatorSetWithIdentification<T::AccountId>>::IdentificationOf::convert(
+				id.clone()
+			).map(|full_id| (id, full_id))
+				})
+				.collect::<Vec<IdentificationTuple<T>>>();
+
 			let session_index = T::ValidatorSet::session_index();
 			let current_validators = T::ValidatorSet::validators();
 			let validator_set_count = current_validators.clone().len() as u32;
@@ -117,14 +141,15 @@ pub mod pallet {
 				log::info!("offenders: {:?}", offenders);
 
 				let offence =
-					TuxAngry { session_index, validator_set_count, offenders: offenders.clone() };
+					TuxAngry { session_index, validator_set_count, offenders: offenders };
 
 				log::info!("offence: {:?}", offence);
 				if let Err(e) = T::ReportBad::report_offence(vec![who.clone()], offence) {
 					log::error!("error: {:?}", e);
 				};
 			}
-			Self::deposit_event(Event::Offence(who, offenders));
+			Self::deposit_event(Event::Offence(who, offender_addresses));
+			Ok(())
 		}
 	}
 

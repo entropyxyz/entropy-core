@@ -48,12 +48,12 @@ sc-consensus-uncles = { version = "0.10.0-dev", git = 'https://github.com/parity
 sc-consensus-babe-rpc = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sc-consensus-epochs = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sc-finality-grandpa-rpc = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-sp-keystore = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-keystore = { version = "0.11.0", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
 [dev-dependencies]
 sc-service-test = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sp-inherents = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-sp-keyring = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-keyring = { version = "5.0.0", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sp-tracing = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 frame-system = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 pallet-transaction-payment = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
@@ -175,12 +175,12 @@ version = '0.10.0-dev'
 [dependencies.sp-core]
 git = 'https://github.com/paritytech/substrate.git'
  branch = "master"
-version = '4.1.0-dev'
+version = '5.0.0'
 
 [dependencies.sp-runtime]
 git = 'https://github.com/paritytech/substrate.git'
  branch = "master"
-version = '4.0.0-dev'
+version = '5.0.0'
 
 [dependencies.sp-timestamp]
 git = 'https://github.com/paritytech/substrate.git'
