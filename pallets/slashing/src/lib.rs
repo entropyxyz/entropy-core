@@ -104,19 +104,18 @@ pub mod pallet {
 		/// An example dispatchable that may throw a custom error.
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn demo_offence<'a>(origin: OriginFor<T>, offenders: Vec<T::AccountId>) -> DispatchResult  {
+			// TODO remove this function, it is for demo purposes only
 			let who = ensure_signed(origin)?;
-			// Self::do_offence(who, offenders)?;
+			Self::do_offence(who, offenders)?;
 			Ok(())
 		}
 	}
 
 	impl<T: Config> Pallet<T> {
-		pub fn do_offence<'a, I: 'a>(
+		pub fn do_offence(
 			who: T::AccountId,
 			offender_addresses: Vec<T::AccountId>,
 		) -> DispatchResult
-		where
-		I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
 		{
 
 			let offenders = offender_addresses

@@ -29,7 +29,7 @@ pub mod pallet {
 	use sp_std::fmt::Debug;
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_authorship::Config {
+	pub trait Config: frame_system::Config + pallet_authorship::Config + pallet_slashing::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type PruneBlock: Get<Self::BlockNumber>;
@@ -46,6 +46,7 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	#[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
@@ -173,10 +174,12 @@ pub mod pallet {
 			let unwrapped = responsibility.unwrap();
 
 			if current_failures.is_none() {
-				Unresponsive::<T>::mutate(unwrapped, |dings| *dings += 1);
+				Unresponsive::<T>::mutate(&unwrapped, |dings| *dings += 1);
 
 			//TODO slash or point for failure then slash after pointed a few times
 			// If someone is slashed they probably should reset their unresponsive dings
+			let _result = pallet_slashing::Pallet::<T>::do_offence(unwrapped.clone(), vec![unwrapped]);
+
 			} else {
 				Failures::<T>::remove(prune_block);
 				Unresponsive::<T>::remove(unwrapped);
