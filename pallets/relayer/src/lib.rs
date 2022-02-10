@@ -26,7 +26,7 @@ pub mod pallet {
 		traits::{DispatchInfoOf, Saturating, SignedExtension},
 		transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
 	};
-	use sp_std::fmt::Debug;
+	use sp_std::{fmt::Debug, vec};
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_authorship::Config + pallet_slashing::Config {

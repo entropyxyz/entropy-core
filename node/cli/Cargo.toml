@@ -49,6 +49,7 @@ sc-consensus-babe-rpc = { version = "0.10.0-dev", git = 'https://github.com/pari
 sc-consensus-epochs = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sc-finality-grandpa-rpc = { version = "0.10.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sp-keystore = { version = "0.11.0", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+clap = { version = "3.0", features = ["derive"] }
 
 [dev-dependencies]
 sc-service-test = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
