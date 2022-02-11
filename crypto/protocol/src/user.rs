@@ -31,7 +31,7 @@ impl User {
 	/// This reply contains the endpoint of the current signer-node or an error message. Or read the endpoints on-chain??
 	// Todo: how can the signer node endpoints passed to the user in the reply?
 	// Todo: handle the result message and forward the Signer's endpoint	
-	async fn request_sig_gen(&self) -> Result<(), Box<dyn std::error::Error>> {
+	pub async fn request_sig_gen(&self) -> Result<(), Box<dyn std::error::Error>> {
 
 		println!("request_sig_gen is called");
 		let signer = PairSigner::new(AccountKeyring::Alice.pair());

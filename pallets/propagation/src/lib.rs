@@ -84,7 +84,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		pub fn post(block_number: T::BlockNumber) -> Result<(), http::Error> {
 			// get deadline, same as in fn get()
-			let messages =
+			let mut messages =
 				pallet_relayer::Pallet::<T>::messages(block_number.saturating_sub(1u32.into()));
 			let block_author = pallet_authorship::Pallet::<T>::author();
 			if block_author.is_none() {
@@ -99,13 +99,15 @@ pub mod pallet {
 
 			log::warn!("propagation::post::messages: {:?}", &messages);
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
-			let req_body = messages.encode();
+
+			let req_body = messages.pop().encode();
 
 			// We construct the request
 			// important: the header->Content-Type must be added and match that of the receiving
 			// party!!
 			let pending =
-				http::Request::post(&url, vec![block_author.clone().unwrap().encode(), req_body])
+				// http::Request::post(&url, vec![block_author.clone().unwrap().encode(), req_body])
+				http::Request::post(&url, vec![req_body]) // scheint zu klappen
 					.deadline(deadline)
 					.add_header("Content-Type", "application/x-parity-scale-codec")
 					.send()

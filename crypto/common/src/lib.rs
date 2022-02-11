@@ -15,3 +15,4 @@ mod common;
 
 pub type RegistrationMessage = common::RegistrationMessage;
 pub type SigRequest = common::SigRequest;
+pub type OCWMessage = common::OCWMessage;

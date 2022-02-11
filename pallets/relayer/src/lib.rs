@@ -49,15 +49,17 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 
-	// type SigRequest = common::SigRequest;
-	#[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
-	pub struct Message {
-		sig_request: common::SigRequest,
-	}
+	// // type SigRequest = common::SigRequest;
+	// #[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
+	// pub struct Message {
+	// 	sig_request: common::SigRequest,
+	// }
 
+	type Message = common::OCWMessage;
 	#[pallet::storage]
 	#[pallet::getter(fn messages)]
 	pub type Messages<T: Config> =
+		// StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<OCWMessage>, ValueQuery>;
 		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
 
 	#[pallet::storage]

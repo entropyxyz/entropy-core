@@ -34,7 +34,8 @@ pub struct StoreKeyshareRes(Vec<u8>);
     data = "<encoded_data>"
 )]
 pub fn store_keyshare(encoded_data: Vec<u8>) -> StoreKeyshareRes {
+    println!("store keyshare!");
     let _data = StoreKeyshareReq::decode(&mut encoded_data.as_ref()).ok().unwrap();
-    todo!();
+    //todo!();
     StoreKeyshareRes(StoreRes { demo: 1 }.encode())
 }

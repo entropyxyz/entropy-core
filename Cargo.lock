@@ -8783,6 +8783,7 @@ dependencies = [
  "reqwest",
  "rocket",
  "serde_json",
+ "subxt",
  "uuid 0.8.2",
 ]
 

@@ -43,3 +43,11 @@ pub struct SigRequest {
 	// /// signature to authenticate the user
 	// sig: u32,
 }
+
+// ToDo: OCWMessage is redundand... use SigRequest right away
+/// testing OCW
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)] 
+pub struct OCWMessage {
+	// pub thing: u128,
+	pub sig_request: SigRequest,
+}
