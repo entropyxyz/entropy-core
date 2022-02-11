@@ -1,8 +1,9 @@
 #![allow(unused_imports)]
 pub mod keygen;
 pub mod node;
-pub mod signing;
+pub mod sign;
 pub mod user;
+pub mod gg20_sm_client;
 //use std::path::PathBuf;
 use structopt::StructOpt;
 use keygen::KeygenCli;

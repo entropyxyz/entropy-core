@@ -10,9 +10,7 @@ use structopt::StructOpt;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::Keygen;
 use round_based::async_runtime::AsyncProtocol;
 
-mod gg20_sm_client;
-use gg20_sm_client::join_computation;
-
+use crate::gg20_sm_client::join_computation;
 
 #[derive(Debug, StructOpt)]
 pub struct KeygenCli {
