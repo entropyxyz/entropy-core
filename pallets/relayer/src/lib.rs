@@ -89,8 +89,8 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// A transaction has been propagated to the network. [who]
-		TransactionPropagated(T::AccountId),
+		/// A transaction has been propagated to the network. [who, block_number]
+		TransactionPropagated(T::AccountId, T::BlockNumber),
 		/// An account has been registered. [who]
 		AccountRegistered(T::AccountId),
 		/// An account has been registered. [who, block_number, failures]
@@ -125,8 +125,8 @@ pub mod pallet {
 				messages.push(new_message);
 				Ok(())
 			})?;
-
-			Self::deposit_event(Event::TransactionPropagated(who));
+			let signing_block = block_number.saturating_add(1u32.into());
+			Self::deposit_event(Event::TransactionPropagated(who, signing_block));
 			Ok(())
 		}
 
