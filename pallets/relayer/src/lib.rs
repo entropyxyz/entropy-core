@@ -88,8 +88,8 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// A transaction has been propagated to the network. [who]
-		TransactionPropagated(T::AccountId),
+		/// A transaction has been propagated to the network. [who, block_number]
+		TransactionPropagated(T::AccountId,T::BlockNumber),
 		/// An account has been registered. [who]
 		AccountRegistered(T::AccountId),
 		/// An account has been registered. [who, block_number, failures]
@@ -123,12 +123,33 @@ pub mod pallet {
 			Messages::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
 				messages.push(new_message);
 				Ok(())
-			})?;
-
-			Self::deposit_event(Event::TransactionPropagated(who));
+			})?;			
+			let signing_block = block_number.saturating_add(1u32.into());
+			Self::deposit_event(Event::TransactionPropagated(who, signing_block));
 			Ok(())
 		}
 
+		/// Register a account with the entropy-network
+		/// accounts are identified by the public group key of the user.
+		/// 
+		// ToDo: see https://github.com/Entropyxyz/entropy-core/issues/29
+		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+		pub fn account_registration(
+			origin: OriginFor<T>,
+			registration_msg: RegistrationMessage,
+		) -> DispatchResult {
+			let _who = ensure_signed(origin)?;
+
+			RegistrationMessages::<T>::try_mutate(|dummy| -> Result<_, DispatchError> {
+				dummy.push(registration_msg);
+				Ok(())
+			})?;
+
+			//Self::deposit_event(Event::TransactionPropagated(who));
+			///////// for now - end prep_transaction///////////
+			Ok(())
+		}
+		
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
 		pub fn register(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
