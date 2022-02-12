@@ -51,7 +51,7 @@ impl User {
 	}
 
 	/// User sends an extrinsic requesting account creation
-	async fn send_registration(&self) -> Result<(), Box<dyn std::error::Error>> {
+	pub async fn send_registration(&self) -> Result<(), Box<dyn std::error::Error>> {
 
 		println!("register is called");
 		let signer = PairSigner::new(AccountKeyring::Alice.pair());
@@ -66,7 +66,7 @@ impl User {
 		let result = api
 				.tx()
 				.relayer()
-				.account_registration(
+				.register(
 					entropy::runtime_types::common::common::RegistrationMessage{
 						keyshards: 123, 
 						test: 369
