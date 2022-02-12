@@ -2,30 +2,23 @@
 //! Reference heavily:
 //! https://github.com/ZenGo-X/multi-party-ecdsa/blob/master/examples/gg20_keygen.rs
 #![allow(unused_imports, dead_code)]
+use crate::gg20_sm_client::join_computation;
 use anyhow::{anyhow, Context, Result};
 use futures::StreamExt;
-use std::path::PathBuf;
-use structopt::StructOpt;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::Keygen;
 use round_based::async_runtime::AsyncProtocol;
-use crate::gg20_sm_client::join_computation;
+use std::path::PathBuf;
+use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, StructOpt, Clone)]
 pub struct KeygenCli {
 	/// Address to post to*
 	#[structopt(short, long, default_value = "http://localhost:8000/")]
 	address: surf::Url,
-	///  unsure*
 	#[structopt(short, long, default_value = "default-keygen")]
 	room: String,
-	/// Path to write key to
 	#[structopt(short, long)]
-	output: PathBuf,
-	/// unsure*
-	#[structopt(short, long)]
-	index: u16,
-	#[structopt(short, long)]
-	threshold: u16,
+	pub threshold: u16,
 	#[structopt(short, long)]
 	number_of_parties: u16,
 }
@@ -36,11 +29,14 @@ pub struct KeygenCli {
 /// 2. `join_computation` takes a url and a "room_id", creates an http client, and subscribes to the
 /// incoming stream of messages,broadcasts the outgoing sink of messages, and returns the channels
 /// 3. creates a fuse
-pub async fn keygen_cli(args: KeygenCli) -> Result<()> {
+pub async fn keygen_cli(args: &KeygenCli, index: &u16) -> Result<()> {
+	let output = format!(
+		"local-share{}.json",index);
+
 	let mut output_file = tokio::fs::OpenOptions::new()
 		.write(true)
 		.create_new(true)
-		.open(args.output.clone())
+		.open(output)
 		.await
 		.context("cannot create output file")?;
 
@@ -52,7 +48,7 @@ pub async fn keygen_cli(args: KeygenCli) -> Result<()> {
 	tokio::pin!(incoming);
 	tokio::pin!(outgoing);
 
-	let keygen = Keygen::new(args.index, args.threshold, args.number_of_parties)?;
+	let keygen = Keygen::new(index.clone(), args.threshold, args.number_of_parties)?;
 	let output = AsyncProtocol::new(keygen, incoming, outgoing)
 		.run()
 		.await
@@ -61,6 +57,5 @@ pub async fn keygen_cli(args: KeygenCli) -> Result<()> {
 	tokio::io::copy(&mut output.as_slice(), &mut output_file)
 		.await
 		.context("save output to file")?;
-
 	Ok(())
 }

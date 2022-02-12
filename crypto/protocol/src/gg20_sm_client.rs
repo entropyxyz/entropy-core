@@ -1,9 +1,9 @@
-use std::convert::TryInto;
 use anyhow::{Context, Result};
 use futures::{Sink, Stream, StreamExt, TryStreamExt};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use structopt::StructOpt;
 use round_based::Msg;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::convert::TryInto;
+use structopt::StructOpt;
 
 pub async fn join_computation<M>(
 	address: surf::Url,
@@ -39,6 +39,7 @@ where
 	Ok((index, incoming, outgoing))
 }
 
+#[derive(Clone)]
 pub struct SmClient {
 	http_client: surf::Client,
 }
@@ -89,12 +90,12 @@ impl SmClient {
 	}
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 struct IssuedUniqueIdx {
 	unique_idx: u16,
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt, Debug, Clone)]
 pub struct SmClientCli {
 	#[structopt(short, long)]
 	address: surf::Url,
@@ -104,7 +105,7 @@ pub struct SmClientCli {
 	cmd: Cmd,
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt, Debug, Clone)]
 enum Cmd {
 	Subscribe,
 	Broadcast {
