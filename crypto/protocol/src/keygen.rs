@@ -31,7 +31,7 @@ pub struct KeygenCli {
 /// 2. `join_computation` takes a url and a "room_id", creates an http client, and subscribes to the
 /// incoming stream of messages,broadcasts the outgoing sink of messages, and returns the channels
 /// 3. creates a fuse
-pub async fn keygen_cli(args: &KeygenCli, index: &u16) -> Result<()> {
+pub async fn keygen_cli(args: &KeygenCli, index: u16) -> Result<()> {
 	let output = format!(
 		"local-share{}.json",index);
 

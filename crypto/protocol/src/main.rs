@@ -40,15 +40,12 @@ async fn main() -> Result<()> {
 		Command::SmClient(cli) => gg20_sm_client::sm_client_cli(cli).await,
 		Command::SmManager => gg20_sm_manager::sm_manager_cli().await,
 		Command::Keygen(cli) => {
-			todo!(); // async await issues, revisit when jesse gets out of the tub
-			// let tasks: Vec<_> = (0..cli.threshold)
-			// 	.iter()
-			// 	.map( |i: &u16| async  {
-			// 		keygen::keygen_cli(&cli.clone(), &i);
-			// 	})
-			// 	.collect();
-			// let _ = futures::future::join_all(tasks).await;
-			// Ok(())
+			let ids = 0..cli.threshold;
+    		let _: Vec<_> =		
+        	futures::future::try_join_all(ids.map(|id| keygen::keygen_cli(&cli, id)))
+            .await
+            .unwrap();
+			 Ok(())
 		},
 		Command::Sign(cli) => sign::sign(cli).await,
 		Command::DeleteAccount => todo!(),
