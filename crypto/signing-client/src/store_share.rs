@@ -1,40 +1,27 @@
-//! The User requests the Signature-client to store a keyshare localy. 
+//! The User requests the Signature-client to store a keyshare localy.
 
-use parity_scale_codec::{Encode, Decode}; 
+use parity_scale_codec::{Encode, Decode};
+use std::str;
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Curve};
+use rocket::serde::{Deserialize, Serialize};
+use rocket::serde::json::{Json, Value, json};
 
 // ToDo: Should we move declaration of structs to /crypto/common/ ?
 //       If those types are necessary for the node's OCW, then maybe we should
 
-/// Keyshare send to the node from the User during the registration process. 
-#[derive(Debug, Encode, Decode, FromForm)]
-pub struct StoreKeyshareReq {
-    pub demo: u8,
-	// hmmmm, what data is needed to store a keyshare??  
-}
-
 /// Response of the key storing
-#[derive(Debug, Encode)]
-struct StoreRes {
-    pub demo: u8,
-}
 
-/// Response to request to store keyshares
-/// i.e. a signature that the data was stored successfully
-#[derive(Responder)]
-#[response(
-    status = 200,
-    content_type = "application/x-parity-scale-codec"
-)]
-pub struct StoreKeyshareRes(Vec<u8>);
 
-//ToDo: receive keyshare and store locally
-#[post(
-    "/store_keyshare",
-    format = "application/x-parity-scale-codec",
-    data = "<encoded_data>"
-)]
-pub fn store_keyshare(encoded_data: Vec<u8>) -> StoreKeyshareRes {
-    let _data = StoreKeyshareReq::decode(&mut encoded_data.as_ref()).ok().unwrap();
-    todo!();
-    StoreKeyshareRes(StoreRes { demo: 1 }.encode())
+#[post("/store_keyshare", format = "json", data = "<user_input>")]
+pub fn store_keyshare(user_input: Json<LocalKey<Secp256k1>>) -> Result<(), std::io::Error> {
+	//TODO verify proof
+	//TODO make sure signed so other key doesn't override own key
+    let file = File::create("key_share.json")?;
+    let mut writer = BufWriter::new(file);
+    serde_json::to_writer(&mut writer, &user_input.0)?;
+    writer.flush()?;
+	Ok(())
 }
