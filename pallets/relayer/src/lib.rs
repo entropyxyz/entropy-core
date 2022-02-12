@@ -48,10 +48,11 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
+
+	// type SigRequest = common::SigRequest;
 	#[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
 	pub struct Message {
-		pub data_1: u128,
-		pub data_2: u128,
+		sig_request: common::SigRequest,
 	}
 
 	#[pallet::storage]
@@ -63,6 +64,12 @@ pub mod pallet {
 	#[pallet::getter(fn pending)]
 	pub type Pending<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
+
+	type RegistrationMessage = common::RegistrationMessage;
+	#[pallet::storage]
+	#[pallet::getter(fn registrationmessages)]
+	pub type RegistrationMessages<T: Config> =
+		StorageValue<_, Vec<RegistrationMessage>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn failures)]
@@ -90,6 +97,10 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// A transaction has been propagated to the network. [who]
 		TransactionPropagated(T::AccountId),
+		/// An account has been registered. [who]
+		AccountRegistered(T::AccountId),
+		/// An account has been registered. [who, block_number, failures]
+		ConfirmedDone(T::AccountId, T::BlockNumber, Vec<u32>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -109,27 +120,46 @@ pub mod pallet {
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
 		pub fn prep_transaction(
 			origin: OriginFor<T>,
-			data_1: u128,
-			data_2: u128,
+			sig_request: common::SigRequest,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			let new_message = Message { data_1, data_2 };
 			let block_number = <frame_system::Pallet<T>>::block_number();
-			Messages::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-				messages.push(new_message);
+			Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
+				request.push(Message {sig_request});
 				Ok(())
-			})?;
+			})?;			
 
 			Self::deposit_event(Event::TransactionPropagated(who));
 			Ok(())
 		}
 
+		/// Register a account with the entropy-network
+		/// accounts are identified by the public group key of the user.
+		/// 
+		// ToDo: see https://github.com/Entropyxyz/entropy-core/issues/29
+		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+		pub fn account_registration(
+			origin: OriginFor<T>,
+			registration_msg: RegistrationMessage,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			RegistrationMessages::<T>::try_mutate(|dummy| -> Result<_, DispatchError> {
+				dummy.push(registration_msg);
+				Ok(())
+			})?;
+
+			//Self::deposit_event(Event::TransactionPropagated(who));
+			///////// for now - end prep_transaction///////////
+			Ok(())
+		}
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
 		pub fn register(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			// TODO proof
-			Registered::<T>::insert(who, true);
+			Registered::<T>::insert(&who, true);
+			Self::deposit_event(Event::AccountRegistered(who));
 			Ok(())
 		}
 
@@ -146,8 +176,8 @@ pub mod pallet {
 			let current_failures = Self::failures(block_number);
 
 			ensure!(current_failures.is_none(), Error::<T>::AlreadySubmitted);
-			Failures::<T>::insert(block_number, failures);
-
+			Failures::<T>::insert(block_number, &failures);
+			Self::deposit_event(Event::ConfirmedDone(who, block_number, failures));
 			Ok(())
 		}
 	}

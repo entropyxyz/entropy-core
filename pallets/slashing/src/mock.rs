@@ -32,7 +32,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Slashing: pallet_slashing::{Pallet, Call, Storage},
+		Slashing: pallet_slashing::{Pallet, Call, Storage, Event<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Historical: pallet_session_historical::{Pallet},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
@@ -70,6 +70,7 @@ impl system::Config for Test {
 	type SystemWeightInfo = ();
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 impl sp_runtime::BoundToRuntimeAppPublic for TestSessionHandler {
@@ -167,6 +168,12 @@ impl onchain::Config for Test {
 	type DataProvider = Staking;
 }
 
+pub struct StakingBenchmarkingConfig;
+impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
+	type MaxNominators = ConstU32<1000>;
+	type MaxValidators = ConstU32<1000>;
+}
+
 impl pallet_staking::Config for Test {
 	const MAX_NOMINATIONS: u32 = 16;
 	type RewardRemainder = ();
@@ -188,6 +195,7 @@ impl pallet_staking::Config for Test {
 	type ElectionProvider = onchain::OnChainSequentialPhragmen<Self>;
 	type GenesisElectionProvider = Self::ElectionProvider;
 	type SortedListProvider = pallet_staking::UseNominatorsMap<Self>;
+	type BenchmarkingConfig = StakingBenchmarkingConfig;
 	type WeightInfo = ();
 }
 
@@ -247,6 +255,7 @@ parameter_types! {
 }
 
 impl pallet_slashing::Config for Test {
+	type Event = Event;
 	type ReportBad = OffenceHandler;
 	type ValidatorSet = Historical;
 	type MinValidators = MinValidators;

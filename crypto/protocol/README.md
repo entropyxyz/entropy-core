@@ -1,6 +1,6 @@
 # Protocol Implementation
 See [HackMD spec](https://hackmd.io/kLiqrFYETOiONBYXIdqdMA?view) for details.
-## Keygen
+## Keygen   
 ```sh
 # Terminal 1, from project root
 cargo build --release
