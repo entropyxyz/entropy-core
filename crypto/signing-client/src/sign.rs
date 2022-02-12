@@ -35,6 +35,9 @@ struct SignRes {
 )]
 pub struct ProvideSignatureRes(Vec<u8>);
 
+
+type thing = Vec<common::OCWMessage>;
+
 //ToDo: receive keyshare and store locally
 #[post(
     // "/sign",
@@ -54,17 +57,28 @@ pub fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 	// 	sig_request: SigRequest{hash_msg:1, test:1}
     // } );
 
+    println!("encoded_data {:?}", encoded_data);
+
+
     let data = common::OCWMessage::decode(&mut encoded_data.as_ref());
+////////////////////
+
+
+    type Thing = Vec<common::OCWMessage>;
+    let thing_dec = Thing::decode(&mut encoded_data.as_ref());
+    println!("thing_dec: {:?}", thing_dec);
+////////////////////
+    //let data = thing::decode(&mut encoded_data.as_ref());
     let data = match data {
         Ok(x) => x,
-        Err(err) => common::OCWMessage{sig_request:SigRequest{ hash_msg:1, test:2} },
+        Err(err) => panic!("{}",err),
     };
     //let data = entropy::runtime_types::pallet_relayer::pallet::Message::decode(&mut encoded_data.as_ref())
     //.or_else(common::OCWMessage{sig_request:SigRequest{ hash_msg:1, test:2} });
 
       //.or_else(common::SigRequest{hash_msg:1, test:1});
     println!("data: {:?}", &data);//.sig_request.test);
-
+println!("keyshards: {}", data.sig_request.hash_msg);
 	//todo!();
     ProvideSignatureRes(SignRes { demo: 1 }.encode())
 }

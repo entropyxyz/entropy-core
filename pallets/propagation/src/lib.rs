@@ -100,7 +100,8 @@ pub mod pallet {
 			log::warn!("propagation::post::messages: {:?}", &messages);
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
 
-			let req_body = messages.pop().encode();
+			let req_body = messages.encode();
+			log::warn!("propagation::post::req_body: {:?}", &req_body);
 
 			// We construct the request
 			// important: the header->Content-Type must be added and match that of the receiving
