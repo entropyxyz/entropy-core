@@ -10,9 +10,9 @@ use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::sig
 use round_based::async_runtime::AsyncProtocol;
 use round_based::Msg;
 
-use gg20_sm_client::join_computation;
+use crate::gg20_sm_client::join_computation;
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, StructOpt,Clone)]
 pub struct SignCli {
     #[structopt(short, long, default_value = "http://localhost:8000/")]
     address: surf::Url,

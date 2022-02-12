@@ -6,6 +6,7 @@ pub mod node;
 pub mod sign;
 pub mod user;
 //use std::path::PathBuf;
+use crate::sign::SignCli;
 use crate::{gg20_sm_client::SmClientCli, keygen::KeygenCli};
 use anyhow::{anyhow, Context, Result};
 use std::path::PathBuf;
@@ -41,14 +42,15 @@ async fn main() -> Result<()> {
 		Command::Keygen(cli) => {
 			todo!(); // async await issues, revisit when jesse gets out of the tub
 			// let tasks: Vec<_> = (0..cli.threshold)
-			// 	.map( |i| async move {
-			// 		keygen::keygen_cli(&cli, &i);
+			// 	.iter()
+			// 	.map( |i: &u16| async  {
+			// 		keygen::keygen_cli(&cli.clone(), &i);
 			// 	})
 			// 	.collect();
 			// let _ = futures::future::join_all(tasks).await;
 			// Ok(())
 		},
-		Command::Sign(cli) => sign::sign(cli,index).await,
+		Command::Sign(cli) => sign::sign(cli).await,
 		Command::DeleteAccount => todo!(),
 	}
 }

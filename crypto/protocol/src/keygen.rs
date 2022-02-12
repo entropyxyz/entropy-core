@@ -2,6 +2,7 @@
 //! Reference heavily:
 //! https://github.com/ZenGo-X/multi-party-ecdsa/blob/master/examples/gg20_keygen.rs
 #![allow(unused_imports, dead_code)]
+use std::marker::Copy;
 use crate::gg20_sm_client::join_computation;
 use anyhow::{anyhow, Context, Result};
 use futures::StreamExt;
@@ -22,6 +23,7 @@ pub struct KeygenCli {
 	#[structopt(short, long)]
 	number_of_parties: u16,
 }
+
 
 /// In the example https://github.com/ZenGo-X/multi-party-ecdsa/blob/master/examples/gg20_keygen.rs,
 /// the key generator:
