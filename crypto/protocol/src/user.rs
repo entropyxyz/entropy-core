@@ -15,17 +15,6 @@ pub struct User {
 }
 
 impl User {
-	/// User generates
-	fn new() -> Self {
-		// todo: generate shares
-		// todo: distribute shares
-		Self {}
-	}
-	/// Submit tx to network
-	fn send_tx() {
-		todo!();
-	}
-
 	/// User sends an extrinsic requesting the endpoints of the signer nodes to generate a signature
 	/// User expects a reply
 	/// This reply contains the endpoint of the current signer-node or an error message. Or read the endpoints on-chain??
@@ -61,10 +50,36 @@ impl User {
 		Ok(())
 	}
 
-	/// Remove funds from network and delete account
-	fn delete_account() {
-		todo!();
-	}
+	/// User sends an extrinsic requesting account creation
+	async fn send_registration(&self) -> Result<(), Box<dyn std::error::Error>> {
+
+		println!("register is called");
+		let signer = PairSigner::new(AccountKeyring::Alice.pair());
+
+		let api = ClientBuilder::new()
+			.set_url("ws://localhost:9944")
+			.build()
+			.await?
+			.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, DefaultExtra<_>>>();
+
+		// send extrinsic
+		let result = api
+				.tx()
+				.relayer()
+				.account_registration(
+					entropy::runtime_types::common::common::RegistrationMessage{
+						keyshards: 123, 
+						test: 369
+					}
+				)
+				.sign_and_submit_then_watch(&signer) 
+				.await?;
+		
+		// ToDo: handle result
+		println!("result: {:?}", result);
+
+		Ok(())
+	}	
 }
 
 #[async_std::main]

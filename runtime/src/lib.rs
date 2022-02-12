@@ -1255,6 +1255,10 @@ pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
+<<<<<<< HEAD
+pub type Executive =
+	frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, ()>;
+=======
 pub type Executive = frame_executive::Executive<
 	Runtime,
 	Block,
@@ -1263,6 +1267,7 @@ pub type Executive = frame_executive::Executive<
 	AllPalletsWithSystem,
 	pallet_bags_list::migrations::CheckCounterPrefix<Runtime>,
 >;
+>>>>>>> crypto
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
