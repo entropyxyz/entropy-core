@@ -6,8 +6,7 @@ pub mod node;
 pub mod sign;
 pub mod user;
 //use std::path::PathBuf;
-use crate::sign::SignCli;
-use crate::{gg20_sm_client::SmClientCli, keygen::KeygenCli};
+use crate::{gg20_sm_client::SmClientCli, keygen::KeygenCli, sign::SignCli};
 use anyhow::{anyhow, Context, Result};
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -40,12 +39,12 @@ async fn main() -> Result<()> {
 		Command::SmClient(cli) => gg20_sm_client::sm_client_cli(cli).await,
 		Command::SmManager => gg20_sm_manager::sm_manager_cli().await,
 		Command::Keygen(cli) => {
-			let ids = 0..cli.threshold;
-    		let _: Vec<_> =		
-        	futures::future::try_join_all(ids.map(|id| keygen::keygen_cli(&cli, id)))
-            .await
-            .unwrap();
-			 Ok(())
+			// library requires indices start at 1
+			let ids = 1..=(cli.threshold + 1);
+				futures::future::try_join_all(ids.map(|id| keygen::keygen_cli(&cli, id)))
+					.await
+					.unwrap();
+			Ok(())
 		},
 		Command::Sign(cli) => sign::sign(cli).await,
 		Command::DeleteAccount => todo!(),

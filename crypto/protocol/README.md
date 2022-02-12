@@ -8,19 +8,19 @@ cd target/release
 # starts an HTTP server on http://127.0.0.1:8000. This server relays all communication between nodes.
 ./protocol sm-manager
 # Terminal 2, from target/release; Alice generates keys
-export M=6 # M of N
-export N=6
-./protocol keygen -t $M -n $N 
+rm local-share* # if there are already local-share files in the directory
+# TODO BLOCKING: the following generates a pre-validation error
+./protocol keygen # defaults to 6 of 7, the last of which is an ignorable extra
 ```
 
 ## Sign, assume 6 of 6
 ```sh
 # Terminal 1..6, from target/release
 let TX="immaculate"
-./protocol -p 1,2,3,4,5,6 -d $TX -l local-share0.json
-./protocol -p 1,2,3,4,5,6 -d $TX -l local-share1.json
-./protocol -p 1,2,3,4,5,6 -d $TX -l local-share2.json
-./protocol -p 1,2,3,4,5,6 -d $TX -l local-share3.json
-./protocol -p 1,2,3,4,5,6 -d $TX -l local-share4.json
-./protocol -p 1,2,3,4,5,6 -d $TX -l local-share5.json
+./protocol sign -p 1,2,3,4,5,6 -d $TX -i 1
+./protocol sign -p 1,2,3,4,5,6 -d $TX -i 2
+./protocol sign -p 1,2,3,4,5,6 -d $TX -i 3
+./protocol sign -p 1,2,3,4,5,6 -d $TX -i 4
+./protocol sign -p 1,2,3,4,5,6 -d $TX -i 5
+./protocol sign -p 1,2,3,4,5,6 -d $TX -l 6
 ```

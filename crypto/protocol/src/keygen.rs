@@ -2,13 +2,12 @@
 //! Reference heavily:
 //! https://github.com/ZenGo-X/multi-party-ecdsa/blob/master/examples/gg20_keygen.rs
 #![allow(unused_imports, dead_code)]
-use std::marker::Copy;
 use crate::gg20_sm_client::join_computation;
 use anyhow::{anyhow, Context, Result};
 use futures::StreamExt;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::Keygen;
 use round_based::async_runtime::AsyncProtocol;
-use std::path::PathBuf;
+use std::{marker::Copy, path::PathBuf};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt, Clone)]
@@ -18,12 +17,13 @@ pub struct KeygenCli {
 	address: surf::Url,
 	#[structopt(short, long, default_value = "default-keygen")]
 	room: String,
-	#[structopt(short, long)]
+	#[structopt(short, long, default_value = "6")]
 	pub threshold: u16,
-	#[structopt(short, long)]
+	/// HACK: number_of_parties needs to be greater than threshold, for
+	/// unclear reasons. It's temporarily acceptible for Alice to create one burner key share.
+	#[structopt(short, long, default_value = "7")]
 	number_of_parties: u16,
 }
-
 
 /// In the example https://github.com/ZenGo-X/multi-party-ecdsa/blob/master/examples/gg20_keygen.rs,
 /// the key generator:
@@ -32,15 +32,14 @@ pub struct KeygenCli {
 /// incoming stream of messages,broadcasts the outgoing sink of messages, and returns the channels
 /// 3. creates a fuse
 pub async fn keygen_cli(args: &KeygenCli, index: u16) -> Result<()> {
-	let output = format!(
-		"local-share{}.json",index);
+	let output = format!("local-share{}.json", index);
 
 	let mut output_file = tokio::fs::OpenOptions::new()
 		.write(true)
 		.create_new(true)
 		.open(output)
 		.await
-		.context("cannot create output file")?;
+		.context(format!("cannot create output file: {}", index))?;
 
 	let (_i, incoming, outgoing) = join_computation(args.address.clone(), &args.room)
 		.await
