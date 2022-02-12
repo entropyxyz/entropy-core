@@ -44,10 +44,12 @@ pub struct SigRequest {
 	// sig: u32,
 }
 
-// ToDo: OCWMessage is redundand... use SigRequest right away
-/// testing OCW
+/// The message sent from pallets::propagation::post() to the signing-client. 
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)] 
 pub struct OCWMessage {
 	// pub thing: u128,
 	pub sig_request: SigRequest,
+	// ToDo_DF: 
+	// /// block_author
+	// block_author	
 }

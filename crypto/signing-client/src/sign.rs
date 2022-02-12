@@ -40,8 +40,7 @@ type thing = Vec<common::OCWMessage>;
 
 //ToDo: receive keyshare and store locally
 #[post(
-    // "/sign",
-    "/",
+    "/sign",
     format = "application/x-parity-scale-codec",
     data = "<encoded_data>"
 )]
@@ -60,13 +59,13 @@ pub fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
     println!("encoded_data {:?}", encoded_data);
 
 
-    let data = common::OCWMessage::decode(&mut encoded_data.as_ref());
+    //let data = common::OCWMessage::decode(&mut encoded_data.as_ref());
 ////////////////////
 
 
     type Thing = Vec<common::OCWMessage>;
-    let thing_dec = Thing::decode(&mut encoded_data.as_ref());
-    println!("thing_dec: {:?}", thing_dec);
+    let data = Thing::decode(&mut encoded_data.as_ref());
+    // println!("thing_dec: {:?}", thing_dec);
 ////////////////////
     //let data = thing::decode(&mut encoded_data.as_ref());
     let data = match data {
@@ -78,7 +77,7 @@ pub fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 
       //.or_else(common::SigRequest{hash_msg:1, test:1});
     println!("data: {:?}", &data);//.sig_request.test);
-println!("keyshards: {}", data.sig_request.hash_msg);
+// println!("keyshards: {}", data.sig_request.hash_msg);
 	//todo!();
     ProvideSignatureRes(SignRes { demo: 1 }.encode())
 }

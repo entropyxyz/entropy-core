@@ -84,7 +84,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		pub fn post(block_number: T::BlockNumber) -> Result<(), http::Error> {
 			// get deadline, same as in fn get()
-			let mut messages =
+			let messages =
 				pallet_relayer::Pallet::<T>::messages(block_number.saturating_sub(1u32.into()));
 			let block_author = pallet_authorship::Pallet::<T>::author();
 			if block_author.is_none() {
@@ -93,13 +93,11 @@ pub mod pallet {
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
 			let kind = sp_core::offchain::StorageKind::PERSISTENT;
 			let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
-				.unwrap_or_else(|| b"http://localhost:3001".to_vec());
-			let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001");
-			// let url = base;
+				.unwrap_or_else(|| b"http://localhost:3001/sign".to_vec());
+			let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001/sign");
 
 			log::warn!("propagation::post::messages: {:?}", &messages);
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
-
 			let req_body = messages.encode();
 			log::warn!("propagation::post::req_body: {:?}", &req_body);
 
