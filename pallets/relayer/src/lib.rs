@@ -92,13 +92,16 @@ pub mod pallet {
 	#[pallet::getter(fn registered)]
 	pub type Registered<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
+
+	type SigResponse = common::SigResponse;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// A transaction has been propagated to the network. [who]
-		TransactionPropagated(T::AccountId),
+		TransactionPropagated(T::AccountId, SigResponse),
 		/// An account has been registered. [who]
 		AccountRegistered(T::AccountId),
 		/// An account has been registered. [who, block_number, failures]
@@ -132,8 +135,11 @@ pub mod pallet {
 				request.push(Message {sig_request});
 				Ok(())
 			})?;			
-
-			Self::deposit_event(Event::TransactionPropagated(who));
+			// ToDo: get random signeing-nodes
+			//let sig_response = get_signers(); 
+			let sig_response = SigResponse {signin_nodes:1, com_manager:1};
+			
+			Self::deposit_event(Event::TransactionPropagated(who, sig_response));
 			Ok(())
 		}
 

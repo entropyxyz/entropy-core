@@ -34,7 +34,8 @@ pub struct RegistrationResponse {
 	// ToDo_DF: what Data goes into here?
 	/// list of endpoints of all nodes that the user sends the keyshares to. 
 	// ToDo: make this a vec<(endpoint, encryption-key)> etc. 
-	node_list: u16,
+	signing_nodes: u16,
+	comm_manager: u16,
 }
 
 /// body of a signature generation request by the user to the entropy network
@@ -54,6 +55,7 @@ pub struct SigRequest {
 	signature: u32,
 }
 
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)] 
 pub struct SigResponse {
 	/// the randomly chosen signing-nodes that take part in the sig-generation
 	/// possible identifiers: endpoint address or some PublicKey (which one?)
