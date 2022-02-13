@@ -2,12 +2,13 @@
 //! Reference heavily:
 //! https://github.com/ZenGo-X/multi-party-ecdsa/blob/master/examples/gg20_keygen.rs
 #![allow(unused_imports, dead_code)]
+use std::marker::Copy;
 use crate::gg20_sm_client::join_computation;
 use anyhow::{anyhow, Context, Result};
 use futures::StreamExt;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::Keygen;
-use round_based::{async_runtime::AsyncProtocol, containers::StoreErr};
-use std::{marker::Copy, path::PathBuf};
+use round_based::async_runtime::AsyncProtocol;
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt, Clone)]
@@ -32,7 +33,8 @@ pub struct KeygenCli {
 /// incoming stream of messages,broadcasts the outgoing sink of messages, and returns the channels
 /// 3. creates a fuse
 pub async fn keygen_cli(args: &KeygenCli, index: u16) -> Result<()> {
-	let output = format!("local-share{}.json", index);
+	let output = format!(
+		"local-share{}.json",index);
 
 	let mut output_file = tokio::fs::OpenOptions::new()
 		.write(true)
@@ -53,29 +55,7 @@ pub async fn keygen_cli(args: &KeygenCli, index: u16) -> Result<()> {
 	let output = AsyncProtocol::new(keygen, incoming, outgoing)
 		.run()
 		.await
-		// try 1: expected Result, got e
-		// .map_err(|e| {
-		// 	if let round_based::async_runtime::Error::HandleIncoming(_e) = e {
-		// 		Ok(())
-		// 	} else {
-		// 		e
-		// 	}
-		// })
-		//
-		// try 2: change e to Result::Error(e)
-		// Fails: Result cannot be formatted in the subsequent map_err
-		// .map_err(|e| {
-		// 	if let round_based::async_runtime::Error::HandleIncoming(_e) = e {
-		// 		Ok(())
-		// 	} else {
-		// 		Result::Err(e)
-		// 	}
-		// })
-		//
-		// try 3:
-		// the trait StdError is not implemented for Result<(),anyhow::Error>
 		.map_err(|e| anyhow!("protocol execution terminated with error: {}", e))?;
-
 	let output = serde_json::to_vec_pretty(&output).context("serialize output")?;
 	tokio::io::copy(&mut output.as_slice(), &mut output_file)
 		.await

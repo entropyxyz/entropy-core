@@ -23,3 +23,13 @@ rm local-share* # if there are already local-share files in the directory
 ./protocol sign -p 1,2,3,4,5,6 -i 5
 ./protocol sign -p 1,2,3,4,5,6 -i 6
 ```
+
+
+## Note dump
+### tk: On nightly, `cannot find macro asm in this scope`
+Note that switching to stable is undesireable for other reasons. Need an older version of the wasmtime release. https://github.com/phil-opp/blog_os/issues/1066
+quickfix: 
+`rustup override set nightly-2021-12-13`
+Now your wasm toolchain is broken. Sorry.
+`rustup target add wasm32-unknown-unknown --toolchain nightly-2021-12-13`
+Eventually this will be unnecessary when the upstreamers get their lives together.
