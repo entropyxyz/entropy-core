@@ -46,6 +46,7 @@ pub async fn sign(args: SignCli) -> Result<()> {
 	let completed_offline_stage = AsyncProtocol::new(signing, incoming, outgoing)
 		.run()
 		.await
+		// TODO: tk alice can't send messages to herself in round_based dep
 		.map_err(|e| anyhow!("protocol execution terminated with error: {}", e))?;
 
 	let (_i, incoming, outgoing) = join_computation(args.address, &format!("{}-online", args.room))

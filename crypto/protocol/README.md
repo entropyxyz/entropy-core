@@ -3,7 +3,7 @@ See [HackMD spec](https://hackmd.io/kLiqrFYETOiONBYXIdqdMA?view) for details.
 ## Keygen   
 ```sh
 # Terminal 1, from project root
-cargo build --release
+cargo build --release -p protocol
 cd target/release
 # starts an HTTP server on http://127.0.0.1:8000. This server relays all communication between nodes.
 ./protocol sm-manager
@@ -16,11 +16,10 @@ rm local-share* # if there are already local-share files in the directory
 ## Sign, assume 6 of 6
 ```sh
 # Terminal 1..6, from target/release
-let TX="immaculate"
-./protocol sign -p 1,2,3,4,5,6 -d $TX -i 1
-./protocol sign -p 1,2,3,4,5,6 -d $TX -i 2
-./protocol sign -p 1,2,3,4,5,6 -d $TX -i 3
-./protocol sign -p 1,2,3,4,5,6 -d $TX -i 4
-./protocol sign -p 1,2,3,4,5,6 -d $TX -i 5
-./protocol sign -p 1,2,3,4,5,6 -d $TX -l 6
+./protocol sign -p 1,2,3,4,5,6 -i 1
+./protocol sign -p 1,2,3,4,5,6 -i 2
+./protocol sign -p 1,2,3,4,5,6 -i 3
+./protocol sign -p 1,2,3,4,5,6 -i 4
+./protocol sign -p 1,2,3,4,5,6 -i 5
+./protocol sign -p 1,2,3,4,5,6 -i 6
 ```

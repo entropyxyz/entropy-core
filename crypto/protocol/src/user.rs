@@ -20,6 +20,7 @@ impl User {
 	/// endpoints on-chain??
 	// Todo: how can the signer node endpoints passed to the user in the reply?
 	// Todo: handle the result message and forward the Signer's endpoint
+	#[allow(dead_code)]
 	async fn request_sig_gen(&self) -> Result<(), Box<dyn std::error::Error>> {
 		println!("register is called");
 		let signer = PairSigner::new(AccountKeyring::Alice.pair());
@@ -48,6 +49,7 @@ impl User {
 	}
 
 	/// User sends an extrinsic requesting account creation
+	#[allow(dead_code)]
 	async fn send_registration(&self) -> Result<(), Box<dyn std::error::Error>> {
 		println!("register is called");
 		let signer = PairSigner::new(AccountKeyring::Alice.pair());

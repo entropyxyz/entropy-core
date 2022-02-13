@@ -40,10 +40,11 @@ async fn main() -> Result<()> {
 		Command::SmManager => gg20_sm_manager::sm_manager_cli().await,
 		Command::Keygen(cli) => {
 			// library requires indices start at 1
+			// TODO: tk alice can't send messages to herself in round_based dep
 			let ids = 1..=(cli.threshold + 1);
-				futures::future::try_join_all(ids.map(|id| keygen::keygen_cli(&cli, id)))
-					.await
-					.unwrap();
+			futures::future::try_join_all(ids.map(|id| keygen::keygen_cli(&cli, id)))
+				.await
+				.unwrap();
 			Ok(())
 		},
 		Command::Sign(cli) => sign::sign(cli).await,
