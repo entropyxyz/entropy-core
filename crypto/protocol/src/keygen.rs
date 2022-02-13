@@ -18,12 +18,13 @@ pub struct KeygenCli {
 	address: surf::Url,
 	#[structopt(short, long, default_value = "default-keygen")]
 	room: String,
-	#[structopt(short, long)]
+	#[structopt(short, long, default_value = "6")]
 	pub threshold: u16,
-	#[structopt(short, long)]
+	/// HACK: number_of_parties needs to be greater than threshold, for
+	/// unclear reasons. It's temporarily acceptible for Alice to create one burner key share.
+	#[structopt(short, long, default_value = "7")]
 	number_of_parties: u16,
 }
-
 
 /// In the example https://github.com/ZenGo-X/multi-party-ecdsa/blob/master/examples/gg20_keygen.rs,
 /// the key generator:
@@ -40,7 +41,7 @@ pub async fn keygen_cli(args: &KeygenCli, index: u16) -> Result<()> {
 		.create_new(true)
 		.open(output)
 		.await
-		.context("cannot create output file")?;
+		.context(format!("cannot create output file: {}", index))?;
 
 	let (_i, incoming, outgoing) = join_computation(args.address.clone(), &args.room)
 		.await
