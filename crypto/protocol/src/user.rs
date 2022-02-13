@@ -19,6 +19,21 @@ pub struct User {
 }
 
 impl User {
+	pub fn sign_message(&self, msg:u16) -> Result<()> {
+		let sig_req = self.get_sig_req(&msg).context("Unable to compute SigRequest")?;
+		// let sig_res = self.request_sig_gen(sig_req);
+		let sig_res = self.request_sig_gen();
+		Ok(())
+	}
+
+	fn get_sig_req(&self, msg:&u16) -> Result<entropy::runtime_types::common::common::SigRequest> {
+		Ok(entropy::runtime_types::common::common::SigRequest{
+			sig_id: 123, 
+			nonce: 369,
+			signature: 1
+		})
+	}
+
 	/// User sends an extrinsic requesting the endpoints of the signer nodes to generate a signature
 	/// User expects a reply
 	/// This reply contains the endpoint of the current signer-node or an error message. Or read the
@@ -111,4 +126,16 @@ async fn main() -> Result<(),Box<dyn std::error::Error>> {
 	user.request_sig_gen().await?;
 	Ok(())
 
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+    #[tokio::test]
+    async fn abctest() -> Result<()> {
+        println!("test_sign");
+		let user = User{};
+		user.request_sig_gen().await?;
+		Ok(())
+    }
 }
