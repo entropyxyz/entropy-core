@@ -93,17 +93,20 @@ pub mod pallet {
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
 			let kind = sp_core::offchain::StorageKind::PERSISTENT;
 			let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
-				.unwrap_or_else(|| b"http://localhost:3001".to_vec());
-			let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001");
-			// let url = base;
+				.unwrap_or_else(|| b"http://localhost:3001/sign".to_vec());
+			let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001/sign");
+
+			log::warn!("propagation::post::messages: {:?}", &messages);
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
 			let req_body = messages.encode();
+			log::warn!("propagation::post::req_body: {:?}", &req_body);
 
 			// We construct the request
 			// important: the header->Content-Type must be added and match that of the receiving
 			// party!!
 			let pending =
-				http::Request::post(&url, vec![block_author.clone().unwrap().encode(), req_body])
+				// http::Request::post(&url, vec![block_author.clone().unwrap().encode(), req_body])
+				http::Request::post(&url, vec![req_body]) // scheint zu klappen
 					.deadline(deadline)
 					.add_header("Content-Type", "application/x-parity-scale-codec")
 					.send()

@@ -3,7 +3,8 @@ panic = 'unwind'
 
 [workspace]
 members = [
-    'crypto/*',
+    'crypto/protocol',
+    'crypto/signing-client',
     'node/*',
     'pallets/*',
     'runtime',

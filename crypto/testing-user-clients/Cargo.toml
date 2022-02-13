@@ -1,0 +1,20 @@
+[package]
+name = "testing-user-clients"
+version = "0.1.0"
+edition = "2021"
+
+
+[[bin]]
+name = "test_register"
+path = "src/testregister.rs"
+
+
+[[bin]]
+name = "test_sign"
+path = "src/testsign.rs"
+
+[dependencies]
+rocket = { version = "0.5.0-rc.1", default-features = false }
+async-std = { version = "1.9.0", features = ["attributes", "tokio1"] }
+protocol = { path = "../protocol", default-features = false }
+

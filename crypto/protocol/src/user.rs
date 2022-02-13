@@ -4,6 +4,7 @@ use std::panic::take_hook;
 use async_trait::async_trait;
 use sp_keyring::AccountKeyring;
 use subxt::{ClientBuilder, DefaultConfig, DefaultExtra, PairSigner};
+use anyhow::{anyhow, Context, Result};
 
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "src/entropy_metadata.scale")]
@@ -20,9 +21,9 @@ impl User {
 	/// This reply contains the endpoint of the current signer-node or an error message. Or read the endpoints on-chain??
 	// Todo: how can the signer node endpoints passed to the user in the reply?
 	// Todo: handle the result message and forward the Signer's endpoint	
-	async fn request_sig_gen(&self) -> Result<(), Box<dyn std::error::Error>> {
+	pub async fn request_sig_gen(&self) -> Result<() , Box<dyn std::error::Error>> {
 
-		println!("register is called");
+		println!("request_sig_gen is called");
 		let signer = PairSigner::new(AccountKeyring::Alice.pair());
 
 		let api = ClientBuilder::new()
@@ -37,13 +38,30 @@ impl User {
 				.relayer()
 				.prep_transaction(
 					entropy::runtime_types::common::common::SigRequest{
-						hash_msg: 123, 
-						test: 369
+						sig_id: 123, 
+						nonce: 369,
+						signature: 1
 					}
 				)
 				.sign_and_submit_then_watch(&signer) 
+				// // ToDo testnet: un-comment "wait_for_finalized_success()"
+				// // this is commented so that we can run only 1 node for testing
+				// .await?
+				// .wait_for_finalized_success()
 				.await?;
+				// .context("error_msg_02")?;
+
+		// if let Some(event) = result.find_first_event::<entropy::relayer::events::TransactionPropagated>()? {
+		// 	println!("relayer TransactionPropagated (who): {:?}", event.0);
+		// } else {
+		// 	println!("Failed to find relayer::TransactionPropagated Event");
+		// }
+		// let x:common::RegistrationMessage = common::RegistrationMessage{ 
+		// 	keyshards: result.find_first_event::<entropy::relayer::events::TransactionPropagated>()?.unwrap().1.keyshards, 
+		// 	test:  result.find_first_event::<entropy::relayer::events::TransactionPropagated>()?.unwrap().1.test, 
+		// };
 		
+		// println!("x: {:?}", x);		
 		// ToDo: handle result
 		println!("result: {:?}", result);
 
@@ -51,7 +69,7 @@ impl User {
 	}
 
 	/// User sends an extrinsic requesting account creation
-	async fn send_registration(&self) -> Result<(), Box<dyn std::error::Error>> {
+	pub async fn send_registration(&self) -> Result<(), Box<dyn std::error::Error>> {
 
 		println!("register is called");
 		let signer = PairSigner::new(AccountKeyring::Alice.pair());
@@ -66,7 +84,7 @@ impl User {
 		let result = api
 				.tx()
 				.relayer()
-				.account_registration(
+				.register(
 					entropy::runtime_types::common::common::RegistrationMessage{
 						keyshards: 123, 
 						test: 369
@@ -80,4 +98,13 @@ impl User {
 
 		Ok(())
 	}	
+}
+
+#[async_std::main]
+async fn main() -> Result<(),Box<dyn std::error::Error>> {
+	println!("test_sign");
+	let user = User{};
+	user.request_sig_gen().await?;
+	Ok(())
+
 }
