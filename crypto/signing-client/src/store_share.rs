@@ -16,8 +16,8 @@ use std::{
 // ToDo: JA add proper response types and formalize them
 #[post("/store_keyshare", format = "json", data = "<user_input>")]
 pub fn store_keyshare(user_input: Json<LocalKey<Secp256k1>>) -> Result<(), std::io::Error> {
-	//TODO verify proof
-	//TODO make sure signed so other key doesn't override own key
+	// ToDo: JA verify proof
+	// ToDo: JA make sure signed so other key doesn't override own key
 	let file = File::create("key_share.json")?;
 	let mut writer = BufWriter::new(file);
 	serde_json::to_writer(&mut writer, &user_input.0)?;
