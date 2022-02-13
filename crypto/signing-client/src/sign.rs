@@ -44,7 +44,7 @@ pub fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
     // let _data = entropy::runtime_types::pallet_relayer::pallet::Message::decode(&mut encoded_data.as_ref()).ok().unwrap();
 //    let data = entropy::runtime_types::pallet_relayer::pallet::Message::decode(&mut encoded_data.as_ref())
     //.ok().unwrap();
-    // .or_else(entropy::runtime_types::pallet_relayer::pallet::Message { 
+    // .or_else(entropy::runtime_types::pallet_relayer::pallet::Message {
 	// 	// sig_request: common::SigRequest{hash_msg:1, test:1}
 	// 	sig_request: SigRequest{hash_msg:1, test:1}
     // } );
