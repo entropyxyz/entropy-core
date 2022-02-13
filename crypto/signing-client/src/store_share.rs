@@ -1,27 +1,26 @@
 //! The User requests the Signature-client to store a keyshare localy.
 
-use parity_scale_codec::{Encode, Decode};
-use std::str;
-use std::fs::File;
-use std::io::{BufWriter, Write};
+use curv::elliptic::curves::secp256_k1::Secp256k1;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
-use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Curve};
-use rocket::serde::{Deserialize, Serialize};
-use rocket::serde::json::{Json, Value, json};
+use rocket::serde::json::Json;
+use std::{
+	fs::File,
+	io::{BufWriter, Write},
+};
 
-// ToDo: Should we move declaration of structs to /crypto/common/ ?
+// ToDo: DF Should we move declaration of structs to /crypto/common/ ?
 //       If those types are necessary for the node's OCW, then maybe we should
 
 /// Response of the key storing
 
-
+// ToDo: JA add proper response types and formalize them
 #[post("/store_keyshare", format = "json", data = "<user_input>")]
 pub fn store_keyshare(user_input: Json<LocalKey<Secp256k1>>) -> Result<(), std::io::Error> {
 	//TODO verify proof
 	//TODO make sure signed so other key doesn't override own key
-    let file = File::create("key_share.json")?;
-    let mut writer = BufWriter::new(file);
-    serde_json::to_writer(&mut writer, &user_input.0)?;
-    writer.flush()?;
+	let file = File::create("key_share.json")?;
+	let mut writer = BufWriter::new(file);
+	serde_json::to_writer(&mut writer, &user_input.0)?;
+	writer.flush()?;
 	Ok(())
 }
