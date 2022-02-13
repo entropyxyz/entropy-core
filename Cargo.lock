@@ -9123,6 +9123,8 @@ name = "signing-client"
 version = "0.1.0"
 dependencies = [
  "common",
+ "curv-kzen",
+ "multi-party-ecdsa",
  "parity-scale-codec",
  "reqwest",
  "rocket",
