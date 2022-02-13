@@ -55,11 +55,11 @@ pub struct SigRequest {
 	signature: u32,
 }
 
-#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)] 
+#[derive(Clone, Encode, Debug, Decode, Eq, PartialEq, TypeInfo)] 
 pub struct SigResponse {
 	/// the randomly chosen signing-nodes that take part in the sig-generation
 	/// possible identifiers: endpoint address or some PublicKey (which one?)
-	pub signin_nodes: u16,
+	pub signing_nodes: u16,
 	/// endpoint of the Communication manager
 	pub com_manager: u16, 
 }

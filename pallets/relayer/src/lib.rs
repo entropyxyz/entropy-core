@@ -92,7 +92,7 @@ pub mod pallet {
 	#[pallet::getter(fn registered)]
 	pub type Registered<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
-
+	
 	type SigResponse = common::SigResponse;
 
 	// Pallets use events to inform users when important changes are made.
@@ -137,7 +137,7 @@ pub mod pallet {
 			})?;			
 			// ToDo: get random signeing-nodes
 			//let sig_response = get_signers(); 
-			let sig_response = SigResponse {signin_nodes:1, com_manager:1};
+			let sig_response = SigResponse {signing_nodes:1, com_manager:1};
 			
 			Self::deposit_event(Event::TransactionPropagated(who, sig_response));
 			Ok(())
