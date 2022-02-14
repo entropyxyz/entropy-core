@@ -4,8 +4,8 @@ use reqwest;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let file = tokio::fs::read("local-share1.json").await?;
-    let file2 = tokio::fs::read("local-share2.json").await?;
+    let file = tokio::fs::read("./alice-send/local-share1.json").await?;
+    let file2 = tokio::fs::read("./alice-send/local-share2.json").await?;
     let json1: LocalKey<Secp256k1> = serde_json::from_slice(&file).unwrap();
     let json2: LocalKey<Secp256k1> = serde_json::from_slice(&file2).unwrap();
 
