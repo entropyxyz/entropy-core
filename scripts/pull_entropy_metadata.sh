@@ -3,3 +3,6 @@ curl -sX POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","meth
                      | jq .result \
                      | cut -d '"' -f 2 \
                      | xxd -r -p > ./crypto/protocol/src/entropy_metadata.scale
+
+
+subsee > entropy_metadata.json
