@@ -137,7 +137,7 @@ impl User {
 				)
 				.sign_and_submit_then_watch(&signer) 
 				.await?;
-		
+	
 		// ToDo: handle result
 		println!("result: {:?}", result);
 
@@ -145,24 +145,10 @@ impl User {
 	}	
 }
 
-#[async_std::main]
-async fn main() -> Result<(),Box<dyn std::error::Error>> {
-	println!("test_sign");
-	let user = User{};
-	// user.request_sig_gen().await?;
-	Ok(())
-
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-    #[tokio::test]
-    async fn sign_message() -> Result<()> {
-        println!("test: sign_message()");
-		let user = User{};
-		// user.request_sig_gen().await?;
-		user.sign_message(1).await?;
-		Ok(())
-    }
-}
+// #[async_std::main]
+// async fn main() -> Result<(),Box<dyn std::error::Error>> {
+// 	println!("test_sign");
+// 	let user = User{};
+// 	user.request_sig_gen().await?;
+// 	Ok(())
+// }
