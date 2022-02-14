@@ -3,7 +3,7 @@ See [HackMD spec](https://hackmd.io/kLiqrFYETOiONBYXIdqdMA?view) for details.
 ## Keygen   
 ```sh
 # Terminal 1, from project root
-cargo build --release
+cargo build --release -p protocol
 cd target/release
 # starts an HTTP server on http://127.0.0.1:8000. This server relays all communication between nodes.
 ./cli sm-manager
