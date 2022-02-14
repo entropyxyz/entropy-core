@@ -1,13 +1,10 @@
-#![allow(unused_imports)]
-pub mod gg20_sm_client;
-pub mod gg20_sm_manager;
-pub mod keygen;
-pub mod node;
-pub mod sign;
-pub mod user;
 //use std::path::PathBuf;
-use crate::sign::SignCli;
-use crate::{gg20_sm_client::SmClientCli, keygen::KeygenCli};
+#![allow(unused_imports)]
+use protocol::{gg20_sm_manager, keygen};
+use protocol::sign::SignCli;
+use protocol::sign;
+use protocol::gg20_sm_client;
+use protocol::{gg20_sm_client::SmClientCli, keygen::KeygenCli};
 use anyhow::{anyhow, Context, Result};
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -30,7 +27,7 @@ enum Command {
 	/// Generate `threshold` of `output` keyshares at `output`
 	Keygen(KeygenCli),
 	Sign(SignCli),
-	DeleteAccount, // todo: sign tx, delete acct
+	DeleteAccount, // todo: tk sign tx, delete acct
 }
 
 #[tokio::main]
