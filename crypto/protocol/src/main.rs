@@ -6,7 +6,7 @@ pub mod node;
 pub mod sign;
 pub mod user;
 //use std::path::PathBuf;
-use crate::sign::SignCli;
+use crate::sign::SignCliWrap;
 use crate::{gg20_sm_client::SmClientCli, keygen::KeygenCli};
 use anyhow::{anyhow, Context, Result};
 use std::path::PathBuf;
@@ -29,7 +29,7 @@ enum Command {
 	SmClient(SmClientCli),
 	/// Generate `threshold` of `output` keyshares at `output`
 	Keygen(KeygenCli),
-	Sign(SignCli),
+	Sign(SignCliWrap),
 	DeleteAccount, // todo: sign tx, delete acct
 }
 
@@ -48,7 +48,7 @@ async fn main() -> Result<()> {
 				.unwrap();
 			Ok(())
 		},
-		Command::Sign(cli) => sign::sign(cli).await,
+		Command::Sign(cli) => sign::sign(cli.into()).await,
 		Command::DeleteAccount => todo!(),
 	}
 }

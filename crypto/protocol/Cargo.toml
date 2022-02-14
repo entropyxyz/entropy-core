@@ -5,10 +5,6 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[[bin]]
-name = "test_sign"
-path = "src/user.rs"
-
 [dependencies]
 async-std = { version = "1.9.0", features = ["attributes", "tokio1"] }
 async-trait = "0.1.51"

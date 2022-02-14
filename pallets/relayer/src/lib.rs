@@ -137,7 +137,10 @@ pub mod pallet {
 			})?;			
 			// ToDo: get random signeing-nodes
 			//let sig_response = get_signers(); 
-			let sig_response = SigResponse {signing_nodes:1, com_manager:1};
+			let sig_response = SigResponse {
+				signing_nodes: sp_std::vec![1], 
+				com_manager: 1
+			};
 			
 			Self::deposit_event(Event::TransactionPropagated(who, sig_response));
 			Ok(())
