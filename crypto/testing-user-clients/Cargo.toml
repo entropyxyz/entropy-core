@@ -17,4 +17,4 @@ path = "src/testsign.rs"
 rocket = { version = "0.5.0-rc.1", default-features = false }
 async-std = { version = "1.9.0", features = ["attributes", "tokio1"] }
 protocol = { path = "../protocol", default-features = false }
-
+alice-send = { path = "../../alice-send", default-features = false }

@@ -22,5 +22,6 @@ pub fn store_keyshare(user_input: Json<LocalKey<Secp256k1>>) -> Result<(), std::
 	let mut writer = BufWriter::new(file);
 	serde_json::to_writer(&mut writer, &user_input.0)?;
 	writer.flush()?;
+	println!("keyshare received!");
 	Ok(())
 }

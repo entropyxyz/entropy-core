@@ -9,5 +9,6 @@ async fn main() -> Result<(),Box<dyn std::error::Error>> {
 	println!("reg_res.signing_nodes {}", reg_res.signing_nodes);
 	//ToDo:
 	// send key to bob
+	alice_send::send();
 	Ok(())
 }
