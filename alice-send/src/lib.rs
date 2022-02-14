@@ -2,7 +2,7 @@ use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::key
 use curv::elliptic::curves::{secp256_k1::Secp256k1};
 use reqwest;
 
-mod main;
+// mod main;
 
 
 
