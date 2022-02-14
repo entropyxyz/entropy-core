@@ -44,7 +44,7 @@ impl User {
 					}
 				)
 				.sign_and_submit_then_watch(&signer) 
-				// // ToDo testnet: un-comment "wait_for_finalized_success()"
+				// // TODO: df testnet: un-comment "wait_for_finalized_success()"
 				// // this is commented so that we can run only 1 node for testing
 				// .await?
 				// .wait_for_finalized_success()
@@ -62,7 +62,7 @@ impl User {
 		// };
 		
 		// println!("x: {:?}", x);		
-		// ToDo: handle result
+		// TODO: df handle result
 		println!("result: {:?}", result);
 
 		Ok(())
@@ -92,7 +92,7 @@ impl User {
 				)
 				.sign_and_submit_then_watch(&signer) 
 				.await?;
-		
+	
 		// ToDo: handle result
 		println!("result: {:?}", result);
 
@@ -100,11 +100,10 @@ impl User {
 	}	
 }
 
-#[async_std::main]
-async fn main() -> Result<(),Box<dyn std::error::Error>> {
-	println!("test_sign");
-	let user = User{};
-	user.request_sig_gen().await?;
-	Ok(())
-
-}
+// #[async_std::main]
+// async fn main() -> Result<(),Box<dyn std::error::Error>> {
+// 	println!("test_sign");
+// 	let user = User{};
+// 	user.request_sig_gen().await?;
+// 	Ok(())
+// }
