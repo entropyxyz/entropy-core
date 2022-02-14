@@ -11,7 +11,7 @@ use structopt::StructOpt;
 use crate::gg20_sm_client::join_computation;
 
 #[derive(Debug, StructOpt, Clone)]
-pub struct SignCli {
+pub struct SignCliWrap {
 	#[structopt(short, long, default_value = "http://localhost:8000/")]
 	address: surf::Url,
 	#[structopt(short, long, default_value = "default-signing")]
@@ -23,6 +23,27 @@ pub struct SignCli {
 	parties: Vec<u16>,
 	#[structopt(short, long, default_value = "vibes be immaculate")]
 	data_to_sign: String,
+}
+
+pub struct SignCli {
+	pub address: surf::Url,
+	pub room: String,
+	/// Index of the party
+	pub index: u16,
+	pub parties: Vec<u16>,
+	pub data_to_sign: String,
+}
+
+impl From<SignCliWrap> for SignCli {
+	fn from(sign_cli: SignCliWrap) -> SignCli{
+		SignCli{
+			address: sign_cli.address, 
+			room: sign_cli.room, 
+			index: sign_cli.index,
+			parties: sign_cli.parties,
+			data_to_sign: sign_cli.data_to_sign,
+		}
+	}
 }
 
 pub async fn sign(args: SignCli) -> Result<()> {
