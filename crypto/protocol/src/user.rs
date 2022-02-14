@@ -5,7 +5,7 @@ use sp_keyring::AccountKeyring;
 use subxt::{ClientBuilder, DefaultConfig, DefaultExtra, PairSigner};
 use anyhow::{anyhow, Context, Result};
 
-use crate::sign::{sign, SignCliWrap, SignCli};
+use crate::sign::{sign, SignCli};
 
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "src/entropy_metadata.scale")]
