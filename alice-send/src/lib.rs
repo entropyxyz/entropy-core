@@ -7,6 +7,8 @@ use reqwest;
 
 
 pub async fn send() -> Result<(), Box<dyn std::error::Error>> {
+    println!("sending keyshare...");
+
     // let file1 = tokio::fs::read("./alice-send/local-share1.json").await?;
     let file2 = tokio::fs::read("./alice-send/local-share2.json").await?;
     // let json1: LocalKey<Secp256k1> = serde_json::from_slice(&file1).unwrap();
