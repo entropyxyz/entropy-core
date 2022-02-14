@@ -35,7 +35,7 @@ impl User {
 			parties: sig_res.signing_nodes, 
 			data_to_sign: String::from("entropy rocks!!"),
 		};
-		let signature = sign(sign_cli);
+		let signature = sign(sign_cli).await;
 		Ok(())
 	}
 

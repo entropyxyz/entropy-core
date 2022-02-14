@@ -21,6 +21,7 @@ pub struct SignCli {
 }
 
 pub async fn sign(args: SignCli) -> Result<()> {
+	println!("User starts gg20-signing...");
 	let local_share = PathBuf::from(format!("local-share{}.json", args.index));
 	let local_share = tokio::fs::read(local_share)
 		.await
