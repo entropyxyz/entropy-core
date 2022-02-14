@@ -94,6 +94,7 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
 	
 	type SigResponse = common::SigResponse;
+	type RegResponse = common::RegistrationResponse;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -103,7 +104,7 @@ pub mod pallet {
 		/// A transaction has been propagated to the network. [who]
 		TransactionPropagated(T::AccountId, SigResponse),
 		/// An account has been registered. [who]
-		AccountRegistered(T::AccountId),
+		AccountRegistered(T::AccountId, RegResponse),
 		/// An account has been registered. [who, block_number, failures]
 		ConfirmedDone(T::AccountId, T::BlockNumber, Vec<u32>),
 	}
@@ -164,9 +165,15 @@ pub mod pallet {
 				Ok(())
 			})?;
 
+			let reg_response = RegResponse {
+				signing_nodes: 3002,
+			};
+
 			// TODO proof
 			Registered::<T>::insert(&who, true);
-			Self::deposit_event(Event::AccountRegistered(who));
+			log::warn!("relayer::register: sent reg_response:{:?}", &reg_response);
+			Self::deposit_event(Event::AccountRegistered(who, reg_response));
+
 			Ok(())
 		}
 

@@ -4,6 +4,10 @@ use protocol::user::User;
 async fn main() -> Result<(),Box<dyn std::error::Error>> {
 	println!("test_register");
 	let user = User{};
-	user.send_registration().await?;
+	let reg_res = user.send_registration_request().await?;
+
+	println!("reg_res.signing_nodes {}", reg_res.signing_nodes);
+	//ToDo:
+	// send key to bob
 	Ok(())
 }

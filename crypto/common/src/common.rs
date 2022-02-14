@@ -30,12 +30,12 @@ pub struct RegistrationMessage {
 }
 
 /// The response message that a node sends to the User in response to calling the relayer::register() extrinsic.
+#[derive(Clone, Encode, Decode, Debug, PartialEq, TypeInfo)] 
 pub struct RegistrationResponse {
 	// ToDo_DF: what Data goes into here?
 	/// list of endpoints of all nodes that the user sends the keyshares to. 
 	// ToDo: make this a vec<(endpoint, encryption-key)> etc. 
-	signing_nodes: u16,
-	comm_manager: u16,
+	pub signing_nodes: u16,
 }
 
 /// body of a signature generation request by the user to the entropy network
