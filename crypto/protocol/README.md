@@ -6,30 +6,21 @@ See [HackMD spec](https://hackmd.io/kLiqrFYETOiONBYXIdqdMA?view) for details.
 cargo build --release -p protocol
 cd target/release
 # starts an HTTP server on http://127.0.0.1:8000. This server relays all communication between nodes.
-./protocol sm-manager
+./cli sm-manager
 # Terminal 2, from target/release; Alice generates keys
-rm local-share* # if there are already local-share files in the directory
-# TODO BLOCKING: the following generates a pre-validation error
-./protocol keygen # defaults to 6 of 7, the last of which is an ignorable extra
+export M=6 # M of N
+export N=6
+./cli keygen -t $M -n $N 
 ```
 
 ## Sign, assume 6 of 6
 ```sh
 # Terminal 1..6, from target/release
-./protocol sign -p 1,2,3,4,5,6 -i 1
-./protocol sign -p 1,2,3,4,5,6 -i 2
-./protocol sign -p 1,2,3,4,5,6 -i 3
-./protocol sign -p 1,2,3,4,5,6 -i 4
-./protocol sign -p 1,2,3,4,5,6 -i 5
-./protocol sign -p 1,2,3,4,5,6 -i 6
+let TX="immaculate"
+./cli -p 1,2,3,4,5,6 -d $TX -l local-share0.json
+./cli -p 1,2,3,4,5,6 -d $TX -l local-share1.json
+./cli -p 1,2,3,4,5,6 -d $TX -l local-share2.json
+./cli -p 1,2,3,4,5,6 -d $TX -l local-share3.json
+./cli -p 1,2,3,4,5,6 -d $TX -l local-share4.json
+./cli -p 1,2,3,4,5,6 -d $TX -l local-share5.json
 ```
-
-
-## Note dump
-### tk: On nightly, `cannot find macro asm in this scope`
-Note that switching to stable is undesireable for other reasons. Need an older version of the wasmtime release. https://github.com/phil-opp/blog_os/issues/1066
-quickfix: 
-`rustup override set nightly-2021-12-13`
-Now your wasm toolchain is broken. Sorry.
-`rustup target add wasm32-unknown-unknown --toolchain nightly-2021-12-13`
-Eventually this will be unnecessary when the upstreamers get their lives together.
