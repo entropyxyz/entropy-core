@@ -204,20 +204,23 @@ by appending your own. A few useful ones are as follow.
 ```
 
 ## testnet
-the following processes are necessary to successfully generate a signature so far
-1. build a signing-client WITHOUT the `provide_share` route. 
-this is done by 
+the following processes are necessary to successfully generate a signature so far. If not mentioned otherwise, start all commands from the root directory. 
+1. build two signing-clients, one WITHOUT the `provide_share` route and one with it. 
+This is done by 
   1. commenting out `provide_share` in crypto::signing-client::main::rocket(). 
   2. `cargo build --release -p signing-client`
   3. rename the resulting ./target/release/signing-client to signing-client_alice
   this binary is used for one node on port 3001 (see ./scripts/signclient_alice.sh), the 'normal' (unchanged) signing client is run on port 3002 (see ./scripts/signclient_bob.sh)
-2. `git clone https://github.com/Entropyxyz/util-scripts.git`  to wherever
+  4. `cargo build --release -p signing-client` to create the original ./target/release/signing-client again
+  5. `cargo build --release -p testing-user-client`
+  6. `cargo build --release -p entropy`
+2. `git clone https://github.com/Entropyxyz/util-scripts.git` to wherever directory
 3. open 5 CLIs. run the following commands in them respectively. 
   1. `./scripts/alice` - start node 1
   2. `./scripts/bob` - start node 2
   3. when both nodes are running, enter the util-scripts folder and run `ts-node setEndpoint.ts`
-  4. `./scripts/signingclient_alice.sh` - start the signing-client at port 3001 for node1 (this is the changed client, see above)
-  5. `./scripts/signingclient_bob.sh` - start the signing-client at port 3002 for node2 (a unchanged client)
+  4. `./scripts/sigclient_alice.sh` - start the signing-client at port 3001 for node1 (this is the changed client, see above)
+  5. `./scripts/sigclient_bob.sh` - start the signing-client at port 3002 for node2 (a unchanged client)
   6. everything is set up!
   - register: `./target/release/test_register`
   - sign: `./target/release/test_sign`
