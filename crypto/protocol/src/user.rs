@@ -32,11 +32,12 @@ impl User {
 			// ToDo: DF: use the proper sigID and convert it to String 
 			room: String::from("sig_id"), // String::from_utf8(sig_id.clone()).unwrap(),
 			index: 1,
-			parties: vec![1,2], // ToDo: DF is this correct?? 
+			parties: vec![2,1], // ToDo: DF is this correct?? 
 			// parties: sig_res.signing_nodes, // ToDo: DF is this correct?? 
 			data_to_sign: String::from("entropy rocks!!"),
 		};
-		println!("user starts signing...");
+
+		println!("user starts signing... sign_cli: {:?}", sign_cli);
 		let signature = sign(sign_cli).await;
 		Ok(())
 	}

@@ -81,7 +81,7 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
             room: String::from("sig_id"), // String::from_utf8(sig_id.clone()).unwrap(),
             index: 2,
             // parties: sig_res.signing_nodes, // ToDo: DF is this correct?? 
-            parties: vec![1,2], // ToDo: DF is this correct?? 
+            parties: vec![2,1], // ToDo: DF is this correct?? 
             data_to_sign: String::from("entropy rocks!!"),
         };
 		println!("Bob starts signing...");
