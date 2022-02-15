@@ -202,3 +202,14 @@ by appending your own. A few useful ones are as follow.
 # Check whether the code is compilable
 ./scripts/docker_run.sh cargo check
 ```
+
+## testnet
+the following processes are necessary to successfully generate a signature so far
+1. build a signing-client WITHOUT the `provide_share` route. 
+this is done by 
+  1. commenting out `provide_share` in crypto::signing-client::main::rocket(). 
+  2. `cargo build --release -p signing-client`
+  3. rename the resulting ./target/release/signing-client to signing-client_alice
+  this binary is used for one node on port 3001 (see ./scripts/signclient_alice.sh), the 'normal' (unchanged) signing client is run on port 3002 (see ./scripts/signclient_bob.sh)
+  
+
