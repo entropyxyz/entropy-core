@@ -12,6 +12,7 @@ serde_json = "1.0"
 uuid = { version = "0.8", features = ["v4"] }
 parity-scale-codec = "2.3.1"
 common = { path = "../../crypto/common", default-features = false }
+protocol = { path = "../protocol", default-features = false }
 subxt = { git = "https://github.com/paritytech/subxt.git" }
 multi-party-ecdsa ={ git = "https://github.com/ZenGo-X/multi-party-ecdsa"}
 curv-kzen = { version = "0.9", default-features = false }
@@ -19,6 +20,7 @@ anyhow = "1.0.53"
 futures = "0.3"
 tokio = { version = "1.16", features = ["macros","fs","rt-multi-thread","io-util"] }
 serde = { version = "1.0", features = ["derive"] }
+surf = "2"
 
 
 [features]

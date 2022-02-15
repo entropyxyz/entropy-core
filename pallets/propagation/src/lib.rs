@@ -122,6 +122,7 @@ pub mod pallet {
 				return Err(http::Error::Unknown)
 			}
 			let _res_body = response.body().collect::<Vec<u8>>();
+			// ToDo: DF: handle _res_body
 			Self::deposit_event(Event::MessagesPassed(block_author.unwrap()));
 
 			Ok(())

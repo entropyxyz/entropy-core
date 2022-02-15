@@ -9,7 +9,7 @@ mod sign;
 mod store_share;
 
 
-use com_manager::{subscribe, issue_idx, broadcast};
+use com_manager::{subscribe, issue_idx, broadcast, Db};
 // ToDo: JA add proper response types and formalize them across all endpoints
 
 #[launch]
@@ -19,4 +19,6 @@ fn rocket() -> _ {
 		provide_share, 
 		start_com_manager,
 		subscribe, issue_idx, broadcast])
+		.manage(Db::empty())
+
 }
