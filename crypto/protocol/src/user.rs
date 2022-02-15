@@ -36,6 +36,7 @@ impl User {
 			// parties: sig_res.signing_nodes, // ToDo: DF is this correct?? 
 			data_to_sign: String::from("entropy rocks!!"),
 		};
+		println!("user starts signing...");
 		let signature = sign(sign_cli).await;
 		Ok(())
 	}
