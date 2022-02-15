@@ -211,5 +211,14 @@ this is done by
   2. `cargo build --release -p signing-client`
   3. rename the resulting ./target/release/signing-client to signing-client_alice
   this binary is used for one node on port 3001 (see ./scripts/signclient_alice.sh), the 'normal' (unchanged) signing client is run on port 3002 (see ./scripts/signclient_bob.sh)
-  
+2. `git clone https://github.com/Entropyxyz/util-scripts.git`  to wherever
+3. open 5 CLIs. run the following commands in them respectively. 
+  1. `./scripts/alice` - start node 1
+  2. `./scripts/bob` - start node 2
+  3. when both nodes are running, enter the util-scripts folder and run `ts-node setEndpoint.ts`
+  4. `./scripts/signingclient_alice.sh` - start the signing-client at port 3001 for node1 (this is the changed client, see above)
+  5. `./scripts/signingclient_bob.sh` - start the signing-client at port 3002 for node2 (a unchanged client)
+  6. everything is set up!
+  - register: `./target/release/test_register`
+  - sign: `./target/release/test_sign`
 
