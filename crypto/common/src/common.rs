@@ -30,12 +30,12 @@ pub struct RegistrationMessage {
 }
 
 /// The response message that a node sends to the User in response to calling the relayer::register() extrinsic.
+#[derive(Clone, Encode, Decode, Debug, PartialEq, TypeInfo)] 
 pub struct RegistrationResponse {
 	// ToDo_DF: what Data goes into here?
 	/// list of endpoints of all nodes that the user sends the keyshares to. 
 	// ToDo: make this a vec<(endpoint, encryption-key)> etc. 
-	signing_nodes: u16,
-	comm_manager: u16,
+	pub signing_nodes: u16,
 }
 
 /// body of a signature generation request by the user to the entropy network
@@ -48,18 +48,26 @@ pub struct SigRequest {
     // see https://github.com/Entropyxyz/entropy-core/issues/29
 	
 	/// Signature_ID. this is a hash of the message to be signed
-	pub sig_id: u128, 
+	pub sig_id: u16, 
+	// pub sig_id: codec::alloc::vec::Vec<u8>,
 	/// Session ID/nonce. Check that this ID has not beed used before
 	nonce: u32, 	
 	/// signature to authenticate the user
 	signature: u32,
 }
 
-#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)] 
+#[derive(Clone, Encode, Debug, Decode, Eq, PartialEq, TypeInfo)] 
 pub struct SigResponse {
-	/// the randomly chosen signing-nodes that take part in the sig-generation
-	/// possible identifiers: endpoint address or some PublicKey (which one?)
-	pub signin_nodes: u16,
+	/// List of indices of the signing-nodes that are randomly chosen 
+	/// necessary info: 
+	/// - index of the node's keyshare
+	/// maybe: 
+	/// - node-identifier: endpoint address or some PublicKey (which one?)
+	//
+	// hierhier
+	// 
+	// pub signing_nodes: Vec<u16>,
+	pub signing_nodes: codec::alloc::vec::Vec<u16>,
 	/// endpoint of the Communication manager
 	pub com_manager: u16, 
 }

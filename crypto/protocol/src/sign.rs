@@ -12,36 +12,41 @@ use crate::gg20_sm_client::join_computation;
 
 #[derive(Debug, StructOpt, Clone)]
 pub struct SignCli {
-	#[structopt(short, long, default_value = "http://localhost:8000/")]
-	address: surf::Url,
-	#[structopt(short, long, default_value = "default-signing")]
-	room: String,
+	pub address: surf::Url,
+	pub room: String,
 	/// Index of the party
-	#[structopt(short, long, default_value = "1")]
-	index: u16,
-	#[structopt(short, long, use_delimiter(true))]
-	parties: Vec<u16>,
-	#[structopt(short, long, default_value = "vibes be immaculate")]
-	data_to_sign: String,
+	pub index: u16,
+	pub parties: Vec<u16>,
+	pub data_to_sign: String,
 }
 
 pub async fn sign(args: SignCli) -> Result<()> {
+	println!("User starts gg20-signing...");
 	let local_share = PathBuf::from(format!("local-share{}.json", args.index));
+	println!("0.1");
+	println!("args {:?}", args);
+
 	let local_share = tokio::fs::read(local_share)
 		.await
 		.context(format!("cannot read local share at index {}", args.index))?;
+	// println!("local_share {:?}", local_share);
+	println!("0.2");
+
 	let local_share = serde_json::from_slice(&local_share).context("parse local share")?;
 	let number_of_parties = args.parties.len();
 
+	println!("0.4");
 	let (i, incoming, outgoing) =
 		join_computation(args.address.clone(), &format!("{}-offline", args.room))
 			.await
 			.context("join offline computation")?;
+	println!("0.5");
 
 	let incoming = incoming.fuse();
 	tokio::pin!(incoming);
 	tokio::pin!(outgoing);
 
+	println!("1");
 	let signing = OfflineStage::new(i, args.parties, local_share)?;
 	let completed_offline_stage = AsyncProtocol::new(signing, incoming, outgoing)
 		.run()
@@ -55,6 +60,7 @@ pub async fn sign(args: SignCli) -> Result<()> {
 
 	tokio::pin!(incoming);
 	tokio::pin!(outgoing);
+	println!("2");
 
 	let (signing, partial_signature) =
 		SignManual::new(BigInt::from_bytes(args.data_to_sign.as_bytes()), completed_offline_stage)?;
@@ -70,7 +76,9 @@ pub async fn sign(args: SignCli) -> Result<()> {
 		.await?;
 	let signature = signing.complete(&partial_signatures).context("online stage failed")?;
 	let signature = serde_json::to_string(&signature).context("serialize signature")?;
-	println!("{}", signature);
+	println!("3");
+
+	println!("signature {}", signature);
 
 	Ok(())
 }

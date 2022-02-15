@@ -45,7 +45,7 @@ async fn main() -> Result<()> {
 				.unwrap();
 			Ok(())
 		},
-		Command::Sign(cli) => sign::sign(cli).await,
+		Command::Sign(cli) => sign::sign(cli.into()).await,
 		Command::DeleteAccount => todo!(),
 	}
 }
