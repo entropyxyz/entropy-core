@@ -94,7 +94,7 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// A transaction has been propagated to the network. [who]
+		/// A transaction has been propagated to the network. [who, signature_response]
 		TransactionPropagated(T::AccountId, SigResponse),
 		/// An account has been registered. [who]
 		AccountRegistered(T::AccountId),
