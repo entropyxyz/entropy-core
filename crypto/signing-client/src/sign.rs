@@ -1,7 +1,7 @@
 //! The Node requests the client to take part in a signature generation.
 
-use parity_scale_codec::{Decode, Encode};
 use common::SigRequest;
+use parity_scale_codec::{Decode, Encode};
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -32,66 +32,65 @@ struct SignRes {
 #[response(status = 200, content_type = "application/x-parity-scale-codec")]
 pub struct ProvideSignatureRes(Vec<u8>);
 
-
 type thing = Vec<common::OCWMessage>;
 
 //ToDo: receive keyshare and store locally
 #[post("/sign", format = "application/x-parity-scale-codec", data = "<encoded_data>")]
 pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
-    println!("provide keyshare!");
+	println!("provide keyshare!");
 
-    //let _data = ProvideSignatureReq::decode(&mut encoded_data.as_ref()).ok().unwrap();
-    // let _data = entropy::runtime_types::pallet_relayer::pallet::Message::decode(&mut encoded_data.as_ref()).ok().unwrap();
-//    let data = entropy::runtime_types::pallet_relayer::pallet::Message::decode(&mut encoded_data.as_ref())
-    //.ok().unwrap();
-    // .or_else(entropy::runtime_types::pallet_relayer::pallet::Message {
+	//let _data = ProvideSignatureReq::decode(&mut encoded_data.as_ref()).ok().unwrap();
+	// let _data = entropy::runtime_types::pallet_relayer::pallet::Message::decode(&mut
+	// encoded_data.as_ref()).ok().unwrap();    let data =
+	// entropy::runtime_types::pallet_relayer::pallet::Message::decode(&mut encoded_data.as_ref())
+	//.ok().unwrap();
+	// .or_else(entropy::runtime_types::pallet_relayer::pallet::Message {
 	// 	// sig_request: common::SigRequest{hash_msg:1, test:1}
 	// 	sig_request: SigRequest{hash_msg:1, test:1}
-    // } );
+	// } );
 
-    println!("encoded_data {:?}", encoded_data);
+	println!("encoded_data {:?}", encoded_data);
 
-
-    //let data = common::OCWMessage::decode(&mut encoded_data.as_ref());
-////////////////////
+	//let data = common::OCWMessage::decode(&mut encoded_data.as_ref());
+	////////////////////
 
 	// ToDo: JA rename
-    type Thing = Vec<common::OCWMessage>;
-    let data = Thing::decode(&mut encoded_data.as_ref());
-    // println!("thing_dec: {:?}", thing_dec);
-////////////////////
-    //let data = thing::decode(&mut encoded_data.as_ref());
-    let data = match data {
-        Ok(x) => x,
-        Err(err) => panic!("{}",err),
-    };
-    //let data = entropy::runtime_types::pallet_relayer::pallet::Message::decode(&mut encoded_data.as_ref())
-    //.or_else(common::OCWMessage{sig_request:SigRequest{ hash_msg:1, test:2} });
+	type Thing = Vec<common::OCWMessage>;
+	let data = Thing::decode(&mut encoded_data.as_ref());
+	// println!("thing_dec: {:?}", thing_dec);
+	////////////////////
+	//let data = thing::decode(&mut encoded_data.as_ref());
+	let data = match data {
+		Ok(x) => x,
+		Err(err) => panic!("{}", err),
+	};
+	//let data = entropy::runtime_types::pallet_relayer::pallet::Message::decode(&mut
+	// encoded_data.as_ref())
+	//.or_else(common::OCWMessage{sig_request:SigRequest{ hash_msg:1, test:2} });
 
-      //.or_else(common::SigRequest{hash_msg:1, test:1});
-    println!("data: {:?}", &data);//.sig_request.test);
-    // println!("keyshards: {}", data.sig_request.hash_msg);
-    for task in data {
-        println!("task: {:?}", task);
+	//.or_else(common::SigRequest{hash_msg:1, test:1});
+	println!("data: {:?}", &data); //.sig_request.test);
+							   // println!("keyshards: {}", data.sig_request.hash_msg);
+	for task in data {
+		println!("task: {:?}", task);
 		// ToDo: JA hardcoding
-        let sign_cli = protocol::sign::SignCli{
-            //ToDo: handle the unwrap... how do I use Result<> as a return type in a HTTP-route?
-            address: surf::Url::parse("http://localhost:3001/").unwrap(),
-            // ToDo: DF: use the proper sigID and convert it to String
-            room: String::from("sig_id"), // String::from_utf8(sig_id.clone()).unwrap(),
-            index: 2,
-            // parties: sig_res.signing_nodes, // ToDo: DF is this correct??
-            parties: vec![2,1], // ToDo: DF is this correct??
-            data_to_sign: String::from("entropy rocks!!"),
-        };
+		let sign_cli = protocol::sign::SignCli {
+			//ToDo: handle the unwrap... how do I use Result<> as a return type in a HTTP-route?
+			address: surf::Url::parse("http://localhost:3001/").unwrap(),
+			// ToDo: DF: use the proper sigID and convert it to String
+			room: String::from("sig_id"), // String::from_utf8(sig_id.clone()).unwrap(),
+			index: 2,
+			// parties: sig_res.signing_nodes, // ToDo: DF is this correct??
+			parties: vec![2, 1], // ToDo: DF is this correct??
+			data_to_sign: String::from("entropy rocks!!"),
+		};
 		println!("Bob starts signing...");
 		// ToDo: JA handle error
-        let signature = protocol::sign::sign(sign_cli).await;
-        println!("signature: {:?}", signature);
-    }
+		let signature = protocol::sign::sign(sign_cli).await;
+		println!("signature: {:?}", signature);
+	}
 	//todo!();
-    // Ok(ProvideSignatureRes(SignRes { demo: 1 }.encode()))
+	// Ok(ProvideSignatureRes(SignRes { demo: 1 }.encode()))
 	// ToDO: JA fix
-    ProvideSignatureRes(SignRes { demo: 1 }.encode())
+	ProvideSignatureRes(SignRes { demo: 1 }.encode())
 }
-

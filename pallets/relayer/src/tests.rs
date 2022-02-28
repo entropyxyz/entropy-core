@@ -13,11 +13,10 @@ use sp_runtime::{
 #[test]
 fn it_preps_transaction() {
 	new_test_ext().execute_with(|| {
-		let sig_request = SigRequest {sig_id: 1u16, nonce: 1u32, signature: 1u32};
+		let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
 		assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request.clone()));
 
-
-		assert_eq!(Relayer::messages(0), vec![Message {sig_request}]);
+		assert_eq!(Relayer::messages(0), vec![Message { sig_request }]);
 	});
 }
 
@@ -65,7 +64,7 @@ fn moves_active_to_pending() {
 		let failures = vec![0u32, 3u32];
 		Failures::<Test>::insert(2, failures.clone());
 		Failures::<Test>::insert(5, failures.clone());
-		let sig_request = SigRequest {sig_id: 1u16, nonce: 1u32, signature: 1u32};
+		let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
 
 		assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request.clone()));
 		let message = Message { sig_request };
@@ -101,7 +100,7 @@ fn it_provides_free_txs_prep_tx() {
 		assert_ok!(Relayer::register(Origin::signed(1)));
 
 		let p = PrevalidateRelayer::<Test>::new();
-		let sig_request = SigRequest {sig_id: 1u16, nonce: 1u32, signature: 1u32};
+		let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
 		let c = Call::Relayer(RelayerCall::prep_transaction { sig_request });
 		let di = c.get_dispatch_info();
 		assert_eq!(di.pays_fee, Pays::No);
@@ -114,7 +113,7 @@ fn it_provides_free_txs_prep_tx() {
 fn it_fails_a_free_tx_prep_tx() {
 	new_test_ext().execute_with(|| {
 		let p = PrevalidateRelayer::<Test>::new();
-		let sig_request = SigRequest {sig_id: 1u16, nonce: 1u32, signature: 1u32};
+		let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
 		let c = Call::Relayer(RelayerCall::prep_transaction { sig_request });
 		let di = c.get_dispatch_info();
 		let r = p.validate(&42, &c, &di, 20);

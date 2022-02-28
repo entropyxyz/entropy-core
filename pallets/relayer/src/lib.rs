@@ -48,7 +48,6 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
-
 	// // type SigRequest = common::SigRequest;
 	// #[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
 	// pub struct Message {
@@ -118,24 +117,18 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
-		pub fn prep_transaction(
-			origin: OriginFor<T>,
-			sig_request: SigRequest,
-		) -> DispatchResult {
+		pub fn prep_transaction(origin: OriginFor<T>, sig_request: SigRequest) -> DispatchResult {
 			log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
 			let who = ensure_signed(origin)?;
 
 			let block_number = <frame_system::Pallet<T>>::block_number();
 			Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
-				request.push(Message {sig_request});
+				request.push(Message { sig_request });
 				Ok(())
 			})?;
 			// ToDo: get random signeing-nodes
 			//let sig_response = get_signers();
-			let sig_response = SigResponse {
-				signing_nodes: sp_std::vec![1],
-				com_manager: 1
-			};
+			let sig_response = SigResponse { signing_nodes: sp_std::vec![1], com_manager: 1 };
 
 			Self::deposit_event(Event::TransactionPropagated(who, sig_response));
 			Ok(())
@@ -143,12 +136,9 @@ pub mod pallet {
 
 		/// Register a account with the entropy-network
 		/// accounts are identified by the public group key of the user.
-		///
 		// ToDo: see https://github.com/Entropyxyz/entropy-core/issues/29
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
-		pub fn register(
-			origin: OriginFor<T>,
-		) -> DispatchResult {
+		pub fn register(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			// TODO proof
 			Registered::<T>::insert(&who, true);
@@ -298,7 +288,7 @@ pub mod pallet {
 					//TODO apply filter logic
 				}
 
-				if let Call::register { .. }  = local_call {
+				if let Call::register { .. } = local_call {
 					//TODO ensure proof
 				}
 

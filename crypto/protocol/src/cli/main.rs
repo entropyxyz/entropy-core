@@ -1,11 +1,10 @@
 //use std::path::PathBuf;
 #![allow(unused_imports)]
-use protocol::{gg20_sm_manager, keygen};
-use protocol::sign::SignCli;
-use protocol::sign;
-use protocol::gg20_sm_client;
-use protocol::{gg20_sm_client::SmClientCli, keygen::KeygenCli};
 use anyhow::{anyhow, Context, Result};
+use protocol::{
+	gg20_sm_client, gg20_sm_client::SmClientCli, gg20_sm_manager, keygen, keygen::KeygenCli, sign,
+	sign::SignCli,
+};
 use std::path::PathBuf;
 use structopt::StructOpt;
 use tokio::task;

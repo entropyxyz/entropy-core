@@ -36,8 +36,7 @@ pub fn start_com_manager(encoded_data: Vec<u8>) -> ComManagerRes {
 	ComManagerRes(UnencodedComManagerRes { demo: 1 }.encode());
 }
 // ///////////////////////////
-// /// 
-
+// ///
 
 use anyhow::Result;
 use std::{
@@ -214,4 +213,3 @@ impl<'r> FromRequest<'r> for LastEventId {
 pub struct IssuedUniqueIdx {
 	unique_idx: u16,
 }
-
