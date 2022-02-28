@@ -55,7 +55,7 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
     //let data = common::OCWMessage::decode(&mut encoded_data.as_ref());
 ////////////////////
 
-
+	// ToDo: JA rename
     type Thing = Vec<common::OCWMessage>;
     let data = Thing::decode(&mut encoded_data.as_ref());
     // println!("thing_dec: {:?}", thing_dec);
@@ -73,23 +73,25 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
     // println!("keyshards: {}", data.sig_request.hash_msg);
     for task in data {
         println!("task: {:?}", task);
-
+		// ToDo: JA hardcoding
         let sign_cli = protocol::sign::SignCli{
             //ToDo: handle the unwrap... how do I use Result<> as a return type in a HTTP-route?
             address: surf::Url::parse("http://localhost:3001/").unwrap(),
-            // ToDo: DF: use the proper sigID and convert it to String 
+            // ToDo: DF: use the proper sigID and convert it to String
             room: String::from("sig_id"), // String::from_utf8(sig_id.clone()).unwrap(),
             index: 2,
-            // parties: sig_res.signing_nodes, // ToDo: DF is this correct?? 
-            parties: vec![2,1], // ToDo: DF is this correct?? 
+            // parties: sig_res.signing_nodes, // ToDo: DF is this correct??
+            parties: vec![2,1], // ToDo: DF is this correct??
             data_to_sign: String::from("entropy rocks!!"),
         };
 		println!("Bob starts signing...");
+		// ToDo: JA handle error
         let signature = protocol::sign::sign(sign_cli).await;
         println!("signature: {:?}", signature);
     }
 	//todo!();
     // Ok(ProvideSignatureRes(SignRes { demo: 1 }.encode()))
+	// ToDO: JA fix
     ProvideSignatureRes(SignRes { demo: 1 }.encode())
 }
 

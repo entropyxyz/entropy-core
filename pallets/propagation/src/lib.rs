@@ -98,6 +98,7 @@ pub mod pallet {
 
 			log::warn!("propagation::post::messages: {:?}", &messages);
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
+			// TODO: JA finalize what needs to be sent in this
 			let req_body = messages.encode();
 			log::warn!("propagation::post::req_body: {:?}", &req_body);
 

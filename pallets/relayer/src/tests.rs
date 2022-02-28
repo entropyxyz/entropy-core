@@ -1,5 +1,5 @@
 use crate as pallet_relayer;
-use crate::{mock::*, Error, Failures, Message, PrevalidateRelayer, Responsibility};
+use crate::{mock::*, Error, Failures, Message, PrevalidateRelayer, Responsibility, SigRequest};
 use frame_support::{
 	assert_noop, assert_ok,
 	weights::{GetDispatchInfo, Pays},
@@ -13,11 +13,11 @@ use sp_runtime::{
 #[test]
 fn it_preps_transaction() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(Relayer::prep_transaction(Origin::signed(1), 42, 42));
+		let sig_request = SigRequest {sig_id: 1u16, nonce: 1u32, signature: 1u32};
+		assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request.clone()));
 
-		let message = Message { data_1: 42, data_2: 42 };
 
-		assert_eq!(Relayer::messages(0), vec![message]);
+		assert_eq!(Relayer::messages(0), vec![Message {sig_request}]);
 	});
 }
 
@@ -65,9 +65,10 @@ fn moves_active_to_pending() {
 		let failures = vec![0u32, 3u32];
 		Failures::<Test>::insert(2, failures.clone());
 		Failures::<Test>::insert(5, failures.clone());
+		let sig_request = SigRequest {sig_id: 1u16, nonce: 1u32, signature: 1u32};
 
-		assert_ok!(Relayer::prep_transaction(Origin::signed(1), 42, 42));
-		let message = Message { data_1: 42, data_2: 42 };
+		assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request.clone()));
+		let message = Message { sig_request };
 		assert_eq!(Relayer::messages(3), vec![message.clone()]);
 
 		// prunes old failure remove messages put into pending
@@ -100,7 +101,8 @@ fn it_provides_free_txs_prep_tx() {
 		assert_ok!(Relayer::register(Origin::signed(1)));
 
 		let p = PrevalidateRelayer::<Test>::new();
-		let c = Call::Relayer(RelayerCall::prep_transaction { data_1: 42, data_2: 42 });
+		let sig_request = SigRequest {sig_id: 1u16, nonce: 1u32, signature: 1u32};
+		let c = Call::Relayer(RelayerCall::prep_transaction { sig_request });
 		let di = c.get_dispatch_info();
 		assert_eq!(di.pays_fee, Pays::No);
 		let r = p.validate(&1, &c, &di, 20);
@@ -112,7 +114,8 @@ fn it_provides_free_txs_prep_tx() {
 fn it_fails_a_free_tx_prep_tx() {
 	new_test_ext().execute_with(|| {
 		let p = PrevalidateRelayer::<Test>::new();
-		let c = Call::Relayer(RelayerCall::prep_transaction { data_1: 43, data_2: 42 });
+		let sig_request = SigRequest {sig_id: 1u16, nonce: 1u32, signature: 1u32};
+		let c = Call::Relayer(RelayerCall::prep_transaction { sig_request });
 		let di = c.get_dispatch_info();
 		let r = p.validate(&42, &c, &di, 20);
 		assert!(r.is_err());

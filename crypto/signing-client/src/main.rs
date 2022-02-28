@@ -15,9 +15,9 @@ use com_manager::{subscribe, issue_idx, broadcast, Db};
 #[launch]
 fn rocket() -> _ {
 	rocket::build().mount("/", routes![
-		store_keyshare, 
-		// for testing, we let node1 not provede a share 
-		provide_share, 
+		store_keyshare,
+		// for testing, we let node1 not provede a share
+		provide_share,
 		start_com_manager,
 		subscribe, issue_idx, broadcast])
 		.manage(Db::empty())

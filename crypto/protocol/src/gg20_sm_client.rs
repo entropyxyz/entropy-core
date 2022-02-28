@@ -46,6 +46,7 @@ pub struct SmClient {
 
 impl SmClient {
 	pub fn new(address: surf::Url, room_id: &str) -> Result<Self> {
+		// ToDo: JA - review proper timeout
 		let config = surf::Config::new()
 			.set_base_url(address.join(&format!("rooms/{}/", room_id))?)
 			.set_timeout(None);

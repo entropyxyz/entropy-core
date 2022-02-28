@@ -55,23 +55,15 @@ pub mod pallet {
 	// 	sig_request: common::SigRequest,
 	// }
 
-	type Message = common::OCWMessage;
 	#[pallet::storage]
 	#[pallet::getter(fn messages)]
 	pub type Messages<T: Config> =
-		// StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<OCWMessage>, ValueQuery>;
 		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn pending)]
 	pub type Pending<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
-
-	type RegistrationMessage = common::RegistrationMessage;
-	#[pallet::storage]
-	#[pallet::getter(fn registrationmessages)]
-	pub type RegistrationMessages<T: Config> =
-		StorageValue<_, Vec<RegistrationMessage>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn failures)]
@@ -92,9 +84,11 @@ pub mod pallet {
 	#[pallet::getter(fn registered)]
 	pub type Registered<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
-	
-	type SigResponse = common::SigResponse;
-	type RegResponse = common::RegistrationResponse;
+
+	pub type SigResponse = common::SigResponse;
+	pub type RegResponse = common::RegistrationResponse;
+	pub type SigRequest = common::SigRequest;
+	pub type Message = common::OCWMessage;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -104,7 +98,7 @@ pub mod pallet {
 		/// A transaction has been propagated to the network. [who]
 		TransactionPropagated(T::AccountId, SigResponse),
 		/// An account has been registered. [who]
-		AccountRegistered(T::AccountId, RegResponse),
+		AccountRegistered(T::AccountId),
 		/// An account has been registered. [who, block_number, failures]
 		ConfirmedDone(T::AccountId, T::BlockNumber, Vec<u32>),
 	}
@@ -126,7 +120,7 @@ pub mod pallet {
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
 		pub fn prep_transaction(
 			origin: OriginFor<T>,
-			sig_request: common::SigRequest,
+			sig_request: SigRequest,
 		) -> DispatchResult {
 			log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
 			let who = ensure_signed(origin)?;
@@ -135,44 +129,30 @@ pub mod pallet {
 			Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
 				request.push(Message {sig_request});
 				Ok(())
-			})?;			
+			})?;
 			// ToDo: get random signeing-nodes
-			//let sig_response = get_signers(); 
+			//let sig_response = get_signers();
 			let sig_response = SigResponse {
-				signing_nodes: sp_std::vec![1], 
+				signing_nodes: sp_std::vec![1],
 				com_manager: 1
 			};
-			
+
 			Self::deposit_event(Event::TransactionPropagated(who, sig_response));
 			Ok(())
 		}
 
 		/// Register a account with the entropy-network
 		/// accounts are identified by the public group key of the user.
-		/// 
-		// ToDo: see https://github.com/Entropyxyz/entropy-core/issues/29		
+		///
+		// ToDo: see https://github.com/Entropyxyz/entropy-core/issues/29
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
 		pub fn register(
 			origin: OriginFor<T>,
-			registration_msg: RegistrationMessage,
 		) -> DispatchResult {
-			// delete the following line ( log::info!(...) ) eventually
-			log::warn!("relayer::register::registration_msg: {:?}", registration_msg);
 			let who = ensure_signed(origin)?;
-
-			RegistrationMessages::<T>::try_mutate(|dummy| -> Result<_, DispatchError> {
-				dummy.push(registration_msg);
-				Ok(())
-			})?;
-
-			let reg_response = RegResponse {
-				signing_nodes: 3002,
-			};
-
 			// TODO proof
 			Registered::<T>::insert(&who, true);
-			log::warn!("relayer::register: sent reg_response:{:?}", &reg_response);
-			Self::deposit_event(Event::AccountRegistered(who, reg_response));
+			Self::deposit_event(Event::AccountRegistered(who));
 
 			Ok(())
 		}

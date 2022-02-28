@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 use tokio::task;
 
+// ToDo: JA remove hard coding
 /// Generate `SHARES` of `threshold` key shares
 pub const N_PARTIES: u16 = 6;
 pub const THRESHOLD: u16 = 6;
