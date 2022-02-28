@@ -31,7 +31,7 @@ struct SignRes {
 #[derive(Responder)]
 #[response(status = 200, content_type = "application/x-parity-scale-codec")]
 pub struct ProvideSignatureRes(Vec<u8>);
-
+// ToDo: JA rename
 type thing = Vec<common::OCWMessage>;
 
 //ToDo: receive keyshare and store locally
