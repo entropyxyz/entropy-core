@@ -21,4 +21,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: bash .github/workflows/scripts/install_dependencies.sh
-      - run: cd crypto/etp-lindell17 && cargo clippy
+      - run: cd crypto/protocol && cargo clippy
+  crypto-signing-client:
+    name: Signing
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: bash .github/workflows/scripts/install_dependencies.sh
+      - run: cd crypto/signing-client && cargo clippy
+  crypto-common:
+    name: Common
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: bash .github/workflows/scripts/install_dependencies.sh
+      - run: cd crypto/common && cargo clippy

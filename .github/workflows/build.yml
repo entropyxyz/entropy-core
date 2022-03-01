@@ -28,4 +28,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: bash .github/workflows/scripts/install_dependencies.sh
-      - run: cd crypto/etp-lindell17 && cargo check --release
+      - run: cd crypto/protocol && cargo check --release
+  crypto-signing-client:
+    name: Signing
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: bash .github/workflows/scripts/install_dependencies.sh
+      - run: cd crypto/signing-client && cargo check --release
+  crypto-common:
+    name: Common
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: bash .github/workflows/scripts/install_dependencies.sh
+      - run: cd crypto/common && cargo check --release
