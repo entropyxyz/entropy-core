@@ -64,6 +64,8 @@ version = '4.0.0-dev'
 sp-std = { package = "sp-std", git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-authorship = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 log = { version = "0.4.0", default-features = false }
+# protocol = { path = "../../crypto/protocol", default-features = false }
+common = { path = "../../crypto/common", default-features = false }
 
 [features]
 default = ['std']

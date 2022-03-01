@@ -1,8 +1,8 @@
 use crate::mock::*;
 use frame_support::assert_ok;
-use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
-// use sp_keystore::{testing::KeyStore, KeystoreExt, SyncCryptoStore};
+use pallet_relayer::SigRequest;
 use parking_lot::RwLock;
+use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
 use std::sync::Arc;
 
@@ -11,25 +11,21 @@ fn knows_how_to_mock_several_http_calls() {
 	let (mut t, _) = offchain_worker_env(|state| {
 		state.expect_request(testing::PendingRequest {
 			method: "POST".into(),
-			uri: "http://localhost:3001".into(),
+			uri: "http://localhost:3001/sign".into(),
 			headers: [("Content-Type".into(), "application/x-parity-scale-codec".into())].to_vec(),
 			sent: true,
 			response: Some([].to_vec()),
-			body: [11, 0, 0, 0, 0, 0, 0, 0, 0].to_vec(),
+			body: [0].to_vec(),
 			..Default::default()
 		});
 
 		state.expect_request(testing::PendingRequest {
 			method: "POST".into(),
-			uri: "http://localhost:3001".into(),
+			uri: "http://localhost:3001/sign".into(),
 			headers: [("Content-Type".into(), "application/x-parity-scale-codec".into())].to_vec(),
 			sent: true,
 			response: Some([].to_vec()),
-			body: [
-				11, 0, 0, 0, 0, 0, 0, 0, 4, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-			]
-			.to_vec(),
+			body: [4, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0].to_vec(),
 			..Default::default()
 		});
 	});
@@ -38,7 +34,9 @@ fn knows_how_to_mock_several_http_calls() {
 		let data1 = Propagation::post(2).unwrap();
 
 		System::set_block_number(2);
-		assert_ok!(Relayer::prep_transaction(Origin::signed(1), 42, 42));
+		let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
+
+		assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request));
 		let data2 = Propagation::post(3).unwrap();
 
 		assert_eq!(data1, ());

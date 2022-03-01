@@ -48,11 +48,11 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
-	#[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
-	pub struct Message {
-		pub data_1: u128,
-		pub data_2: u128,
-	}
+	// // type SigRequest = common::SigRequest;
+	// #[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
+	// pub struct Message {
+	// 	sig_request: common::SigRequest,
+	// }
 
 	#[pallet::storage]
 	#[pallet::getter(fn messages)]
@@ -83,13 +83,19 @@ pub mod pallet {
 	#[pallet::getter(fn registered)]
 	pub type Registered<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
+
+	pub type SigResponse = common::SigResponse;
+	pub type RegResponse = common::RegistrationResponse;
+	pub type SigRequest = common::SigRequest;
+	pub type Message = common::OCWMessage;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// A transaction has been propagated to the network. [who, block_number]
-		TransactionPropagated(T::AccountId, T::BlockNumber),
+		/// A transaction has been propagated to the network. [who, signature_response]
+		TransactionPropagated(T::AccountId, SigResponse),
 		/// An account has been registered. [who]
 		AccountRegistered(T::AccountId),
 		/// An account has been registered. [who, block_number, failures]
@@ -111,30 +117,33 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
-		pub fn prep_transaction(
-			origin: OriginFor<T>,
-			data_1: u128,
-			data_2: u128,
-		) -> DispatchResult {
+		pub fn prep_transaction(origin: OriginFor<T>, sig_request: SigRequest) -> DispatchResult {
+			log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
 			let who = ensure_signed(origin)?;
 
-			let new_message = Message { data_1, data_2 };
 			let block_number = <frame_system::Pallet<T>>::block_number();
-			Messages::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-				messages.push(new_message);
+			Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
+				request.push(Message { sig_request });
 				Ok(())
 			})?;
-			let signing_block = block_number.saturating_add(1u32.into());
-			Self::deposit_event(Event::TransactionPropagated(who, signing_block));
+			// ToDo: get random signeing-nodes
+			//let sig_response = get_signers();
+			let sig_response = SigResponse { signing_nodes: sp_std::vec![1], com_manager: 1 };
+
+			Self::deposit_event(Event::TransactionPropagated(who, sig_response));
 			Ok(())
 		}
 
+		/// Register a account with the entropy-network
+		/// accounts are identified by the public group key of the user.
+		// ToDo: see https://github.com/Entropyxyz/entropy-core/issues/29
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
 		pub fn register(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			// TODO proof
 			Registered::<T>::insert(&who, true);
 			Self::deposit_event(Event::AccountRegistered(who));
+
 			Ok(())
 		}
 
@@ -279,7 +288,7 @@ pub mod pallet {
 					//TODO apply filter logic
 				}
 
-				if let Call::register {} = local_call {
+				if let Call::register { .. } = local_call {
 					//TODO ensure proof
 				}
 
