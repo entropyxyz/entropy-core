@@ -31,46 +31,23 @@ struct SignRes {
 #[derive(Responder)]
 #[response(status = 200, content_type = "application/x-parity-scale-codec")]
 pub struct ProvideSignatureRes(Vec<u8>);
-// ToDo: JA rename
-type thing = Vec<common::OCWMessage>;
 
 //ToDo: receive keyshare and store locally
 #[post("/sign", format = "application/x-parity-scale-codec", data = "<encoded_data>")]
 pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 	println!("provide keyshare!");
-
-	//let _data = ProvideSignatureReq::decode(&mut encoded_data.as_ref()).ok().unwrap();
-	// let _data = entropy::runtime_types::pallet_relayer::pallet::Message::decode(&mut
-	// encoded_data.as_ref()).ok().unwrap();    let data =
-	// entropy::runtime_types::pallet_relayer::pallet::Message::decode(&mut encoded_data.as_ref())
-	//.ok().unwrap();
-	// .or_else(entropy::runtime_types::pallet_relayer::pallet::Message {
-	// 	// sig_request: common::SigRequest{hash_msg:1, test:1}
-	// 	sig_request: SigRequest{hash_msg:1, test:1}
-	// } );
-
 	println!("encoded_data {:?}", encoded_data);
-
-	//let data = common::OCWMessage::decode(&mut encoded_data.as_ref());
-	////////////////////
 
 	// ToDo: JA rename
 	type Thing = Vec<common::OCWMessage>;
 	let data = Thing::decode(&mut encoded_data.as_ref());
-	// println!("thing_dec: {:?}", thing_dec);
-	////////////////////
-	//let data = thing::decode(&mut encoded_data.as_ref());
 	let data = match data {
 		Ok(x) => x,
 		Err(err) => panic!("{}", err),
 	};
-	//let data = entropy::runtime_types::pallet_relayer::pallet::Message::decode(&mut
-	// encoded_data.as_ref())
-	//.or_else(common::OCWMessage{sig_request:SigRequest{ hash_msg:1, test:2} });
 
-	//.or_else(common::SigRequest{hash_msg:1, test:1});
-	println!("data: {:?}", &data); //.sig_request.test);
-							   // println!("keyshards: {}", data.sig_request.hash_msg);
+	println!("data: {:?}", &data); 
+							   
 	for task in data {
 		println!("task: {:?}", task);
 		// ToDo: JA hardcoding
