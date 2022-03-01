@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 /// common structs etc, shared among the substrate-blockchain-code and the crypto-code
-///
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 

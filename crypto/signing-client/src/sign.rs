@@ -46,8 +46,8 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 		Err(err) => panic!("{}", err),
 	};
 
-	println!("data: {:?}", &data); 
-							   
+	println!("data: {:?}", &data);
+
 	for task in data {
 		println!("task: {:?}", task);
 		// ToDo: JA hardcoding

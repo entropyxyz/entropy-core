@@ -7,7 +7,6 @@
 /// I think this needs to be separate because this is the only conde that we can include in the
 /// substrate code. Client code includes extrinsic calls and those can not be included in nodes due
 /// to wasm.
-///
 // use codec::{Decode, Encode};
 // use scale_info::TypeInfo;
 mod common;
