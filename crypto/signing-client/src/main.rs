@@ -1,4 +1,4 @@
-use crate::{com_manager::start_com_manager, sign::provide_share, store_share::store_keyshare};
+use crate::{sign::provide_share, store_share::store_keyshare};
 use rocket::routes;
 
 #[macro_use]
@@ -20,7 +20,6 @@ fn rocket() -> _ {
 				store_keyshare,
 				// for testing, we let node1 not provede a share
 				provide_share,
-				start_com_manager,
 				subscribe,
 				issue_idx,
 				broadcast
