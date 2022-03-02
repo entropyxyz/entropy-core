@@ -4,6 +4,9 @@ use rocket::routes;
 #[macro_use]
 extern crate rocket;
 
+#[cfg(test)]
+mod tests;
+
 mod com_manager;
 mod sign;
 mod store_share;
