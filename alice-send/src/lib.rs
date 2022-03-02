@@ -3,7 +3,7 @@ use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::key
 use reqwest;
 
 #[cfg(test)]
-mod test;
+mod tests;
 
 pub async fn send(url: String, path: String) -> Result<reqwest::Response, Box<dyn std::error::Error>> {
 	println!("sending keyshare...");
