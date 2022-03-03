@@ -35,7 +35,6 @@ pub struct ProvideSignatureRes(Vec<u8>);
 //ToDo: receive keyshare and store locally
 #[post("/sign", format = "application/x-parity-scale-codec", data = "<encoded_data>")]
 pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
-	println!("provide keyshare!");
 	println!("encoded_data {:?}", encoded_data);
 
 	// ToDo: JA rename
@@ -43,7 +42,7 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 	let data = Thing::decode(&mut encoded_data.as_ref());
 	let data = match data {
 		Ok(x) => x,
-		Err(err) => panic!("{}", err),
+		Err(err) => panic!("failed to decode input {}", err),
 	};
 
 	println!("data: {:?}", &data);
