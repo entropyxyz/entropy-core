@@ -1,5 +1,4 @@
 use super::rocket;
-use crate as main;
 use curv::elliptic::curves::secp256_k1::Secp256k1;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
 use rocket::{
