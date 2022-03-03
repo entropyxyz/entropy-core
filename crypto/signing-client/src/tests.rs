@@ -4,7 +4,6 @@ use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::key
 use rocket::{
 	http::{ContentType, Status},
 	local::asynchronous::Client,
-	tokio::io::AsyncReadExt,
 };
 use std::{env, fs::remove_file};
 
