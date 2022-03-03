@@ -15,6 +15,13 @@ jobs:
       - uses: actions/checkout@v2
       - run: bash .github/workflows/scripts/install_dependencies.sh
       - run: SKIP_WASM_BUILD=1 cargo check --release
+  test:
+    name: Test
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: bash .github/workflows/scripts/install_dependencies.sh
+      - run: pushd node && cargo test
   benchmark:
     name: Benchmark
     runs-on: ubuntu-20.04
