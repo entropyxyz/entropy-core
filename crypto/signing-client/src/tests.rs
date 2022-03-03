@@ -4,9 +4,9 @@ use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::key
 use rocket::{
 	http::{ContentType, Status},
 	local::asynchronous::Client,
+	tokio::io::AsyncReadExt,
 };
 use std::{env, fs::remove_file};
-use rocket::tokio::io::AsyncReadExt;
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
 	Client::tracked(super::rocket()).await.expect("valid `Rocket`")
@@ -68,7 +68,10 @@ async fn test_store_share_fail_wrong_data() {
 
 #[rocket::async_test]
 async fn provide_share() {
-	let encoded_data = vec![4, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+	let encoded_data = vec![
+		4, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0,
+	];
 
 	// Construct a client to use for dispatching requests.
 	let client = setup_client().await;
@@ -79,11 +82,9 @@ async fn provide_share() {
 		.body(&encoded_data)
 		.dispatch()
 		.await;
-		assert_eq!(response.status(), Status::Ok);
-		assert_eq!(response.into_string().await, Some("\u{1}".into()));
-	}
-
-
+	assert_eq!(response.status(), Status::Ok);
+	assert_eq!(response.into_string().await, Some("\u{1}".into()));
+}
 
 #[rocket::async_test]
 async fn provide_share_fail_wrong_data() {
@@ -104,5 +105,3 @@ async fn provide_share_fail_wrong_data() {
 		.await;
 	assert_eq!(response.status(), Status::InternalServerError);
 }
-
-
