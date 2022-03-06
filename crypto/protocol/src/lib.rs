@@ -4,3 +4,5 @@ pub mod gg20_sm_manager;
 pub mod keygen;
 pub mod sign;
 pub mod user;
+
+pub mod dfkeygen;
