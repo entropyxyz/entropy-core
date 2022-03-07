@@ -2,7 +2,7 @@ use httpmock::prelude::*;
 use crate::send;
 
 #[tokio::test]
-async fn test_user_sending_keyshare() -> Result<(), Box<dyn std::error::Error>>{
+async fn test_user_sending_keyshare() {
 	// create new server and define this server's methods and responses
 	let server1 = MockServer::start();
 	let receiving_mock = server1.mock(|when, then| {
@@ -14,7 +14,7 @@ async fn test_user_sending_keyshare() -> Result<(), Box<dyn std::error::Error>>{
 			.body("stuff");
 	});
 
-	let response = send(server1.url("/store_keyshare"), String::from("./local-share2.json")).await?;
+	let response = send(server1.url("/store_keyshare"), String::from("./local-share2.json")).await.unwrap();
 	println!("response: {:?}",&response);
 
 	// the response should look like this: 
@@ -26,5 +26,5 @@ async fn test_user_sending_keyshare() -> Result<(), Box<dyn std::error::Error>>{
 	// assert that the response is correct
 	// ToDo: additional checks
 	assert_eq!(response.status(),200);
-	Ok(())
+	assert_eq!( response.url().scheme(), "http");
 }
