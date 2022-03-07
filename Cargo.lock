@@ -7002,6 +7002,7 @@ dependencies = [
  "structopt",
  "subxt",
  "surf",
+ "thiserror",
  "tokio 1.16.1",
 ]
 
