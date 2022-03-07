@@ -6,7 +6,7 @@
 // use curv::elliptic::curves::{secp256_k1::Secp256k1, Curve, Point, Scalar};
 
 
-// pub fn dfkeygen() {
+// pub fn centralized_keygen() {
 
 // 	// define parameters
 // 	let t = 1u16;

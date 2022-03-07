@@ -16,48 +16,51 @@ pub enum KeygenError {
 	/// SecretKey equals Zero
 	#[error("SecretKey equals Zero")]
 	SecretKeyEqualsZero,
+	#[error("Invalid parameter n: {n:?}")]
+	InvalidParameterNumParties{n: usize},
 }
 
-pub fn dfkeygen() -> Result<()> {
+pub fn centralized_keygen() -> Result<()> {
 
 	// define parameters
 	let t = 1u16;
-	let n = 5u16; 
-	// trying_secret_sharing(t,n);
+	let n = 1u16; 
+	// _secret_sharing_proof_of_concept(t,n);
 
 	let master_key = Scalar::<Secp256k1>::random();
+	// create n random Scalars such that sum(Scalars) = master_key
 	let u = split_masterkey_into_summands(&master_key, n.into())?;
 	assert_eq!(master_key, u.iter().sum());
 	println!("assertion ok");
-	println!("master_key: {:?}", &master_key);
-	let x: Scalar::<Secp256k1> = u.iter().sum();
-	println!(" u: {:?}", x);
-	assert_eq!(master_key, x);
 
-	// u.iter().sum::Scalar::<Secp256k1>()
 	Ok(())
 }
 
 /// takes a scalar master_key and returns a Vec<Scalar> vec such that 
 /// vec.iter().sum() == master_key
 pub fn split_masterkey_into_summands(master_key: &Scalar::<Secp256k1>, n: usize) -> Result<Vec<Scalar::<Secp256k1>>, KeygenError> {
+	if n < 1 {
+		return Err(KeygenError::InvalidParameterNumParties{n});
+	}
 	if master_key == &Scalar::<Secp256k1>::zero() {
 		return Err(KeygenError::SecretKeyEqualsZero);
 	}
 	let mut u: Vec<Scalar::<Secp256k1>> = Vec::with_capacity(n);
 
 	let mut u_0 = master_key.clone();
+	// create n-1 random Scalar::<Secp256k1>
+	// the n-th is equal to master_key.minus(sum_of_n-1_Scalars)
 	for i in 1..n {
 		let tmp = Scalar::<Secp256k1>::random();
 		if tmp == Scalar::<Secp256k1>::zero() {
-			// start all over again
+			// Invalid value. Start all over again
 			return split_masterkey_into_summands(master_key, n);
 		}
 		u_0 = u_0 - &tmp;
 		u.push(tmp);
 	}
 	if u_0 == Scalar::<Secp256k1>::zero() {
-		// start all over again
+			// Invalid value. Start all over again
 		return split_masterkey_into_summands(master_key, n);
 	} 
 	u.push(u_0);
@@ -69,7 +72,8 @@ fn sum_vec_scalar(v:Vec<Scalar::<Secp256k1>>) -> Scalar::<Secp256k1> {
 	v.iter().sum()
 }
 
-fn trying_secret_sharing(t:u16,n:u16) {
+// this fn can be deleted later
+fn _secret_sharing_proof_of_concept(t:u16,n:u16) {
 	// // Proof of Concept: create one key!
 	// // /////////////////////////////////
 	// // create key; this creates paillier-keys, etc. 
