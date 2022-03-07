@@ -9,14 +9,14 @@ use anyhow::{anyhow, Result};
 // #[cfg(test)]
 // mod tests;
 
-// use thiserror::Error;
+use thiserror::Error;
 
-// #[derive(Error, Debug)]
-// pub enum KeygenError {
-// 	/// SecretKey equals Zero
-// 	#[error("SecretKey equals Zero")]
-// 	SecretKeyEqualsZero,
-// }
+#[derive(Error, Debug, PartialEq)]
+pub enum KeygenError {
+	/// SecretKey equals Zero
+	#[error("SecretKey equals Zero")]
+	SecretKeyEqualsZero,
+}
 
 pub fn dfkeygen() -> Result<()> {
 
@@ -40,29 +40,26 @@ pub fn dfkeygen() -> Result<()> {
 
 /// takes a scalar master_key and returns a Vec<Scalar> vec such that 
 /// vec.iter().sum() == master_key
-// pub fn split_masterkey_into_summands(master_key: &Scalar::<Secp256k1>, n: usize) -> Result<Vec<Scalar::<Secp256k1>>, KeygenError> {
-pub fn split_masterkey_into_summands(master_key: &Scalar::<Secp256k1>, n: usize) -> Result<Vec<Scalar::<Secp256k1>>> {
+pub fn split_masterkey_into_summands(master_key: &Scalar::<Secp256k1>, n: usize) -> Result<Vec<Scalar::<Secp256k1>>, KeygenError> {
 	if master_key == &Scalar::<Secp256k1>::zero() {
-		return Err(anyhow!("master_key is zero"));
+		return Err(KeygenError::SecretKeyEqualsZero);
 	}
 	let mut u: Vec<Scalar::<Secp256k1>> = Vec::with_capacity(n);
 
 	let mut u_0 = master_key.clone();
 	for i in 1..n {
 		let tmp = Scalar::<Secp256k1>::random();
-		if tmp == Scalar::<Secp256k1>::zero() { //zero
+		if tmp == Scalar::<Secp256k1>::zero() {
 			// start all over again
 			return split_masterkey_into_summands(master_key, n);
 		}
 		u_0 = u_0 - &tmp;
-		// u[i] = tmp;
 		u.push(tmp);
 	}
-	if u_0 == Scalar::<Secp256k1>::zero() {  //zero
+	if u_0 == Scalar::<Secp256k1>::zero() {
 		// start all over again
 		return split_masterkey_into_summands(master_key, n);
 	} 
-	// u[0] = u_0;
 	u.push(u_0);
 	Ok(u)
 }
