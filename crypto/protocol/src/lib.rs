@@ -5,5 +5,4 @@ pub mod keygen;
 pub mod sign;
 pub mod user;
 
-// pub mod dfkeygen;
 pub mod centralized_keygen;
