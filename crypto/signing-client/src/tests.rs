@@ -36,6 +36,7 @@ async fn test_store_share() {
 		.await;
 
 	assert_eq!(response.status(), Status::Ok);
+	assert_eq!(response.into_string().await, None);
 
 	let new_path = get_path("/local-share2.json");
 
@@ -45,7 +46,7 @@ async fn test_store_share() {
 }
 
 #[rocket::async_test]
-async fn test_store_share_fail() {
+async fn test_store_share_fail_wrong_data() {
 	// Construct a client to use for dispatching requests.
 	let client = setup_client().await;
 
@@ -62,4 +63,44 @@ async fn test_store_share_fail() {
 		.dispatch()
 		.await;
 	assert_eq!(response.status(), Status::UnprocessableEntity);
+}
+
+#[rocket::async_test]
+async fn provide_share() {
+	let encoded_data = vec![
+		4, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0,
+	];
+
+	// Construct a client to use for dispatching requests.
+	let client = setup_client().await;
+
+	let response = client
+		.post("/sign")
+		.header(ContentType::new("application", "x-parity-scale-codec"))
+		.body(&encoded_data)
+		.dispatch()
+		.await;
+	assert_eq!(response.status(), Status::Ok);
+	assert_eq!(response.into_string().await, Some("\u{1}".into()));
+}
+
+#[rocket::async_test]
+async fn provide_share_fail_wrong_data() {
+	// Construct a client to use for dispatching requests.
+	let client = setup_client().await;
+
+	let response = client
+		.post("/sign")
+		.header(ContentType::new("application", "x-parity-scale-codec"))
+		.body(
+			r##"{
+		"name": "John Doe",
+		"email": "j.doe@m.com",
+		"password": "123456"
+	}"##,
+		)
+		.dispatch()
+		.await;
+	assert_eq!(response.status(), Status::InternalServerError);
 }
