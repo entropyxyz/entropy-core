@@ -1,10 +1,12 @@
-use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::Keygen;
+use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::{Keygen, LocalKey};
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::party_i::{
-    KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys,
+    generate_h1_h2_N_tilde, KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys,
 };
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::{SecretShares, VerifiableSS};
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Curve, Point, Scalar};
 use anyhow::{anyhow, Result};
+use paillier::{DecryptionKey, EncryptionKey, KeyGeneration, Paillier};
+use zk_paillier::zkproofs::DLogStatement;
 
 // #[cfg(test)]
 // mod tests;
@@ -39,8 +41,65 @@ pub fn centralized_keygen() -> Result<()> {
 	for (i,ele) in x.iter().enumerate() {
 		println!("x: {} {:?}", i, ele);
 	}
+
+	let mut localkeys: Vec<LocalKey<Secp256k1>> = Vec::with_capacity(n.into());
+	let mut paillier_key_vec: Vec<EncryptionKey> = Vec::with_capacity(n.into());
+	let mut paillier_dk_vec: Vec<DecryptionKey> = Vec::with_capacity(n.into());
+	let mut h1_h2_n_tilde_vec: Vec<DLogStatement> = Vec::with_capacity(n.into());
+	// for (i,lk) in localkeys.iter_mut().enumerate() {
+	for i in 0..n {
+
+		//ToDo: use safe primes in production!
+		// this takes about 20*n seconds
+        // let (ek, dk) = Paillier::keypair_safe_primes().keys();
+        let (ek, dk) = Paillier::keypair().keys();
+		println!("{:?} {:?} {:?}", i, &ek, &dk);
+
+		paillier_key_vec.push(ek);
+		paillier_dk_vec.push(dk);
+//		lk.keys_linear
+	}
+
+	
+
+	for i in 0usize..usize::from(n) {
+		let paillier_dk: paillier::DecryptionKey = paillier_dk_vec[i].clone();
+		
+		let paillier_key_vec = paillier_key_vec.clone();
+		let y_sum_s = Point::generator() * &master_key;
+
+		h1_h2_n_tilde_vec.push(get_d_log_statement());
+		// localkeys.push(LocalKey{
+		// 	paillier_dk: paillier_dk_vec[i],
+		// 	pk_vec, 
+		// 	keys_linear: xxx,
+		// 	paillier_key_vec, 
+		// 	y_sum_s: Point::generator() * &master_key,
+		// 	h1_h2_n_tilde_vec: xxx,
+		// 	vss_scheme: xxx, 
+		// 	i,
+		// 	t,
+		// 	n,
+		// });
+	}	
+
 	Ok(())
 }
+
+fn get_d_log_statement() -> DLogStatement {
+	let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
+	// let dlog_statement_base_h1 = DLogStatement {
+	// 	N: self.N_tilde.clone(),
+	// 	g: self.h1.clone(),
+	// 	ni: self.h2.clone(),
+	// };
+	DLogStatement {
+		N: N_tilde,
+		g: h1,
+		ni: h2,
+	}
+}
+
 
 // struct Summands {
 // 	Vec<Scalar::<Secp256k1>>
