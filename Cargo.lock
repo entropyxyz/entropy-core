@@ -6990,6 +6990,7 @@ dependencies = [
  "common",
  "curv-kzen",
  "futures 0.3.19",
+ "kzen-paillier",
  "multi-party-ecdsa",
  "parity-scale-codec",
  "parity-scale-codec-derive",
@@ -7004,6 +7005,7 @@ dependencies = [
  "surf",
  "thiserror",
  "tokio 1.16.1",
+ "zk-paillier",
 ]
 
 [[package]]

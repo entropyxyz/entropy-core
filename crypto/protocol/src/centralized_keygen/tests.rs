@@ -34,3 +34,20 @@ fn test_split_masterkey_into_summands_taking_zero() {
 	let expected = Err(KeygenError::SecretKeyEqualsZero);
 	assert_eq!(expected, result);
 }
+
+// delete this later during cleanup
+#[test]
+fn dummy() {
+	let y_vec = vec![1,20,300,4000];
+	let (head, tail) = y_vec.split_at(1);
+	let y = tail.iter().fold(head[0].clone(), |acc, x| acc + x);
+	println!("y_vec {:?}", y_vec);
+	println!("y     {:?}", y);
+}
+
+#[test]
+fn test_verify_local_keys_correctness() {
+	// ToDo: 
+	// check if g*masterkey = y = product(y_i) = g*(sum(ui)) = sum(y_vec) = sum(y_i)  
+
+}
