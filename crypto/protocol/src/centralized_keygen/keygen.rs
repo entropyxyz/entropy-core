@@ -42,7 +42,7 @@ pub fn centralized_keygen() -> Result<()> {
 	println!("assertion ok");
 
 	// vss-share each summand and add the results element-wise
-	let x = share_summands_and_add_elementwise(u,t.into(), n.into())?;
+	let (vss_vec, x) = share_summands_and_add_elementwise(u,t.into(), n.into())?;
 	for (i,ele) in x.iter().enumerate() {
 		println!("x: {} {:?}", i, ele);
 	}
@@ -72,6 +72,9 @@ pub fn centralized_keygen() -> Result<()> {
 		// pk_vec.push(dlog_proof.pk);
 		pk_vec.push(Point::generator() * &x[i]);
 
+		h1_h2_n_tilde_vec.push(get_d_log_statement());
+
+
 	}
 
 	
@@ -80,26 +83,30 @@ pub fn centralized_keygen() -> Result<()> {
 	for i in 0usize..usize::from(n) {
 		let paillier_dk: paillier::DecryptionKey = paillier_dk_vec[i].clone();
 		
-		let pk_vec = pk_vec.clone();
+		// let pk_vec = pk_vec.clone();
 		let keys_linear = SharedKeys {y: y.clone(), x_i: x[i].clone()};
-		let paillier_key_vec = paillier_key_vec.clone();
+		// let paillier_key_vec = paillier_key_vec.clone();
 		let y_sum_s = y.clone();
+		// let vss_shceme = vss_vec[i].clone();
 
-		h1_h2_n_tilde_vec.push(get_d_log_statement());
-		// localkeys.push(LocalKey{
-		// 	paillier_dk: paillier_dk_vec[i],
-		// 	pk_vec: pk_vec.clone(), 
-		// 	keys_linear: xxx,
-		// 	paillier_key_vec, 
-		// 	y_sum_s: Point::generator() * &master_key,
-		// 	h1_h2_n_tilde_vec: xxx,
-		// 	vss_scheme: xxx, 
-		// 	i,
-		// 	t,
-		// 	n,
-		// });
+		// hierhier
+		let num = usize::from(n);
+		localkeys.push(LocalKey{
+			paillier_dk: paillier_dk_vec[i].clone(),
+			pk_vec: pk_vec.clone(), 
+			keys_linear,
+			paillier_key_vec: paillier_key_vec.clone(), 
+			y_sum_s: y.clone(),
+			h1_h2_n_tilde_vec: h1_h2_n_tilde_vec.clone(),
+			vss_scheme: vss_vec[i].clone(), 
+			// i: std::convert::TryFrom::try_from(i+1).map_err(KeygenError::InvalidParameterNumParties{n: num})?,
+			// ToDo DF: map error to KeygenError::InvalidParameterNumParties{n}
+			i: std::convert::TryFrom::try_from(i+1)?,
+			t,
+			n,
+		});
 	}	
-
+	println!("localkeys {:?}",localkeys);
 	Ok(())
 }
 
@@ -126,7 +133,8 @@ fn get_d_log_statement() -> DLogStatement {
 
 // impl mytrait for Vec<Scalar::<Secp256k1>> {
 	/// each summand is vss-shared and the shares are added element-wise over all summands
-	fn share_summands_and_add_elementwise(key_summands: Vec<Scalar::<Secp256k1>> ,t: u16, n: u16 ) -> Result<Vec<Scalar::<Secp256k1>>, KeygenError> {
+	fn share_summands_and_add_elementwise(key_summands: Vec<Scalar::<Secp256k1>> ,t: u16, n: u16 ) 
+	-> Result<(Vec<VerifiableSS<Secp256k1>>, Vec<Scalar::<Secp256k1>>), KeygenError> {
 
 		if n < 1 {
 			let num:usize = n.into();
@@ -136,6 +144,7 @@ fn get_d_log_statement() -> DLogStatement {
 
 		// create vector with n elements, each element is zero
 		let mut x: Vec<Scalar::<Secp256k1>> = Vec::with_capacity(n.into());
+		let mut vss_vec: Vec<VerifiableSS<Secp256k1>> = Vec::with_capacity(n.into());
 		for i in 0..n {
 			x.push(Scalar::<Secp256k1>::zero());
 		}
@@ -155,9 +164,9 @@ fn get_d_log_statement() -> DLogStatement {
 			for (i, xval) in x_clone.into_iter().enumerate() {
 				x[i] = xval + &secret_shares.shares[i];
 			}
-
+			vss_vec.push(vss_scheme);
 		}
-		Ok(x)
+		Ok((vss_vec, x))
 	}
 // }
 
