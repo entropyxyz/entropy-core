@@ -20,11 +20,12 @@ pub enum KeygenError {
 	InvalidParameterNumParties{n: usize},
 }
 
+
 pub fn centralized_keygen() -> Result<()> {
 
 	// define parameters
 	let t = 1u16;
-	let n = 1u16; 
+	let n = 3u16; 
 	// _secret_sharing_proof_of_concept(t,n);
 
 	let master_key = Scalar::<Secp256k1>::random();
@@ -33,12 +34,60 @@ pub fn centralized_keygen() -> Result<()> {
 	assert_eq!(master_key, u.iter().sum());
 	println!("assertion ok");
 
+	// vss-share each summand and add the results element-wise
+	let x = share_summands_and_add_elementwise(u,t.into(), n.into())?;
+	for (i,ele) in x.iter().enumerate() {
+		println!("x: {} {:?}", i, ele);
+	}
 	Ok(())
 }
 
+// struct Summands {
+// 	Vec<Scalar::<Secp256k1>>
+// };
+
+
+
+// impl mytrait for Vec<Scalar::<Secp256k1>> {
+	/// each summand is vss-shared and the shares are added element-wise over all summands
+	fn share_summands_and_add_elementwise(key_summands: Vec<Scalar::<Secp256k1>> ,t: u16, n: u16 ) -> Result<Vec<Scalar::<Secp256k1>>, KeygenError> {
+
+		if n < 1 {
+			let num:usize = n.into();
+			return Err(KeygenError::InvalidParameterNumParties{n: num});
+		}	
+		//let mut res = Vec::with_capacity(n.into()); 
+
+		// create vector with n elements, each element is zero
+		let mut x: Vec<Scalar::<Secp256k1>> = Vec::with_capacity(n.into());
+		for i in 0..n {
+			x.push(Scalar::<Secp256k1>::zero());
+		}
+
+		// vss-share each summand 
+		for summand in key_summands {
+			let (vss_scheme, secret_shares) =
+			// VerifiableSS::share(params.threshold, params.share_count, &self.u_i);
+			VerifiableSS::share(t, n, &summand);
+			//res.push(secret_shares.shares.clone());
+
+			//ToDo DF: add vectors element-wise without clone
+			// create copy of x, because ownership is preventing me from element-wise-adding x with secret_shares.shares
+			// i.e. x[i] = x[i] + secret_shares.shares[i]
+			let x_clone = x.clone();
+
+			for (i, xval) in x_clone.into_iter().enumerate() {
+				x[i] = xval + &secret_shares.shares[i];
+			}
+
+		}
+		Ok(x)
+	}
+// }
+
 /// takes a scalar master_key and returns a Vec<Scalar> vec such that 
 /// vec.iter().sum() == master_key
-pub fn split_masterkey_into_summands(master_key: &Scalar::<Secp256k1>, n: usize) -> Result<Vec<Scalar::<Secp256k1>>, KeygenError> {
+pub(crate) fn split_masterkey_into_summands(master_key: &Scalar::<Secp256k1>, n: usize) -> Result<Vec<Scalar::<Secp256k1>>, KeygenError> {
 	if n < 1 {
 		return Err(KeygenError::InvalidParameterNumParties{n});
 	}
