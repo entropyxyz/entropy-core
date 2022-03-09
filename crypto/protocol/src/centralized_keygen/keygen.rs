@@ -3,12 +3,10 @@ use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::key
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::party_i::{
     generate_h1_h2_N_tilde, KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, SharedKeys
 };
-// use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::{SecretShares, VerifiableSS};
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Curve, Point, Scalar};
 use paillier::{DecryptionKey, EncryptionKey, KeyGeneration, Paillier};
 use zk_paillier::zkproofs::DLogStatement;
-// use sha2::Sha256;
 
 use std::{
 	fs::{create_dir_all, File},
@@ -33,20 +31,21 @@ pub fn centralized_keygen() -> Result<()> {
 	// define parameters
 	let t = 1u16;
 	let n = 3u16; 
-	// _secret_sharing_proof_of_concept(t,n);
 
+	// in BYOK master_key could be an input parameter
 	let master_key = Scalar::<Secp256k1>::random();
+
 	// create n random Scalars such that sum(Scalars) = master_key
 	let u = split_masterkey_into_summands(&master_key, n.into())?;
 	assert_eq!(master_key, u.iter().sum());
-	println!("assertion ok");
 
 	// vss-share each summand and add the results element-wise
 	let (vss_vec, x) = share_summands_and_add_elementwise(u,t.into(), n.into())?;
-	for (i,ele) in x.iter().enumerate() {
-		println!("x: {} {:?}", i, ele);
-	}
+	// for (i,ele) in x.iter().enumerate() {
+	// 	println!("x: {} {:?}", i, ele);
+	// }
 
+	// objects to collect and reorganize data
 	let mut localkeys: Vec<LocalKey<Secp256k1>> = Vec::with_capacity(n.into());
 	let mut paillier_key_vec: Vec<EncryptionKey> = Vec::with_capacity(n.into());
 	let mut paillier_dk_vec: Vec<DecryptionKey> = Vec::with_capacity(n.into());
@@ -55,26 +54,21 @@ pub fn centralized_keygen() -> Result<()> {
 	let mut h1_h2_n_tilde_vec: Vec<DLogStatement> = Vec::with_capacity(n.into());
 	
 	// assemble components of the LocalKey's that are the same for all parties: 
-	// for (i,lk) in localkeys.iter_mut().enumerate() {
+	// ToDo: use .izip()
 	for i in 0..usize::from(n) {
-
-		//ToDo: use safe primes in production!
+		// paillier
+		// ToDo: use safe primes in production!
 		// this takes about 20*n seconds
         // let (ek, dk) = Paillier::keypair_safe_primes().keys();
-
-		// paillier
         let (ek, dk) = Paillier::keypair().keys();
 		paillier_key_vec.push(ek);
 		paillier_dk_vec.push(dk);
 
 		// pk_vec
-		// let dlog_proof: DLogProof<Secp256k1, Sha256> = DLogProof::prove(&x[i]);
-		// pk_vec.push(dlog_proof.pk);
 		pk_vec.push(Point::generator() * &x[i]);
 
+		// h1_h2_n_tilde
 		h1_h2_n_tilde_vec.push(get_d_log_statement());
-
-
 	}
 
 	
@@ -82,15 +76,10 @@ pub fn centralized_keygen() -> Result<()> {
 	// assemble components that are unique for each party and then fill LocalKey
 	for i in 0usize..usize::from(n) {
 		let paillier_dk: paillier::DecryptionKey = paillier_dk_vec[i].clone();
-		
-		// let pk_vec = pk_vec.clone();
 		let keys_linear = SharedKeys {y: y.clone(), x_i: x[i].clone()};
-		// let paillier_key_vec = paillier_key_vec.clone();
 		let y_sum_s = y.clone();
-		// let vss_shceme = vss_vec[i].clone();
 
-		// hierhier
-		let num = usize::from(n);
+		//let num = usize::from(n);
 		localkeys.push(LocalKey{
 			paillier_dk: paillier_dk_vec[i].clone(),
 			pk_vec: pk_vec.clone(), 
@@ -113,11 +102,6 @@ pub fn centralized_keygen() -> Result<()> {
 
 fn get_d_log_statement() -> DLogStatement {
 	let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
-	// let dlog_statement_base_h1 = DLogStatement {
-	// 	N: self.N_tilde.clone(),
-	// 	g: self.h1.clone(),
-	// 	ni: self.h2.clone(),
-	// };
 	DLogStatement {
 		N: N_tilde,
 		g: h1,
@@ -150,11 +134,10 @@ impl PrintToFile for Vec<LocalKey<Secp256k1>> {
 
 	}
 }
+
 // struct Summands {
 // 	Vec<Scalar::<Secp256k1>>
 // };
-
-
 
 // impl mytrait for Vec<Scalar::<Secp256k1>> {
 	/// each summand is vss-shared and the shares are added element-wise over all summands
@@ -177,9 +160,7 @@ impl PrintToFile for Vec<LocalKey<Secp256k1>> {
 		// vss-share each summand 
 		for summand in key_summands {
 			let (vss_scheme, secret_shares) =
-			// VerifiableSS::share(params.threshold, params.share_count, &self.u_i);
 			VerifiableSS::share(t, n, &summand);
-			//res.push(secret_shares.shares.clone());
 
 			//ToDo DF: add vectors element-wise without clone
 			// create copy of x, because ownership is preventing me from element-wise-adding x with secret_shares.shares
@@ -267,11 +248,12 @@ fn _secret_sharing_proof_of_concept(t:u16,n:u16) {
 		println!("party_keys: {} {:?} {:?} {:?}", i, &party_keys_vec[i].party_index, &party_keys_vec[i].u_i, &party_keys_vec[i].y_i);
 	}
 }
-pub trait Entropy<E: curv::elliptic::curves::Curve> {
-		fn get_share(&self) -> &Vec<Scalar<E>>;
-}
-impl <E: Curve> Entropy<E> for SecretShares<E> {
-	fn get_share(&self) -> &Vec<Scalar<E>> {
-		&self.shares		
-	}
-}
+
+// pub trait Entropy<E: curv::elliptic::curves::Curve> {
+// 		fn get_share(&self) -> &Vec<Scalar<E>>;
+// }
+// impl <E: Curve> Entropy<E> for SecretShares<E> {
+// 	fn get_share(&self) -> &Vec<Scalar<E>> {
+// 		&self.shares		
+// 	}
+// }

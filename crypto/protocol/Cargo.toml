@@ -18,7 +18,6 @@ async-std = { version = "1.9.0", features = ["attributes", "tokio1"] }
 async-trait = "0.1.51"
 multi-party-ecdsa ={ git = "https://github.com/ZenGo-X/multi-party-ecdsa"}
 zk-paillier = { version = "0.4.2", default-features = false }
-# sha2 = "0.9"
 anyhow = "1.0.53"
 thiserror = "1.0.30"
 tokio = { version = "1.16", features = ["macros","fs","rt-multi-thread","io-util"] }
