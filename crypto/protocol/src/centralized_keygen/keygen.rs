@@ -10,10 +10,10 @@ use paillier::{DecryptionKey, EncryptionKey, KeyGeneration, Paillier};
 use zk_paillier::zkproofs::DLogStatement;
 // use sha2::Sha256;
 
-
-// #[cfg(test)]
-// mod tests;
-
+use std::{
+	fs::{create_dir_all, File},
+	io::{BufWriter, Write},
+};
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -106,7 +106,8 @@ pub fn centralized_keygen() -> Result<()> {
 			n,
 		});
 	}	
-	println!("localkeys {:?}",localkeys);
+
+	localkeys.print_to_file("new_keys")?;
 	Ok(())
 }
 
@@ -124,7 +125,31 @@ fn get_d_log_statement() -> DLogStatement {
 	}
 }
 
+trait PrintToFile {
+	fn print_to_file(&self, path: &str) -> Result<()>;
+}
 
+impl PrintToFile for Vec<LocalKey<Secp256k1>> {
+	/// writes Vec<LocalKey<Secp256k1>> to files. 
+	/// takes:
+	/// - path: folder that the LocalKeys will be stored in. 
+	///   path = "new_keys/" will create ./new_keys/local-share1.json, ./new_keys/local-share2.json, etc. 
+	fn print_to_file(&self, path: &str) -> Result<()> {
+		for (i, localkey) in self.iter().enumerate() {
+			let file = format!("{}/local-share{}.json",&path, i+1);
+			let json = serde_json::to_string(localkey)?;
+			std::fs::create_dir_all(path)?;
+			let file = File::create(&file)?;
+			let mut writer = BufWriter::new(&file);
+			serde_json::to_writer(&mut writer, localkey)?;
+			writer.flush()?;
+			println!("LocalKey stored: {:?}", &file);
+
+		}	
+	Ok(())
+
+	}
+}
 // struct Summands {
 // 	Vec<Scalar::<Secp256k1>>
 // };
