@@ -34,6 +34,13 @@ codec = { package = "parity-scale-codec", version = "2", default-features = fals
 parity-scale-codec-derive = "2.3.1"
 common = { path = "../../crypto/common", default-features = false }
 
+[dev-dependencies]
+project-root = "0.2.2"
+sp-core = { version = "4.1.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+env_logger = "0.9.0"
+log = "0.4.14"
+which = "4.0.2"
+
 [dependencies.scale-info]
 default-features = false
 features = ['derive']
