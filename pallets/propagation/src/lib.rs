@@ -29,7 +29,10 @@ pub mod pallet {
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config:
-		frame_system::Config + pallet_authorship::Config + pallet_relayer::Config
+		frame_system::Config
+		+ pallet_authorship::Config
+		+ pallet_relayer::Config
+		+ pallet_staking_extension::Config
 	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -60,8 +63,8 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Messages passed to this signer
-		/// parameters. [signer]
-		MessagesPassed(T::AccountId),
+		/// parameters. [signer, author_endpoint]
+		MessagesPassed(T::AccountId, Vec<u8>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -87,9 +90,19 @@ pub mod pallet {
 			let messages =
 				pallet_relayer::Pallet::<T>::messages(block_number.saturating_sub(1u32.into()));
 			let block_author = pallet_authorship::Pallet::<T>::author();
+			// TODO JA: handle better
 			if block_author.is_none() {
-				return Ok(())
+				return Ok(());
 			}
+			let author_endpoint = pallet_staking_extension::Pallet::<T>::endpoint_register(
+				block_author.clone().unwrap(),
+			);
+
+			// TODO JA: handle better
+			if author_endpoint.is_none() {
+				return Ok(());
+			}
+
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
 			let kind = sp_core::offchain::StorageKind::PERSISTENT;
 			let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
@@ -99,7 +112,13 @@ pub mod pallet {
 			log::warn!("propagation::post::messages: {:?}", &messages);
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
 			// TODO: JA finalize what needs to be sent in this
-			let req_body = messages.encode();
+			let req_body = [
+				block_author.clone().unwrap().encode(),
+				author_endpoint.clone().unwrap().encode(),
+				messages.encode(),
+			]
+			.encode();
+
 			log::warn!("propagation::post::req_body: {:?}", &req_body);
 
 			// We construct the request
@@ -120,11 +139,14 @@ pub mod pallet {
 			// check response code
 			if response.code != 200 {
 				log::warn!("Unexpected status code: {}", response.code);
-				return Err(http::Error::Unknown)
+				return Err(http::Error::Unknown);
 			}
 			let _res_body = response.body().collect::<Vec<u8>>();
 			// ToDo: DF: handle _res_body
-			Self::deposit_event(Event::MessagesPassed(block_author.unwrap()));
+			Self::deposit_event(Event::MessagesPassed(
+				block_author.unwrap(),
+				author_endpoint.unwrap(),
+			));
 
 			Ok(())
 		}

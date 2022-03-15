@@ -1,5 +1,5 @@
 use crate::mock::*;
-use frame_support::assert_ok;
+use frame_support::{assert_ok, traits::Currency};
 use pallet_relayer::SigRequest;
 use parking_lot::RwLock;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
@@ -15,7 +15,7 @@ fn knows_how_to_mock_several_http_calls() {
 			headers: [("Content-Type".into(), "application/x-parity-scale-codec".into())].to_vec(),
 			sent: true,
 			response: Some([].to_vec()),
-			body: [0].to_vec(),
+			body: [32, 11, 0, 0, 0, 0, 0, 0, 0, 8, 4, 20, 4, 0].to_vec(),
 			..Default::default()
 		});
 
@@ -25,22 +25,42 @@ fn knows_how_to_mock_several_http_calls() {
 			headers: [("Content-Type".into(), "application/x-parity-scale-codec".into())].to_vec(),
 			sent: true,
 			response: Some([].to_vec()),
-			body: [4, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0].to_vec(),
+			body: [32, 11, 0, 0, 0, 0, 0, 0, 0, 8, 4, 20, 44, 4, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0]
+				.to_vec(),
 			..Default::default()
 		});
 	});
 
 	t.execute_with(|| {
-		let data1 = Propagation::post(2).unwrap();
+		Balances::make_free_balance_be(&2, 100);
+		// handles no endpoint
+		let _data1 = Propagation::post(1).unwrap();
 
+		assert_ok!(FrameStaking::bond(
+			Origin::signed(2),
+			11,
+			100u64,
+			pallet_staking::RewardDestination::Account(1),
+		));
+
+		assert_ok!(Staking::validate(
+			Origin::signed(11),
+			pallet_staking::ValidatorPrefs::default(),
+			vec![20]
+		));
 		System::set_block_number(2);
+		// no messages
+		let data2 = Propagation::post(2).unwrap();
+
+		System::set_block_number(3);
 		let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
 
 		assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request));
-		let data2 = Propagation::post(3).unwrap();
+		// full send
+		let data3 = Propagation::post(4).unwrap();
 
-		assert_eq!(data1, ());
 		assert_eq!(data2, ());
+		assert_eq!(data3, ());
 	})
 }
 
@@ -70,3 +90,13 @@ fn offchain_worker_env(
 
 	(t, pool_state)
 }
+
+// // Build genesis storage according to the mock runtime.
+// pub fn new_test_ext() -> sp_io::TestExternalities {
+// 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+// 	let genesis = pallet_balances::GenesisConfig::<Test> {
+// 		balances: vec![(1, 100), (2, 100), (3, 100), (4, 100), (11, 100)],
+// 	};
+// 	genesis.assimilate_storage(&mut t).unwrap();
+// 	t.into()
+// }
