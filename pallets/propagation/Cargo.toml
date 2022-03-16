@@ -82,6 +82,8 @@ frame-election-provider-support = { version = "4.0.0-dev", default-features = fa
 pallet-balances = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 pallet-staking-reward-curve = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 pallet-session = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+pallet-babe = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-application-crypto = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
 [features]
 default = ['std']
@@ -96,6 +98,7 @@ std = [
 	'pallet-authorship/std',
 	'pallet-staking-extension/std',
 	'pallet-balances/std',
+	'pallet-babe/std',
 	"sp-io/std",
 	"sp-runtime/std",
 ]

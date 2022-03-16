@@ -5,6 +5,7 @@ use parking_lot::RwLock;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
 use std::sync::Arc;
+use sp_keystore::{testing::KeyStore, KeystoreExt, SyncCryptoStore};
 
 #[test]
 fn knows_how_to_mock_several_http_calls() {
@@ -15,7 +16,7 @@ fn knows_how_to_mock_several_http_calls() {
 			headers: [("Content-Type".into(), "application/x-parity-scale-codec".into())].to_vec(),
 			sent: true,
 			response: Some([].to_vec()),
-			body: [32, 11, 0, 0, 0, 0, 0, 0, 0, 8, 4, 20, 4, 0].to_vec(),
+			body: [32, 11, 0, 0, 0, 0, 0, 0, 0, 8, 4, 20, 4, 0, 132, 0, 6, 196, 28, 36, 60, 116, 41, 76, 197, 21, 40, 124, 17, 142, 128, 189, 115, 168, 219, 199, 151, 158, 208, 8, 177, 131, 105, 116, 42, 17, 129, 26].to_vec(),
 			..Default::default()
 		});
 
@@ -25,7 +26,7 @@ fn knows_how_to_mock_several_http_calls() {
 			headers: [("Content-Type".into(), "application/x-parity-scale-codec".into())].to_vec(),
 			sent: true,
 			response: Some([].to_vec()),
-			body: [32, 11, 0, 0, 0, 0, 0, 0, 0, 8, 4, 20, 44, 4, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0]
+			body: [32, 11, 0, 0, 0, 0, 0, 0, 0, 8, 4, 20, 44, 4, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 132, 0, 6, 196, 28, 36, 60, 116, 41, 76, 197, 21, 40, 124, 17, 142, 128, 189, 115, 168, 219, 199, 151, 158, 208, 8, 177, 131, 105, 116, 42, 17, 129, 26]
 				.to_vec(),
 			..Default::default()
 		});
@@ -67,36 +68,26 @@ fn knows_how_to_mock_several_http_calls() {
 fn offchain_worker_env(
 	state_updater: fn(&mut testing::OffchainState),
 ) -> (TestExternalities, Arc<RwLock<testing::PoolState>>) {
-	// const PHRASE: &str =
-	// 	"news slush supreme milk chapter athlete soap sausage put clutch what kitten";
+	const PHRASE: &str =
+		"news slush supreme milk chapter athlete soap sausage put clutch what kitten";
 
 	let (offchain, offchain_state) = testing::TestOffchainExt::new();
 	let (pool, pool_state) = testing::TestTransactionPoolExt::new();
-	// let keystore = KeyStore::new();
-	// SyncCryptoStore::sr25519_generate_new(
-	// 	&keystore,
-	// 	crate::crypto::Public::ID,
-	// 	Some(&format!("{}/hunter1", PHRASE)),
-	// )
-	// .unwrap();
+	let keystore = KeyStore::new();
+	SyncCryptoStore::sr25519_generate_new(
+		&keystore,
+		sp_application_crypto::key_types::BABE,
+		Some(&format!("{}/hunter1", PHRASE)),
+	)
+	.unwrap();
 
 	let mut t = sp_io::TestExternalities::default();
 	t.register_extension(OffchainDbExt::new(offchain.clone()));
 	t.register_extension(OffchainWorkerExt::new(offchain));
 	t.register_extension(TransactionPoolExt::new(pool));
-	// t.register_extension(KeystoreExt(Arc::new(keystore)));
+	t.register_extension(KeystoreExt(Arc::new(keystore)));
 
 	state_updater(&mut offchain_state.write());
 
 	(t, pool_state)
 }
-
-// // Build genesis storage according to the mock runtime.
-// pub fn new_test_ext() -> sp_io::TestExternalities {
-// 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
-// 	let genesis = pallet_balances::GenesisConfig::<Test> {
-// 		balances: vec![(1, 100), (2, 100), (3, 100), (4, 100), (11, 100)],
-// 	};
-// 	genesis.assimilate_storage(&mut t).unwrap();
-// 	t.into()
-// }

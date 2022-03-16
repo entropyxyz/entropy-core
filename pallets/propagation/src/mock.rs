@@ -269,4 +269,5 @@ impl pallet_relayer::Config for Test {
 
 impl pallet_propagation::Config for Test {
 	type Event = Event;
+	type AuthorityId = pallet_babe::AuthorityId;
 }

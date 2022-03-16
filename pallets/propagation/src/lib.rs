@@ -18,13 +18,16 @@ mod benchmarking;
 pub mod pallet {
 	use codec::Encode;
 	use frame_support::{inherent::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
-	use frame_system::pallet_prelude::*;
+	use frame_system::{pallet_prelude::*, offchain::AppCrypto};
 	use scale_info::prelude::vec;
 	use sp_core;
 	use sp_runtime::{
+		RuntimeAppPublic,
+		traits::AccountIdConversion,
 		offchain::{http, Duration},
-		sp_std::str,
+		sp_std::str, AccountId32
 	};
+
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -36,6 +39,13 @@ pub mod pallet {
 	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		/// The identifier type for an authority.
+		type AuthorityId: Member
+		+ Parameter
+		+ RuntimeAppPublic
+		+ Ord
+		+ MaybeSerializeDeserialize
+		+ MaxEncodedLen;
 	}
 
 	#[pallet::pallet]
@@ -85,6 +95,12 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {}
 
 	impl<T: Config> Pallet<T> {
+
+		pub fn get_local_keys() -> Result<T::AuthorityId> {
+			let public_keys = T::AuthorityId::all();
+			Ok(public_keys[0].clone())
+		}
+
 		pub fn post(block_number: T::BlockNumber) -> Result<(), http::Error> {
 			// get deadline, same as in fn get()
 			let messages =
@@ -103,6 +119,9 @@ pub mod pallet {
 				return Ok(());
 			}
 
+			let mut local_key = Self::get_local_keys();
+
+
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
 			let kind = sp_core::offchain::StorageKind::PERSISTENT;
 			let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
@@ -116,6 +135,7 @@ pub mod pallet {
 				block_author.clone().unwrap().encode(),
 				author_endpoint.clone().unwrap().encode(),
 				messages.encode(),
+				local_key.encode()
 			]
 			.encode();
 
