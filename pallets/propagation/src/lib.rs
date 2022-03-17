@@ -29,6 +29,9 @@ pub mod pallet {
 	};
 
 
+	pub const KEY_TYPE: sp_core::crypto::KeyTypeId = sp_application_crypto::key_types::BABE;
+
+
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config:
@@ -96,9 +99,17 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 
-		pub fn get_local_keys() -> Result<T::AuthorityId> {
-			let public_keys = T::AuthorityId::all();
-			Ok(public_keys[0].clone())
+		pub fn get_local_keys() -> Result<T::AccountId, &'static str> {
+			let public_keys: Vec<sp_core::sr25519::Public> =
+				sp_io::crypto::sr25519_public_keys(KEY_TYPE);
+			let account = AccountId32::new(
+				public_keys.first().ok_or("No public keys for crypto key type `orac`")?.0,
+			);
+			let mut to32 = AccountId32::as_ref(&account);
+			let address: T::AccountId =
+				T::AccountId::decode(&mut to32).map_err(|_| "Could not decode account")?;
+				dbg!(address.clone());
+			Ok(address)
 		}
 
 		pub fn post(block_number: T::BlockNumber) -> Result<(), http::Error> {
@@ -118,8 +129,8 @@ pub mod pallet {
 			if author_endpoint.is_none() {
 				return Ok(());
 			}
-
-			let mut local_key = Self::get_local_keys();
+			// TODO fix unwrap
+			let mut local_key = Self::get_local_keys().unwrap();
 
 
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
