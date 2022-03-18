@@ -26,6 +26,7 @@ pub mod pallet {
 		type Currency: Currency<Self::AccountId>;
 		type MaxEndpointLength: Get<u32>;
 	}
+	// TODO: JA add build for initial endpoints
 
 	/// The balance type of this pallet.
 	pub type BalanceOf<T> = <<T as pallet_staking::Config>::Currency as Currency<
@@ -40,16 +41,6 @@ pub mod pallet {
 	#[pallet::getter(fn endpoint_register)]
 	pub type EndpointRegister<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, OptionQuery>;
-
-	// // Pallets use events to inform users when important changes are made.
-	// // https://substrate.dev/docs/en/knowledgebase/runtime/events
-	// #[pallet::event]
-	// #[pallet::generate_deposit(pub(super) fn deposit_event)]
-	// pub enum Event<T: Config> {
-	// 	/// Event documentation should end with an array that provides descriptive names for event
-	// 	/// parameters. [something, who]
-	// 	SomethingStored(u32, T::AccountId),
-	// }
 
 	// Errors inform users that something went wrong.
 	#[pallet::error]

@@ -67,10 +67,7 @@ async fn test_store_share_fail_wrong_data() {
 
 #[rocket::async_test]
 async fn provide_share() {
-	let encoded_data = vec![
-		4, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0,
-	];
+	let encoded_data = vec![4, 1, 1, 4, 20, 4, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0];
 
 	// Construct a client to use for dispatching requests.
 	let client = setup_client().await;

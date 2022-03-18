@@ -31,6 +31,7 @@ pub mod pallet {
 
 	pub const KEY_TYPE: sp_core::crypto::KeyTypeId = sp_application_crypto::key_types::BABE;
 
+	pub type OCWMessageEncode = common::OCWMessageEncode;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -42,13 +43,6 @@ pub mod pallet {
 	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-		/// The identifier type for an authority.
-		type AuthorityId: Member
-		+ Parameter
-		+ RuntimeAppPublic
-		+ Ord
-		+ MaybeSerializeDeserialize
-		+ MaxEncodedLen;
 	}
 
 	#[pallet::pallet]
@@ -61,14 +55,6 @@ pub mod pallet {
 			let _ = Self::post(block_number);
 		}
 	}
-
-	// The pallet's runtime storage items.
-	// https://substrate.dev/docs/en/knowledgebase/runtime/storage
-	#[pallet::storage]
-	#[pallet::getter(fn something)]
-	// Learn more about declaring storage items:
-	// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
-	pub type Something<T> = StorageValue<_, u32>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -108,7 +94,7 @@ pub mod pallet {
 			let mut to32 = AccountId32::as_ref(&account);
 			let address: T::AccountId =
 				T::AccountId::decode(&mut to32).map_err(|_| "Could not decode account")?;
-				dbg!(address.clone());
+				log::warn!("local key: {:?}", &address);
 			Ok(address)
 		}
 
@@ -125,13 +111,19 @@ pub mod pallet {
 				block_author.clone().unwrap(),
 			);
 
-			// TODO JA: handle better
-			if author_endpoint.is_none() {
-				return Ok(());
-			}
-			// TODO fix unwrap
-			let mut local_key = Self::get_local_keys().unwrap();
+			// // TODO JA: handle better
+			// if author_endpoint.is_none() {
+			// 	log::warn!("author issue");
+			// 	return Ok(());
+			// }
 
+			log::warn!("block 1: {:?}", &block_author.clone().unwrap());
+
+			// TODO fix unwrap
+			let mut local_key = Self::get_local_keys();
+
+			log::warn!("local key: {:?}", &local_key);
+			log::warn!("block2: {:?}", &block_author.clone());
 
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
 			let kind = sp_core::offchain::StorageKind::PERSISTENT;
@@ -142,15 +134,14 @@ pub mod pallet {
 			log::warn!("propagation::post::messages: {:?}", &messages);
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
 			// TODO: JA finalize what needs to be sent in this
-			let req_body = [
-				block_author.clone().unwrap().encode(),
-				author_endpoint.clone().unwrap().encode(),
-				messages.encode(),
-				local_key.encode()
-			]
+			let req_body = OCWMessageEncode {
+				is_block_producer: true.encode(),
+				author_endpoint: author_endpoint.clone(),
+				messages,
+			}
 			.encode();
 
-			log::warn!("propagation::post::req_body: {:?}", &req_body);
+			log::warn!("propagation::post::req_body: {:?}", &[req_body.clone()]);
 
 			// We construct the request
 			// important: the header->Content-Type must be added and match that of the receiving
@@ -174,10 +165,11 @@ pub mod pallet {
 			}
 			let _res_body = response.body().collect::<Vec<u8>>();
 			// ToDo: DF: handle _res_body
-			Self::deposit_event(Event::MessagesPassed(
-				block_author.unwrap(),
-				author_endpoint.unwrap(),
-			));
+			// Self::deposit_event(Event::MessagesPassed(
+			// 	block_author,
+			// 	local_key
+			// 	// author_endpoint.unwrap(),
+			// ));
 
 			Ok(())
 		}

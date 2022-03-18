@@ -69,6 +69,7 @@ lite-json = { version = "0.1", default-features = false }
 sp-runtime = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-core = { default-features = false,  git = "https://github.com/paritytech/substrate", branch = "master" }
 common = { path = "../../crypto/common", default-features = false }
+sp-application-crypto = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
 
 
@@ -83,7 +84,6 @@ pallet-balances = { version = "4.0.0-dev", default-features = false, git = 'http
 pallet-staking-reward-curve = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 pallet-session = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 pallet-babe = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-sp-application-crypto = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
 [features]
 default = ['std']
@@ -101,5 +101,6 @@ std = [
 	'pallet-babe/std',
 	"sp-io/std",
 	"sp-runtime/std",
+	"sp-application-crypto/std",
 ]
 try-runtime = ['frame-support/try-runtime']

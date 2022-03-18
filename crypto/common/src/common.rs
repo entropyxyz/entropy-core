@@ -1,8 +1,8 @@
 #![allow(dead_code)]
+#![cfg_attr(not(feature = "std"), no_std)]
 /// common structs etc, shared among the substrate-blockchain-code and the crypto-code
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-
 /// RegistrationMessage holds the information sent by the User to the extropy-network during
 /// account-registration
 #[derive(Clone, Encode, Decode, Debug, PartialEq, TypeInfo)]
@@ -72,12 +72,28 @@ pub struct SigResponse {
 	pub com_manager: u16,
 }
 
+// /// The message sent from pallets::propagation::post() to the signing-client.
+// #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+// pub struct OCWMessage {
+// 	// pub thing: u128,
+// 	pub sig_request: SigRequest,
+// 	/* ToDo_DF:
+// 	 * /// block_author
+// 	 * block_author */
+// }
+
 /// The message sent from pallets::propagation::post() to the signing-client.
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
-pub struct OCWMessage {
-	// pub thing: u128,
-	pub sig_request: SigRequest,
-	/* ToDo_DF:
-	 * /// block_author
-	 * block_author */
+pub struct OCWMessageDecode {
+	pub is_block_producer: core::primitive::bool,
+	pub author_endpoint: Option<codec::alloc::vec::Vec<u8>>,
+	pub messages: codec::alloc::vec::Vec<SigRequest>,
+}
+
+/// The message sent from pallets::propagation::post() to the signing-client.
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+pub struct OCWMessageEncode {
+	pub is_block_producer: codec::alloc::vec::Vec<u8>,
+	pub author_endpoint: Option<codec::alloc::vec::Vec<u8>>,
+	pub messages: codec::alloc::vec::Vec<SigRequest>,
 }

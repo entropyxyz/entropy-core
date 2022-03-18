@@ -38,7 +38,7 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 	println!("encoded_data {:?}", encoded_data);
 
 	// ToDo: JA rename
-	type Thing = Vec<common::OCWMessage>;
+	type Thing = Vec<common::OCWMessageDecode>;
 	let data = Thing::decode(&mut encoded_data.as_ref());
 	let data = match data {
 		Ok(x) => x,
