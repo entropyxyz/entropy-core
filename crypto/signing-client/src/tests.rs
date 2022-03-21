@@ -70,7 +70,7 @@ async fn test_store_share_fail_wrong_data() {
 
 #[rocket::async_test]
 async fn provide_share() {
-	let encoded_data = vec![128, 190, 93, 219, 21, 121, 183, 46, 132, 82, 79, 194, 158, 120, 96, 158, 60, 175, 66, 232, 90, 161, 24, 235, 254, 11, 10, 212, 4, 181, 189, 210, 95, 4, 20, 0];
+	let encoded_data = vec![32, 11, 0, 0, 0, 0, 0, 0, 0, 4, 20, 4, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0];
 
 	// Construct a client to use for dispatching requests.
 	let client = setup_client().await;
@@ -112,6 +112,27 @@ async fn get_is_block_author() {
         .expect("Could not obtain stash signer pair")
         .public()
         .into();
-	let test = is_block_author(&alice_stash_id).await;
-	println!("test {}", test.unwrap());
+	let result = is_block_author(&alice_stash_id).await;
+	assert_eq!(result.unwrap(), true);
+}
+
+#[rocket::async_test]
+async fn not_is_block_author() {
+	let alice_stash_id: subxt::sp_runtime::AccountId32 = sr25519::Pair::from_string("//Bob//stash", None)
+        .expect("Could not obtain stash signer pair")
+        .public()
+        .into();
+	let result = is_block_author(&alice_stash_id).await;
+	assert_eq!(result.unwrap(), false);
+}
+
+#[rocket::async_test]
+#[should_panic = "called `Option::unwrap()` on a `None` value"]
+async fn not_validator_block_author() {
+	let alice_stash_id: subxt::sp_runtime::AccountId32 = sr25519::Pair::from_string("//Bob", None)
+        .expect("Could not obtain stash signer pair")
+        .public()
+        .into();
+	let result = is_block_author(&alice_stash_id).await;
+	assert_eq!(result.unwrap(), false);
 }
