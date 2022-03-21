@@ -6,7 +6,10 @@ use rocket::{
 	local::asynchronous::Client,
 };
 use std::{env, fs::remove_file};
-
+use crate::sign::is_block_author;
+use sp_keyring::{AccountKeyring};
+use subxt::sp_core::{crypto::{Pair, Ss58Codec}, sr25519};
+use parity_scale_codec::Encode;
 async fn setup_client() -> rocket::local::asynchronous::Client {
 	Client::tracked(super::rocket()).await.expect("valid `Rocket`")
 }
@@ -67,7 +70,7 @@ async fn test_store_share_fail_wrong_data() {
 
 #[rocket::async_test]
 async fn provide_share() {
-	let encoded_data = vec![4, 1, 1, 4, 20, 4, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0];
+	let encoded_data = vec![128, 190, 93, 219, 21, 121, 183, 46, 132, 82, 79, 194, 158, 120, 96, 158, 60, 175, 66, 232, 90, 161, 24, 235, 254, 11, 10, 212, 4, 181, 189, 210, 95, 4, 20, 0];
 
 	// Construct a client to use for dispatching requests.
 	let client = setup_client().await;
@@ -100,4 +103,15 @@ async fn provide_share_fail_wrong_data() {
 		.dispatch()
 		.await;
 	assert_eq!(response.status(), Status::InternalServerError);
+}
+
+
+#[rocket::async_test]
+async fn get_is_block_author() {
+	let alice_stash_id: subxt::sp_runtime::AccountId32 = sr25519::Pair::from_string("//Alice//stash", None)
+        .expect("Could not obtain stash signer pair")
+        .public()
+        .into();
+	let test = is_block_author(&alice_stash_id).await;
+	println!("test {}", test.unwrap());
 }

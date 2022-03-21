@@ -2,6 +2,9 @@
 
 use common::SigRequest;
 use parity_scale_codec::{Decode, Encode};
+use subxt::{ClientBuilder, DefaultConfig, DefaultExtra, PairSigner, sp_runtime::AccountId32};
+use std::fmt;
+
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -47,6 +50,8 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 
 	println!("data: {:?}", &data);
 
+	// let _ = is_block_author().await;
+
 	for task in data {
 		println!("task: {:?}", task);
 		// ToDo: JA hardcoding
@@ -70,3 +75,27 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 	// ToDO: JA fix
 	ProvideSignatureRes(SignRes { demo: 1 }.encode())
 }
+
+pub async fn is_block_author(block_author: &AccountId32) -> Result<bool, subxt::Error> {
+	let api = ClientBuilder::new()
+			.set_url("ws://localhost:9944")
+			.build()
+			.await?
+			.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, DefaultExtra<_>>>();
+
+	let all_validator_keys = api
+	.storage()
+	.session()
+	.queued_keys(None)
+	.await?;
+
+	let author_keys = all_validator_keys.iter().find(|&key| &key.0 == block_author);
+	let key = author_keys.unwrap().1.babe.encode();
+	let result = api.client.rpc().has_key(key.into(), "babe".to_string()).await?;
+	Ok(result)
+}
+
+
+ // get the author of the block
+ // query chain session.queuedKeys: author get babe PK
+ // query node rpc has key babe babe PK
