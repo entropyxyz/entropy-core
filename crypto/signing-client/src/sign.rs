@@ -53,8 +53,11 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 
 	let api = get_api("ws://localhost:9944").await.unwrap();
 
-	let block_author = get_block_author(api).await.unwrap();
-	// let _ = is_block_author().await
+	let block_author = get_block_author(&api).await.unwrap();
+
+	let bool_block_author = is_block_author(&api, &block_author).await;
+
+	// let author_endpoint = get_author_endpoint(api, &block_author).await.unwrap();
 
 	for task in data {
 		println!("task: {:?}", task);
@@ -89,7 +92,7 @@ pub async fn get_api(url: &str) -> Result<entropy_runtime, subxt::Error> {
 	Ok(api)
 }
 
-pub async fn is_block_author(api: entropy_runtime, block_author: &AccountId32) -> Result<bool, subxt::Error> {
+pub async fn is_block_author(api: &entropy_runtime, block_author: &AccountId32) -> Result<bool, subxt::Error> {
 
 	let all_validator_keys = api
 	.storage()
@@ -103,7 +106,7 @@ pub async fn is_block_author(api: entropy_runtime, block_author: &AccountId32) -
 	Ok(result)
 }
 
-pub async fn get_block_author(api: entropy_runtime) -> Result<AccountId32, subxt::Error> {
+pub async fn get_block_author(api: &entropy_runtime) -> Result<AccountId32, subxt::Error> {
 	let block_number = api.storage().system().number(None).await?;
 	let author = api.storage().propagation().block_author(block_number, None).await?.unwrap();
 	Ok(author)
