@@ -29,6 +29,8 @@ struct SignRes {
 	pub demo: u8,
 }
 
+pub type entropy_runtime = entropy::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>;
+
 /// Response to the node if the signature was created.
 /// i.e. a signature that the data was stored successfully or Error Code.
 #[derive(Responder)]
@@ -49,7 +51,10 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 
 	println!("data: {:?}", &data);
 
-	// let _ = is_block_author().await;
+	let api = get_api("ws://localhost:9944").await.unwrap();
+
+	let block_author = get_block_author(api).await.unwrap();
+	// let _ = is_block_author().await
 
 	for task in data {
 		println!("task: {:?}", task);
@@ -75,12 +80,16 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 	ProvideSignatureRes(SignRes { demo: 1 }.encode())
 }
 
-pub async fn is_block_author(block_author: &AccountId32) -> Result<bool, subxt::Error> {
+pub async fn get_api(url: &str) -> Result<entropy_runtime, subxt::Error> {
 	let api = ClientBuilder::new()
-			.set_url("ws://localhost:9944")
+			.set_url(url)
 			.build()
 			.await?
-			.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, DefaultExtra<_>>>();
+			.to_runtime_api::<entropy_runtime>();
+	Ok(api)
+}
+
+pub async fn is_block_author(api: entropy_runtime, block_author: &AccountId32) -> Result<bool, subxt::Error> {
 
 	let all_validator_keys = api
 	.storage()
@@ -92,6 +101,12 @@ pub async fn is_block_author(block_author: &AccountId32) -> Result<bool, subxt::
 	let key = author_keys.unwrap().1.babe.encode();
 	let result = api.client.rpc().has_key(key.into(), "babe".to_string()).await?;
 	Ok(result)
+}
+
+pub async fn get_block_author(api: entropy_runtime) -> Result<AccountId32, subxt::Error> {
+	let block_number = api.storage().system().number(None).await?;
+	let author = api.storage().propagation().block_author(block_number, None).await?.unwrap();
+	Ok(author)
 }
 
 
