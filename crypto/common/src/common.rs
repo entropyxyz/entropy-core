@@ -81,19 +81,3 @@ pub struct SigResponse {
 // 	 * /// block_author
 // 	 * block_author */
 // }
-
-/// The message sent from pallets::propagation::post() to the signing-client.
-#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
-pub struct OCWMessageDecode {
-	pub is_block_producer: core::primitive::bool,
-	pub author_endpoint: Option<codec::alloc::vec::Vec<u8>>,
-	pub messages: codec::alloc::vec::Vec<SigRequest>,
-}
-
-/// The message sent from pallets::propagation::post() to the signing-client.
-#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
-pub struct OCWMessageEncode {
-	pub is_block_producer: codec::alloc::vec::Vec<u8>,
-	pub author_endpoint: Option<codec::alloc::vec::Vec<u8>>,
-	pub messages: codec::alloc::vec::Vec<SigRequest>,
-}

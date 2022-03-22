@@ -1,6 +1,6 @@
 //! The Node requests the client to take part in a signature generation.
 
-use common::SigRequest;
+use common::{SigRequest, OCWMessage};
 use parity_scale_codec::{Decode, Encode};
 use subxt::{ClientBuilder, DefaultConfig, DefaultExtra, PairSigner, sp_runtime::AccountId32};
 use std::fmt;
@@ -41,8 +41,7 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 	println!("encoded_data {:?}", encoded_data);
 
 	// ToDo: JA rename
-	type Thing = Vec<common::OCWMessageDecode>;
-	let data = Thing::decode(&mut encoded_data.as_ref());
+	let data = OCWMessage::decode(&mut encoded_data.as_ref());
 	let data = match data {
 		Ok(x) => x,
 		Err(err) => panic!("failed to decode input {}", err),

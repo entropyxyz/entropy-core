@@ -10,10 +10,10 @@
 // use codec::{Decode, Encode};
 // use scale_info::TypeInfo;
 mod common;
+use codec::alloc::vec::Vec;
 
 pub type RegistrationMessage = common::RegistrationMessage;
 pub type RegistrationResponse = common::RegistrationResponse;
 pub type SigRequest = common::SigRequest;
 pub type SigResponse = common::SigResponse;
-pub type OCWMessageEncode = common::OCWMessageEncode;
-pub type OCWMessageDecode = common::OCWMessageDecode;
+pub type OCWMessage = Vec<common::SigRequest>;

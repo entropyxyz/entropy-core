@@ -29,10 +29,6 @@ pub mod pallet {
 	};
 
 
-	pub const KEY_TYPE: sp_core::crypto::KeyTypeId = sp_application_crypto::key_types::BABE;
-
-	pub type OCWMessageEncode = common::OCWMessageEncode;
-
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config:
@@ -49,8 +45,25 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
+	#[pallet::storage]
+	#[pallet::getter(fn get_block_author)]
+	pub type BlockAuthor<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, OptionQuery>;
+
+
+
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+
+		fn on_initialize(block_number: T::BlockNumber) -> Weight {
+			let block_author = pallet_authorship::Pallet::<T>::author();
+			log::warn!("block3: {:?}", &block_author.clone());
+			//TODO JA: fix unwrap
+			BlockAuthor::<T>::insert(block_number, block_author.unwrap());
+			BlockAuthor::<T>::remove(block_number.saturating_sub(20u32.into()));
+			0
+		}
+
 		fn offchain_worker(block_number: T::BlockNumber) {
 			let _ = Self::post(block_number);
 		}
@@ -84,32 +97,10 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {}
 
 	impl<T: Config> Pallet<T> {
-
-		pub fn get_local_keys() -> Result<T::AccountId, &'static str> {
-			let public_keys: Vec<sp_core::sr25519::Public> =
-				sp_io::crypto::sr25519_public_keys(KEY_TYPE);
-			let account = AccountId32::new(
-				public_keys.first().ok_or("No public keys for crypto key type `orac`")?.0,
-			);
-			let mut to32 = AccountId32::as_ref(&account);
-			let address: T::AccountId =
-				T::AccountId::decode(&mut to32).map_err(|_| "Could not decode account")?;
-				log::warn!("local key: {:?}", &address);
-			Ok(address)
-		}
-
 		pub fn post(block_number: T::BlockNumber) -> Result<(), http::Error> {
 			// get deadline, same as in fn get()
 			let messages =
 				pallet_relayer::Pallet::<T>::messages(block_number.saturating_sub(1u32.into()));
-			let block_author = pallet_authorship::Pallet::<T>::author();
-			// TODO JA: handle better
-			if block_author.is_none() {
-				return Ok(());
-			}
-			let author_endpoint = pallet_staking_extension::Pallet::<T>::endpoint_register(
-				block_author.clone().unwrap(),
-			);
 
 			// // TODO JA: handle better
 			// if author_endpoint.is_none() {
@@ -117,13 +108,6 @@ pub mod pallet {
 			// 	return Ok(());
 			// }
 
-			log::warn!("block 1: {:?}", &block_author.clone().unwrap());
-
-			// TODO fix unwrap
-			let mut local_key = Self::get_local_keys();
-
-			log::warn!("local key: {:?}", &local_key);
-			log::warn!("block2: {:?}", &block_author.clone());
 
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
 			let kind = sp_core::offchain::StorageKind::PERSISTENT;
@@ -134,15 +118,9 @@ pub mod pallet {
 			log::warn!("propagation::post::messages: {:?}", &messages);
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
 			// TODO: JA finalize what needs to be sent in this
-			let req_body = OCWMessageEncode {
-				is_block_producer: true.encode(),
-				author_endpoint: author_endpoint.clone(),
-				messages,
-			}
-			.encode();
+			let req_body = messages.encode();
 
 			log::warn!("propagation::post::req_body: {:?}", &[req_body.clone()]);
-
 			// We construct the request
 			// important: the header->Content-Type must be added and match that of the receiving
 			// party!!
