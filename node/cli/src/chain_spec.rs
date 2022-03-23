@@ -22,7 +22,7 @@ use entropy_runtime::{
 	constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
 	BalancesConfig, Block, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
 	ImOnlineConfig, IndicesConfig, SessionConfig, SessionKeys, SocietyConfig, StakerStatus,
-	StakingConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, MAX_NOMINATIONS,
+	StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, MAX_NOMINATIONS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
@@ -316,6 +316,12 @@ pub fn testnet_genesis(
 			slash_reward_fraction: Perbill::from_percent(10),
 			stakers,
 			..Default::default()
+		},
+		staking_extension: StakingExtensionConfig {
+			endpoints: vec![
+				(get_account_id_from_seed::<sr25519::Public>("Alice//stash"), "ws://localhost:3001".as_bytes().to_vec()),
+				(get_account_id_from_seed::<sr25519::Public>("Bob//stash"), "ws://localhost:3001".as_bytes().to_vec())
+				]
 		},
 		democracy: DemocracyConfig::default(),
 		elections: ElectionsConfig {

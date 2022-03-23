@@ -2,7 +2,7 @@ use crate as pallet_staking_extension;
 use frame_election_provider_support::onchain;
 use frame_support::{
 	parameter_types,
-	traits::{ConstU32, Get, Hooks, OneSessionHandler},
+	traits::{ConstU32, Get, Hooks, OneSessionHandler, GenesisBuild},
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
@@ -33,7 +33,7 @@ frame_support::construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-		Staking: pallet_staking_extension::{Pallet, Call, Storage, Event<T>},
+		Staking: pallet_staking_extension::{Pallet, Call, Storage, Event<T>, Config<T>},
 		FrameStaking: pallet_staking::{Pallet, Call, Storage, Event<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Historical: pallet_session_historical::{Pallet},
@@ -238,10 +238,16 @@ impl pallet_staking_extension::Config for Test {
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	let genesis = pallet_balances::GenesisConfig::<Test> {
+	let pallet_balances = pallet_balances::GenesisConfig::<Test> {
 		balances: vec![(1, 100), (2, 100), (3, 100), (4, 100)],
 	};
-	genesis.assimilate_storage(&mut t).unwrap();
+	let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
+		endpoints: vec![(5, vec![20]), (6, vec![40])]
+	};
+
+	pallet_balances.assimilate_storage(&mut t).unwrap();
+	pallet_staking_extension.assimilate_storage(&mut t).unwrap();
+
 	t.into()
 }
 

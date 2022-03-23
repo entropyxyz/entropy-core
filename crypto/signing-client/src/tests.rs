@@ -1,15 +1,18 @@
 use super::rocket;
+use crate::sign::{get_api, get_block_author, is_block_author, get_author_endpoint, convert_endpoint};
 use curv::elliptic::curves::secp256_k1::Secp256k1;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
+use parity_scale_codec::Encode;
 use rocket::{
 	http::{ContentType, Status},
 	local::asynchronous::Client,
 };
+use sp_keyring::AccountKeyring;
 use std::{env, fs::remove_file};
-use crate::sign::{is_block_author, get_block_author, get_api};
-use sp_keyring::{AccountKeyring};
-use subxt::sp_core::{crypto::{Pair, Ss58Codec}, sr25519};
-use parity_scale_codec::Encode;
+use subxt::sp_core::{
+	crypto::{Pair, Ss58Codec},
+	sr25519,
+};
 // use crate::utils::test_context;
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
@@ -107,16 +110,16 @@ async fn provide_share_fail_wrong_data() {
 	assert_eq!(response.status(), Status::InternalServerError);
 }
 
-
 #[rocket::async_test]
 async fn get_is_block_author() {
 	// test_context().await;
 	let api = get_api("ws://localhost:9944").await;
-	let alice_stash_id: subxt::sp_runtime::AccountId32 = sr25519::Pair::from_string("//Alice//stash", None)
-        .expect("Could not obtain stash signer pair")
-        .public()
-        .into();
-	let result = is_block_author(api.unwrap(), &alice_stash_id).await;
+	let alice_stash_id: subxt::sp_runtime::AccountId32 =
+		sr25519::Pair::from_string("//Alice//stash", None)
+			.expect("Could not obtain stash signer pair")
+			.public()
+			.into();
+	let result = is_block_author(&api.unwrap(), &alice_stash_id).await;
 	assert_eq!(result.unwrap(), true);
 }
 
@@ -124,11 +127,12 @@ async fn get_is_block_author() {
 async fn not_is_block_author() {
 	// test_context().await;
 	let api = get_api("ws://localhost:9944").await;
-	let bob_stash_id: subxt::sp_runtime::AccountId32 = sr25519::Pair::from_string("//Bob//stash", None)
-        .expect("Could not obtain stash signer pair")
-        .public()
-        .into();
-	let result = is_block_author(api.unwrap(), &bob_stash_id).await;
+	let bob_stash_id: subxt::sp_runtime::AccountId32 =
+		sr25519::Pair::from_string("//Bob//stash", None)
+			.expect("Could not obtain stash signer pair")
+			.public()
+			.into();
+	let result = is_block_author(&api.unwrap(), &bob_stash_id).await;
 	assert_eq!(result.unwrap(), false);
 }
 
@@ -139,25 +143,40 @@ async fn not_validator_block_author() {
 	// test_context().await;
 	let api = get_api("ws://localhost:9944").await;
 	let bob_stash_id: subxt::sp_runtime::AccountId32 = sr25519::Pair::from_string("//Bob", None)
-        .expect("Could not obtain stash signer pair")
-        .public()
-        .into();
-	let result = is_block_author(api.unwrap(), &bob_stash_id).await;
+		.expect("Could not obtain stash signer pair")
+		.public()
+		.into();
+	let result = is_block_author(&api.unwrap(), &bob_stash_id).await;
 	assert_eq!(result.unwrap(), false);
 }
-
 
 #[rocket::async_test]
 async fn test_get_block_author() {
 	// test_context().await;
 	let api = get_api("ws://localhost:9944").await;
-	let result = get_block_author(api.unwrap()).await;
-	println!("result {:?}", result)	;
-	let alice_stash_id: subxt::sp_runtime::AccountId32 = sr25519::Pair::from_string("//Alice//stash", None)
-        .expect("Could not obtain stash signer pair")
-        .public()
-        .into();
+	let result = get_block_author(&api.unwrap()).await;
+	println!("result {:?}", result);
+	let alice_stash_id: subxt::sp_runtime::AccountId32 =
+		sr25519::Pair::from_string("//Alice//stash", None)
+			.expect("Could not obtain stash signer pair")
+			.public()
+			.into();
 
 	assert_eq!(result.unwrap(), alice_stash_id);
+}
 
+#[rocket::async_test]
+async fn test_get_author_endpoint() {
+	// test_context().await;
+	let api = get_api("ws://localhost:9944").await;
+	let alice_stash_id: subxt::sp_runtime::AccountId32 =
+		sr25519::Pair::from_string("//Alice//stash", None)
+		.expect("Could not obtain stash signer pair")
+		.public()
+		.into();
+
+	let result = get_author_endpoint(&api.unwrap(), alice_stash_id).await;
+	let endpoint = convert_endpoint(&result.as_ref().unwrap());
+
+	assert_eq!(endpoint.unwrap(), "ws://localhost:3001");
 }

@@ -18,16 +18,15 @@ mod benchmarking;
 pub mod pallet {
 	use codec::Encode;
 	use frame_support::{inherent::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
-	use frame_system::{pallet_prelude::*, offchain::AppCrypto};
+	use frame_system::{offchain::AppCrypto, pallet_prelude::*};
 	use scale_info::prelude::vec;
 	use sp_core;
 	use sp_runtime::{
-		RuntimeAppPublic,
-		traits::AccountIdConversion,
 		offchain::{http, Duration},
-		sp_std::str, AccountId32
+		sp_std::str,
+		traits::AccountIdConversion,
+		AccountId32, RuntimeAppPublic,
 	};
-
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -50,11 +49,8 @@ pub mod pallet {
 	pub type BlockAuthor<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, OptionQuery>;
 
-
-
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-
 		fn on_initialize(block_number: T::BlockNumber) -> Weight {
 			let block_author = pallet_authorship::Pallet::<T>::author();
 			log::warn!("block3: {:?}", &block_author.clone());
@@ -107,7 +103,6 @@ pub mod pallet {
 			// 	log::warn!("author issue");
 			// 	return Ok(());
 			// }
-
 
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
 			let kind = sp_core::offchain::StorageKind::PERSISTENT;

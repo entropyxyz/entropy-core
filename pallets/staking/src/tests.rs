@@ -1,6 +1,15 @@
 use crate::{mock::*, Error};
 use frame_support::{assert_noop, assert_ok};
 
+
+#[test]
+fn basic_setup_works() {
+	new_test_ext().execute_with(|| {
+		assert_eq!(Staking::endpoint_register(5).unwrap(), vec![20]);
+		assert_eq!(Staking::endpoint_register(6).unwrap(), vec![40]);
+	});
+}
+
 #[test]
 fn it_takes_in_an_endpoint() {
 	new_test_ext().execute_with(|| {

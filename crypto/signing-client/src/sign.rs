@@ -1,9 +1,9 @@
 //! The Node requests the client to take part in a signature generation.
 
-use common::{SigRequest, OCWMessage};
+use common::{OCWMessage, SigRequest};
 use parity_scale_codec::{Decode, Encode};
-use subxt::{ClientBuilder, DefaultConfig, DefaultExtra, PairSigner, sp_runtime::AccountId32};
-use std::fmt;
+use std::{fmt, str};
+use subxt::{sp_runtime::AccountId32, ClientBuilder, DefaultConfig, DefaultExtra, PairSigner};
 
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
@@ -51,10 +51,12 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 
 	println!("data: {:?}", &data);
 
+	// TODO JA, unhardcode endpoint
 	let api = get_api("ws://localhost:9944").await.unwrap();
 
 	let block_author = get_block_author(&api).await.unwrap();
-
+	let author_endpoint = get_author_endpoint(&api, block_author.clone()).await.unwrap();
+	let string_author_endpoint = convert_endpoint(&author_endpoint);
 	let bool_block_author = is_block_author(&api, &block_author).await;
 
 	// let author_endpoint = get_author_endpoint(api, &block_author).await.unwrap();
@@ -85,20 +87,18 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 
 pub async fn get_api(url: &str) -> Result<entropy_runtime, subxt::Error> {
 	let api = ClientBuilder::new()
-			.set_url(url)
-			.build()
-			.await?
-			.to_runtime_api::<entropy_runtime>();
+		.set_url(url)
+		.build()
+		.await?
+		.to_runtime_api::<entropy_runtime>();
 	Ok(api)
 }
 
-pub async fn is_block_author(api: &entropy_runtime, block_author: &AccountId32) -> Result<bool, subxt::Error> {
-
-	let all_validator_keys = api
-	.storage()
-	.session()
-	.queued_keys(None)
-	.await?;
+pub async fn is_block_author(
+	api: &entropy_runtime,
+	block_author: &AccountId32,
+) -> Result<bool, subxt::Error> {
+	let all_validator_keys = api.storage().session().queued_keys(None).await?;
 
 	let author_keys = all_validator_keys.iter().find(|&key| &key.0 == block_author);
 	let key = author_keys.unwrap().1.babe.encode();
@@ -112,7 +112,12 @@ pub async fn get_block_author(api: &entropy_runtime) -> Result<AccountId32, subx
 	Ok(author)
 }
 
+pub async fn get_author_endpoint(api: &entropy_runtime, block_author: AccountId32) -> Result<Vec<u8>, subxt::Error> {
+	let author_endpoint = api.storage().staking_extension().endpoint_register(block_author, None).await?.unwrap();
+	println!("author_endpoint: {:?}", author_endpoint);
+	Ok(author_endpoint)
+}
 
- // get the author of the block
- // query chain session.queuedKeys: author get babe PK
- // query node rpc has key babe babe PK
+pub fn convert_endpoint(author_endpoint: &Vec<u8>) -> Result<&str, std::str::Utf8Error> {
+	Ok(str::from_utf8(author_endpoint).unwrap())
+}

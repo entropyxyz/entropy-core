@@ -24,7 +24,11 @@ surf = "2"
 
 [dev-dependencies]
 sp-keyring = { package = "sp-keyring", git = "https://github.com/paritytech/substrate/", branch = "master" }
-
+project-root = "0.2.2"
+sp-core = { version = "4.1.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+env_logger = "0.9.0"
+log = "0.4.14"
+which = "4.0.2"
 
 [features]
 default = ['std']
