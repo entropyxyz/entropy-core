@@ -30,10 +30,11 @@ pub async fn test_node_process_with(key: AccountKeyring) -> TestNodeProcess<Defa
 	proc.unwrap()
 }
 
-pub async fn test_node() -> TestNodeProcess<DefaultConfig> {
+pub async fn test_node(key: AccountKeyring) -> TestNodeProcess<DefaultConfig> {
 	let path = get_path();
 
 	let proc = TestNodeProcess::<DefaultConfig>::build(path.as_str())
+		.with_authority(key)
 		.spawn::<DefaultConfig>()
 		.await;
 	proc.unwrap()
@@ -41,6 +42,10 @@ pub async fn test_node() -> TestNodeProcess<DefaultConfig> {
 
 pub async fn test_node_process() -> TestNodeProcess<DefaultConfig> {
 	test_node_process_with(AccountKeyring::Alice).await
+}
+
+pub async fn test_node_process_stationary() -> TestNodeProcess<DefaultConfig> {
+	test_node(AccountKeyring::Alice).await
 }
 
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
@@ -59,9 +64,16 @@ impl TestContext {
 
 pub async fn test_context() -> TestContext {
 	env_logger::try_init().ok();
-	let node_proc: TestNodeProcess<DefaultConfig> = test_node().await;
+	let node_proc: TestNodeProcess<DefaultConfig> = test_node_process().await;
 	let api = node_proc.client().clone().to_runtime_api();
-	TestContext { node_proc, api }
+	TestContext { node_proc, api  }
+}
+
+pub async fn test_context_stationary() -> TestContext {
+	env_logger::try_init().ok();
+	let node_proc: TestNodeProcess<DefaultConfig> = test_node_process_stationary().await;
+	let api = node_proc.client().clone().to_runtime_api();
+	TestContext { node_proc, api  }
 }
 
 pub fn pair_signer(pair: Pair) -> PairSigner<DefaultConfig, NodeRuntimeSignedExtra, Pair> {

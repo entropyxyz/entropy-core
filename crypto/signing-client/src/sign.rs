@@ -114,7 +114,6 @@ pub async fn get_block_author(api: &entropy_runtime) -> Result<AccountId32, subx
 
 pub async fn get_author_endpoint(api: &entropy_runtime, block_author: AccountId32) -> Result<Vec<u8>, subxt::Error> {
 	let author_endpoint = api.storage().staking_extension().endpoint_register(block_author, None).await?.unwrap();
-	println!("author_endpoint: {:?}", author_endpoint);
 	Ok(author_endpoint)
 }
 

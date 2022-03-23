@@ -12,6 +12,7 @@ use subxt::{Client, ClientBuilder, Config};
 pub struct TestNodeProcess<R: Config> {
 	proc: process::Child,
 	client: Client<R>,
+	pub ws_url: String
 }
 
 impl<R> Drop for TestNodeProcess<R>
@@ -139,7 +140,7 @@ impl TestNodeProcessBuilder {
 			}
 		};
 		match client {
-			Ok(client) => Ok(TestNodeProcess { proc, client }),
+			Ok(client) => Ok(TestNodeProcess { proc, client, ws_url }),
 			Err(err) => {
 				let err = format!(
 					"Failed to connect to node rpc at {} after {} attempts: {}",

@@ -8,12 +8,13 @@ use rocket::{
 	local::asynchronous::Client,
 };
 use sp_keyring::AccountKeyring;
-use std::{env, fs::remove_file};
+use std::{env, fs::remove_file, thread, time};
 use subxt::sp_core::{
 	crypto::{Pair, Ss58Codec},
 	sr25519,
 };
-// use crate::utils::test_context;
+use rocket::tokio::time::{sleep, Duration};
+use crate::utils::{test_context, test_context_stationary};
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
 	Client::tracked(super::rocket()).await.expect("valid `Rocket`")
@@ -75,6 +76,11 @@ async fn test_store_share_fail_wrong_data() {
 
 #[rocket::async_test]
 async fn provide_share() {
+	let cxt = test_context_stationary().await;
+	let now = time::Instant::now();
+	// sleep to make sure one block has been mined or else panic
+    sleep(Duration::from_secs(6u64)).await;
+
 	let encoded_data = vec![8, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0];
 
 	// Construct a client to use for dispatching requests.
@@ -112,8 +118,8 @@ async fn provide_share_fail_wrong_data() {
 
 #[rocket::async_test]
 async fn get_is_block_author() {
-	// test_context().await;
-	let api = get_api("ws://localhost:9944").await;
+	let cxt = test_context().await;
+	let api = get_api(&cxt.node_proc.ws_url).await;
 	let alice_stash_id: subxt::sp_runtime::AccountId32 =
 		sr25519::Pair::from_string("//Alice//stash", None)
 			.expect("Could not obtain stash signer pair")
@@ -125,8 +131,8 @@ async fn get_is_block_author() {
 
 #[rocket::async_test]
 async fn not_is_block_author() {
-	// test_context().await;
-	let api = get_api("ws://localhost:9944").await;
+	let cxt = test_context().await;
+	let api = get_api(&cxt.node_proc.ws_url).await;
 	let bob_stash_id: subxt::sp_runtime::AccountId32 =
 		sr25519::Pair::from_string("//Bob//stash", None)
 			.expect("Could not obtain stash signer pair")
@@ -140,8 +146,8 @@ async fn not_is_block_author() {
 #[rocket::async_test]
 #[should_panic = "called `Option::unwrap()` on a `None` value"]
 async fn not_validator_block_author() {
-	// test_context().await;
-	let api = get_api("ws://localhost:9944").await;
+	let cxt = test_context().await;
+	let api = get_api(&cxt.node_proc.ws_url).await;
 	let bob_stash_id: subxt::sp_runtime::AccountId32 = sr25519::Pair::from_string("//Bob", None)
 		.expect("Could not obtain stash signer pair")
 		.public()
@@ -152,8 +158,9 @@ async fn not_validator_block_author() {
 
 #[rocket::async_test]
 async fn test_get_block_author() {
-	// test_context().await;
-	let api = get_api("ws://localhost:9944").await;
+	let cxt = test_context().await;
+	sleep(Duration::from_secs(6u64)).await;
+	let api = get_api(&cxt.node_proc.ws_url).await;
 	let result = get_block_author(&api.unwrap()).await;
 	println!("result {:?}", result);
 	let alice_stash_id: subxt::sp_runtime::AccountId32 =
@@ -167,8 +174,8 @@ async fn test_get_block_author() {
 
 #[rocket::async_test]
 async fn test_get_author_endpoint() {
-	// test_context().await;
-	let api = get_api("ws://localhost:9944").await;
+	let cxt = test_context().await;
+	let api = get_api(&cxt.node_proc.ws_url).await;
 	let alice_stash_id: subxt::sp_runtime::AccountId32 =
 		sr25519::Pair::from_string("//Alice//stash", None)
 		.expect("Could not obtain stash signer pair")
