@@ -34,11 +34,13 @@ pub mod pallet {
 		frame_system::Config
 		+ pallet_authorship::Config
 		+ pallet_relayer::Config
-		+ pallet_staking_extension::Config
 	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 	}
+
+	pub type Message = common::SigRequest;
+
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -71,8 +73,8 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Messages passed to this signer
-		/// parameters. [signer, author_endpoint]
-		MessagesPassed(T::AccountId, Vec<u8>),
+		/// parameters. [messages]
+		MessagesPassed(Vec<Message>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -138,11 +140,9 @@ pub mod pallet {
 			}
 			let _res_body = response.body().collect::<Vec<u8>>();
 			// ToDo: DF: handle _res_body
-			// Self::deposit_event(Event::MessagesPassed(
-			// 	block_author,
-			// 	local_key
-			// 	// author_endpoint.unwrap(),
-			// ));
+			Self::deposit_event(Event::MessagesPassed(
+				messages
+			));
 
 			Ok(())
 		}

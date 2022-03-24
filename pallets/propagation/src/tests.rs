@@ -1,5 +1,5 @@
 use crate::{mock::*, BlockAuthor};
-use frame_support::{assert_ok, traits::Currency};
+use frame_support::{assert_ok, traits::{OnInitialize}};
 use pallet_relayer::SigRequest;
 use parking_lot::RwLock;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
@@ -32,8 +32,6 @@ fn knows_how_to_mock_several_http_calls() {
 	});
 
 	t.execute_with(|| {
-		Balances::make_free_balance_be(&2, 100);
-
 		let data1 = Propagation::post(1).unwrap();
 
 		System::set_block_number(3);
@@ -49,21 +47,35 @@ fn knows_how_to_mock_several_http_calls() {
 	})
 }
 
+#[test]
+fn notes_block_author() {
+	new_test_ext().execute_with(|| {
+		Propagation::on_initialize(1);
+		assert_eq!(Propagation::get_block_author(1), Some(11));
+
+
+		Propagation::on_initialize(21);
+		assert_eq!(Propagation::get_block_author(1), None);
+		assert_eq!(Propagation::get_block_author(21), Some(11));
+
+	});
+}
+
 fn offchain_worker_env(
 	state_updater: fn(&mut testing::OffchainState),
 ) -> (TestExternalities, Arc<RwLock<testing::PoolState>>) {
-	const PHRASE: &str =
-		"news slush supreme milk chapter athlete soap sausage put clutch what kitten";
+	// const PHRASE: &str =
+	// 	"news slush supreme milk chapter athlete soap sausage put clutch what kitten";
 
 	let (offchain, offchain_state) = testing::TestOffchainExt::new();
 	let (pool, pool_state) = testing::TestTransactionPoolExt::new();
 	let keystore = KeyStore::new();
-	SyncCryptoStore::sr25519_generate_new(
-		&keystore,
-		sp_application_crypto::key_types::BABE,
-		Some(&format!("{}/hunter1", PHRASE)),
-	)
-	.unwrap();
+	// SyncCryptoStore::sr25519_generate_new(
+	// 	&keystore,
+	// 	sp_application_crypto::key_types::BABE,
+	// 	Some(&format!("{}/hunter1", PHRASE)),
+	// )
+	// .unwrap();
 
 	let mut t = sp_io::TestExternalities::default();
 	t.register_extension(OffchainDbExt::new(offchain.clone()));
