@@ -18,14 +18,12 @@ mod benchmarking;
 pub mod pallet {
 	use codec::Encode;
 	use frame_support::{inherent::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
-	use frame_system::{offchain::AppCrypto, pallet_prelude::*};
+	use frame_system::pallet_prelude::*;
 	use scale_info::prelude::vec;
 	use sp_core;
 	use sp_runtime::{
 		offchain::{http, Duration},
 		sp_std::str,
-		traits::AccountIdConversion,
-		AccountId32, RuntimeAppPublic,
 	};
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.

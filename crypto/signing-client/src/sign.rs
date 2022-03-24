@@ -1,9 +1,9 @@
 //! The Node requests the client to take part in a signature generation.
 
-use common::{OCWMessage, SigRequest};
+use common::OCWMessage;
 use parity_scale_codec::{Decode, Encode};
-use std::{fmt, str};
-use subxt::{sp_runtime::AccountId32, ClientBuilder, DefaultConfig, DefaultExtra, PairSigner};
+use std::str;
+use subxt::{sp_runtime::AccountId32, ClientBuilder, DefaultConfig, DefaultExtra};
 
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
@@ -29,7 +29,7 @@ struct SignRes {
 	pub demo: u8,
 }
 
-pub type entropy_runtime = entropy::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>;
+pub type EntropyRuntime = entropy::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>;
 
 /// Response to the node if the signature was created.
 /// i.e. a signature that the data was stored successfully or Error Code.
@@ -85,17 +85,17 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 	ProvideSignatureRes(SignRes { demo: 1 }.encode())
 }
 
-pub async fn get_api(url: &str) -> Result<entropy_runtime, subxt::Error> {
+pub async fn get_api(url: &str) -> Result<EntropyRuntime, subxt::Error> {
 	let api = ClientBuilder::new()
 		.set_url(url)
 		.build()
 		.await?
-		.to_runtime_api::<entropy_runtime>();
+		.to_runtime_api::<EntropyRuntime>();
 	Ok(api)
 }
 
 pub async fn is_block_author(
-	api: &entropy_runtime,
+	api: &EntropyRuntime,
 	block_author: &AccountId32,
 ) -> Result<bool, subxt::Error> {
 	let all_validator_keys = api.storage().session().queued_keys(None).await?;
@@ -106,14 +106,14 @@ pub async fn is_block_author(
 	Ok(result)
 }
 
-pub async fn get_block_author(api: &entropy_runtime) -> Result<AccountId32, subxt::Error> {
+pub async fn get_block_author(api: &EntropyRuntime) -> Result<AccountId32, subxt::Error> {
 	let block_number = api.storage().system().number(None).await?;
 	let author = api.storage().propagation().block_author(block_number, None).await?.unwrap();
 	Ok(author)
 }
 
 pub async fn get_author_endpoint(
-	api: &entropy_runtime,
+	api: &EntropyRuntime,
 	block_author: AccountId32,
 ) -> Result<Vec<u8>, subxt::Error> {
 	let author_endpoint = api
