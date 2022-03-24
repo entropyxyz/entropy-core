@@ -66,14 +66,14 @@ pub async fn test_context() -> TestContext {
 	env_logger::try_init().ok();
 	let node_proc: TestNodeProcess<DefaultConfig> = test_node_process().await;
 	let api = node_proc.client().clone().to_runtime_api();
-	TestContext { node_proc, api  }
+	TestContext { node_proc, api }
 }
 
 pub async fn test_context_stationary() -> TestContext {
 	env_logger::try_init().ok();
 	let node_proc: TestNodeProcess<DefaultConfig> = test_node_process_stationary().await;
 	let api = node_proc.client().clone().to_runtime_api();
-	TestContext { node_proc, api  }
+	TestContext { node_proc, api }
 }
 
 pub fn pair_signer(pair: Pair) -> PairSigner<DefaultConfig, NodeRuntimeSignedExtra, Pair> {

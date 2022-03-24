@@ -1,5 +1,5 @@
 use crate::{mock::*, BlockAuthor};
-use frame_support::{assert_ok, traits::{OnInitialize}};
+use frame_support::{assert_ok, traits::OnInitialize};
 use pallet_relayer::SigRequest;
 use parking_lot::RwLock;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
@@ -53,11 +53,9 @@ fn notes_block_author() {
 		Propagation::on_initialize(1);
 		assert_eq!(Propagation::get_block_author(1), Some(11));
 
-
 		Propagation::on_initialize(21);
 		assert_eq!(Propagation::get_block_author(1), None);
 		assert_eq!(Propagation::get_block_author(21), Some(11));
-
 	});
 }
 

@@ -31,16 +31,13 @@ pub mod pallet {
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config:
-		frame_system::Config
-		+ pallet_authorship::Config
-		+ pallet_relayer::Config
+		frame_system::Config + pallet_authorship::Config + pallet_relayer::Config
 	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 	}
 
 	pub type Message = common::SigRequest;
-
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -140,9 +137,7 @@ pub mod pallet {
 			}
 			let _res_body = response.body().collect::<Vec<u8>>();
 			// ToDo: DF: handle _res_body
-			Self::deposit_event(Event::MessagesPassed(
-				messages
-			));
+			Self::deposit_event(Event::MessagesPassed(messages));
 
 			Ok(())
 		}

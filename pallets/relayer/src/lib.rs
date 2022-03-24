@@ -176,7 +176,7 @@ pub mod pallet {
 				log::warn!("responsibility not found {:?}", target_block)
 			}
 			if responsibility.is_none() {
-				return
+				return;
 			}
 			// TODO EH is there a better way to handle this
 			let unwrapped = responsibility.unwrap();
@@ -205,7 +205,7 @@ pub mod pallet {
 			let block_author = pallet_authorship::Pallet::<T>::author();
 
 			if block_author.is_none() {
-				return
+				return;
 			}
 
 			Responsibility::<T>::insert(target_block, block_author.unwrap());

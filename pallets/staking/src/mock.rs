@@ -2,7 +2,7 @@ use crate as pallet_staking_extension;
 use frame_election_provider_support::onchain;
 use frame_support::{
 	parameter_types,
-	traits::{ConstU32, Get, Hooks, OneSessionHandler, GenesisBuild},
+	traits::{ConstU32, GenesisBuild, Get, Hooks, OneSessionHandler},
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
@@ -242,7 +242,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		balances: vec![(1, 100), (2, 100), (3, 100), (4, 100)],
 	};
 	let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
-		endpoints: vec![(5, vec![20]), (6, vec![40])]
+		endpoints: vec![(5, vec![20]), (6, vec![40])],
 	};
 
 	pallet_balances.assimilate_storage(&mut t).unwrap();

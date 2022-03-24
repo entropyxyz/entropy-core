@@ -50,24 +50,24 @@ pub mod pallet {
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
-			Self {
-				endpoints: Default::default(),
-			}
+			Self { endpoints: Default::default() }
 		}
 	}
 
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
+			let _ = self
+				.endpoints
+				.clone()
+				.into_iter()
+				.map(|x| assert!(x.1.len() as u32 <= T::MaxEndpointLength::get()));
 
-		let _ = self.endpoints.clone().into_iter().map(|x| {assert!(x.1.len() as u32 <= T::MaxEndpointLength::get())});
-
-		for (account, endpoint) in &self.endpoints {
-			EndpointRegister::<T>::insert(account, endpoint);
+			for (account, endpoint) in &self.endpoints {
+				EndpointRegister::<T>::insert(account, endpoint);
+			}
 		}
-
 	}
-}
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {

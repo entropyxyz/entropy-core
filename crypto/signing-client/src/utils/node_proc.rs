@@ -12,7 +12,7 @@ use subxt::{Client, ClientBuilder, Config};
 pub struct TestNodeProcess<R: Config> {
 	proc: process::Child,
 	client: Client<R>,
-	pub ws_url: String
+	pub ws_url: String,
 }
 
 impl<R> Drop for TestNodeProcess<R>

@@ -1,7 +1,6 @@
 use crate::{mock::*, Error};
 use frame_support::{assert_noop, assert_ok};
 
-
 #[test]
 fn basic_setup_works() {
 	new_test_ext().execute_with(|| {

@@ -16,7 +16,7 @@ fn it_preps_transaction() {
 		let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
 		assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request.clone()));
 
-		assert_eq!(Relayer::messages(0), vec![ sig_request ]);
+		assert_eq!(Relayer::messages(0), vec![sig_request]);
 	});
 }
 

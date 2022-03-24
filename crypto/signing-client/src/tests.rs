@@ -1,8 +1,12 @@
 use super::rocket;
-use crate::sign::{get_api, get_block_author, is_block_author, get_author_endpoint, convert_endpoint};
+use crate::sign::{
+	convert_endpoint, get_api, get_author_endpoint, get_block_author, is_block_author,
+};
+use crate::utils::{test_context, test_context_stationary};
 use curv::elliptic::curves::secp256_k1::Secp256k1;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
 use parity_scale_codec::Encode;
+use rocket::tokio::time::{sleep, Duration};
 use rocket::{
 	http::{ContentType, Status},
 	local::asynchronous::Client,
@@ -13,8 +17,6 @@ use subxt::sp_core::{
 	crypto::{Pair, Ss58Codec},
 	sr25519,
 };
-use rocket::tokio::time::{sleep, Duration};
-use crate::utils::{test_context, test_context_stationary};
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
 	Client::tracked(super::rocket()).await.expect("valid `Rocket`")
@@ -79,7 +81,7 @@ async fn provide_share() {
 	let cxt = test_context_stationary().await;
 	let now = time::Instant::now();
 	// sleep to make sure one block has been mined or else panic
-    sleep(Duration::from_secs(6u64)).await;
+	sleep(Duration::from_secs(6u64)).await;
 
 	let encoded_data = vec![8, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0];
 
@@ -178,9 +180,9 @@ async fn test_get_author_endpoint() {
 	let api = get_api(&cxt.node_proc.ws_url).await;
 	let alice_stash_id: subxt::sp_runtime::AccountId32 =
 		sr25519::Pair::from_string("//Alice//stash", None)
-		.expect("Could not obtain stash signer pair")
-		.public()
-		.into();
+			.expect("Could not obtain stash signer pair")
+			.public()
+			.into();
 
 	let result = get_author_endpoint(&api.unwrap(), alice_stash_id).await;
 	let endpoint = convert_endpoint(&result.as_ref().unwrap());
