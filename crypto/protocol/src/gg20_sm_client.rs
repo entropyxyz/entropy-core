@@ -119,8 +119,9 @@ enum Cmd {
 pub async fn sm_client_cli(args: SmClientCli) -> Result<()> {
 	let client = SmClient::new(args.address, &args.room).context("create SmClient")?;
 	match args.cmd {
-		Cmd::Broadcast { message } =>
-			client.broadcast(&message).await.context("broadcast message")?,
+		Cmd::Broadcast { message } => {
+			client.broadcast(&message).await.context("broadcast message")?
+		},
 		Cmd::IssueIdx => {
 			let index = client.issue_index().await.context("issue index")?;
 			println!("Index: {}", index);
