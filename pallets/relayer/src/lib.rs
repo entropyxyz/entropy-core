@@ -87,7 +87,7 @@ pub mod pallet {
 	pub type SigResponse = common::SigResponse;
 	pub type RegResponse = common::RegistrationResponse;
 	pub type SigRequest = common::SigRequest;
-	pub type Message = common::OCWMessage;
+	pub type Message = common::SigRequest;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -123,7 +123,7 @@ pub mod pallet {
 
 			let block_number = <frame_system::Pallet<T>>::block_number();
 			Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
-				request.push(Message { sig_request });
+				request.push(sig_request);
 				Ok(())
 			})?;
 			// ToDo: get random signeing-nodes
@@ -176,7 +176,7 @@ pub mod pallet {
 				log::warn!("responsibility not found {:?}", target_block)
 			}
 			if responsibility.is_none() {
-				return
+				return;
 			}
 			// TODO EH is there a better way to handle this
 			let unwrapped = responsibility.unwrap();
@@ -205,7 +205,7 @@ pub mod pallet {
 			let block_author = pallet_authorship::Pallet::<T>::author();
 
 			if block_author.is_none() {
-				return
+				return;
 			}
 
 			Responsibility::<T>::insert(target_block, block_author.unwrap());
