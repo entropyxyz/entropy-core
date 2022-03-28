@@ -25,7 +25,7 @@ pub mod pallet {
 		offchain::{http, Duration},
 		sp_std::str,
 	};
-
+	use helpers::{unwrap_or_return, unwrap_or_return_db_read};
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config:
@@ -49,10 +49,11 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(block_number: T::BlockNumber) -> Weight {
-			let block_author = pallet_authorship::Pallet::<T>::author();
+			// TODO: JA return one DB read
+			let block_author = unwrap_or_return_db_read!(pallet_authorship::Pallet::<T>::author());
 			log::warn!("block3: {:?}", &block_author.clone());
-			//TODO JA: fix unwrap
-			BlockAuthor::<T>::insert(block_number, block_author.unwrap());
+
+			BlockAuthor::<T>::insert(block_number, block_author);
 			BlockAuthor::<T>::remove(block_number.saturating_sub(20u32.into()));
 			0
 		}
@@ -109,7 +110,6 @@ pub mod pallet {
 
 			log::warn!("propagation::post::messages: {:?}", &messages);
 			// the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
-			// TODO: JA finalize what needs to be sent in this
 			let req_body = messages.encode();
 
 			log::warn!("propagation::post::req_body: {:?}", &[req_body.clone()]);
@@ -117,7 +117,6 @@ pub mod pallet {
 			// important: the header->Content-Type must be added and match that of the receiving
 			// party!!
 			let pending =
-				// http::Request::post(&url, vec![block_author.clone().unwrap().encode(), req_body])
 				http::Request::post(&url, vec![req_body]) // scheint zu klappen
 					.deadline(deadline)
 					.add_header("Content-Type", "application/x-parity-scale-codec")
