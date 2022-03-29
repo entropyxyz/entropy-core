@@ -25,7 +25,7 @@ pub mod pallet {
 		offchain::{http, Duration},
 		sp_std::str,
 	};
-	use helpers::{unwrap_or_return, unwrap_or_return_db_read};
+	use helpers::{unwrap_or_return_db_read};
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config:
@@ -50,8 +50,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(block_number: T::BlockNumber) -> Weight {
 			// TODO: JA return one DB read
-			let block_author = unwrap_or_return_db_read!(pallet_authorship::Pallet::<T>::author());
-			log::warn!("block3: {:?}", &block_author.clone());
+			let block_author = unwrap_or_return_db_read!(pallet_authorship::Pallet::<T>::author(), 1, "on_init block_author");
 
 			BlockAuthor::<T>::insert(block_number, block_author);
 			BlockAuthor::<T>::remove(block_number.saturating_sub(20u32.into()));

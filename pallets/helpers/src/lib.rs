@@ -3,20 +3,26 @@
 pub mod errors {
 	#[macro_export]
 	macro_rules! unwrap_or_return {
-		( $e:expr ) => {
+		( $e:expr, $w:expr ) => {
 			match $e {
-				Ok(x) => x,
-				Err(_) => return,
+				Some(x) => x,
+				None => {
+					log::warn!("{}", $w);
+					return
+				},
 			}
 		}
 	}
 
 	#[macro_export]
 	macro_rules! unwrap_or_return_db_read {
-		( $e:expr ) => {
+		( $e:expr, $r:expr, $w:expr ) => {
 			match $e {
 				Some(x) => x,
-				None => return T::DbWeight::get().reads(1)
+				None => return {
+					log::warn!("{}", $w);
+					T::DbWeight::get().reads($r)
+				}
 			}
 		}
 	}
