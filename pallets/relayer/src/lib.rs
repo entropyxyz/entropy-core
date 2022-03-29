@@ -21,13 +21,13 @@ pub mod pallet {
 		weights::Pays,
 	};
 	use frame_system::pallet_prelude::*;
+	use helpers::unwrap_or_return;
 	use scale_info::TypeInfo;
 	use sp_runtime::{
 		traits::{DispatchInfoOf, Saturating, SignedExtension},
 		transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
 	};
 	use sp_std::fmt::Debug;
-	use helpers::{unwrap_or_return};
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_authorship::Config {
@@ -172,7 +172,10 @@ pub mod pallet {
 			let target_block = block_number.saturating_sub(2u32.into());
 			let current_failures = Self::failures(block_number);
 			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
-			let responsibility = unwrap_or_return!(Self::responsibility(target_block), "active to pending, responsibility warning");
+			let responsibility = unwrap_or_return!(
+				Self::responsibility(target_block),
+				"active to pending, responsibility warning"
+			);
 
 			if current_failures.is_none() {
 				Unresponsive::<T>::mutate(responsibility, |dings| *dings += 1);
@@ -195,7 +198,10 @@ pub mod pallet {
 
 		pub fn note_responsibility(block_number: T::BlockNumber) {
 			let target_block = block_number.saturating_sub(1u32.into());
-			let block_author = unwrap_or_return!(pallet_authorship::Pallet::<T>::author(), "note responsibility block author warning");
+			let block_author = unwrap_or_return!(
+				pallet_authorship::Pallet::<T>::author(),
+				"note responsibility block author warning"
+			);
 
 			Responsibility::<T>::insert(target_block, block_author);
 

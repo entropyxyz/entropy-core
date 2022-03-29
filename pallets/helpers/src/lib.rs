@@ -8,10 +8,10 @@ pub mod errors {
 				Some(x) => x,
 				None => {
 					log::warn!("{}", $w);
-					return
+					return;
 				},
 			}
-		}
+		};
 	}
 
 	#[macro_export]
@@ -19,12 +19,13 @@ pub mod errors {
 		( $e:expr, $r:expr, $w:expr ) => {
 			match $e {
 				Some(x) => x,
-				None => return {
-					log::warn!("{}", $w);
-					T::DbWeight::get().reads($r)
-				}
+				None => {
+					return {
+						log::warn!("{}", $w);
+						T::DbWeight::get().reads($r)
+					}
+				},
 			}
-		}
+		};
 	}
-
 }
