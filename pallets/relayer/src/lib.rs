@@ -21,6 +21,7 @@ pub mod pallet {
 		weights::Pays,
 	};
 	use frame_system::pallet_prelude::*;
+	use helpers::unwrap_or_return;
 	use scale_info::TypeInfo;
 	use sp_runtime::{
 		traits::{DispatchInfoOf, Saturating, SignedExtension},
@@ -49,11 +50,11 @@ pub mod pallet {
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
-	#[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
-	pub struct Message {
-		pub data_1: u128,
-		pub data_2: u128,
-	}
+	// // type SigRequest = common::SigRequest;
+	// #[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
+	// pub struct Message {
+	// 	sig_request: common::SigRequest,
+	// }
 
 	#[pallet::storage]
 	#[pallet::getter(fn messages)]
@@ -84,13 +85,19 @@ pub mod pallet {
 	#[pallet::getter(fn registered)]
 	pub type Registered<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
+
+	pub type SigResponse = common::SigResponse;
+	pub type RegResponse = common::RegistrationResponse;
+	pub type SigRequest = common::SigRequest;
+	pub type Message = common::SigRequest;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// A transaction has been propagated to the network. [who, block_number]
-		TransactionPropagated(T::AccountId, T::BlockNumber),
+		/// A transaction has been propagated to the network. [who, signature_response]
+		TransactionPropagated(T::AccountId, SigResponse),
 		/// An account has been registered. [who]
 		AccountRegistered(T::AccountId),
 		/// An account has been registered. [who, block_number, failures]
@@ -112,30 +119,33 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
-		pub fn prep_transaction(
-			origin: OriginFor<T>,
-			data_1: u128,
-			data_2: u128,
-		) -> DispatchResult {
+		pub fn prep_transaction(origin: OriginFor<T>, sig_request: SigRequest) -> DispatchResult {
+			log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
 			let who = ensure_signed(origin)?;
 
-			let new_message = Message { data_1, data_2 };
 			let block_number = <frame_system::Pallet<T>>::block_number();
-			Messages::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-				messages.push(new_message);
+			Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
+				request.push(sig_request);
 				Ok(())
 			})?;
-			let signing_block = block_number.saturating_add(1u32.into());
-			Self::deposit_event(Event::TransactionPropagated(who, signing_block));
+			// ToDo: get random signeing-nodes
+			//let sig_response = get_signers();
+			let sig_response = SigResponse { signing_nodes: sp_std::vec![1], com_manager: 1 };
+
+			Self::deposit_event(Event::TransactionPropagated(who, sig_response));
 			Ok(())
 		}
 
+		/// Register a account with the entropy-network
+		/// accounts are identified by the public group key of the user.
+		// ToDo: see https://github.com/Entropyxyz/entropy-core/issues/29
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
 		pub fn register(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			// TODO proof
 			Registered::<T>::insert(&who, true);
 			Self::deposit_event(Event::AccountRegistered(who));
+
 			Ok(())
 		}
 
@@ -163,18 +173,13 @@ pub mod pallet {
 			let target_block = block_number.saturating_sub(2u32.into());
 			let current_failures = Self::failures(block_number);
 			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
-			let responsibility = Self::responsibility(target_block);
-			if responsibility.is_none() {
-				log::warn!("responsibility not found {:?}", target_block)
-			}
-			if responsibility.is_none() {
-				return
-			}
-			// TODO EH is there a better way to handle this
-			let unwrapped = responsibility.unwrap();
+			let responsibility = unwrap_or_return!(
+				Self::responsibility(target_block),
+				"active to pending, responsibility warning"
+			);
 
 			if current_failures.is_none() {
-				Unresponsive::<T>::mutate(&unwrapped, |dings| *dings += 1);
+				Unresponsive::<T>::mutate(responsibility, |dings| *dings += 1);
 
 			//TODO slash or point for failure then slash after pointed a few times
 			// If someone is slashed they probably should reset their unresponsive dings
@@ -182,7 +187,7 @@ pub mod pallet {
 
 			} else {
 				Failures::<T>::remove(prune_block);
-				Unresponsive::<T>::remove(unwrapped);
+				Unresponsive::<T>::remove(responsibility);
 			}
 
 			let messages = Messages::<T>::take(target_block);
@@ -196,13 +201,12 @@ pub mod pallet {
 
 		pub fn note_responsibility(block_number: T::BlockNumber) {
 			let target_block = block_number.saturating_sub(1u32.into());
-			let block_author = pallet_authorship::Pallet::<T>::author();
+			let block_author = unwrap_or_return!(
+				pallet_authorship::Pallet::<T>::author(),
+				"note responsibility block author warning"
+			);
 
-			if block_author.is_none() {
-				return
-			}
-
-			Responsibility::<T>::insert(target_block, block_author.unwrap());
+			Responsibility::<T>::insert(target_block, block_author);
 
 			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
 			Responsibility::<T>::remove(prune_block);
@@ -282,7 +286,7 @@ pub mod pallet {
 					//TODO apply filter logic
 				}
 
-				if let Call::register {} = local_call {
+				if let Call::register { .. } = local_call {
 					//TODO ensure proof
 				}
 

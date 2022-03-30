@@ -1,0 +1,1 @@
+ROCKET_PORT=3001 ./target/release/signing-client_alice

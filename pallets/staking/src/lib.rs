@@ -26,6 +26,7 @@ pub mod pallet {
 		type Currency: Currency<Self::AccountId>;
 		type MaxEndpointLength: Get<u32>;
 	}
+	// TODO: JA add build for initial endpoints
 
 	/// The balance type of this pallet.
 	pub type BalanceOf<T> = <<T as pallet_staking::Config>::Currency as Currency<
@@ -42,16 +43,32 @@ pub mod pallet {
 	pub type EndpointRegister<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, OptionQuery>;
 
-	// // Pallets use events to inform users when important changes are made.
-	// // https://substrate.dev/docs/en/knowledgebase/runtime/events
-	// #[pallet::event]
-	// #[pallet::generate_deposit(pub(super) fn deposit_event)]
-	// pub enum Event<T: Config> {
-	// 	/// Event documentation should end with an array that provides descriptive names for event
-	// 	/// parameters. [something, who]
-	// 	SomethingStored(u32, T::AccountId),
-	// }
+	#[pallet::genesis_config]
+	pub struct GenesisConfig<T: Config> {
+		pub endpoints: Vec<(T::AccountId, Vec<u8>)>,
+	}
 
+	#[cfg(feature = "std")]
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> Self {
+			Self { endpoints: Default::default() }
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		fn build(&self) {
+			let _ = self
+				.endpoints
+				.clone()
+				.into_iter()
+				.map(|x| assert!(x.1.len() as u32 <= T::MaxEndpointLength::get()));
+
+			for (account, endpoint) in &self.endpoints {
+				EndpointRegister::<T>::insert(account, endpoint);
+			}
+		}
+	}
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {

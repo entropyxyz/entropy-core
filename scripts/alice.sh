@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 
-./target/release/node-template purge-chain --base-path /tmp/alice --chain local -y
+./target/release/entropy purge-chain --base-path /tmp/alice --chain local -y
 
 ./target/release/entropy \
 --base-path /tmp/alice \
@@ -12,4 +12,3 @@
 --rpc-port 9933 \
 --node-key 0000000000000000000000000000000000000000000000000000000000000001 \
 --validator
-

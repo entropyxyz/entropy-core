@@ -1,0 +1,17 @@
+[package]
+name = "alice-send"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0.104", features = ["derive"] }
+serde_json = "1.0.48"
+multi-party-ecdsa ={ git = "https://github.com/ZenGo-X/multi-party-ecdsa"}
+curv-kzen = { version = "0.9", default-features = false }
+
+[dev-dependencies]
+httpmock = "0.6.6"

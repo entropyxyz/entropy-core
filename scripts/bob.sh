@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-./target/release/node-template purge-chain --base-path /tmp/alice --chain local -y
+./target/release/entropy purge-chain --base-path /tmp/bob --chain local -y
 
 
 ./target/release/entropy \

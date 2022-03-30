@@ -1,0 +1,1 @@
+ROCKET_PORT=3002 ./target/release/signing-client

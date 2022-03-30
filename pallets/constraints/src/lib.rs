@@ -90,8 +90,8 @@ pub mod pallet {
 			let _whitelist_length = AddressWhitelist::<T>::try_mutate(
 				who.clone(),
 				|addresses| -> Result<usize, DispatchError> {
-					if (addresses.len() as u32 + whitelist_addresses.len() as u32) >
-						T::MaxWhitelist::get()
+					if (addresses.len() as u32 + whitelist_addresses.len() as u32)
+						> T::MaxWhitelist::get()
 					{
 						Err(Error::<T>::MaxWhitelist)?
 					}

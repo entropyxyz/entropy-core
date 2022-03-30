@@ -49,8 +49,7 @@ version = "5.0.0"
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 branch = "master"
-version = "5.0.0"
-
+version = "4.0.0-dev"
 
 [dev-dependencies.sp-runtime]
 default-features = false
