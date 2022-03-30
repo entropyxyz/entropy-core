@@ -49,10 +49,10 @@ log = { version = "0.4.0", default-features = false }
 sp-staking = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sp-io = { version = "5.0.0", default-features = false,  git = "https://github.com/paritytech/substrate",  branch = "master"}
 lite-json = { version = "0.1", default-features = false }
-sp-runtime = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-core = { default-features = false,  git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-runtime = { version = "5.0.0", default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-core = { version = "5.0.0", default-features = false,  git = "https://github.com/paritytech/substrate", branch = "master" }
 common = { path = "../../crypto/common", default-features = false }
-sp-application-crypto = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-application-crypto = { version = "5.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
 
 
