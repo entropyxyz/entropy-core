@@ -8,8 +8,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	println!("test_register");
 	//ToDo:
 	// send key to bob
-	alice_send::send().await;
-	println!("test_register: sent keyshare!");
+	let url = String::from("http://127.0.0.1:3002/store_keyshare");
+	let filepath = String::from("./alice-send/local-share2.json");
+	let res = alice_send::send(url, filepath).await;
+	println!("test_register: sent keyshare! {:?}", &res);
 
 	Ok(())
 }

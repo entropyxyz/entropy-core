@@ -215,12 +215,12 @@ This is done by
   5. `cargo build --release -p testing-user-clients`
   6. `cargo build --release -p entropy`
   7. give permission to scripts:
-  `chmod +x ./scripts/pull_entropy_metadata.sh && chmod +x ./scripts/alice.sh && chmod +x ./scripts/bob.sh`
+  `chmod +x ./scripts/pull_entropy_metadata.sh && chmod +x ./scripts/alice.sh && chmod +x ./scripts/bob.sh && chmod +x ./scripts/sigclient_alice.sh && chmod +x ./scripts/sigclient_bob.sh`
 2. `git clone https://github.com/Entropyxyz/util-scripts.git` to wherever directory
 3. open 5 CLIs. run the following commands in them respectively. 
   1. `./scripts/alice.sh` - start node 1
   2. `./scripts/bob.sh` - start node 2
-  3. when both nodes are running, enter the util-scripts folder and run `ts-node setEndpoint.ts`
+  3. when both nodes are running, enter the util-scripts folder and run `ts-node setEndpoint.ts` (might have to `npm install`)
   4. `./scripts/sigclient_alice.sh` - start the signing-client at port 3001 for node1 (this is the changed client, see above)
   5. `./scripts/sigclient_bob.sh` - start the signing-client at port 3002 for node2 (a unchanged client)
   6. everything is set up!

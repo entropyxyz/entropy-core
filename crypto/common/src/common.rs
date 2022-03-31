@@ -2,7 +2,6 @@
 /// common structs etc, shared among the substrate-blockchain-code and the crypto-code
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-
 /// RegistrationMessage holds the information sent by the User to the extropy-network during
 /// account-registration
 #[derive(Clone, Encode, Decode, Debug, PartialEq, TypeInfo)]
@@ -72,12 +71,12 @@ pub struct SigResponse {
 	pub com_manager: u16,
 }
 
-/// The message sent from pallets::propagation::post() to the signing-client.
-#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
-pub struct OCWMessage {
-	// pub thing: u128,
-	pub sig_request: SigRequest,
-	/* ToDo_DF:
-	 * /// block_author
-	 * block_author */
-}
+// /// The message sent from pallets::propagation::post() to the signing-client.
+// #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+// pub struct OCWMessage {
+// 	// pub thing: u128,
+// 	pub sig_request: SigRequest,
+// 	/* ToDo_DF:
+// 	 * /// block_author
+// 	 * block_author */
+// }
