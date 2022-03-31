@@ -50,7 +50,6 @@ pub fn centralized_keygen() -> Result<()> {
 	let mut paillier_key_vec: Vec<EncryptionKey> = Vec::with_capacity(n.into());
 	let mut paillier_dk_vec: Vec<DecryptionKey> = Vec::with_capacity(n.into());
 	let mut pk_vec: Vec<Point<Secp256k1>> = Vec::with_capacity(n.into());
-	let mut pk_vec_assert: Vec<Point<Secp256k1>> = Vec::with_capacity(n.into());
 	let mut h1_h2_n_tilde_vec: Vec<DLogStatement> = Vec::with_capacity(n.into());
 	
 	// assemble components of the LocalKey's that are the same for all parties: 
@@ -75,9 +74,7 @@ pub fn centralized_keygen() -> Result<()> {
 	let y = Point::generator() * &master_key;
 	// assemble components that are unique for each party and then fill LocalKey
 	for i in 0usize..usize::from(n) {
-		let paillier_dk: paillier::DecryptionKey = paillier_dk_vec[i].clone();
 		let keys_linear = SharedKeys {y: y.clone(), x_i: x[i].clone()};
-		let y_sum_s = y.clone();
 
 		//let num = usize::from(n);
 		localkeys.push(LocalKey{
@@ -101,7 +98,7 @@ pub fn centralized_keygen() -> Result<()> {
 }
 
 fn get_d_log_statement() -> DLogStatement {
-	let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
+	let (N_tilde, h1, h2, _xhi, _xhi_inv) = generate_h1_h2_N_tilde();
 	DLogStatement {
 		N: N_tilde,
 		g: h1,
@@ -121,7 +118,6 @@ impl PrintToFile for Vec<LocalKey<Secp256k1>> {
 	fn print_to_file(&self, path: &str) -> Result<()> {
 		for (i, localkey) in self.iter().enumerate() {
 			let file = format!("{}/local-share{}.json",&path, i+1);
-			let json = serde_json::to_string(localkey)?;
 			std::fs::create_dir_all(path)?;
 			let file = File::create(&file)?;
 			let mut writer = BufWriter::new(&file);
@@ -153,7 +149,7 @@ impl PrintToFile for Vec<LocalKey<Secp256k1>> {
 		// create vector with n elements, each element is zero
 		let mut x: Vec<Scalar::<Secp256k1>> = Vec::with_capacity(n.into());
 		let mut vss_vec: Vec<VerifiableSS<Secp256k1>> = Vec::with_capacity(n.into());
-		for i in 0..n {
+		for _i in 0..n {
 			x.push(Scalar::<Secp256k1>::zero());
 		}
 
@@ -190,7 +186,7 @@ pub(crate) fn split_masterkey_into_summands(master_key: &Scalar::<Secp256k1>, n:
 	let mut u_0 = master_key.clone();
 	// create n-1 random Scalar::<Secp256k1>
 	// the n-th is equal to master_key.minus(sum_of_n-1_Scalars)
-	for i in 1..n {
+	for _i in 1..n {
 		let tmp = Scalar::<Secp256k1>::random();
 		if tmp == Scalar::<Secp256k1>::zero() {
 			// Invalid value. Start all over again
@@ -205,11 +201,6 @@ pub(crate) fn split_masterkey_into_summands(master_key: &Scalar::<Secp256k1>, n:
 	} 
 	u.push(u_0);
 	Ok(u)
-}
-
-fn sum_vec_scalar(v:Vec<Scalar::<Secp256k1>>) -> Scalar::<Secp256k1> {
-	// let mut sum Scalar::<Secp256k1>::zero()
-	v.iter().sum()
 }
 
 // this fn can be deleted later
@@ -228,7 +219,7 @@ fn _secret_sharing_proof_of_concept(t:u16,n:u16) {
 	// create a set of keys!
 	// /////////////////////
 	let secret = Scalar::<Secp256k1>::random();
-	let (vss_scheme, secret_shares) =
+	let (_vss_scheme, secret_shares) =
             // VerifiableSS::share(params.threshold, params.share_count, &self.u_i);
             VerifiableSS::share(t, n, &secret);
 
