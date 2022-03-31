@@ -76,7 +76,7 @@ impl Db {
 		if let Some(room) = rooms.get(room_id) {
 			// If no one is watching this room - we need to clean it up first
 			if !room.is_abandoned() {
-				return room.clone()
+				return room.clone();
 			}
 		}
 		drop(rooms);
@@ -136,7 +136,7 @@ impl Subscription {
 			if let Some(msg) = history.get(usize::from(self.next_event)) {
 				let event_id = self.next_event;
 				self.next_event = event_id + 1;
-				return (event_id, msg.clone())
+				return (event_id, msg.clone());
 			}
 			let notification = self.room.message_appeared.notified();
 			drop(history);
@@ -162,8 +162,9 @@ impl<'r> FromRequest<'r> for LastEventId {
 		let header = request.headers().get_one("Last-Event-ID").map(|id| id.parse::<u16>());
 		match header {
 			Some(Ok(last_seen_msg)) => Outcome::Success(LastEventId(Some(last_seen_msg))),
-			Some(Err(_parse_err)) =>
-				Outcome::Failure((Status::BadRequest, "last seen msg id is not valid")),
+			Some(Err(_parse_err)) => {
+				Outcome::Failure((Status::BadRequest, "last seen msg id is not valid"))
+			},
 			None => Outcome::Success(LastEventId(None)),
 		}
 	}

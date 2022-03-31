@@ -1,0 +1,458 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'protocol'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=protocol"
+				],
+				"filter": {
+					"name": "protocol",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'cli'",
+			"cargo": {
+				"args": [
+					"build",
+					"--bin=cli",
+					"--package=protocol"
+				],
+				"filter": {
+					"name": "cli",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in executable 'cli'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=cli",
+					"--package=protocol"
+				],
+				"filter": {
+					"name": "cli",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'common'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=common"
+				],
+				"filter": {
+					"name": "common",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'signing-client'",
+			"cargo": {
+				"args": [
+					"build",
+					"--bin=signing-client",
+					"--package=signing-client"
+				],
+				"filter": {
+					"name": "signing-client",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in executable 'signing-client'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=signing-client",
+					"--package=signing-client"
+				],
+				"filter": {
+					"name": "signing-client",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'testing-user-clients'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=testing-user-clients"
+				],
+				"filter": {
+					"name": "testing-user-clients",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'test_register'",
+			"cargo": {
+				"args": [
+					"build",
+					"--bin=test_register",
+					"--package=testing-user-clients"
+				],
+				"filter": {
+					"name": "test_register",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in executable 'test_register'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=test_register",
+					"--package=testing-user-clients"
+				],
+				"filter": {
+					"name": "test_register",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'test_sign'",
+			"cargo": {
+				"args": [
+					"build",
+					"--bin=test_sign",
+					"--package=testing-user-clients"
+				],
+				"filter": {
+					"name": "test_sign",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in executable 'test_sign'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=test_sign",
+					"--package=testing-user-clients"
+				],
+				"filter": {
+					"name": "test_sign",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'alice-send'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=alice-send"
+				],
+				"filter": {
+					"name": "alice-send",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'entropy'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=entropy"
+				],
+				"filter": {
+					"name": "entropy",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'entropy'",
+			"cargo": {
+				"args": [
+					"build",
+					"--bin=entropy",
+					"--package=entropy"
+				],
+				"filter": {
+					"name": "entropy",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in executable 'entropy'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=entropy",
+					"--package=entropy"
+				],
+				"filter": {
+					"name": "entropy",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'entropy-runtime'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=entropy-runtime"
+				],
+				"filter": {
+					"name": "entropy-runtime",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'pallet-constraints'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=pallet-constraints"
+				],
+				"filter": {
+					"name": "pallet-constraints",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'pallet-relayer'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=pallet-relayer"
+				],
+				"filter": {
+					"name": "pallet-relayer",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'pallet-propagation'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=pallet-propagation"
+				],
+				"filter": {
+					"name": "pallet-propagation",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'pallet-staking-extension'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=pallet-staking-extension"
+				],
+				"filter": {
+					"name": "pallet-staking-extension",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'pallet-slashing'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=pallet-slashing"
+				],
+				"filter": {
+					"name": "pallet-slashing",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'node-rpc'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=node-rpc"
+				],
+				"filter": {
+					"name": "node-rpc",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'subxt_test'",
+			"cargo": {
+				"args": [
+					"build",
+					"--bin=subxt_test",
+					"--package=subxt_test"
+				],
+				"filter": {
+					"name": "subxt_test",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in executable 'subxt_test'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=subxt_test",
+					"--package=subxt_test"
+				],
+				"filter": {
+					"name": "subxt_test",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		}
+	]
+}
