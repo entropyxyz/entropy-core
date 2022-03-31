@@ -164,7 +164,7 @@ impl PrintToFile for Vec<LocalKey<Secp256k1>> {
 			let x_clone = x.clone();
 
 			for (i, xval) in x_clone.into_iter().enumerate() {
-				x[i] = xval + &secret_shares.shares[i];
+				x[i] = xval + secret_shares.polynomial().evaluate(&Scalar::from(i as i32)); //.deref()
 			}
 			vss_vec.push(vss_scheme);
 		}
@@ -228,7 +228,7 @@ fn _secret_sharing_proof_of_concept(t:u16,n:u16) {
 
 	// let x = secret_shares.shares;
 	// let x = ops::deref(secret_shares.shares);
-	for (i, share) in secret_shares.shares.into_iter().enumerate() {
+	for (i, share) in secret_shares.polynomial().evaluate_many_bigint(1..=n).enumerate() {
 		println!("i, share: {} {:?}", i, share);
 		let mut party_keys = Keys::create(i);
 		let pk = Point::generator() * &share;
