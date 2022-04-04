@@ -16,6 +16,7 @@ pub mod pallet {
 	use frame_support::{
 		dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency,
 	};
+	use core::convert::TryInto;
 	use frame_system::pallet_prelude::*;
 	use pallet_staking::ValidatorPrefs;
 

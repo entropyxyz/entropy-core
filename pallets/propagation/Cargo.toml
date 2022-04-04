@@ -17,7 +17,7 @@ targets = ['x86_64-unknown-linux-gnu']
 default-features = false
 features = ['derive']
 package = 'parity-scale-codec'
-version = '2.0.0'
+version = '3.0.0'
 
 [dependencies.frame-benchmarking]
 default-features = false
@@ -44,20 +44,20 @@ pallet-relayer = { version = "3.0.0", default-features = false, path = "../relay
 pallet-staking-extension = { version = "3.0.0", default-features = false, path = "../staking" }
 helpers = { path = "../helpers", default-features = false }
 
-scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
 log = { version = "0.4.0", default-features = false }
 sp-staking = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-sp-io = { version = "5.0.0", default-features = false,  git = "https://github.com/paritytech/substrate",  branch = "master"}
+sp-io = { version = "6.0.0", default-features = false,  git = "https://github.com/paritytech/substrate",  branch = "master"}
 lite-json = { version = "0.1", default-features = false }
-sp-runtime = { version = "5.0.0", default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-core = { version = "5.0.0", default-features = false,  git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-runtime = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-core = { version = "6.0.0", default-features = false,  git = "https://github.com/paritytech/substrate", branch = "master" }
 common = { path = "../../crypto/common", default-features = false }
-sp-application-crypto = { version = "5.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-application-crypto = { version = "6.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
 
 
 [dev-dependencies]
-sp-keystore = { version = "0.11.0", git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-keystore = { version = "0.12.0", git = "https://github.com/paritytech/substrate", branch = "master" }
 parking_lot = "0.11.2"
 pallet-staking = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sp-staking = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }

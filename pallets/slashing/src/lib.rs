@@ -29,9 +29,8 @@ pub mod pallet {
 		offence::{Kind, Offence, ReportOffence},
 		SessionIndex,
 	};
-
-	use frame_support::sp_runtime::{Perbill, RuntimeDebug};
 	use scale_info::prelude::vec;
+	use frame_support::sp_runtime::{Perbill, RuntimeDebug};
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -74,20 +73,7 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
-	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
-	// Errors inform users that something went wrong.
-	#[pallet::error]
-	pub enum Error<T> {
-		/// Error names should be descriptive.
-		NoneValue,
-		/// Errors should have helpful documentation associated with them.
-		StorageOverflow,
-		/// Error in the DKG.
-		KeyGenInternalError,
-		NoAssociatedValidatorId,
-	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
