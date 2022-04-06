@@ -81,7 +81,7 @@ async fn provide_share() {
 	let cxt = test_context_stationary().await;
 	let now = time::Instant::now();
 	// sleep to make sure one block has been mined or else panic
-	sleep(Duration::from_secs(6u64)).await;
+	sleep(Duration::from_secs(8u64)).await;
 
 	let encoded_data = vec![8, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0];
 
@@ -161,7 +161,7 @@ async fn not_validator_block_author() {
 #[rocket::async_test]
 async fn test_get_block_author() {
 	let cxt = test_context().await;
-	sleep(Duration::from_secs(6u64)).await;
+	sleep(Duration::from_secs(8u64)).await;
 	let api = get_api(&cxt.node_proc.ws_url).await;
 	let result = get_block_author(&api.unwrap()).await;
 	println!("result {:?}", result);
