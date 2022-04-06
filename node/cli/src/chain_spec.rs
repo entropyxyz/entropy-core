@@ -21,9 +21,9 @@
 use entropy_runtime::{
 	constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
 	BalancesConfig, Block, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
-	ImOnlineConfig, IndicesConfig, SessionConfig, SessionKeys, SocietyConfig, StakerStatus,
-	StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
-	MaxNominations,
+	ImOnlineConfig, IndicesConfig, MaxNominations, SessionConfig, SessionKeys, SocietyConfig,
+	StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
+	TechnicalCommitteeConfig,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;

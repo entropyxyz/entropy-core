@@ -16,6 +16,7 @@ mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use frame_support::sp_runtime::{Perbill, RuntimeDebug};
 	use frame_support::{
 		dispatch::DispatchResult,
 		inherent::Vec,
@@ -23,14 +24,13 @@ pub mod pallet {
 		traits::{ValidatorSet, ValidatorSetWithIdentification},
 	};
 	use frame_system::pallet_prelude::*;
+	use scale_info::prelude::vec;
 	use sp_application_crypto::RuntimeAppPublic;
 	use sp_runtime::{sp_std::str, traits::Convert};
 	use sp_staking::{
 		offence::{Kind, Offence, ReportOffence},
 		SessionIndex,
 	};
-	use scale_info::prelude::vec;
-	use frame_support::sp_runtime::{Perbill, RuntimeDebug};
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -73,8 +73,6 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
-
-
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -89,7 +87,10 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// An example dispatchable that may throw a custom error.
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn demo_offence<'a>(origin: OriginFor<T>, offenders: Vec<T::AccountId>) -> DispatchResult  {
+		pub fn demo_offence<'a>(
+			origin: OriginFor<T>,
+			offenders: Vec<T::AccountId>,
+		) -> DispatchResult {
 			// TODO remove this function, it is for demo purposes only
 			let who = ensure_signed(origin)?;
 			Self::do_offence(who, offenders)?;
@@ -101,9 +102,7 @@ pub mod pallet {
 		pub fn do_offence(
 			who: T::AccountId,
 			offender_addresses: Vec<T::AccountId>,
-		) -> DispatchResult
-		{
-
+		) -> DispatchResult {
 			let offenders = offender_addresses
 				.clone()
 				.into_iter()
@@ -118,15 +117,15 @@ pub mod pallet {
 			let session_index = T::ValidatorSet::session_index();
 			let current_validators = T::ValidatorSet::validators();
 			let validator_set_count = current_validators.clone().len() as u32;
-			if validator_set_count.saturating_sub(offender_addresses.len() as u32) <= T::MinValidators::get()
+			if validator_set_count.saturating_sub(offender_addresses.len() as u32)
+				<= T::MinValidators::get()
 			{
 				log::info!("Min validators not slashed: {:?}", offenders);
 			} else {
 				log::info!("session_index: {:?}", session_index);
 				log::info!("offenders: {:?}", offenders);
 
-				let offence =
-					TuxAngry { session_index, validator_set_count, offenders: offenders };
+				let offence = TuxAngry { session_index, validator_set_count, offenders };
 
 				log::info!("offence: {:?}", offence);
 				if let Err(e) = T::ReportBad::report_offence(vec![who.clone()], offence) {

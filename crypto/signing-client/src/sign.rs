@@ -29,7 +29,8 @@ struct SignRes {
 	pub demo: u8,
 }
 
-pub type EntropyRuntime = entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<DefaultConfig>>;
+pub type EntropyRuntime =
+	entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<DefaultConfig>>;
 
 /// Response to the node if the signature was created.
 /// i.e. a signature that the data was stored successfully or Error Code.
@@ -106,7 +107,9 @@ pub async fn is_block_author(
 	Ok(result)
 }
 
-pub async fn get_block_author(api: &EntropyRuntime) -> Result<AccountId32, subxt::Error<entropy::DispatchError>> {
+pub async fn get_block_author(
+	api: &EntropyRuntime,
+) -> Result<AccountId32, subxt::Error<entropy::DispatchError>> {
 	let block_number = api.storage().system().number(None).await?;
 	let author = api.storage().propagation().block_author(&block_number, None).await?.unwrap();
 	Ok(author)

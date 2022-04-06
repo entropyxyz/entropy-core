@@ -3,7 +3,7 @@ use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use sp_keyring::AccountKeyring;
 use std::panic::take_hook;
-use subxt::{ClientBuilder, DefaultConfig, SubstrateExtrinsicParams, PairSigner};
+use subxt::{ClientBuilder, DefaultConfig, PairSigner, SubstrateExtrinsicParams};
 
 use crate::sign::{sign, SignCli};
 
@@ -85,7 +85,8 @@ impl User {
 			.set_url("ws://localhost:9944")
 			.build()
 			.await?
-			.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<_>>>();
+			.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<_>>>(
+		);
 
 		println!("about to send xt with sig_id: {:?}", &sig_req.sig_id);
 
@@ -141,7 +142,8 @@ impl User {
 			.set_url("ws://localhost:9944")
 			.build()
 			.await?
-			.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<_>>>();
+			.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<_>>>(
+		);
 
 		// ToDo: JA determine if wait for block or wait for success
 		// send extrinsic

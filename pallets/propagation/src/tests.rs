@@ -59,9 +59,7 @@ fn notes_block_author() {
 	});
 }
 
-fn offchain_worker_env(
-	state_updater: fn(&mut testing::OffchainState),
-) -> TestExternalities {
+fn offchain_worker_env(state_updater: fn(&mut testing::OffchainState)) -> TestExternalities {
 	// const PHRASE: &str =
 	// 	"news slush supreme milk chapter athlete soap sausage put clutch what kitten";
 

@@ -1,5 +1,6 @@
 use crate as pallet_staking_extension;
-use frame_election_provider_support::{onchain, VoteWeight, SequentialPhragmen};
+use core::convert::{TryFrom, TryInto};
+use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
 use frame_support::{
 	parameter_types,
 	traits::{ConstU32, GenesisBuild, Get, Hooks, OneSessionHandler},
@@ -13,8 +14,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, ConvertInto, IdentityLookup, Zero},
 	Perbill,
 };
-use sp_staking::{SessionIndex, EraIndex};
-use core::convert::{TryInto, TryFrom};
+use sp_staking::{EraIndex, SessionIndex};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;

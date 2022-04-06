@@ -1,5 +1,5 @@
 use crate as pallet_slashing;
-use frame_election_provider_support::{onchain, VoteWeight, SequentialPhragmen};
+use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
 use frame_support::{
 	parameter_types,
 	traits::{ConstU32, GenesisBuild, OneSessionHandler},
@@ -10,12 +10,12 @@ use sp_core::H256;
 use sp_runtime::{
 	curve::PiecewiseLinear,
 	testing::{Header, TestXt, UintAuthorityId},
-	traits::{BlakeTwo256, IdentityLookup, ConvertInto},
+	traits::{BlakeTwo256, ConvertInto, IdentityLookup},
 	Perbill,
 };
 use sp_staking::{
 	offence::{OffenceError, ReportOffence},
-	SessionIndex, EraIndex
+	EraIndex, SessionIndex,
 };
 use std::cell::RefCell;
 

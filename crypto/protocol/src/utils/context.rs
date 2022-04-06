@@ -1,9 +1,7 @@
 use super::node_proc::TestNodeProcess;
 use sp_core::sr25519::Pair;
 use sp_keyring::AccountKeyring;
-use subxt::{
-	SubstrateExtrinsicParams, Client, DefaultConfig, PairSigner,
-};
+use subxt::{Client, DefaultConfig, PairSigner, SubstrateExtrinsicParams};
 
 /// substrate node should be installed
 fn get_path() -> String {
