@@ -1,12 +1,11 @@
 use crate as pallet_staking_extension;
-use frame_election_provider_support::onchain;
+use frame_election_provider_support::{onchain, VoteWeight, SequentialPhragmen};
 use frame_support::{
 	parameter_types,
 	traits::{ConstU32, GenesisBuild, Get, Hooks, OneSessionHandler},
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
-use pallet_staking::EraIndex;
 use sp_core::H256;
 use sp_runtime::{
 	curve::PiecewiseLinear,
@@ -14,7 +13,8 @@ use sp_runtime::{
 	traits::{BlakeTwo256, ConvertInto, IdentityLookup, Zero},
 	Perbill,
 };
-use sp_staking::SessionIndex;
+use sp_staking::{SessionIndex, EraIndex};
+use core::convert::{TryInto, TryFrom};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -37,6 +37,7 @@ frame_support::construct_runtime!(
 		FrameStaking: pallet_staking::{Pallet, Call, Storage, Event<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Historical: pallet_session_historical::{Pallet},
+		BagsList: pallet_bags_list::{Pallet, Call, Storage, Event<T>},
 	}
 );
 type AccountId = u64;
@@ -137,8 +138,10 @@ sp_runtime::impl_opaque_keys! {
 	}
 }
 
-impl onchain::Config for Test {
-	type Accuracy = Perbill;
+pub struct OnChainSeqPhragmen;
+impl onchain::ExecutionConfig for OnChainSeqPhragmen {
+	type System = Test;
+	type Solver = SequentialPhragmen<AccountId, Perbill>;
 	type DataProvider = FrameStaking;
 }
 
@@ -168,6 +171,21 @@ where
 	type Extrinsic = TestXt<Call, ()>;
 }
 
+const THRESHOLDS: [sp_npos_elections::VoteWeight; 9] =
+	[10, 20, 30, 40, 50, 60, 1_000, 2_000, 10_000];
+
+parameter_types! {
+	pub static BagThresholds: &'static [sp_npos_elections::VoteWeight] = &THRESHOLDS;
+}
+
+impl pallet_bags_list::Config for Test {
+	type Event = Event;
+	type WeightInfo = ();
+	type ScoreProvider = FrameStaking;
+	type BagThresholds = BagThresholds;
+	type Score = VoteWeight;
+}
+
 parameter_types! {
 	pub const SessionsPerEra: SessionIndex = 2;
 	pub const BondingDuration: EraIndex = 0;
@@ -176,6 +194,7 @@ parameter_types! {
 	pub const ElectionLookahead: u64 = 0;
 	pub const StakingUnsignedPriority: u64 = u64::MAX / 2;
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
+	pub static MaxNominations: u32 = 16;
 }
 
 pub struct StakingBenchmarkingConfig;
@@ -185,7 +204,7 @@ impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
 }
 
 impl pallet_staking::Config for Test {
-	const MAX_NOMINATIONS: u32 = 16;
+	type MaxNominations = MaxNominations;
 	type RewardRemainder = ();
 	type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
 	type Event = Event;
@@ -202,9 +221,10 @@ impl pallet_staking::Config for Test {
 	type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
 	type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
 	type NextNewSession = Session;
-	type ElectionProvider = onchain::OnChainSequentialPhragmen<Self>;
+	type ElectionProvider = onchain::UnboundedExecution<OnChainSeqPhragmen>;
+	type VoterList = BagsList;
+	type MaxUnlockingChunks = ConstU32<32>;
 	type GenesisElectionProvider = Self::ElectionProvider;
-	type SortedListProvider = pallet_staking::UseNominatorsMap<Self>;
 	type BenchmarkingConfig = StakingBenchmarkingConfig;
 	type WeightInfo = ();
 }

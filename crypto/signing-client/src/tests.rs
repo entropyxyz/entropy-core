@@ -184,7 +184,7 @@ async fn test_get_author_endpoint() {
 			.public()
 			.into();
 
-	let result = get_author_endpoint(&api.unwrap(), alice_stash_id).await;
+	let result = get_author_endpoint(&api.unwrap(), &alice_stash_id).await;
 	let endpoint = convert_endpoint(&result.as_ref().unwrap());
 
 	assert_eq!(endpoint.unwrap(), "ws://localhost:3001");

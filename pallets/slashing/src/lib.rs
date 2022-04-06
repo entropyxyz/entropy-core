@@ -118,7 +118,7 @@ pub mod pallet {
 			let session_index = T::ValidatorSet::session_index();
 			let current_validators = T::ValidatorSet::validators();
 			let validator_set_count = current_validators.clone().len() as u32;
-			if validator_set_count.saturating_sub(offenders.len() as u32) <= T::MinValidators::get()
+			if validator_set_count.saturating_sub(offender_addresses.len() as u32) <= T::MinValidators::get()
 			{
 				log::info!("Min validators not slashed: {:?}", offenders);
 			} else {

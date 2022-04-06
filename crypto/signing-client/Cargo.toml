@@ -23,9 +23,9 @@ serde = { version = "1.0", features = ["derive"] }
 surf = "2"
 
 [dev-dependencies]
-sp-keyring = { package = "sp-keyring", git = "https://github.com/paritytech/substrate/", branch = "master" }
+sp-keyring = "6.0.0"
 project-root = "0.2.2"
-sp-core = { version = "6.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-core = { version = "6.0.0", default-features = false  }
 env_logger = "0.9.0"
 log = "0.4.14"
 which = "4.0.2"

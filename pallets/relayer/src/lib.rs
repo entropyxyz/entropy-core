@@ -27,10 +27,10 @@ pub mod pallet {
 		traits::{DispatchInfoOf, Saturating, SignedExtension},
 		transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
 	};
-	use sp_std::{fmt::Debug, vec};
+	use sp_std::{fmt::Debug};
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_authorship::Config + pallet_slashing::Config {
+	pub trait Config: frame_system::Config + pallet_authorship::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type PruneBlock: Get<Self::BlockNumber>;

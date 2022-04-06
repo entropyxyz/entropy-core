@@ -63,6 +63,8 @@ frame-election-provider-support = { version = "4.0.0-dev", default-features = fa
 pallet-session = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sp-staking = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 pallet-staking-reward-curve = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+pallet-bags-list = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-npos-elections = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
 [features]
 default = ['std']
@@ -76,5 +78,6 @@ std = [
 	'pallet-staking/std',
 	'pallet-balances/std',
     'frame-benchmarking/std',
+	"sp-npos-elections/std",
 ]
 try-runtime = ['frame-support/try-runtime']
