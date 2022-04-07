@@ -47,6 +47,7 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	// // type SigRequest = common::SigRequest;
@@ -178,10 +179,11 @@ pub mod pallet {
 			);
 
 			if current_failures.is_none() {
-				Unresponsive::<T>::mutate(responsibility, |dings| *dings += 1);
+				Unresponsive::<T>::mutate(responsibility.clone(), |dings| *dings += 1);
 
 			//TODO slash or point for failure then slash after pointed a few times
 			// If someone is slashed they probably should reset their unresponsive dings
+			// let _result = pallet_slashing::Pallet::<T>::do_offence(responsibility, vec![responsibility]);
 			} else {
 				Failures::<T>::remove(prune_block);
 				Unresponsive::<T>::remove(responsibility);

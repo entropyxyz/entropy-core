@@ -16,7 +16,7 @@ targets = ['x86_64-unknown-linux-gnu']
 default-features = false
 features = ['derive']
 package = 'parity-scale-codec'
-version = '2.0.0'
+version = '3.0.0'
 
 [dependencies.frame-benchmarking]
 default-features = false
@@ -37,28 +37,24 @@ branch = "master"
 [dependencies.scale-info]
 default-features = false
 features = ['derive']
-version = '1.0'
+version = '2.0.1'
 
 [dev-dependencies.sp-core]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 branch = "master"
-version = "4.1.0-dev"
+version = "6.0.0"
 
 [dev-dependencies.sp-io]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 branch = "master"
-version = "4.0.0-dev"
+version = "6.0.0"
 
-[dev-dependencies.sp-runtime]
-default-features = false
-git = 'https://github.com/paritytech/substrate.git'
-branch = "master"
 
 [dependencies]
 pallet-staking = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-sp-runtime = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-runtime = { version = "6.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
 [dev-dependencies]
 pallet-balances = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
@@ -67,6 +63,8 @@ frame-election-provider-support = { version = "4.0.0-dev", default-features = fa
 pallet-session = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 sp-staking = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 pallet-staking-reward-curve = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+pallet-bags-list = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-npos-elections = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
 [features]
 default = ['std']
@@ -80,5 +78,6 @@ std = [
 	'pallet-staking/std',
 	'pallet-balances/std',
     'frame-benchmarking/std',
+	"sp-npos-elections/std",
 ]
 try-runtime = ['frame-support/try-runtime']

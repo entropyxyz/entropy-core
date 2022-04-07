@@ -3,7 +3,7 @@ use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use sp_keyring::AccountKeyring;
 use std::panic::take_hook;
-use subxt::{ClientBuilder, DefaultConfig, DefaultExtra, PairSigner};
+use subxt::{ClientBuilder, DefaultConfig, PairSigner, SubstrateExtrinsicParams};
 
 use crate::sign::{sign, SignCli};
 
@@ -85,7 +85,8 @@ impl User {
 			.set_url("ws://localhost:9944")
 			.build()
 			.await?
-			.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, DefaultExtra<_>>>();
+			.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<_>>>(
+		);
 
 		println!("about to send xt with sig_id: {:?}", &sig_req.sig_id);
 
@@ -101,17 +102,17 @@ impl User {
 				// }
 				sig_req,
 			)
-			.sign_and_submit_then_watch(&signer)
+			.sign_and_submit_then_watch_default(&signer)
 			.await?
 			.wait_for_finalized_success()
 			.await?;
 
 		let responding_node = result
-			.find_first_event::<entropy::relayer::events::TransactionPropagated>()?
+			.find_first::<entropy::relayer::events::TransactionPropagated>()?
 			.context("request_sig_gen no result received")?
 			.0;
 		let sig_response = result
-			.find_first_event::<entropy::relayer::events::TransactionPropagated>()?
+			.find_first::<entropy::relayer::events::TransactionPropagated>()?
 			.context("request_sig_gen no result received")?
 			.1;
 
@@ -141,7 +142,8 @@ impl User {
 			.set_url("ws://localhost:9944")
 			.build()
 			.await?
-			.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, DefaultExtra<_>>>();
+			.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<_>>>(
+		);
 
 		// ToDo: JA determine if wait for block or wait for success
 		// send extrinsic
@@ -149,7 +151,7 @@ impl User {
 			.tx()
 			.relayer()
 			.register()
-			.sign_and_submit_then_watch(&signer)
+			.sign_and_submit_then_watch_default(&signer)
 			.await?
 			.wait_for_in_block()
 			.await?
@@ -157,7 +159,7 @@ impl User {
 			.await?;
 
 		let responding_node = result
-			.find_first_event::<entropy::relayer::events::AccountRegistered>()?
+			.find_first::<entropy::relayer::events::AccountRegistered>()?
 			.context("send_registration_request no result received")?
 			.0;
 

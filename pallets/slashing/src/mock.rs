@@ -1,12 +1,11 @@
 use crate as pallet_slashing;
-use frame_election_provider_support::onchain;
+use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
 use frame_support::{
 	parameter_types,
 	traits::{ConstU32, GenesisBuild, OneSessionHandler},
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
-use pallet_staking::EraIndex;
 use sp_core::H256;
 use sp_runtime::{
 	curve::PiecewiseLinear,
@@ -16,7 +15,7 @@ use sp_runtime::{
 };
 use sp_staking::{
 	offence::{OffenceError, ReportOffence},
-	SessionIndex,
+	EraIndex, SessionIndex,
 };
 use std::cell::RefCell;
 
@@ -37,6 +36,7 @@ frame_support::construct_runtime!(
 		Historical: pallet_session_historical::{Pallet},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Staking: pallet_staking::{Pallet, Call, Storage, Config<T>, Event<T>},
+		BagsList: pallet_bags_list::{Pallet, Call, Storage, Event<T>},
 	}
 );
 type AccountId = u64;
@@ -161,10 +161,28 @@ parameter_types! {
 	pub const SlashDeferDuration: EraIndex = 0;
 	pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(16);
+	pub static MaxNominations: u32 = 16;
 }
 
-impl onchain::Config for Test {
-	type Accuracy = Perbill;
+const THRESHOLDS: [sp_npos_elections::VoteWeight; 9] =
+	[10, 20, 30, 40, 50, 60, 1_000, 2_000, 10_000];
+
+parameter_types! {
+	pub static BagThresholds: &'static [sp_npos_elections::VoteWeight] = &THRESHOLDS;
+}
+
+impl pallet_bags_list::Config for Test {
+	type Event = Event;
+	type WeightInfo = ();
+	type ScoreProvider = Staking;
+	type BagThresholds = BagThresholds;
+	type Score = VoteWeight;
+}
+
+pub struct OnChainSeqPhragmen;
+impl onchain::ExecutionConfig for OnChainSeqPhragmen {
+	type System = Test;
+	type Solver = SequentialPhragmen<AccountId, Perbill>;
 	type DataProvider = Staking;
 }
 
@@ -175,7 +193,7 @@ impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
 }
 
 impl pallet_staking::Config for Test {
-	const MAX_NOMINATIONS: u32 = 16;
+	type MaxNominations = MaxNominations;
 	type RewardRemainder = ();
 	type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
 	type Event = Event;
@@ -192,9 +210,10 @@ impl pallet_staking::Config for Test {
 	type MaxNominatorRewardedPerValidator = ConstU32<64>;
 	type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
 	type NextNewSession = Session;
-	type ElectionProvider = onchain::OnChainSequentialPhragmen<Self>;
+	type ElectionProvider = onchain::UnboundedExecution<OnChainSeqPhragmen>;
+	type VoterList = BagsList;
+	type MaxUnlockingChunks = ConstU32<32>;
 	type GenesisElectionProvider = Self::ElectionProvider;
-	type SortedListProvider = pallet_staking::UseNominatorsMap<Self>;
 	type BenchmarkingConfig = StakingBenchmarkingConfig;
 	type WeightInfo = ();
 }
@@ -259,6 +278,8 @@ impl pallet_slashing::Config for Test {
 	type ReportBad = OffenceHandler;
 	type ValidatorSet = Historical;
 	type MinValidators = MinValidators;
+	type AuthorityId = UintAuthorityId;
+	type ValidatorIdOf = ConvertInto;
 }
 
 // Build genesis storage according to the mock runtime.

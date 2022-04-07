@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 #[test]
 fn knows_how_to_mock_several_http_calls() {
-	let (mut t, _) = offchain_worker_env(|state| {
+	let mut t = offchain_worker_env(|state| {
 		state.expect_request(testing::PendingRequest {
 			method: "POST".into(),
 			uri: "http://localhost:3001/sign".into(),
@@ -59,14 +59,12 @@ fn notes_block_author() {
 	});
 }
 
-fn offchain_worker_env(
-	state_updater: fn(&mut testing::OffchainState),
-) -> (TestExternalities, Arc<RwLock<testing::PoolState>>) {
+fn offchain_worker_env(state_updater: fn(&mut testing::OffchainState)) -> TestExternalities {
 	// const PHRASE: &str =
 	// 	"news slush supreme milk chapter athlete soap sausage put clutch what kitten";
 
 	let (offchain, offchain_state) = testing::TestOffchainExt::new();
-	let (pool, pool_state) = testing::TestTransactionPoolExt::new();
+	let (pool, _pool_state) = testing::TestTransactionPoolExt::new();
 	let keystore = KeyStore::new();
 	// SyncCryptoStore::sr25519_generate_new(
 	// 	&keystore,
@@ -83,5 +81,5 @@ fn offchain_worker_env(
 
 	state_updater(&mut offchain_state.write());
 
-	(t, pool_state)
+	t
 }
