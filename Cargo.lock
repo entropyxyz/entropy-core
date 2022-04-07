@@ -7250,6 +7250,7 @@ dependencies = [
  "curv-kzen",
  "env_logger 0.9.0",
  "futures 0.3.19",
+ "kzen-paillier",
  "log",
  "multi-party-ecdsa",
  "parity-scale-codec",
@@ -7265,8 +7266,10 @@ dependencies = [
  "structopt",
  "subxt",
  "surf",
+ "thiserror",
  "tokio 1.16.1",
  "which",
+ "zk-paillier",
 ]
 
 [[package]]

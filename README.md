@@ -227,3 +227,12 @@ This is done by
   - register: `./target/release/test_register`
   - sign: `./target/release/test_sign`
 
+## centralized-keygen
+the following describes how to centrally generate keys, i.e. the code is run by one party only and generates keys that can then be distributed among the other parties. 
+1. checkout branch `centralized-keygen`
+2. `cargo build --release -p testing-user-clients` 
+(alternatively `cargo build --release` to compile the whole workspace)
+3. `./target/release/test_keygen`
+This will start the keygen. 
+Parameters t=1, n=3 are hardcoded [here](https://github.com/Entropyxyz/entropy-core/blob/ca0bd159fd4a1c4be6a06278944ddf10baf18c80/crypto/protocol/src/centralized_keygen/keygen.rs#L34)
+The keys are stored in root/new_keys/local-share{i}.json
