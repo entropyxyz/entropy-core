@@ -5,6 +5,7 @@ pub mod keygen;
 pub mod sign;
 pub mod user;
 
+pub mod centralized_keygen;
 #[cfg(test)]
 pub mod utils;
 
