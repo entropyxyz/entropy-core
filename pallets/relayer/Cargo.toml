@@ -16,7 +16,7 @@ targets = ['x86_64-unknown-linux-gnu']
 default-features = false
 features = ['derive']
 package = 'parity-scale-codec'
-version = '2.0.0'
+version = '3.0.0'
 
 [dependencies.frame-benchmarking]
 default-features = false
@@ -40,30 +40,31 @@ version = '4.0.0-dev'
 [dependencies.scale-info]
 default-features = false
 features = ['derive']
-version = '1.0'
+version = '2.0.1'
 
 [dev-dependencies.sp-core]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 branch = "master"
-version = '4.1.0-dev'
+version = '6.0.0'
 
 [dev-dependencies.sp-io]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 branch = "master"
-version = '4.0.0-dev'
+version = '6.0.0'
 
 [dependencies.sp-runtime]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 branch = "master"
-version = '4.0.0-dev'
+version = '6.0.0'
 
 [dependencies]
 sp-std = { package = "sp-std", git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-authorship = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 log = { version = "0.4.0", default-features = false }
+pallet-slashing = { version = "3.0.0", default-features = false, path = "../slashing" }
 # protocol = { path = "../../crypto/protocol", default-features = false }
 common = { path = "../../crypto/common", default-features = false }
 helpers = { path = "../helpers", default-features = false }
@@ -78,6 +79,7 @@ std = [
     'frame-support/std',
     'frame-system/std',
     'frame-benchmarking/std',
+	'pallet-slashing/std',
 	'helpers/std',
 	"sp-std/std",
 	"sp-runtime/std",

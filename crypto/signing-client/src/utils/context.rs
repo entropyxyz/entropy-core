@@ -1,10 +1,7 @@
 use super::node_proc::TestNodeProcess;
 use sp_core::sr25519::Pair;
 use sp_keyring::AccountKeyring;
-use subxt::{
-	extrinsic::ChargeAssetTxPayment, Client, DefaultConfig, DefaultExtra,
-	DefaultExtraWithTxPayment, PairSigner,
-};
+use subxt::{Client, DefaultConfig, PairSigner, SubstrateExtrinsicParams};
 
 /// substrate node should be installed
 fn get_path() -> String {
@@ -16,8 +13,7 @@ fn get_path() -> String {
 	file_path
 }
 
-pub type NodeRuntimeSignedExtra =
-	DefaultExtraWithTxPayment<DefaultConfig, ChargeAssetTxPayment<DefaultConfig>>;
+pub type NodeRuntimeSignedExtra = SubstrateExtrinsicParams<DefaultConfig>;
 
 pub async fn test_node_process_with(key: AccountKeyring) -> TestNodeProcess<DefaultConfig> {
 	let path = get_path();
@@ -53,7 +49,7 @@ pub mod entropy {}
 
 pub struct TestContext {
 	pub node_proc: TestNodeProcess<DefaultConfig>,
-	pub api: entropy::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>,
+	pub api: entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<DefaultConfig>>,
 }
 
 impl TestContext {
@@ -76,6 +72,6 @@ pub async fn test_context_stationary() -> TestContext {
 	TestContext { node_proc, api }
 }
 
-pub fn pair_signer(pair: Pair) -> PairSigner<DefaultConfig, NodeRuntimeSignedExtra, Pair> {
+pub fn pair_signer(pair: Pair) -> PairSigner<DefaultConfig, Pair> {
 	PairSigner::new(pair)
 }

@@ -13,6 +13,7 @@ mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use core::convert::TryInto;
 	use frame_support::{
 		dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency,
 	};
@@ -35,6 +36,7 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	#[pallet::storage]
