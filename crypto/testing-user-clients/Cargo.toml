@@ -3,11 +3,13 @@ name = "testing-user-clients"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "test_keygen"
+path = "src/testkeygen.rs"
 
 [[bin]]
 name = "test_register"
 path = "src/testregister.rs"
-
 
 [[bin]]
 name = "test_sign"

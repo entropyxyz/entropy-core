@@ -7389,8 +7389,9 @@ dependencies = [
  "async-trait",
  "common",
  "curv-kzen",
- "env_logger",
- "futures 0.3.21",
+ "env_logger 0.9.0",
+ "futures 0.3.19",
+ "kzen-paillier",
  "log",
  "multi-party-ecdsa",
  "parity-scale-codec",
@@ -7408,6 +7409,7 @@ dependencies = [
  "surf",
  "tokio 1.17.0",
  "which",
+ "zk-paillier",
 ]
 
 [[package]]
