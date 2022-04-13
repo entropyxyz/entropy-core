@@ -1,6 +1,6 @@
 use super::rocket;
 use crate::sign::{
-	convert_endpoint, get_api, get_author_endpoint, get_block_author, is_block_author,
+	convert_endpoint, get_api, get_author_endpoint, get_block_author, is_block_author, get_block_number
 };
 use crate::utils::{test_context, test_context_stationary};
 use curv::elliptic::curves::secp256_k1::Secp256k1;
@@ -172,6 +172,15 @@ async fn test_get_block_author() {
 			.into();
 
 	assert_eq!(result.unwrap(), alice_stash_id);
+}
+
+#[rocket::async_test]
+async fn test_get_block_number() {
+	let cxt = test_context().await;
+	let api = get_api(&cxt.node_proc.ws_url).await;
+	let result = get_block_number(&api.unwrap()).await;
+	println!("result {:?}", result);
+	assert_eq!(result.is_ok(), true);
 }
 
 #[rocket::async_test]

@@ -1,9 +1,11 @@
 //! The Node requests the client to take part in a signature generation.
 
+use std::thread;
 use common::OCWMessage;
 use parity_scale_codec::{Decode, Encode};
 use std::str;
-use subxt::{sp_runtime::AccountId32, ClientBuilder, DefaultConfig, SubstrateExtrinsicParams};
+use subxt::{sp_runtime::AccountId32, ClientBuilder, DefaultConfig, SubstrateExtrinsicParams, PairSigner};
+use sp_keyring::AccountKeyring;
 
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
@@ -43,6 +45,8 @@ pub struct ProvideSignatureRes(Vec<u8>);
 pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 	println!("encoded_data {:?}", encoded_data);
 
+
+
 	// ToDo: JA rename
 	let data = OCWMessage::decode(&mut encoded_data.as_ref());
 	let data = match data {
@@ -54,6 +58,14 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 
 	// TODO JA, unhardcode endpoint
 	let api = get_api("ws://localhost:9944").await.unwrap();
+
+	let handle = thread::spawn(|| async {
+		// TODO JA, unhardcode endpoint
+		let api_2 = get_api("ws://localhost:9944").await.unwrap();
+		// TODO: JA add a menumoic fetch from encrypted file
+		let mnemonic = "".to_string();
+		let _ = acknowledge_responsibility(&api_2, mnemonic).await;
+	});
 
 	let block_author = get_block_author(&api).await.unwrap();
 	let author_endpoint = get_author_endpoint(&api, &block_author).await.unwrap();
@@ -80,6 +92,8 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 		let signature = protocol::sign::sign(sign_cli).await;
 		println!("signature: {:?}", signature);
 	}
+	// TODO: JA Thread blocks the return, not sure if needed a problem, keep an eye out for this downstream
+	handle.join().unwrap().await;
 	//todo!();
 	// Ok(ProvideSignatureRes(SignRes { demo: 1 }.encode()))
 	// ToDO: JA fix
@@ -110,9 +124,14 @@ pub async fn is_block_author(
 pub async fn get_block_author(
 	api: &EntropyRuntime,
 ) -> Result<AccountId32, subxt::Error<entropy::DispatchError>> {
-	let block_number = api.storage().system().number(None).await?;
+	let block_number = get_block_number(api).await?;
 	let author = api.storage().propagation().block_author(&block_number, None).await?.unwrap();
 	Ok(author)
+}
+
+pub async fn get_block_number(api: &EntropyRuntime) -> Result<u32, subxt::Error<entropy::DispatchError>>  {
+	let block_number = api.storage().system().number(None).await?;
+	Ok(block_number)
 }
 
 pub async fn get_author_endpoint(
@@ -130,4 +149,27 @@ pub async fn get_author_endpoint(
 
 pub fn convert_endpoint(author_endpoint: &Vec<u8>) -> Result<&str, std::str::Utf8Error> {
 	Ok(str::from_utf8(author_endpoint).unwrap())
+}
+
+pub async fn acknowledge_responsibility(
+	api: &EntropyRuntime,
+	mnemonic: String
+) -> Result<(), subxt::Error<entropy::DispatchError>> {
+	let signer = PairSigner::new(AccountKeyring::Alice.pair());
+	let block_number = get_block_number(api).await?;
+	let result = api
+		.tx()
+		.relayer()
+		.confirm_done(block_number, [].to_vec())
+		.sign_and_submit_then_watch_default(&signer)
+		.await?
+		.wait_for_finalized_success()
+		.await?;
+
+	if let Some(event) = result.find_first::<entropy::relayer::events::ConfirmedDone>()? {
+		println!("confirmed done block number: {:?}", event.1);
+	} else {
+		println!("Failed to confirm done event: {:?}", block_number);
+	}
+	Ok(())
 }
