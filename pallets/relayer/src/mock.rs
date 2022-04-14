@@ -1,13 +1,16 @@
 use crate as pallet_relayer;
-use frame_support::{parameter_types, traits::{FindAuthor, ConstU32, GenesisBuild, Get, Hooks, OneSessionHandler}};
 use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
+use frame_support::{
+	parameter_types,
+	traits::{ConstU32, FindAuthor, OneSessionHandler},
+};
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
 use sp_core::H256;
 use sp_runtime::{
 	curve::PiecewiseLinear,
 	testing::{Header, TestXt, UintAuthorityId},
-	traits::{BlakeTwo256, ConvertInto, IdentityLookup, Zero},
+	traits::{BlakeTwo256, ConvertInto, IdentityLookup},
 	Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
@@ -17,9 +20,6 @@ type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
 type AccountId = u64;
 type Balance = u64;
-
-pub const INIT_TIMESTAMP: u64 = 30_000;
-pub const BLOCK_TIME: u64 = 1000;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -72,7 +72,6 @@ impl system::Config for Test {
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
-
 
 parameter_types! {
 	pub const MinimumPeriod: u64 = 3;
@@ -253,7 +252,6 @@ impl pallet_staking_extension::Config for Test {
 	type Currency = Balances;
 	type MaxEndpointLength = MaxEndpointLength;
 }
-
 
 parameter_types! {
 	pub const UncleGenerations: u64 = 0;

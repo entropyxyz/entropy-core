@@ -32,8 +32,9 @@ fn it_registers_a_user() {
 #[test]
 fn it_confirms_done() {
 	new_test_ext().execute_with(|| {
-		Responsibility::<Test>::insert(5, 1);
+		Responsibility::<Test>::insert(5, 2);
 		let failures = vec![0u32, 3u32];
+		pallet_staking_extension::ThresholdAccounts::<Test>::insert(1, 2);
 
 		assert_ok!(Relayer::confirm_done(Origin::signed(1), 5, failures.clone()));
 		assert_eq!(Relayer::failures(5), Some(failures.clone()));
@@ -46,6 +47,11 @@ fn it_confirms_done() {
 			Relayer::confirm_done(Origin::signed(1), 6, failures.clone()),
 			Error::<Test>::NoResponsibility
 		);
+		assert_noop!(
+			Relayer::confirm_done(Origin::signed(2), 5, failures.clone()),
+			Error::<Test>::NoThresholdKey
+		);
+		pallet_staking_extension::ThresholdAccounts::<Test>::insert(2, 5);
 		assert_noop!(
 			Relayer::confirm_done(Origin::signed(2), 5, failures.clone()),
 			Error::<Test>::NotYourResponsibility
@@ -124,13 +130,27 @@ fn it_fails_a_free_tx_prep_tx() {
 #[test]
 fn it_provides_free_txs_confirm_done() {
 	new_test_ext().execute_with(|| {
-		Responsibility::<Test>::insert(5, 1);
+		Responsibility::<Test>::insert(5, 2);
+		pallet_staking_extension::ThresholdAccounts::<Test>::insert(1, 2);
 		let p = PrevalidateRelayer::<Test>::new();
 		let c = Call::Relayer(RelayerCall::confirm_done { block_number: 5, failures: vec![] });
 		let di = c.get_dispatch_info();
 		assert_eq!(di.pays_fee, Pays::No);
 		let r = p.validate(&1, &c, &di, 20);
 		assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
+	});
+}
+
+#[test]
+#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(1)"]
+fn it_fails_a_free_tx_confirm_done_err_1() {
+	new_test_ext().execute_with(|| {
+		let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
+		let p = PrevalidateRelayer::<Test>::new();
+		let c = Call::Relayer(RelayerCall::prep_transaction { sig_request });
+		let di = c.get_dispatch_info();
+		let r = p.validate(&1, &c, &di, 20);
+		r.unwrap()
 	});
 }
 
@@ -164,6 +184,22 @@ fn it_fails_a_free_tx_confirm_done_err_3() {
 fn it_fails_a_free_tx_confirm_done_err_4() {
 	new_test_ext().execute_with(|| {
 		Responsibility::<Test>::insert(5, 1);
+		pallet_staking_extension::ThresholdAccounts::<Test>::insert(1, 2);
+		Failures::<Test>::insert(5, vec![1]);
+		let p = PrevalidateRelayer::<Test>::new();
+		let c = Call::Relayer(RelayerCall::confirm_done { block_number: 5, failures: vec![] });
+		let di = c.get_dispatch_info();
+		let r = p.validate(&1, &c, &di, 20);
+		r.unwrap()
+	});
+}
+
+#[test]
+#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(5)"]
+fn it_fails_a_free_tx_confirm_done_err_5() {
+	new_test_ext().execute_with(|| {
+		Responsibility::<Test>::insert(5, 2);
+		pallet_staking_extension::ThresholdAccounts::<Test>::insert(1, 2);
 		Failures::<Test>::insert(5, vec![1]);
 		let p = PrevalidateRelayer::<Test>::new();
 		let c = Call::Relayer(RelayerCall::confirm_done { block_number: 5, failures: vec![] });
