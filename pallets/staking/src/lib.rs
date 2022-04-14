@@ -44,6 +44,11 @@ pub mod pallet {
 	pub type EndpointRegister<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn threshold_account)]
+	pub type ThresholdAccounts<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, T::AccountId, OptionQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub endpoints: Vec<(T::AccountId, Vec<u8>)>,
@@ -75,6 +80,7 @@ pub mod pallet {
 	pub enum Error<T> {
 		EndpointTooLong,
 		NoBond,
+		NotController
 	}
 
 	#[pallet::event]
@@ -82,8 +88,12 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// An endpoint has been added or edited. [who, endpoint]
 		EndpointChanged(T::AccountId, Vec<u8>),
-		/// An Endpoint has been removed [who]
-		EndpointRemoved(T::AccountId),
+		/// Node Info has been added or edited. [who, endpoint, threshold_account]
+		NodeInfoChanged(T::AccountId, Vec<u8>, T::AccountId),
+		/// A threshold account has been added or edited. [validator, threshold_account]
+		ThresholdAccountChanged(T::AccountId, T::AccountId),
+		/// Node Info has been removed [who]
+		NodeInfoRemoved(T::AccountId),
 	}
 
 	#[pallet::call]
@@ -102,16 +112,27 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn change_threshold_accounts(origin: OriginFor<T>, new_account: T::AccountId) -> DispatchResult {
+			let who = ensure_signed(origin.clone())?;
+			let stash = Self::get_stash(&who)?;
+			ThresholdAccounts::<T>::insert(&stash, &new_account);
+			Self::deposit_event(Event::ThresholdAccountChanged(stash, new_account));
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn withdraw_unbonded(
 			origin: OriginFor<T>,
 			num_slashing_spans: u32,
 		) -> DispatchResultWithPostInfo {
 			let controller = ensure_signed(origin.clone())?;
+			let stash = Self::get_stash(&controller)?;
 			pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
 			let ledger = pallet_staking::Pallet::<T>::ledger(&controller);
 			if ledger.is_none() && Self::endpoint_register(&controller).is_some() {
 				EndpointRegister::<T>::remove(&controller);
-				Self::deposit_event(Event::EndpointRemoved(controller));
+				ThresholdAccounts::<T>::remove(stash);
+				Self::deposit_event(Event::NodeInfoRemoved(controller));
 			}
 			Ok(().into())
 		}
@@ -121,16 +142,25 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			prefs: ValidatorPrefs,
 			endpoint: Vec<u8>,
+			threshold_account: T::AccountId
 		) -> DispatchResult {
 			let who = ensure_signed(origin.clone())?;
 			ensure!(
 				endpoint.len() as u32 <= T::MaxEndpointLength::get(),
 				Error::<T>::EndpointTooLong
 			);
+			let stash = Self::get_stash(&who)?;
 			pallet_staking::Pallet::<T>::validate(origin, prefs)?;
 			EndpointRegister::<T>::insert(&who, &endpoint);
-			Self::deposit_event(Event::EndpointChanged(who, endpoint));
+			ThresholdAccounts::<T>::insert(&stash, &threshold_account);
+			Self::deposit_event(Event::NodeInfoChanged(who, endpoint, threshold_account));
 			Ok(())
+		}
+	}
+	impl<T: Config> Pallet<T> {
+		pub fn get_stash(controller: &T::AccountId) -> Result<T::AccountId, DispatchError> {
+			let ledger = pallet_staking::Pallet::<T>::ledger(controller).ok_or(Error::<T>::NotController)?;
+			Ok(ledger.stash)
 		}
 	}
 }
