@@ -6348,6 +6348,7 @@ dependencies = [
  "log",
  "pallet-authorship",
  "pallet-slashing",
+ "pallet-staking-extension",
  "parity-scale-codec",
  "scale-info",
  "sp-core 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
