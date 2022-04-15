@@ -204,10 +204,10 @@ by appending your own. A few useful ones are as follow.
 ```
 
 ## testnet
-the following processes are necessary to successfully generate a signature so far. If not mentioned otherwise, start all commands from the root directory. 
-1. build two signing-clients, one WITHOUT the `provide_share` route and one with it. 
-This is done by 
-  1. commenting out `provide_share` in crypto::signing-client::main::rocket(). 
+the following processes are necessary to successfully generate a signature so far. If not mentioned otherwise, start all commands from the root directory.
+1. build two signing-clients, one WITHOUT the `provide_share` route and one with it.
+This is done by
+  1. commenting out `provide_share` in crypto::signing-client::main::rocket().
   2. `cargo build --release -p signing-client`
   3. uncomment `provide_share` again and rename the resulting ./target/release/signing-client to signing-client_alice
   this binary is used for one node on port 3001 (see ./scripts/signclient_alice.sh), the 'normal' (unchanged) signing client is run on port 3002 (see ./scripts/signclient_bob.sh)
@@ -217,7 +217,7 @@ This is done by
   7. give permission to scripts:
   `chmod +x ./scripts/pull_entropy_metadata.sh && chmod +x ./scripts/alice.sh && chmod +x ./scripts/bob.sh && chmod +x ./scripts/sigclient_alice.sh && chmod +x ./scripts/sigclient_bob.sh`
 2. `git clone https://github.com/Entropyxyz/util-scripts.git` to wherever directory
-3. open 5 CLIs. run the following commands in them respectively. 
+3. open 5 CLIs. run the following commands in them respectively.
   1. `./scripts/alice.sh` - start node 1
   2. `./scripts/bob.sh` - start node 2
   3. when both nodes are running, enter the util-scripts folder and run `ts-node setEndpoint.ts` (might have to `npm install`)
@@ -228,11 +228,31 @@ This is done by
   - sign: `./target/release/test_sign`
 
 ## centralized-keygen
-the following describes how to centrally generate keys, i.e. the code is run by one party only and generates keys that can then be distributed among the other parties. 
+the following describes how to centrally generate keys, i.e. the code is run by one party only and generates keys that can then be distributed among the other parties.
 1. checkout branch `centralized-keygen`
-2. `cargo build --release -p testing-user-clients` 
+2. `cargo build --release -p testing-user-clients`
 (alternatively `cargo build --release` to compile the whole workspace)
 3. `./target/release/test_keygen`
-This will start the keygen. 
+This will start the keygen.
 Parameters t=1, n=3 are hardcoded [here](https://github.com/Entropyxyz/entropy-core/blob/ca0bd159fd4a1c4be6a06278944ddf10baf18c80/crypto/protocol/src/centralized_keygen/keygen.rs#L34)
 The keys are stored in root/new_keys/local-share{i}.json
+
+
+## Threshold keys
+* keys for internal testnet use only, not secure, here for convience do not use them for anything real
+
+Alice
+Secret phrase `alarm mutual concert decrease hurry invest culture survey diagram crash snap click` is account:
+ Network ID/version: substrate
+  Secret seed:        0x29b55504652cedded9ce0ee1f5a25b328ae6c6e97827f84eee6315d0f44816d8
+  Public key (hex):   0xe0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876
+  Account ID:         0xe0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876
+  SS58 Address:       5H8qc7f4mXFY16NBWSB9qkc6pTks98HdVuoQTs1aova5fRtN
+
+Bob
+Secret phrase `where sight patient orphan general short empower hope party hurt month voice` is account:
+  Network ID/version: substrate
+  Secret seed:        0xb0b5348db82db32d10a37b578e4c6242e148f14648661dccf8b3002fafa72cdd
+  Public key (hex):   0x2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f
+  Account ID:         0x2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f
+  SS58 Address:       5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV

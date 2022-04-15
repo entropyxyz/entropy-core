@@ -6,7 +6,7 @@ use parity_scale_codec::{Decode, Encode};
 use std::str;
 use subxt::{sp_runtime::AccountId32, ClientBuilder, DefaultConfig, SubstrateExtrinsicParams, PairSigner};
 use sp_keyring::AccountKeyring;
-
+use sp_core::{Pair, sr25519::{Pair as Sr25519Pair}};
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -62,9 +62,15 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 	let handle = thread::spawn(|| async {
 		// TODO JA, unhardcode endpoint
 		let api_2 = get_api("ws://localhost:9944").await.unwrap();
-		// TODO: JA add a menumoic fetch from encrypted file
-		let mnemonic = "".to_string();
-		let _ = acknowledge_responsibility(&api_2, mnemonic).await;
+		let block_author = get_block_author(&api_2).await.unwrap();
+		if is_block_author(&api_2, &block_author).await.unwrap() {
+			// TODO: JA add a menumoic fetch from encrypted file
+			let mnemonic = "alarm mutual concert decrease hurry invest culture survey diagram crash snap click".to_string();
+			let result = acknowledge_responsibility(&api_2, &mnemonic).await;
+			println!("result of acknowledge responsibility: {:?}", result)
+		} else {
+			println!("result of no acknowledgmen");
+		}
 	});
 
 	let block_author = get_block_author(&api).await.unwrap();
@@ -153,17 +159,20 @@ pub fn convert_endpoint(author_endpoint: &Vec<u8>) -> Result<&str, std::str::Utf
 
 pub async fn acknowledge_responsibility(
 	api: &EntropyRuntime,
-	mnemonic: String
+	mnemonic: &String
 ) -> Result<(), subxt::Error<entropy::DispatchError>> {
-	let signer = PairSigner::new(AccountKeyring::Alice.pair());
+	let pair: Sr25519Pair = Pair::from_string(mnemonic, None).unwrap();
+	let signer = PairSigner::new(pair);
 	let block_number = get_block_number(api).await?;
 	let result = api
 		.tx()
 		.relayer()
-		.confirm_done(block_number, [].to_vec())
+		.confirm_done(block_number.saturating_sub(2), vec![])
 		.sign_and_submit_then_watch_default(&signer)
 		.await?
-		.wait_for_finalized_success()
+		.wait_for_in_block()
+		.await?.
+		wait_for_success()
 		.await?;
 
 	if let Some(event) = result.find_first::<entropy::relayer::events::ConfirmedDone>()? {

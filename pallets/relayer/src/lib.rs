@@ -161,9 +161,9 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			let responsibility =
 				Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
-			let threshold_key = pallet_staking_extension::Pallet::<T>::threshold_account(&who)
+			let threshold_key = pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
 				.ok_or(Error::<T>::NoThresholdKey)?;
-			ensure!(responsibility == threshold_key, Error::<T>::NotYourResponsibility);
+			ensure!(who == threshold_key, Error::<T>::NotYourResponsibility);
 
 			let current_failures = Self::failures(block_number);
 
@@ -299,9 +299,9 @@ pub mod pallet {
 					let responsibility = Responsibility::<T>::get(block_number)
 						.ok_or(InvalidTransaction::Custom(2.into()))?;
 					let threshold_key =
-						pallet_staking_extension::Pallet::<T>::threshold_account(&who)
+						pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
 							.ok_or(InvalidTransaction::Custom(3.into()))?;
-					ensure!(responsibility == threshold_key, InvalidTransaction::Custom(4.into()));
+					ensure!(*who == threshold_key, InvalidTransaction::Custom(4.into()));
 					let current_failures = Failures::<T>::get(block_number);
 					ensure!(current_failures.is_none(), InvalidTransaction::Custom(5.into()));
 				}
