@@ -263,6 +263,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	};
 	let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
 		endpoints: vec![(5, vec![20]), (6, vec![40])],
+		threshold_accounts: vev![(5, 7), (6, 8)]
 	};
 
 	pallet_balances.assimilate_storage(&mut t).unwrap();

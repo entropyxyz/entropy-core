@@ -6,6 +6,8 @@ fn basic_setup_works() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(Staking::endpoint_register(5).unwrap(), vec![20]);
 		assert_eq!(Staking::endpoint_register(6).unwrap(), vec![40]);
+		assert_eq!(Staking::threshold_account(5).unwrap(), 7);
+		assert_eq!(Staking::threshold_account(6).unwrap(), 8);
 	});
 }
 

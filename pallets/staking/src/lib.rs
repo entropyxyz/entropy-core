@@ -52,12 +52,13 @@ pub mod pallet {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub endpoints: Vec<(T::AccountId, Vec<u8>)>,
+		pub threshold_accounts: Vec<(T::AccountId, T::AccountId)>
 	}
 
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
-			Self { endpoints: Default::default() }
+			Self { endpoints: Default::default(), threshold_accounts: Default::default() }
 		}
 	}
 
@@ -72,6 +73,10 @@ pub mod pallet {
 
 			for (account, endpoint) in &self.endpoints {
 				EndpointRegister::<T>::insert(account, endpoint);
+			}
+
+			for (stash_account, threshold_account) in &self.threshold_accounts {
+				ThresholdAccounts::<T>::insert(stash_account, threshold_account);
 			}
 		}
 	}
