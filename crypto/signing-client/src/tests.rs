@@ -1,6 +1,7 @@
 use super::rocket;
 use crate::sign::{
-	convert_endpoint, get_api, get_author_endpoint, get_block_author, is_block_author, get_block_number, acknowledge_responsibility
+	acknowledge_responsibility, convert_endpoint, get_api, get_author_endpoint, get_block_author,
+	get_block_number, is_block_author,
 };
 use crate::utils::{test_context, test_context_stationary};
 use curv::elliptic::curves::secp256_k1::Secp256k1;
@@ -203,7 +204,9 @@ async fn test_send_responsibility_message() {
 	let cxt = test_context().await;
 	let api = get_api(&cxt.node_proc.ws_url).await;
 	sleep(Duration::from_secs(25u64)).await;
-	let mnemonic = "alarm mutual concert decrease hurry invest culture survey diagram crash snap click".to_string();
+	let mnemonic =
+		"alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
+			.to_string();
 
 	let result = acknowledge_responsibility(&api.unwrap(), &mnemonic).await;
 	assert_eq!(result.is_ok(), true);

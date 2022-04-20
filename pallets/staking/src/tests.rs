@@ -91,7 +91,10 @@ fn it_changes_threshold_account() {
 		assert_ok!(Staking::change_threshold_accounts(Origin::signed(1), 4));
 		assert_eq!(Staking::threshold_account(2).unwrap(), 4);
 
-		assert_noop!(Staking::change_threshold_accounts(Origin::signed(4),5), Error::<Test>::NotController);
+		assert_noop!(
+			Staking::change_threshold_accounts(Origin::signed(4), 5),
+			Error::<Test>::NotController
+		);
 	});
 }
 

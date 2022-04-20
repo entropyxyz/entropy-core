@@ -52,7 +52,7 @@ pub mod pallet {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub endpoints: Vec<(T::AccountId, Vec<u8>)>,
-		pub threshold_accounts: Vec<(T::AccountId, T::AccountId)>
+		pub threshold_accounts: Vec<(T::AccountId, T::AccountId)>,
 	}
 
 	#[cfg(feature = "std")]
@@ -85,7 +85,7 @@ pub mod pallet {
 	pub enum Error<T> {
 		EndpointTooLong,
 		NoBond,
-		NotController
+		NotController,
 	}
 
 	#[pallet::event]
@@ -117,7 +117,10 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn change_threshold_accounts(origin: OriginFor<T>, new_account: T::AccountId) -> DispatchResult {
+		pub fn change_threshold_accounts(
+			origin: OriginFor<T>,
+			new_account: T::AccountId,
+		) -> DispatchResult {
 			let who = ensure_signed(origin.clone())?;
 			let stash = Self::get_stash(&who)?;
 			ThresholdAccounts::<T>::insert(&stash, &new_account);
@@ -147,7 +150,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			prefs: ValidatorPrefs,
 			endpoint: Vec<u8>,
-			threshold_account: T::AccountId
+			threshold_account: T::AccountId,
 		) -> DispatchResult {
 			let who = ensure_signed(origin.clone())?;
 			ensure!(
@@ -164,7 +167,8 @@ pub mod pallet {
 	}
 	impl<T: Config> Pallet<T> {
 		pub fn get_stash(controller: &T::AccountId) -> Result<T::AccountId, DispatchError> {
-			let ledger = pallet_staking::Pallet::<T>::ledger(controller).ok_or(Error::<T>::NotController)?;
+			let ledger =
+				pallet_staking::Pallet::<T>::ledger(controller).ok_or(Error::<T>::NotController)?;
 			Ok(ledger.stash)
 		}
 	}

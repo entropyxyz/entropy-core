@@ -1,12 +1,15 @@
 //! The Node requests the client to take part in a signature generation.
 
-use std::thread;
 use common::OCWMessage;
 use parity_scale_codec::{Decode, Encode};
-use std::str;
-use subxt::{sp_runtime::AccountId32, ClientBuilder, DefaultConfig, PolkadotExtrinsicParams, PairSigner, Config};
+use sp_core::{sr25519::Pair as Sr25519Pair, Pair};
 use sp_keyring::AccountKeyring;
-use sp_core::{Pair, sr25519::{Pair as Sr25519Pair}};
+use std::str;
+use std::thread;
+use subxt::{
+	sp_runtime::AccountId32, ClientBuilder, Config, DefaultConfig, PairSigner,
+	PolkadotExtrinsicParams,
+};
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -44,8 +47,6 @@ pub struct ProvideSignatureRes(Vec<u8>);
 #[post("/sign", format = "application/x-parity-scale-codec", data = "<encoded_data>")]
 pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 	println!("encoded_data {:?}", encoded_data);
-
-
 
 	// ToDo: JA rename
 	let data = OCWMessage::decode(&mut encoded_data.as_ref());
@@ -135,7 +136,9 @@ pub async fn get_block_author(
 	Ok(author)
 }
 
-pub async fn get_block_number(api: &EntropyRuntime) -> Result<u32, subxt::Error<entropy::DispatchError>>  {
+pub async fn get_block_number(
+	api: &EntropyRuntime,
+) -> Result<u32, subxt::Error<entropy::DispatchError>> {
 	let block_number = api.storage().system().number(None).await?;
 	Ok(block_number)
 }
@@ -159,7 +162,7 @@ pub fn convert_endpoint(author_endpoint: &Vec<u8>) -> Result<&str, std::str::Utf
 
 pub async fn acknowledge_responsibility(
 	api: &EntropyRuntime,
-	mnemonic: &String
+	mnemonic: &String,
 ) -> Result<(), subxt::Error<entropy::DispatchError>> {
 	let pair: Sr25519Pair = Pair::from_string(mnemonic, None).unwrap();
 	let signer = PairSigner::new(pair);
@@ -171,8 +174,8 @@ pub async fn acknowledge_responsibility(
 		.sign_and_submit_then_watch_default(&signer)
 		.await?
 		.wait_for_in_block()
-		.await?.
-		wait_for_success()
+		.await?
+		.wait_for_success()
 		.await?;
 
 	if let Some(event) = result.find_first::<entropy::relayer::events::ConfirmedDone>()? {

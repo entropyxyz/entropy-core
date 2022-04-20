@@ -161,8 +161,9 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			let responsibility =
 				Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
-			let threshold_key = pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
-				.ok_or(Error::<T>::NoThresholdKey)?;
+			let threshold_key =
+				pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
+					.ok_or(Error::<T>::NoThresholdKey)?;
 			ensure!(who == threshold_key, Error::<T>::NotYourResponsibility);
 
 			let current_failures = Self::failures(block_number);
