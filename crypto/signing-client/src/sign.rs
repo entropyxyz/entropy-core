@@ -4,7 +4,7 @@ use std::thread;
 use common::OCWMessage;
 use parity_scale_codec::{Decode, Encode};
 use std::str;
-use subxt::{sp_runtime::AccountId32, ClientBuilder, DefaultConfig, SubstrateExtrinsicParams, PairSigner};
+use subxt::{sp_runtime::AccountId32, ClientBuilder, DefaultConfig, PolkadotExtrinsicParams, PairSigner, Config};
 use sp_keyring::AccountKeyring;
 use sp_core::{Pair, sr25519::{Pair as Sr25519Pair}};
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
@@ -32,7 +32,7 @@ struct SignRes {
 }
 
 pub type EntropyRuntime =
-	entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<DefaultConfig>>;
+	entropy::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
 
 /// Response to the node if the signature was created.
 /// i.e. a signature that the data was stored successfully or Error Code.
