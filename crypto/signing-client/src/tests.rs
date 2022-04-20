@@ -208,6 +208,6 @@ async fn test_send_responsibility_message() {
 		"alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
 			.to_string();
 
-	let result = acknowledge_responsibility(&api.unwrap(), &mnemonic).await;
+	let result = acknowledge_responsibility(&api.unwrap(), &mnemonic, 3u32).await;
 	assert_eq!(result.is_ok(), true);
 }

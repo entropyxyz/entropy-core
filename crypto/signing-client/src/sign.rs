@@ -59,15 +59,16 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 
 	// TODO JA, unhardcode endpoint
 	let api = get_api("ws://localhost:9944").await.unwrap();
-
-	let handle = thread::spawn(|| async {
+	let block_number = get_block_number(&api).await.unwrap();
+	// TODO: JA This thread needs to happen after all signing processes are completed and contain locations in vec of any failures (which need to be stored locally in DB temporarily)
+	let handle = thread::spawn(move || async move {
 		// TODO JA, unhardcode endpoint
 		let api_2 = get_api("ws://localhost:9944").await.unwrap();
 		let block_author = get_block_author(&api_2).await.unwrap();
 		if is_block_author(&api_2, &block_author).await.unwrap() {
 			// TODO: JA add a menumoic fetch from encrypted file
 			let mnemonic = "alarm mutual concert decrease hurry invest culture survey diagram crash snap click".to_string();
-			let result = acknowledge_responsibility(&api_2, &mnemonic).await;
+			let result = acknowledge_responsibility(&api_2, &mnemonic, block_number).await;
 			println!("result of acknowledge responsibility: {:?}", result)
 		} else {
 			println!("result of no acknowledgmen");
@@ -163,10 +164,11 @@ pub fn convert_endpoint(author_endpoint: &Vec<u8>) -> Result<&str, std::str::Utf
 pub async fn acknowledge_responsibility(
 	api: &EntropyRuntime,
 	mnemonic: &String,
+	block_number: u32,
 ) -> Result<(), subxt::Error<entropy::DispatchError>> {
 	let pair: Sr25519Pair = Pair::from_string(mnemonic, None).unwrap();
 	let signer = PairSigner::new(pair);
-	let block_number = get_block_number(api).await?;
+	// TODO: JA unhardcode failures and block number should be of the target block
 	let result = api
 		.tx()
 		.relayer()
