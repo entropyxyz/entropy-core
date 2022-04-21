@@ -6258,6 +6258,7 @@ dependencies = [
  "log",
  "pallet-authorship",
  "pallet-babe",
+ "pallet-bags-list",
  "pallet-balances",
  "pallet-relayer",
  "pallet-session",
@@ -6272,6 +6273,7 @@ dependencies = [
  "sp-core 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-io 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-keystore 0.12.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
+ "sp-npos-elections",
  "sp-runtime 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-staking",
 ]

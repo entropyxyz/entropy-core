@@ -1,10 +1,9 @@
-use crate::{mock::*, BlockAuthor};
+use crate::mock::*;
 use frame_support::{assert_ok, traits::OnInitialize};
 use pallet_relayer::SigRequest;
-use parking_lot::RwLock;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
-use sp_keystore::{testing::KeyStore, KeystoreExt, SyncCryptoStore};
+use sp_keystore::{testing::KeyStore, KeystoreExt};
 use std::sync::Arc;
 
 #[test]
