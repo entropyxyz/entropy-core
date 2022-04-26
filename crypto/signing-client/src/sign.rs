@@ -10,6 +10,9 @@ use subxt::{
 	sp_runtime::AccountId32, ClientBuilder, Config, DefaultConfig, PairSigner,
 	PolkadotExtrinsicParams,
 };
+use rocket::State;
+use crate::{Global};
+
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -45,7 +48,7 @@ pub struct ProvideSignatureRes(Vec<u8>);
 
 //ToDo: receive keyshare and store locally
 #[post("/sign", format = "application/x-parity-scale-codec", data = "<encoded_data>")]
-pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
+pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> ProvideSignatureRes {
 	println!("encoded_data {:?}", encoded_data);
 
 	// ToDo: JA rename
@@ -60,14 +63,13 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 	// TODO JA, unhardcode endpoint
 	let api = get_api("ws://localhost:9944").await.unwrap();
 	let block_number = get_block_number(&api).await.unwrap();
+	let mnemonic = state.inner().mnemonic.clone();
 	// TODO: JA This thread needs to happen after all signing processes are completed and contain locations in vec of any failures (which need to be stored locally in DB temporarily)
 	let handle = thread::spawn(move || async move {
 		// TODO JA, unhardcode endpoint
 		let api_2 = get_api("ws://localhost:9944").await.unwrap();
 		let block_author = get_block_author(&api_2).await.unwrap();
 		if is_block_author(&api_2, &block_author).await.unwrap() {
-			// TODO: JA add a menumoic fetch from encrypted file
-			let mnemonic = "alarm mutual concert decrease hurry invest culture survey diagram crash snap click".to_string();
 			let result = acknowledge_responsibility(&api_2, &mnemonic, block_number).await;
 			println!("result of acknowledge responsibility: {:?}", result)
 		} else {

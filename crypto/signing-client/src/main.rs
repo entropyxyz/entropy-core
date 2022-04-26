@@ -4,6 +4,8 @@ use rocket::routes;
 #[macro_use]
 extern crate rocket;
 
+use rocket::State;
+
 #[cfg(test)]
 mod tests;
 
@@ -17,8 +19,18 @@ mod store_share;
 use com_manager::{broadcast, issue_idx, subscribe, Db};
 // ToDo: JA add proper response types and formalize them across all endpoints
 
+#[derive(Debug, Clone)]
+pub struct Global {
+    mnemonic: String
+}
+
 #[launch]
 fn rocket() -> _ {
+
+	// TODO: JA add a menumoic fetch from encrypted file
+	let global = Global {
+        mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click".to_string()
+    };
 	rocket::build()
 		.mount(
 			"/",
@@ -32,4 +44,6 @@ fn rocket() -> _ {
 			],
 		)
 		.manage(Db::empty())
+		.manage(global)
+
 }
