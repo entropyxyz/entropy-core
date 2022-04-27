@@ -5,5 +5,4 @@ fn main() {
 	println!("start test_keygen");
 
 	let _res = centralized_keygen();
-
 }

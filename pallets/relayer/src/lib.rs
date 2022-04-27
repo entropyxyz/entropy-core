@@ -30,7 +30,9 @@ pub mod pallet {
 	use sp_std::fmt::Debug;
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_authorship::Config {
+	pub trait Config:
+		frame_system::Config + pallet_authorship::Config + pallet_staking_extension::Config
+	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type PruneBlock: Get<Self::BlockNumber>;
@@ -111,6 +113,7 @@ pub mod pallet {
 		NotYourResponsibility,
 		NoResponsibility,
 		AlreadySubmitted,
+		NoThresholdKey,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -158,7 +161,11 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			let responsibility =
 				Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
-			ensure!(responsibility == who, Error::<T>::NotYourResponsibility);
+			let threshold_key =
+				pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
+					.ok_or(Error::<T>::NoThresholdKey)?;
+			ensure!(who == threshold_key, Error::<T>::NotYourResponsibility);
+
 			let current_failures = Self::failures(block_number);
 
 			ensure!(current_failures.is_none(), Error::<T>::AlreadySubmitted);
@@ -292,9 +299,12 @@ pub mod pallet {
 				if let Call::confirm_done { block_number, .. } = local_call {
 					let responsibility = Responsibility::<T>::get(block_number)
 						.ok_or(InvalidTransaction::Custom(2.into()))?;
-					ensure!(responsibility == *who, InvalidTransaction::Custom(3.into()));
+					let threshold_key =
+						pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
+							.ok_or(InvalidTransaction::Custom(3.into()))?;
+					ensure!(*who == threshold_key, InvalidTransaction::Custom(4.into()));
 					let current_failures = Failures::<T>::get(block_number);
-					ensure!(current_failures.is_none(), InvalidTransaction::Custom(4.into()));
+					ensure!(current_failures.is_none(), InvalidTransaction::Custom(5.into()));
 				}
 			}
 			Ok(ValidTransaction::default())
