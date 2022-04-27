@@ -329,6 +329,18 @@ pub fn testnet_genesis(
 					"ws://localhost:3001".as_bytes().to_vec(),
 				),
 			],
+			threshold_accounts: vec![
+				(
+					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+					//5H8qc7f4mXFY16NBWSB9qkc6pTks98HdVuoQTs1aova5fRtN
+					hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"].into(),
+				),
+				(
+					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+					//5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV
+					hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"].into(),
+				),
+			],
 		},
 		democracy: DemocracyConfig::default(),
 		elections: ElectionsConfig {

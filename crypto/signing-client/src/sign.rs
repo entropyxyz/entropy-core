@@ -2,9 +2,14 @@
 
 use common::OCWMessage;
 use parity_scale_codec::{Decode, Encode};
+use sp_core::{sr25519::Pair as Sr25519Pair, Pair};
+use sp_keyring::AccountKeyring;
 use std::str;
-use subxt::{sp_runtime::AccountId32, ClientBuilder, DefaultConfig, SubstrateExtrinsicParams};
-
+use std::thread;
+use subxt::{
+	sp_runtime::AccountId32, ClientBuilder, Config, DefaultConfig, PairSigner,
+	PolkadotExtrinsicParams,
+};
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -30,7 +35,7 @@ struct SignRes {
 }
 
 pub type EntropyRuntime =
-	entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<DefaultConfig>>;
+	entropy::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
 
 /// Response to the node if the signature was created.
 /// i.e. a signature that the data was stored successfully or Error Code.
@@ -54,6 +59,21 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 
 	// TODO JA, unhardcode endpoint
 	let api = get_api("ws://localhost:9944").await.unwrap();
+	let block_number = get_block_number(&api).await.unwrap();
+	// TODO: JA This thread needs to happen after all signing processes are completed and contain locations in vec of any failures (which need to be stored locally in DB temporarily)
+	let handle = thread::spawn(move || async move {
+		// TODO JA, unhardcode endpoint
+		let api_2 = get_api("ws://localhost:9944").await.unwrap();
+		let block_author = get_block_author(&api_2).await.unwrap();
+		if is_block_author(&api_2, &block_author).await.unwrap() {
+			// TODO: JA add a menumoic fetch from encrypted file
+			let mnemonic = "alarm mutual concert decrease hurry invest culture survey diagram crash snap click".to_string();
+			let result = acknowledge_responsibility(&api_2, &mnemonic, block_number).await;
+			println!("result of acknowledge responsibility: {:?}", result)
+		} else {
+			println!("result of no acknowledgmen");
+		}
+	});
 
 	let block_author = get_block_author(&api).await.unwrap();
 	let author_endpoint = get_author_endpoint(&api, &block_author).await.unwrap();
@@ -80,6 +100,8 @@ pub async fn provide_share(encoded_data: Vec<u8>) -> ProvideSignatureRes {
 		let signature = protocol::sign::sign(sign_cli).await;
 		println!("signature: {:?}", signature);
 	}
+	// TODO: JA Thread blocks the return, not sure if needed a problem, keep an eye out for this downstream
+	handle.join().unwrap().await;
 	//todo!();
 	// Ok(ProvideSignatureRes(SignRes { demo: 1 }.encode()))
 	// ToDO: JA fix
@@ -110,9 +132,16 @@ pub async fn is_block_author(
 pub async fn get_block_author(
 	api: &EntropyRuntime,
 ) -> Result<AccountId32, subxt::Error<entropy::DispatchError>> {
-	let block_number = api.storage().system().number(None).await?;
+	let block_number = get_block_number(api).await?;
 	let author = api.storage().propagation().block_author(&block_number, None).await?.unwrap();
 	Ok(author)
+}
+
+pub async fn get_block_number(
+	api: &EntropyRuntime,
+) -> Result<u32, subxt::Error<entropy::DispatchError>> {
+	let block_number = api.storage().system().number(None).await?;
+	Ok(block_number)
 }
 
 pub async fn get_author_endpoint(
@@ -130,4 +159,31 @@ pub async fn get_author_endpoint(
 
 pub fn convert_endpoint(author_endpoint: &Vec<u8>) -> Result<&str, std::str::Utf8Error> {
 	Ok(str::from_utf8(author_endpoint).unwrap())
+}
+
+pub async fn acknowledge_responsibility(
+	api: &EntropyRuntime,
+	mnemonic: &String,
+	block_number: u32,
+) -> Result<(), subxt::Error<entropy::DispatchError>> {
+	let pair: Sr25519Pair = Pair::from_string(mnemonic, None).unwrap();
+	let signer = PairSigner::new(pair);
+	// TODO: JA unhardcode failures and block number should be of the target block
+	let result = api
+		.tx()
+		.relayer()
+		.confirm_done(block_number.saturating_sub(2), vec![])
+		.sign_and_submit_then_watch_default(&signer)
+		.await?
+		.wait_for_in_block()
+		.await?
+		.wait_for_success()
+		.await?;
+
+	if let Some(event) = result.find_first::<entropy::relayer::events::ConfirmedDone>()? {
+		println!("confirmed done block number: {:?}", event.1);
+	} else {
+		println!("Failed to confirm done event: {:?}", block_number);
+	}
+	Ok(())
 }

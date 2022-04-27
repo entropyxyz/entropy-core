@@ -67,6 +67,8 @@ pallet-balances = { version = "4.0.0-dev", default-features = false, git = 'http
 pallet-staking-reward-curve = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 pallet-session = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 pallet-babe = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+sp-npos-elections = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+pallet-bags-list = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
 
 [features]
 default = ['std']
@@ -85,6 +87,7 @@ std = [
 	'helpers/std',
 	"sp-io/std",
 	"sp-runtime/std",
+	"sp-npos-elections/std",
 	"sp-application-crypto/std",
 ]
 try-runtime = ['frame-support/try-runtime']
