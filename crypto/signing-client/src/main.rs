@@ -1,5 +1,7 @@
 use crate::{sign::provide_share, store_share::store_keyshare};
 use rocket::routes;
+use serde::Deserialize;
+use std::env;
 
 #[macro_use]
 extern crate rocket;
@@ -24,12 +26,18 @@ pub struct Global {
     mnemonic: String
 }
 
+#[derive(Deserialize, Debug)]
+struct Configuration {
+	MNEMONIC: String
+}
+
 #[launch]
 fn rocket() -> _ {
 
-	// TODO: JA add a menumoic fetch from encrypted file
+	let c = load_environment_variables();
+
 	let global = Global {
-        mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click".to_string()
+        mnemonic: c.MNEMONIC.to_string()
     };
 	rocket::build()
 		.mount(
@@ -46,4 +54,19 @@ fn rocket() -> _ {
 		.manage(Db::empty())
 		.manage(global)
 
+}
+
+
+fn load_environment_variables() -> Configuration {
+	let c;
+
+    if cfg!(test) {
+        c = Configuration {
+			MNEMONIC: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click".to_string()
+		}
+    } else {
+		c = envy::from_env::<Configuration>()
+        	.expect("Please provide MNEMONIC as env var");
+	}
+	c
 }

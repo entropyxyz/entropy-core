@@ -23,6 +23,7 @@ serde = { version = "1.0", features = ["derive"] }
 surf = "2"
 sp-keyring = "6.0.0"
 sp-core = "6.0.0"
+envy = "0.4"
 
 [dev-dependencies]
 sp-keyring = "6.0.0"
