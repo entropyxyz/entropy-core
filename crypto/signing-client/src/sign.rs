@@ -59,15 +59,15 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	};
 
 	println!("data: {:?}", &data);
+	let cached_state = state.inner();
+	let endpoint = cached_state.endpoint.clone();
+	let mnemonic = cached_state.mnemonic.clone();
 
-	// TODO JA, unhardcode endpoint
-	let api = get_api("ws://localhost:9944").await.unwrap();
+	let api = get_api(&endpoint).await.unwrap();
 	let block_number = get_block_number(&api).await.unwrap();
-	let mnemonic = state.inner().mnemonic.clone();
 	// TODO: JA This thread needs to happen after all signing processes are completed and contain locations in vec of any failures (which need to be stored locally in DB temporarily)
 	let handle = thread::spawn(move || async move {
-		// TODO JA, unhardcode endpoint
-		let api_2 = get_api("ws://localhost:9944").await.unwrap();
+		let api_2 = get_api(&endpoint).await.unwrap();
 		let block_author = get_block_author(&api_2).await.unwrap();
 		if is_block_author(&api_2, &block_author).await.unwrap() {
 			let result = acknowledge_responsibility(&api_2, &mnemonic, block_number).await;

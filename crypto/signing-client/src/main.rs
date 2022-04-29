@@ -24,12 +24,19 @@ use com_manager::{broadcast, issue_idx, subscribe, Db};
 
 #[derive(Debug, Clone)]
 pub struct Global {
-    mnemonic: String
+    mnemonic: String,
+	endpoint: String
 }
 
-#[derive(Deserialize, Debug)]
+fn default_endpoint() -> Option<String> {
+	Some("ws://localhost:9944".to_string())
+}
+
+#[derive(Deserialize, Debug, Clone)]
 struct Configuration {
-	MNEMONIC: String
+	#[serde(default="default_endpoint")]
+	endpoint: Option<String>,
+	mnemonic: String,
 }
 
 #[launch]
@@ -38,7 +45,8 @@ fn rocket() -> _ {
 	let c = load_environment_variables();
 
 	let global = Global {
-        mnemonic: c.MNEMONIC.to_string()
+        mnemonic: c.mnemonic.to_string(),
+		endpoint: c.endpoint.unwrap().to_string()
     };
 	rocket::build()
 		.mount(
@@ -63,12 +71,13 @@ fn load_environment_variables() -> Configuration {
 
     if cfg!(test) {
         c = Configuration {
-			MNEMONIC: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click".to_string()
+			mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click".to_string(),
+			endpoint: Some("ws://localhost:9944".to_string()),
 		}
     } else {
 		c = envy::from_env::<Configuration>()
         	.expect("Please provide MNEMONIC as env var");
 	}
-	assert!(Mnemonic::validate(&c.MNEMONIC, Language::English).is_ok(), "MNEMONIC is incorrect");
+	assert!(Mnemonic::validate(&c.mnemonic, Language::English).is_ok(), "MNEMONIC is incorrect");
 	c
 }
