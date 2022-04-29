@@ -1,7 +1,9 @@
 //! The Node requests the client to take part in a signature generation.
 
+use crate::Global;
 use common::OCWMessage;
 use parity_scale_codec::{Decode, Encode};
+use rocket::State;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair};
 use sp_keyring::AccountKeyring;
 use std::str;
@@ -10,8 +12,6 @@ use subxt::{
 	sp_runtime::AccountId32, ClientBuilder, Config, DefaultConfig, PairSigner,
 	PolkadotExtrinsicParams,
 };
-use rocket::State;
-use crate::{Global};
 
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
