@@ -2,6 +2,7 @@ use crate::{sign::provide_share, store_share::store_keyshare};
 use rocket::routes;
 use serde::Deserialize;
 use std::env;
+use bip39::{Mnemonic, Language};
 
 #[macro_use]
 extern crate rocket;
@@ -68,5 +69,6 @@ fn load_environment_variables() -> Configuration {
 		c = envy::from_env::<Configuration>()
         	.expect("Please provide MNEMONIC as env var");
 	}
+	assert!(Mnemonic::validate(&c.MNEMONIC, Language::English).is_ok(), "MNEMONIC is incorrect");
 	c
 }

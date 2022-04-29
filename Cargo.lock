@@ -123,7 +123,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fcb51a0695d8f838b1ee009b3fbf66bda078cd64590202a864a8f3e8c4315c47"
 dependencies = [
  "getrandom 0.2.6",
- "once_cell",
+ "once_cell 1.10.0",
  "version_check",
 ]
 
@@ -262,7 +262,7 @@ dependencies = [
  "concurrent-queue",
  "fastrand",
  "futures-lite",
- "once_cell",
+ "once_cell 1.10.0",
  "slab",
 ]
 
@@ -279,7 +279,7 @@ dependencies = [
  "blocking",
  "futures-lite",
  "num_cpus",
- "once_cell",
+ "once_cell 1.10.0",
  "tokio 1.17.0",
 ]
 
@@ -293,7 +293,7 @@ dependencies = [
  "futures-lite",
  "libc",
  "log",
- "once_cell",
+ "once_cell 1.10.0",
  "parking",
  "polling",
  "slab",
@@ -341,7 +341,7 @@ dependencies = [
  "event-listener",
  "futures-lite",
  "libc",
- "once_cell",
+ "once_cell 1.10.0",
  "signal-hook",
  "winapi 0.3.9",
 ]
@@ -382,7 +382,7 @@ dependencies = [
  "log",
  "memchr",
  "num_cpus",
- "once_cell",
+ "once_cell 1.10.0",
  "pin-project-lite 0.2.8",
  "pin-utils",
  "slab",
@@ -625,6 +625,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "bip39"
+version = "0.6.0-beta.1"
+source = "git+https://github.com/infincia/bip39-rs.git?tag=v0.6.0-beta.1#08a62f0e1f913e0168ebeb805697baa2b0107367"
+dependencies = [
+ "failure",
+ "hashbrown 0.1.8",
+ "hmac 0.7.1",
+ "once_cell 0.1.8",
+ "pbkdf2 0.3.0",
+ "rand 0.6.5",
+ "sha2 0.8.2",
+]
+
+[[package]]
 name = "bit-set"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -781,7 +795,7 @@ dependencies = [
  "atomic-waker",
  "fastrand",
  "futures-lite",
- "once_cell",
+ "once_cell 1.10.0",
 ]
 
 [[package]]
@@ -1403,7 +1417,7 @@ dependencies = [
  "lazy_static",
  "maybe-uninit",
  "memoffset 0.5.6",
- "scopeguard",
+ "scopeguard 1.1.0",
 ]
 
 [[package]]
@@ -1417,7 +1431,7 @@ dependencies = [
  "crossbeam-utils 0.8.8",
  "lazy_static",
  "memoffset 0.6.5",
- "scopeguard",
+ "scopeguard 1.1.0",
 ]
 
 [[package]]
@@ -2616,7 +2630,7 @@ dependencies = [
  "frame-support-procedural",
  "impl-trait-for-tuples",
  "log",
- "once_cell",
+ "once_cell 1.10.0",
  "parity-scale-codec",
  "paste 1.0.7",
  "scale-info",
@@ -3109,6 +3123,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92c171d55b98633f4ed3860808f004099b36c1cc29c42cfc53aa8591b21efcf2"
 dependencies = [
  "crunchy",
+]
+
+[[package]]
+name = "hashbrown"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bae29b6653b3412c2e71e9d486db9f9df5d701941d86683005efb9f2d28e3da"
+dependencies = [
+ "byteorder",
+ "scopeguard 0.3.3",
 ]
 
 [[package]]
@@ -3667,7 +3691,7 @@ dependencies = [
  "futures-lite",
  "http 0.2.6",
  "log",
- "once_cell",
+ "once_cell 1.10.0",
  "slab",
  "sluice",
  "tracing",
@@ -3693,7 +3717,7 @@ dependencies = [
  "http 0.2.6",
  "log",
  "mime",
- "once_cell",
+ "once_cell 1.10.0",
  "polling",
  "slab",
  "sluice",
@@ -4733,11 +4757,20 @@ dependencies = [
 
 [[package]]
 name = "lock_api"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62ebf1391f6acad60e5c8b43706dde4582df75c06698ab44511d15016bc2442c"
+dependencies = [
+ "scopeguard 0.3.3",
+]
+
+[[package]]
+name = "lock_api"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4da24a77a3d8a6d4862d95f72e6fdb9c09a643ecdb402d754004a557f2bec75"
 dependencies = [
- "scopeguard",
+ "scopeguard 1.1.0",
 ]
 
 [[package]]
@@ -4747,7 +4780,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "327fa5b6a6940e4699ec49a9beae1ea4845c6bab9314e4f84ac68742139d8c53"
 dependencies = [
  "autocfg 1.1.0",
- "scopeguard",
+ "scopeguard 1.1.0",
 ]
 
 [[package]]
@@ -5543,6 +5576,15 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "532c29a261168a45ce28948f9537ddd7a5dd272cc513b3017b1e82a88f962c37"
+dependencies = [
+ "parking_lot 0.7.1",
+]
+
+[[package]]
+name = "once_cell"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87f3e037eac156d1775da914196f0f37741a274155e34a0b7e427c35d2a2ecb9"
@@ -5592,7 +5634,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "foreign-types",
  "libc",
- "once_cell",
+ "once_cell 1.10.0",
  "openssl-sys",
 ]
 
@@ -6870,6 +6912,16 @@ checksum = "427c3892f9e783d91cc128285287e70a59e206ca452770ece88a76f7a3eddd72"
 
 [[package]]
 name = "parking_lot"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab41b4aed082705d1056416ae4468b6ea99d52599ecf3169b00088d43113e337"
+dependencies = [
+ "lock_api 0.1.5",
+ "parking_lot_core 0.4.0",
+]
+
+[[package]]
+name = "parking_lot"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f842b1982eb6c2fe34036a4fbfb06dd185a3f5c8edfaacdf7d1ea10b07de6252"
@@ -6898,6 +6950,19 @@ checksum = "87f5ec2493a61ac0506c0f4199f99070cbe83857b0337006a30f3e6719b8ef58"
 dependencies = [
  "lock_api 0.4.7",
  "parking_lot_core 0.9.2",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94c8c7923936b28d546dfd14d4472eaf34c99b14e1c973a32b3e6d4eb04298c9"
+dependencies = [
+ "libc",
+ "rand 0.6.5",
+ "rustc_version 0.2.3",
+ "smallvec 0.6.14",
+ "winapi 0.3.9",
 ]
 
 [[package]]
@@ -6965,6 +7030,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d95a7db200b97ef370c8e6de0088252f7e0dfff7d047a28528e47456c0fc98b6"
 dependencies = [
  "proc-macro-hack",
+]
+
+[[package]]
+name = "pbkdf2"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "006c038a43a45995a9670da19e67600114740e8511d4333bf97a56e66a7542d9"
+dependencies = [
+ "byteorder",
+ "crypto-mac 0.7.0",
+ "rayon",
 ]
 
 [[package]]
@@ -7955,7 +8031,7 @@ checksum = "3053cf52e236a3ed746dfc745aa9cacf1b791d846bdaf412f60a8d7d6e17c8fc"
 dependencies = [
  "cc",
  "libc",
- "once_cell",
+ "once_cell 1.10.0",
  "spin 0.5.2",
  "untrusted",
  "web-sys",
@@ -8875,7 +8951,7 @@ dependencies = [
  "hyper 0.14.18",
  "hyper-rustls",
  "num_cpus",
- "once_cell",
+ "once_cell 1.10.0",
  "parity-scale-codec",
  "parking_lot 0.12.0",
  "rand 0.7.3",
@@ -9151,7 +9227,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "once_cell",
+ "once_cell 1.10.0",
  "parking_lot 0.12.0",
  "regex",
  "rustc-hash",
@@ -9294,6 +9370,12 @@ name = "scoped-tls"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea6a9290e3c9cf0f18145ef7ffa62d68ee0bf5fcd651017e586dc7fd5da448c2"
+
+[[package]]
+name = "scopeguard"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94258f53601af11e6a49f722422f6e3425c52b06245a5cf9bc09908b174f5e27"
 
 [[package]]
 name = "scopeguard"
@@ -9674,6 +9756,7 @@ name = "signing-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bip39",
  "common",
  "curv-kzen",
  "env_logger",
@@ -10995,7 +11078,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "213494b7a2b503146286049378ce02b482200519accc31872ee8be91fa820a08"
 dependencies = [
  "new_debug_unreachable",
- "once_cell",
+ "once_cell 1.10.0",
  "parking_lot 0.12.0",
  "phf_shared",
  "precomputed-hash",
@@ -11308,7 +11391,7 @@ dependencies = [
  "http-types",
  "log",
  "mime_guess",
- "once_cell",
+ "once_cell 1.10.0",
  "pin-project-lite 0.2.8",
  "serde",
  "serde_json",
@@ -11441,7 +11524,7 @@ version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5516c27b78311c50bf42c071425c560ac799b11c30b31f87e3081965fe5e0180"
 dependencies = [
- "once_cell",
+ "once_cell 1.10.0",
 ]
 
 [[package]]
@@ -11521,7 +11604,7 @@ checksum = "ffc59cb9dfc85bb312c3a78fd6aa8a8582e310b0fa885d5bb877f6dcc601839d"
 dependencies = [
  "anyhow",
  "hmac 0.8.1",
- "once_cell",
+ "once_cell 1.10.0",
  "pbkdf2 0.4.0",
  "rand 0.7.3",
  "rustc-hash",
@@ -11586,7 +11669,7 @@ dependencies = [
  "memchr",
  "mio 0.8.2",
  "num_cpus",
- "once_cell",
+ "once_cell 1.10.0",
  "parking_lot 0.12.0",
  "pin-project-lite 0.2.8",
  "signal-hook-registry",
