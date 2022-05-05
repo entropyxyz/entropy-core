@@ -12,6 +12,7 @@ use subxt::{
 	sp_runtime::AccountId32, ClientBuilder, Config, DefaultConfig, PairSigner,
 	PolkadotExtrinsicParams,
 };
+use constraints::whitelist::is_on_whitelist;
 
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
@@ -82,8 +83,8 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	let string_author_endpoint = convert_endpoint(&author_endpoint);
 	let bool_block_author = is_block_author(&api, &block_author).await;
 
-	// let author_endpoint = get_author_endpoint(api, &block_author).await.unwrap();
-
+	// let address_whitelist = get_whitelist(&api, &block_author).await.unwrap();
+	// let is_address_whitelisted = is_on_whitelist(address_whitelist, );
 	for task in data {
 		println!("task: {:?}", task);
 		// ToDo: JA hardcoding
@@ -188,4 +189,15 @@ pub async fn acknowledge_responsibility(
 		println!("Failed to confirm done event: {:?}", block_number);
 	}
 	Ok(())
+}
+
+pub async fn get_whitelist(api: &EntropyRuntime, user: &AccountId32) -> Result<Vec<Vec<u8>>, subxt::Error<entropy::DispatchError>> {
+
+let whitelist = api
+	.storage()
+	.constraints()
+	.address_whitelist(user, None)
+	.await?;
+
+	Ok(whitelist)
 }

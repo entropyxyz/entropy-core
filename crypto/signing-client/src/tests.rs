@@ -1,7 +1,7 @@
 use super::rocket;
 use crate::sign::{
 	acknowledge_responsibility, convert_endpoint, get_api, get_author_endpoint, get_block_author,
-	get_block_number, is_block_author,
+	get_block_number, is_block_author, get_whitelist,
 };
 use crate::utils::{test_context, test_context_stationary};
 use curv::elliptic::curves::secp256_k1::Secp256k1;
@@ -14,9 +14,10 @@ use rocket::{
 };
 use sp_keyring::AccountKeyring;
 use std::{env, fs::remove_file, thread, time};
-use subxt::sp_core::{
+use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
+use subxt::{sp_core::{
 	crypto::{Pair, Ss58Codec},
-	sr25519,
+	sr25519,}, PairSigner
 };
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
@@ -210,4 +211,42 @@ async fn test_send_responsibility_message() {
 
 	let result = acknowledge_responsibility(&api.unwrap(), &mnemonic, 3u32).await;
 	assert_eq!(result.is_ok(), true);
+}
+
+
+#[rocket::async_test]
+async fn test_get_whitelist() {
+	let cxt = test_context().await;
+	let api = get_api(&cxt.node_proc.ws_url).await;
+	let alice_stash_id: subxt::sp_runtime::AccountId32 =
+		sr25519::Pair::from_string("//Alice//stash", None)
+			.expect("Could not obtain stash signer pair")
+			.public()
+			.into();
+
+	let result = get_whitelist(&api.as_ref().unwrap(), &alice_stash_id).await;
+	assert_eq!(result.unwrap().len(), 0);
+
+
+	let pair: Sr25519Pair = Pair2::from_string("//Alice//stash", None).unwrap();
+	let signer = PairSigner::new(pair);
+
+	api.as_ref().unwrap()
+		.tx()
+		.constraints()
+		.add_whitelist_address(vec![vec![10]])
+		.sign_and_submit_then_watch_default(&signer)
+		.await
+		.unwrap()
+		.wait_for_in_block()
+		.await
+		.unwrap()
+		.wait_for_success()
+		.await
+		.unwrap();
+
+		let result2 = get_whitelist(&api.unwrap(), &alice_stash_id).await;
+		assert_eq!(result2.as_ref().unwrap().len(), 1);
+		assert_eq!(result2.unwrap(), vec![vec![10u8]]);
+
 }
