@@ -13,7 +13,6 @@ use subxt::{
 	PolkadotExtrinsicParams,
 };
 use constraints::whitelist::is_on_whitelist;
-
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -58,6 +57,11 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 		Ok(x) => x,
 		Err(err) => panic!("failed to decode input {}", err),
 	};
+	let test: &[u8; 32] = &data[0].account.clone().try_into().expect("slice with incorrect length");
+	dbg!(test);
+
+	let user = AccountId32::new(*test);
+	dbg!(user.clone());
 
 	println!("data: {:?}", &data);
 	let cached_state = state.inner();
@@ -83,8 +87,10 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	let string_author_endpoint = convert_endpoint(&author_endpoint);
 	let bool_block_author = is_block_author(&api, &block_author).await;
 
-	// let address_whitelist = get_whitelist(&api, &block_author).await.unwrap();
-	// let is_address_whitelisted = is_on_whitelist(address_whitelist, );
+	let address_whitelist = get_whitelist(&api, &user).await.unwrap();
+	//TODO: JA this is where we send the decoded address
+	let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
+
 	for task in data {
 		println!("task: {:?}", task);
 		// ToDo: JA hardcoding
