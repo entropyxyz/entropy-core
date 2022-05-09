@@ -76,6 +76,5 @@ pub struct SigResponse {
 pub struct Message {
 	// pub thing: u128,
 	pub sig_request: SigRequest,
-	pub account: codec::alloc::vec::Vec<u8>
-
+	pub account: codec::alloc::vec::Vec<u8>,
 }

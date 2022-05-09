@@ -1,7 +1,7 @@
 use super::rocket;
 use crate::sign::{
 	acknowledge_responsibility, convert_endpoint, get_api, get_author_endpoint, get_block_author,
-	get_block_number, is_block_author, get_whitelist,
+	get_block_number, get_whitelist, is_block_author,
 };
 use crate::utils::{test_context, test_context_stationary};
 use curv::elliptic::curves::secp256_k1::Secp256k1;
@@ -12,12 +12,15 @@ use rocket::{
 	http::{ContentType, Status},
 	local::asynchronous::Client,
 };
+use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
 use sp_keyring::AccountKeyring;
 use std::{env, fs::remove_file, thread, time};
-use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
-use subxt::{sp_core::{
-	crypto::{Pair, Ss58Codec},
-	sr25519,}, PairSigner
+use subxt::{
+	sp_core::{
+		crypto::{Pair, Ss58Codec},
+		sr25519,
+	},
+	PairSigner,
 };
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
@@ -85,8 +88,11 @@ async fn provide_share() {
 	// sleep to make sure one block has been mined or else panic
 	sleep(Duration::from_secs(8u64)).await;
 
-	let encoded_data = vec![4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125];
-	// let encoded_data = vec![8, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0];
+	let encoded_data = vec![
+		4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189,
+		4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162,
+		125,
+	];
 	// Construct a client to use for dispatching requests.
 	let client = setup_client().await;
 
@@ -213,7 +219,6 @@ async fn test_send_responsibility_message() {
 	assert_eq!(result.is_ok(), true);
 }
 
-
 #[rocket::async_test]
 async fn test_get_whitelist() {
 	let cxt = test_context().await;
@@ -227,11 +232,11 @@ async fn test_get_whitelist() {
 	let result = get_whitelist(&api.as_ref().unwrap(), &alice_stash_id).await;
 	assert_eq!(result.unwrap().len(), 0);
 
-
 	let pair: Sr25519Pair = Pair2::from_string("//Alice//stash", None).unwrap();
 	let signer = PairSigner::new(pair);
 
-	api.as_ref().unwrap()
+	api.as_ref()
+		.unwrap()
 		.tx()
 		.constraints()
 		.add_whitelist_address(vec![vec![10]])
@@ -245,8 +250,7 @@ async fn test_get_whitelist() {
 		.await
 		.unwrap();
 
-		let result2 = get_whitelist(&api.unwrap(), &alice_stash_id).await;
-		assert_eq!(result2.as_ref().unwrap().len(), 1);
-		assert_eq!(result2.unwrap(), vec![vec![10u8]]);
-
+	let result2 = get_whitelist(&api.unwrap(), &alice_stash_id).await;
+	assert_eq!(result2.as_ref().unwrap().len(), 1);
+	assert_eq!(result2.unwrap(), vec![vec![10u8]]);
 }

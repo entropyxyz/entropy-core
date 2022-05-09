@@ -2,6 +2,7 @@
 
 use crate::Global;
 use common::OCWMessage;
+use constraints::whitelist::is_on_whitelist;
 use parity_scale_codec::{Decode, Encode};
 use rocket::State;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair};
@@ -12,7 +13,6 @@ use subxt::{
 	sp_runtime::AccountId32, ClientBuilder, Config, DefaultConfig, PairSigner,
 	PolkadotExtrinsicParams,
 };
-use constraints::whitelist::is_on_whitelist;
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -57,11 +57,10 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 		Ok(x) => x,
 		Err(err) => panic!("failed to decode input {}", err),
 	};
-	let test: &[u8; 32] = &data[0].account.clone().try_into().expect("slice with incorrect length");
-	dbg!(test);
+	let address_slice: &[u8; 32] =
+		&data[0].account.clone().try_into().expect("slice with incorrect length");
 
-	let user = AccountId32::new(*test);
-	dbg!(user.clone());
+	let user = AccountId32::new(*address_slice);
 
 	println!("data: {:?}", &data);
 	let cached_state = state.inner();
@@ -197,13 +196,11 @@ pub async fn acknowledge_responsibility(
 	Ok(())
 }
 
-pub async fn get_whitelist(api: &EntropyRuntime, user: &AccountId32) -> Result<Vec<Vec<u8>>, subxt::Error<entropy::DispatchError>> {
-
-let whitelist = api
-	.storage()
-	.constraints()
-	.address_whitelist(user, None)
-	.await?;
+pub async fn get_whitelist(
+	api: &EntropyRuntime,
+	user: &AccountId32,
+) -> Result<Vec<Vec<u8>>, subxt::Error<entropy::DispatchError>> {
+	let whitelist = api.storage().constraints().address_whitelist(user, None).await?;
 
 	Ok(whitelist)
 }
