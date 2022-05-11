@@ -52,12 +52,6 @@ pub mod pallet {
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
-	// // type SigRequest = common::SigRequest;
-	// #[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
-	// pub struct Message {
-	// 	sig_request: common::SigRequest,
-	// }
-
 	#[pallet::storage]
 	#[pallet::getter(fn messages)]
 	pub type Messages<T: Config> =
@@ -91,7 +85,7 @@ pub mod pallet {
 	pub type SigResponse = common::SigResponse;
 	pub type RegResponse = common::RegistrationResponse;
 	pub type SigRequest = common::SigRequest;
-	pub type Message = common::SigRequest;
+	pub type Message = common::Message;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -125,10 +119,10 @@ pub mod pallet {
 		pub fn prep_transaction(origin: OriginFor<T>, sig_request: SigRequest) -> DispatchResult {
 			log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
 			let who = ensure_signed(origin)?;
-
+			let message = Message { sig_request, account: who.encode() };
 			let block_number = <frame_system::Pallet<T>>::block_number();
 			Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
-				request.push(sig_request);
+				request.push(message);
 				Ok(())
 			})?;
 			// ToDo: get random signeing-nodes
