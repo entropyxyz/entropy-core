@@ -35,7 +35,7 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 	}
 
-	pub type Message = common::SigRequest;
+	pub type Message = common::Message;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]

@@ -2,6 +2,7 @@
 
 use crate::Global;
 use common::OCWMessage;
+use constraints::whitelist::is_on_whitelist;
 use parity_scale_codec::{Decode, Encode};
 use rocket::State;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair};
@@ -12,7 +13,6 @@ use subxt::{
 	sp_runtime::AccountId32, ClientBuilder, Config, DefaultConfig, PairSigner,
 	PolkadotExtrinsicParams,
 };
-
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -57,6 +57,10 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 		Ok(x) => x,
 		Err(err) => panic!("failed to decode input {}", err),
 	};
+	let address_slice: &[u8; 32] =
+		&data[0].account.clone().try_into().expect("slice with incorrect length");
+
+	let user = AccountId32::new(*address_slice);
 
 	println!("data: {:?}", &data);
 	let cached_state = state.inner();
@@ -82,7 +86,9 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	let string_author_endpoint = convert_endpoint(&author_endpoint);
 	let bool_block_author = is_block_author(&api, &block_author).await;
 
-	// let author_endpoint = get_author_endpoint(api, &block_author).await.unwrap();
+	let address_whitelist = get_whitelist(&api, &user).await.unwrap();
+	//TODO: JA this is where we send the decoded address
+	let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
 
 	for task in data {
 		println!("task: {:?}", task);
@@ -188,4 +194,13 @@ pub async fn acknowledge_responsibility(
 		println!("Failed to confirm done event: {:?}", block_number);
 	}
 	Ok(())
+}
+
+pub async fn get_whitelist(
+	api: &EntropyRuntime,
+	user: &AccountId32,
+) -> Result<Vec<Vec<u8>>, subxt::Error<entropy::DispatchError>> {
+	let whitelist = api.storage().constraints().address_whitelist(user, None).await?;
+
+	Ok(whitelist)
 }

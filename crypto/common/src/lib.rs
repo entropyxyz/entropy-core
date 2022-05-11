@@ -16,4 +16,5 @@ pub type RegistrationMessage = common::RegistrationMessage;
 pub type RegistrationResponse = common::RegistrationResponse;
 pub type SigRequest = common::SigRequest;
 pub type SigResponse = common::SigResponse;
-pub type OCWMessage = Vec<common::SigRequest>;
+pub type OCWMessage = Vec<common::Message>;
+pub type Message = common::Message;

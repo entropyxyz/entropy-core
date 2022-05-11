@@ -25,6 +25,7 @@ sp-keyring = "6.0.0"
 sp-core = "6.0.0"
 envy = "0.4"
 bip39 = { git = "https://github.com/infincia/bip39-rs.git", tag = "v0.6.0-beta.1"}
+constraints = { path = "../constraints"}
 
 [dev-dependencies]
 sp-keyring = "6.0.0"
