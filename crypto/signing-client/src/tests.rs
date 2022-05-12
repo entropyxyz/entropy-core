@@ -3,7 +3,7 @@ use crate::sign::{
 	acknowledge_responsibility, convert_endpoint, get_api, get_author_endpoint, get_block_author,
 	get_block_number, get_whitelist, is_block_author,
 };
-use crate::utils::{test_context, test_context_stationary};
+use testing_utils::context::{test_context, test_context_stationary};
 use curv::elliptic::curves::secp256_k1::Secp256k1;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
 use parity_scale_codec::Encode;
