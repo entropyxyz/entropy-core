@@ -1,4 +1,4 @@
-use testing_utils::context::{test_context};
+use testing_utils::context::test_context;
 
 #[async_std::test]
 async fn storage_get_current_timestamp() {
