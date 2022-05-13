@@ -6,6 +6,7 @@ members = [
     'crypto/protocol',
     'crypto/signing-client',
     'crypto/testing-user-clients',
+	'crypto/testing-utils',
     'node/*',
     'pallets/*',
     'runtime',
