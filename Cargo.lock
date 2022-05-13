@@ -7490,27 +7490,23 @@ dependencies = [
  "async-trait",
  "common",
  "curv-kzen",
- "env_logger",
  "futures 0.3.21",
  "kzen-paillier",
- "log",
  "multi-party-ecdsa",
  "parity-scale-codec",
  "parity-scale-codec-derive",
- "project-root",
  "rocket",
  "round-based",
  "scale-info",
  "serde",
  "serde_json",
- "sp-core 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-keyring 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "structopt",
  "subxt",
  "surf",
+ "testing-utils",
  "thiserror",
  "tokio 1.17.0",
- "which",
  "zk-paillier",
 ]
 
@@ -9764,13 +9760,10 @@ dependencies = [
  "common",
  "constraints",
  "curv-kzen",
- "env_logger",
  "envy",
  "futures 0.3.21",
- "log",
  "multi-party-ecdsa",
  "parity-scale-codec",
- "project-root",
  "protocol",
  "reqwest 0.9.24",
  "rocket",
@@ -9780,9 +9773,9 @@ dependencies = [
  "sp-keyring 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "subxt",
  "surf",
+ "testing-utils",
  "tokio 1.17.0",
  "uuid 0.8.2",
- "which",
 ]
 
 [[package]]
@@ -11480,6 +11473,20 @@ dependencies = [
  "async-std",
  "protocol",
  "rocket",
+]
+
+[[package]]
+name = "testing-utils"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "log",
+ "parity-scale-codec",
+ "project-root",
+ "sp-core 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sp-keyring 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "subxt",
+ "which",
 ]
 
 [[package]]

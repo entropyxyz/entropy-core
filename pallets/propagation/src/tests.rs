@@ -25,7 +25,11 @@ fn knows_how_to_mock_several_http_calls() {
 			headers: [("Content-Type".into(), "application/x-parity-scale-codec".into())].to_vec(),
 			sent: true,
 			response: Some([].to_vec()),
-			body: [8, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 32, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 32, 1, 0, 0, 0, 0, 0, 0, 0].to_vec(),
+			body: [
+				8, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 32, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1,
+				0, 0, 0, 32, 1, 0, 0, 0, 0, 0, 0, 0,
+			]
+			.to_vec(),
 			..Default::default()
 		});
 	});

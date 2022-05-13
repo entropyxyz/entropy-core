@@ -12,9 +12,6 @@ use rocket::State;
 #[cfg(test)]
 mod tests;
 
-#[cfg(test)]
-mod utils;
-
 mod com_manager;
 mod sign;
 mod store_share;

@@ -37,11 +37,7 @@ parity-scale-codec-derive = "3.0.0"
 common = { path = "../../crypto/common", default-features = false }
 
 [dev-dependencies]
-project-root = "0.2.2"
-sp-core = { version = "6.0.0", default-features = false  }
-env_logger = "0.9.0"
-log = "0.4.14"
-which = "4.0.2"
+testing-utils = { path = "../testing-utils"}
 
 [dependencies.scale-info]
 default-features = false
