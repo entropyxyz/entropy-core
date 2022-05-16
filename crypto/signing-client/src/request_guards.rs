@@ -2,9 +2,9 @@ use rocket::http::Status;
 use rocket::request::{self, Outcome, Request, FromRequest};
 use crate::errors::SignedMessageError;
 
-struct SignedMessage<'r>(&'r str);
+pub struct SignedMessage<'r>(&'r str);
 
-fn is_valid(signature: &str) -> bool {
+pub fn is_valid(signature: &str) -> bool {
 	true
 }
 
@@ -22,3 +22,16 @@ impl<'r> FromRequest<'r> for SignedMessage<'r> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+
+	#[test]
+	fn is_valid_test() {
+		assert_eq!(is_valid("test"), true);
+	}
+
+}
+
