@@ -1,6 +1,6 @@
-use rocket::http::Status;
-use rocket::request::{self, Outcome, Request, FromRequest};
 use crate::errors::SignedMessageError;
+use rocket::http::Status;
+use rocket::request::{self, FromRequest, Outcome, Request};
 
 pub struct SignedMessage<'r>(&'r str);
 
@@ -10,28 +10,23 @@ pub fn is_valid(signature: &str) -> bool {
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for SignedMessage<'r> {
-
 	type Error = SignedMessageError;
 
-    async fn from_request(req: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
-
+	async fn from_request(req: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
 		match req.headers().get_one("signed-message") {
-            None => Outcome::Failure((Status::BadRequest, SignedMessageError::Missing)),
-            Some(message) if is_valid(message) => Outcome::Success(SignedMessage(message)),
-            Some(_) => Outcome::Failure((Status::BadRequest, SignedMessageError::Invalid)),
-        }
-    }
+			None => Outcome::Failure((Status::BadRequest, SignedMessageError::Missing)),
+			Some(message) if is_valid(message) => Outcome::Success(SignedMessage(message)),
+			Some(_) => Outcome::Failure((Status::BadRequest, SignedMessageError::Invalid)),
+		}
+	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
 
-
 	#[test]
 	fn is_valid_test() {
 		assert_eq!(is_valid("test"), true);
 	}
-
 }
-
