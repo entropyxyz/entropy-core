@@ -15,6 +15,8 @@ mod tests;
 mod com_manager;
 mod sign;
 mod store_share;
+mod request_guards;
+mod errors;
 
 use com_manager::{broadcast, issue_idx, subscribe, Db};
 // ToDo: JA add proper response types and formalize them across all endpoints
