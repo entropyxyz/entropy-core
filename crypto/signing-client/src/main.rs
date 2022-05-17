@@ -13,6 +13,8 @@ use rocket::State;
 mod tests;
 
 mod com_manager;
+mod errors;
+mod request_guards;
 mod sign;
 mod store_share;
 
