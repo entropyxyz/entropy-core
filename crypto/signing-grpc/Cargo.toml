@@ -1,0 +1,12 @@
+[package]
+name = "signing-grpc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tonic = "0.7.2"
+prost = "0.10.1"
+prost-types = "0.10.1"
+
+[build-dependencies]
+tonic-build = "0.7.2"
