@@ -286,5 +286,4 @@ async fn test_have_keyshare() {
 	kv_manager.kv().delete(&key).await.unwrap();
 	let result_3 = does_have_key(kv_manager, key.clone()).await;
 	assert_eq!(result_3, false);
-
 }
