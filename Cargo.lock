@@ -9984,7 +9984,6 @@ dependencies = [
  "subxt",
  "surf",
  "testing-utils",
- "tofn",
  "tofnd",
  "tokio 1.17.0",
  "uuid 0.8.2",

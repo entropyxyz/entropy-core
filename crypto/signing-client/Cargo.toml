@@ -27,10 +27,10 @@ envy = "0.4"
 bip39 = { git = "https://github.com/infincia/bip39-rs.git", tag = "v0.6.0-beta.1"}
 constraints = { path = "../constraints"}
 tofnd = { git = "https://github.com/Entropyxyz/tofnd", branch = "main"}
+project-root = "0.2.2"
 
 [dev-dependencies]
 testing-utils = { path = "../testing-utils"}
-project-root = "0.2.2"
 serial_test = "0.6.0"
 
 [features]

@@ -15,7 +15,11 @@ use rocket::{
 use serial_test::serial;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
 use sp_keyring::AccountKeyring;
-use std::{env, fs::remove_file, thread, time};
+use std::{
+	env,
+	fs::{remove_dir_all, remove_file},
+	thread, time,
+};
 use subxt::{
 	sp_core::{
 		crypto::{Pair, Ss58Codec},
@@ -274,8 +278,13 @@ async fn test_have_keyshare() {
 	assert_eq!(result, false);
 
 	let reservation = kv_manager.kv().reserve_key(key.clone()).await.unwrap();
-	kv_manager.kv().put(reservation, "dummy".to_owned().as_bytes().to_vec());
+	kv_manager.kv().put(reservation, "dummy".to_owned().as_bytes().to_vec()).await;
 	// handle_put(kv_manager, KeyReservation {key: key.clone()}, value);
-	let result_2 = does_have_key(kv_manager, key.clone()).await;
+	let result_2 = does_have_key(kv_manager.clone(), key.clone()).await;
 	assert_eq!(result_2, true);
+
+	kv_manager.kv().delete(&key).await.unwrap();
+	let result_3 = does_have_key(kv_manager, key.clone()).await;
+	assert_eq!(result_3, false);
+
 }
