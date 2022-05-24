@@ -13,6 +13,7 @@ use subxt::{
 	sp_runtime::AccountId32, ClientBuilder, Config, DefaultConfig, PairSigner,
 	PolkadotExtrinsicParams,
 };
+use tofnd::kv_manager::KvManager;
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -57,8 +58,9 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 		Ok(x) => x,
 		Err(err) => panic!("failed to decode input {}", err),
 	};
+	let raw_address = &data[0].account;
 	let address_slice: &[u8; 32] =
-		&data[0].account.clone().try_into().expect("slice with incorrect length");
+		&raw_address.clone().try_into().expect("slice with incorrect length");
 
 	let user = AccountId32::new(*address_slice);
 
@@ -66,6 +68,7 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	let cached_state = state.inner();
 	let endpoint = cached_state.endpoint.clone();
 	let mnemonic = cached_state.mnemonic.clone();
+	let kv_manager = cached_state.kv_manager.clone();
 
 	let api = get_api(&endpoint).await.unwrap();
 	let block_number = get_block_number(&api).await.unwrap();
@@ -89,7 +92,8 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	let address_whitelist = get_whitelist(&api, &user).await.unwrap();
 	//TODO: JA this is where we send the decoded address
 	let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
-
+	// let address_string = String::from_utf8(*raw_address.clone().to_vec()).expect("Found invalid UTF-8");
+	let does_have_key = does_have_key(kv_manager, user.to_string());
 	for task in data {
 		println!("task: {:?}", task);
 		// ToDo: JA hardcoding
@@ -203,4 +207,8 @@ pub async fn get_whitelist(
 	let whitelist = api.storage().constraints().address_whitelist(user, None).await?;
 
 	Ok(whitelist)
+}
+
+pub async fn does_have_key(kv: KvManager, user: String) -> bool {
+	kv.kv().exists(&user).await.unwrap()
 }
