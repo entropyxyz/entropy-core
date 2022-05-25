@@ -27,6 +27,7 @@ pub async fn store_keyshare(
 	state: &State<Global>,
 ) -> Result<(), std::io::Error> {
 	// ToDo: JA verify proof
+	// ToDo: validate is owner of key address
 	// ToDo: JA make sure signed so other key doesn't override own key
 
 	let cached_state = state.inner();
