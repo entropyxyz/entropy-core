@@ -1,25 +1,25 @@
 use super::rocket;
-use crate::{get_test_password, Global};
-use crate::store_share::{User, store_keyshare};
 use crate::sign::{
 	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
-	get_block_author, get_block_number, get_whitelist, is_block_author
+	get_block_author, get_block_number, get_whitelist, is_block_author,
 };
+use crate::store_share::{store_keyshare, User};
+use crate::{get_test_password, Global};
 use curv::elliptic::curves::secp256_k1::Secp256k1;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
 use parity_scale_codec::Encode;
 use rocket::tokio::time::{sleep, Duration};
 use rocket::{
-	State,
 	http::{ContentType, Status},
 	local::asynchronous::Client,
+	State,
 };
 use serial_test::serial;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
 use sp_keyring::AccountKeyring;
 use std::{
 	env,
-	fs::{remove_file, remove_dir_all},
+	fs::{remove_dir_all, remove_file},
 	thread, time,
 };
 use subxt::{
@@ -54,18 +54,8 @@ async fn test_store_share() {
 	let file = tokio::fs::read(file_path).await;
 	let client = setup_client().await;
 
-	let user_input = User {
-		key: key.clone(),
-		value: file.unwrap()
-	};
-	// let mnemonic = "alarm mutual concert decrease hurry invest culture survey diagram crash snap click".to_string();
-	// let global = Global {
-	// 	mnemonic,
-	// 	endpoint: "test".to_string(),
-	// 	kv_manager
-	// };
-	// Construct a client to use for dispatching requests.
-	// let client = setup_client().await;
+	let user_input = User { key: key.clone(), value: file.unwrap() };
+
 	let response = client
 		.post("/store_keyshare")
 		.header(ContentType::JSON)
