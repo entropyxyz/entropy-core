@@ -65,7 +65,7 @@ async fn test_store_share() {
 
 	assert_eq!(response.status(), Status::Ok);
 	assert_eq!(response.into_string().await, None);
-
+	// fails to add already added share
 	let response = client
 		.post("/store_keyshare")
 		.header(ContentType::JSON)
@@ -75,6 +75,7 @@ async fn test_store_share() {
 
 	assert_eq!(response.status(), Status::InternalServerError);
 
+	// delete KV store after tests
 	let root = project_root::get_project_root().unwrap();
 	let mut file_path: String = root.as_path().display().to_string().to_owned();
 	file_path.push_str("/kvstore");
@@ -283,11 +284,11 @@ async fn test_get_whitelist() {
 #[serial]
 async fn test_have_keyshare() {
 	let key = "12mXVvtCubeKrVx99EWQCpJrLxnmzAgXqwHePLoamVN31Kn5".to_string();
+	// launch kv manager
 	let root = project_root::get_project_root().unwrap();
 	let kv_manager = KvManager::new(root.clone(), get_test_password()).unwrap();
 
 	let result = does_have_key(kv_manager.clone(), key.clone()).await;
-
 	assert_eq!(result, false);
 
 	let reservation = kv_manager.kv().reserve_key(key.clone()).await.unwrap();
@@ -295,7 +296,7 @@ async fn test_have_keyshare() {
 
 	let result_2 = does_have_key(kv_manager.clone(), key.clone()).await;
 	assert_eq!(result_2, true);
-
+	// delete key so tests rerun
 	let _ = kv_manager.kv().delete(&key).await.unwrap();
 	let result_3 = does_have_key(kv_manager, key.clone()).await;
 	assert_eq!(result_3, false);
