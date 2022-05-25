@@ -92,7 +92,6 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	let address_whitelist = get_whitelist(&api, &user).await.unwrap();
 	//TODO: JA this is where we send the decoded address
 	let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
-	// let address_string = String::from_utf8(*raw_address.clone().to_vec()).expect("Found invalid UTF-8");
 	let does_have_key = does_have_key(kv_manager, user.to_string());
 	for task in data {
 		println!("task: {:?}", task);

@@ -1,14 +1,16 @@
 use super::rocket;
-use crate::get_test_password;
+use crate::{get_test_password, Global};
+use crate::store_share::{User, store_keyshare};
 use crate::sign::{
 	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
-	get_block_author, get_block_number, get_whitelist, is_block_author,
+	get_block_author, get_block_number, get_whitelist, is_block_author
 };
 use curv::elliptic::curves::secp256_k1::Secp256k1;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
 use parity_scale_codec::Encode;
 use rocket::tokio::time::{sleep, Duration};
 use rocket::{
+	State,
 	http::{ContentType, Status},
 	local::asynchronous::Client,
 };
@@ -17,7 +19,7 @@ use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
 use sp_keyring::AccountKeyring;
 use std::{
 	env,
-	fs::{remove_dir_all, remove_file},
+	fs::{remove_file, remove_dir_all},
 	thread, time,
 };
 use subxt::{
@@ -45,27 +47,48 @@ fn get_path(extension: &str) -> String {
 #[rocket::async_test]
 #[serial]
 async fn test_store_share() {
+	let key = "14ffvYx6uFkqr3jXvYc5Joeczvnq8oqCiABdNA3a1M9R16F2".to_string();
+
 	let file_path = get_path("/src/mocks/local-share1.json");
 
 	let file = tokio::fs::read(file_path).await;
-
-	let json: LocalKey<Secp256k1> = serde_json::from_slice(&file.unwrap()).unwrap();
-	// Construct a client to use for dispatching requests.
 	let client = setup_client().await;
+
+	let user_input = User {
+		key: key.clone(),
+		value: file.unwrap()
+	};
+	// let mnemonic = "alarm mutual concert decrease hurry invest culture survey diagram crash snap click".to_string();
+	// let global = Global {
+	// 	mnemonic,
+	// 	endpoint: "test".to_string(),
+	// 	kv_manager
+	// };
+	// Construct a client to use for dispatching requests.
+	// let client = setup_client().await;
 	let response = client
 		.post("/store_keyshare")
 		.header(ContentType::JSON)
-		.body(serde_json::to_string(&json).unwrap())
+		.body(serde_json::to_string(&user_input.clone()).unwrap())
 		.dispatch()
 		.await;
 
 	assert_eq!(response.status(), Status::Ok);
 	assert_eq!(response.into_string().await, None);
 
-	let new_path = get_path("/local-share2.json");
+	let response = client
+		.post("/store_keyshare")
+		.header(ContentType::JSON)
+		.body(serde_json::to_string(&user_input).unwrap())
+		.dispatch()
+		.await;
 
-	// check to see if new file was stored
-	let result = remove_file(new_path);
+	assert_eq!(response.status(), Status::InternalServerError);
+
+	let root = project_root::get_project_root().unwrap();
+	let mut file_path: String = root.as_path().display().to_string().to_owned();
+	file_path.push_str("/kvstore");
+	let result = remove_dir_all(file_path);
 	assert_eq!(result.is_ok(), true);
 }
 
@@ -278,12 +301,12 @@ async fn test_have_keyshare() {
 	assert_eq!(result, false);
 
 	let reservation = kv_manager.kv().reserve_key(key.clone()).await.unwrap();
-	kv_manager.kv().put(reservation, "dummy".to_owned().as_bytes().to_vec()).await;
-	// handle_put(kv_manager, KeyReservation {key: key.clone()}, value);
+	let _ = kv_manager.kv().put(reservation, "dummy".to_owned().as_bytes().to_vec()).await;
+
 	let result_2 = does_have_key(kv_manager.clone(), key.clone()).await;
 	assert_eq!(result_2, true);
 
-	kv_manager.kv().delete(&key).await.unwrap();
+	let _ = kv_manager.kv().delete(&key).await.unwrap();
 	let result_3 = does_have_key(kv_manager, key.clone()).await;
 	assert_eq!(result_3, false);
 }
