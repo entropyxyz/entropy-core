@@ -3,6 +3,7 @@ use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::Deserialize;
 use std::env;
+use tofnd::{config::parse_args, encrypted_sled::Db as tofndDb, kv_manager::KvManager};
 
 #[macro_use]
 extern crate rocket;
@@ -21,10 +22,11 @@ mod store_share;
 use com_manager::{broadcast, issue_idx, subscribe, Db};
 // ToDo: JA add proper response types and formalize them across all endpoints
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Global {
 	mnemonic: String,
 	endpoint: String,
+	kv_manager: KvManager,
 }
 
 fn default_endpoint() -> Option<String> {
@@ -39,11 +41,14 @@ struct Configuration {
 }
 
 #[launch]
-fn rocket() -> _ {
+async fn rocket() -> _ {
 	let c = load_environment_variables();
-
-	let global =
-		Global { mnemonic: c.mnemonic.to_string(), endpoint: c.endpoint.unwrap().to_string() };
+	let kv_manager = load_kv_store().await;
+	let global = Global {
+		mnemonic: c.mnemonic.to_string(),
+		endpoint: c.endpoint.unwrap().to_string(),
+		kv_manager,
+	};
 	rocket::build()
 		.mount(
 			"/",
@@ -75,4 +80,27 @@ fn load_environment_variables() -> Configuration {
 	}
 	assert!(Mnemonic::validate(&c.mnemonic, Language::English).is_ok(), "MNEMONIC is incorrect");
 	c
+}
+
+async fn load_kv_store() -> KvManager {
+	let kv_manager;
+	let cfg = parse_args().unwrap();
+
+	if cfg!(test) {
+		let root = project_root::get_project_root().unwrap();
+		kv_manager = KvManager::new(root.clone(), get_test_password()).unwrap();
+	} else {
+		let password = cfg.password_method.execute().unwrap();
+		// this step takes a long time due to password-based decryption
+		kv_manager = KvManager::new(cfg.tofnd_path.clone(), password)
+			.unwrap()
+			.handle_mnemonic(&cfg.mnemonic_cmd)
+			.await
+			.unwrap();
+	}
+	kv_manager
+}
+
+pub fn get_test_password() -> tofnd::encrypted_sled::Password {
+	tofnd::encrypted_sled::PasswordMethod::NoPassword.execute().unwrap()
 }
