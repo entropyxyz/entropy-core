@@ -1,5 +1,5 @@
 [package]
-name = "signing-grpc"
+name = "entropy-grpc"
 version = "0.1.0"
 edition = "2021"
 
