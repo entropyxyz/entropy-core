@@ -1,8 +1,10 @@
 use super::rocket;
 use crate::sign::{
-	acknowledge_responsibility, convert_endpoint, get_api, get_author_endpoint, get_block_author,
-	get_block_number, get_whitelist, is_block_author,
+	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
+	get_block_author, get_block_number, get_whitelist, is_block_author,
 };
+use crate::store_share::{store_keyshare, User};
+use crate::{get_test_password, Global};
 use curv::elliptic::curves::secp256_k1::Secp256k1;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
 use parity_scale_codec::Encode;
@@ -10,10 +12,16 @@ use rocket::tokio::time::{sleep, Duration};
 use rocket::{
 	http::{ContentType, Status},
 	local::asynchronous::Client,
+	State,
 };
+use serial_test::serial;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
 use sp_keyring::AccountKeyring;
-use std::{env, fs::remove_file, thread, time};
+use std::{
+	env,
+	fs::{remove_dir_all, remove_file},
+	thread, time,
+};
 use subxt::{
 	sp_core::{
 		crypto::{Pair, Ss58Codec},
@@ -22,9 +30,10 @@ use subxt::{
 	PairSigner,
 };
 use testing_utils::context::{test_context, test_context_stationary};
+use tofnd::kv_manager::{KeyReservation, KvManager};
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
-	Client::tracked(super::rocket()).await.expect("valid `Rocket`")
+	Client::tracked(super::rocket().await).await.expect("valid `Rocket`")
 }
 
 fn get_path(extension: &str) -> String {
@@ -36,32 +45,46 @@ fn get_path(extension: &str) -> String {
 }
 
 #[rocket::async_test]
+#[serial]
 async fn test_store_share() {
+	let key = "14ffvYx6uFkqr3jXvYc5Joeczvnq8oqCiABdNA3a1M9R16F2".to_string();
+
 	let file_path = get_path("/src/mocks/local-share1.json");
 
 	let file = tokio::fs::read(file_path).await;
-
-	let json: LocalKey<Secp256k1> = serde_json::from_slice(&file.unwrap()).unwrap();
-	// Construct a client to use for dispatching requests.
 	let client = setup_client().await;
+
+	let user_input = User { key: key.clone(), value: file.unwrap() };
+
 	let response = client
 		.post("/store_keyshare")
 		.header(ContentType::JSON)
-		.body(serde_json::to_string(&json).unwrap())
+		.body(serde_json::to_string(&user_input.clone()).unwrap())
 		.dispatch()
 		.await;
 
 	assert_eq!(response.status(), Status::Ok);
 	assert_eq!(response.into_string().await, None);
+	// fails to add already added share
+	let response = client
+		.post("/store_keyshare")
+		.header(ContentType::JSON)
+		.body(serde_json::to_string(&user_input).unwrap())
+		.dispatch()
+		.await;
 
-	let new_path = get_path("/local-share2.json");
+	assert_eq!(response.status(), Status::InternalServerError);
 
-	// check to see if new file was stored
-	let result = remove_file(new_path);
+	// delete KV store after tests
+	let root = project_root::get_project_root().unwrap();
+	let mut file_path: String = root.as_path().display().to_string().to_owned();
+	file_path.push_str("/kvstore");
+	let result = remove_dir_all(file_path);
 	assert_eq!(result.is_ok(), true);
 }
 
 #[rocket::async_test]
+#[serial]
 async fn test_store_share_fail_wrong_data() {
 	// Construct a client to use for dispatching requests.
 	let client = setup_client().await;
@@ -82,6 +105,7 @@ async fn test_store_share_fail_wrong_data() {
 }
 
 #[rocket::async_test]
+#[serial]
 async fn provide_share() {
 	let cxt = test_context_stationary().await;
 	let now = time::Instant::now();
@@ -107,6 +131,7 @@ async fn provide_share() {
 }
 
 #[rocket::async_test]
+#[serial]
 async fn provide_share_fail_wrong_data() {
 	// Construct a client to use for dispatching requests.
 	let client = setup_client().await;
@@ -169,7 +194,7 @@ async fn not_validator_block_author() {
 #[rocket::async_test]
 async fn test_get_block_author() {
 	let cxt = test_context().await;
-	sleep(Duration::from_secs(8u64)).await;
+	sleep(Duration::from_secs(10u64)).await;
 	let api = get_api(&cxt.node_proc.ws_url).await;
 	let result = get_block_author(&api.unwrap()).await;
 	println!("result {:?}", result);
@@ -253,4 +278,26 @@ async fn test_get_whitelist() {
 	let result2 = get_whitelist(&api.unwrap(), &alice_stash_id).await;
 	assert_eq!(result2.as_ref().unwrap().len(), 1);
 	assert_eq!(result2.unwrap(), vec![vec![10u8]]);
+}
+
+#[rocket::async_test]
+#[serial]
+async fn test_have_keyshare() {
+	let key = "12mXVvtCubeKrVx99EWQCpJrLxnmzAgXqwHePLoamVN31Kn5".to_string();
+	// launch kv manager
+	let root = project_root::get_project_root().unwrap();
+	let kv_manager = KvManager::new(root.clone(), get_test_password()).unwrap();
+
+	let result = does_have_key(kv_manager.clone(), key.clone()).await;
+	assert_eq!(result, false);
+
+	let reservation = kv_manager.kv().reserve_key(key.clone()).await.unwrap();
+	let _ = kv_manager.kv().put(reservation, "dummy".to_owned().as_bytes().to_vec()).await;
+
+	let result_2 = does_have_key(kv_manager.clone(), key.clone()).await;
+	assert_eq!(result_2, true);
+	// delete key so tests rerun
+	let _ = kv_manager.kv().delete(&key).await.unwrap();
+	let result_3 = does_have_key(kv_manager, key.clone()).await;
+	assert_eq!(result_3, false);
 }
