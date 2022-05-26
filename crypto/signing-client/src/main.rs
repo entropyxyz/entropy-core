@@ -1,7 +1,7 @@
 use crate::{sign::provide_share, store_share::store_keyshare, ip_discovery::{get_ip, get_all_ips}};
 use bip39::{Language, Mnemonic};
 use rocket::routes;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{env, sync::Mutex};
 use tofnd::{config::parse_args, encrypted_sled::Db as tofndDb, kv_manager::KvManager};
 

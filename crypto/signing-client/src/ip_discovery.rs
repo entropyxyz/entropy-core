@@ -3,6 +3,7 @@ use rocket::State;
 use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
+use reqwest;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IpAddresses {
@@ -18,10 +19,25 @@ pub async fn get_ip(
 	let shared_data: &IPs = state.inner();
 	// TODO JA do validation on recieved keys and if keys are already had
 	// TODO JA figure out optimal node amount
-	if shared_data.current_ips.lock().unwrap().len() < 4 {
+	if shared_data.current_ips.lock().unwrap().len() < 2 {
 		shared_data.current_ips.lock().unwrap().push(ip_address);
 	} else {
-		// send ips to all addresses
+		let all_ip_vec = shared_data.current_ips.lock().unwrap().to_vec();
+		let all_ips = IpAddresses {
+			ip_addresses: all_ip_vec.clone()
+		};
+		for mut ip in all_ip_vec.clone() {
+			let client = reqwest::Client::new();
+			let route = "/get_all_ips";
+			ip.push_str(route);
+			let res = client
+				.post(ip)
+				.header("Content-Type", "application/json")
+				.json(&all_ips.clone())
+				.send()
+				.await
+				.unwrap();
+		}
 	}
 }
 

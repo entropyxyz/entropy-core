@@ -310,12 +310,28 @@ async fn test_have_keyshare() {
 
 #[rocket::async_test]
 #[serial]
-async fn test_get_ip() {
+async fn get_ip_test() {
 	let client = setup_client().await;
 	let response = client
 		.get("/get_ip/test")
 		.dispatch()
 		.await;
 
-	println!("response {:?}", response.status());
+	assert_eq!(response.status(), Status::Ok);
+
+	let response_2 = client
+		.get("/get_ip/test")
+		.dispatch()
+		.await;
+
+	assert_eq!(response_2.status(), Status::Ok);
+
+	// Todo fix this by sending proper IP mocks
+	// let response_3 = client
+	// 	.get("/get_ip/test")
+	// 	.dispatch()
+	// 	.await;
+
+	// assert_eq!(response_3.status(), Status::Ok);
+
 }
