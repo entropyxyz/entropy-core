@@ -4,13 +4,16 @@ use lazy_static::lazy_static;
 use log::info;
 use proto::{
     entropy_server::{Entropy, EntropyServer},
-    GetPartyRequest, GetPartyResponse,
+    GetPartyRequest, GetPartyResponse, IpAddress, IpAddressResponse
 };
 use std::net::{Ipv4Addr, SocketAddr};
 use std::{error::Error, net::SocketAddrV4};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
+
+#[cfg(test)]
+mod tests;
 
 const N_MESSAGES: usize = 1;
 lazy_static! {
@@ -32,6 +35,21 @@ pub struct EntropyService {}
 impl Entropy for EntropyService {
     type GetPartyStream = ReceiverStream<Result<GetPartyResponse, Status>>;
     /// Return the ip addresses of participating signing nodes
+
+	async fn receive_ip_address(
+		&self,
+		request: Request<IpAddress>
+	) -> Result <Response<IpAddressResponse>, Status> {
+        info!("📖 Server: receive ip address...");
+
+		let reply = IpAddressResponse {
+            confirmed: true,
+        };
+
+		Ok(Response::new(reply))
+
+	}
+
     async fn get_party(
         &self,
         _request: Request<GetPartyRequest>,

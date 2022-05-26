@@ -5,6 +5,8 @@ import "google/protobuf/empty.proto";
 service Entropy {
     // Alice queries for the list of signing parties
     rpc GetParty (GetPartyRequest) returns (stream GetPartyResponse);
+
+    rpc receiveIpAddress (IpAddress) returns (IpAddressResponse);
 }
 message GetPartyRequest{
     // Alice's IP address
@@ -12,4 +14,12 @@ message GetPartyRequest{
 }
 message GetPartyResponse{
     repeated string addresses = 1;
+}
+
+message IpAddress {
+  string address = 1;
+}
+
+message IpAddressResponse {
+  bool confirmed = 1;
 }

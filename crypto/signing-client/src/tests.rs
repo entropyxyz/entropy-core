@@ -1,7 +1,7 @@
 use super::rocket;
 use crate::sign::{
 	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
-	get_block_author, get_block_number, get_whitelist, is_block_author,
+	get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address_function
 };
 use crate::store_share::{store_keyshare, User};
 use crate::{get_test_password, Global};
@@ -106,7 +106,7 @@ async fn test_store_share_fail_wrong_data() {
 
 #[rocket::async_test]
 #[serial]
-async fn provide_share() {
+async fn test_sign() {
 	let cxt = test_context_stationary().await;
 	let now = time::Instant::now();
 	// sleep to make sure one block has been mined or else panic
@@ -301,3 +301,10 @@ async fn test_have_keyshare() {
 	let result_3 = does_have_key(kv_manager, key.clone()).await;
 	assert_eq!(result_3, false);
 }
+
+#[rocket::async_test]
+async fn test_ip_address() {
+	// needs to be running server for this to pass
+	send_ip_address_function().await;
+}
+

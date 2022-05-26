@@ -14,6 +14,7 @@ use subxt::{
 	PolkadotExtrinsicParams,
 };
 use tofnd::kv_manager::KvManager;
+use client_grpc::client::send_ip_address;
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -93,24 +94,27 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	//TODO: JA this is where we send the decoded address
 	let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
 	let does_have_key = does_have_key(kv_manager, user.to_string());
-	for task in data {
-		println!("task: {:?}", task);
-		// ToDo: JA hardcoding
-		let sign_cli = protocol::sign::SignCli {
-			//ToDo: handle the unwrap... how do I use Result<> as a return type in a HTTP-route?
-			address: surf::Url::parse("http://localhost:3001/").unwrap(),
-			// ToDo: DF: use the proper sigID and convert it to String
-			room: String::from("sig_id"), // String::from_utf8(sig_id.clone()).unwrap(),
-			index: 2,
-			// parties: sig_res.signing_nodes, // ToDo: DF is this correct??
-			parties: vec![2, 1], // ToDo: DF is this correct??
-			data_to_sign: String::from("entropy rocks!!"),
-		};
-		println!("Bob starts signing...");
-		// ToDo: JA handle error
-		let signature = protocol::sign::sign(sign_cli).await;
-		println!("signature: {:?}", signature);
-	}
+
+	let result = send_ip_address_function().await;
+	println!("{:?}", result);
+	// for task in data {
+	// 	println!("task: {:?}", task);
+	// 	// ToDo: JA hardcoding
+	// 	let sign_cli = protocol::sign::SignCli {
+	// 		//ToDo: handle the unwrap... how do I use Result<> as a return type in a HTTP-route?
+	// 		address: surf::Url::parse("http://localhost:3001/").unwrap(),
+	// 		// ToDo: DF: use the proper sigID and convert it to String
+	// 		room: String::from("sig_id"), // String::from_utf8(sig_id.clone()).unwrap(),
+	// 		index: 2,
+	// 		// parties: sig_res.signing_nodes, // ToDo: DF is this correct??
+	// 		parties: vec![2, 1], // ToDo: DF is this correct??
+	// 		data_to_sign: String::from("entropy rocks!!"),
+	// 	};
+	// 	println!("Bob starts signing...");
+	// 	// ToDo: JA handle error
+	// 	let signature = protocol::sign::sign(sign_cli).await;
+	// 	println!("signature: {:?}", signature);
+	// }
 	// TODO: JA Thread blocks the return, not sure if needed a problem, keep an eye out for this downstream
 	handle.join().unwrap().await;
 	//todo!();
@@ -210,4 +214,8 @@ pub async fn get_whitelist(
 
 pub async fn does_have_key(kv: KvManager, user: String) -> bool {
 	kv.kv().exists(&user).await.unwrap()
+}
+
+pub async fn send_ip_address_function() {
+	send_ip_address("test".to_string()).await.unwrap();
 }
