@@ -3,7 +3,7 @@ use dotenv::dotenv;
 use entropy_grpc as proto;
 use lazy_static::lazy_static;
 use log::{info};
-use proto::{entropy_client::EntropyClient, GetPartyRequest};
+use proto::{entropy_client::EntropyClient, GetPartyRequest, IpAddress};
 use std::{env::var, error::Error};
 use tonic::Request;
 
@@ -30,10 +30,9 @@ async fn create_grpc_client(
     Ok(EntropyClient::new(channel))
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+pub async fn get_addresses() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
-    env_logger::init();
+    // env_logger::init();
     let mut client = create_grpc_client().await?;
     let request = Request::new(GetPartyRequest {
         address: SERVER_URI.to_string(),
@@ -42,5 +41,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let addresses = stream.message().await?.expect("weird response");
 
     info!("🎉 Client: got addresses: {:?}", addresses);
+    Ok(())
+}
+
+pub async fn send_ip_address(ip_address: String) -> Result<(), Box<dyn Error>> {
+    dotenv().ok();
+    // env_logger::init();
+    let mut client = create_grpc_client().await?;
+    let request = Request::new(IpAddress {
+        address: ALICE_URI.to_string(),
+    });
+    let mut result = client.receive_ip_address(request).await?;
+
+    info!("🎉 Client: received IP: {:?}", result);
     Ok(())
 }

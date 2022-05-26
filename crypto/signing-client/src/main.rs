@@ -90,6 +90,7 @@ async fn load_kv_store() -> KvManager {
 		let root = project_root::get_project_root().unwrap();
 		kv_manager = KvManager::new(root.clone(), get_test_password()).unwrap();
 	} else {
+		println!("{:?}", cfg.tofnd_path.clone());
 		let password = cfg.password_method.execute().unwrap();
 		// this step takes a long time due to password-based decryption
 		kv_manager = KvManager::new(cfg.tofnd_path.clone(), password)

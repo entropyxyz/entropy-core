@@ -3,10 +3,6 @@ name = "client-grpc"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "client"
-path = "src/client.rs"
-
 [dependencies]
 entropy-grpc = { path = "../grpc" }
 lazy_static = "1.4.0"
