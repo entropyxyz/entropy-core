@@ -6,12 +6,7 @@ use std::sync::Mutex;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IpAddresses {
-	pub address_alice: String,
-	pub address_1: String,
-	pub address_2: String,
-	pub address_3: String,
-	pub address_4: String,
-	pub address_5: String,
+	pub ip_addresses: Vec<String>
 }
 
 #[rocket::get("/get_ip/<ip_address>")]
@@ -21,7 +16,13 @@ pub async fn get_ip(
 
 ) {
 	let shared_data: &IPs = state.inner();
-    shared_data.current_ips.lock().unwrap().push(ip_address);
+	// TODO JA do validation on recieved keys and if keys are already had
+	// TODO JA figure out optimal node amount
+	if shared_data.current_ips.lock().unwrap().len() < 4 {
+		shared_data.current_ips.lock().unwrap().push(ip_address);
+	} else {
+		// send ips to all addresses
+	}
 }
 
 
@@ -31,5 +32,5 @@ pub async fn get_all_ips(
 	state: &State<IPs>,
 
 ) {
-
+	println!("ip_addresses, {:?}", ip_addresses);
 }

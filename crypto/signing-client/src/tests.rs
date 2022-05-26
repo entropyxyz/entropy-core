@@ -1,7 +1,7 @@
 use super::rocket;
 use crate::sign::{
 	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
-	get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address_function
+	get_block_author, get_block_number, get_whitelist, is_block_author,
 };
 use crate::store_share::{store_keyshare, User};
 use crate::{get_test_password, Global};
@@ -302,9 +302,20 @@ async fn test_have_keyshare() {
 	assert_eq!(result_3, false);
 }
 
-#[rocket::async_test]
-async fn test_ip_address() {
-	// needs to be running server for this to pass
-	send_ip_address_function().await;
-}
+// #[rocket::async_test]
+// async fn test_ip_address() {
+// 	// needs to be running server for this to pass
+// 	send_ip_address_function().await;
+// }
 
+#[rocket::async_test]
+#[serial]
+async fn test_get_ip() {
+	let client = setup_client().await;
+	let response = client
+		.get("/get_ip/test")
+		.dispatch()
+		.await;
+
+	println!("response {:?}", response.status());
+}
