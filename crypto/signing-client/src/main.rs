@@ -1,4 +1,8 @@
-use crate::{sign::provide_share, store_share::store_keyshare, ip_discovery::{get_ip, get_all_ips}};
+use crate::{
+	ip_discovery::{get_all_ips, get_ip},
+	sign::provide_share,
+	store_share::store_keyshare,
+};
 use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::{Deserialize, Serialize};
@@ -15,10 +19,10 @@ mod tests;
 
 mod com_manager;
 mod errors;
+mod ip_discovery;
 mod request_guards;
 mod sign;
 mod store_share;
-mod ip_discovery;
 
 use com_manager::{broadcast, issue_idx, subscribe, Db};
 // ToDo: JA add proper response types and formalize them across all endpoints
@@ -31,7 +35,7 @@ pub struct Global {
 }
 
 pub struct IPs {
-	current_ips: Mutex<Vec<String>>
+	current_ips: Mutex<Vec<String>>,
 }
 
 fn default_endpoint() -> Option<String> {
@@ -54,9 +58,7 @@ async fn rocket() -> _ {
 		endpoint: c.endpoint.unwrap().to_string(),
 		kv_manager,
 	};
-	let ips = IPs {
-		current_ips: Mutex::new(vec![])
-	};
+	let ips = IPs { current_ips: Mutex::new(vec![]) };
 	rocket::build()
 		.mount(
 			"/",

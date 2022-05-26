@@ -312,17 +312,11 @@ async fn test_have_keyshare() {
 #[serial]
 async fn get_ip_test() {
 	let client = setup_client().await;
-	let response = client
-		.get("/get_ip/test")
-		.dispatch()
-		.await;
+	let response = client.get("/get_ip/test").dispatch().await;
 
 	assert_eq!(response.status(), Status::Ok);
 
-	let response_2 = client
-		.get("/get_ip/test")
-		.dispatch()
-		.await;
+	let response_2 = client.get("/get_ip/test").dispatch().await;
 
 	assert_eq!(response_2.status(), Status::Ok);
 
@@ -333,5 +327,4 @@ async fn get_ip_test() {
 	// 	.await;
 
 	// assert_eq!(response_3.status(), Status::Ok);
-
 }

@@ -93,7 +93,7 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	//TODO: JA this is where we send the decoded address
 	let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
 	let does_have_key = does_have_key(kv_manager, user.to_string());
-
+	let result = send_ip_address(&author_endpoint).await;
 	// let result = send_ip_address_function().await;
 	// for task in data {
 	// 	println!("task: {:?}", task);
@@ -217,3 +217,11 @@ pub async fn does_have_key(kv: KvManager, user: String) -> bool {
 // pub async fn send_ip_address_function() {
 // 	send_ip_address("test".to_string()).await.unwrap();
 // }
+
+pub async fn send_ip_address(author_endpoint: &Vec<u8>) {
+	let client = reqwest::Client::new();
+	let route = "/get_ip/127.0.0.1/3001";
+	let mut ip = str::from_utf8(author_endpoint).unwrap().to_string();
+	ip.push_str(route);
+	let response = client.get(ip);
+}
