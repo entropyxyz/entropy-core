@@ -1,8 +1,8 @@
-use crate::{sign::provide_share, store_share::store_keyshare};
+use crate::{sign::provide_share, store_share::store_keyshare, ip_discovery::{get_ip, get_all_ips}};
 use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::Deserialize;
-use std::env;
+use std::{env, sync::Mutex};
 use tofnd::{config::parse_args, encrypted_sled::Db as tofndDb, kv_manager::KvManager};
 
 #[macro_use]
@@ -18,6 +18,7 @@ mod errors;
 mod request_guards;
 mod sign;
 mod store_share;
+mod ip_discovery;
 
 use com_manager::{broadcast, issue_idx, subscribe, Db};
 // ToDo: JA add proper response types and formalize them across all endpoints
@@ -27,6 +28,10 @@ pub struct Global {
 	mnemonic: String,
 	endpoint: String,
 	kv_manager: KvManager,
+}
+
+pub struct IPs {
+	current_ips: Mutex<Vec<String>>
 }
 
 fn default_endpoint() -> Option<String> {
@@ -49,6 +54,9 @@ async fn rocket() -> _ {
 		endpoint: c.endpoint.unwrap().to_string(),
 		kv_manager,
 	};
+	let ips = IPs {
+		current_ips: Mutex::new(vec![])
+	};
 	rocket::build()
 		.mount(
 			"/",
@@ -58,11 +66,14 @@ async fn rocket() -> _ {
 				provide_share,
 				subscribe,
 				issue_idx,
-				broadcast
+				broadcast,
+				get_ip,
+				get_all_ips
 			],
 		)
 		.manage(Db::empty())
 		.manage(global)
+		.manage(ips)
 }
 
 fn load_environment_variables() -> Configuration {

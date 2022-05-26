@@ -14,7 +14,6 @@ use subxt::{
 	PolkadotExtrinsicParams,
 };
 use tofnd::kv_manager::KvManager;
-use client_grpc::client::send_ip_address;
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -95,8 +94,7 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
 	let does_have_key = does_have_key(kv_manager, user.to_string());
 
-	let result = send_ip_address_function().await;
-	println!("{:?}", result);
+	// let result = send_ip_address_function().await;
 	// for task in data {
 	// 	println!("task: {:?}", task);
 	// 	// ToDo: JA hardcoding
@@ -216,6 +214,6 @@ pub async fn does_have_key(kv: KvManager, user: String) -> bool {
 	kv.kv().exists(&user).await.unwrap()
 }
 
-pub async fn send_ip_address_function() {
-	send_ip_address("test".to_string()).await.unwrap();
-}
+// pub async fn send_ip_address_function() {
+// 	send_ip_address("test".to_string()).await.unwrap();
+// }

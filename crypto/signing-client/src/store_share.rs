@@ -13,7 +13,6 @@ use tofnd::kv_manager::{error::KvError, KeyReservation, KvManager};
 // ToDo: DF Should we move declaration of structs to /crypto/common/ ?
 //       If those types are necessary for the node's OCW, then maybe we should
 
-/// Response of the key storing
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct User {
 	pub key: String,
