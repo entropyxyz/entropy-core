@@ -33,3 +33,4 @@ async fn test_receive_ip_address() {
 	let reply = client.receive_ip_address(request).await;
 	println!("{:?}", reply);
 }
+
