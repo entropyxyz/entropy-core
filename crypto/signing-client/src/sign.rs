@@ -87,13 +87,15 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	let block_author = get_block_author(&api).await.unwrap();
 	let author_endpoint = get_author_endpoint(&api, &block_author).await.unwrap();
 	let string_author_endpoint = convert_endpoint(&author_endpoint);
-	let bool_block_author = is_block_author(&api, &block_author).await;
+	let bool_block_author = is_block_author(&api, &block_author).await.unwrap();
 
 	let address_whitelist = get_whitelist(&api, &user).await.unwrap();
 	//TODO: JA this is where we send the decoded address
 	let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
-	let does_have_key = does_have_key(kv_manager, user.to_string());
-	let result = send_ip_address(&author_endpoint).await;
+	let does_have_key = does_have_key(kv_manager, user.to_string()).await;
+	if (does_have_key && !bool_block_author) {
+		let _result = send_ip_address(&author_endpoint).await;
+	}
 	// let result = send_ip_address_function().await;
 	// for task in data {
 	// 	println!("task: {:?}", task);
@@ -220,6 +222,7 @@ pub async fn does_have_key(kv: KvManager, user: String) -> bool {
 
 pub async fn send_ip_address(author_endpoint: &Vec<u8>) {
 	let client = reqwest::Client::new();
+	//TODO fix to get ip address locally and send
 	let route = "/get_ip/127.0.0.1/3001";
 	let mut ip = str::from_utf8(author_endpoint).unwrap().to_string();
 	ip.push_str(route);
