@@ -9974,6 +9974,7 @@ dependencies = [
  "dotenv",
  "entropy-grpc",
  "env_logger",
+ "futures-util",
  "lazy_static",
  "log",
  "prost 0.10.4",
