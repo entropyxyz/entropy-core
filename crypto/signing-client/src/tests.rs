@@ -2,7 +2,7 @@ use super::{rocket, IPs};
 use crate::ip_discovery::{get_all_ips, IpAddresses};
 use crate::sign::{
 	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
-	get_block_author, get_block_number, get_whitelist, is_block_author,
+	get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address
 };
 use crate::store_share::{store_keyshare, User};
 use crate::{get_test_password, Global};
@@ -305,8 +305,19 @@ async fn test_have_keyshare() {
 	assert_eq!(result_3, false);
 }
 
+// TODO: same rocket not connect error with test, works when tested manually with server running on port 3002
 #[rocket::async_test]
 #[serial]
+#[ignore]
+async fn send_ip_address_test() {
+	let client = setup_client().await;
+	let result = send_ip_address(&"http://127.0.0.1:3002".as_bytes().to_vec()).await;
+	// assert_eq!(result.status(), Status::Ok);
+}
+
+#[rocket::async_test]
+#[serial]
+#[ignore]
 async fn get_all_ips_test() {
 	let client = setup_client().await;
 	let all_ip_vec = vec!["test".to_string(), "test".to_string()];

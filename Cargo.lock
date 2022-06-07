@@ -9,7 +9,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
 dependencies = [
  "lazy_static",
- "regex",
+ "regex 1.5.5",
 ]
 
 [[package]]
@@ -129,11 +129,20 @@ dependencies = [
 
 [[package]]
 name = "aho-corasick"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca972c2ea5f742bfce5687b9aef75506a764f61d37f8f649047846a9686ddb66"
+dependencies = [
+ "memchr 0.1.11",
+]
+
+[[package]]
+name = "aho-corasick"
 version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e37cfd5e7657ada45f742d6e99ca5788580b5c529dc78faf11ece6dc702656f"
 dependencies = [
- "memchr",
+ "memchr 2.4.1",
 ]
 
 [[package]]
@@ -356,7 +365,7 @@ dependencies = [
  "futures-lite",
  "http-types",
  "log",
- "memchr",
+ "memchr 2.4.1",
  "pin-project-lite 0.2.8",
 ]
 
@@ -380,7 +389,7 @@ dependencies = [
  "gloo-timers",
  "kv-log-macro",
  "log",
- "memchr",
+ "memchr 2.4.1",
  "num_cpus",
  "once_cell 1.10.0",
  "pin-project-lite 0.2.8",
@@ -450,7 +459,7 @@ dependencies = [
  "bytes 1.1.0",
  "futures-sink",
  "futures-util",
- "memchr",
+ "memchr 2.4.1",
  "pin-project-lite 0.2.8",
 ]
 
@@ -463,7 +472,7 @@ dependencies = [
  "bytes 1.1.0",
  "futures-sink",
  "futures-util",
- "memchr",
+ "memchr 2.4.1",
  "pin-project-lite 0.2.8",
 ]
 
@@ -524,7 +533,7 @@ dependencies = [
  "hyper",
  "itoa 1.0.1",
  "matchit",
- "memchr",
+ "memchr 2.4.1",
  "mime",
  "percent-encoding 2.1.0",
  "pin-project-lite 0.2.8",
@@ -598,7 +607,7 @@ checksum = "cb53b6b315f924c7f113b162e53b3901c05fc9966baf84d201dfcc7432a4bb38"
 dependencies = [
  "lalrpop",
  "lalrpop-util",
- "regex",
+ "regex 1.5.5",
 ]
 
 [[package]]
@@ -659,7 +668,7 @@ dependencies = [
  "peeking_take_while",
  "proc-macro2",
  "quote",
- "regex",
+ "regex 1.5.5",
  "rustc-hash",
  "shlex",
 ]
@@ -850,7 +859,7 @@ version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
 dependencies = [
- "memchr",
+ "memchr 2.4.1",
 ]
 
 [[package]]
@@ -2279,7 +2288,7 @@ dependencies = [
  "atty",
  "humantime",
  "log",
- "regex",
+ "regex 1.5.5",
  "termcolor",
 ]
 
@@ -2906,7 +2915,7 @@ dependencies = [
  "fastrand",
  "futures-core",
  "futures-io",
- "memchr",
+ "memchr 2.4.1",
  "parking",
  "pin-project-lite 0.2.8",
  "waker-fn",
@@ -2965,7 +2974,7 @@ dependencies = [
  "futures-macro",
  "futures-sink",
  "futures-task",
- "memchr",
+ "memchr 2.4.1",
  "pin-project-lite 0.2.8",
  "pin-utils",
  "slab",
@@ -3079,11 +3088,11 @@ version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10463d9ff00a2a068db14231982f5132edebad0d7660cd956a1c30292dbcbfbd"
 dependencies = [
- "aho-corasick",
+ "aho-corasick 0.7.18",
  "bstr",
  "fnv",
  "log",
- "regex",
+ "regex 1.5.5",
 ]
 
 [[package]]
@@ -3425,7 +3434,7 @@ dependencies = [
  "lazy_static",
  "levenshtein",
  "log",
- "regex",
+ "regex 1.5.5",
  "serde",
  "serde_json",
  "serde_regex",
@@ -4060,7 +4069,7 @@ dependencies = [
  "owning_ref",
  "parity-util-mem",
  "parking_lot 0.12.0",
- "regex",
+ "regex 1.5.5",
  "rocksdb",
  "smallvec 1.8.0",
 ]
@@ -4091,8 +4100,8 @@ dependencies = [
  "lalrpop-util",
  "petgraph 0.5.1",
  "pico-args",
- "regex",
- "regex-syntax",
+ "regex 1.5.5",
+ "regex-syntax 0.6.25",
  "string_cache",
  "term",
  "tiny-keccak",
@@ -4105,7 +4114,7 @@ version = "0.19.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6d265705249fe209280676d8f68887859fa42e1d34f342fc05bd47726a5e188"
 dependencies = [
- "regex",
+ "regex 1.5.5",
 ]
 
 [[package]]
@@ -4306,7 +4315,7 @@ dependencies = [
  "prost 0.9.0",
  "prost-build 0.9.0",
  "rand 0.7.3",
- "regex",
+ "regex 1.5.5",
  "sha2 0.9.9",
  "smallvec 1.8.0",
  "unsigned-varint 0.7.1",
@@ -4795,6 +4804,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "local-ip"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1199ecb36eea49b2b849800de0a72dbdf6d8b69046765c2c78c76fdb96440d34"
+dependencies = [
+ "regex 0.1.80",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4950,6 +4968,15 @@ name = "maybe-uninit"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60302e4db3a61da70c0cb7991976248362f30319e88850c487b9b95bbf059e00"
+
+[[package]]
+name = "memchr"
+version = "0.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8b629fb514376c675b98c1421e80b151d3817ac42d7c667717d282761418d20"
+dependencies = [
+ "libc",
+]
 
 [[package]]
 name = "memchr"
@@ -5138,7 +5165,7 @@ dependencies = [
  "http",
  "httparse",
  "log",
- "memchr",
+ "memchr 2.4.1",
  "mime",
  "spin 0.9.2",
  "tokio",
@@ -5494,7 +5521,7 @@ version = "7.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8903e5a29a317527874d0402f867152a3d21c908bb0b933e416c65e301d4c36"
 dependencies = [
- "memchr",
+ "memchr 2.4.1",
  "minimal-lexical",
 ]
 
@@ -5607,7 +5634,7 @@ checksum = "67ac1d3f9a1d3616fd9a60c8d74296f22406a238b6a72f5cc1e6f314df4ffbf9"
 dependencies = [
  "crc32fast",
  "indexmap",
- "memchr",
+ "memchr 2.4.1",
 ]
 
 [[package]]
@@ -5699,7 +5726,7 @@ version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e22443d1643a904602595ba1cd8f7d896afe56d26712531c5ff73a15b2fbf64"
 dependencies = [
- "memchr",
+ "memchr 2.4.1",
 ]
 
 [[package]]
@@ -7458,7 +7485,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "fnv",
  "lazy_static",
- "memchr",
+ "memchr 2.4.1",
  "parking_lot 0.11.2",
  "thiserror",
 ]
@@ -7498,7 +7525,7 @@ dependencies = [
  "petgraph 0.6.0",
  "prost 0.9.0",
  "prost-types 0.9.0",
- "regex",
+ "regex 1.5.5",
  "tempfile",
  "which",
 ]
@@ -7520,7 +7547,7 @@ dependencies = [
  "petgraph 0.6.0",
  "prost 0.10.4",
  "prost-types 0.10.1",
- "regex",
+ "regex 1.5.5",
  "tempfile",
  "which",
 ]
@@ -7969,13 +7996,26 @@ dependencies = [
 
 [[package]]
 name = "regex"
+version = "0.1.80"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fd4ace6a8cf7860714a2c2280d6c1f7e6a413486c13298bbc86fd3da019402f"
+dependencies = [
+ "aho-corasick 0.5.3",
+ "memchr 0.1.11",
+ "regex-syntax 0.3.9",
+ "thread_local 0.2.7",
+ "utf8-ranges",
+]
+
+[[package]]
+name = "regex"
 version = "1.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a11647b6b25ff05a515cb92c365cec08801e83423a235b51e231e1808747286"
 dependencies = [
- "aho-corasick",
- "memchr",
- "regex-syntax",
+ "aho-corasick 0.7.18",
+ "memchr 2.4.1",
+ "regex-syntax 0.6.25",
 ]
 
 [[package]]
@@ -7984,8 +8024,14 @@ version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c230d73fb8d8c1b9c0b3135c5142a8acee3a0558fb8db5cf1cb65f8d7862132"
 dependencies = [
- "regex-syntax",
+ "regex-syntax 0.6.25",
 ]
+
+[[package]]
+name = "regex-syntax"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9ec002c35e86791825ed294b50008eea9ddfc8def4420124fbc6b08db834957"
 
 [[package]]
 name = "regex-syntax"
@@ -8098,7 +8144,7 @@ dependencies = [
  "futures 0.3.21",
  "indexmap",
  "log",
- "memchr",
+ "memchr 2.4.1",
  "multer",
  "num_cpus",
  "parking_lot 0.11.2",
@@ -8148,7 +8194,7 @@ dependencies = [
  "hyper",
  "indexmap",
  "log",
- "memchr",
+ "memchr 2.4.1",
  "mime",
  "parking_lot 0.11.2",
  "pear",
@@ -8506,7 +8552,7 @@ dependencies = [
  "names",
  "parity-scale-codec",
  "rand 0.7.3",
- "regex",
+ "regex 1.5.5",
  "rpassword",
  "sc-client-api",
  "sc-keystore",
@@ -9282,7 +9328,7 @@ dependencies = [
  "log",
  "once_cell 1.10.0",
  "parking_lot 0.12.0",
- "regex",
+ "regex 1.5.5",
  "rustc-hash",
  "sc-client-api",
  "sc-rpc-server",
@@ -9656,7 +9702,7 @@ version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8136f1a4ea815d7eac4101cfd0b16dc0cb5e1fe1b8609dfd728058656b7badf"
 dependencies = [
- "regex",
+ "regex 1.5.5",
  "serde",
 ]
 
@@ -9876,6 +9922,7 @@ dependencies = [
  "curv-kzen",
  "envy",
  "futures 0.3.21",
+ "local-ip",
  "multi-party-ecdsa",
  "parity-scale-codec",
  "project-root",
@@ -10283,7 +10330,7 @@ dependencies = [
  "parking_lot 0.12.0",
  "primitive-types",
  "rand 0.7.3",
- "regex",
+ "regex 1.5.5",
  "scale-info",
  "schnorrkel",
  "secp256k1 0.21.3",
@@ -10329,7 +10376,7 @@ dependencies = [
  "parking_lot 0.12.0",
  "primitive-types",
  "rand 0.7.3",
- "regex",
+ "regex 1.5.5",
  "scale-info",
  "schnorrkel",
  "secp256k1 0.21.3",
@@ -10622,7 +10669,7 @@ checksum = "2101f3c555fceafcfcfb0e61c55ea9ed80dc60bd77d54d9f25b369edb029e9a4"
 dependencies = [
  "backtrace",
  "lazy_static",
- "regex",
+ "regex 1.5.5",
 ]
 
 [[package]]
@@ -10632,7 +10679,7 @@ source = "git+https://github.com/paritytech/substrate.git?branch=master#c89d524d
 dependencies = [
  "backtrace",
  "lazy_static",
- "regex",
+ "regex 1.5.5",
 ]
 
 [[package]]
@@ -11098,7 +11145,7 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4564168c00635f88eaed410d5efa8131afa8d8699a612c80c455a0ba05c21045"
 dependencies = [
- "memchr",
+ "memchr 2.4.1",
 ]
 
 [[package]]
@@ -11661,6 +11708,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bf63baf9f5039dadc247375c29eb13706706cfde997d0330d05aa63a77d8820"
 
 [[package]]
+name = "thread-id"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9539db560102d1cef46b8b78ce737ff0bb64e7e18d35b2a5688f7d097d0ff03"
+dependencies = [
+ "kernel32-sys",
+ "libc",
+]
+
+[[package]]
+name = "thread_local"
+version = "0.2.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8576dbbfcaef9641452d5cf0df9b0e7eeab7694956dd33bb61515fb8f18cfdd5"
+dependencies = [
+ "thread-id",
+]
+
+[[package]]
 name = "thread_local"
 version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11838,7 +11904,7 @@ checksum = "2af73ac49756f3f7c01172e34a23e5d0216f6c32333757c2c61feb2bbff5a5ee"
 dependencies = [
  "bytes 1.1.0",
  "libc",
- "memchr",
+ "memchr 2.4.1",
  "mio 0.8.2",
  "num_cpus",
  "once_cell 1.10.0",
@@ -12167,12 +12233,12 @@ dependencies = [
  "lazy_static",
  "matchers 0.0.1",
  "parking_lot 0.11.2",
- "regex",
+ "regex 1.5.5",
  "serde",
  "serde_json",
  "sharded-slab",
  "smallvec 1.8.0",
- "thread_local",
+ "thread_local 1.1.4",
  "tracing",
  "tracing-core",
  "tracing-log",
@@ -12188,12 +12254,12 @@ dependencies = [
  "ansi_term",
  "lazy_static",
  "matchers 0.1.0",
- "regex",
+ "regex 1.5.5",
  "serde",
  "serde_json",
  "sharded-slab",
  "smallvec 1.8.0",
- "thread_local",
+ "thread_local 1.1.4",
  "tracing",
  "tracing-core",
  "tracing-log",
@@ -12456,6 +12522,12 @@ dependencies = [
  "percent-encoding 2.1.0",
  "serde",
 ]
+
+[[package]]
+name = "utf8-ranges"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1ca13c08c41c9c3e04224ed9ff80461d97e121589ff27c753a16cb10830ae0f"
 
 [[package]]
 name = "uuid"

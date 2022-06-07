@@ -96,25 +96,6 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	if (does_have_key && !bool_block_author) {
 		let _result = send_ip_address(&author_endpoint).await;
 	}
-	// let result = send_ip_address_function().await;
-	// for task in data {
-	// 	println!("task: {:?}", task);
-	// 	// ToDo: JA hardcoding
-	// 	let sign_cli = protocol::sign::SignCli {
-	// 		//ToDo: handle the unwrap... how do I use Result<> as a return type in a HTTP-route?
-	// 		address: surf::Url::parse("http://localhost:3001/").unwrap(),
-	// 		// ToDo: DF: use the proper sigID and convert it to String
-	// 		room: String::from("sig_id"), // String::from_utf8(sig_id.clone()).unwrap(),
-	// 		index: 2,
-	// 		// parties: sig_res.signing_nodes, // ToDo: DF is this correct??
-	// 		parties: vec![2, 1], // ToDo: DF is this correct??
-	// 		data_to_sign: String::from("entropy rocks!!"),
-	// 	};
-	// 	println!("Bob starts signing...");
-	// 	// ToDo: JA handle error
-	// 	let signature = protocol::sign::sign(sign_cli).await;
-	// 	println!("signature: {:?}", signature);
-	// }
 	// TODO: JA Thread blocks the return, not sure if needed a problem, keep an eye out for this downstream
 	handle.join().unwrap().await;
 	//todo!();
@@ -216,15 +197,16 @@ pub async fn does_have_key(kv: KvManager, user: String) -> bool {
 	kv.kv().exists(&user).await.unwrap()
 }
 
-// pub async fn send_ip_address_function() {
-// 	send_ip_address("test".to_string()).await.unwrap();
-// }
-
-pub async fn send_ip_address(author_endpoint: &Vec<u8>) {
-	let client = reqwest::Client::new();
-	//TODO fix to get ip address locally and send
-	let route = "/get_ip/127.0.0.1/3001";
+pub async fn send_ip_address(author_endpoint: &Vec<u8>) -> String {
+	let my_ip = local_ip::get().unwrap().to_string();
+	let mut route = "/get_ip/".to_owned();
+	route.push_str(&my_ip);
 	let mut ip = str::from_utf8(author_endpoint).unwrap().to_string();
-	ip.push_str(route);
-	let response = client.get(ip);
+	ip.push_str(&route);
+	reqwest::get(ip)
+		.await
+		.unwrap()
+		.text()
+		.await
+		.unwrap()
 }
