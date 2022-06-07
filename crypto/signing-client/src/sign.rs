@@ -203,10 +203,5 @@ pub async fn send_ip_address(author_endpoint: &Vec<u8>) -> String {
 	route.push_str(&my_ip);
 	let mut ip = str::from_utf8(author_endpoint).unwrap().to_string();
 	ip.push_str(&route);
-	reqwest::get(ip)
-		.await
-		.unwrap()
-		.text()
-		.await
-		.unwrap()
+	reqwest::get(ip).await.unwrap().text().await.unwrap()
 }
