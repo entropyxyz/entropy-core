@@ -1,5 +1,5 @@
 use super::{rocket, IPs};
-use crate::ip_discovery::{IpAddresses, get_all_ips};
+use crate::ip_discovery::{get_all_ips, IpAddresses};
 use crate::sign::{
 	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
 	get_block_author, get_block_number, get_whitelist, is_block_author,
@@ -11,9 +11,10 @@ use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::key
 use parity_scale_codec::Encode;
 use rocket::tokio::time::{sleep, Duration};
 use rocket::{
+	figment::Figment,
 	http::{ContentType, Status},
 	local::asynchronous::Client,
-	State, Config, figment::Figment
+	Config, State,
 };
 use serial_test::serial;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
@@ -21,8 +22,8 @@ use sp_keyring::AccountKeyring;
 use std::{
 	env,
 	fs::{remove_dir_all, remove_file},
+	sync::Mutex,
 	thread, time,
-	sync::Mutex
 };
 use subxt::{
 	sp_core::{
@@ -348,16 +349,10 @@ async fn get_ip_test() {
 }
 
 async fn create_clients(port: i64) {
-	let config =rocket::Config::figment()
-	.merge(("port", port));
+	let config = rocket::Config::figment().merge(("port", port));
 
 	let ips = IPs { current_ips: Mutex::new(vec![]) };
-	Client::tracked(rocket::custom(config)
-		.mount(
-			"/",
-			routes![
-				get_all_ips
-			],
-		)
-		.manage(ips)).await.expect("valid `Rocket`");
+	Client::tracked(rocket::custom(config).mount("/", routes![get_all_ips]).manage(ips))
+		.await
+		.expect("valid `Rocket`");
 }
