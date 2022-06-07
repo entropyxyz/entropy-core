@@ -1,4 +1,5 @@
-use super::rocket;
+use super::{rocket, IPs};
+use crate::ip_discovery::{IpAddresses, get_all_ips};
 use crate::sign::{
 	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
 	get_block_author, get_block_number, get_whitelist, is_block_author,
@@ -12,7 +13,7 @@ use rocket::tokio::time::{sleep, Duration};
 use rocket::{
 	http::{ContentType, Status},
 	local::asynchronous::Client,
-	State,
+	State, Config, figment::Figment
 };
 use serial_test::serial;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
@@ -21,6 +22,7 @@ use std::{
 	env,
 	fs::{remove_dir_all, remove_file},
 	thread, time,
+	sync::Mutex
 };
 use subxt::{
 	sp_core::{
@@ -302,29 +304,60 @@ async fn test_have_keyshare() {
 	assert_eq!(result_3, false);
 }
 
-// #[rocket::async_test]
-// async fn test_ip_address() {
-// 	// needs to be running server for this to pass
-// 	send_ip_address_function().await;
-// }
+#[rocket::async_test]
+#[serial]
+async fn get_all_ips_test() {
+	let client = setup_client().await;
+	let all_ip_vec = vec!["test".to_string(), "test".to_string()];
+	let all_ips = IpAddresses { ip_addresses: all_ip_vec.clone() };
+
+	let response = client
+		.post("/get_all_ips")
+		.header(ContentType::JSON)
+		.body(serde_json::to_string(&all_ips.clone()).unwrap())
+		.dispatch()
+		.await;
+	assert_eq!(response.status(), Status::Ok);
+}
 
 #[rocket::async_test]
 #[serial]
 async fn get_ip_test() {
 	let client = setup_client().await;
-	let response = client.get("/get_ip/test").dispatch().await;
+	let send = "/get_ip/localhost:3002";
 
+	let ips = IPs { current_ips: Mutex::new(vec![]) };
+
+	create_clients(3002i64).await;
+
+	let response = client.get(send).dispatch().await;
 	assert_eq!(response.status(), Status::Ok);
 
-	let response_2 = client.get("/get_ip/test").dispatch().await;
-
+	let response_2 = client.get(send).dispatch().await;
 	assert_eq!(response_2.status(), Status::Ok);
 
-	// Todo fix this by sending proper IP mocks
-	// let response_3 = client
-	// 	.get("/get_ip/test")
-	// 	.dispatch()
-	// 	.await;
+	let response_3 = client.get(send).dispatch().await;
+	assert_eq!(response_3.status(), Status::Ok);
 
-	// assert_eq!(response_3.status(), Status::Ok);
+	let response_4 = client.get(send).dispatch().await;
+	assert_eq!(response_4.status(), Status::Ok);
+
+	let response_5 = client.get(send).dispatch().await;
+	// TODO: this should be Ok only happens in tests where can't connect to other http client
+	assert_eq!(response_5.status(), Status::InternalServerError);
+}
+
+async fn create_clients(port: i64) {
+	let config =rocket::Config::figment()
+	.merge(("port", port));
+
+	let ips = IPs { current_ips: Mutex::new(vec![]) };
+	Client::tracked(rocket::custom(config)
+		.mount(
+			"/",
+			routes![
+				get_all_ips
+			],
+		)
+		.manage(ips)).await.expect("valid `Rocket`");
 }
