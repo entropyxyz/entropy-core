@@ -28,7 +28,6 @@ bip39 = { git = "https://github.com/infincia/bip39-rs.git", tag = "v0.6.0-beta.1
 constraints = { path = "../constraints"}
 tofnd = { git = "https://github.com/Entropyxyz/tofnd", branch = "main"}
 project-root = "0.2.2"
-client-grpc = { path = "../grpc-client-server/client", default-features = false }
 local-ip = "0.1"
 
 [dev-dependencies]
