@@ -87,29 +87,14 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	let block_author = get_block_author(&api).await.unwrap();
 	let author_endpoint = get_author_endpoint(&api, &block_author).await.unwrap();
 	let string_author_endpoint = convert_endpoint(&author_endpoint);
-	let bool_block_author = is_block_author(&api, &block_author).await;
+	let bool_block_author = is_block_author(&api, &block_author).await.unwrap();
 
 	let address_whitelist = get_whitelist(&api, &user).await.unwrap();
 	//TODO: JA this is where we send the decoded address
 	let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
-	let does_have_key = does_have_key(kv_manager, user.to_string());
-	for task in data {
-		println!("task: {:?}", task);
-		// ToDo: JA hardcoding
-		let sign_cli = protocol::sign::SignCli {
-			//ToDo: handle the unwrap... how do I use Result<> as a return type in a HTTP-route?
-			address: surf::Url::parse("http://localhost:3001/").unwrap(),
-			// ToDo: DF: use the proper sigID and convert it to String
-			room: String::from("sig_id"), // String::from_utf8(sig_id.clone()).unwrap(),
-			index: 2,
-			// parties: sig_res.signing_nodes, // ToDo: DF is this correct??
-			parties: vec![2, 1], // ToDo: DF is this correct??
-			data_to_sign: String::from("entropy rocks!!"),
-		};
-		println!("Bob starts signing...");
-		// ToDo: JA handle error
-		let signature = protocol::sign::sign(sign_cli).await;
-		println!("signature: {:?}", signature);
+	let does_have_key = does_have_key(kv_manager, user.to_string()).await;
+	if (does_have_key && !bool_block_author) {
+		let _result = send_ip_address(&author_endpoint).await;
 	}
 	// TODO: JA Thread blocks the return, not sure if needed a problem, keep an eye out for this downstream
 	handle.join().unwrap().await;
@@ -210,4 +195,13 @@ pub async fn get_whitelist(
 
 pub async fn does_have_key(kv: KvManager, user: String) -> bool {
 	kv.kv().exists(&user).await.unwrap()
+}
+
+pub async fn send_ip_address(author_endpoint: &Vec<u8>) -> String {
+	let my_ip = local_ip::get().unwrap().to_string();
+	let mut route = "/get_ip/".to_owned();
+	route.push_str(&my_ip);
+	let mut ip = str::from_utf8(author_endpoint).unwrap().to_string();
+	ip.push_str(&route);
+	reqwest::get(ip).await.unwrap().text().await.unwrap()
 }
