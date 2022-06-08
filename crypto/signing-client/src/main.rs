@@ -1,8 +1,12 @@
-use crate::{sign::provide_share, store_share::store_keyshare};
+use crate::{
+	ip_discovery::{get_all_ips, get_ip},
+	sign::provide_share,
+	store_share::store_keyshare,
+};
 use bip39::{Language, Mnemonic};
 use rocket::routes;
-use serde::Deserialize;
-use std::env;
+use serde::{Deserialize, Serialize};
+use std::{env, sync::Mutex};
 use tofnd::{config::parse_args, encrypted_sled::Db as tofndDb, kv_manager::KvManager};
 
 #[macro_use]
@@ -15,6 +19,7 @@ mod tests;
 
 mod com_manager;
 mod errors;
+mod ip_discovery;
 mod request_guards;
 mod sign;
 mod store_share;
@@ -27,6 +32,10 @@ pub struct Global {
 	mnemonic: String,
 	endpoint: String,
 	kv_manager: KvManager,
+}
+
+pub struct IPs {
+	current_ips: Mutex<Vec<String>>,
 }
 
 fn default_endpoint() -> Option<String> {
@@ -49,6 +58,7 @@ async fn rocket() -> _ {
 		endpoint: c.endpoint.unwrap().to_string(),
 		kv_manager,
 	};
+	let ips = IPs { current_ips: Mutex::new(vec![]) };
 	rocket::build()
 		.mount(
 			"/",
@@ -58,11 +68,14 @@ async fn rocket() -> _ {
 				provide_share,
 				subscribe,
 				issue_idx,
-				broadcast
+				broadcast,
+				get_ip,
+				get_all_ips
 			],
 		)
 		.manage(Db::empty())
 		.manage(global)
+		.manage(ips)
 }
 
 fn load_environment_variables() -> Configuration {
@@ -90,6 +103,7 @@ async fn load_kv_store() -> KvManager {
 		let root = project_root::get_project_root().unwrap();
 		kv_manager = KvManager::new(root.clone(), get_test_password()).unwrap();
 	} else {
+		println!("{:?}", cfg.tofnd_path.clone());
 		let password = cfg.password_method.execute().unwrap();
 		// this step takes a long time due to password-based decryption
 		kv_manager = KvManager::new(cfg.tofnd_path.clone(), password)
