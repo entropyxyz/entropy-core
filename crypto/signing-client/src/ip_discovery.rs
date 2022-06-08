@@ -15,6 +15,7 @@ pub async fn get_ip(ip_address: String, state: &State<IPs>) {
 	let shared_data: &IPs = state.inner();
 	// TODO JA do validation on recieved keys and if keys are already had
 	// TODO JA figure out optimal node amount
+	// TODO JA validate not a duplicated IP
 	if shared_data.current_ips.lock().unwrap().len() < 4 {
 		shared_data.current_ips.lock().unwrap().push(ip_address);
 	} else {
