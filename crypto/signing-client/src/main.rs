@@ -58,6 +58,7 @@ async fn rocket() -> _ {
 		endpoint: c.endpoint.unwrap().to_string(),
 		kv_manager,
 	};
+	// TODO: JA maybe add check to see if blockchain is running at endpoint
 	let ips = IPs { current_ips: Mutex::new(vec![]) };
 	rocket::build()
 		.mount(
@@ -106,11 +107,7 @@ async fn load_kv_store() -> KvManager {
 		println!("{:?}", cfg.tofnd_path.clone());
 		let password = cfg.password_method.execute().unwrap();
 		// this step takes a long time due to password-based decryption
-		kv_manager = KvManager::new(cfg.tofnd_path.clone(), password)
-			.unwrap()
-			.handle_mnemonic(&cfg.mnemonic_cmd)
-			.await
-			.unwrap();
+		kv_manager = KvManager::new(cfg.tofnd_path.clone(), password).unwrap();
 	}
 	kv_manager
 }

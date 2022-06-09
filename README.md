@@ -204,38 +204,15 @@ by appending your own. A few useful ones are as follow.
 ```
 
 ## testnet
-the following processes are necessary to successfully generate a signature so far. If not mentioned otherwise, start all commands from the root directory.
-1. build two signing-clients, one WITHOUT the `provide_share` route and one with it.
-This is done by
-  1. commenting out `provide_share` in crypto::signing-client::main::rocket().
-  2. `cargo build --release -p signing-client`
-  3. uncomment `provide_share` again and rename the resulting ./target/release/signing-client to signing-client_alice
-  this binary is used for one node on port 3001 (see ./scripts/signclient_alice.sh), the 'normal' (unchanged) signing client is run on port 3002 (see ./scripts/signclient_bob.sh)
-  4. `cargo build --release -p signing-client` to create the original ./target/release/signing-client again
-  5. `cargo build --release -p testing-user-clients`
-  6. `cargo build --release -p entropy`
-  7. give permission to scripts:
-  `chmod +x ./scripts/pull_entropy_metadata.sh && chmod +x ./scripts/alice.sh && chmod +x ./scripts/bob.sh && chmod +x ./scripts/sigclient_alice.sh && chmod +x ./scripts/sigclient_bob.sh`
-2. `git clone https://github.com/Entropyxyz/util-scripts.git` to wherever directory
-3. open 5 CLIs. run the following commands in them respectively.
-  1. `./scripts/alice.sh` - start node 1
-  2. `./scripts/bob.sh` - start node 2
-  3. when both nodes are running, enter the util-scripts folder and run `ts-node setEndpoint.ts` (might have to `npm install`)
-  4. `./scripts/sigclient_alice.sh` - start the signing-client at port 3001 for node1 (this is the changed client, see above)
-  5. `./scripts/sigclient_bob.sh` - start the signing-client at port 3002 for node2 (a unchanged client)
-  6. everything is set up!
-  - register: `./target/release/test_register`
-  - sign: `./target/release/test_sign`
+ * Currently our network requires 2 binaries
+ * ``` cargo build --release ``` will build both
+ * to run both you can reference /scrips.alice.sh for the chain and /scripts/sig_client.sh for the threshold client
+ * the sig client requires a mneumonic as an env and the one in the /scripts/sig_client.sh file is already hardcoded into the chain config (best to use that one)
 
-## centralized-keygen
-the following describes how to centrally generate keys, i.e. the code is run by one party only and generates keys that can then be distributed among the other parties.
-1. checkout branch `centralized-keygen`
-2. `cargo build --release -p testing-user-clients`
-(alternatively `cargo build --release` to compile the whole workspace)
-3. `./target/release/test_keygen`
-This will start the keygen.
-Parameters t=1, n=3 are hardcoded [here](https://github.com/Entropyxyz/entropy-core/blob/ca0bd159fd4a1c4be6a06278944ddf10baf18c80/crypto/protocol/src/centralized_keygen/keygen.rs#L34)
-The keys are stored in root/new_keys/local-share{i}.json
+### changing defaults
+* all defaults are ready to go out the box but can be changed if needed with varying degrees of difficult
+* to change chain address away from default ws://127.0.0.1:9944 you need to inform the sig client which can be done with the env variable ```export ENDPOINT=```
+* To change the default of the sig client from ```http://127.0.0.1:3001/sign``` you need to tell the chain after it is running by making an rpc call. Example code can be found here ```https://github.com/Entropyxyz/util-scripts/blob/master/setEndpoint.ts```. You also need to maintain the route as /sign
 
 
 ## Threshold keys
