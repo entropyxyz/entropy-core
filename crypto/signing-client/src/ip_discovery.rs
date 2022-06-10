@@ -1,7 +1,10 @@
 use crate::IPs;
 use reqwest;
 use rocket::serde::json::Json;
-use rocket::State;
+use rocket::{
+	http::{ContentType, Status},
+	State,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
@@ -11,13 +14,18 @@ pub struct IpAddresses {
 }
 
 #[rocket::get("/get_ip/<ip_address>")]
-pub async fn get_ip(ip_address: String, state: &State<IPs>) {
+pub async fn get_ip(ip_address: String, state: &State<IPs>) -> Status {
 	let shared_data: &IPs = state.inner();
 	// TODO JA do validation on recieved keys and if keys are already had
 	// TODO JA figure out optimal node amount
 	// TODO JA validate not a duplicated IP
+	let does_contain = shared_data.current_ips.lock().unwrap().contains(&ip_address);
+	if does_contain {
+		return Status::InternalServerError;
+	}
 	if shared_data.current_ips.lock().unwrap().len() < 4 {
 		shared_data.current_ips.lock().unwrap().push(ip_address);
+		Status::Ok
 	} else {
 		shared_data.current_ips.lock().unwrap().push(ip_address);
 		let all_ip_vec = shared_data.current_ips.lock().unwrap().to_vec();
@@ -36,6 +44,7 @@ pub async fn get_ip(ip_address: String, state: &State<IPs>) {
 				.await
 				.unwrap();
 		}
+		Status::Ok
 	}
 }
 

@@ -340,19 +340,22 @@ async fn get_ip_test() {
 
 	create_clients(3002i64).await;
 
-	let response = client.get(send).dispatch().await;
+	let response = client.get("/get_ip/localhost:3002").dispatch().await;
 	assert_eq!(response.status(), Status::Ok);
 
-	let response_2 = client.get(send).dispatch().await;
+	let response_fail = client.get("/get_ip/localhost:3002").dispatch().await;
+	assert_eq!(response_fail.status(), Status::InternalServerError);
+
+	let response_2 = client.get("/get_ip/localhost:3003").dispatch().await;
 	assert_eq!(response_2.status(), Status::Ok);
 
-	let response_3 = client.get(send).dispatch().await;
+	let response_3 = client.get("/get_ip/localhost:3004").dispatch().await;
 	assert_eq!(response_3.status(), Status::Ok);
 
-	let response_4 = client.get(send).dispatch().await;
+	let response_4 = client.get("/get_ip/localhost:3005").dispatch().await;
 	assert_eq!(response_4.status(), Status::Ok);
 
-	let response_5 = client.get(send).dispatch().await;
+	let response_5 = client.get("/get_ip/localhost:3006").dispatch().await;
 	// TODO: this should be Ok only happens in tests where can't connect to other http client
 	assert_eq!(response_5.status(), Status::InternalServerError);
 }
