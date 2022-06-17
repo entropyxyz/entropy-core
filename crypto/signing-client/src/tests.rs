@@ -1,5 +1,6 @@
 use super::{rocket, IPs};
 use crate::ip_discovery::{get_all_ips, IpAddresses};
+use crate::errors::CustomError;
 use crate::sign::{
 	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
 	get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
@@ -344,7 +345,8 @@ async fn get_ip_test() {
 	assert_eq!(response.status(), Status::Ok);
 
 	let response_fail = client.get("/get_ip/localhost:3002").dispatch().await;
-	assert_eq!(response_fail.status(), Status::InternalServerError);
+	assert_eq!(response_fail.status(), Status::new(418));
+	assert_eq!(response_fail.into_string().await.unwrap(), "Duplicate IP");
 
 	let response_2 = client.get("/get_ip/localhost:3003").dispatch().await;
 	assert_eq!(response_2.status(), Status::Ok);

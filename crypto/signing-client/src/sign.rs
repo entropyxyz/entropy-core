@@ -93,7 +93,7 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	//TODO: JA this is where we send the decoded address
 	let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
 	let does_have_key = does_have_key(kv_manager, user.to_string()).await;
-	if (does_have_key && !bool_block_author) {
+	if does_have_key && !bool_block_author {
 		let _result = send_ip_address(&author_endpoint).await;
 	}
 	// TODO: JA Thread blocks the return, not sure if needed a problem, keep an eye out for this downstream

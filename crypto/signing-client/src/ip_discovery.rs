@@ -3,10 +3,11 @@ use reqwest;
 use rocket::serde::json::Json;
 use rocket::{
 	http::{ContentType, Status},
-	State,
+	State, response::status
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
+use crate::errors::CustomError;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IpAddresses {
@@ -14,18 +15,18 @@ pub struct IpAddresses {
 }
 
 #[rocket::get("/get_ip/<ip_address>")]
-pub async fn get_ip(ip_address: String, state: &State<IPs>) -> Status {
+pub async fn get_ip(ip_address: String, state: &State<IPs>) -> Result<Status, CustomError> {
 	let shared_data: &IPs = state.inner();
 	// TODO JA do validation on recieved keys and if keys are already had
 	// TODO JA figure out optimal node amount
 	// TODO JA validate not a duplicated IP
 	let does_contain = shared_data.current_ips.lock().unwrap().contains(&ip_address);
 	if does_contain {
-		return Status::InternalServerError;
+		return Err(CustomError::new("Duplicate IP"))
 	}
 	if shared_data.current_ips.lock().unwrap().len() < 4 {
 		shared_data.current_ips.lock().unwrap().push(ip_address);
-		Status::Ok
+		Ok(Status::Ok)
 	} else {
 		shared_data.current_ips.lock().unwrap().push(ip_address);
 		let all_ip_vec = shared_data.current_ips.lock().unwrap().to_vec();
@@ -44,7 +45,7 @@ pub async fn get_ip(ip_address: String, state: &State<IPs>) -> Status {
 				.await
 				.unwrap();
 		}
-		Status::Ok
+		Ok(Status::Ok)
 	}
 }
 
