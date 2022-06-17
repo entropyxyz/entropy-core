@@ -9,10 +9,10 @@ pub enum SignedMessageError {
 
 #[derive(Responder)]
 #[response(status = 418, content_type = "json")]
-pub struct CustomError(&'static str);
+pub struct CustomIPError(&'static str);
 
-impl CustomError {
-	pub fn new(error: &'static str) -> CustomError {
-		CustomError(error)
+impl CustomIPError {
+	pub fn new(error: &'static str) -> CustomIPError {
+		CustomIPError(error)
 	}
 }

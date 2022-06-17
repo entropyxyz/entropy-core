@@ -1,6 +1,5 @@
 use super::{rocket, IPs};
 use crate::ip_discovery::{get_all_ips, IpAddresses};
-use crate::errors::CustomError;
 use crate::sign::{
 	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
 	get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
@@ -131,7 +130,6 @@ async fn test_sign() {
 		.dispatch()
 		.await;
 	assert_eq!(response.status(), Status::Ok);
-	assert_eq!(response.into_string().await, Some("\u{1}".into()));
 }
 
 #[rocket::async_test]
@@ -152,8 +150,9 @@ async fn provide_share_fail_wrong_data() {
 		)
 		.dispatch()
 		.await;
-	assert_eq!(response.status(), Status::InternalServerError);
-}
+
+		assert_eq!(response.status(), Status::new(500));
+	}
 
 #[rocket::async_test]
 async fn get_is_block_author() {
