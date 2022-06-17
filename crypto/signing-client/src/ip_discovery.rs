@@ -1,13 +1,14 @@
+use crate::errors::CustomIPError;
 use crate::IPs;
 use reqwest;
 use rocket::serde::json::Json;
 use rocket::{
 	http::{ContentType, Status},
-	State, response::status
+	response::status,
+	State,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
-use crate::errors::CustomIPError;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IpAddresses {
@@ -22,7 +23,7 @@ pub async fn get_ip(ip_address: String, state: &State<IPs>) -> Result<Status, Cu
 	// TODO JA validate not a duplicated IP
 	let does_contain = shared_data.current_ips.lock().unwrap().contains(&ip_address);
 	if does_contain {
-		return Err(CustomIPError::new("Duplicate IP"))
+		return Err(CustomIPError::new("Duplicate IP"));
 	}
 	if shared_data.current_ips.lock().unwrap().len() < 4 {
 		shared_data.current_ips.lock().unwrap().push(ip_address);

@@ -151,8 +151,8 @@ async fn provide_share_fail_wrong_data() {
 		.dispatch()
 		.await;
 
-		assert_eq!(response.status(), Status::new(500));
-	}
+	assert_eq!(response.status(), Status::new(500));
+}
 
 #[rocket::async_test]
 async fn get_is_block_author() {

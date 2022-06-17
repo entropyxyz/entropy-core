@@ -6,7 +6,6 @@ pub enum SignedMessageError {
 	Invalid,
 }
 
-
 #[derive(Responder)]
 #[response(status = 418, content_type = "json")]
 pub struct CustomIPError(&'static str);

@@ -4,7 +4,7 @@ use crate::Global;
 use common::OCWMessage;
 use constraints::whitelist::is_on_whitelist;
 use parity_scale_codec::{Decode, Encode};
-use rocket::{State, http::Status};
+use rocket::{http::Status, State};
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair};
 use sp_keyring::AccountKeyring;
 use std::str;
