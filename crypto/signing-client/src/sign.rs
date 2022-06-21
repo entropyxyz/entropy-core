@@ -4,7 +4,7 @@ use crate::Global;
 use common::OCWMessage;
 use constraints::whitelist::is_on_whitelist;
 use parity_scale_codec::{Decode, Encode};
-use rocket::State;
+use rocket::{http::Status, State};
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair};
 use sp_keyring::AccountKeyring;
 use std::str;
@@ -18,20 +18,6 @@ use tofnd::kv_manager::KvManager;
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
 
-// ToDo: Should we move declaration of structs to /crypto/common/ ?
-//       If those types are necessary for the node's OCW, then maybe we should
-
-/// This is the data transmitted in the signature generation request.
-#[derive(Debug, Encode, Decode, FromForm)]
-pub struct ProvideSignatureReq {
-	/// temporary dummy, delete this later
-	pub demo: u8,
-	/* message
-	 * nonce
-	 * communication manager
-	 * IDs of other signing nodes (necessary for Lagrange-polynomials) */
-}
-
 /// Response of the signing node
 #[derive(Debug, Encode)]
 struct SignRes {
@@ -41,15 +27,9 @@ struct SignRes {
 pub type EntropyRuntime =
 	entropy::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
 
-/// Response to the node if the signature was created.
-/// i.e. a signature that the data was stored successfully or Error Code.
-#[derive(Responder)]
-#[response(status = 200, content_type = "application/x-parity-scale-codec")]
-pub struct ProvideSignatureRes(Vec<u8>);
-
 //ToDo: receive keyshare and store locally
 #[post("/sign", format = "application/x-parity-scale-codec", data = "<encoded_data>")]
-pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> ProvideSignatureRes {
+pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Status {
 	println!("encoded_data {:?}", encoded_data);
 
 	// ToDo: JA rename
@@ -93,15 +73,13 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Prov
 	//TODO: JA this is where we send the decoded address
 	let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
 	let does_have_key = does_have_key(kv_manager, user.to_string()).await;
-	if (does_have_key && !bool_block_author) {
+	if does_have_key && !bool_block_author {
 		let _result = send_ip_address(&author_endpoint).await;
 	}
 	// TODO: JA Thread blocks the return, not sure if needed a problem, keep an eye out for this downstream
 	handle.join().unwrap().await;
-	//todo!();
-	// Ok(ProvideSignatureRes(SignRes { demo: 1 }.encode()))
-	// ToDO: JA fix
-	ProvideSignatureRes(SignRes { demo: 1 }.encode())
+
+	Status::Ok
 }
 
 pub async fn get_api(url: &str) -> Result<EntropyRuntime, subxt::Error<entropy::DispatchError>> {
