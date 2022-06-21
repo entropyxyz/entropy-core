@@ -95,15 +95,8 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		pub fn post(block_number: T::BlockNumber) -> Result<(), http::Error> {
-			// get deadline, same as in fn get()
 			let messages =
 				pallet_relayer::Pallet::<T>::messages(block_number.saturating_sub(1u32.into()));
-
-			// // TODO JA: handle better
-			// if author_endpoint.is_none() {
-			// 	log::warn!("author issue");
-			// 	return Ok(());
-			// }
 
 			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
 			let kind = sp_core::offchain::StorageKind::PERSISTENT;
