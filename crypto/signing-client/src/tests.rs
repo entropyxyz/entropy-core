@@ -130,7 +130,6 @@ async fn test_sign() {
 		.dispatch()
 		.await;
 	assert_eq!(response.status(), Status::Ok);
-	assert_eq!(response.into_string().await, Some("\u{1}".into()));
 }
 
 #[rocket::async_test]
@@ -151,7 +150,8 @@ async fn provide_share_fail_wrong_data() {
 		)
 		.dispatch()
 		.await;
-	assert_eq!(response.status(), Status::InternalServerError);
+
+	assert_eq!(response.status(), Status::new(500));
 }
 
 #[rocket::async_test]
@@ -344,7 +344,8 @@ async fn get_ip_test() {
 	assert_eq!(response.status(), Status::Ok);
 
 	let response_fail = client.get("/get_ip/localhost:3002").dispatch().await;
-	assert_eq!(response_fail.status(), Status::InternalServerError);
+	assert_eq!(response_fail.status(), Status::new(418));
+	assert_eq!(response_fail.into_string().await.unwrap(), "Duplicate IP");
 
 	let response_2 = client.get("/get_ip/localhost:3003").dispatch().await;
 	assert_eq!(response_2.status(), Status::Ok);
