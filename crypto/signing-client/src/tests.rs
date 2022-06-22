@@ -291,17 +291,17 @@ async fn test_have_keyshare() {
 	let root = project_root::get_project_root().unwrap();
 	let kv_manager = KvManager::new(root.clone(), get_test_password()).unwrap();
 
-	let result = does_have_key(kv_manager.clone(), key.clone()).await;
+	let result = does_have_key(&kv_manager.clone(), key.clone()).await;
 	assert_eq!(result, false);
 
 	let reservation = kv_manager.kv().reserve_key(key.clone()).await.unwrap();
 	let _ = kv_manager.kv().put(reservation, "dummy".to_owned().as_bytes().to_vec()).await;
 
-	let result_2 = does_have_key(kv_manager.clone(), key.clone()).await;
+	let result_2 = does_have_key(&kv_manager.clone(), key.clone()).await;
 	assert_eq!(result_2, true);
 	// delete key so tests rerun
 	let _ = kv_manager.kv().delete(&key).await.unwrap();
-	let result_3 = does_have_key(kv_manager, key.clone()).await;
+	let result_3 = does_have_key(&kv_manager, key.clone()).await;
 	assert_eq!(result_3, false);
 }
 
