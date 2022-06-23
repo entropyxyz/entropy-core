@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+#![allow(unused_variables)]
 use crate::{
 	ip_discovery::{get_all_ips, get_ip},
 	sign::provide_share,
@@ -22,9 +24,9 @@ mod request_guards;
 mod signer;
 mod store_share;
 
-use signer::init::*;
-use signer::execute::*;
-use signer::result::*;
+// use signer::init::*;
+// use signer::execute::*;
+// use signer::result::*;
 use com_manager::{broadcast, issue_idx, subscribe, Db};
 // ToDo: JA add proper response types and formalize them across all endpoints
 
@@ -71,12 +73,11 @@ async fn rocket() -> _ {
 				get_ip,
 				get_all_ips,
 				// TODO(TK): add signing protocol methods here
-				init_sign,
-				execute_sign,
-				handle_sign_results,
+				// init_sign,
+				// execute_sign,
+				// handle_results,
 			],
 		)
-		.manage(Db::empty())
 		.manage(global)
 		.manage(ips)
 }

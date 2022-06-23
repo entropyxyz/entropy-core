@@ -95,7 +95,7 @@ pub mod pallet {
 					{
 						Err(Error::<T>::MaxWhitelist)?
 					}
-					if addresses.into_iter().any(|address| {
+					if addresses.iter().any(|address| {
 						whitelist_addresses
 							.clone()
 							.into_iter()

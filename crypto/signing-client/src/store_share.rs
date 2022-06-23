@@ -1,7 +1,8 @@
 //! The User requests the Signature-client to store a keyshare localy.
+#![allow(unused_imports)]
 use crate::Global;
 use curv::elliptic::curves::secp256_k1::Secp256k1;
-use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
+// use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
 use rocket::{serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -29,8 +30,8 @@ pub async fn store_keyshare(
 	let cached_state = state.inner();
 	let kv_manager = cached_state.kv_manager.clone();
 
-	let reservation = kv_manager.kv().reserve_key(user_input.clone().key).await.unwrap();
-	kv_manager.kv().put(reservation, user_input.clone().value).await.unwrap();
+	let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();
+	kv_manager.kv().put(reservation, user_input.value.clone()).await.unwrap();
 
 	Ok(())
 }

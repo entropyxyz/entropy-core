@@ -1,5 +1,6 @@
 //! The Node requests the client to take part in a signature generation.
-
+#![allow(unused_imports)]
+#![allow(unused_variables)]
 use crate::Global;
 use common::OCWMessage;
 use constraints::whitelist::is_on_whitelist;
@@ -15,7 +16,8 @@ use subxt::{
 };
 use tofnd::kv_manager::KvManager;
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
-#[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
+#[allow(clippy::enum_variant_names)]
+#[subxt::subxt(runtime_metadata_path = "../centralized_keygen/entropy_metadata.scale")]
 pub mod entropy {}
 
 /// Response of the signing node

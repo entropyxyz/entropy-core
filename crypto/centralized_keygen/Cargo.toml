@@ -5,18 +5,18 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[lib]
-name = "protocol"
-path = "src/lib.rs"
+# [lib]
+# name = "protocol"
+# path = "src/lib.rs"
 
-[[bin]]
-name = "cli"
-path = "src/cli/main.rs"
+# [[bin]]
+# name = "cli"
+# path = "src/cli/main.rs"
 
 [dependencies]
+
 async-std = { version = "1.9.0", features = ["attributes", "tokio1"] }
 async-trait = "0.1.51"
-multi-party-ecdsa ={ git = "https://github.com/ZenGo-X/multi-party-ecdsa"}
 zk-paillier = { version = "0.4.2", default-features = false }
 anyhow = "1.0.53"
 thiserror = "1.0.30"
@@ -36,8 +36,8 @@ codec = { package = "parity-scale-codec", version = "3", default-features = fals
 parity-scale-codec-derive = "3.0.0"
 common = { path = "../../crypto/common", default-features = false }
 
-[dev-dependencies]
-testing-utils = { path = "../testing-utils"}
+# [dev-dependencies]
+# testing-utils = { path = "../testing-utils"}
 
 [dependencies.scale-info]
 default-features = false

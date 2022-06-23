@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+#![allow(unused_variables)]
 use crate::{errors::CustomIPError, IPs};
 use reqwest;
 use rocket::{

@@ -5,17 +5,16 @@
 // use super::{proto, types::TofnSignOutput, Gg20Service};
 
 // tonic cruft
-use tokio::sync::{mpsc, oneshot};
+// use tokio::sync::{mpsc, oneshot};
 // use tonic::Status;
 
 // error handling
-use crate::TofndResult;
-use anyhow::anyhow;
+// use anyhow::anyhow;
 
-#[rocket::get("/rooms/<room_id>/handle_results")]
-pub async fn handle_results(room_id: &str) -> Result<Status, SigningResultError> {
-	todo!();
-}
+// #[rocket::get("/rooms/<room_id>/handle_results")]
+// pub async fn handle_results(room_id: &str) -> Result<Status, SigningResultError> {
+// 	todo!();
+// }
 
 // impl Gg20Service {
 // 	/// handle results from all shares

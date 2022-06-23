@@ -3,31 +3,31 @@
 //! an Ok(Vec<u8>) of an Err(Vec<Vec<Crime>>). On failure it returns [anyhow!] error if [Sign]
 //! struct cannot be instantiated.
 
-use crate::errors::SigningProtocolError;
+// use crate::errors::SigningError;
 
-use super::types::{Context, TofndSignOutput};
-// use crate::gg20::protocol;
-use tofn::gg20::sign::new_sign;
+// use super::types::{Context, TofndSignOutput};
+// // use crate::gg20::protocol;
+// use tofn::gg20::sign::new_sign;
 
 // logging
-use tracing::{info, Span};
+// use tracing::{info, Span};
 
 // error handling
-use anyhow::anyhow;
+// use anyhow::anyhow;
 
-#[rocket::get("/rooms/<room_id>/execute_sign")]
-pub async fn execute_sign(room_id: &str) -> Result<Status, SigningProtocolError> {
-	// let sign = new_sign(
-	//     ctx.group(),
-	//     &ctx.share,
-	//     &ctx.sign_parties,
-	//     ctx.msg_to_sign(),
-	//     #[cfg(feature = "malicious")]
-	//     self.cfg.behaviours.sign.clone(),
-	// )
-	// .map_err(|_| anyhow!("sign instantiation failed"))?;
-	todo!();
-}
+// // #[rocket::get("/rooms/<room_id>/execute_sign")]
+// // pub async fn execute_sign(room_id: &str) -> Result<Status, SigningProtocolError> {
+// 	// let sign = new_sign(
+// 	//     ctx.group(),
+// 	//     &ctx.share,
+// 	//     &ctx.sign_parties,
+// 	//     ctx.msg_to_sign(),
+// 	//     #[cfg(feature = "malicious")]
+// 	//     self.cfg.behaviours.sign.clone(),
+// 	// )
+// 	// .map_err(|_| anyhow!("sign instantiation failed"))?;
+// 	todo!();
+// }
 
 // impl Gg20Service {
 //     /// create and execute sign protocol and returning the result.
