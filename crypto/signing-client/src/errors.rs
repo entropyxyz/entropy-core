@@ -25,4 +25,6 @@ pub enum SigningProtocolError {
 	/// Wrap and propagate the tofn error
 	#[error("execution of signing protocol failed: {e}")]
 	SigningExecuteError{e: String},
+	#[error("result of signing protocol failed: {e}")]
+	SigningResultError{e: String},
 }
