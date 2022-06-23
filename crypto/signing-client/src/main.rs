@@ -12,11 +12,8 @@ use tofnd::{config::parse_args, encrypted_sled::Db as tofndDb, kv_manager::KvMan
 #[macro_use]
 extern crate rocket;
 
-use rocket::State;
-
 #[cfg(test)]
 mod tests;
-
 mod com_manager;
 mod errors;
 mod ip_discovery;
@@ -52,12 +49,9 @@ struct Configuration {
 #[launch]
 async fn rocket() -> _ {
 	let c = load_environment_variables();
-	let kv_manager = load_kv_store().await;
-	let global = Global {
-		mnemonic: c.mnemonic.to_string(),
-		endpoint: c.endpoint.unwrap().to_string(),
-		kv_manager,
-	};
+	let kv_manager = load_kv_store();
+	let global =
+		Global { mnemonic: c.mnemonic, endpoint: c.endpoint.unwrap(), kv_manager };
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
 	let ips = IPs { current_ips: Mutex::new(vec![]) };
 	rocket::build()
@@ -80,38 +74,30 @@ async fn rocket() -> _ {
 }
 
 fn load_environment_variables() -> Configuration {
-	let c;
-
-	if cfg!(test) {
-		c = Configuration {
+	let c = if cfg!(test) {
+		Configuration {
 			mnemonic:
 				"alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
 					.to_string(),
 			endpoint: Some("ws://localhost:9944".to_string()),
 		}
 	} else {
-		c = envy::from_env::<Configuration>().expect("Please provide MNEMONIC as env var");
-	}
+		envy::from_env::<Configuration>().expect("Please provide MNEMONIC as env var")
+	};
 	assert!(Mnemonic::validate(&c.mnemonic, Language::English).is_ok(), "MNEMONIC is incorrect");
 	c
 }
 
-async fn load_kv_store() -> KvManager {
-	let kv_manager;
-	let cfg = parse_args().unwrap();
-
+fn load_kv_store() -> KvManager {
 	if cfg!(test) {
 		let root = project_root::get_project_root().unwrap();
-		kv_manager = KvManager::new(root.clone(), get_test_password()).unwrap();
+		KvManager::new(root, tofnd::encrypted_sled::PasswordMethod::NoPassword.execute().unwrap())
+			.unwrap()
 	} else {
-		println!("{:?}", cfg.tofnd_path.clone());
+		let cfg = parse_args().unwrap();
+		println!("kv-store path: {:?}", cfg.tofnd_path);
 		let password = cfg.password_method.execute().unwrap();
 		// this step takes a long time due to password-based decryption
-		kv_manager = KvManager::new(cfg.tofnd_path.clone(), password).unwrap();
+		KvManager::new(cfg.tofnd_path, password).unwrap()
 	}
-	kv_manager
-}
-
-pub fn get_test_password() -> tofnd::encrypted_sled::Password {
-	tofnd::encrypted_sled::PasswordMethod::NoPassword.execute().unwrap()
 }

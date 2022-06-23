@@ -2,16 +2,13 @@
 use crate::Global;
 use curv::elliptic::curves::secp256_k1::Secp256k1;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
-use rocket::serde::json::Json;
-use rocket::State;
+use rocket::{serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use std::{
 	fs::File,
 	io::{BufWriter, Write},
 };
 use tofnd::kv_manager::{error::KvError, KeyReservation, KvManager};
-// ToDo: DF Should we move declaration of structs to /crypto/common/ ?
-//       If those types are necessary for the node's OCW, then maybe we should
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct User {
@@ -33,7 +30,7 @@ pub async fn store_keyshare(
 	let kv_manager = cached_state.kv_manager.clone();
 
 	let reservation = kv_manager.kv().reserve_key(user_input.clone().key).await.unwrap();
-	let result = kv_manager.kv().put(reservation, user_input.clone().value).await.unwrap();
+	kv_manager.kv().put(reservation, user_input.clone().value).await.unwrap();
 
 	Ok(())
 }
