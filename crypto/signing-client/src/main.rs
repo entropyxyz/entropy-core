@@ -14,6 +14,7 @@ extern crate rocket;
 
 #[cfg(test)]
 mod tests;
+mod sign;
 mod com_manager;
 mod errors;
 mod ip_discovery;
