@@ -1,6 +1,7 @@
 use rocket::response::Responder;
 
 use crate::IPs;
+use thiserror::Error;
 
 #[derive(Debug)]
 pub enum SignedMessageError {
@@ -18,9 +19,9 @@ impl CustomIPError {
 	}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,Error, Responder)]
 pub enum SigningProtocolError {
-	#[error("initiation of signing protocol failed, IPs not available: {ips}")]
+	#[error("initiation of signing protocol failed, IPs not available: {ips:?}")]
 	SigningInitError { ips: IPs },
 	/// Wrap and propagate the tofn error
 	#[error("execution of signing protocol failed: {e}")]
