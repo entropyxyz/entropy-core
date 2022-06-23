@@ -14,7 +14,7 @@
 //!
 //! All relevant helper structs and types are defined in [self::types]
 
-use super::{broadcast::broadcast_messages, proto, service::Gg20Service, ProtocolCommunication};
+// use super::{broadcast::broadcast_messages, proto, service::Gg20Service, ProtocolCommunication};
 
 // tonic cruft
 use tokio::sync::{mpsc, oneshot};
@@ -29,9 +29,9 @@ use anyhow::anyhow;
 
 pub mod types;
 use types::*;
-mod execute;
-mod init;
-mod result;
+pub mod execute;
+pub mod init;
+pub mod result;
 
 impl Gg20Service {
     // we wrap the functionality of sign gRPC here because we can't handle errors

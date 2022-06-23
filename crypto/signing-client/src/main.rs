@@ -22,6 +22,9 @@ mod request_guards;
 mod signer;
 mod store_share;
 
+use signer::init::*;
+use signer::execute::*;
+use signer::result::*;
 use com_manager::{broadcast, issue_idx, subscribe, Db};
 // ToDo: JA add proper response types and formalize them across all endpoints
 
@@ -68,7 +71,9 @@ async fn rocket() -> _ {
 				get_ip,
 				get_all_ips,
 				// TODO(TK): add signing protocol methods here
-				sign_init
+				init_sign,
+				execute_sign,
+				handle_sign_results,
 			],
 		)
 		.manage(Db::empty())

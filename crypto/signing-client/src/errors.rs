@@ -22,6 +22,7 @@ impl CustomIPError {
 pub enum SigningProtocolError {
 	#[error("initiation of signing protocol failed, IPs not available: {ips}")]
 	SigningInitError { ips: IPs },
-	#[error("hoot")]
-	Placeholder,
+	/// Wrap and propagate the tofn error
+	#[error("execution of signing protocol failed: {e}")]
+	SigningExecuteError{e: String},
 }

@@ -3,13 +3,14 @@
 //! the session key is queried inside from KvStore. If [proto::SignInit] fails to be parsed, or no
 //! Keygen has been executed for the current session ID, an [anyhow!] error is returned
 
-use rocket::http::Status;
+use rocket::{http::Status, State};
 
-use crate::errors::{CustomIPError, SigningProtocolError};
+use crate::{errors::{CustomIPError, SigningProtocolError}, IPs};
 
 // TODO(TK):  Implement this function stub, using Rocket in place of grpc
-#[rocket::get("/signer/<ip_address>")]
+#[rocket::get("/rooms/<room_id>/<ip_address>")]
 pub async fn init_sign(
+    room_id: &str,
 	ip_address: String,
 	state: &State<IPs>,
 ) -> Result<Status, SigningProtocolError> {
