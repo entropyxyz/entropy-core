@@ -1,5 +1,7 @@
 use rocket::response::Responder;
 
+use crate::IPs;
+
 #[derive(Debug)]
 pub enum SignedMessageError {
 	Missing,
@@ -14,4 +16,12 @@ impl CustomIPError {
 	pub fn new(error: &'static str) -> CustomIPError {
 		CustomIPError(error)
 	}
+}
+
+#[derive(Debug, Clone)]
+pub enum SigningProtocolError {
+	#[error("initiation of signing protocol failed, IPs not available: {ips}")]
+	SigningInitError { ips: IPs },
+	#[error("hoot")]
+	Placeholder,
 }

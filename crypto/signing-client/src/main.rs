@@ -19,7 +19,7 @@ mod com_manager;
 mod errors;
 mod ip_discovery;
 mod request_guards;
-mod sign;
+mod signer;
 mod store_share;
 
 use com_manager::{broadcast, issue_idx, subscribe, Db};
@@ -66,7 +66,9 @@ async fn rocket() -> _ {
 				issue_idx,
 				broadcast,
 				get_ip,
-				get_all_ips
+				get_all_ips,
+				// TODO(TK): add signing protocol methods here
+				sign_init
 			],
 		)
 		.manage(Db::empty())
