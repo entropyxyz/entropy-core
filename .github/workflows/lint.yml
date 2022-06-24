@@ -8,31 +8,31 @@ on:
   workflow_dispatch:
 
 jobs:
-  core:
-    name: Core
+  lint_node:
+    name: Lint Node
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - run: bash .github/workflows/scripts/install_dependencies.sh
-      - run: SKIP_WASM_BUILD=1 cargo clippy
-  crypto:
-    name: Crypto
+      - run: pushd node SKIP_WASM_BUILD=1 cargo clippy
+  crypto-keygen:
+    name: Lint Centralized Keygen
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - run: bash .github/workflows/scripts/install_dependencies.sh
-      - run: cd crypto/protocol && cargo clippy
+      - run: pushd crypto/centralized-keygen && cargo clippy
   crypto-signing-client:
-    name: Signing
+    name: Lint Signing Client
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - run: bash .github/workflows/scripts/install_dependencies.sh
-      - run: cd crypto/signing-client && cargo clippy
+      - run: pushd crypto/signing-client && cargo clippy
   crypto-common:
-    name: Common
+    name: Lint Common
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - run: bash .github/workflows/scripts/install_dependencies.sh
-      - run: cd crypto/common && cargo clippy
+      - run: pushd crypto/common && cargo clippy
