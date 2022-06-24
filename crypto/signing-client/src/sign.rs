@@ -1,4 +1,4 @@
-//! # Signing Client
+//! # Sign
 //!
 //!
 //! ## Overview
@@ -11,8 +11,6 @@
 //! ## Routes
 //!
 //! - /sign - Post - Acts as an entry point for the chain to pass signing data to
-//!
-//!
 use crate::Global;
 use common::OCWMessage;
 use constraints::whitelist::is_on_whitelist;
