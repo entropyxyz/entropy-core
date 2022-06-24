@@ -1,5 +1,18 @@
-//! The Node requests the client to take part in a signature generation.
-
+//! # Signing Client
+//!
+//!
+//! ## Overview
+//!
+//! The sign file acts as an entry point for the chain to pass signing data to.
+//! The chain will send messages that need to be signied to every node at sign endpoint
+//! If certain conditions are met the nodes will either co-ordinate or participate in the singing protocl.
+//!
+//!
+//! ## Routes
+//!
+//! - /sign - Post - Acts as an entry point for the chain to pass signing data to
+//!
+//!
 use crate::Global;
 use common::OCWMessage;
 use constraints::whitelist::is_on_whitelist;
@@ -14,20 +27,16 @@ use subxt::{
 	PolkadotExtrinsicParams,
 };
 use tofnd::kv_manager::KvManager;
+
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
 pub mod entropy {}
 
-/// Response of the signing node
-#[derive(Debug, Encode)]
-struct SignRes {
-	pub demo: u8,
-}
-
 pub type EntropyRuntime =
 	entropy::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
 
-//ToDo: receive keyshare and store locally
+/// Takes data from OCW decondes it and launches the signing process
+/// Identifies if node should lead or participate in signing
 #[post("/sign", format = "application/x-parity-scale-codec", data = "<encoded_data>")]
 pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Status {
 	println!("encoded_data {:?}", encoded_data);
@@ -85,6 +94,8 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Stat
 	Status::Ok
 }
 
+/// Creates an api instance to talk to chain
+/// Chain endpoint set on launch
 pub async fn get_api(url: &str) -> Result<EntropyRuntime, subxt::Error<entropy::DispatchError>> {
 	let api = ClientBuilder::new()
 		.set_url(url)
@@ -94,6 +105,8 @@ pub async fn get_api(url: &str) -> Result<EntropyRuntime, subxt::Error<entropy::
 	Ok(api)
 }
 
+/// Identifies if this node is the block author
+/// O(n) n = number of validators
 pub async fn is_block_author(
 	api: &EntropyRuntime,
 	block_author: &AccountId32,
@@ -106,6 +119,7 @@ pub async fn is_block_author(
 	Ok(result)
 }
 
+/// Identifies who the current block's author is by quering node
 pub async fn get_block_author(
 	api: &EntropyRuntime,
 ) -> Result<AccountId32, subxt::Error<entropy::DispatchError>> {
@@ -114,6 +128,7 @@ pub async fn get_block_author(
 	Ok(author)
 }
 
+/// Identifies current block number by quering node
 pub async fn get_block_number(
 	api: &EntropyRuntime,
 ) -> Result<u32, subxt::Error<entropy::DispatchError>> {
@@ -121,6 +136,7 @@ pub async fn get_block_number(
 	Ok(block_number)
 }
 
+/// Identifies the block author's endpoint by querying node
 pub async fn get_author_endpoint(
 	api: &EntropyRuntime,
 	block_author: &AccountId32,
@@ -134,10 +150,13 @@ pub async fn get_author_endpoint(
 	Ok(author_endpoint)
 }
 
+/// converts endpoint from Vec<u8> to string
 pub fn convert_endpoint(author_endpoint: &Vec<u8>) -> Result<&str, std::str::Utf8Error> {
 	Ok(str::from_utf8(author_endpoint).unwrap())
 }
 
+/// Sends message to chain stating that it has concluded all signings in a block
+/// notes any failures in said messages
 pub async fn acknowledge_responsibility(
 	api: &EntropyRuntime,
 	mnemonic: &String,
@@ -165,6 +184,7 @@ pub async fn acknowledge_responsibility(
 	Ok(())
 }
 
+/// Identifies a user's whitelisted addresses from chain
 pub async fn get_whitelist(
 	api: &EntropyRuntime,
 	user: &AccountId32,
@@ -174,10 +194,12 @@ pub async fn get_whitelist(
 	Ok(whitelist)
 }
 
+/// Queries local KVDB to see if it has a user's entropy key shard
 pub async fn does_have_key(kv: &KvManager, user: String) -> bool {
 	kv.kv().exists(&user).await.unwrap()
 }
 
+/// Sends IP address to communication manager
 pub async fn send_ip_address(author_endpoint: &Vec<u8>) -> String {
 	let my_ip = local_ip::get().unwrap().to_string();
 	let mut route = "/get_ip/".to_owned();
