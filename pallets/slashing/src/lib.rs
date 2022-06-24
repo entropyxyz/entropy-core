@@ -1,8 +1,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-
-/// Edit this file to define custom logic or remove it if it is not needed.
-/// Learn more about FRAME and the core library of Substrate FRAME pallets:
-/// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
+//! # Slashing Pallet
+//!
+//!
+//! ## Overview
+//!
+//! Allows for customizable slashes to occur on chain
 pub use pallet::*;
 
 #[cfg(test)]
@@ -32,7 +34,6 @@ pub mod pallet {
 		SessionIndex,
 	};
 
-	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;

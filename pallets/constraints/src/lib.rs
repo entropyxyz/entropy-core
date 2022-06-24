@@ -1,7 +1,5 @@
 //! # Constraint Pallet
 //!
-//! - [`Pallet`]
-//!
 //! ## Overview
 //!
 //! Holds the onchain constraints for users
@@ -10,7 +8,6 @@
 //! ### Public Functions
 //!
 //! add_whitelist_address - lets a user add a whitelisted address to their account
-//!
 
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;

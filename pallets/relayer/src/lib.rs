@@ -1,8 +1,17 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-
-/// Edit this file to define custom logic or remove it if it is not needed.
-/// Learn more about FRAME and the core library of Substrate FRAME pallets:
-/// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
+//! # Relayer Pallet
+//!
+//!
+//! ## Overview
+//!
+//! Allows a user to ask to sign, register with the network and allows a node to confirm
+//! signing was completed properly.
+//!
+//! ### Public Functions
+//!
+//! prep_transaction - declares intent to sign, this gets relayed to thereshold network
+//! register - register's a user and that they have created and distributed entropy shards
+//! confirm_done - allows a node to confirm signing has happened and if a failure occured
 pub use pallet::*;
 
 #[cfg(test)]
@@ -82,7 +91,6 @@ pub mod pallet {
 	pub type Registered<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
 
-	pub type SigResponse = common::SigResponse;
 	pub type RegResponse = common::RegistrationResponse;
 	pub type SigRequest = common::SigRequest;
 	pub type Message = common::Message;
@@ -92,8 +100,8 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// A transaction has been propagated to the network. [who, signature_response]
-		TransactionPropagated(T::AccountId, SigResponse),
+		/// A transaction has been propagated to the network. [who]
+		TransactionPropagated(T::AccountId),
 		/// An account has been registered. [who]
 		AccountRegistered(T::AccountId),
 		/// An account has been registered. [who, block_number, failures]
@@ -110,9 +118,8 @@ pub mod pallet {
 		NoThresholdKey,
 	}
 
-	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
-	// These functions materialize as "extrinsics", which are often compared to transactions.
-	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
+	/// Allows a user to kick off signing process
+	/// `sig_request`: signature request for user
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
@@ -125,11 +132,9 @@ pub mod pallet {
 				request.push(message);
 				Ok(())
 			})?;
-			// ToDo: get random signeing-nodes
-			//let sig_response = get_signers();
-			let sig_response = SigResponse { signing_nodes: sp_std::vec![1], com_manager: 1 };
 
-			Self::deposit_event(Event::TransactionPropagated(who, sig_response));
+
+			Self::deposit_event(Event::TransactionPropagated(who));
 			Ok(())
 		}
 
@@ -146,6 +151,9 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Allows a node to signal they have completed a signing batch
+		/// `block_number`: block number for signing batch
+		/// `failure`: index of any failures in all sig request arrays
 		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
 		pub fn confirm_done(
 			origin: OriginFor<T>,
