@@ -1,4 +1,18 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+//! # Staking Pallet
+//!
+//!
+//! ## Overview
+//!
+//! An extention on normal staking that adds the ability to add a threshold signer key
+//! and an IP address for validators
+//!
+//! ### Public Functions
+//!
+//! change_endpoint - allows a user to change their designated endpoint (needed so signing nodes can find coms manager)
+//! change_threshold_accounts - allows a user to change their threshold account (needed so comms manager can confirm done)
+//! withdraw_unbonded - wraps substrate's call but clears endpoint and threshold key if all is unbonded
+//! validate - wraps substrate's call but forces a threshold key and endpoint
 
 pub use pallet::*;
 
@@ -20,7 +34,6 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use pallet_staking::ValidatorPrefs;
 
-	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_staking::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -103,6 +116,8 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Allows a validator to change their endpoint so signers can find them when they are coms manager
+		/// `endpoint`: nodes's endpoint
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn change_endpoint(origin: OriginFor<T>, endpoint: Vec<u8>) -> DispatchResult {
 			let who = ensure_signed(origin.clone())?;
@@ -116,6 +131,8 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Allows a validator to change their threshold key so can confirm done when coms manager
+		/// `new_account`: nodes's threshold account
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn change_threshold_accounts(
 			origin: OriginFor<T>,
@@ -128,6 +145,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Wraps's substrate withdraw unbonded but clears extra state if fully unbonded
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn withdraw_unbonded(
 			origin: OriginFor<T>,
@@ -145,6 +163,9 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Wraps's substrate validate but forces threshold key and endpoint
+		/// `endpoint`: nodes's endpoint
+		/// `threshold_account`: nodes's threshold account
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn validate(
 			origin: OriginFor<T>,

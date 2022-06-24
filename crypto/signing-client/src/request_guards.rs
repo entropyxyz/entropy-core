@@ -1,9 +1,20 @@
+//! # Request Guards
+//!
+//!
+//! ## Overview
+//!
+//! A collection of our request guards for signing client
+//!
+//! ## Guards
+//!
+//! - signed-message - requiers signed message in header (not implemented)
 use crate::errors::SignedMessageError;
 use rocket::http::Status;
 use rocket::request::{self, FromRequest, Outcome, Request};
 
 pub struct SignedMessage<'r>(&'r str);
 
+/// Is it a valid signature (not implemented)
 pub fn is_valid(signature: &str) -> bool {
 	true
 }

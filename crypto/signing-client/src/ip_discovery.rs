@@ -1,3 +1,15 @@
+//! # IP Discovery
+//!
+//!
+//! ## Overview
+//!
+//! This file acts to help nodes communicate so they can start the signing process
+//! Communication manager will collect IPs for all signers then inform them they are signing
+//!
+//! ## Routes
+//!
+//! get_ip - get - Comm manager accepts sign request for a message
+//! get_all_ips - post - Comm manager sends signers all node addresses to sign message
 use crate::errors::CustomIPError;
 use crate::IPs;
 use reqwest;
@@ -15,6 +27,7 @@ pub struct IpAddresses {
 	pub ip_addresses: Vec<String>,
 }
 
+/// Collect IPs for all signers then informs them
 #[rocket::get("/get_ip/<ip_address>")]
 pub async fn get_ip(ip_address: String, state: &State<IPs>) -> Result<Status, CustomIPError> {
 	let shared_data: &IPs = state.inner();
@@ -50,6 +63,7 @@ pub async fn get_ip(ip_address: String, state: &State<IPs>) -> Result<Status, Cu
 	}
 }
 
+/// Accepts all IPs for signers and launces the signing process
 #[post("/get_all_ips", format = "json", data = "<ip_addresses>")]
 pub async fn get_all_ips(ip_addresses: Json<IpAddresses>, state: &State<IPs>) {
 	println!("ip_addresses, {:?}", ip_addresses);
