@@ -827,7 +827,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "centralized_keygen"
+name = "centralized-keygen"
 version = "0.1.0"
 dependencies = [
  "anyhow",
