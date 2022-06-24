@@ -5,9 +5,7 @@ use crate::sign::{
 	get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
 };
 use crate::store_share::{store_keyshare, User};
-use crate::{get_test_password, Global};
-use curv::elliptic::curves::secp256_k1::Secp256k1;
-use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
+use crate::{Global};
 use parity_scale_codec::Encode;
 use rocket::tokio::time::{sleep, Duration};
 use rocket::{
@@ -289,7 +287,8 @@ async fn test_have_keyshare() {
 	let key = "12mXVvtCubeKrVx99EWQCpJrLxnmzAgXqwHePLoamVN31Kn5".to_string();
 	// launch kv manager
 	let root = project_root::get_project_root().unwrap();
-	let kv_manager = KvManager::new(root.clone(), get_test_password()).unwrap();
+	let kv_manager = KvManager::new(root, tofnd::encrypted_sled::PasswordMethod::NoPassword.execute().unwrap())
+	.unwrap();
 
 	let result = does_have_key(&kv_manager.clone(), key.clone()).await;
 	assert_eq!(result, false);

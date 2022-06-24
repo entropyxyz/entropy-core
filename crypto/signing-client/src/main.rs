@@ -17,7 +17,6 @@ extern crate rocket;
 #[cfg(test)]
 mod tests;
 mod sign;
-mod com_manager;
 mod errors;
 mod ip_discovery;
 mod request_guards;
@@ -27,7 +26,6 @@ mod store_share;
 // use signer::init::*;
 // use signer::execute::*;
 // use signer::result::*;
-use com_manager::{broadcast, issue_idx, subscribe, Db};
 // ToDo: JA add proper response types and formalize them across all endpoints
 
 #[derive(Clone)]
@@ -65,11 +63,7 @@ async fn rocket() -> _ {
 			"/",
 			routes![
 				store_keyshare,
-				// for testing, we let node1 not provede a share
 				provide_share,
-				subscribe,
-				issue_idx,
-				broadcast,
 				get_ip,
 				get_all_ips,
 				// TODO(TK): add signing protocol methods here
