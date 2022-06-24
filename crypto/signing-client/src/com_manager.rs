@@ -67,6 +67,7 @@ pub struct Room {
 }
 
 impl Db {
+	#[allow(dead_code)]
 	pub fn empty() -> Self {
 		Self { rooms: RwLock::new(HashMap::new()) }
 	}

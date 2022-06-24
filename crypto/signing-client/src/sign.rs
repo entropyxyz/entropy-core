@@ -17,7 +17,7 @@ use subxt::{
 use tofnd::kv_manager::KvManager;
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[allow(clippy::enum_variant_names)]
-#[subxt::subxt(runtime_metadata_path = "../centralized_keygen/entropy_metadata.scale")]
+#[subxt::subxt(runtime_metadata_path = "entropy_metadata.scale")]
 pub mod entropy {}
 
 /// Response of the signing node

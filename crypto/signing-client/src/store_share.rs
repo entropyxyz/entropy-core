@@ -1,7 +1,7 @@
 //! The User requests the Signature-client to store a keyshare localy.
 #![allow(unused_imports)]
 use crate::Global;
-use curv::elliptic::curves::secp256_k1::Secp256k1;
+// use curv::elliptic::curves::secp256_k1::Secp256k1;
 // use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
 use rocket::{serde::json::Json, State};
 use serde::{Deserialize, Serialize};
