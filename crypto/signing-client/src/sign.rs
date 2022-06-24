@@ -34,19 +34,13 @@ pub type EntropyRuntime =
 pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Status {
 	println!("encoded_data {:?}", encoded_data);
 
-	// ToDo: JA rename
 	let data = OCWMessage::decode(&mut encoded_data.as_ref());
 	let data = match data {
 		Ok(x) => x,
 		Err(err) => panic!("failed to decode input {}", err),
 	};
-	let raw_address = &data[0].account;
-	let address_slice: &[u8; 32] =
-		&raw_address.clone().try_into().expect("slice with incorrect length");
-
-	let user = AccountId32::new(*address_slice);
-
 	println!("data: {:?}", &data);
+
 	let cached_state = state.inner();
 	let endpoint = cached_state.endpoint.clone();
 	let mnemonic = cached_state.mnemonic.clone();
@@ -54,6 +48,28 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Stat
 
 	let api = get_api(&endpoint).await.unwrap();
 	let block_number = get_block_number(&api).await.unwrap();
+
+	let block_author = get_block_author(&api).await.unwrap();
+	let author_endpoint = get_author_endpoint(&api, &block_author).await.unwrap();
+	let string_author_endpoint = convert_endpoint(&author_endpoint);
+	let bool_block_author = is_block_author(&api, &block_author).await.unwrap();
+
+	for message in data {
+		let raw_address = &message.account;
+		let address_slice: &[u8; 32] =
+			&raw_address.clone().try_into().expect("slice with incorrect length");
+		let user = AccountId32::new(*address_slice);
+
+		//TODO: JA may have to be moved to after message is decoded
+		let address_whitelist = get_whitelist(&api, &user).await.unwrap();
+		let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
+
+		let does_have_key = does_have_key(&kv_manager, user.to_string()).await;
+		if does_have_key && !bool_block_author {
+			let _result = send_ip_address(&author_endpoint).await;
+		}
+	}
+
 	// TODO: JA This thread needs to happen after all signing processes are completed and contain locations in vec of any failures (which need to be stored locally in DB temporarily)
 	let handle = thread::spawn(move || async move {
 		let api_2 = get_api(&endpoint).await.unwrap();
@@ -65,19 +81,6 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Stat
 			println!("result of no acknowledgmen");
 		}
 	});
-
-	let block_author = get_block_author(&api).await.unwrap();
-	let author_endpoint = get_author_endpoint(&api, &block_author).await.unwrap();
-	let string_author_endpoint = convert_endpoint(&author_endpoint);
-	let bool_block_author = is_block_author(&api, &block_author).await.unwrap();
-
-	let address_whitelist = get_whitelist(&api, &user).await.unwrap();
-	//TODO: JA this is where we send the decoded address
-	let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
-	let does_have_key = does_have_key(kv_manager, user.to_string()).await;
-	if does_have_key && !bool_block_author {
-		let _result = send_ip_address(&author_endpoint).await;
-	}
 	// TODO: JA Thread blocks the return, not sure if needed a problem, keep an eye out for this downstream
 	handle.join().unwrap().await;
 
@@ -173,7 +176,7 @@ pub async fn get_whitelist(
 	Ok(whitelist)
 }
 
-pub async fn does_have_key(kv: KvManager, user: String) -> bool {
+pub async fn does_have_key(kv: &KvManager, user: String) -> bool {
 	kv.kv().exists(&user).await.unwrap()
 }
 
