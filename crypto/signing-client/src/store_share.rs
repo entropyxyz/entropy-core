@@ -1,30 +1,36 @@
-//! The User requests the Signature-client to store a keyshare localy.
+//! # Store Share
+//!
+//!
+//! ## Overview
+//!
+//! Allows a user to send shards to nodes and have them store it.
+//! User's substrate account acts as key value.
+//!
+//! ## Routes
+//!
+//! - /store_keyshare - Post - Takes in a key and value for user
 use crate::Global;
-use curv::elliptic::curves::secp256_k1::Secp256k1;
-use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::LocalKey;
 use rocket::serde::json::Json;
-use rocket::State;
+use rocket::{State, http::Status};
 use serde::{Deserialize, Serialize};
 use std::{
 	fs::File,
 	io::{BufWriter, Write},
 };
-use tofnd::kv_manager::{error::KvError, KeyReservation, KvManager};
-// ToDo: DF Should we move declaration of structs to /crypto/common/ ?
-//       If those types are necessary for the node's OCW, then maybe we should
 
+/// User input, contains key (substrate key) and value (entropy shard)
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct User {
 	pub key: String,
 	pub value: Vec<u8>,
 }
 
-// ToDo: JA add proper response types and formalize them
+/// Accepts user input stores shard under user's substrate key in local KVDB
 #[post("/store_keyshare", format = "json", data = "<user_input>")]
 pub async fn store_keyshare(
 	user_input: Json<User>,
 	state: &State<Global>,
-) -> Result<(), std::io::Error> {
+) -> Result<Status, std::io::Error> {
 	// ToDo: JA verify proof
 	// ToDo: validate is owner of key address
 	// ToDo: JA make sure signed so other key doesn't override own key
@@ -35,5 +41,5 @@ pub async fn store_keyshare(
 	let reservation = kv_manager.kv().reserve_key(user_input.clone().key).await.unwrap();
 	let result = kv_manager.kv().put(reservation, user_input.clone().value).await.unwrap();
 
-	Ok(())
+	Ok(Status::Ok)
 }
