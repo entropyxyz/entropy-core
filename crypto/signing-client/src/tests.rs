@@ -1,17 +1,19 @@
 use super::{rocket, IPs};
-use crate::ip_discovery::{get_all_ips, IpAddresses};
-use crate::sign::{
-	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
-	get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
+use crate::{
+	ip_discovery::{get_all_ips, IpAddresses},
+	sign::{
+		acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
+		get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
+	},
+	store_share::{store_keyshare, User},
+	Global,
 };
-use crate::store_share::{store_keyshare, User};
-use crate::{Global};
 use parity_scale_codec::Encode;
-use rocket::tokio::time::{sleep, Duration};
 use rocket::{
 	figment::Figment,
 	http::{ContentType, Status},
 	local::asynchronous::Client,
+	tokio::time::{sleep, Duration},
 	Config, State,
 };
 use serial_test::serial;
@@ -287,8 +289,9 @@ async fn test_have_keyshare() {
 	let key = "12mXVvtCubeKrVx99EWQCpJrLxnmzAgXqwHePLoamVN31Kn5".to_string();
 	// launch kv manager
 	let root = project_root::get_project_root().unwrap();
-	let kv_manager = KvManager::new(root, tofnd::encrypted_sled::PasswordMethod::NoPassword.execute().unwrap())
-	.unwrap();
+	let kv_manager =
+		KvManager::new(root, tofnd::encrypted_sled::PasswordMethod::NoPassword.execute().unwrap())
+			.unwrap();
 
 	let result = does_have_key(&kv_manager.clone(), key.clone()).await;
 	assert_eq!(result, false);
@@ -304,7 +307,8 @@ async fn test_have_keyshare() {
 	assert_eq!(result_3, false);
 }
 
-// TODO: same rocket not connect error with test, works when tested manually with server running on port 3002
+// TODO: same rocket not connect error with test, works when tested manually with server running on
+// port 3002
 #[rocket::async_test]
 #[ignore]
 async fn send_ip_address_test() {
