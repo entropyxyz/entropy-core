@@ -1,3 +1,14 @@
+//! # Signing Client
+//!
+//!
+//! ## Overview
+//!
+//! Launches our signing client
+//!
+//! ## Pieces Launched
+//!
+//! - Rocket server - Includes global state and mutex locked IPs
+//! - Sled DB KVDB
 use crate::{
 	ip_discovery::{get_all_ips, get_ip},
 	sign::provide_share,
@@ -25,8 +36,8 @@ mod sign;
 mod store_share;
 
 use com_manager::{broadcast, issue_idx, subscribe, Db};
-// ToDo: JA add proper response types and formalize them across all endpoints
 
+/// holds KVDB instance, threshold mneumonic and endpoint of running node
 #[derive(Clone)]
 pub struct Global {
 	mnemonic: String,
@@ -34,6 +45,7 @@ pub struct Global {
 	kv_manager: KvManager,
 }
 
+/// holds Mutex locked current IPs
 pub struct IPs {
 	current_ips: Mutex<Vec<String>>,
 }
