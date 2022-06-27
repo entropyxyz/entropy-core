@@ -83,6 +83,7 @@ pub use sp_runtime::BuildStorage;
 pub mod impls;
 use impls::Author;
 mod voter_bags;
+mod weights;
 
 /// Constant values used within the runtime.
 pub mod constants;
@@ -1160,6 +1161,7 @@ parameter_types! {
 impl pallet_relayer::Config for Runtime {
 	type Event = Event;
 	type PruneBlock = PruneBlock;
+	type WeightInfo = weights::pallet_relayer::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1310,6 +1312,7 @@ mod benches {
 		[pallet_offences, OffencesBench::<Runtime>]
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
+		[pallet_relayer, Relayer]
 		[pallet_scheduler, Scheduler]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_staking, Staking]

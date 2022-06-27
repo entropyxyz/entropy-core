@@ -23,6 +23,8 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+pub mod weights;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::{
@@ -37,6 +39,7 @@ pub mod pallet {
 		transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
 	};
 	use sp_std::fmt::Debug;
+	pub use crate::weights::WeightInfo;
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config:
@@ -45,6 +48,9 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type PruneBlock: Get<Self::BlockNumber>;
+
+		/// The weight information of this pallet.
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::hooks]
