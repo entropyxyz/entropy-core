@@ -186,14 +186,14 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		pub fn move_active_to_pending(block_number: T::BlockNumber) {
 			let target_block = block_number.saturating_sub(2u32.into());
-			let current_failures = Self::failures(block_number);
 			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
+			let prune_failures = Self::failures(prune_block);
 			let responsibility = unwrap_or_return!(
 				Self::responsibility(target_block),
 				"active to pending, responsibility warning"
 			);
 
-			if current_failures.is_none() {
+			if prune_failures.is_none() {
 				Unresponsive::<T>::mutate(responsibility.clone(), |dings| *dings += 1);
 
 			//TODO slash or point for failure then slash after pointed a few times

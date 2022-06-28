@@ -91,8 +91,11 @@ fn moves_active_to_pending() {
 		assert_eq!(Relayer::unresponsive(1), 0);
 		// pending pruned
 		Responsibility::<Test>::insert(4, 1);
+		Failures::<Test>::insert(3, failures.clone());
 		Relayer::move_active_to_pending(6);
 		assert_eq!(Relayer::pending(3), vec![]);
+		assert_eq!(Relayer::failures(3), None);
+
 	});
 }
 

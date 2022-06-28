@@ -4,8 +4,11 @@ use super::*;
 
 #[allow(unused)]
 use crate::Pallet as Relayer;
-use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller, vec};
 use frame_system::{RawOrigin, EventRecord};
+use frame_support::{
+	traits::{OnInitialize, Get}
+};
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
 	let events = frame_system::Pallet::<T>::events();
@@ -13,6 +16,18 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
 	// compare to the last event record
 	let EventRecord { event, .. } = &events[events.len() - 1];
 	assert_eq!(event, &system_event);
+}
+
+fn add_failures<T: Config>(failure_count: u32, block_number: T::BlockNumber) {
+	let failures = vec![1u32; failure_count as usize];
+	<Failures<T>>::insert(block_number, failures.clone());
+}
+
+fn add_messages<T: Config>(caller: T::AccountId, messages_count: u32) {
+	for _ in 0..messages_count {
+		let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
+		let _ = <Relayer<T>>::prep_transaction(RawOrigin::Signed(caller.clone()).into(), sig_request);
+	}
 }
 
 benchmarks! {
@@ -24,6 +39,45 @@ benchmarks! {
 	}: _(RawOrigin::Signed(caller.clone()), sig_request)
 	verify {
 		assert_last_event::<T>(Event::TransactionPropagated(caller).into());
+	}
+
+	register {
+		let caller: T::AccountId = whitelisted_caller();
+
+	}:  _(RawOrigin::Signed(caller.clone()))
+	verify {
+		assert_last_event::<T>(Event::AccountRegistered(caller).into());
+	}
+
+	//TODO: Confirm done (for thor)
+
+
+	move_active_to_pending {
+		let f in 0 .. 10;
+		let m in 0 .. 10;
+		let caller: T::AccountId = whitelisted_caller();
+		let block_number: T::BlockNumber = 10u32.into();
+		let prune_block: T::BlockNumber = block_number.clone() - T::PruneBlock::get();
+		let target_block: T::BlockNumber = block_number.clone() - 1u32.into();
+		frame_system::Pallet::<T>::set_block_number(block_number);
+		<Registered<T>>::insert(caller.clone(), true);
+
+		add_failures::<T>(f.clone().into(), prune_block.clone());
+
+		if f != 0 {
+			assert_eq!(Failures::<T>::get(prune_block.clone()).unwrap().len() as u32, f.clone());
+		}
+
+		frame_system::Pallet::<T>::set_block_number(target_block.clone());
+		add_messages::<T>(caller.clone(), m.clone().into());
+		assert_eq!(Messages::<T>::get(target_block.clone()).len() as u32, m.clone());
+		<Responsibility<T>>::insert(target_block.clone(), caller.clone());
+	}: {
+		<Relayer<T>>::on_initialize(11u32.into());
+	} verify {
+		assert_eq!(Failures::<T>::get(block_number.clone()), None);
+		assert_eq!(Pending::<T>::get(target_block.clone()).len() as u32, m.clone());
+		assert_eq!(Messages::<T>::get(target_block).len() as u32, 0);
 	}
 
 }
