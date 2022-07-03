@@ -13,8 +13,8 @@ commands:
 jobs:
   test-node:
     machine:
-      - image: "ubuntu-2004:202201-02"
-      - resource_class: "2xlarge"
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
     steps:
       - install-dependencies
       - checkout
