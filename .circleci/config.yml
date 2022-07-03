@@ -1,26 +1,28 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
-jobs:
-  say-hello:
-    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
-    docker:
-      - image: cimg/base:stable
-    # Add steps to the job
-    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+commands:
+  install-dependencies:
     steps:
+      - run: sudo apt install -y libssl-dev clang libclang-dev
+      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+      - run: rustup default stable
+      - run: rustup update nightly
+      - run: rustup update stable
+      - run: rustup target add wasm32-unknown-unknown --toolchain nightly
+
+jobs:
+  test-node:
+    docker:
+      - image: "ubuntu-2004:202201-02"
+      - resource_class: "2xlarge"
+    steps:
+      - install-dependencies
       - checkout
       - run:
           name: "Say hello"
           command: "echo Hello, World!"
 
-# Invoke jobs via workflows
-# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   say-hello-workflow:
     jobs:
-      - say-hello
+      - test-node
