@@ -3,6 +3,7 @@ version: 2.1
 commands:
   install-dependencies:
     steps:
+      - run: apt-get update 
       - run: sudo apt install -y libssl-dev clang libclang-dev
       - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
       - run: rustup default stable
