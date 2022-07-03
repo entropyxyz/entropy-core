@@ -5,7 +5,7 @@ commands:
     steps:
       - run: sudo apt-get update 
       - run: sudo apt install -y libssl-dev clang libclang-dev
-      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
       - run: rustup default stable
       - run: rustup update nightly
       - run: rustup update stable
