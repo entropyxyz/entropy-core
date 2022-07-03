@@ -28,7 +28,7 @@ jobs:
       - install-dependencies
       - checkout
       - run: pushd node && cargo check --features=runtime-benchmarks --release
-  crypto-check-keychen:
+  crypto-check-keygen:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
