@@ -12,18 +12,53 @@ commands:
       - run: rustup target add wasm32-unknown-unknown --toolchain nightly
 
 jobs:
-  test-node:
+  node-test:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
     steps:
       - install-dependencies
       - checkout
-      - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
-
+      - run: pushd node && cargo build --release && cargo test
+  node-benchmark:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies
+      - checkout
+      - run: pushd node && cargo check --features=runtime-benchmarks --release
+  crypto-check-keychen:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies
+      - checkout
+      - run: cd crypto/centralized-keygen && cargo check 
+  crypto-signing-client:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies
+      - checkout
+      - run: cd crypto/signing-client && cargo check
+  crypto-common:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies
+      - checkout
+      - run: cd crypto/common && cargo check
 workflows:
-  say-hello-workflow:
+  entropy-node:
     jobs:
-      - test-node
+      - node-test
+      - node-benchmark
+  entropy-crypto:
+    jobs:
+      - crypto-check-keygen
+      - crypto-signing-client
+      - crypto-common
