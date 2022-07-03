@@ -12,7 +12,7 @@ commands:
 
 jobs:
   test-node:
-    docker:
+    machine:
       - image: "ubuntu-2004:202201-02"
       - resource_class: "2xlarge"
     steps:
