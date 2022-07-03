@@ -28,14 +28,14 @@ jobs:
       - install-dependencies
       - checkout
       - run: pushd node && cargo check --features=runtime-benchmarks --release
-  crypto-check-keygen:
+  crypto-protocol:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
     steps:
       - install-dependencies
       - checkout
-      - run: cd crypto/centralized-keygen && cargo check 
+      - run: cd crypto/protocol && cargo check
   crypto-signing-client:
     machine:
       image: "ubuntu-2004:202201-02"
@@ -59,6 +59,6 @@ workflows:
       - node-benchmark
   entropy-crypto:
     jobs:
-      - crypto-check-keygen
+      - crypto-protocol
       - crypto-signing-client
       - crypto-common
