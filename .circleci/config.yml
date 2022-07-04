@@ -1,0 +1,111 @@
+version: 2.1
+
+commands:
+  increase-swap:
+    steps:
+      - run: sudo swapoff -a
+      - run: sudo dd if=/dev/zero of=/swapfile bs=1G count=8
+      - run: sudo chmod 0600 /swapfile
+      - run: sudo mkswap /swapfile
+      - run: sudo swapon /swapfile
+      - run: grep Swap /proc/meminfo
+  install-dependencies:
+    steps:
+      - run: sudo apt-get update 
+      - run: sudo apt install -y libssl-dev clang libclang-dev
+      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      - run: rustup default stable
+      - run: rustup update nightly
+      - run: rustup update stable
+      - run: rustup target add wasm32-unknown-unknown --toolchain nightly
+
+jobs:
+  node-test:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - increase-swap
+      - install-dependencies
+      - checkout
+      - run: pushd node && cargo build --release && cargo test
+  node-benchmark:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies
+      - checkout
+      - run: pushd node && cargo check --features=runtime-benchmarks --release
+  crypto-protocol:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies
+      - checkout
+      - run: cd crypto/protocol && cargo check
+  crypto-signing-client:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies
+      - checkout
+      - run: cd crypto/signing-client && cargo check
+  crypto-common:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies
+      - checkout
+      - run: cd crypto/common && cargo check
+  linting-node-core:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies
+      - checkout
+      - run: SKIP_WASM_BUILD=1 cargo clippy
+  linting-crypto-protocol:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies
+      - checkout
+      - run: cd crypto/protocol && cargo clippy
+  linting-crypto-signing-client:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies
+      - checkout
+      - run: cd crypto/signing-client && cargo clippy
+  linting-crypto-common:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies
+      - checkout
+      - run: cd crypto/common && cargo clippy
+workflows:
+  entropy-node:
+    jobs:
+      - node-test
+      - node-benchmark
+  entropy-crypto:
+    jobs:
+      - crypto-protocol
+      - crypto-signing-client
+      - crypto-common
+  entropy-linting:
+    jobs:
+      - linting-node-core
+      - linting-crypto-protocol
+      - linting-crypto-signing-client
+      - linting-crypto-common
