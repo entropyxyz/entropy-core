@@ -1,6 +1,14 @@
 version: 2.1
 
 commands:
+  increase-swap:
+    steps:
+      - run: sudo swapoff -a
+      - run: sudo dd if=/dev/zero of=/swapfile bs=1G count=8
+      - run: sudo chmod 0600 /swapfile
+      - run: sudo mkswap /swapfile
+      - run: sudo swapon /swapfile
+      - run: grep Swap /proc/meminfo
   install-dependencies:
     steps:
       - run: sudo apt-get update 
@@ -17,7 +25,7 @@ jobs:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
     steps:
-      - run: df -h
+      - increase-swap
       - install-dependencies
       - checkout
       - run: pushd node && cargo build --release && cargo test
