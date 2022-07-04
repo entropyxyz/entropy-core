@@ -17,6 +17,7 @@ jobs:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
     steps:
+      - run: df -h
       - install-dependencies
       - checkout
       - run: pushd node && cargo build --release && cargo test
