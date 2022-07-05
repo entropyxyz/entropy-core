@@ -546,6 +546,7 @@ impl pallet_staking_extension::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type MaxEndpointLength = MaxEndpointLength;
+	type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1304,6 +1305,7 @@ mod benches {
 		[pallet_democracy, Democracy]
 		[pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
 		[pallet_elections_phragmen, Elections]
+		[pallet_staking_extension, StakingExtension]
 		[pallet_grandpa, Grandpa]
 		[pallet_im_online, ImOnline]
 		[pallet_indices, Indices]

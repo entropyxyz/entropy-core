@@ -6,6 +6,7 @@ entropyOutput=./runtime/src/weights/
 entropyChain=dev
 pallets=(
 	pallet_relayer
+  pallet_staking_extension
 )
 
 for p in ${pallets[@]}

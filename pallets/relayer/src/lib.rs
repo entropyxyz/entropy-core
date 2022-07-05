@@ -128,7 +128,7 @@ pub mod pallet {
 	/// `sig_request`: signature request for user
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+		#[pallet::weight(<T as Config>::WeightInfo::prep_transaction())]
 		pub fn prep_transaction(origin: OriginFor<T>, sig_request: SigRequest) -> DispatchResult {
 			log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
 			let who = ensure_signed(origin)?;
