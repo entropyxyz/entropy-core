@@ -52,8 +52,7 @@ benchmarks! {
 	//TODO: Confirm done (for thor)
 
 
-	move_active_to_pending {
-		let f in 0 .. 10;
+	move_active_to_pending_no_failure {
 		let m in 0 .. 10;
 		let caller: T::AccountId = whitelisted_caller();
 		let block_number: T::BlockNumber = 10u32.into();
@@ -62,11 +61,29 @@ benchmarks! {
 		frame_system::Pallet::<T>::set_block_number(block_number);
 		<Registered<T>>::insert(caller.clone(), true);
 
-		add_failures::<T>(f.clone().into(), prune_block.clone());
+		frame_system::Pallet::<T>::set_block_number(target_block.clone());
+		add_messages::<T>(caller.clone(), m.clone().into());
+		assert_eq!(Messages::<T>::get(target_block.clone()).len() as u32, m.clone());
+		<Responsibility<T>>::insert(target_block.clone(), caller.clone());
+	}: {
+		<Relayer<T>>::on_initialize(11u32.into());
+	} verify {
+		assert_eq!(Failures::<T>::get(block_number.clone()), None);
+		assert_eq!(Pending::<T>::get(target_block.clone()).len() as u32, m.clone());
+		assert_eq!(Messages::<T>::get(target_block).len() as u32, 0);
+	}
 
-		if f != 0 {
-			assert_eq!(Failures::<T>::get(prune_block.clone()).unwrap().len() as u32, f.clone());
-		}
+
+	move_active_to_pending_failure {
+		let m in 0 .. 10;
+		let caller: T::AccountId = whitelisted_caller();
+		let block_number: T::BlockNumber = 10u32.into();
+		let prune_block: T::BlockNumber = block_number.clone() - T::PruneBlock::get();
+		let target_block: T::BlockNumber = block_number.clone() - 1u32.into();
+		frame_system::Pallet::<T>::set_block_number(block_number);
+		<Registered<T>>::insert(caller.clone(), true);
+
+		add_failures::<T>(1u32.into(), prune_block.clone());
 
 		frame_system::Pallet::<T>::set_block_number(target_block.clone());
 		add_messages::<T>(caller.clone(), m.clone().into());

@@ -56,9 +56,20 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(block_number: T::BlockNumber) -> Weight {
-			Self::move_active_to_pending(block_number);
+			let target_block = block_number.saturating_sub(2u32.into());
+			let messages = Messages::<T>::take(target_block);
+
+			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
+			let prune_failures = Self::failures(prune_block);
+			let is_prune_failures = prune_failures.is_some();
+			Self::move_active_to_pending(target_block, prune_block, messages.clone(), is_prune_failures);
 			Self::note_responsibility(block_number);
-			0
+			if is_prune_failures {
+				<T as Config>::WeightInfo::move_active_to_pending_failure(messages.len() as u32)
+			} else {
+				<T as Config>::WeightInfo::move_active_to_pending_no_failure(messages.len() as u32)
+			}
+
 		}
 	}
 
@@ -128,7 +139,7 @@ pub mod pallet {
 	/// `sig_request`: signature request for user
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(<T as Config>::WeightInfo::prep_transaction())]
+		#[pallet::weight((<T as Config>::WeightInfo::prep_transaction(), Pays::No))]
 		pub fn prep_transaction(origin: OriginFor<T>, sig_request: SigRequest) -> DispatchResult {
 			log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
 			let who = ensure_signed(origin)?;
@@ -147,7 +158,7 @@ pub mod pallet {
 		/// Register a account with the entropy-network
 		/// accounts are identified by the public group key of the user.
 		// ToDo: see https://github.com/Entropyxyz/entropy-core/issues/29
-		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+		#[pallet::weight((<T as Config>::WeightInfo::register(), Pays::No))]
 		pub fn register(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			// TODO proof
@@ -184,16 +195,12 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		pub fn move_active_to_pending(block_number: T::BlockNumber) {
-			let target_block = block_number.saturating_sub(2u32.into());
-			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
-			let prune_failures = Self::failures(prune_block);
+		pub fn move_active_to_pending(target_block: T::BlockNumber, prune_block: T::BlockNumber, messages: Vec<Message>, is_prune_failures: bool) {
 			let responsibility = unwrap_or_return!(
 				Self::responsibility(target_block),
 				"active to pending, responsibility warning"
 			);
-
-			if prune_failures.is_none() {
+			if !is_prune_failures {
 				Unresponsive::<T>::mutate(responsibility.clone(), |dings| *dings += 1);
 
 			//TODO slash or point for failure then slash after pointed a few times
@@ -203,8 +210,6 @@ pub mod pallet {
 				Failures::<T>::remove(prune_block);
 				Unresponsive::<T>::remove(responsibility);
 			}
-
-			let messages = Messages::<T>::take(target_block);
 
 			if messages.len() > 0 {
 				Pending::<T>::insert(target_block, messages);
