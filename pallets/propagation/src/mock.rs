@@ -252,6 +252,7 @@ impl pallet_staking_extension::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type MaxEndpointLength = MaxEndpointLength;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -283,6 +284,7 @@ parameter_types! {
 impl pallet_relayer::Config for Test {
 	type Event = Event;
 	type PruneBlock = PruneBlock;
+	type WeightInfo = ();
 }
 
 impl pallet_propagation::Config for Test {

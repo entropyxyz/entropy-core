@@ -7,6 +7,7 @@ entropyChain=dev
 pallets=(
 	pallet_relayer
   pallet_staking_extension
+  pallet_constraints
 )
 
 for p in ${pallets[@]}

@@ -21,17 +21,23 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+pub mod weights;
+
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::DispatchResult, inherent::Vec, pallet_prelude::*};
+	use frame_support::{dispatch::{DispatchResult, DispatchResultWithPostInfo}, inherent::Vec, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
 	use sp_runtime::sp_std::str;
+	pub use crate::weights::WeightInfo;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type MaxWhitelist: Get<u32>;
 		type MaxAddressLength: Get<u32>;
+
+		/// The weight information of this pallet.
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::pallet]
@@ -66,11 +72,11 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Adds an address to be whitelisted
 		/// - `whitelist_addresses`: Addresses to be whitelisted
-		#[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+		#[pallet::weight((T::WeightInfo::add_whitelist_address(T::MaxWhitelist::get() as u32), Pays::No))]
 		pub fn add_whitelist_address(
 			origin: OriginFor<T>,
 			whitelist_addresses: Vec<Vec<u8>>,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			// TODO ensure registered
 			if whitelist_addresses
@@ -84,7 +90,7 @@ pub mod pallet {
 				whitelist_addresses.len() as u32 <= T::MaxWhitelist::get(),
 				Error::<T>::MaxWhitelist
 			);
-			let _whitelist_length = AddressWhitelist::<T>::try_mutate(
+			let whitelist_length = AddressWhitelist::<T>::try_mutate(
 				who.clone(),
 				|addresses| -> Result<usize, DispatchError> {
 					if (addresses.len() as u32 + whitelist_addresses.len() as u32)
@@ -105,7 +111,7 @@ pub mod pallet {
 				},
 			)?;
 			Self::deposit_event(Event::AddressesWhitelisted(who, whitelist_addresses));
-			Ok(())
+			Ok(Some(T::WeightInfo::add_whitelist_address(whitelist_length as u32)).into())
 		}
 	}
 }

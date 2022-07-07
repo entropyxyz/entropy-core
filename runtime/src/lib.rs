@@ -1176,6 +1176,7 @@ impl pallet_constraints::Config for Runtime {
 	type Event = Event;
 	type MaxWhitelist = MaxWhitelistNum;
 	type MaxAddressLength = MaxAddressLengthNum;
+	type WeightInfo = weights::pallet_constraints::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1302,6 +1303,7 @@ mod benches {
 		[pallet_balances, Balances]
 		[pallet_bounties, Bounties]
 		[pallet_collective, Council]
+		[pallet_constraints, Constraints]
 		[pallet_democracy, Democracy]
 		[pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
 		[pallet_elections_phragmen, Elections]
