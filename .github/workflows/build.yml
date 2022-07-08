@@ -9,37 +9,37 @@ on:
 
 jobs:
   test:
-    name: Test
+    name: Test Node
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - run: bash .github/workflows/scripts/install_dependencies.sh
       - run: pushd node && cargo build --release && cargo test
   benchmark:
-    name: Benchmark
+    name: Benchmark Node
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - run: bash .github/workflows/scripts/install_dependencies.sh
       - run: pushd node && cargo check --features=runtime-benchmarks --release
-  crypto:
-    name: Crypto
+  crypto-keygen:
+    name: Check Keygen
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - run: bash .github/workflows/scripts/install_dependencies.sh
-      - run: cd crypto/protocol && cargo check --release
+      - run: cd crypto/centralized-keygen && cargo check 
   crypto-signing-client:
-    name: Signing
+    name: Check Signing Client 
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - run: bash .github/workflows/scripts/install_dependencies.sh
-      - run: cd crypto/signing-client && cargo check --release
+      - run: cd crypto/signing-client && cargo check
   crypto-common:
-    name: Common
+    name: Check Crypto-Common
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - run: bash .github/workflows/scripts/install_dependencies.sh
-      - run: cd crypto/common && cargo check --release
+      - run: cd crypto/common && cargo check
