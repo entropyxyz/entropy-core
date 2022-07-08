@@ -5,12 +5,17 @@
 //!
 //! The sign file acts as an entry point for the chain to pass signing data to.
 //! The chain will send messages that need to be signied to every node at sign endpoint
-//! If certain conditions are met the nodes will either co-ordinate or participate in the singing protocl.
+//! If certain conditions are met the nodes will either co-ordinate or participate in the singing
+//! protocl.
 //!
 //!
 //! ## Routes
 //!
 //! - /sign - Post - Acts as an entry point for the chain to pass signing data to
+//! The Node requests the client to take part in a signature generation.
+
+#![allow(unused_imports)]
+#![allow(unused_variables)]
 use crate::Global;
 use common::OCWMessage;
 use constraints::whitelist::is_on_whitelist;
@@ -18,8 +23,7 @@ use parity_scale_codec::{Decode, Encode};
 use rocket::{http::Status, State};
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair};
 use sp_keyring::AccountKeyring;
-use std::str;
-use std::thread;
+use std::{str, thread};
 use subxt::{
 	sp_runtime::AccountId32, ClientBuilder, Config, DefaultConfig, PairSigner,
 	PolkadotExtrinsicParams,
@@ -27,7 +31,8 @@ use subxt::{
 use tofnd::kv_manager::KvManager;
 
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
-#[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
+#[allow(clippy::enum_variant_names)]
+#[subxt::subxt(runtime_metadata_path = "entropy_metadata.scale")]
 pub mod entropy {}
 
 pub type EntropyRuntime =
@@ -75,7 +80,8 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Stat
 		}
 	}
 
-	// TODO: JA This thread needs to happen after all signing processes are completed and contain locations in vec of any failures (which need to be stored locally in DB temporarily)
+	// TODO: JA This thread needs to happen after all signing processes are completed and contain
+	// locations in vec of any failures (which need to be stored locally in DB temporarily)
 	let handle = thread::spawn(move || async move {
 		let api_2 = get_api(&endpoint).await.unwrap();
 		let block_author = get_block_author(&api_2).await.unwrap();
@@ -86,7 +92,8 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Stat
 			println!("result of no acknowledgmen");
 		}
 	});
-	// TODO: JA Thread blocks the return, not sure if needed a problem, keep an eye out for this downstream
+	// TODO: JA Thread blocks the return, not sure if needed a problem, keep an eye out for this
+	// downstream
 	handle.join().unwrap().await;
 
 	Status::Ok
