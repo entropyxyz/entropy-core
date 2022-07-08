@@ -18,7 +18,7 @@
 // }
 
 // tofnd, for reference:
-// 
+//
 // #[derive(Clone, Debug)]
 // pub(super) struct SignInitSanitized {
 //     pub(super) new_sig_uid: String, // this is only used for logging
@@ -57,8 +57,8 @@
 // 				// if no such session id exists, send a message to client that indicates that
 // 				// recovery is needed and stop sign
 // 				Self::send_kv_store_failure(out_stream)?;
-// 				let err = anyhow!("Unable to find session-id {} in kv store. Issuing share recovery and exit sign {:?}", sign_init.key_uid, err);
-// 				return Err(err)
+// 				let err = anyhow!("Unable to find session-id {} in kv store. Issuing share recovery and exit sign
+// {:?}", sign_init.key_uid, err); 				return Err(err)
 // 			},
 // 		};
 

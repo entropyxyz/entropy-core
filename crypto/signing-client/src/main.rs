@@ -1,3 +1,14 @@
+//! # Signing Client
+//!
+//!
+//! ## Overview
+//!
+//! Launches our signing client
+//!
+//! ## Pieces Launched
+//!
+//! - Rocket server - Includes global state and mutex locked IPs
+//! - Sled DB KVDB
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 use crate::{
@@ -14,20 +25,16 @@ use tofnd::{config::parse_args, encrypted_sled::Db as tofndDb, kv_manager::KvMan
 #[macro_use]
 extern crate rocket;
 
-#[cfg(test)]
-mod tests;
-mod sign;
 mod errors;
 mod ip_discovery;
 mod request_guards;
+mod sign;
 mod signer;
 mod store_share;
+#[cfg(test)]
+mod tests;
 
-// use signer::init::*;
-// use signer::execute::*;
-// use signer::result::*;
-// ToDo: JA add proper response types and formalize them across all endpoints
-
+/// holds KVDB instance, threshold mneumonic and endpoint of running node
 #[derive(Clone)]
 pub struct Global {
 	mnemonic: String,
@@ -35,6 +42,7 @@ pub struct Global {
 	kv_manager: KvManager,
 }
 
+/// holds Mutex locked current IPs
 pub struct IPs {
 	current_ips: Mutex<Vec<String>>,
 }
@@ -54,8 +62,7 @@ struct Configuration {
 async fn rocket() -> _ {
 	let c = load_environment_variables();
 	let kv_manager = load_kv_store();
-	let global =
-		Global { mnemonic: c.mnemonic, endpoint: c.endpoint.unwrap(), kv_manager };
+	let global = Global { mnemonic: c.mnemonic, endpoint: c.endpoint.unwrap(), kv_manager };
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
 	let ips = IPs { current_ips: Mutex::new(vec![]) };
 	rocket::build()

@@ -1,16 +1,21 @@
 //! Handles the sign streaming gRPC for one party.
 //!
 //! Protocol:
-//!   1. [self::init] First, the initialization message [proto::SignInit] is received from the client.
-//!      This message describes the execution of the protocol (i.e. number of sign participants, message-to-sign, etc).
-//!   2. [self::execute] Then, the party starts to generate messages by invoking calls of the [tofn] library until the protocol is completed.
-//!      These messages are send to the client using the gRPC stream, and are broadcasted to all participating parties by the client.
-//!   3. [self::result] Finally, the party receives the result of the protocol, which is also send to the client through the gRPC stream. Afterwards, the stream is closed.
+//!   1. [self::init] First, the initialization message [proto::SignInit] is received from the
+//! client.      This message describes the execution of the protocol (i.e. number of sign
+//! participants, message-to-sign, etc).   2. [self::execute] Then, the party starts to generate
+//! messages by invoking calls of the [tofn] library until the protocol is completed.      These
+//! messages are send to the client using the gRPC stream, and are broadcasted to all participating
+//! parties by the client.   3. [self::result] Finally, the party receives the result of the
+//! protocol, which is also send to the client through the gRPC stream. Afterwards, the stream is
+//! closed.
 //!
 //! Shares:
 //!   Each party might have multiple shares. A single thread is created for each share.
-//!   We keep this information agnostic to the client, and we use the [crate::gg20::routing] layer to distribute the messages to each share.
-//!   The result of the protocol is common across all shares, and unique for each party. We make use of [self::result] layer to aggregate and process the result.
+//!   We keep this information agnostic to the client, and we use the [crate::gg20::routing] layer
+//! to distribute the messages to each share.   The result of the protocol is common across all
+//! shares, and unique for each party. We make use of [self::result] layer to aggregate and process
+//! the result.
 //!
 //! All relevant helper structs and types are defined in [self::types]
 
@@ -43,9 +48,10 @@ pub mod result;
 //         sign_span: Span,
 //     ) -> TofndResult<()> {
 //         // 1. Receive SignInit, open message, sanitize arguments -> init mod
-//         // 2. Spawn N sign threads to execute the protocol in parallel; one of each of our shares -> execute mod
-//         // 3. Spawn 1 router thread to route messages from client to the respective sign thread -> routing mod
-//         // 4. Wait for all sign threads to finish and aggregate all responses -> result mod
+//         // 2. Spawn N sign threads to execute the protocol in parallel; one of each of our shares
+// -> execute mod         // 3. Spawn 1 router thread to route messages from client to the
+// respective sign thread -> routing mod         // 4. Wait for all sign threads to finish and
+// aggregate all responses -> result mod
 
 //         // 1.
 //         // get SignInit message from stream and sanitize arguments
@@ -69,16 +75,16 @@ pub mod result;
 //         let mut aggregator_receivers = Vec::with_capacity(my_share_count);
 
 //         for my_tofnd_subindex in 0..my_share_count {
-//             // channels for communication between router (sender) and protocol threads (receivers)
-//             let (sign_sender, sign_receiver) = mpsc::unbounded_channel();
+//             // channels for communication between router (sender) and protocol threads
+// (receivers)             let (sign_sender, sign_receiver) = mpsc::unbounded_channel();
 //             sign_senders.push(sign_sender);
-//             // channels for communication between protocol threads (senders) and final result aggregator (receiver)
-//             let (aggregator_sender, aggregator_receiver) = oneshot::channel();
-//             aggregator_receivers.push(aggregator_receiver);
+//             // channels for communication between protocol threads (senders) and final result
+// aggregator (receiver)             let (aggregator_sender, aggregator_receiver) =
+// oneshot::channel();             aggregator_receivers.push(aggregator_receiver);
 
-//             // wrap channels needed by internal threads; receiver chan for router and sender chan gRPC stream
-//             let chans = ProtocolCommunication::new(sign_receiver, stream_out_sender.clone());
-//             // wrap all context data needed for each thread
+//             // wrap channels needed by internal threads; receiver chan for router and sender chan
+// gRPC stream             let chans = ProtocolCommunication::new(sign_receiver,
+// stream_out_sender.clone());             // wrap all context data needed for each thread
 //             let ctx = Context::new(sign_init.clone(), party_info.clone(), my_tofnd_subindex)?;
 //             // clone gg20 service because tokio thread takes ownership
 //             let gg20 = self.clone();

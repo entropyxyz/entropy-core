@@ -1,3 +1,14 @@
+//! # Errors
+//!
+//!
+//! ## Overview
+//!
+//! A collection of our errors for signing client
+//!
+//! ## Errors
+//!
+//! - SignedMessageError
+//! - Custom IP Error
 use rocket::response::Responder;
 
 // use crate::IPs;
