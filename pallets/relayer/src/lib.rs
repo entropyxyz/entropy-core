@@ -27,6 +27,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
+	pub use crate::weights::WeightInfo;
 	use frame_support::{
 		dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::IsSubType,
 		weights::Pays,
@@ -39,7 +40,6 @@ pub mod pallet {
 		transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
 	};
 	use sp_std::fmt::Debug;
-	pub use crate::weights::WeightInfo;
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config:
@@ -62,14 +62,18 @@ pub mod pallet {
 			let prune_block = block_number.saturating_sub(T::PruneBlock::get());
 			let prune_failures = Self::failures(prune_block);
 			let is_prune_failures = prune_failures.is_some();
-			Self::move_active_to_pending(target_block, prune_block, messages.clone(), is_prune_failures);
+			Self::move_active_to_pending(
+				target_block,
+				prune_block,
+				messages.clone(),
+				is_prune_failures,
+			);
 			Self::note_responsibility(block_number);
 			if is_prune_failures {
 				<T as Config>::WeightInfo::move_active_to_pending_failure(messages.len() as u32)
 			} else {
 				<T as Config>::WeightInfo::move_active_to_pending_no_failure(messages.len() as u32)
 			}
-
 		}
 	}
 
@@ -150,7 +154,6 @@ pub mod pallet {
 				Ok(())
 			})?;
 
-
 			Self::deposit_event(Event::TransactionPropagated(who));
 			Ok(())
 		}
@@ -195,7 +198,12 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		pub fn move_active_to_pending(target_block: T::BlockNumber, prune_block: T::BlockNumber, messages: Vec<Message>, is_prune_failures: bool) {
+		pub fn move_active_to_pending(
+			target_block: T::BlockNumber,
+			prune_block: T::BlockNumber,
+			messages: Vec<Message>,
+			is_prune_failures: bool,
+		) {
 			let responsibility = unwrap_or_return!(
 				Self::responsibility(target_block),
 				"active to pending, responsibility warning"

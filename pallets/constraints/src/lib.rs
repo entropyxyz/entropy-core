@@ -25,10 +25,14 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::{DispatchResult, DispatchResultWithPostInfo}, inherent::Vec, pallet_prelude::*};
+	pub use crate::weights::WeightInfo;
+	use frame_support::{
+		dispatch::{DispatchResult, DispatchResultWithPostInfo},
+		inherent::Vec,
+		pallet_prelude::*,
+	};
 	use frame_system::pallet_prelude::*;
 	use sp_runtime::sp_std::str;
-	pub use crate::weights::WeightInfo;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {

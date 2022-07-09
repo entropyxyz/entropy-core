@@ -16,7 +16,7 @@ pub trait WeightInfo {
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	// Storage: Constraints AddressWhitelist (r:1 w:1)
-	fn add_whitelist_address(a: u32, ) -> Weight {
+	fn add_whitelist_address(a: u32) -> Weight {
 		(24_045_000 as Weight)
 			// Standard Error: 0
 			.saturating_add((278_000 as Weight).saturating_mul(a as Weight))
@@ -28,7 +28,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 // For backwards compatibility and tests
 impl WeightInfo for () {
 	// Storage: Constraints AddressWhitelist (r:1 w:1)
-	fn add_whitelist_address(a: u32, ) -> Weight {
+	fn add_whitelist_address(a: u32) -> Weight {
 		(24_045_000 as Weight)
 			// Standard Error: 0
 			.saturating_add((278_000 as Weight).saturating_mul(a as Weight))

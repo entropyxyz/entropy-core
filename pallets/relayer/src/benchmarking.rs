@@ -4,11 +4,9 @@ use super::*;
 
 #[allow(unused)]
 use crate::Pallet as Relayer;
-use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller, vec};
-use frame_system::{RawOrigin, EventRecord};
-use frame_support::{
-	traits::{OnInitialize, Get}
-};
+use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
+use frame_support::traits::{Get, OnInitialize};
+use frame_system::{EventRecord, RawOrigin};
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
 	let events = frame_system::Pallet::<T>::events();
@@ -26,7 +24,8 @@ fn add_failures<T: Config>(failure_count: u32, block_number: T::BlockNumber) {
 fn add_messages<T: Config>(caller: T::AccountId, messages_count: u32) {
 	for _ in 0..messages_count {
 		let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
-		let _ = <Relayer<T>>::prep_transaction(RawOrigin::Signed(caller.clone()).into(), sig_request);
+		let _ =
+			<Relayer<T>>::prep_transaction(RawOrigin::Signed(caller.clone()).into(), sig_request);
 	}
 }
 

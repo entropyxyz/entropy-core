@@ -6,7 +6,11 @@ use super::*;
 use crate::Pallet as Staking;
 
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
-use frame_support::{assert_ok, traits::{Currency, Get, OnInitialize}, sp_runtime::traits::StaticLookup};
+use frame_support::{
+	assert_ok,
+	sp_runtime::traits::StaticLookup,
+	traits::{Currency, Get, OnInitialize},
+};
 use frame_system::{EventRecord, Origin, RawOrigin};
 use pallet_staking::Pallet as FrameStaking;
 use pallet_staking::{RewardDestination, ValidatorPrefs};
@@ -27,7 +31,10 @@ fn prep_bond_and_validate<T: Config>(
 ) {
 	let reward_destination = RewardDestination::Account(caller.clone());
 	let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
-	<T as Config>::Currency::make_free_balance_be(&bonder.clone(), <T as Config>::Currency::minimum_balance() * 10u32.into());
+	<T as Config>::Currency::make_free_balance_be(
+		&bonder.clone(),
+		<T as Config>::Currency::minimum_balance() * 10u32.into(),
+	);
 	assert_ok!(<FrameStaking<T>>::bond(
 		RawOrigin::Signed(bonder).into(),
 		T::Lookup::unlookup(caller.clone()),

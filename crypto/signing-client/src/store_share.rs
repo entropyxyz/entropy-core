@@ -11,7 +11,7 @@
 //! - /store_keyshare - Post - Takes in a key and value for user
 use crate::Global;
 use rocket::serde::json::Json;
-use rocket::{State, http::Status};
+use rocket::{http::Status, State};
 use serde::{Deserialize, Serialize};
 use std::{
 	fs::File,

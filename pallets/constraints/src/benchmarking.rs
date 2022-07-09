@@ -4,9 +4,9 @@ use super::*;
 
 #[allow(unused)]
 use crate::Pallet as Constraints;
-use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller, vec};
-use frame_system::{RawOrigin, EventRecord};
+use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
 use frame_support::traits::Get;
+use frame_system::{EventRecord, RawOrigin};
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
 	let events = frame_system::Pallet::<T>::events();

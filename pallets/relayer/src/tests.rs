@@ -2,8 +2,8 @@ use crate as pallet_relayer;
 use crate::{mock::*, Error, Failures, Message, PrevalidateRelayer, Responsibility, SigRequest};
 use frame_support::{
 	assert_noop, assert_ok,
+	traits::OnInitialize,
 	weights::{GetDispatchInfo, Pays},
-	traits::OnInitialize
 };
 use pallet_relayer::Call as RelayerCall;
 use sp_runtime::{
@@ -96,7 +96,6 @@ fn moves_active_to_pending() {
 		Relayer::on_initialize(6);
 		assert_eq!(Relayer::pending(3), vec![]);
 		assert_eq!(Relayer::failures(3), None);
-
 	});
 }
 
