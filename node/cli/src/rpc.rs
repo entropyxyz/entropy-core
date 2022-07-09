@@ -28,6 +28,7 @@
 //! are part of it. Therefore all node-runtime-specific RPCs can
 //! be placed here or imported from corresponding FRAME RPC definitions.
 
+#![allow(dead_code)]
 #![warn(missing_docs)]
 
 use std::sync::Arc;
