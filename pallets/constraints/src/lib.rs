@@ -27,7 +27,7 @@ pub mod weights;
 pub mod pallet {
 	pub use crate::weights::WeightInfo;
 	use frame_support::{
-		dispatch::{DispatchResult, DispatchResultWithPostInfo},
+		dispatch::{DispatchResultWithPostInfo},
 		inherent::Vec,
 		pallet_prelude::*,
 	};
