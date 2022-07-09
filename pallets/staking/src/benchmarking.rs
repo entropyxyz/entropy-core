@@ -61,6 +61,59 @@ benchmarks! {
 		assert_last_event::<T>(Event::EndpointChanged(caller, vec![30]).into());
 	}
 
+	change_threshold_accounts {
+		let caller: T::AccountId = whitelisted_caller();
+		let bonder: T::AccountId = account("bond", 0, SEED);
+		let threshold: T::AccountId = account("threshold", 0, SEED);
+
+		prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone());
+
+
+	}:  _(RawOrigin::Signed(caller.clone()), bonder.clone())
+	verify {
+		assert_last_event::<T>(Event::ThresholdAccountChanged(bonder.clone(), bonder).into());
+	}
+
+
+	withdraw_unbonded {
+		let caller: T::AccountId = whitelisted_caller();
+		let bonder: T::AccountId = account("bond", 0, SEED);
+		let threshold: T::AccountId = account("threshold", 0, SEED);
+
+		prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone());
+		let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
+
+		// assume fully unbonded as slightly more weight, but not enough to handle partial unbond
+		assert_ok!(<FrameStaking<T>>::unbond(
+			RawOrigin::Signed(caller.clone()).into(),
+			bond,
+		));
+
+
+	}:  _(RawOrigin::Signed(caller.clone()), 0u32)
+	verify {
+		// TODO: JA fix, pretty much benching this pathway requiers moving the session forward
+		// This is diffcult, from the test we were able to mock it but benchamrks use runtime configs
+		// It is fine for now but should come back to it
+		// assert_last_event::<T>(Event::NodeInfoRemoved(caller).into());
+	}
+
+	validate {
+		let caller: T::AccountId = whitelisted_caller();
+		let bonder: T::AccountId = account("bond", 0, SEED);
+		let threshold: T::AccountId = account("threshold", 0, SEED);
+
+		prep_bond_and_validate::<T>(false, caller.clone(), bonder.clone(), threshold.clone());
+
+		let validator_preferance = ValidatorPrefs::default();
+
+
+	}:  _(RawOrigin::Signed(caller.clone()), validator_preferance, vec![20], threshold.clone())
+	verify {
+		assert_last_event::<T>(Event::NodeInfoChanged(caller,  vec![20], threshold).into());
+	}
+
+
 
 }
 
