@@ -84,6 +84,7 @@ pub use sp_runtime::BuildStorage;
 pub mod impls;
 use impls::Author;
 mod voter_bags;
+mod weights;
 
 /// Constant valus used within the runtime.
 pub mod constants;
@@ -546,6 +547,7 @@ impl pallet_staking_extension::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type MaxEndpointLength = MaxEndpointLength;
+	type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1161,6 +1163,7 @@ parameter_types! {
 impl pallet_relayer::Config for Runtime {
 	type Event = Event;
 	type PruneBlock = PruneBlock;
+	type WeightInfo = weights::pallet_relayer::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1174,6 +1177,7 @@ impl pallet_constraints::Config for Runtime {
 	type Event = Event;
 	type MaxWhitelist = MaxWhitelistNum;
 	type MaxAddressLength = MaxAddressLengthNum;
+	type WeightInfo = weights::pallet_constraints::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1300,9 +1304,11 @@ mod benches {
 		[pallet_balances, Balances]
 		[pallet_bounties, Bounties]
 		[pallet_collective, Council]
+		[pallet_constraints, Constraints]
 		[pallet_democracy, Democracy]
 		[pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
 		[pallet_elections_phragmen, Elections]
+		[pallet_staking_extension, StakingExtension]
 		[pallet_grandpa, Grandpa]
 		[pallet_im_online, ImOnline]
 		[pallet_indices, Indices]
@@ -1311,6 +1317,7 @@ mod benches {
 		[pallet_offences, OffencesBench::<Runtime>]
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
+		[pallet_relayer, Relayer]
 		[pallet_scheduler, Scheduler]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_staking, Staking]

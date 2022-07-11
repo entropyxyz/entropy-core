@@ -2,6 +2,7 @@ use crate as pallet_relayer;
 use crate::{mock::*, Error, Failures, Message, PrevalidateRelayer, Responsibility, SigRequest};
 use frame_support::{
 	assert_noop, assert_ok,
+	traits::OnInitialize,
 	weights::{GetDispatchInfo, Pays},
 };
 use pallet_relayer::Call as RelayerCall;
@@ -69,7 +70,7 @@ fn moves_active_to_pending() {
 		// no failures pings unresponsive
 		System::set_block_number(3);
 		Responsibility::<Test>::insert(3, 1);
-		Relayer::move_active_to_pending(5);
+		Relayer::on_initialize(5);
 		assert_eq!(Relayer::unresponsive(1), 1);
 		let failures = vec![0u32, 3u32];
 		Failures::<Test>::insert(2, failures.clone());
@@ -84,15 +85,17 @@ fn moves_active_to_pending() {
 
 		// prunes old failure remove messages put into pending
 		assert_eq!(Relayer::failures(2), Some(failures.clone()));
-		Relayer::move_active_to_pending(5);
+		Relayer::on_initialize(5);
 		assert_eq!(Relayer::failures(2), None);
 		assert_eq!(Relayer::messages(3), vec![]);
 		assert_eq!(Relayer::pending(3), vec![message.clone()]);
 		assert_eq!(Relayer::unresponsive(1), 0);
 		// pending pruned
 		Responsibility::<Test>::insert(4, 1);
-		Relayer::move_active_to_pending(6);
+		Failures::<Test>::insert(3, failures.clone());
+		Relayer::on_initialize(6);
 		assert_eq!(Relayer::pending(3), vec![]);
+		assert_eq!(Relayer::failures(3), None);
 	});
 }
 

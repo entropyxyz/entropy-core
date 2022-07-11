@@ -25,8 +25,11 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+pub mod weights;
+
 #[frame_support::pallet]
 pub mod pallet {
+	pub use crate::weights::WeightInfo;
 	use core::convert::TryInto;
 	use frame_support::{
 		dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency,
@@ -39,6 +42,8 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type Currency: Currency<Self::AccountId>;
 		type MaxEndpointLength: Get<u32>;
+		/// The weight information of this pallet.
+		type WeightInfo: WeightInfo;
 	}
 	// TODO: JA add build for initial endpoints
 
@@ -118,7 +123,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Allows a validator to change their endpoint so signers can find them when they are coms manager
 		/// `endpoint`: nodes's endpoint
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(<T as Config>::WeightInfo::change_endpoint())]
 		pub fn change_endpoint(origin: OriginFor<T>, endpoint: Vec<u8>) -> DispatchResult {
 			let who = ensure_signed(origin.clone())?;
 			ensure!(
