@@ -1,8 +1,7 @@
-use std::collections::HashMap;
-
 use rocket::{
 	form::Form,
 	fs::{relative, FileServer},
+	futures::TryFutureExt,
 	response::stream::{Event, EventStream},
 	serde::{Deserialize, Serialize},
 	tokio::{
@@ -11,26 +10,33 @@ use rocket::{
 	},
 	Shutdown, State,
 };
+use std::{collections::HashMap, sync::Mutex, thread::spawn};
+use tofnd::kv_manager::KvManager;
+use tokio::sync::broadcast::{self, Receiver};
+
+pub type PartyId = usize; // TODO(TK): this is probably somewhere else already
+pub type SigningChannel = broadcast::Sender<SigningMessage>;
 
 #[derive(Debug, Clone, FromForm, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq, UriDisplayQuery))]
+#[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
 #[serde(crate = "rocket::serde")]
 pub struct SigningRegistrationMessage {
-	pub party_id: usize,
-	pub todo: String,
+	pub party_id: PartyId,
+	// pub todo: String,
 }
 
 #[derive(Debug, Clone, FromForm, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq, UriDisplayQuery))]
+#[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
 #[serde(crate = "rocket::serde")]
 pub struct SigningMessage {
-	pub todo: String,
+	pub party_id: PartyId,
+	// pub todo: String,
 }
 
 /// Each participating node in the signing-protocol calls this method on each other node,
 /// "registering" themselves for the signing procedure. Calling `signing_registration` subscribes
 /// the caller to the stream of messages related to this execution of the signing protocol. This
-/// node will also call this method on each other node in the signing protocol. Each
+/// node will call this method on each other node in the signing protocol. Each
 /// `SigningRegistrationMessage` contains:
 /// - todo
 ///
@@ -42,31 +48,40 @@ pub struct SigningMessage {
 /// - Handle timeout failure: if any node does not touch `init_signing_message`,
 /// - Test: reject conflicting signing parties
 /// - Test: reject double registration
-/// - Hack: currently only managing a single communication channel. Change this method to spawn new
-///   communication channels in a pool, if this is the first time hearing about a signing party
-/// - handle closing gracefully
+/// - Test: must fail if party is over
+/// - Test: must not fail if messages are out of order
+/// - Note: do we authenticate who sends message here or in tofn?
 #[post("/signing_registration", data = "<form>")]
 pub async fn signing_registration(
 	form: Form<SigningRegistrationMessage>,
 	mut end: Shutdown,
-	queue: &State<Sender<SigningMessage>>, //hack
-	hackmap: &State<HashMap<usize, bool>>, //hack
+	signing_channels: &State<Mutex<HashMap<PartyId, SigningChannel>>>, /* todo: ask jesse more
+	                                                                    * about this */
+	kv_manager: &State<Mutex<KvManager>>, // todo: ask jesse more about this
 ) -> EventStream![] {
-	// If there isn't yet a signing party corresponding to this SigningRegistration, register one,
-	// and create a thread to manage it.
-	//
-	// temp hack: implement with a single managed channel (`queue`) first. Then worry about
-	// registration/pool management.
 	let msg = form.into_inner();
-	let is_party_completed = hackmap.get(&msg.party_id).unwrap_or_else(||
-		// create a new party, todo
-		&false);
-	assert!(!is_party_completed, "party_id {} already completed", msg.party_id);
+	// If this node does not know about a signing party corresponding to this SigningRegistration,
+	// create one. Spawn a thread to subscribe to all other nodes, in the party and execute the
+	// protocol. TODO(TK): do something more robust than unwrapping the lock
+	let mut rx = match signing_channels.lock().unwrap().get(&msg.party_id) {
+		None => {
+			{
+				// create an effectively unbounded broadcast channel
+				let (tx, rx) = broadcast::channel(1000);
 
-	// let proc = tokio::spawn(|| { 	todo!() });
+				//
+				// `handle_signing`
+				// let _signing_init_handle = spawn(|| handle_signing_init(tx));
+				rx
+			}
+		},
+		Some(tx) => {
+			validate_registration(&msg);
+			tx.subscribe()
+		},
+	};
 
-	// Pass all signing-protocol related messages to the registering subscriber.
-	let mut rx = queue.subscribe();
+	// Pass messages produced by this node to subscribers. See `handle_signing`.
 	EventStream! {
 		loop {
 			let msg = select! {
@@ -83,17 +98,17 @@ pub async fn signing_registration(
 	}
 }
 
-/// Endpoint for other signing nodes to pass signing-protocol messages into.
-/// Todo:
-/// - Test: must fail if party is over
-/// - Test: must not fail if messages are out of order
-/// - Note: do we authenticate who sends message here or in tofn?
-/// - Note: Eventually, going to need a pool of channels, not just one. Start with one managed
-///   channel, then figure out how to manage a pool.
-#[post("/signing_message", data = "<form>")]
-pub fn signing_message(
-	form: Form<SigningMessage>,
-	channel: &State<Sender<SigningMessage>>, // <- hack, use a managed pool
-) {
-	let _res = channel.send(form.into_inner());
+/// Validate `SigningRegistrationMessage`
+fn validate_registration(msg: &SigningRegistrationMessage) {
+	todo!();
+}
+
+/// Subscribe to all other nodes in the signing party.
+async fn handle_signing_init(tx: Sender<SigningMessage>) {
+	todo!();
+}
+
+/// wrapping interface to tofn signing-protocol.
+async fn handle_signing(tx: Sender<SigningMessage>) {
+	todo!();
 }
