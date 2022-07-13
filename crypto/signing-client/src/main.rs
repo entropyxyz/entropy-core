@@ -14,13 +14,15 @@
 use crate::{
 	ip_discovery::{get_all_ips, get_ip},
 	sign::provide_share,
+	signer::{signing_message, signing_registration},
 	store_share::store_keyshare,
 };
 use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::{Deserialize, Serialize};
-use std::{env, sync::Mutex};
+use std::{collections::HashMap, env, sync::Mutex};
 use tofnd::{config::parse_args, encrypted_sled::Db as tofndDb, kv_manager::KvManager};
+use tokio::sync::broadcast::channel;
 
 #[macro_use]
 extern crate rocket;
@@ -64,7 +66,9 @@ async fn rocket() -> _ {
 	let kv_manager = load_kv_store();
 	let global = Global { mnemonic: c.mnemonic, endpoint: c.endpoint.unwrap(), kv_manager };
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
+	// Thor @JA: what IPs are these?
 	let ips = IPs { current_ips: Mutex::new(vec![]) };
+	let hackmap: HashMap<usize, bool> = HashMap::new(); // TODO(TK): replace with something less dumb
 	rocket::build()
 		.mount(
 			"/",
@@ -74,12 +78,17 @@ async fn rocket() -> _ {
 				get_ip,
 				get_all_ips,
 				// TODO(TK): add signing protocol methods here
-				// init_sign,
-				// execute_sign,
-				// handle_results,
+				signing_registration,
+				signing_message,
+				// signing_results
 			],
 		)
 		.manage(global)
+		// hack: manage a channel for only 1 signing party
+		// TODO(TK): manage a pool of channels
+		.manage(channel::<signer::SigningMessage>(1024).0)
+		// hack: signing registration mapping: party_id->finished (true = protocol over)
+		.manage(hackmap)
 		.manage(ips)
 }
 

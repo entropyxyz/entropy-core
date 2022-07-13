@@ -1,124 +1,99 @@
-//! Handles the sign streaming gRPC for one party.
-//!
-//! Protocol:
-//!   1. [self::init] First, the initialization message [proto::SignInit] is received from the
-//! client.      This message describes the execution of the protocol (i.e. number of sign
-//! participants, message-to-sign, etc).   2. [self::execute] Then, the party starts to generate
-//! messages by invoking calls of the [tofn] library until the protocol is completed.      These
-//! messages are send to the client using the gRPC stream, and are broadcasted to all participating
-//! parties by the client.   3. [self::result] Finally, the party receives the result of the
-//! protocol, which is also send to the client through the gRPC stream. Afterwards, the stream is
-//! closed.
-//!
-//! Shares:
-//!   Each party might have multiple shares. A single thread is created for each share.
-//!   We keep this information agnostic to the client, and we use the [crate::gg20::routing] layer
-//! to distribute the messages to each share.   The result of the protocol is common across all
-//! shares, and unique for each party. We make use of [self::result] layer to aggregate and process
-//! the result.
-//!
-//! All relevant helper structs and types are defined in [self::types]
+use std::collections::HashMap;
 
-// use super::{broadcast::broadcast_messages, proto, service::Gg20Service, ProtocolCommunication};
+use rocket::{
+	form::Form,
+	fs::{relative, FileServer},
+	response::stream::{Event, EventStream},
+	serde::{Deserialize, Serialize},
+	tokio::{
+		select,
+		sync::broadcast::{channel, error::RecvError, Sender},
+	},
+	Shutdown, State,
+};
 
-// tonic cruft
-// use tokio::sync::{mpsc, oneshot};
-// use tonic::Status;
+#[derive(Debug, Clone, FromForm, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq, UriDisplayQuery))]
+#[serde(crate = "rocket::serde")]
+pub struct SigningRegistrationMessage {
+	pub party_id: usize,
+	pub todo: String,
+}
 
-// logging
-// use tracing::{span, Level, Span};
+#[derive(Debug, Clone, FromForm, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq, UriDisplayQuery))]
+#[serde(crate = "rocket::serde")]
+pub struct SigningMessage {
+	pub todo: String,
+}
 
-// error handling
-// use crate::TofndResult;
-// use anyhow::anyhow;
+/// Each participating node in the signing-protocol calls this method on each other node,
+/// "registering" themselves for the signing procedure. Calling `signing_registration` subscribes
+/// the caller to the stream of messages related to this execution of the signing protocol. This
+/// node will also call this method on each other node in the signing protocol. Each
+/// `SigningRegistrationMessage` contains:
+/// - todo
+///
+/// Alternative implementation: Suppose this node can trust a single description of the Signing
+/// Party (communication manager style). Then only one call of this method (by the CM) would be
+/// required, informing this node of the signing party.
+///
+/// Todo:
+/// - Handle timeout failure: if any node does not touch `init_signing_message`,
+/// - Test: reject conflicting signing parties
+/// - Test: reject double registration
+/// - Hack: currently only managing a single communication channel. Change this method to spawn new
+///   communication channels in a pool, if this is the first time hearing about a signing party
+/// - handle closing gracefully
+#[post("/signing_registration", data = "<form>")]
+pub async fn signing_registration(
+	form: Form<SigningRegistrationMessage>,
+	mut end: Shutdown,
+	queue: &State<Sender<SigningMessage>>, //hack
+	hackmap: &State<HashMap<usize, bool>>, //hack
+) -> EventStream![] {
+	// If there isn't yet a signing party corresponding to this SigningRegistration, register one,
+	// and create a thread to manage it.
+	//
+	// temp hack: implement with a single managed channel (`queue`) first. Then worry about
+	// registration/pool management.
+	let msg = form.into_inner();
+	let is_party_completed = hackmap.get(&msg.party_id).unwrap_or_else(||
+		// create a new party, todo
+		&false);
+	assert!(!is_party_completed, "party_id {} already completed", msg.party_id);
 
-// pub mod types;
-// use types::*;
-pub mod execute;
-pub mod init;
-pub mod result;
+	// let proc = tokio::spawn(|| { 	todo!() });
 
-// impl Gg20Service {
-//     // we wrap the functionality of sign gRPC here because we can't handle errors
-//     // conveniently when spawning theads.
-//     pub async fn handle_sign(
-//         &self,
-//         mut stream_in: tonic::Streaming<proto::MessageIn>,
-//         mut stream_out_sender: mpsc::UnboundedSender<Result<proto::MessageOut, Status>>,
-//         sign_span: Span,
-//     ) -> TofndResult<()> {
-//         // 1. Receive SignInit, open message, sanitize arguments -> init mod
-//         // 2. Spawn N sign threads to execute the protocol in parallel; one of each of our shares
-// -> execute mod         // 3. Spawn 1 router thread to route messages from client to the
-// respective sign thread -> routing mod         // 4. Wait for all sign threads to finish and
-// aggregate all responses -> result mod
+	// Pass all signing-protocol related messages to the registering subscriber.
+	let mut rx = queue.subscribe();
+	EventStream! {
+		loop {
+			let msg = select! {
+				msg = rx.recv() => match msg {
+					Ok(msg) => msg,
+					Err(RecvError::Closed) => break,
+					Err(RecvError::Lagged(_)) => continue,
+				},
+				_ = &mut end => break,
+			};
 
-//         // 1.
-//         // get SignInit message from stream and sanitize arguments
-//         let mut stream_out = stream_out_sender.clone();
-//         let (sign_init, party_info) = self
-//             .handle_sign_init(&mut stream_in, &mut stream_out, sign_span.clone())
-//             .await?;
+			yield Event::json(&msg);
+		}
+	}
+}
 
-//         // 2.
-//         // find my share count to allocate channel vectors
-//         let my_share_count = party_info.shares.len();
-//         if my_share_count == 0 {
-//             return Err(anyhow!(
-//                 "Party {} has 0 shares assigned",
-//                 party_info.tofnd.index
-//             ));
-//         }
-
-//         // create in and out channels for each share, and spawn as many threads
-//         let mut sign_senders = Vec::with_capacity(my_share_count);
-//         let mut aggregator_receivers = Vec::with_capacity(my_share_count);
-
-//         for my_tofnd_subindex in 0..my_share_count {
-//             // channels for communication between router (sender) and protocol threads
-// (receivers)             let (sign_sender, sign_receiver) = mpsc::unbounded_channel();
-//             sign_senders.push(sign_sender);
-//             // channels for communication between protocol threads (senders) and final result
-// aggregator (receiver)             let (aggregator_sender, aggregator_receiver) =
-// oneshot::channel();             aggregator_receivers.push(aggregator_receiver);
-
-//             // wrap channels needed by internal threads; receiver chan for router and sender chan
-// gRPC stream             let chans = ProtocolCommunication::new(sign_receiver,
-// stream_out_sender.clone());             // wrap all context data needed for each thread
-//             let ctx = Context::new(sign_init.clone(), party_info.clone(), my_tofnd_subindex)?;
-//             // clone gg20 service because tokio thread takes ownership
-//             let gg20 = self.clone();
-
-//             // set up log state
-//             let log_info = ctx.log_info();
-//             let state = log_info.as_str();
-//             let execute_span = span!(parent: &sign_span, Level::INFO, "execute", state);
-
-//             // spawn sign threads
-//             tokio::spawn(async move {
-//                 // get result of sign
-//                 let signature = gg20.execute_sign(chans, &ctx, execute_span.clone()).await;
-//                 // send result to aggregator
-//                 let _ = aggregator_sender.send(signature);
-//             });
-//         }
-
-//         // 3.
-//         // spin up broadcaster thread and return immediately
-//         let span = sign_span.clone();
-//         tokio::spawn(async move {
-//             broadcast_messages(&mut stream_in, sign_senders, span).await;
-//         });
-
-//         // 4.
-//         // wait for all sign threads to end, get responses, and return signature
-//         Self::handle_results(
-//             aggregator_receivers,
-//             &mut stream_out_sender,
-//             &sign_init.participant_uids,
-//         )
-//         .await?;
-
-//         Ok(())
-//     }
-// }
+/// Endpoint for other signing nodes to pass signing-protocol messages into.
+/// Todo:
+/// - Test: must fail if party is over
+/// - Test: must not fail if messages are out of order
+/// - Note: do we authenticate who sends message here or in tofn?
+/// - Note: Eventually, going to need a pool of channels, not just one. Start with one managed
+///   channel, then figure out how to manage a pool.
+#[post("/signing_message", data = "<form>")]
+pub fn signing_message(
+	form: Form<SigningMessage>,
+	channel: &State<Sender<SigningMessage>>, // <- hack, use a managed pool
+) {
+	let _res = channel.send(form.into_inner());
+}

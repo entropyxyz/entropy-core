@@ -89,7 +89,7 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Stat
 			let result = acknowledge_responsibility(&api_2, &mnemonic, block_number).await;
 			println!("result of acknowledge responsibility: {:?}", result)
 		} else {
-			println!("result of no acknowledgmen");
+			println!("result of no acknowledgment");
 		}
 	});
 	// TODO: JA Thread blocks the return, not sure if needed a problem, keep an eye out for this
