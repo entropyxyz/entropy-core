@@ -19,7 +19,7 @@ use std::{
 use tofnd::kv_manager::KvManager;
 use tokio::sync::broadcast::{self, Receiver};
 
-use crate::{ip_discovery::IpAddresses, Global};
+use crate::{ip_discovery::NewParty, Global};
 
 pub type PartyId = usize; // TODO(TK): this is probably somewhere else already
 pub type SigningChannel = broadcast::Sender<SigningMessage>;
@@ -29,7 +29,7 @@ pub type SigningChannel = broadcast::Sender<SigningMessage>;
 #[serde(crate = "rocket::serde")]
 pub struct SigningRegistrationMessage {
 	pub party_id: PartyId,
-	pub msg: String, // TODO(TK): what else
+	// pub msg: String, // TODO(TK): what else
 }
 
 #[derive(Debug, Clone, FromForm, Serialize, Deserialize)]
@@ -40,7 +40,7 @@ pub struct SigningMessage {
 	// pub todo: String,
 }
 
-/// After receiving the ip addresses of the signing party (`get_all_ips`), each participating node
+/// After receiving the ip addresses of the signing party (`post_new_party_ips`), each participating node
 /// in the signing-protocol calls this method on each other node, "registering" themselves for the
 /// signing procedure. Calling `signing_registration` subscribes the caller to the stream of
 /// messages related to this execution of the signing protocol.
@@ -79,17 +79,13 @@ pub async fn signing_registration(
 				{
 					// No channel exists yet, so create an effectively unbounded broadcast channel
 					let (tx, rx) = broadcast::channel(1000);
+
 					signing_channels.insert(msg.party_id, tx);
 
-					// TODO(TK): `handle_signing`
-					// let _signing_init_handle = spawn(|| handle_signing_init(tx));
 					rx
 				}
 			},
-			Some(tx) => {
-				// validate the
-				tx.subscribe()
-			},
+			Some(tx) => tx.subscribe(),
 		}
 	};
 
@@ -111,13 +107,17 @@ pub async fn signing_registration(
 	}
 }
 
+async fn all_ready() -> bool {
+	todo!();
+}
+
 /// Validate `SigningRegistrationMessage`
 fn validate_registration(msg: &SigningRegistrationMessage) {
 	todo!();
 }
 
-/// Subscribe to all other nodes in the signing party.
-async fn handle_signing_init(tx: Sender<SigningMessage>) {
+/// Initiate the signing process.
+async fn handle_signing_init(tx: &Sender<SigningMessage>) {
 	todo!();
 }
 

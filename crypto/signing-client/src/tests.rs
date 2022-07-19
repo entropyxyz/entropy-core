@@ -1,6 +1,6 @@
 use super::{rocket, IPs};
 use crate::{
-	ip_discovery::{get_all_ips, IpAddresses},
+	ip_discovery::{post_new_party, NewParty},
 	sign::{
 		acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
 		get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
@@ -22,7 +22,7 @@ use sp_keyring::AccountKeyring;
 use std::{
 	env,
 	fs::{remove_dir_all, remove_file},
-	sync::Mutex,
+	sync::{Mutex, Arc},
 	thread, time,
 };
 use subxt::{
@@ -319,15 +319,15 @@ async fn send_ip_address_test() {
 
 #[rocket::async_test]
 #[serial]
-async fn get_all_ips_test() {
+async fn post_new_party_test() {
 	let client = setup_client().await;
 	let all_ip_vec = vec!["test".to_string(), "test".to_string()];
-	let all_ips = IpAddresses { ip_addresses: all_ip_vec.clone() };
+	let new_party = NewParty { ip_addresses: all_ip_vec.clone(), party_id: 0};
 
 	let response = client
-		.post("/get_all_ips")
+		.post("/post_new_party")
 		.header(ContentType::JSON)
-		.body(serde_json::to_string(&all_ips.clone()).unwrap())
+		.body(serde_json::to_string(&new_party.clone()).unwrap())
 		.dispatch()
 		.await;
 	assert_eq!(response.status(), Status::Ok);
@@ -339,7 +339,7 @@ async fn get_ip_test() {
 	let client = setup_client().await;
 	let send = "/get_ip/localhost:3002";
 
-	let ips = IPs { current_ips: Mutex::new(vec![]) };
+	let ips = IPs { current_ips: Arc::new(Mutex::new(vec![])) };
 
 	create_clients(3002i64).await;
 
@@ -367,8 +367,8 @@ async fn get_ip_test() {
 async fn create_clients(port: i64) {
 	let config = rocket::Config::figment().merge(("port", port));
 
-	let ips = IPs { current_ips: Mutex::new(vec![]) };
-	Client::tracked(rocket::custom(config).mount("/", routes![get_all_ips]).manage(ips))
+	let ips = IPs { current_ips: Arc::new(Mutex::new(vec![])) };
+	Client::tracked(rocket::custom(config).mount("/", routes![post_new_party]).manage(ips))
 		.await
 		.expect("valid `Rocket`");
 }

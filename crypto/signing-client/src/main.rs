@@ -12,7 +12,7 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 use crate::{
-	ip_discovery::{get_all_ips, get_ip},
+	ip_discovery::{post_new_party, get_ip},
 	sign::provide_share,
 	signer::signing_registration,
 	store_share::store_keyshare,
@@ -50,13 +50,15 @@ pub struct Global {
 	kv_manager: KvManager,
 	// TODO(TK): optimize: shard mutex 
 	signing_channels: Arc<Mutex<HashMap<PartyId, SigningChannel>>>,
+	/// create unique ids for each signing party
+  party_id_nonce: Arc<Mutex<usize>>,
 }
 
-// TODO(TK): improve doc comment description
+// TODO(TK): improve doc comment description, this struct's function is unclear 
 // TODO(TK): use Arc<Mutex> to guarantee safety across await, and reduce unlock overhead
 /// holds Mutex locked current IPs
 pub struct IPs {
-	current_ips: Mutex<Vec<String>>,
+	current_ips: Arc<Mutex<Vec<String>>>,
 }
 
 fn default_endpoint() -> Option<String> {
@@ -87,11 +89,12 @@ async fn rocket() -> _ {
 		endpoint: env.endpoint.unwrap(),
 		kv_manager,
 		signing_channels,
+		party_id_nonce: Arc::new(Mutex::new(0)),
 	};
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
-	// Communication Manager: Collect IPs, for `get_all_ips`, list of global ip addresses for a
+	// Communication Manager: Collect IPs, for `post_new_party`, list of global ip addresses for a
 	// message.
-	let ips = IPs { current_ips: Mutex::new(vec![]) };
+	let ips = IPs { current_ips: Arc::new(Mutex::new(vec![])) };
 	rocket::build()
 		.mount(
 			"/",
@@ -99,7 +102,7 @@ async fn rocket() -> _ {
 				store_keyshare,
 				provide_share,
 				get_ip,
-				get_all_ips,
+				post_new_party,
 				// TODO(TK): add signing protocol methods here
 				signing_registration,
 				// signing_results

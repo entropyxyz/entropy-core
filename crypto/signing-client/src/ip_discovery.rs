@@ -12,7 +12,8 @@
 //! get_all_ips - post - Comm manager sends signers all node addresses to sign message
 #![allow(unused_imports)]
 #![allow(unused_variables)]
-use crate::{errors::CustomIPError, IPs};
+use crate::{errors::CustomIPError, signer::SigningRegistrationMessage, Global, IPs};
+use futures::stream;
 use reqwest;
 use rocket::{
 	http::{ContentType, Status},
@@ -24,49 +25,90 @@ use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct IpAddresses {
+pub struct NewParty {
+	pub party_id: usize,
 	pub ip_addresses: Vec<String>,
 }
 
+// TODO(TK): flatten state into a single global
 /// Collect IPs for all signers then informs them
 #[rocket::get("/get_ip/<ip_address>")]
-pub async fn get_ip(ip_address: String, state: &State<IPs>) -> Result<Status, CustomIPError> {
+pub async fn get_ip(
+	ip_address: String,
+	state: &State<IPs>,
+	global: &State<Global>,
+) -> Result<Status, CustomIPError> {
 	let shared_data: &IPs = state.inner();
+	let global = global.inner();
 	// TODO JA do validation on recieved keys and if keys are already had
 	// TODO JA figure out optimal node amount
 	// TODO JA validate not a duplicated IP
-	let does_contain = shared_data.current_ips.lock().unwrap().contains(&ip_address);
-	if does_contain {
-		return Err(CustomIPError::new("Duplicate IP"))
-	}
-	if shared_data.current_ips.lock().unwrap().len() < 4 {
-		shared_data.current_ips.lock().unwrap().push(ip_address);
-		Ok(Status::Ok)
-	} else {
-		shared_data.current_ips.lock().unwrap().push(ip_address);
-		let all_ip_vec = shared_data.current_ips.lock().unwrap().to_vec();
-		let all_ips = IpAddresses { ip_addresses: all_ip_vec.clone() };
-		for ip in all_ip_vec.clone() {
-			let client = reqwest::Client::new();
-			let route = "/get_all_ips";
-			let full_route = format!("http://{}{}", &ip, route);
-			let res = client
-				.post(full_route)
-				.header("Content-Type", "application/json")
-				.json(&all_ips.clone())
-				.send()
-				.await
-				.unwrap();
+	//
+	let new_party = {
+		let current_ips_mutex = shared_data.current_ips.clone();
+		let current_ips = &mut *current_ips_mutex.lock().unwrap();
+		if current_ips.contains(&ip_address) {
+			return Err(CustomIPError::new("Duplicate IP"))
+		// TODO(TK): why 4? replace with labeled const
+		} else if current_ips.len() < 4 {
+			current_ips.push(ip_address);
+			return Ok(Status::Ok)
+		} else {
+			// TODO(TK): clarify what this branch is doing
+			current_ips.push(ip_address);
+			let v = current_ips.to_vec();
+			let ips_and_party_id =
+				NewParty { party_id: get_next_party_id(global), ip_addresses: current_ips.clone() };
+			ips_and_party_id
 		}
-		Ok(Status::Ok)
+	};
+
+	for ip in &new_party.ip_addresses {
+		let client = reqwest::Client::new();
+		let route = "/post_new_party";
+		let full_route = format!("http://{}{}", &ip, route);
+		let res = client
+			.post(full_route)
+			.header("Content-Type", "application/json")
+			.json(&new_party.clone())
+			.send()
+			.await
+			.unwrap();
 	}
+	Ok(Status::Ok)
 }
 
-/// Communication Manager uses this endpoint to inform a node it is part of a signing party. CM
-/// provides IP addresses of other nodes in the signing protocol for this node to subscribe to.
+/// increment the party_id_nonce, and return the next party_id
+fn get_next_party_id(global: &Global) -> usize {
+	let party_id_mutex = global.party_id_nonce.clone();
+	let mut party_id = *party_id_mutex.lock().unwrap();
+	party_id += 1;
+	party_id
+}
+
+/// Communication Manager calls this endpoint on each node to inform the node that it is part of a
+/// signing party. CM provides IP addresses of other nodes in the signing party for this node to
+/// subscribe to.
 // TODO(TK): The CM should also aprovide a unique party_id.
-#[post("/get_all_ips", format = "json", data = "<ip_addresses>")]
-pub async fn get_all_ips(ip_addresses: Json<IpAddresses>, state: &State<IPs>) {
-	println!("ip_addresses, {:?}", ip_addresses);
+#[post("/post_new_party", format = "json", data = "<ips_and_party_id>")]
+pub async fn post_new_party(ips_and_party_id: Json<NewParty>, state: &State<IPs>) {
+	let NewParty { ip_addresses, party_id } = ips_and_party_id.into_inner();
+	ip_addresses.iter().for_each(|ip| {
+			let client = reqwest::Client::new();
+
+			// let res = client
+			// 	.post(format!("http://{}/signing_registration", ip))
+			// 	.header("Content-Type", "application/json")
+			// 	.json(&SigningRegistrationMessage { party_id })
+			// 	.send()
+			// 	.await
+			// 	.unwrap();
+
+			// jc
+			// tokio::spawn(async move signing(registration(form,)))
+		});
+		// .await
+		// .collect();
+
 	// TODO(TK): start signing, call `signing_registration` on each node in `ip_addresses`.
 }
