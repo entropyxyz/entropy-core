@@ -20,8 +20,12 @@ use crate::{
 use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::{Deserialize, Serialize};
-use signer::{PartyId, SigningMessage, SigningChannel};
-use std::{collections::HashMap, env, sync::Mutex};
+use signer::{PartyId, SigningChannel, SigningMessage};
+use std::{
+	collections::HashMap,
+	env,
+	sync::{Arc, Mutex},
+};
 
 use tofnd::{config::parse_args, encrypted_sled::Db as tofndDb, kv_manager::KvManager};
 use tokio::sync::broadcast::{channel, Receiver};
@@ -44,8 +48,12 @@ pub struct Global {
 	mnemonic: String,
 	endpoint: String,
 	kv_manager: KvManager,
+	// TODO(TK): optimize: shard mutex 
+	signing_channels: Arc<Mutex<HashMap<PartyId, SigningChannel>>>,
 }
 
+// TODO(TK): improve doc comment description
+// TODO(TK): use Arc<Mutex> to guarantee safety across await, and reduce unlock overhead
 /// holds Mutex locked current IPs
 pub struct IPs {
 	current_ips: Mutex<Vec<String>>,
@@ -61,17 +69,28 @@ struct Configuration {
 	endpoint: Option<String>,
 	mnemonic: String,
 }
+/*
+	let current_ips = shared_data.current_ips.lock().unwrap();
+	if current_ips.len() < 4 {
+		current_ips.push(ip_address);
+		Ok(Status::Ok)
+*/
 
 #[launch]
 async fn rocket() -> _ {
 	let env = load_environment_variables();
 	let kv_manager = load_kv_store();
 	// Mapping of parties to signing channels. Used by nodes to subscribe to a signing party.
-	// @jesse: this should probably not be a hashmap, but could be a kv-store. What kv-store should we use?
-	let signing_channels: Mutex<HashMap<PartyId, SigningChannel>> = Mutex::new(HashMap::new()); 
-	let global = Global { mnemonic: env.mnemonic, endpoint: env.endpoint.unwrap(), kv_manager };
+	let signing_channels = Arc::new(Mutex::new(HashMap::new()));
+	let global = Global {
+		mnemonic: env.mnemonic,
+		endpoint: env.endpoint.unwrap(),
+		kv_manager,
+		signing_channels,
+	};
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
-	// Thor @JA: what IPs are these?
+	// Communication Manager: Collect IPs, for `get_all_ips`, list of global ip addresses for a
+	// message.
 	let ips = IPs { current_ips: Mutex::new(vec![]) };
 	rocket::build()
 		.mount(
@@ -87,7 +106,6 @@ async fn rocket() -> _ {
 			],
 		)
 		.manage(global)
-		.manage(signing_channels)
 		.manage(ips)
 }
 

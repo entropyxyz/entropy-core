@@ -62,9 +62,11 @@ pub async fn get_ip(ip_address: String, state: &State<IPs>) -> Result<Status, Cu
 	}
 }
 
-/// Accepts all IPs for signers and launces the signing process
+/// Communication Manager uses this endpoint to inform a node it is part of a signing party. CM
+/// provides IP addresses of other nodes in the signing protocol for this node to subscribe to.
+// TODO(TK): The CM should also aprovide a unique party_id.
 #[post("/get_all_ips", format = "json", data = "<ip_addresses>")]
 pub async fn get_all_ips(ip_addresses: Json<IpAddresses>, state: &State<IPs>) {
 	println!("ip_addresses, {:?}", ip_addresses);
-	// send straight to GRPC to start signing
+	// TODO(TK): start signing, call `signing_registration` on each node in `ip_addresses`.
 }

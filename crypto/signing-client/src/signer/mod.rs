@@ -1,18 +1,25 @@
+#![allow(dead_code)]
 use rocket::{
 	form::Form,
 	fs::{relative, FileServer},
 	futures::TryFutureExt,
 	response::stream::{Event, EventStream},
-	serde::{Deserialize, Serialize},
+	serde::{json::Json, Deserialize, Serialize},
 	tokio::{
 		select,
 		sync::broadcast::{channel, error::RecvError, Sender},
 	},
 	Shutdown, State,
 };
-use std::{collections::HashMap, sync::Mutex, thread::spawn};
+use std::{
+	collections::HashMap,
+	sync::{Arc, Mutex},
+	thread::spawn,
+};
 use tofnd::kv_manager::KvManager;
 use tokio::sync::broadcast::{self, Receiver};
+
+use crate::{ip_discovery::IpAddresses, Global};
 
 pub type PartyId = usize; // TODO(TK): this is probably somewhere else already
 pub type SigningChannel = broadcast::Sender<SigningMessage>;
@@ -22,7 +29,7 @@ pub type SigningChannel = broadcast::Sender<SigningMessage>;
 #[serde(crate = "rocket::serde")]
 pub struct SigningRegistrationMessage {
 	pub party_id: PartyId,
-	// pub todo: String,
+	pub msg: String, // TODO(TK): what else
 }
 
 #[derive(Debug, Clone, FromForm, Serialize, Deserialize)]
@@ -33,19 +40,18 @@ pub struct SigningMessage {
 	// pub todo: String,
 }
 
-/// Each participating node in the signing-protocol calls this method on each other node,
-/// "registering" themselves for the signing procedure. Calling `signing_registration` subscribes
-/// the caller to the stream of messages related to this execution of the signing protocol. This
-/// node will call this method on each other node in the signing protocol. Each
-/// `SigningRegistrationMessage` contains:
-/// - todo
+/// After receiving the ip addresses of the signing party (`get_all_ips`), each participating node
+/// in the signing-protocol calls this method on each other node, "registering" themselves for the
+/// signing procedure. Calling `signing_registration` subscribes the caller to the stream of
+/// messages related to this execution of the signing protocol.
 ///
-/// Alternative implementation: Suppose this node can trust a single description of the Signing
-/// Party (communication manager style). Then only one call of this method (by the CM) would be
-/// required, informing this node of the signing party.
+///  Arguments:
+/// - `form`: arguments for registration (todo)
+/// - `end`: shutdown signal, ends the broadcast
+/// - `state`: allow signing_registration to access the `signing_channels` and `IPs` in state
 ///
 /// Todo:
-/// - Handle timeout failure: if any node does not touch `init_signing_message`,
+/// - Handle timeout failure?
 /// - Test: reject conflicting signing parties
 /// - Test: reject double registration
 /// - Test: must fail if party is over
@@ -55,33 +61,40 @@ pub struct SigningMessage {
 pub async fn signing_registration(
 	form: Form<SigningRegistrationMessage>,
 	mut end: Shutdown,
-	signing_channels: &State<Mutex<HashMap<PartyId, SigningChannel>>>, /* todo: ask jesse more
-	                                                                    * about this */
-	kv_manager: &State<Mutex<KvManager>>, // todo: ask jesse more about this
+	state: &State<Global>,
 ) -> EventStream![] {
 	let msg = form.into_inner();
-	// If this node does not know about a signing party corresponding to this SigningRegistration,
-	// create one. Spawn a thread to subscribe to all other nodes, in the party and execute the
-	// protocol. TODO(TK): do something more robust than unwrapping the lock
-	let mut rx = match signing_channels.lock().unwrap().get(&msg.party_id) {
-		None => {
-			{
-				// create an effectively unbounded broadcast channel
-				let (tx, rx) = broadcast::channel(1000);
+	validate_registration(&msg);
+	// TODO(TK): flatten cached state let bindings
+	let cached_state = state.inner();
 
-				//
-				// `handle_signing`
-				// let _signing_init_handle = spawn(|| handle_signing_init(tx));
-				rx
-			}
-		},
-		Some(tx) => {
-			validate_registration(&msg);
-			tx.subscribe()
-		},
+	// TODO(TK): move to helper
+	// Subscribe to the sender, creating one if it doesn't yet exist.
+	let mut rx = {
+		// clone the signing channel resource separately to avoid prematurely freeing the state
+		let signing_channels_mutex = cached_state.signing_channels.clone();
+		let signing_channels = &mut *signing_channels_mutex.lock().unwrap();
+		match signing_channels.get(&msg.party_id) {
+			None => {
+				{
+					// No channel exists yet, so create an effectively unbounded broadcast channel
+					let (tx, rx) = broadcast::channel(1000);
+					signing_channels.insert(msg.party_id, tx);
+
+					// TODO(TK): `handle_signing`
+					// let _signing_init_handle = spawn(|| handle_signing_init(tx));
+					rx
+				}
+			},
+			Some(tx) => {
+				// validate the
+				tx.subscribe()
+			},
+		}
 	};
 
-	// Pass messages produced by this node to subscribers. See `handle_signing`.
+	// TODO(TK): move to helper
+	// When a new message is broadcast, pass the message to the subscribing node.
 	EventStream! {
 		loop {
 			let msg = select! {
