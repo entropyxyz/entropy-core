@@ -86,6 +86,7 @@ pub async fn signing_registration(
 			Some(tx) => tx.subscribe(),
 		}
 	};
+	
 
 	// TODO(TK): move to helper
 	// When a new message is broadcast, pass the message to the subscribing node.

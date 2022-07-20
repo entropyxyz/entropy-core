@@ -13,8 +13,8 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 use crate::{errors::CustomIPError, signer::SigningRegistrationMessage, Global, IPs};
-use futures::stream;
-use reqwest;
+use futures::{future, stream};
+use reqwest::{self, Response};
 use rocket::{
 	http::{ContentType, Status},
 	response::status,
@@ -93,43 +93,26 @@ fn get_next_party_id(global: &Global) -> usize {
 pub async fn post_new_party(ips_and_party_id: Json<NewParty>, state: &State<IPs>) {
 	let NewParty { ip_addresses, party_id } = ips_and_party_id.into_inner();
 
-	let rx_channels = tokio::spawn(async move {
-		let mut channels = vec![];
-		for ip in ip_addresses {
-			let client = reqwest::Client::new();
-			let res = client
+	let rx_channels = tokio::spawn(rx_channels(&ip_addresses, party_id)).await.unwrap();
+
+	// initiate signing
+
+	// TODO(TK): start signing, call `signing_registration` on each node in `ip_addresses`.
+}
+
+/// get rx channels from each other node in the signing party
+async fn rx_channels(ip_addresses: &Vec<String>, party_id: usize) -> Vec<Response> {
+	let mut handles = Vec::with_capacity(ip_addresses.len());
+	for ip in ip_addresses {
+		let client = reqwest::Client::new();
+		handles.push(tokio::spawn(
+			client
 				.post(format!("http://{}/signing_registration", ip))
 				.header("Content-Type", "application/json")
 				.json(&SigningRegistrationMessage { party_id })
-				.send()
-				.await
-				.unwrap();
+				.send(),
+		))
+	}
 
-			channels.push(res);
-		}
-
-		channels
-	})
-	.await
-	.unwrap();
-
-	// call signing_registration on all nodes, await all responses, then proceed to sign
-	// TODO(TK): into helper
-	// ip_addresses.iter().for_each(|ip| {
-
-	// let res = client
-	// 	.post(format!("http://{}/signing_registration", ip))
-	// 	.header("Content-Type", "application/json")
-	// 	.json(&SigningRegistrationMessage { party_id })
-	// 	.send()
-	// 	.await
-	// 	.unwrap();
-
-	// jc
-	// tokio::spawn(async move signing(registration(form,)))
-	// });
-	// .await
-	// .collect();
-
-	// TODO(TK): start signing, call `signing_registration` on each node in `ip_addresses`.
+	future::join_all(handles).await.into_iter().map(|res| res.unwrap().unwrap()).collect()
 }
