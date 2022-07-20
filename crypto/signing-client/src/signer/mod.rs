@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 use rocket::{
-	form::Form,
 	fs::{relative, FileServer},
 	futures::TryFutureExt,
 	response::stream::{Event, EventStream},
@@ -24,7 +23,7 @@ use crate::{ip_discovery::NewParty, Global};
 pub type PartyId = usize; // TODO(TK): this is probably somewhere else already
 pub type SigningChannel = broadcast::Sender<SigningMessage>;
 
-#[derive(Debug, Clone, FromForm, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
 #[serde(crate = "rocket::serde")]
 pub struct SigningRegistrationMessage {
@@ -32,7 +31,7 @@ pub struct SigningRegistrationMessage {
 	// pub msg: String, // TODO(TK): what else
 }
 
-#[derive(Debug, Clone, FromForm, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
 #[serde(crate = "rocket::serde")]
 pub struct SigningMessage {
@@ -46,7 +45,7 @@ pub struct SigningMessage {
 /// messages related to this execution of the signing protocol.
 ///
 ///  Arguments:
-/// - `form`: arguments for registration (todo)
+/// - `new_party`: arguments for registration (todo)
 /// - `end`: shutdown signal, ends the broadcast
 /// - `state`: allow signing_registration to access the `signing_channels` and `IPs` in state
 ///
@@ -57,15 +56,14 @@ pub struct SigningMessage {
 /// - Test: must fail if party is over
 /// - Test: must not fail if messages are out of order
 /// - Note: do we authenticate who sends message here or in tofn?
-#[post("/signing_registration", data = "<form>")]
+#[post("/signing_registration", data = "<new_party>")]
 pub async fn signing_registration(
-	form: Form<SigningRegistrationMessage>,
+	new_party: Json<SigningRegistrationMessage>,
 	mut end: Shutdown,
 	state: &State<Global>,
 ) -> EventStream![] {
-	let msg = form.into_inner();
-	validate_registration(&msg);
-	// TODO(TK): flatten cached state let bindings
+	let new_party = new_party.into_inner();
+	validate_registration(&new_party);
 	let cached_state = state.inner();
 
 	// TODO(TK): move to helper
@@ -74,13 +72,13 @@ pub async fn signing_registration(
 		// clone the signing channel resource separately to avoid prematurely freeing the state
 		let signing_channels_mutex = cached_state.signing_channels.clone();
 		let signing_channels = &mut *signing_channels_mutex.lock().unwrap();
-		match signing_channels.get(&msg.party_id) {
+		match signing_channels.get(&new_party.party_id) {
 			None => {
 				{
 					// No channel exists yet, so create an effectively unbounded broadcast channel
 					let (tx, rx) = broadcast::channel(1000);
 
-					signing_channels.insert(msg.party_id, tx);
+					signing_channels.insert(new_party.party_id, tx);
 
 					rx
 				}
@@ -91,10 +89,11 @@ pub async fn signing_registration(
 
 	// TODO(TK): move to helper
 	// When a new message is broadcast, pass the message to the subscribing node.
+	// TODO(TK): this is borked, fix it when rdy
 	EventStream! {
 		loop {
 			let msg = select! {
-				msg = rx.recv() => match msg {
+				new_party = rx.recv() => match new_party {
 					Ok(msg) => msg,
 					Err(RecvError::Closed) => break,
 					Err(RecvError::Lagged(_)) => continue,

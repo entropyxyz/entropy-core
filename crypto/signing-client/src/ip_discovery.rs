@@ -43,7 +43,7 @@ pub async fn get_ip(
 	// TODO JA do validation on recieved keys and if keys are already had
 	// TODO JA figure out optimal node amount
 	// TODO JA validate not a duplicated IP
-	//
+
 	let new_party = {
 		let current_ips_mutex = shared_data.current_ips.clone();
 		let current_ips = &mut *current_ips_mutex.lock().unwrap();
@@ -89,26 +89,47 @@ fn get_next_party_id(global: &Global) -> usize {
 /// Communication Manager calls this endpoint on each node to inform the node that it is part of a
 /// signing party. CM provides IP addresses of other nodes in the signing party for this node to
 /// subscribe to.
-// TODO(TK): The CM should also aprovide a unique party_id.
 #[post("/post_new_party", format = "json", data = "<ips_and_party_id>")]
 pub async fn post_new_party(ips_and_party_id: Json<NewParty>, state: &State<IPs>) {
 	let NewParty { ip_addresses, party_id } = ips_and_party_id.into_inner();
-	ip_addresses.iter().for_each(|ip| {
+
+	let rx_channels = tokio::spawn(async move {
+		let mut channels = vec![];
+		for ip in ip_addresses {
 			let client = reqwest::Client::new();
+			let res = client
+				.post(format!("http://{}/signing_registration", ip))
+				.header("Content-Type", "application/json")
+				.json(&SigningRegistrationMessage { party_id })
+				.send()
+				.await
+				.unwrap();
 
-			// let res = client
-			// 	.post(format!("http://{}/signing_registration", ip))
-			// 	.header("Content-Type", "application/json")
-			// 	.json(&SigningRegistrationMessage { party_id })
-			// 	.send()
-			// 	.await
-			// 	.unwrap();
+			channels.push(res);
+		}
 
-			// jc
-			// tokio::spawn(async move signing(registration(form,)))
-		});
-		// .await
-		// .collect();
+		channels
+	})
+	.await
+	.unwrap();
+
+	// call signing_registration on all nodes, await all responses, then proceed to sign
+	// TODO(TK): into helper
+	// ip_addresses.iter().for_each(|ip| {
+
+	// let res = client
+	// 	.post(format!("http://{}/signing_registration", ip))
+	// 	.header("Content-Type", "application/json")
+	// 	.json(&SigningRegistrationMessage { party_id })
+	// 	.send()
+	// 	.await
+	// 	.unwrap();
+
+	// jc
+	// tokio::spawn(async move signing(registration(form,)))
+	// });
+	// .await
+	// .collect();
 
 	// TODO(TK): start signing, call `signing_registration` on each node in `ip_addresses`.
 }
