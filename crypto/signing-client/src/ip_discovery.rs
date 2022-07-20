@@ -18,12 +18,7 @@ use crate::{
 };
 use futures::future;
 use reqwest::{self};
-use rocket::{
-	http::{Status},
-	response::{ stream::EventStream},
-	serde::json::Json,
-	State,
-};
+use rocket::{http::Status, response::stream::ByteStream, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast::Sender;
 
@@ -67,9 +62,8 @@ pub async fn get_ip(
 	};
 
 	for ip in &new_party.ip_addresses {
-		let full_route = format!("http://{}/new_party", ip);
 		let res = reqwest::Client::new()
-			.post(full_route)
+			.post(format!("http://{}/new_party", ip))
 			.header("Content-Type", "application/json")
 			.json(&new_party)
 			.send()
@@ -115,7 +109,7 @@ pub async fn new_party(
 async fn rx_channels(
 	ip_addresses: Vec<String>,
 	party_id: usize,
-) -> anyhow::Result<(Sender<SigningMessage>, Vec<EventStream<SigningMessage>>)> {
+) -> anyhow::Result<(Sender<SigningMessage>, Vec<ByteStream<Vec<u8>>>)> {
 	let mut handles = Vec::with_capacity(ip_addresses.len());
 	let client = reqwest::Client::new();
 	for ip in ip_addresses {
@@ -127,16 +121,22 @@ async fn rx_channels(
 				.send(),
 		))
 	}
-	let v: Vec<EventStream<SigningMessage>> = future::join_all(handles)
-		.await
-		.into_iter()
-		.map(|res| res.unwrap().unwrap())
-		.map(|res| {
-			// TODO(TK): the Response is a stream. How do I do this type transformation?
-
-			todo!();
-		})
-		.collect();
+	// let v: Vec<ByteStream<Vec<u8>>> = future::join_all(handles)
+	// 	.await
+	// 	.into_iter()
+	// 	.map(|res| {
+	// 		let a: Result<Result<reqwest::Response, reqwest::Error>, tokio::task::JoinError> = res;
+	// 		match res {
+	// 			Err(e) => todo!(), // handle tokio error
+	// 			Ok(res) => match res {
+	// 				// handle response error
+	// 				Err(e) => todo!(),
+	// 				// response is a bytes stream from another node.
+	// 				Ok(res) => ByteStream(res.bytes_stream()),
+	// 			},
+	// 		}
+	// 	})
+	// .collect();
 
 	// future::join_all(handles).await.into_iter().map(|res| res.unwrap().unwrap()).collect()
 	todo!()

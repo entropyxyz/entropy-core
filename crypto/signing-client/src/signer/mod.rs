@@ -1,6 +1,8 @@
 #![allow(dead_code)]
+#![allow(unused_imports)]
+use futures::Stream;
 use rocket::{
-	response::stream::{Event, EventStream},
+	response::stream::ByteStream,
 	serde::{json::Json, Deserialize, Serialize},
 	tokio::{
 		select,
@@ -8,7 +10,9 @@ use rocket::{
 	},
 	Shutdown, State,
 };
+use tofnd::{gg20::types::PartyInfo, proto::SignInit};
 use tokio::sync::broadcast::{self, Receiver};
+use tracing::{info, instrument};
 
 use crate::Global;
 
@@ -53,7 +57,9 @@ pub async fn signing_registration(
 	new_party: Json<SigningRegistrationMessage>,
 	end: Shutdown,
 	state: &State<Global>,
-) -> EventStream![] {
+) -> (){
+// ) -> ByteStream!<> {
+	// ) -> ByteStream!{Vec<u8>} {
 	let new_party = new_party.into_inner();
 	validate_registration(&new_party);
 	let cached_state = state.inner();
@@ -62,7 +68,9 @@ pub async fn signing_registration(
 	let rx = subscribe_or_create_channel(cached_state, new_party.clone());
 
 	// When a new message is broadcast, pass the message to the subscribing node.
-	make_event_stream(new_party, rx, end).await
+	make_byte_stream(new_party, rx, end).await;
+	// make_byte_stream(new_party, rx, end).await
+	todo!()
 }
 
 fn subscribe_or_create_channel(
@@ -88,32 +96,48 @@ fn subscribe_or_create_channel(
 }
 
 // TODO(TK): this is probably borked, fix it when rdy
-async fn make_event_stream(
+async fn make_byte_stream(
 	new_party: SigningRegistrationMessage,
 	mut rx: Receiver<SigningMessage>,
 	mut end: Shutdown,
-) -> EventStream![] {
-	EventStream! {
-		loop {
-			let msg = select! {
-				new_party = rx.recv() => match new_party {
-					Ok(msg) => msg,
-					Err(RecvError::Closed) => break,
-					Err(RecvError::Lagged(_)) => continue,
-				},
-				_ = &mut end => break,
-			};
-
-			yield Event::json(&msg);
-		}
-	}
+) -> ByteStream<Vec<u8>> {
+	todo!()
 }
+// ) -> ByteStream!{Vec<u8>} {
+// 	ByteStream! {
+// 		loop {
+// 			let msg = select! {
+// 				new_party = rx.recv() => match new_party {
+// 					Ok(msg) => msg,
+// 					Err(RecvError::Closed) => break,
+// 					Err(RecvError::Lagged(_)) => continue,
+// 				},
+// 				_ = &mut end => break,
+// 			};
 
+// 			yield msg
+// 		}
+// 	}
+// }
+
+/// Sanitize argemunts to
+// #[tracing::instrument]
 pub(crate) async fn handle_sign(
 	tx: Sender<SigningMessage>,
-	rx_channels: Vec<EventStream<SigningMessage>>,
+	rx_channels: Vec<ByteStream<Vec<u8>>>,
 ) -> anyhow::Result<()> {
+	// info!("handle_sign");
+	let (sign_init, party_info) = handle_sign_init(tx, rx_channels).await?;
 	todo!();
+}
+
+// #[tracing::instrument]
+async fn handle_sign_init(
+	tx: Sender<SigningMessage>,
+	rx_channels: Vec<ByteStream<Vec<u8>>>,
+) -> anyhow::Result<(SignInit, PartyInfo)> {
+	// info!("handle_sign");
+	todo!()
 }
 
 /// Validate `SigningRegistrationMessage`

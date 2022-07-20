@@ -7514,6 +7514,7 @@ dependencies = [
  "serde_urlencoded",
  "tokio",
  "tokio-native-tls",
+ "tokio-util 0.6.9",
  "url 2.2.2",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -9306,6 +9307,8 @@ dependencies = [
  "thiserror",
  "tofnd",
  "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.11",
  "uuid",
 ]
 

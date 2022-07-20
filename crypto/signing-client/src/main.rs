@@ -9,7 +9,6 @@
 //!
 //! - Rocket server - Includes global state and mutex locked IPs
 //! - Sled DB KVDB
-// #![allow(unused_imports)]
 #![allow(unused_variables)]
 use crate::{
 	ip_discovery::{get_ip, new_party},
@@ -20,13 +19,13 @@ use crate::{
 use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::Deserialize;
-use signer::{PartyId, SigningChannel };
+use signer::{PartyId, SigningChannel};
 use std::{
 	collections::HashMap,
 	sync::{Arc, Mutex},
 };
 
-use tofnd::{config::parse_args,  kv_manager::KvManager};
+use tofnd::{config::parse_args, kv_manager::KvManager};
 
 #[macro_use]
 extern crate rocket;
@@ -69,15 +68,17 @@ struct Configuration {
 	endpoint: Option<String>,
 	mnemonic: String,
 }
-/*
-	let current_ips = shared_data.current_ips.lock().unwrap();
-	if current_ips.len() < 4 {
-		current_ips.push(ip_address);
-		Ok(Status::Ok)
-*/
+
+pub(crate) fn init_tracing() {
+	let filter = tracing_subscriber::filter::LevelFilter::INFO.into();
+	tracing_subscriber::filter::EnvFilter::builder()
+		.with_default_directive(filter)
+		.from_env_lossy();
+}
 
 #[launch]
 async fn rocket() -> _ {
+	init_tracing();
 	let env = load_environment_variables();
 	let kv_manager = load_kv_store();
 	// Mapping of parties to signing channels. Used by nodes to subscribe to a signing party.
