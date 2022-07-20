@@ -1,5 +1,5 @@
 //! Benchmarking setup for pallet-propgation
-
+#![allow(unused_imports)]
 use super::*;
 
 #[allow(unused_imports)]
