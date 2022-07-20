@@ -15,7 +15,7 @@
 use crate::{
 	errors::CustomIPError,
 	signer::{handle_sign, SigningMessage, SigningRegistrationMessage},
-	Global, IPs,
+	Global,
 };
 use futures::future;
 use reqwest::{self};
@@ -36,11 +36,9 @@ pub struct NewParty {
 #[rocket::get("/get_ip/<ip_address>")]
 pub async fn get_ip(
 	ip_address: String,
-	state: &State<IPs>,
 	global: &State<Global>,
 ) -> Result<Status, CustomIPError> {
 	info!("get_ip");
-	// let shared_data: &IPs = state.inner();
 	let global = global.inner();
 	// TODO JA do validation on recieved keys and if keys are already had
 	// TODO JA figure out optimal node amount
@@ -92,7 +90,7 @@ fn get_next_party_id(global: &Global) -> usize {
 #[post("/new_party", format = "json", data = "<new_party>")]
 pub async fn new_party(
 	new_party: Json<NewParty>,
-	state: &State<IPs>,
+	_global: &State<Global>,
 	// TODO(TK): make an Error type
 ) -> Result<Status, CustomIPError> {
 	info!("new_party");

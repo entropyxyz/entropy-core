@@ -57,9 +57,6 @@ pub struct Global {
 /// KvManager doesn't implement Debug, so store it separately for logging convenience
 pub struct EntropyKvManager(KvManager);
 
-#[derive(Debug)]
-pub struct IPs {}
-
 fn default_endpoint() -> Option<String> {
 	Some("ws://localhost:9944".to_string())
 }

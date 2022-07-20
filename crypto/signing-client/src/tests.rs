@@ -1,4 +1,6 @@
-use super::{rocket, IPs};
+#![allow(unused_imports)]
+use super::{rocket};
+use crate::Global;
 use crate::{
 	ip_discovery::{new_party, NewParty},
 	sign::*,
@@ -324,8 +326,7 @@ async fn new_party_test() {
 async fn get_ip_test() {
 	let client = setup_client().await;
 	let send = "/get_ip/localhost:3002";
-
-	let ips = IPs { current_ips: Arc::new(Mutex::new(vec![])) };
+	let _global = Global::default();
 
 	create_clients(3002i64).await;
 
@@ -353,8 +354,7 @@ async fn get_ip_test() {
 async fn create_clients(port: i64) {
 	let config = rocket::Config::figment().merge(("port", port));
 
-	// let ips = IPs { current_ips: Arc::new(Mutex::new(vec![])) };
-	// let global =
+	let global = Global::default();
 
 	Client::tracked(rocket::custom(config).mount("/", routes![new_party]).manage(global))
 		.await
