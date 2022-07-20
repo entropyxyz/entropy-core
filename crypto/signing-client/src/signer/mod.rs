@@ -39,9 +39,9 @@ pub struct SigningMessage {
 	// pub todo: String,
 }
 
-/// After receiving the ip addresses of the signing party (`post_new_party_ips`), each participating node
-/// in the signing-protocol calls this method on each other node, "registering" themselves for the
-/// signing procedure. Calling `signing_registration` subscribes the caller to the stream of
+/// After receiving the ip addresses of the signing party (`post_new_party_ips`), each participating
+/// node in the signing-protocol calls this method on each other node, "registering" themselves for
+/// the signing procedure. Calling `signing_registration` subscribes the caller to the stream of
 /// messages related to this execution of the signing protocol.
 ///
 ///  Arguments:
@@ -59,38 +59,45 @@ pub struct SigningMessage {
 #[post("/signing_registration", data = "<new_party>")]
 pub async fn signing_registration(
 	new_party: Json<SigningRegistrationMessage>,
-	mut end: Shutdown,
+	end: Shutdown,
 	state: &State<Global>,
 ) -> EventStream![] {
 	let new_party = new_party.into_inner();
 	validate_registration(&new_party);
 	let cached_state = state.inner();
 
-	// TODO(TK): move to helper
 	// Subscribe to the sender, creating one if it doesn't yet exist.
-	let mut rx = {
-		// clone the signing channel resource separately to avoid prematurely freeing the state
-		let signing_channels_mutex = cached_state.signing_channels.clone();
-		let signing_channels = &mut *signing_channels_mutex.lock().unwrap();
-		match signing_channels.get(&new_party.party_id) {
-			None => {
-				{
-					// No channel exists yet, so create an effectively unbounded broadcast channel
-					let (tx, rx) = broadcast::channel(1000);
+	let rx = subscribe_or_create_channel(cached_state,new_party.clone());
 
-					signing_channels.insert(new_party.party_id, tx);
-
-					rx
-				}
-			},
-			Some(tx) => tx.subscribe(),
-		}
-	};
-	
-
-	// TODO(TK): move to helper
 	// When a new message is broadcast, pass the message to the subscribing node.
-	// TODO(TK): this is borked, fix it when rdy
+	make_event_stream(new_party, rx, end).await
+}
+
+fn subscribe_or_create_channel(cached_state: &Global, new_party: SigningRegistrationMessage) -> Receiver<SigningMessage> {
+	// clone the signing channel resource separately to avoid prematurely freeing the state
+	let signing_channels_mutex = cached_state.signing_channels.clone();
+	let signing_channels = &mut *signing_channels_mutex.lock().unwrap();
+	match signing_channels.get(&new_party.party_id) {
+		None => {
+			{
+				// No channel exists yet, so create an effectively unbounded broadcast channel
+				let (tx, rx) = broadcast::channel(1000);
+
+				signing_channels.insert(new_party.party_id, tx);
+
+				rx
+			}
+		},
+		Some(tx) => tx.subscribe(),
+	}
+}
+
+// TODO(TK): this is probably borked, fix it when rdy
+async fn make_event_stream(
+	new_party: SigningRegistrationMessage,
+	mut rx: Receiver<SigningMessage>,
+	mut end: Shutdown,
+) -> EventStream![] {
 	EventStream! {
 		loop {
 			let msg = select! {
@@ -107,21 +114,14 @@ pub async fn signing_registration(
 	}
 }
 
-async fn all_ready() -> bool {
+pub(crate) async fn handle_signing(
+	tx: Sender<SigningMessage>,
+	rx_channels: Vec<EventStream<SigningMessage>>,
+) -> Result<(), ()> {
 	todo!();
 }
 
 /// Validate `SigningRegistrationMessage`
 fn validate_registration(msg: &SigningRegistrationMessage) {
-	todo!();
-}
-
-/// Initiate the signing process.
-async fn handle_signing_init(tx: &Sender<SigningMessage>) {
-	todo!();
-}
-
-/// wrapping interface to tofn signing-protocol.
-async fn handle_signing(tx: Sender<SigningMessage>) {
 	todo!();
 }
