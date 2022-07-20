@@ -9,26 +9,24 @@
 //!
 //! - Rocket server - Includes global state and mutex locked IPs
 //! - Sled DB KVDB
-#![allow(unused_imports)]
+// #![allow(unused_imports)]
 #![allow(unused_variables)]
 use crate::{
-	ip_discovery::{new_party, get_ip},
+	ip_discovery::{get_ip, new_party},
 	sign::provide_share,
 	signer::signing_registration,
 	store_share::store_keyshare,
 };
 use bip39::{Language, Mnemonic};
 use rocket::routes;
-use serde::{Deserialize, Serialize};
-use signer::{PartyId, SigningChannel, SigningMessage};
+use serde::Deserialize;
+use signer::{PartyId, SigningChannel };
 use std::{
 	collections::HashMap,
-	env,
 	sync::{Arc, Mutex},
 };
 
-use tofnd::{config::parse_args, encrypted_sled::Db as tofndDb, kv_manager::KvManager};
-use tokio::sync::broadcast::{channel, Receiver};
+use tofnd::{config::parse_args,  kv_manager::KvManager};
 
 #[macro_use]
 extern crate rocket;
@@ -48,13 +46,13 @@ pub struct Global {
 	mnemonic: String,
 	endpoint: String,
 	kv_manager: KvManager,
-	// TODO(TK): optimize: shard mutex 
+	// TODO(TK): optimize: shard mutex
 	signing_channels: Arc<Mutex<HashMap<PartyId, SigningChannel>>>,
 	/// create unique ids for each signing party
-  party_id_nonce: Arc<Mutex<usize>>,
+	party_id_nonce: Arc<Mutex<usize>>,
 }
 
-// TODO(TK): improve doc comment description, this struct's function is unclear 
+// TODO(TK): improve doc comment description, this struct's function is unclear
 // TODO(TK): use Arc<Mutex> to guarantee safety across await, and reduce unlock overhead
 /// holds Mutex locked current IPs
 pub struct IPs {

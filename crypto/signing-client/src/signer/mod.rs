@@ -1,24 +1,16 @@
 #![allow(dead_code)]
 use rocket::{
-	fs::{relative, FileServer},
-	futures::TryFutureExt,
 	response::stream::{Event, EventStream},
 	serde::{json::Json, Deserialize, Serialize},
 	tokio::{
 		select,
-		sync::broadcast::{channel, error::RecvError, Sender},
+		sync::broadcast::{error::RecvError, Sender},
 	},
 	Shutdown, State,
 };
-use std::{
-	collections::HashMap,
-	sync::{Arc, Mutex},
-	thread::spawn,
-};
-use tofnd::kv_manager::KvManager;
 use tokio::sync::broadcast::{self, Receiver};
 
-use crate::{ip_discovery::NewParty, Global};
+use crate::Global;
 
 pub type PartyId = usize; // TODO(TK): this is probably somewhere else already
 pub type SigningChannel = broadcast::Sender<SigningMessage>;

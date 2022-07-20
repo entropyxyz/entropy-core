@@ -1,39 +1,25 @@
 use super::{rocket, IPs};
 use crate::{
 	ip_discovery::{new_party, NewParty},
-	sign::{
-		acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
-		get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
-	},
-	store_share::{store_keyshare, User},
-	Global,
+	sign::*,
+	store_share::User,
 };
-use parity_scale_codec::Encode;
 use rocket::{
-	figment::Figment,
 	http::{ContentType, Status},
 	local::asynchronous::Client,
 	tokio::time::{sleep, Duration},
-	Config, State,
 };
 use serial_test::serial;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
-use sp_keyring::AccountKeyring;
 use std::{
 	env,
-	fs::{remove_dir_all, remove_file},
-	sync::{Mutex, Arc},
-	thread, time,
+	fs::remove_dir_all,
+	sync::{Arc, Mutex},
+	time,
 };
-use subxt::{
-	sp_core::{
-		crypto::{Pair, Ss58Codec},
-		sr25519,
-	},
-	PairSigner,
-};
+use subxt::{sp_core::sr25519, PairSigner};
 use testing_utils::context::{test_context, test_context_stationary};
-use tofnd::kv_manager::{KeyReservation, KvManager};
+use tofnd::kv_manager::KvManager;
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
 	Client::tracked(super::rocket().await).await.expect("valid `Rocket`")
@@ -322,7 +308,7 @@ async fn send_ip_address_test() {
 async fn new_party_test() {
 	let client = setup_client().await;
 	let all_ip_vec = vec!["test".to_string(), "test".to_string()];
-	let new_party = NewParty { ip_addresses: all_ip_vec.clone(), party_id: 0};
+	let new_party = NewParty { ip_addresses: all_ip_vec.clone(), party_id: 0 };
 
 	let response = client
 		.post("/new_party")

@@ -10,23 +10,21 @@
 //!
 //! get_ip - get - Comm manager accepts sign request for a message
 //! get_all_ips - post - Comm manager sends signers all node addresses to sign message
-#![allow(unused_imports)]
 #![allow(unused_variables)]
 use crate::{
 	errors::CustomIPError,
 	signer::{handle_sign, SigningMessage, SigningRegistrationMessage},
 	Global, IPs,
 };
-use futures::{future, stream};
-use reqwest::{self, Error, Response};
+use futures::future;
+use reqwest::{self};
 use rocket::{
-	http::{ContentType, Status},
-	response::{status, stream::EventStream},
+	http::{Status},
+	response::{ stream::EventStream},
 	serde::json::Json,
 	State,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
 use tokio::sync::broadcast::Sender;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -48,6 +46,7 @@ pub async fn get_ip(
 	// TODO JA do validation on recieved keys and if keys are already had
 	// TODO JA figure out optimal node amount
 	// TODO JA validate not a duplicated IP
+	// TODO(TK): rewrote this to use an arc and unlock only once. Still could have better flow.
 
 	let new_party = {
 		let current_ips_mutex = shared_data.current_ips.clone();
@@ -62,9 +61,8 @@ pub async fn get_ip(
 			// TODO(TK): clarify what this branch is doing
 			current_ips.push(ip_address);
 			let v = current_ips.to_vec();
-			let ips_and_party_id =
-				NewParty { party_id: get_next_party_id(global), ip_addresses: current_ips.clone() };
-			ips_and_party_id
+
+			NewParty { party_id: get_next_party_id(global), ip_addresses: current_ips.clone() }
 		}
 	};
 
@@ -91,14 +89,14 @@ fn get_next_party_id(global: &Global) -> usize {
 
 /// Communication Manager calls this endpoint on each node to inform the node that it is part of a
 /// signing party. CM provides IP addresses of other nodes in the signing party for this node to
-/// subscribe to.
-#[post("/new_party", format = "json", data = "<ips_and_party_id>")]
+/// subscribe to and a party_id.
+#[post("/new_party", format = "json", data = "<new_party>")]
 pub async fn new_party(
-	ips_and_party_id: Json<NewParty>,
+	new_party: Json<NewParty>,
 	state: &State<IPs>,
 	// TODO(TK): make an Error type
 ) -> Result<Status, CustomIPError> {
-	let NewParty { ip_addresses, party_id } = ips_and_party_id.into_inner();
+	let NewParty { ip_addresses, party_id } = new_party.into_inner();
 
 	// a new task is spawned for each created party
 	tokio::spawn(async move {
