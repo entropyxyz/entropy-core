@@ -39,7 +39,7 @@ pub struct SigningMessage {
 	// pub todo: String,
 }
 
-/// After receiving the ip addresses of the signing party (`post_new_party_ips`), each participating
+/// After receiving the ip addresses of the signing party (`new_party_ips`), each participating
 /// node in the signing-protocol calls this method on each other node, "registering" themselves for
 /// the signing procedure. Calling `signing_registration` subscribes the caller to the stream of
 /// messages related to this execution of the signing protocol.

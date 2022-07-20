@@ -69,7 +69,7 @@ pub async fn get_ip(
 	};
 
 	for ip in &new_party.ip_addresses {
-		let full_route = format!("http://{}/post_new_party", ip);
+		let full_route = format!("http://{}/new_party", ip);
 		let res = reqwest::Client::new()
 			.post(full_route)
 			.header("Content-Type", "application/json")
@@ -92,8 +92,8 @@ fn get_next_party_id(global: &Global) -> usize {
 /// Communication Manager calls this endpoint on each node to inform the node that it is part of a
 /// signing party. CM provides IP addresses of other nodes in the signing party for this node to
 /// subscribe to.
-#[post("/post_new_party", format = "json", data = "<ips_and_party_id>")]
-pub async fn post_new_party(
+#[post("/new_party", format = "json", data = "<ips_and_party_id>")]
+pub async fn new_party(
 	ips_and_party_id: Json<NewParty>,
 	state: &State<IPs>,
 	// TODO(TK): make an Error type
@@ -112,9 +112,8 @@ pub async fn post_new_party(
 	Ok(Status::Ok)
 }
 
-/// get rx channels from each other node in the signing party
+/// Get rx channels from each other node in the signing party.
 // TODO(TK): the Response is a Reqwest, wrapping a stream. How do I poll messages from the stream?
-// TODO(TK): move tx,rx genaration into this method
 async fn rx_channels(
 	ip_addresses: Vec<String>,
 	party_id: usize,

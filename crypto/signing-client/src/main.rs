@@ -12,7 +12,7 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 use crate::{
-	ip_discovery::{post_new_party, get_ip},
+	ip_discovery::{new_party, get_ip},
 	sign::provide_share,
 	signer::signing_registration,
 	store_share::store_keyshare,
@@ -92,7 +92,7 @@ async fn rocket() -> _ {
 		party_id_nonce: Arc::new(Mutex::new(0)),
 	};
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
-	// Communication Manager: Collect IPs, for `post_new_party`, list of global ip addresses for a
+	// Communication Manager: Collect IPs, for `new_party`, list of global ip addresses for a
 	// message.
 	let ips = IPs { current_ips: Arc::new(Mutex::new(vec![])) };
 	rocket::build()
@@ -102,7 +102,7 @@ async fn rocket() -> _ {
 				store_keyshare,
 				provide_share,
 				get_ip,
-				post_new_party,
+				new_party,
 				// TODO(TK): add signing protocol methods here
 				signing_registration,
 				// signing_results

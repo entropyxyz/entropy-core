@@ -1,6 +1,6 @@
 use super::{rocket, IPs};
 use crate::{
-	ip_discovery::{post_new_party, NewParty},
+	ip_discovery::{new_party, NewParty},
 	sign::{
 		acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
 		get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
@@ -319,13 +319,13 @@ async fn send_ip_address_test() {
 
 #[rocket::async_test]
 #[serial]
-async fn post_new_party_test() {
+async fn new_party_test() {
 	let client = setup_client().await;
 	let all_ip_vec = vec!["test".to_string(), "test".to_string()];
 	let new_party = NewParty { ip_addresses: all_ip_vec.clone(), party_id: 0};
 
 	let response = client
-		.post("/post_new_party")
+		.post("/new_party")
 		.header(ContentType::JSON)
 		.body(serde_json::to_string(&new_party.clone()).unwrap())
 		.dispatch()
@@ -368,7 +368,7 @@ async fn create_clients(port: i64) {
 	let config = rocket::Config::figment().merge(("port", port));
 
 	let ips = IPs { current_ips: Arc::new(Mutex::new(vec![])) };
-	Client::tracked(rocket::custom(config).mount("/", routes![post_new_party]).manage(ips))
+	Client::tracked(rocket::custom(config).mount("/", routes![new_party]).manage(ips))
 		.await
 		.expect("valid `Rocket`");
 }
