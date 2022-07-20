@@ -36,10 +36,10 @@ pub async fn store_keyshare(
 	// ToDo: JA make sure signed so other key doesn't override own key
 
 	let cached_state = state.inner();
-		let kv_manager = &kv_manager.0;
+	let kv_manager = &kv_manager.0;
 
-		let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();
-		kv_manager.kv().put(reservation, user_input.value.clone()).await.unwrap();
+	let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();
+	kv_manager.kv().put(reservation, user_input.value.clone()).await.unwrap();
 
 	Ok(Status::Ok)
 }

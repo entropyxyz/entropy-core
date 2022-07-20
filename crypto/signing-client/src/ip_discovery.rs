@@ -34,10 +34,7 @@ pub struct NewParty {
 /// Collect IPs for all signers then informs them
 #[instrument]
 #[rocket::get("/get_ip/<ip_address>")]
-pub async fn get_ip(
-	ip_address: String,
-	global: &State<Global>,
-) -> Result<Status, CustomIPError> {
+pub async fn get_ip(ip_address: String, global: &State<Global>) -> Result<Status, CustomIPError> {
 	info!("get_ip");
 	let global = global.inner();
 	// TODO JA do validation on recieved keys and if keys are already had
