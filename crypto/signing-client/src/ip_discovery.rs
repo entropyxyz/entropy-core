@@ -14,11 +14,11 @@
 #![allow(unused_variables)]
 use crate::{
 	errors::CustomIPError,
-	signer::{handle_signing, SigningMessage, SigningRegistrationMessage},
+	signer::{handle_sign, SigningMessage, SigningRegistrationMessage},
 	Global, IPs,
 };
 use futures::{future, stream};
-use reqwest::{self, Response};
+use reqwest::{self, Error, Response};
 use rocket::{
 	http::{ContentType, Status},
 	response::{status, stream::EventStream},
@@ -73,7 +73,7 @@ pub async fn get_ip(
 		let res = reqwest::Client::new()
 			.post(full_route)
 			.header("Content-Type", "application/json")
-			.json(&new_party.clone())
+			.json(&new_party)
 			.send()
 			.await
 			.unwrap();
@@ -93,16 +93,23 @@ fn get_next_party_id(global: &Global) -> usize {
 /// signing party. CM provides IP addresses of other nodes in the signing party for this node to
 /// subscribe to.
 #[post("/post_new_party", format = "json", data = "<ips_and_party_id>")]
-pub async fn post_new_party(ips_and_party_id: Json<NewParty>, state: &State<IPs>) {
+pub async fn post_new_party(
+	ips_and_party_id: Json<NewParty>,
+	state: &State<IPs>,
+	// TODO(TK): make an Error type
+) -> Result<Status, CustomIPError> {
 	let NewParty { ip_addresses, party_id } = ips_and_party_id.into_inner();
 
-	let (tx, rx_channels) =
-		tokio::spawn(rx_channels(ip_addresses.clone(), party_id)).await.unwrap();
+	// a new task is spawned for each created party
+	tokio::spawn(async move {
+		// Get broadcast sending channel & receiving channels for each other node.
+		let (tx, rx_channels) = rx_channels(ip_addresses.clone(), party_id).await.unwrap();
 
-	// initiate signing
-	handle_signing(tx, rx_channels).await.unwrap();
-
-	// TODO(TK): start signing, call `signing_registration` on each node in `ip_addresses`.
+		if let Err(e) = handle_sign(tx, rx_channels).await {
+			// TODO(TK): handle errors
+		}
+	});
+	Ok(Status::Ok)
 }
 
 /// get rx channels from each other node in the signing party
@@ -111,7 +118,7 @@ pub async fn post_new_party(ips_and_party_id: Json<NewParty>, state: &State<IPs>
 async fn rx_channels(
 	ip_addresses: Vec<String>,
 	party_id: usize,
-) -> (Sender<SigningMessage>, Vec<EventStream<SigningMessage>>) {
+) -> anyhow::Result<(Sender<SigningMessage>, Vec<EventStream<SigningMessage>>)> {
 	let mut handles = Vec::with_capacity(ip_addresses.len());
 	let client = reqwest::Client::new();
 	for ip in ip_addresses {

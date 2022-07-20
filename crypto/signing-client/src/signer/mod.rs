@@ -67,13 +67,16 @@ pub async fn signing_registration(
 	let cached_state = state.inner();
 
 	// Subscribe to the sender, creating one if it doesn't yet exist.
-	let rx = subscribe_or_create_channel(cached_state,new_party.clone());
+	let rx = subscribe_or_create_channel(cached_state, new_party.clone());
 
 	// When a new message is broadcast, pass the message to the subscribing node.
 	make_event_stream(new_party, rx, end).await
 }
 
-fn subscribe_or_create_channel(cached_state: &Global, new_party: SigningRegistrationMessage) -> Receiver<SigningMessage> {
+fn subscribe_or_create_channel(
+	cached_state: &Global,
+	new_party: SigningRegistrationMessage,
+) -> Receiver<SigningMessage> {
 	// clone the signing channel resource separately to avoid prematurely freeing the state
 	let signing_channels_mutex = cached_state.signing_channels.clone();
 	let signing_channels = &mut *signing_channels_mutex.lock().unwrap();
@@ -114,10 +117,10 @@ async fn make_event_stream(
 	}
 }
 
-pub(crate) async fn handle_signing(
+pub(crate) async fn handle_sign(
 	tx: Sender<SigningMessage>,
 	rx_channels: Vec<EventStream<SigningMessage>>,
-) -> Result<(), ()> {
+) -> anyhow::Result<()> {
 	todo!();
 }
 
