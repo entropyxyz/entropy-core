@@ -54,6 +54,14 @@ pub struct Global {
 	current_ips: Arc<Mutex<Vec<String>>>,
 }
 
+impl Global {
+	pub(crate) fn new(env: Configuration) -> Self {
+		{
+			Self { mnemonic: env.mnemonic, endpoint: env.endpoint.unwrap(), ..Self::default() }
+		}
+	}
+}
+
 /// KvManager doesn't implement Debug, so store it separately for logging convenience
 pub struct EntropyKvManager(KvManager);
 
@@ -62,7 +70,7 @@ fn default_endpoint() -> Option<String> {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-struct Configuration {
+pub(crate) struct Configuration {
 	#[serde(default = "default_endpoint")]
 	endpoint: Option<String>,
 	mnemonic: String,
@@ -78,32 +86,16 @@ pub(crate) fn init_tracing() {
 #[launch]
 async fn rocket() -> _ {
 	init_tracing();
-	let env = load_environment_variables();
-	// Mapping of parties to signing channels. Used by nodes to subscribe to a signing party.
-	let signing_channels = Arc::new(Mutex::new(HashMap::new()));
-	let global = Global {
-		mnemonic: env.mnemonic,
-		endpoint: env.endpoint.unwrap(),
-		signing_channels,
-		party_id_nonce: Arc::new(Mutex::new(0)),
-		current_ips: Arc::new(Mutex::new(vec![])),
-	};
+	let global = Global::new(load_environment_variables());
 	let kv_manager = EntropyKvManager(load_kv_store());
+
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
 	// Communication Manager: Collect IPs, for `new_party`, list of global ip addresses for a
 	// message.
 	rocket::build()
 		.mount(
 			"/",
-			routes![
-				store_keyshare,
-				provide_share,
-				get_ip,
-				new_party,
-				// TODO(TK): add signing protocol methods here
-				signing_registration,
-				// signing_results
-			],
+			routes![store_keyshare, provide_share, get_ip, new_party, signing_registration,],
 		)
 		.manage(global)
 		.manage(kv_manager)
