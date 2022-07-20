@@ -52,14 +52,16 @@ pub struct SigningMessage {
 /// - Test: must fail if party is over
 /// - Test: must not fail if messages are out of order
 /// - Note: do we authenticate who sends message here or in tofn?
+#[instrument]
 #[post("/signing_registration", data = "<new_party>")]
 pub async fn signing_registration(
 	new_party: Json<SigningRegistrationMessage>,
 	end: Shutdown,
 	state: &State<Global>,
-) -> (){
-// ) -> ByteStream!<> {
+) -> () {
+	// ) -> ByteStream!<> {
 	// ) -> ByteStream!{Vec<u8>} {
+	info!("signing_registration");
 	let new_party = new_party.into_inner();
 	validate_registration(&new_party);
 	let cached_state = state.inner();
@@ -73,10 +75,12 @@ pub async fn signing_registration(
 	todo!()
 }
 
+#[instrument]
 fn subscribe_or_create_channel(
 	cached_state: &Global,
 	new_party: SigningRegistrationMessage,
 ) -> Receiver<SigningMessage> {
+	info!("subscribe_or_create_channel");
 	// clone the signing channel resource separately to avoid prematurely freeing the state
 	let signing_channels_mutex = cached_state.signing_channels.clone();
 	let signing_channels = &mut *signing_channels_mutex.lock().unwrap();
@@ -96,11 +100,13 @@ fn subscribe_or_create_channel(
 }
 
 // TODO(TK): this is probably borked, fix it when rdy
+#[instrument]
 async fn make_byte_stream(
 	new_party: SigningRegistrationMessage,
 	mut rx: Receiver<SigningMessage>,
 	mut end: Shutdown,
 ) -> ByteStream<Vec<u8>> {
+	info!("make_byte_stream");
 	todo!()
 }
 // ) -> ByteStream!{Vec<u8>} {
@@ -121,22 +127,22 @@ async fn make_byte_stream(
 // }
 
 /// Sanitize argemunts to
-// #[tracing::instrument]
+#[instrument]
 pub(crate) async fn handle_sign(
 	tx: Sender<SigningMessage>,
 	rx_channels: Vec<ByteStream<Vec<u8>>>,
 ) -> anyhow::Result<()> {
-	// info!("handle_sign");
+	info!("handle_sign");
 	let (sign_init, party_info) = handle_sign_init(tx, rx_channels).await?;
 	todo!();
 }
 
-// #[tracing::instrument]
+#[instrument]
 async fn handle_sign_init(
 	tx: Sender<SigningMessage>,
 	rx_channels: Vec<ByteStream<Vec<u8>>>,
 ) -> anyhow::Result<(SignInit, PartyInfo)> {
-	// info!("handle_sign");
+	info!("handle_sign_init");
 	todo!()
 }
 

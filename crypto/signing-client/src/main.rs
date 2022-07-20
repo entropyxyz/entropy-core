@@ -40,23 +40,25 @@ mod store_share;
 mod tests;
 
 /// holds KVDB instance, threshold mnemonic and endpoint of running node
-#[derive(Clone)]
+#[derive(Clone, Debug, Default)]
 pub struct Global {
 	mnemonic: String,
 	endpoint: String,
-	kv_manager: KvManager,
 	// TODO(TK): optimize: shard mutex
 	signing_channels: Arc<Mutex<HashMap<PartyId, SigningChannel>>>,
 	/// create unique ids for each signing party
 	party_id_nonce: Arc<Mutex<usize>>,
-}
-
-// TODO(TK): improve doc comment description, this struct's function is unclear
-// TODO(TK): use Arc<Mutex> to guarantee safety across await, and reduce unlock overhead
-/// holds Mutex locked current IPs
-pub struct IPs {
+	// TODO(TK): improve doc comment description, this struct's function is unclear
+	// TODO(TK): use Arc<Mutex> to guarantee safety across await, and reduce unlock overhead
+	/// holds Mutex locked current IPs
 	current_ips: Arc<Mutex<Vec<String>>>,
 }
+
+/// KvManager doesn't implement Debug, so store it separately for logging convenience
+pub struct EntropyKvManager(KvManager);
+
+#[derive(Debug)]
+pub struct IPs {}
 
 fn default_endpoint() -> Option<String> {
 	Some("ws://localhost:9944".to_string())
@@ -80,20 +82,19 @@ pub(crate) fn init_tracing() {
 async fn rocket() -> _ {
 	init_tracing();
 	let env = load_environment_variables();
-	let kv_manager = load_kv_store();
 	// Mapping of parties to signing channels. Used by nodes to subscribe to a signing party.
 	let signing_channels = Arc::new(Mutex::new(HashMap::new()));
 	let global = Global {
 		mnemonic: env.mnemonic,
 		endpoint: env.endpoint.unwrap(),
-		kv_manager,
 		signing_channels,
 		party_id_nonce: Arc::new(Mutex::new(0)),
+		current_ips: Arc::new(Mutex::new(vec![])),
 	};
+	let kv_manager = EntropyKvManager(load_kv_store());
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
 	// Communication Manager: Collect IPs, for `new_party`, list of global ip addresses for a
 	// message.
-	let ips = IPs { current_ips: Arc::new(Mutex::new(vec![])) };
 	rocket::build()
 		.mount(
 			"/",
@@ -108,7 +109,7 @@ async fn rocket() -> _ {
 			],
 		)
 		.manage(global)
-		.manage(ips)
+		.manage(kv_manager)
 }
 
 fn load_environment_variables() -> Configuration {

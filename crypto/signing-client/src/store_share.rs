@@ -9,14 +9,13 @@
 //!
 //! - /store_keyshare - Post - Takes in a key and value for user
 #![allow(unused_imports)]
-use crate::Global;
+use crate::{EntropyKvManager, Global};
 use rocket::{http::Status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use std::{
 	fs::File,
 	io::{BufWriter, Write},
 };
-// use tofnd::kv_manager::{error::KvError, KeyReservation, KvManager};
 
 /// User input, contains key (substrate key) and value (entropy shard)
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -30,16 +29,17 @@ pub struct User {
 pub async fn store_keyshare(
 	user_input: Json<User>,
 	state: &State<Global>,
+	kv_manager: &State<EntropyKvManager>,
 ) -> Result<Status, std::io::Error> {
 	// ToDo: JA verify proof
 	// ToDo: validate is owner of key address
 	// ToDo: JA make sure signed so other key doesn't override own key
 
 	let cached_state = state.inner();
-	let kv_manager = cached_state.kv_manager.clone();
+		let kv_manager = &kv_manager.0;
 
-	let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();
-	kv_manager.kv().put(reservation, user_input.value.clone()).await.unwrap();
+		let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();
+		kv_manager.kv().put(reservation, user_input.value.clone()).await.unwrap();
 
 	Ok(Status::Ok)
 }

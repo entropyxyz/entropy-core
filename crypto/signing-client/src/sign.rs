@@ -16,7 +16,7 @@
 
 #![allow(unused_imports)]
 #![allow(unused_variables)]
-use crate::Global;
+use crate::{EntropyKvManager, Global};
 use common::OCWMessage;
 use constraints::whitelist::is_on_whitelist;
 use parity_scale_codec::{Decode, Encode};
@@ -38,10 +38,15 @@ pub mod entropy {}
 pub type EntropyRuntime =
 	entropy::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
 
+// TODO(TK): Better documentation on this function
 /// Takes data from OCW decondes it and launches the signing process
 /// Identifies if node should lead or participate in signing
 #[post("/sign", format = "application/x-parity-scale-codec", data = "<encoded_data>")]
-pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Status {
+pub async fn provide_share(
+	encoded_data: Vec<u8>,
+	state: &State<Global>,
+	kv_manager: &State<EntropyKvManager>,
+) -> Status {
 	println!("encoded_data {:?}", encoded_data);
 
 	let data = OCWMessage::decode(&mut encoded_data.as_ref());
@@ -54,7 +59,7 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Stat
 	let cached_state = state.inner();
 	let endpoint = cached_state.endpoint.clone();
 	let mnemonic = cached_state.mnemonic.clone();
-	let kv_manager = cached_state.kv_manager.clone();
+	let kv_manager = &kv_manager.0;
 
 	let api = get_api(&endpoint).await.unwrap();
 	let block_number = get_block_number(&api).await.unwrap();

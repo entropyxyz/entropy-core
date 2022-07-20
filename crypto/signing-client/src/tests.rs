@@ -353,8 +353,10 @@ async fn get_ip_test() {
 async fn create_clients(port: i64) {
 	let config = rocket::Config::figment().merge(("port", port));
 
-	let ips = IPs { current_ips: Arc::new(Mutex::new(vec![])) };
-	Client::tracked(rocket::custom(config).mount("/", routes![new_party]).manage(ips))
+	// let ips = IPs { current_ips: Arc::new(Mutex::new(vec![])) };
+	// let global =
+
+	Client::tracked(rocket::custom(config).mount("/", routes![new_party]).manage(global))
 		.await
 		.expect("valid `Rocket`");
 }

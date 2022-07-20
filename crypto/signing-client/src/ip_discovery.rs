@@ -11,6 +11,7 @@
 //! get_ip - get - Comm manager accepts sign request for a message
 //! get_all_ips - post - Comm manager sends signers all node addresses to sign message
 #![allow(unused_variables)]
+#![allow(unused_imports)]
 use crate::{
 	errors::CustomIPError,
 	signer::{handle_sign, SigningMessage, SigningRegistrationMessage},
@@ -21,6 +22,7 @@ use reqwest::{self};
 use rocket::{http::Status, response::stream::ByteStream, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast::Sender;
+use tracing::instrument;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct NewParty {
@@ -30,13 +32,15 @@ pub struct NewParty {
 
 // TODO(TK): flatten state into a single global
 /// Collect IPs for all signers then informs them
+#[instrument]
 #[rocket::get("/get_ip/<ip_address>")]
 pub async fn get_ip(
 	ip_address: String,
 	state: &State<IPs>,
 	global: &State<Global>,
 ) -> Result<Status, CustomIPError> {
-	let shared_data: &IPs = state.inner();
+	info!("get_ip");
+	// let shared_data: &IPs = state.inner();
 	let global = global.inner();
 	// TODO JA do validation on recieved keys and if keys are already had
 	// TODO JA figure out optimal node amount
@@ -44,7 +48,7 @@ pub async fn get_ip(
 	// TODO(TK): rewrote this to use an arc and unlock only once. Still could have better flow.
 
 	let new_party = {
-		let current_ips_mutex = shared_data.current_ips.clone();
+		let current_ips_mutex = global.current_ips.clone();
 		let current_ips = &mut *current_ips_mutex.lock().unwrap();
 		if current_ips.contains(&ip_address) {
 			return Err(CustomIPError::new("Duplicate IP"))
@@ -84,12 +88,14 @@ fn get_next_party_id(global: &Global) -> usize {
 /// Communication Manager calls this endpoint on each node to inform the node that it is part of a
 /// signing party. CM provides IP addresses of other nodes in the signing party for this node to
 /// subscribe to and a party_id.
+#[instrument]
 #[post("/new_party", format = "json", data = "<new_party>")]
 pub async fn new_party(
 	new_party: Json<NewParty>,
 	state: &State<IPs>,
 	// TODO(TK): make an Error type
 ) -> Result<Status, CustomIPError> {
+	info!("new_party");
 	let NewParty { ip_addresses, party_id } = new_party.into_inner();
 
 	// a new task is spawned for each created party
@@ -106,10 +112,12 @@ pub async fn new_party(
 
 /// Get rx channels from each other node in the signing party.
 // TODO(TK): the Response is a Reqwest, wrapping a stream. How do I poll messages from the stream?
+#[instrument]
 async fn rx_channels(
 	ip_addresses: Vec<String>,
 	party_id: usize,
 ) -> anyhow::Result<(Sender<SigningMessage>, Vec<ByteStream<Vec<u8>>>)> {
+	info!("rx_channels");
 	let mut handles = Vec::with_capacity(ip_addresses.len());
 	let client = reqwest::Client::new();
 	for ip in ip_addresses {
