@@ -26,8 +26,8 @@ use rocket::{
 	State,
 };
 use serde::{Deserialize, Serialize};
-use tokio::sync::broadcast::Sender;
 use std::sync::Mutex;
+use tokio::sync::broadcast::Sender;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct NewParty {
@@ -69,10 +69,8 @@ pub async fn get_ip(
 	};
 
 	for ip in &new_party.ip_addresses {
-		let client = reqwest::Client::new();
-		let route = "/post_new_party";
-		let full_route = format!("http://{}{}", &ip, route);
-		let res = client
+		let full_route = format!("http://{}/post_new_party", ip);
+		let res = reqwest::Client::new()
 			.post(full_route)
 			.header("Content-Type", "application/json")
 			.json(&new_party.clone())
@@ -98,7 +96,8 @@ fn get_next_party_id(global: &Global) -> usize {
 pub async fn post_new_party(ips_and_party_id: Json<NewParty>, state: &State<IPs>) {
 	let NewParty { ip_addresses, party_id } = ips_and_party_id.into_inner();
 
-	let (tx,rx_channels) = tokio::spawn(rx_channels(ip_addresses.clone(), party_id)).await.unwrap();
+	let (tx, rx_channels) =
+		tokio::spawn(rx_channels(ip_addresses.clone(), party_id)).await.unwrap();
 
 	// initiate signing
 	handle_signing(tx, rx_channels).await.unwrap();
@@ -114,8 +113,8 @@ async fn rx_channels(
 	party_id: usize,
 ) -> (Sender<SigningMessage>, Vec<EventStream<SigningMessage>>) {
 	let mut handles = Vec::with_capacity(ip_addresses.len());
+	let client = reqwest::Client::new();
 	for ip in ip_addresses {
-		let client = reqwest::Client::new();
 		handles.push(tokio::spawn(
 			client
 				.post(format!("http://{}/signing_registration", ip))
