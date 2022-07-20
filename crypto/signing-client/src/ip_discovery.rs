@@ -12,12 +12,16 @@
 //! get_all_ips - post - Comm manager sends signers all node addresses to sign message
 #![allow(unused_imports)]
 #![allow(unused_variables)]
-use crate::{errors::CustomIPError, signer::SigningRegistrationMessage, Global, IPs};
+use crate::{
+	errors::CustomIPError,
+	signer::{SigningMessage, SigningRegistrationMessage},
+	Global, IPs,
+};
 use futures::{future, stream};
 use reqwest::{self, Response};
 use rocket::{
 	http::{ContentType, Status},
-	response::status,
+	response::{status, stream::EventStream},
 	serde::json::Json,
 	State,
 };
@@ -93,7 +97,7 @@ fn get_next_party_id(global: &Global) -> usize {
 pub async fn post_new_party(ips_and_party_id: Json<NewParty>, state: &State<IPs>) {
 	let NewParty { ip_addresses, party_id } = ips_and_party_id.into_inner();
 
-	let rx_channels = tokio::spawn(rx_channels(&ip_addresses, party_id)).await.unwrap();
+	let rx_channels = tokio::spawn(rx_channels(ip_addresses.clone(), party_id)).await.unwrap();
 
 	// initiate signing
 
@@ -101,7 +105,11 @@ pub async fn post_new_party(ips_and_party_id: Json<NewParty>, state: &State<IPs>
 }
 
 /// get rx channels from each other node in the signing party
-async fn rx_channels(ip_addresses: &Vec<String>, party_id: usize) -> Vec<Response> {
+// TODO(TK): the Response is a stream. How do I poll messages from the stream?
+async fn rx_channels(
+	ip_addresses: Vec<String>,
+	party_id: usize,
+) -> Vec<EventStream<SigningMessage>> {
 	let mut handles = Vec::with_capacity(ip_addresses.len());
 	for ip in ip_addresses {
 		let client = reqwest::Client::new();
@@ -113,6 +121,17 @@ async fn rx_channels(ip_addresses: &Vec<String>, party_id: usize) -> Vec<Respons
 				.send(),
 		))
 	}
+	let v: Vec<EventStream<SigningMessage>> = future::join_all(handles)
+		.await
+		.into_iter()
+		.map(|res| res.unwrap().unwrap())
+		.map(|res| {
+			// TODO(TK): the Response is a stream. How do I do this type transformation?
 
-	future::join_all(handles).await.into_iter().map(|res| res.unwrap().unwrap()).collect()
+			todo!();
+		})
+		.collect();
+
+	// future::join_all(handles).await.into_iter().map(|res| res.unwrap().unwrap()).collect()
+	todo!()
 }
