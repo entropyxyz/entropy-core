@@ -46,7 +46,7 @@ jobs:
       resource_class: "2xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/protocol && cargo check
+      - run: cd crypto/centralized-keygen && cargo check
   crypto-signing-client:
     machine:
       image: "ubuntu-2004:202201-02"
@@ -75,7 +75,7 @@ jobs:
       resource_class: "2xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/protocol && cargo clippy
+      - run: cd crypto/centralized-keygen && cargo clippy
   linting-crypto-signing-client:
     machine:
       image: "ubuntu-2004:202201-02"
