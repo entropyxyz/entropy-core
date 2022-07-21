@@ -9,8 +9,10 @@
 //!
 //! - signed-message - requiers signed message in header (not implemented)
 use crate::errors::SignedMessageError;
-use rocket::http::Status;
-use rocket::request::{self, FromRequest, Outcome, Request};
+use rocket::{
+	http::Status,
+	request::{self, FromRequest, Outcome, Request},
+};
 
 pub struct SignedMessage<'r>(&'r str);
 

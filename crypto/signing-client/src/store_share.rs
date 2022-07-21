@@ -1,6 +1,5 @@
 //! # Store Share
 //!
-//!
 //! ## Overview
 //!
 //! Allows a user to send shards to nodes and have them store it.
@@ -9,14 +8,15 @@
 //! ## Routes
 //!
 //! - /store_keyshare - Post - Takes in a key and value for user
+#![allow(unused_imports)]
 use crate::Global;
-use rocket::serde::json::Json;
-use rocket::{State, http::Status};
+use rocket::{http::Status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use std::{
 	fs::File,
 	io::{BufWriter, Write},
 };
+// use tofnd::kv_manager::{error::KvError, KeyReservation, KvManager};
 
 /// User input, contains key (substrate key) and value (entropy shard)
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -38,8 +38,8 @@ pub async fn store_keyshare(
 	let cached_state = state.inner();
 	let kv_manager = cached_state.kv_manager.clone();
 
-	let reservation = kv_manager.kv().reserve_key(user_input.clone().key).await.unwrap();
-	let result = kv_manager.kv().put(reservation, user_input.clone().value).await.unwrap();
+	let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();
+	kv_manager.kv().put(reservation, user_input.value.clone()).await.unwrap();
 
 	Ok(Status::Ok)
 }

@@ -1,3 +1,0 @@
-* Notes from gg20_keygen
-
-** Blocker - round-based does not enable Alice to send messages to herself

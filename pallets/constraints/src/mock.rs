@@ -63,6 +63,7 @@ impl pallet_constraints::Config for Test {
 	type Event = Event;
 	type MaxWhitelist = MaxWhitelist;
 	type MaxAddressLength = MaxAddressLength;
+	type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.

@@ -5,12 +5,10 @@ use subxt::{Client, DefaultConfig, PairSigner, SubstrateExtrinsicParams};
 
 /// substrate node should be installed
 fn get_path() -> String {
-	let root = project_root::get_project_root();
-	let extension: &str = "/target/release/entropy";
-
-	let mut file_path: String = root.unwrap().as_path().display().to_string().to_owned();
-	file_path.push_str(extension);
-	file_path
+	format!(
+		"{}/target/release/entropy",
+		project_root::get_project_root().unwrap().to_string_lossy()
+	)
 }
 
 pub type NodeRuntimeSignedExtra = SubstrateExtrinsicParams<DefaultConfig>;
@@ -44,7 +42,7 @@ pub async fn test_node_process_stationary() -> TestNodeProcess<DefaultConfig> {
 	test_node(AccountKeyring::Alice).await
 }
 
-#[subxt::subxt(runtime_metadata_path = "../protocol/src/entropy_metadata.scale")]
+#[subxt::subxt(runtime_metadata_path = "../signing-client/entropy_metadata.scale")]
 pub mod entropy {}
 
 pub struct TestContext {
