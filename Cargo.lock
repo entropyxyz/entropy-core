@@ -9305,6 +9305,7 @@ dependencies = [
  "surf",
  "testing-utils",
  "thiserror",
+ "tofn 0.1.0 (git+https://github.com/Entropyxyz/tofn?branch=main)",
  "tofnd",
  "tokio",
  "tracing",
@@ -11200,6 +11201,31 @@ dependencies = [
  "sha2 0.9.9",
  "sha3 0.9.1",
  "tracing",
+ "zeroize",
+]
+
+[[package]]
+name = "tofn"
+version = "0.1.0"
+source = "git+https://github.com/Entropyxyz/tofn?branch=main#7bdc47e4956ae8c6618624f47e5da046d5385b54"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "chrono",
+ "clap 3.1.8",
+ "ecdsa 0.13.4",
+ "hex",
+ "hmac 0.12.1",
+ "k256 0.10.4",
+ "libpaillier",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "serde",
+ "serde_json",
+ "sha2 0.10.2",
+ "sha3 0.10.1",
+ "tracing",
+ "tracing-subscriber 0.2.25",
  "zeroize",
 ]
 

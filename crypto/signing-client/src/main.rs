@@ -44,13 +44,11 @@ mod tests;
 pub struct Global {
 	mnemonic: String,
 	endpoint: String,
-	// TODO(TK): optimize: shard mutex
+	// TODO(TK): sharding hashmap into Mutex<SigningChannel>
 	signing_channels: Arc<Mutex<HashMap<PartyId, SigningChannel>>>,
 	/// create unique ids for each signing party
 	party_id_nonce: Arc<Mutex<usize>>,
-	// TODO(TK): improve doc comment description, this struct's function is unclear
-	// TODO(TK): use Arc<Mutex> to guarantee safety across await, and reduce unlock overhead
-	/// holds Mutex locked current IPs
+	// TODO(TK): improve doc comment description for current_ips, this field's function is unclear
 	current_ips: Arc<Mutex<Vec<String>>>,
 }
 

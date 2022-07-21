@@ -10,14 +10,20 @@ use rocket::{
 	},
 	Shutdown, State,
 };
-use tofnd::{gg20::types::PartyInfo, proto::SignInit};
-use tokio::sync::broadcast::{self, Receiver};
+use tokio::sync::{
+	broadcast::{self, Receiver},
+	mpsc, oneshot,
+};
 use tracing::{info, instrument};
 
 use crate::Global;
 
+use self::context::{PartyInfo, ProtocolCommunication, SignInitSanitized};
+
 pub type PartyId = usize; // TODO(TK): this is probably somewhere else already
 pub type SigningChannel = broadcast::Sender<SigningMessage>;
+
+mod context;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
@@ -126,22 +132,52 @@ async fn make_byte_stream(
 // 	}
 // }
 
-/// Sanitize argemunts to
+/// Handles initiation procedure for the signing protocol before handing off the state to
+/// `execute_sign`. 1. Unpack first message to hand to `handle_sign_init`, which sanitizes the
+/// message 2. Create a channel for communication between protocol and final result aggregator
+/// 3. Retrieve the local `Context` for the signing protocol
+/// 4. Hand off all context to `execute_sign`
 #[instrument]
 pub(crate) async fn handle_sign(
 	tx: Sender<SigningMessage>,
 	rx_channels: Vec<ByteStream<Vec<u8>>>,
 ) -> anyhow::Result<()> {
 	info!("handle_sign");
+	// TODO(TK): most of this is copy-pasted from tofnd, with adapted types. Run over it with a test
+	// comb. 1. Unpack first message to hand to `handle_sign_init`, which sanitizes the message
 	let (sign_init, party_info) = handle_sign_init(tx, rx_channels).await?;
-	todo!();
+
+	// 2. channel for communication between protocol and final result (seems suss)
+	let (aggr_tx, aggr_rx):( oneshot::Sender<SigningMessage>, oneshot::Receiver<SigningMessage>) = oneshot::channel();
+
+	// 3. Retrieve Context
+	let todo_subindex = 0; // TODO(TK): placeholder
+	let ctx = context::Context::new(sign_init.clone(), party_info.clone(), todo_subindex)?;
+	// wrap channels needed by internal threads; receiver chan for router and sender
+
+	// channels for communication between router (sender) and protocol threads (receivers)
+	// let (sign_sender, sign_receiver) = mpsc::unbounded_channel();
+	// let chans = ProtocolCommunication::new(sign_receiver, rx_channels.clone());
+
+	// 4. Hand off all context to execute sign
+	// let signature = execute_sign(chans, &ctx).await;
+	// let _ = aggr_tx.send(signature);
+
+
+	// 5. handle results
+
+	Ok(())
 }
+
+// async fn execute_sign(chans: _, ctx: _) -> _ {
+//     todo!()
+// }
 
 #[instrument]
 async fn handle_sign_init(
-	tx: Sender<SigningMessage>,
+	tx: Sender<SigningMessage>, // should actually be a stream of messages in
 	rx_channels: Vec<ByteStream<Vec<u8>>>,
-) -> anyhow::Result<(SignInit, PartyInfo)> {
+) -> anyhow::Result<(SignInitSanitized, PartyInfo)> {
 	info!("handle_sign_init");
 	todo!()
 }
