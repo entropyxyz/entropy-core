@@ -1,6 +1,10 @@
 version: 2.1
 
 commands:
+  install-dependencies-and-checkout:
+    steps:
+      - install-dependencies
+      - checkout
   increase-swap:
     steps:
       - run: sudo swapoff -a
@@ -26,73 +30,67 @@ jobs:
       resource_class: "2xlarge"
     steps:
       - increase-swap
-      - install-dependencies
-      - checkout
+      - install-dependencies-and-checkout
       - run: pushd node && cargo build --release && cargo test
   node-benchmark:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
     steps:
-      - install-dependencies
-      - checkout
+      - install-dependencies-and-checkout
       - run: pushd node && cargo check --features=runtime-benchmarks --release
+      
   crypto-protocol:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
     steps:
-      - install-dependencies
-      - checkout
+      - install-dependencies-and-checkout
       - run: cd crypto/protocol && cargo check
   crypto-signing-client:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
     steps:
-      - install-dependencies
-      - checkout
+      - install-dependencies-and-checkout
       - run: cd crypto/signing-client && cargo check
   crypto-common:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
     steps:
-      - install-dependencies
-      - checkout
+      - install-dependencies-and-checkout
       - run: cd crypto/common && cargo check
+   
   linting-node-core:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
     steps:
-      - install-dependencies
-      - checkout
+      - install-dependencies-and-checkout
       - run: SKIP_WASM_BUILD=1 cargo clippy
   linting-crypto-protocol:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
     steps:
-      - install-dependencies
-      - checkout
+      - install-dependencies-and-checkout
       - run: cd crypto/protocol && cargo clippy
   linting-crypto-signing-client:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
     steps:
-      - install-dependencies
-      - checkout
+      - install-dependencies-and-checkout
       - run: cd crypto/signing-client && cargo clippy
   linting-crypto-common:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
     steps:
-      - install-dependencies
-      - checkout
+      - install-dependencies-and-checkout
       - run: cd crypto/common && cargo clippy
+
 workflows:
   entropy-node:
     jobs:
