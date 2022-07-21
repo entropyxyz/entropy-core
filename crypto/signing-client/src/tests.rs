@@ -4,6 +4,7 @@ use crate::{
 	sign::{
 		acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
 		get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
+		EntropyRuntime,
 	},
 	store_share::{store_keyshare, User},
 	Global,
@@ -45,6 +46,14 @@ fn get_path(extension: &str) -> String {
 	let mut file_path: String = path.unwrap().as_path().display().to_string().to_owned();
 	file_path.push_str(extension);
 	file_path
+}
+
+async fn wait_for_chain(api: &EntropyRuntime, block: u32) {
+	let mut result = get_block_number(&api).await;
+	while result.unwrap() < block {
+		sleep(Duration::from_secs(2u64)).await;
+		result = get_block_number(&api).await;
+	}
 }
 
 #[rocket::async_test]
@@ -112,8 +121,9 @@ async fn test_store_share_fail_wrong_data() {
 async fn test_sign() {
 	let cxt = test_context_stationary().await;
 	let now = time::Instant::now();
-	// sleep to make sure one block has been mined or else panic
-	sleep(Duration::from_secs(8u64)).await;
+	let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+
+	wait_for_chain(&api, 1).await;
 
 	let encoded_data = vec![
 		4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189,
@@ -197,9 +207,9 @@ async fn not_validator_block_author() {
 #[rocket::async_test]
 async fn test_get_block_author() {
 	let cxt = test_context().await;
-	sleep(Duration::from_secs(10u64)).await;
-	let api = get_api(&cxt.node_proc.ws_url).await;
-	let result = get_block_author(&api.unwrap()).await;
+	let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+	wait_for_chain(&api, 1).await;
+	let result = get_block_author(&api).await;
 	println!("result {:?}", result);
 	let alice_stash_id: subxt::sp_runtime::AccountId32 =
 		sr25519::Pair::from_string("//Alice//stash", None)
@@ -237,13 +247,13 @@ async fn test_get_author_endpoint() {
 #[rocket::async_test]
 async fn test_send_responsibility_message() {
 	let cxt = test_context().await;
-	let api = get_api(&cxt.node_proc.ws_url).await;
-	sleep(Duration::from_secs(25u64)).await;
+	let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+	wait_for_chain(&api, 3).await;
 	let mnemonic =
 		"alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
 			.to_string();
 
-	let result = acknowledge_responsibility(&api.unwrap(), &mnemonic, 3u32).await;
+	let result = acknowledge_responsibility(&api, &mnemonic, 3u32).await;
 	assert_eq!(result.is_ok(), true);
 }
 
