@@ -12,25 +12,78 @@
 //! get_all_ips - post - Comm manager sends signers all node addresses to sign message
 #![allow(unused_variables)]
 #![allow(unused_imports)]
+use std::{intrinsics::transmute, marker::PhantomData};
+
 use crate::{
 	errors::CustomIPError,
-	signer::{handle_sign, SigningMessage, SigningRegistrationMessage},
-	Global,
+	signer::{SigningMessage, SubscribingMessage},
+	Global, PartyId, RxChannel, SIGNING_PARTY_SIZE,
 };
-use futures::future;
+use futures::{future, TryFutureExt};
 use reqwest::{self};
 use rocket::{http::Status, response::stream::ByteStream, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast::Sender;
 use tracing::instrument;
 
+/// Information passed from the Communication Manager to all nodes on SigningParty Initialization.
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct NewParty {
-	pub party_id: usize,
+pub struct InitPartyInfo {
+	pub party_id: PartyId,
 	pub ip_addresses: Vec<String>,
 }
 
-// TODO(TK): flatten state into a single global
+impl InitPartyInfo {
+	pub(crate) fn new(global: &Global, ip_addresses: Vec<String>) -> Self {
+		let party_id = {
+			let mut party_id = *global.party_id_nonce.lock().unwrap();
+			party_id += 1;
+			party_id
+		};
+		Self { party_id, ip_addresses }
+	}
+}
+
+#[tylift::tylift(mod state)]
+pub(crate) enum SigningState {
+	Subscribing,
+	Signing,
+	Complete,
+}
+
+#[derive(Debug)]
+pub struct SigningParty<State: state::SigningState> {
+	/// The unique signing protocol nonce
+	pub party_id: PartyId,
+	/// An IP address for each other Node in the protocol
+	pub ip_addresses: Vec<String>,
+	/// A receiving channel from each other node in the protocol
+	pub channels: Option<Vec<RxChannel>>,
+	/// Size of the signing party
+	pub signing_party_size: usize,
+	/// Number of times this node has received subscriptions for this signing protocol. Upon
+	/// receiving `signing_party_size', subscriptions, this node will proceed to signing.
+	pub n_subscribers: usize,
+	/// Outcome of the signing protocol
+	pub result: Option<()>, // todo
+	/// Parameterization state of signging protocol
+	_marker: PhantomData<State>,
+}
+
+impl From<InitPartyInfo> for SigningParty<state::Subscribing> {
+	fn from(info: InitPartyInfo) -> SigningParty<state::Subscribing> {
+		SigningParty {
+			party_id: info.party_id,
+			ip_addresses: info.ip_addresses,
+			channels: None,
+			signing_party_size: SIGNING_PARTY_SIZE,
+			n_subscribers: 0,
+			result: None,
+			_marker: PhantomData,
+		}
+	}
+}
+
 /// Collect IPs for all signers then informs them
 #[instrument]
 #[rocket::get("/get_ip/<ip_address>")]
@@ -42,29 +95,29 @@ pub async fn get_ip(ip_address: String, global: &State<Global>) -> Result<Status
 	// TODO JA validate not a duplicated IP
 	// TODO(TK): rewrote this to use an arc and unlock only once. Still could have better flow.
 
-	let new_party = {
+	let init_party_info = {
 		let current_ips_mutex = global.current_ips.clone();
-		let current_ips = &mut *current_ips_mutex.lock().unwrap();
-		if current_ips.contains(&ip_address) {
+		let ip_addresses = &mut *current_ips_mutex.lock().unwrap();
+		if ip_addresses.contains(&ip_address) {
 			return Err(CustomIPError::new("Duplicate IP"))
-		// TODO(TK): why 4? replace with labeled const
-		} else if current_ips.len() < 4 {
-			current_ips.push(ip_address);
+		// @JA: validate this line, updated from 4 to SPS=6
+		} else if ip_addresses.len() < SIGNING_PARTY_SIZE {
+			ip_addresses.push(ip_address);
 			return Ok(Status::Ok)
 		} else {
 			// TODO(TK): clarify what this branch is doing
-			current_ips.push(ip_address);
-			let v = current_ips.to_vec();
+			ip_addresses.push(ip_address);
+			let v = ip_addresses.to_vec();
 
-			NewParty { party_id: get_next_party_id(global), ip_addresses: current_ips.clone() }
+			InitPartyInfo::new(global, ip_addresses.clone())
 		}
 	};
 
-	for ip in &new_party.ip_addresses {
+	for ip in &init_party_info.ip_addresses {
 		let res = reqwest::Client::new()
 			.post(format!("http://{}/new_party", ip))
 			.header("Content-Type", "application/json")
-			.json(&new_party)
+			.json(&init_party_info)
 			.send()
 			.await
 			.unwrap();
@@ -72,75 +125,83 @@ pub async fn get_ip(ip_address: String, global: &State<Global>) -> Result<Status
 	Ok(Status::Ok)
 }
 
-/// increment the party_id_nonce, and return the next party_id
-fn get_next_party_id(global: &Global) -> usize {
-	let party_id_mutex = global.party_id_nonce.clone();
-	let mut party_id = *party_id_mutex.lock().unwrap();
-	party_id += 1;
-	party_id
-}
-
-/// Communication Manager calls this endpoint on each node to inform the node that it is part of a
-/// signing party. CM provides IP addresses of other nodes in the signing party for this node to
-/// subscribe to and a party_id.
+/// Initiate a new signing party.
+/// Communication Manager calls this endpoint for each node in the new Signing Party.
+///
+/// Upon receiving `new_party`, this node contacts all other nodes in the party and initiates the
+/// signing protocol.
 #[instrument]
-#[post("/new_party", format = "json", data = "<new_party>")]
+#[post("/new_party", format = "json", data = "<party_info>")]
 pub async fn new_party(
-	new_party: Json<NewParty>,
+	party_info: Json<InitPartyInfo>,
 	_global: &State<Global>,
 	// TODO(TK): make an Error type
 ) -> Result<Status, CustomIPError> {
 	info!("new_party");
-	let NewParty { ip_addresses, party_id } = new_party.into_inner();
+	let party = SigningParty::from(party_info.into_inner());
 
-	// a new task is spawned for each created party
 	tokio::spawn(async move {
-		// Get broadcast sending channel & receiving channels for each other node.
-		let (tx, rx_channels) = rx_channels(ip_addresses.clone(), party_id).await.unwrap();
-
-		if let Err(e) = handle_sign(tx, rx_channels).await {
+		if let Err(e) = party
+			.subscribe_and_await_subscribers()
+			.and_then(move |party| party.sign())
+			.await
+		{
 			// TODO(TK): handle errors
+			todo!();
 		}
 	});
 	Ok(Status::Ok)
 }
 
-/// Get rx channels from each other node in the signing party.
-// TODO(TK): the Response is a Reqwest, wrapping a stream. How do I poll messages from the stream?
-#[instrument]
-async fn rx_channels(
-	ip_addresses: Vec<String>,
-	party_id: usize,
-) -> anyhow::Result<(Sender<SigningMessage>, Vec<ByteStream<Vec<u8>>>)> {
-	info!("rx_channels");
-	let mut handles = Vec::with_capacity(ip_addresses.len());
-	let client = reqwest::Client::new();
-	for ip in ip_addresses {
-		handles.push(tokio::spawn(
-			client
-				.post(format!("http://{}/signing_registration", ip))
-				.header("Content-Type", "application/json")
-				.json(&SigningRegistrationMessage { party_id })
-				.send(),
-		))
-	}
-	// let v: Vec<ByteStream<Vec<u8>>> = future::join_all(handles)
-	// 	.await
-	// 	.into_iter()
-	// 	.map(|res| {
-	// 		let a: Result<Result<reqwest::Response, reqwest::Error>, tokio::task::JoinError> = res;
-	// 		match res {
-	// 			Err(e) => todo!(), // handle tokio error
-	// 			Ok(res) => match res {
-	// 				// handle response error
-	// 				Err(e) => todo!(),
-	// 				// response is a bytes stream from another node.
-	// 				Ok(res) => ByteStream(res.bytes_stream()),
-	// 			},
-	// 		}
-	// 	})
-	// .collect();
+impl SigningParty<state::Subscribing> {
+	/// Subscribe: Call `subscribe` on each other node in the signing party. Get back vector of
+	/// receivers.
+	// #[instrument]
+	async fn subscribe_and_await_subscribers(
+		mut self,
+	) -> anyhow::Result<SigningParty<state::Signing>> {
+		// info!("subscribe_to_party");
+		let mut handles = Vec::with_capacity(self.ip_addresses.len());
+		let client = reqwest::Client::new();
+		for ip in &self.ip_addresses {
+			handles.push(tokio::spawn(
+				client
+					.post(format!("http://{}/subscribe", ip))
+					.header("Content-Type", "application/json")
+					.json(&SubscribingMessage::new(self.party_id))
+					.send(),
+			))
+		}
+		// let v: Vec<ByteStream<Vec<u8>>> = future::join_all(handles)
+		// 	.await
+		// 	.into_iter()
+		// 	.map(|res| {
+		// 		let a: Result<Result<reqwest::Response, reqwest::Error>, tokio::task::JoinError> = res;
+		// 		match res {
+		// 			Err(e) => todo!(), // handle tokio error
+		// 			Ok(res) => match res {
+		// 				// handle response error
+		// 				Err(e) => todo!(),
+		// 				// response is a bytes stream from another node.
+		// 				Ok(res) => ByteStream(res.bytes_stream()),
+		// 			},
+		// 		}
+		// 	})
+		// .collect();
 
-	// future::join_all(handles).await.into_iter().map(|res| res.unwrap().unwrap()).collect()
-	todo!()
+		// future::join_all(handles).await.into_iter().map(|res| res.unwrap().unwrap()).collect()
+		unsafe { Ok(transmute(self)) }
+	}
 }
+
+impl SigningParty<state::Signing> {
+	pub(crate) async fn sign(mut self) -> anyhow::Result<SigningParty<state::Complete>> {
+		todo!()
+	}
+}
+
+// impl SigningParty<state::Complete> {
+// 	pub(crate) fn get_result(self) -> anyhow::Result<()> {
+// 		Ok(())
+// 	}
+// }

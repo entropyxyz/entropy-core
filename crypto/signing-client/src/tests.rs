@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 use super::rocket;
 use crate::{
-	ip_discovery::{new_party, NewParty},
+	ip_discovery::{new_party, SigningParty},
 	sign::*,
 	store_share::User,
 	Global,
@@ -307,13 +307,13 @@ async fn send_ip_address_test() {
 
 #[rocket::async_test]
 #[serial]
-async fn new_party_test() {
+async fn signing_party_test() {
 	let client = setup_client().await;
 	let all_ip_vec = vec!["test".to_string(), "test".to_string()];
-	let new_party = NewParty { ip_addresses: all_ip_vec.clone(), party_id: 0 };
+	let new_party = InitPartyInfo::new(all_ip_vec.clone(), 0);
 
 	let response = client
-		.post("/new_party")
+		.post("/signing_party")
 		.header(ContentType::JSON)
 		.body(serde_json::to_string(&new_party.clone()).unwrap())
 		.dispatch()
@@ -356,7 +356,7 @@ async fn create_clients(port: i64) {
 
 	let global = Global::default();
 
-	Client::tracked(rocket::custom(config).mount("/", routes![new_party]).manage(global))
+	Client::tracked(rocket::custom(config).mount("/", routes![signing_party]).manage(global))
 		.await
 		.expect("valid `Rocket`");
 }

@@ -13,13 +13,14 @@
 use crate::{
 	ip_discovery::{get_ip, new_party},
 	sign::provide_share,
-	signer::signing_registration,
+	signer::subscribe,
 	store_share::store_keyshare,
 };
 use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::Deserialize;
-use signer::{PartyId, SigningChannel};
+use signer::SigningMessage;
+use tokio::sync::broadcast;
 use std::{
 	collections::HashMap,
 	sync::{Arc, Mutex},
@@ -39,15 +40,20 @@ mod store_share;
 #[cfg(test)]
 mod tests;
 
+pub type PartyId = usize;
+pub type RxChannel = broadcast::Receiver<SigningMessage>;
+
+pub const SIGNING_PARTY_SIZE: usize = 6;
+
 /// holds KVDB instance, threshold mnemonic and endpoint of running node
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct Global {
 	mnemonic: String,
 	endpoint: String,
 	// TODO(TK): sharding hashmap into Mutex<SigningChannel>
-	signing_channels: Arc<Mutex<HashMap<PartyId, SigningChannel>>>,
+	signing_channels: Arc<Mutex<HashMap<PartyId, RxChannel>>>,
 	/// create unique ids for each signing party
-	party_id_nonce: Arc<Mutex<usize>>,
+	party_id_nonce: Mutex<usize>,
 	// TODO(TK): improve doc comment description for current_ips, this field's function is unclear
 	current_ips: Arc<Mutex<Vec<String>>>,
 }
@@ -88,12 +94,12 @@ async fn rocket() -> _ {
 	let kv_manager = EntropyKvManager(load_kv_store());
 
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
-	// Communication Manager: Collect IPs, for `new_party`, list of global ip addresses for a
+	// Communication Manager: Collect IPs, for `signing_party`, list of global ip addresses for a
 	// message.
 	rocket::build()
 		.mount(
 			"/",
-			routes![store_keyshare, provide_share, get_ip, new_party, signing_registration,],
+			routes![store_keyshare, provide_share, get_ip, new_party, subscribe],
 		)
 		.manage(global)
 		.manage(kv_manager)
