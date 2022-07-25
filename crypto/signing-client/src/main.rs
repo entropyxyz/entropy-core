@@ -11,20 +11,19 @@
 //! - Sled DB KVDB
 #![allow(unused_variables)]
 use crate::{
-	ip_discovery::{get_ip, new_party},
+	ip_discovery::{get_ip, new_party, subscribe},
 	sign::provide_share,
-	signer::subscribe,
 	store_share::store_keyshare,
 };
 use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::Deserialize;
 use signer::SigningMessage;
-use tokio::sync::broadcast;
 use std::{
 	collections::HashMap,
 	sync::{Arc, Mutex},
 };
+use tokio::sync::broadcast;
 
 use tofnd::{config::parse_args, kv_manager::KvManager};
 
@@ -97,10 +96,7 @@ async fn rocket() -> _ {
 	// Communication Manager: Collect IPs, for `signing_party`, list of global ip addresses for a
 	// message.
 	rocket::build()
-		.mount(
-			"/",
-			routes![store_keyshare, provide_share, get_ip, new_party, subscribe],
-		)
+		.mount("/", routes![store_keyshare, provide_share, get_ip, new_party, subscribe])
 		.manage(global)
 		.manage(kv_manager)
 }

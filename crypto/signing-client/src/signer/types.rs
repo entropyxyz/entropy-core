@@ -23,18 +23,18 @@ enum SigningState {
 #[derive(Debug)]
 pub(crate) struct SigningParty<State: state::SigningState> {
 	/// The unique signing protocol nonce
-	pub party_id: PartyId,
+	party_id: PartyId,
 	/// An IP address for each other Node in the protocol
-	pub ip_addresses: Vec<String>,
+	ip_addresses: Vec<String>,
 	/// A receiving channel from each other node in the protocol
-	pub channels: Option<Vec<RxChannel>>,
+	channels: Option<Vec<RxChannel>>,
 	/// Size of the signing party
-	pub signing_party_size: usize,
+	signing_party_size: usize,
 	/// Number of times this node has received subscriptions for this signing protocol. Upon
 	/// receiving `signing_party_size', subscriptions, this node will proceed to signing.
-	pub n_subscribers: usize,
+	n_subscribers: usize,
 	/// Outcome of the signing protocol
-	pub result: Option<()>, // todo
+	result: Option<anyhow::Result<()>>, // todo
 	/// Type parameterization of the state of protocol execution
 	_marker: PhantomData<State>,
 }
@@ -96,12 +96,14 @@ impl SigningParty<state::Subscribing> {
 
 impl SigningParty<state::Signing> {
 	pub(crate) async fn sign(mut self) -> anyhow::Result<SigningParty<state::Complete>> {
-		todo!()
+		self.result = Some(Ok(())); // todo
+		unsafe { Ok(transmute(self)) }
 	}
 }
 
-// impl SigningParty<state::Complete> {
-// 	pub(crate) fn get_result(self) -> anyhow::Result<()> {
-// 		Ok(())
-// 	}
-// }
+impl SigningParty<state::Complete> {
+	pub(crate) fn get_result(&self) -> &anyhow::Result<()> {
+		// unwrap is safe because of state parameterization
+		self.result.as_ref().unwrap()
+	}
+}

@@ -16,17 +16,15 @@ use std::{intrinsics::transmute, marker::PhantomData};
 
 use crate::{
 	errors::CustomIPError,
-	signer::{SigningMessage, SubscribingMessage},
+	signer::{InitPartyInfo, SigningMessage, SigningParty, SubscribingMessage},
 	Global, PartyId, RxChannel, SIGNING_PARTY_SIZE,
 };
 use futures::{future, TryFutureExt};
 use reqwest::{self};
-use rocket::{http::Status, response::stream::ByteStream, serde::json::Json, State};
+use rocket::{http::Status, response::stream::ByteStream, serde::json::Json, Shutdown, State};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast::Sender;
 use tracing::instrument;
-use crate::signer::{SigningParty,InitPartyInfo};
-
 
 /// Collect IPs for all signers then informs them
 #[instrument]
@@ -95,4 +93,28 @@ pub async fn new_party(
 		}
 	});
 	Ok(Status::Ok)
+}
+
+/// An endpoint for other nodes to subscribe to messages produced by this node.
+///
+/// Todo:
+/// - What if this node hasn't yet heard about the SigningParty?
+/// - validate the IP address of the caller
+/// - Test: must fail if party is over
+// #[instrument]
+#[post("/subscribe", data = "<subscribing_message>")]
+pub async fn subscribe(
+	subscribing_message: Json<SubscribingMessage>,
+	end: Shutdown,
+	state: &State<Global>,
+) -> () {
+	// ) -> EventStream![SigningMessage] {
+	// info!("signing_registration");
+	let subscribing_message = subscribing_message.into_inner();
+	let cached_state = state.inner();
+	// validate_registration(&subscribing_message); // todo: how to validate caller ip address?
+
+	// Subscribe to the sender, creating one if it doesn't yet exist.
+	// let rx = subscribe_or_create_channel(cached_state, new_party.clone());
+	todo!()
 }
