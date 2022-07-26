@@ -10,13 +10,15 @@
 //! - Rocket server - Includes global state and mutex locked IPs
 //! - Sled DB KVDB
 #![allow(unused_variables)]
+#![feature(type_alias_impl_trait)]
 use crate::{
 	ip_discovery::{get_ip, new_party, subscribe},
 	sign::provide_share,
 	store_share::store_keyshare,
 };
 use bip39::{Language, Mnemonic};
-use rocket::routes;
+use futures::Stream;
+use rocket::{routes, http::hyper::body::Bytes};
 use serde::Deserialize;
 use signer::SigningMessage;
 use std::{
@@ -40,7 +42,7 @@ mod store_share;
 mod tests;
 
 pub type PartyId = usize;
-pub type RxChannel = broadcast::Receiver<SigningMessage>;
+pub type RxChannel = impl Stream<Item = Result<Bytes, reqwest::Error>>;
 
 pub const SIGNING_PARTY_SIZE: usize = 6;
 
@@ -50,7 +52,7 @@ pub struct Global {
 	mnemonic: String,
 	endpoint: String,
 	// TODO(TK): sharding hashmap into Mutex<SigningChannel>
-	signing_channels: Arc<Mutex<HashMap<PartyId, RxChannel>>>,
+	// signing_channels: Arc<Mutex<HashMap<PartyId, RxChannel>>>,
 	/// create unique ids for each signing party
 	party_id_nonce: Mutex<usize>,
 	// TODO(TK): improve doc comment description for current_ips, this field's function is unclear

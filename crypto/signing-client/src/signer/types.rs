@@ -5,11 +5,11 @@ use crate::{
 	signer::{init_party_info::InitPartyInfo, SigningMessage, SubscribingMessage},
 	Global, PartyId, RxChannel, SIGNING_PARTY_SIZE,
 };
-use futures::{future, TryFutureExt};
+use futures::{future, StreamExt, TryFutureExt};
 use reqwest::{self};
 use rocket::{http::Status, response::stream::ByteStream, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
-use tokio::sync::broadcast::Sender;
+use tokio::sync::broadcast::{self, Sender};
 use tracing::instrument;
 
 #[tylift::tylift(mod state)]
@@ -20,16 +20,19 @@ enum SigningState {
 	Complete,
 }
 
-#[derive(Debug)]
+// #[derive(Debug)]
 pub(crate) struct SigningParty<State: state::SigningState> {
 	/// The unique signing protocol nonce
 	party_id: PartyId,
 	/// An IP address for each other Node in the protocol
 	ip_addresses: Vec<String>,
 	/// A receiving channel from each other node in the protocol
-	channels: Option<Vec<RxChannel>>,
+	// todo: this might be better as a single merged stream
+	rx_channels: Option<RxChannel>,
 	/// Size of the signing party
 	signing_party_size: usize,
+	/// the broadcasting sender for the party
+	broadcast_channel: broadcast::Sender<SigningMessage>,
 	/// Number of times this node has received subscriptions for this signing protocol. Upon
 	/// receiving `signing_party_size', subscriptions, this node will proceed to signing.
 	n_subscribers: usize,
@@ -41,11 +44,13 @@ pub(crate) struct SigningParty<State: state::SigningState> {
 
 impl From<InitPartyInfo> for SigningParty<state::Subscribing> {
 	fn from(info: InitPartyInfo) -> SigningParty<state::Subscribing> {
+		let (tx, _) = broadcast::channel(1000); // effectively unbound
 		SigningParty {
 			party_id: info.party_id,
 			ip_addresses: info.ip_addresses,
-			channels: None,
+			rx_channels: None,
 			signing_party_size: SIGNING_PARTY_SIZE,
+			broadcast_channel: tx,
 			n_subscribers: 0,
 			result: None,
 			_marker: PhantomData,
@@ -61,36 +66,42 @@ impl SigningParty<state::Subscribing> {
 		mut self,
 	) -> anyhow::Result<SigningParty<state::Signing>> {
 		// info!("subscribe_to_party");
+
 		let mut handles = Vec::with_capacity(self.ip_addresses.len());
-		let client = reqwest::Client::new();
-		for ip in &self.ip_addresses {
-			handles.push(tokio::spawn(
+
+		for ip in self.ip_addresses.clone() {
+			let client = reqwest::Client::new();
+			handles.push(
 				client
 					.post(format!("http://{}/subscribe", ip))
 					.header("Content-Type", "application/json")
 					.json(&SubscribingMessage::new(self.party_id))
 					.send(),
-			))
+			);
 		}
-		// let v: Vec<ByteStream<Vec<u8>>> = future::join_all(handles)
-		// 	.await
-		// 	.into_iter()
-		// 	.map(|res| {
-		// 		let a: Result<Result<reqwest::Response, reqwest::Error>, tokio::task::JoinError> = res;
-		// 		match res {
-		// 			Err(e) => todo!(), // handle tokio error
-		// 			Ok(res) => match res {
-		// 				// handle response error
-		// 				Err(e) => todo!(),
-		// 				// response is a bytes stream from another node.
-		// 				Ok(res) => ByteStream(res.bytes_stream()),
-		// 			},
-		// 		}
-		// 	})
-		// .collect();
 
-		// future::join_all(handles).await.into_iter().map(|res| res.unwrap().unwrap()).collect()
+		let rx_channels = future::join_all(handles)
+			.await
+			.into_iter()
+			// .unwrap() // todo
+			// ignore the crap
+			.map(|x| {
+				let stream = x.unwrap().bytes_stream();
+				// .filter(future::ready(&**x.unwrap() != b":\n" && &**x.unwrap() != b"\n"));
+				stream
+				// .filter(|x| future::ready(&**x != b":\n" && &**x != b"\n"))
+			})
+			.collect();
+
+		// self.rx_channels = Some(rx_channels.merge());
+
 		unsafe { Ok(transmute(self)) }
+	}
+
+	/// Add a new subscriber to this node's list of subscribees
+	pub(crate) async fn new_subscriber(&mut self) -> broadcast::Receiver<SigningMessage> {
+		self.n_subscribers += 1;
+		self.broadcast_channel.subscribe()
 	}
 }
 

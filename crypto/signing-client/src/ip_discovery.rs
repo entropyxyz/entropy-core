@@ -15,7 +15,7 @@
 use std::{intrinsics::transmute, marker::PhantomData};
 
 use crate::{
-	errors::CustomIPError,
+	errors::{CustomIPError, SigningProtocolError},
 	signer::{InitPartyInfo, SigningMessage, SigningParty, SubscribingMessage},
 	Global, PartyId, RxChannel, SIGNING_PARTY_SIZE,
 };
@@ -27,10 +27,10 @@ use tokio::sync::broadcast::Sender;
 use tracing::instrument;
 
 /// Collect IPs for all signers then informs them
-#[instrument]
+// #[instrument]
 #[rocket::get("/get_ip/<ip_address>")]
 pub async fn get_ip(ip_address: String, global: &State<Global>) -> Result<Status, CustomIPError> {
-	info!("get_ip");
+	// info!("get_ip");
 	let global = global.inner();
 	// TODO JA do validation on recieved keys and if keys are already had
 	// TODO JA figure out optimal node amount
@@ -55,8 +55,9 @@ pub async fn get_ip(ip_address: String, global: &State<Global>) -> Result<Status
 		}
 	};
 
+	let client = reqwest::Client::new();
 	for ip in &init_party_info.ip_addresses {
-		let res = reqwest::Client::new()
+		let res = client
 			.post(format!("http://{}/new_party", ip))
 			.header("Content-Type", "application/json")
 			.json(&init_party_info)
@@ -77,21 +78,19 @@ pub async fn get_ip(ip_address: String, global: &State<Global>) -> Result<Status
 pub async fn new_party(
 	party_info: Json<InitPartyInfo>,
 	_global: &State<Global>,
-	// TODO(TK): make an Error type
-) -> Result<Status, CustomIPError> {
+) -> Result<Status, SigningProtocolError> {
 	info!("new_party");
 	let party = SigningParty::from(party_info.into_inner());
 
-	tokio::spawn(async move {
-		if let Err(e) = party
-			.subscribe_and_await_subscribers()
-			.and_then(move |party| party.sign())
-			.await
-		{
-			// TODO(TK): handle errors
-			todo!();
-		}
-	});
+	if let Err(e) = party
+		.subscribe_and_await_subscribers()
+		.and_then(move |party| party.sign())
+		.await
+	{
+		// TODO(TK): handle errors
+		return Err(SigningProtocolError::Other("we're very disappointed"))
+	}
+
 	Ok(Status::Ok)
 }
 
@@ -111,8 +110,16 @@ pub async fn subscribe(
 	// ) -> EventStream![SigningMessage] {
 	// info!("signing_registration");
 	let subscribing_message = subscribing_message.into_inner();
-	let cached_state = state.inner();
-	// validate_registration(&subscribing_message); // todo: how to validate caller ip address?
+	let state = state.inner();
+
+	// validate that the CM has told this node about the signing party
+	// and the ip address of the caller is valid
+	if !subscribing_message.validate_registration(&state) {
+		// TODO(TK): handle
+	}
+
+	// get the broadcast sender for the party, add a new subscriber, and increment subscriber count
+	// let rx =
 
 	// Subscribe to the sender, creating one if it doesn't yet exist.
 	// let rx = subscribe_or_create_channel(cached_state, new_party.clone());

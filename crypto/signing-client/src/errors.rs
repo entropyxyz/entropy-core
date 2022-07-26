@@ -30,6 +30,17 @@ impl CustomIPError {
 	}
 }
 
+#[allow(dead_code)]
+#[derive(Responder, Debug)]
+#[response(status = 418, content_type = "json")]
+pub enum SigningProtocolError {
+	Validation(&'static str),
+	Subscribing(&'static str),
+	Signing(&'static str),
+	Other(&'static str),
+}
+// (&'static str);
+
 // #[derive(Debug, Clone, Error, Responder)]
 // pub enum SigningError {
 // 	#[error("initiation of signing protocol failed, IPs not available: {ips:?}")]

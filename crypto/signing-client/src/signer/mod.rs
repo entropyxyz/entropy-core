@@ -37,6 +37,20 @@ impl SubscribingMessage {
 	pub(crate) fn new(party_id: PartyId) -> Self {
 		Self { party_id }
 	}
+
+	/// Validate that the this node knows about party with `party_id`
+	// todo:
+	// and that the calling node is in the party group
+	pub(crate) fn validate_registration(&self, state: &Global) -> bool {
+		// 	let channels = state.signing_channels.clone();
+		// 	let contains_key = channels.lock().unwrap().contains_key(&self.party_id);
+		// 	if contains_key {
+		// 		true
+		// 	} else {
+		// 		false
+		// 	}
+		true
+	}
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

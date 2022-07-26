@@ -356,7 +356,7 @@ async fn create_clients(port: i64) {
 
 	let global = Global::default();
 
-	Client::tracked(rocket::custom(config).mount("/", routes![signing_party]).manage(global))
+	Client::tracked(rocket::custom(config).mount("/", routes![new_party]).manage(global))
 		.await
 		.expect("valid `Rocket`");
 }
