@@ -20,7 +20,6 @@ use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::{Deserialize, Serialize};
 use std::{env, sync::Mutex};
-use tofnd::{config::parse_args, encrypted_sled::Db as tofndDb, kv_manager::KvManager};
 
 #[macro_use]
 extern crate rocket;
@@ -31,6 +30,12 @@ mod request_guards;
 mod sign;
 mod signer;
 mod store_share;
+mod encrypted_sled;
+mod kv_manager;
+mod config;
+pub use kv_manager::KvManager;
+pub use config::parse_args;
+
 #[cfg(test)]
 mod tests;
 
@@ -101,7 +106,7 @@ fn load_environment_variables() -> Configuration {
 fn load_kv_store() -> KvManager {
 	if cfg!(test) {
 		let root = project_root::get_project_root().unwrap();
-		KvManager::new(root, tofnd::encrypted_sled::PasswordMethod::NoPassword.execute().unwrap())
+		KvManager::new(root, encrypted_sled::PasswordMethod::NoPassword.execute().unwrap())
 			.unwrap()
 	} else {
 		let cfg = parse_args().unwrap();

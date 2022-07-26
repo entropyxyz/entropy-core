@@ -869,6 +869,18 @@ dependencies = [
 
 [[package]]
 name = "chacha20"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c80e5460aa66fe3b91d40bcbdab953a597b60053e34d684ac6903f863b680a6"
+dependencies = [
+ "cfg-if 1.0.0",
+ "cipher 0.3.0",
+ "cpufeatures 0.2.2",
+ "zeroize",
+]
+
+[[package]]
+name = "chacha20"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7fc89c7c5b9e7a02dfe45cd2367bae382f9ed31c61ca8debe5f827c420a2f08"
@@ -886,6 +898,19 @@ checksum = "1580317203210c517b6d44794abfbe600698276db18127e37ad3e69bf5e848e5"
 dependencies = [
  "aead 0.4.3",
  "chacha20 0.7.1",
+ "cipher 0.3.0",
+ "poly1305",
+ "zeroize",
+]
+
+[[package]]
+name = "chacha20poly1305"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a18446b09be63d457bbec447509e85f662f32952b035ce892290396bc0b0cff5"
+dependencies = [
+ "aead 0.4.3",
+ "chacha20 0.8.2",
  "cipher 0.3.0",
  "poly1305",
  "zeroize",
@@ -9285,28 +9310,38 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bip39",
+ "chacha20poly1305 0.9.1",
+ "clap 3.1.8",
  "common",
  "constraints",
+ "dirs",
  "envy",
  "futures 0.3.21",
  "local-ip",
  "log",
  "parity-scale-codec",
  "project-root",
+ "rand 0.8.5",
  "reqwest",
  "rocket",
+ "rpassword",
+ "scrypt",
  "serde",
  "serde_json",
  "serial_test",
+ "sled",
  "sp-core 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-keyring 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "subxt",
  "surf",
  "testing-utils",
  "thiserror",
+ "tofn 0.1.0 (git+https://github.com/axelarnetwork/tofn?branch=main)",
  "tofnd",
  "tokio",
+ "tracing",
  "uuid",
+ "zeroize",
 ]
 
 [[package]]
@@ -11220,7 +11255,7 @@ dependencies = [
  "sha2 0.10.2",
  "sha3 0.10.1",
  "tracing",
- "tracing-subscriber 0.2.25",
+ "tracing-subscriber 0.3.11",
  "zeroize",
 ]
 
