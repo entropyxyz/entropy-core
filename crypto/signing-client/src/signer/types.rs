@@ -114,6 +114,7 @@ impl SigningParty<state::Subscribing> {
 		// TODO(TK): actually merge these streams though
 		// let rx_channel = rx_channels.merge().into_stream();
 		// self.rx_channel = Some(rx_channel);
+		self.rx_channel = None; // placeholder
 
 		unsafe { Ok(transmute(self)) }
 	}
