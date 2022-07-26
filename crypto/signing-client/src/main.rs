@@ -17,12 +17,9 @@ use crate::{
 	store_share::store_keyshare,
 };
 use bip39::{Language, Mnemonic};
-use futures::Stream;
-use rocket::{routes, http::hyper::body::Bytes};
+use rocket::routes;
 use serde::Deserialize;
-use std::{
-	sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use tofnd::{config::parse_args, kv_manager::KvManager};
 
