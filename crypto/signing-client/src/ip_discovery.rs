@@ -16,7 +16,7 @@ use std::{intrinsics::transmute, marker::PhantomData};
 
 use crate::{
 	errors::{CustomIPError, SigningProtocolError},
-	signer::{InitPartyInfo, SigningMessage, SigningParty, SubscribingMessage},
+	signer::{InitPartyInfo, SigningMessage, SigningParty, SubscribeCount, SubscribingMessage},
 	Global, PartyId, SIGNING_PARTY_SIZE,
 };
 use futures::{future, TryFutureExt};
@@ -86,9 +86,10 @@ pub async fn new_party(
 	// When all other nodes have subscribed to this node, advance the protocol state.
 	let (tx, rx) = oneshot::channel();
 	{
-		let map = *state.subscribers_ready.lock()?;
-		assert!(!map.contains_key(party.party_id));
-		map.insert(party.party_id, tx);
+		let map = &mut *state.subscribers_count.lock().unwrap();
+		assert!(!map.contains_key(&party.party_id));
+		let subscribe_count = SubscribeCount::new(tx);
+		map.insert(party.party_id, Some(subscribe_count));
 	}
 
 	if let Err(e) = party
@@ -115,7 +116,7 @@ pub async fn subscribe(
 	subscribing_message: Json<SubscribingMessage>,
 	end: Shutdown,
 	state: &State<Global>,
-) -> () {
+) {
 	// ) -> EventStream![SigningMessage] {
 	// info!("signing_registration");
 	let subscribing_message = subscribing_message.into_inner();
@@ -127,10 +128,27 @@ pub async fn subscribe(
 		// TODO(TK): handle
 	}
 
+	let map = &mut *state.subscribers_count.lock().unwrap();
+	// todo: refactor
+	let mut subscribe_count = map.remove(&subscribing_message.party_id).unwrap().unwrap();
+	if subscribe_count.increment_maybe_final() {
+		map.insert(subscribing_message.party_id, None);
+	}else{
+		map.insert(subscribing_message.party_id, Some(subscribe_count));
+	}
+
 	// get the broadcast sender for the party, add a new subscriber, and increment subscriber count
-	// let rx =
+
+	// if this is the final subscriber, indicate readiness to advance the protocol
+	// let mut last = false;
+	// if subscribe_count.count == SIGNING_PARTY_SIZE - 1 {
+	// 	last = true;
+	// // subscribe_count.send();
+	// // map.insert(subscribing_message.party_id, None);
+	// } else {
+	// 	subscribe_count.count += 1;
+	// }
 
 	// Subscribe to the sender, creating one if it doesn't yet exist.
 	// let rx = subscribe_or_create_channel(cached_state, new_party.clone());
-	todo!()
 }

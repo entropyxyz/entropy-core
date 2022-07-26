@@ -5,7 +5,7 @@ use crate::{
 	signer::{init_party_info::InitPartyInfo, SigningMessage, SubscribingMessage},
 	Global, PartyId, SIGNING_PARTY_SIZE,
 };
-use futures::{future, Stream, StreamExt, TryFutureExt, channel::oneshot};
+use futures::{future, Stream, StreamExt, TryFutureExt};
 use merge_streams::{IntoStream, MergeStreams, StreamExt as MergeStreamExt};
 use reqwest::{self};
 use rocket::{
@@ -15,7 +15,10 @@ use rocket::{
 	State,
 };
 use serde::{Deserialize, Serialize};
-use tokio::sync::broadcast::{self, Sender};
+use tokio::sync::{
+	broadcast::{self, Sender},
+	oneshot,
+};
 use tracing::instrument;
 
 #[tylift::tylift(mod state)]
@@ -29,23 +32,46 @@ enum SigningState {
 // #[derive(Debug)]
 pub(crate) struct SigningParty<State: state::SigningState> {
 	/// The unique signing protocol nonce
-	party_id: PartyId,
+	pub party_id: PartyId,
 	/// An IP address for each other Node in the protocol
-	ip_addresses: Vec<String>,
+	pub ip_addresses: Vec<String>,
 	/// A receiving channel from each other node in the protocol
 	// todo: this might be better as a single merged stream
-	rx_channel: Option<MessageStream>,
+	pub rx_channel: Option<MessageStream>,
 	/// Size of the signing party
-	signing_party_size: usize,
+	pub signing_party_size: usize,
 	/// the broadcasting sender for the party
-	broadcast_channel: broadcast::Sender<SigningMessage>,
+	pub broadcast_channel: broadcast::Sender<SigningMessage>,
 	/// Number of times this node has received subscriptions for this signing protocol. Upon
 	/// receiving `signing_party_size', subscriptions, this node will proceed to signing.
-	n_subscribers: usize,
+	pub n_subscribers: usize,
 	/// Outcome of the signing protocol
-	result: Option<anyhow::Result<()>>, // todo
+	pub result: Option<anyhow::Result<()>>, // todo
 	/// Type parameterization of the state of protocol execution
 	_marker: PhantomData<State>,
+}
+
+/// The number of subscribers, and a channel to indicate readiness
+#[derive(Debug)]
+pub(crate) struct SubscribeCount {
+	pub tx: Option<oneshot::Sender<()>>,
+	pub count: usize,
+}
+
+impl SubscribeCount {
+	pub(crate) fn new(tx: oneshot::Sender<()>) -> Self {
+		Self { tx: Some(tx), count: 0 }
+	}
+
+	pub(crate) fn increment_maybe_final(&mut self) -> bool {
+		self.count += 1;
+		if self.count == SIGNING_PARTY_SIZE {
+			let _ = self.tx.take().unwrap().send(());
+			true
+		} else {
+			false
+		}
+	}
 }
 
 // TODO(TK): hack, while I figure out what to type this stream
@@ -115,8 +141,11 @@ impl SigningParty<state::Subscribing> {
 		// TODO(TK): actually merge these streams though
 		// let rx_channel = rx_channels.merge().into_stream();
 		// self.rx_channel = Some(rx_channel);
+
 		self.rx_channel = None; // placeholder
 
+		// await confirmation all other nodes have subscribed, then proceed with protocol
+		let _ = subscriber_rx.await;
 		unsafe { Ok(transmute(self)) }
 	}
 
