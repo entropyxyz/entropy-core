@@ -19,7 +19,8 @@ use crate::{
 use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::Deserialize;
-use std::sync::{Arc, Mutex};
+use tokio::sync::oneshot;
+use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 use tofnd::{config::parse_args, kv_manager::KvManager};
 
@@ -46,6 +47,7 @@ pub struct Global {
 	mnemonic: String,
 	endpoint: String,
 	// TODO(TK): sharding hashmap into Mutex<SigningChannel>
+	subscribers_ready: Mutex<HashMap<PartyId, oneshot::Sender<()>>>,
 	// signing_channels: Arc<Mutex<HashMap<PartyId, RxChannel>>>,
 	/// create unique ids for each signing party
 	party_id_nonce: Mutex<usize>,

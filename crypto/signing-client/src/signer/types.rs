@@ -5,7 +5,7 @@ use crate::{
 	signer::{init_party_info::InitPartyInfo, SigningMessage, SubscribingMessage},
 	Global, PartyId, SIGNING_PARTY_SIZE,
 };
-use futures::{future, Stream, StreamExt, TryFutureExt};
+use futures::{future, Stream, StreamExt, TryFutureExt, channel::oneshot};
 use merge_streams::{IntoStream, MergeStreams, StreamExt as MergeStreamExt};
 use reqwest::{self};
 use rocket::{
@@ -83,6 +83,7 @@ impl SigningParty<state::Subscribing> {
 	// #[instrument]
 	pub(crate) async fn subscribe_and_await_subscribers(
 		mut self,
+		subscriber_rx: oneshot::Receiver<()>,
 	) -> anyhow::Result<SigningParty<state::Signing>> {
 		// info!("subscribe_to_party");
 

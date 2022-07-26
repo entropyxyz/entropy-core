@@ -23,7 +23,7 @@ use futures::{future, TryFutureExt};
 use reqwest::{self};
 use rocket::{http::Status, response::stream::ByteStream, serde::json::Json, Shutdown, State};
 use serde::{Deserialize, Serialize};
-use tokio::sync::broadcast::Sender;
+use tokio::sync::{broadcast::Sender, oneshot};
 use tracing::instrument;
 
 /// Collect IPs for all signers then informs them
@@ -77,13 +77,22 @@ pub async fn get_ip(ip_address: String, global: &State<Global>) -> Result<Status
 #[post("/new_party", format = "json", data = "<party_info>")]
 pub async fn new_party(
 	party_info: Json<InitPartyInfo>,
-	_global: &State<Global>,
+	global: &State<Global>,
 ) -> Result<Status, SigningProtocolError> {
 	info!("new_party");
 	let party = SigningParty::from(party_info.into_inner());
+	let state = global.inner();
+
+	// When all other nodes have subscribed to this node, advance the protocol state.
+	let (tx, rx) = oneshot::channel();
+	{
+		let map = *state.subscribers_ready.lock()?;
+		assert!(!map.contains_key(party.party_id));
+		map.insert(party.party_id, tx);
+	}
 
 	if let Err(e) = party
-		.subscribe_and_await_subscribers()
+		.subscribe_and_await_subscribers(rx)
 		.and_then(move |party| party.sign())
 		.await
 	{
