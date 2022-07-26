@@ -3,11 +3,17 @@ use std::{intrinsics::transmute, marker::PhantomData};
 use crate::{
 	errors::CustomIPError,
 	signer::{init_party_info::InitPartyInfo, SigningMessage, SubscribingMessage},
-	Global, PartyId,  SIGNING_PARTY_SIZE,
+	Global, PartyId, SIGNING_PARTY_SIZE,
 };
-use futures::{future, StreamExt, TryFutureExt, Stream};
+use futures::{future, Stream, StreamExt, TryFutureExt};
+use merge_streams::{IntoStream, MergeStreams, StreamExt as MergeStreamExt};
 use reqwest::{self};
-use rocket::{http::{Status, hyper::body::Bytes}, response::stream::ByteStream, serde::json::Json, State};
+use rocket::{
+	http::{hyper::body::Bytes, Status},
+	response::stream::ByteStream,
+	serde::json::Json,
+	State,
+};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast::{self, Sender};
 use tracing::instrument;
@@ -28,7 +34,7 @@ pub(crate) struct SigningParty<State: state::SigningState> {
 	ip_addresses: Vec<String>,
 	/// A receiving channel from each other node in the protocol
 	// todo: this might be better as a single merged stream
-	rx_channels: Option<MessageStream>,
+	rx_channel: Option<MessageStream>,
 	/// Size of the signing party
 	signing_party_size: usize,
 	/// the broadcasting sender for the party
@@ -47,9 +53,12 @@ pub(crate) struct MessageStream;
 impl Stream for MessageStream {
 	type Item = Result<Bytes, reqwest::Error>;
 
-    fn poll_next(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Self::Item>> {
-        todo!()
-    }
+	fn poll_next(
+		self: std::pin::Pin<&mut Self>,
+		cx: &mut std::task::Context<'_>,
+	) -> std::task::Poll<Option<Self::Item>> {
+		todo!()
+	}
 }
 
 impl From<InitPartyInfo> for SigningParty<state::Subscribing> {
@@ -58,7 +67,7 @@ impl From<InitPartyInfo> for SigningParty<state::Subscribing> {
 		SigningParty {
 			party_id: info.party_id,
 			ip_addresses: info.ip_addresses,
-			rx_channels: None,
+			rx_channel: None,
 			signing_party_size: SIGNING_PARTY_SIZE,
 			broadcast_channel: tx,
 			n_subscribers: 0,
@@ -93,17 +102,18 @@ impl SigningParty<state::Subscribing> {
 		let rx_channels: Vec<_> = future::join_all(handles)
 			.await
 			.into_iter()
-			// .unwrap() // todo
 			// ignore the crap
 			.map(|x| {
-				let stream = x.unwrap().bytes_stream();
-				// .filter(future::ready(&**x.unwrap() != b":\n" && &**x.unwrap() != b"\n"));
-				stream
-				// .filter(|x| future::ready(&**x != b":\n" && &**x != b"\n"))
+				x.unwrap()
+					.bytes_stream()
+					.map(|x| x.unwrap())
+					.filter(|x| future::ready(&**x != b":\n" && &**x != b"\n"))
 			})
 			.collect();
 
-		self.rx_channel = Some(rx_channels.merge());
+		// TODO(TK): actually merge these streams though
+		// let rx_channel = rx_channels.merge().into_stream();
+		// self.rx_channel = Some(rx_channel);
 
 		unsafe { Ok(transmute(self)) }
 	}
