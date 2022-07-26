@@ -129,7 +129,6 @@ impl SigningParty<state::Subscribing> {
 		let rx_channels: Vec<_> = future::join_all(handles)
 			.await
 			.into_iter()
-			// ignore the crap
 			.map(|x| {
 				x.unwrap()
 					.bytes_stream()

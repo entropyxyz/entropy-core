@@ -21,9 +21,20 @@ use crate::{
 };
 use futures::{future, TryFutureExt};
 use reqwest::{self};
-use rocket::{http::Status, response::stream::ByteStream, serde::json::Json, Shutdown, State};
+use rocket::{
+	http::Status,
+	response::stream::{ByteStream, Event, EventStream},
+	serde::json::Json,
+	Shutdown, State,
+};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{broadcast::Sender, oneshot};
+use tokio::{
+	select,
+	sync::{
+		broadcast::{self, error::RecvError, Sender},
+		oneshot,
+	},
+};
 use tracing::instrument;
 
 /// Collect IPs for all signers then informs them
@@ -110,15 +121,16 @@ pub async fn new_party(
 /// - What if this node hasn't yet heard about the SigningParty?
 /// - validate the IP address of the caller
 /// - Test: must fail if party is over
-// #[instrument]
+#[instrument]
 #[post("/subscribe", data = "<subscribing_message>")]
 pub async fn subscribe(
 	subscribing_message: Json<SubscribingMessage>,
-	end: Shutdown,
+	#[allow(unused_mut)] // macro shenanigans fooling our trusty linter
+	mut end: Shutdown,
 	state: &State<Global>,
-) {
-	// ) -> EventStream![SigningMessage] {
-	// info!("signing_registration");
+	// ) {
+) -> EventStream![] {
+	info!("signing_registration");
 	let subscribing_message = subscribing_message.into_inner();
 	let state = state.inner();
 
@@ -133,21 +145,27 @@ pub async fn subscribe(
 	let mut subscribe_count = map.remove(&subscribing_message.party_id).unwrap().unwrap();
 	if subscribe_count.increment_maybe_final() {
 		map.insert(subscribing_message.party_id, None);
-	}else{
+	} else {
 		map.insert(subscribing_message.party_id, Some(subscribe_count));
 	}
 
-	// get the broadcast sender for the party, add a new subscriber, and increment subscriber count
+	let mut rx: broadcast::Receiver<SigningMessage> = todo!();
 
-	// if this is the final subscriber, indicate readiness to advance the protocol
-	// let mut last = false;
-	// if subscribe_count.count == SIGNING_PARTY_SIZE - 1 {
-	// 	last = true;
-	// // subscribe_count.send();
-	// // map.insert(subscribing_message.party_id, None);
-	// } else {
-	// 	subscribe_count.count += 1;
-	// }
+	EventStream! {
+		loop {
+			let msg = select! {
+				msg = rx.recv() => match msg {
+					Ok(msg) => msg,
+					Err(RecvError::Closed) => break,
+					Err(RecvError::Lagged(_)) => continue,
+				},
+				_ = &mut end => break,
+			};
+
+			yield Event::json(&msg);
+		}
+	}
+	// get the broadcast sender for the party, add a new subscriber, and increment subscriber count
 
 	// Subscribe to the sender, creating one if it doesn't yet exist.
 	// let rx = subscribe_or_create_channel(cached_state, new_party.clone());
