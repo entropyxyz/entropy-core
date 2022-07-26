@@ -103,7 +103,7 @@ impl SigningParty<state::Subscribing> {
 			})
 			.collect();
 
-		// self.rx_channels = Some(rx_channels.merge());
+		self.rx_channel = Some(rx_channels.merge());
 
 		unsafe { Ok(transmute(self)) }
 	}
