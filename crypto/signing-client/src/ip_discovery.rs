@@ -17,7 +17,7 @@ use std::{intrinsics::transmute, marker::PhantomData};
 use crate::{
 	errors::{CustomIPError, SigningProtocolError},
 	signer::{InitPartyInfo, SigningMessage, SigningParty, SubscribingMessage},
-	Global, PartyId, RxChannel, SIGNING_PARTY_SIZE,
+	Global, PartyId, SIGNING_PARTY_SIZE,
 };
 use futures::{future, TryFutureExt};
 use reqwest::{self};
@@ -73,7 +73,7 @@ pub async fn get_ip(ip_address: String, global: &State<Global>) -> Result<Status
 ///
 /// Upon receiving `new_party`, this node contacts all other nodes in the party and initiates the
 /// signing protocol.
-#[instrument]
+// #[instrument]
 #[post("/new_party", format = "json", data = "<party_info>")]
 pub async fn new_party(
 	party_info: Json<InitPartyInfo>,

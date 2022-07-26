@@ -3,11 +3,11 @@ use std::{intrinsics::transmute, marker::PhantomData};
 use crate::{
 	errors::CustomIPError,
 	signer::{init_party_info::InitPartyInfo, SigningMessage, SubscribingMessage},
-	Global, PartyId, RxChannel, SIGNING_PARTY_SIZE,
+	Global, PartyId,  SIGNING_PARTY_SIZE,
 };
-use futures::{future, StreamExt, TryFutureExt};
+use futures::{future, StreamExt, TryFutureExt, Stream};
 use reqwest::{self};
-use rocket::{http::Status, response::stream::ByteStream, serde::json::Json, State};
+use rocket::{http::{Status, hyper::body::Bytes}, response::stream::ByteStream, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast::{self, Sender};
 use tracing::instrument;
@@ -28,7 +28,7 @@ pub(crate) struct SigningParty<State: state::SigningState> {
 	ip_addresses: Vec<String>,
 	/// A receiving channel from each other node in the protocol
 	// todo: this might be better as a single merged stream
-	rx_channels: Option<RxChannel>,
+	rx_channels: Option<MessageStream>,
 	/// Size of the signing party
 	signing_party_size: usize,
 	/// the broadcasting sender for the party
@@ -40,6 +40,16 @@ pub(crate) struct SigningParty<State: state::SigningState> {
 	result: Option<anyhow::Result<()>>, // todo
 	/// Type parameterization of the state of protocol execution
 	_marker: PhantomData<State>,
+}
+
+// TODO(TK): hack, while I figure out what to type this stream
+pub(crate) struct MessageStream;
+impl Stream for MessageStream {
+	type Item = Result<Bytes, reqwest::Error>;
+
+    fn poll_next(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Self::Item>> {
+        todo!()
+    }
 }
 
 impl From<InitPartyInfo> for SigningParty<state::Subscribing> {
@@ -80,7 +90,7 @@ impl SigningParty<state::Subscribing> {
 			);
 		}
 
-		let rx_channels = future::join_all(handles)
+		let rx_channels: Vec<_> = future::join_all(handles)
 			.await
 			.into_iter()
 			// .unwrap() // todo

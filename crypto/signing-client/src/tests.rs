@@ -1,11 +1,6 @@
 #![allow(unused_imports)]
 use super::rocket;
-use crate::{
-	ip_discovery::{new_party, SigningParty},
-	sign::*,
-	store_share::User,
-	Global,
-};
+use crate::{ip_discovery::new_party, sign::*, store_share::User, Global};
 use rocket::{
 	http::{ContentType, Status},
 	local::asynchronous::Client,
