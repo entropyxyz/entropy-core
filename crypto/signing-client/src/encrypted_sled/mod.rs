@@ -18,4 +18,9 @@ pub use result::EncryptedDbResult as Result;
 mod tests;
 
 #[cfg(test)]
-pub use tests::{clean_tests, get_db_path, get_test_password};
+pub use tests::{clean_tests, get_test_password};
+
+pub fn get_db_path() -> String {
+	let root = project_root::get_project_root().unwrap();
+	format!("test_db/{}", root.to_string_lossy())
+}

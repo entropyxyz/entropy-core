@@ -1,6 +1,6 @@
 use super::{kv::EncryptedDb, Password};
-use crate::encrypted_sled::Db;
 use crate::kv_manager::value::KvManager;
+use crate::{encrypted_sled::Db, get_db_path};
 use serial_test::serial;
 use std::fs;
 
@@ -102,11 +102,6 @@ fn test_large_input() {
 
 pub fn get_test_password() -> Password {
 	crate::encrypted_sled::PasswordMethod::NoPassword.execute().unwrap()
-}
-
-pub fn get_db_path() -> String {
-	let root = project_root::get_project_root().unwrap();
-	format!("test_db/{}", root.to_string_lossy())
 }
 
 pub fn clean_tests() {
