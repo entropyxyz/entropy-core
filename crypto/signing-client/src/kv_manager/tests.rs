@@ -5,7 +5,7 @@ use super::{
 	sled_bindings::{handle_exists, handle_get, handle_put, handle_reserve},
 	types::{KeyReservation, DEFAULT_RESERVE},
 };
-use crate::encrypted_sled::{Db, clean_tests, get_db_path, get_test_password, Result};
+use crate::encrypted_sled::{clean_tests, get_db_path, get_test_password, Db, Result};
 use serial_test::serial;
 use std::fs;
 // testdir creates a test directory at $TMPDIR.

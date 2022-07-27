@@ -32,8 +32,8 @@ mod request_guards;
 mod sign;
 mod signer;
 mod store_share;
+use crate::encrypted_sled::{get_db_path, PasswordMethod};
 pub use kv_manager::KvManager;
-use crate::encrypted_sled::{PasswordMethod, get_db_path};
 
 #[cfg(test)]
 mod tests;
@@ -104,7 +104,11 @@ fn load_environment_variables() -> Configuration {
 
 fn load_kv_store() -> KvManager {
 	if cfg!(test) {
-		KvManager::new(get_db_path().into(), encrypted_sled::PasswordMethod::NoPassword.execute().unwrap()).unwrap()
+		KvManager::new(
+			get_db_path().into(),
+			encrypted_sled::PasswordMethod::NoPassword.execute().unwrap(),
+		)
+		.unwrap()
 	} else {
 		let root = project_root::get_project_root().unwrap();
 		let password = PasswordMethod::Prompt.execute().unwrap();

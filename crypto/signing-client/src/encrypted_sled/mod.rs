@@ -18,4 +18,4 @@ pub use result::EncryptedDbResult as Result;
 mod tests;
 
 #[cfg(test)]
-pub use tests::{get_test_password, clean_tests, get_db_path};
+pub use tests::{clean_tests, get_db_path, get_test_password};
