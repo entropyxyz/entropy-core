@@ -5,7 +5,7 @@ use crate::encrypted_sled::Db;
 use serial_test::serial;
 
 fn setup_db(require_password: bool) -> Db {
-	let mut db;
+	let db;
 	if !require_password {
 		db = EncryptedDb::open(&get_db_path(), get_test_password())
 	} else {
