@@ -24,17 +24,17 @@ use std::{env, sync::Mutex};
 #[macro_use]
 extern crate rocket;
 
+mod config;
+mod encrypted_sled;
 mod errors;
 mod ip_discovery;
+mod kv_manager;
 mod request_guards;
 mod sign;
 mod signer;
 mod store_share;
-mod encrypted_sled;
-mod kv_manager;
-mod config;
-pub use kv_manager::KvManager;
 pub use config::parse_args;
+pub use kv_manager::KvManager;
 
 #[cfg(test)]
 mod tests;
@@ -106,8 +106,7 @@ fn load_environment_variables() -> Configuration {
 fn load_kv_store() -> KvManager {
 	if cfg!(test) {
 		let root = project_root::get_project_root().unwrap();
-		KvManager::new(root, encrypted_sled::PasswordMethod::NoPassword.execute().unwrap())
-			.unwrap()
+		KvManager::new(root, encrypted_sled::PasswordMethod::NoPassword.execute().unwrap()).unwrap()
 	} else {
 		let cfg = parse_args().unwrap();
 		println!("kv-store path: {:?}", cfg.tofnd_path);

@@ -1,5 +1,7 @@
 use super::{rocket, IPs};
+use crate::kv_manager::value::KvManager;
 use crate::{
+	encrypted_sled,
 	ip_discovery::{get_all_ips, IpAddresses},
 	sign::{
 		acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
@@ -7,7 +9,7 @@ use crate::{
 		EntropyRuntime,
 	},
 	store_share::{store_keyshare, User},
-	Global, encrypted_sled
+	Global,
 };
 use parity_scale_codec::Encode;
 use rocket::{
@@ -34,7 +36,6 @@ use subxt::{
 	PairSigner,
 };
 use testing_utils::context::{test_context, test_context_stationary};
-use crate::kv_manager::value::KvManager;
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
 	Client::tracked(super::rocket().await).await.expect("valid `Rocket`")
