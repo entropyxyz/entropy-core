@@ -1,7 +1,7 @@
 use super::{rocket, IPs};
 use crate::kv_manager::value::KvManager;
 use crate::{
-	encrypted_sled,
+	encrypted_sled::{PasswordMethod, clean_tests, get_db_path},
 	ip_discovery::{get_all_ips, IpAddresses},
 	sign::{
 		acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
@@ -88,12 +88,7 @@ async fn test_store_share() {
 
 	assert_eq!(response.status(), Status::InternalServerError);
 
-	// delete KV store after tests
-	let root = project_root::get_project_root().unwrap();
-	let mut file_path: String = root.as_path().display().to_string().to_owned();
-	file_path.push_str("/kvstore");
-	let result = remove_dir_all(file_path);
-	assert_eq!(result.is_ok(), true);
+	clean_tests();
 }
 
 #[rocket::async_test]
@@ -115,6 +110,7 @@ async fn test_store_share_fail_wrong_data() {
 		.dispatch()
 		.await;
 	assert_eq!(response.status(), Status::UnprocessableEntity);
+	clean_tests();
 }
 
 #[rocket::async_test]
@@ -141,6 +137,7 @@ async fn test_sign() {
 		.dispatch()
 		.await;
 	assert_eq!(response.status(), Status::Ok);
+	clean_tests();
 }
 
 #[rocket::async_test]
@@ -163,6 +160,7 @@ async fn provide_share_fail_wrong_data() {
 		.await;
 
 	assert_eq!(response.status(), Status::new(500));
+	clean_tests();
 }
 
 #[rocket::async_test]
@@ -299,9 +297,8 @@ async fn test_get_whitelist() {
 async fn test_have_keyshare() {
 	let key = "12mXVvtCubeKrVx99EWQCpJrLxnmzAgXqwHePLoamVN31Kn5".to_string();
 	// launch kv manager
-	let root = project_root::get_project_root().unwrap();
 	let kv_manager =
-		KvManager::new(root, encrypted_sled::PasswordMethod::NoPassword.execute().unwrap())
+		KvManager::new(get_db_path().into(), PasswordMethod::NoPassword.execute().unwrap())
 			.unwrap();
 
 	let result = does_have_key(&kv_manager.clone(), key.clone()).await;
@@ -316,6 +313,7 @@ async fn test_have_keyshare() {
 	let _ = kv_manager.kv().delete(&key).await.unwrap();
 	let result_3 = does_have_key(&kv_manager, key.clone()).await;
 	assert_eq!(result_3, false);
+	clean_tests();
 }
 
 // TODO: same rocket not connect error with test, works when tested manually with server running on
@@ -342,6 +340,7 @@ async fn get_all_ips_test() {
 		.dispatch()
 		.await;
 	assert_eq!(response.status(), Status::Ok);
+	clean_tests();
 }
 
 #[rocket::async_test]
@@ -373,6 +372,7 @@ async fn get_ip_test() {
 	let response_5 = client.get("/get_ip/localhost:3006").dispatch().await;
 	// TODO: this should be Ok only happens in tests where can't connect to other http client
 	assert_eq!(response_5.status(), Status::InternalServerError);
+	clean_tests();
 }
 
 async fn create_clients(port: i64) {

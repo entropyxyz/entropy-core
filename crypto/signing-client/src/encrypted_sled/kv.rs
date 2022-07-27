@@ -174,9 +174,4 @@ impl EncryptedDb {
 	pub fn was_recovered(&self) -> bool {
 		self.kv.was_recovered()
 	}
-
-	#[cfg(test)]
-	pub fn flush(&self) -> EncryptedDbResult<usize> {
-		Ok(self.kv.flush()?)
-	}
 }

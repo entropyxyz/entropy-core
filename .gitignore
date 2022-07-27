@@ -19,3 +19,4 @@
 node_modules/
 kvstore
 test_db/
+main_test_db/
