@@ -7,7 +7,7 @@ use crate::{
 		EntropyRuntime,
 	},
 	store_share::{store_keyshare, User},
-	Global,
+	Global, encrypted_sled
 };
 use parity_scale_codec::Encode;
 use rocket::{
@@ -34,7 +34,7 @@ use subxt::{
 	PairSigner,
 };
 use testing_utils::context::{test_context, test_context_stationary};
-use tofnd::kv_manager::{KeyReservation, KvManager};
+use crate::kv_manager::value::KvManager;
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
 	Client::tracked(super::rocket().await).await.expect("valid `Rocket`")
@@ -300,7 +300,7 @@ async fn test_have_keyshare() {
 	// launch kv manager
 	let root = project_root::get_project_root().unwrap();
 	let kv_manager =
-		KvManager::new(root, tofnd::encrypted_sled::PasswordMethod::NoPassword.execute().unwrap())
+		KvManager::new(root, encrypted_sled::PasswordMethod::NoPassword.execute().unwrap())
 			.unwrap();
 
 	let result = does_have_key(&kv_manager.clone(), key.clone()).await;

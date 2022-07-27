@@ -1,10 +1,25 @@
 use super::{kv::EncryptedDb, Password};
-use testdir::testdir;
+use crate::kv_manager::value::KvManager;
+use std::fs;
+use crate::encrypted_sled::Db;
+use serial_test::serial;
+
+fn setup_db(require_password: bool) -> Db {
+	let mut db;
+	if !require_password {
+		db = EncryptedDb::open(&get_db_path(), get_test_password())
+	} else {
+		db = EncryptedDb::open(&get_db_path(), Password::from("super-secret password."))
+	}
+	assert!(db.is_ok());
+	db.unwrap()
+}
 
 #[test]
+#[serial]
 fn test_encrypted_sled() {
-    let db_path = testdir!("encrypted_db");
-    let db = EncryptedDb::open(&db_path, get_test_password()).unwrap();
+
+    let db = setup_db(false);
 
     // insert <key: value> -> returns None
     let res = db.insert("key", "value").unwrap();
@@ -41,23 +56,26 @@ fn test_encrypted_sled() {
     // remove <key> again -> returns None because key does not exist
     let res = db.remove("key").unwrap();
     assert_eq!(res, None);
+	clean_tests();
 }
 
 #[test]
+#[serial]
 fn test_use_existing_salt() {
-    let db_path = testdir!("encrypted_db");
-    let db = EncryptedDb::open(&db_path, get_test_password()).unwrap();
+    let db = setup_db(false);
+	let db_path = get_db_path();
     drop(db);
     // open existing db
     assert!(EncryptedDb::open(&db_path, get_test_password()).is_ok());
+	clean_tests();
 }
 
 #[test]
+#[serial]
 fn test_password() {
-    let db_path = testdir!("test_password");
+    let db = setup_db(true);
+	let db_path = get_db_path();
 
-    let db = EncryptedDb::open(&db_path, Password::from("super-secret password."));
-    assert!(db.is_ok());
     drop(db);
 
     // try to open the kv store using a different password
@@ -69,13 +87,13 @@ fn test_password() {
         db,
         Err(super::result::EncryptedDbError::WrongPassword)
     ));
+	clean_tests();
 }
 
 #[test]
+#[serial]
 fn test_large_input() {
-    let db_path = testdir!("large_input");
-
-    let db = EncryptedDb::open(&db_path, get_test_password()).unwrap();
+    let db = setup_db(false);
 
     let large_value = vec![0; 100000];
     let res = db.insert("key", large_value.clone()).unwrap();
@@ -83,10 +101,24 @@ fn test_large_input() {
 
     let res = db.get("key").unwrap();
     assert_eq!(res, Some(sled::IVec::from(large_value)));
+	clean_tests();
 }
 
 pub fn get_test_password() -> Password {
     crate::encrypted_sled::PasswordMethod::NoPassword
         .execute()
         .unwrap()
+}
+
+pub fn get_db_path() -> String {
+	let root = project_root::get_project_root().unwrap();
+	format!(
+			"test_db/{}",
+			root.to_string_lossy()
+		)
+}
+
+pub fn clean_tests() {
+	let result = fs::remove_dir_all(get_db_path());
+	assert_eq!(result.is_ok(), true);
 }

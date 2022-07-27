@@ -47,7 +47,6 @@ log = "0.4.17"
 [dev-dependencies]
 testing-utils = { path = "../testing-utils"}
 serial_test = "0.6.0"
-testdir = {version = "0.4", default-features = false}
 
 [features]
 default = ['std']
