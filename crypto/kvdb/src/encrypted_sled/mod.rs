@@ -11,8 +11,7 @@ mod result;
 // match the API of sled
 pub use kv::EncryptedDb as Db;
 pub use password::{Password, PasswordMethod, PasswordSalt};
-pub use result::EncryptedDbError as Error;
-pub use result::EncryptedDbResult as Result;
+pub use result::{EncryptedDbError as Error, EncryptedDbResult as Result};
 
 #[cfg(test)]
 mod tests;

@@ -38,8 +38,8 @@ where
 		Self::with_db_name(kv_path, password)
 	}
 
-	/// Creates a kvstore at `full_db_name` and spawns a new kv_manager. Returns [InitErr] on failure.
-	/// `full_db_name` is the name of the path of the kvstrore + its name
+	/// Creates a kvstore at `full_db_name` and spawns a new kv_manager. Returns [InitErr] on
+	/// failure. `full_db_name` is the name of the path of the kvstrore + its name
 	/// Example: ~/tofnd/kvstore/database_1
 	pub fn with_db_name(full_db_name: String, password: Password) -> KvResult<Self> {
 		let (sender, rx) = mpsc::unbounded_channel();
@@ -146,11 +146,10 @@ async fn kv_cmd_handler<V: 'static>(
 		// TODO better error handling and logging: we should log when `handle_*` fails
 		// TODO refactor repeated code
 		match cmd {
-			ReserveKey { key, resp } => {
+			ReserveKey { key, resp } =>
 				if resp.send(handle_reserve(&kv, key)).is_err() {
 					warn!("receiver dropped");
-				}
-			},
+				},
 			UnreserveKey { reservation } => {
 				let _ = kv.remove(&reservation.key);
 			},
@@ -159,21 +158,18 @@ async fn kv_cmd_handler<V: 'static>(
 					warn!("receiver dropped");
 				}
 			},
-			Get { key, resp } => {
+			Get { key, resp } =>
 				if resp.send(handle_get(&kv, key)).is_err() {
 					warn!("receiver dropped");
-				}
-			},
-			Exists { key, resp } => {
+				},
+			Exists { key, resp } =>
 				if resp.send(handle_exists(&kv, &key)).is_err() {
 					warn!("receiver dropped");
-				}
-			},
-			Delete { key, resp } => {
+				},
+			Delete { key, resp } =>
 				if resp.send(handle_delete(&kv, key)).is_err() {
 					warn!("receiver dropped");
-				}
-			},
+				},
 		}
 	}
 	info!("kv_manager stop");

@@ -24,7 +24,8 @@ impl PartialEq for KeyReservation {
 	}
 }
 
-// Provided by the requester and used by the manager task to send the command response back to the requester.
+// Provided by the requester and used by the manager task to send the command response back to the
+// requester.
 type Responder<T> = tokio::sync::oneshot::Sender<super::error::InnerKvResult<T>>;
 
 #[derive(Debug)]

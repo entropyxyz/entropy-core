@@ -6,17 +6,22 @@
 
 use std::convert::TryInto;
 
-use chacha20poly1305::aead::{AeadInPlace, NewAead};
-use chacha20poly1305::{self, XChaCha20Poly1305};
+use chacha20poly1305::{
+	self,
+	aead::{AeadInPlace, NewAead},
+	XChaCha20Poly1305,
+};
 use rand::RngCore;
 
 use sled::IVec;
 use zeroize::Zeroize;
 
-use super::constants::*;
-use super::password::{Password, PasswordSalt};
-use super::record::EncryptedRecord;
-use super::result::{EncryptedDbError::*, EncryptedDbResult};
+use super::{
+	constants::*,
+	password::{Password, PasswordSalt},
+	record::EncryptedRecord,
+	result::{EncryptedDbError::*, EncryptedDbResult},
+};
 
 /// A [sled] kv store with [XChaCha20Poly1305] value encryption.
 pub struct EncryptedDb {
@@ -89,7 +94,8 @@ impl EncryptedDb {
 		bytes
 	}
 
-	/// create a new [EncryptedRecord] containing an encrypted value and a newly derived random nonce
+	/// create a new [EncryptedRecord] containing an encrypted value and a newly derived random
+	/// nonce
 	fn encrypt<V>(&self, value: V) -> EncryptedDbResult<EncryptedRecord>
 	where
 		V: Into<IVec>,
@@ -107,7 +113,8 @@ impl EncryptedDb {
 		Ok(EncryptedRecord::new(value, nonce))
 	}
 
-	/// derive a decrypted value from a [EncryptedRecord] containing an encrypted value and a random nonce
+	/// derive a decrypted value from a [EncryptedRecord] containing an encrypted value and a random
+	/// nonce
 	fn decrypt_record_value(&self, record: EncryptedRecord) -> EncryptedDbResult<IVec> {
 		let (mut value, nonce) = record.into();
 
@@ -133,7 +140,8 @@ impl EncryptedDb {
 		Ok(res)
 	}
 
-	/// Insert a key to a new encrypted value, returning and decrypting the last value if it was set.
+	/// Insert a key to a new encrypted value, returning and decrypting the last value if it was
+	/// set.
 	pub fn insert<K, V>(&self, key: K, value: V) -> EncryptedDbResult<Option<IVec>>
 	where
 		K: AsRef<[u8]>,
