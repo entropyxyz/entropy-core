@@ -16,7 +16,7 @@ use std::{intrinsics::transmute, marker::PhantomData};
 
 use crate::{
 	errors::{CustomIPError, SigningProtocolError},
-	signer::{InitPartyInfo, SigningMessage, SigningParty, SubscribeCount, SubscribingMessage},
+	signer::{InitPartyInfo, SigningMessage, SigningParty, SubscriberUtil, SubscribingMessage},
 	Global, PartyId, SIGNING_PARTY_SIZE,
 };
 use futures::{future, TryFutureExt};
@@ -95,16 +95,16 @@ pub async fn new_party(
 	let state = global.inner();
 
 	// When all other nodes have subscribed to this node, advance the protocol state.
-	let (tx, rx) = oneshot::channel();
+	let (oneshot_tx, oneshot_rx) = oneshot::channel();
 	{
 		let map = &mut *state.subscribers_count.lock().unwrap();
 		assert!(!map.contains_key(&party.party_id));
-		let subscribe_count = SubscribeCount::new(tx);
-		map.insert(party.party_id, Some(subscribe_count));
+		// let subscribe_count = SubscriberUtil::new(oneshot_tx, party.broadcast_tx);
+		// map.insert(party.party_id, Some(subscribe_count));
 	}
 
 	if let Err(e) = party
-		.subscribe_and_await_subscribers(rx)
+		.subscribe_and_await_subscribers(oneshot_rx)
 		.and_then(move |party| party.sign())
 		.await
 	{
@@ -142,14 +142,14 @@ pub async fn subscribe(
 
 	let map = &mut *state.subscribers_count.lock().unwrap();
 	// todo: refactor
-	let mut subscribe_count = map.remove(&subscribing_message.party_id).unwrap().unwrap();
-	if subscribe_count.increment_maybe_final() {
+	let mut subscriber_util = map.remove(&subscribing_message.party_id).unwrap().unwrap();
+	let mut rx = subscriber_util.subscribe();
+
+	if subscriber_util.increment_maybe_final() {
 		map.insert(subscribing_message.party_id, None);
 	} else {
-		map.insert(subscribing_message.party_id, Some(subscribe_count));
+		map.insert(subscribing_message.party_id, Some(subscriber_util));
 	}
-
-	let mut rx: broadcast::Receiver<SigningMessage> = todo!();
 
 	EventStream! {
 		loop {

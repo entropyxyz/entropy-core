@@ -41,7 +41,7 @@ pub(crate) struct SigningParty<State: state::SigningState> {
 	/// Size of the signing party
 	pub signing_party_size: usize,
 	/// the broadcasting sender for the party
-	pub broadcast_channel: broadcast::Sender<SigningMessage>,
+	pub broadcast_tx: broadcast::Sender<SigningMessage>,
 	/// Number of times this node has received subscriptions for this signing protocol. Upon
 	/// receiving `signing_party_size', subscriptions, this node will proceed to signing.
 	pub n_subscribers: usize,
@@ -53,25 +53,34 @@ pub(crate) struct SigningParty<State: state::SigningState> {
 
 /// The number of subscribers, and a channel to indicate readiness
 #[derive(Debug)]
-pub(crate) struct SubscribeCount {
-	pub tx: Option<oneshot::Sender<()>>,
+pub(crate) struct SubscriberUtil {
+	pub all_subscribed_tx: Option<oneshot::Sender<()>>,
 	pub count: usize,
+	pub broadcast_tx: broadcast::Sender<SigningMessage>,
 }
 
-impl SubscribeCount {
-	pub(crate) fn new(tx: oneshot::Sender<()>) -> Self {
-		Self { tx: Some(tx), count: 0 }
+impl SubscriberUtil {
+	pub(crate) fn new(
+		all_subscribed_tx: oneshot::Sender<()>,
+		broadcast_tx: broadcast::Sender<SigningMessage>,
+	) -> Self {
+		Self { all_subscribed_tx: Some(all_subscribed_tx), count: 0, broadcast_tx }
+	}
+
+	pub(crate) fn subscribe(&self) -> broadcast::Receiver<SigningMessage> {
+		self.broadcast_tx.subscribe()
 	}
 
 	pub(crate) fn increment_maybe_final(&mut self) -> bool {
 		self.count += 1;
 		if self.count == SIGNING_PARTY_SIZE {
-			let _ = self.tx.take().unwrap().send(());
+			let _ = self.all_subscribed_tx.take().unwrap().send(());
 			true
 		} else {
 			false
 		}
 	}
+
 }
 
 // TODO(TK): hack, while I figure out what to type this stream
@@ -95,7 +104,7 @@ impl From<InitPartyInfo> for SigningParty<state::Subscribing> {
 			ip_addresses: info.ip_addresses,
 			rx_channel: None,
 			signing_party_size: SIGNING_PARTY_SIZE,
-			broadcast_channel: tx,
+			broadcast_tx: tx,
 			n_subscribers: 0,
 			result: None,
 			_marker: PhantomData,
@@ -151,7 +160,7 @@ impl SigningParty<state::Subscribing> {
 	/// Add a new subscriber to this node's list of subscribees
 	pub(crate) async fn new_subscriber(&mut self) -> broadcast::Receiver<SigningMessage> {
 		self.n_subscribers += 1;
-		self.broadcast_channel.subscribe()
+		self.broadcast_tx.subscribe()
 	}
 }
 

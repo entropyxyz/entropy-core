@@ -18,7 +18,7 @@ use crate::{
 use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::Deserialize;
-use signer::SubscribeCount;
+use signer::SubscriberUtil;
 use std::{
 	collections::HashMap,
 	sync::{Arc, Mutex},
@@ -49,8 +49,8 @@ pub struct Global {
 	mnemonic: String,
 	endpoint: String,
 	// TODO(TK): sharding hashmap into Mutex<SigningChannel>
-	subscribers_count: Mutex<HashMap<PartyId, Option<SubscribeCount>>>,
-	// signing_channels: Arc<Mutex<HashMap<PartyId, RxChannel>>>,
+	subscribers_count: Mutex<HashMap<PartyId, Option<SubscriberUtil>>>,
+	// signing_channels: Arc<Mutex<HashMap<PartyId, TxChannel>>>,
 	/// create unique ids for each signing party
 	party_id_nonce: Mutex<usize>,
 	// TODO(TK): improve doc comment description for current_ips, this field's function is unclear

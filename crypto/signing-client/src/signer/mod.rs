@@ -24,7 +24,7 @@ mod context;
 mod init_party_info;
 mod types;
 pub(crate) use init_party_info::InitPartyInfo;
-pub(crate) use types::{SigningParty, SubscribeCount};
+pub(crate) use types::{SigningParty, SubscriberUtil};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
