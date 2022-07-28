@@ -31,7 +31,8 @@ jobs:
     steps:
       - increase-swap
       - install-dependencies-and-checkout
-      - run: pushd node && cargo build --release && cargo test
+      - no_output_timeout: 45m
+        run: pushd node && cargo build --release && cargo test
   node-benchmark:
     machine:
       image: "ubuntu-2004:202201-02"
