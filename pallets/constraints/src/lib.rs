@@ -26,11 +26,7 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 	pub use crate::weights::WeightInfo;
-	use frame_support::{
-		dispatch::{DispatchResultWithPostInfo},
-		inherent::Vec,
-		pallet_prelude::*,
-	};
+	use frame_support::{dispatch::DispatchResultWithPostInfo, inherent::Vec, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
 	use sp_runtime::sp_std::str;
 

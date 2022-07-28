@@ -18,5 +18,4 @@ pub use result::EncryptedDbResult as Result;
 mod tests;
 
 #[cfg(test)]
-pub use tests::{get_test_password};
-
+pub use tests::get_test_password;

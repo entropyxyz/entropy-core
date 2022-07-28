@@ -5,7 +5,11 @@ use super::{
 	sled_bindings::{handle_exists, handle_get, handle_put, handle_reserve},
 	types::{KeyReservation, DEFAULT_RESERVE},
 };
-use crate::{encrypted_sled::{get_test_password, Db, Result}, get_db_path, clean_tests};
+use crate::{
+	clean_tests,
+	encrypted_sled::{get_test_password, Db, Result},
+	get_db_path,
+};
 
 use serial_test::serial;
 // testdir creates a test directory at $TMPDIR.

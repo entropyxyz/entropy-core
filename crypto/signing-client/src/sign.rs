@@ -16,8 +16,8 @@
 
 #![allow(unused_imports)]
 #![allow(unused_variables)]
-use kvdb::kv_manager::value::KvManager;
 use crate::Global;
+use kvdb::kv_manager::value::KvManager;
 
 use common::OCWMessage;
 use constraints::whitelist::is_on_whitelist;

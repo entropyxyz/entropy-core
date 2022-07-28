@@ -1,5 +1,4 @@
 use super::{rocket, IPs};
-use kvdb::{kv_manager::value::KvManager, encrypted_sled::{PasswordMethod}, get_db_path, clean_tests};
 use crate::{
 	ip_discovery::{get_all_ips, IpAddresses},
 	sign::{
@@ -9,6 +8,9 @@ use crate::{
 	},
 	store_share::{store_keyshare, User},
 	Global,
+};
+use kvdb::{
+	clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
 use parity_scale_codec::Encode;
 use rocket::{

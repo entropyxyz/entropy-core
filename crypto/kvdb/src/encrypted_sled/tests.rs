@@ -1,5 +1,5 @@
 use super::{kv::EncryptedDb, Password};
-use crate::{encrypted_sled::Db, get_db_path, clean_tests};
+use crate::{clean_tests, encrypted_sled::Db, get_db_path};
 use serial_test::serial;
 
 fn setup_db(require_password: bool) -> Db {
