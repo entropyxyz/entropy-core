@@ -2338,7 +2338,7 @@ dependencies = [
  "hash-db",
  "hex",
  "itertools",
- "kvdb",
+ "kvdb 0.11.0",
  "linked-hash-map",
  "log",
  "memory-db",
@@ -3708,6 +3708,28 @@ dependencies = [
 
 [[package]]
 name = "kvdb"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chacha20poly1305 0.9.1",
+ "clap 3.1.8",
+ "dirs",
+ "project-root",
+ "rand 0.8.5",
+ "rpassword",
+ "scrypt",
+ "serde",
+ "serial_test",
+ "sled",
+ "thiserror",
+ "tofn 0.1.0 (git+https://github.com/axelarnetwork/tofn?branch=main)",
+ "tokio",
+ "tracing",
+ "zeroize",
+]
+
+[[package]]
+name = "kvdb"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a301d8ecb7989d4a6e2c57a49baca77d353bdbf879909debe3f375fe25d61f86"
@@ -3722,7 +3744,7 @@ version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ece7e668abd21387aeb6628130a6f4c802787f014fa46bc83221448322250357"
 dependencies = [
- "kvdb",
+ "kvdb 0.11.0",
  "parity-util-mem",
  "parking_lot 0.12.0",
 ]
@@ -3734,7 +3756,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca7fbdfd71cd663dceb0faf3367a99f8cf724514933e9867cec4995b6027cbc1"
 dependencies = [
  "fs-swap",
- "kvdb",
+ "kvdb 0.11.0",
  "log",
  "num_cpus",
  "owning_ref",
@@ -7988,7 +8010,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=master#c89d524dea7bfb474f2e036ebc486fca9c81533f"
 dependencies = [
  "hash-db",
- "kvdb",
+ "kvdb 0.11.0",
  "kvdb-memorydb",
  "kvdb-rocksdb",
  "linked-hash-map",
@@ -9254,37 +9276,28 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bip39",
- "chacha20poly1305 0.9.1",
- "clap 3.1.8",
  "common",
  "constraints",
- "dirs",
  "envy",
  "futures 0.3.21",
+ "kvdb 0.1.0",
  "local-ip",
  "log",
  "parity-scale-codec",
  "project-root",
- "rand 0.8.5",
  "reqwest",
  "rocket",
- "rpassword",
- "scrypt",
  "serde",
  "serde_json",
  "serial_test",
- "sled",
  "sp-core 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-keyring 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "subxt",
  "surf",
  "testing-utils",
  "thiserror",
- "tofn 0.1.0 (git+https://github.com/axelarnetwork/tofn?branch=main)",
  "tokio",
- "tracing",
  "uuid",
- "zeroize",
 ]
 
 [[package]]
@@ -9773,7 +9786,7 @@ name = "sp-database"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=master#c89d524dea7bfb474f2e036ebc486fca9c81533f"
 dependencies = [
- "kvdb",
+ "kvdb 0.11.0",
  "parking_lot 0.12.0",
 ]
 

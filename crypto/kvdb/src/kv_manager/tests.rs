@@ -5,9 +5,9 @@ use super::{
 	sled_bindings::{handle_exists, handle_get, handle_put, handle_reserve},
 	types::{KeyReservation, DEFAULT_RESERVE},
 };
-use crate::encrypted_sled::{clean_tests, get_db_path, get_test_password, Db, Result};
+use crate::{encrypted_sled::{get_test_password, Db, Result}, get_db_path, clean_tests};
+
 use serial_test::serial;
-use std::fs;
 // testdir creates a test directory at $TMPDIR.
 // Mac: /var/folders/v4/x_j3jj7d6ql4gjdf7b7jvjhm0000gn/T/testdir-of-$(USER)
 // Linux: /tmp
@@ -23,7 +23,6 @@ pub fn open_with_test_password() -> Result<Db> {
 #[serial]
 fn reserve_success() {
 	let kv = open_with_test_password().unwrap();
-	let kv_name = get_db_path();
 	let key: String = "key".to_string();
 	assert_eq!(handle_reserve(&kv, key.clone()).unwrap(), KeyReservation { key: key.clone() });
 
@@ -40,7 +39,6 @@ fn reserve_success() {
 #[serial]
 fn reserve_failure() {
 	let kv = open_with_test_password().unwrap();
-	let kv_name = get_db_path();
 
 	let key: String = "key".to_string();
 	handle_reserve(&kv, key.clone()).unwrap();
@@ -54,7 +52,6 @@ fn reserve_failure() {
 #[serial]
 fn put_success() {
 	let kv = open_with_test_password().unwrap();
-	let kv_name = get_db_path();
 
 	let key: String = "key".to_string();
 	handle_reserve(&kv, key.clone()).unwrap();
@@ -69,7 +66,6 @@ fn put_success() {
 #[serial]
 fn put_failure_no_reservation() {
 	let kv = open_with_test_password().unwrap();
-	let kv_name = get_db_path();
 
 	let key: String = "key".to_string();
 
@@ -87,7 +83,6 @@ fn put_failure_no_reservation() {
 #[serial]
 fn put_failure_put_twice() {
 	let kv = open_with_test_password().unwrap();
-	let kv_name = get_db_path();
 
 	let key: String = "key".to_string();
 	let value = "value".to_string();
@@ -114,7 +109,6 @@ fn put_failure_put_twice() {
 #[serial]
 fn get_success() {
 	let kv = open_with_test_password().unwrap();
-	let kv_name = get_db_path();
 
 	let key: String = "key".to_string();
 	let value = "value";
@@ -132,7 +126,6 @@ fn get_success() {
 #[serial]
 fn get_failure() {
 	let kv = open_with_test_password().unwrap();
-	let kv_name = get_db_path();
 
 	let key: String = "key".to_string();
 	let err = handle_get::<String>(&kv, key).err().unwrap();
@@ -145,7 +138,6 @@ fn get_failure() {
 #[serial]
 fn test_exists() {
 	let kv = open_with_test_password().unwrap();
-	let kv_name = get_db_path();
 
 	let key: String = "key".to_string();
 	let value: String = "value".to_string();

@@ -24,16 +24,13 @@ use std::{env, sync::Mutex};
 #[macro_use]
 extern crate rocket;
 
-mod encrypted_sled;
 mod errors;
 mod ip_discovery;
-mod kv_manager;
 mod request_guards;
 mod sign;
 mod signer;
 mod store_share;
-use crate::encrypted_sled::{get_db_path, PasswordMethod};
-pub use kv_manager::KvManager;
+pub use kvdb::{encrypted_sled::{PasswordMethod}, kv_manager::KvManager, get_db_path};
 
 #[cfg(test)]
 mod tests;
@@ -106,7 +103,7 @@ fn load_kv_store() -> KvManager {
 	if cfg!(test) {
 		KvManager::new(
 			get_db_path().into(),
-			encrypted_sled::PasswordMethod::NoPassword.execute().unwrap(),
+			PasswordMethod::NoPassword.execute().unwrap(),
 		)
 		.unwrap()
 	} else {

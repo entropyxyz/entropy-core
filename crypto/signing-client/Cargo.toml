@@ -12,6 +12,8 @@ serde_json = "1.0"
 uuid = { version = "0.8", features = ["v4"] }
 parity-scale-codec = "3.0.0"
 common = { path = "../common", default-features = false }
+kvdb = { path = "../kvdb", default-features = false }
+
 # protocol = { path = "../protocol", default-features = false }
 subxt = { git = "https://github.com/paritytech/subxt.git" }
 # multi-party-ecdsa ={ git = "https://github.com/ZenGo-X/multi-party-ecdsa"}
@@ -29,16 +31,6 @@ bip39 = { git = "https://github.com/infincia/bip39-rs.git", tag = "v0.6.0-beta.1
 constraints = { path = "../constraints"}
 project-root = "0.2.2"
 local-ip = "0.1"
-sled = "0.34.7"
-chacha20poly1305 = { version = "0.9", features = ["alloc"], default-features = false }
-rand = {version = "0.8", default-features = false }
-tofn = { git = "https://github.com/axelarnetwork/tofn", branch = "main"}
-tracing = {version = "0.1", default-features = false}
-zeroize = { version = "1.4", features = ["zeroize_derive"], default-features = false}
-rpassword = { version = "5.0", default-features = false }
-scrypt = { version = "0.8", default-features = false, features = ["std"] }
-dirs = { version = "4.0", default-features = false }
-clap = {version = "3.0", default-features = false, features = ["std", "cargo", "env"]}
 
 # logging
 log = "0.4.17"

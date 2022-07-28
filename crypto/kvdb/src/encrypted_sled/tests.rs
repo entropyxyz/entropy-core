@@ -1,8 +1,6 @@
 use super::{kv::EncryptedDb, Password};
-use crate::kv_manager::value::KvManager;
-use crate::{encrypted_sled::Db, get_db_path};
+use crate::{encrypted_sled::Db, get_db_path, clean_tests};
 use serial_test::serial;
-use std::fs;
 
 fn setup_db(require_password: bool) -> Db {
 	let db;
@@ -102,9 +100,4 @@ fn test_large_input() {
 
 pub fn get_test_password() -> Password {
 	crate::encrypted_sled::PasswordMethod::NoPassword.execute().unwrap()
-}
-
-pub fn clean_tests() {
-	let result = fs::remove_dir_all(get_db_path());
-	assert_eq!(result.is_ok(), true);
 }
