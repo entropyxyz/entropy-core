@@ -1,0 +1,41 @@
+[package]
+name = "kvdb"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tofn = { git = "https://github.com/axelarnetwork/tofn", branch = "main" }
+tracing = { version = "0.1", default-features = false }
+zeroize = { version = "1.4", features = [
+  "zeroize_derive",
+], default-features = false }
+rpassword = { version = "5.0", default-features = false }
+scrypt = { version = "0.8", default-features = false, features = ["std"] }
+dirs = { version = "4.0", default-features = false }
+clap = { version = "3.0", default-features = false, features = [
+  "std",
+  "cargo",
+  "env",
+] }
+sled = "0.34.7"
+chacha20poly1305 = { version = "0.9", features = [
+  "alloc",
+], default-features = false }
+rand = { version = "0.8", default-features = false }
+tokio = { version = "1.16", features = [
+  "macros",
+  "sync",
+  "fs",
+  "rt-multi-thread",
+  "io-util",
+] }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0.31"
+anyhow = "1.0.53"
+project-root = "0.2.2"
+
+
+[dev-dependencies]
+serial_test = "0.6.0"
