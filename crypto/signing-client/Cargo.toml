@@ -12,6 +12,8 @@ serde_json = "1.0"
 uuid = { version = "0.8", features = ["v4"] }
 parity-scale-codec = "3.0.0"
 common = { path = "../common", default-features = false }
+kvdb = { path = "../kvdb", default-features = false }
+
 # protocol = { path = "../protocol", default-features = false }
 subxt = { git = "https://github.com/paritytech/subxt.git" }
 # multi-party-ecdsa ={ git = "https://github.com/ZenGo-X/multi-party-ecdsa"}
@@ -27,7 +29,6 @@ sp-core = "6.0.0"
 envy = "0.4"
 bip39 = { git = "https://github.com/infincia/bip39-rs.git", tag = "v0.6.0-beta.1"}
 constraints = { path = "../constraints"}
-tofnd = { git = "https://github.com/Entropyxyz/tofnd", branch = "main"}
 project-root = "0.2.2"
 local-ip = "0.1"
 

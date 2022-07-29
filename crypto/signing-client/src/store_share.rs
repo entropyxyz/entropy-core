@@ -16,7 +16,6 @@ use std::{
 	fs::File,
 	io::{BufWriter, Write},
 };
-// use tofnd::kv_manager::{error::KvError, KeyReservation, KvManager};
 
 /// User input, contains key (substrate key) and value (entropy shard)
 #[derive(Debug, Deserialize, Serialize, Clone)]
