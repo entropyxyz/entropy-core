@@ -17,6 +17,8 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 use crate::Global;
+use kvdb::kv_manager::value::KvManager;
+
 use common::OCWMessage;
 use constraints::whitelist::is_on_whitelist;
 use parity_scale_codec::{Decode, Encode};
@@ -28,7 +30,6 @@ use subxt::{
 	sp_runtime::AccountId32, ClientBuilder, Config, DefaultConfig, PairSigner,
 	PolkadotExtrinsicParams,
 };
-use tofnd::kv_manager::KvManager;
 
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[allow(clippy::enum_variant_names)]
