@@ -16,7 +16,9 @@ use std::{intrinsics::transmute, marker::PhantomData};
 
 use crate::{
 	errors::{CustomIPError, SigningProtocolError},
-	signer::{InitPartyInfo, SigningMessage, SigningParty, SubscriberUtil, SubscribingMessage},
+	signer::{
+		InitPartyInfo, ProtocolManager, SigningMessage, SubscriberManager, SubscribingMessage,
+	},
 	Global, PartyId, SIGNING_PARTY_SIZE,
 };
 use futures::{future, TryFutureExt};
@@ -81,44 +83,49 @@ pub async fn get_ip(ip_address: String, global: &State<Global>) -> Result<Status
 
 /// Initiate a new signing party.
 /// Communication Manager calls this endpoint for each node in the new Signing Party.
-///
-/// Upon receiving `new_party`, this node contacts all other nodes in the party and initiates the
-/// signing protocol.
-// #[instrument]
-#[post("/new_party", format = "json", data = "<party_info>")]
+/// The node creates a `ProtocolManager` to run the protocol, and a SubscriberManager to manage
+/// subscribed nodes. This method should run the protocol, returning the result.
+#[instrument]
+#[post("/new_party", format = "json", data = "<init_party_info>")]
 pub async fn new_party(
-	party_info: Json<InitPartyInfo>,
+	init_party_info: Json<InitPartyInfo>,
 	global: &State<Global>,
 ) -> Result<Status, SigningProtocolError> {
 	info!("new_party");
-	let party = SigningParty::from(party_info.into_inner());
 	let state = global.inner();
+	let (finalized_subscribing_tx, protocol_manager) =
+		ProtocolManager::new(init_party_info.into_inner());
+	let subscriber_manager = SubscriberManager::new(finalized_subscribing_tx);
 
-	// When all other nodes have subscribed to this node, advance the protocol state.
-	let (oneshot_tx, oneshot_rx) = oneshot::channel();
 	{
-		let map = &mut *state.subscribers_count.lock().unwrap();
-		assert!(!map.contains_key(&party.party_id));
-		// let subscribe_count = SubscriberUtil::new(oneshot_tx, party.broadcast_tx);
-		// map.insert(party.party_id, Some(subscribe_count));
+		// store subscriber manager in state, first checking that the party_id is new
+		let map = &mut *state.subscriber_manager.lock().unwrap();
+		if map.contains_key(&protocol_manager.party_id) {
+			return Err(SigningProtocolError::Other("party id already exists"))
+		}
+		map.insert(protocol_manager.party_id, Some(subscriber_manager));
 	}
 
-	if let Err(e) = party
-		.subscribe_and_await_subscribers(oneshot_rx)
-		.and_then(move |party| party.sign())
-		.await
-	{
-		// TODO(TK): handle errors
-		return Err(SigningProtocolError::Other("we're very disappointed"))
-	}
+	// Run the protocol.
+	let complete_protocol = protocol_manager
+		.subscribe_and_await_subscribers()
+		.and_then(move |subscribed_party| subscribed_party.sign())
+		.await;
 
-	Ok(Status::Ok)
+	// TODO(TK): handle errors better
+	match complete_protocol {
+		Err(e) => Err(SigningProtocolError::Other("we're very disappointed")),
+		Ok(protocol_result) => match protocol_result.get_result() {
+			Ok(()) => Ok(Status::Ok),
+			Err(e) => Err(SigningProtocolError::Other("we're very disappointed")),
+		},
+	}
 }
 
 /// An endpoint for other nodes to subscribe to messages produced by this node.
 ///
 /// Todo:
-/// - What if this node hasn't yet heard about the SigningParty?
+/// - What if this node hasn't yet heard about the `ProtocolManager`?
 /// - validate the IP address of the caller
 /// - Test: must fail if party is over
 #[instrument]
@@ -140,16 +147,14 @@ pub async fn subscribe(
 		// TODO(TK): handle
 	}
 
-	let map = &mut *state.subscribers_count.lock().unwrap();
-	// todo: refactor
-	let mut subscriber_util = map.remove(&subscribing_message.party_id).unwrap().unwrap();
-	let mut rx = subscriber_util.subscribe();
-
-	if subscriber_util.increment_maybe_final() {
-		map.insert(subscribing_message.party_id, None);
-	} else {
-		map.insert(subscribing_message.party_id, Some(subscriber_util));
-	}
+	let mut rx = {
+		// TODO(TK): is remove/insert *really* the most efficient way to do this
+		let map = &mut *state.subscriber_manager.lock().unwrap();
+		let mut subscriber_manager = map.remove(&subscribing_message.party_id).unwrap().unwrap();
+		let rx = subscriber_manager.new_subscriber();
+		map.insert(subscribing_message.party_id, Some(subscriber_manager));
+		rx
+	};
 
 	EventStream! {
 		loop {

@@ -1,7 +1,8 @@
 use crate::{Global, PartyId};
 use serde::{Deserialize, Serialize};
 
-/// Information passed from the Communication Manager to all nodes on SigningParty Initialization.
+/// Information passed from the Communication Manager to all nodes on `ProtocolManager`
+/// Initialization.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct InitPartyInfo {
 	pub party_id: PartyId,

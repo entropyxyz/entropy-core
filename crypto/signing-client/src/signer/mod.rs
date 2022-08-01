@@ -2,6 +2,7 @@
 #![allow(unused_imports)]
 use futures::Stream;
 use rocket::{
+	http::hyper::body::Bytes,
 	response::stream::EventStream,
 	serde::{json::Json, Deserialize, Serialize},
 	tokio::{
@@ -24,7 +25,7 @@ mod context;
 mod init_party_info;
 mod types;
 pub(crate) use init_party_info::InitPartyInfo;
-pub(crate) use types::{SigningParty, SubscriberUtil};
+pub(crate) use types::{ProtocolManager, SubscriberManager};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
@@ -58,6 +59,18 @@ impl SubscribingMessage {
 #[serde(crate = "rocket::serde")]
 pub struct SigningMessage {
 	pub party_id: PartyId,
+}
+
+impl TryFrom<Bytes> for SigningMessage {
+	type Error = serde_json::Error;
+
+	// There may be a better way to write this. The Reqwest Bytes response includes non-json
+	// crap that needs to be handled before deserialization.
+	fn try_from(value: Bytes) -> Result<Self, Self::Error> {
+		serde_json::from_str(
+			&std::str::from_utf8(&*value).unwrap().trim().split_once(":").unwrap().1,
+		)
+	}
 }
 
 // /// Handles initiation procedure for the signing protocol before handing off the state to
