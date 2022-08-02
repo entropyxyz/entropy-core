@@ -14,6 +14,7 @@
 //! - /sign - Post - Acts as an entry point for the chain to pass signing data to
 //! The Node requests the client to take part in a signature generation.
 
+#![allow(clippy::enum_variant_names)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 use crate::{EntropyKvManager, Global};
@@ -31,7 +32,6 @@ use subxt::{
 use tofnd::kv_manager::KvManager;
 
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
-#[allow(clippy::enum_variant_names)]
 #[subxt::subxt(runtime_metadata_path = "entropy_metadata.scale")]
 pub mod entropy {}
 
@@ -79,7 +79,7 @@ pub async fn provide_share(
 		let address_whitelist = get_whitelist(&api, &user).await.unwrap();
 		let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
 
-		let does_have_key = does_have_key(&kv_manager, user.to_string()).await;
+		let does_have_key = does_have_key(kv_manager, user.to_string()).await;
 		if does_have_key && !bool_block_author {
 			let _result = send_ip_address(&author_endpoint).await;
 		}
@@ -161,7 +161,7 @@ pub async fn get_author_endpoint(
 }
 
 /// converts endpoint from Vec<u8> to string
-pub fn convert_endpoint(author_endpoint: &Vec<u8>) -> Result<&str, std::str::Utf8Error> {
+pub fn convert_endpoint(author_endpoint: &[u8]) -> Result<&str, std::str::Utf8Error> {
 	Ok(str::from_utf8(author_endpoint).unwrap())
 }
 
@@ -169,7 +169,7 @@ pub fn convert_endpoint(author_endpoint: &Vec<u8>) -> Result<&str, std::str::Utf
 /// notes any failures in said messages
 pub async fn acknowledge_responsibility(
 	api: &EntropyRuntime,
-	mnemonic: &String,
+	mnemonic: &str,
 	block_number: u32,
 ) -> Result<(), subxt::Error<entropy::DispatchError>> {
 	let pair: Sr25519Pair = Pair::from_string(mnemonic, None).unwrap();
@@ -210,7 +210,7 @@ pub async fn does_have_key(kv: &KvManager, user: String) -> bool {
 }
 
 /// Sends IP address to communication manager
-pub async fn send_ip_address(author_endpoint: &Vec<u8>) -> String {
+pub async fn send_ip_address(author_endpoint: &[u8]) -> String {
 	let my_ip = local_ip::get().unwrap().to_string();
 	let mut route = "/get_ip/".to_owned();
 	route.push_str(&my_ip);

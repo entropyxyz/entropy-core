@@ -138,13 +138,21 @@ pub async fn subscribe(
 	// ) {
 ) -> EventStream![] {
 	info!("signing_registration");
-	let subscribing_message = subscribing_message.into_inner();
-	let state = state.inner();
-	// validate that the CM has told this node about the signing party
-	// and the ip address of the caller is valid
-	if let Err(e) = subscribing_message.validate_registration(&state) {
-		// TODO(TK): handle
+	if let Err(e) = subscribing_message.validate_registration() {
+		// TODO(TK): handle validation, and the possibility that the communication manager hasn't
+		// touched this node yet. Can I return a Result<EventStream>?
 	}
-	let rx = subscribing_message.create_new_subscription(state);
+
+	let subscribing_message = subscribing_message.into_inner();
+	let mut subscriber_manager_map = state.inner().subscriber_manager_map.lock().unwrap();
+	// KEEP until testing, also may use state for ^validate registration
+	// let mut subscriber_manager_map = {
+	// 	let state = state.inner();
+	// 	state.subscriber_manager_map.lock().unwrap()
+	// };
+
+	let rx = subscribing_message.create_new_subscription(&mut subscriber_manager_map);
+	// maybe unnecessary. Drop the subscriber map before returning to avoid blocking
+	drop(subscriber_manager_map);
 	subscribing_message.create_event_stream(rx, end)
 }

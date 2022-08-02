@@ -4,7 +4,7 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 /// RegistrationMessage holds the information sent by the User to the extropy-network during
 /// account-registration
-#[derive(Clone, Encode, Decode, Debug, PartialEq, TypeInfo)]
+#[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
 pub struct RegistrationMessage {
 	// ToDo: TypeInfo marco only works for basic types out of the box.
 	// Out of the box it does not work for types like SecretKey or PublicKey
@@ -30,7 +30,7 @@ pub struct RegistrationMessage {
 
 /// The response message that a node sends to the User in response to calling the
 /// relayer::register() extrinsic.
-#[derive(Clone, Encode, Decode, Debug, PartialEq, TypeInfo)]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct RegistrationResponse {
 	// ToDo_DF: what Data goes into here?
 	/// list of endpoints of all nodes that the user sends the keyshares to.

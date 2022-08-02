@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
+use std::collections::HashMap;
+
 use futures::Stream;
 use rocket::{
 	http::hyper::body::Bytes,
@@ -34,6 +36,7 @@ pub struct SubscribingMessage {
 	pub party_id: PartyId,
 }
 
+/// A message sent by subscribing node. Holder struct for subscription-related methods.
 impl SubscribingMessage {
 	pub(crate) fn new(party_id: PartyId) -> Self {
 		Self { party_id }
@@ -42,7 +45,9 @@ impl SubscribingMessage {
 	/// Validate that the this node knows about party with `party_id`
 	// todo:
 	// and that the calling node is in the party group
-	pub(crate) fn validate_registration(&self, state: &Global) -> anyhow::Result<()> {
+	// pub(crate) fn validate_registration(&self, state: &GlobalHangshMap<>d, mut screHashMap<>d,
+	// SubscriberManager
+	pub(crate) fn validate_registration(&self) -> anyhow::Result<()> {
 		// 	let channels = state.signing_channels.clone();
 		// 	let contains_key = channels.lock().unwrap().contains_key(&self.party_id);
 		// 	if contains_key {
@@ -56,9 +61,8 @@ impl SubscribingMessage {
 	// retrieve the subscriber_manager from state to issue a new receiver channel
 	pub(crate) fn create_new_subscription(
 		&self,
-		state: &Global,
+		map: &mut HashMap<PartyId, Option<SubscriberManager>>,
 	) -> broadcast::Receiver<SigningMessage> {
-		let map = &mut *state.subscriber_manager_map.lock().unwrap();
 		let mut subscriber_manager = map.remove(&self.party_id).unwrap().unwrap();
 		let rx = subscriber_manager.new_subscriber();
 		map.insert(self.party_id, Some(subscriber_manager));
@@ -100,7 +104,7 @@ impl TryFrom<&[u8]> for SigningMessage {
 	// There may be a better way to write this. The Reqwest Bytes response includes non-json
 	// crap that needs to be handled before deserialization.
 	fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-		serde_json::from_str(&std::str::from_utf8(value).unwrap().trim().split_once(":").unwrap().1)
+		serde_json::from_str(std::str::from_utf8(value).unwrap().trim().split_once(':').unwrap().1)
 	}
 }
 
