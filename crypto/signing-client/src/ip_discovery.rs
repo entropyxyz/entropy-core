@@ -99,7 +99,7 @@ pub async fn new_party(
 
 	{
 		// store subscriber manager in state, first checking that the party_id is new
-		let map = &mut *state.subscriber_manager.lock().unwrap();
+		let map = &mut *state.subscriber_manager_map.lock().unwrap();
 		if map.contains_key(&protocol_manager.party_id) {
 			return Err(SigningProtocolError::Other("party id already exists"))
 		}
@@ -140,38 +140,11 @@ pub async fn subscribe(
 	info!("signing_registration");
 	let subscribing_message = subscribing_message.into_inner();
 	let state = state.inner();
-
 	// validate that the CM has told this node about the signing party
 	// and the ip address of the caller is valid
-	if !subscribing_message.validate_registration(&state) {
+	if let Err(e) = subscribing_message.validate_registration(&state) {
 		// TODO(TK): handle
 	}
-
-	let mut rx = {
-		// TODO(TK): is remove/insert *really* the most efficient way to do this
-		let map = &mut *state.subscriber_manager.lock().unwrap();
-		let mut subscriber_manager = map.remove(&subscribing_message.party_id).unwrap().unwrap();
-		let rx = subscriber_manager.new_subscriber();
-		map.insert(subscribing_message.party_id, Some(subscriber_manager));
-		rx
-	};
-
-	EventStream! {
-		loop {
-			let msg = select! {
-				msg = rx.recv() => match msg {
-					Ok(msg) => msg,
-					Err(RecvError::Closed) => break,
-					Err(RecvError::Lagged(_)) => continue,
-				},
-				_ = &mut end => break,
-			};
-
-			yield Event::json(&msg);
-		}
-	}
-	// get the broadcast sender for the party, add a new subscriber, and increment subscriber count
-
-	// Subscribe to the sender, creating one if it doesn't yet exist.
-	// let rx = subscribe_or_create_channel(cached_state, new_party.clone());
+	let rx = subscribing_message.create_new_subscription(state);
+	subscribing_message.create_event_stream(rx, end)
 }

@@ -3,7 +3,7 @@
 use futures::Stream;
 use rocket::{
 	http::hyper::body::Bytes,
-	response::stream::EventStream,
+	response::stream::{Event, EventStream},
 	serde::{json::Json, Deserialize, Serialize},
 	tokio::{
 		select,
@@ -42,7 +42,7 @@ impl SubscribingMessage {
 	/// Validate that the this node knows about party with `party_id`
 	// todo:
 	// and that the calling node is in the party group
-	pub(crate) fn validate_registration(&self, state: &Global) -> bool {
+	pub(crate) fn validate_registration(&self, state: &Global) -> anyhow::Result<()> {
 		// 	let channels = state.signing_channels.clone();
 		// 	let contains_key = channels.lock().unwrap().contains_key(&self.party_id);
 		// 	if contains_key {
@@ -50,7 +50,40 @@ impl SubscribingMessage {
 		// 	} else {
 		// 		false
 		// 	}
-		true
+		Ok(())
+	}
+
+	// retrieve the subscriber_manager from state to issue a new receiver channel
+	pub(crate) fn create_new_subscription(
+		&self,
+		state: &Global,
+	) -> broadcast::Receiver<SigningMessage> {
+		let map = &mut *state.subscriber_manager_map.lock().unwrap();
+		let mut subscriber_manager = map.remove(&self.party_id).unwrap().unwrap();
+		let rx = subscriber_manager.new_subscriber();
+		map.insert(self.party_id, Some(subscriber_manager));
+		rx
+	}
+
+	pub(crate) fn create_event_stream(
+		&self,
+		mut rx: Receiver<SigningMessage>,
+		mut end: Shutdown,
+	) -> EventStream![] {
+		EventStream! {
+			loop {
+				let msg = select! {
+					msg = rx.recv() => match msg {
+						Ok(msg) => msg,
+						Err(RecvError::Closed) => break,
+						Err(RecvError::Lagged(_)) => continue,
+					},
+					_ = &mut end => break,
+				};
+
+				yield Event::json(&msg);
+			}
+		}
 	}
 }
 

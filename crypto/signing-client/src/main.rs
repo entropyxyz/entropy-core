@@ -49,7 +49,7 @@ pub struct Global {
 	mnemonic: String,
 	endpoint: String,
 	// TODO(TK): sharding hashmap into Mutex<SigningChannel>
-	subscriber_manager: Mutex<HashMap<PartyId, Option<SubscriberManager>>>,
+	subscriber_manager_map: Mutex<HashMap<PartyId, Option<SubscriberManager>>>,
 	// signing_channels: Arc<Mutex<HashMap<PartyId, TxChannel>>>,
 	/// create unique ids for each signing party
 	party_id_nonce: Mutex<usize>,
