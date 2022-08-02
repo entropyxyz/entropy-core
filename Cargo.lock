@@ -8971,6 +8971,7 @@ dependencies = [
  "constraints",
  "envy",
  "futures 0.3.21",
+ "futures-lite",
  "local-ip",
  "log",
  "merge-streams",

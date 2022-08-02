@@ -46,7 +46,7 @@ pub(crate) struct ProtocolManager<T: state::ProtocolState> {
 	pub finalized_subscribing_rx: Option<oneshot::Receiver<broadcast::Sender<SigningMessage>>>,
 	// A receiving channel from each other node in the protocol
 	// todo: this might be better as a single merged stream
-	pub merged_rx_channels: Option<EventStreamWrapper>,
+	pub rx_stream: Option<MessageStream>,
 	/// the broadcasting sender for the party. `SubscriberUtil` holds onto it until all parties
 	/// have subscribed.
 	pub broadcast_tx: Option<broadcast::Sender<SigningMessage>>,
@@ -61,6 +61,7 @@ pub(crate) struct ProtocolManager<T: state::ProtocolState> {
 
 /// A wrapper to around EventStream implementing Debug
 pub struct EventStreamWrapper(EventStream<SigningMessage>);
+
 impl std::fmt::Debug for EventStreamWrapper {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		// f.debug_tuple("EventStreamWrapper").field(&self.0).finish()
@@ -106,9 +107,10 @@ impl SubscriberManager {
 }
 
 // TODO(TK): hack, while I figure out what to type this stream
+#[derive(Debug)]
 pub(crate) struct MessageStream;
 impl Stream for MessageStream {
-	type Item = Result<Bytes, reqwest::Error>;
+	type Item = Result<SigningMessage, reqwest::Error>;
 
 	fn poll_next(
 		self: std::pin::Pin<&mut Self>,
@@ -131,7 +133,7 @@ impl<T: state::ProtocolState> ProtocolManager<T> {
 					ip_addresses: init_party_info.ip_addresses,
 					signing_party_size: SIGNING_PARTY_SIZE,
 					finalized_subscribing_rx: Some(finalized_subscribing_rx),
-					merged_rx_channels: None,
+					rx_stream: None,
 					broadcast_tx: None,
 					result: None,
 					_marker: PhantomData,
@@ -171,46 +173,28 @@ impl ProtocolManager<state::Subscribing> {
 		}
 
 		let responses: Vec<reqwest::Response> = future::try_join_all(handles).await?;
-		// let message_streams = responses.into_iter().map(|response| {
-		// 	response.bytes_stream().filter_map(|bytes| async {
-		// 		let b = bytes.unwrap();
-		// 		let is_crap = &*b == b":\n" || &*b == b"\n";
-		// 		if is_crap {
-		// 			// Some(Box::new(SigningMessage::try_from(b).unwrap()))
-		// 			Some(SigningMessage::try_from(b).unwrap())
-		// 		} else {
-		// 			None
-		// 		}
+		// work area: I want a Vec<MessageStream> that I could flatten into just a MessageStream.
+		// this gives me an Iterator<Item = >
+		// let message_streams: Vec<MessageStream> = responses
+		// 	.into_iter()
+		// 	.map(|response| {
+		// 		response.bytes_stream().filter_map(|bytes| async {
+		// 			let b = &*bytes.unwrap();
+		// 			let is_crap = b == b":\n" || b == b"\n";
+		// 			if !is_crap {
+		// 				// Some(Box::new(SigningMessage::try_from(b).unwrap()))
+		// 				Some(SigningMessage::try_from(b).unwrap())
+		// 			} else {
+		// 				None
+		// 			}
+		// 		})
 		// 	})
-		// });
-		let message_streams = futures::stream::iter(responses).map(|response| async {
-			response.bytes_stream().filter_map(|bytes| async {
-				let b = bytes.unwrap();
-				let is_crap = &*b == b":\n" || &*b == b"\n";
-				if is_crap {
-					// Some(Box::new(SigningMessage::try_from(b).unwrap()))
-					Some(SigningMessage::try_from(b).unwrap())
-				} else {
-					None
-				}
-			})
-		});
-
-		self.merged_rx_channels = Some(EventStreamWrapper(message_streams.flatten()));
+		// 	.collect(); // NOPE
+		// let merged = streamy::merge_streams(message_streams);
+		// self.rx_stream = Some(merged);
 
 		// self.merged_rx_channels = Some(Self::merge_streams(message_streams)?);
 		Ok(())
-	}
-
-	fn merge_streams(
-		streams: impl Iterator<Item = impl Stream<Item = SigningMessage>>,
-	) -> anyhow::Result<EventStreamWrapper> {
-		use merge_streams::MergeStreams;
-		// let merged_stream = streams.merge(); // nope: trait bounds not satisfied.
-		// let merged_stream = streams.collect().merge(); // nope: don't know what to collect into
-		let merged_stream = streams.collect::<Vec<EventStream<SigningMessage>>>().merge(); // nope: can't build an eventstream
-		Ok(EventStreamWrapper(merged_stream))
-		// todo!();
 	}
 
 	/// Wait for other nodes to finish subscribing to this node. SubscriberManager sends a broadcast

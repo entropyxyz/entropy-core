@@ -61,15 +61,13 @@ pub struct SigningMessage {
 	pub party_id: PartyId,
 }
 
-impl TryFrom<Bytes> for SigningMessage {
+impl TryFrom<&[u8]> for SigningMessage {
 	type Error = serde_json::Error;
 
 	// There may be a better way to write this. The Reqwest Bytes response includes non-json
 	// crap that needs to be handled before deserialization.
-	fn try_from(value: Bytes) -> Result<Self, Self::Error> {
-		serde_json::from_str(
-			&std::str::from_utf8(&*value).unwrap().trim().split_once(":").unwrap().1,
-		)
+	fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+		serde_json::from_str(&std::str::from_utf8(value).unwrap().trim().split_once(":").unwrap().1)
 	}
 }
 
