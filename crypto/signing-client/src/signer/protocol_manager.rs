@@ -49,7 +49,7 @@ pub(crate) struct ProtocolManager<T: state::ProtocolState> {
 	pub finalized_subscribing_rx: Option<oneshot::Receiver<broadcast::Sender<SigningMessage>>>,
 	// A merged stream of messages from all other nodes in the protocol
 	pub rx_stream: Option<BoxStream<'static, SigningMessage>>,
-	/// the broadcasting sender for the party. `SubscriberUtil` holds onto it until all parties
+	/// The broadcasting sender for the party. `SubscriberUtil` holds onto it until all parties
 	/// have subscribed.
 	pub broadcast_tx: Option<broadcast::Sender<SigningMessage>>,
 	/// Outcome of the signing protocol
@@ -108,41 +108,28 @@ impl ProtocolManager<state::Subscribing> {
 		info!("subscribe_and_await_subscribers");
 		self.subscribe_to_party().await?;
 		self.await_subscribers().await?;
-
 		unsafe { Ok(transmute(self)) }
 	}
 
-	// async fn subscribe_to_party<S: futures::stream::Stream<Item = Result<Bytes,
-	// std::io::Error>>>(&mut self) -> anyhow::Result<()> {
+	/// Call `subscribe` on every other node with a reqwest client. Merge the streamed responses
+	/// into a single stream.
 	async fn subscribe_to_party(&mut self) -> anyhow::Result<()> {
-		let mut handles = Vec::with_capacity(self.ip_addresses.len());
-		for ip in &self.ip_addresses {
-			let client = reqwest::Client::new();
-			handles.push(
-				client
+		let handles: Vec<_> = self // Call subscribe on every other node
+			.ip_addresses
+			.iter()
+			.map(|ip| {
+				reqwest::Client::new()
 					.post(format!("http://{}/subscribe", ip))
 					.header("Content-Type", "application/json")
 					.json(&SubscribingMessage::new(self.party_id))
-					.send(),
-			);
-		}
+					.send()
+			})
+			.collect();
 		let responses: Vec<reqwest::Response> = future::try_join_all(handles).await?;
 
-		// let message_streams: Vec<Pin<Box<dyn Stream<Item = SigningMessage>>>> = responses
-
-		// get an iterator of the responses
-		// let v = responses.into_iter().map(|resp: reqwest::Response|
-		// resp.bytes_stream()).collect();
-
-		// this actually works fine, with Bytes.
-		let streams: Vec<_> = responses
+		let streams: Vec<_> = responses // Filter the streams, map them to messages
 			.into_iter()
 			.map(|resp: reqwest::Response| {
-				// filter map no-go
-				// resp.bytes_stream().filter_map(|result| {
-				// 	let bytes = result.unwrap();
-				// 	SigningMessage::try_from(&*bytes).ok()
-				// })
 				resp.bytes_stream().filter_map(|result| {
 					let bytes = result.unwrap();
 					info!("got bytes: {:?}", bytes);
@@ -152,10 +139,10 @@ impl ProtocolManager<state::Subscribing> {
 				})
 			})
 			.collect();
-		let stream = futures::stream::select_all(streams);
-		let boxed_stream: BoxStream<'static, SigningMessage> = Box::pin(stream);
-		self.rx_stream = Some(boxed_stream);
-
+		// Merge the streams, pin-box them to handle the opaque types
+		let stream: BoxStream<'static, SigningMessage> =
+			Box::pin(futures::stream::select_all(streams));
+		self.rx_stream = Some(stream);
 		Ok(())
 	}
 
