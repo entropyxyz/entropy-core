@@ -50,8 +50,7 @@ pub struct Global {
 	// TODO(TK): SubscriberManager to be replaced with None when subscribing phase ends.
 	subscriber_manager_map: Mutex<HashMap<PartyUid, Option<SubscriberManager>>>,
 	// TODO(TK): This is only a mapping for the current IPs of a single party. Update to similar to
-	// map above TODO(TK): improve doc comment description for current_ips, this field's function
-	// is unclear current_ips: Arc<Mutex<Vec<String>>>,
+	// map above
 	current_ips: Mutex<Vec<String>>,
 }
 

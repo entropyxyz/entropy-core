@@ -83,10 +83,10 @@ pub async fn new_party(
 	{
 		// store subscriber manager in state, first checking that the party_id is new
 		let map = &mut *state.subscriber_manager_map.lock().unwrap();
-		if map.contains_key(&protocol_manager.party_id) {
+		if map.contains_key(&protocol_manager.party_info.party_uid) {
 			return Err(SigningProtocolError::Other("party id already exists"))
 		}
-		map.insert(protocol_manager.party_id, Some(subscriber_manager));
+		map.insert(protocol_manager.party_info.party_uid, Some(subscriber_manager));
 	}
 
 	// Run the protocol.

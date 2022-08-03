@@ -55,12 +55,12 @@ pub async fn subscribe(
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
 #[serde(crate = "rocket::serde")]
 pub struct SubscribingMessage {
-	pub party_id: PartyId,
+	pub party_id: PartyUid,
 }
 
 /// A message sent by subscribing node. Holder struct for subscription-related methods.
 impl SubscribingMessage {
-	pub(crate) fn new(party_id: PartyId) -> Self {
+	pub(crate) fn new(party_id: PartyUid) -> Self {
 		Self { party_id }
 	}
 
@@ -83,7 +83,7 @@ impl SubscribingMessage {
 	/// Retreive the SubscriberManager for this party, update it with a new subscriber.
 	fn create_new_subscription(
 		&self,
-		map: &mut HashMap<PartyId, Option<SubscriberManager>>,
+		map: &mut HashMap<PartyUid, Option<SubscriberManager>>,
 	) -> broadcast::Receiver<SigningMessage> {
 		let mut subscriber_manager = map.remove(&self.party_id).unwrap().unwrap();
 		let rx = subscriber_manager.new_subscriber();

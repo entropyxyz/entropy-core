@@ -39,10 +39,8 @@ impl TryFrom<&[u8]> for SigningMessage {
 }
 
 pub(crate) struct ProtocolManager<T: state::ProtocolState> {
-	/// The unique signing protocol nonce
-	pub party_id: PartyUid,
-	/// An IP address for each other Node in the protocol
-	pub ip_addresses: Vec<String>,
+	/// Information about the party provided by the Communication Manager
+	pub party_info: SanitizedPartyInfo,
 	/// Size of the signing party
 	pub signing_party_size: usize,
 	/// A channel for the `SubscriberManager` to indicate readiness for the Signing phase
@@ -63,8 +61,7 @@ pub(crate) struct ProtocolManager<T: state::ProtocolState> {
 impl<T: state::ProtocolState> std::fmt::Debug for ProtocolManager<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("ProtocolManager")
-			.field("party_id", &self.party_id)
-			.field("ip_addresses", &self.ip_addresses)
+			.field("party_info", &self.party_info)
 			.field("signing_party_size", &self.signing_party_size)
 			.field("finalized_subscribing_rx", &self.finalized_subscribing_rx)
 			// .field("rx_stream", &self.rx_stream) // no way
@@ -84,8 +81,7 @@ impl<T: state::ProtocolState> ProtocolManager<T> {
 			(
 				finalized_subscribing_tx,
 				Self {
-					party_id: sanitized_info.0.party_uid,
-					ip_addresses: sanitized_info.0.ip_addresses,
+					party_info: sanitized_info,
 					signing_party_size: SIGNING_PARTY_SIZE,
 					finalized_subscribing_rx: Some(finalized_subscribing_rx),
 					rx_stream: None,
@@ -116,13 +112,14 @@ impl ProtocolManager<state::Subscribing> {
 	/// into a single stream.
 	async fn subscribe_to_party(&mut self) -> anyhow::Result<()> {
 		let handles: Vec<_> = self // Call subscribe on every other node
+			.party_info
 			.ip_addresses
 			.iter()
 			.map(|ip| {
 				reqwest::Client::new()
 					.post(format!("http://{}/subscribe", ip))
 					.header("Content-Type", "application/json")
-					.json(&SubscribingMessage::new(self.party_id))
+					.json(&SubscribingMessage::new(self.party_info.party_uid))
 					.send()
 			})
 			.collect();

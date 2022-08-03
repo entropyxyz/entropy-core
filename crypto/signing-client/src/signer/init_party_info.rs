@@ -12,14 +12,14 @@ pub struct InitPartyInfo {
 	pub key_uid: Uuid,
 	/// Unique id of this signing party
 	pub party_uid: PartyUid,
-	/// IP addresses of each node in the party
+	/// IP addresses of each node in the party. This is not an unordered list! Each node is
+	/// expected to be at the index it will use for the signing protocol.
 	pub ip_addresses: Vec<String>,
 	/// Hash of the message to sign
 	pub msg: String,
 }
 
 impl InitPartyInfo {
-	// todo: replace &Global with tighter scope
 	pub(crate) fn new(
 		party_uid: PartyUid,
 		ip_addresses: Vec<String>,
@@ -32,10 +32,26 @@ impl InitPartyInfo {
 	}
 
 	pub(crate) fn sanitize(self) -> anyhow::Result<SanitizedPartyInfo> {
-		Ok(SanitizedPartyInfo(self))
+		// todo: sanitize: check that ip_addresses are indexed in correct order.
+		// if let Err(e) = checked {
+		// 	return anyhow!("pathological Communication Manager");
+		// }
+		Ok(SanitizedPartyInfo {
+			sig_uid: self.sig_uid,
+			key_uid: self.key_uid,
+			party_uid: self.party_uid,
+			ip_addresses: self.ip_addresses,
+			msg: self.msg,
+		})
 	}
 }
 
-/// Wrapper around `InitPartyInfo` to return after sanity checks
+/// Identical to`InitPartyInfo`, return after a sanity check
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct SanitizedPartyInfo(pub(crate) InitPartyInfo);
+pub struct SanitizedPartyInfo {
+	pub sig_uid: Uuid,
+	pub key_uid: Uuid,
+	pub party_uid: PartyUid,
+	pub ip_addresses: Vec<String>,
+	pub msg: String,
+}
