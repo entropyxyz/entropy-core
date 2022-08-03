@@ -25,71 +25,11 @@ use self::context::{PartyInfo, ProtocolCommunication, SignInitSanitized};
 
 mod context;
 mod init_party_info;
-mod types;
+pub(crate) mod subscriber;
+mod protocol_manager;
 pub(crate) use init_party_info::InitPartyInfo;
-pub(crate) use types::{ProtocolManager, SubscriberManager};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
-#[serde(crate = "rocket::serde")]
-pub struct SubscribingMessage {
-	pub party_id: PartyId,
-}
-
-/// A message sent by subscribing node. Holder struct for subscription-related methods.
-impl SubscribingMessage {
-	pub(crate) fn new(party_id: PartyId) -> Self {
-		Self { party_id }
-	}
-
-	/// Validate that the this node knows about party with `party_id`
-	// todo:
-	// and that the calling node is in the party group
-	// pub(crate) fn validate_registration(&self, state: &GlobalHangshMap<>d, mut screHashMap<>d,
-	// SubscriberManager
-	pub(crate) fn validate_registration(&self) -> anyhow::Result<()> {
-		// 	let channels = state.signing_channels.clone();
-		// 	let contains_key = channels.lock().unwrap().contains_key(&self.party_id);
-		// 	if contains_key {
-		// 		true
-		// 	} else {
-		// 		false
-		// 	}
-		Ok(())
-	}
-
-	// retrieve the subscriber_manager from state to issue a new receiver channel
-	pub(crate) fn create_new_subscription(
-		&self,
-		map: &mut HashMap<PartyId, Option<SubscriberManager>>,
-	) -> broadcast::Receiver<SigningMessage> {
-		let mut subscriber_manager = map.remove(&self.party_id).unwrap().unwrap();
-		let rx = subscriber_manager.new_subscriber();
-		map.insert(self.party_id, Some(subscriber_manager));
-		rx
-	}
-
-	pub(crate) fn create_event_stream(
-		&self,
-		mut rx: Receiver<SigningMessage>,
-		mut end: Shutdown,
-	) -> EventStream![] {
-		EventStream! {
-			loop {
-				let msg = select! {
-					msg = rx.recv() => match msg {
-						Ok(msg) => msg,
-						Err(RecvError::Closed) => break,
-						Err(RecvError::Lagged(_)) => continue,
-					},
-					_ = &mut end => break,
-				};
-
-				yield Event::json(&msg);
-			}
-		}
-	}
-}
+pub(crate) use subscriber::{subscribe, SubscriberManager, SubscribingMessage};
+pub(crate) use protocol_manager::ProtocolManager;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]

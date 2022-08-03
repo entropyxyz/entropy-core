@@ -11,14 +11,14 @@
 //! - Sled DB KVDB
 #![allow(unused_variables)]
 use crate::{
-	ip_discovery::{get_ip, new_party, subscribe},
+	ip_discovery::{get_ip, new_party},
 	sign::provide_share,
+	signer::{subscribe, SubscriberManager},
 	store_share::store_keyshare,
 };
 use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::Deserialize;
-use signer::SubscriberManager;
 use std::{
 	collections::HashMap,
 	sync::{Arc, Mutex},

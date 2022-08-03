@@ -39,7 +39,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 # Convenience 
 tylift = "0.3.5"
 merge-streams = "0.1.2"
-futures-lite = "1.12.0"
+# futures-lite = "1.12.0"
 
 [dev-dependencies]
 testing-utils = { path = "../testing-utils"}

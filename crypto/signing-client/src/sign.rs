@@ -38,7 +38,8 @@ pub mod entropy {}
 pub type EntropyRuntime =
 	entropy::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
 
-// TODO(TK): Better documentation on this function
+// TODO(TK): Better documentation on this function. Also: 
+// TODO(TK): warning: application/... is not a known type, a warning not showing up on Jesse's machine?
 /// Takes data from OCW decondes it and launches the signing process
 /// Identifies if node should lead or participate in signing
 #[post("/sign", format = "application/x-parity-scale-codec", data = "<encoded_data>")]

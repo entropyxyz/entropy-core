@@ -1,12 +1,16 @@
-use std::{intrinsics::transmute, marker::PhantomData};
+use std::{intrinsics::transmute, marker::PhantomData, pin::Pin};
 
 use crate::{
 	errors::CustomIPError,
 	signer::{init_party_info::InitPartyInfo, SigningMessage, SubscribingMessage},
 	Global, PartyId, SIGNING_PARTY_SIZE,
 };
-use futures::{future, Stream, StreamExt, TryFutureExt};
-use merge_streams::{IntoStream, MergeStreams, StreamExt as MergeStreamExt};
+use futures::{
+	future,
+	stream::{select_all, BoxStream},
+	Stream, StreamExt, TryFutureExt,
+};
+// use merge_streams::{IntoStream, MergeStreams, StreamExt as MergeStreamExt};
 use reqwest::{self};
 use rocket::{
 	http::{hyper::body::Bytes, Status},
@@ -46,7 +50,7 @@ pub(crate) struct ProtocolManager<T: state::ProtocolState> {
 	pub finalized_subscribing_rx: Option<oneshot::Receiver<broadcast::Sender<SigningMessage>>>,
 	// A receiving channel from each other node in the protocol
 	// todo: this might be better as a single merged stream
-	pub rx_stream: Option<MessageStream>,
+	pub rx_stream: Option<u64>, // todo: replace with stream
 	/// the broadcasting sender for the party. `SubscriberUtil` holds onto it until all parties
 	/// have subscribed.
 	pub broadcast_tx: Option<broadcast::Sender<SigningMessage>>,
@@ -59,66 +63,6 @@ pub(crate) struct ProtocolManager<T: state::ProtocolState> {
 	_marker: PhantomData<T>,
 }
 
-/// A wrapper to around EventStream implementing Debug
-pub struct EventStreamWrapper(EventStream<SigningMessage>);
-
-impl std::fmt::Debug for EventStreamWrapper {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		// f.debug_tuple("EventStreamWrapper").field(&self.0).finish()
-		f.debug_tuple("EventStreamWrapper").finish()
-	}
-}
-
-/// The number of subscribers, and a channel to indicate readiness
-#[derive(Debug)]
-pub(crate) struct SubscriberManager {
-	/// How many other nodes have subscribed to this node
-	pub count: usize,
-	/// When count = party_size, this channel will pass a Ready message, containing the
-	/// fully-subscribed broadcast sender.
-	pub finalized_tx: Option<oneshot::Sender<broadcast::Sender<SigningMessage>>>,
-	// The broadcast tx, to send other nodes messages. Used to produce receiver channels in the
-	// Subscribing phase.
-	pub broadcast_tx: Option<broadcast::Sender<SigningMessage>>,
-}
-
-impl SubscriberManager {
-	pub(crate) fn new(
-		finalized_tx: oneshot::Sender<broadcast::Sender<SigningMessage>>,
-		// broadcast_tx: broadcast::Sender<SigningMessage>,
-	) -> Self {
-		let (broadcast_tx, _) = broadcast::channel(1000);
-		Self { count: 0, finalized_tx: Some(finalized_tx), broadcast_tx: Some(broadcast_tx) }
-	}
-
-	// If this was the final subscriber, send broadcast_tx back to the ProtocolManager, consuming
-	// self. The API caller is responsible for returning ownership of SubscriberUtil to their
-	// client.
-	pub(crate) fn new_subscriber(&mut self) -> broadcast::Receiver<SigningMessage> {
-		self.count += 1;
-		let rx = self.broadcast_tx.as_ref().unwrap().subscribe();
-		if self.count == SIGNING_PARTY_SIZE {
-			let broadcast_tx = self.broadcast_tx.take().unwrap();
-			let finalized_tx = self.finalized_tx.take().unwrap();
-			let _ = finalized_tx.send(broadcast_tx);
-		}
-		rx
-	}
-}
-
-// TODO(TK): hack, while I figure out what to type this stream
-#[derive(Debug)]
-pub(crate) struct MessageStream;
-impl Stream for MessageStream {
-	type Item = Result<SigningMessage, reqwest::Error>;
-
-	fn poll_next(
-		self: std::pin::Pin<&mut Self>,
-		cx: &mut std::task::Context<'_>,
-	) -> std::task::Poll<Option<Self::Item>> {
-		todo!()
-	}
-}
 
 impl<T: state::ProtocolState> ProtocolManager<T> {
 	pub fn new(
@@ -159,6 +103,7 @@ impl ProtocolManager<state::Subscribing> {
 		unsafe { Ok(transmute(self)) }
 	}
 
+	// async fn subscribe_to_party<S: futures::stream::Stream<Item = Result<Bytes, std::io::Error>>>(&mut self) -> anyhow::Result<()> {
 	async fn subscribe_to_party(&mut self) -> anyhow::Result<()> {
 		let mut handles = Vec::with_capacity(self.ip_addresses.len());
 		for ip in &self.ip_addresses {
@@ -171,26 +116,42 @@ impl ProtocolManager<state::Subscribing> {
 					.send(),
 			);
 		}
-
 		let responses: Vec<reqwest::Response> = future::try_join_all(handles).await?;
-		// work area: I want a Vec<MessageStream> that I could flatten into just a MessageStream.
-		// this gives me an Iterator<Item = >
-		// let message_streams: Vec<MessageStream> = responses
+
+		// let message_streams: Vec<Pin<Box<dyn Stream<Item = SigningMessage>>>> = responses
+
+		// get an iterator of the responses
+		let v = futures::stream::iter(responses);
+		// map the responses to byte streams
+		// This nopes the heck out: found an opaque return type.
+		// let v_streams: Vec<S> = v.map(|response| response.bytes_stream()).collect().await;
+		// let message_streams = message_streams.
+		// let message_streams = message_streams
+		// .map(|response| response.bytes_stream());
+		// let mapped_response = message_streams.
+		// let message_streams = responses
 		// 	.into_iter()
 		// 	.map(|response| {
-		// 		response.bytes_stream().filter_map(|bytes| async {
-		// 			let b = &*bytes.unwrap();
-		// 			let is_crap = b == b":\n" || b == b"\n";
-		// 			if !is_crap {
-		// 				// Some(Box::new(SigningMessage::try_from(b).unwrap()))
-		// 				Some(SigningMessage::try_from(b).unwrap())
-		// 			} else {
-		// 				None
-		// 			}
-		// 		})
+		// 		// a filtered stream of responses
+		// 		let stream: futures::stream::FilterMap<S, Fut, F> =
+		// 			response.bytes_stream().filter_map(|bytes| async {
+		// 				let b = &*bytes.unwrap();
+		// 				let is_crap = b == b":\n" || b == b"\n";
+		// 				if !is_crap {
+		// 					Some(b)
+		// 				// Some(Box::pin(SigningMessage::try_from(b).unwrap()))
+		// 				// Some(SigningMessage::try_from(b).unwrap())
+		// 				} else {
+		// 					None
+		// 				}
+		// 			});
+		// 		stream
 		// 	})
-		// 	.collect(); // NOPE
-		// let merged = streamy::merge_streams(message_streams);
+		// 	.collect();
+
+		// let merged = select_all(message_streams);
+		// let merged = select_all(message_streams);
+		// let stream: BoxStream<'static, SigningMessage> = Box::pin(merged);
 		// self.rx_stream = Some(merged);
 
 		// self.merged_rx_channels = Some(Self::merge_streams(message_streams)?);
