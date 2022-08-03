@@ -69,7 +69,7 @@ impl SubscribingMessage {
 	// and that the calling node is in the party group
 	// pub(crate) fn validate_registration(&self, state: &GlobalHangshMap<>d, mut screHashMap<>d,
 	// SubscriberManager
-	pub(crate) fn validate_registration(&self) -> anyhow::Result<()> {
+	fn validate_registration(&self) -> anyhow::Result<()> {
 		// 	let channels = state.signing_channels.clone();
 		// 	let contains_key = channels.lock().unwrap().contains_key(&self.party_id);
 		// 	if contains_key {
@@ -80,8 +80,8 @@ impl SubscribingMessage {
 		Ok(())
 	}
 
-	// retrieve the subscriber_manager from state to issue a new receiver channel
-	pub(crate) fn create_new_subscription(
+	/// Retreive the SubscriberManager for this party, update it with a new subscriber.
+	fn create_new_subscription(
 		&self,
 		map: &mut HashMap<PartyId, Option<SubscriberManager>>,
 	) -> broadcast::Receiver<SigningMessage> {
@@ -91,7 +91,8 @@ impl SubscribingMessage {
 		rx
 	}
 
-	pub(crate) fn create_event_stream(
+	/// Yield messages as events in a stream as they arrive. Helper for `subscribe`.
+	fn create_event_stream(
 		&self,
 		mut rx: broadcast::Receiver<SigningMessage>,
 		mut end: Shutdown,
@@ -118,27 +119,35 @@ impl SubscribingMessage {
 pub(crate) struct SubscriberManager {
 	/// How many other nodes have subscribed to this node
 	pub count: usize,
+	/// Marked true when the count matches SIGNING_PARTY_SIZE
+	pub done: bool,
 	/// When count = party_size, this channel will pass a Ready message, containing the
 	/// fully-subscribed broadcast sender.
 	pub finalized_tx: Option<oneshot::Sender<broadcast::Sender<SigningMessage>>>,
-	// The broadcast tx, to send other nodes messages. Used to produce receiver channels in the
-	// Subscribing phase.
+	/// The broadcast tx, to send other nodes messages. Used to produce receiver channels in the
+	/// Subscribing phase.
 	pub broadcast_tx: Option<broadcast::Sender<SigningMessage>>,
 }
 
 impl SubscriberManager {
 	pub(crate) fn new(finalized_tx: oneshot::Sender<broadcast::Sender<SigningMessage>>) -> Self {
 		let (broadcast_tx, _) = broadcast::channel(1000);
-		Self { count: 0, finalized_tx: Some(finalized_tx), broadcast_tx: Some(broadcast_tx) }
+		Self {
+			count: 0,
+			done: false,
+			finalized_tx: Some(finalized_tx),
+			broadcast_tx: Some(broadcast_tx),
+		}
 	}
 
-	// If this was the final subscriber, send broadcast_tx back to the ProtocolManager, consuming
-	// self. The API caller is responsible for returning ownership of SubscriberUtil to their
-	// client.
-	pub(crate) fn new_subscriber(&mut self) -> broadcast::Receiver<SigningMessage> {
+	/// Update Self with a new subscriber.
+	/// If this was the final subscriber, send broadcast_tx back to the ProtocolManager.
+	fn new_subscriber(&mut self) -> broadcast::Receiver<SigningMessage> {
+		assert!(!self.done);
 		self.count += 1;
 		let rx = self.broadcast_tx.as_ref().unwrap().subscribe();
 		if self.count == SIGNING_PARTY_SIZE {
+			self.done = true;
 			let broadcast_tx = self.broadcast_tx.take().unwrap();
 			let finalized_tx = self.finalized_tx.take().unwrap();
 			let _ = finalized_tx.send(broadcast_tx);
