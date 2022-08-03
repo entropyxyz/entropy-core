@@ -56,13 +56,6 @@ pub(crate) struct TofndInfo {
 	pub(crate) index: usize,
 }
 
-/// `KeyShareKv` record
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PartyInfo {
-	pub(crate) common: GroupPublicInfo,
-	pub(crate) shares: Vec<ShareSecretInfo>,
-	pub(crate) tofnd: TofndInfo,
-}
 
 /// define the input and output channels of generic execute_protocol worker
 pub(crate) struct ProtocolCommunication<InMsg, OutMsg> {
@@ -78,6 +71,13 @@ impl<InMsg, OutMsg> ProtocolCommunication<InMsg, OutMsg> {
 	}
 }
 
+/// `KeyShareKv` record
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PartyInfo {
+	pub(crate) common: GroupPublicInfo,
+	pub(crate) shares: Vec<ShareSecretInfo>,
+	pub(crate) tofnd: TofndInfo,
+}
 impl PartyInfo {
 	/// Get GroupPublicInfo and ShareSecretInfo from tofn to create PartyInfo
 	/// Also needed in recovery

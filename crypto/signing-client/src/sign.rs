@@ -17,7 +17,7 @@
 #![allow(clippy::enum_variant_names)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
-use crate::{EntropyKvManager, Global};
+use crate::{Global};
 use kvdb::kv_manager::value::KvManager;
 
 use common::OCWMessage;
@@ -48,7 +48,7 @@ pub type EntropyRuntime =
 pub async fn provide_share(
 	encoded_data: Vec<u8>,
 	state: &State<Global>,
-	kv_manager: &State<EntropyKvManager>,
+	// kv_manager: &State<EntropyKvManager>,
 ) -> Status {
 	println!("encoded_data {:?}", encoded_data);
 
@@ -59,10 +59,9 @@ pub async fn provide_share(
 	};
 	println!("data: {:?}", &data);
 
-	let cached_state = state.inner();
-	let endpoint = cached_state.endpoint.clone();
-	let mnemonic = cached_state.mnemonic.clone();
-	let kv_manager = &kv_manager.0;
+	let endpoint = state.endpoint.clone();
+	let mnemonic = state.mnemonic.clone();
+	let kv_manager = &state.kv_manager;
 
 	let api = get_api(&endpoint).await.unwrap();
 	let block_number = get_block_number(&api).await.unwrap();

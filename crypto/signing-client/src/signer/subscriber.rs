@@ -16,7 +16,7 @@ use tokio::{
 };
 use tracing::instrument;
 
-// #[instrument]
+#[instrument]
 #[post("/subscribe", data = "<subscribing_message>")]
 pub async fn subscribe(
 	subscribing_message: Json<SubscribingMessage>,
@@ -25,7 +25,7 @@ pub async fn subscribe(
 	state: &State<Global>,
 	// ) {
 ) -> EventStream![] {
-	// info!("signing_registration");
+	info!("signing_registration");
 	let subscribing_message = subscribing_message.into_inner();
 	subscribing_message.validate_registration().unwrap();
 

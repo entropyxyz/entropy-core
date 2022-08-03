@@ -41,7 +41,7 @@ pub type PartyUid = usize;
 pub const SIGNING_PARTY_SIZE: usize = 6;
 
 /// holds KVDB instance, threshold mnemonic and endpoint of running node
-#[derive(Debug, Default)]
+// #[derive(Default)]
 pub struct Global {
 	mnemonic: String,
 	endpoint: String,
@@ -52,11 +52,37 @@ pub struct Global {
 	// TODO(TK): This is only a mapping for the current IPs of a single party. Update to similar to
 	// map above
 	current_ips: Mutex<Vec<String>>,
+	/// Master of the Keys, storer of items of the form signer::party_info::StoredInfo
+	kv_manager: KvManager,
+}
+
+impl Default for Global {
+	#[allow(unconditional_recursion)]
+	fn default() -> Self {
+		Self { kv_manager: load_kv_store(), ..Default::default() }
+	}
+}
+
+impl std::fmt::Debug for Global {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.debug_struct("Global")
+			.field("mnemonic", &self.mnemonic)
+			.field("endpoint", &self.endpoint)
+			.field("party_id_nonce", &self.party_id_nonce)
+			.field("subscriber_manager_map", &self.subscriber_manager_map)
+			.field("current_ips", &self.current_ips)
+			.finish()
+	}
 }
 
 impl Global {
 	pub(crate) fn new(env: Configuration) -> Self {
-		Self { mnemonic: env.mnemonic, endpoint: env.endpoint.unwrap(), ..Default::default() }
+		Self {
+			mnemonic: env.mnemonic,
+			endpoint: env.endpoint.unwrap(),
+			kv_manager: load_kv_store(),
+			..Default::default()
+		}
 	}
 
 	pub(crate) fn get_next_party_id(&self) -> PartyUid {
@@ -65,9 +91,6 @@ impl Global {
 		nonce
 	}
 }
-
-/// KvManager doesn't implement Debug, so store it separately for logging convenience
-pub struct EntropyKvManager(KvManager);
 
 fn default_endpoint() -> Option<String> {
 	Some("ws://localhost:9944".to_string())
@@ -91,7 +114,6 @@ pub(crate) fn init_tracing() {
 async fn rocket() -> _ {
 	init_tracing();
 	let global = Global::new(load_environment_variables());
-	let kv_manager = EntropyKvManager(load_kv_store());
 
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
 	// Communication Manager: Collect IPs, for `signing_party`, list of global ip addresses for a
@@ -99,7 +121,6 @@ async fn rocket() -> _ {
 	rocket::build()
 		.mount("/", routes![store_keyshare, provide_share, get_ip, new_party, subscribe])
 		.manage(global)
-		.manage(kv_manager)
 }
 
 fn load_environment_variables() -> Configuration {

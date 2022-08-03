@@ -6,8 +6,7 @@ use reqwest::{self};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, oneshot};
 use tracing::instrument;
-
-use super::init_party_info::SanitizedPartyInfo;
+use crate::signer::CMInfo;
 
 // use super::context::PartyInfo;
 
@@ -40,7 +39,7 @@ impl TryFrom<&[u8]> for SigningMessage {
 
 pub(crate) struct ProtocolManager<T: state::ProtocolState> {
 	/// Information about the party provided by the Communication Manager
-	pub party_info: SanitizedPartyInfo,
+	pub cm_info: CMInfo,
 	/// Size of the signing party
 	pub signing_party_size: usize,
 	/// A channel for the `SubscriberManager` to indicate readiness for the Signing phase
@@ -61,7 +60,7 @@ pub(crate) struct ProtocolManager<T: state::ProtocolState> {
 impl<T: state::ProtocolState> std::fmt::Debug for ProtocolManager<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("ProtocolManager")
-			.field("party_info", &self.party_info)
+			.field("cm_info", &self.cm_info)
 			.field("signing_party_size", &self.signing_party_size)
 			.field("finalized_subscribing_rx", &self.finalized_subscribing_rx)
 			// .field("rx_stream", &self.rx_stream) // no way
@@ -74,14 +73,14 @@ impl<T: state::ProtocolState> std::fmt::Debug for ProtocolManager<T> {
 
 impl<T: state::ProtocolState> ProtocolManager<T> {
 	pub fn new(
-		sanitized_info: SanitizedPartyInfo,
+		cm_info: CMInfo,
 	) -> (oneshot::Sender<broadcast::Sender<SigningMessage>>, Self) {
 		{
 			let (finalized_subscribing_tx, finalized_subscribing_rx) = oneshot::channel();
 			(
 				finalized_subscribing_tx,
 				Self {
-					party_info: sanitized_info,
+					cm_info,
 					signing_party_size: SIGNING_PARTY_SIZE,
 					finalized_subscribing_rx: Some(finalized_subscribing_rx),
 					rx_stream: None,
@@ -112,14 +111,14 @@ impl ProtocolManager<state::Subscribing> {
 	/// into a single stream.
 	async fn subscribe_to_party(&mut self) -> anyhow::Result<()> {
 		let handles: Vec<_> = self // Call subscribe on every other node
-			.party_info
+			.cm_info
 			.ip_addresses
 			.iter()
 			.map(|ip| {
 				reqwest::Client::new()
 					.post(format!("http://{}/subscribe", ip))
 					.header("Content-Type", "application/json")
-					.json(&SubscribingMessage::new(self.party_info.party_uid))
+					.json(&SubscribingMessage::new(self.cm_info.party_uid))
 					.send()
 			})
 			.collect();
