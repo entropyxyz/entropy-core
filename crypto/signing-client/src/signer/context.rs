@@ -11,7 +11,6 @@ use tofn::{
 		sign::SignParties,
 	},
 };
-use tofnd::TofndResult;
 use tokio::sync::mpsc;
 
 pub(crate) type MessageDigest = tofn::gg20::sign::MessageDigest;
@@ -106,7 +105,7 @@ impl Context {
 		sign_init: SignInitSanitized,
 		party_info: PartyInfo,
 		tofnd_subindex: usize,
-	) -> TofndResult<Self> {
+	) -> anyhow::Result<Self> {
 		// retrieve sign_share_couts and secret_key_shares here instead of adding
 		// getters to immediatelly dicover potential errors
 		let sign_share_counts = Self::get_sign_share_counts(
@@ -139,7 +138,7 @@ impl Context {
 		keygen_uids: &[String],
 		keygen_share_counts: &[usize],
 		sign_uids: &[String],
-	) -> TofndResult<Vec<usize>> {
+	) -> anyhow::Result<Vec<usize>> {
 		if keygen_uids.len() != keygen_share_counts.len() {
 			return Err(anyhow!("misalligned keygen uids and keygen share counts"))
 		}
@@ -156,7 +155,7 @@ impl Context {
 		Ok(sign_share_counts)
 	}
 
-	fn get_share(party_info: &PartyInfo, tofnd_subindex: usize) -> TofndResult<ShareSecretInfo> {
+	fn get_share(party_info: &PartyInfo, tofnd_subindex: usize) -> anyhow::Result<ShareSecretInfo> {
 		Ok(party_info
 			.shares
 			.get(tofnd_subindex)
@@ -184,7 +183,7 @@ impl Context {
 	pub(crate) fn get_sign_parties(
 		length: usize,
 		sign_indices: &[usize],
-	) -> TofndResult<SignParties> {
+	) -> anyhow::Result<SignParties> {
 		let mut sign_parties = Subset::with_max_size(length);
 		for signer_idx in sign_indices.iter() {
 			if sign_parties.add(TypedUsize::from_usize(*signer_idx)).is_err() {

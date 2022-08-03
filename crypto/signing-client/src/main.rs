@@ -24,8 +24,6 @@ use std::{
 	sync::{Arc, Mutex},
 };
 
-use tofnd::{config::parse_args, kv_manager::KvManager};
-
 #[macro_use]
 extern crate rocket;
 
