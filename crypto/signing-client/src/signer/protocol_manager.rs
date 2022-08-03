@@ -63,7 +63,6 @@ pub(crate) struct ProtocolManager<T: state::ProtocolState> {
 	_marker: PhantomData<T>,
 }
 
-
 impl<T: state::ProtocolState> ProtocolManager<T> {
 	pub fn new(
 		init_party_info: InitPartyInfo,
@@ -87,7 +86,6 @@ impl<T: state::ProtocolState> ProtocolManager<T> {
 	}
 }
 
-// todo: move this to own lib
 impl ProtocolManager<state::Subscribing> {
 	/// Subscribe: Call `subscribe` on each other node in the signing party. Get back vector of
 	/// receiver streams. Then advance the protocol to the signing phase.
@@ -103,7 +101,8 @@ impl ProtocolManager<state::Subscribing> {
 		unsafe { Ok(transmute(self)) }
 	}
 
-	// async fn subscribe_to_party<S: futures::stream::Stream<Item = Result<Bytes, std::io::Error>>>(&mut self) -> anyhow::Result<()> {
+	// async fn subscribe_to_party<S: futures::stream::Stream<Item = Result<Bytes,
+	// std::io::Error>>>(&mut self) -> anyhow::Result<()> {
 	async fn subscribe_to_party(&mut self) -> anyhow::Result<()> {
 		let mut handles = Vec::with_capacity(self.ip_addresses.len());
 		for ip in &self.ip_addresses {
@@ -168,6 +167,7 @@ impl ProtocolManager<state::Subscribing> {
 	}
 }
 
+// beneath this line: todo
 impl ProtocolManager<state::Signing> {
 	pub(crate) async fn sign(mut self) -> anyhow::Result<ProtocolManager<state::Complete>> {
 		self.result = Some(Ok(())); // todo

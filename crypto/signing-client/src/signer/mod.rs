@@ -25,11 +25,11 @@ use self::context::{PartyInfo, ProtocolCommunication, SignInitSanitized};
 
 mod context;
 mod init_party_info;
-pub(crate) mod subscriber;
 mod protocol_manager;
+pub(crate) mod subscriber;
 pub(crate) use init_party_info::InitPartyInfo;
-pub(crate) use subscriber::{subscribe, SubscriberManager, SubscribingMessage};
 pub(crate) use protocol_manager::ProtocolManager;
+pub(crate) use subscriber::{subscribe, SubscriberManager, SubscribingMessage};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]

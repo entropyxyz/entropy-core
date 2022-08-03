@@ -1,14 +1,55 @@
+use super::SigningMessage;
+use crate::{Global, PartyId, SIGNING_PARTY_SIZE};
+use rocket::{
+	response::stream::{Event, EventStream},
+	serde::json::Json,
+	Shutdown, State,
+};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-use rocket::{serde::json::Json, Shutdown, response::stream::{EventStream, Event}, State};
-use serde::{Serialize, Deserialize};
-use tokio::{sync::{broadcast::{self, error::RecvError}, oneshot}, select};
+use tokio::{
+	select,
+	sync::{
+		broadcast::{self, error::RecvError},
+		oneshot,
+	},
+};
 use tracing::instrument;
 
-use crate::{PartyId, Global, SIGNING_PARTY_SIZE};
+/// An endpoint for other nodes to subscribe to messages produced by this node.
+///
+/// Todo:
+/// - What if this node hasn't yet heard about the `ProtocolManager`?
+/// - validate the IP address of the caller
+/// - Test: must fail if party is over
+#[instrument]
+#[post("/subscribe", data = "<subscribing_message>")]
+pub async fn subscribe(
+	subscribing_message: Json<SubscribingMessage>,
+	#[allow(unused_mut)] // macro shenanigans fooling our trusty linter
+	mut end: Shutdown,
+	state: &State<Global>,
+	// ) {
+) -> EventStream![] {
+	info!("signing_registration");
+	if let Err(e) = subscribing_message.validate_registration() {
+		// TODO(TK): handle validation, and the possibility that the communication manager hasn't
+		// touched this node yet. Can I return a Result<EventStream>?
+	}
 
-use super::SigningMessage;
+	let subscribing_message = subscribing_message.into_inner();
+	let mut subscriber_manager_map = state.inner().subscriber_manager_map.lock().unwrap();
+	// KEEP until testing, also may use state for ^validate registration
+	// let mut subscriber_manager_map = {
+	// 	let state = state.inner();
+	// 	state.subscriber_manager_map.lock().unwrap()
+	// };
 
+	let rx = subscribing_message.create_new_subscription(&mut subscriber_manager_map);
+	// maybe unnecessary. Drop the subscriber map before returning to avoid blocking
+	drop(subscriber_manager_map);
+	subscribing_message.create_event_stream(rx, end)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
@@ -70,41 +111,6 @@ impl SubscribingMessage {
 			}
 		}
 	}
-}
-
-/// An endpoint for other nodes to subscribe to messages produced by this node.
-///
-/// Todo:
-/// - What if this node hasn't yet heard about the `ProtocolManager`?
-/// - validate the IP address of the caller
-/// - Test: must fail if party is over
-#[instrument]
-#[post("/subscribe", data = "<subscribing_message>")]
-pub async fn subscribe(
-	subscribing_message: Json<SubscribingMessage>,
-	#[allow(unused_mut)] // macro shenanigans fooling our trusty linter
-	mut end: Shutdown,
-	state: &State<Global>,
-	// ) {
-) -> EventStream![] {
-	info!("signing_registration");
-	if let Err(e) = subscribing_message.validate_registration() {
-		// TODO(TK): handle validation, and the possibility that the communication manager hasn't
-		// touched this node yet. Can I return a Result<EventStream>?
-	}
-
-	let subscribing_message = subscribing_message.into_inner();
-	let mut subscriber_manager_map = state.inner().subscriber_manager_map.lock().unwrap();
-	// KEEP until testing, also may use state for ^validate registration
-	// let mut subscriber_manager_map = {
-	// 	let state = state.inner();
-	// 	state.subscriber_manager_map.lock().unwrap()
-	// };
-
-	let rx = subscribing_message.create_new_subscription(&mut subscriber_manager_map);
-	// maybe unnecessary. Drop the subscriber map before returning to avoid blocking
-	drop(subscriber_manager_map);
-	subscribing_message.create_event_stream(rx, end)
 }
 
 /// The number of subscribers, and a channel to indicate readiness
