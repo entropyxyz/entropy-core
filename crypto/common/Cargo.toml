@@ -1,8 +1,8 @@
 [package]
-name = "common"
-version = "0.1.0"
-edition = "2021"
+name   ="common"
+version="0.1.0"
+edition="2021"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
-scale-info = { version = '2.0.1', default-features = false, features = ['derive'] }
+codec     ={ package="parity-scale-codec", version="3.0.0", default-features=false }
+scale-info={ version='2.0.1', default-features=false, features=['derive'] }
