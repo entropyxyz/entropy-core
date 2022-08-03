@@ -25,6 +25,7 @@ parity-scale-codec="3.0.0"
 subxt             ={ git="https://github.com/paritytech/subxt.git" }
 sp-keyring        ="6.0.0"
 sp-core           ="6.0.0"
+tofn              ={ git="https://github.com/Entropyxyz/tofn", branch="main" }
 
 # Entropy
 common     ={ path="../common", default-features=false }
@@ -37,11 +38,10 @@ tracing           ="0.1"
 tracing-subscriber={ version="0.3", features=["env-filter", "fmt"] }
 
 # Misc
-# uuid = { version = "0.8", features = ["v4"] }
+uuid        ={ version = "0.8", features = ["serde", "v4"] }
 tylift      ="0.3.5"
 envy        ="0.4"
 bip39       ={ git="https://github.com/infincia/bip39-rs.git", tag="v0.6.0-beta.1" }
-tofn        ={ git="https://github.com/Entropyxyz/tofn", branch="main" }
 project-root="0.2.2"
 local-ip    ="0.1"
 

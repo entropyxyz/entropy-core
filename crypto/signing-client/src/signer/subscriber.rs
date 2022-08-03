@@ -1,5 +1,5 @@
 use super::SigningMessage;
-use crate::{Global, PartyId, SIGNING_PARTY_SIZE};
+use crate::{Global, PartyUid, SIGNING_PARTY_SIZE};
 use rocket::{
 	response::stream::{Event, EventStream},
 	serde::json::Json,

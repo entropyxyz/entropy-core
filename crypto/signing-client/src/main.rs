@@ -19,10 +19,7 @@ use crate::{
 use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::Deserialize;
-use std::{
-	collections::HashMap,
-	sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, sync::Mutex};
 
 #[macro_use]
 extern crate rocket;
@@ -38,7 +35,7 @@ pub use kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManage
 #[cfg(test)]
 mod tests;
 
-pub type PartyId = usize;
+pub type PartyUid = usize;
 // pub type RxChannel = Meimpl Stream<Item = Result<Bytes, reqwest::Error>>;
 
 pub const SIGNING_PARTY_SIZE: usize = 6;
@@ -48,20 +45,25 @@ pub const SIGNING_PARTY_SIZE: usize = 6;
 pub struct Global {
 	mnemonic: String,
 	endpoint: String,
-	// TODO(TK): sharding hashmap into Mutex<SigningChannel>
-	subscriber_manager_map: Mutex<HashMap<PartyId, Option<SubscriberManager>>>,
-	// signing_channels: Arc<Mutex<HashMap<PartyId, TxChannel>>>,
-	/// create unique ids for each signing party
+	/// Unique ids for each signing party
 	party_id_nonce: Mutex<usize>,
-	// TODO(TK): improve doc comment description for current_ips, this field's function is unclear
-	current_ips: Arc<Mutex<Vec<String>>>,
+	// TODO(TK): SubscriberManager to be replaced with None when subscribing phase ends.
+	subscriber_manager_map: Mutex<HashMap<PartyUid, Option<SubscriberManager>>>,
+	// TODO(TK): This is only a mapping for the current IPs of a single party. Update to similar to
+	// map above TODO(TK): improve doc comment description for current_ips, this field's function
+	// is unclear current_ips: Arc<Mutex<Vec<String>>>,
+	current_ips: Mutex<Vec<String>>,
 }
 
 impl Global {
 	pub(crate) fn new(env: Configuration) -> Self {
-		{
-			Self { mnemonic: env.mnemonic, endpoint: env.endpoint.unwrap(), ..Default::default() }
-		}
+		Self { mnemonic: env.mnemonic, endpoint: env.endpoint.unwrap(), ..Default::default() }
+	}
+
+	pub(crate) fn get_next_party_id(&self) -> PartyUid {
+		let mut nonce = *self.party_id_nonce.lock().unwrap();
+		nonce += 1;
+		nonce
 	}
 }
 

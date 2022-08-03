@@ -35,7 +35,7 @@ pub async fn store_keyshare(
 	// ToDo: validate is owner of key address
 	// ToDo: JA make sure signed so other key doesn't override own key
 
-	let cached_state = state.inner();
+	// let cached_state = state.inner();
 	let kv_manager = &kv_manager.0;
 
 	let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();

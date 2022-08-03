@@ -1,30 +1,15 @@
-use std::{intrinsics::transmute, marker::PhantomData, pin::Pin};
+use std::{intrinsics::transmute, marker::PhantomData};
 
-use crate::{
-	errors::CustomIPError,
-	signer::{init_party_info::InitPartyInfo, SigningMessage, SubscribingMessage},
-	Global, PartyId, SIGNING_PARTY_SIZE,
-};
-use futures::{
-	future,
-	stream::{select_all, BoxStream},
-	Stream, StreamExt, TryFutureExt,
-};
+use crate::{signer::SubscribingMessage, PartyUid, SIGNING_PARTY_SIZE};
+use futures::{future, stream::BoxStream, StreamExt};
 use reqwest::{self};
-use rocket::{
-	http::{hyper::body::Bytes, Status},
-	response::stream::{ByteStream, EventStream},
-	serde::json::Json,
-	State,
-};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{
-	broadcast::{self, Sender},
-	mpsc, oneshot,
-};
+use tokio::sync::{broadcast, oneshot};
 use tracing::instrument;
 
-use super::context::PartyInfo;
+use super::init_party_info::SanitizedPartyInfo;
+
+// use super::context::PartyInfo;
 
 #[tylift::tylift(mod state)]
 /// Type parameterization of the state of protocol execution
@@ -36,18 +21,34 @@ enum ProtocolState {
 	#[derive(Debug)]
 	Complete,
 }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
+#[serde(crate = "rocket::serde")]
+pub struct SigningMessage {
+	pub party_id: PartyUid,
+}
 
-// #[derive(Debug)]
+impl TryFrom<&[u8]> for SigningMessage {
+	type Error = serde_json::Error;
+
+	// There may be a better way to write this. The Reqwest Bytes response includes non-json
+	// crap that needs to be handled before deserialization.
+	fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+		serde_json::from_str(std::str::from_utf8(value).unwrap().trim().split_once(':').unwrap().1)
+	}
+}
+
 pub(crate) struct ProtocolManager<T: state::ProtocolState> {
 	/// The unique signing protocol nonce
-	pub party_id: PartyId,
+	pub party_id: PartyUid,
 	/// An IP address for each other Node in the protocol
 	pub ip_addresses: Vec<String>,
 	/// Size of the signing party
 	pub signing_party_size: usize,
 	/// A channel for the `SubscriberManager` to indicate readiness for the Signing phase
 	pub finalized_subscribing_rx: Option<oneshot::Receiver<broadcast::Sender<SigningMessage>>>,
-	// A merged stream of messages from all other nodes in the protocol
+	/// A merged stream of messages from all other nodes in the protocol
+	// todo: validate that static isn't a memory leak, or fix it
 	pub rx_stream: Option<BoxStream<'static, SigningMessage>>,
 	/// The broadcasting sender for the party. `SubscriberUtil` holds onto it until all parties
 	/// have subscribed.
@@ -66,25 +67,25 @@ impl<T: state::ProtocolState> std::fmt::Debug for ProtocolManager<T> {
 			.field("ip_addresses", &self.ip_addresses)
 			.field("signing_party_size", &self.signing_party_size)
 			.field("finalized_subscribing_rx", &self.finalized_subscribing_rx)
-			// .field("rx_stream", &self.rx_stream)
+			// .field("rx_stream", &self.rx_stream) // no way
 			.field("broadcast_tx", &self.broadcast_tx)
 			.field("result", &self.result)
-			// .field("_marker", &self._marker)
-			.finish()
+			// .field("_marker", &self._marker) // don't do it
+			.finish() // nice
 	}
 }
 
 impl<T: state::ProtocolState> ProtocolManager<T> {
 	pub fn new(
-		init_party_info: InitPartyInfo,
+		sanitized_info: SanitizedPartyInfo,
 	) -> (oneshot::Sender<broadcast::Sender<SigningMessage>>, Self) {
 		{
 			let (finalized_subscribing_tx, finalized_subscribing_rx) = oneshot::channel();
 			(
 				finalized_subscribing_tx,
 				Self {
-					party_id: init_party_info.party_id,
-					ip_addresses: init_party_info.ip_addresses,
+					party_id: sanitized_info.0.party_uid,
+					ip_addresses: sanitized_info.0.ip_addresses,
 					signing_party_size: SIGNING_PARTY_SIZE,
 					finalized_subscribing_rx: Some(finalized_subscribing_rx),
 					rx_stream: None,

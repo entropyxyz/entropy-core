@@ -12,59 +12,42 @@
 //! get_all_ips - post - Comm manager sends signers all node addresses to sign message
 #![allow(unused_variables)]
 #![allow(unused_imports)]
-use std::{intrinsics::transmute, marker::PhantomData};
 
 use crate::{
 	errors::{CustomIPError, SigningProtocolError},
-	signer::{
-		InitPartyInfo, ProtocolManager, SigningMessage, SubscriberManager, SubscribingMessage,
-	},
-	Global, PartyId, SIGNING_PARTY_SIZE,
+	signer::{InitPartyInfo, ProtocolManager, SubscriberManager},
+	Global, SIGNING_PARTY_SIZE,
 };
-use futures::{future, TryFutureExt};
+use futures::TryFutureExt;
 use reqwest::{self};
-use rocket::{
-	http::Status,
-	response::stream::{ByteStream, Event, EventStream},
-	serde::json::Json,
-	Shutdown, State,
-};
-use serde::{Deserialize, Serialize};
-use tokio::{
-	select,
-	sync::{
-		broadcast::{self, error::RecvError, Sender},
-		oneshot,
-	},
-};
+use rocket::{http::Status, serde::json::Json, State};
 use tracing::instrument;
+use uuid::Uuid;
 
 /// Collect IPs for all signers then informs them
-// #[instrument]
+#[instrument]
 #[rocket::get("/get_ip/<ip_address>")]
 pub async fn get_ip(ip_address: String, global: &State<Global>) -> Result<Status, CustomIPError> {
-	// info!("get_ip");
-	let global = global.inner();
 	// TODO JA do validation on recieved keys and if keys are already had
 	// TODO JA figure out optimal node amount
 	// TODO JA validate not a duplicated IP
-	// TODO(TK): rewrote this to use an arc and unlock only once. Still could have better flow.
-
+	info!("get_ip");
+	let global = global.inner();
 	let init_party_info = {
-		let current_ips_mutex = global.current_ips.clone();
-		let ip_addresses = &mut *current_ips_mutex.lock().unwrap();
+		let ip_addresses = &mut *global.current_ips.lock().unwrap();
 		if ip_addresses.contains(&ip_address) {
 			return Err(CustomIPError::new("Duplicate IP"))
-		// @JA: validate this line, updated from 4 to SPS=6
 		} else if ip_addresses.len() < SIGNING_PARTY_SIZE {
 			ip_addresses.push(ip_address);
 			return Ok(Status::Ok)
 		} else {
-			// TODO(TK): clarify what this branch is doing
+			// All IP addresses collected. Construct InitPartyInfo and notify nodes to proceed.
 			ip_addresses.push(ip_address);
-			let v = ip_addresses.to_vec();
-
-			InitPartyInfo::new(global, ip_addresses.clone())
+			let party_id = global.get_next_party_id();
+			let sig_uid = None; // todo: look for prior signature uids
+			let key_uid = Uuid::new_v4(); // todo: get key_uid
+			let msg = "".into(); // todo: get message
+			InitPartyInfo::new(party_id, ip_addresses.clone(), key_uid, msg, sig_uid)
 		}
 	};
 
@@ -93,8 +76,8 @@ pub async fn new_party(
 ) -> Result<Status, SigningProtocolError> {
 	info!("new_party");
 	let state = global.inner();
-	let (finalized_subscribing_tx, protocol_manager) =
-		ProtocolManager::new(init_party_info.into_inner());
+	let sanitized_info = init_party_info.into_inner().sanitize().unwrap();
+	let (finalized_subscribing_tx, protocol_manager) = ProtocolManager::new(sanitized_info);
 	let subscriber_manager = SubscriberManager::new(finalized_subscribing_tx);
 
 	{
@@ -107,17 +90,15 @@ pub async fn new_party(
 	}
 
 	// Run the protocol.
-	let complete_protocol = protocol_manager
+	// Todo: Should I spawn a task?
+	let _outcome = protocol_manager
 		.subscribe_and_await_subscribers()
 		.and_then(move |subscribed_party| subscribed_party.sign())
-		.await;
+		.await
+		.unwrap()
+		.get_result()
+		.as_ref()
+		.unwrap(); // todo: better error handling
 
-	// TODO(TK): handle errors better
-	match complete_protocol {
-		Err(e) => Err(SigningProtocolError::Other("we're very disappointed")),
-		Ok(protocol_result) => match protocol_result.get_result() {
-			Ok(()) => Ok(Status::Ok),
-			Err(e) => Err(SigningProtocolError::Other("we're very disappointed")),
-		},
-	}
+	Ok(Status::Ok)
 }
