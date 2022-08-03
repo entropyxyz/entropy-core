@@ -1,4 +1,5 @@
-//! Context and helper types
+//! Copied from tofnd, mostly just for reference
+// Context and helper types
 #![allow(dead_code)]
 #![allow(unused_imports)]
 

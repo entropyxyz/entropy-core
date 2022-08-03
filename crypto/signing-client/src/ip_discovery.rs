@@ -38,6 +38,7 @@ pub async fn get_ip(ip_address: String, global: &State<Global>) -> Result<Status
 		if ip_addresses.contains(&ip_address) {
 			return Err(CustomIPError::new("Duplicate IP"))
 		} else if ip_addresses.len() < SIGNING_PARTY_SIZE {
+			// TODO(TK): these should be ordered per the index each node has in the signing protocol.
 			ip_addresses.push(ip_address);
 			return Ok(Status::Ok)
 		} else {
@@ -84,7 +85,7 @@ pub async fn new_party(
 		// store subscriber manager in state, first checking that the party_id is new
 		let map = &mut *state.subscriber_manager_map.lock().unwrap();
 		if map.contains_key(&protocol_manager.party_info.party_uid) {
-			return Err(SigningProtocolError::Other("party id already exists"))
+			return Err(SigningProtocolError::Other("re-used party_id"))
 		}
 		map.insert(protocol_manager.party_info.party_uid, Some(subscriber_manager));
 	}

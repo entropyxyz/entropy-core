@@ -16,13 +16,7 @@ use tokio::{
 };
 use tracing::instrument;
 
-/// An endpoint for other nodes to subscribe to messages produced by this node.
-///
-/// Todo:
-/// - What if this node hasn't yet heard about the `ProtocolManager`?
-/// - validate the IP address of the caller
-/// - Test: must fail if party is over
-#[instrument]
+// #[instrument]
 #[post("/subscribe", data = "<subscribing_message>")]
 pub async fn subscribe(
 	subscribing_message: Json<SubscribingMessage>,
@@ -31,19 +25,15 @@ pub async fn subscribe(
 	state: &State<Global>,
 	// ) {
 ) -> EventStream![] {
-	info!("signing_registration");
-	if let Err(e) = subscribing_message.validate_registration() {
-		// TODO(TK): handle validation, and the possibility that the communication manager hasn't
-		// touched this node yet. Can I return a Result<EventStream>?
-	}
-
+	// info!("signing_registration");
 	let subscribing_message = subscribing_message.into_inner();
-	let mut subscriber_manager_map = state.inner().subscriber_manager_map.lock().unwrap();
-	// KEEP until testing, also may use state for ^validate registration
-	// let mut subscriber_manager_map = {
-	// 	let state = state.inner();
-	// 	state.subscriber_manager_map.lock().unwrap()
-	// };
+	subscribing_message.validate_registration().unwrap();
+
+	let mut subscriber_manager_map = state.subscriber_manager_map.lock().unwrap();
+	if !subscriber_manager_map.contains_key(&subscribing_message.party_id) {
+		// TODO(TK): The CM hasn't called `new_party` on this node yet. Let the map drop, wait
+		// for a time-out so that CM can access the subscriber_map, and try again.
+	};
 
 	let rx = subscribing_message.create_new_subscription(&mut subscriber_manager_map);
 	// maybe unnecessary. Drop the subscriber map before returning to avoid blocking
@@ -64,19 +54,8 @@ impl SubscribingMessage {
 		Self { party_id }
 	}
 
-	/// Validate that the this node knows about party with `party_id`
-	// todo:
-	// and that the calling node is in the party group
-	// pub(crate) fn validate_registration(&self, state: &GlobalHangshMap<>d, mut screHashMap<>d,
-	// SubscriberManager
+	// not clear what this should do yet
 	fn validate_registration(&self) -> anyhow::Result<()> {
-		// 	let channels = state.signing_channels.clone();
-		// 	let contains_key = channels.lock().unwrap().contains_key(&self.party_id);
-		// 	if contains_key {
-		// 		true
-		// 	} else {
-		// 		false
-		// 	}
 		Ok(())
 	}
 
