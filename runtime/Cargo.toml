@@ -104,6 +104,7 @@ pallet-relayer = { version = '3.0.0-monthly-2021-10', default-features = false, 
 pallet-slashing = { version = '3.0.0-monthly-2021-10', default-features = false, path = '../pallets/slashing' }
 pallet-constraints = { version = '3.0.0-monthly-2021-10', default-features = false, path = '../pallets/constraints' }
 pallet-staking-extension = { version = '3.0.0-monthly-2021-10', default-features = false, path = '../pallets/staking' }
+pallet-transaction-pause = { version = '3.0.0-monthly-2021-10', default-features = false, path = '../pallets/transaction-pause' }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = 'https://github.com/paritytech/substrate.git', branch = "master" }
@@ -170,6 +171,7 @@ std = [
 	"pallet-election-provider-multi-phase/std",
 	"pallet-timestamp/std",
 	"pallet-tips/std",
+	"pallet-transaction-pause/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
 	"pallet-transaction-storage/std",
@@ -218,6 +220,7 @@ runtime-benchmarks = [
 	"pallet-staking/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-tips/runtime-benchmarks",
+	"pallet-transaction-pause/runtime-benchmarks",
 	"pallet-transaction-storage/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",

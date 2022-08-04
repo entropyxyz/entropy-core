@@ -138,7 +138,7 @@ pub mod pallet {
 
 		/// Allows a validator to change their threshold key so can confirm done when coms manager
 		/// `new_account`: nodes's threshold account
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(<T as Config>::WeightInfo::change_threshold_accounts())]
 		pub fn change_threshold_accounts(
 			origin: OriginFor<T>,
 			new_account: T::AccountId,
@@ -151,7 +151,7 @@ pub mod pallet {
 		}
 
 		/// Wraps's substrate withdraw unbonded but clears extra state if fully unbonded
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
 		pub fn withdraw_unbonded(
 			origin: OriginFor<T>,
 			num_slashing_spans: u32,
@@ -171,7 +171,7 @@ pub mod pallet {
 		/// Wraps's substrate validate but forces threshold key and endpoint
 		/// `endpoint`: nodes's endpoint
 		/// `threshold_account`: nodes's threshold account
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(<T as Config>::WeightInfo::validate())]
 		pub fn validate(
 			origin: OriginFor<T>,
 			prefs: ValidatorPrefs,

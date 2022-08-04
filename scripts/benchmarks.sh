@@ -8,6 +8,7 @@ pallets=(
 	pallet_relayer
   pallet_staking_extension
   pallet_constraints
+  pallet_transaction_pause
 )
 
 for p in ${pallets[@]}
