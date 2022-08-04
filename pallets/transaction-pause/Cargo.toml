@@ -1,0 +1,34 @@
+[package]
+name = "pallet-transaction-pause"
+version = "3.0.0-monthly-2021-10"
+edition = "2021"
+
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+scale-info = { version = "2.1", default-features = false, features = ["derive"] }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master", optional = true, default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+
+[dev-dependencies]
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "master" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
+smallvec = "1.4.1"
+pallet-constraints = { version = "3.0.0-monthly-2021-10", default-features = false, path = "../constraints" }
+
+[features]
+default = ["std"]
+runtime-benchmarks = ['frame-benchmarking', 'frame-support/runtime-benchmarks', 'frame-system/runtime-benchmarks',]
+std = [
+	"scale-info/std",
+	"sp-runtime/std",
+	"frame-support/std",
+	"frame-system/std",
+	"pallet-constraints/std",
+	"sp-std/std",
+]
+try-runtime = ["frame-support/try-runtime"]

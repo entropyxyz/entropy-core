@@ -190,19 +190,32 @@ parameter_types! {
 
 const_assert!(NORMAL_DISPATCH_RATIO.deconstruct() >= AVERAGE_ON_INITIALIZE_RATIO.deconstruct());
 
-pub struct BaseFilter;
-impl Contains<Call> for BaseFilter {
-	fn contains(c: &Call) -> bool {
-		!matches!(
-			c,
+pub struct BaseCallFilter;
+impl Contains<Call> for BaseCallFilter {
+	fn contains(call: &Call) -> bool {
+		let is_core_call = matches!(call, Call::System(_) | Call::Timestamp(_));
+		if is_core_call {
+			// always allow core call
+			return true;
+		}
+
+		let is_paused =
+			pallet_transaction_pause::PausedTransactionFilter::<Runtime>::contains(call);
+		let system_reject = matches!(
+			call,
 			Call::Staking(pallet_staking::Call::withdraw_unbonded { .. })
 				| Call::Staking(pallet_staking::Call::validate { .. })
-		)
+		);
+		if is_paused || system_reject {
+			// no paused call
+			return false;
+		}
+		true
 	}
 }
 
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = BaseFilter;
+	type BaseCallFilter = BaseCallFilter;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type DbWeight = RocksDbWeight;
@@ -1180,6 +1193,15 @@ impl pallet_constraints::Config for Runtime {
 	type WeightInfo = weights::pallet_constraints::WeightInfo<Runtime>;
 }
 
+impl pallet_transaction_pause::Config for Runtime {
+	type Event = Event;
+	type UpdateOrigin = EnsureOneOf<
+		EnsureRoot<AccountId>,
+		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>,
+	>;
+	type WeightInfo = weights::pallet_transaction_pause::WeightInfo<Runtime>;
+}
+
 parameter_types! {
 	pub const BagThresholds: &'static [u64] = &voter_bags::THRESHOLDS;
 }
@@ -1246,7 +1268,7 @@ construct_runtime!(
 		Relayer: pallet_relayer = 51,
 		Slashing: pallet_slashing = 52,
 		Constraints: pallet_constraints = 53,
-
+		TransactionPause: pallet_transaction_pause = 54,
 	}
 );
 
@@ -1324,6 +1346,7 @@ mod benches {
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_timestamp, Timestamp]
 		[pallet_tips, Tips]
+		[pallet_transaction_pause, TransactionPause]
 		[pallet_transaction_storage, TransactionStorage]
 		[pallet_treasury, Treasury]
 		[pallet_utility, Utility]

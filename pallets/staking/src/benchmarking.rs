@@ -6,12 +6,8 @@ use super::*;
 use crate::Pallet as Staking;
 
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
-use frame_support::{
-	assert_ok,
-	sp_runtime::traits::StaticLookup,
-	traits::{Currency, Get, OnInitialize},
-};
-use frame_system::{EventRecord, Origin, RawOrigin};
+use frame_support::{assert_ok, sp_runtime::traits::StaticLookup, traits::Currency};
+use frame_system::{EventRecord, RawOrigin};
 use pallet_staking::Pallet as FrameStaking;
 use pallet_staking::{RewardDestination, ValidatorPrefs};
 
