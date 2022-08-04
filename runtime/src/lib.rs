@@ -201,7 +201,7 @@ impl Contains<Call> for BaseCallFilter {
 
 		let is_paused =
 			pallet_transaction_pause::PausedTransactionFilter::<Runtime>::contains(call);
-		let system_reject = !matches!(
+		let system_reject = matches!(
 			call,
 			Call::Staking(pallet_staking::Call::withdraw_unbonded { .. })
 				| Call::Staking(pallet_staking::Call::validate { .. })
