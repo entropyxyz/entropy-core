@@ -48,13 +48,6 @@ pub struct Global {
 	kv_manager: KvManager,
 }
 
-impl Default for Global {
-	#[allow(unconditional_recursion)]
-	fn default() -> Self {
-		Self { kv_manager: load_kv_store(), ..Default::default() }
-	}
-}
-
 impl std::fmt::Debug for Global {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("Global")
@@ -72,7 +65,8 @@ impl Global {
 			mnemonic: env.mnemonic,
 			endpoint: env.endpoint.unwrap(),
 			kv_manager: load_kv_store(),
-			..Default::default()
+			party_id_nonce: Mutex::new(0), // todo
+			current_ips: Mutex::new(vec![]),
 		}
 	}
 
