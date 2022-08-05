@@ -1,8 +1,8 @@
 //! Benchmarking setup for pallet-propgation
-
+#![allow(unused_imports)]
 use super::*;
 
-#[allow(unused)]
+#[allow(unused_imports)]
 use crate::Pallet as Staking;
 
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};

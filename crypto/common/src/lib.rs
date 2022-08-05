@@ -1,4 +1,4 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+// #![cfg_attr(not(feature = "std"), no_std)]
 /// Code that is shared by clients and substrate nodes,
 /// i.e. messages sent from one to the other and structs contained in those messages
 ///
@@ -10,6 +10,7 @@
 // use codec::{Decode, Encode};
 // use scale_info::TypeInfo;
 mod common;
+mod cm_info;
 use codec::alloc::vec::Vec;
 
 pub type RegistrationMessage = common::RegistrationMessage;
@@ -18,3 +19,9 @@ pub type SigRequest = common::SigRequest;
 pub type SigResponse = common::SigResponse;
 pub type OCWMessage = Vec<common::Message>;
 pub type Message = common::Message;
+
+// crypto
+pub type CMInfo = cm_info::CMInfo;
+pub type CMInfoUnchecked = cm_info::CMInfoUnchecked;
+pub type KvKeyshareInfo = cm_info::KvKeyshareInfo;
+pub type PartyUid = usize;
