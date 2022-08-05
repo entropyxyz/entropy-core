@@ -63,12 +63,12 @@ pub struct StoredInfo {
 	// pub(crate) tofnd: TofndInfo,
 }
 
-impl TryFrom<Vec<u8>> for StoredInfo{
-    type Error = ();
+impl TryFrom<Vec<u8>> for StoredInfo {
+	type Error = ();
 
-    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        todo!()
-    }
+	fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+		todo!()
+	}
 }
 
 // impl StoredInfo {

@@ -40,11 +40,7 @@ pub struct KvManager {
 
 impl KvManager {
 	pub fn new(root: PathBuf, password: Password) -> KvResult<Self> {
-<<<<<<< HEAD
 		Ok(KvManager { kv: Kv::<KvValue>::new(root, password)? })
-=======
-		Ok(KvManager { kv: Kv::<KvValue>::new(root.clone(), password)? })
->>>>>>> master
 	}
 	pub fn kv(&self) -> &Kv<KvValue> {
 		&self.kv

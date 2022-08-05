@@ -1,12 +1,14 @@
 use std::{intrinsics::transmute, marker::PhantomData};
 
-use crate::{signer::SubscribingMessage, PartyUid, SIGNING_PARTY_SIZE};
+use crate::{
+	signer::{CMInfo, SubscribingMessage},
+	PartyUid, SIGNING_PARTY_SIZE,
+};
 use futures::{future, stream::BoxStream, StreamExt};
 use reqwest::{self};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, oneshot};
 use tracing::instrument;
-use crate::signer::CMInfo;
 
 // use super::context::PartyInfo;
 
@@ -72,9 +74,7 @@ impl<T: state::ProtocolState> std::fmt::Debug for ProtocolManager<T> {
 }
 
 impl<T: state::ProtocolState> ProtocolManager<T> {
-	pub fn new(
-		cm_info: CMInfo,
-	) -> (oneshot::Sender<broadcast::Sender<SigningMessage>>, Self) {
+	pub fn new(cm_info: CMInfo) -> (oneshot::Sender<broadcast::Sender<SigningMessage>>, Self) {
 		{
 			let (finalized_subscribing_tx, finalized_subscribing_rx) = oneshot::channel();
 			(

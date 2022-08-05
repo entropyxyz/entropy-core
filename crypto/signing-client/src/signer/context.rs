@@ -56,7 +56,6 @@ pub(crate) struct TofndInfo {
 	pub(crate) index: usize,
 }
 
-
 /// define the input and output channels of generic execute_protocol worker
 pub(crate) struct ProtocolCommunication<InMsg, OutMsg> {
 	pub(crate) receiver: mpsc::UnboundedReceiver<InMsg>,

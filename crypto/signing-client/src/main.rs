@@ -18,8 +18,8 @@ use crate::{
 };
 use bip39::{Language, Mnemonic};
 use rocket::routes;
-use serde::{Deserialize, Serialize};
-use std::{env, sync::Mutex};
+use serde::Deserialize;
+use std::{collections::HashMap, sync::Mutex};
 
 #[macro_use]
 extern crate rocket;

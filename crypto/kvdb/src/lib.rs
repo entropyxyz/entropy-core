@@ -8,9 +8,5 @@ pub fn get_db_path() -> String {
 
 pub fn clean_tests() {
 	let result = std::fs::remove_dir_all(get_db_path());
-<<<<<<< HEAD
 	assert!(result.is_ok());
-=======
-	assert_eq!(result.is_ok(), true);
->>>>>>> master
 }

@@ -1,18 +1,18 @@
-use super::{rocket, IPs};
+use super::rocket;
 use crate::{
-	ip_discovery::{get_all_ips, IpAddresses},
+	new_party,
 	sign::{
 		acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
 		get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
 		EntropyRuntime,
 	},
-	store_share::{store_keyshare, User},
+	signer::CMInfoUnchecked,
+	store_share::User,
 	Global,
 };
 use kvdb::{
 	clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
-use parity_scale_codec::Encode;
 use rocket::{
 	http::{ContentType, Status},
 	local::asynchronous::Client,
@@ -20,14 +20,10 @@ use rocket::{
 };
 use serial_test::serial;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
-use std::{
-	env,
-	fs::remove_dir_all,
-	sync::{Arc, Mutex},
-	time,
-};
+use std::{env, time};
 use subxt::{sp_core::sr25519, PairSigner};
 use testing_utils::context::{test_context, test_context_stationary};
+use uuid::Uuid;
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
 	Client::tracked(super::rocket().await).await.expect("valid `Rocket`")
@@ -36,16 +32,16 @@ async fn setup_client() -> rocket::local::asynchronous::Client {
 fn get_path(extension: &str) -> String {
 	let path = env::current_dir();
 
-	let mut file_path: String = path.unwrap().as_path().display().to_string().to_owned();
+	let mut file_path: String = path.unwrap().as_path().display().to_string();
 	file_path.push_str(extension);
 	file_path
 }
 
 async fn wait_for_chain(api: &EntropyRuntime, block: u32) {
-	let mut result = get_block_number(&api).await;
+	let mut result = get_block_number(api).await;
 	while result.unwrap() < block {
 		sleep(Duration::from_secs(2u64)).await;
-		result = get_block_number(&api).await;
+		result = get_block_number(api).await;
 	}
 }
 
@@ -230,7 +226,7 @@ async fn test_get_author_endpoint() {
 			.into();
 
 	let result = get_author_endpoint(&api.unwrap(), &alice_stash_id).await;
-	let endpoint = convert_endpoint(&result.as_ref().unwrap());
+	let endpoint = convert_endpoint(result.as_ref().unwrap());
 
 	assert_eq!(endpoint.unwrap(), "ws://localhost:3001");
 }
@@ -258,7 +254,7 @@ async fn test_get_whitelist() {
 			.public()
 			.into();
 
-	let result = get_whitelist(&api.as_ref().unwrap(), &alice_stash_id).await;
+	let result = get_whitelist(api.as_ref().unwrap(), &alice_stash_id).await;
 	assert_eq!(result.unwrap().len(), 0);
 
 	let pair: Sr25519Pair = Pair2::from_string("//Alice//stash", None).unwrap();
@@ -302,7 +298,7 @@ async fn test_have_keyshare() {
 	let result_2 = does_have_key(&kv_manager.clone(), key.clone()).await;
 	assert_eq!(result_2, true);
 	// delete key so tests rerun
-	let _ = kv_manager.kv().delete(&key).await.unwrap();
+	kv_manager.kv().delete(&key).await.unwrap();
 	let result_3 = does_have_key(&kv_manager, key.clone()).await;
 	assert_eq!(result_3, false);
 	clean_tests();
@@ -314,7 +310,7 @@ async fn test_have_keyshare() {
 #[ignore]
 async fn send_ip_address_test() {
 	let client = setup_client().await;
-	let result = send_ip_address(&"http://127.0.0.1:3002".as_bytes().to_vec()).await;
+	let result = send_ip_address("http://127.0.0.1:3002".as_bytes()).await;
 	// assert_eq!(result.status(), Status::Ok);
 }
 
@@ -322,13 +318,18 @@ async fn send_ip_address_test() {
 #[serial]
 async fn signing_party_test() {
 	let client = setup_client().await;
-	let all_ip_vec = vec!["test".to_string(), "test".to_string()];
-	let new_party = InitPartyInfo::new(all_ip_vec.clone(), 0);
+	let ip_addresses = vec!["test".to_string(), "test".to_string()];
+	let party_id = 0;
+	let sig_uid = None; // todo: look for prior signature uids
+	let key_uid = Uuid::new_v4(); // todo: get key_uid
+	let msg = "".into(); // todo: get message
+	let info_unchecked =
+		CMInfoUnchecked::new(party_id, ip_addresses.clone(), key_uid, msg, sig_uid);
 
 	let response = client
-		.post("/signing_party")
+		.post("/new_party")
 		.header(ContentType::JSON)
-		.body(serde_json::to_string(&new_party.clone()).unwrap())
+		.body(serde_json::to_string(&info_unchecked.clone()).unwrap())
 		.dispatch()
 		.await;
 	assert_eq!(response.status(), Status::Ok);
