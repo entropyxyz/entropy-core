@@ -1,111 +1,30 @@
 version: 2.1
 
-commands:
-  install-dependencies-and-checkout:
-    steps:
-      - install-dependencies
-      - checkout
-  increase-swap:
-    steps:
-      - run: sudo swapoff -a
-      - run: sudo dd if=/dev/zero of=/swapfile bs=1G count=8
-      - run: sudo chmod 0600 /swapfile
-      - run: sudo mkswap /swapfile
-      - run: sudo swapon /swapfile
-      - run: grep Swap /proc/meminfo
-  install-dependencies:
-    steps:
-      - run: sudo apt-get update 
-      - run: sudo apt install -y libssl-dev clang libclang-dev
-      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-      - run: rustup default stable
-      - run: rustup update nightly
-      - run: rustup update stable
-      - run: rustup target add wasm32-unknown-unknown --toolchain nightly
+# this allows you to use CircleCI's dynamic configuration feature (path-filtering)
+# https://circleci.com/docs/dynamic-config
+setup: true
 
-jobs:
-  node-test:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
-    steps:
-      - increase-swap
-      - install-dependencies-and-checkout
-      - run: 
-          command: pushd node && cargo build --release && cargo test
-          no_output_timeout: 45m
-  node-benchmark:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: pushd node && cargo check --features=runtime-benchmarks --release
-      
-  crypto-protocol:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: cd crypto/centralized-keygen && cargo check
-  crypto-signing-client:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: cd crypto/signing-client && cargo check
-  crypto-common:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: cd crypto/common && cargo check
-   
-  linting-node-core:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: SKIP_WASM_BUILD=1 cargo clippy
-  linting-crypto-protocol:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: cd crypto/centralized-keygen && cargo clippy
-  linting-crypto-signing-client:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: cd crypto/signing-client && cargo clippy
-  linting-crypto-common:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: cd crypto/common && cargo clippy
+# the path-filtering orb is required to continue a pipeline based on
+# the path of an updated fileset
+# https://circleci.com/developer/orbs/orb/circleci/path-filtering
+orbs:
+  path-filtering: circleci/path-filtering@0.1.3
 
 workflows:
-  entropy-node:
+  # always-run is always triggered (yikes), regardless of the pipeline parameters.
+  always-run: 
     jobs:
-      - node-test
-      - node-benchmark
-  entropy-crypto:
-    jobs:
-      - crypto-protocol
-      - crypto-signing-client
-      - crypto-common
-  entropy-linting:
-    jobs:
-      - linting-node-core
-      - linting-crypto-protocol
-      - linting-crypto-signing-client
-      - linting-crypto-common
+      # the path-filtering/filter job determines which pipeline parameters to update.
+      - path-filtering/filter:
+          name: check-updated-files
+          # 3-column, whitespace-delimited mapping. One mapping per line:
+          # <regex path-to-test> <parameter-to-set> <value-of-pipeline-parameter>
+            # do rest after validation
+            # crypto/centralized-keygen/.* centralized-keygen-change true
+            # crypto/.* signing-client-change true
+          mapping: |
+            node/.* node true
+            crypto/.* crypto true
+          base-revision: master
+          # path to trigger once filtering/value updates finish 
+          config-path: .circleci/then.yml
