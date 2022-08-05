@@ -17,7 +17,7 @@
 #![allow(clippy::enum_variant_names)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
-use crate::{Global};
+use crate::Global;
 use kvdb::kv_manager::value::KvManager;
 
 use common::OCWMessage;

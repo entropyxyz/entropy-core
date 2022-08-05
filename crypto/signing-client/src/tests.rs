@@ -28,7 +28,6 @@ use std::{
 };
 use subxt::{sp_core::sr25519, PairSigner};
 use testing_utils::context::{test_context, test_context_stationary};
-use tofnd::kv_manager::KvManager;
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
 	Client::tracked(super::rocket().await).await.expect("valid `Rocket`")
