@@ -42,7 +42,7 @@ where
 		if let Err(err) = self.proc.kill() {
 			let err = format!("Error killing node process {}: {}", self.proc.id(), err);
 			log::error!("{}", err);
-			return Err(err);
+			return Err(err)
 		}
 		Ok(())
 	}
@@ -133,9 +133,9 @@ impl TestNodeProcessBuilder {
 					if attempts < MAX_ATTEMPTS {
 						attempts += 1;
 						wait_secs *= 2; // backoff
-						continue;
+						continue
 					}
-					break Err(err);
+					break Err(err)
 				},
 			}
 		};
@@ -177,12 +177,12 @@ fn next_open_port() -> Option<(u16, u16, u16)> {
 		if TcpListener::bind(("0.0.0.0", next)).is_ok() {
 			ports.push(next);
 			if ports.len() == 3 {
-				return Some((ports[0], ports[1], ports[2]));
+				return Some((ports[0], ports[1], ports[2]))
 			}
 		}
 		ports_scanned += 1;
 		if ports_scanned == MAX_PORTS {
-			return None;
+			return None
 		}
 	}
 }

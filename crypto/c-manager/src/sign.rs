@@ -14,6 +14,7 @@
 //! - /sign - Post - Acts as an entry point for the chain to pass signing data to
 //! The Node requests the client to take part in a signature generation.
 
+#![allow(clippy::enum_variant_names)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 use crate::Global;
@@ -32,17 +33,23 @@ use subxt::{
 };
 
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
-#[allow(clippy::enum_variant_names)]
 #[subxt::subxt(runtime_metadata_path = "entropy_metadata.scale")]
 pub mod entropy {}
 
 pub type EntropyRuntime =
 	entropy::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
 
+// TODO(TK): Better documentation on this function. Also:
+// TODO(TK): warning: application/... is not a known type, a warning not showing up on Jesse's
+// machine?
 /// Takes data from OCW decondes it and launches the signing process
 /// Identifies if node should lead or participate in signing
 #[post("/sign", format = "application/x-parity-scale-codec", data = "<encoded_data>")]
-pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Status {
+pub async fn provide_share(
+	encoded_data: Vec<u8>,
+	state: &State<Global>,
+	// kv_manager: &State<EntropyKvManager>,
+) -> Status {
 	println!("encoded_data {:?}", encoded_data);
 
 	let data = OCWMessage::decode(&mut encoded_data.as_ref());
@@ -52,10 +59,9 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Stat
 	};
 	println!("data: {:?}", &data);
 
-	let cached_state = state.inner();
-	let endpoint = cached_state.endpoint.clone();
-	let mnemonic = cached_state.mnemonic.clone();
-	let kv_manager = cached_state.kv_manager.clone();
+	let endpoint = state.endpoint.clone();
+	let mnemonic = state.mnemonic.clone();
+	let kv_manager = &state.kv_manager;
 
 	let api = get_api(&endpoint).await.unwrap();
 	let block_number = get_block_number(&api).await.unwrap();
@@ -75,7 +81,7 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Stat
 		let address_whitelist = get_whitelist(&api, &user).await.unwrap();
 		let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
 
-		let does_have_key = does_have_key(&kv_manager, user.to_string()).await;
+		let does_have_key = does_have_key(kv_manager, user.to_string()).await;
 		if does_have_key && !bool_block_author {
 			let _result = send_ip_address(&author_endpoint).await;
 		}
@@ -90,7 +96,7 @@ pub async fn provide_share(encoded_data: Vec<u8>, state: &State<Global>) -> Stat
 			let result = acknowledge_responsibility(&api_2, &mnemonic, block_number).await;
 			println!("result of acknowledge responsibility: {:?}", result)
 		} else {
-			println!("result of no acknowledgmen");
+			println!("result of no acknowledgment");
 		}
 	});
 	// TODO: JA Thread blocks the return, not sure if needed a problem, keep an eye out for this
@@ -157,7 +163,7 @@ pub async fn get_author_endpoint(
 }
 
 /// converts endpoint from Vec<u8> to string
-pub fn convert_endpoint(author_endpoint: &Vec<u8>) -> Result<&str, std::str::Utf8Error> {
+pub fn convert_endpoint(author_endpoint: &[u8]) -> Result<&str, std::str::Utf8Error> {
 	Ok(str::from_utf8(author_endpoint).unwrap())
 }
 
@@ -165,7 +171,7 @@ pub fn convert_endpoint(author_endpoint: &Vec<u8>) -> Result<&str, std::str::Utf
 /// notes any failures in said messages
 pub async fn acknowledge_responsibility(
 	api: &EntropyRuntime,
-	mnemonic: &String,
+	mnemonic: &str,
 	block_number: u32,
 ) -> Result<(), subxt::Error<entropy::DispatchError>> {
 	let pair: Sr25519Pair = Pair::from_string(mnemonic, None).unwrap();
@@ -206,7 +212,7 @@ pub async fn does_have_key(kv: &KvManager, user: String) -> bool {
 }
 
 /// Sends IP address to communication manager
-pub async fn send_ip_address(author_endpoint: &Vec<u8>) -> String {
+pub async fn send_ip_address(author_endpoint: &[u8]) -> String {
 	let my_ip = local_ip::get().unwrap().to_string();
 	let mut route = "/get_ip/".to_owned();
 	route.push_str(&my_ip);
