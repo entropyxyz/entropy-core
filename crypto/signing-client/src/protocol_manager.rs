@@ -1,9 +1,7 @@
 use std::{intrinsics::transmute, marker::PhantomData};
 
-use crate::{
-	signer::{CMInfo, SubscribingMessage},
-	PartyUid, SIGNING_PARTY_SIZE,
-};
+use crate::{subscriber::SubscribingMessage, PartyUid, SIGNING_PARTY_SIZE};
+use common::CMInfo;
 use futures::{future, stream::BoxStream, StreamExt};
 use reqwest::{self};
 use serde::{Deserialize, Serialize};

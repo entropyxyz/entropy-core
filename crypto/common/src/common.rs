@@ -72,6 +72,7 @@ pub struct SigResponse {
 }
 
 // /// The message sent from pallets::propagation::post() to the signing-client.
+// TODO(TK): rename to PropagationMessage
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct Message {
 	// pub thing: u128,

@@ -721,6 +721,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "c-manager"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bip39",
+ "common",
+ "constraints",
+ "envy",
+ "futures 0.3.21",
+ "kvdb 0.1.0",
+ "local-ip",
+ "log",
+ "parity-scale-codec",
+ "project-root",
+ "reqwest",
+ "rocket",
+ "serde",
+ "serde_json",
+ "serial_test 0.8.0",
+ "sp-core 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sp-keyring 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "subxt",
+ "testing-utils",
+ "thiserror",
+ "tofn 0.1.0 (git+https://github.com/Entropyxyz/tofn?branch=main)",
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.11",
+ "tylift",
+ "uuid",
+]
+
+[[package]]
 name = "cache-padded"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -962,8 +995,11 @@ dependencies = [
 name = "common"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "parity-scale-codec",
  "scale-info",
+ "serde",
+ "uuid",
 ]
 
 [[package]]
@@ -3437,7 +3473,7 @@ dependencies = [
  "rpassword",
  "scrypt",
  "serde",
- "serial_test",
+ "serial_test 0.6.0",
  "sled",
  "thiserror",
  "tofn 0.1.0 (git+https://github.com/axelarnetwork/tofn?branch=main)",
@@ -8804,7 +8840,20 @@ checksum = "e5bcc41d18f7a1d50525d080fd3e953be87c4f9f1a974f3c21798ca00d54ec15"
 dependencies = [
  "lazy_static",
  "parking_lot 0.11.2",
- "serial_test_derive",
+ "serial_test_derive 0.6.0",
+]
+
+[[package]]
+name = "serial_test"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7eec42e7232e5ca56aa59d63af3c7f991fe71ee6a3ddd2d3480834cf3902b007"
+dependencies = [
+ "futures 0.3.21",
+ "lazy_static",
+ "log",
+ "parking_lot 0.12.0",
+ "serial_test_derive 0.8.0",
 ]
 
 [[package]]
@@ -8812,6 +8861,19 @@ name = "serial_test_derive"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2881bccd7d60fb32dfa3d7b3136385312f8ad75e2674aab2852867a09790cae8"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn",
+]
+
+[[package]]
+name = "serial_test_derive"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1b95bb2f4f624565e8fe8140c789af7e2082c0e0561b5a82a1b678baa9703dc"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -8955,11 +9017,9 @@ dependencies = [
  "anyhow",
  "bip39",
  "common",
- "constraints",
  "envy",
  "futures 0.3.21",
  "kvdb 0.1.0",
- "local-ip",
  "log",
  "parity-scale-codec",
  "project-root",
@@ -8967,10 +9027,7 @@ dependencies = [
  "rocket",
  "serde",
  "serde_json",
- "serial_test",
- "sp-core 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sp-keyring 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "subxt",
+ "serial_test 0.8.0",
  "testing-utils",
  "thiserror",
  "tofn 0.1.0 (git+https://github.com/Entropyxyz/tofn?branch=main)",
@@ -11280,9 +11337,9 @@ checksum = "a1ca13c08c41c9c3e04224ed9ff80461d97e121589ff27c753a16cb10830ae0f"
 
 [[package]]
 name = "uuid"
-version = "0.8.2"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
+checksum = "dd6469f4314d5f1ffec476e05f17cc9a78bc7a27a6a857842170bdf8d6f98d2f"
 dependencies = [
  "getrandom 0.2.6",
  "serde",

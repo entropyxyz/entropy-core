@@ -5,6 +5,7 @@ panic = 'unwind'
 members = [
     'crypto/centralized-keygen',
     'crypto/signing-client',
+    'crypto/c-manager',
     'crypto/testing-utils',
     'node/*',
     'pallets/*',

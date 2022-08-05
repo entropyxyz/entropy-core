@@ -1,38 +1,33 @@
-//! # Signing Client
+//! # Communication Manager
 //!
 //!
 //! ## Overview
 //!
-//! Launches our signing client
+//! Sends messages to nodes to initiate a signing protocol
 //!
 //! ## Pieces Launched
 //!
 //! - Rocket server - Includes global state and mutex locked IPs
 //! - Sled DB KVDB
 #![allow(unused_variables)]
-#![allow(unused_imports)]
+use crate::{ip_discovery::get_ip, sign::provide_share, store_share::store_keyshare};
 use bip39::{Language, Mnemonic};
 use rocket::routes;
 use serde::Deserialize;
-use std::{collections::HashMap, sync::Mutex};
+use std::sync::Mutex;
 
 #[macro_use]
 extern crate rocket;
 
-use kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
-
-mod context;
 mod errors;
-mod init;
-mod party_info;
-mod protocol_manager;
-mod subscriber;
-use crate::{
-	init::new_party,
-	protocol_manager::{ProtocolManager, SigningMessage},
-	subscriber::{subscribe, SubscriberManager},
-};
-// use common::{CMInfo, CMInfoUnchecked};
+mod ip_discovery;
+mod request_guards;
+mod sign;
+mod store_share;
+pub use kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
+
+#[cfg(test)]
+mod tests;
 
 pub type PartyUid = usize;
 // pub type RxChannel = Meimpl Stream<Item = Result<Bytes, reqwest::Error>>;
@@ -46,12 +41,10 @@ pub struct Global {
 	endpoint: String,
 	/// Unique ids for each signing party
 	party_id_nonce: Mutex<usize>,
-	// TODO(TK): SubscriberManager to be replaced with None when subscribing phase ends.
-	subscriber_manager_map: Mutex<HashMap<PartyUid, Option<SubscriberManager>>>,
 	// TODO(TK): This is only a mapping for the current IPs of a single party. Update to similar to
 	// map above
 	current_ips: Mutex<Vec<String>>,
-	/// Master of the Keys, storer of items of the form signer::party_info::StoredInfo
+	// todo: what does the CM need to store
 	kv_manager: KvManager,
 }
 
@@ -68,7 +61,6 @@ impl std::fmt::Debug for Global {
 			.field("mnemonic", &self.mnemonic)
 			.field("endpoint", &self.endpoint)
 			.field("party_id_nonce", &self.party_id_nonce)
-			.field("subscriber_manager_map", &self.subscriber_manager_map)
 			.field("current_ips", &self.current_ips)
 			.finish()
 	}
@@ -84,11 +76,11 @@ impl Global {
 		}
 	}
 
-	// pub(crate) fn get_next_party_id(&self) -> PartyUid {
-	// 	let mut nonce = *self.party_id_nonce.lock().unwrap();
-	// 	nonce += 1;
-	// 	nonce
-	// }
+	pub(crate) fn get_next_party_id(&self) -> PartyUid {
+		let mut nonce = *self.party_id_nonce.lock().unwrap();
+		nonce += 1;
+		nonce
+	}
 }
 
 fn default_endpoint() -> Option<String> {
@@ -117,7 +109,9 @@ async fn rocket() -> _ {
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
 	// Communication Manager: Collect IPs, for `signing_party`, list of global ip addresses for a
 	// message.
-	rocket::build().mount("/", routes![new_party, subscribe]).manage(global)
+	rocket::build()
+		.mount("/", routes![store_keyshare, provide_share, get_ip])
+		.manage(global)
 }
 
 fn load_environment_variables() -> Configuration {

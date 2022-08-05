@@ -19,7 +19,7 @@ pub struct CMInfoUnchecked {
 }
 
 impl CMInfoUnchecked {
-	pub(crate) fn new(
+	pub fn new(
 		party_uid: PartyUid,
 		ip_addresses: Vec<String>,
 		key_uid: Uuid,
@@ -30,7 +30,9 @@ impl CMInfoUnchecked {
 		Self { party_uid, ip_addresses, sig_uid, key_uid, msg }
 	}
 
-	pub(crate) fn check(self, stored_info: &StoredInfo) -> anyhow::Result<CMInfo> {
+  // todo: check kv info against self
+  #[allow(unused_variables)]
+	pub fn check(self, kv_keyshare_info: &KvKeyshareInfo) -> anyhow::Result<CMInfo> {
 		// check that my ip_address is at the correct index
 		// if let Err(e) = checked {
 		// 	return anyhow!("pathological Communication Manager");
@@ -55,17 +57,18 @@ pub struct CMInfo {
 	pub msg: String,
 }
 
-/// `KeyShareKv` record
+/// Key Share records (todo)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StoredInfo {
-	// pub(crate) common: GroupPublicInfo,
-	// pub(crate) shares: Vec<ShareSecretInfo>,
-	// pub(crate) tofnd: TofndInfo,
+pub struct KvKeyshareInfo {
+	// pub common: GroupPublicInfo,
+	// pub shares: Vec<ShareSecretInfo>,
+	// pub tofnd: TofndInfo,
 }
 
-impl TryFrom<Vec<u8>> for StoredInfo {
+impl TryFrom<Vec<u8>> for KvKeyshareInfo {
 	type Error = ();
 
+  #[allow(unused_variables)]
 	fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
 		todo!()
 	}
@@ -74,7 +77,7 @@ impl TryFrom<Vec<u8>> for StoredInfo {
 // impl StoredInfo {
 // 	/// Get GroupPublicInfo and ShareSecretInfo from tofn to create PartyInfo
 // 	/// Also needed in recovery
-// 	pub(crate) fn get_party_info(
+// 	pub fn get_party_info(
 // 		secret_key_shares: Vec<SecretKeyShare>,
 // 		uids: Vec<String>,
 // 		share_counts: Vec<usize>,

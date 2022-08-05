@@ -85,6 +85,13 @@ jobs:
     steps:
       - install-dependencies-and-checkout
       - run: cd crypto/signing-client && cargo clippy
+  crypto-c-manager:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies-and-checkout
+      - run: cd crypto/c-manager && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
   linting-crypto-common:
     machine:
       image: "ubuntu-2004:202201-02"
@@ -103,6 +110,7 @@ workflows:
       - crypto-protocol
       - crypto-signing-client
       - crypto-common
+      - crypto-c-manager
   entropy-linting:
     jobs:
       - linting-node-core
