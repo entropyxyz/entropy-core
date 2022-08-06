@@ -1,5 +1,5 @@
 [package]
-name   ="signing-client"
+name   ="c-manager"
 version="0.1.0"
 edition="2021"
 
@@ -22,15 +22,15 @@ reqwest={ version="0.11", features=["json", "stream"] }
 
 # Substrate
 parity-scale-codec="3.0.0"
-# subxt             ={ git="https://github.com/paritytech/subxt.git" }
-# sp-keyring        ="6.0.0"
-# sp-core           ="6.0.0"
+subxt             ={ git="https://github.com/paritytech/subxt.git" }
+sp-keyring        ="6.0.0"
+sp-core           ="6.0.0"
 tofn              ={ git="https://github.com/Entropyxyz/tofn", branch="main" }
 
 # Entropy
 common     ={ path="../common", default-features=false }
 kvdb       ={ path="../kvdb", default-features=false }
-# constraints={ path="../constraints" }
+constraints={ path="../constraints" }
 
 # Logging
 log               ="0.4.17"                                          # todo: remove, overlaps tracing
@@ -43,12 +43,12 @@ tylift      ="0.3.5"
 envy        ="0.4"
 bip39       ={ git="https://github.com/infincia/bip39-rs.git", tag="v0.6.0-beta.1" }
 project-root="0.2.2"
-# local-ip    ="0.1"
+local-ip    ="0.1"
 
 [dev-dependencies]
 testing-utils={ path="../testing-utils" }
 serial_test  ="0.8.0"
 
-# [features]
-# default=['std']
-# std    =["sp-core/std"]
+[features]
+default=['std']
+std    =["sp-core/std"]
