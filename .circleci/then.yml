@@ -1,0 +1,105 @@
+version: 2.1
+# orbs: 
+#   rust: circleci/rust@1.6.0
+
+parameters:
+  crypto:
+    type: boolean
+    default: false
+  node:
+    type: boolean
+    default: false
+
+commands:
+  install-dependencies-and-checkout:
+    steps:
+      - install-dependencies
+      - checkout
+  increase-swap:
+    steps:
+      - run: sudo swapoff -a
+      - run: sudo dd if=/dev/zero of=/swapfile bs=1G count=8
+      - run: sudo chmod 0600 /swapfile
+      - run: sudo mkswap /swapfile
+      - run: sudo swapon /swapfile
+      - run: grep Swap /proc/meminfo
+  install-dependencies:
+    steps:
+      - run: sudo apt-get update 
+      - run: sudo apt install -y libssl-dev clang libclang-dev
+      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      - run: rustup update nightly
+      - run: rustup update stable
+      - run: rustup component add rustfmt
+      - run: rustup default nightly  
+      - run: rustup target add wasm32-unknown-unknown --toolchain nightly
+      - run: cargo install taplo-cli --locked 
+
+workflows:
+  node:
+    when: << pipeline.parameters.node >>
+    jobs: 
+      - node-test
+      - node-benchmark
+      - node-lint-core
+  crypto:
+    when: << pipeline.parameters.crypto >>
+    jobs:
+      - crypto-signing-client
+      - crypto-centralized-keygen
+      - crypto-kvdb
+      - crypto-common
+
+jobs: 
+  crypto-centralized-keygen:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies-and-checkout
+      - run: cd crypto/centralized-keygen && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+  crypto-signing-client:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies-and-checkout
+      - run: cd crypto/signing-client && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+  crypto-common:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies-and-checkout
+      - run: cd crypto/common && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+  crypto-kvdb:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies-and-checkout
+      - run: cd crypto/kvdb && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+  node-test:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - increase-swap
+      - install-dependencies-and-checkout
+      - run: 
+          command: pushd node && cargo build --release && cargo test
+          no_output_timeout: 45m
+  node-benchmark:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies-and-checkout
+      - run: pushd node && cargo check --features=runtime-benchmarks --release
+  node-lint-core:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies-and-checkout
+      - run: SKIP_WASM_BUILD=1 cargo clippy
