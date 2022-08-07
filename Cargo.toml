@@ -3,12 +3,7 @@ panic='unwind'
 
 [workspace]
 members=[
-  'crypto/centralized-keygen',
-  'crypto/signing-client',
-  'crypto/c-manager',
-  'crypto/shared-crypto',
-  'crypto/shared-types',
-  'crypto/testing-utils',
+  'crypto/*',
   'node/*',
   'pallets/*',
   'runtime',
