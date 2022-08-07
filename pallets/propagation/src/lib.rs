@@ -110,7 +110,7 @@ pub mod pallet {
 			// check response code
 			if response.code != 200 {
 				log::warn!("Unexpected status code: {}", response.code);
-				return Err(http::Error::Unknown);
+				return Err(http::Error::Unknown)
 			}
 			let _res_body = response.body().collect::<Vec<u8>>();
 			// ToDo: DF: handle _res_body

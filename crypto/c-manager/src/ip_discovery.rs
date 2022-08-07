@@ -13,15 +13,12 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
-use crate::{
-	errors::{CustomIPError},
-	Global, SIGNING_PARTY_SIZE,
-};
+use crate::{errors::CustomIPError, Global, SIGNING_PARTY_SIZE};
 use futures::TryFutureExt;
 use reqwest::{self};
 use rocket::{http::Status, serde::json::Json, State};
-use tracing::instrument;
 use shared_crypto::CMInfoUnchecked;
+use tracing::instrument;
 use uuid::Uuid;
 
 /// Collect IPs for all signers then informs them

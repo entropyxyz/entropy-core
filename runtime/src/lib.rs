@@ -196,19 +196,19 @@ impl Contains<Call> for BaseCallFilter {
 		let is_core_call = matches!(call, Call::System(_) | Call::Timestamp(_));
 		if is_core_call {
 			// always allow core call
-			return true;
+			return true
 		}
 
 		let is_paused =
 			pallet_transaction_pause::PausedTransactionFilter::<Runtime>::contains(call);
 		let system_reject = matches!(
 			call,
-			Call::Staking(pallet_staking::Call::withdraw_unbonded { .. })
-				| Call::Staking(pallet_staking::Call::validate { .. })
+			Call::Staking(pallet_staking::Call::withdraw_unbonded { .. }) |
+				Call::Staking(pallet_staking::Call::validate { .. })
 		);
 		if is_paused || system_reject {
 			// no paused call
-			return false;
+			return false
 		}
 		true
 	}
@@ -310,17 +310,16 @@ impl InstanceFilter<Call> for ProxyType {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => !matches!(
 				c,
-				Call::Balances(..)
-					| Call::Vesting(pallet_vesting::Call::vested_transfer { .. })
-					| Call::Indices(pallet_indices::Call::transfer { .. })
+				Call::Balances(..) |
+					Call::Vesting(pallet_vesting::Call::vested_transfer { .. }) |
+					Call::Indices(pallet_indices::Call::transfer { .. })
 			),
 			ProxyType::Governance => matches!(
 				c,
-				Call::Democracy(..)
-					| Call::Council(..) | Call::Society(..)
-					| Call::TechnicalCommittee(..)
-					| Call::Elections(..)
-					| Call::Treasury(..)
+				Call::Democracy(..) |
+					Call::Council(..) | Call::Society(..) |
+					Call::TechnicalCommittee(..) |
+					Call::Elections(..) | Call::Treasury(..)
 			),
 			ProxyType::Staking => matches!(c, Call::Staking(..)),
 		}
@@ -634,8 +633,8 @@ impl frame_support::pallet_prelude::Get<Option<(usize, sp_npos_elections::Extend
 			max @ _ => {
 				let seed = sp_io::offchain::random_seed();
 				let random = <u32>::decode(&mut TrailingZeroInput::new(&seed))
-					.expect("input is padded with zeroes; qed")
-					% max.saturating_add(1);
+					.expect("input is padded with zeroes; qed") %
+					max.saturating_add(1);
 				random as usize
 			},
 		};

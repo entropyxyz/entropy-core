@@ -10,7 +10,6 @@ use crate::{
 	store_share::User,
 	// Global,
 };
-use shared_crypto::CMInfoUnchecked;
 use kvdb::{
 	clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
@@ -20,6 +19,7 @@ use rocket::{
 	tokio::time::{sleep, Duration},
 };
 use serial_test::serial;
+use shared_crypto::CMInfoUnchecked;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
 use std::{env, time};
 use subxt::{sp_core::sr25519, PairSigner};
@@ -308,8 +308,8 @@ async fn test_have_keyshare() {
 	clean_tests();
 }
 
-// // TODO: same rocket not connect error with test, works when tested manually with server running on
-// // port 3002
+// // TODO: same rocket not connect error with test, works when tested manually with server running
+// on // port 3002
 // #[rocket::async_test]
 // #[ignore]
 // async fn send_ip_address_test() {
