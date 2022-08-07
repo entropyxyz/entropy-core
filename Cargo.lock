@@ -726,7 +726,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bip39",
- "common",
  "constraints",
  "envy",
  "futures 0.3.21",
@@ -740,6 +739,8 @@ dependencies = [
  "serde",
  "serde_json",
  "serial_test 0.8.0",
+ "shared-crypto",
+ "shared-types",
  "sp-core 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-keyring 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "subxt",
@@ -989,17 +990,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddfc5b9aa5d4507acaf872de71051dfd0e309860e88966e1051e462a077aac4f"
 dependencies = [
  "bitflags",
-]
-
-[[package]]
-name = "common"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "uuid",
 ]
 
 [[package]]
@@ -2637,8 +2627,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9be70c98951c83b8d2f8f60d7065fa6d5146873094452a1008da8c2f1e4205ad"
 dependencies = [
  "cfg-if 1.0.0",
+ "js-sys",
  "libc",
  "wasi 0.10.0+wasi-snapshot-preview1",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -5665,7 +5657,6 @@ dependencies = [
 name = "pallet-propagation"
 version = "3.0.0-monthly-2021-10"
 dependencies = [
- "common",
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-support",
@@ -5686,6 +5677,8 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.11.2",
  "scale-info",
+ "shared-crypto",
+ "shared-types",
  "sp-application-crypto 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-core 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-io 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
@@ -5759,7 +5752,6 @@ dependencies = [
 name = "pallet-relayer"
 version = "3.0.0"
 dependencies = [
- "common",
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-support",
@@ -5777,6 +5769,8 @@ dependencies = [
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
+ "shared-crypto",
+ "shared-types",
  "sp-core 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-io 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-npos-elections",
@@ -8986,6 +8980,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "shared-crypto"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "uuid",
+]
+
+[[package]]
+name = "shared-types"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+]
+
+[[package]]
 name = "shlex"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9016,7 +9028,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bip39",
- "common",
  "envy",
  "futures 0.3.21",
  "kvdb 0.1.0",
@@ -9028,6 +9039,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serial_test 0.8.0",
+ "shared-crypto",
  "testing-utils",
  "thiserror",
  "tofn 0.1.0 (git+https://github.com/Entropyxyz/tofn?branch=main)",

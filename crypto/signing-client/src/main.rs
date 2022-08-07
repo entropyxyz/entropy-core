@@ -32,7 +32,7 @@ use crate::{
 	protocol_manager::{ProtocolManager, SigningMessage},
 	subscriber::{subscribe, SubscriberManager},
 };
-// use common::{CMInfo, CMInfoUnchecked};
+// use shared-crypto::{CMInfo, CMInfoUnchecked};
 
 pub type PartyUid = usize;
 // pub type RxChannel = Meimpl Stream<Item = Result<Bytes, reqwest::Error>>;

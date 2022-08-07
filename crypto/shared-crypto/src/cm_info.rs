@@ -30,8 +30,8 @@ impl CMInfoUnchecked {
 		Self { party_uid, ip_addresses, sig_uid, key_uid, msg }
 	}
 
-  // todo: check kv info against self
-  #[allow(unused_variables)]
+	// todo: check kv info against self
+	#[allow(unused_variables)]
 	pub fn check(self, kv_keyshare_info: &KvKeyshareInfo) -> anyhow::Result<CMInfo> {
 		// check that my ip_address is at the correct index
 		// if let Err(e) = checked {
@@ -68,7 +68,7 @@ pub struct KvKeyshareInfo {
 impl TryFrom<Vec<u8>> for KvKeyshareInfo {
 	type Error = ();
 
-  #[allow(unused_variables)]
+	#[allow(unused_variables)]
 	fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
 		todo!()
 	}
