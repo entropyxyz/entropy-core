@@ -1,15 +1,12 @@
 [profile.release]
-panic = 'unwind'
+panic='unwind'
 
 [workspace]
-members = [
-    'crypto/centralized-keygen',
-    'crypto/signing-client',
-    'crypto/c-manager',
-    'crypto/testing-utils',
-    'node/*',
-    'pallets/*',
-    'runtime',
-	# 'alice-send',
-    # 'subxttest'
+members=[
+  'crypto/*',
+  'node/*',
+  'pallets/*',
+  'runtime',
+  # 'alice-send',
+  # 'subxttest'
 ]

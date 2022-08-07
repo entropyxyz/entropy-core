@@ -10,7 +10,7 @@ use crate::{
 	store_share::User,
 	// Global,
 };
-use common::CMInfoUnchecked;
+use shared_crypto::CMInfoUnchecked;
 use kvdb::{
 	clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };

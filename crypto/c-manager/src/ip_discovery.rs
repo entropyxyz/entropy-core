@@ -21,7 +21,7 @@ use futures::TryFutureExt;
 use reqwest::{self};
 use rocket::{http::Status, serde::json::Json, State};
 use tracing::instrument;
-use common::CMInfoUnchecked;
+use shared_crypto::CMInfoUnchecked;
 use uuid::Uuid;
 
 /// Collect IPs for all signers then informs them

@@ -1,10 +1,10 @@
 use std::{intrinsics::transmute, marker::PhantomData};
 
 use crate::{subscriber::SubscribingMessage, PartyUid, SIGNING_PARTY_SIZE};
-use common::CMInfo;
 use futures::{future, stream::BoxStream, StreamExt};
 use reqwest::{self};
 use serde::{Deserialize, Serialize};
+use shared_crypto::CMInfo;
 use tokio::sync::{broadcast, oneshot};
 use tracing::instrument;
 

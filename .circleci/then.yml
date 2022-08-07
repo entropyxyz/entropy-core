@@ -49,6 +49,7 @@ workflows:
       - crypto-centralized-keygen
       - crypto-kvdb
       - crypto-common
+      - types-common
 
 jobs: 
   crypto-centralized-keygen:
@@ -71,7 +72,14 @@ jobs:
       resource_class: "2xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/common && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+      - run: cd crypto/shared-crypto && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+  types-common:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies-and-checkout
+      - run: cd crypto/shared-types && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
   crypto-kvdb:
     machine:
       image: "ubuntu-2004:202201-02"
