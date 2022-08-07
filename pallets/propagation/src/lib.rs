@@ -97,7 +97,7 @@ pub mod pallet {
 			// We construct the request
 			// important: the header->Content-Type must be added and match that of the receiving
 			// party!!
-			let pending = http::Request::post(&url, vec![req_body]) // scheint zu klappen
+			let pending = http::Request::post(url, vec![req_body]) // scheint zu klappen
 				.deadline(deadline)
 				.add_header("Content-Type", "application/x-parity-scale-codec")
 				.send()
@@ -110,7 +110,7 @@ pub mod pallet {
 			// check response code
 			if response.code != 200 {
 				log::warn!("Unexpected status code: {}", response.code);
-				return Err(http::Error::Unknown);
+				return Err(http::Error::Unknown)
 			}
 			let _res_body = response.body().collect::<Vec<u8>>();
 			// ToDo: DF: handle _res_body

@@ -28,4 +28,3 @@ impl CustomIPError {
 		CustomIPError(error)
 	}
 }
-

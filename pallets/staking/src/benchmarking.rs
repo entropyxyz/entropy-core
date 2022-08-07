@@ -8,8 +8,7 @@ use crate::Pallet as Staking;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
 use frame_support::{assert_ok, sp_runtime::traits::StaticLookup, traits::Currency};
 use frame_system::{EventRecord, RawOrigin};
-use pallet_staking::Pallet as FrameStaking;
-use pallet_staking::{RewardDestination, ValidatorPrefs};
+use pallet_staking::{Pallet as FrameStaking, RewardDestination, ValidatorPrefs};
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
 	let events = frame_system::Pallet::<T>::events();

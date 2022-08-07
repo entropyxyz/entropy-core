@@ -85,7 +85,7 @@ pub fn new_partial(
 
 	let (client, backend, keystore_container, task_manager) =
 		sc_service::new_full_parts::<Block, RuntimeApi, _>(
-			&config,
+			config,
 			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
 			executor,
 		)?;
@@ -282,7 +282,7 @@ pub fn new_full_base(
 
 	let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
 		config,
-		backend: backend.clone(),
+		backend,
 		client: client.clone(),
 		keystore: keystore_container.sync_keystore(),
 		network: network.clone(),
@@ -471,7 +471,7 @@ mod tests {
 		traits::{Block as BlockT, Header as HeaderT, IdentifyAccount, Verify},
 		RuntimeAppPublic,
 	};
-	use sp_timestamp;
+	
 	use std::{borrow::Cow, convert::TryInto, sync::Arc};
 
 	type AccountPublic = <Signature as Verify>::Signer;
@@ -562,7 +562,7 @@ mod tests {
 						.shared_data()
 						.epoch_data(&epoch_descriptor, |slot| {
 							sc_consensus_babe::Epoch::genesis(
-								&babe_link.config().genesis_config(),
+								babe_link.config().genesis_config(),
 								slot,
 							)
 						})
@@ -572,7 +572,7 @@ mod tests {
 						sc_consensus_babe::authorship::claim_slot(slot.into(), &epoch, &keystore)
 							.map(|(digest, _)| digest)
 					{
-						break (babe_pre_digest, epoch_descriptor);
+						break (babe_pre_digest, epoch_descriptor)
 					}
 
 					slot += 1;
@@ -642,7 +642,7 @@ mod tests {
 				let signer = charlie.clone();
 
 				let function =
-					Call::Balances(BalancesCall::transfer { dest: to.into(), value: amount });
+					Call::Balances(BalancesCall::transfer { dest: to, value: amount });
 
 				let check_spec_version = frame_system::CheckSpecVersion::new();
 				let check_tx_version = frame_system::CheckTxVersion::new();
@@ -671,7 +671,7 @@ mod tests {
 				let signature = raw_payload.using_encoded(|payload| signer.sign(payload));
 				let (function, extra, _) = raw_payload.deconstruct();
 				index += 1;
-				UncheckedExtrinsic::new_signed(function, from.into(), signature.into(), extra)
+				UncheckedExtrinsic::new_signed(function, from, signature.into(), extra)
 					.into()
 			},
 		);

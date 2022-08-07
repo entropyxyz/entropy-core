@@ -1,84 +1,83 @@
 [package]
-authors = ['Substrate DevHub <https://github.com/substrate-developer-hub>']
-description = 'FRAME pallet template for defining custom runtime logic.'
-edition = '2021'
-homepage = 'https://substrate.dev'
-license = 'AGPL-3.0-or-later'
-name = 'pallet-slashing'
-publish = false
-readme = 'README.md'
-repository = 'https://github.com/substrate-developer-hub/substrate-node-template/'
-version = '3.0.0'
+authors    =['Substrate DevHub <https://github.com/substrate-developer-hub>']
+description='FRAME pallet template for defining custom runtime logic.'
+edition    ='2021'
+homepage   ='https://substrate.dev'
+license    ='AGPL-3.0-or-later'
+name       ='pallet-slashing'
+publish    =false
+readme     ='README.md'
+repository ='https://github.com/substrate-developer-hub/substrate-node-template/'
+version    ='3.0.0'
 
 [package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
+targets=['x86_64-unknown-linux-gnu']
 
 [dev-dependencies.sp-core]
-default-features = false
-git = 'https://github.com/paritytech/substrate.git'
-branch = "master"
-version = '6.0.0'
-
+default-features=false
+git             ='https://github.com/paritytech/substrate.git'
+branch          ="master"
+version         ='6.0.0'
 
 [dependencies.codec]
-default-features = false
-features = ['derive']
-package = 'parity-scale-codec'
-version = '3.0.0'
+default-features=false
+features        =['derive']
+package         ='parity-scale-codec'
+version         ='3.0.0'
 
 [dependencies.frame-benchmarking]
-default-features = false
-git = 'https://github.com/paritytech/substrate.git'
-branch = "master"
-optional = true
-version = '4.0.0-dev'
+default-features=false
+git             ='https://github.com/paritytech/substrate.git'
+branch          ="master"
+optional        =true
+version         ='4.0.0-dev'
 
 [dependencies.frame-support]
-default-features = false
-git = 'https://github.com/paritytech/substrate.git'
-branch = "master"
-version = '4.0.0-dev'
+default-features=false
+git             ='https://github.com/paritytech/substrate.git'
+branch          ="master"
+version         ='4.0.0-dev'
 
 [dependencies.frame-system]
-default-features = false
-git = 'https://github.com/paritytech/substrate.git'
-branch = "master"
-version = '4.0.0-dev'
+default-features=false
+git             ='https://github.com/paritytech/substrate.git'
+branch          ="master"
+version         ='4.0.0-dev'
 
 [dependencies]
-scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
-log = { version = "0.4.0", default-features = false }
-sp-staking = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-sp-io = { version = "6.0.0", default-features = false,  git = "https://github.com/paritytech/substrate",  branch = "master"}
-lite-json = { version = "0.1", default-features = false }
-sp-runtime = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-application-crypto = { version = "6.0.0", default-features = false,git = "https://github.com/paritytech/substrate", branch = "master" }
+scale-info           ={ version="2.0.1", default-features=false, features=["derive"] }
+log                  ={ version="0.4.0", default-features=false }
+sp-staking           ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+sp-io                ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="master" }
+lite-json            ={ version="0.1", default-features=false }
+sp-runtime           ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="master" }
+sp-application-crypto={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="master" }
 
 [dev-dependencies]
-pallet-session = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-pallet-staking-reward-curve  = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-frame-election-provider-support  = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-pallet-timestamp = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-pallet-staking = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-pallet-balances = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-pallet-bags-list = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
-sp-npos-elections = { version = "4.0.0-dev", default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = "master" }
+pallet-session                 ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+pallet-staking-reward-curve    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+frame-election-provider-support={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+pallet-timestamp               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+pallet-staking                 ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+pallet-balances                ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+pallet-bags-list               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+sp-npos-elections              ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 
 [features]
-default = ['std']
-runtime-benchmarks = ['frame-benchmarking']
-std = [
-    'codec/std',
-	'log/std',
-	"scale-info/std",
-	"sp-application-crypto/std",
-    'frame-support/std',
-    'frame-system/std',
-    'frame-benchmarking/std',
-	"sp-io/std",
-	"sp-runtime/std",
-	"sp-npos-elections/std",
-	"pallet-staking/std",
-	"pallet-balances/std"
+default=['std']
+runtime-benchmarks=['frame-benchmarking']
+std=[
+  'codec/std',
+  'log/std',
+  "scale-info/std",
+  "sp-application-crypto/std",
+  'frame-support/std',
+  'frame-system/std',
+  'frame-benchmarking/std',
+  "sp-io/std",
+  "sp-runtime/std",
+  "sp-npos-elections/std",
+  "pallet-staking/std",
+  "pallet-balances/std",
 ]
-try-runtime = ['frame-support/try-runtime']
+try-runtime=['frame-support/try-runtime']
