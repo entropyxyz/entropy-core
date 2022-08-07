@@ -28,9 +28,10 @@ sp-core           ="6.0.0"
 tofn              ={ git="https://github.com/Entropyxyz/tofn", branch="main" }
 
 # Entropy
-common     ={ path="../common", default-features=false }
-kvdb       ={ path="../kvdb", default-features=false }
-constraints={ path="../constraints" }
+shared-crypto={ path="../shared-crypto", default-features=false }
+shared-types ={ path="../shared-types", default-features=false }
+kvdb         ={ path="../kvdb", default-features=false }
+constraints  ={ path="../constraints" }
 
 # Logging
 log               ="0.4.17"                                          # todo: remove, overlaps tracing
@@ -38,7 +39,7 @@ tracing           ="0.1"
 tracing-subscriber={ version="0.3", features=["env-filter", "fmt"] }
 
 # Misc
-uuid        ={ version = "1.1.2", features = ["serde", "v4"] }
+uuid        ={ version="1.1.2", features=["serde", "v4"] }
 tylift      ="0.3.5"
 envy        ="0.4"
 bip39       ={ git="https://github.com/infincia/bip39-rs.git", tag="v0.6.0-beta.1" }

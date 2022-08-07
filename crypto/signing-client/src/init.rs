@@ -3,7 +3,7 @@ use crate::{
 	Global,
 	{ProtocolManager, SubscriberManager},
 };
-use common::{CMInfoUnchecked, KvKeyshareInfo};
+use shared_crypto::{CMInfoUnchecked, KvKeyshareInfo};
 use futures::TryFutureExt;
 // use reqwest::{self};
 use rocket::{http::Status, serde::json::Json, State};

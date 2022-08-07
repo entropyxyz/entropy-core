@@ -20,7 +20,7 @@
 use crate::Global;
 use kvdb::kv_manager::value::KvManager;
 
-use common::OCWMessage;
+use shared_types::OCWMessage;
 use constraints::whitelist::is_on_whitelist;
 use parity_scale_codec::{Decode, Encode};
 use rocket::{http::Status, State};
