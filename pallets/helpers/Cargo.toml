@@ -1,14 +1,13 @@
 [package]
-name = "helpers"
-version = "0.1.0"
-edition = "2021"
+name   ="helpers"
+version="0.1.0"
+edition="2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = { version = "0.4.0", default-features = false }
-
+log={ version="0.4.0", default-features=false }
 
 [features]
-default = ['std']
-std = ["log/std"]
+default=['std']
+std    =["log/std"]

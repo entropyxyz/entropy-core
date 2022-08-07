@@ -263,7 +263,7 @@ pub fn testnet_genesis(
 		.map(|x| &x.0)
 		.chain(initial_nominators.iter())
 		.for_each(|x| {
-			if !endowed_accounts.contains(&x) {
+			if !endowed_accounts.contains(x) {
 				endowed_accounts.push(x.clone())
 			}
 		});
@@ -439,7 +439,7 @@ pub fn local_testnet_config() -> ChainSpec {
 pub(crate) mod tests {
 	use super::*;
 	use crate::service::{new_full_base, NewFullBase};
-	use sc_service_test;
+	
 	use sp_runtime::BuildStorage;
 
 	fn local_testnet_genesis_instant_single() -> GenesisConfig {

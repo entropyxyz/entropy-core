@@ -18,11 +18,11 @@ mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::sp_runtime::{Perbill, RuntimeDebug};
 	use frame_support::{
 		dispatch::DispatchResult,
 		inherent::Vec,
 		pallet_prelude::*,
+		sp_runtime::{Perbill, RuntimeDebug},
 		traits::{ValidatorSet, ValidatorSetWithIdentification},
 	};
 	use frame_system::pallet_prelude::*;
@@ -107,7 +107,7 @@ pub mod pallet {
 			let offenders = offender_addresses
 				.clone()
 				.into_iter()
-				.filter_map(|account| T::ValidatorIdOf::convert(account))
+				.filter_map(T::ValidatorIdOf::convert)
 				.filter_map(|id| {
 					<T::ValidatorSet as ValidatorSetWithIdentification<T::AccountId>>::IdentificationOf::convert(
 				id.clone()
@@ -117,9 +117,9 @@ pub mod pallet {
 
 			let session_index = T::ValidatorSet::session_index();
 			let current_validators = T::ValidatorSet::validators();
-			let validator_set_count = current_validators.clone().len() as u32;
-			if validator_set_count.saturating_sub(offender_addresses.len() as u32)
-				<= T::MinValidators::get()
+			let validator_set_count = current_validators.len() as u32;
+			if validator_set_count.saturating_sub(offender_addresses.len() as u32) <=
+				T::MinValidators::get()
 			{
 				log::info!("Min validators not slashed: {:?}", offenders);
 			} else {

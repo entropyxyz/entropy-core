@@ -213,7 +213,8 @@ pub mod pallet {
 
 			//TODO slash or point for failure then slash after pointed a few times
 			// If someone is slashed they probably should reset their unresponsive dings
-			// let _result = pallet_slashing::Pallet::<T>::do_offence(responsibility, vec![responsibility]);
+			// let _result = pallet_slashing::Pallet::<T>::do_offence(responsibility,
+			// vec![responsibility]);
 			} else {
 				Failures::<T>::remove(prune_block);
 				Unresponsive::<T>::remove(responsibility);
