@@ -97,7 +97,7 @@ pub mod pallet {
 			// We construct the request
 			// important: the header->Content-Type must be added and match that of the receiving
 			// party!!
-			let pending = http::Request::post(&url, vec![req_body]) // scheint zu klappen
+			let pending = http::Request::post(url, vec![req_body]) // scheint zu klappen
 				.deadline(deadline)
 				.add_header("Content-Type", "application/x-parity-scale-codec")
 				.send()

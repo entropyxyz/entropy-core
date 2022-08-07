@@ -107,7 +107,7 @@ pub mod pallet {
 			let offenders = offender_addresses
 				.clone()
 				.into_iter()
-				.filter_map(|account| T::ValidatorIdOf::convert(account))
+				.filter_map(T::ValidatorIdOf::convert)
 				.filter_map(|id| {
 					<T::ValidatorSet as ValidatorSetWithIdentification<T::AccountId>>::IdentificationOf::convert(
 				id.clone()
@@ -117,7 +117,7 @@ pub mod pallet {
 
 			let session_index = T::ValidatorSet::session_index();
 			let current_validators = T::ValidatorSet::validators();
-			let validator_set_count = current_validators.clone().len() as u32;
+			let validator_set_count = current_validators.len() as u32;
 			if validator_set_count.saturating_sub(offender_addresses.len() as u32) <=
 				T::MinValidators::get()
 			{

@@ -33,7 +33,7 @@ fn whitelist_address() {
 		));
 		assert_eq!(
 			Constraints::address_whitelist(1),
-			[address_2.clone(), address_3.clone(), address_4]
+			[address_2, address_3, address_4]
 		);
 		assert_noop!(
 			Constraints::add_whitelist_address(Origin::signed(1), [address_5].to_vec()),

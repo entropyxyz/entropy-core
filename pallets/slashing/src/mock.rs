@@ -284,7 +284,7 @@ impl pallet_slashing::Config for Test {
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut storage = system::GenesisConfig::default().build_storage::<Test>().unwrap().into();
+	let mut storage = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	let _ = pallet_session::GenesisConfig::<Test> {
 		keys: (0..5).map(|id| (id, id, SessionKeys { foo: id.into() })).collect(),
 	}

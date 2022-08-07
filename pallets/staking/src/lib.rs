@@ -126,7 +126,7 @@ pub mod pallet {
 		/// manager `endpoint`: nodes's endpoint
 		#[pallet::weight(<T as Config>::WeightInfo::change_endpoint())]
 		pub fn change_endpoint(origin: OriginFor<T>, endpoint: Vec<u8>) -> DispatchResult {
-			let who = ensure_signed(origin.clone())?;
+			let who = ensure_signed(origin)?;
 			ensure!(
 				endpoint.len() as u32 <= T::MaxEndpointLength::get(),
 				Error::<T>::EndpointTooLong
@@ -144,7 +144,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			new_account: T::AccountId,
 		) -> DispatchResult {
-			let who = ensure_signed(origin.clone())?;
+			let who = ensure_signed(origin)?;
 			let stash = Self::get_stash(&who)?;
 			ThresholdAccounts::<T>::insert(&stash, &new_account);
 			Self::deposit_event(Event::ThresholdAccountChanged(stash, new_account));
