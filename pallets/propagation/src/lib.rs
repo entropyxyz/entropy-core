@@ -99,7 +99,6 @@ pub mod pallet {
 			// party!!
 			let pending = http::Request::post(url, vec![req_body]) // scheint zu klappen
 				.deadline(deadline)
-				.add_header("Content-Type", "application/x-parity-scale-codec")
 				.send()
 				.map_err(|_| http::Error::IoError)?;
 
