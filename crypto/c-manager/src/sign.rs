@@ -14,10 +14,10 @@
 //! - /sign - Post - Acts as an entry point for the chain to pass signing data to
 //! The Node requests the client to take part in a signature generation.
 
-#![allow(clippy::enum_variant_names)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
-use crate::Global;
+#![allow(dead_code)]
+use crate::CommunicationManagerState;
 use kvdb::kv_manager::value::KvManager;
 
 use constraints::whitelist::is_on_whitelist;
@@ -45,7 +45,7 @@ pub type EntropyRuntime =
 #[post("/sign", data = "<encoded_data>")]
 pub async fn provide_share(
 	encoded_data: Vec<u8>,
-	state: &State<Global>,
+	state: &State<CommunicationManagerState>,
 	// kv_manager: &State<EntropyKvManager>,
 ) -> Status {
 	println!("encoded_data {:?}", encoded_data);
@@ -57,9 +57,9 @@ pub async fn provide_share(
 	};
 	println!("data: {:?}", &data);
 
-	let endpoint = state.endpoint.clone();
-	let mnemonic = state.mnemonic.clone();
-	let kv_manager = &state.kv_manager;
+	let endpoint = state.configuration.endpoint.clone();
+	let mnemonic = state.configuration.mnemonic.clone();
+	// let kv_manager = &state.kv_manager;
 
 	let api = get_api(&endpoint).await.unwrap();
 	let block_number = get_block_number(&api).await.unwrap();
@@ -79,10 +79,11 @@ pub async fn provide_share(
 		let address_whitelist = get_whitelist(&api, &user).await.unwrap();
 		let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
 
-		let does_have_key = does_have_key(kv_manager, user.to_string()).await;
-		if does_have_key && !bool_block_author {
-			let _result = send_ip_address(&author_endpoint).await;
-		}
+		// TODO(TK): what's this?
+		// let does_have_key = does_have_key(kv_manager, user.to_string()).await;
+		// if does_have_key && !bool_block_author {
+		// 	let _result = send_ip_address(&author_endpoint).await;
+		// }
 	}
 
 	// TODO: JA This thread needs to happen after all signing processes are completed and contain

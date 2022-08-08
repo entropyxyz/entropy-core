@@ -13,7 +13,7 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
-use crate::{errors::CustomIPError, Global, SIGNING_PARTY_SIZE};
+use crate::{errors::CustomIPError, CommunicationManagerState, SIGNING_PARTY_SIZE};
 use futures::TryFutureExt;
 use reqwest::{self};
 use rocket::{http::Status, serde::json::Json, State};
@@ -24,7 +24,7 @@ use uuid::Uuid;
 /// Collect IPs for all signers then informs them
 #[instrument]
 #[rocket::get("/get_ip/<ip_address>")]
-pub async fn get_ip(ip_address: String, state: &State<Global>) -> Result<Status, CustomIPError> {
+pub async fn get_ip(ip_address: String, state: &State<CommunicationManagerState>) -> Result<Status, CustomIPError> {
 	// TODO JA do validation on recieved keys and if keys are already had
 	// TODO JA figure out optimal node amount
 	// TODO JA validate not a duplicated IP

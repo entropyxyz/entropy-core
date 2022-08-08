@@ -8,7 +8,7 @@ use crate::{
 		EntropyRuntime,
 	},
 	store_share::User,
-	// Global,
+	// CommunicationManagerState,
 };
 use kvdb::{
 	clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
@@ -346,7 +346,7 @@ async fn test_have_keyshare() {
 // async fn get_ip_test() {
 // 	let client = setup_client().await;
 // 	let send = "/get_ip/localhost:3002";
-// 	let _global = Global::default();
+// 	let _CommunicationManagerState = CommunicationManagerState::default();
 
 // 	create_clients(3002i64).await;
 
@@ -375,9 +375,9 @@ async fn test_have_keyshare() {
 // async fn create_clients(port: i64) {
 // 	let config = rocket::Config::figment().merge(("port", port));
 
-// 	let global = Global::default();
+// 	let CommunicationManagerState = CommunicationManagerState::default();
 
-// 	Client::tracked(rocket::custom(config).mount("/", routes![new_party]).manage(global))
+// 	Client::tracked(rocket::custom(config).mount("/", routes![new_party]).manage(CommunicationManagerState))
 // 		.await
 // 		.expect("valid `Rocket`");
 // }
