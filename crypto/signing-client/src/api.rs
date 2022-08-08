@@ -1,12 +1,13 @@
 use crate::{
 	errors::SigningProtocolError, // , SIGNING_PARTY_SIZE,
-	Global,
+	subscriber::SubscribingMessage,
+	SignerState,
 	{ProtocolManager, SubscriberManager},
 };
 use futures::TryFutureExt;
 use shared_crypto::{CMInfoUnchecked, KvKeyshareInfo};
 // use reqwest::{self};
-use rocket::{http::Status, serde::json::Json, State};
+use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use tracing::instrument;
 // use uuid::Uuid;
 
@@ -18,7 +19,7 @@ use tracing::instrument;
 #[post("/new_party", format = "json", data = "<info>")]
 pub async fn new_party(
 	info: Json<CMInfoUnchecked>,
-	state: &State<Global>,
+	state: &State<SignerState>,
 ) -> Result<Status, SigningProtocolError> {
 	info!("new_party");
 	let stored_info: KvKeyshareInfo =
@@ -50,4 +51,28 @@ pub async fn new_party(
 		.unwrap(); // todo: better error handling
 
 	Ok(Status::Ok)
+}
+
+#[instrument]
+#[post("/subscribe", data = "<subscribing_message>")]
+pub async fn subscribe(
+	subscribing_message: Json<SubscribingMessage>,
+	#[allow(unused_mut)] // macro shenanigans fooling our trusty linter
+	mut end: Shutdown,
+	state: &State<SignerState>,
+) -> EventStream![] {
+	info!("signing_registration");
+	let subscribing_message = subscribing_message.into_inner();
+	subscribing_message.validate_registration().unwrap();
+
+	let mut subscriber_manager_map = state.subscriber_manager_map.lock().unwrap();
+	if !subscriber_manager_map.contains_key(&subscribing_message.party_id) {
+		// TODO(TK): The CM hasn't called `new_party` on this node yet. Let the map drop, wait
+		// for a time-out so that CM can access the subscriber_map, and try again.
+	};
+
+	let rx = subscribing_message.create_new_subscription(&mut subscriber_manager_map);
+	// maybe unnecessary. Drop the subscriber map before returning to avoid blocking
+	drop(subscriber_manager_map);
+	subscribing_message.create_event_stream(rx, end)
 }

@@ -1,5 +1,6 @@
 //! Copied from tofnd, mostly just for reference
-// Context and helper types
+//!
+//! Mostly ignore this file, except as reference.
 #![allow(dead_code)]
 #![allow(unused_imports)]
 

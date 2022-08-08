@@ -1,47 +1,40 @@
 //! # Signing Client
 //!
-//!
 //! ## Overview
 //!
-//! Launches our signing client
+//! Signing Client, to be run by every Entropy node. Also see Communication Manager.
 //!
 //! ## Pieces Launched
-//!
 //! - Rocket server - Includes global state and mutex locked IPs
 //! - Sled DB KVDB
 #![allow(unused_variables)]
 #![allow(unused_imports)]
+
+pub mod api;
+mod context;
+mod errors;
+mod protocol_manager;
+mod subscriber;
+
+#[macro_use]
+extern crate rocket;
+use crate::{
+	api::{new_party, subscribe},
+	protocol_manager::{ProtocolManager, SigningMessage},
+	subscriber::SubscriberManager,
+};
 use bip39::{Language, Mnemonic};
+use kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use rocket::routes;
 use serde::Deserialize;
 use std::{collections::HashMap, sync::Mutex};
 
-#[macro_use]
-extern crate rocket;
-
-use kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
-
-mod context;
-mod errors;
-mod init;
-mod party_info;
-mod protocol_manager;
-mod subscriber;
-use crate::{
-	init::new_party,
-	protocol_manager::{ProtocolManager, SigningMessage},
-	subscriber::{subscribe, SubscriberManager},
-};
-// use shared-crypto::{CMInfo, CMInfoUnchecked};
-
 pub type PartyUid = usize;
-// pub type RxChannel = Meimpl Stream<Item = Result<Bytes, reqwest::Error>>;
-
 pub const SIGNING_PARTY_SIZE: usize = 6;
 
 /// holds KVDB instance, threshold mnemonic and endpoint of running node
 // #[derive(Default)]
-pub struct Global {
+pub struct SignerState {
 	mnemonic: String,
 	endpoint: String,
 	/// Unique ids for each signing party
@@ -55,14 +48,14 @@ pub struct Global {
 	kv_manager: KvManager,
 }
 
-impl Default for Global {
+impl Default for SignerState {
 	#[allow(unconditional_recursion)]
 	fn default() -> Self {
 		Self { kv_manager: load_kv_store(), ..Default::default() }
 	}
 }
 
-impl std::fmt::Debug for Global {
+impl std::fmt::Debug for SignerState {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("Global")
 			.field("mnemonic", &self.mnemonic)
@@ -74,7 +67,7 @@ impl std::fmt::Debug for Global {
 	}
 }
 
-impl Global {
+impl SignerState {
 	pub(crate) fn new(env: Configuration) -> Self {
 		Self {
 			mnemonic: env.mnemonic,
@@ -112,7 +105,7 @@ pub(crate) fn init_tracing() {
 #[launch]
 async fn rocket() -> _ {
 	init_tracing();
-	let global = Global::new(load_environment_variables());
+	let global = SignerState::new(load_environment_variables());
 
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
 	// Communication Manager: Collect IPs, for `signing_party`, list of global ip addresses for a
