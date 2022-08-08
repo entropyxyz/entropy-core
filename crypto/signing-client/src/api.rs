@@ -15,6 +15,7 @@ use tracing::instrument;
 /// Communication Manager calls this endpoint for each node in the new Signing Party.
 /// The node creates a `ProtocolManager` to run the protocol, and a SubscriberManager to manage
 /// subscribed nodes. This method should run the protocol, returning the result.
+// TODO(TK): write new_party errors instead of panicking and unwrapping everywhere
 #[instrument]
 #[post("/new_party", format = "json", data = "<info>")]
 pub async fn new_party(
@@ -25,7 +26,7 @@ pub async fn new_party(
 	let stored_info: KvKeyshareInfo =
 		match state.kv_manager.kv().get(&info.key_uid.to_string()).await {
 			Ok(v) => v.try_into().unwrap(),
-			Err(e) => panic!(), // todo
+			Err(e) => panic!(),
 		};
 	let cm_info = info.into_inner().check(&stored_info).unwrap();
 	let (finalized_subscribing_tx, protocol_manager) = ProtocolManager::new(cm_info);
@@ -40,7 +41,6 @@ pub async fn new_party(
 	}
 
 	// Run the protocol.
-	// Todo: Should I spawn a task?
 	let _outcome = protocol_manager
 		.subscribe_and_await_subscribers()
 		.and_then(move |subscribed_party| subscribed_party.sign())
@@ -48,11 +48,15 @@ pub async fn new_party(
 		.unwrap()
 		.get_result()
 		.as_ref()
-		.unwrap(); // todo: better error handling
+		.unwrap();
 
 	Ok(Status::Ok)
 }
 
+/// Other nodes in the party call this method to subscribe to this node's broadcasts.
+/// The SigningProtocol begins when all nodes in the party have called this method on this node.
+// TODO(TK): If the CM hasn't called `new_party` on this node yet. Let the map drop, wait
+// for a time-out so that CM can access the subscriber_map, and try again.
 #[instrument]
 #[post("/subscribe", data = "<subscribing_message>")]
 pub async fn subscribe(
@@ -67,8 +71,7 @@ pub async fn subscribe(
 
 	let mut subscriber_manager_map = state.subscriber_manager_map.lock().unwrap();
 	if !subscriber_manager_map.contains_key(&subscribing_message.party_id) {
-		// TODO(TK): The CM hasn't called `new_party` on this node yet. Let the map drop, wait
-		// for a time-out so that CM can access the subscriber_map, and try again.
+		// The CM hasn't yet informed this node of the party. Give CM some time to provide subscriber details. 
 	};
 
 	let rx = subscribing_message.create_new_subscription(&mut subscriber_manager_map);

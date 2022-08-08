@@ -28,7 +28,7 @@ enum ProtocolState {
 	Complete,
 }
 /// A Message related to the signing protocol.
-/// todo: WIP.
+// TODO(TK): WIP, to be written while fleshing out signing protocol
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
 #[serde(crate = "rocket::serde")]
@@ -59,13 +59,12 @@ pub(crate) struct ProtocolManager<T: state::ProtocolState> {
 	/// A channel for the `SubscriberManager` to indicate readiness for the Signing phase
 	pub finalized_subscribing_rx: Option<oneshot::Receiver<broadcast::Sender<SigningMessage>>>,
 	/// A merged stream of messages from all other nodes in the protocol
-	// todo: validate that static isn't a memory leak, or fix it
 	pub rx_stream: Option<BoxStream<'static, SigningMessage>>,
 	/// The broadcasting sender for the party. `SubscriberUtil` holds onto it until all parties
 	/// have subscribed.
 	pub broadcast_tx: Option<broadcast::Sender<SigningMessage>>,
 	/// Outcome of the signing protocol
-	pub result: Option<anyhow::Result<()>>, // todo
+	pub result: Option<anyhow::Result<()>>, // TODO(TK): write when signing phase is implemented
 	/// Type parameterization of the state of protocol execution
 	_marker: PhantomData<T>,
 }
@@ -168,7 +167,7 @@ impl ProtocolManager<state::Subscribing> {
 // beneath this line: todo
 impl ProtocolManager<state::Signing> {
 	pub(crate) async fn sign(mut self) -> anyhow::Result<ProtocolManager<state::Complete>> {
-		self.result = Some(Ok(())); // todo
+		self.result = Some(Ok(())); // TODO(TK):  write after implementing subscriber phase
 		unsafe { Ok(transmute(self)) }
 	}
 }

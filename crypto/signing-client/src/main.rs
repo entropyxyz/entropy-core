@@ -69,7 +69,7 @@ impl std::fmt::Debug for SignerState {
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct Configuration {
 	#[serde(default = "default_endpoint")]
-	#[allow(dead_code)] // todo: unused
+	#[allow(dead_code)] // TODO(TK): unused?
 	endpoint: String,
 	mnemonic: String,
 }
