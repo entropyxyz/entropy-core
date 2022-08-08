@@ -25,6 +25,8 @@ workflows:
           mapping: |
             node/.* node true
             crypto/.* crypto true
+            pallets/.* pallets true
+            runtime/.* runtime true
           base-revision: master
           # path to trigger once filtering/value updates finish 
           config-path: .circleci/then.yml

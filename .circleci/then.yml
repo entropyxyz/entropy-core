@@ -9,6 +9,12 @@ parameters:
   node:
     type: boolean
     default: false
+  pallets:
+    type: boolean
+    default: false
+  runtime:
+    type: boolean
+    default: false
 
 commands:
   install-dependencies-and-checkout:
@@ -37,7 +43,8 @@ commands:
 
 workflows:
   node:
-    when: << pipeline.parameters.node >>
+    when: 
+      or: [ << pipeline.parameters.node >>, << pipeline.parameters.pallets >>, << pipeline.parameters.runtime >> ]
     jobs: 
       - node-test
       - node-benchmark
