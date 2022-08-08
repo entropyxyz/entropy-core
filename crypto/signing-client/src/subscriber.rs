@@ -36,7 +36,6 @@ impl SubscribingMessage {
 
 	/// Retreive the SubscriberManager for this party, update it with a new subscriber.
 	pub(crate) fn create_new_subscription(
-		// ) {
 		&self,
 		map: &mut HashMap<PartyUid, Option<SubscriberManager>>,
 	) -> broadcast::Receiver<SigningMessage> {
