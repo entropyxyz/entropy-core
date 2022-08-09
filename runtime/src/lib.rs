@@ -1203,8 +1203,8 @@ impl pallet_bags_list::Config for Runtime {
 }
 
 impl pallet_free_tx::Config for Runtime {
-	type Event = Event;
-	type Call = Call;
+  type Call = Call;
+  type Event = Event;
 }
 
 construct_runtime!(
