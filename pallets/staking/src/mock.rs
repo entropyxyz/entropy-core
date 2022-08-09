@@ -303,5 +303,5 @@ pub(crate) fn start_session(session_index: SessionIndex) {
 }
 
 pub(crate) fn start_active_era(era_index: EraIndex) {
-  start_session((era_index * <SessionsPerEra as Get<u32>>::get()));
+  start_session(era_index * <SessionsPerEra as Get<u32>>::get());
 }
