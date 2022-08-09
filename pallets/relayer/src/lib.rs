@@ -197,7 +197,7 @@ pub mod pallet {
         "active to pending, responsibility warning"
       );
       if !is_prune_failures {
-        Unresponsive::<T>::mutate(responsibility.clone(), |dings| *dings += 1);
+        Unresponsive::<T>::mutate(responsibility, |dings| *dings += 1);
 
       // TODO slash or point for failure then slash after pointed a few times
       // If someone is slashed they probably should reset their unresponsive dings
@@ -208,7 +208,7 @@ pub mod pallet {
         Unresponsive::<T>::remove(responsibility);
       }
 
-      if messages.len() > 0 {
+      if !messages.is_empty() {
         Pending::<T>::insert(target_block, messages);
       }
 
@@ -231,7 +231,7 @@ pub mod pallet {
 
   /// Validate `attest` calls prior to execution. Needed to avoid a DoS attack since they are
   /// otherwise free to place on chain.
-  #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
+  #[derive(Encode, Decode, Clone, Eq, PartialEq, Eq, TypeInfo)]
   #[scale_info(skip_type_params(T))]
   pub struct PrevalidateRelayer<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
   where <T as frame_system::Config>::Call: IsSubType<Call<T>>;
@@ -276,7 +276,7 @@ pub mod pallet {
       info: &DispatchInfoOf<Self::Call>,
       len: usize,
     ) -> Result<Self::Pre, TransactionValidityError> {
-      Ok(self.validate(who, call, info, len).map(|_| ())?)
+      self.validate(who, call, info, len).map(|_| ())
     }
 
     // <weight>
@@ -291,7 +291,7 @@ pub mod pallet {
     ) -> TransactionValidity {
       if let Some(local_call) = call.is_sub_type() {
         if let Call::prep_transaction { .. } = local_call {
-          ensure!(Registered::<T>::get(who), InvalidTransaction::Custom(1.into()));
+          ensure!(Registered::<T>::get(who), InvalidTransaction::Custom(1));
           // TODO apply filter logic
         }
 
@@ -301,13 +301,13 @@ pub mod pallet {
 
         if let Call::confirm_done { block_number, .. } = local_call {
           let responsibility =
-            Responsibility::<T>::get(block_number).ok_or(InvalidTransaction::Custom(2.into()))?;
+            Responsibility::<T>::get(block_number).ok_or(InvalidTransaction::Custom(2))?;
           let threshold_key =
             pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
-              .ok_or(InvalidTransaction::Custom(3.into()))?;
-          ensure!(*who == threshold_key, InvalidTransaction::Custom(4.into()));
+              .ok_or(InvalidTransaction::Custom(3))?;
+          ensure!(*who == threshold_key, InvalidTransaction::Custom(4));
           let current_failures = Failures::<T>::get(block_number);
-          ensure!(current_failures.is_none(), InvalidTransaction::Custom(5.into()));
+          ensure!(current_failures.is_none(), InvalidTransaction::Custom(5));
         }
       }
       Ok(ValidTransaction::default())
