@@ -21,7 +21,7 @@ rocket ={ version="0.5.0-rc.1", default-features=false, features=["json"] }
 reqwest={ version="0.11", features=["json", "stream"] }
 
 # Substrate
-parity-scale-codec="3.0.0"
+# parity-scale-codec="3.0.0"
 # subxt             ={ git="https://github.com/paritytech/subxt.git" }
 # sp-keyring        ="6.0.0"
 # sp-core           ="6.0.0"
@@ -33,7 +33,6 @@ kvdb                ={ path="../kvdb", default-features=false }
 # constraints={ path="../constraints" }
 
 # Logging
-log               ="0.4.17"                                          # todo: remove, overlaps tracing
 tracing           ="0.1"
 tracing-subscriber={ version="0.3", features=["env-filter", "fmt"] }
 
