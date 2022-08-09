@@ -42,6 +42,15 @@ commands:
       - run: cargo install taplo-cli --locked 
 
 workflows:
+  crypto:
+    when: << pipeline.parameters.crypto >>
+    jobs:
+      - crypto-centralized-keygen
+      - crypto-communication-manager
+      - crypto-kvdb
+      - crypto-signing-client
+      - crypto-non-substrate-common
+      - crypto-substrate-common
   node:
     when: 
       or: [ << pipeline.parameters.node >>, << pipeline.parameters.pallets >>, << pipeline.parameters.runtime >> ]
@@ -49,14 +58,6 @@ workflows:
       - node-test
       - node-benchmark
       - node-lint-core
-  crypto:
-    when: << pipeline.parameters.crypto >>
-    jobs:
-      - crypto-signing-client
-      - crypto-centralized-keygen
-      - crypto-kvdb
-      - crypto-common
-      - types-common
 
 jobs: 
   crypto-centralized-keygen:
@@ -66,27 +67,13 @@ jobs:
     steps:
       - install-dependencies-and-checkout
       - run: cd crypto/centralized-keygen && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
-  crypto-signing-client:
+  crypto-communication-manager:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "2xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/signing-client && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
-  crypto-common:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: cd crypto/shared-crypto && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
-  types-common:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: cd crypto/shared-types && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+      - run: cd crypto/communication-manager && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
   crypto-kvdb:
     machine:
       image: "ubuntu-2004:202201-02"
@@ -94,6 +81,28 @@ jobs:
     steps:
       - install-dependencies-and-checkout
       - run: cd crypto/kvdb && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+  crypto-signing-client:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies-and-checkout
+      - run: cd crypto/signing-client && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+  crypto-non-substrate-common:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies-and-checkout
+      - run: cd crypto/non-substrate-common && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+  crypto-substrate-common:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies-and-checkout
+      - run: cd crypto/substrate-common && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+
   node-test:
     machine:
       image: "ubuntu-2004:202201-02"
