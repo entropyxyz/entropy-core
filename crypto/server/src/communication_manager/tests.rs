@@ -1,44 +1,46 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
-use super::deprecating_sign::{
-	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
-	get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
-	EntropyRuntime,
-};
+use std::{env, time};
+
 use kvdb::{
-	clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
+  clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
 use non_substrate_common::CMInfoUnchecked;
 use rocket::{
-	http::{ContentType, Status},
-	local::asynchronous::Client,
-	tokio::time::{sleep, Duration},
+  http::{ContentType, Status},
+  local::asynchronous::Client,
+  tokio::time::{sleep, Duration},
 };
 use serial_test::serial;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
-use std::{env, time};
 use subxt::{sp_core::sr25519, PairSigner};
 use testing_utils::context::{test_context, test_context_stationary};
 use uuid::Uuid;
 
+use super::deprecating_sign::{
+  acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
+  get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
+  EntropyRuntime,
+};
+
 async fn setup_client() -> rocket::local::asynchronous::Client {
-	Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
+  Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
 }
 
 fn get_path(extension: &str) -> String {
-	let path = env::current_dir();
+  let path = env::current_dir();
 
-	let mut file_path: String = path.unwrap().as_path().display().to_string();
-	file_path.push_str(extension);
-	file_path
+  let mut file_path: String = path.unwrap().as_path().display().to_string();
+  file_path.push_str(extension);
+  file_path
 }
 
 async fn wait_for_chain(api: &EntropyRuntime, block: u32) {
-	let mut result = get_block_number(api).await;
-	while result.unwrap() < block {
-		sleep(Duration::from_secs(2u64)).await;
-		result = get_block_number(api).await;
-	}
+  let mut result = get_block_number(api).await;
+  while result.unwrap() < block {
+    sleep(Duration::from_secs(2u64)).await;
+    result = get_block_number(api).await;
+  }
 }
 
 // #[rocket::async_test]
@@ -282,25 +284,24 @@ async fn wait_for_chain(api: &EntropyRuntime, block: u32) {
 #[rocket::async_test]
 #[serial]
 async fn test_have_keyshare() {
-	let key = "12mXVvtCubeKrVx99EWQCpJrLxnmzAgXqwHePLoamVN31Kn5".to_string();
-	// launch kv manager
-	let kv_manager =
-		KvManager::new(get_db_path().into(), PasswordMethod::NoPassword.execute().unwrap())
-			.unwrap();
+  let key = "12mXVvtCubeKrVx99EWQCpJrLxnmzAgXqwHePLoamVN31Kn5".to_string();
+  // launch kv manager
+  let kv_manager =
+    KvManager::new(get_db_path().into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
 
-	let result = does_have_key(&kv_manager.clone(), key.clone()).await;
-	assert_eq!(result, false);
+  let result = does_have_key(&kv_manager.clone(), key.clone()).await;
+  assert_eq!(result, false);
 
-	let reservation = kv_manager.kv().reserve_key(key.clone()).await.unwrap();
-	let _ = kv_manager.kv().put(reservation, "dummy".to_owned().as_bytes().to_vec()).await;
+  let reservation = kv_manager.kv().reserve_key(key.clone()).await.unwrap();
+  let _ = kv_manager.kv().put(reservation, "dummy".to_owned().as_bytes().to_vec()).await;
 
-	let result_2 = does_have_key(&kv_manager.clone(), key.clone()).await;
-	assert_eq!(result_2, true);
-	// delete key so tests rerun
-	kv_manager.kv().delete(&key).await.unwrap();
-	let result_3 = does_have_key(&kv_manager, key.clone()).await;
-	assert_eq!(result_3, false);
-	clean_tests();
+  let result_2 = does_have_key(&kv_manager.clone(), key.clone()).await;
+  assert_eq!(result_2, true);
+  // delete key so tests rerun
+  kv_manager.kv().delete(&key).await.unwrap();
+  let result_3 = does_have_key(&kv_manager, key.clone()).await;
+  assert_eq!(result_3, false);
+  clean_tests();
 }
 
 // // TODO: same rocket not connect error with test, works when tested manually with server running
