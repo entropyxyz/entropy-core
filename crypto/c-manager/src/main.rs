@@ -11,13 +11,13 @@
 #![allow(unused_variables)]
 
 mod errors;
-mod ip_discovery;
 mod request_guards;
 mod sign;
+mod sign_req;
 #[cfg(test)]
 mod tests;
 
-use crate::{ip_discovery::get_ip, sign::provide_share};
+use crate::{sign::provide_share, sign_req::sign_request};
 use bip39::{Language, Mnemonic};
 pub use kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use rocket::routes;
@@ -28,6 +28,7 @@ extern crate rocket;
 
 // TODO(TK): move to common
 pub type PartyUid = usize;
+pub type PlaceholderUserKey = &'static str;
 pub const SIGNING_PARTY_SIZE: usize = 6;
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 pub const DEFAULT_MNEMONIC: &str =
@@ -128,5 +129,5 @@ async fn rocket() -> _ {
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
 	// Communication Manager: Collect IPs, for `signing_party`, list of global ip addresses for a
 	let cm_state = CommunicationManagerState::default();
-	rocket::build().mount("/cm", routes![provide_share, get_ip]).manage(cm_state)
+	rocket::build().mount("/cm", routes![provide_share, sign_request]).manage(cm_state)
 }
