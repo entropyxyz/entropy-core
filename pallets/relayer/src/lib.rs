@@ -12,6 +12,7 @@
 //! register - register's a user and that they have created and distributed entropy shards
 //! confirm_done - allows a node to confirm signing has happened and if a failure occured
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::new_without_default)]
 #![allow(clippy::derive_partial_eq_without_eq)] // Substrate confuses clippy
 pub use pallet::*;
 

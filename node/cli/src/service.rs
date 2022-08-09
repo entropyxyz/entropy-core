@@ -41,6 +41,7 @@ type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 type FullGrandpaBlockImport =
   grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>;
 
+#[allow(clippy::type_complexity)] // todo @jesse, refactor this result type to a wrapper
 pub fn new_partial(
   config: &Configuration,
 ) -> Result<
