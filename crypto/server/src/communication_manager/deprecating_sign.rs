@@ -17,7 +17,10 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
-use crate::{communication_manager::{self, CommunicationManagerState}, utils::Configuration};
+use crate::{
+	communication_manager::{self, CommunicationManagerState},
+	utils::Configuration,
+};
 use constraints::whitelist::is_on_whitelist;
 use kvdb::kv_manager::value::KvManager;
 use parity_scale_codec::{Decode, Encode};

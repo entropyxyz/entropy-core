@@ -11,7 +11,6 @@ use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 pub use protocol_manager::{ProtocolManager, SigningMessage};
 pub use subscriber::{SubscriberManager, SubscribingMessage};
 
-
 use crate::PartyUid;
 
 /// The state used by this node to create signatures

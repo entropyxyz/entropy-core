@@ -25,7 +25,6 @@ use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use uuid::Uuid;
 
-
 // TODO(TK): lots
 /// Data from previous block, to be used to initate signature protocols by the CM.
 #[derive(Debug, Clone, Serialize, Deserialize)]

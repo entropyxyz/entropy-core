@@ -21,7 +21,7 @@ pub(super) fn init_tracing() {
 pub struct Configuration {
 	#[serde(default = "default_endpoint")]
 	#[allow(dead_code)] // TODO(TK): unused?
-pub	endpoint: String,
+	pub endpoint: String,
 	pub mnemonic: String,
 }
 impl Configuration {
@@ -42,6 +42,6 @@ impl Configuration {
 	}
 }
 
-fn default_endpoint() -> String{
+fn default_endpoint() -> String {
 	DEFAULT_ENDPOINT.to_string()
 }

@@ -22,7 +22,7 @@ use testing_utils::context::{test_context, test_context_stationary};
 use uuid::Uuid;
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
-	Client::tracked(rocket().await).await.expect("valid `Rocket`")
+	Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
 }
 
 fn get_path(extension: &str) -> String {

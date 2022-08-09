@@ -16,10 +16,7 @@ mod utils;
 
 #[macro_use]
 extern crate rocket;
-use communication_manager::{
-	api::*,
-	deprecating_sign::provide_share, CommunicationManagerState,
-};
+use communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState};
 use signing_client::{api::*, ProtocolManager, SignerState, SigningMessage, SubscriberManager};
 
 use bip39::{Language, Mnemonic};
