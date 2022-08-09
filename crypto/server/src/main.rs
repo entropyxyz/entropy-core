@@ -14,16 +14,19 @@ mod communication_manager;
 mod signing_client;
 mod utils;
 
-#[macro_use] extern crate rocket;
 use std::{collections::HashMap, sync::Mutex};
 
+#[macro_use] extern crate rocket;
 use bip39::{Language, Mnemonic};
-use communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState};
 use kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use rocket::routes;
 use serde::Deserialize;
-use signing_client::{api::*, ProtocolManager, SignerState, SigningMessage, SubscriberManager};
-use utils::{init_tracing, Configuration};
+
+use crate::{
+  communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState},
+  signing_client::{api::*, ProtocolManager, SignerState, SigningMessage, SubscriberManager},
+  utils::{init_tracing, Configuration},
+};
 
 pub type PartyUid = usize;
 pub const SIGNING_PARTY_SIZE: usize = 6;

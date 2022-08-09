@@ -1,17 +1,19 @@
 pub mod api;
 mod context;
 mod errors;
+mod new_user;
 mod protocol_manager;
 mod subscriber;
-mod new_user;
 
 use std::{collections::HashMap, sync::Mutex};
 
-pub use errors::SigningProtocolError;
 use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
-pub use protocol_manager::{ProtocolManager, SigningMessage};
-pub use subscriber::{SubscriberManager, SubscribingMessage};
 
+pub use self::{
+  errors::SigningProtocolError,
+  protocol_manager::{ProtocolManager, SigningMessage},
+  subscriber::{SubscriberManager, SubscribingMessage},
+};
 use crate::PartyUid;
 
 /// The state used by this node to create signatures

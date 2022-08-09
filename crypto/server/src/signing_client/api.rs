@@ -4,12 +4,11 @@ use non_substrate_common::{CMInfoUnchecked, KvKeyshareInfo};
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use tracing::instrument;
 
+use super::new_user::UserKvEntry;
 use crate::{
-  signing_client::{SigningProtocolError, SubscribingMessage, new_user::UserKvEntryUnparsed},
+  signing_client::{new_user::UserKvEntryUnparsed, SigningProtocolError, SubscribingMessage},
   ProtocolManager, SignerState, SubscriberManager,
 };
-
-use super::new_user::UserKvEntry;
 // use uuid::Uuid;
 
 /// Initiate a new signing party.
@@ -84,17 +83,17 @@ pub async fn subscribe(
 /// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
 #[post("/new_user", format = "json", data = "<user_input>")]
 pub async fn new_user(
-	user_input: Json<UserKvEntryUnparsed>,
-	state: &State<SignerState>,
+  user_input: Json<UserKvEntryUnparsed>,
+  state: &State<SignerState>,
 ) -> Result<Status, std::io::Error> {
-	// ToDo: JA verify proof
-	// ToDo: validate is owner of key address
-	// ToDo: JA make sure signed so other key doesn't override own key
+  // ToDo: JA verify proof
+  // ToDo: validate is owner of key address
+  // ToDo: JA make sure signed so other key doesn't override own key
 
-	let user_input = UserKvEntry::try_from(user_input.into_inner()).unwrap();
-	let kv_manager = &state.kv_manager;
-	let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();
-	kv_manager.kv().put(reservation, user_input.value.clone()).await.unwrap();
+  let user_input = UserKvEntry::try_from(user_input.into_inner()).unwrap();
+  let kv_manager = &state.kv_manager;
+  let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();
+  kv_manager.kv().put(reservation, user_input.value.clone()).await.unwrap();
 
-	Ok(Status::Ok)
+  Ok(Status::Ok)
 }

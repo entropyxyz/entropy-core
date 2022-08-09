@@ -1,13 +1,13 @@
+pub mod api;
+pub mod deprecating_sign;
+mod errors;
+mod handle_signing;
+mod request_guards;
+#[cfg(test)] mod tests;
+
 use std::{collections::HashMap, sync::Mutex};
 
 use crate::PartyUid;
-
-pub mod api;
-pub mod deprecating_sign;
-pub mod errors;
-pub mod handle_signing;
-pub mod request_guards;
-#[cfg(test)] mod tests;
 
 /// holds KVDB instance, threshold mnemonic and endpoint of running node
 #[derive(Debug, Default)]
