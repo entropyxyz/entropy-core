@@ -11,7 +11,9 @@
 //!
 //! - /sign - Post - Acts as an entry point for the chain to pass signing data to
 //! The Node requests the client to take part in a signature generation.
-
+ 
+#![allow(clippy::enum_variant_names)]
+// #![allow(warnings)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
