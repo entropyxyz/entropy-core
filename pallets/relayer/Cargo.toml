@@ -66,8 +66,8 @@ pallet-authorship       ={ version="4.0.0-dev", default-features=false, git='htt
 log                     ={ version="0.4.0", default-features=false }
 pallet-slashing         ={ version="3.0.0", default-features=false, path="../slashing" }
 pallet-staking-extension={ version="3.0.0", default-features=false, path="../staking" }
-shared-crypto           ={ path="../../crypto/shared-crypto", default-features=false }
-shared-types            ={ path="../../crypto/shared-types", default-features=false }
+non-substrate-common    ={ path="../../crypto/non-substrate-common", default-features=false }
+substrate-common        ={ path="../../crypto/substrate-common", default-features=false }
 helpers                 ={ path="../helpers", default-features=false }
 
 [dev-dependencies]

@@ -1,25 +1,20 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
-use super::rocket;
-use crate::{
-	sign::{
-		acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
-		get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
-		EntropyRuntime,
-	},
-	store_share::User,
-	// Global,
+use super::deprecating_sign::{
+	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
+	get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
+	EntropyRuntime,
 };
 use kvdb::{
 	clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
+use non_substrate_common::CMInfoUnchecked;
 use rocket::{
 	http::{ContentType, Status},
 	local::asynchronous::Client,
 	tokio::time::{sleep, Duration},
 };
 use serial_test::serial;
-use shared_crypto::CMInfoUnchecked;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
 use std::{env, time};
 use subxt::{sp_core::sr25519, PairSigner};
@@ -27,7 +22,7 @@ use testing_utils::context::{test_context, test_context_stationary};
 use uuid::Uuid;
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
-	Client::tracked(super::rocket().await).await.expect("valid `Rocket`")
+	Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
 }
 
 fn get_path(extension: &str) -> String {
@@ -346,7 +341,7 @@ async fn test_have_keyshare() {
 // async fn get_ip_test() {
 // 	let client = setup_client().await;
 // 	let send = "/get_ip/localhost:3002";
-// 	let _global = Global::default();
+// 	let _CommunicationManagerState = CommunicationManagerState::default();
 
 // 	create_clients(3002i64).await;
 
@@ -375,9 +370,9 @@ async fn test_have_keyshare() {
 // async fn create_clients(port: i64) {
 // 	let config = rocket::Config::figment().merge(("port", port));
 
-// 	let global = Global::default();
+// 	let CommunicationManagerState = CommunicationManagerState::default();
 
-// 	Client::tracked(rocket::custom(config).mount("/", routes![new_party]).manage(global))
-// 		.await
+// 	Client::tracked(rocket::custom(config).mount("/",
+// routes![new_party]).manage(CommunicationManagerState)) 		.await
 // 		.expect("valid `Rocket`");
 // }

@@ -1,5 +1,5 @@
 [package]
-name   ="shared-types"
+name   ="substrate-common"
 version="0.1.0"
 edition="2021"
 

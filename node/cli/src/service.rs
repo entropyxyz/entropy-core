@@ -471,7 +471,7 @@ mod tests {
 		traits::{Block as BlockT, Header as HeaderT, IdentifyAccount, Verify},
 		RuntimeAppPublic,
 	};
-	
+
 	use std::{borrow::Cow, convert::TryInto, sync::Arc};
 
 	type AccountPublic = <Signature as Verify>::Signer;
@@ -641,8 +641,7 @@ mod tests {
 				};
 				let signer = charlie.clone();
 
-				let function =
-					Call::Balances(BalancesCall::transfer { dest: to, value: amount });
+				let function = Call::Balances(BalancesCall::transfer { dest: to, value: amount });
 
 				let check_spec_version = frame_system::CheckSpecVersion::new();
 				let check_tx_version = frame_system::CheckTxVersion::new();
@@ -671,8 +670,7 @@ mod tests {
 				let signature = raw_payload.using_encoded(|payload| signer.sign(payload));
 				let (function, extra, _) = raw_payload.deconstruct();
 				index += 1;
-				UncheckedExtrinsic::new_signed(function, from, signature.into(), extra)
-					.into()
+				UncheckedExtrinsic::new_signed(function, from, signature.into(), extra).into()
 			},
 		);
 	}

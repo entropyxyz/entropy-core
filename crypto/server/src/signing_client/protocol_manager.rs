@@ -1,17 +1,25 @@
-use std::{intrinsics::transmute, marker::PhantomData};
+//! A `ProtocolManager` is created on a call to `new_party`.
+//! `ProtocolManager` is parameterized over three possible states (in order): Subscribing, Signing,
+//! and Complete, encoded as PhantomData type tags. If reader is unfamiliar with type-level
+//! programming, consult https://willcrichton.net/notes/type-level-programming/ as a resource. We must use the unsafe
+//! `transmute` API to update the PhantomData state tag.
 
-use crate::{subscriber::SubscribingMessage, PartyUid, SIGNING_PARTY_SIZE};
+use crate::{
+	signing_client::{errors::SigningMessageError, subscriber::SubscribingMessage},
+	PartyUid, SIGNING_PARTY_SIZE,
+};
 use futures::{future, stream::BoxStream, StreamExt};
+use non_substrate_common::CMInfo;
 use reqwest::{self};
 use serde::{Deserialize, Serialize};
-use shared_crypto::CMInfo;
+use std::{intrinsics::transmute, marker::PhantomData};
 use tokio::sync::{broadcast, oneshot};
 use tracing::instrument;
 
 // use super::context::PartyInfo;
 
+/// Type parameterization of the state of protocol execution. See `ProtocolManager::_marker`.
 #[tylift::tylift(mod state)]
-/// Type parameterization of the state of protocol execution
 enum ProtocolState {
 	#[derive(Debug)]
 	Subscribing,
@@ -20,6 +28,8 @@ enum ProtocolState {
 	#[derive(Debug)]
 	Complete,
 }
+/// A Message related to the signing protocol.
+// TODO(TK): WIP, to be written while fleshing out signing protocol
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
 #[serde(crate = "rocket::serde")]
@@ -28,16 +38,21 @@ pub struct SigningMessage {
 }
 
 impl TryFrom<&[u8]> for SigningMessage {
-	type Error = serde_json::Error;
+	type Error = SigningMessageError;
 
-	// There may be a better way to write this. The Reqwest Bytes response includes non-json
-	// crap that needs to be handled before deserialization.
+	// Reqwest responses come back formatted with an added crud feature:
+	// 'data:{<actual_message>}\n'
+	// 👆👆👆  this is crud    👆
 	fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-		serde_json::from_str(std::str::from_utf8(value).unwrap().trim().split_once(':').unwrap().1)
+		let raw_msg = std::str::from_utf8(value)?;
+		let trimmed_msg = raw_msg.split_once(':').ok_or(SigningMessageError::BadSplit)?.1;
+		let parsed_msg = serde_json::from_str(trimmed_msg)?;
+		Ok(parsed_msg)
 	}
 }
 
-pub(crate) struct ProtocolManager<T: state::ProtocolState> {
+/// Core type of this file, manages execution of each signing protocol.
+pub struct ProtocolManager<T: state::ProtocolState> {
 	/// Information about the party provided by the Communication Manager
 	pub cm_info: CMInfo,
 	/// Size of the signing party
@@ -45,13 +60,12 @@ pub(crate) struct ProtocolManager<T: state::ProtocolState> {
 	/// A channel for the `SubscriberManager` to indicate readiness for the Signing phase
 	pub finalized_subscribing_rx: Option<oneshot::Receiver<broadcast::Sender<SigningMessage>>>,
 	/// A merged stream of messages from all other nodes in the protocol
-	// todo: validate that static isn't a memory leak, or fix it
 	pub rx_stream: Option<BoxStream<'static, SigningMessage>>,
 	/// The broadcasting sender for the party. `SubscriberUtil` holds onto it until all parties
 	/// have subscribed.
 	pub broadcast_tx: Option<broadcast::Sender<SigningMessage>>,
 	/// Outcome of the signing protocol
-	pub result: Option<anyhow::Result<()>>, // todo
+	pub result: Option<anyhow::Result<()>>, // TODO(TK): write when signing phase is implemented
 	/// Type parameterization of the state of protocol execution
 	_marker: PhantomData<T>,
 }
@@ -63,10 +77,10 @@ impl<T: state::ProtocolState> std::fmt::Debug for ProtocolManager<T> {
 			.field("cm_info", &self.cm_info)
 			.field("signing_party_size", &self.signing_party_size)
 			.field("finalized_subscribing_rx", &self.finalized_subscribing_rx)
-			// .field("rx_stream", &self.rx_stream) // no way
+			// .field("rx_stream", &self.rx_stream) // nope
 			.field("broadcast_tx", &self.broadcast_tx)
 			.field("result", &self.result)
-			// .field("_marker", &self._marker) // don't do it
+			// .field("_marker", &self._marker) // nope
 			.finish() // nice
 	}
 }
@@ -154,7 +168,7 @@ impl ProtocolManager<state::Subscribing> {
 // beneath this line: todo
 impl ProtocolManager<state::Signing> {
 	pub(crate) async fn sign(mut self) -> anyhow::Result<ProtocolManager<state::Complete>> {
-		self.result = Some(Ok(())); // todo
+		self.result = Some(Ok(())); // TODO(TK):  write after implementing subscriber phase
 		unsafe { Ok(transmute(self)) }
 	}
 }

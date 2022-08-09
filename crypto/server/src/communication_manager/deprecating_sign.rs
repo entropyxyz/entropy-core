@@ -1,13 +1,11 @@
 //! # Sign
 //!
-//!
 //! ## Overview
 //!
 //! The sign file acts as an entry point for the chain to pass signing data to.
-//! The chain will send messages that need to be signied to every node at sign endpoint
-//! If certain conditions are met the nodes will either co-ordinate or participate in the singing
-//! protocl.
-//!
+//! The chain will send messages that need to be signed to every node at sign endpoint
+//! If certain conditions are met the nodes will either coordinate or participate in the signing
+//! protocol.
 //!
 //! ## Routes
 //!
@@ -17,20 +15,22 @@
 #![allow(clippy::enum_variant_names)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
-use crate::Global;
-use kvdb::kv_manager::value::KvManager;
-
+#![allow(dead_code)]
+use crate::{
+	communication_manager::{self, CommunicationManagerState},
+	utils::Configuration,
+};
 use constraints::whitelist::is_on_whitelist;
+use kvdb::kv_manager::value::KvManager;
 use parity_scale_codec::{Decode, Encode};
 use rocket::{http::Status, State};
-use shared_types::OCWMessage;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair};
-use sp_keyring::AccountKeyring;
 use std::{str, thread};
+use substrate_common::OCWMessage;
 use subxt::{
-	sp_runtime::AccountId32, ClientBuilder, Config, DefaultConfig, PairSigner,
-	PolkadotExtrinsicParams,
+	sp_runtime::AccountId32, ClientBuilder, DefaultConfig, PairSigner, PolkadotExtrinsicParams,
 };
+use tracing::instrument;
 
 // load entropy metadata so that subxt knows what types can be handled by the entropy network
 #[subxt::subxt(runtime_metadata_path = "entropy_metadata.scale")]
@@ -39,29 +39,27 @@ pub mod entropy {}
 pub type EntropyRuntime =
 	entropy::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
 
-// TODO(TK): Better documentation on this function.
+// TODO(TK): merge this with api::handle_signing
+// TODO(TK): increase the abstraction of the method, for readability
+//
 /// Takes data from OCW decondes it and launches the signing process
 /// Identifies if node should lead or participate in signing
-#[post("/sign", data = "<encoded_data>")]
+#[instrument]
+#[post("/provide_share", data = "<encoded_data>")]
 pub async fn provide_share(
 	encoded_data: Vec<u8>,
-	state: &State<Global>,
+	state: &State<CommunicationManagerState>,
+	config: &State<Configuration>,
 	// kv_manager: &State<EntropyKvManager>,
 ) -> Status {
-	println!("encoded_data {:?}", encoded_data);
+	info!("provide_share, encoded_data: {:?}", encoded_data);
 
-	let data = OCWMessage::decode(&mut encoded_data.as_ref());
-	let data = match data {
-		Ok(x) => x,
-		Err(err) => panic!("failed to decode input {}", err),
-	};
-	println!("data: {:?}", &data);
+	let data = OCWMessage::decode(&mut encoded_data.as_ref()).unwrap();
+	info!("data: {:?}", &data);
 
-	let endpoint = state.endpoint.clone();
-	let mnemonic = state.mnemonic.clone();
-	let kv_manager = &state.kv_manager;
+	// let kv_manager = &state.kv_manager;
 
-	let api = get_api(&endpoint).await.unwrap();
+	let api = get_api(&config.endpoint).await.unwrap();
 	let block_number = get_block_number(&api).await.unwrap();
 
 	let block_author = get_block_author(&api).await.unwrap();
@@ -79,27 +77,23 @@ pub async fn provide_share(
 		let address_whitelist = get_whitelist(&api, &user).await.unwrap();
 		let is_address_whitelisted = is_on_whitelist(address_whitelist, &vec![]);
 
-		let does_have_key = does_have_key(kv_manager, user.to_string()).await;
-		if does_have_key && !bool_block_author {
-			let _result = send_ip_address(&author_endpoint).await;
-		}
+		// let does_have_key = does_have_key(kv_manager, user.to_string()).await;
+		// if does_have_key && !bool_block_author {
+		// 	let _result = send_ip_address(&author_endpoint).await;
+		// }
 	}
 
-	// TODO: JA This thread needs to happen after all signing processes are completed and contain
+	// TODO: JA This needs to happen after all signing processes are completed and contain
 	// locations in vec of any failures (which need to be stored locally in DB temporarily)
-	let handle = thread::spawn(move || async move {
-		let api_2 = get_api(&endpoint).await.unwrap();
-		let block_author = get_block_author(&api_2).await.unwrap();
-		if is_block_author(&api_2, &block_author).await.unwrap() {
-			let result = acknowledge_responsibility(&api_2, &mnemonic, block_number).await;
-			println!("result of acknowledge responsibility: {:?}", result)
-		} else {
-			println!("result of no acknowledgment");
-		}
-	});
-	// TODO: JA Thread blocks the return, not sure if needed a problem, keep an eye out for this
-	// downstream
-	handle.join().unwrap().await;
+	let api_2 = get_api(&config.endpoint).await.unwrap();
+
+	let block_author = get_block_author(&api_2).await.unwrap();
+	if is_block_author(&api_2, &block_author).await.unwrap() {
+		let result = acknowledge_responsibility(&api_2, &config.mnemonic, block_number).await;
+		info!("result of acknowledge responsibility: {:?}", result)
+	} else {
+		info!("result of no acknowledgment");
+	}
 
 	Status::Ok
 }

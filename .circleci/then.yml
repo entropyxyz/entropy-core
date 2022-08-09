@@ -47,6 +47,14 @@ commands:
       - run: cargo clippy -- -D warnings
 
 workflows:
+  crypto:
+    when: << pipeline.parameters.crypto >>
+    jobs:
+      - crypto-centralized-keygen
+      - crypto-server
+      - crypto-kvdb
+      - crypto-non-substrate-common
+      - crypto-substrate-common
   node:
     when: 
       or: [ << pipeline.parameters.node >>, << pipeline.parameters.pallets >>, << pipeline.parameters.runtime >> ]
@@ -54,14 +62,6 @@ workflows:
       - node-test
       - node-benchmark
       - node-lint-core
-  crypto:
-    when: << pipeline.parameters.crypto >>
-    jobs:
-      - crypto-signing-client
-      - crypto-centralized-keygen
-      - crypto-kvdb
-      - crypto-common
-      - types-common
 
 jobs: 
   crypto-centralized-keygen:
@@ -70,27 +70,15 @@ jobs:
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
+      - run: cd crypto/centralized-keygen
       - fmt-lint
-  crypto-signing-client:
+  crypto-server:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - fmt-lint
-  crypto-common:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - fmt-lint
-  types-common:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "xlarge"
-    steps:
-      - install-dependencies-and-checkout
+      - run: cd crypto/server
       - fmt-lint
   crypto-kvdb:
     machine:
@@ -98,6 +86,23 @@ jobs:
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
+      - run: cd crypto/kvdb 
+      - fmt-lint
+  crypto-non-substrate-common:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies-and-checkout
+      - run: cd crypto/non-substrate-common
+      - fmt-lint
+  crypto-substrate-common:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "2xlarge"
+    steps:
+      - install-dependencies-and-checkout
+      - run: cd crypto/substrate-common
       - fmt-lint
   node-test:
     machine:
