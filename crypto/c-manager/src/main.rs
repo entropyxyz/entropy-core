@@ -40,10 +40,12 @@ pub struct CommunicationManagerState {
 	/// Generate unique ids for each signing party
 	// TODO(TK): be more robust than a counter
 	party_id_nonce: Mutex<usize>,
-	// TODO(TK): This is only a mapping for the current IPs of a single party. Update to hold a DB.
+	// TODO(TK): what does this do that kv_manager doesn't do?
 	current_ips: Mutex<Vec<String>>,
-	// Moved to signing_client, keep commented until other api methods are fixed
-	// kv_manager: KvManager,
+	/// Key: user address
+	/// Value: information about every node's key-share for that user
+	// TODO(TK): write these types 
+	kv_manager: KvManager,
 }
 
 impl Default for CommunicationManagerState {
@@ -52,6 +54,7 @@ impl Default for CommunicationManagerState {
 			configuration: Configuration::new(),
 			party_id_nonce: Mutex::default(),
 			current_ips: Mutex::default(),
+			kv_manager: load_kv_store(),
 		}
 	}
 }
@@ -109,6 +112,18 @@ pub(crate) fn init_tracing() {
 		.from_env_lossy();
 }
 
+fn load_kv_store() -> KvManager {
+	if cfg!(test) {
+		KvManager::new(get_db_path().into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap()
+	} else {
+		let root = project_root::get_project_root().unwrap();
+		let password = PasswordMethod::Prompt.execute().unwrap();
+		// this step takes a long time due to password-based decryption
+		KvManager::new(root, password).unwrap()
+	}
+}
+
+
 #[launch]
 async fn rocket() -> _ {
 	init_tracing();
@@ -116,6 +131,6 @@ async fn rocket() -> _ {
 	// Communication Manager: Collect IPs, for `signing_party`, list of global ip addresses for a
 	let cm_state = CommunicationManagerState::default();
 	rocket::build()
-		.mount("/", routes![store_keyshare, provide_share, get_ip])
+		.mount("/cm", routes![store_keyshare, provide_share, get_ip])
 		.manage(cm_state)
 }

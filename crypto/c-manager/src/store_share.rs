@@ -25,7 +25,6 @@ pub struct User {
 }
 
 /// Accepts user input stores shard under user's substrate key in local KVDB
-// TODO(TK): what this?
 #[post("/store_keyshare", format = "json", data = "<user_input>")]
 pub async fn store_keyshare(
 	user_input: Json<User>,
@@ -35,11 +34,9 @@ pub async fn store_keyshare(
 	// ToDo: validate is owner of key address
 	// ToDo: JA make sure signed so other key doesn't override own key
 
-	// let cached_state = state.inner();
-	// let kv_manager = &state.kv_manager;
-
-	// let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();
-	// kv_manager.kv().put(reservation, user_input.value.clone()).await.unwrap();
+	let kv_manager = &state.kv_manager;
+	let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();
+	kv_manager.kv().put(reservation, user_input.value.clone()).await.unwrap();
 
 	Ok(Status::Ok)
 }
