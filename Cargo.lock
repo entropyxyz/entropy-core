@@ -4935,40 +4935,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "offchain-server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bip39",
- "constraints",
- "envy",
- "futures 0.3.21",
- "kvdb 0.1.0",
- "local-ip",
- "log",
- "non-substrate-common",
- "parity-scale-codec",
- "project-root",
- "reqwest",
- "rocket",
- "serde",
- "serde_json",
- "serial_test 0.8.0",
- "sp-core 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sp-keyring 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "substrate-common",
- "subxt",
- "testing-utils",
- "thiserror",
- "tofn 0.1.0 (git+https://github.com/Entropyxyz/tofn?branch=main)",
- "tokio",
- "tracing",
- "tracing-subscriber 0.3.11",
- "tylift",
- "uuid",
-]
-
-[[package]]
 name = "once_cell"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8883,6 +8849,40 @@ dependencies = [
  "quote",
  "rustversion",
  "syn",
+]
+
+[[package]]
+name = "server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bip39",
+ "constraints",
+ "envy",
+ "futures 0.3.21",
+ "kvdb 0.1.0",
+ "local-ip",
+ "log",
+ "non-substrate-common",
+ "parity-scale-codec",
+ "project-root",
+ "reqwest",
+ "rocket",
+ "serde",
+ "serde_json",
+ "serial_test 0.8.0",
+ "sp-core 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sp-keyring 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "substrate-common",
+ "subxt",
+ "testing-utils",
+ "thiserror",
+ "tofn 0.1.0 (git+https://github.com/Entropyxyz/tofn?branch=main)",
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.11",
+ "tylift",
+ "uuid",
 ]
 
 [[package]]
