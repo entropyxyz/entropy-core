@@ -128,7 +128,5 @@ async fn rocket() -> _ {
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
 	// Communication Manager: Collect IPs, for `signing_party`, list of global ip addresses for a
 	let cm_state = CommunicationManagerState::default();
-	rocket::build()
-		.mount("/cm", routes![store_keyshare, provide_share, get_ip])
-		.manage(cm_state)
+	rocket::build().mount("/cm", routes![provide_share, get_ip]).manage(cm_state)
 }

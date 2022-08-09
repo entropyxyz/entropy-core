@@ -25,10 +25,9 @@ use parity_scale_codec::{Decode, Encode};
 use rocket::{http::Status, State};
 use shared_types::OCWMessage;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair};
-use sp_keyring::AccountKeyring;
 use std::{str, thread};
 use subxt::{
-	sp_runtime::AccountId32, ClientBuilder, Config, DefaultConfig, PairSigner,
+	sp_runtime::AccountId32, ClientBuilder, DefaultConfig, PairSigner,
 	PolkadotExtrinsicParams,
 };
 

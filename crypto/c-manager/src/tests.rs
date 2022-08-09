@@ -7,7 +7,6 @@ use crate::{
 		get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
 		EntropyRuntime,
 	},
-	store_share::UserKvEntry,
 	// CommunicationManagerState,
 };
 use kvdb::{
