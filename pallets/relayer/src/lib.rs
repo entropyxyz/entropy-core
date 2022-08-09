@@ -1,4 +1,3 @@
-#![cfg_attr(not(feature = "std"), no_std)]
 //! # Relayer Pallet
 //!
 //!
@@ -12,6 +11,8 @@
 //! prep_transaction - declares intent to sign, this gets relayed to thereshold network
 //! register - register's a user and that they have created and distributed entropy shards
 //! confirm_done - allows a node to confirm signing has happened and if a failure occured
+#![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::derive_partial_eq_without_eq)] // Substrate confuses clippy
 pub use pallet::*;
 
 #[cfg(test)] mod mock;
@@ -231,7 +232,7 @@ pub mod pallet {
 
   /// Validate `attest` calls prior to execution. Needed to avoid a DoS attack since they are
   /// otherwise free to place on chain.
-  #[derive(Encode, Decode, Clone, Eq, PartialEq, Eq, TypeInfo)]
+  #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
   #[scale_info(skip_type_params(T))]
   pub struct PrevalidateRelayer<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
   where <T as frame_system::Config>::Call: IsSubType<Call<T>>;
