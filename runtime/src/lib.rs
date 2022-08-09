@@ -1202,6 +1202,11 @@ impl pallet_bags_list::Config for Runtime {
   type WeightInfo = pallet_bags_list::weights::SubstrateWeight<Runtime>;
 }
 
+impl pallet_free_tx::Config for Runtime {
+	type Event = Event;
+	type Call = Call;
+}
+
 construct_runtime!(
   pub enum Runtime where
     Block = Block,
@@ -1257,6 +1262,7 @@ construct_runtime!(
     Slashing: pallet_slashing = 52,
     Constraints: pallet_constraints = 53,
     TransactionPause: pallet_transaction_pause = 54,
+    FreeTx: pallet_free_tx = 55
   }
 );
 

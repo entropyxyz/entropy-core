@@ -104,6 +104,7 @@ pallet-slashing         ={ version='3.0.0-monthly-2021-10', default-features=fal
 pallet-constraints      ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/constraints' }
 pallet-staking-extension={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/staking' }
 pallet-transaction-pause={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/transaction-pause' }
+pallet-free-tx          ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/free-tx' }
 
 [build-dependencies]
 substrate-wasm-builder={ version="5.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="master" }
@@ -171,6 +172,7 @@ std=[
   "pallet-timestamp/std",
   "pallet-tips/std",
   "pallet-transaction-pause/std",
+  "pallet-free-tx/std",
   "pallet-transaction-payment-rpc-runtime-api/std",
   "pallet-transaction-payment/std",
   "pallet-transaction-storage/std",
@@ -202,6 +204,7 @@ runtime-benchmarks=[
   "pallet-conviction-voting/runtime-benchmarks",
   "pallet-democracy/runtime-benchmarks",
   "pallet-elections-phragmen/runtime-benchmarks",
+  "pallet-free-tx/runtime-benchmarks",
   "pallet-staking-extension/runtime-benchmarks",
   "pallet-grandpa/runtime-benchmarks",
   "pallet-identity/runtime-benchmarks",
@@ -244,6 +247,7 @@ try-runtime=[
   "pallet-conviction-voting/try-runtime",
   "pallet-democracy/try-runtime",
   "pallet-elections-phragmen/try-runtime",
+  "pallet-free-tx/try-runtime",
   "pallet-grandpa/try-runtime",
   "pallet-im-online/try-runtime",
   "pallet-indices/try-runtime",
