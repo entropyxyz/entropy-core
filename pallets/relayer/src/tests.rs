@@ -19,7 +19,7 @@ fn it_preps_transaction() {
     let message =
       Message { account: vec![1, 0, 0, 0, 0, 0, 0, 0], sig_request: sig_request.clone() };
 
-    assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request.clone()));
+    assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request));
 
     assert_eq!(Relayer::messages(0), vec![message]);
   });
@@ -59,7 +59,7 @@ fn it_confirms_done() {
     );
     pallet_staking_extension::ThresholdAccounts::<Test>::insert(2, 5);
     assert_noop!(
-      Relayer::confirm_done(Origin::signed(2), 5, failures.clone()),
+      Relayer::confirm_done(Origin::signed(2), 5, failures),
       Error::<Test>::NotYourResponsibility
     );
   });
@@ -81,7 +81,7 @@ fn moves_active_to_pending() {
     let message =
       Message { account: vec![1, 0, 0, 0, 0, 0, 0, 0], sig_request: sig_request.clone() };
 
-    assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request.clone()));
+    assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request));
     assert_eq!(Relayer::messages(3), vec![message.clone()]);
 
     // prunes old failure remove messages put into pending
@@ -89,11 +89,11 @@ fn moves_active_to_pending() {
     Relayer::on_initialize(5);
     assert_eq!(Relayer::failures(2), None);
     assert_eq!(Relayer::messages(3), vec![]);
-    assert_eq!(Relayer::pending(3), vec![message.clone()]);
+    assert_eq!(Relayer::pending(3), vec![message]);
     assert_eq!(Relayer::unresponsive(1), 0);
     // pending pruned
     Responsibility::<Test>::insert(4, 1);
-    Failures::<Test>::insert(3, failures.clone());
+    Failures::<Test>::insert(3, failures);
     Relayer::on_initialize(6);
     assert_eq!(Relayer::pending(3), vec![]);
     assert_eq!(Relayer::failures(3), None);
