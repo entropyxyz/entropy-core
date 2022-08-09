@@ -65,35 +65,45 @@ jobs:
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/centralized-keygen && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+      - run: cd crypto/centralized-keygen && cargo fmt --check
+      - run: cd crypto/centralized-keygen && taplo fmt --check
+      - run: cd crypto/centralized-keygen && cargo clippy -- -D warnings
   crypto-signing-client:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/signing-client && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+      - run: cd crypto/signing-client && cargo fmt --check
+      - run: cd crypto/signing-client && taplo fmt --check
+      - run: cd crypto/signing-client && cargo clippy -- -D warnings
   crypto-common:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/shared-crypto && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+      - run: cd crypto/shared-crypto && cargo fmt --check
+      - run: cd crypto/shared-crypto && taplo fmt --check
+      - run: cd crypto/shared-crypto && cargo clippy -- -D warnings
   types-common:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/shared-types && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+      - run: cd crypto/shared-types && cargo fmt --check
+      - run: cd crypto/shared-types && taplo fmt --check
+      - run: cd crypto/shared-types && cargo clippy -- -D warnings
   crypto-kvdb:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/kvdb && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+      - run: cd crypto/kvdb && cargo fmt --check
+      - run: cd crypto/kvdb && taplo fmt --check
+      - run: cd crypto/kvdb && cargo clippy -- -D warnings
   node-test:
     machine:
       image: "ubuntu-2004:202201-02"
