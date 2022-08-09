@@ -24,7 +24,7 @@ pub enum SignedMessageError {
 pub struct CustomIPError(&'static str);
 
 impl CustomIPError {
-	#[allow(dead_code)] 
+	#[allow(dead_code)]
 	pub fn new(error: &'static str) -> CustomIPError {
 		CustomIPError(error)
 	}

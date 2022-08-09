@@ -71,7 +71,7 @@ impl std::fmt::Debug for CommunicationManagerState {
 }
 
 impl CommunicationManagerState {
-	#[allow(dead_code)] 
+	#[allow(dead_code)]
 	pub(crate) fn get_next_party_id(&self) -> PartyUid {
 		let mut nonce = *self.party_id_nonce.lock().unwrap();
 		nonce += 1;
