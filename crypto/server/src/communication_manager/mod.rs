@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::{collections::HashMap, sync::Mutex};
 
 use crate::PartyUid;
 
@@ -16,8 +16,10 @@ pub struct CommunicationManagerState {
 	/// Generate unique ids for each signing party
 	// TODO(TK): be more robust than a counter
 	party_id_nonce: Mutex<usize>,
-	// TODO(TK): what does this do that kv_manager doesn't do?
-	current_ips: Mutex<Vec<String>>,
+	// Mapping maintained by the CM: Node IP -> Share index
+	// Nodes inform the CM of the share index they hold by calling `inform_share_index`
+	#[allow(dead_code)]
+	current_ips: Mutex<HashMap<String, usize>>,
 }
 
 impl CommunicationManagerState {

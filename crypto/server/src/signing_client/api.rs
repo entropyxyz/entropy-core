@@ -20,13 +20,18 @@ pub async fn new_party(
 	info: Json<CMInfoUnchecked>,
 	state: &State<SignerState>,
 ) -> Result<Status, SigningProtocolError> {
-	info!("new_party");
-	let stored_info: KvKeyshareInfo =
-		match state.kv_manager.kv().get(&info.key_uid.to_string()).await {
-			Ok(v) => v.try_into().unwrap(),
-			Err(e) => panic!(),
-		};
-	let cm_info = info.into_inner().check(&stored_info).unwrap();
+	info!("new_party: {:?}", info);
+	// TODO(TK): this should return a KvShare, not Vec<u8>, unclear why type is Vec<u8>
+	// temporary hack to get around: try_into().unwrap()
+	let kv_share = state
+		.kv_manager
+		.kv()
+		.get(&info.key_uid.to_string())
+		.await
+		.unwrap()
+		.try_into()
+		.unwrap();
+	let cm_info = info.into_inner().check(&kv_share).unwrap();
 	let (finalized_subscribing_tx, protocol_manager) = ProtocolManager::new(cm_info);
 	{
 		// store subscriber manager in state, first checking that the party_id is new

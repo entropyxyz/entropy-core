@@ -12,6 +12,7 @@
 //! get_all_ips - post - Comm manager sends signers all node addresses to sign message
 #![allow(unused_variables)]
 #![allow(unused_imports)]
+#![allow(dead_code)]
 
 use crate::{
 	communication_manager::errors::CustomIPError, CommunicationManagerState, SIGNING_PARTY_SIZE,
@@ -25,7 +26,7 @@ use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use uuid::Uuid;
 
-// TODO(TK): lots
+// TODO(TK): lots to do
 /// Data from previous block, to be used to initate signature protocols by the CM.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncodedBlockData {

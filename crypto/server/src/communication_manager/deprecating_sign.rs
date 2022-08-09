@@ -13,7 +13,6 @@
 //! The Node requests the client to take part in a signature generation.
 
 #![allow(clippy::enum_variant_names)]
-// #![allow(warnings)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
@@ -40,7 +39,9 @@ pub mod entropy {}
 pub type EntropyRuntime =
 	entropy::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
 
-// todo: merge this with api::handle_signing.
+// TODO(TK): merge this with api::handle_signing
+// TODO(TK): increase the abstraction of the method, for readability
+//
 /// Takes data from OCW decondes it and launches the signing process
 /// Identifies if node should lead or participate in signing
 #[instrument]
