@@ -42,7 +42,7 @@ pub async fn test_node_process_stationary() -> TestNodeProcess<DefaultConfig> {
 	test_node(AccountKeyring::Alice).await
 }
 
-#[subxt::subxt(runtime_metadata_path = "../signing-client/entropy_metadata.scale")]
+#[subxt::subxt(runtime_metadata_path = "../server/entropy_metadata.scale")]
 pub mod entropy {}
 
 pub struct TestContext {
