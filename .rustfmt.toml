@@ -18,7 +18,6 @@ struct_field_align_threshold=20   # align struct arguments' types vertically
 use_field_init_shorthand    =true # struct initialization short {x: x} -> {x}
 
 # reduce whitespace
-blank_lines_upper_bound=1                # default: 1. Sometimes useful to change to 0 to condense a file.
 brace_style            ="PreferSameLine" # prefer starting `{` without inserting extra \n
 fn_single_line         =true             # if it's a short 1-liner, let it be a short 1-liner
 match_arm_blocks       =false            # remove unnecessary {} in match arms
@@ -38,6 +37,6 @@ use_small_heuristics  ="Max" # don't ever newline short of `max_width`.
 wrap_comments         =true  # wrap comments at `comment_width`
 # format_strings = true # wrap strings at `max_length`
 
-# tabs and spaces
+# tabs and spaces (use spaces
 hard_tabs =false # (def: false) use spaces over tabs
 tab_spaces=2     # 2 > 4, it's just math.
