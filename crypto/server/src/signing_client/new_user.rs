@@ -44,21 +44,3 @@ impl TryFrom<UserKvEntryUnparsed> for UserKvEntry {
 	}
 }
 
-// TODO(TK): Move this method to signing_client.
-/// Accepts user input stores shard under user's substrate key in local KVDB
-#[post("/store_keyshare", format = "json", data = "<user_input>")]
-pub async fn store_keyshare(
-	user_input: Json<UserKvEntryUnparsed>,
-	state: &State<crate::Global>,
-) -> Result<Status, std::io::Error> {
-	// ToDo: JA verify proof
-	// ToDo: validate is owner of key address
-	// ToDo: JA make sure signed so other key doesn't override own key
-
-	let user_input = UserKvEntry::try_from(user_input.into_inner()).unwrap();
-	let kv_manager = &state.kv_manager;
-	let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();
-	kv_manager.kv().put(reservation, user_input.value.clone()).await.unwrap();
-
-	Ok(Status::Ok)
-}

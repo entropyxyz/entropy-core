@@ -3,6 +3,7 @@ mod context;
 mod errors;
 mod protocol_manager;
 mod subscriber;
+mod new_user;
 
 use std::{collections::HashMap, sync::Mutex};
 
