@@ -21,6 +21,7 @@ pub mod pallet {
     weights::{GetDispatchInfo, PostDispatchInfo},
   };
   use frame_system::{pallet_prelude::*, RawOrigin};
+  use sp_runtime::DispatchResultWithInfo;
   use sp_std::prelude::*;
 
   #[pallet::config]
@@ -36,43 +37,16 @@ pub mod pallet {
 
   #[pallet::call]
   impl<T: Config> Pallet<T> {
-    //! Leaving do_something and cause_error to make manual testing easier
-    //! TODO JH remove do_something and cause_error before prod
-
-    #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-    pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
-      let who = ensure_signed(origin)?;
-
-      <Something<T>>::put(something);
-
-      Self::deposit_event(Event::SomethingStored(something, who));
-      Ok(())
-    }
-
-    #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-    pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
-      let _who = ensure_signed(origin)?;
-
-      match <Something<T>>::get() {
-        None => Err(Error::<T>::NoneValue.into()),
-        Some(old) => {
-          let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-          <Something<T>>::put(new);
-          Ok(())
-        },
-      }
-    }
-
     /// Try to call an extrinsic using the account's available free calls.
     ///
-    /// If free calls are available and the call fits proper criteria, a free call is used and
-    /// the account will pay zero tx fees, regardless of the call's result.
+    /// If free calls are available, a free call is used and the account will pay zero tx fees,
+    /// regardless of the call's result.
     ///
-    /// If no free calls are available, account pays the stupidity fee of ((base fee) +
-    /// (WeightAsFee for querying free calls)).
+    /// If no free calls are available, account pays the stupidity fee of ((base fee) + (WeightAsFee
+    /// for querying free calls)).
     #[pallet::weight({
 			let dispatch_info = call.get_dispatch_info();
-			(dispatch_info.weight.saturating_add(10_000), dispatch_info.class)
+			(dispatch_info.weight.saturating_add(10_000), dispatch_info.class, Pays::No)
 		})]
     pub fn try_free_call(
       origin: OriginFor<T>,
@@ -93,13 +67,14 @@ pub mod pallet {
       Self::deposit_event(Event::FreeCallIssued(sender, res.map(|_| ()).map_err(|e| e.error)));
 
       // account pays no fees
-      Ok(Pays::No.into())
+      Ok()
     }
   }
 
   impl<T: Config> Pallet<T> {
     // TODO JH
-    /// Checks if user can do a free tx, and by what method, process state changes too
+    /// Checks if user can do a free tx, and by what method. Process any state changes, too, unless
+    /// false.
     fn process_free_call(_account_id: &<T>::AccountId) -> bool { true }
   }
 
@@ -114,20 +89,13 @@ pub mod pallet {
   #[pallet::event]
   #[pallet::generate_deposit(pub(super) fn deposit_event)]
   pub enum Event<T: Config> {
-    /// Event documentation should end with an array that provides descriptive names for event
-    /// parameters. [something, who]
-    SomethingStored(u32, T::AccountId),
-    // FreeCallIssued(<T as Config>::Call),
+    /// A user used a free call to dispatch a transaction; the account did not pay any transaction
+    /// fees.
     FreeCallIssued(T::AccountId, DispatchResult),
   }
 
-  // Errors inform users that something went wrong.
   #[pallet::error]
   pub enum Error<T> {
-    /// Error names should be descriptive.
-    NoneValue,
-    /// Errors should have helpful documentation associated with them.
-    StorageOverflow,
     /// Account has no free calls left. Call the extrinsic directly or use `try_free_call_or_pay()`
     NoFreeCallsAvailable,
     /// Are you fuzzing, or are you just dumb?
