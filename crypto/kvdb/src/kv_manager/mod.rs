@@ -19,5 +19,4 @@ pub use types::KeyReservation;
 pub use value::KvManager;
 
 // tests for low-level operations
-#[cfg(test)]
-mod tests;
+#[cfg(test)] mod tests;
