@@ -1,8 +1,6 @@
 use crate::{
-	errors::SigningProtocolError, // , SIGNING_PARTY_SIZE,
-	subscriber::SubscribingMessage,
-	SignerState,
-	{ProtocolManager, SubscriberManager},
+	signing_client::{SigningProtocolError, SubscribingMessage},
+	ProtocolManager, SignerState, SubscriberManager,
 };
 use futures::TryFutureExt;
 use non_substrate_common::{CMInfoUnchecked, KvKeyshareInfo};

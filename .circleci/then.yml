@@ -51,9 +51,8 @@ workflows:
     when: << pipeline.parameters.crypto >>
     jobs:
       - crypto-centralized-keygen
-      - crypto-communication-manager
+      - crypto-server
       - crypto-kvdb
-      - crypto-signing-client
       - crypto-non-substrate-common
       - crypto-substrate-common
   node:
@@ -73,21 +72,13 @@ jobs:
       - install-dependencies-and-checkout
       - run: cd crypto/centralized-keygen
       - fmt-lint
-  crypto-communication-manager:
+  crypto-server:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/communication-manager
-      - fmt-lint
-  crypto-signing-client:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: cd crypto/signing-client
+      - run: cd crypto/server
       - fmt-lint
   crypto-kvdb:
     machine:

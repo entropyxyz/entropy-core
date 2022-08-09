@@ -1,11 +1,9 @@
 # Crypto
 This document serves as a partial spec of this repo.
-nts: previous block author is this round's CM
-if I'm not the CM, then:  
 
-The major crates in this repo are:
-- `signing-client` - HTTP endpoints run by all nodes for signing protocols
-- `communication-manager` - AKA, the previous block's proposer. The CM is run by the previous block-proposer, and is responsible for choosing and notifying signing parties for each user signing-tx in the previous block.
+The major actors in this repo are:
+- `server/src/signing-client` - HTTP endpoints run by all nodes for signing protocols
+- `server/src/communication-manager` - AKA, the previous block's proposer. The CM is run by the previous block-proposer, and is responsible for choosing and notifying signing parties for each user signing-tx in the previous block.
   - Currently, each node must notify the communication manager what shares they hold (`send_ip_address`), after which, the CM chooses the parties.
   - After implementing Committees, all info about which nodes hold which shares will be stored on-chain, and this call will be eliminated. 
 - `committee` - (unimpl) Entropy nodes are partitioned into one of **5** committees. Nodes from the same committee have equivalent secret keyshard information. Each committee has a Committee Leader, who broadcasts messages to the committee, eg., when receiving shares from new users.

@@ -4,14 +4,15 @@
 //! programming, consult https://willcrichton.net/notes/type-level-programming/ as a resource. We must use the unsafe
 //! `transmute` API to update the PhantomData state tag.
 
-use crate::errors::SigningMessageError;
-use std::{intrinsics::transmute, marker::PhantomData};
-
-use crate::{subscriber::SubscribingMessage, PartyUid, SIGNING_PARTY_SIZE};
+use crate::{
+	signing_client::{errors::SigningMessageError, subscriber::SubscribingMessage},
+	PartyUid, SIGNING_PARTY_SIZE,
+};
 use futures::{future, stream::BoxStream, StreamExt};
 use non_substrate_common::CMInfo;
 use reqwest::{self};
 use serde::{Deserialize, Serialize};
+use std::{intrinsics::transmute, marker::PhantomData};
 use tokio::sync::{broadcast, oneshot};
 use tracing::instrument;
 
@@ -51,7 +52,7 @@ impl TryFrom<&[u8]> for SigningMessage {
 }
 
 /// Core type of this file, manages execution of each signing protocol.
-pub(crate) struct ProtocolManager<T: state::ProtocolState> {
+pub struct ProtocolManager<T: state::ProtocolState> {
 	/// Information about the party provided by the Communication Manager
 	pub cm_info: CMInfo,
 	/// Size of the signing party

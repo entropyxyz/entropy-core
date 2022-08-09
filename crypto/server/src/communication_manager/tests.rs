@@ -1,7 +1,6 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
-use super::rocket;
-use crate::sign::{
+use super::deprecating_sign::{
 	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
 	get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
 	EntropyRuntime,
@@ -23,7 +22,7 @@ use testing_utils::context::{test_context, test_context_stationary};
 use uuid::Uuid;
 
 async fn setup_client() -> rocket::local::asynchronous::Client {
-	Client::tracked(super::rocket().await).await.expect("valid `Rocket`")
+	Client::tracked(rocket().await).await.expect("valid `Rocket`")
 }
 
 fn get_path(extension: &str) -> String {

@@ -17,7 +17,7 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
-use crate::CommunicationManagerState;
+use crate::{communication_manager::{self, CommunicationManagerState}, utils::Configuration};
 use constraints::whitelist::is_on_whitelist;
 use kvdb::kv_manager::value::KvManager;
 use parity_scale_codec::{Decode, Encode};
@@ -37,6 +37,7 @@ pub mod entropy {}
 pub type EntropyRuntime =
 	entropy::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
 
+// todo: merge this with api::handle_signing.
 /// Takes data from OCW decondes it and launches the signing process
 /// Identifies if node should lead or participate in signing
 #[instrument]
@@ -44,6 +45,7 @@ pub type EntropyRuntime =
 pub async fn provide_share(
 	encoded_data: Vec<u8>,
 	state: &State<CommunicationManagerState>,
+	config: &State<Configuration>,
 	// kv_manager: &State<EntropyKvManager>,
 ) -> Status {
 	info!("provide_share, encoded_data: {:?}", encoded_data);
@@ -51,7 +53,6 @@ pub async fn provide_share(
 	let data = OCWMessage::decode(&mut encoded_data.as_ref()).unwrap();
 	info!("data: {:?}", &data);
 
-	let config = &state.configuration;
 	// let kv_manager = &state.kv_manager;
 
 	let api = get_api(&config.endpoint).await.unwrap();

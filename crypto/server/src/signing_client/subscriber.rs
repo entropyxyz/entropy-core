@@ -70,7 +70,7 @@ impl SubscribingMessage {
 
 /// The number of subscribers, and a channel to indicate readiness
 #[derive(Debug)]
-pub(crate) struct SubscriberManager {
+pub struct SubscriberManager {
 	/// How many other nodes have subscribed to this node
 	pub count: usize,
 	/// Marked true when the count matches SIGNING_PARTY_SIZE
