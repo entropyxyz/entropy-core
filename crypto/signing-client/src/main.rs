@@ -25,6 +25,7 @@ mod context;
 mod errors;
 mod init;
 mod party_info;
+mod store_share;
 mod protocol_manager;
 mod subscriber;
 use crate::{
@@ -117,7 +118,7 @@ async fn rocket() -> _ {
 	// TODO: JA maybe add check to see if blockchain is running at endpoint
 	// Communication Manager: Collect IPs, for `signing_party`, list of global ip addresses for a
 	// message.
-	rocket::build().mount("/", routes![new_party, subscribe]).manage(global)
+	rocket::build().mount("/", routes![new_party, subscribe, store_share::store_keyshare]).manage(global)
 }
 
 fn load_environment_variables() -> Configuration {

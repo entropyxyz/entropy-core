@@ -14,11 +14,10 @@ mod errors;
 mod ip_discovery;
 mod request_guards;
 mod sign;
-mod store_share;
 #[cfg(test)]
 mod tests;
 
-use crate::{ip_discovery::get_ip, sign::provide_share, store_share::store_keyshare};
+use crate::{ip_discovery::get_ip, sign::provide_share};
 use bip39::{Language, Mnemonic};
 pub use kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use rocket::routes;
@@ -44,7 +43,7 @@ pub struct CommunicationManagerState {
 	current_ips: Mutex<Vec<String>>,
 	/// Key: user address
 	/// Value: information about every node's key-share for that user
-	// TODO(TK): write these types 
+	// TODO(TK): write these types
 	kv_manager: KvManager,
 }
 
@@ -59,7 +58,7 @@ impl Default for CommunicationManagerState {
 	}
 }
 
-// exclude the cm held database
+// exclude the database
 impl std::fmt::Debug for CommunicationManagerState {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("Global")
@@ -122,7 +121,6 @@ fn load_kv_store() -> KvManager {
 		KvManager::new(root, password).unwrap()
 	}
 }
-
 
 #[launch]
 async fn rocket() -> _ {
