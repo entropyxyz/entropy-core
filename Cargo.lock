@@ -721,40 +721,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "c-manager"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bip39",
- "constraints",
- "envy",
- "futures 0.3.21",
- "kvdb 0.1.0",
- "local-ip",
- "log",
- "parity-scale-codec",
- "project-root",
- "reqwest",
- "rocket",
- "serde",
- "serde_json",
- "serial_test 0.8.0",
- "shared-crypto",
- "shared-types",
- "sp-core 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sp-keyring 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "subxt",
- "testing-utils",
- "thiserror",
- "tofn 0.1.0 (git+https://github.com/Entropyxyz/tofn?branch=main)",
- "tokio",
- "tracing",
- "tracing-subscriber 0.3.11",
- "tylift",
- "uuid",
-]
-
-[[package]]
 name = "cache-padded"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4839,6 +4805,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "non-substrate-common"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "uuid",
+]
+
+[[package]]
 name = "ntapi"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5664,6 +5639,7 @@ dependencies = [
  "helpers",
  "lite-json",
  "log",
+ "non-substrate-common",
  "pallet-authorship",
  "pallet-babe",
  "pallet-bags-list",
@@ -5677,8 +5653,6 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.11.2",
  "scale-info",
- "shared-crypto",
- "shared-types",
  "sp-application-crypto 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-core 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-io 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
@@ -5686,6 +5660,7 @@ dependencies = [
  "sp-npos-elections",
  "sp-runtime 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-staking",
+ "substrate-common",
 ]
 
 [[package]]
@@ -5758,6 +5733,7 @@ dependencies = [
  "frame-system",
  "helpers",
  "log",
+ "non-substrate-common",
  "pallet-authorship",
  "pallet-bags-list",
  "pallet-balances",
@@ -5769,14 +5745,13 @@ dependencies = [
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
- "shared-crypto",
- "shared-types",
  "sp-core 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-io 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-npos-elections",
  "sp-runtime 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-staking",
  "sp-std 4.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
+ "substrate-common",
 ]
 
 [[package]]
@@ -8877,6 +8852,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bip39",
+ "constraints",
+ "envy",
+ "futures 0.3.21",
+ "kvdb 0.1.0",
+ "local-ip",
+ "log",
+ "non-substrate-common",
+ "parity-scale-codec",
+ "project-root",
+ "reqwest",
+ "rocket",
+ "serde",
+ "serde_json",
+ "serial_test 0.8.0",
+ "sp-core 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sp-keyring 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "substrate-common",
+ "subxt",
+ "testing-utils",
+ "thiserror",
+ "tofn 0.1.0 (git+https://github.com/Entropyxyz/tofn?branch=main)",
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.11",
+ "tylift",
+ "uuid",
+]
+
+[[package]]
 name = "sha-1"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8980,24 +8989,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "shared-crypto"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "serde",
- "uuid",
-]
-
-[[package]]
-name = "shared-types"
-version = "0.1.0"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "serde",
-]
-
-[[package]]
 name = "shlex"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9020,34 +9011,6 @@ checksum = "f2807892cfa58e081aa1f1111391c7a0649d4fa127a4ffbe34bcbfb35a1171a4"
 dependencies = [
  "digest 0.9.0",
  "rand_core 0.6.3",
-]
-
-[[package]]
-name = "signing-client"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bip39",
- "envy",
- "futures 0.3.21",
- "kvdb 0.1.0",
- "log",
- "parity-scale-codec",
- "project-root",
- "reqwest",
- "rocket",
- "serde",
- "serde_json",
- "serial_test 0.8.0",
- "shared-crypto",
- "testing-utils",
- "thiserror",
- "tofn 0.1.0 (git+https://github.com/Entropyxyz/tofn?branch=main)",
- "tokio",
- "tracing",
- "tracing-subscriber 0.3.11",
- "tylift",
- "uuid",
 ]
 
 [[package]]
@@ -10336,6 +10299,15 @@ version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate.git?branch=master#c89d524dea7bfb474f2e036ebc486fca9c81533f"
 dependencies = [
  "platforms",
+]
+
+[[package]]
+name = "substrate-common"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
 ]
 
 [[package]]

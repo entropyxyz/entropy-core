@@ -8,7 +8,7 @@
 //! ## Guards
 //!
 //! - signed-message - requiers signed message in header (not implemented)
-use crate::errors::SignedMessageError;
+use crate::communication_manager::errors::SignedMessageError;
 use rocket::{
 	http::Status,
 	request::{self, FromRequest, Outcome, Request},

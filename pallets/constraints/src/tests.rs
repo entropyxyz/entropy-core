@@ -31,10 +31,7 @@ fn whitelist_address() {
 			Origin::signed(1),
 			[address_4.clone()].to_vec()
 		));
-		assert_eq!(
-			Constraints::address_whitelist(1),
-			[address_2, address_3, address_4]
-		);
+		assert_eq!(Constraints::address_whitelist(1), [address_2, address_3, address_4]);
 		assert_noop!(
 			Constraints::add_whitelist_address(Origin::signed(1), [address_5].to_vec()),
 			Error::<Test>::MaxWhitelist

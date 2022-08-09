@@ -112,9 +112,9 @@ pub mod pallet {
 	pub type Registered<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
 
-	pub type RegResponse = shared_types::RegistrationResponse;
-	pub type SigRequest = shared_types::SigRequest;
-	pub type Message = shared_types::Message;
+	pub type RegResponse = substrate_common::RegistrationResponse;
+	pub type SigRequest = substrate_common::SigRequest;
+	pub type Message = substrate_common::Message;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
