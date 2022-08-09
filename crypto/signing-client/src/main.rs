@@ -114,7 +114,7 @@ fn init_tracing() {
 		.from_env_lossy();
 }
 
-#[launch] // initializes an async Rocket-specialized runtime 
+#[launch] // initializes an async Rocket-specialized runtime
 async fn rocket() -> _ {
 	init_tracing();
 	let signer_state = SignerState::default();

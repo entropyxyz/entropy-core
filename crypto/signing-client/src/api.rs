@@ -71,7 +71,8 @@ pub async fn subscribe(
 
 	let mut subscriber_manager_map = state.subscriber_manager_map.lock().unwrap();
 	if !subscriber_manager_map.contains_key(&subscribing_message.party_id) {
-		// The CM hasn't yet informed this node of the party. Give CM some time to provide subscriber details. 
+		// The CM hasn't yet informed this node of the party. Give CM some time to provide
+		// subscriber details.
 	};
 
 	let rx = subscribing_message.create_new_subscription(&mut subscriber_manager_map);
