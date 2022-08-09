@@ -18,10 +18,10 @@ use crate::{
 };
 use futures::TryFutureExt;
 use kvdb::kv_manager::KvManager;
+use non_substrate_common::CMInfo;
 use reqwest::{self};
 use rocket::{http::Status, request::FromRequest, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
-use shared_crypto::CMInfo;
 use tracing::instrument;
 use uuid::Uuid;
 

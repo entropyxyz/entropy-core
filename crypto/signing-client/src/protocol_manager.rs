@@ -2,9 +2,9 @@ use std::{intrinsics::transmute, marker::PhantomData};
 
 use crate::{subscriber::SubscribingMessage, PartyUid, SIGNING_PARTY_SIZE};
 use futures::{future, stream::BoxStream, StreamExt};
+use non_substrate_common::CMInfo;
 use reqwest::{self};
 use serde::{Deserialize, Serialize};
-use shared_crypto::CMInfo;
 use tokio::sync::{broadcast, oneshot};
 use tracing::instrument;
 

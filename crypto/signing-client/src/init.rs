@@ -4,7 +4,7 @@ use crate::{
 	{ProtocolManager, SubscriberManager},
 };
 use futures::TryFutureExt;
-use shared_crypto::{CMInfoUnchecked, KvKeyshareInfo};
+use non_substrate_common::{CMInfoUnchecked, KvKeyshareInfo};
 // use reqwest::{self};
 use rocket::{http::Status, serde::json::Json, State};
 use tracing::instrument;

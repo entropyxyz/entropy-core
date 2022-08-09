@@ -20,9 +20,9 @@ use constraints::whitelist::is_on_whitelist;
 use kvdb::kv_manager::value::KvManager;
 use parity_scale_codec::{Decode, Encode};
 use rocket::{http::Status, State};
-use shared_types::OCWMessage;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair};
 use std::{str, thread};
+use substrate_common::OCWMessage;
 use subxt::{
 	sp_runtime::AccountId32, ClientBuilder, DefaultConfig, PairSigner, PolkadotExtrinsicParams,
 };

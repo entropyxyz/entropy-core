@@ -1,5 +1,5 @@
 [package]
-name   ="c-manager"
+name   ="communication-manager"
 version="0.1.0"
 edition="2021"
 
@@ -28,10 +28,10 @@ sp-core           ="6.0.0"
 tofn              ={ git="https://github.com/Entropyxyz/tofn", branch="main" }
 
 # Entropy
-shared-crypto={ path="../shared-crypto", default-features=false }
-shared-types ={ path="../shared-types", default-features=false }
-kvdb         ={ path="../kvdb", default-features=false }
-constraints  ={ path="../constraints" }
+non-substrate-common={ path="../non-substrate-common", default-features=false }
+substrate-common    ={ path="../substrate-common", default-features=false }
+kvdb                ={ path="../kvdb", default-features=false }
+constraints         ={ path="../constraints" }
 
 # Logging
 log               ="0.4.17"                                          # todo: remove, overlaps tracing

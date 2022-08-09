@@ -1,24 +1,21 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 use super::rocket;
-use crate::{
-	sign::{
-		acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
-		get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
-		EntropyRuntime,
-	},
-	// CommunicationManagerState,
+use crate::sign::{
+	acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
+	get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
+	EntropyRuntime,
 };
 use kvdb::{
 	clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
+use non_substrate_common::CMInfoUnchecked;
 use rocket::{
 	http::{ContentType, Status},
 	local::asynchronous::Client,
 	tokio::time::{sleep, Duration},
 };
 use serial_test::serial;
-use shared_crypto::CMInfoUnchecked;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
 use std::{env, time};
 use subxt::{sp_core::sr25519, PairSigner};
@@ -376,7 +373,7 @@ async fn test_have_keyshare() {
 
 // 	let CommunicationManagerState = CommunicationManagerState::default();
 
-// 	Client::tracked(rocket::custom(config).mount("/", routes![new_party]).manage(CommunicationManagerState))
-// 		.await
+// 	Client::tracked(rocket::custom(config).mount("/",
+// routes![new_party]).manage(CommunicationManagerState)) 		.await
 // 		.expect("valid `Rocket`");
 // }
