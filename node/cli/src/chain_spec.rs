@@ -439,7 +439,7 @@ pub fn local_testnet_config() -> ChainSpec {
 pub(crate) mod tests {
 	use super::*;
 	use crate::service::{new_full_base, NewFullBase};
-	
+
 	use sp_runtime::BuildStorage;
 
 	fn local_testnet_genesis_instant_single() -> GenesisConfig {
