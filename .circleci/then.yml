@@ -40,6 +40,11 @@ commands:
       - run: rustup default nightly  
       - run: rustup target add wasm32-unknown-unknown --toolchain nightly
       - run: cargo install taplo-cli --locked 
+  fmt-lint:
+    steps:
+      - run: cargo fmt --check
+      - run: taplo fmt --check
+      - run: cargo clippy -- -D warnings
 
 workflows:
   node:
@@ -62,42 +67,42 @@ jobs:
   crypto-centralized-keygen:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/centralized-keygen && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+      - fmt-lint
   crypto-signing-client:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/signing-client && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+      - fmt-lint
   crypto-common:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/shared-crypto && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+      - fmt-lint
   types-common:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/shared-types && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+      - fmt-lint
   crypto-kvdb:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/kvdb && cargo fmt --check && taplo fmt --check && cargo clippy -- -D warnings
+      - fmt-lint
   node-test:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - increase-swap
       - install-dependencies-and-checkout
@@ -107,14 +112,14 @@ jobs:
   node-benchmark:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
       - run: pushd node && cargo check --features=runtime-benchmarks --release
   node-lint-core:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
       - run: SKIP_WASM_BUILD=1 cargo clippy
