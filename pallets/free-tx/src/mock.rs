@@ -1,5 +1,5 @@
 use frame_support::traits::{ConstU16, ConstU64};
-use pallet_balances;
+
 use sp_core::H256;
 use sp_runtime::{
   testing::Header,
@@ -85,7 +85,7 @@ pub mod pallet_example {
       // Read a value from storage.
       match <Something<T>>::get() {
         // Return an error if the value has not been set.
-        None => return Err(Error::<T>::NoneValue.into()),
+        None => Err(Error::<T>::NoneValue.into()),
         Some(old) => {
           // Increment the value read from storage; will error in the event of overflow.
           let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;

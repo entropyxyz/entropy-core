@@ -54,7 +54,7 @@ pub mod pallet {
       let _who = ensure_signed(origin)?;
 
       match <Something<T>>::get() {
-        None => return Err(Error::<T>::NoneValue.into()),
+        None => Err(Error::<T>::NoneValue.into()),
         Some(old) => {
           let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
           <Something<T>>::put(new);

@@ -1,5 +1,5 @@
 use frame_support::assert_ok;
-use frame_system::RawOrigin;
+
 use mock::{
   new_test_ext, Balances, Call, Event as TestEvent, Example, ExampleCall, FreeTx, Origin, System,
 };
@@ -77,7 +77,7 @@ fn normal_calls_consume_tx_fees() {
     System::set_block_number(1);
 
     // get initial balance (10)
-    let initial_balance = Balances::free_balance(1);
+    let _initial_balance = Balances::free_balance(1);
 
     // make sure storage is empty
     assert_eq!(Example::something(), None);
@@ -89,7 +89,7 @@ fn normal_calls_consume_tx_fees() {
     assert_eq!(Example::something(), Some(5));
 
     // get balance after transaction
-    let final_balance = Balances::free_balance(1);
+    let _final_balance = Balances::free_balance(1);
 
     // TODO JH This does not work
     // assert_ne!(initial_balance, final_balance);
