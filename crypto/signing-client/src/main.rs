@@ -42,7 +42,7 @@ pub struct SignerState {
 	/// Mapping of PartyIds to `SubscriberManager`s, one entry per active party.
 	// TODO(TK): SubscriberManager to be replaced with None when subscribing phase ends.
 	subscriber_manager_map: Mutex<HashMap<PartyUid, Option<SubscriberManager>>>,
-	/// Master of the Keys, storer of items of the form signer::party_info::StoredInfo
+	/// All shares stored by this node, see: StoredInfo (name is WIP)
 	kv_manager: KvManager,
 }
 
