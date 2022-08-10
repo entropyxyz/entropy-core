@@ -14,8 +14,9 @@ mod communication_manager;
 mod signing_client;
 mod utils;
 
-pub use signing_client::SignInit;
 use std::{collections::HashMap, sync::Mutex};
+
+pub use signing_client::SignInit;
 
 #[macro_use] extern crate rocket;
 use bip39::{Language, Mnemonic};

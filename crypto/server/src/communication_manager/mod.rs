@@ -20,6 +20,7 @@ pub struct CommunicationManagerState {
 }
 
 impl CommunicationManagerState {
+  #[allow(dead_code)]
   pub fn new() -> Self { Self::default() }
 
   #[allow(dead_code)]
@@ -27,6 +28,5 @@ impl CommunicationManagerState {
     let mut nonce = *self.party_id_nonce.lock().unwrap();
     nonce += 1;
     nonce.to_string()
-
   }
 }

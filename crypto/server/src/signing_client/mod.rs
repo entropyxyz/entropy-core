@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 pub mod api;
 mod errors;
 mod new_party;
@@ -10,8 +11,7 @@ use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 
 pub use self::{
   errors::*,
-  new_party::SigningMessage,
-  new_party::SignInit,
+  new_party::{SignInit, SigningMessage},
   subscriber::{SubscribeMessage, SubscriberManager},
 };
 

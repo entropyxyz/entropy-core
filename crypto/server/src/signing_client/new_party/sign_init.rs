@@ -1,4 +1,3 @@
-
 use kvdb::kv_manager::value::PartyInfo;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
@@ -8,7 +7,7 @@ use super::{SignerState, SigningProtocolError, SubscribeError};
 
 // pub type Channels = (mpsc::Sender<SigningMessage>, mpsc::Receiver<SigningMessage>);
 // pub type SigningProtocolResult = Result<Signature, SigningProtocolError>;
-// type Signature = String; // todo 
+// type Signature = String; // todo
 
 /// Information passed from the CommunicationManager to all nodes.
 /// corresponds to https://github.com/axelarnetwork/grpc-protobuf/blob/21698133e2f025d706f1dffec19637216d968692/grpc.proto#L120

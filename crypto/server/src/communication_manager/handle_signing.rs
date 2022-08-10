@@ -23,7 +23,8 @@ use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{
-  communication_manager::errors::CustomIPError, CommunicationManagerState, SIGNING_PARTY_SIZE, SignInit,
+  communication_manager::errors::CustomIPError, CommunicationManagerState, SignInit,
+  SIGNING_PARTY_SIZE,
 };
 
 // TODO(TK): lots to do

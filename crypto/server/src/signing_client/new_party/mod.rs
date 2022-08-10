@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! helpers for the `new_party` api
 mod context;
 mod sign_init;

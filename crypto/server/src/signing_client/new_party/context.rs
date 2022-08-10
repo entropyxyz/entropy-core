@@ -18,9 +18,11 @@ pub struct SignContext {
 }
 
 impl SignContext {
+  #[allow(dead_code)]
   pub fn new(sign_init: SignInit, party_info: PartyInfo) -> Self {
     {
-      Self { sign_init, party_info, share: todo!(), sign_parties: todo!() }
+      todo!()
+      // Self { sign_init, party_info, share: todo!(), sign_parties: todo!() }
     }
   }
 }

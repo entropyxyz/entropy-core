@@ -27,9 +27,9 @@ tofn              ={ git="https://github.com/Entropyxyz/tofn", branch="main" }
 
 # Entropy
 # non-substrate-common={ path="../non-substrate-common", default-features=false }
-substrate-common    ={ path="../substrate-common", default-features=false }
-kvdb                ={ path="../kvdb", default-features=false }
-constraints         ={ path="../constraints" }
+substrate-common={ path="../substrate-common", default-features=false }
+kvdb            ={ path="../kvdb", default-features=false }
+constraints     ={ path="../constraints" }
 
 # Logging
 log               ="0.4.17"                                          # todo: remove, overlaps tracing

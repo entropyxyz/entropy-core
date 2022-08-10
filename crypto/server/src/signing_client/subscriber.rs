@@ -16,7 +16,7 @@ use tokio::{
 use tracing::instrument;
 
 use super::SigningMessage;
-use crate::{ SignerState, SIGNING_PARTY_SIZE};
+use crate::{SignerState, SIGNING_PARTY_SIZE};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
@@ -48,7 +48,6 @@ impl SubscribeMessage {
     mut rx: broadcast::Receiver<SigningMessage>,
     mut end: Shutdown,
   ) -> EventStream![] {
-
     EventStream! {
       loop {
         let msg = select! {
