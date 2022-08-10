@@ -30,7 +30,7 @@ pub async fn new_party(
   info!("new_party: {info:?}");
   let gg20_service = Gg20Service::new(state);
   // set up context for signing protocol execution
-  let sign_context = gg20_service.check_sign_init(&info)?;
+  let sign_context = gg20_service.check_sign_init(info).await?;
   // subscribe to all other participating parties
   let channels = gg20_service.subscribe_and_await_subscribers(&sign_context).await?;
 

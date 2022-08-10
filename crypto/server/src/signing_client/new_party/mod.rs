@@ -1,9 +1,11 @@
 //! helpers for the `new_party` api
 mod context;
+mod sign_init;
 mod protocol_manager;
 
 // use kvdb::kv_manager::KvManager;
 
+use kvdb::kv_manager::value::PartyInfo;
 use non_substrate_common::SignInitUnchecked;
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
@@ -33,12 +35,31 @@ impl<'a> Gg20Service<'a> {
   }
 
   #[instrument]
-  pub fn check_sign_init(
+  pub async fn check_sign_init(
     &self,
-    info: &SignInitUnchecked,
+    sign_init: SignInitUnchecked,
   ) -> Result<SignContext, SigningProtocolError> {
-    info!("check_sign_init: {info:?}");
-    todo!()
+    info!("check_sign_init: {sign_init:?}");
+
+    let party_info: PartyInfo = match self.state.kv_manager.kv().get(&sign_init.key_uid.to_string()).await {
+      Ok(value) => value.try_into()?,
+      Err(err) => {
+        // if no such session id exists, send a message to client that indicates that recovery is
+        // needed and stop sign
+        Self::send_kv_store_failure(out_stream)?;
+        let err = anyhow!(
+          "Unable to find session-id {} in kv store. Issuing share recovery and exit sign {:?}",
+          sign_init.key_uid,
+          err
+        );
+        return Err(err);
+      },
+    };
+
+    
+let info = info.check();
+
+    Err(SigningProtocolError::Init("init"))
   }
 
   #[instrument]
@@ -47,7 +68,7 @@ impl<'a> Gg20Service<'a> {
     sign_context: &SignContext,
   ) -> Result<Channels, SigningProtocolError> {
     info!("subscribe_and_await_subscribers: {sign_context:?}");
-    todo!()
+    Err(SigningProtocolError::Subscribing("subscribbb"))
   }
 
   #[instrument]
@@ -57,7 +78,7 @@ impl<'a> Gg20Service<'a> {
     channels: Channels,
   ) -> SigningProtocolResult {
     info!("execute_sign: {sign_context:?}");
-    todo!()
+    Err(SigningProtocolError::Signing("signnnn"))
   }
 
   // placeholder for any result handling

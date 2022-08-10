@@ -26,7 +26,7 @@ sp-core           ="6.0.0"
 tofn              ={ git="https://github.com/Entropyxyz/tofn", branch="main" }
 
 # Entropy
-non-substrate-common={ path="../non-substrate-common", default-features=false }
+# non-substrate-common={ path="../non-substrate-common", default-features=false }
 substrate-common    ={ path="../substrate-common", default-features=false }
 kvdb                ={ path="../kvdb", default-features=false }
 constraints         ={ path="../constraints" }
