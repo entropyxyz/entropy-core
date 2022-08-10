@@ -1,31 +1,36 @@
+#![allow(dead_code)]
 pub mod api;
-mod context;
 mod errors;
-mod protocol_manager;
+mod new_party;
 mod subscriber;
 
 use std::{collections::HashMap, sync::Mutex};
 
-pub use errors::SigningProtocolError;
 use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
-pub use protocol_manager::{ProtocolManager, SigningMessage};
-pub use subscriber::{SubscriberManager, SubscribingMessage};
 
-use crate::PartyUid;
+pub use self::{
+  errors::*,
+  new_party::{SignInit, SigningMessage},
+  subscriber::{SubscribeMessage, SubscriberManager},
+};
 
 /// The state used by this node to create signatures
 pub struct SignerState {
   /// Mapping of PartyIds to `SubscriberManager`s, one entry per active party.
   // TODO(TK): SubscriberManager to be replaced with None when subscribing phase ends.
-  subscriber_manager_map: Mutex<HashMap<PartyUid, Option<SubscriberManager>>>,
+  pub subscriber_manager_map: Mutex<HashMap<String, Option<SubscriberManager>>>,
   /// All shares stored by this node, see: StoredInfo (name is WIP)
-  kv_manager:             KvManager,
+  pub kv_manager:             KvManager,
 }
 
 impl Default for SignerState {
   fn default() -> Self {
     Self { subscriber_manager_map: Mutex::default(), kv_manager: load_kv_store() }
   }
+}
+
+impl SignerState {
+  fn new() -> Self { Self::default() }
 }
 
 // exclude kv manager

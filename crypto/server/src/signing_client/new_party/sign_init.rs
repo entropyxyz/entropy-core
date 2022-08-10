@@ -1,17 +1,24 @@
+use kvdb::kv_manager::value::PartyInfo;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
+use tokio::sync::mpsc;
+use tracing::{info, instrument};
 
-use crate::PartyUid;
+use super::{SignerState, SigningProtocolError, SubscribeError};
+
+// pub type Channels = (mpsc::Sender<SigningMessage>, mpsc::Receiver<SigningMessage>);
+// pub type SigningProtocolResult = Result<Signature, SigningProtocolError>;
+// type Signature = String; // todo
 
 /// Information passed from the CommunicationManager to all nodes.
+/// corresponds to https://github.com/axelarnetwork/grpc-protobuf/blob/21698133e2f025d706f1dffec19637216d968692/grpc.proto#L120
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct CMInfoUnchecked {
+pub struct SignInitUnchecked {
   /// Unique id of this signature (may be repeated if this party fails)
-  pub sig_uid:      Uuid,
+  pub sig_uid:      String,
   /// Unique id of user's key (for retreival from kv-store)
-  pub key_uid:      Uuid,
+  pub key_uid:      String,
   /// Unique id of this signing party
-  pub party_uid:    PartyUid,
+  pub party_uid:    String,
   /// IP addresses of each node in the party. This is not an unordered list! Each node is
   /// expected to be at the index it will use for the signing protocol.
   pub ip_addresses: Vec<String>,
@@ -19,26 +26,27 @@ pub struct CMInfoUnchecked {
   pub msg:          String,
 }
 
-impl CMInfoUnchecked {
+impl SignInitUnchecked {
   pub fn new(
-    party_uid: PartyUid,
+    party_uid: String,
     ip_addresses: Vec<String>,
-    key_uid: Uuid,
+    key_uid: String,
     msg: String,
-    repeated_sig_uid: Option<Uuid>,
+    repeated_sig_uid: Option<String>,
   ) -> Self {
-    let sig_uid = if let Some(uid) = repeated_sig_uid { uid } else { Uuid::new_v4() };
+    // let sig_uid = if let Some(uid) = repeated_sig_uid { uid } else { Uuid::new_v4() };
+    let sig_uid = if let Some(uid) = repeated_sig_uid { uid } else { "".to_string() };
     Self { party_uid, ip_addresses, sig_uid, key_uid, msg }
   }
 
   // todo: check kv info against self
   #[allow(unused_variables)]
-  pub fn check(self, kv_keyshare_info: &KvKeyshareInfo) -> anyhow::Result<CMInfo> {
+  pub fn check(self, kv_keyshare_info: &KvKeyshareInfo) -> anyhow::Result<SignInit> {
     // check that my ip_address is at the correct index
     // if let Err(e) = checked {
     // 	return anyhow!("pathological Communication Manager");
     // }
-    Ok(CMInfo {
+    Ok(SignInit {
       sig_uid:      self.sig_uid,
       key_uid:      self.key_uid,
       party_uid:    self.party_uid,
@@ -50,10 +58,10 @@ impl CMInfoUnchecked {
 
 /// return after a sanity check
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct CMInfo {
-  pub sig_uid:      Uuid,
-  pub key_uid:      Uuid,
-  pub party_uid:    PartyUid,
+pub struct SignInit {
+  pub sig_uid:      String,
+  pub key_uid:      String,
+  pub party_uid:    String,
   pub ip_addresses: Vec<String>,
   pub msg:          String,
 }
