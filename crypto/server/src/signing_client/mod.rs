@@ -1,8 +1,8 @@
 pub mod api;
 mod context;
 mod errors;
+mod new_party;
 mod new_user;
-mod protocol_manager;
 mod subscriber;
 
 use std::{collections::HashMap, sync::Mutex};
@@ -10,9 +10,9 @@ use std::{collections::HashMap, sync::Mutex};
 use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 
 pub use self::{
-  errors::SigningProtocolError,
-  protocol_manager::{ProtocolManager, SigningMessage},
-  subscriber::{SubscriberManager, SubscribingMessage},
+  errors::*,
+  new_party::{ProtocolManager, SigningMessage},
+  subscriber::{SubscriberManager, SubscribeMessage},
 };
 use crate::PartyUid;
 
@@ -29,6 +29,10 @@ impl Default for SignerState {
   fn default() -> Self {
     Self { subscriber_manager_map: Mutex::default(), kv_manager: load_kv_store() }
   }
+}
+
+impl SignerState {
+  fn new() -> Self { Self::default() }
 }
 
 // exclude kv manager

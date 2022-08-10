@@ -18,15 +18,15 @@ use tracing::instrument;
 use super::SigningMessage;
 use crate::{PartyUid, SignerState, SIGNING_PARTY_SIZE};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
 #[serde(crate = "rocket::serde")]
-pub struct SubscribingMessage {
+pub struct SubscribeMessage {
   pub party_id: PartyUid,
 }
 
 /// A message sent by subscribing node. Holder struct for subscription-related methods.
-impl SubscribingMessage {
+impl SubscribeMessage {
   pub(crate) fn new(party_id: PartyUid) -> Self { Self { party_id } }
 
   // not clear what this should do yet
@@ -45,10 +45,10 @@ impl SubscribingMessage {
 
   /// Yield messages as events in a stream as they arrive. Helper for `subscribe`.
   pub(crate) fn create_event_stream(
-    &self,
     mut rx: broadcast::Receiver<SigningMessage>,
     mut end: Shutdown,
   ) -> EventStream![] {
+
     EventStream! {
       loop {
         let msg = select! {

@@ -6,9 +6,22 @@ use thiserror::Error;
 #[derive(Responder, Debug)]
 #[response(status = 418, content_type = "json")]
 pub enum SigningProtocolError {
+  SignInitErr(&'static str),
   Validation(&'static str),
   Subscribing(&'static str),
   Signing(&'static str),
+  Other(&'static str),
+}
+
+#[derive(Responder, Debug)]
+#[response(status = 418, content_type = "json")]
+pub enum SubscribeError {
+  Other(&'static str),
+}
+
+#[derive(Responder, Debug)]
+#[response(status = 418, content_type = "json")]
+pub enum NewUserError{
   Other(&'static str),
 }
 

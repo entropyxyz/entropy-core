@@ -16,7 +16,7 @@
 
 use futures::TryFutureExt;
 use kvdb::kv_manager::KvManager;
-use non_substrate_common::CMInfo;
+use non_substrate_common::SignInit;
 use reqwest::{self};
 use rocket::{http::Status, request::FromRequest, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
@@ -43,16 +43,16 @@ impl EncodedBlockData {
     todo!();
   }
 
-  fn get_user_info_from_db(&self, kv_manager: &KvManager) -> anyhow::Result<CMInfo> {
+  fn get_user_info_from_db(&self, kv_manager: &KvManager) -> anyhow::Result<SignInit> {
     todo!();
   }
 
-  fn select_signers(&self, cm_info: &CMInfo) -> Vec<SignersIPsPlaceholder> { todo!() }
+  fn select_signers(&self, cm_info: &SignInit) -> Vec<SignersIPsPlaceholder> { todo!() }
 
   async fn post_new_party(
     &self,
     signers: &[SignersIPsPlaceholder],
-    cm_info: &CMInfo,
+    cm_info: &SignInit,
   ) -> Result<(), BadSignerPlaceholder> {
     let client = reqwest::Client::new();
     for ip in signers {
@@ -71,13 +71,13 @@ impl EncodedBlockData {
     &mut self,
     previous_signers: Vec<SignersIPsPlaceholder>,
     bad_signer: SignersIPsPlaceholder,
-    cm_info: CMInfo,
+    cm_info: SignInit,
   ) -> anyhow::Result<()> {
     todo!()
   }
 }
 
-// fn construct_init_party_info(&self, kv_manager: &KvManager) -> CMInfo {
+// fn construct_init_party_info(&self, kv_manager: &KvManager) -> SignInit {
 // 	let ip_addresses = &mut *kv_manager.lock().unwrap();
 // 	if ip_addresses.contains(&handle_signing.user_ip_address) {
 // 		return Err(CustomIPError::new("Duplicate IP"))
@@ -93,6 +93,6 @@ impl EncodedBlockData {
 // 		let sig_uid = None; // todo: look for prior signature uids
 // 		let key_uid = Uuid::new_v4(); // todo: get key_uid
 // 		let msg = "".into(); // todo: get message
-// 		CMInfo::new(party_id, ip_addresses.clone(), key_uid, msg, sig_uid)
+// 		SignInit::new(party_id, ip_addresses.clone(), key_uid, msg, sig_uid)
 // 	}
 // }

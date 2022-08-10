@@ -22,6 +22,8 @@ pub struct CommunicationManagerState {
 }
 
 impl CommunicationManagerState {
+  pub fn new() -> Self { Self::default() }
+
   #[allow(dead_code)]
   pub(crate) fn get_next_party_id(&self) -> PartyUid {
     let mut nonce = *self.party_id_nonce.lock().unwrap();

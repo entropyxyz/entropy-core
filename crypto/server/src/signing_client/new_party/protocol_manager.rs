@@ -7,14 +7,14 @@
 use std::{intrinsics::transmute, marker::PhantomData};
 
 use futures::{future, stream::BoxStream, StreamExt};
-use non_substrate_common::CMInfo;
+use non_substrate_common::SignInit;
 use reqwest::{self};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, oneshot};
 use tracing::instrument;
 
 use crate::{
-  signing_client::{errors::SigningMessageError, subscriber::SubscribingMessage},
+  signing_client::{errors::SigningMessageError, subscriber::SubscribeMessage},
   PartyUid, SIGNING_PARTY_SIZE,
 };
 
@@ -56,7 +56,7 @@ impl TryFrom<&[u8]> for SigningMessage {
 /// Core type of this file, manages execution of each signing protocol.
 pub struct ProtocolManager<T: state::ProtocolState> {
   /// Information about the party provided by the Communication Manager
-  pub cm_info: CMInfo,
+  pub sign_init: SignInit,
   /// Size of the signing party
   pub signing_party_size: usize,
   /// A channel for the `SubscriberManager` to indicate readiness for the Signing phase
@@ -76,7 +76,7 @@ pub struct ProtocolManager<T: state::ProtocolState> {
 impl<T: state::ProtocolState> std::fmt::Debug for ProtocolManager<T> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("ProtocolManager")
-			.field("cm_info", &self.cm_info)
+			.field("sign_init", &self.sign_init)
 			.field("signing_party_size", &self.signing_party_size)
 			.field("finalized_subscribing_rx", &self.finalized_subscribing_rx)
 			// .field("rx_stream", &self.rx_stream) // nope
@@ -88,11 +88,11 @@ impl<T: state::ProtocolState> std::fmt::Debug for ProtocolManager<T> {
 }
 
 impl<T: state::ProtocolState> ProtocolManager<T> {
-  pub fn new(cm_info: CMInfo) -> (oneshot::Sender<broadcast::Sender<SigningMessage>>, Self) {
+  pub fn new(sign_init: SignInit) -> (oneshot::Sender<broadcast::Sender<SigningMessage>>, Self) {
     {
       let (finalized_subscribing_tx, finalized_subscribing_rx) = oneshot::channel();
       (finalized_subscribing_tx, Self {
-        cm_info,
+        sign_init,
         signing_party_size: SIGNING_PARTY_SIZE,
         finalized_subscribing_rx: Some(finalized_subscribing_rx),
         rx_stream: None,
@@ -122,14 +122,14 @@ impl ProtocolManager<state::Subscribing> {
   /// into a single stream.
   async fn subscribe_to_party(&mut self) -> anyhow::Result<()> {
     let handles: Vec<_> = self // Call subscribe on every other node
-      .cm_info
+      .sign_init
       .ip_addresses
       .iter()
       .map(|ip| {
         reqwest::Client::new()
           .post(format!("http://{}/subscribe", ip))
           .header("Content-Type", "application/json")
-          .json(&SubscribingMessage::new(self.cm_info.party_uid))
+          .json(&SubscribeMessage::new(self.sign_init.party_uid))
           .send()
       })
       .collect();
