@@ -633,7 +633,7 @@ mod tests {
         let check_nonce = frame_system::CheckNonce::from(index);
         let check_weight = frame_system::CheckWeight::new();
         let payment = pallet_transaction_payment::ChargeTransactionPayment::from(0);
-        let free_tx = pallet_free_tx::InterrogateFreeTx::new();
+        let free_tx = pallet_free_tx::InterrogateFreeTransaction::new();
 
         let extra = (
           check_spec_version,
