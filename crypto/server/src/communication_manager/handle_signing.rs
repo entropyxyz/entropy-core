@@ -36,7 +36,7 @@ pub struct EncodedBlockData {
   signed_msg:      Vec<u8>, // todo: placeholder
 }
 
-type SignersIPsPlaceholder = String;
+pub type SignersIPsPlaceholder = String;
 type BadSignerPlaceholder = String;
 impl EncodedBlockData {
   fn validate_user(&self) -> bool {
