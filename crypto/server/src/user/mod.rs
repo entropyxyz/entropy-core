@@ -1,15 +1,18 @@
-//! # Store Share
+//! # User
 //!
 //! ## Overview
 //!
-//! Allows a user to send shards to nodes and have them store it.
+//! Add a user to the network. Allows a user to send shards to nodes and have them store it.
 //! User's substrate account acts as key value.
 //!
 //! ## Routes
 //!
-//! - /store_keyshare - Post - Takes in a key and value for user
-// #![allow(unused_imports)]
-// todo: move to api.rs and delete this file
+//! - /new_user/create - Post - Takes in a key and value for user
+#![allow(dead_code)]
+#![allow(unused_imports)]
+pub mod api;
+mod errors;
+
 use std::{
   fs::File,
   io::{BufWriter, Write},
@@ -17,6 +20,8 @@ use std::{
 
 use rocket::{http::Status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
+
+pub use self::errors::*;
 
 /// User input, contains key (substrate key) and value (entropy shard)
 #[derive(Debug, Deserialize, Serialize, Clone)]

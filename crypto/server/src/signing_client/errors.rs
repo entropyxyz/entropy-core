@@ -25,12 +25,6 @@ pub enum SubscribeError {
   Other(&'static str),
 }
 
-#[derive(Responder, Debug)]
-#[response(status = 418, content_type = "json")]
-pub enum NewUserError {
-  Other(&'static str),
-}
-
 #[derive(Debug, Error)]
 pub enum SigningMessageError {
   #[error("No ':' to split")]

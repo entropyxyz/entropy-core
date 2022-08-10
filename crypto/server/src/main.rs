@@ -12,6 +12,7 @@
 
 mod communication_manager;
 mod signing_client;
+mod user;
 mod utils;
 
 use std::{collections::HashMap, sync::Mutex};
@@ -26,7 +27,8 @@ use serde::Deserialize;
 
 use crate::{
   communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState},
-  signing_client::{api::*, SignerState, SigningMessage, SubscriberManager},
+  signing_client::{api::*, SignerState},
+  user::api::*,
   utils::{init_tracing, Configuration},
 };
 
@@ -40,7 +42,8 @@ async fn rocket() -> _ {
   let configuration = Configuration::new();
 
   rocket::build()
-    .mount("/signer", routes![new_party, subscribe, new_user])
+    .mount("/user", routes![new_user])
+    .mount("/signer", routes![new_party, subscribe])
     .manage(signer_state)
     .mount("/cm", routes![provide_share, handle_signing])
     .manage(cm_state)

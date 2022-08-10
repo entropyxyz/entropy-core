@@ -2,7 +2,6 @@
 pub mod api;
 mod errors;
 mod new_party;
-mod new_user;
 mod subscriber;
 
 use std::{collections::HashMap, sync::Mutex};
@@ -19,9 +18,9 @@ pub use self::{
 pub struct SignerState {
   /// Mapping of PartyIds to `SubscriberManager`s, one entry per active party.
   // TODO(TK): SubscriberManager to be replaced with None when subscribing phase ends.
-  subscriber_manager_map: Mutex<HashMap<String, Option<SubscriberManager>>>,
+  pub subscriber_manager_map: Mutex<HashMap<String, Option<SubscriberManager>>>,
   /// All shares stored by this node, see: StoredInfo (name is WIP)
-  kv_manager:             KvManager,
+  pub kv_manager:             KvManager,
 }
 
 impl Default for SignerState {

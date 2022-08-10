@@ -4,10 +4,13 @@ use tracing::instrument;
 
 use super::{
   new_party::Gg20Service,
-  new_user::{UserKvEntry, UserKvEntryUnparsed},
-  SignerState, SigningProtocolError, SubscribeMessage, SubscriberManager,
+  // new_user::{UserKvEntry, UserKvEntryUnparsed},
+  SignerState,
+  SigningProtocolError,
+  SubscribeMessage,
+  SubscriberManager,
 };
-use crate::signing_client::{new_party::SignInitUnchecked, NewUserError, SubscribeError};
+use crate::signing_client::{new_party::SignInitUnchecked, SubscribeError};
 // use uuid::Uuid;
 
 /// Endpoint for Communication Manager to initiate a new signing party.
@@ -95,23 +98,4 @@ pub async fn subscribe(
   // maybe unnecessary. Drop the subscriber map before returning to avoid blocking
   drop(subscriber_manager_map);
   Ok(SubscribeMessage::create_event_stream(rx, end))
-}
-
-/// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
-#[instrument]
-#[post("/new_user", format = "json", data = "<user_input>")]
-pub async fn new_user(
-  user_input: Json<UserKvEntryUnparsed>,
-  state: &State<SignerState>,
-) -> Result<Status, NewUserError> {
-  // ToDo: JA verify proof
-  // ToDo: validate is owner of key address
-  // ToDo: JA make sure signed so other key doesn't override own key
-
-  let user_input = UserKvEntry::try_from(user_input.into_inner()).unwrap();
-  let kv_manager = &state.kv_manager;
-  let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();
-  kv_manager.kv().put(reservation, user_input.value.clone()).await.unwrap();
-
-  Ok(Status::Ok)
 }
