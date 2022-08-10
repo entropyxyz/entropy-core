@@ -13,7 +13,7 @@ pub use self::{context::SignContext, sign_init::SignInit, signing_message::Signi
 use super::{SignerState, SigningProtocolError, SubscribeError};
 
 pub type Channels = (mpsc::Sender<SigningMessage>, mpsc::Receiver<SigningMessage>);
-type Signature = String; // todo
+type Signature = String; // todo: This should actually be ProtocolOutput
 
 /// corresponds to https://github.com/axelarnetwork/tofnd/blob/0a70c4bb8c86b26804f59d0921dcd3235e85fdc0/src/gg20/service/mod.rs#L12
 /// Thin wrapper around `SignerState`, manages execution of a signing party.
@@ -35,7 +35,6 @@ impl<'a> Gg20Service<'a> {
     sign_init: SignInit,
   ) -> Result<SignContext, SigningProtocolError> {
     info!("check_sign_init: {sign_init:?}");
-
     let party_info: PartyInfo =
       self.state.kv_manager.kv().get(&sign_init.key_uid).await?.try_into()?;
 
@@ -67,6 +66,7 @@ impl<'a> Gg20Service<'a> {
     let result =
       protocol::execute_protocol(new_sign, channels, ctx.sign_uids(), &ctx.sign_share_counts)
         .await?;
+
     Err(SigningProtocolError::Signing("signnnn"))
   }
 
@@ -77,6 +77,7 @@ impl<'a> Gg20Service<'a> {
   }
 }
 
+// todo: eventually, move this out, convenient to have it here for now
 mod protocol {
   #![allow(dead_code)]
   #![allow(unused_variables)]

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 pub mod api;
 mod errors;
 mod new_party;
@@ -27,10 +26,6 @@ impl Default for SignerState {
   fn default() -> Self {
     Self { subscriber_manager_map: Mutex::default(), kv_manager: load_kv_store() }
   }
-}
-
-impl SignerState {
-  fn new() -> Self { Self::default() }
 }
 
 // exclude kv manager

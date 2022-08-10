@@ -16,9 +16,10 @@ pub struct SignContext {
   pub party_info:        PartyInfo,
   pub share:             ShareSecretInfo,
   pub sign_parties:      Subset<KeygenPartyId>,
-  pub sign_share_counts: Vec<usize>, /* note, tofnd needs this, we don't
-                                      * pub tofnd_subindex: usize, // note, tofnd needs this, we
-                                      * don't */
+  // note, tofnd needs this, we don't
+  pub sign_share_counts: Vec<usize>,
+  // note, tofnd needs this, we don't
+  // pub tofnd_subindex: usize,
 }
 
 impl SignContext {

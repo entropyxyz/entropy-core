@@ -15,8 +15,7 @@ use crate::signing_client::{new_party::SignInit, SubscribeError};
 
 /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/mod.rs#L39
 /// Endpoint for Communication Manager to initiate a new signing party.
-/// but we have to do some extra work setting up subscriber streams.
-///
+/// We have to do some extra work setting up subscriber streams.
 ///
 /// Communication Manager calls this endpoint for each node in the new Signing Party.
 /// The node creates a `ProtocolManager` to run the protocol, and a SubscriberManager to manage
@@ -30,15 +29,15 @@ pub async fn new_party(
   let info = info.into_inner();
   info!("new_party: {info:?}");
   let gg20_service = Gg20Service::new(state);
+
   // set up context for signing protocol execution
   let sign_context = gg20_service.get_sign_context(info).await?;
+
   // subscribe to all other participating parties
   let channels = gg20_service.subscribe_and_await_subscribers(&sign_context).await?;
 
   let result = gg20_service.execute_sign(&sign_context, channels).await?;
-  info!("new_party with context: {sign_context:?}\nresult: {result:?}");
   gg20_service.handle_result(&result, &sign_context);
-
   Ok(Status::Ok)
 }
 
