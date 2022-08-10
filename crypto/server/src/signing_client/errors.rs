@@ -1,28 +1,41 @@
 //! Errors used in Signing Client
+use kvdb::kv_manager::error::InnerKvError;
 use rocket::response::Responder;
 use thiserror::Error;
 
-#[allow(dead_code)]
-#[derive(Responder, Debug, Error)]
-#[response(status = 418, content_type = "json")]
+// #[derive(Responder, Debug, Error)]
+// #[response(status = 418, content_type = "json")]
+#[derive(Debug, Error)]
 pub enum SigningProtocolError {
-  // PartyInfoError(#[from] &'static str),
-  Init(&'static str),
-  Validation(&'static str),
+  // #[error("Init error: {0}")]
+  // Init(&'static str),
+  #[error("Kv error: {0}")]
+  KvError(#[from] kvdb::kv_manager::error::KvError),
+  #[error("TryFrom error: {0}")]
+  TryFromError(#[from] InnerKvError),
+  // Validation(&'static str),
+  #[error("Subscribing error: {0}")]
   Subscribing(&'static str),
+  #[error("Signing error: {0}")]
   Signing(&'static str),
-  Other(&'static str),
+  // #[error("Tofn fatal")] // note: TofnFatal doesn't implement Error :-(
+  // TofnFatal(#[from] TofnFatal),
+  #[error("Protocol Execution error: {0}")]
+  ProtocolExecution(&'static str),
+  // #[error("anyhow error: {0}")]
+  // Anyhow(#[from] anyhow::Error),
+  // #[error("other error: {0}")]
+  // Other(#[from] Box<dyn std::error::Error + Send + Syn>),
 }
-impl std::fmt::Display for SigningProtocolError {
-  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    write!(f, "SigningProtocolError: {self:?}")
-  }
+
+impl<'r, 'o: 'r> Responder<'r, 'o> for SigningProtocolError {
+  fn respond_to(self, request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> { todo!() }
 }
 
 #[derive(Responder, Debug)]
 #[response(status = 418, content_type = "json")]
 pub enum SubscribeError {
-  Other(&'static str),
+  // Other(&'static str),
 }
 
 #[derive(Debug, Error)]

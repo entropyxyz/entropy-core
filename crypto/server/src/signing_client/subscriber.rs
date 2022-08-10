@@ -27,8 +27,6 @@ pub struct SubscribeMessage {
 
 /// A message sent by subscribing node. Holder struct for subscription-related methods.
 impl SubscribeMessage {
-  pub(crate) fn new(party_id: String) -> Self { Self { party_id } }
-
   // not clear what this should do yet
   pub(crate) fn validate_registration(&self) -> anyhow::Result<()> { Ok(()) }
 
@@ -81,15 +79,15 @@ pub struct SubscriberManager {
 }
 
 impl SubscriberManager {
-  pub(crate) fn new(finalized_tx: oneshot::Sender<broadcast::Sender<SigningMessage>>) -> Self {
-    let (broadcast_tx, _) = broadcast::channel(1000);
-    Self {
-      count:        0,
-      done:         false,
-      finalized_tx: Some(finalized_tx),
-      broadcast_tx: Some(broadcast_tx),
-    }
-  }
+  // pub(crate) fn new(finalized_tx: oneshot::Sender<broadcast::Sender<SigningMessage>>) -> Self {
+  //   let (broadcast_tx, _) = broadcast::channel(1000);
+  //   Self {
+  //     count:        0,
+  //     done:         false,
+  //     finalized_tx: Some(finalized_tx),
+  //     broadcast_tx: Some(broadcast_tx),
+  //   }
+  // }
 
   /// Update Self with a new subscriber.
   /// If this was the final subscriber, send broadcast_tx back to the ProtocolManager.

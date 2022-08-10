@@ -1,26 +1,19 @@
-#![allow(dead_code)]
 //! helpers for the `new_party` api
+#![allow(dead_code)]
 mod context;
 mod sign_init;
 mod signing_message;
-// mod protocol_manager;
-
-// use kvdb::kv_manager::KvManager;
 
 use kvdb::kv_manager::value::PartyInfo;
+use tofn::gg20;
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
 
-pub use self::{
-  context::SignContext,
-  sign_init::{SignInit, SignInitUnchecked},
-  signing_message::SigningMessage,
-};
+pub use self::{context::SignContext, sign_init::SignInit, signing_message::SigningMessage};
 use super::{SignerState, SigningProtocolError, SubscribeError};
 
 pub type Channels = (mpsc::Sender<SigningMessage>, mpsc::Receiver<SigningMessage>);
-pub type SigningProtocolResult = Result<Signature, SigningProtocolError>;
-type Signature = String; // todo
+type Signature = String; // todo: This should actually be ProtocolOutput
 
 /// corresponds to https://github.com/axelarnetwork/tofnd/blob/0a70c4bb8c86b26804f59d0921dcd3235e85fdc0/src/gg20/service/mod.rs#L12
 /// Thin wrapper around `SignerState`, manages execution of a signing party.
@@ -37,31 +30,15 @@ impl<'a> Gg20Service<'a> {
   }
 
   #[instrument]
-  pub async fn check_sign_init(
+  pub async fn get_sign_context(
     &self,
-    sign_init: SignInitUnchecked,
+    sign_init: SignInit,
   ) -> Result<SignContext, SigningProtocolError> {
     info!("check_sign_init: {sign_init:?}");
+    let party_info: PartyInfo =
+      self.state.kv_manager.kv().get(&sign_init.key_uid).await?.try_into()?;
 
-    // let party_info: PartyInfo =
-    //   match self.state.kv_manager.kv().get(&sign_init.key_uid.to_string()).await {
-    //     Ok(value) => value.try_into()?,
-    //     Err(err) => {
-    //       // if no such session id exists, send a message to client that indicates that recovery
-    // is       // needed and stop sign
-    //       Self::send_kv_store_failure(out_stream)?;
-    //       let err = anyhow!(
-    //         "Unable to find session-id {} in kv store. Issuing share recovery and exit sign
-    // {:?}",         sign_init.key_uid,
-    //         err
-    //       );
-    //       return Err(err);
-    //     },
-    //   };
-
-    // let info = info.check();
-
-    Err(SigningProtocolError::Init("init"))
+    Ok(SignContext::new(sign_init, party_info))
   }
 
   #[instrument]
@@ -73,19 +50,96 @@ impl<'a> Gg20Service<'a> {
     Err(SigningProtocolError::Subscribing("subscribbb"))
   }
 
+  /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/execute.rs#L22
+  /// handle signing protocol execution.
   #[instrument]
   pub async fn execute_sign(
     &self,
-    sign_context: &SignContext,
+    ctx: &SignContext,
     channels: Channels,
-  ) -> SigningProtocolResult {
-    info!("execute_sign: {sign_context:?}");
+  ) -> Result<Signature, SigningProtocolError> {
+    info!("execute_sign: {ctx:?}");
+    let new_sign =
+      gg20::sign::new_sign(ctx.group(), &ctx.share, &ctx.sign_parties, ctx.msg_to_sign())
+        .map_err(|e| SigningProtocolError::Signing("tofn fatal error"))?;
+
+    let result =
+      protocol::execute_protocol(new_sign, channels, ctx.sign_uids(), &ctx.sign_share_counts)
+        .await?;
+
     Err(SigningProtocolError::Signing("signnnn"))
   }
 
   // placeholder for any result handling
   #[instrument]
-  pub fn handle_result(&self, result: SigningProtocolResult, sign_context: SignContext) {
+  pub fn handle_result(&self, signature: &Signature, sign_context: &SignContext) {
     info!("good job team");
+  }
+}
+
+// todo: eventually, move this out, convenient to have it here for now
+mod protocol {
+  #![allow(dead_code)]
+  #![allow(unused_variables)]
+  #![allow(unused_mut)]
+  use anyhow::anyhow;
+  use tofn::{
+    collections::TypedUsize,
+    sdk::api::{Protocol, ProtocolOutput, Round},
+  };
+  use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+  use tracing::{debug, error, span, warn, Level, Span};
+
+  use crate::signing_client::SigningProtocolError;
+
+  /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/protocol.rs#L20
+  /// execute gg20 protocol
+  pub(super) async fn execute_protocol<F, K, P, const MAX_MSG_IN_LEN: usize>(
+    mut party: Protocol<F, K, P, MAX_MSG_IN_LEN>,
+    mut chans: super::Channels,
+    // ProtocolCommunication<
+    //   Option<proto::TrafficIn>,
+    //   Result<proto::MessageOut, tonic::Status>,
+    // >,
+    party_uids: &[String],
+    party_share_counts: &[usize],
+  ) -> Result<ProtocolOutput<F, P>, SigningProtocolError>
+  where
+    K: Clone,
+  {
+    // set up counters for logging
+    // let total_num_of_shares = party_share_counts.iter().fold(0, |acc, s| acc + *s);
+    // let total_round_p2p_msgs = total_num_of_shares * (total_num_of_shares - 1); // total number
+    // of messages is n(n-1)
+
+    // let mut round_count = 0;
+    // while let Protocol::NotDone(mut round) = party {
+    //   round_count += 1;
+
+    //   // handle outgoing traffic
+    //   handle_outgoing(&chans.sender, &round, party_uids, round_count, span.clone())?;
+
+    //   // collect incoming traffic
+    //   handle_incoming(
+    //     &mut chans.receiver,
+    //     &mut round,
+    //     party_uids,
+    //     total_round_p2p_msgs,
+    //     total_num_of_shares,
+    //     round_count,
+    //     span.clone(),
+    //   )
+    //   .await?;
+
+    //   // check if everything was ok this round
+    //   party =
+    //     round.execute_next_round().map_err(|_| anyhow!("Error in tofn::execute_next_round"))?;
+    // }
+
+    // match party {
+    //   Protocol::NotDone(_) => Err(anyhow!("Protocol failed to complete")),
+    //   Protocol::Done(result) => Ok(result),
+    // };
+    Err(SigningProtocolError::ProtocolExecution("boom boom"))
   }
 }

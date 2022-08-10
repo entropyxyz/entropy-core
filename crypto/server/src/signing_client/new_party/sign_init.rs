@@ -5,14 +5,14 @@ use tracing::{info, instrument};
 
 use super::{SignerState, SigningProtocolError, SubscribeError};
 
-// pub type Channels = (mpsc::Sender<SigningMessage>, mpsc::Receiver<SigningMessage>);
-// pub type SigningProtocolResult = Result<Signature, SigningProtocolError>;
-// type Signature = String; // todo
-
+// CLAIM(TK): The saniziting check required by the tofnd library is only required for a protocol
+// execution where this node could hold a multiple secret key shares.
+// https://github.com/axelarnetwork/tofnd/blob/cb311ac39e505bdc451d33dcb0228902a80caffe/src/gg20/sign/init.rs#L80
+//
 /// Information passed from the CommunicationManager to all nodes.
 /// corresponds to https://github.com/axelarnetwork/grpc-protobuf/blob/21698133e2f025d706f1dffec19637216d968692/grpc.proto#L120
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct SignInitUnchecked {
+pub struct SignInit {
   /// Unique id of this signature (may be repeated if this party fails)
   pub sig_uid:      String,
   /// Unique id of user's key (for retreival from kv-store)
@@ -26,7 +26,7 @@ pub struct SignInitUnchecked {
   pub msg:          String,
 }
 
-impl SignInitUnchecked {
+impl SignInit {
   pub fn new(
     party_uid: String,
     ip_addresses: Vec<String>,
@@ -38,47 +38,6 @@ impl SignInitUnchecked {
     let sig_uid = if let Some(uid) = repeated_sig_uid { uid } else { "".to_string() };
     Self { party_uid, ip_addresses, sig_uid, key_uid, msg }
   }
-
-  // todo: check kv info against self
-  #[allow(unused_variables)]
-  pub fn check(self, kv_keyshare_info: &KvKeyshareInfo) -> anyhow::Result<SignInit> {
-    // check that my ip_address is at the correct index
-    // if let Err(e) = checked {
-    // 	return anyhow!("pathological Communication Manager");
-    // }
-    Ok(SignInit {
-      sig_uid:      self.sig_uid,
-      key_uid:      self.key_uid,
-      party_uid:    self.party_uid,
-      ip_addresses: self.ip_addresses,
-      msg:          self.msg,
-    })
-  }
-}
-
-/// return after a sanity check
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct SignInit {
-  pub sig_uid:      String,
-  pub key_uid:      String,
-  pub party_uid:    String,
-  pub ip_addresses: Vec<String>,
-  pub msg:          String,
-}
-
-/// Key Share records (todo)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct KvKeyshareInfo {
-  // pub common: GroupPublicInfo,
-  // pub shares: Vec<ShareSecretInfo>,
-  // pub tofnd: TofndInfo,
-}
-
-impl TryFrom<Vec<u8>> for KvKeyshareInfo {
-  type Error = ();
-
-  #[allow(unused_variables)]
-  fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> { todo!() }
 }
 
 // impl StoredInfo {
