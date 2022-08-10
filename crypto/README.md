@@ -11,7 +11,6 @@ The major actors in this repo are:
 
 The utility crates in this repo are:
 - `kvdb` - An encrypted key-value datastore
-- `non-substrate-common` - Common std-compatible types
 - `substrate-common` - Common no-std types, which Substrate requires
 - `testing-utils` - testing utility methods shared across the workspace
 

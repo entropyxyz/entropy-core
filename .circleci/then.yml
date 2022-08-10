@@ -53,7 +53,6 @@ workflows:
       - crypto-centralized-keygen
       - crypto-server
       - crypto-kvdb
-      - crypto-non-substrate-common
       - crypto-substrate-common
   node:
     when: 
@@ -87,14 +86,6 @@ jobs:
     steps:
       - install-dependencies-and-checkout
       - run: cd crypto/kvdb 
-      - fmt-lint
-  crypto-non-substrate-common:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: cd crypto/non-substrate-common
       - fmt-lint
   crypto-substrate-common:
     machine:
