@@ -14,7 +14,7 @@ fn knows_how_to_mock_several_http_calls() {
     state.expect_request(testing::PendingRequest {
       method: "POST".into(),
       uri: "http://localhost:3001/sign".into(),
-      headers: [("Content-Type".into(), "application/x-parity-scale-codec".into())].to_vec(),
+      headers: [].to_vec(),
       sent: true,
       response: Some([].to_vec()),
       body: [0].to_vec(),
@@ -24,7 +24,7 @@ fn knows_how_to_mock_several_http_calls() {
     state.expect_request(testing::PendingRequest {
       method: "POST".into(),
       uri: "http://localhost:3001/sign".into(),
-      headers: [("Content-Type".into(), "application/x-parity-scale-codec".into())].to_vec(),
+      headers: [].to_vec(),
       sent: true,
       response: Some([].to_vec()),
       body: [
