@@ -39,6 +39,6 @@ mod tests {
 
   #[test]
   fn is_valid_test() {
-    assert_eq!(is_valid("test"), true);
+    assert!(is_valid("test"));
   }
 }

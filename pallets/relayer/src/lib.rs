@@ -1,4 +1,3 @@
-#![cfg_attr(not(feature = "std"), no_std)]
 //! # Relayer Pallet
 //!
 //!
@@ -12,6 +11,9 @@
 //! prep_transaction - declares intent to sign, this gets relayed to thereshold network
 //! register - register's a user and that they have created and distributed entropy shards
 //! confirm_done - allows a node to confirm signing has happened and if a failure occured
+#![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::new_without_default)]
+#![allow(clippy::derive_partial_eq_without_eq)] // Substrate confuses clippy
 pub use pallet::*;
 
 #[cfg(test)] mod mock;
@@ -197,7 +199,7 @@ pub mod pallet {
         "active to pending, responsibility warning"
       );
       if !is_prune_failures {
-        Unresponsive::<T>::mutate(responsibility.clone(), |dings| *dings += 1);
+        Unresponsive::<T>::mutate(responsibility, |dings| *dings += 1);
 
       // TODO slash or point for failure then slash after pointed a few times
       // If someone is slashed they probably should reset their unresponsive dings
@@ -208,7 +210,7 @@ pub mod pallet {
         Unresponsive::<T>::remove(responsibility);
       }
 
-      if messages.len() > 0 {
+      if !messages.is_empty() {
         Pending::<T>::insert(target_block, messages);
       }
 
@@ -276,7 +278,7 @@ pub mod pallet {
       info: &DispatchInfoOf<Self::Call>,
       len: usize,
     ) -> Result<Self::Pre, TransactionValidityError> {
-      Ok(self.validate(who, call, info, len).map(|_| ())?)
+      self.validate(who, call, info, len).map(|_| ())
     }
 
     // <weight>
@@ -291,7 +293,7 @@ pub mod pallet {
     ) -> TransactionValidity {
       if let Some(local_call) = call.is_sub_type() {
         if let Call::prep_transaction { .. } = local_call {
-          ensure!(Registered::<T>::get(who), InvalidTransaction::Custom(1.into()));
+          ensure!(Registered::<T>::get(who), InvalidTransaction::Custom(1));
           // TODO apply filter logic
         }
 
@@ -301,13 +303,13 @@ pub mod pallet {
 
         if let Call::confirm_done { block_number, .. } = local_call {
           let responsibility =
-            Responsibility::<T>::get(block_number).ok_or(InvalidTransaction::Custom(2.into()))?;
+            Responsibility::<T>::get(block_number).ok_or(InvalidTransaction::Custom(2))?;
           let threshold_key =
             pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
-              .ok_or(InvalidTransaction::Custom(3.into()))?;
-          ensure!(*who == threshold_key, InvalidTransaction::Custom(4.into()));
+              .ok_or(InvalidTransaction::Custom(3))?;
+          ensure!(*who == threshold_key, InvalidTransaction::Custom(4));
           let current_failures = Failures::<T>::get(block_number);
-          ensure!(current_failures.is_none(), InvalidTransaction::Custom(5.into()));
+          ensure!(current_failures.is_none(), InvalidTransaction::Custom(5));
         }
       }
       Ok(ValidTransaction::default())
