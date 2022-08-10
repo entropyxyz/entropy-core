@@ -44,13 +44,13 @@ pallet-relayer          ={ version="3.0.0", default-features=false, path="../rel
 pallet-staking-extension={ version="3.0.0", default-features=false, path="../staking" }
 helpers                 ={ path="../helpers", default-features=false }
 
-scale-info           ={ version="2.0.1", default-features=false, features=["derive"] }
-log                  ={ version="0.4.0", default-features=false }
-sp-staking           ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
-sp-io                ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="master" }
-lite-json            ={ version="0.1", default-features=false }
-sp-runtime           ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="master" }
-sp-core              ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="master" }
+scale-info={ version="2.0.1", default-features=false, features=["derive"] }
+log       ={ version="0.4.0", default-features=false }
+sp-staking={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+sp-io     ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="master" }
+lite-json ={ version="0.1", default-features=false }
+sp-runtime={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="master" }
+sp-core   ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="master" }
 # non-substrate-common ={ path="../../crypto/non-substrate-common", default-features=false }
 substrate-common     ={ path="../../crypto/substrate-common", default-features=false }
 sp-application-crypto={ version="6.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
