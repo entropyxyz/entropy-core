@@ -4,12 +4,11 @@ use super::{kv::EncryptedDb, Password};
 use crate::{clean_tests, encrypted_sled::Db, get_db_path};
 
 fn setup_db(require_password: bool) -> Db {
-  let db;
-  if !require_password {
-    db = EncryptedDb::open(&get_db_path(), get_test_password())
+  let db = if !require_password {
+    EncryptedDb::open(&get_db_path(), get_test_password())
   } else {
-    db = EncryptedDb::open(&get_db_path(), Password::from("super-secret password."))
-  }
+    EncryptedDb::open(&get_db_path(), Password::from("super-secret password."))
+  };
   assert!(db.is_ok());
   db.unwrap()
 }
