@@ -200,18 +200,28 @@ pub mod pallet {
       self,
       who: &Self::AccountId,
       call: &Self::Call,
+      info: &DispatchInfoOf<Self::Call>,
+      len: usize,
+    ) -> Result<Self::Pre, TransactionValidityError> {
+      Ok(self.validate(who, call, info, len).map(|_| ())?)
+    }
+
+    fn validate(
+      &self,
+      who: &Self::AccountId,
+      call: &Self::Call,
       _info: &DispatchInfoOf<Self::Call>,
       _len: usize,
-    ) -> Result<Self::Pre, TransactionValidityError> {
+    ) -> TransactionValidity {
       if let Some(local_call) = call.is_sub_type() {
         if let Call::try_free_call { .. } = local_call {
           return match Pallet::<T>::check_free_call(who) {
             None => { Err(TransactionValidityError::Invalid(InvalidTransaction::Payment)) }
-            Some(_) => { Ok(()) }
+            Some(_) => { Ok(ValidTransaction::default()) }
           };
         }
       }
-      Ok(())
+      Ok(ValidTransaction::default())
     }
   }
 }
