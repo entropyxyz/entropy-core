@@ -36,14 +36,8 @@ impl<'a> Gg20Service<'a> {
   ) -> Result<SignContext, SigningProtocolError> {
     info!("check_sign_init: {sign_init:?}");
 
-    let party_info: PartyInfo = self
-      .state
-      .kv_manager
-      .kv()
-      .get(&sign_init.key_uid)
-      .await
-      .map_err(|e| SigningProtocolError::KvError(e))?
-      .try_into()?;
+    let party_info: PartyInfo =
+      self.state.kv_manager.kv().get(&sign_init.key_uid).await?.try_into()?;
 
     Ok(SignContext::new(sign_init, party_info))
   }
@@ -57,6 +51,8 @@ impl<'a> Gg20Service<'a> {
     Err(SigningProtocolError::Subscribing("subscribbb"))
   }
 
+  /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/execute.rs#L22
+  /// handle signing protocol execution.
   #[instrument]
   pub async fn execute_sign(
     &self,
@@ -64,14 +60,85 @@ impl<'a> Gg20Service<'a> {
     channels: Channels,
   ) -> Result<Signature, SigningProtocolError> {
     info!("execute_sign: {ctx:?}");
-    let sign = gg20::sign::new_sign(ctx.group(), &ctx.share, &ctx.sign_parties, ctx.msg_to_sign())
-      .map_err(|_| anyhow::anyhow!("sign instantiation failed"))?;
+    let new_sign =
+      gg20::sign::new_sign(ctx.group(), &ctx.share, &ctx.sign_parties, ctx.msg_to_sign())
+        .map_err(|e| SigningProtocolError::Signing("tofn fatal error"))?;
+
+    let result =
+      protocol::execute_protocol(new_sign, channels, ctx.sign_uids(), &ctx.sign_share_counts)
+        .await?;
     Err(SigningProtocolError::Signing("signnnn"))
   }
 
   // placeholder for any result handling
   #[instrument]
-  pub fn handle_result(&self, signature: Signature, sign_context: SignContext) {
+  pub fn handle_result(&self, signature: &Signature, sign_context: &SignContext) {
     info!("good job team");
+  }
+}
+
+mod protocol {
+  #![allow(dead_code)]
+  #![allow(unused_variables)]
+  #![allow(unused_mut)]
+  use anyhow::anyhow;
+  use tofn::{
+    collections::TypedUsize,
+    sdk::api::{Protocol, ProtocolOutput, Round},
+  };
+  use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+  use tracing::{debug, error, span, warn, Level, Span};
+
+  use crate::signing_client::SigningProtocolError;
+
+  /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/protocol.rs#L20
+  /// execute gg20 protocol
+  pub(super) async fn execute_protocol<F, K, P, const MAX_MSG_IN_LEN: usize>(
+    mut party: Protocol<F, K, P, MAX_MSG_IN_LEN>,
+    mut chans: super::Channels,
+    // ProtocolCommunication<
+    //   Option<proto::TrafficIn>,
+    //   Result<proto::MessageOut, tonic::Status>,
+    // >,
+    party_uids: &[String],
+    party_share_counts: &[usize],
+  ) -> Result<ProtocolOutput<F, P>, SigningProtocolError>
+  where
+    K: Clone,
+  {
+    // set up counters for logging
+    // let total_num_of_shares = party_share_counts.iter().fold(0, |acc, s| acc + *s);
+    // let total_round_p2p_msgs = total_num_of_shares * (total_num_of_shares - 1); // total number
+    // of messages is n(n-1)
+
+    // let mut round_count = 0;
+    // while let Protocol::NotDone(mut round) = party {
+    //   round_count += 1;
+
+    //   // handle outgoing traffic
+    //   handle_outgoing(&chans.sender, &round, party_uids, round_count, span.clone())?;
+
+    //   // collect incoming traffic
+    //   handle_incoming(
+    //     &mut chans.receiver,
+    //     &mut round,
+    //     party_uids,
+    //     total_round_p2p_msgs,
+    //     total_num_of_shares,
+    //     round_count,
+    //     span.clone(),
+    //   )
+    //   .await?;
+
+    //   // check if everything was ok this round
+    //   party =
+    //     round.execute_next_round().map_err(|_| anyhow!("Error in tofn::execute_next_round"))?;
+    // }
+
+    // match party {
+    //   Protocol::NotDone(_) => Err(anyhow!("Protocol failed to complete")),
+    //   Protocol::Done(result) => Ok(result),
+    // };
+    Err(SigningProtocolError::ProtocolExecution("boom boom"))
   }
 }

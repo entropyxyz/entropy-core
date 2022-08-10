@@ -3,7 +3,6 @@ use kvdb::kv_manager::error::InnerKvError;
 use rocket::response::Responder;
 use thiserror::Error;
 
-#[allow(dead_code)]
 // #[derive(Responder, Debug, Error)]
 // #[response(status = 418, content_type = "json")]
 #[derive(Debug, Error)]
@@ -19,6 +18,10 @@ pub enum SigningProtocolError {
   Subscribing(&'static str),
   #[error("Signing error: {0}")]
   Signing(&'static str),
+  // #[error("Tofn fatal")] // note: TofnFatal doesn't implement Error :-(
+  // TofnFatal(#[from] TofnFatal),
+  #[error("Protocol Execution error: {0}")]
+  ProtocolExecution(&'static str),
   #[error("anyhow error: {0}")]
   Anyhow(#[from] anyhow::Error),
   #[error("other error: {0}")]

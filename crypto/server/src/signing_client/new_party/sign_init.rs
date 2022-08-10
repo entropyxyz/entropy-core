@@ -5,14 +5,14 @@ use tracing::{info, instrument};
 
 use super::{SignerState, SigningProtocolError, SubscribeError};
 
-// CLAIM(TK): The saniziting check required by the tofnd library is only required for a protocol execution
-// where this node could hold a multiple secret key shares.
+// CLAIM(TK): The saniziting check required by the tofnd library is only required for a protocol
+// execution where this node could hold a multiple secret key shares.
 // https://github.com/axelarnetwork/tofnd/blob/cb311ac39e505bdc451d33dcb0228902a80caffe/src/gg20/sign/init.rs#L80
 //
 /// Information passed from the CommunicationManager to all nodes.
 /// corresponds to https://github.com/axelarnetwork/grpc-protobuf/blob/21698133e2f025d706f1dffec19637216d968692/grpc.proto#L120
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct SignInit{
+pub struct SignInit {
   /// Unique id of this signature (may be repeated if this party fails)
   pub sig_uid:      String,
   /// Unique id of user's key (for retreival from kv-store)
@@ -26,7 +26,7 @@ pub struct SignInit{
   pub msg:          String,
 }
 
-impl SignInit{
+impl SignInit {
   pub fn new(
     party_uid: String,
     ip_addresses: Vec<String>,
