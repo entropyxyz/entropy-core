@@ -59,7 +59,7 @@ sp-tracing                ={ version="5.0.0", git='https://github.com/paritytech
 frame-system              ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="master" }
 pallet-transaction-payment={ version="4.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="master" }
 tempfile                  ="3.1.0"
-pallet-relayer            ={ version="3.0.0", path="../../pallets/relayer" }
+pallet-free-tx            ={ version="3.0.0-monthly-2021-10", path="../../pallets/free-tx" }
 
 [dependencies.entropy-runtime]
 path   ='../../runtime'

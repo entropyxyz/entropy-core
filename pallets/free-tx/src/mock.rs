@@ -1,3 +1,4 @@
+use frame_support::pallet_prelude::GenesisBuild;
 use frame_support::traits::{ConstU16, ConstU64};
 
 use sp_core::H256;
@@ -170,6 +171,12 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
   }
   .assimilate_storage(&mut t)
   .unwrap();
+
+  <pallet_free_tx::GenesisConfig as GenesisBuild<Test>>::assimilate_storage(&pallet_free_tx::GenesisConfig {
+    free_calls_left: 1
+  },&mut t)
+      .unwrap();
+
   let mut ext = sp_io::TestExternalities::new(t);
   ext.execute_with(|| System::set_block_number(1));
   ext

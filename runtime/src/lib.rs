@@ -981,7 +981,7 @@ where Call: From<LocalCall>
       frame_system::CheckNonce::<Runtime>::from(nonce),
       frame_system::CheckWeight::<Runtime>::new(),
       pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
-      pallet_relayer::PrevalidateRelayer::<Runtime>::new(),
+      pallet_free_tx::InterrogateFreeTransaction::<Runtime>::new(),
     );
     let raw_payload = SignedPayload::new(call, extra)
       .map_err(|e| {
@@ -992,6 +992,7 @@ where Call: From<LocalCall>
     let address = Indices::unlookup(account);
     let (call, extra, _) = raw_payload.deconstruct();
     Some((call, (address, signature, extra)))
+    // Some(call)
   }
 }
 
@@ -1289,7 +1290,7 @@ pub type SignedExtra = (
   frame_system::CheckNonce<Runtime>,
   frame_system::CheckWeight<Runtime>,
   pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
-  pallet_relayer::PrevalidateRelayer<Runtime>,
+  pallet_free_tx::InterrogateFreeTransaction<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;

@@ -15,12 +15,16 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+  use sp_std::fmt::Debug;
   use frame_support::{
     dispatch::Dispatchable,
     pallet_prelude::*,
+    traits::IsSubType,
     weights::{GetDispatchInfo, PostDispatchInfo},
   };
   use frame_system::{pallet_prelude::*, RawOrigin};
+  use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
+  use sp_runtime::transaction_validity::{TransactionValidityError, InvalidTransaction};
   use sp_std::prelude::*;
 
   #[pallet::config]
@@ -34,6 +38,50 @@ pub mod pallet {
       + GetDispatchInfo;
   }
 
+
+  #[pallet::pallet]
+  #[pallet::generate_store(pub(super) trait Store)]
+  pub struct Pallet<T>(_);
+
+  #[pallet::storage]
+  #[pallet::getter(fn free_calls_left)]
+  pub type FreeCallsLeft<T> = StorageValue<_, u8>;
+
+  #[pallet::genesis_config]
+  pub struct GenesisConfig {
+    pub free_calls_left: u8,
+  }
+
+  #[cfg(feature = "std")]
+  impl Default for GenesisConfig {
+    fn default() -> Self {
+      Self { free_calls_left: 2u8 }
+    }
+  }
+
+  #[pallet::genesis_build]
+  impl<T: Config> GenesisBuild<T> for GenesisConfig {
+    fn build(&self) {
+      <FreeCallsLeft<T>>::put(&self.free_calls_left);
+    }
+  }
+
+  #[pallet::event]
+  #[pallet::generate_deposit(pub(super) fn deposit_event)]
+  pub enum Event<T: Config> {
+    /// A user used a free call to dispatch a transaction; the account did not pay any transaction
+    /// fees.
+    FreeCallIssued(T::AccountId, DispatchResult),
+  }
+
+  #[pallet::error]
+  pub enum Error<T> {
+    /// Account has no free calls left. Call the extrinsic directly or use `try_free_call_or_pay()`
+    NoFreeCallsAvailable,
+    /// Are you fuzzing, or are you just dumb?
+    WastingFreeCalls,
+  }
+
   #[pallet::call]
   impl<T: Config> Pallet<T> {
     /// Try to call an extrinsic using the account's available free calls.
@@ -44,8 +92,8 @@ pub mod pallet {
     /// If no free calls are available, account pays the stupidity fee of ((base fee) + (WeightAsFee
     /// for querying free calls)).
     #[pallet::weight({
-    let dispatch_info = call.get_dispatch_info();
-    (dispatch_info.weight.saturating_add(10_000), dispatch_info.class, Pays::No)
+      let dispatch_info = call.get_dispatch_info();
+      (dispatch_info.weight.saturating_add(10_000), dispatch_info.class, Pays::No)
     })]
     pub fn try_free_call(
       origin: OriginFor<T>,
@@ -65,66 +113,105 @@ pub mod pallet {
       let res = call.dispatch(RawOrigin::Signed(sender.clone()).into());
       Self::deposit_event(Event::FreeCallIssued(sender, res.map(|_| ()).map_err(|e| e.error)));
 
-      // account pays no fees
-      // match res {
-      //   Ok(val) => {Ok(val.into())}
-      //   Err(e) => {Err(e.into())}
-      // }
-      res.into()
+      res
     }
   }
 
   impl<T: Config> Pallet<T> {
-    // TODO JH
-    /// Checks if user can do a free tx, and by what method. Process any state changes, too, unless
-    /// false.
-    fn process_free_call(_account_id: &<T>::AccountId) -> bool { true }
+
+    /// Checks if account has any free txs.
+    pub fn check_free_call(_account_id: &<T>::AccountId) -> Option<FreeCallMethod> {
+      if let Some(calls) = Self::free_calls_left() {
+        if calls > 0 {
+          return Some(FreeCallMethod::EraAllowance);
+        }
+      }
+      None
+    }
+
+    pub fn process_free_call(account_id: &<T>::AccountId) -> bool {
+      // can we skip check_free_call? race conditions?
+      if Self::check_free_call(account_id).is_some() {
+        <FreeCallsLeft<T>>::mutate(|calls| {
+            if let Some(calls) = calls {
+                *calls -= 1;
+            }
+        });
+        return true;
+      }
+      false
+    }
+
   }
 
-  #[pallet::pallet]
-  #[pallet::generate_store(pub(super) trait Store)]
-  pub struct Pallet<T>(_);
 
-  #[pallet::storage]
-  #[pallet::getter(fn something)]
-  pub type Something<T> = StorageValue<_, u32>;
+  /// This makes it easy to add additional free call sources (eg. NFT, Proof of work, daily limit, etc.)
+  // pub trait FreeCallSource<T: Config> {
+  //   fn check_free_call
+  //   fn process_free_call(&self, account_id: &<T as Config>::AccountId) -> bool;
+  // }
 
-  #[pallet::event]
-  #[pallet::generate_deposit(pub(super) fn deposit_event)]
-  pub enum Event<T: Config> {
-    /// A user used a free call to dispatch a transaction; the account did not pay any transaction
-    /// fees.
-    FreeCallIssued(T::AccountId, DispatchResult),
+  #[derive(Debug, Clone)]
+  pub enum FreeCallMethod {
+    EraAllowance,
+    ProofOfWork,
   }
 
-  #[pallet::error]
-  pub enum Error<T> {
-    /// Account has no free calls left. Call the extrinsic directly or use `try_free_call_or_pay()`
-    NoFreeCallsAvailable,
-    /// Are you fuzzing, or are you just dumb?
-    WastingFreeCalls,
+  // TODO JH Prevalidation logic
+
+  /// Verifies that the account has free calls available before executing or broadcasting to other validators.
+  #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
+  #[scale_info(skip_type_params(T))]
+  pub struct InterrogateFreeTransaction<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
+  where <T as frame_system::Config>::Call: IsSubType<Call<T>>;
+
+  impl<T: Config + Send + Sync> Debug for InterrogateFreeTransaction<T>
+  where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+  {
+    #[cfg(feature = "std")]
+    fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+      write!(f, "InterrogateFreeTransaction")
+    }
+
+    #[cfg(not(feature = "std"))]
+    fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
   }
 
-  // TODO JH for default storage values (free tx per era, etc) if not part of Config
-  // #[pallet::genesis_config]
-  // pub struct GenesisConfig<T: Config> {
-  // 	/// The `AccountId` of the sudo key.
-  // 	pub key: Option<T::AccountId>,
-  // }
-  //
-  // #[cfg(feature = "std")]
-  // impl<T: Config> Default for GenesisConfig<T> {
-  // 	fn default() -> Self {
-  // 		Self { key: None }
-  // 	}
-  // }
-  //
-  // #[pallet::genesis_build]
-  // impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
-  // 	fn build(&self) {
-  // 		if let Some(ref key) = self.key {
-  // 			Key::<T>::put(key);
-  // 		}
-  // 	}
-  // }
+  impl<T: Config + Send + Sync> InterrogateFreeTransaction<T>
+  where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+  {
+    pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
+  }
+
+  impl<T: Config + Send + Sync> SignedExtension for InterrogateFreeTransaction<T>
+  where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+  {
+    type AccountId = T::AccountId;
+    type Call = <T as frame_system::Config>::Call;
+    type AdditionalSigned = ();
+    type Pre = ();
+    const IDENTIFIER: &'static str = "InterrogateFreeTransaction";
+
+    fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
+      Ok(())
+    }
+
+    fn pre_dispatch(
+      self,
+      who: &Self::AccountId,
+      call: &Self::Call,
+      _info: &DispatchInfoOf<Self::Call>,
+      _len: usize,
+    ) -> Result<Self::Pre, TransactionValidityError> {
+      if let Some(local_call) = call.is_sub_type() {
+        if let Call::try_free_call { .. } = local_call {
+          return match Pallet::<T>::check_free_call(who) {
+            None => { Err(TransactionValidityError::Invalid(InvalidTransaction::Payment)) }
+            Some(_) => { Ok(()) }
+          };
+        }
+      }
+      Ok(())
+    }
+  }
 }

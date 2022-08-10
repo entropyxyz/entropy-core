@@ -230,7 +230,6 @@ pub mod pallet {
   }
 
   /// Validate `attest` calls prior to execution. Needed to avoid a DoS attack since they are
-  /// otherwise free to place on chain.
   #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
   #[scale_info(skip_type_params(T))]
   pub struct PrevalidateRelayer<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
