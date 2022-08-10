@@ -14,6 +14,7 @@ mod communication_manager;
 mod signing_client;
 mod utils;
 
+pub use signing_client::SignInit;
 use std::{collections::HashMap, sync::Mutex};
 
 #[macro_use] extern crate rocket;
@@ -24,11 +25,10 @@ use serde::Deserialize;
 
 use crate::{
   communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState},
-  signing_client::{api::*, ProtocolManager, SignerState, SigningMessage, SubscriberManager},
+  signing_client::{api::*, SignerState, SigningMessage, SubscriberManager},
   utils::{init_tracing, Configuration},
 };
 
-pub type PartyUid = usize;
 pub const SIGNING_PARTY_SIZE: usize = 6;
 
 #[launch] // initializes an async Rocket-specialized runtime

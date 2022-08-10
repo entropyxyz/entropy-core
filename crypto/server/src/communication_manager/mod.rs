@@ -7,8 +7,6 @@ mod request_guards;
 
 use std::{collections::HashMap, sync::Mutex};
 
-use crate::PartyUid;
-
 /// holds KVDB instance, threshold mnemonic and endpoint of running node
 #[derive(Debug, Default)]
 pub struct CommunicationManagerState {
@@ -25,9 +23,10 @@ impl CommunicationManagerState {
   pub fn new() -> Self { Self::default() }
 
   #[allow(dead_code)]
-  pub(crate) fn get_next_party_id(&self) -> PartyUid {
+  pub(crate) fn get_next_party_id(&self) -> String {
     let mut nonce = *self.party_id_nonce.lock().unwrap();
     nonce += 1;
-    nonce
+    nonce.to_string()
+
   }
 }

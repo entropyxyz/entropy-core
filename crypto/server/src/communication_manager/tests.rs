@@ -5,7 +5,6 @@ use std::{env, time};
 use kvdb::{
   clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
-use non_substrate_common::SignInitUnchecked;
 use rocket::{
   http::{ContentType, Status},
   local::asynchronous::Client,

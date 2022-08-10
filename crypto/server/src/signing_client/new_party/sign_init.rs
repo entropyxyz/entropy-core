@@ -1,18 +1,14 @@
 
 use kvdb::kv_manager::value::PartyInfo;
-use non_substrate_common::SignInitUnchecked;
+use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
 
-pub use self::{
-  context::SignContext,
-  protocol_manager::{ProtocolManager, SigningMessage},
-};
 use super::{SignerState, SigningProtocolError, SubscribeError};
 
-pub type Channels = (mpsc::Sender<SigningMessage>, mpsc::Receiver<SigningMessage>);
-pub type SigningProtocolResult = Result<Signature, SigningProtocolError>;
-type Signature = String; // todo 
+// pub type Channels = (mpsc::Sender<SigningMessage>, mpsc::Receiver<SigningMessage>);
+// pub type SigningProtocolResult = Result<Signature, SigningProtocolError>;
+// type Signature = String; // todo 
 
 /// Information passed from the CommunicationManager to all nodes.
 /// corresponds to https://github.com/axelarnetwork/grpc-protobuf/blob/21698133e2f025d706f1dffec19637216d968692/grpc.proto#L120
@@ -33,7 +29,7 @@ pub struct SignInitUnchecked {
 
 impl SignInitUnchecked {
   pub fn new(
-    party_uid: PartyUid,
+    party_uid: String,
     ip_addresses: Vec<String>,
     key_uid: String,
     msg: String,
@@ -66,7 +62,7 @@ impl SignInitUnchecked {
 pub struct SignInit {
   pub sig_uid:      String,
   pub key_uid:      String,
-  pub party_uid:    PartyUid,
+  pub party_uid:    String,
   pub ip_addresses: Vec<String>,
   pub msg:          String,
 }

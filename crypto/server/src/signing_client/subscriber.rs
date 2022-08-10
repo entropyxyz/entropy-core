@@ -16,18 +16,18 @@ use tokio::{
 use tracing::instrument;
 
 use super::SigningMessage;
-use crate::{PartyUid, SignerState, SIGNING_PARTY_SIZE};
+use crate::{ SignerState, SIGNING_PARTY_SIZE};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
 #[serde(crate = "rocket::serde")]
 pub struct SubscribeMessage {
-  pub party_id: PartyUid,
+  pub party_id: String,
 }
 
 /// A message sent by subscribing node. Holder struct for subscription-related methods.
 impl SubscribeMessage {
-  pub(crate) fn new(party_id: PartyUid) -> Self { Self { party_id } }
+  pub(crate) fn new(party_id: String) -> Self { Self { party_id } }
 
   // not clear what this should do yet
   pub(crate) fn validate_registration(&self) -> anyhow::Result<()> { Ok(()) }
@@ -35,11 +35,11 @@ impl SubscribeMessage {
   /// Retreive the SubscriberManager for this party, update it with a new subscriber.
   pub(crate) fn create_new_subscription(
     &self,
-    map: &mut HashMap<PartyUid, Option<SubscriberManager>>,
+    map: &mut HashMap<String, Option<SubscriberManager>>,
   ) -> broadcast::Receiver<SigningMessage> {
     let mut subscriber_manager = map.remove(&self.party_id).unwrap().unwrap();
     let rx = subscriber_manager.new_subscriber();
-    map.insert(self.party_id, Some(subscriber_manager));
+    map.insert(self.party_id.to_string(), Some(subscriber_manager));
     rx
   }
 

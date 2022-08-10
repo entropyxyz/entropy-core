@@ -16,7 +16,6 @@
 
 use futures::TryFutureExt;
 use kvdb::kv_manager::KvManager;
-use non_substrate_common::SignInit;
 use reqwest::{self};
 use rocket::{http::Status, request::FromRequest, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
@@ -24,7 +23,7 @@ use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{
-  communication_manager::errors::CustomIPError, CommunicationManagerState, SIGNING_PARTY_SIZE,
+  communication_manager::errors::CustomIPError, CommunicationManagerState, SIGNING_PARTY_SIZE, SignInit,
 };
 
 // TODO(TK): lots to do

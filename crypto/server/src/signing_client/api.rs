@@ -1,15 +1,13 @@
 use futures::TryFutureExt;
-use non_substrate_common::{KvKeyshareInfo, SignInitUnchecked};
-// use reqwest::{self};
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use tracing::instrument;
 
 use super::{
-  new_party::{Gg20Service, ProtocolManager},
+  new_party::Gg20Service,
   new_user::{UserKvEntry, UserKvEntryUnparsed},
   SignerState, SigningProtocolError, SubscribeMessage, SubscriberManager,
 };
-use crate::signing_client::{NewUserError, SubscribeError};
+use crate::signing_client::{new_party::SignInitUnchecked, NewUserError, SubscribeError};
 // use uuid::Uuid;
 
 /// Endpoint for Communication Manager to initiate a new signing party.
@@ -35,7 +33,7 @@ pub async fn new_party(
   let channels = gg20_service.subscribe_and_await_subscribers(&sign_context).await?;
 
   let result = gg20_service.execute_sign(&sign_context, channels).await;
-  info!("new_party with info: {info:?}\nresult: {result:?}");
+  info!("new_party with context: {sign_context:?}\nresult: {result:?}");
   gg20_service.handle_result(result, sign_context);
   Ok(Status::Ok)
 }

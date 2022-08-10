@@ -1,11 +1,10 @@
-use non_substrate_common::SignInit;
 use serde::{Deserialize, Serialize};
 use tofn::{
   collections::Subset,
   gg20::keygen::{GroupPublicInfo, KeygenPartyId, SecretKeyShare, ShareSecretInfo},
 };
 
-// type Subset
+use super::sign_init::SignInit;
 
 #[derive(Debug, Clone)]
 pub struct SignContext {
@@ -42,4 +41,3 @@ pub struct TofndInfo {
   pub share_counts: Vec<usize>,
   pub index:        usize,
 }
-
