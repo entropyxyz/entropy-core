@@ -1,4 +1,4 @@
-use frame_support::assert_ok;
+use frame_support::{assert_err, assert_ok};
 
 use mock::{
   new_test_ext, Balances, Call, Event as TestEvent, Example, ExampleCall, FreeTx, Origin, System,
@@ -29,21 +29,20 @@ fn free_calls_are_allowed() {
 }
 
 #[test]
-fn no_error_on_child_call_error() {
+fn error_when_child_call_errors() {
   new_test_ext().execute_with(|| {
     // Set block number to 1 because events are not emitted on block 0.
     System::set_block_number(1);
 
-    // this call will throw an error
+    // this call will throw an error (when Something is None)
     let call = Box::new(Call::Example(ExampleCall::cause_error {}));
+    let expected_error = DispatchError::Module(ModuleError { index: 2, error: [0, 0, 0, 0], message: None });
 
-    // make sure try_free_call dispatches properly
-    assert_ok!(FreeTx::try_free_call(Origin::signed(1), call));
+    // Make sure try_free_call returns child call error to user
+    assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_error);
 
-    // Make sure the child call's result was an error
-    let expected_result =
-      Err(DispatchError::Module(ModuleError { index: 2, error: [0, 0, 0, 0], message: None }));
-    System::assert_has_event(TestEvent::FreeTx(Event::FreeCallIssued(1, expected_result)));
+    // Make sure emitted event also contains the child error
+    System::assert_has_event(TestEvent::FreeTx(Event::FreeCallIssued(1, Err(expected_error))));
   });
 }
 

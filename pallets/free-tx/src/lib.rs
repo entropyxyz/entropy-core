@@ -21,7 +21,6 @@ pub mod pallet {
     weights::{GetDispatchInfo, PostDispatchInfo},
   };
   use frame_system::{pallet_prelude::*, RawOrigin};
-  use sp_runtime::DispatchResultWithInfo;
   use sp_std::prelude::*;
 
   #[pallet::config]
@@ -45,9 +44,9 @@ pub mod pallet {
     /// If no free calls are available, account pays the stupidity fee of ((base fee) + (WeightAsFee
     /// for querying free calls)).
     #[pallet::weight({
-			let dispatch_info = call.get_dispatch_info();
-			(dispatch_info.weight.saturating_add(10_000), dispatch_info.class, Pays::No)
-		})]
+    let dispatch_info = call.get_dispatch_info();
+    (dispatch_info.weight.saturating_add(10_000), dispatch_info.class, Pays::No)
+    })]
     pub fn try_free_call(
       origin: OriginFor<T>,
       call: Box<<T as Config>::Call>,
@@ -67,7 +66,11 @@ pub mod pallet {
       Self::deposit_event(Event::FreeCallIssued(sender, res.map(|_| ()).map_err(|e| e.error)));
 
       // account pays no fees
-      Ok()
+      // match res {
+      //   Ok(val) => {Ok(val.into())}
+      //   Err(e) => {Err(e.into())}
+      // }
+      res.into()
     }
   }
 
