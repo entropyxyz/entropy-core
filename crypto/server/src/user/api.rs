@@ -3,7 +3,7 @@ use tracing::instrument;
 
 use super::{UserKvEntry, UserKvEntryUnparsed};
 use crate::{signing_client::SignerState, user::NewUserError};
-// use crate::signing_client::{new_party::SignInitUnchecked, NewUserError, SubscribeError};
+// use crate::signing_client::{new_party::SignInit, NewUserError, SubscribeError};
 
 /// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
 #[instrument]

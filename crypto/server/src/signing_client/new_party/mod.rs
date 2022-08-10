@@ -1,25 +1,18 @@
-#![allow(dead_code)]
 //! helpers for the `new_party` api
+#![allow(dead_code)]
 mod context;
 mod sign_init;
 mod signing_message;
-// mod protocol_manager;
-
-// use kvdb::kv_manager::KvManager;
 
 use kvdb::kv_manager::value::PartyInfo;
+use tofn::gg20;
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
 
-pub use self::{
-  context::SignContext,
-  sign_init::{SignInit, SignInitUnchecked},
-  signing_message::SigningMessage,
-};
+pub use self::{context::SignContext, sign_init::SignInit, signing_message::SigningMessage};
 use super::{SignerState, SigningProtocolError, SubscribeError};
 
 pub type Channels = (mpsc::Sender<SigningMessage>, mpsc::Receiver<SigningMessage>);
-pub type SigningProtocolResult = Result<Signature, SigningProtocolError>;
 type Signature = String; // todo
 
 /// corresponds to https://github.com/axelarnetwork/tofnd/blob/0a70c4bb8c86b26804f59d0921dcd3235e85fdc0/src/gg20/service/mod.rs#L12
@@ -37,31 +30,22 @@ impl<'a> Gg20Service<'a> {
   }
 
   #[instrument]
-  pub async fn check_sign_init(
+  pub async fn get_sign_context(
     &self,
-    sign_init: SignInitUnchecked,
+    sign_init: SignInit,
   ) -> Result<SignContext, SigningProtocolError> {
     info!("check_sign_init: {sign_init:?}");
 
-    // let party_info: PartyInfo =
-    //   match self.state.kv_manager.kv().get(&sign_init.key_uid.to_string()).await {
-    //     Ok(value) => value.try_into()?,
-    //     Err(err) => {
-    //       // if no such session id exists, send a message to client that indicates that recovery
-    // is       // needed and stop sign
-    //       Self::send_kv_store_failure(out_stream)?;
-    //       let err = anyhow!(
-    //         "Unable to find session-id {} in kv store. Issuing share recovery and exit sign
-    // {:?}",         sign_init.key_uid,
-    //         err
-    //       );
-    //       return Err(err);
-    //     },
-    //   };
+    let party_info: PartyInfo = self
+      .state
+      .kv_manager
+      .kv()
+      .get(&sign_init.key_uid)
+      .await
+      .map_err(|e| SigningProtocolError::KvError(e))?
+      .try_into()?;
 
-    // let info = info.check();
-
-    Err(SigningProtocolError::Init("init"))
+    Ok(SignContext::new(sign_init, party_info))
   }
 
   #[instrument]
@@ -76,16 +60,18 @@ impl<'a> Gg20Service<'a> {
   #[instrument]
   pub async fn execute_sign(
     &self,
-    sign_context: &SignContext,
+    ctx: &SignContext,
     channels: Channels,
-  ) -> SigningProtocolResult {
-    info!("execute_sign: {sign_context:?}");
+  ) -> Result<Signature, SigningProtocolError> {
+    info!("execute_sign: {ctx:?}");
+    let sign = gg20::sign::new_sign(ctx.group(), &ctx.share, &ctx.sign_parties, ctx.msg_to_sign())
+      .map_err(|_| anyhow::anyhow!("sign instantiation failed"))?;
     Err(SigningProtocolError::Signing("signnnn"))
   }
 
   // placeholder for any result handling
   #[instrument]
-  pub fn handle_result(&self, result: SigningProtocolResult, sign_context: SignContext) {
+  pub fn handle_result(&self, signature: Signature, sign_context: SignContext) {
     info!("good job team");
   }
 }
