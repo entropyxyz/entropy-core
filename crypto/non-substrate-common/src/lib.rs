@@ -1,8 +1,6 @@
 //! Types that are shared by c-manager and signing-client
 
-mod cm_info;
+mod sign_init;
 
-pub type CMInfo = cm_info::CMInfo;
-pub type CMInfoUnchecked = cm_info::CMInfoUnchecked;
-pub type KvKeyshareInfo = cm_info::KvKeyshareInfo;
+pub use sign_init::{KvKeyshareInfo, SignInit, SignInitUnchecked};
 pub type PartyUid = usize;

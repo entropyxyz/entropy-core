@@ -4,8 +4,9 @@ use uuid::Uuid;
 use crate::PartyUid;
 
 /// Information passed from the CommunicationManager to all nodes.
+/// corresponds to https://github.com/axelarnetwork/grpc-protobuf/blob/21698133e2f025d706f1dffec19637216d968692/grpc.proto#L120
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct CMInfoUnchecked {
+pub struct SignInitUnchecked {
   /// Unique id of this signature (may be repeated if this party fails)
   pub sig_uid:      Uuid,
   /// Unique id of user's key (for retreival from kv-store)
@@ -19,7 +20,7 @@ pub struct CMInfoUnchecked {
   pub msg:          String,
 }
 
-impl CMInfoUnchecked {
+impl SignInitUnchecked {
   pub fn new(
     party_uid: PartyUid,
     ip_addresses: Vec<String>,
@@ -33,12 +34,12 @@ impl CMInfoUnchecked {
 
   // todo: check kv info against self
   #[allow(unused_variables)]
-  pub fn check(self, kv_keyshare_info: &KvKeyshareInfo) -> anyhow::Result<CMInfo> {
+  pub fn check(self, kv_keyshare_info: &KvKeyshareInfo) -> anyhow::Result<SignInit> {
     // check that my ip_address is at the correct index
     // if let Err(e) = checked {
     // 	return anyhow!("pathological Communication Manager");
     // }
-    Ok(CMInfo {
+    Ok(SignInit {
       sig_uid:      self.sig_uid,
       key_uid:      self.key_uid,
       party_uid:    self.party_uid,
@@ -50,7 +51,7 @@ impl CMInfoUnchecked {
 
 /// return after a sanity check
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct CMInfo {
+pub struct SignInit {
   pub sig_uid:      Uuid,
   pub key_uid:      Uuid,
   pub party_uid:    PartyUid,

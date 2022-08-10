@@ -1,5 +1,4 @@
 pub mod api;
-mod context;
 mod errors;
 mod new_party;
 mod new_user;

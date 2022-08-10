@@ -62,7 +62,7 @@ impl<'a> Gg20Service<'a> {
 
   // placeholder for any result handling
   #[instrument]
-  pub async fn handle_result(&self, result: SigningProtocolResult, sign_context: SignContext) {
+  pub fn handle_result(&self, result: SigningProtocolResult, sign_context: SignContext) {
     info!("good job team");
   }
 }
