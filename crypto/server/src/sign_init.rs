@@ -14,7 +14,8 @@ pub struct SignInit {
   /// Unique id of this signature (may be repeated if this party fails)
   pub sig_uid:       String,
   /// identifiers of the participating parties
-  // TK: @JA: What to use for this? IP addresses? Substrate keys?
+  // TK: @JA: What to use for this? IP addresses? Substrate addresses? Substrate keys?
+  // may overlap with ip_addresses below.
   pub signer_uids: Vec<String>,
   /// The index of the evaluated Shamir Polynomial held by each signer
   pub signer_idxs:   Vec<usize>,
@@ -25,6 +26,8 @@ pub struct SignInit {
   pub party_uid:     String,
   /// User's substrate key. The `key` in the kv-store.
   pub substrate_key: String,
+  /// Participating nodes' IP addresses.
+  pub ip_addresses:  Vec<String>,
 }
 
 impl SignInit {
@@ -38,7 +41,8 @@ impl SignInit {
     msg: MessageDigest,
     party_uid: String,
     substrate_key: String,
+    ip_addresses: Vec<String>,
   ) -> Self {
-    Self { sig_uid, signer_uids, signer_idxs, msg, party_uid, substrate_key }
+    Self { sig_uid, signer_uids, signer_idxs, msg, party_uid, substrate_key, ip_addresses }
   }
 }

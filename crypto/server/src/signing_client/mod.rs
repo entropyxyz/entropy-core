@@ -1,14 +1,14 @@
 pub mod api;
 mod errors;
 mod new_party;
-mod subscriber;
+mod subscribe;
 
 use std::{collections::HashMap, sync::Mutex};
 
 pub use self::{
   errors::*,
   new_party::SigningMessage,
-  subscriber::{SubscribeMessage, SubscriberManager},
+  subscribe::{Listener, SubscribeMessage},
 };
 
 /// The state used by this node to create signatures
@@ -16,5 +16,12 @@ pub use self::{
 pub struct SignerState {
   /// Mapping of PartyIds to `SubscriberManager`s, one entry per active party.
   // TODO(TK): SubscriberManager to be replaced with None when subscribing phase ends.
-  pub subscriber_manager_map: Mutex<HashMap<String, Option<SubscriberManager>>>,
+  pub listeners: Mutex<HashMap<String, Listener>>,
+}
+
+impl SignerState {
+  /// Create a new `SignerState`
+  pub fn contains_listener(&self, key: &str) -> bool {
+    self.listeners.lock().unwrap().contains_key(key)
+  }
 }

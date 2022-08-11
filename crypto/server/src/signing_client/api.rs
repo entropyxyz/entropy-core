@@ -3,15 +3,15 @@ use kvdb::kv_manager::KvManager;
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use tracing::instrument;
 
+use super::SigningMessage;
 use crate::{
   sign_init::SignInit,
   signing_client::{
-    new_party::Gg20Service, SignerState, SigningProtocolError, SubscribeError, SubscribeMessage,
-    SubscriberManager,
+    new_party::{Channels, Gg20Service},
+    subscribe::{subscribe_all, Listener},
+    SignerState, SigningErr, SubscribeErr, SubscribeMessage,
   },
 };
-
-// use uuid::Uuid;
 
 /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/mod.rs#L39
 /// Endpoint for Communication Manager to initiate a new signing party.
@@ -26,7 +26,7 @@ pub async fn new_party(
   info: Json<SignInit>,
   state: &State<SignerState>,
   kv_manager: &State<KvManager>,
-) -> Result<Status, SigningProtocolError> {
+) -> Result<Status, SigningErr> {
   let info = info.into_inner();
   info!("new_party: {info:?}");
   let gg20_service = Gg20Service::new(state, kv_manager);
@@ -34,44 +34,19 @@ pub async fn new_party(
   // set up context for signing protocol execution
   let sign_context = gg20_service.get_sign_context(info).await?;
 
-  // subscribe to all other participating parties
-  let channels = gg20_service.subscribe_and_await_subscribers(&sign_context).await?;
+  // subscribe to all other participating parties. Listener waits for other subscribers.
+  let (rx_ready, listener) = Listener::new();
+  state.listeners.lock().unwrap().insert(sign_context.sign_init.party_uid.to_string(), listener);
+  let channels = {
+    let stream_in = subscribe_all(&sign_context).await?;
+    let broadcast_out = rx_ready.await??;
+    Channels(stream_in, broadcast_out)
+  };
 
   let result = gg20_service.execute_sign(&sign_context, channels).await?;
-  gg20_service.handle_result(&result, &sign_context);
+  // gg20_service.handle_result(&result, &sign_context);
   Ok(Status::Ok)
 }
-
-// Create streams
-//
-// let msg_streams = SigningMessageStreams::new(tx,rx);
-// let (sign_init, party_info) = gg20_service.handle_sign_init();
-// TODO(TK): this should return a KvShare, not Vec<u8>, unclear why type is Vec<u8>
-// temporary hack to get around: try_into().unwrap()
-
-// let kv_share =
-//   state.kv_manager.kv().get(&info.key_uid.to_string()).await.unwrap().try_into().unwrap();
-// let cm_info = info.into_inner().check(&kv_share).unwrap();
-// let (finalized_subscribing_tx, protocol_manager) = ProtocolManager::new(cm_info);
-// {
-//   // store subscriber manager in state, first checking that the party_id is new
-//   let map = &mut *state.subscriber_manager_map.lock().unwrap();
-//   if map.contains_key(&protocol_manager.cm_info.party_uid) {
-//     return Err(SigningProtocolError::Other("re-used party_id"));
-//   }
-//   let subscriber_manager = SubscriberManager::new(finalized_subscribing_tx);
-//   map.insert(protocol_manager.cm_info.party_uid, Some(subscriber_manager));
-// }
-
-// // Run the protocol.
-// let _outcome = protocol_manager
-//   .subscribe_and_await_subscribers()
-//   .and_then(move |subscribed_party| subscribed_party.sign())
-//   .await
-//   .unwrap()
-//   .get_result()
-//   .as_ref()
-//   .unwrap();
 
 /// Other nodes in the party call this method to subscribe to this node's broadcasts.
 /// The SigningProtocol begins when all nodes in the party have called this method on this node.
@@ -84,20 +59,24 @@ pub async fn subscribe(
   #[allow(unused_mut)] // macro shenanigans fooling our trusty linter
   mut end: Shutdown,
   state: &State<SignerState>,
-) -> Result<EventStream![], SubscribeError> {
+) -> Result<EventStream![], SubscribeErr> {
   // todo error type
   let msg = msg.into_inner();
   info!("got subscribe, with message: {msg:?}");
-  msg.validate_registration().unwrap();
 
-  let mut subscriber_manager_map = state.subscriber_manager_map.lock().unwrap();
-  if !subscriber_manager_map.contains_key(&msg.party_id) {
-    // The CM hasn't yet informed this node of the party. Give CM some time to provide
-    // subscriber details.
+  msg.validate_registration()?;
+
+  if !state.contains_listener(&msg.party_id) {
+    // todo
+    // The CM hasn't yet informed this node of the party.
+    // Wait for a timeout and try again, or else fail
+    return Err(SubscribeErr::Timeout("CM hasn't informed this node yet"));
+  }
+
+  let rx = {
+    let listener = state.listeners.lock().unwrap();
+    let listener = listener.get(&msg.party_id).unwrap();
+    listener.subscribe(&msg)?
   };
-
-  let rx = msg.create_new_subscription(&mut subscriber_manager_map);
-  // maybe unnecessary. Drop the subscriber map before returning to avoid blocking
-  drop(subscriber_manager_map);
-  Ok(SubscribeMessage::create_event_stream(rx, end))
+  Ok(Listener::create_event_stream(rx, end))
 }

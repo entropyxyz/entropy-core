@@ -1,12 +1,14 @@
-//! Errors used in Signing Client
+//! Errors for everyone ✅
 use kvdb::kv_manager::error::InnerKvError;
 use rocket::response::Responder;
 use thiserror::Error;
+use tokio::sync::oneshot::error::RecvError;
 
 // #[derive(Responder, Debug, Error)]
 // #[response(status = 418, content_type = "json")]
+/// Errors for the `new_party` API
 #[derive(Debug, Error)]
-pub enum SigningProtocolError {
+pub enum SigningErr {
   // #[error("Init error: {0}")]
   // Init(&'static str),
   #[error("Kv error: {0}")]
@@ -14,8 +16,10 @@ pub enum SigningProtocolError {
   #[error("TryFrom error: {0}")]
   TryFrom(#[from] InnerKvError),
   // Validation(&'static str),
-  #[error("Subscribing error: {0}")]
-  Subscribing(&'static str),
+  #[error("Oneshot timeout error: {0}")]
+  OneshotTimeout(#[from] RecvError),
+  #[error("Tofn fatal")] // note: TofnFatal doesn't implement Error :-(
+  Subscribe(#[from] SubscribeErr),
   #[error("Tofn fatal")] // note: TofnFatal doesn't implement Error :-(
   // TofnFatal(#[from] TofnFatal),
   TofnFatal(String),
@@ -23,22 +27,29 @@ pub enum SigningProtocolError {
   ProtocolExecution(String),
   #[error("Protocol Outpcut error: {0}")]
   ProtocolOutput(String),
+  #[error("reqwest error: {0}")]
+  Reqwest(#[from] reqwest::Error),
   // #[error("anyhow error: {0}")]
   // Anyhow(#[from] anyhow::Error),
   // #[error("other error: {0}")]
-  // Other(#[from] Box<dyn std::error::Error + Send + Syn>),
+  // Other(#[from] Box<dyn std::error::Error + jSend + Syn>),
 }
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for SigningProtocolError {
+impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
   fn respond_to(self, request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> { todo!() }
 }
 
-#[derive(Responder, Debug)]
+/// Errors for the `subscribe` API
+#[derive(Responder, Debug, Error)]
 #[response(status = 418, content_type = "json")]
-pub enum SubscribeError {
-  // Other(&'static str),
+pub enum SubscribeErr {
+  #[error("Timeout error: {0}")]
+  Timeout(&'static str),
+  // #[error("Validation error: {0}")]
+  // Validation(&'static str),
 }
 
+// todo: delete
 #[derive(Debug, Error)]
 pub enum SigningMessageError {
   #[error("No ':' to split")]

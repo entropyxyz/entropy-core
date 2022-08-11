@@ -11,11 +11,14 @@ use tracing::{info, instrument};
 pub use self::{context::SignContext, signing_message::SigningMessage};
 use crate::{
   sign_init::SignInit,
-  signing_client::{SignerState, SigningProtocolError},
+  signing_client::{SignerState, SigningErr},
 };
 
-pub type Channels = (mpsc::Sender<SigningMessage>, mpsc::Receiver<SigningMessage>);
-type Signature = String; // todo: This should actually be ProtocolOutput
+/// Thin wrapper around message stream in and broadcast channel out
+pub struct Channels(
+  pub futures::stream::BoxStream<'static, SigningMessage>,
+  pub super::subscribe::Broadcaster,
+);
 
 /// corresponds to https://github.com/axelarnetwork/tofnd/blob/0a70c4bb8c86b26804f59d0921dcd3235e85fdc0/src/gg20/service/mod.rs#L12
 /// Thin wrapper around `SignerState`, manages execution of a signing party.
@@ -42,24 +45,11 @@ impl<'a> Gg20Service<'a> {
   /// The Sign Context contains all relevant information for protocol execution, and is mostly
   /// stored in the kvdb, and is otherwise provided by the CM (`SignInit`).
   #[instrument]
-  pub async fn get_sign_context(
-    &self,
-    sign_init: SignInit,
-  ) -> Result<SignContext, SigningProtocolError> {
+  pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, SigningErr> {
     // info!("check_sign_init: {sign_init:?}");
     let party_info: PartyInfo =
       self.kv_manager.kv().get(&sign_init.substrate_key).await?.try_into()?;
     Ok(SignContext::new(sign_init, party_info))
-  }
-
-  #[instrument]
-  pub async fn subscribe_and_await_subscribers(
-    &self,
-    sign_context: &SignContext,
-  ) -> Result<Channels, SigningProtocolError> {
-    // info!("subscribe_and_await_subscribers: {sign_context:?}");
-
-    Err(SigningProtocolError::Subscribing("subscribbb"))
   }
 
   /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/execute.rs#L22
@@ -69,16 +59,16 @@ impl<'a> Gg20Service<'a> {
     &self,
     ctx: &SignContext,
     channels: Channels,
-  ) -> Result<Vec<u8>, SigningProtocolError> {
+  ) -> Result<Vec<u8>, SigningErr> {
     // info!("execute_sign: {ctx:?}");
     let new_sign =
       gg20::sign::new_sign(ctx.group(), &ctx.share, &ctx.sign_parties, ctx.msg_to_sign())
-        .map_err(|e| SigningProtocolError::TofnFatal(format!("{e:?}")))?;
+        .map_err(|e| SigningErr::TofnFatal(format!("{e:?}")))?;
 
     let result =
       protocol::execute_protocol(new_sign, channels, ctx.sign_uids(), &ctx.sign_share_counts)
         .await?
-        .map_err(|e| SigningProtocolError::ProtocolOutput(format!("{e:?}")))?;
+        .map_err(|e| SigningErr::ProtocolOutput(format!("{e:?}")))?;
 
     Ok(result)
   }
@@ -104,7 +94,7 @@ mod protocol {
   use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
   use tracing::{debug, error, span, warn, Level, Span};
 
-  use crate::signing_client::SigningProtocolError;
+  use crate::signing_client::SigningErr;
 
   /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/protocol.rs#L20
   /// execute gg20 protocol
@@ -117,7 +107,7 @@ mod protocol {
     // >,
     party_uids: Vec<String>,
     party_share_counts: &[usize],
-  ) -> Result<ProtocolOutput<F, P>, SigningProtocolError>
+  ) -> Result<ProtocolOutput<F, P>, SigningErr>
   where
     K: Clone,
   {
@@ -154,6 +144,6 @@ mod protocol {
     //   Protocol::NotDone(_) => Err(anyhow!("Protocol failed to complete")),
     //   Protocol::Done(result) => Ok(result),
     // };
-    Err(SigningProtocolError::ProtocolExecution("boom boom".to_string()))
+    Err(SigningErr::ProtocolExecution("boom boom".to_string()))
   }
 }
