@@ -1,3 +1,4 @@
+//! Message sent by the Communication Manager to Signing Clients on protocol initiation.
 use serde::{Deserialize, Serialize};
 // use kvdb::kv_manager::value::PartyInfo;
 // use tokio::sync::mpsc;
@@ -9,8 +10,8 @@ use serde::{Deserialize, Serialize};
 // execution where this node could hold a multiple secret key shares.
 // https://github.com/axelarnetwork/tofnd/blob/cb311ac39e505bdc451d33dcb0228902a80caffe/src/gg20/sign/init.rs#L80
 //
+/// https://github.com/axelarnetwork/grpc-protobuf/blob/21698133e2f025d706f1dffec19637216d968692/grpc.proto#L120
 /// Information passed from the CommunicationManager to all nodes.
-/// corresponds to https://github.com/axelarnetwork/grpc-protobuf/blob/21698133e2f025d706f1dffec19637216d968692/grpc.proto#L120
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SignInit {
   /// Unique id of this signature (may be repeated if this party fails)
@@ -27,6 +28,7 @@ pub struct SignInit {
 }
 
 impl SignInit {
+  #[allow(dead_code)]
   pub fn new(
     party_uid: String,
     ip_addresses: Vec<String>,

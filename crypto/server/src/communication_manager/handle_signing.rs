@@ -23,7 +23,7 @@ use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{
-  communication_manager::errors::CustomIPError, CommunicationManagerState, SignInit,
+  communication_manager::errors::CustomIPError, sign_init::SignInit, CommunicationManagerState,
   SIGNING_PARTY_SIZE,
 };
 

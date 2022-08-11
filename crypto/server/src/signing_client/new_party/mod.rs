@@ -1,7 +1,6 @@
 //! helpers for the `new_party` api
 #![allow(dead_code)]
 mod context;
-mod sign_init;
 mod signing_message;
 
 use kvdb::kv_manager::{value::PartyInfo, KvManager};
@@ -9,8 +8,11 @@ use tofn::gg20;
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
 
-pub use self::{context::SignContext, sign_init::SignInit, signing_message::SigningMessage};
-use super::{SignerState, SigningProtocolError};
+pub use self::{context::SignContext, signing_message::SigningMessage};
+use crate::{
+  sign_init::SignInit,
+  signing_client::{SignerState, SigningProtocolError},
+};
 
 pub type Channels = (mpsc::Sender<SigningMessage>, mpsc::Receiver<SigningMessage>);
 type Signature = String; // todo: This should actually be ProtocolOutput
@@ -36,6 +38,8 @@ impl<'a> Gg20Service<'a> {
     }
   }
 
+  /// The Sign Context contains all relevant information for protocol execution, and is mostly
+  /// stored in the kvdb, and is otherwise provided by the CM (`SignInit`).
   #[instrument]
   pub async fn get_sign_context(
     &self,
@@ -43,7 +47,6 @@ impl<'a> Gg20Service<'a> {
   ) -> Result<SignContext, SigningProtocolError> {
     info!("check_sign_init: {sign_init:?}");
     let party_info: PartyInfo = self.kv_manager.kv().get(&sign_init.key_uid).await?.try_into()?;
-
     Ok(SignContext::new(sign_init, party_info))
   }
 
@@ -53,6 +56,7 @@ impl<'a> Gg20Service<'a> {
     sign_context: &SignContext,
   ) -> Result<Channels, SigningProtocolError> {
     info!("subscribe_and_await_subscribers: {sign_context:?}");
+
     Err(SigningProtocolError::Subscribing("subscribbb"))
   }
 

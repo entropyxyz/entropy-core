@@ -5,7 +5,7 @@ use tofn::{
   multisig::sign::MessageDigest,
 };
 
-use super::sign_init::SignInit;
+use crate::sign_init::SignInit;
 
 /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/types.rs#L30
 /// Context for Signing Protocol execution.

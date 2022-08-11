@@ -7,7 +7,7 @@ use std::{collections::HashMap, sync::Mutex};
 
 pub use self::{
   errors::*,
-  new_party::{SignInit, SigningMessage},
+  new_party::SigningMessage,
   subscriber::{SubscribeMessage, SubscriberManager},
 };
 

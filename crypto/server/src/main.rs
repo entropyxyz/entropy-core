@@ -18,11 +18,10 @@
 #![allow(unused_imports)]
 
 mod communication_manager;
+pub(crate) mod sign_init;
 mod signing_client;
 mod user;
 mod utils;
-
-pub use signing_client::SignInit; // used by signing_client and communication_manager
 
 #[macro_use] extern crate rocket;
 use rocket::routes;
