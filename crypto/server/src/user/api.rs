@@ -1,25 +1,29 @@
+use kvdb::kv_manager::{value::PartyInfo, KvManager};
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use tracing::instrument;
 
-use super::{UserKvEntry, UserKvEntryUnparsed};
-use crate::{signing_client::SignerState, user::NewUserError};
-// use crate::signing_client::{new_party::SignInit, NewUserError, SubscribeError};
+use super::{NewUserError, ParsedUserInputPartyInfo, UserInputPartyInfo};
+use crate::signing_client::SignerState;
 
 /// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
-#[instrument]
+#[instrument(skip(state))]
 #[post("/new", format = "json", data = "<user_input>")]
 pub async fn new_user(
-  user_input: Json<UserKvEntryUnparsed>,
-  state: &State<SignerState>,
+  user_input: Json<UserInputPartyInfo>,
+  state: &State<KvManager>,
 ) -> Result<Status, NewUserError> {
   // ToDo: JA verify proof
   // ToDo: validate is owner of key address
   // ToDo: JA make sure signed so other key doesn't override own key
 
-  let user_input = UserKvEntry::try_from(user_input.into_inner()).unwrap();
-  let kv_manager = &state.kv_manager;
-  let reservation = kv_manager.kv().reserve_key(user_input.key.clone()).await.unwrap();
-  kv_manager.kv().put(reservation, user_input.value.clone()).await.unwrap();
+  // try parsing the input and validate the result
+  let parsed_user_input: ParsedUserInputPartyInfo = user_input.into_inner().try_into()?;
+  let (key, value) = (parsed_user_input.key.clone(), parsed_user_input.value.clone());
+  let party_info: PartyInfo = parsed_user_input.clone().try_into()?;
+
+  // store new user data in kvdb
+  let reservation = state.kv().reserve_key(key).await?;
+  state.kv().put(reservation, value).await?;
 
   Ok(Status::Ok)
 }

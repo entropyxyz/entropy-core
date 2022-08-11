@@ -1,4 +1,5 @@
 use futures::TryFutureExt;
+use kvdb::kv_manager::KvManager;
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use tracing::instrument;
 
@@ -20,15 +21,16 @@ use crate::signing_client::{new_party::SignInit, SubscribeError};
 /// Communication Manager calls this endpoint for each node in the new Signing Party.
 /// The node creates a `ProtocolManager` to run the protocol, and a SubscriberManager to manage
 /// subscribed nodes. This method should run the protocol, returning the result.
-#[instrument]
+#[instrument(skip(kv_manager))]
 #[post("/new_party", format = "json", data = "<info>")]
 pub async fn new_party(
   info: Json<SignInit>,
   state: &State<SignerState>,
+  kv_manager: &State<KvManager>,
 ) -> Result<Status, SigningProtocolError> {
   let info = info.into_inner();
   info!("new_party: {info:?}");
-  let gg20_service = Gg20Service::new(state);
+  let gg20_service = Gg20Service::new(state, kv_manager);
 
   // set up context for signing protocol execution
   let sign_context = gg20_service.get_sign_context(info).await?;

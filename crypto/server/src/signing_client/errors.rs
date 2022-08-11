@@ -10,9 +10,9 @@ pub enum SigningProtocolError {
   // #[error("Init error: {0}")]
   // Init(&'static str),
   #[error("Kv error: {0}")]
-  KvError(#[from] kvdb::kv_manager::error::KvError),
+  Kv(#[from] kvdb::kv_manager::error::KvError),
   #[error("TryFrom error: {0}")]
-  TryFromError(#[from] InnerKvError),
+  TryFrom(#[from] InnerKvError),
   // Validation(&'static str),
   #[error("Subscribing error: {0}")]
   Subscribing(&'static str),
@@ -43,7 +43,7 @@ pub enum SigningMessageError {
   #[error("No ':' to split")]
   BadSplit,
   #[error("Utf8Error: {0:?}")]
-  Utf8Error(#[from] std::str::Utf8Error),
+  Utf8(#[from] std::str::Utf8Error),
   #[error("Deserialization Error: {0:?}")]
-  DeserializationError(#[from] serde_json::Error),
+  Deserialization(#[from] serde_json::Error),
 }

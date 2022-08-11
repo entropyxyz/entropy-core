@@ -4,7 +4,7 @@ mod context;
 mod sign_init;
 mod signing_message;
 
-use kvdb::kv_manager::value::PartyInfo;
+use kvdb::kv_manager::{value::PartyInfo, KvManager};
 use tofn::gg20;
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
@@ -17,15 +17,22 @@ type Signature = String; // todo: This should actually be ProtocolOutput
 
 /// corresponds to https://github.com/axelarnetwork/tofnd/blob/0a70c4bb8c86b26804f59d0921dcd3235e85fdc0/src/gg20/service/mod.rs#L12
 /// Thin wrapper around `SignerState`, manages execution of a signing party.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Gg20Service<'a> {
-  pub state: &'a SignerState,
+  pub state:      &'a SignerState,
+  pub kv_manager: &'a KvManager,
+}
+
+impl std::fmt::Debug for Gg20Service<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("Gg20Service").field("state", &self.state).finish()
+  }
 }
 
 impl<'a> Gg20Service<'a> {
-  pub fn new(state: &'a SignerState) -> Self {
+  pub fn new(state: &'a SignerState, kv_manager: &'a KvManager) -> Self {
     {
-      Self { state }
+      Self { state, kv_manager }
     }
   }
 
@@ -35,8 +42,7 @@ impl<'a> Gg20Service<'a> {
     sign_init: SignInit,
   ) -> Result<SignContext, SigningProtocolError> {
     info!("check_sign_init: {sign_init:?}");
-    let party_info: PartyInfo =
-      self.state.kv_manager.kv().get(&sign_init.key_uid).await?.try_into()?;
+    let party_info: PartyInfo = self.kv_manager.kv().get(&sign_init.key_uid).await?.try_into()?;
 
     Ok(SignContext::new(sign_init, party_info))
   }
@@ -66,7 +72,7 @@ impl<'a> Gg20Service<'a> {
     let result =
       protocol::execute_protocol(new_sign, channels, ctx.sign_uids(), &ctx.sign_share_counts)
         .await?;
-        
+
     Err(SigningProtocolError::Signing("signnnn".to_string()))
   }
 

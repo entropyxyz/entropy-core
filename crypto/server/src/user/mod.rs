@@ -18,6 +18,7 @@ use std::{
   io::{BufWriter, Write},
 };
 
+use kvdb::kv_manager::value::PartyInfo;
 use rocket::{http::Status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 
@@ -25,16 +26,25 @@ pub use self::errors::*;
 
 /// User input, contains key (substrate key) and value (entropy shard)
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct UserKvEntryUnparsed {
+pub struct UserInputPartyInfo {
   /// User's substrate key
   pub key:   String,
   // An encoded SecretKeyShare for this node
   pub value: Vec<u8>,
 }
 
+impl TryInto<ParsedUserInputPartyInfo> for UserInputPartyInfo {
+  type Error = NewUserError;
+
+  fn try_into(self) -> Result<ParsedUserInputPartyInfo, Self::Error> {
+    // todo!()
+    Err(NewUserError::Parse("error"))
+  }
+}
+
 /// Parsed user input
 #[derive(Debug, Deserialize, Clone)]
-pub struct UserKvEntry {
+pub struct ParsedUserInputPartyInfo {
   /// User's substrate key
   pub key:   String,
   // An encoded SecretKeyShare for this node
@@ -42,8 +52,11 @@ pub struct UserKvEntry {
 }
 
 // TODO(TK)
-impl TryFrom<UserKvEntryUnparsed> for UserKvEntry {
-  type Error = ();
+impl TryInto<PartyInfo> for ParsedUserInputPartyInfo {
+  type Error = NewUserError;
 
-  fn try_from(value: UserKvEntryUnparsed) -> Result<Self, Self::Error> { todo!() }
+  fn try_into(self) -> Result<PartyInfo, Self::Error> {
+    // todo!()
+    Err(NewUserError::InputValidation("error"))
+  }
 }

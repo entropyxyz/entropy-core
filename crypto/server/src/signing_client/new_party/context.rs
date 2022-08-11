@@ -36,12 +36,3 @@ impl SignContext {
 
   pub fn sign_uids(&self) -> &[String] { todo!() }
 }
-
-// /// Struct to hold `tonfd` info. This consists of information we need to
-// /// store in the KV store that is not relevant to `tofn`
-// #[derive(Debug, Clone, Serialize, Deserialize)]
-// pub struct TofndInfo {
-//   pub party_uids:   Vec<String>,
-//   pub share_counts: Vec<usize>,
-//   pub index:        usize,
-// }

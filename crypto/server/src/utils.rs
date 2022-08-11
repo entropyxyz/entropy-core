@@ -1,6 +1,7 @@
 //! Utilities for starting and running the server.
 
 use bip39::{Language, Mnemonic};
+use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use serde::Deserialize;
 
 const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
@@ -35,3 +36,15 @@ impl Configuration {
 }
 
 fn default_endpoint() -> String { DEFAULT_ENDPOINT.to_string() }
+
+pub(super) fn load_kv_store() -> KvManager {
+  if cfg!(test) {
+    KvManager::new(kvdb::get_db_path().into(), PasswordMethod::NoPassword.execute().unwrap())
+      .unwrap()
+  } else {
+    let root = project_root::get_project_root().unwrap();
+    let password = PasswordMethod::Prompt.execute().unwrap();
+    // this step takes a long time due to password-based decryption
+    KvManager::new(root, password).unwrap()
+  }
+}

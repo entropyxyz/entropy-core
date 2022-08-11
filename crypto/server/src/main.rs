@@ -1,8 +1,15 @@
-//! # Signing Client
+//! # Server
 //!
 //! ## Overview
 //!
-//! Signing Client, to be run by every Entropy node. Also see Communication Manager.
+//! Consists of three core routes:
+//! - "/user/new" - add a user to the system
+//! (I'd rename cm/handle_signing to cm/new_party)
+//! - "/cm/handle_signing" - endpoint for the CM to be informed to start a signing protocol
+//! - "/signer/new_party" - endpoint for the CM to start a signing protocol
+//!
+//! CM also has a route "/cm/provide_share", but this is in the process of being swapped out for
+//! on-chain public storage of the knowledge of which nodes hold which shares.
 //!
 //! ## Pieces Launched
 //! - Rocket server - Includes global state and mutex locked IPs
@@ -15,32 +22,34 @@ mod signing_client;
 mod user;
 mod utils;
 
-pub use signing_client::SignInit;
+pub use signing_client::SignInit; // used by signing_client and communication_manager
 
 #[macro_use] extern crate rocket;
 use rocket::routes;
 
-use crate::{
+use self::{
   communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState},
   signing_client::{api::*, SignerState},
   user::api::*,
-  utils::{init_tracing, Configuration},
+  utils::{init_tracing, load_kv_store, Configuration},
 };
 
 pub const SIGNING_PARTY_SIZE: usize = 6;
 
-#[launch] // initializes an async Rocket-specialized runtime
+#[launch]
 async fn rocket() -> _ {
   init_tracing();
   let signer_state = SignerState::default();
   let cm_state = CommunicationManagerState::default();
   let configuration = Configuration::new();
+  let kv_store = load_kv_store();
 
   rocket::build()
     .mount("/user", routes![new_user])
     .mount("/signer", routes![new_party, subscribe])
-    .manage(signer_state)
     .mount("/cm", routes![provide_share, handle_signing])
+    .manage(signer_state)
     .manage(cm_state)
     .manage(configuration)
+    .manage(kv_store)
 }
