@@ -3,6 +3,7 @@ mod listener;
 mod message;
 
 use futures::{future, stream::BoxStream, StreamExt};
+pub(super) use listener::Receiver;
 
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
 use super::{new_party::SignContext, SigningErr, SigningMessage};

@@ -44,8 +44,10 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
 #[derive(Responder, Debug, Error)]
 #[response(status = 418, content_type = "json")]
 pub enum SubscribeErr {
-  #[error("Timeout error: {0}")]
-  Timeout(&'static str),
+  // #[error("Timeout error: {0}")]
+  // Timeout(&'static str),
+  #[error("no listener: {0}")]
+  NoListener(&'static str),
   // #[error("Validation error: {0}")]
   // Validation(&'static str),
 }

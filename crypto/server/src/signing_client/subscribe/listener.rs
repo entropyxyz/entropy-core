@@ -13,7 +13,10 @@ use tokio::{
 };
 
 use super::{Broadcaster, SubscribeMessage};
-use crate::signing_client::{SigningMessage, SubscribeErr};
+use crate::{
+  signing_client::{SigningMessage, SubscribeErr},
+  SIGNING_PARTY_SIZE,
+};
 
 pub type ListenerResult = Result<Broadcaster, SubscribeErr>;
 
@@ -21,9 +24,16 @@ pub type ListenerResult = Result<Broadcaster, SubscribeErr>;
 pub struct Listener {
   // party_id: String,
   /// Endpoint to create subscriptions
-  tx:       broadcast::Sender<SigningMessage>,
+  tx:               broadcast::Sender<SigningMessage>,
   /// Endpoint to notify protocol execution ready-for-signing
-  tx_ready: oneshot::Sender<ListenerResult>,
+  tx_ready:         oneshot::Sender<ListenerResult>,
+  /// Count of nodes who've poked `subscribe`
+  subscriber_count: usize,
+}
+
+pub enum Receiver {
+  Receiver(broadcast::Receiver<SigningMessage>),
+  FinalReceiver(broadcast::Receiver<SigningMessage>),
 }
 
 impl Listener {
@@ -31,34 +41,19 @@ impl Listener {
     let (tx_ready, rx_ready) = oneshot::channel();
     let (tx, _rx) = broadcast::channel(1000);
     {
-      (rx_ready, Self { tx, tx_ready })
+      (rx_ready, Self { tx, tx_ready, subscriber_count: 0 })
     }
   }
 
-  // #[instrument]
-  // pub(crate) async fn subscribe_and_await_subscribers(
-  //   &self,
-  //   sign_context: &SignContext,
-  // ) -> Result<Channels, SigningErr> {
-  //   info!("subscribe_and_await_subscribers: {sign_context:?}");
-
-  //   Err(SigningErr::Subscribing("subscribbb"))
-  // }
-
-  /// Update Self with a new subscriber.
-  /// If this was the final subscriber, send broadcast_tx back to the ProtocolManager.
-  // pub(super) fn new_subscriber(&mut self) -> broadcast::Receiver<SigningMessage> {
-  //   assert!(!self.done);
-  //   self.count += 1;
-  //   let rx = self.broadcast_tx.as_ref().unwrap().subscribe();
-  //   if self.count == SIGNING_PARTY_SIZE {
-  //     self.done = true;
-  //     let broadcast_tx = self.broadcast_tx.take().unwrap();
-  //     let finalized_tx = self.finalized_tx.take().unwrap();
-  //     let _ = finalized_tx.send(broadcast_tx);
-  //   }
-  //   rx
-  // }
+  pub(crate) fn subscribe(&mut self, msg: &SubscribeMessage) -> Result<Receiver, SubscribeErr> {
+    self.subscriber_count += 1;
+    let rx = self.tx.subscribe();
+    if self.subscriber_count == SIGNING_PARTY_SIZE {
+      Ok(Receiver::FinalReceiver(rx))
+    } else {
+      Ok(Receiver::Receiver(rx))
+    }
+  }
 
   /// Yield messages as events in a stream as they arrive. Helper for `subscribe`.
   pub(crate) fn create_event_stream(
@@ -81,16 +76,7 @@ impl Listener {
     }
   }
 
-  /// Retreive the SubscriberManager for this party, update it with a new subscriber.
-  pub(crate) fn subscribe(
-    &self,
-    msg: &SubscribeMessage,
-    // map: &mut HashMap<String, Option<Broadcaster>>,
-  ) -> Result<broadcast::Receiver<SigningMessage>, SubscribeErr> {
-    // let mut subscriber_manager = map.remove(&self.party_id).unwrap().unwrap();
-    // let rx = subscriber_manager.new_subscriber();
-    // map.insert(self.party_id.to_string(), Some(subscriber_manager));
-    // Ok(rx)
-    todo!();
+  pub(crate) fn into_broadcaster(self) -> (oneshot::Sender<ListenerResult>, Broadcaster) {
+    (self.tx_ready, Broadcaster(self.tx))
   }
 }

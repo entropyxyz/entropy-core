@@ -6,10 +6,12 @@ use crate::{
   sign_init::SignInit,
   signing_client::{
     new_party::{Channels, Gg20Service},
-    subscribe::{subscribe_all, Listener},
+    subscribe::{subscribe_all, Listener, Receiver},
     SignerState, SigningErr, SubscribeErr, SubscribeMessage,
   },
 };
+
+const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 2;
 
 /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/mod.rs#L39
 /// Endpoint for Communication Manager to initiate a new signing party.
@@ -48,33 +50,39 @@ pub async fn new_party(
 
 /// Other nodes in the party call this method to subscribe to this node's broadcasts.
 /// The SigningProtocol begins when all nodes in the party have called this method on this node.
-// TODO(TK): If the CM hasn't called `new_party` on this node yet. Let the map drop, wait
-// for a time-out so that CM can access the subscriber_map, and try again.
 #[instrument]
 #[post("/subscribe", data = "<msg>")]
 pub async fn subscribe(
   msg: Json<SubscribeMessage>,
-  #[allow(unused_mut)] // macro shenanigans fooling our trusty linter
-  mut end: Shutdown,
+  end: Shutdown,
   state: &State<SignerState>,
 ) -> Result<EventStream![], SubscribeErr> {
-  // todo error type
   let msg = msg.into_inner();
+  msg.validate_registration()?;
   info!("got subscribe, with message: {msg:?}");
 
-  msg.validate_registration()?;
-
   if !state.contains_listener(&msg.party_id) {
-    // todo
-    // The CM hasn't yet informed this node of the party.
-    // Wait for a timeout and try again, or else fail
-    return Err(SubscribeErr::Timeout("Subscribe timeout"));
-  }
+    // CM hasn't yet informed this node of the party. Wait for a timeout and procede (or fail below)
+    tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
+  };
 
   let rx = {
-    let listener = state.listeners.lock().unwrap();
-    let listener = listener.get(&msg.party_id).unwrap();
-    listener.subscribe(&msg)?
+    let mut listeners = state.listeners.lock().unwrap();
+    let listener = listeners.get_mut(&msg.party_id).ok_or(SubscribeErr::NoListener("no"))?;
+    let rx_outcome = listener.subscribe(&msg)?;
+
+    // If this is the last subscriber, remove the listener from state
+    match rx_outcome {
+      Receiver::Receiver(rx) => rx,
+      Receiver::FinalReceiver(rx) => {
+        // all subscribed, wake up the waiting listener in new_party
+        let listener = listeners.remove(&msg.party_id).unwrap();
+        let (tx, broadcaster) = listener.into_broadcaster();
+        let _ = tx.send(Ok(broadcaster));
+        rx
+      },
+    }
   };
+
   Ok(Listener::create_event_stream(rx, end))
 }
