@@ -324,7 +324,7 @@ async fn test_have_keyshare() {
 // 	let key_uid = Uuid::new_v4(); // todo: get key_uid
 // 	let msg = "".into(); // todo: get message
 // 	let info_unchecked =
-// 		CMInfoUnchecked::new(party_id, ip_addresses.clone(), key_uid, msg, sig_uid);
+// 		CMInfo::new(party_id, ip_addresses.clone(), key_uid, msg, sig_uid);
 
 // 	let response = client
 // 		.post("/new_party")
