@@ -17,7 +17,7 @@ pub enum SigningProtocolError {
   #[error("Subscribing error: {0}")]
   Subscribing(&'static str),
   #[error("Signing error: {0}")]
-  Signing(&'static str),
+  Signing(String),
   // #[error("Tofn fatal")] // note: TofnFatal doesn't implement Error :-(
   // TofnFatal(#[from] TofnFatal),
   #[error("Protocol Execution error: {0}")]

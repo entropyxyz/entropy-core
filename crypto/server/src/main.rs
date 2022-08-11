@@ -15,15 +15,10 @@ mod signing_client;
 mod user;
 mod utils;
 
-use std::{collections::HashMap, sync::Mutex};
-
 pub use signing_client::SignInit;
 
 #[macro_use] extern crate rocket;
-use bip39::{Language, Mnemonic};
-use kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use rocket::routes;
-use serde::Deserialize;
 
 use crate::{
   communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState},

@@ -1,10 +1,6 @@
 //! Utilities for starting and running the server.
 
-use std::{collections::HashMap, sync::Mutex};
-
 use bip39::{Language, Mnemonic};
-use kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
-use rocket::routes;
 use serde::Deserialize;
 
 const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";

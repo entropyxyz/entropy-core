@@ -10,7 +10,7 @@ use tokio::sync::mpsc;
 use tracing::{info, instrument};
 
 pub use self::{context::SignContext, sign_init::SignInit, signing_message::SigningMessage};
-use super::{SignerState, SigningProtocolError, SubscribeError};
+use super::{SignerState, SigningProtocolError};
 
 pub type Channels = (mpsc::Sender<SigningMessage>, mpsc::Receiver<SigningMessage>);
 type Signature = String; // todo: This should actually be ProtocolOutput
@@ -61,13 +61,13 @@ impl<'a> Gg20Service<'a> {
     info!("execute_sign: {ctx:?}");
     let new_sign =
       gg20::sign::new_sign(ctx.group(), &ctx.share, &ctx.sign_parties, ctx.msg_to_sign())
-        .map_err(|e| SigningProtocolError::Signing("tofn fatal error"))?;
+        .map_err(|e| SigningProtocolError::Signing(format!("tofn fatal error: {e:?}")))?;
 
     let result =
       protocol::execute_protocol(new_sign, channels, ctx.sign_uids(), &ctx.sign_share_counts)
         .await?;
-
-    Err(SigningProtocolError::Signing("signnnn"))
+        
+    Err(SigningProtocolError::Signing("signnnn".to_string()))
   }
 
   // placeholder for any result handling
@@ -81,6 +81,7 @@ impl<'a> Gg20Service<'a> {
 mod protocol {
   #![allow(dead_code)]
   #![allow(unused_variables)]
+  #![allow(unused_imports)]
   #![allow(unused_mut)]
   use anyhow::anyhow;
   use tofn::{
