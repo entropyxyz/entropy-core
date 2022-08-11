@@ -15,7 +15,6 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-  use sp_std::fmt::Debug;
   use frame_support::{
     dispatch::Dispatchable,
     pallet_prelude::*,
@@ -23,9 +22,11 @@ pub mod pallet {
     weights::{GetDispatchInfo, PostDispatchInfo},
   };
   use frame_system::{pallet_prelude::*, RawOrigin};
-  use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
-  use sp_runtime::transaction_validity::{TransactionValidityError, InvalidTransaction};
-  use sp_std::prelude::*;
+  use sp_runtime::{
+    traits::{DispatchInfoOf, SignedExtension},
+    transaction_validity::{InvalidTransaction, TransactionValidityError},
+  };
+  use sp_std::{fmt::Debug, prelude::*};
 
   #[pallet::config]
   pub trait Config: frame_system::Config {
@@ -37,7 +38,6 @@ pub mod pallet {
       + Dispatchable<Origin = Self::Origin, PostInfo = PostDispatchInfo>
       + GetDispatchInfo;
   }
-
 
   #[pallet::pallet]
   #[pallet::generate_store(pub(super) trait Store)]
@@ -54,16 +54,12 @@ pub mod pallet {
 
   #[cfg(feature = "std")]
   impl Default for GenesisConfig {
-    fn default() -> Self {
-      Self { free_calls_left: 2u8 }
-    }
+    fn default() -> Self { Self { free_calls_left: 2u8 } }
   }
 
   #[pallet::genesis_build]
   impl<T: Config> GenesisBuild<T> for GenesisConfig {
-    fn build(&self) {
-      <FreeCallsLeft<T>>::put(&self.free_calls_left);
-    }
+    fn build(&self) { <FreeCallsLeft<T>>::put(&self.free_calls_left); }
   }
 
   #[pallet::event]
@@ -118,7 +114,6 @@ pub mod pallet {
   }
 
   impl<T: Config> Pallet<T> {
-
     /// Checks if account has any free txs.
     pub fn check_free_call(_account_id: &<T>::AccountId) -> Option<FreeCallMethod> {
       if let Some(calls) = Self::free_calls_left() {
@@ -133,19 +128,18 @@ pub mod pallet {
       // can we skip check_free_call? race conditions?
       if Self::check_free_call(account_id).is_some() {
         <FreeCallsLeft<T>>::mutate(|calls| {
-            if let Some(calls) = calls {
-                *calls -= 1;
-            }
+          if let Some(calls) = calls {
+            *calls = calls.saturating_sub(1u8);
+          }
         });
         return true;
       }
       false
     }
-
   }
 
-
-  /// This makes it easy to add additional free call sources (eg. NFT, Proof of work, daily limit, etc.)
+  /// This makes it easy to add additional free call sources (eg. NFT, Proof of work, daily limit,
+  /// etc.)
   // pub trait FreeCallSource<T: Config> {
   //   fn check_free_call
   //   fn process_free_call(&self, account_id: &<T as Config>::AccountId) -> bool;
@@ -159,7 +153,8 @@ pub mod pallet {
 
   // TODO JH Prevalidation logic
 
-  /// Verifies that the account has free calls available before executing or broadcasting to other validators.
+  /// Verifies that the account has free calls available before executing or broadcasting to other
+  /// validators.
   #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
   #[scale_info(skip_type_params(T))]
   pub struct InterrogateFreeTransaction<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
@@ -187,9 +182,10 @@ pub mod pallet {
   where <T as frame_system::Config>::Call: IsSubType<Call<T>>
   {
     type AccountId = T::AccountId;
-    type Call = <T as frame_system::Config>::Call;
     type AdditionalSigned = ();
+    type Call = <T as frame_system::Config>::Call;
     type Pre = ();
+
     const IDENTIFIER: &'static str = "InterrogateFreeTransaction";
 
     fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
@@ -216,8 +212,8 @@ pub mod pallet {
       if let Some(local_call) = call.is_sub_type() {
         if let Call::try_free_call { .. } = local_call {
           return match Pallet::<T>::check_free_call(who) {
-            None => { Err(TransactionValidityError::Invalid(InvalidTransaction::Payment)) }
-            Some(_) => { Ok(ValidTransaction::default()) }
+            None => Err(TransactionValidityError::Invalid(InvalidTransaction::Payment)),
+            Some(_) => Ok(ValidTransaction::default()),
           };
         }
       }
