@@ -1325,6 +1325,7 @@ mod benches {
     [pallet_democracy, Democracy]
     [pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
     [pallet_elections_phragmen, Elections]
+    [pallet_free_tx, FreeTx]
     [pallet_staking_extension, StakingExtension]
     [pallet_grandpa, Grandpa]
     [pallet_im_online, ImOnline]
