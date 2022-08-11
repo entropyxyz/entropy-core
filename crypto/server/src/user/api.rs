@@ -2,7 +2,7 @@ use kvdb::kv_manager::{value::PartyInfo, KvManager};
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use tracing::instrument;
 
-use super::{NewUserError, ParsedUserInputPartyInfo, UserInputPartyInfo};
+use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::signing_client::SignerState;
 
 /// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
@@ -11,7 +11,7 @@ use crate::signing_client::SignerState;
 pub async fn new_user(
   user_input: Json<UserInputPartyInfo>,
   state: &State<KvManager>,
-) -> Result<Status, NewUserError> {
+) -> Result<Status, UserErr> {
   // ToDo: JA verify proof
   // ToDo: validate is owner of key address
   // ToDo: JA make sure signed so other key doesn't override own key

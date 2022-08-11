@@ -34,11 +34,11 @@ pub struct UserInputPartyInfo {
 }
 
 impl TryInto<ParsedUserInputPartyInfo> for UserInputPartyInfo {
-  type Error = NewUserError;
+  type Error = UserErr;
 
   fn try_into(self) -> Result<ParsedUserInputPartyInfo, Self::Error> {
     // todo!()
-    Err(NewUserError::Parse("error"))
+    Err(UserErr::Parse("error"))
   }
 }
 
@@ -53,10 +53,10 @@ pub struct ParsedUserInputPartyInfo {
 
 // TODO(TK)
 impl TryInto<PartyInfo> for ParsedUserInputPartyInfo {
-  type Error = NewUserError;
+  type Error = UserErr;
 
   fn try_into(self) -> Result<PartyInfo, Self::Error> {
     // todo!()
-    Err(NewUserError::InputValidation("error"))
+    Err(UserErr::InputValidation("error"))
   }
 }

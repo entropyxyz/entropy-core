@@ -5,7 +5,7 @@ use thiserror::Error;
 // #[derive(Responder, Debug)]
 // #[response(status = 418, content_type = "json")]
 #[derive(Debug, Error)]
-pub enum NewUserError {
+pub enum UserErr {
   #[error("Parse error: {0}")]
   Parse(&'static str),
   #[error("Input Validation error: {0}")]
@@ -15,6 +15,6 @@ pub enum NewUserError {
   // Other(&'static str),
 }
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for NewUserError {
+impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {
   fn respond_to(self, request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> { todo!() }
 }
