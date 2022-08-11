@@ -16,12 +16,13 @@ pub enum SigningProtocolError {
   // Validation(&'static str),
   #[error("Subscribing error: {0}")]
   Subscribing(&'static str),
-  #[error("Signing error: {0}")]
-  Signing(String),
-  // #[error("Tofn fatal")] // note: TofnFatal doesn't implement Error :-(
+  #[error("Tofn fatal")] // note: TofnFatal doesn't implement Error :-(
   // TofnFatal(#[from] TofnFatal),
+  TofnFatal(String),
   #[error("Protocol Execution error: {0}")]
-  ProtocolExecution(&'static str),
+  ProtocolExecution(String),
+  #[error("Protocol Outpcut error: {0}")]
+  ProtocolOutput(String),
   // #[error("anyhow error: {0}")]
   // Anyhow(#[from] anyhow::Error),
   // #[error("other error: {0}")]

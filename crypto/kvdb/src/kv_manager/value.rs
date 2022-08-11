@@ -21,18 +21,18 @@ pub struct Entropy(pub Vec<u8>);
 /// Struct to hold `tonfd` info. This consists of information we need to
 /// store in the KV store that is not relevant to `tofn`
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(super) struct TofndInfo {
-  pub(super) party_uids:   Vec<String>,
-  pub(super) share_counts: Vec<usize>,
-  pub(super) index:        usize,
+pub struct TofndInfo {
+  pub party_uids:   Vec<String>,
+  pub share_counts: Vec<usize>,
+  pub index:        usize,
 }
 
 /// `KeyShareKv` record
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PartyInfo {
-  pub(super) common: GroupPublicInfo,
-  pub(super) shares: Vec<ShareSecretInfo>,
-  pub(super) tofnd:  TofndInfo,
+  pub common: GroupPublicInfo,
+  pub shares: Vec<ShareSecretInfo>,
+  pub tofnd:  TofndInfo,
 }
 /// Kv manager for grpc services
 #[derive(Clone)]

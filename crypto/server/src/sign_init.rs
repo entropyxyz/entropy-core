@@ -1,10 +1,7 @@
 //! Message sent by the Communication Manager to Signing Clients on protocol initiation.
 use serde::{Deserialize, Serialize};
-// use kvdb::kv_manager::value::PartyInfo;
-// use tokio::sync::mpsc;
-// use tracing::{info, instrument};
 
-// use super::{SignerState, SigningProtocolError, SubscribeError};
+pub type MessageDigest = tofn::gg20::sign::MessageDigest;
 
 // CLAIM(TK): The saniziting check required by the tofnd library is only required for a protocol
 // execution where this node could hold a multiple secret key shares.
@@ -15,51 +12,33 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SignInit {
   /// Unique id of this signature (may be repeated if this party fails)
-  pub sig_uid:      String,
-  /// Unique id of user's key (for retreival from kv-store)
-  pub key_uid:      String,
-  /// Unique id of this signing party
-  pub party_uid:    String,
-  /// IP addresses of each node in the party. This is not an unordered list! Each node is
-  /// expected to be at the index it will use for the signing protocol.
-  pub ip_addresses: Vec<String>,
+  pub sig_uid:       String,
+  /// identifiers of the participating parties
+  // TK: @JA: What to use for this? IP addresses? Substrate keys?
+  pub signer_uids: Vec<String>,
+  /// The index of the evaluated Shamir Polynomial held by each signer
+  pub signer_idxs:   Vec<usize>,
   /// Hash of the message to sign
-  pub msg:          String,
+  pub msg:           MessageDigest,
+  /// Unique id of this signing party.
+  /// If a prior party failed, repeat with a new `party_id`, but the same `sig_uid`
+  pub party_uid:     String,
+  /// User's substrate key. The `key` in the kv-store.
+  pub substrate_key: String,
 }
 
 impl SignInit {
+  // TODO(TK): option to make msg Bytes, and have `new` do input validation
+  // todo: placeholder for actual logic
   #[allow(dead_code)]
   pub fn new(
+    sig_uid: String,
+    signer_uids: Vec<String>,
+    signer_idxs: Vec<usize>,
+    msg: MessageDigest,
     party_uid: String,
-    ip_addresses: Vec<String>,
-    key_uid: String,
-    msg: String,
-    repeated_sig_uid: Option<String>,
+    substrate_key: String,
   ) -> Self {
-    // let sig_uid = if let Some(uid) = repeated_sig_uid { uid } else { Uuid::new_v4() };
-    let sig_uid = if let Some(uid) = repeated_sig_uid { uid } else { "".to_string() };
-    Self { party_uid, ip_addresses, sig_uid, key_uid, msg }
+    Self { sig_uid, signer_uids, signer_idxs, msg, party_uid, substrate_key }
   }
 }
-
-// impl StoredInfo {
-// 	/// Get GroupPublicInfo and ShareSecretInfo from tofn to create PartyInfo
-// 	/// Also needed in recovery
-// 	pub fn get_party_info(
-// 		secret_key_shares: Vec<SecretKeyShare>,
-// 		uids: Vec<String>,
-// 		share_counts: Vec<usize>,
-// 		tofnd_index: usize,
-// 	) -> Self {
-// 		// grap the first share to acquire common data
-// 		let common = secret_key_shares[0].group().clone();
-
-// 		// aggregate share data into a vector
-// 		let shares = secret_key_shares.into_iter().map(|share| share.share().clone()).collect();
-
-// 		// add tofnd data
-// 		let tofnd = TofndInfo { party_uids: uids, share_counts, index: tofnd_index };
-
-// 		PartyInfo { common, shares, tofnd }
-// 	}
-// }

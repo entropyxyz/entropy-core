@@ -1,4 +1,4 @@
-//! helpers for the `new_party` api
+//! protocol runner for the `new_party` api
 #![allow(dead_code)]
 mod context;
 mod signing_message;
@@ -26,6 +26,7 @@ pub struct Gg20Service<'a> {
 }
 
 impl std::fmt::Debug for Gg20Service<'_> {
+  // skip kv_manager
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("Gg20Service").field("state", &self.state).finish()
   }
@@ -45,8 +46,9 @@ impl<'a> Gg20Service<'a> {
     &self,
     sign_init: SignInit,
   ) -> Result<SignContext, SigningProtocolError> {
-    info!("check_sign_init: {sign_init:?}");
-    let party_info: PartyInfo = self.kv_manager.kv().get(&sign_init.key_uid).await?.try_into()?;
+    // info!("check_sign_init: {sign_init:?}");
+    let party_info: PartyInfo =
+      self.kv_manager.kv().get(&sign_init.substrate_key).await?.try_into()?;
     Ok(SignContext::new(sign_init, party_info))
   }
 
@@ -55,34 +57,35 @@ impl<'a> Gg20Service<'a> {
     &self,
     sign_context: &SignContext,
   ) -> Result<Channels, SigningProtocolError> {
-    info!("subscribe_and_await_subscribers: {sign_context:?}");
+    // info!("subscribe_and_await_subscribers: {sign_context:?}");
 
     Err(SigningProtocolError::Subscribing("subscribbb"))
   }
 
   /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/execute.rs#L22
   /// handle signing protocol execution.
-  #[instrument]
+  #[instrument(skip(channels))]
   pub async fn execute_sign(
     &self,
     ctx: &SignContext,
     channels: Channels,
-  ) -> Result<Signature, SigningProtocolError> {
-    info!("execute_sign: {ctx:?}");
+  ) -> Result<Vec<u8>, SigningProtocolError> {
+    // info!("execute_sign: {ctx:?}");
     let new_sign =
       gg20::sign::new_sign(ctx.group(), &ctx.share, &ctx.sign_parties, ctx.msg_to_sign())
-        .map_err(|e| SigningProtocolError::Signing(format!("tofn fatal error: {e:?}")))?;
+        .map_err(|e| SigningProtocolError::TofnFatal(format!("{e:?}")))?;
 
     let result =
       protocol::execute_protocol(new_sign, channels, ctx.sign_uids(), &ctx.sign_share_counts)
-        .await?;
+        .await?
+        .map_err(|e| SigningProtocolError::ProtocolOutput(format!("{e:?}")))?;
 
-    Err(SigningProtocolError::Signing("signnnn".to_string()))
+    Ok(result)
   }
 
   // placeholder for any result handling
   #[instrument]
-  pub fn handle_result(&self, signature: &Signature, sign_context: &SignContext) {
+  pub fn handle_result(&self, signature: &[u8], sign_context: &SignContext) {
     info!("good job team");
   }
 }
@@ -112,7 +115,7 @@ mod protocol {
     //   Option<proto::TrafficIn>,
     //   Result<proto::MessageOut, tonic::Status>,
     // >,
-    party_uids: &[String],
+    party_uids: Vec<String>,
     party_share_counts: &[usize],
   ) -> Result<ProtocolOutput<F, P>, SigningProtocolError>
   where
@@ -151,6 +154,6 @@ mod protocol {
     //   Protocol::NotDone(_) => Err(anyhow!("Protocol failed to complete")),
     //   Protocol::Done(result) => Ok(result),
     // };
-    Err(SigningProtocolError::ProtocolExecution("boom boom"))
+    Err(SigningProtocolError::ProtocolExecution("boom boom".to_string()))
   }
 }
