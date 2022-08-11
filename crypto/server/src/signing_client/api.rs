@@ -68,7 +68,7 @@ pub async fn subscribe(
     // todo
     // The CM hasn't yet informed this node of the party.
     // Wait for a timeout and try again, or else fail
-    return Err(SubscribeErr::Timeout("CM hasn't informed this node yet"));
+    return Err(SubscribeErr::Timeout("Subscribe timeout"));
   }
 
   let rx = {

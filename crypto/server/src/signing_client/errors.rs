@@ -14,7 +14,7 @@ pub enum SigningErr {
   #[error("Kv error: {0}")]
   Kv(#[from] kvdb::kv_manager::error::KvError),
   #[error("TryFrom error: {0}")]
-  TryFrom(#[from] InnerKvError),
+  InnerKv(#[from] InnerKvError),
   // Validation(&'static str),
   #[error("Oneshot timeout error: {0}")]
   OneshotTimeout(#[from] RecvError),
