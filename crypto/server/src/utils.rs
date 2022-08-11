@@ -16,7 +16,7 @@ pub(super) fn init_tracing() {
 #[derive(Deserialize, Debug, Clone)]
 pub struct Configuration {
   #[serde(default = "default_endpoint")]
-  #[allow(dead_code)] // TODO(TK): unused?
+  // #[allow(dead_code)] // TODO(TK): unused?
   pub endpoint: String,
   pub mnemonic: String,
 }

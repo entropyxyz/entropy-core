@@ -1,9 +1,7 @@
-use futures::TryFutureExt;
 use kvdb::kv_manager::KvManager;
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use tracing::instrument;
 
-use super::SigningMessage;
 use crate::{
   sign_init::SignInit,
   signing_client::{
@@ -44,7 +42,7 @@ pub async fn new_party(
   };
 
   let result = gg20_service.execute_sign(&sign_context, channels).await?;
-  // gg20_service.handle_result(&result, &sign_context);
+  gg20_service.handle_result(&result, &sign_context);
   Ok(Status::Ok)
 }
 

@@ -75,6 +75,7 @@ impl<'a> Gg20Service<'a> {
 
   // placeholder for any result handling
   #[instrument]
+  #[allow(unused_variables)]
   pub fn handle_result(&self, signature: &[u8], sign_context: &SignContext) {
     info!("good job team");
   }

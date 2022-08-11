@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-use std::collections::HashMap;
 
 use rocket::{
   response::stream::{Event, EventStream},

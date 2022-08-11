@@ -5,10 +5,11 @@ mod message;
 use futures::{future, stream::BoxStream};
 
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
-use super::{new_party::SignContext, SigningErr, SigningMessage, SubscribeErr};
+use super::{new_party::SignContext, SigningErr, SigningMessage};
 
 /// Call `subscribe` on every other node with a reqwest client. Merge the streamed responses
 /// into a single stream.
+#[allow(unused_variables)]
 pub async fn subscribe_all(
   // &mut self,
   ctx: &SignContext,

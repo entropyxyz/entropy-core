@@ -1,24 +1,6 @@
-use std::collections::HashMap;
-
-use rocket::{
-  response::stream::{Event, EventStream},
-  serde::json::Json,
-  Shutdown, State,
-};
 use serde::{Deserialize, Serialize};
-use tokio::{
-  select,
-  sync::{
-    broadcast::{self, error::RecvError},
-    oneshot,
-  },
-};
-use tracing::instrument;
 
-use crate::{
-  signing_client::{Listener, SigningMessage, SubscribeErr},
-  SignerState, SIGNING_PARTY_SIZE,
-};
+use crate::signing_client::SubscribeErr;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
