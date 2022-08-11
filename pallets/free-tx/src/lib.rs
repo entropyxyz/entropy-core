@@ -36,7 +36,8 @@ pub mod pallet {
     /// Requirements for callable functions
     type Call: Parameter
       + Dispatchable<Origin = Self::Origin, PostInfo = PostDispatchInfo>
-      + GetDispatchInfo;
+      + GetDispatchInfo
+      + From<frame_system::Call<Self>>;
   }
 
   #[pallet::pallet]
