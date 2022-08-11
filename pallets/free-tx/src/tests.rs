@@ -1,9 +1,7 @@
 use frame_support::{assert_err, assert_ok};
-
-use mock::{
-  new_test_ext, Call, Event as TestEvent, Example, ExampleCall, FreeTx, Origin, System,
-};
+use mock::{new_test_ext, Call, Event as TestEvent, FreeTx, Origin, System, SystemCall};
 use sp_runtime::{DispatchError, ModuleError};
+use sp_std::vec::Vec;
 
 use super::*;
 
@@ -13,17 +11,11 @@ fn try_free_call_works() {
     // Set block number to 1 because events are not emitted on block 0.
     System::set_block_number(1);
 
-    // Make sure Example storage is empty
-    assert!(Example::something().is_none());
-
-    // Dispatch a free call that modifies Example storage
-    let call = Box::new(Call::Example(ExampleCall::do_something { something: 5 }));
+    // Dispatch a free call
+    let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
     assert_ok!(FreeTx::try_free_call(Origin::signed(1), call));
 
-    // prove child call did what it was supposed to
-    assert_eq!(Example::something(), Some(5));
-
-    // Make sure the free call event was emitted without an error
+    // Make sure the free call succeeded and event was emitted without an error
     System::assert_has_event(TestEvent::FreeTx(Event::FreeCallIssued(1, Ok(()))));
   });
 }
@@ -34,9 +26,17 @@ fn try_free_call_errors_when_child_call_errors() {
     // Set block number to 1 because events are not emitted on block 0.
     System::set_block_number(1);
 
-    // this call will throw an error (when Something is None)
-    let call = Box::new(Call::Example(ExampleCall::cause_error {}));
-    let expected_error = DispatchError::Module(ModuleError { index: 2, error: [0, 0, 0, 0], message: None });
+    // this call will throw an error
+    let call = Box::new(Call::System(SystemCall::kill_storage {
+      keys: {
+        // This is gross but From<Vec<u8>> isn't implemented
+        // ie Vec::<Vec<u8>>::from(b"this call will fail".to_vec()) won't work
+        let mut vector = Vec::<Vec<u8>>::new();
+        vector.push(b"this call will fail".to_vec());
+        vector
+      },
+    }));
+    let expected_error = DispatchError::BadOrigin;
 
     // Make sure try_free_call returns child call error to user
     assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_error);
@@ -53,17 +53,21 @@ fn try_free_call_errors_when_no_free_calls_left() {
     System::set_block_number(1);
 
     // user gets 1 free call by default, lets use it
-    let call = Box::new(Call::Example(ExampleCall::do_something { something: 5 }));
+    let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
     assert_ok!(FreeTx::try_free_call(Origin::signed(1), call));
 
     // Make sure the child call worked
     System::assert_last_event(TestEvent::FreeTx(Event::FreeCallIssued(1, Ok(()))));
 
     // try to do another free call when user has no free calls left
-    let call = Box::new(Call::Example(ExampleCall::do_something { something: 5 }));
+    let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
 
-    // make sure it fails
-    let expected_error = DispatchError::Module(ModuleError { index: 3, error: [0, 0, 0, 0], message: Some("NoFreeCallsAvailable") });
+    // make sure it fails bc no free calls left
+    let expected_error = DispatchError::Module(ModuleError {
+      index:   2,
+      error:   [0, 0, 0, 0],
+      message: Some("NoFreeCallsAvailable"),
+    });
     assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_error);
   });
 }
@@ -78,7 +82,7 @@ fn try_free_call_consumes_a_free_call() {
     assert!(FreeTx::check_free_call(&1u64).is_some());
 
     // use the free call
-    let call = Box::new(Call::Example(ExampleCall::do_something { something: 5 }));
+    let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
     assert_ok!(FreeTx::try_free_call(Origin::signed(1), call));
 
     // make sure the one free call was consumed
@@ -92,20 +96,30 @@ fn try_free_call_still_consumes_a_free_call_on_child_fail() {
     // Set block number to 1 because events are not emitted on block 0.
     System::set_block_number(1);
 
-    // user gets one free call by default
+    // user gets 1 free call by default
     assert!(FreeTx::check_free_call(&1u64).is_some());
 
     // choose a child call that will fail
-    let call = Box::new(Call::Example(ExampleCall::cause_error {}));
+    let call = Box::new(Call::System(SystemCall::kill_storage {
+      keys: {
+        // This is gross but From<Vec<u8>> isn't implemented
+        // ie Vec::<Vec<u8>>::from(b"this call will fail".to_vec()) won't work
+        let mut vector = Vec::<Vec<u8>>::new();
+        vector.push(b"this call will fail".to_vec());
+        vector
+      },
+    }));
 
-    // Make sure try_free_call fails bc child fails
-    let expected_child_error = DispatchError::Module(ModuleError { index: 2, error: [0, 0, 0, 0], message: None });
+    // Make sure try_free_call fails only bc child fails, not because user has no free calls left
+    let expected_child_error = DispatchError::BadOrigin;
     assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_child_error);
 
     // make sure free call was still consumed
     assert!(FreeTx::check_free_call(&1u64).is_none());
   });
 }
+
+// ---
 
 // TODO JH test InterrogateFreeTx
 // this works when manually tested
@@ -121,7 +135,8 @@ fn try_free_call_still_consumes_a_free_call_on_child_fail() {
 //     // choose a child call that will pass
 //     let call = Box::new(Call::Example(ExampleCall::do_something { something: 5 }));
 //
-//     // let expected_error = DispatchError::Module(ModuleError { index: 2, error: [0, 0, 0, 0], message: None });
+//     // let expected_error = DispatchError::Module(ModuleError { index: 2, error: [0, 0, 0, 0],
+// message: None });
 //
 //     // make sure free call was still consumed
 //     assert!(FreeTx::check_free_call(&1u64).is_none());
