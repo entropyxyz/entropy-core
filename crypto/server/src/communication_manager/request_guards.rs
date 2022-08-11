@@ -18,6 +18,7 @@ use crate::communication_manager::errors::SignedMessageError;
 pub struct SignedMessage<'r>(&'r str);
 
 /// Is it a valid signature (not implemented)
+#[allow(unused_variables)]
 pub fn is_valid(signature: &str) -> bool { true }
 
 #[rocket::async_trait]
@@ -39,6 +40,6 @@ mod tests {
 
   #[test]
   fn is_valid_test() {
-    assert_eq!(is_valid("test"), true);
+    assert!(is_valid("test"));
   }
 }

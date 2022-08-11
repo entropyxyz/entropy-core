@@ -5,7 +5,6 @@ use std::{env, time};
 use kvdb::{
   clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
-use non_substrate_common::CMInfoUnchecked;
 use rocket::{
   http::{ContentType, Status},
   local::asynchronous::Client,
@@ -290,17 +289,17 @@ async fn test_have_keyshare() {
     KvManager::new(get_db_path().into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
 
   let result = does_have_key(&kv_manager.clone(), key.clone()).await;
-  assert_eq!(result, false);
+  assert!(!result);
 
   let reservation = kv_manager.kv().reserve_key(key.clone()).await.unwrap();
   let _ = kv_manager.kv().put(reservation, "dummy".to_owned().as_bytes().to_vec()).await;
 
   let result_2 = does_have_key(&kv_manager.clone(), key.clone()).await;
-  assert_eq!(result_2, true);
+  assert!(result_2);
   // delete key so tests rerun
   kv_manager.kv().delete(&key).await.unwrap();
   let result_3 = does_have_key(&kv_manager, key.clone()).await;
-  assert_eq!(result_3, false);
+  assert!(!result_3);
   clean_tests();
 }
 
@@ -325,7 +324,7 @@ async fn test_have_keyshare() {
 // 	let key_uid = Uuid::new_v4(); // todo: get key_uid
 // 	let msg = "".into(); // todo: get message
 // 	let info_unchecked =
-// 		CMInfoUnchecked::new(party_id, ip_addresses.clone(), key_uid, msg, sig_uid);
+// 		CMInfo::new(party_id, ip_addresses.clone(), key_uid, msg, sig_uid);
 
 // 	let response = client
 // 		.post("/new_party")

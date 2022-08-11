@@ -2594,10 +2594,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9be70c98951c83b8d2f8f60d7065fa6d5146873094452a1008da8c2f1e4205ad"
 dependencies = [
  "cfg-if 1.0.0",
- "js-sys",
  "libc",
  "wasi 0.10.0+wasi-snapshot-preview1",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -4806,15 +4804,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "non-substrate-common"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "serde",
- "uuid",
-]
-
-[[package]]
 name = "ntapi"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5657,7 +5646,6 @@ dependencies = [
  "helpers",
  "lite-json",
  "log",
- "non-substrate-common",
  "pallet-authorship",
  "pallet-babe",
  "pallet-bags-list",
@@ -5751,7 +5739,6 @@ dependencies = [
  "frame-system",
  "helpers",
  "log",
- "non-substrate-common",
  "pallet-authorship",
  "pallet-bags-list",
  "pallet-balances",
@@ -8881,7 +8868,6 @@ dependencies = [
  "kvdb 0.1.0",
  "local-ip",
  "log",
- "non-substrate-common",
  "parity-scale-codec",
  "project-root",
  "reqwest",
