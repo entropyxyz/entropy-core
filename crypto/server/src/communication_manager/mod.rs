@@ -5,6 +5,8 @@ mod handle_signing;
 mod request_guards;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+pub use tests::{get_path, setup_client};
 
 use std::{collections::HashMap, sync::Mutex};
 

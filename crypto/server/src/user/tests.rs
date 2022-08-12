@@ -6,19 +6,9 @@ use rocket::{
 use std::env;
 
 use super::ParsedUserInputPartyInfo;
+use crate::communication_manager::{get_path, setup_client};
 use kvdb::clean_tests;
 use serial_test::serial;
-async fn setup_client() -> rocket::local::asynchronous::Client {
-  Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
-}
-
-fn get_path(extension: &str) -> String {
-  let path = env::current_dir();
-
-  let mut file_path: String = path.unwrap().as_path().display().to_string();
-  file_path.push_str(extension);
-  file_path
-}
 
 #[rocket::async_test]
 #[serial]

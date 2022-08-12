@@ -21,11 +21,11 @@ use super::deprecating_sign::{
   get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
   EntropyRuntime,
 };
-async fn setup_client() -> rocket::local::asynchronous::Client {
+pub async fn setup_client() -> rocket::local::asynchronous::Client {
   Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
 }
 
-fn get_path(extension: &str) -> String {
+pub fn get_path(extension: &str) -> String {
   let path = env::current_dir();
 
   let mut file_path: String = path.unwrap().as_path().display().to_string();
