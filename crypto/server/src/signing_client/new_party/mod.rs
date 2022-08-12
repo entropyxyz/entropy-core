@@ -24,7 +24,7 @@ pub struct Channels(
 /// Thin wrapper around `SignerState`, manages execution of a signing party.
 #[derive(Clone)]
 pub struct Gg20Service<'a> {
-  pub state:      &'a SignerState,
+  pub state: &'a SignerState,
   pub kv_manager: &'a KvManager,
 }
 

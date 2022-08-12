@@ -44,179 +44,175 @@ async fn wait_for_chain(api: &EntropyRuntime, block: u32) {
 #[rocket::async_test]
 #[serial]
 async fn test_sign() {
-	let cxt = test_context_stationary().await;
-	let now = time::Instant::now();
-	let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+  let cxt = test_context_stationary().await;
+  let now = time::Instant::now();
+  let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-	wait_for_chain(&api, 1).await;
+  wait_for_chain(&api, 1).await;
 
-	let encoded_data = vec![
-		4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189,
-		4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162,
-		125,
-	];
-	// Construct a client to use for dispatching requests.
-	let client = setup_client().await;
+  let encoded_data = vec![
+    4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4,
+    169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125,
+  ];
+  // Construct a client to use for dispatching requests.
+  let client = setup_client().await;
 
-	let response = client
-		.post("/cm/provide_share")
-		.body(&encoded_data)
-		.dispatch()
-		.await;
-	assert_eq!(response.status(), Status::Ok);
-	clean_tests();
+  let response = client.post("/cm/provide_share").body(&encoded_data).dispatch().await;
+  assert_eq!(response.status(), Status::Ok);
+  clean_tests();
 }
 
 #[rocket::async_test]
 #[serial]
 async fn provide_share_fail_wrong_data() {
-	// Construct a client to use for dispatching requests.
-	let client = setup_client().await;
+  // Construct a client to use for dispatching requests.
+  let client = setup_client().await;
 
-	let response = client
-		.post("/cm/provide_share")
-		.header(ContentType::new("application", "x-parity-scale-codec"))
-		.body(
-			r##"{
+  let response = client
+    .post("/cm/provide_share")
+    .header(ContentType::new("application", "x-parity-scale-codec"))
+    .body(
+      r##"{
 		"name": "John Doe",
 		"email": "j.doe@m.com",
 		"password": "123456"
 	}"##,
-		)
-		.dispatch()
-		.await;
+    )
+    .dispatch()
+    .await;
 
-	assert_eq!(response.status(), Status::new(500));
-	clean_tests();
+  assert_eq!(response.status(), Status::new(500));
+  clean_tests();
 }
 
 #[rocket::async_test]
 async fn get_is_block_author() {
-	let cxt = test_context().await;
-	let api = get_api(&cxt.node_proc.ws_url).await;
-	let alice_stash_id: subxt::sp_runtime::AccountId32 =
-		sr25519::Pair::from_string("//Alice//stash", None)
-			.expect("Could not obtain stash signer pair")
-			.public()
-			.into();
-	let result = is_block_author(&api.unwrap(), &alice_stash_id).await;
-	assert_eq!(result.unwrap(), true);
+  let cxt = test_context().await;
+  let api = get_api(&cxt.node_proc.ws_url).await;
+  let alice_stash_id: subxt::sp_runtime::AccountId32 =
+    sr25519::Pair::from_string("//Alice//stash", None)
+      .expect("Could not obtain stash signer pair")
+      .public()
+      .into();
+  let result = is_block_author(&api.unwrap(), &alice_stash_id).await;
+  assert_eq!(result.unwrap(), true);
 }
 
 #[rocket::async_test]
 async fn not_is_block_author() {
-	let cxt = test_context().await;
-	let api = get_api(&cxt.node_proc.ws_url).await;
-	let bob_stash_id: subxt::sp_runtime::AccountId32 =
-		sr25519::Pair::from_string("//Bob//stash", None)
-			.expect("Could not obtain stash signer pair")
-			.public()
-			.into();
-	let result = is_block_author(&api.unwrap(), &bob_stash_id).await;
-	assert_eq!(result.unwrap(), false);
+  let cxt = test_context().await;
+  let api = get_api(&cxt.node_proc.ws_url).await;
+  let bob_stash_id: subxt::sp_runtime::AccountId32 =
+    sr25519::Pair::from_string("//Bob//stash", None)
+      .expect("Could not obtain stash signer pair")
+      .public()
+      .into();
+  let result = is_block_author(&api.unwrap(), &bob_stash_id).await;
+  assert_eq!(result.unwrap(), false);
 }
 
 // TODO: JA review this test see if best idea
 #[rocket::async_test]
 #[should_panic = "called `Option::unwrap()` on a `None` value"]
 async fn not_validator_block_author() {
-	let cxt = test_context().await;
-	let api = get_api(&cxt.node_proc.ws_url).await;
-	let bob_stash_id: subxt::sp_runtime::AccountId32 = sr25519::Pair::from_string("//Bob", None)
-		.expect("Could not obtain stash signer pair")
-		.public()
-		.into();
-	let result = is_block_author(&api.unwrap(), &bob_stash_id).await;
-	assert_eq!(result.unwrap(), false);
+  let cxt = test_context().await;
+  let api = get_api(&cxt.node_proc.ws_url).await;
+  let bob_stash_id: subxt::sp_runtime::AccountId32 = sr25519::Pair::from_string("//Bob", None)
+    .expect("Could not obtain stash signer pair")
+    .public()
+    .into();
+  let result = is_block_author(&api.unwrap(), &bob_stash_id).await;
+  assert_eq!(result.unwrap(), false);
 }
 
 #[rocket::async_test]
 async fn test_get_block_author() {
-	let cxt = test_context().await;
-	let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-	wait_for_chain(&api, 1).await;
-	let result = get_block_author(&api).await;
-	println!("result {:?}", result);
-	let alice_stash_id: subxt::sp_runtime::AccountId32 =
-		sr25519::Pair::from_string("//Alice//stash", None)
-			.expect("Could not obtain stash signer pair")
-			.public()
-			.into();
+  let cxt = test_context().await;
+  let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+  wait_for_chain(&api, 1).await;
+  let result = get_block_author(&api).await;
+  println!("result {:?}", result);
+  let alice_stash_id: subxt::sp_runtime::AccountId32 =
+    sr25519::Pair::from_string("//Alice//stash", None)
+      .expect("Could not obtain stash signer pair")
+      .public()
+      .into();
 
-	assert_eq!(result.unwrap(), alice_stash_id);
+  assert_eq!(result.unwrap(), alice_stash_id);
 }
 
 #[rocket::async_test]
 async fn test_get_block_number() {
-	let cxt = test_context().await;
-	let api = get_api(&cxt.node_proc.ws_url).await;
-	let result = get_block_number(&api.unwrap()).await;
-	assert_eq!(result.is_ok(), true);
+  let cxt = test_context().await;
+  let api = get_api(&cxt.node_proc.ws_url).await;
+  let result = get_block_number(&api.unwrap()).await;
+  assert_eq!(result.is_ok(), true);
 }
 
 #[rocket::async_test]
 async fn test_get_author_endpoint() {
-	let cxt = test_context().await;
-	let api = get_api(&cxt.node_proc.ws_url).await;
-	let alice_stash_id: subxt::sp_runtime::AccountId32 =
-		sr25519::Pair::from_string("//Alice//stash", None)
-			.expect("Could not obtain stash signer pair")
-			.public()
-			.into();
+  let cxt = test_context().await;
+  let api = get_api(&cxt.node_proc.ws_url).await;
+  let alice_stash_id: subxt::sp_runtime::AccountId32 =
+    sr25519::Pair::from_string("//Alice//stash", None)
+      .expect("Could not obtain stash signer pair")
+      .public()
+      .into();
 
-	let result = get_author_endpoint(&api.unwrap(), &alice_stash_id).await;
-	let endpoint = convert_endpoint(result.as_ref().unwrap());
+  let result = get_author_endpoint(&api.unwrap(), &alice_stash_id).await;
+  let endpoint = convert_endpoint(result.as_ref().unwrap());
 
-	assert_eq!(endpoint.unwrap(), "ws://localhost:3001");
+  assert_eq!(endpoint.unwrap(), "ws://localhost:3001");
 }
 
 #[rocket::async_test]
 async fn test_send_responsibility_message() {
-	let cxt = test_context().await;
-	let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-	wait_for_chain(&api, 3).await;
-	let mnemonic =
-		"alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
-			.to_string();
+  let cxt = test_context().await;
+  let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+  wait_for_chain(&api, 3).await;
+  let mnemonic =
+    "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
+      .to_string();
 
-	let result = acknowledge_responsibility(&api, &mnemonic, 3u32).await;
-	assert_eq!(result.is_ok(), true);
+  let result = acknowledge_responsibility(&api, &mnemonic, 3u32).await;
+  assert_eq!(result.is_ok(), true);
 }
 
 #[rocket::async_test]
 async fn test_get_whitelist() {
-	let cxt = test_context().await;
-	let api = get_api(&cxt.node_proc.ws_url).await;
-	let alice_stash_id: subxt::sp_runtime::AccountId32 =
-		sr25519::Pair::from_string("//Alice//stash", None)
-			.expect("Could not obtain stash signer pair")
-			.public()
-			.into();
+  let cxt = test_context().await;
+  let api = get_api(&cxt.node_proc.ws_url).await;
+  let alice_stash_id: subxt::sp_runtime::AccountId32 =
+    sr25519::Pair::from_string("//Alice//stash", None)
+      .expect("Could not obtain stash signer pair")
+      .public()
+      .into();
 
-	let result = get_whitelist(api.as_ref().unwrap(), &alice_stash_id).await;
-	assert_eq!(result.unwrap().len(), 0);
+  let result = get_whitelist(api.as_ref().unwrap(), &alice_stash_id).await;
+  assert_eq!(result.unwrap().len(), 0);
 
-	let pair: Sr25519Pair = Pair2::from_string("//Alice//stash", None).unwrap();
-	let signer = PairSigner::new(pair);
+  let pair: Sr25519Pair = Pair2::from_string("//Alice//stash", None).unwrap();
+  let signer = PairSigner::new(pair);
 
-	api.as_ref()
-		.unwrap()
-		.tx()
-		.constraints()
-		.add_whitelist_address(vec![vec![10]])
-		.sign_and_submit_then_watch_default(&signer)
-		.await
-		.unwrap()
-		.wait_for_in_block()
-		.await
-		.unwrap()
-		.wait_for_success()
-		.await
-		.unwrap();
+  api
+    .as_ref()
+    .unwrap()
+    .tx()
+    .constraints()
+    .add_whitelist_address(vec![vec![10]])
+    .sign_and_submit_then_watch_default(&signer)
+    .await
+    .unwrap()
+    .wait_for_in_block()
+    .await
+    .unwrap()
+    .wait_for_success()
+    .await
+    .unwrap();
 
-	let result2 = get_whitelist(&api.unwrap(), &alice_stash_id).await;
-	assert_eq!(result2.as_ref().unwrap().len(), 1);
-	assert_eq!(result2.unwrap(), vec![vec![10u8]]);
+  let result2 = get_whitelist(&api.unwrap(), &alice_stash_id).await;
+  assert_eq!(result2.as_ref().unwrap().len(), 1);
+  assert_eq!(result2.unwrap(), vec![vec![10u8]]);
 }
 
 #[rocket::async_test]
@@ -247,9 +243,9 @@ async fn test_have_keyshare() {
 #[rocket::async_test]
 #[ignore]
 async fn send_ip_address_test() {
-	let client = setup_client().await;
-	let result = send_ip_address("http://127.0.0.1:3002".as_bytes()).await;
-	// assert_eq!(result.status(), Status::Ok);
+  let client = setup_client().await;
+  let result = send_ip_address("http://127.0.0.1:3002".as_bytes()).await;
+  // assert_eq!(result.status(), Status::Ok);
 }
 
 // #[rocket::async_test]

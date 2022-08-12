@@ -35,7 +35,9 @@ impl Configuration {
   }
 }
 
-fn default_endpoint() -> String { DEFAULT_ENDPOINT.to_string() }
+fn default_endpoint() -> String {
+  DEFAULT_ENDPOINT.to_string()
+}
 
 pub(super) fn load_kv_store() -> KvManager {
   if cfg!(test) {
