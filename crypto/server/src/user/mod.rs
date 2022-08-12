@@ -24,6 +24,8 @@ use serde::{Deserialize, Serialize};
 
 pub use self::errors::*;
 
+#[cfg(test)] mod tests;
+
 /// User input, contains key (substrate key) and value (entropy shard)
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct UserInputPartyInfo {
@@ -37,13 +39,13 @@ impl TryInto<ParsedUserInputPartyInfo> for UserInputPartyInfo {
   type Error = UserErr;
 
   fn try_into(self) -> Result<ParsedUserInputPartyInfo, Self::Error> {
-    // todo!()
-    Err(UserErr::Parse("error"))
+	let parsed_input = ParsedUserInputPartyInfo {key: self.key, value: self.value};
+	Ok(parsed_input)
   }
 }
 
 /// Parsed user input
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct ParsedUserInputPartyInfo {
   /// User's substrate key
   pub key:   String,
