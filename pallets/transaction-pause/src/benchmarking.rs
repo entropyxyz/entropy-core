@@ -3,7 +3,8 @@ use frame_support::assert_ok;
 use frame_system::EventRecord;
 
 use super::*;
-#[allow(unused)] use crate::Pallet as TransactionPause;
+#[allow(unused)]
+use crate::Pallet as TransactionPause;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
   let events = frame_system::Pallet::<T>::events();

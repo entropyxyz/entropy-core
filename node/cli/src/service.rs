@@ -181,9 +181,9 @@ pub fn new_partial(
         chain_spec: chain_spec.cloned_box(),
         deny_unsafe,
         babe: node_rpc::BabeDeps {
-          babe_config:          babe_config.clone(),
+          babe_config: babe_config.clone(),
           shared_epoch_changes: shared_epoch_changes.clone(),
-          keystore:             keystore.clone(),
+          keystore: keystore.clone(),
         },
         grandpa: node_rpc::GrandpaDeps {
           shared_voter_state: shared_voter_state.clone(),
@@ -213,9 +213,9 @@ pub fn new_partial(
 }
 
 pub struct NewFullBase {
-  pub task_manager:     TaskManager,
-  pub client:           Arc<FullClient>,
-  pub network:          Arc<NetworkService<Block, <Block as BlockT>::Hash>>,
+  pub task_manager: TaskManager,
+  pub client: Arc<FullClient>,
+  pub network: Arc<NetworkService<Block, <Block as BlockT>::Hash>>,
   pub transaction_pool: Arc<sc_transaction_pool::FullPool<Block, FullClient>>,
 }
 
@@ -515,9 +515,11 @@ mod tests {
         let parent_hash = parent_header.hash();
         let parent_number = *parent_header.number();
 
-        futures::executor::block_on(service.transaction_pool().maintain(
-          ChainEvent::NewBestBlock { hash: parent_header.hash(), tree_route: None },
-        ));
+        futures::executor::block_on(
+          service
+            .transaction_pool()
+            .maintain(ChainEvent::NewBestBlock { hash: parent_header.hash(), tree_route: None }),
+        );
 
         let mut proposer_factory = sc_basic_authorship::ProposerFactory::new(
           service.spawn_handle(),

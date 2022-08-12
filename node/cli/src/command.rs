@@ -29,24 +29,37 @@ use crate::{
 };
 
 impl SubstrateCli for Cli {
-  fn impl_name() -> String { "Substrate Node".into() }
+  fn impl_name() -> String {
+    "Substrate Node".into()
+  }
 
-  fn impl_version() -> String { env!("SUBSTRATE_CLI_IMPL_VERSION").into() }
+  fn impl_version() -> String {
+    env!("SUBSTRATE_CLI_IMPL_VERSION").into()
+  }
 
-  fn description() -> String { env!("CARGO_PKG_DESCRIPTION").into() }
+  fn description() -> String {
+    env!("CARGO_PKG_DESCRIPTION").into()
+  }
 
-  fn author() -> String { env!("CARGO_PKG_AUTHORS").into() }
+  fn author() -> String {
+    env!("CARGO_PKG_AUTHORS").into()
+  }
 
-  fn support_url() -> String { "https://github.com/paritytech/substrate/issues/new".into() }
+  fn support_url() -> String {
+    "https://github.com/paritytech/substrate/issues/new".into()
+  }
 
-  fn copyright_start_year() -> i32 { 2017 }
+  fn copyright_start_year() -> i32 {
+    2017
+  }
 
   fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     let spec = match id {
-      "" =>
+      "" => {
         return Err(
           "Please specify which chain you want to run, e.g. --dev or --chain=local".into(),
-        ),
+        )
+      },
       "dev" => Box::new(chain_spec::development_config()),
       "local" => Box::new(chain_spec::local_testnet_config()),
       "staging" => Box::new(chain_spec::staging_testnet_config()),
@@ -71,7 +84,7 @@ pub fn run() -> Result<()> {
         service::new_full(config).map_err(sc_cli::Error::Service)
       })
     },
-    Some(Subcommand::Benchmark(cmd)) =>
+    Some(Subcommand::Benchmark(cmd)) => {
       if cfg!(feature = "runtime-benchmarks") {
         let runner = cli.create_runner(cmd)?;
 
@@ -82,7 +95,8 @@ pub fn run() -> Result<()> {
            runtime-benchmarks`."
             .into(),
         )
-      },
+      }
+    },
     Some(Subcommand::Key(cmd)) => cmd.run(&cli),
     Some(Subcommand::BuildSpec(cmd)) => {
       let runner = cli.create_runner(cmd)?;

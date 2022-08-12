@@ -107,24 +107,24 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 /// Runtime version.
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-  spec_name:           create_runtime_str!("node"),
-  impl_name:           create_runtime_str!("substrate-node"),
-  authoring_version:   10,
+  spec_name: create_runtime_str!("node"),
+  impl_name: create_runtime_str!("substrate-node"),
+  authoring_version: 10,
   // Per convention: if the runtime behavior changes, increment spec_version
   // and set impl_version to 0. If only runtime
   // implementation changes and behavior does not, then leave spec_version as
   // is and increment impl_version.
-  spec_version:        267,
-  impl_version:        1,
-  apis:                RUNTIME_API_VERSIONS,
+  spec_version: 267,
+  impl_version: 1,
+  apis: RUNTIME_API_VERSIONS,
   transaction_version: 2,
-  state_version:       1,
+  state_version: 1,
 };
 
 /// The BABE epoch configuration at genesis.
 pub const BABE_GENESIS_EPOCH_CONFIG: sp_consensus_babe::BabeEpochConfiguration =
   sp_consensus_babe::BabeEpochConfiguration {
-    c:             PRIMARY_PROBABILITY,
+    c: PRIMARY_PROBABILITY,
     allowed_slots: sp_consensus_babe::AllowedSlots::PrimaryAndSecondaryPlainSlots,
   };
 
@@ -298,7 +298,9 @@ pub enum ProxyType {
   Staking,
 }
 impl Default for ProxyType {
-  fn default() -> Self { Self::Any }
+  fn default() -> Self {
+    Self::Any
+  }
 }
 impl InstanceFilter<Call> for ProxyType {
   fn filter(&self, c: &Call) -> bool {
@@ -955,7 +957,8 @@ parameter_types! {
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
-where Call: From<LocalCall>
+where
+  Call: From<LocalCall>,
 {
   fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
     call: Call,
@@ -1001,7 +1004,8 @@ impl frame_system::offchain::SigningTypes for Runtime {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
-where Call: From<C>
+where
+  Call: From<C>,
 {
   type Extrinsic = UncheckedExtrinsic;
   type OverarchingCall = Call;
@@ -1613,7 +1617,9 @@ mod tests {
   #[test]
   fn validate_transaction_submitter_bounds() {
     fn is_submit_signed_transaction<T>()
-    where T: CreateSignedTransaction<Call> {
+    where
+      T: CreateSignedTransaction<Call>,
+    {
     }
 
     is_submit_signed_transaction::<Runtime>();

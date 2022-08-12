@@ -78,7 +78,9 @@ where
 /// Get the value of an existing key.
 /// Returns [SledErr] of [LogicalErr] on failure.
 pub(super) fn handle_get<V>(kv: &encrypted_sled::Db, key: String) -> InnerKvResult<V>
-where V: DeserializeOwned {
+where
+  V: DeserializeOwned,
+{
   // try to get value of 'key'
   let value = match kv.get(&key)? {
     Some(bytes) => deserialize(&bytes).ok_or(DeserializationErr)?,

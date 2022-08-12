@@ -25,7 +25,7 @@ pub struct RegistrationMessage {
   // loaded at account creation
   pub keyshards: u128, /* this will be Vec<FieldElements>, where FieldElements are BigInt mod
                         * Order, i.e. \mathbb{Z_q} */
-  pub test:      u128,
+  pub test: u128,
 }
 
 /// The response message that a node sends to the User in response to calling the
@@ -47,10 +47,10 @@ pub struct SigRequest {
   // TypeInfo needs to be implemented for these types.
   // see https://github.com/Entropyxyz/entropy-core/issues/29
   /// Signature_ID. this is a hash of the message to be signed
-  pub sig_id:    u16,
+  pub sig_id: u16,
   // pub sig_id: codec::alloc::vec::Vec<u8>,
   /// Session ID/nonce. Check that this ID has not beed used before
-  pub nonce:     u32,
+  pub nonce: u32,
   /// signature to authenticate the user
   pub signature: u32,
 }
@@ -67,7 +67,7 @@ pub struct SigResponse {
   // pub signing_nodes: Vec<u16>,
   pub signing_nodes: codec::alloc::vec::Vec<u16>,
   /// endpoint of the Communication manager
-  pub com_manager:   u16,
+  pub com_manager: u16,
 }
 
 // /// The message sent from pallets::propagation::post() to the signing-client.
@@ -76,5 +76,5 @@ pub struct SigResponse {
 pub struct Message {
   // pub thing: u128,
   pub sig_request: SigRequest,
-  pub account:     codec::alloc::vec::Vec<u8>,
+  pub account: codec::alloc::vec::Vec<u8>,
 }

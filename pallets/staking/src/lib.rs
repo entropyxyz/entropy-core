@@ -17,11 +17,14 @@
 
 pub use pallet::*;
 
-#[cfg(test)] mod mock;
+#[cfg(test)]
+mod mock;
 
-#[cfg(test)] mod tests;
+#[cfg(test)]
+mod tests;
 
-#[cfg(feature = "runtime-benchmarks")] mod benchmarking;
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 
 pub mod weights;
 
@@ -69,7 +72,7 @@ pub mod pallet {
 
   #[pallet::genesis_config]
   pub struct GenesisConfig<T: Config> {
-    pub endpoints:          Vec<(T::AccountId, Vec<u8>)>,
+    pub endpoints: Vec<(T::AccountId, Vec<u8>)>,
     pub threshold_accounts: Vec<(T::AccountId, T::AccountId)>,
   }
 

@@ -26,7 +26,8 @@ pub struct Kv<V> {
 // database functionality using the "actor" pattern (Kv is the "handle"): https://ryhl.io/blog/actors-with-tokio/
 // see also https://tokio.rs/tokio/tutorial/channels
 impl<V: 'static> Kv<V>
-where V: Debug + Send + Sync + Serialize + DeserializeOwned
+where
+  V: Debug + Send + Sync + Serialize + DeserializeOwned,
 {
   /// Creates a new kv service. Returns [InitErr] on failure.
   /// the path of the kvstore is `root_path` + "/kvstore/" + `kv_name`
@@ -147,10 +148,11 @@ async fn kv_cmd_handler<V: 'static>(
     // TODO better error handling and logging: we should log when `handle_*` fails
     // TODO refactor repeated code
     match cmd {
-      ReserveKey { key, resp } =>
+      ReserveKey { key, resp } => {
         if resp.send(handle_reserve(&kv, key)).is_err() {
           warn!("receiver dropped");
-        },
+        }
+      },
       UnreserveKey { reservation } => {
         let _ = kv.remove(&reservation.key);
       },
@@ -159,18 +161,21 @@ async fn kv_cmd_handler<V: 'static>(
           warn!("receiver dropped");
         }
       },
-      Get { key, resp } =>
+      Get { key, resp } => {
         if resp.send(handle_get(&kv, key)).is_err() {
           warn!("receiver dropped");
-        },
-      Exists { key, resp } =>
+        }
+      },
+      Exists { key, resp } => {
         if resp.send(handle_exists(&kv, &key)).is_err() {
           warn!("receiver dropped");
-        },
-      Delete { key, resp } =>
+        }
+      },
+      Delete { key, resp } => {
         if resp.send(handle_delete(&kv, key)).is_err() {
           warn!("receiver dropped");
-        },
+        }
+      },
     }
   }
   info!("kv_manager stop");

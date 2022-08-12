@@ -14,7 +14,7 @@ use super::result::{
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct EncryptedRecord {
   encrypted_value: Vec<u8>,
-  nonce:           [u8; 24],
+  nonce: [u8; 24],
 }
 
 impl EncryptedRecord {
@@ -34,5 +34,7 @@ impl EncryptedRecord {
 }
 
 impl From<EncryptedRecord> for (Vec<u8>, XNonce) {
-  fn from(record: EncryptedRecord) -> Self { (record.encrypted_value, record.nonce.into()) }
+  fn from(record: EncryptedRecord) -> Self {
+    (record.encrypted_value, record.nonce.into())
+  }
 }

@@ -7,11 +7,14 @@
 //! Allows for customizable slashes to occur on chain
 pub use pallet::*;
 
-#[cfg(test)] mod mock;
+#[cfg(test)]
+mod mock;
 
-#[cfg(test)] mod tests;
+#[cfg(test)]
+mod tests;
 
-#[cfg(feature = "runtime-benchmarks")] mod benchmarking;
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -137,11 +140,11 @@ pub mod pallet {
     ///
     /// It acts as a time measure for unresponsiveness reports and effectively will always
     /// point at the end of the session.
-    pub session_index:       SessionIndex,
+    pub session_index: SessionIndex,
     /// The size of the validator set in current session/era.
     pub validator_set_count: u32,
     /// Authorities that were unresponsive during the current era.
-    pub offenders:           Vec<Offender>,
+    pub offenders: Vec<Offender>,
   }
 
   impl<Offender: Clone> Offence<Offender> for TuxAngry<Offender> {
@@ -149,13 +152,21 @@ pub mod pallet {
 
     const ID: Kind = *b"tux-really-angry";
 
-    fn offenders(&self) -> Vec<Offender> { self.offenders.clone() }
+    fn offenders(&self) -> Vec<Offender> {
+      self.offenders.clone()
+    }
 
-    fn session_index(&self) -> SessionIndex { self.session_index }
+    fn session_index(&self) -> SessionIndex {
+      self.session_index
+    }
 
-    fn validator_set_count(&self) -> u32 { self.validator_set_count }
+    fn validator_set_count(&self) -> u32 {
+      self.validator_set_count
+    }
 
-    fn time_slot(&self) -> Self::TimeSlot { self.session_index }
+    fn time_slot(&self) -> Self::TimeSlot {
+      self.session_index
+    }
 
     fn slash_fraction(_offenders: u32, _validator_set_count: u32) -> Perbill {
       Perbill::from_perthousand(0)

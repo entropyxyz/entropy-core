@@ -118,7 +118,9 @@ construct_runtime!(
 pub struct ExtBuilder;
 
 impl Default for ExtBuilder {
-  fn default() -> Self { ExtBuilder }
+  fn default() -> Self {
+    ExtBuilder
+  }
 }
 
 impl ExtBuilder {
