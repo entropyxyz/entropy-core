@@ -23,8 +23,7 @@ mod signing_client;
 mod user;
 mod utils;
 
-#[macro_use]
-extern crate rocket;
+#[macro_use] extern crate rocket;
 use rocket::routes;
 
 use self::{

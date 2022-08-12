@@ -53,9 +53,9 @@ const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 #[serde(rename_all = "camelCase")]
 pub struct Extensions {
   /// Block numbers with known hashes.
-  pub fork_blocks: sc_client_api::ForkBlocks<Block>,
+  pub fork_blocks:      sc_client_api::ForkBlocks<Block>,
   /// Known bad block hashes.
-  pub bad_blocks: sc_client_api::BadBlocks<Block>,
+  pub bad_blocks:       sc_client_api::BadBlocks<Block>,
   /// The light sync state extension used by the sync-state rpc.
   pub light_sync_state: sc_sync_state_rpc::LightSyncStateExtension,
 }
@@ -205,9 +205,7 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 
 /// Helper function to generate an account ID from seed
 pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
-where
-  AccountPublic: From<<TPublic::Pair as Pair>::Public>,
-{
+where AccountPublic: From<<TPublic::Pair as Pair>::Public> {
   AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
@@ -287,12 +285,12 @@ pub fn testnet_genesis(
   const STASH: Balance = ENDOWMENT / 1000;
 
   GenesisConfig {
-    system: SystemConfig { code: wasm_binary_unwrap().to_vec() },
-    balances: BalancesConfig {
+    system:               SystemConfig { code: wasm_binary_unwrap().to_vec() },
+    balances:             BalancesConfig {
       balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
     },
-    indices: IndicesConfig { indices: vec![] },
-    session: SessionConfig {
+    indices:              IndicesConfig { indices: vec![] },
+    session:              SessionConfig {
       keys: initial_authorities
         .iter()
         .map(|x| {
@@ -304,7 +302,7 @@ pub fn testnet_genesis(
         })
         .collect::<Vec<_>>(),
     },
-    staking: StakingConfig {
+    staking:              StakingConfig {
       validator_count: initial_authorities.len() as u32,
       minimum_validator_count: 0,
       invulnerables: vec![],
@@ -312,8 +310,8 @@ pub fn testnet_genesis(
       stakers,
       ..Default::default()
     },
-    staking_extension: StakingExtensionConfig {
-      endpoints: vec![
+    staking_extension:    StakingExtensionConfig {
+      endpoints:          vec![
         (
           get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
           "ws://localhost:3001".as_bytes().to_vec(),
@@ -336,8 +334,8 @@ pub fn testnet_genesis(
         ),
       ],
     },
-    democracy: DemocracyConfig::default(),
-    elections: ElectionsConfig {
+    democracy:            DemocracyConfig::default(),
+    elections:            ElectionsConfig {
       members: endowed_accounts
         .iter()
         .take((num_endowed_accounts + 1) / 2)
@@ -345,29 +343,29 @@ pub fn testnet_genesis(
         .map(|member| (member, STASH))
         .collect(),
     },
-    council: CouncilConfig::default(),
-    technical_committee: TechnicalCommitteeConfig {
+    council:              CouncilConfig::default(),
+    technical_committee:  TechnicalCommitteeConfig {
       members: endowed_accounts.iter().take((num_endowed_accounts + 1) / 2).cloned().collect(),
       phantom: Default::default(),
     },
-    sudo: SudoConfig { key: Some(root_key) },
-    babe: BabeConfig {
-      authorities: vec![],
+    sudo:                 SudoConfig { key: Some(root_key) },
+    babe:                 BabeConfig {
+      authorities:  vec![],
       epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
     },
-    im_online: ImOnlineConfig { keys: vec![] },
-    authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
-    grandpa: GrandpaConfig { authorities: vec![] },
+    im_online:            ImOnlineConfig { keys: vec![] },
+    authority_discovery:  AuthorityDiscoveryConfig { keys: vec![] },
+    grandpa:              GrandpaConfig { authorities: vec![] },
     technical_membership: Default::default(),
-    treasury: Default::default(),
-    society: SocietyConfig {
-      members: endowed_accounts.iter().take((num_endowed_accounts + 1) / 2).cloned().collect(),
-      pot: 0,
+    treasury:             Default::default(),
+    society:              SocietyConfig {
+      members:     endowed_accounts.iter().take((num_endowed_accounts + 1) / 2).cloned().collect(),
+      pot:         0,
       max_members: 999,
     },
-    vesting: Default::default(),
-    transaction_storage: Default::default(),
-    transaction_payment: Default::default(),
+    vesting:              Default::default(),
+    transaction_storage:  Default::default(),
+    transaction_payment:  Default::default(),
   }
 }
 
@@ -482,17 +480,11 @@ pub(crate) mod tests {
   }
 
   #[test]
-  fn test_create_development_chain_spec() {
-    development_config().build_storage().unwrap();
-  }
+  fn test_create_development_chain_spec() { development_config().build_storage().unwrap(); }
 
   #[test]
-  fn test_create_local_testnet_chain_spec() {
-    local_testnet_config().build_storage().unwrap();
-  }
+  fn test_create_local_testnet_chain_spec() { local_testnet_config().build_storage().unwrap(); }
 
   #[test]
-  fn test_staging_test_net_chain_spec() {
-    staging_testnet_config().build_storage().unwrap();
-  }
+  fn test_staging_test_net_chain_spec() { staging_testnet_config().build_storage().unwrap(); }
 }

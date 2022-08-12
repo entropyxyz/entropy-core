@@ -13,31 +13,23 @@ use super::{constants::UNSAFE_PASSWORD, result::EncryptedDbResult};
 pub struct Password(String);
 
 impl AsRef<[u8]> for Password {
-  fn as_ref(&self) -> &[u8] {
-    self.0.as_bytes()
-  }
+  fn as_ref(&self) -> &[u8] { self.0.as_bytes() }
 }
 
 pub struct PasswordSalt([u8; 32]);
 
 impl AsRef<[u8]> for PasswordSalt {
-  fn as_ref(&self) -> &[u8] {
-    &self.0
-  }
+  fn as_ref(&self) -> &[u8] { &self.0 }
 }
 
 impl From<[u8; 32]> for PasswordSalt {
-  fn from(bytes: [u8; 32]) -> Self {
-    Self(bytes)
-  }
+  fn from(bytes: [u8; 32]) -> Self { Self(bytes) }
 }
 
 impl TryFrom<IVec> for PasswordSalt {
   type Error = std::array::TryFromSliceError;
 
-  fn try_from(value: IVec) -> Result<Self, Self::Error> {
-    Ok(Self(value.as_ref().try_into()?))
-  }
+  fn try_from(value: IVec) -> Result<Self, Self::Error> { Ok(Self(value.as_ref().try_into()?)) }
 }
 
 use rpassword::read_password;
@@ -63,7 +55,5 @@ impl PasswordMethod {
 
 #[cfg(test)]
 impl From<&str> for Password {
-  fn from(value: &str) -> Self {
-    Self(value.to_string())
-  }
+  fn from(value: &str) -> Self { Self(value.to_string()) }
 }

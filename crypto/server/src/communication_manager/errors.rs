@@ -25,7 +25,5 @@ pub struct CustomIPError(&'static str);
 
 impl CustomIPError {
   #[allow(dead_code)]
-  pub fn new(error: &'static str) -> CustomIPError {
-    CustomIPError(error)
-  }
+  pub fn new(error: &'static str) -> CustomIPError { CustomIPError(error) }
 }

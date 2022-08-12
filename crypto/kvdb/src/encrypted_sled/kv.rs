@@ -24,7 +24,7 @@ use super::{
 
 /// A [sled] kv store with [XChaCha20Poly1305] value encryption.
 pub struct EncryptedDb {
-  kv: sled::Db,
+  kv:     sled::Db,
   cipher: XChaCha20Poly1305,
 }
 
@@ -34,9 +34,7 @@ impl EncryptedDb {
   /// verifies that the password is valid.
   /// See [crate::password] for more info on pdkdf.
   pub fn open<P>(db_name: P, password: Password) -> EncryptedDbResult<Self>
-  where
-    P: AsRef<std::path::Path>,
-  {
+  where P: AsRef<std::path::Path> {
     let kv = sled::open(db_name).map_err(CorruptedKv)?;
 
     let password_salt: PasswordSalt = if kv.was_recovered() {
@@ -96,9 +94,7 @@ impl EncryptedDb {
   /// create a new [EncryptedRecord] containing an encrypted value and a newly derived random
   /// nonce
   fn encrypt<V>(&self, value: V) -> EncryptedDbResult<EncryptedRecord>
-  where
-    V: Into<IVec>,
-  {
+  where V: Into<IVec> {
     let nonce = Self::generate_nonce();
 
     let mut value = value.into().to_vec();
@@ -140,8 +136,7 @@ impl EncryptedDb {
   pub fn insert<K, V>(&self, key: K, value: V) -> EncryptedDbResult<Option<IVec>>
   where
     K: AsRef<[u8]>,
-    V: Into<IVec>,
-  {
+    V: Into<IVec>, {
     let record = self.encrypt(value)?;
     let prev_record_bytes_opt = self.kv.insert(&key, record.to_bytes()?)?;
     self.decrypt(prev_record_bytes_opt)
@@ -149,32 +144,24 @@ impl EncryptedDb {
 
   /// Retrieve and decrypt a value from the `Tree` if it exists.
   pub fn get<K>(&self, key: K) -> EncryptedDbResult<Option<IVec>>
-  where
-    K: AsRef<[u8]>,
-  {
+  where K: AsRef<[u8]> {
     let bytes_opt = self.kv.get(&key)?;
     self.decrypt(bytes_opt)
   }
 
   /// Returns `true` if the `Tree` contains a value for the specified key.
   pub fn contains_key<K>(&self, key: K) -> EncryptedDbResult<bool>
-  where
-    K: AsRef<[u8]>,
-  {
+  where K: AsRef<[u8]> {
     Ok(self.kv.contains_key(&key)?)
   }
 
   /// Delete a value, decrypting and returning the old value if it existed.
   pub fn remove<K>(&self, key: K) -> EncryptedDbResult<Option<IVec>>
-  where
-    K: AsRef<[u8]>,
-  {
+  where K: AsRef<[u8]> {
     let prev_val = self.kv.remove(&key)?;
     self.decrypt(prev_val)
   }
 
   /// Returns true if the database was recovered from a previous process.
-  pub fn was_recovered(&self) -> bool {
-    self.kv.was_recovered()
-  }
+  pub fn was_recovered(&self) -> bool { self.kv.was_recovered() }
 }

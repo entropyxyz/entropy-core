@@ -45,13 +45,11 @@ pub mod entropy {}
 
 pub struct TestContext {
   pub node_proc: TestNodeProcess<DefaultConfig>,
-  pub api: entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<DefaultConfig>>,
+  pub api:       entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<DefaultConfig>>,
 }
 
 impl TestContext {
-  pub fn client(&self) -> &Client<DefaultConfig> {
-    &self.api.client
-  }
+  pub fn client(&self) -> &Client<DefaultConfig> { &self.api.client }
 }
 
 pub async fn test_context() -> TestContext {
@@ -68,6 +66,4 @@ pub async fn test_context_stationary() -> TestContext {
   TestContext { node_proc, api }
 }
 
-pub fn pair_signer(pair: Pair) -> PairSigner<DefaultConfig, Pair> {
-  PairSigner::new(pair)
-}
+pub fn pair_signer(pair: Pair) -> PairSigner<DefaultConfig, Pair> { PairSigner::new(pair) }

@@ -19,9 +19,7 @@ use crate::{
   get_db_path,
 };
 
-pub fn open_with_test_password() -> Result<Db> {
-  Db::open(get_db_path(), get_test_password())
-}
+pub fn open_with_test_password() -> Result<Db> { Db::open(get_db_path(), get_test_password()) }
 
 #[test]
 #[serial]

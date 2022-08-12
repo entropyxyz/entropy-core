@@ -170,9 +170,9 @@ async fn test_send_responsibility_message() {
   let cxt = test_context().await;
   let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
   wait_for_chain(&api, 3).await;
-  let mnemonic =
-    "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
-      .to_string();
+  let mnemonic = "alarm mutual concert decrease hurry invest culture survey diagram crash snap \
+                  click"
+    .to_string();
 
   let result = acknowledge_responsibility(&api, &mnemonic, 3u32).await;
   assert_eq!(result.is_ok(), true);

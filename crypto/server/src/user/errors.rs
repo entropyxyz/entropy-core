@@ -16,7 +16,5 @@ pub enum UserErr {
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {
-  fn respond_to(self, request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
-    todo!()
-  }
+  fn respond_to(self, request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> { todo!() }
 }

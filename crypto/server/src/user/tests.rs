@@ -1,14 +1,15 @@
+use std::env;
+
+use kvdb::clean_tests;
 use rocket::{
   http::{ContentType, Status},
   local::asynchronous::Client,
   tokio::time::{sleep, Duration},
 };
-use std::env;
+use serial_test::serial;
 
 use super::ParsedUserInputPartyInfo;
 use crate::communication_manager::{get_path, setup_client};
-use kvdb::clean_tests;
-use serial_test::serial;
 
 #[rocket::async_test]
 #[serial]

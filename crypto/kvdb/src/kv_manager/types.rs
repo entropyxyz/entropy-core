@@ -19,9 +19,7 @@ pub struct KeyReservation {
 }
 /// kv store needs PartialEq to complare values
 impl PartialEq for KeyReservation {
-  fn eq(&self, other: &Self) -> bool {
-    self.key == other.key
-  }
+  fn eq(&self, other: &Self) -> bool { self.key == other.key }
 }
 
 // Provided by the requester and used by the manager task to send the command response back to the
@@ -31,7 +29,7 @@ type Responder<T> = tokio::sync::oneshot::Sender<super::error::InnerKvResult<T>>
 #[derive(Debug)]
 pub(super) enum Command<V> {
   ReserveKey {
-    key: String,
+    key:  String,
     resp: Responder<KeyReservation>,
   },
   UnreserveKey {
@@ -39,19 +37,19 @@ pub(super) enum Command<V> {
   },
   Put {
     reservation: KeyReservation,
-    value: V,
-    resp: Responder<()>,
+    value:       V,
+    resp:        Responder<()>,
   },
   Get {
-    key: String, // TODO should be &str except lifetimes...
+    key:  String, // TODO should be &str except lifetimes...
     resp: Responder<V>,
   },
   Exists {
-    key: String, // TODO should be &str except lifetimes...
+    key:  String, // TODO should be &str except lifetimes...
     resp: Responder<bool>,
   },
   Delete {
-    key: String,
+    key:  String,
     resp: Responder<()>,
   },
 }

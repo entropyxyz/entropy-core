@@ -12,22 +12,22 @@ pub type MessageDigest = tofn::gg20::sign::MessageDigest;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SignInit {
   /// Unique id of this signature (may be repeated if this party fails)
-  pub sig_uid: String,
+  pub sig_uid:       String,
   /// identifiers of the participating parties
   // TK: @JA: What to use for this? IP addresses? Substrate addresses? Substrate keys?
   // may overlap with ip_addresses below.
-  pub signer_uids: Vec<String>,
+  pub signer_uids:   Vec<String>,
   /// The index of the evaluated Shamir Polynomial held by each signer
-  pub signer_idxs: Vec<usize>,
+  pub signer_idxs:   Vec<usize>,
   /// Hash of the message to sign
-  pub msg: MessageDigest,
+  pub msg:           MessageDigest,
   /// Unique id of this signing party.
   /// If a prior party failed, repeat with a new `party_id`, but the same `sig_uid`
-  pub party_uid: String,
+  pub party_uid:     String,
   /// User's substrate key. The `key` in the kv-store.
   pub substrate_key: String,
   /// Participating nodes' IP addresses.
-  pub ip_addresses: Vec<String>,
+  pub ip_addresses:  Vec<String>,
 }
 
 impl SignInit {

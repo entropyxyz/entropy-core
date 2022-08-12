@@ -11,29 +11,23 @@ use subxt::{Client, ClientBuilder, Config};
 
 /// Spawn a local substrate node for testing subxt.
 pub struct TestNodeProcess<R: Config> {
-  proc: process::Child,
-  client: Client<R>,
+  proc:       process::Child,
+  client:     Client<R>,
   pub ws_url: String,
 }
 
 impl<R> Drop for TestNodeProcess<R>
-where
-  R: Config,
+where R: Config
 {
-  fn drop(&mut self) {
-    let _ = self.kill();
-  }
+  fn drop(&mut self) { let _ = self.kill(); }
 }
 
 impl<R> TestNodeProcess<R>
-where
-  R: Config,
+where R: Config
 {
   /// Construct a builder for spawning a test node process.
   pub fn build<S>(program: S) -> TestNodeProcessBuilder
-  where
-    S: AsRef<OsStr> + Clone,
-  {
+  where S: AsRef<OsStr> + Clone {
     TestNodeProcessBuilder::new(program)
   }
 
@@ -49,24 +43,24 @@ where
   }
 
   /// Returns the subxt client connected to the running node.
-  pub fn client(&self) -> &Client<R> {
-    &self.client
-  }
+  pub fn client(&self) -> &Client<R> { &self.client }
 }
 
 /// Construct a test node process.
 pub struct TestNodeProcessBuilder {
-  node_path: OsString,
-  authority: Option<AccountKeyring>,
+  node_path:       OsString,
+  authority:       Option<AccountKeyring>,
   scan_port_range: bool,
 }
 
 impl TestNodeProcessBuilder {
   pub fn new<P>(node_path: P) -> TestNodeProcessBuilder
-  where
-    P: AsRef<OsStr>,
-  {
-    Self { node_path: node_path.as_ref().into(), authority: None, scan_port_range: false }
+  where P: AsRef<OsStr> {
+    Self {
+      node_path:       node_path.as_ref().into(),
+      authority:       None,
+      scan_port_range: false,
+    }
   }
 
   /// Set the authority dev account for a node in validator mode e.g. --alice.
@@ -85,9 +79,7 @@ impl TestNodeProcessBuilder {
 
   /// Spawn the substrate node at the given path, and wait for rpc to be initialized.
   pub async fn spawn<R>(&self) -> Result<TestNodeProcess<R>, String>
-  where
-    R: Config,
-  {
+  where R: Config {
     let mut cmd = process::Command::new(&self.node_path);
     cmd.env("RUST_LOG", "error").arg("--dev").arg("--tmp");
 

@@ -19,9 +19,7 @@ pub struct SignedMessage<'r>(&'r str);
 
 /// Is it a valid signature (not implemented)
 #[allow(unused_variables)]
-pub fn is_valid(signature: &str) -> bool {
-  true
-}
+pub fn is_valid(signature: &str) -> bool { true }
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for SignedMessage<'r> {
