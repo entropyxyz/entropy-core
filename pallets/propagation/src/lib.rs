@@ -6,14 +6,11 @@
 //! Propgates messages to signing client through offchain worker
 pub use pallet::*;
 
-#[cfg(test)]
-mod mock;
+#[cfg(test)] mod mock;
 
-#[cfg(test)]
-mod tests;
+#[cfg(test)] mod tests;
 
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
+#[cfg(feature = "runtime-benchmarks")] mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -30,8 +27,7 @@ pub mod pallet {
 
   #[pallet::config]
   pub trait Config:
-    frame_system::Config + pallet_authorship::Config + pallet_relayer::Config
-  {
+    frame_system::Config + pallet_authorship::Config + pallet_relayer::Config {
     type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
   }
 
@@ -62,9 +58,7 @@ pub mod pallet {
       T::DbWeight::get().reads_writes(1, 2)
     }
 
-    fn offchain_worker(block_number: T::BlockNumber) {
-      let _ = Self::post(block_number);
-    }
+    fn offchain_worker(block_number: T::BlockNumber) { let _ = Self::post(block_number); }
   }
 
   #[pallet::event]

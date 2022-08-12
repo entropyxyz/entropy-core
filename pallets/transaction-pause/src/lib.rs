@@ -12,14 +12,11 @@ use frame_system::pallet_prelude::*;
 use sp_runtime::DispatchResult;
 use sp_std::{prelude::*, vec::Vec};
 
-#[cfg(test)]
-mod mock;
+#[cfg(test)] mod mock;
 
-#[cfg(test)]
-mod tests;
+#[cfg(test)] mod tests;
 
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
+#[cfg(feature = "runtime-benchmarks")] mod benchmarking;
 
 pub mod weights;
 
@@ -95,7 +92,7 @@ pub mod module {
           if maybe_paused.is_none() {
             *maybe_paused = Some(());
             Self::deposit_event(Event::TransactionPaused {
-              pallet_name_bytes: pallet_name,
+              pallet_name_bytes:   pallet_name,
               function_name_bytes: function_name,
             });
           }
@@ -114,7 +111,7 @@ pub mod module {
       T::UpdateOrigin::ensure_origin(origin)?;
       if PausedTransactions::<T>::take((&pallet_name, &function_name)).is_some() {
         Self::deposit_event(Event::TransactionUnpaused {
-          pallet_name_bytes: pallet_name,
+          pallet_name_bytes:   pallet_name,
           function_name_bytes: function_name,
         });
       };
@@ -125,8 +122,7 @@ pub mod module {
 
 pub struct PausedTransactionFilter<T>(sp_std::marker::PhantomData<T>);
 impl<T: Config> Contains<T::Call> for PausedTransactionFilter<T>
-where
-  <T as frame_system::Config>::Call: GetCallMetadata,
+where <T as frame_system::Config>::Call: GetCallMetadata
 {
   fn contains(call: &T::Call) -> bool {
     let CallMetadata { function_name, pallet_name } = call.get_call_metadata();

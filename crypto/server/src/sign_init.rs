@@ -16,7 +16,7 @@ pub struct SignInit {
   /// identifiers of the participating parties
   // TK: @JA: What to use for this? IP addresses? Substrate addresses? Substrate keys?
   // may overlap with ip_addresses below.
-  pub signer_uids:   Vec<String>,
+  pub signer_uids: Vec<String>,
   /// The index of the evaluated Shamir Polynomial held by each signer
   pub signer_idxs:   Vec<usize>,
   /// Hash of the message to sign

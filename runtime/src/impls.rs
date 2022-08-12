@@ -53,13 +53,9 @@ mod multiplier_tests {
       .unwrap_or_else(|| BlockWeights::get().max_block)
   }
 
-  fn min_multiplier() -> Multiplier {
-    MinimumMultiplier::get()
-  }
+  fn min_multiplier() -> Multiplier { MinimumMultiplier::get() }
 
-  fn target() -> Weight {
-    TargetBlockFullness::get() * max_normal()
-  }
+  fn target() -> Weight { TargetBlockFullness::get() * max_normal() }
 
   // update based on runtime impl.
   fn runtime_multiplier_update(fm: Multiplier) -> Multiplier {
@@ -96,9 +92,7 @@ mod multiplier_tests {
   }
 
   fn run_with_system_weight<F>(w: Weight, assertions: F)
-  where
-    F: Fn(),
-  {
+  where F: Fn() {
     let mut t: sp_io::TestExternalities =
       frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap().into();
     t.execute_with(|| {

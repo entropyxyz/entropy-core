@@ -109,15 +109,13 @@ impl OneSessionHandler<AccountId> for OtherSessionHandler {
   fn on_genesis_session<'a, I: 'a>(_: I)
   where
     I: Iterator<Item = (&'a AccountId, Self::Key)>,
-    AccountId: 'a,
-  {
+    AccountId: 'a, {
   }
 
   fn on_new_session<'a, I: 'a>(_: bool, _: I, _: I)
   where
     I: Iterator<Item = (&'a AccountId, Self::Key)>,
-    AccountId: 'a,
-  {
+    AccountId: 'a, {
   }
 
   fn on_disabled(_validator_index: u32) {}
@@ -164,8 +162,7 @@ parameter_types! {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where
-  Call: From<C>,
+where Call: From<C>
 {
   type Extrinsic = TestXt<Call, ()>;
   type OverarchingCall = Call;
@@ -264,9 +261,7 @@ parameter_types! {
 pub struct Author11;
 impl FindAuthor<u64> for Author11 {
   fn find_author<'a, I>(_digests: I) -> Option<u64>
-  where
-    I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])>,
-  {
+  where I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])> {
     Some(11)
   }
 }

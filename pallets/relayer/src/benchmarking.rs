@@ -5,8 +5,7 @@ use frame_support::traits::{Get, OnInitialize};
 use frame_system::{EventRecord, RawOrigin};
 
 use super::*;
-#[allow(unused)]
-use crate::Pallet as Relayer;
+#[allow(unused)] use crate::Pallet as Relayer;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
   let events = frame_system::Pallet::<T>::events();
