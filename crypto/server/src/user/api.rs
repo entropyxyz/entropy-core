@@ -19,7 +19,7 @@ pub async fn new_user(
   // try parsing the input and validate the result
   let parsed_user_input: ParsedUserInputPartyInfo = user_input.into_inner().try_into()?;
   let (key, value) = (parsed_user_input.key.clone(), parsed_user_input.value.clone());
-  let party_info: PartyInfo = parsed_user_input.clone().try_into()?;
+  //   let party_info: PartyInfo = parsed_user_input.clone().try_into()?;
 
   // store new user data in kvdb
   let reservation = state.kv().reserve_key(key).await?;
