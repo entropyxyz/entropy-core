@@ -80,8 +80,8 @@ pub mod pallet {
       let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
       let kind = sp_core::offchain::StorageKind::PERSISTENT;
       let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
-        .unwrap_or_else(|| b"http://localhost:3001/sign".to_vec());
-      let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001/sign");
+        .unwrap_or_else(|| b"http://localhost:3001/cm/provide_share".to_vec());
+      let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001/cm/provide_share");
 
       log::warn!("propagation::post::messages: {:?}", &messages);
       // the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
