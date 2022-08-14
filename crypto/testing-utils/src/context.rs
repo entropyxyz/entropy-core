@@ -6,7 +6,7 @@ use super::node_proc::TestNodeProcess;
 
 /// substrate node should be installed
 fn get_path() -> String {
-  format!("{}/target/release/entropy", project_root::get_project_root().unwrap().to_string_lossy())
+  format!("{}/target/debug/entropy", project_root::get_project_root().unwrap().to_string_lossy())
 }
 
 pub type NodeRuntimeSignedExtra = SubstrateExtrinsicParams<DefaultConfig>;
