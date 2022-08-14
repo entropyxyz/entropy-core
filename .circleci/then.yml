@@ -66,7 +66,7 @@ jobs:
   crypto-centralized-keygen:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
       - run: cd crypto/centralized-keygen
@@ -74,7 +74,7 @@ jobs:
   crypto-server:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
       - run: cd crypto/server
@@ -82,7 +82,7 @@ jobs:
   crypto-kvdb:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
       - run: cd crypto/kvdb 
@@ -90,7 +90,7 @@ jobs:
   crypto-substrate-common:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
       - run: cd crypto/substrate-common
@@ -98,7 +98,7 @@ jobs:
   node-test:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - increase-swap
       - install-dependencies-and-checkout
@@ -108,14 +108,14 @@ jobs:
   node-benchmark:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: pushd node && cargo check --features=runtime-benchmarks --release
+      - run: pushd node && cargo check --features=runtime-benchmarks 
   node-lint-core:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
       - run: SKIP_WASM_BUILD=1 cargo clippy
