@@ -27,8 +27,9 @@
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
-use frame_support::{traits::Get, weights::Weight};
+use frame_support::{traits::Get, weights::{constants::RocksDbWeight, Weight}};
 use sp_std::marker::PhantomData;
+
 
 pub trait WeightInfo {
 	fn try_free_call() -> Weight;
@@ -55,5 +56,27 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		(4_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
+}
+
+// For backwards compatibility and tests
+
+impl WeightInfo for () {
+	// Storage: FreeTx FreeCallsLeft (r:1 w:1)
+	fn try_free_call() -> Weight {
+		(14_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
+	}
+	// Storage: FreeTx FreeCallsLeft (r:1 w:0)
+	fn check_free_call() -> Weight {
+		(2_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
+	}
+	// Storage: FreeTx FreeCallsLeft (r:1 w:1)
+	fn process_free_call() -> Weight {
+		(4_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
 }
