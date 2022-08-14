@@ -7,7 +7,7 @@ use super::node_proc::TestNodeProcess;
 /// substrate node should be installed
 fn get_path() -> String {
   let binding = project_root::get_project_root().unwrap();
-   let root =binding.to_string_lossy();
+  let root = binding.to_string_lossy();
   let f = format!("{}/target/release/entropy", root);
   if std::path::Path::new(&f).exists() {
     f
