@@ -106,8 +106,8 @@ jobs:
         # install nextest, fast test runner
       - run: curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
       - run: 
-          # because of timeouts, release is necessary here
-          command: pushd node && cargo build --release && cargo nextest run
+          # because of timeouts, release is necessary here?
+          command: pushd node && cargo build && cargo nextest run
           no_output_timeout: 45m
   node-benchmark:
     machine:
