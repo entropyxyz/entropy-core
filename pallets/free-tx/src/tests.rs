@@ -1,7 +1,6 @@
 use frame_support::{assert_err, assert_ok};
 use mock::{new_test_ext, Call, Event as TestEvent, FreeTx, Origin, System, SystemCall};
 use sp_runtime::{DispatchError, ModuleError};
-use sp_std::vec::Vec;
 
 use super::*;
 
@@ -28,13 +27,7 @@ fn try_free_call_errors_when_child_call_errors() {
 
     // this call will throw an error
     let call = Box::new(Call::System(SystemCall::kill_storage {
-      keys: {
-        // This is gross but From<Vec<u8>> isn't implemented
-        // ie Vec::<Vec<u8>>::from(b"this call will fail".to_vec()) won't work
-        let mut vector = Vec::<Vec<u8>>::new();
-        vector.push(b"this call will fail".to_vec());
-        vector
-      },
+      keys: vec![b"this call will fail".to_vec()],
     }));
     let expected_error = DispatchError::BadOrigin;
 
@@ -101,13 +94,7 @@ fn try_free_call_still_consumes_a_free_call_on_child_fail() {
 
     // choose a child call that will fail
     let call = Box::new(Call::System(SystemCall::kill_storage {
-      keys: {
-        // This is gross but From<Vec<u8>> isn't implemented
-        // ie Vec::<Vec<u8>>::from(b"this call will fail".to_vec()) won't work
-        let mut vector = Vec::<Vec<u8>>::new();
-        vector.push(b"this call will fail".to_vec());
-        vector
-      },
+      keys: vec![b"this call will fail".to_vec()],
     }));
 
     // Make sure try_free_call fails only bc child fails, not because user has no free calls left
