@@ -59,7 +59,8 @@ workflows:
     when: 
       or: [ << pipeline.parameters.node >>, << pipeline.parameters.pallets >>, << pipeline.parameters.runtime >> ]
     jobs: 
-      - node-test
+      - node-test-nr
+      - node-test-r
       - node-benchmark
       - node-lint-core
 
@@ -96,18 +97,25 @@ jobs:
       - install-dependencies-and-checkout
       - run: cd crypto/substrate-common
       - fmt-lint
-  node-test:
+  node-test-r:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "xlarge"
     steps:
       - increase-swap
       - install-dependencies-and-checkout
-        # install nextest, fast test runner
-      - run: curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
       - run: 
-          # because of timeouts, release is necessary here?
-          command: pushd node && cargo build && cargo nextest run
+          command: pushd node && cargo build --release && cargo test
+          no_output_timeout: 45m
+  node-test-nr:
+    machine:
+      image: "ubuntu-2004:202201-02"
+      resource_class: "xlarge"
+    steps:
+      - increase-swap
+      - install-dependencies-and-checkout
+      - run: 
+          command: pushd node && cargo build && cargo test
           no_output_timeout: 45m
   node-benchmark:
     machine:
