@@ -103,7 +103,7 @@ jobs:
       - increase-swap
       - install-dependencies-and-checkout
       - run: 
-          command: pushd node && cargo build --release && cargo test
+          command: pushd node && cargo build && cargo test
           no_output_timeout: 45m
   node-benchmark:
     machine:
@@ -118,4 +118,4 @@ jobs:
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: SKIP_WASM_BUILD=1 cargo clippy
+      - run: SKIP_WASM_BUILD=1 cargo clippy 
