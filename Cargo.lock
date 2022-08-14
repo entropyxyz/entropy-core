@@ -1201,18 +1201,6 @@ checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 
 [[package]]
 name = "crypto-bigint"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8658c15c5d921ddf980f7fe25b1e82f4b7a4083b2c4985fea4922edb8e43e07d"
-dependencies = [
- "generic-array 0.14.5",
- "rand_core 0.6.3",
- "subtle 2.4.1",
- "zeroize",
-]
-
-[[package]]
-name = "crypto-bigint"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03c6a1d5fa1de37e071642dfa44ec552ca5b299adb128fab16138e24b548fd21"
@@ -1388,12 +1376,6 @@ dependencies = [
  "data-encoding",
  "syn",
 ]
-
-[[package]]
-name = "der"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79b71cca7d95d7681a4b3b9cdf63c8dbc3730d0584c2c74e31416d64a90493f4"
 
 [[package]]
 name = "der"
@@ -1582,24 +1564,12 @@ checksum = "21e50f3adc76d6a43f5ed73b698a87d0760ca74617f60f7c3b879003536fdd28"
 
 [[package]]
 name = "ecdsa"
-version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43ee23aa5b4f68c7a092b5c3beb25f50c406adc75e2363634f242f28ab255372"
-dependencies = [
- "der 0.4.5",
- "elliptic-curve 0.10.4",
- "hmac 0.11.0",
- "signature",
-]
-
-[[package]]
-name = "ecdsa"
 version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0d69ae62e0ce582d56380743515fefaf1a8c70cec685d9677636d7e30ae9dc9"
 dependencies = [
- "der 0.5.1",
- "elliptic-curve 0.11.12",
+ "der",
+ "elliptic-curve",
  "rfc6979",
  "signature",
 ]
@@ -1635,31 +1605,16 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 
 [[package]]
 name = "elliptic-curve"
-version = "0.10.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83e5c176479da93a0983f0a6fdc3c1b8e7d5be0d7fe3fe05a99f15b96582b9a8"
-dependencies = [
- "crypto-bigint 0.2.5",
- "ff 0.10.1",
- "generic-array 0.14.5",
- "group 0.10.0",
- "rand_core 0.6.3",
- "subtle 2.4.1",
- "zeroize",
-]
-
-[[package]]
-name = "elliptic-curve"
 version = "0.11.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "25b477563c2bfed38a3b7a60964c49e058b2510ad3f12ba3483fd8f62c2306d6"
 dependencies = [
  "base16ct",
- "crypto-bigint 0.3.2",
- "der 0.5.1",
- "ff 0.11.1",
+ "crypto-bigint",
+ "der",
+ "ff",
  "generic-array 0.14.5",
- "group 0.11.0",
+ "group",
  "rand_core 0.6.3",
  "sec1",
  "serde",
@@ -1979,16 +1934,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c4c9e43643f5a3be4ca5b67d26b98031ff9db6806c3440ae32e02e3ceac3f1b"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "ff"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0f40b2dcd8bc322217a5f6559ae5f9e9d1de202a2ecee2e9eafcbece7562a4f"
-dependencies = [
- "rand_core 0.6.3",
- "subtle 2.4.1",
 ]
 
 [[package]]
@@ -2652,22 +2597,11 @@ dependencies = [
 
 [[package]]
 name = "group"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c363a5301b8f153d80747126a04b3c82073b9fe3130571a9d170cacdeaf7912"
-dependencies = [
- "ff 0.10.1",
- "rand_core 0.6.3",
- "subtle 2.4.1",
-]
-
-[[package]]
-name = "group"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc5ac374b108929de78460075f3dc439fa66df9d8fc77e8f12caa5165fcf0c89"
 dependencies = [
- "ff 0.11.1",
+ "ff",
  "rand_core 0.6.3",
  "subtle 2.4.1",
 ]
@@ -3373,24 +3307,13 @@ dependencies = [
 
 [[package]]
 name = "k256"
-version = "0.9.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "008b0281ca8032567c9711cd48631781c15228301860a39b32deb28d63125e46"
-dependencies = [
- "cfg-if 1.0.0",
- "ecdsa 0.12.4",
- "elliptic-curve 0.10.4",
-]
-
-[[package]]
-name = "k256"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19c3a5e0a0b8450278feda242592512e09f61c72e018b8cd5c859482802daf2d"
 dependencies = [
  "cfg-if 1.0.0",
- "ecdsa 0.13.4",
- "elliptic-curve 0.11.12",
+ "ecdsa",
+ "elliptic-curve",
  "sec1",
  "sha2 0.9.9",
 ]
@@ -3433,7 +3356,7 @@ dependencies = [
  "serial_test 0.6.0",
  "sled",
  "thiserror",
- "tofn 0.1.0 (git+https://github.com/axelarnetwork/tofn?branch=main)",
+ "tofn 0.1.0 (git+https://github.com/Entropyxyz/tofn?branch=main)",
  "tokio",
  "tracing",
  "zeroize",
@@ -6572,7 +6495,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7cabda3fb821068a9a4fab19a683eac3af12edf0f34b94a8be53c4972b8149d0"
 dependencies = [
- "der 0.5.1",
+ "der",
  "spki",
  "zeroize",
 ]
@@ -7248,7 +7171,7 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96ef608575f6392792f9ecf7890c00086591d29a83910939d430753f7c050525"
 dependencies = [
- "crypto-bigint 0.3.2",
+ "crypto-bigint",
  "hmac 0.11.0",
  "zeroize",
 ]
@@ -8636,7 +8559,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08da66b8b0965a5555b6bd6639e68ccba85e1e2506f5fbb089e93f8a04e1a2d1"
 dependencies = [
- "der 0.5.1",
+ "der",
  "generic-array 0.14.5",
  "pkcs8",
  "serde",
@@ -8937,7 +8860,6 @@ dependencies = [
  "cpufeatures 0.2.2",
  "digest 0.9.0",
  "opaque-debug 0.3.0",
- "sha2-asm",
 ]
 
 [[package]]
@@ -10165,7 +10087,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "44d01ac02a6ccf3e07db148d2be087da624fea0221a16152ed01f0496a6b0a27"
 dependencies = [
  "base64ct",
- "der 0.5.1",
+ "der",
 ]
 
 [[package]]
@@ -10762,35 +10684,16 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 [[package]]
 name = "tofn"
 version = "0.1.0"
-source = "git+https://github.com/axelarnetwork/tofn?branch=main#702a8b03a22c10470ae18b880808175a9c39d5b3"
-dependencies = [
- "bincode",
- "ecdsa 0.12.4",
- "hmac 0.11.0",
- "k256 0.9.5",
- "libpaillier",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
- "serde",
- "sha2 0.9.9",
- "sha3 0.9.1",
- "tracing",
- "zeroize",
-]
-
-[[package]]
-name = "tofn"
-version = "0.1.0"
 source = "git+https://github.com/Entropyxyz/tofn?branch=main#7bdc47e4956ae8c6618624f47e5da046d5385b54"
 dependencies = [
  "anyhow",
  "bincode",
  "chrono",
  "clap 3.1.8",
- "ecdsa 0.13.4",
+ "ecdsa",
  "hex",
  "hmac 0.12.1",
- "k256 0.10.4",
+ "k256",
  "libpaillier",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
@@ -10812,9 +10715,9 @@ dependencies = [
  "bincode",
  "chrono",
  "clap 3.1.8",
- "ecdsa 0.13.4",
+ "ecdsa",
  "hmac 0.12.1",
- "k256 0.10.4",
+ "k256",
  "libpaillier",
  "rand 0.8.5",
  "rand_chacha 0.3.1",

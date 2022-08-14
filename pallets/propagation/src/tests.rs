@@ -8,14 +8,12 @@ use sp_keystore::{testing::KeyStore, KeystoreExt};
 
 use crate::mock::*;
 
-#[ignore] // todo
 #[test]
 fn knows_how_to_mock_several_http_calls() {
   let mut t = offchain_worker_env(|state| {
     state.expect_request(testing::PendingRequest {
       method: "POST".into(),
-      uri: "http://localhost:3001/sign".into(),
-      headers: [].to_vec(),
+      uri: "http://localhost:3001/cm/provide_share".into(),
       sent: true,
       response: Some([].to_vec()),
       body: [0].to_vec(),
@@ -24,8 +22,7 @@ fn knows_how_to_mock_several_http_calls() {
 
     state.expect_request(testing::PendingRequest {
       method: "POST".into(),
-      uri: "http://localhost:3001/sign".into(),
-      headers: [].to_vec(),
+      uri: "http://localhost:3001/cm/provide_share".into(),
       sent: true,
       response: Some([].to_vec()),
       body: [
