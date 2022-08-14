@@ -59,8 +59,7 @@ workflows:
     when: 
       or: [ << pipeline.parameters.node >>, << pipeline.parameters.pallets >>, << pipeline.parameters.runtime >> ]
     jobs: 
-      - node-test-nr
-      - node-test-r
+      - node-test
       - node-benchmark
       - node-lint-core
 
@@ -97,7 +96,7 @@ jobs:
       - install-dependencies-and-checkout
       - run: cd crypto/substrate-common
       - fmt-lint
-  node-test-r:
+  node-test:
     machine:
       image: "ubuntu-2004:202201-02"
       resource_class: "xlarge"
@@ -105,17 +104,8 @@ jobs:
       - increase-swap
       - install-dependencies-and-checkout
       - run: 
+        # note, this must be release https://app.circleci.com/pipelines/github/entropyxyz/entropy-core/234/workflows/1ff7735d-2d69-43bd-80d7-2ba304df25e7/jobs/1175
           command: pushd node && cargo build --release && cargo test
-          no_output_timeout: 45m
-  node-test-nr:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "xlarge"
-    steps:
-      - increase-swap
-      - install-dependencies-and-checkout
-      - run: 
-          command: pushd node && cargo build && cargo test
           no_output_timeout: 45m
   node-benchmark:
     machine:
