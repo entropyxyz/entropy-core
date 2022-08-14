@@ -105,8 +105,8 @@ jobs:
       - increase-swap
       - install-dependencies-and-checkout
       - run: 
-          command: pushd node && cargo test
-          # command: pushd node && cargo nextest
+          # command: pushd node && cargo test
+          command: pushd node && cargo nextest
           no_output_timeout: 45m
   node-benchmark:
     machine:
