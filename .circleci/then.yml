@@ -39,7 +39,8 @@ commands:
       - run: rustup component add rustfmt
       - run: rustup default nightly  
       - run: rustup target add wasm32-unknown-unknown --toolchain nightly
-      - run: cargo install taplo-cli --locked 
+        # taplo, .toml formatter
+        run: curl -LsSf https://github.com/tamasfe/taplo/releases/latest/download/taplo-x86_64-unknown-linux-gnu.tar.gz | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
         # nextest, faster test runner
       - run: curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
   fmt-lint:
@@ -106,7 +107,7 @@ jobs:
       - install-dependencies-and-checkout
       - run: 
           # command: pushd node && cargo test
-          command: pushd node && cargo nextest
+          command: pushd node && cargo nextest run
           no_output_timeout: 45m
   node-benchmark:
     machine:
