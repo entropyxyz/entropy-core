@@ -13,6 +13,8 @@ pub use pallet::*;
 
 #[cfg(feature = "runtime-benchmarks")] mod benchmarking;
 
+pub mod weights;
+
 #[frame_support::pallet]
 pub mod pallet {
   use frame_support::{
@@ -28,6 +30,8 @@ pub mod pallet {
   };
   use sp_std::{fmt::Debug, prelude::*};
 
+  pub use crate::weights::WeightInfo;
+
   #[pallet::config]
   pub trait Config: frame_system::Config {
     /// Pallet emits events
@@ -38,6 +42,9 @@ pub mod pallet {
       + Dispatchable<Origin = Self::Origin, PostInfo = PostDispatchInfo>
       + GetDispatchInfo
       + From<frame_system::Call<Self>>;
+
+    // The weight information of this pallet.
+    type WeightInfo: WeightInfo;
   }
 
   #[pallet::pallet]
@@ -90,7 +97,9 @@ pub mod pallet {
     /// for querying free calls)).
     #[pallet::weight({
       let dispatch_info = call.get_dispatch_info();
-      (dispatch_info.weight.saturating_add(10_000), dispatch_info.class, Pays::No)
+      let base_weight = <T as Config>::WeightInfo::try_free_call();
+      (base_weight.saturating_add(dispatch_info.weight), dispatch_info.class, Pays::No)
+      // (dispatch_info.weight.saturating_add(10_000), dispatch_info.class, Pays::No)
     })]
     pub fn try_free_call(
       origin: OriginFor<T>,
@@ -139,20 +148,11 @@ pub mod pallet {
     }
   }
 
-  /// This makes it easy to add additional free call sources (eg. NFT, Proof of work, daily limit,
-  /// etc.)
-  // pub trait FreeCallSource<T: Config> {
-  //   fn check_free_call
-  //   fn process_free_call(&self, account_id: &<T as Config>::AccountId) -> bool;
-  // }
-
   #[derive(Debug, Clone)]
   pub enum FreeCallMethod {
     EraAllowance,
     ProofOfWork,
   }
-
-  // TODO JH Prevalidation logic
 
   /// Verifies that the account has free calls available before executing or broadcasting to other
   /// validators.

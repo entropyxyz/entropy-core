@@ -1,7 +1,9 @@
 //! Benchmarking setup for pallet-free-tx
+#![cfg(feature = "runtime-benchmarks")]
 
 use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_system::RawOrigin;
+use sp_std::prelude::Box;
 
 use super::*;
 #[allow(unused)] use crate::Pallet as FreeTx;
@@ -26,7 +28,7 @@ benchmarks! {
     <FreeTx<T>>::check_free_call(&caller)
   } verify {
     // make sure we don't hit saturating subtraction
-    assert_eq!(FreeCallsLeft::<T>::get(), Some(1u8));
+    assert_eq!(FreeCallsLeft::<T>::get(), Some(2u8));
   }
 
   // we need to rerun this benchmark whenever we add additional free call sources

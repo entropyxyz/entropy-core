@@ -68,6 +68,7 @@ impl pallet_balances::Config for Test {
 impl pallet_free_tx::Config for Test {
   type Call = Call;
   type Event = Event;
+  type WeightInfo = ();
 }
 
 pub type SystemCall = frame_system::Call<Test>;
