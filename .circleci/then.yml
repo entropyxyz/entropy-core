@@ -39,9 +39,10 @@ commands:
       - run: rustup component add rustfmt
       - run: rustup default nightly  
       - run: rustup target add wasm32-unknown-unknown --toolchain nightly
-      - run: cargo install taplo-cli --locked 
   fmt-lint:
     steps:
+        # taplo, .toml formatter
+      - run: curl -LsSf https://github.com/tamasfe/taplo/releases/latest/download/taplo-x86_64-unknown-linux-gnu.tar.gz | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
       - run: cargo fmt --check
       - run: taplo fmt --check
       - run: cargo clippy -- -D warnings
@@ -66,7 +67,7 @@ jobs:
   crypto-centralized-keygen:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
       - run: cd crypto/centralized-keygen
@@ -74,7 +75,7 @@ jobs:
   crypto-server:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
       - run: cd crypto/server
@@ -82,7 +83,7 @@ jobs:
   crypto-kvdb:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
       - run: cd crypto/kvdb 
@@ -90,7 +91,7 @@ jobs:
   crypto-substrate-common:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
       - run: cd crypto/substrate-common
@@ -98,24 +99,25 @@ jobs:
   node-test:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - increase-swap
       - install-dependencies-and-checkout
       - run: 
+        # note, this must be release https://app.circleci.com/pipelines/github/entropyxyz/entropy-core/234/workflows/1ff7735d-2d69-43bd-80d7-2ba304df25e7/jobs/1175
           command: pushd node && cargo build --release && cargo test
           no_output_timeout: 45m
   node-benchmark:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: pushd node && cargo check --features=runtime-benchmarks --release
+      - run: pushd node && cargo check --features=runtime-benchmarks 
   node-lint-core:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "2xlarge"
+      resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: SKIP_WASM_BUILD=1 cargo clippy
+      - run: SKIP_WASM_BUILD=1 cargo clippy 
