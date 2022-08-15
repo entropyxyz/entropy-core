@@ -55,14 +55,10 @@ pub mod pallet {
   #[pallet::getter(fn free_calls_left)]
   pub type FreeCallsLeft<T> = StorageValue<_, u8>;
 
+  #[derive(Default)]
   #[pallet::genesis_config]
   pub struct GenesisConfig {
     pub free_calls_left: u8,
-  }
-
-  #[cfg(feature = "std")]
-  impl Default for GenesisConfig {
-    fn default() -> Self { Self { free_calls_left: 0u8 } }
   }
 
   #[pallet::genesis_build]
@@ -197,7 +193,7 @@ pub mod pallet {
       info: &DispatchInfoOf<Self::Call>,
       len: usize,
     ) -> Result<Self::Pre, TransactionValidityError> {
-      Ok(self.validate(who, call, info, len).map(|_| ())?)
+      self.validate(who, call, info, len).map(|_| ())
     }
 
     fn validate(
