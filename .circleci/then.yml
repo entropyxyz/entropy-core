@@ -105,8 +105,7 @@ jobs:
       - install-dependencies-and-checkout
       - run: 
         # note, this must be release https://app.circleci.com/pipelines/github/entropyxyz/entropy-core/234/workflows/1ff7735d-2d69-43bd-80d7-2ba304df25e7/jobs/1175
-          # command: pushd node && cargo build --release && cargo test
-          command: pushd node && cargo build && cargo test
+          command: pushd node && cargo build --release && cargo test
           no_output_timeout: 45m
   node-benchmark:
     machine:
