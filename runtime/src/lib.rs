@@ -992,7 +992,6 @@ where Call: From<LocalCall>
     let address = Indices::unlookup(account);
     let (call, extra, _) = raw_payload.deconstruct();
     Some((call, (address, signature, extra)))
-    // Some(call)
   }
 }
 
