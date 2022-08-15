@@ -39,15 +39,4 @@ impl<T: frame_system::Config> pallet_free_tx::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	// Storage: FreeTx FreeCallsLeft (r:1 w:0)
-	fn check_free_call() -> Weight {
-		(2_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-	}
-	// Storage: FreeTx FreeCallsLeft (r:1 w:1)
-	fn process_free_call() -> Weight {
-		(4_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
 }
