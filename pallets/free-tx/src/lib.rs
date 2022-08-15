@@ -62,7 +62,7 @@ pub mod pallet {
 
   #[cfg(feature = "std")]
   impl Default for GenesisConfig {
-    fn default() -> Self { Self { free_calls_left: 2u8 } }
+    fn default() -> Self { Self { free_calls_left: 0u8 } }
   }
 
   #[pallet::genesis_build]
