@@ -107,7 +107,8 @@ pub mod pallet {
     ) -> DispatchResultWithPostInfo {
       let sender = ensure_signed(origin)?;
 
-      ensure!(Self::process_free_call(&sender), Error::<T>::NoFreeCallsAvailable);
+      ensure!(Self::has_free_call(&sender), Error::<T>::NoFreeCallsAvailable);
+      Self::consume_free_call(&sender)?;
 
       // TODO JH
       // Check these in order of cheapest to most expensive
@@ -125,26 +126,22 @@ pub mod pallet {
 
   impl<T: Config> Pallet<T> {
     /// Checks if account has any free txs.
-    pub fn check_free_call(_account_id: &<T>::AccountId) -> Option<FreeCallMethod> {
+    pub fn has_free_call(_account_id: &<T>::AccountId) -> bool {
       if let Some(calls) = Self::free_calls_left() {
         if calls > 0 {
-          return Some(FreeCallMethod::EraAllowance);
+          return true;
         }
       }
-      None
+      false
     }
 
-    pub fn process_free_call(account_id: &<T>::AccountId) -> bool {
-      // can we skip check_free_call? race conditions?
-      if Self::check_free_call(account_id).is_some() {
-        <FreeCallsLeft<T>>::mutate(|calls| {
-          if let Some(calls) = calls {
-            *calls = calls.saturating_sub(1u8);
-          }
-        });
-        return true;
-      }
-      false
+    pub fn consume_free_call(_account_id: &<T>::AccountId) -> Result<(), Error<T>> {
+      <FreeCallsLeft<T>>::mutate(|calls| {
+        if let Some(calls) = calls {
+          *calls = calls.saturating_sub(1u8);
+        }
+      });
+      Ok(())
     }
   }
 
@@ -212,9 +209,9 @@ pub mod pallet {
     ) -> TransactionValidity {
       if let Some(local_call) = call.is_sub_type() {
         if let Call::try_free_call { .. } = local_call {
-          return match Pallet::<T>::check_free_call(who) {
-            None => Err(TransactionValidityError::Invalid(InvalidTransaction::Payment)),
-            Some(_) => Ok(ValidTransaction::default()),
+          return match Pallet::<T>::has_free_call(who) {
+            false => Err(TransactionValidityError::Invalid(InvalidTransaction::Payment)),
+            true => Ok(ValidTransaction::default()),
           };
         }
       }

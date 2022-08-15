@@ -66,31 +66,13 @@ fn try_free_call_errors_when_no_free_calls_left() {
 }
 
 #[test]
-fn try_free_call_consumes_a_free_call() {
-  new_test_ext().execute_with(|| {
-    // Set block number to 1 because events are not emitted on block 0.
-    System::set_block_number(1);
-
-    // user gets 1 free call by default
-    assert!(FreeTx::check_free_call(&1u64).is_some());
-
-    // use the free call
-    let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
-    assert_ok!(FreeTx::try_free_call(Origin::signed(1), call));
-
-    // make sure the one free call was consumed
-    assert!(FreeTx::check_free_call(&1u64).is_none());
-  });
-}
-
-#[test]
 fn try_free_call_still_consumes_a_free_call_on_child_fail() {
   new_test_ext().execute_with(|| {
     // Set block number to 1 because events are not emitted on block 0.
     System::set_block_number(1);
 
     // user gets 1 free call by default
-    assert!(FreeTx::check_free_call(&1u64).is_some());
+    assert!(FreeTx::has_free_call(&1u64));
 
     // choose a child call that will fail
     let call = Box::new(Call::System(SystemCall::kill_storage {
@@ -102,7 +84,7 @@ fn try_free_call_still_consumes_a_free_call_on_child_fail() {
     assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_child_error);
 
     // make sure free call was still consumed
-    assert!(FreeTx::check_free_call(&1u64).is_none());
+    assert!(!FreeTx::has_free_call(&1u64));
   });
 }
 
@@ -117,7 +99,7 @@ fn try_free_call_still_consumes_a_free_call_on_child_fail() {
 //     System::set_block_number(1);
 //
 //     // make sure user has at least one free call
-//     assert!(FreeTx::check_free_call(&1u64).is_some());
+//     assert!(FreeTx::has_free_call(&1u64));
 //
 //     // choose a child call that will pass
 //     let call = Box::new(Call::Example(ExampleCall::do_something { something: 5 }));
@@ -126,7 +108,7 @@ fn try_free_call_still_consumes_a_free_call_on_child_fail() {
 // message: None });
 //
 //     // make sure free call was still consumed
-//     assert!(FreeTx::check_free_call(&1u64).is_none());
+//     assert!(FreeTx::has_free_call(&1u64));
 //   });
 // }
 
