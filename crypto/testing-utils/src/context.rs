@@ -6,14 +6,7 @@ use super::node_proc::TestNodeProcess;
 
 /// substrate node should be installed
 fn get_path() -> String {
-  let binding = project_root::get_project_root().unwrap();
-  let root = binding.to_string_lossy();
-  let f = format!("{}/target/release/entropy", root);
-  if std::path::Path::new(&f).exists() {
-    f
-  } else {
-    format!("{}/target/debug/entropy", root)
-  }
+  format!("{}/target/release/entropy", project_root::get_project_root().unwrap().to_string_lossy())
 }
 
 pub type NodeRuntimeSignedExtra = SubstrateExtrinsicParams<DefaultConfig>;
