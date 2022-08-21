@@ -634,7 +634,7 @@ mod tests {
         let check_nonce = frame_system::CheckNonce::from(index);
         let check_weight = frame_system::CheckWeight::new();
         let payment = pallet_transaction_payment::ChargeTransactionPayment::from(0);
-        let relayer = pallet_relayer::PrevalidateRelayer::new();
+        let free_tx = pallet_free_tx::InterrogateFreeTransaction::new();
 
         let extra = (
           check_spec_version,
@@ -644,7 +644,7 @@ mod tests {
           check_nonce,
           check_weight,
           payment,
-          relayer,
+          free_tx
         );
         let raw_payload = SignedPayload::from_raw(
           function,
