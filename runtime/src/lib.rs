@@ -981,7 +981,7 @@ where Call: From<LocalCall>
       frame_system::CheckNonce::<Runtime>::from(nonce),
       frame_system::CheckWeight::<Runtime>::new(),
       pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
-      pallet_relayer::PrevalidateRelayer::<Runtime>::new(),
+      pallet_free_tx::InterrogateFreeTransaction::<Runtime>::new(),
     );
     let raw_payload = SignedPayload::new(call, extra)
       .map_err(|e| {
@@ -1202,6 +1202,12 @@ impl pallet_bags_list::Config for Runtime {
   type WeightInfo = pallet_bags_list::weights::SubstrateWeight<Runtime>;
 }
 
+impl pallet_free_tx::Config for Runtime {
+  type Call = Call;
+  type Event = Event;
+  type WeightInfo = weights::pallet_free_tx::WeightInfo<Runtime>;
+}
+
 construct_runtime!(
   pub enum Runtime where
     Block = Block,
@@ -1257,6 +1263,7 @@ construct_runtime!(
     Slashing: pallet_slashing = 52,
     Constraints: pallet_constraints = 53,
     TransactionPause: pallet_transaction_pause = 54,
+    FreeTx: pallet_free_tx = 55
   }
 );
 
@@ -1283,7 +1290,7 @@ pub type SignedExtra = (
   frame_system::CheckNonce<Runtime>,
   frame_system::CheckWeight<Runtime>,
   pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
-  pallet_relayer::PrevalidateRelayer<Runtime>,
+  pallet_free_tx::InterrogateFreeTransaction<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
@@ -1318,6 +1325,7 @@ mod benches {
     [pallet_democracy, Democracy]
     [pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
     [pallet_elections_phragmen, Elections]
+    [pallet_free_tx, FreeTx]
     [pallet_staking_extension, StakingExtension]
     [pallet_grandpa, Grandpa]
     [pallet_im_online, ImOnline]
