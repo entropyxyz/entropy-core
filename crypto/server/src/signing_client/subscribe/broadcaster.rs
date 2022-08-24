@@ -10,6 +10,6 @@ pub struct Broadcaster(pub broadcast::Sender<SigningMessage>);
 
 impl Broadcaster {
   pub fn send(&self, msg: SigningMessage) -> Result<usize, SendError<SigningMessage>> {
-     self.0.send(msg)
+    self.0.send(msg)
   }
 }

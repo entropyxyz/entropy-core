@@ -13,7 +13,7 @@ use crate::signing_client::{SigningErr, SigningMessage};
 pub type ChannelIn = futures::stream::BoxStream<'static, super::SigningMessage>;
 pub type ChannelOut = crate::signing_client::subscribe::Broadcaster;
 
-/// Thin wrapper broadcasting channel out and messages from other nodes in 
+/// Thin wrapper broadcasting channel out and messages from other nodes in
 pub struct Channels(pub ChannelOut, pub ChannelIn);
 
 /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/protocol.rs#L20
