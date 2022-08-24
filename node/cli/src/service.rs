@@ -644,7 +644,7 @@ mod tests {
           check_nonce,
           check_weight,
           payment,
-          free_tx
+          free_tx,
         );
         let raw_payload = SignedPayload::from_raw(
           function,

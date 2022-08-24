@@ -366,7 +366,7 @@ pub fn testnet_genesis(
     vesting:              Default::default(),
     transaction_storage:  Default::default(),
     transaction_payment:  Default::default(),
-    free_tx: Default::default()
+    free_tx:              Default::default(),
   }
 }
 
