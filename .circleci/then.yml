@@ -41,20 +41,22 @@ commands:
       - run: rustup target add wasm32-unknown-unknown --toolchain nightly
   fmt-lint:
     steps:
-        # taplo, .toml formatter
       - run: curl -LsSf https://github.com/tamasfe/taplo/releases/latest/download/taplo-x86_64-unknown-linux-gnu.tar.gz | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
       - run: cargo fmt --check
       - run: taplo fmt --check
       - run: cargo clippy -- -D warnings
 
 workflows:
+  lint:
+    jobs:
+      - fmt-lint-all
   crypto:
     when: << pipeline.parameters.crypto >>
     jobs:
-      - crypto-centralized-keygen
+      # - crypto-centralized-keygen
       - crypto-server
-      - crypto-kvdb
-      - crypto-substrate-common
+      # - crypto-kvdb
+      # - crypto-substrate-common
   node:
     when: 
       or: [ << pipeline.parameters.node >>, << pipeline.parameters.pallets >>, << pipeline.parameters.runtime >> ]
@@ -64,13 +66,12 @@ workflows:
       - node-lint-core
 
 jobs: 
-  crypto-centralized-keygen:
+  fmt-lint-all:
     machine:
       image: "ubuntu-2004:202201-02"
-      resource_class: "xlarge"
+      resource_class: "large"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/centralized-keygen
       - fmt-lint
   crypto-server:
     machine:
@@ -78,24 +79,29 @@ jobs:
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/server
-      - fmt-lint
-  crypto-kvdb:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: cd crypto/kvdb 
-      - fmt-lint
-  crypto-substrate-common:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: cd crypto/substrate-common
-      - fmt-lint
+      - run: cd crypto/server # && cargo test # placeholder for test
+        # temp
+  # crypto-centralized-keygen:
+  #   machine:
+  #     image: "ubuntu-2004:202201-02"
+  #     resource_class: "xlarge"
+  #   steps:
+  #     - install-dependencies-and-checkout
+  #     - run: cd crypto/centralized-keygen
+  # crypto-kvdb:
+  #   machine:
+  #     image: "ubuntu-2004:202201-02"
+  #     resource_class: "xlarge"
+  #   steps:
+  #     - install-dependencies-and-checkout
+  #     - run: cd crypto/kvdb 
+  # crypto-substrate-common:
+  #   machine:
+  #     image: "ubuntu-2004:202201-02"
+  #     resource_class: "xlarge"
+  #   steps:
+  #     - install-dependencies-and-checkout
+  #     - run: cd crypto/substrate-common
   node-test:
     machine:
       image: "ubuntu-2004:202201-02"
@@ -114,10 +120,3 @@ jobs:
     steps:
       - install-dependencies-and-checkout
       - run: pushd node && cargo check --features=runtime-benchmarks 
-  node-lint-core:
-    machine:
-      image: "ubuntu-2004:202201-02"
-      resource_class: "xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: SKIP_WASM_BUILD=1 cargo clippy 
