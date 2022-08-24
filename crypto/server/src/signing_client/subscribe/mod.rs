@@ -11,7 +11,7 @@ use super::{new_party::SignContext, SigningErr, SigningMessage};
 /// Call `subscribe` on every other node with a reqwest client. Merge the streamed responses
 /// into a single stream.
 #[allow(unused_variables)]
-pub async fn subscribe_all(
+pub async fn subscribe_to_them(
   ctx: &SignContext,
 ) -> Result<BoxStream<'static, SigningMessage>, SigningErr> {
   let handles: Vec<_> = ctx
