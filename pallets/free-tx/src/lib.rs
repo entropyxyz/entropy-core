@@ -97,6 +97,7 @@ pub mod pallet {
       (base_weight.saturating_add(dispatch_info.weight), dispatch_info.class, Pays::No)
       // (dispatch_info.weight.saturating_add(10_000), dispatch_info.class, Pays::No)
     })]
+    #[allow(clippy::boxed_local)]
     pub fn try_free_call(
       origin: OriginFor<T>,
       call: Box<<T as Config>::Call>,
@@ -149,6 +150,7 @@ pub mod pallet {
 
   /// Verifies that the account has free calls available before executing or broadcasting to other
   /// validators.
+  #[allow(clippy::derive_partial_eq_without_eq)]
   #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
   #[scale_info(skip_type_params(T))]
   pub struct InterrogateFreeTransaction<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
@@ -169,6 +171,7 @@ pub mod pallet {
   impl<T: Config + Send + Sync> InterrogateFreeTransaction<T>
   where <T as frame_system::Config>::Call: IsSubType<Call<T>>
   {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
   }
 
@@ -203,6 +206,7 @@ pub mod pallet {
       _info: &DispatchInfoOf<Self::Call>,
       _len: usize,
     ) -> TransactionValidity {
+    #[allow(clippy::collapsible_match)]
       if let Some(local_call) = call.is_sub_type() {
         if let Call::try_free_call { .. } = local_call {
           return match Pallet::<T>::has_free_call(who) {
