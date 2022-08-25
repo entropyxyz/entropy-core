@@ -206,7 +206,7 @@ pub mod pallet {
       _info: &DispatchInfoOf<Self::Call>,
       _len: usize,
     ) -> TransactionValidity {
-    #[allow(clippy::collapsible_match)]
+      #[allow(clippy::collapsible_match)]
       if let Some(local_call) = call.is_sub_type() {
         if let Call::try_free_call { .. } = local_call {
           return match Pallet::<T>::has_free_call(who) {
