@@ -21,12 +21,12 @@ At the moment, these two APIs are in progress:
 - `new_user` (to impl after sign, includes changes to Partition)
 
 Eventually these will also be implemented:
-- `update_Partition_leader` - update the node's Partition leader.
+- `update_partition_leader` - update the node's Partition leader.
 - `update_node_set` - to be called when the active node-set changes. Updates require resharing stored keyshares to prevent attacks.
 - `delete_user` - remove a user's information from all nodes
 
 ## `new_user` - create a new user
-1. Each Partition Leader is informed of a new user's secret keyshare by the User. User calls `Partition_leader::new_user` on each CL.
+1. Each Partition Leader is informed of a new user's secret keyshare by the User. User calls `partition_leader::new_user` on each CL.
 2. Partition Leaders validate that each other CL received a valid keyshare.
 3. Each CL broadcasts the user's secret keyshare (by calling `new_user`) to each node in their Partition.
 4. Nodes validate that each other node in their Partition received an identical keyshare.
