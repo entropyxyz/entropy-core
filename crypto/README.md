@@ -7,7 +7,10 @@ The major actors in this repo are:
   - `communication-manager` (TO BE DEPRECATED, see note below) - AKA, the previous block's proposer. The CM is run by the previous block-proposer, and is responsible for choosing and notifying signing parties for each user signing-tx in the previous block.
     - Currently, each node must notify the communication manager what shares they hold (`send_ip_address`), after which, the CM chooses the parties.
     - After implementing Partitions, all info about which nodes hold which shares will be stored on-chain, and this call will be eliminated. 
-  - `Partition` - (unimpl) Entropy nodes are partitioned into one of $N$ Partitions. Nodes from the same Partition have equivalent secret keyshare information. Each Partition has a Partition Leader, who broadcasts messages to the Partition, eg., when receiving shares from new users.
+  - `partition` - (unimpl) Entropy nodes are partitioned into one of $N$ Partitions. Nodes from the same Partition have equivalent secret keyshare information. 
+    - To be deprecated 2022-08-26: Each Partition has a Partition Leader, who broadcasts messages to the Partition, eg., when receiving shares from new users.
+    - instead: `new_user`: user contacts all nodes in the network directly with a message containing that node's share
+      - why: reduces complexity, avoids issue of malicious committee leader
 
 The utility crates in this repo are:
 - `kvdb` - An encrypted key-value datastore
@@ -21,15 +24,23 @@ At the moment, these two APIs are in progress:
 - `new_user` (to impl after sign, includes changes to Partition)
 
 Eventually these will also be implemented:
-- `update_partition_leader` - update the node's Partition leader.
+<!-- - `update_partition_leader` - update the node's Partition leader. -->
 - `update_node_set` - to be called when the active node-set changes. Updates require resharing stored keyshares to prevent attacks.
 - `delete_user` - remove a user's information from all nodes
 
-## `new_user` - create a new user
-1. Each Partition Leader is informed of a new user's secret keyshare by the User. User calls `partition_leader::new_user` on each CL.
+## `new_user` - create a new user (todo)
+deprecated 2022-08-26:
+1. deprecate: Each Partition Leader is informed of a new user's secret keyshare by the User. User calls `partition_leader::new_user` on each CL.
 2. Partition Leaders validate that each other CL received a valid keyshare.
 3. Each CL broadcasts the user's secret keyshare (by calling `new_user`) to each node in their Partition.
-4. Nodes validate that each other node in their Partition received an identical keyshare.
+
+Instead:
+1. The user sends each node in the network containing a share. 
+2. Nodes validate that each other node in their Partition received an identical keyshare.
+3. Test the share validity: one node from each partition is selected to construct a signature. 
+  - If the signature is valid, end, post (todo: what data) new-user data on chain
+  - If the signature is invalid, and no node faulted, user is at fault, fail
+  - If the signature is invalid, and a node faulted, slash node, retry with new node from that partition
 
 ## `sign` - construct a signature to return to the user
 1. User submits a transaction (`pallets::relayer::prep_transaction`) to the chain, containing a message including their substrate address and their (hashed) message.
