@@ -45,7 +45,7 @@ async fn rocket() -> _ {
 
   rocket::build()
     .mount("/user", routes![new_user])
-    .mount("/signer", routes![new_party, subscribe])
+    .mount("/signer", routes![new_party, subscribe_to_me])
     .mount("/cm", routes![provide_share, handle_signing])
     .manage(signer_state)
     .manage(cm_state)
