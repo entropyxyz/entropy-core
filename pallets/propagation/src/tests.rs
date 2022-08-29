@@ -8,12 +8,15 @@ use sp_keystore::{testing::KeyStore, KeystoreExt};
 
 use crate::mock::*;
 
+pub const SIG_HASH: &[u8; 64] = b"d188f0d99145e7ddbd0f1e46e7fd406db927441584571c623aff1d1652e14b06";
+
+
 #[test]
 fn knows_how_to_mock_several_http_calls() {
   let mut t = offchain_worker_env(|state| {
     state.expect_request(testing::PendingRequest {
       method: "POST".into(),
-      uri: "http://localhost:3001/cm/provide_share".into(),
+      uri: "http://localhost:3001/signer/new_party".into(),
       sent: true,
       response: Some([].to_vec()),
       body: [0].to_vec(),
@@ -22,14 +25,10 @@ fn knows_how_to_mock_several_http_calls() {
 
     state.expect_request(testing::PendingRequest {
       method: "POST".into(),
-      uri: "http://localhost:3001/cm/provide_share".into(),
+      uri: "http://localhost:3001/signer/new_party".into(),
       sent: true,
       response: Some([].to_vec()),
-      body: [
-        8, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 32, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0,
-        32, 1, 0, 0, 0, 0, 0, 0, 0,
-      ]
-      .to_vec(),
+      body: [8, 1, 1, 100, 49, 56, 56, 102, 48, 100, 57, 57, 49, 52, 53, 101, 55, 100, 100, 98, 100, 48, 102, 49, 101, 52, 54, 101, 55, 102, 100, 52, 48, 54, 100, 98, 57, 50, 55, 52, 52, 49, 53, 56, 52, 53, 55, 49, 99, 54, 50, 51, 97, 102, 102, 49, 100, 49, 54, 53, 50, 101, 49, 52, 98, 48, 54, 32, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 100, 49, 56, 56, 102, 48, 100, 57, 57, 49, 52, 53, 101, 55, 100, 100, 98, 100, 48, 102, 49, 101, 52, 54, 101, 55, 102, 100, 52, 48, 54, 100, 98, 57, 50, 55, 52, 52, 49, 53, 56, 52, 53, 55, 49, 99, 54, 50, 51, 97, 102, 102, 49, 100, 49, 54, 53, 50, 101, 49, 52, 98, 48, 54, 32, 1, 0, 0, 0, 0, 0, 0, 0].to_vec(),
       ..Default::default()
     });
   });
@@ -38,7 +37,7 @@ fn knows_how_to_mock_several_http_calls() {
     Propagation::post(1).unwrap();
 
     System::set_block_number(3);
-    let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
+    let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
 
     assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request.clone()));
     assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request));

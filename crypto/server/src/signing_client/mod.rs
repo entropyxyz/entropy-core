@@ -5,6 +5,8 @@ mod subscribe;
 
 use std::{collections::HashMap, sync::Mutex};
 
+#[cfg(test)] mod tests;
+
 pub use self::{
   errors::*,
   new_party::SigningMessage,
