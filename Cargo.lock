@@ -5302,15 +5302,26 @@ name = "pallet-free-tx"
 version = "3.0.0-monthly-2021-10"
 dependencies = [
  "frame-benchmarking",
+ "frame-election-provider-support",
  "frame-support",
  "frame-system",
  "log",
+ "pallet-authorship",
+ "pallet-bags-list",
  "pallet-balances",
+ "pallet-relayer",
+ "pallet-session",
+ "pallet-staking",
+ "pallet-staking-extension",
+ "pallet-staking-reward-curve",
+ "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
  "sp-core 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
  "sp-io 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
+ "sp-npos-elections",
  "sp-runtime 6.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
+ "sp-staking",
  "sp-std 4.0.0 (git+https://github.com/paritytech/substrate.git?branch=master)",
 ]
 

@@ -1,6 +1,18 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-//! TODO JH: This is NOT SAFE for production yet. This is an MVP and totally DoS-able.
+//! TODO JH: This is NOT SAFE for production yet. This is an MVP and likely DoS-able.
+
+//! TODO JH: Free Transactions per Era
+//! [x] FreeTxPerEra StorageValue - Enable pallet by setting it to Some(u16)
+//! [x] FreeTxLeft StorageMap(AccountId, u16) - store the number of free transactions left for each
+//!   account
+//! [x] try_free_tx modification
+//! [x] SignedExtension modification
+//! [] on_idle hook (optional/future) - prunes FreeCallsRemaining
+//! [x] reset_free_tx - root function clears FreeTxLeft
+//!
+//! [] Remove GenesisConfig and fix tests - remove genesis config
+//! [] new tests
 
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
@@ -24,16 +36,18 @@ pub mod pallet {
     weights::{GetDispatchInfo, PostDispatchInfo},
   };
   use frame_system::{pallet_prelude::*, RawOrigin};
+  use scale_info::TypeInfo;
   use sp_runtime::{
     traits::{DispatchInfoOf, SignedExtension},
     transaction_validity::{InvalidTransaction, TransactionValidityError},
   };
+  use sp_staking::EraIndex;
   use sp_std::{fmt::Debug, prelude::*};
 
   pub use crate::weights::WeightInfo;
 
   #[pallet::config]
-  pub trait Config: frame_system::Config {
+  pub trait Config: frame_system::Config + StakingCurrentEra {
     /// Pallet emits events
     type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
@@ -47,24 +61,43 @@ pub mod pallet {
     type WeightInfo: WeightInfo;
   }
 
+  /// Represents the number of free calls a user can have
+  pub type FreeCallCount = u16;
+
+  /// Stores how many free calls a user has left and which era it applies to.
+  ///
+  /// This is used to track how many free calls are left per user WITHOUT requiring FreeCallsPerEra
+  /// to be pruned every era.
+  #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
+  pub struct FreeCallInfo {
+    era_index:            EraIndex,
+    free_calls_remaining: FreeCallCount,
+  }
+
   #[pallet::pallet]
   #[pallet::generate_store(pub(super) trait Store)]
   pub struct Pallet<T>(_);
 
+  /// Default number of free calls users get per era.
+  ///
+  /// To disable free calls altogether, set this to `None` or leave it unitialized.
   #[pallet::storage]
-  #[pallet::getter(fn free_calls_left)]
-  pub type FreeCallsLeft<T> = StorageValue<_, u8>;
+  #[pallet::getter(fn free_calls_per_era_raw)]
+  pub type FreeCallsPerEra<T: Config> = StorageValue<_, FreeCallCount>;
 
-  #[derive(Default)]
-  #[pallet::genesis_config]
-  pub struct GenesisConfig {
-    pub free_calls_left: u8,
-  }
-
-  #[pallet::genesis_build]
-  impl<T: Config> GenesisBuild<T> for GenesisConfig {
-    fn build(&self) { <FreeCallsLeft<T>>::put(&self.free_calls_left); }
-  }
+  /// Stores how many free calls a user has left for this era.
+  ///
+  /// What the query value means:
+  ///
+  /// - `Some` where `EraIndex == current_era_index`: the user has `FreeCalls` left to use in this
+  ///   era.
+  /// - `None` OR `Some` where `EraIndex != current_era_index`: user has not used any free calls
+  ///   this era. If using a free call, reset their value to `(FreeCallsPerEra - 1,
+  ///   current_era_index)`
+  #[pallet::storage]
+  #[pallet::getter(fn free_calls_remaining_raw)]
+  pub type FreeCallsRemaining<T: Config> =
+    StorageMap<_, Blake2_128Concat, T::AccountId, FreeCallInfo, OptionQuery>;
 
   #[pallet::event]
   #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -76,11 +109,20 @@ pub mod pallet {
 
   #[pallet::error]
   pub enum Error<T> {
+    /// Free calls have been disabled
+    FreeCallsDisabled,
     /// Account has no free calls left. Call the extrinsic directly or use `try_free_call_or_pay()`
     NoFreeCallsAvailable,
     /// Are you fuzzing, or are you just dumb?
     WastingFreeCalls,
   }
+
+  // #[pallet::hooks]
+  // impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+  // 	fn on_idle(_block: T::BlockNumber, remaining_weight: Weight) -> Weight {
+  //     // TODO for when we want to prune FreeCallsRemaining
+  // 	}
+  // }
 
   #[pallet::call]
   impl<T: Config> Pallet<T> {
@@ -104,8 +146,7 @@ pub mod pallet {
     ) -> DispatchResultWithPostInfo {
       let sender = ensure_signed(origin)?;
 
-      ensure!(Self::has_free_call(&sender), Error::<T>::NoFreeCallsAvailable);
-      Self::consume_free_call(&sender)?;
+      Self::try_consume_free_call(&sender)?;
 
       // TODO JH
       // Check these in order of cheapest to most expensive
@@ -119,33 +160,121 @@ pub mod pallet {
 
       res
     }
+
+    /// Sets the number of free calls each account gets per era.
+    /// To disable free calls, set this to `0`.
+    /// TODO: weight
+    #[pallet::weight(10_000)]
+    pub fn set_free_calls_per_era(
+      origin: OriginFor<T>,
+      free_calls_per_era: FreeCallCount,
+    ) -> DispatchResult {
+      let _ = ensure_root(origin)?;
+      if free_calls_per_era == 0 {
+        // make sure that <FreeCallsPerEra<T>>::get() returns None instead of Some(0)
+        <FreeCallsPerEra<T>>::kill();
+      } else {
+        <FreeCallsPerEra<T>>::put(free_calls_per_era);
+      }
+      Ok(())
+    }
+
+    // Resets free call count for all accounts during this era. Count will still be reset every
+    // era, and this does not change the era length.
+    //
+    // TODO: weight
+    // #[pallet::weight(10_000)]
+    // pub fn reset_free_calls(origin: OriginFor<T>) -> DispatchResult {
+    //   ensure_root(origin)?;
+    //   // TODO
+    //   Ok(())
+    // }
   }
 
   impl<T: Config> Pallet<T> {
-    /// Checks if account has any free txs.
-    pub fn has_free_call(_account_id: &<T>::AccountId) -> bool {
-      if let Some(calls) = Self::free_calls_left() {
-        if calls > 0 {
-          return true;
+    // TODO make sure this is right before moving on
+    // if OK(()), a free call for the provided account was available and was consumed
+    pub fn try_consume_free_call(account_id: &<T>::AccountId) -> Result<(), Error<T>> {
+      // We can check if free calls are disabled and get free calls per era from the same query
+      let free_calls_per_era = Self::free_calls_per_era().ok_or(Error::<T>::FreeCallsDisabled)?;
+
+      <FreeCallsRemaining<T>>::try_mutate(account_id, |call_info| {
+        let current_era_index = <T as StakingCurrentEra>::current_era().unwrap();
+
+        let update_info = |remaining| {
+          Some(FreeCallInfo {
+            era_index:            current_era_index,
+            free_calls_remaining: remaining as FreeCallCount,
+          })
+        };
+
+        // update their call data
+        match call_info {
+          Some(prev_info) => {
+            let FreeCallInfo { era_index, free_calls_remaining } = *prev_info;
+
+            // if there's a new era, free calls were last used in a prev era. fill up free calls.
+            if era_index != current_era_index {
+              *call_info = update_info(free_calls_per_era.saturating_sub(1));
+              return Ok(());
+            }
+
+            // if era is current and no remaining calls left, they've used them all
+            if free_calls_remaining == 0 as FreeCallCount {
+              return Err(Error::<T>::NoFreeCallsAvailable);
+            }
+            // otherwise, consume one free call
+            *call_info = update_info(free_calls_remaining.saturating_sub(1));
+          },
+
+          // if None, then this is the account's first free call ever (or it was pruned)
+          None => {
+            *call_info = update_info(free_calls_per_era.saturating_sub(1));
+          },
         }
-      }
-      false
+        Ok(())
+      })
     }
 
-    pub fn consume_free_call(_account_id: &<T>::AccountId) -> Result<(), Error<T>> {
-      <FreeCallsLeft<T>>::mutate(|calls| {
-        if let Some(calls) = calls {
-          *calls = calls.saturating_sub(1u8);
-        }
+    /// Returns number of free calls a user has, and returns None if free calls are disabled.
+    pub fn free_calls_remaining(account_id: &<T>::AccountId) -> FreeCallCount {
+      // return 0 if free calls are disabled (and gets free calls per era in the same storage
+      // query).
+      let free_calls_per_era = Self::free_calls_per_era().unwrap_or_else(|| {
+        return 0 as FreeCallCount;
       });
-      Ok(())
+
+      // if the free call count was last updated this era, return however many free calls they have
+      // left
+      if let Some(call_info) = <FreeCallsRemaining<T>>::get(account_id) {
+        let FreeCallInfo { era_index, free_calls_remaining } = call_info;
+        if era_index == <T as StakingCurrentEra>::current_era().unwrap() {
+          return free_calls_remaining;
+        };
+      };
+
+      // otherwise they have the default number of free calls per era remaining
+      free_calls_per_era
     }
+
+    /// Returns the number of free calls per era a user gets, or returns None if free calls are
+    /// disabled
+    pub fn free_calls_per_era() -> Option<FreeCallCount> {
+      if let Some(n) = Self::free_calls_per_era_raw() {
+        if n != 0 {
+          return Some(n);
+        };
+      }
+      None
+    }
+
+    /// Checks if free calls are enabled
+    fn free_calls_are_enabled() -> bool { Self::free_calls_per_era().is_some() }
   }
 
-  #[derive(Debug, Clone)]
-  pub enum FreeCallMethod {
-    EraAllowance,
-    ProofOfWork,
+  pub trait StakingCurrentEra {
+    type EraIndex;
+    fn current_era() -> Option<EraIndex>;
   }
 
   /// Verifies that the account has free calls available before executing or broadcasting to other
@@ -207,15 +336,18 @@ pub mod pallet {
       _len: usize,
     ) -> TransactionValidity {
       #[allow(clippy::collapsible_match)]
+      // is there a way to do all this shit better?
       if let Some(local_call) = call.is_sub_type() {
         if let Call::try_free_call { .. } = local_call {
-          return match Pallet::<T>::has_free_call(who) {
-            false => Err(TransactionValidityError::Invalid(InvalidTransaction::Payment)),
-            true => Ok(ValidTransaction::default()),
-          };
+          if Pallet::<T>::free_calls_are_enabled() {
+            if Pallet::<T>::free_calls_remaining(who) != 0 {
+              return Ok(ValidTransaction::default());
+            }
+          }
+          return Err(TransactionValidityError::Invalid(InvalidTransaction::Payment));
         }
       }
-      Ok(ValidTransaction::default())
+      return Ok(ValidTransaction::default());
     }
   }
 }
