@@ -23,58 +23,58 @@ use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{
-  communication_manager::errors::CustomIPError, sign_init::SignInit, CommunicationManagerState,
-  SIGNING_PARTY_SIZE,
+    communication_manager::errors::CustomIPError, sign_init::SignInit, CommunicationManagerState,
+    SIGNING_PARTY_SIZE,
 };
 
 // TODO(TK): lots to do
 /// Data from previous block, to be used to initate signature protocols by the CM.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncodedBlockData {
-  user_ip_address: String,
-  msg:             Vec<u8>, // todo: placeholder
-  signed_msg:      Vec<u8>, // todo: placeholder
+    user_ip_address: String,
+    msg:             Vec<u8>, // todo: placeholder
+    signed_msg:      Vec<u8>, // todo: placeholder
 }
 
 type SignersIPsPlaceholder = String;
 type BadSignerPlaceholder = String;
 impl EncodedBlockData {
-  fn validate_user(&self) -> bool {
-    todo!();
-  }
-
-  fn get_user_info_from_db(&self, kv_manager: &KvManager) -> anyhow::Result<SignInit> {
-    todo!();
-  }
-
-  fn select_signers(&self, cm_info: &SignInit) -> Vec<SignersIPsPlaceholder> { todo!() }
-
-  async fn post_new_party(
-    &self,
-    signers: &[SignersIPsPlaceholder],
-    cm_info: &SignInit,
-  ) -> Result<(), BadSignerPlaceholder> {
-    let client = reqwest::Client::new();
-    for ip in signers {
-      let res = client
-        .post(format!("http://{}/new_party", ip))
-        .header("Content-Type", "application/json")
-        .json(&cm_info)
-        .send()
-        .await
-        .unwrap();
+    fn validate_user(&self) -> bool {
+        todo!();
     }
-    Ok(())
-  }
 
-  async fn punish_and_rerun(
-    &mut self,
-    previous_signers: Vec<SignersIPsPlaceholder>,
-    bad_signer: SignersIPsPlaceholder,
-    cm_info: SignInit,
-  ) -> anyhow::Result<()> {
-    todo!()
-  }
+    fn get_user_info_from_db(&self, kv_manager: &KvManager) -> anyhow::Result<SignInit> {
+        todo!();
+    }
+
+    fn select_signers(&self, cm_info: &SignInit) -> Vec<SignersIPsPlaceholder> { todo!() }
+
+    async fn post_new_party(
+        &self,
+        signers: &[SignersIPsPlaceholder],
+        cm_info: &SignInit,
+    ) -> Result<(), BadSignerPlaceholder> {
+        let client = reqwest::Client::new();
+        for ip in signers {
+            let res = client
+                .post(format!("http://{}/new_party", ip))
+                .header("Content-Type", "application/json")
+                .json(&cm_info)
+                .send()
+                .await
+                .unwrap();
+        }
+        Ok(())
+    }
+
+    async fn punish_and_rerun(
+        &mut self,
+        previous_signers: Vec<SignersIPsPlaceholder>,
+        bad_signer: SignersIPsPlaceholder,
+        cm_info: SignInit,
+    ) -> anyhow::Result<()> {
+        todo!()
+    }
 }
 
 // fn construct_init_party_info(&self, kv_manager: &KvManager) -> SignInit {

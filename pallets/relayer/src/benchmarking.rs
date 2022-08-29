@@ -8,23 +8,24 @@ use super::*;
 #[allow(unused)] use crate::Pallet as Relayer;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
-  let events = frame_system::Pallet::<T>::events();
-  let system_event: <T as frame_system::Config>::Event = generic_event.into();
-  // compare to the last event record
-  let EventRecord { event, .. } = &events[events.len() - 1];
-  assert_eq!(event, &system_event);
+    let events = frame_system::Pallet::<T>::events();
+    let system_event: <T as frame_system::Config>::Event = generic_event.into();
+    // compare to the last event record
+    let EventRecord { event, .. } = &events[events.len() - 1];
+    assert_eq!(event, &system_event);
 }
 
 fn add_failures<T: Config>(failure_count: u32, block_number: T::BlockNumber) {
-  let failures = vec![1u32; failure_count as usize];
-  <Failures<T>>::insert(block_number, failures.clone());
+    let failures = vec![1u32; failure_count as usize];
+    <Failures<T>>::insert(block_number, failures.clone());
 }
 
 fn add_messages<T: Config>(caller: T::AccountId, messages_count: u32) {
-  for _ in 0..messages_count {
-    let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
-    let _ = <Relayer<T>>::prep_transaction(RawOrigin::Signed(caller.clone()).into(), sig_request);
-  }
+    for _ in 0..messages_count {
+        let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
+        let _ =
+            <Relayer<T>>::prep_transaction(RawOrigin::Signed(caller.clone()).into(), sig_request);
+    }
 }
 
 benchmarks! {

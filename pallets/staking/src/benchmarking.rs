@@ -9,40 +9,40 @@ use super::*;
 #[allow(unused_imports)] use crate::Pallet as Staking;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
-  let events = frame_system::Pallet::<T>::events();
-  let system_event: <T as frame_system::Config>::Event = generic_event.into();
-  // compare to the last event record
-  let EventRecord { event, .. } = &events[events.len() - 1];
-  assert_eq!(event, &system_event);
+    let events = frame_system::Pallet::<T>::events();
+    let system_event: <T as frame_system::Config>::Event = generic_event.into();
+    // compare to the last event record
+    let EventRecord { event, .. } = &events[events.len() - 1];
+    assert_eq!(event, &system_event);
 }
 
 fn prep_bond_and_validate<T: Config>(
-  validate_also: bool,
-  caller: T::AccountId,
-  bonder: T::AccountId,
-  threshold: T::AccountId,
+    validate_also: bool,
+    caller: T::AccountId,
+    bonder: T::AccountId,
+    threshold: T::AccountId,
 ) {
-  let reward_destination = RewardDestination::Account(caller.clone());
-  let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
-  <T as Config>::Currency::make_free_balance_be(
-    &bonder.clone(),
-    <T as Config>::Currency::minimum_balance() * 10u32.into(),
-  );
-  assert_ok!(<FrameStaking<T>>::bond(
-    RawOrigin::Signed(bonder).into(),
-    T::Lookup::unlookup(caller.clone()),
-    bond,
-    reward_destination,
-  ));
-
-  if validate_also {
-    assert_ok!(<Staking<T>>::validate(
-      RawOrigin::Signed(caller.clone()).into(),
-      ValidatorPrefs::default(),
-      vec![20, 20],
-      threshold,
+    let reward_destination = RewardDestination::Account(caller.clone());
+    let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
+    <T as Config>::Currency::make_free_balance_be(
+        &bonder.clone(),
+        <T as Config>::Currency::minimum_balance() * 10u32.into(),
+    );
+    assert_ok!(<FrameStaking<T>>::bond(
+        RawOrigin::Signed(bonder).into(),
+        T::Lookup::unlookup(caller.clone()),
+        bond,
+        reward_destination,
     ));
-  }
+
+    if validate_also {
+        assert_ok!(<Staking<T>>::validate(
+            RawOrigin::Signed(caller.clone()).into(),
+            ValidatorPrefs::default(),
+            vec![20, 20],
+            threshold,
+        ));
+    }
 }
 
 const SEED: u32 = 0;

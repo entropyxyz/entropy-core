@@ -15,8 +15,8 @@ use rocket::response::Responder;
 
 #[derive(Debug)]
 pub enum SignedMessageError {
-  Missing,
-  Invalid,
+    Missing,
+    Invalid,
 }
 
 #[derive(Responder)]
@@ -24,6 +24,6 @@ pub enum SignedMessageError {
 pub struct CustomIPError(&'static str);
 
 impl CustomIPError {
-  #[allow(dead_code)]
-  pub fn new(error: &'static str) -> CustomIPError { CustomIPError(error) }
+    #[allow(dead_code)]
+    pub fn new(error: &'static str) -> CustomIPError { CustomIPError(error) }
 }
