@@ -66,7 +66,7 @@ pub mod pallet {
     /// FreeCallsPerEra to be pruned every era.
     #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
     pub struct FreeCallInfo {
-        pub era_index:            EraIndex,
+        pub era_index: EraIndex,
         pub free_calls_remaining: FreeCallCount,
     }
 
@@ -193,7 +193,7 @@ pub mod pallet {
 
                 let update_info = |remaining| {
                     Some(FreeCallInfo {
-                        era_index:            current_era_index,
+                        era_index: current_era_index,
                         free_calls_remaining: remaining as FreeCallCount,
                     })
                 };

@@ -107,24 +107,24 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 /// Runtime version.
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name:           create_runtime_str!("node"),
-    impl_name:           create_runtime_str!("substrate-node"),
-    authoring_version:   10,
+    spec_name: create_runtime_str!("node"),
+    impl_name: create_runtime_str!("substrate-node"),
+    authoring_version: 10,
     // Per convention: if the runtime behavior changes, increment spec_version
     // and set impl_version to 0. If only runtime
     // implementation changes and behavior does not, then leave spec_version as
     // is and increment impl_version.
-    spec_version:        267,
-    impl_version:        1,
-    apis:                RUNTIME_API_VERSIONS,
+    spec_version: 267,
+    impl_version: 1,
+    apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
-    state_version:       1,
+    state_version: 1,
 };
 
 /// The BABE epoch configuration at genesis.
 pub const BABE_GENESIS_EPOCH_CONFIG: sp_consensus_babe::BabeEpochConfiguration =
     sp_consensus_babe::BabeEpochConfiguration {
-        c:             PRIMARY_PROBABILITY,
+        c: PRIMARY_PROBABILITY,
         allowed_slots: sp_consensus_babe::AllowedSlots::PrimaryAndSecondaryPlainSlots,
     };
 

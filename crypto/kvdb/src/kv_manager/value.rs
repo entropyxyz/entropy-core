@@ -22,9 +22,9 @@ pub struct Entropy(pub Vec<u8>);
 /// store in the KV store that is not relevant to `tofn`
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TofndInfo {
-    pub party_uids:   Vec<String>,
+    pub party_uids: Vec<String>,
     pub share_counts: Vec<usize>,
-    pub index:        usize,
+    pub index: usize,
 }
 
 /// `KeyShareKv` record
@@ -32,7 +32,7 @@ pub struct TofndInfo {
 pub struct PartyInfo {
     pub common: GroupPublicInfo,
     pub shares: Vec<ShareSecretInfo>,
-    pub tofnd:  TofndInfo,
+    pub tofnd: TofndInfo,
 }
 /// Kv manager for grpc services
 #[derive(Clone)]

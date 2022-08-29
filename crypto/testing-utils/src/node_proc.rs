@@ -11,8 +11,8 @@ use subxt::{Client, ClientBuilder, Config};
 
 /// Spawn a local substrate node for testing subxt.
 pub struct TestNodeProcess<R: Config> {
-    proc:       process::Child,
-    client:     Client<R>,
+    proc: process::Child,
+    client: Client<R>,
     pub ws_url: String,
 }
 
@@ -48,19 +48,15 @@ where R: Config
 
 /// Construct a test node process.
 pub struct TestNodeProcessBuilder {
-    node_path:       OsString,
-    authority:       Option<AccountKeyring>,
+    node_path: OsString,
+    authority: Option<AccountKeyring>,
     scan_port_range: bool,
 }
 
 impl TestNodeProcessBuilder {
     pub fn new<P>(node_path: P) -> TestNodeProcessBuilder
     where P: AsRef<OsStr> {
-        Self {
-            node_path:       node_path.as_ref().into(),
-            authority:       None,
-            scan_port_range: false,
-        }
+        Self { node_path: node_path.as_ref().into(), authority: None, scan_port_range: false }
     }
 
     /// Set the authority dev account for a node in validator mode e.g. --alice.

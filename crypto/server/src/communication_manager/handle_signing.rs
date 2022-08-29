@@ -32,8 +32,8 @@ use crate::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncodedBlockData {
     user_ip_address: String,
-    msg:             Vec<u8>, // todo: placeholder
-    signed_msg:      Vec<u8>, // todo: placeholder
+    msg: Vec<u8>,        // todo: placeholder
+    signed_msg: Vec<u8>, // todo: placeholder
 }
 
 type SignersIPsPlaceholder = String;

@@ -24,7 +24,7 @@ use super::{
 
 /// A [sled] kv store with [XChaCha20Poly1305] value encryption.
 pub struct EncryptedDb {
-    kv:     sled::Db,
+    kv: sled::Db,
     cipher: XChaCha20Poly1305,
 }
 

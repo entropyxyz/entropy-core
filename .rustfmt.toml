@@ -12,7 +12,6 @@ format_macro_matchers       =true # $a: ident -> $a:ident
 match_block_trailing_comma  =true # include comma in match blocks after '}'
 normalize_comments          =true # convert /*..*/ to //.. where possible
 reorder_impl_items          =true # move `type` and `const` declarations to top of impl block
-struct_field_align_threshold=20   # align struct arguments' types vertically 
 use_field_init_shorthand    =true # struct initialization short {x: x} -> {x}
 
 # reduce whitespace

@@ -24,9 +24,9 @@ pub type ListenerResult = Result<Broadcaster, SubscribeErr>;
 pub struct Listener {
     // party_id: String,
     /// Endpoint to create subscriptions
-    tx:               broadcast::Sender<SigningMessage>,
+    tx: broadcast::Sender<SigningMessage>,
     /// Endpoint to notify protocol execution ready-for-signing
-    tx_ready:         oneshot::Sender<ListenerResult>,
+    tx_ready: oneshot::Sender<ListenerResult>,
     /// Count of nodes who've poked `subscribe`
     subscriber_count: usize,
 }

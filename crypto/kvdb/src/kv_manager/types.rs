@@ -29,7 +29,7 @@ type Responder<T> = tokio::sync::oneshot::Sender<super::error::InnerKvResult<T>>
 #[derive(Debug)]
 pub(super) enum Command<V> {
     ReserveKey {
-        key:  String,
+        key: String,
         resp: Responder<KeyReservation>,
     },
     UnreserveKey {
@@ -37,19 +37,19 @@ pub(super) enum Command<V> {
     },
     Put {
         reservation: KeyReservation,
-        value:       V,
-        resp:        Responder<()>,
+        value: V,
+        resp: Responder<()>,
     },
     Get {
-        key:  String, // TODO should be &str except lifetimes...
+        key: String, // TODO should be &str except lifetimes...
         resp: Responder<V>,
     },
     Exists {
-        key:  String, // TODO should be &str except lifetimes...
+        key: String, // TODO should be &str except lifetimes...
         resp: Responder<bool>,
     },
     Delete {
-        key:  String,
+        key: String,
         resp: Responder<()>,
     },
 }

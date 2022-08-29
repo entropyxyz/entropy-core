@@ -19,7 +19,7 @@ pub struct CommunicationManagerState {
     // Mapping maintained by the CM: Node IP -> Share index
     // Nodes inform the CM of the share index they hold by calling `inform_share_index`
     #[allow(dead_code)]
-    current_ips:    Mutex<HashMap<String, usize>>,
+    current_ips: Mutex<HashMap<String, usize>>,
 }
 
 impl CommunicationManagerState {

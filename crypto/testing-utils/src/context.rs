@@ -48,7 +48,7 @@ pub mod entropy {}
 
 pub struct TestContext {
     pub node_proc: TestNodeProcess<DefaultConfig>,
-    pub api:       entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<DefaultConfig>>,
+    pub api: entropy::RuntimeApi<DefaultConfig, SubstrateExtrinsicParams<DefaultConfig>>,
 }
 
 impl TestContext {
