@@ -27,28 +27,28 @@ mod utils;
 use rocket::routes;
 
 use self::{
-  communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState},
-  signing_client::{api::*, SignerState},
-  user::api::*,
-  utils::{init_tracing, load_kv_store, Configuration},
+    communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState},
+    signing_client::{api::*, SignerState},
+    user::api::*,
+    utils::{init_tracing, load_kv_store, Configuration},
 };
 
 pub const SIGNING_PARTY_SIZE: usize = 6;
 
 #[launch]
 async fn rocket() -> _ {
-  init_tracing();
-  let signer_state = SignerState::default();
-  let cm_state = CommunicationManagerState::default();
-  let configuration = Configuration::new();
-  let kv_store = load_kv_store();
+    init_tracing();
+    let signer_state = SignerState::default();
+    let cm_state = CommunicationManagerState::default();
+    let configuration = Configuration::new();
+    let kv_store = load_kv_store();
 
-  rocket::build()
-    .mount("/user", routes![new_user])
-    .mount("/signer", routes![new_party, subscribe_to_me])
-    .mount("/cm", routes![provide_share, handle_signing])
-    .manage(signer_state)
-    .manage(cm_state)
-    .manage(configuration)
-    .manage(kv_store)
+    rocket::build()
+        .mount("/user", routes![new_user])
+        .mount("/signer", routes![new_party, subscribe_to_me])
+        .mount("/cm", routes![provide_share, handle_signing])
+        .manage(signer_state)
+        .manage(cm_state)
+        .manage(configuration)
+        .manage(kv_store)
 }

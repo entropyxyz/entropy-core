@@ -7,13 +7,13 @@ use tofn::gg20::ceygen;
 /// A wrapper around entropyxyz/tofn.
 /// See https://github.com/Entropyxyz/tofn for details.
 pub fn ceygen(
-  path: PathBuf,
-  parties: usize,
-  threshold: usize,
-  secret_key: Vec<u8>,
+    path: PathBuf,
+    parties: usize,
+    threshold: usize,
+    secret_key: Vec<u8>,
 ) -> anyhow::Result<()> {
-  let ceygen = ceygen::ceygen(parties, threshold, secret_key)?;
-  // write the results to a local dir.
-  tofn::gg20::ceygen::write_ceygen_results(ceygen, Some(path))?;
-  Ok(())
+    let ceygen = ceygen::ceygen(parties, threshold, secret_key)?;
+    // write the results to a local dir.
+    tofn::gg20::ceygen::write_ceygen_results(ceygen, Some(path))?;
+    Ok(())
 }

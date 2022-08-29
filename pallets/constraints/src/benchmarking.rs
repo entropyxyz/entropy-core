@@ -8,11 +8,11 @@ use super::*;
 #[allow(unused)] use crate::Pallet as Constraints;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
-  let events = frame_system::Pallet::<T>::events();
-  let system_event: <T as frame_system::Config>::Event = generic_event.into();
-  // compare to the last event record
-  let EventRecord { event, .. } = &events[events.len() - 1];
-  assert_eq!(event, &system_event);
+    let events = frame_system::Pallet::<T>::events();
+    let system_event: <T as frame_system::Config>::Event = generic_event.into();
+    // compare to the last event record
+    let EventRecord { event, .. } = &events[events.len() - 1];
+    assert_eq!(event, &system_event);
 }
 
 benchmarks! {
