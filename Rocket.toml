@@ -15,6 +15,7 @@ string    ="50 MiB"
 forms     ="64 kB"
 msgpack   ="2 MiB"
 "file/jpg"="5 MiB"
+"bytes"   ="80 KiB"
 
 #[default.tls]
 #certs = "path/to/cert-chain.pem"

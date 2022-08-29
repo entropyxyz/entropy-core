@@ -3,9 +3,12 @@ use anyhow::anyhow;
 use futures::StreamExt;
 use tofn::{
     collections::TypedUsize,
-    sdk::api::{Protocol, ProtocolOutput, Round},
+    sdk::api::{Protocol, ProtocolOutput, Round, TofnResult},
 };
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::{
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    time::{sleep, Duration},
+};
 use tracing::{debug, error, instrument, span, warn, Level, Span};
 
 use crate::signing_client::{SigningErr, SigningMessage};
@@ -24,35 +27,52 @@ pub(super) async fn execute_protocol<F, K, P, const MAX_MSG_IN_LEN: usize>(
     mut chans: Channels,
     party_uids: &[String],
     party_share_counts: &[usize],
+    index: usize,
 ) -> Result<ProtocolOutput<F, P>, SigningErr>
 where
     K: Clone,
 {
     info!("entering protocol execution");
-    // set up counters for logging
-    let total_num_of_shares = party_share_counts.iter().fold(0, |acc, s| acc + *s);
-    // total number of messages is n(n-1)
-    let total_round_p2p_msgs = total_num_of_shares * (total_num_of_shares - 1);
-
     let mut round_count = 0;
+
+    // We can receive messages from the nodes that have already completed this round
+    // and started the next one; those will be stored here until we're in the next round too.
+    let mut message_cache = Vec::<SigningMessage>::new();
+
     while let Protocol::NotDone(mut round) = party {
         round_count += 1;
 
+        for message in message_cache.drain(..) {
+            let from = party_uids
+                .iter()
+                .position(|uid| uid == &message.from_party_uid)
+                .ok_or_else(|| anyhow!("from uid does not exist in party uids"))?;
+
+            if round.msg_in(TypedUsize::from_usize(from), &message.payload).is_err() {
+                return Err(SigningErr::ProtocolOutput(format!(
+                    "error calling tofn::msg_in with [from: {}]",
+                    from
+                )));
+            }
+        }
+
+        // dbg!(&chans.0, party_uids, round_count);
         // handle outgoing traffic
-        handle_outgoing(&chans.0, &round, party_uids, round_count)?;
+        handle_outgoing(&chans.0, &round, party_uids, round_count, index)?;
 
         // collect incoming traffic
         handle_incoming(
             &mut chans.1,
             &mut round,
+            &mut message_cache,
             party_uids,
-            total_round_p2p_msgs,
-            total_num_of_shares,
             round_count,
+            index,
         )
         .await?;
 
         // check if everything was ok this round (note tofn-fatal)
+        // dbg!("test next thing");
         party =
             round.execute_next_round().map_err(|_| anyhow!("Error in tofn::execute_next_round"))?;
     }
@@ -63,28 +83,23 @@ where
     }
 }
 
+fn as_str(v: &[u8]) -> String { format!("{:?}", &v[8..16]) }
+
 fn handle_outgoing<F, K, P, const MAX_MSG_IN_LEN: usize>(
     channel_out: &ChannelOut,
     round: &Round<F, K, P, MAX_MSG_IN_LEN>,
     party_uids: &[String],
     round_count: usize,
-    // span: Span,
+    index: usize, // span: Span,
 ) -> Result<(), SigningErr> {
-    // let send_span = span!(parent: &span, Level::DEBUG, "outgoing", round = round_count);
-    // let _start = send_span.enter();
-    debug!("begin");
-
     // send outgoing bcasts
     if let Some(bcast) = round.bcast_out() {
-        debug!("generating out bcast");
         // send message to gRPC client
-        // channel_out.send(Ok(SigningMessage::new_bcast(bcast)))?;
-        channel_out.send(SigningMessage::new_bcast(bcast))?;
+        channel_out.send(SigningMessage::new_bcast(round_count, bcast, index, party_uids))?;
     }
 
     // send outgoing p2ps
     if let Some(p2ps_out) = round.p2ps_out() {
-        let mut p2p_msg_count = 1;
         for (i, p2p) in p2ps_out.iter() {
             // get tofnd index from tofn
             let tofnd_idx = round
@@ -93,34 +108,21 @@ fn handle_outgoing<F, K, P, const MAX_MSG_IN_LEN: usize>(
                 .share_to_party_id(i)
                 .map_err(|_| anyhow!("Unable to get tofnd index for party {}", i))?;
 
-            debug!(
-                "out p2p to [{}] ({}/{})",
-                party_uids[tofnd_idx.as_usize()],
-                p2p_msg_count,
-                p2ps_out.len() - 1
-            );
-            p2p_msg_count += 1;
-
             // send message to gRPC client
-            channel_out.send(SigningMessage::new_p2p(&party_uids[tofnd_idx.as_usize()], p2p))?;
+            channel_out.send(SigningMessage::new_p2p(round_count, p2p, index, party_uids))?;
         }
     }
-    debug!("finished");
     Ok(())
 }
 
 async fn handle_incoming<F, K, P, const MAX_MSG_IN_LEN: usize>(
     channel_in: &mut ChannelIn,
     round: &mut Round<F, K, P, MAX_MSG_IN_LEN>,
+    message_cache: &mut Vec<SigningMessage>,
     party_uids: &[String],
-    total_round_p2p_msgs: usize,
-    total_num_of_shares: usize,
     round_count: usize,
-    // span: Span,
+    index: usize, // span: Span,
 ) -> Result<(), SigningErr> {
-    let mut p2p_msg_count = 0;
-    let mut bcast_msg_count = 0;
-
     // loop until no more messages are needed for this round
     while round.expecting_more_msgs_this_round() {
         // get internal message from broadcaster
@@ -145,13 +147,13 @@ async fn handle_incoming<F, K, P, const MAX_MSG_IN_LEN: usize>(
         // let recv_span = span!(parent: &span, Level::DEBUG, "incoming", round = round_count);
         // let _start = recv_span.enter();
 
-        // log incoming message
-        if traffic.is_broadcast {
-            bcast_msg_count += 1;
-            debug!("got incoming bcast message {}/{}", bcast_msg_count, total_num_of_shares);
-        } else {
-            p2p_msg_count += 1;
-            debug!("got incoming p2p message {}/{}", p2p_msg_count, total_round_p2p_msgs);
+        // A message from another node that has already started the next round; stash it.
+        if traffic.round == round_count + 1 {
+            message_cache.push(traffic);
+            continue;
+        } else if traffic.round != round_count {
+            let msg = format!("Received a message from an unexpected round {}", traffic.round);
+            return Err(SigningErr::ProtocolOutput(msg));
         }
 
         // get sender's party index
@@ -161,13 +163,12 @@ async fn handle_incoming<F, K, P, const MAX_MSG_IN_LEN: usize>(
             .ok_or_else(|| anyhow!("from uid does not exist in party uids"))?;
 
         // try to set a message
-        if round.msg_in(TypedUsize::from_usize(from), &traffic.payload.0).is_err() {
+        if round.msg_in(TypedUsize::from_usize(from), &traffic.payload).is_err() {
             return Err(SigningErr::ProtocolOutput(format!(
                 "error calling tofn::msg_in with [from: {}]",
                 from
             )));
-        };
+        }
     }
-
     Ok(())
 }
