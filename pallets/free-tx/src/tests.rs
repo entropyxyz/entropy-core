@@ -102,6 +102,74 @@ fn try_free_call_still_consumes_a_free_call_on_child_fail() {
   });
 }
 
+#[test]
+fn set_free_calls_per_era_updates_every_era() {
+  new_test_ext().execute_with(|| {
+    // Set block number to 1 because events are not emitted on block 0 and we need an era index
+    start_active_era(1);
+
+    let _ = FreeTx::set_free_calls_per_era(Origin::root(), 1);
+    assert_eq!(FreeTx::free_calls_remaining(&1u64), 1 as FreeCallCount);
+
+    let _ = FreeTx::set_free_calls_per_era(Origin::root(), 5);
+    assert_eq!(FreeTx::free_calls_remaining(&1u64), 5 as FreeCallCount);
+
+    let _ = FreeTx::set_free_calls_per_era(Origin::root(), 0);
+    assert_eq!(FreeTx::free_calls_remaining(&1u64), 0 as FreeCallCount);
+  });
+}
+
+#[test]
+fn free_calls_can_be_disabled() {
+  new_test_ext().execute_with(|| {
+    // Set block number to 1 because events are not emitted on block 0 and we need an era index
+    start_active_era(1);
+
+    // enable free calls
+    let _ = FreeTx::set_free_calls_per_era(Origin::root(), 5);
+    assert_eq!(FreeTx::free_calls_remaining(&1u64), 5 as FreeCallCount);
+
+    // make a call that works
+    let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
+    assert_ok!(FreeTx::try_free_call(Origin::signed(1), call));
+    assert_eq!(FreeTx::free_calls_remaining(&1u64), 4 as FreeCallCount);
+
+    // then, disable free calls and go to new era
+    let _ = FreeTx::set_free_calls_per_era(Origin::root(), 0);
+    start_active_era(2);
+
+    // make sure it fails bc free calls are disabled
+    let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks2".to_vec() }));
+    let expected_error = DispatchError::Module(ModuleError {
+      index:   8,
+      error:   [0, 0, 0, 0],
+      message: Some("FreeCallsDisabled"),
+    });
+    assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_error);
+  });
+}
+
+#[test]
+fn free_calls_disabled_by_default() {
+  new_test_ext().execute_with(|| {
+    // Set block number to 1 because events are not emitted on block 0 and we need an era index
+    start_active_era(1);
+
+    // enable free calls
+    assert_eq!(FreeTx::free_calls_remaining(&1u64), 0 as FreeCallCount);
+
+    // make sure it fails bc free calls are disabled
+    let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks2".to_vec() }));
+    let expected_error = DispatchError::Module(ModuleError {
+      index:   8,
+      error:   [0, 0, 0, 0],
+      message: Some("FreeCallsDisabled"),
+    });
+    assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_error);
+  });
+}
+// ---
+
 // ---
 
 // TODO JH test InterrogateFreeTx
