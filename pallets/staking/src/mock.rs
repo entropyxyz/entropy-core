@@ -264,7 +264,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         balances: vec![(1, 100), (2, 100), (3, 100), (4, 100)],
     };
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
-        endpoints:          vec![(5, vec![20]), (6, vec![40])],
+        endpoints: vec![(5, vec![20]), (6, vec![40])],
         threshold_accounts: vec![(5, 7), (6, 8)],
     };
 

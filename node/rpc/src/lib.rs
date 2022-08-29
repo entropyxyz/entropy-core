@@ -54,43 +54,43 @@ use sp_keystore::SyncCryptoStorePtr;
 /// Extra dependencies for BABE.
 pub struct BabeDeps {
     /// BABE protocol config.
-    pub babe_config:          Config,
+    pub babe_config: Config,
     /// BABE pending epoch changes.
     pub shared_epoch_changes: SharedEpochChanges<Block, Epoch>,
     /// The keystore that manages the keys of the node.
-    pub keystore:             SyncCryptoStorePtr,
+    pub keystore: SyncCryptoStorePtr,
 }
 
 /// Extra dependencies for GRANDPA
 pub struct GrandpaDeps<B> {
     /// Voting round info.
-    pub shared_voter_state:    SharedVoterState,
+    pub shared_voter_state: SharedVoterState,
     /// Authority set info.
-    pub shared_authority_set:  SharedAuthoritySet<Hash, BlockNumber>,
+    pub shared_authority_set: SharedAuthoritySet<Hash, BlockNumber>,
     /// Receives notifications about justification events from Grandpa.
-    pub justification_stream:  GrandpaJustificationStream<Block>,
+    pub justification_stream: GrandpaJustificationStream<Block>,
     /// Executor to drive the subscription manager in the Grandpa RPC handler.
     pub subscription_executor: SubscriptionTaskExecutor,
     /// Finality proof provider.
-    pub finality_provider:     Arc<FinalityProofProvider<B, Block>>,
+    pub finality_provider: Arc<FinalityProofProvider<B, Block>>,
 }
 
 /// Full client dependencies.
 pub struct FullDeps<C, P, SC, B> {
     /// The client instance to use.
-    pub client:       Arc<C>,
+    pub client: Arc<C>,
     /// Transaction pool instance.
-    pub pool:         Arc<P>,
+    pub pool: Arc<P>,
     /// The SelectChain Strategy
     pub select_chain: SC,
     /// A copy of the chain spec.
-    pub chain_spec:   Box<dyn sc_chain_spec::ChainSpec>,
+    pub chain_spec: Box<dyn sc_chain_spec::ChainSpec>,
     /// Whether to deny unsafe calls
-    pub deny_unsafe:  DenyUnsafe,
+    pub deny_unsafe: DenyUnsafe,
     /// BABE specific dependencies.
-    pub babe:         BabeDeps,
+    pub babe: BabeDeps,
     /// GRANDPA specific dependencies.
-    pub grandpa:      GrandpaDeps<B>,
+    pub grandpa: GrandpaDeps<B>,
 }
 
 /// A IO handler that uses all Full RPC extensions.

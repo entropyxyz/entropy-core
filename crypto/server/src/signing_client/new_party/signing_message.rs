@@ -11,8 +11,8 @@ use crate::signing_client::errors::SigningMessageError;
 #[serde(crate = "rocket::serde")]
 pub struct SigningMessage {
     pub from_party_uid: String,
-    pub payload:        BytesWrap,
-    pub is_broadcast:   bool,
+    pub payload: BytesWrap,
+    pub is_broadcast: bool,
 }
 
 impl TryFrom<&[u8]> for SigningMessage {

@@ -31,7 +31,7 @@ mod tests;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct UserInputPartyInfo {
     /// User's substrate key
-    pub key:   String,
+    pub key: String,
     // An encoded SecretKeyShare for this node
     pub value: Vec<u8>,
 }
@@ -49,7 +49,7 @@ impl TryInto<ParsedUserInputPartyInfo> for UserInputPartyInfo {
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct ParsedUserInputPartyInfo {
     /// User's substrate key
-    pub key:   String,
+    pub key: String,
     // An encoded SecretKeyShare for this node
     pub value: Vec<u8>, // TODO(TK): write this type
 }

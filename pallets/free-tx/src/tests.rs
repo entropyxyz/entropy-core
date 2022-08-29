@@ -66,8 +66,8 @@ fn try_free_call_errors_when_no_free_calls_left() {
 
         // make sure it fails bc no free calls left
         let expected_error = DispatchError::Module(ModuleError {
-            index:   8,
-            error:   [1, 0, 0, 0],
+            index: 8,
+            error: [1, 0, 0, 0],
             message: Some("NoFreeCallsAvailable"),
         });
         assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_error);
@@ -136,8 +136,8 @@ fn free_calls_disabled_by_default() {
         let call =
             Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks2".to_vec() }));
         let expected_error = DispatchError::Module(ModuleError {
-            index:   8,
-            error:   [0, 0, 0, 0],
+            index: 8,
+            error: [0, 0, 0, 0],
             message: Some("FreeCallsDisabled"),
         });
         assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_error);

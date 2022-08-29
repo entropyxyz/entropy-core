@@ -273,35 +273,35 @@ impl pallet_free_tx::Config for Test {
 }
 
 pub struct ExtBuilder {
-    nominate:                 bool,
-    validator_count:          u32,
-    minimum_validator_count:  u32,
-    invulnerables:            Vec<AccountId>,
-    has_stakers:              bool,
+    nominate: bool,
+    validator_count: u32,
+    minimum_validator_count: u32,
+    invulnerables: Vec<AccountId>,
+    has_stakers: bool,
     initialize_first_session: bool,
-    pub min_nominator_bond:   Balance,
-    min_validator_bond:       Balance,
-    balance_factor:           Balance,
-    status:                   BTreeMap<AccountId, StakerStatus<AccountId>>,
-    stakes:                   BTreeMap<AccountId, Balance>,
-    stakers:                  Vec<(AccountId, AccountId, Balance, StakerStatus<AccountId>)>,
+    pub min_nominator_bond: Balance,
+    min_validator_bond: Balance,
+    balance_factor: Balance,
+    status: BTreeMap<AccountId, StakerStatus<AccountId>>,
+    stakes: BTreeMap<AccountId, Balance>,
+    stakers: Vec<(AccountId, AccountId, Balance, StakerStatus<AccountId>)>,
 }
 
 impl Default for ExtBuilder {
     fn default() -> Self {
         Self {
-            nominate:                 true,
-            validator_count:          2,
-            minimum_validator_count:  0,
-            balance_factor:           1,
-            invulnerables:            vec![],
-            has_stakers:              true,
+            nominate: true,
+            validator_count: 2,
+            minimum_validator_count: 0,
+            balance_factor: 1,
+            invulnerables: vec![],
+            has_stakers: true,
             initialize_first_session: true,
-            min_nominator_bond:       ExistentialDeposit::get(),
-            min_validator_bond:       ExistentialDeposit::get(),
-            status:                   Default::default(),
-            stakes:                   Default::default(),
-            stakers:                  Default::default(),
+            min_nominator_bond: ExistentialDeposit::get(),
+            min_validator_bond: ExistentialDeposit::get(),
+            status: Default::default(),
+            stakes: Default::default(),
+            stakers: Default::default(),
         }
     }
 }

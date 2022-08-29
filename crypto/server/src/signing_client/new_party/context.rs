@@ -15,18 +15,18 @@ use crate::sign_init::SignInit;
 #[derive(Debug, Clone)]
 pub struct SignContext {
     /// Party context from the Communication Manager
-    pub sign_init:         SignInit,
+    pub sign_init: SignInit,
     /// Info stored in the kvdb
-    pub party_info:        PartyInfo,
+    pub party_info: PartyInfo,
     /// secret key share, overlaps party_info
-    pub share:             ShareSecretInfo,
+    pub share: ShareSecretInfo,
     /// The set of parties participating in the protocol
-    pub sign_parties:      Subset<KeygenPartyId>,
+    pub sign_parties: Subset<KeygenPartyId>,
     // irrelevant, always Vec[1]. If this node had weight to each share, and or more than one
     // shares, this would be the weights of each share at each index.
     pub sign_share_counts: Vec<usize>,
     // irrelevant, always 0. If this node holds N>1 shares, this value would lie in [0, N-1].
-    pub tofnd_subindex:    usize,
+    pub tofnd_subindex: usize,
 }
 
 impl SignContext {

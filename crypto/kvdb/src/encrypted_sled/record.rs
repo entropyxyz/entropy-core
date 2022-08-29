@@ -14,7 +14,7 @@ use super::result::{
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct EncryptedRecord {
     encrypted_value: Vec<u8>,
-    nonce:           [u8; 24],
+    nonce: [u8; 24],
 }
 
 impl EncryptedRecord {
