@@ -33,7 +33,6 @@ sp-core           ="6.0.0"
 tofn              ={ git="https://github.com/Entropyxyz/tofn", branch="main" }
 
 # Entropy
-# non-substrate-common={ path="../non-substrate-common", default-features=false }
 substrate-common={ path="../substrate-common", default-features=false }
 kvdb            ={ path="../kvdb", default-features=false }
 constraints     ={ path="../constraints" }
@@ -50,6 +49,9 @@ envy        ="0.4"
 bip39       ={ git="https://github.com/infincia/bip39-rs.git", tag="v0.6.0-beta.1" }
 project-root="0.2.2"
 local-ip    ="0.1"
+bincode     ="1.3.3"
+bytes       ={ version="1.0", default-features=false, features=["serde"] }
+base64      ="0.13.0"
 
 [dev-dependencies]
 testing-utils={ path="../testing-utils" }

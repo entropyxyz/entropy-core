@@ -58,7 +58,7 @@ async fn test_sign() {
     // Construct a client to use for dispatching requests.
     let client = setup_client().await;
 
-    let response = client.post("/cm/provide_share").body(&encoded_data).dispatch().await;
+    let response = client.post("/signer/new_party").body(&encoded_data).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
     clean_tests();
 }
@@ -70,7 +70,7 @@ async fn provide_share_fail_wrong_data() {
     let client = setup_client().await;
 
     let response = client
-        .post("/cm/provide_share")
+        .post("/signer/new_party")
         .header(ContentType::new("application", "x-parity-scale-codec"))
         .body(
             r##"{

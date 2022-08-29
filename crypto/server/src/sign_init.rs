@@ -45,4 +45,24 @@ impl SignInit {
     ) -> Self {
         Self { sig_uid, signer_uids, signer_idxs, msg, party_uid, substrate_key, ip_addresses }
     }
+
+    // TODO: remove when we have a real implementation
+    // Generate temporary data for API testing.
+    pub(crate) fn temporary_data(message: substrate_common::Message) -> Self {
+        let digest: MessageDigest = message.sig_request.sig_hash.as_slice().try_into().unwrap();
+        let raw_address = &message.account;
+        let address_slice: &[u8; 32] =
+            &raw_address.clone().try_into().expect("slice with incorrect length");
+        let user = sp_core::crypto::AccountId32::new(*address_slice);
+        // let address_string = str::from_utf8(address_slice).unwrap().to_string();
+        SignInit::new(
+            "test".to_string(),
+            vec!["test".to_string(), "test1".to_string()],
+            vec![0, 1],
+            digest,
+            "test".to_string(),
+            user.to_string(),
+            vec!["127.0.0.1:3001".to_string(), "127.0.0.1:3002".to_string()],
+        )
+    }
 }

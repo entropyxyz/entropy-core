@@ -33,12 +33,7 @@ impl SignContext {
     #[allow(dead_code)]
     pub fn new(sign_init: SignInit, party_info: PartyInfo) -> Self {
         let share = party_info.shares.get(0).expect("secret share vec corrupted").clone();
-        let sign_parties = SignContext::get_sign_parties(
-            party_info.tofnd.party_uids.len(),
-            &sign_init.signer_idxs,
-        )
-        .unwrap();
-
+        let sign_parties = SignContext::get_sign_parties(2, &sign_init.signer_idxs).unwrap();
         Self {
             sign_init,
             party_info,
@@ -55,8 +50,9 @@ impl SignContext {
     ) -> anyhow::Result<SignParties> {
         let mut sign_parties = Subset::with_max_size(length);
         for signer_idx in sign_indices.iter() {
-            if sign_parties.add(tofn::collections::TypedUsize::from_usize(*signer_idx)).is_err() {
-                return Err(anyhow::anyhow!("failed to call Subset::add"));
+            if let Err(e) = sign_parties.add(tofn::collections::TypedUsize::from_usize(*signer_idx))
+            {
+                return Err(anyhow::anyhow!("failed to call Subset::add: {:?}", e));
             }
         }
         Ok(sign_parties)
@@ -66,20 +62,39 @@ impl SignContext {
 
     pub fn msg_to_sign(&self) -> &MessageDigest { &self.sign_init.msg }
 
+    // TODO(TK):  unclear whether this method is correctly implemented. The upstream version takes
+    // the intersection of self.party_info.tofnd.party_uids and self.sign_init.participant_uids.
+    //
+    //
+    // https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/types.rs#L152
+    // Ex:
+    // keygen_party_uids: [a,b,c,d]
+    // sign_party_uids: [d,c,a]
+    // result: [a,c,d]
     pub fn sign_uids(&self) -> Vec<String> {
-        self.party_info
-            .tofnd
-            .party_uids
-            .iter()
-            .filter_map(|uid| {
-                let pred = true;
-                if pred {
-                    // self.sign_parties.contains(uid) {
-                    Some(uid.clone())
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>()
+        let a = self.sign_init.signer_uids.clone();
+        let b = self.party_info.tofnd.party_uids.clone();
+        info!(
+            "temporary log. got participant_uids: {:?};\ngot party_uids: {:?}",
+            self.sign_init.signer_uids.clone(),
+            self.party_info.tofnd.party_uids.clone()
+        );
+        assert_eq!(a, b);
+        a
+        // self
+        //   .party_info
+        //   .tofnd
+        //   .party_uids
+        //   .iter()
+        //   .filter_map(|uid| {
+        //     let pred = true;
+        //     if pred {
+        //       // self.sign_parties.contains(uid) {
+        //       Some(uid.clone())
+        //     } else {
+        //       None
+        //     }
+        //   })
+        //   .collect::<Vec<_>>()
     }
 }
