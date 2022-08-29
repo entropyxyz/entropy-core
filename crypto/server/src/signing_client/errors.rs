@@ -4,9 +4,12 @@ use rocket::response::Responder;
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
+use super::SigningMessage;
+
 // #[derive(Responder, Debug, Error)]
 // #[response(status = 418, content_type = "json")]
 /// Errors for the `new_party` API
+// note: TofnFatal doesn't implement Error, so we have to use map_err for those.
 #[derive(Debug, Error)]
 pub enum SigningErr {
   // #[error("Init error: {0}")]
@@ -18,21 +21,18 @@ pub enum SigningErr {
   // Validation(&'static str),
   #[error("Oneshot timeout error: {0}")]
   OneshotTimeout(#[from] RecvError),
-  #[error("Tofn fatal")] // note: TofnFatal doesn't implement Error :-(
+  #[error("Tofn fatal")]
   Subscribe(#[from] SubscribeErr),
-  #[error("Tofn fatal")] // note: TofnFatal doesn't implement Error :-(
-  // TofnFatal(#[from] TofnFatal),
-  TofnFatal(String),
   #[error("Protocol Execution error: {0}")]
   ProtocolExecution(String),
-  #[error("Protocol Outpcut error: {0}")]
+  #[error("Protocol Output error: {0}")]
   ProtocolOutput(String),
   #[error("reqwest error: {0}")]
   Reqwest(#[from] reqwest::Error),
-  // #[error("anyhow error: {0}")]
-  // Anyhow(#[from] anyhow::Error),
-  // #[error("other error: {0}")]
-  // Other(#[from] Box<dyn std::error::Error + jSend + Syn>),
+  #[error("Broadcast error: {0}")]
+  Broadcast(#[from] tokio::sync::broadcast::error::SendError<SigningMessage>),
+  #[error("anyhow error: {0}")]
+  Anyhow(#[from] anyhow::Error),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {

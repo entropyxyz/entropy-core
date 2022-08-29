@@ -6,7 +6,7 @@ use crate::{
   sign_init::SignInit,
   signing_client::{
     new_party::{Channels, Gg20Service},
-    subscribe::{subscribe_all, Listener, Receiver},
+    subscribe::{subscribe_to_them, Listener, Receiver},
     SignerState, SigningErr, SubscribeErr, SubscribeMessage,
   },
 };
@@ -38,9 +38,9 @@ pub async fn new_party(
   let (rx_ready, listener) = Listener::new();
   state.listeners.lock().unwrap().insert(sign_context.sign_init.party_uid.to_string(), listener);
   let channels = {
-    let stream_in = subscribe_all(&sign_context).await?;
+    let stream_in = subscribe_to_them(&sign_context).await?;
     let broadcast_out = rx_ready.await??;
-    Channels(stream_in, broadcast_out)
+    Channels(broadcast_out, stream_in)
   };
 
   let result = gg20_service.execute_sign(&sign_context, channels).await?;
@@ -51,8 +51,8 @@ pub async fn new_party(
 /// Other nodes in the party call this method to subscribe to this node's broadcasts.
 /// The SigningProtocol begins when all nodes in the party have called this method on this node.
 #[instrument]
-#[post("/subscribe", data = "<msg>")]
-pub async fn subscribe(
+#[post("/subscribe_to_me", data = "<msg>")]
+pub async fn subscribe_to_me(
   msg: Json<SubscribeMessage>,
   end: Shutdown,
   state: &State<SignerState>,
