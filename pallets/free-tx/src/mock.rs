@@ -264,7 +264,6 @@ impl pallet_free_tx::Config for Test {
   type WeightInfo = ();
 }
 
-// mostly copied from pallet-staking
 pub struct ExtBuilder {
   nominate:                 bool,
   validator_count:          u32,

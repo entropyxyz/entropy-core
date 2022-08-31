@@ -95,7 +95,6 @@ fn try_free_call_still_consumes_a_free_call_on_child_fail() {
 
     // make sure free call was still consumed
     assert_eq!(FreeTx::free_calls_remaining(&1u64), 0 as FreeCallCount);
-    assert_eq!(FreeTx::free_calls_remaining(&1u64), 0 as FreeCallCount);
   });
 }
 
@@ -105,7 +104,7 @@ fn free_calls_refresh_every_era() {
     // must be in an era for free calls to be enabled
     start_active_era(1);
 
-    // enable free calls
+    // enable free calls via extrinsic
     let _ = FreeTx::set_free_calls_per_era(Origin::root(), 5);
     assert_eq!(FreeTx::free_calls_remaining(&1u64), 5 as FreeCallCount);
 
@@ -141,80 +140,3 @@ fn free_calls_disabled_by_default() {
     assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_error);
   });
 }
-// ---
-
-// ---
-
-// keep these commented out
-
-// TODO JH test InterrogateFreeTx
-// this works when manually tested
-// #[test]
-// fn interrogate_free_tx_rejects_tx_with_no_free_calls() {
-//   new_test_ext().execute_with(|| {
-//     // Set block number to 1 because events are not emitted on block 0.
-//     System::set_block_number(1);
-//
-//     // make sure user has at least one free call
-//     assert!(FreeTx::has_free_call(&1u64));
-//
-//     // choose a child call that will pass
-//     let call = Box::new(Call::Example(ExampleCall::do_something { something: 5 }));
-//
-//     // let expected_error = DispatchError::Module(ModuleError { index: 2, error: [0, 0, 0, 0],
-// message: None });
-//
-//     // make sure free call was still consumed
-//     assert!(FreeTx::has_free_call(&1u64));
-//   });
-// }
-
-// TODO JH always works cause fees aren't setup
-// #[test]
-// fn try_free_call_consumes_no_transaction_fees() {
-//   new_test_ext().execute_with(|| {
-//     // Set block number to 1 because events are not emitted on block 0.
-//     System::set_block_number(1);
-//
-//     let initial_balance = Balances::free_balance(1);
-//
-//     println!("{:?}", initial_balance);
-//
-//     // some call that usually wouldn't be free
-//     let call = Box::new(Call::Example(ExampleCall::do_something { something: 5 }));
-//     assert_ok!(FreeTx::try_free_call(Origin::signed(1), call));
-//
-//     // Make sure the event was emitted
-//     System::assert_last_event(TestEvent::FreeTx(Event::FreeCallIssued(1, Ok(()))));
-//
-//     let final_balance = Balances::free_balance(1);
-//
-//     assert_eq!(initial_balance, final_balance);
-//   });
-// }
-
-// TODO JH doesn't work cause fees aren't setup
-// #[test]
-// fn normal_calls_consume_tx_fees() {
-//   new_test_ext().execute_with(|| {
-//     // Set block number to 1 because events are not emitted on block 0.
-//     System::set_block_number(1);
-//
-//     // get initial balance (10)
-//     let _initial_balance = Balances::free_balance(1);
-//
-//     // make sure storage is empty
-//     assert_eq!(Example::something(), None);
-//
-//     // do some call that usually wouldn't be free
-//     assert_ok!(Example::do_something(Origin::signed(1), 5));
-//
-//     // make sure storage changed
-//     assert_eq!(Example::something(), Some(5));
-//
-//     // get balance after transaction
-//     let _final_balance = Balances::free_balance(1);
-//
-//     assert_ne!(initial_balance, final_balance);
-//   });
-// }
