@@ -1,12 +1,10 @@
 use frame_support::{assert_err, assert_ok};
 use mock::{
-  run_to_block, start_active_era, Call, Event as TestEvent, ExtBuilder, FrameStaking, FreeTx,
-  Origin, System, SystemCall, Test,
+  start_active_era, Call, Event as TestEvent, ExtBuilder, FreeTx, Origin, System, SystemCall, Test,
 };
 use sp_runtime::{DispatchError, ModuleError};
 
 use super::*;
-use crate::StakingCurrentEra;
 
 #[test]
 fn try_free_call_works() {
@@ -121,7 +119,6 @@ fn free_calls_refresh_every_era() {
     start_active_era(2);
 
     // make sure call count is refreshed
-    println!("{:?}", <Test as StakingCurrentEra>::current_era());
     assert_eq!(FreeTx::free_calls_remaining(&1u64), 5 as FreeCallCount);
   });
 }

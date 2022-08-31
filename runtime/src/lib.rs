@@ -47,7 +47,6 @@ pub use node_primitives::{AccountId, Signature};
 use node_primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment};
 #[cfg(any(feature = "std", test))]
 pub use pallet_balances::Call as BalancesCall;
-use pallet_free_tx::StakingCurrentEra;
 use pallet_grandpa::{
   fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -1207,12 +1206,6 @@ impl pallet_free_tx::Config for Runtime {
   type Call = Call;
   type Event = Event;
   type WeightInfo = weights::pallet_free_tx::WeightInfo<Runtime>;
-}
-
-impl StakingCurrentEra for Runtime {
-  type EraIndex = sp_staking::EraIndex;
-
-  fn current_era() -> Option<Self::EraIndex> { Staking::current_era() }
 }
 
 construct_runtime!(

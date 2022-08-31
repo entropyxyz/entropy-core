@@ -47,7 +47,7 @@ pub mod pallet {
   pub use crate::weights::WeightInfo;
 
   #[pallet::config]
-  pub trait Config: frame_system::Config + StakingCurrentEra {
+  pub trait Config: frame_system::Config + pallet_staking::Config {
     /// Pallet emits events
     type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
@@ -199,7 +199,7 @@ pub mod pallet {
       let free_calls_per_era = Self::free_calls_per_era().ok_or(Error::<T>::FreeCallsDisabled)?;
 
       <FreeCallsRemaining<T>>::try_mutate(account_id, |call_info| {
-        let current_era_index = <T as StakingCurrentEra>::current_era().unwrap();
+        let current_era_index = pallet_staking::Pallet::<T>::current_era().unwrap();
 
         let update_info = |remaining| {
           Some(FreeCallInfo {
@@ -248,7 +248,7 @@ pub mod pallet {
       // left
       if let Some(call_info) = <FreeCallsRemaining<T>>::get(account_id) {
         let FreeCallInfo { era_index, free_calls_remaining } = call_info;
-        if era_index == <T as StakingCurrentEra>::current_era().unwrap() {
+        if era_index == pallet_staking::Pallet::<T>::current_era().unwrap() {
           return free_calls_remaining;
         };
       };
@@ -270,11 +270,6 @@ pub mod pallet {
 
     /// Checks if free calls are enabled
     fn free_calls_are_enabled() -> bool { Self::free_calls_per_era().is_some() }
-  }
-
-  pub trait StakingCurrentEra {
-    type EraIndex;
-    fn current_era() -> Option<EraIndex>;
   }
 
   /// Verifies that the account has free calls available before executing or broadcasting to other

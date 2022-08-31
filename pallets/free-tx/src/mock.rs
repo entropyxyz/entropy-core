@@ -19,7 +19,6 @@ use sp_staking::{EraIndex, SessionIndex};
 use sp_std::collections::btree_map::BTreeMap;
 
 use crate as pallet_free_tx;
-use crate::StakingCurrentEra;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -555,10 +554,6 @@ impl ExtBuilder {
   }
 }
 
-pub(crate) fn active_era() -> EraIndex { FrameStaking::active_era().unwrap().index }
-
-pub(crate) fn current_era() -> EraIndex { FrameStaking::current_era().unwrap() }
-
 pub(crate) fn run_to_block(n: BlockNumber) {
   // JH current_era is not getting set somehwere  in here
   // print the system block number
@@ -591,19 +586,17 @@ pub(crate) fn start_session(session_index: SessionIndex) {
   );
 }
 
+pub(crate) fn active_era() -> EraIndex { FrameStaking::active_era().unwrap().index }
+
+pub(crate) fn current_era() -> EraIndex { FrameStaking::current_era().unwrap() }
+
 /// Progress until the given era.
 pub(crate) fn start_active_era(era_index: EraIndex) {
   start_session((era_index * <SessionsPerEra as Get<u32>>::get()).into());
-  // assert_eq!(active_era(), era_index);
+  assert_eq!(active_era(), era_index);
   // One way or another, current_era must have changed before the active era, so they must match
   // at this point.
-  // assert_eq!(current_era(), active_era());
-}
-
-impl StakingCurrentEra for Test {
-  type EraIndex = EraIndex;
-
-  fn current_era() -> Option<EraIndex> { FrameStaking::current_era() }
+  assert_eq!(current_era(), active_era());
 }
 
 // Build genesis storage according to the mock runtime.
