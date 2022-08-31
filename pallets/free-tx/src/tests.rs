@@ -1,6 +1,6 @@
 use frame_support::{assert_err, assert_ok};
 use mock::{
-  new_test_ext, run_to_block, start_active_era, Call, Event as TestEvent, FrameStaking, FreeTx,
+  run_to_block, start_active_era, Call, Event as TestEvent, ExtBuilder, FrameStaking, FreeTx,
   Origin, System, SystemCall, Test,
 };
 use sp_runtime::{DispatchError, ModuleError};
@@ -10,7 +10,7 @@ use crate::StakingCurrentEra;
 
 #[test]
 fn try_free_call_works() {
-  new_test_ext().execute_with(|| {
+  ExtBuilder::default().build_and_execute(|| {
     // must be in an era for free calls to be enabled
     start_active_era(1);
     // enable free calls (1 free call per era)
@@ -27,7 +27,7 @@ fn try_free_call_works() {
 
 #[test]
 fn try_free_call_errors_when_child_call_errors() {
-  new_test_ext().execute_with(|| {
+  ExtBuilder::default().build_and_execute(|| {
     // must be in an era for free calls to be enabled
     start_active_era(1);
     // enable free calls (1 free call per era)
@@ -49,7 +49,7 @@ fn try_free_call_errors_when_child_call_errors() {
 
 #[test]
 fn try_free_call_errors_when_no_free_calls_left() {
-  new_test_ext().execute_with(|| {
+  ExtBuilder::default().build_and_execute(|| {
     // must be in an era for free calls to be enabled
     start_active_era(1);
     // enable free calls (1 free call per era)
@@ -78,7 +78,7 @@ fn try_free_call_errors_when_no_free_calls_left() {
 
 #[test]
 fn try_free_call_still_consumes_a_free_call_on_child_fail() {
-  new_test_ext().execute_with(|| {
+  ExtBuilder::default().build_and_execute(|| {
     // must be in an era for free calls to be enabled
     start_active_era(1);
     // enable free calls (1 free call per era)
@@ -104,16 +104,9 @@ fn try_free_call_still_consumes_a_free_call_on_child_fail() {
 
 #[test]
 fn free_calls_refresh_every_era() {
-  new_test_ext().execute_with(|| {
+  ExtBuilder::default().build_and_execute(|| {
     // must be in an era for free calls to be enabled
-    run_to_block(1);
-    for i in 2..50 {
-      start_active_era(i);
-      println!("{:?}", FrameStaking::current_era());
-      println!("{:?}", <Test as StakingCurrentEra>::current_era());
-    }
-    // start_active_era(10);
-    // start_active_era(15);
+    start_active_era(1);
 
     // enable free calls
     let _ = FreeTx::set_free_calls_per_era(Origin::root(), 5);
@@ -125,7 +118,7 @@ fn free_calls_refresh_every_era() {
     assert_eq!(FreeTx::free_calls_remaining(&1u64), 4 as FreeCallCount);
 
     // start a new era
-    // start_active_era(4);
+    start_active_era(2);
 
     // make sure call count is refreshed
     println!("{:?}", <Test as StakingCurrentEra>::current_era());
@@ -135,7 +128,7 @@ fn free_calls_refresh_every_era() {
 
 #[test]
 fn free_calls_disabled_by_default() {
-  new_test_ext().execute_with(|| {
+  ExtBuilder::default().build_and_execute(|| {
     // must be in an era for free calls to be enabled
     start_active_era(1);
 
@@ -155,6 +148,8 @@ fn free_calls_disabled_by_default() {
 // ---
 
 // ---
+
+// keep these commented out
 
 // TODO JH test InterrogateFreeTx
 // this works when manually tested
