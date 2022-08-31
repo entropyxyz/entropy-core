@@ -52,7 +52,6 @@ fn try_free_call_errors_when_no_free_calls_left() {
     start_active_era(1);
     // enable free calls (1 free call per era)
     FreeCallsPerEra::<Test>::put(1 as FreeCallCount);
-    // let _ = FreeTx::set_free_calls_per_era(Origin::root(), 1);
 
     // user gets 1 free call by default, lets use it
     let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
