@@ -264,45 +264,7 @@ impl pallet_free_tx::Config for Test {
   type WeightInfo = ();
 }
 
-// Build genesis storage according to the mock runtime.
-// pub fn new_test_ext() -> sp_io::TestExternalities {
-//   let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
-//   let pallet_balances = pallet_balances::GenesisConfig::<Test> {
-//     balances: vec![(1, 100), (2, 100), (3, 100), (4, 100)],
-//   };
-//   let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
-//     endpoints:          vec![(5, vec![20]), (6, vec![40])],
-//     threshold_accounts: vec![(5, 7), (6, 8)],
-//   };
-
-//   pallet_balances.assimilate_storage(&mut t).unwrap();
-//   pallet_staking_extension.assimilate_storage(&mut t).unwrap();
-
-//   let _ = pallet_session::GenesisConfig::<Test> {
-//     keys: if self.has_stakers {
-//       // set the keys for the first session.
-//       stakers.into_iter().map(|(id, ..)| (id, id, SessionKeys { other: id.into() })).collect()
-//     } else {
-//       // set some dummy validators in genesis.
-//       (0..self.validator_count as u64)
-//         .map(|id| (id, id, SessionKeys { other: id.into() }))
-//         .collect()
-//     },
-//   }
-//   .assimilate_storage(&mut t);
-
-//   let mut externalities: sp_io::TestExternalities = t.into();
-
-//   externalities.execute_with(|| {
-//     System::set_block_number(1);
-//     Session::on_initialize(1);
-//     <FrameStaking as Hooks<u64>>::on_initialize(1);
-//     Timestamp::set_timestamp(INIT_TIMESTAMP);
-//   });
-
-//   externalities
-// }
-
+// mostly copied from pallet-staking
 pub struct ExtBuilder {
   nominate:                 bool,
   validator_count:          u32,
@@ -338,97 +300,6 @@ impl Default for ExtBuilder {
 }
 
 impl ExtBuilder {
-  pub fn existential_deposit(self, existential_deposit: Balance) -> Self {
-    EXISTENTIAL_DEPOSIT.with(|v| *v.borrow_mut() = existential_deposit);
-    self
-  }
-
-  pub fn nominate(mut self, nominate: bool) -> Self {
-    self.nominate = nominate;
-    self
-  }
-
-  pub fn validator_count(mut self, count: u32) -> Self {
-    self.validator_count = count;
-    self
-  }
-
-  pub fn minimum_validator_count(mut self, count: u32) -> Self {
-    self.minimum_validator_count = count;
-    self
-  }
-
-  pub fn slash_defer_duration(self, eras: EraIndex) -> Self {
-    SLASH_DEFER_DURATION.with(|v| *v.borrow_mut() = eras);
-    self
-  }
-
-  pub fn invulnerables(mut self, invulnerables: Vec<AccountId>) -> Self {
-    self.invulnerables = invulnerables;
-    self
-  }
-
-  pub fn session_per_era(self, length: SessionIndex) -> Self {
-    SESSIONS_PER_ERA.with(|v| *v.borrow_mut() = length);
-    self
-  }
-
-  pub fn period(self, length: BlockNumber) -> Self {
-    PERIOD.with(|v| *v.borrow_mut() = length);
-    self
-  }
-
-  pub fn has_stakers(mut self, has: bool) -> Self {
-    self.has_stakers = has;
-    self
-  }
-
-  pub fn initialize_first_session(mut self, init: bool) -> Self {
-    self.initialize_first_session = init;
-    self
-  }
-
-  pub fn offset(self, offset: BlockNumber) -> Self {
-    OFFSET.with(|v| *v.borrow_mut() = offset);
-    self
-  }
-
-  pub fn min_nominator_bond(mut self, amount: Balance) -> Self {
-    self.min_nominator_bond = amount;
-    self
-  }
-
-  pub fn min_validator_bond(mut self, amount: Balance) -> Self {
-    self.min_validator_bond = amount;
-    self
-  }
-
-  pub fn set_status(mut self, who: AccountId, status: StakerStatus<AccountId>) -> Self {
-    self.status.insert(who, status);
-    self
-  }
-
-  pub fn set_stake(mut self, who: AccountId, stake: Balance) -> Self {
-    self.stakes.insert(who, stake);
-    self
-  }
-
-  pub fn add_staker(
-    mut self,
-    stash: AccountId,
-    ctrl: AccountId,
-    stake: Balance,
-    status: StakerStatus<AccountId>,
-  ) -> Self {
-    self.stakers.push((stash, ctrl, stake, status));
-    self
-  }
-
-  pub fn balance_factor(mut self, factor: Balance) -> Self {
-    self.balance_factor = factor;
-    self
-  }
-
   fn build(self) -> sp_io::TestExternalities {
     sp_tracing::try_init_simple();
     let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
@@ -599,23 +470,4 @@ pub(crate) fn start_active_era(era_index: EraIndex) {
   assert_eq!(current_era(), active_era());
 }
 
-// Build genesis storage according to the mock runtime.
-// pub fn new_test_ext() -> sp_io::TestExternalities {
-//   system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
-// }
-
 pub type SystemCall = frame_system::Call<Test>;
-
-// // Build genesis storage according to the mock runtime.
-// pub fn new_test_ext() -> sp_io::TestExternalities {
-//   let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-//   pallet_balances::GenesisConfig::<Test> {
-//     balances: vec![(1, 10), (2, 10), (3, 10), (4, 10), (5, 2)],
-//   }
-//   .assimilate_storage(&mut t)
-//   .unwrap();
-
-//   let mut ext = sp_io::TestExternalities::new(t);
-//   ext.execute_with(|| System::set_block_number(1));
-//   ext
-// }

@@ -117,6 +117,7 @@ pub mod pallet {
     WastingFreeCalls,
   }
 
+  // TODO: https://linear.app/entropyxyz/issue/ENT-58/free-tx-on-idle-hook-for-pruning-old-free-tx-entries
   // #[pallet::hooks]
   // impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
   // 	fn on_idle(_block: T::BlockNumber, remaining_weight: Weight) -> Weight {
@@ -178,17 +179,6 @@ pub mod pallet {
       }
       Ok(())
     }
-
-    // Resets free call count for all accounts during this era. Count will still be reset every
-    // era, and this does not change the era length.
-    //
-    // TODO: weight
-    // #[pallet::weight(10_000)]
-    // pub fn reset_free_calls(origin: OriginFor<T>) -> DispatchResult {
-    //   ensure_root(origin)?;
-    //   // TODO
-    //   Ok(())
-    // }
   }
 
   impl<T: Config> Pallet<T> {
