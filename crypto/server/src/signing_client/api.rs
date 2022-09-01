@@ -43,7 +43,7 @@ pub async fn new_party(
 	// let address_string = str::from_utf8(address_slice).unwrap().to_string();
 
     let gg20_service = Gg20Service::new(state, kv_manager);
-	let info = SignInit::new("test".to_string(), vec!["test".to_string()], vec![1], digest, "test".to_string(), user.to_string(), vec!["test".to_string()]);
+	let info = SignInit::new("test".to_string(), vec!["test".to_string()], vec![0], digest, "test".to_string(), user.to_string(), vec!["test".to_string()]);
 	// set up context for signing protocol execution
 	let sign_context = gg20_service.get_sign_context(info).await.unwrap();
 	  // subscribe to all other participating parties. Listener waits for other subscribers.
