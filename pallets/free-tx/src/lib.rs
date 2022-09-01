@@ -170,7 +170,7 @@ pub mod pallet {
       origin: OriginFor<T>,
       free_calls_per_era: FreeCallCount,
     ) -> DispatchResult {
-      let _ = ensure_root(origin)?;
+      ensure_root(origin)?;
       if free_calls_per_era == 0 {
         // make sure that <FreeCallsPerEra<T>>::get() returns None instead of Some(0)
         <FreeCallsPerEra<T>>::kill();
@@ -230,9 +230,7 @@ pub mod pallet {
     pub fn free_calls_remaining(account_id: &<T>::AccountId) -> FreeCallCount {
       // return 0 if free calls are disabled (and gets free calls per era in the same storage
       // query).
-      let free_calls_per_era = Self::free_calls_per_era().unwrap_or_else(|| {
-        return 0 as FreeCallCount;
-      });
+      let free_calls_per_era = Self::free_calls_per_era().unwrap_or(0 as FreeCallCount);
 
       // if the free call count was last updated this era, return however many free calls they have
       // left
@@ -324,15 +322,13 @@ pub mod pallet {
       // is there a way to do all this shit better?
       if let Some(local_call) = call.is_sub_type() {
         if let Call::try_free_call { .. } = local_call {
-          if Pallet::<T>::free_calls_are_enabled() {
-            if Pallet::<T>::free_calls_remaining(who) != 0 {
-              return Ok(ValidTransaction::default());
-            }
+          if Pallet::<T>::free_calls_are_enabled() && Pallet::<T>::free_calls_remaining(who) != 0 {
+            return Ok(ValidTransaction::default());
           }
           return Err(TransactionValidityError::Invalid(InvalidTransaction::Payment));
         }
       }
-      return Ok(ValidTransaction::default());
+      Ok(ValidTransaction::default())
     }
   }
 }

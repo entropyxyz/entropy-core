@@ -416,7 +416,7 @@ impl ExtBuilder {
     ext
   }
 
-  pub fn build_and_execute(self, test: impl FnOnce() -> ()) {
+  pub fn build_and_execute(self, test: impl FnOnce()) {
     sp_tracing::try_init_simple();
     let mut ext = self.build();
     ext.execute_with(test);
@@ -462,7 +462,7 @@ pub(crate) fn current_era() -> EraIndex { FrameStaking::current_era().unwrap() }
 
 /// Progress until the given era.
 pub(crate) fn start_active_era(era_index: EraIndex) {
-  start_session((era_index * <SessionsPerEra as Get<u32>>::get()).into());
+  start_session((era_index * <SessionsPerEra as Get<u32>>::get()));
   assert_eq!(active_era(), era_index);
   // One way or another, current_era must have changed before the active era, so they must match
   // at this point.
