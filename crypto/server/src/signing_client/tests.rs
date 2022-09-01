@@ -3,7 +3,6 @@ use std::{env, time};
 use crate::user::ParsedUserInputPartyInfo;
 use tofn::sdk::api::PartyShareCounts;
 use tofn::gg20::keygen::{KeygenPartyId, SecretKeyShare};
-use generic_array::GenericArray;
 
 use bincode::Options;
 use std::{fs, path::Path};
