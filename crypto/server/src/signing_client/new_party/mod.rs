@@ -4,16 +4,18 @@ mod context;
 mod signing_message;
 mod tofn_protocol;
 use bincode::Options;
-use kvdb::kv_manager::{value::{PartyInfo, KvValue}, KvManager};
-use tofn::gg20;
+use kvdb::kv_manager::{
+  value::{KvValue, PartyInfo},
+  KvManager,
+};
+use tofn::{
+  gg20,
+  gg20::keygen::{KeygenPartyId, SecretKeyShare},
+  sdk::api::PartyShareCounts,
+};
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
-use tofn::{
-    gg20::{
-        keygen::{KeygenPartyId, SecretKeyShare},
-    },
-    sdk::api::{PartyShareCounts},
-};
+
 pub use self::{context::SignContext, signing_message::SigningMessage, tofn_protocol::Channels};
 use crate::{
   sign_init::SignInit,
@@ -47,17 +49,12 @@ impl<'a> Gg20Service<'a> {
   #[instrument]
   pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, SigningErr> {
     info!("check_sign_init: {sign_init:?}");
-	let party_vec = self.kv_manager.kv().get(&sign_init.substrate_key).await.unwrap();
-	let bincode = bincode::DefaultOptions::new();
-	// let party_share_counts: PartyShareCounts<KeygenPartyId> = PartyShareCounts::from_vec(party_vec).unwrap();
-	// dbg!(party_share_counts.clone());
-	let value: SecretKeyShare = bincode.deserialize(&party_vec).unwrap();
-	let party_info = PartyInfo::get_party_info(
-		vec![value],
-		vec!["test".to_string()],
-		vec![0],
-		0,
-);
+    let party_vec = self.kv_manager.kv().get(&sign_init.substrate_key).await.unwrap();
+    let bincode = bincode::DefaultOptions::new();
+    // let party_share_counts: PartyShareCounts<KeygenPartyId> =
+    // PartyShareCounts::from_vec(party_vec).unwrap(); dbg!(party_share_counts.clone());
+    let value: SecretKeyShare = bincode.deserialize(&party_vec).unwrap();
+    let party_info = PartyInfo::get_party_info(vec![value], vec!["test".to_string()], vec![0], 0);
     // let party_info: PartyInfo = PartyInfo::try_from(party_vec).unwrap();
     Ok(SignContext::new(sign_init, party_info))
   }

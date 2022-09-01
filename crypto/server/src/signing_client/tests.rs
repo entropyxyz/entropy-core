@@ -1,11 +1,6 @@
-use std::{env, time};
-
-use crate::user::ParsedUserInputPartyInfo;
-use tofn::sdk::api::PartyShareCounts;
-use tofn::gg20::keygen::{KeygenPartyId, SecretKeyShare};
+use std::{env, fs, path::Path, time};
 
 use bincode::Options;
-use std::{fs, path::Path};
 use kvdb::{
   clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
@@ -18,6 +13,12 @@ use serial_test::serial;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
 use subxt::{sp_core::sr25519, PairSigner};
 use testing_utils::context::{test_context, test_context_stationary};
+use tofn::{
+  gg20::keygen::{KeygenPartyId, SecretKeyShare},
+  sdk::api::PartyShareCounts,
+};
+
+use crate::user::ParsedUserInputPartyInfo;
 
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
   Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
@@ -26,8 +27,8 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 #[rocket::async_test]
 #[serial]
 async fn test_new_party() {
-	// Construct a client to use for dispatching requests.
-	let client = setup_client().await;
+  // Construct a client to use for dispatching requests.
+  let client = setup_client().await;
 
   let key = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".to_string();
   let bincode = bincode::DefaultOptions::new();
@@ -36,11 +37,11 @@ async fn test_new_party() {
   let v_serialized = fs::read(path).unwrap();
   let user_input = ParsedUserInputPartyInfo { key: key.clone(), value: v_serialized.clone() };
   let response_keystore = client
-  	.post("/user/new")
-  	.header(ContentType::JSON)
-  	.body(serde_json::to_string(&user_input.clone()).unwrap())
-  	.dispatch()
-  	.await;
+    .post("/user/new")
+    .header(ContentType::JSON)
+    .body(serde_json::to_string(&user_input.clone()).unwrap())
+    .dispatch()
+    .await;
 
   assert_eq!(response_keystore.status(), Status::Ok);
 
