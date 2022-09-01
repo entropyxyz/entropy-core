@@ -18,10 +18,10 @@ use std::{
   io::{BufWriter, Write},
 };
 
-use kvdb::kv_manager::value::PartyInfo;
+use kvdb::kv_manager::value::{PartyInfo, KvValue};
 use rocket::{http::Status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
-
+use tofn::gg20::keygen::SecretKeyShare;
 pub use self::errors::*;
 
 #[cfg(test)] mod tests;
@@ -32,7 +32,7 @@ pub struct UserInputPartyInfo {
   /// User's substrate key
   pub key:   String,
   // An encoded SecretKeyShare for this node
-  pub value: Vec<u8>,
+  pub value: KvValue,
 }
 
 impl TryInto<ParsedUserInputPartyInfo> for UserInputPartyInfo {
@@ -50,7 +50,7 @@ pub struct ParsedUserInputPartyInfo {
   /// User's substrate key
   pub key:   String,
   // An encoded SecretKeyShare for this node
-  pub value: Vec<u8>, // TODO(TK): write this type
+  pub value: KvValue, // TODO(TK): write this type
 }
 
 // TODO(TK)

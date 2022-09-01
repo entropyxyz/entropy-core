@@ -47,6 +47,7 @@ local-ip    ="0.1"
 [dev-dependencies]
 testing-utils={ path="../testing-utils" }
 serial_test  ="0.8.0"
+bincode = "1.3.3"
 
 [features]
 default=['std']

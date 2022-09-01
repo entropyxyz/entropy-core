@@ -4,9 +4,10 @@ use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shu
 use substrate_common::OCWMessage;
 use subxt::sp_runtime::AccountId32;
 use tracing::instrument;
+use std::str;
 
 use crate::{
-  sign_init::SignInit,
+  sign_init::{SignInit, MessageDigest},
   signing_client::{
     new_party::{Channels, Gg20Service},
     subscribe::{subscribe_to_them, Listener, Receiver},
@@ -29,33 +30,37 @@ pub async fn new_party(
   encoded_data: Vec<u8>,
   state: &State<SignerState>,
   kv_manager: &State<KvManager>,
-) -> Result<Status, SigningErr> {
+) -> Result<Status, ()> {
   //   let info = info.into_inner();
   info!("new_party: {encoded_data:?}");
   let data = OCWMessage::decode(&mut encoded_data.as_ref()).unwrap();
   for message in data {
+	let digest: MessageDigest = message.sig_request.sig_hash.as_slice().try_into().unwrap();
     let raw_address = &message.account;
     let address_slice: &[u8; 32] =
       &raw_address.clone().try_into().expect("slice with incorrect length");
     let user = AccountId32::new(*address_slice);
+	// let address_string = str::from_utf8(address_slice).unwrap().to_string();
+
     let gg20_service = Gg20Service::new(state, kv_manager);
-	// let info = SignInit::new("test".to_string(), vec!["test".to_string()], vec![1], message.);
+	let info = SignInit::new("test".to_string(), vec!["test".to_string()], vec![1], digest, "test".to_string(), user.to_string(), vec!["test".to_string()]);
+	// set up context for signing protocol execution
+	let sign_context = gg20_service.get_sign_context(info).await.unwrap();
+	  // subscribe to all other participating parties. Listener waits for other subscribers.
+	  let (rx_ready, listener) = Listener::new();
+	  state.listeners.lock().unwrap().insert(sign_context.sign_init.party_uid.to_string(),
+	listener);
+	let channels = {
+	    let stream_in = subscribe_to_them(&sign_context).await.unwrap();
+	    let broadcast_out = rx_ready.await.unwrap().unwrap();
+	    Channels(broadcast_out, stream_in)
+	  };
+
+	  let result = gg20_service.execute_sign(&sign_context, channels).await.unwrap();
+	  gg20_service.handle_result(&result, &sign_context);
   }
 
-  //   // set up context for signing protocol execution
-  //   let sign_context = gg20_service.get_sign_context(info).await?;
 
-  //   // subscribe to all other participating parties. Listener waits for other subscribers.
-  //   let (rx_ready, listener) = Listener::new();
-  //   state.listeners.lock().unwrap().insert(sign_context.sign_init.party_uid.to_string(),
-  // listener);   let channels = {
-  //     let stream_in = subscribe_to_them(&sign_context).await?;
-  //     let broadcast_out = rx_ready.await??;
-  //     Channels(broadcast_out, stream_in)
-  //   };
-
-  //   let result = gg20_service.execute_sign(&sign_context, channels).await?;
-  //   gg20_service.handle_result(&result, &sign_context);
   Ok(Status::Ok)
 }
 
