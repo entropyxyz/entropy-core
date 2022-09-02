@@ -18,7 +18,10 @@ use tofn::{
   sdk::api::PartyShareCounts,
 };
 
-use crate::user::ParsedUserInputPartyInfo;
+use crate::{
+  new_party, new_user, user::ParsedUserInputPartyInfo, CommunicationManagerState, Configuration,
+  SignerState,
+};
 
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
   Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
@@ -29,21 +32,10 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 async fn test_new_party() {
   // Construct a client to use for dispatching requests.
   let client = setup_client().await;
+  let client_1 = create_clients(3002, "1".to_string()).await;
 
-  let key = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".to_string();
-  let bincode = bincode::DefaultOptions::new();
-  let root = project_root::get_project_root().unwrap();
-  let path = format!("{}/0", root.display());
-  let v_serialized = fs::read(path).unwrap();
-  let user_input = ParsedUserInputPartyInfo { key: key.clone(), value: v_serialized.clone() };
-  let response_keystore = client
-    .post("/user/new")
-    .header(ContentType::JSON)
-    .body(serde_json::to_string(&user_input.clone()).unwrap())
-    .dispatch()
-    .await;
-
-  assert_eq!(response_keystore.status(), Status::Ok);
+  store_key(&client, "0".to_string()).await;
+  store_key(&client_1, "1".to_string()).await;
 
   let encoded_data = vec![
     8, 128, 209, 136, 240, 217, 145, 69, 231, 221, 189, 15, 30, 70, 231, 253, 64, 109, 185, 39, 68,
@@ -80,4 +72,47 @@ async fn new_party_fail_wrong_data() {
 
   assert_eq!(response.status(), Status::new(500));
   clean_tests();
+}
+
+async fn create_clients(port: i64, key_number: String) -> rocket::local::asynchronous::Client {
+  let config = rocket::Config::figment().merge(("port", port));
+
+  let communication_manager_state = CommunicationManagerState::default();
+  let signer_state = SignerState::default();
+  let configuration = Configuration::new();
+
+  let path = format!("test_db_{}", key_number);
+  let _ = std::fs::remove_dir_all(path.clone());
+
+  let kv_store =
+    KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+
+  Client::tracked(
+    rocket::custom(config)
+      .mount("/signer", routes![new_party])
+      .mount("/user", routes![new_user])
+      .manage(communication_manager_state)
+      .manage(signer_state)
+      .manage(configuration)
+      .manage(kv_store),
+  )
+  .await
+  .expect("valid `Rocket`")
+}
+
+async fn store_key(client: &rocket::local::asynchronous::Client, key_number: String) {
+  let key = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".to_string();
+  let bincode = bincode::DefaultOptions::new();
+  let root = project_root::get_project_root().unwrap();
+  let path = format!("{}/{}", root.display(), key_number);
+  let v_serialized = fs::read(path).unwrap();
+  let user_input = ParsedUserInputPartyInfo { key: key.clone(), value: v_serialized.clone() };
+  let response_keystore = client
+    .post("/user/new")
+    .header(ContentType::JSON)
+    .body(serde_json::to_string(&user_input.clone()).unwrap())
+    .dispatch()
+    .await;
+
+  assert_eq!(response_keystore.status(), Status::Ok);
 }
