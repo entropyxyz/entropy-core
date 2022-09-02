@@ -70,8 +70,8 @@ pub mod pallet {
   /// to be pruned every era.
   #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
   pub struct FreeCallInfo {
-    era_index:            EraIndex,
-    free_calls_remaining: FreeCallCount,
+    pub era_index:            EraIndex,
+    pub free_calls_remaining: FreeCallCount,
   }
 
   #[pallet::pallet]
@@ -150,9 +150,6 @@ pub mod pallet {
       Self::try_consume_free_call(&sender)?;
 
       // TODO JH
-      // Check these in order of cheapest to most expensive
-      // - ensure call is contextually valid (maybe only extrinsics from relayer pallet?)
-      // - max weight check
       // - make sure `call` isn't another `try_free_call()` or get WastingFreeCalls
 
       // cool, now dispatch call with account's origin
