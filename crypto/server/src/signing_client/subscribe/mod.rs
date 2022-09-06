@@ -20,7 +20,7 @@ pub async fn subscribe_to_them(
     .iter()
     .map(|ip| {
       reqwest::Client::new()
-        .post(format!("http://{}/signer/subscribe", ip))
+        .post(format!("http://{}/signer/subscribe_to_me", ip))
         .header("Content-Type", "application/json")
         .json(&SubscribeMessage::new(ctx.sign_init.party_uid.to_string()))
         .send()

@@ -51,7 +51,7 @@ pub async fn new_party(
       digest,
       "test".to_string(),
       user.to_string(),
-      vec!["localhost:3001".to_string()],
+      vec!["127.0.0.1:3002".to_string()],
     );
     // set up context for signing protocol execution
     let sign_context = gg20_service.get_sign_context(info).await.unwrap();
