@@ -7,16 +7,28 @@ edition="2021"
 codec             ={ package="parity-scale-codec", version="3.0.0", default-features=false }
 scale-info        ={ version="2.1.1", default-features=false, features=["derive"] }
 sp-runtime        ={ git="https://github.com/paritytech/substrate", branch="master", default-features=false }
+sp-staking        ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 frame-benchmarking={ git="https://github.com/paritytech/substrate", branch="master", optional=true, default-features=false }
 frame-support     ={ git="https://github.com/paritytech/substrate", branch="master", default-features=false }
 frame-system      ={ git="https://github.com/paritytech/substrate", branch="master", default-features=false }
+pallet-staking    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 sp-std            ={ git="https://github.com/paritytech/substrate", branch="master", default-features=false }
 log               ={ version="0.4.0", default-features=false }
 
 [dev-dependencies]
-sp-core        ={ git="https://github.com/paritytech/substrate", branch="master" }
-sp-io          ={ git="https://github.com/paritytech/substrate", branch="master" }
-pallet-balances={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+sp-core                        ={ git="https://github.com/paritytech/substrate", branch="master" }
+sp-io                          ={ git="https://github.com/paritytech/substrate", branch="master" }
+sp-tracing                     ={ version="5.0.0", git="https://github.com/paritytech/substrate", branch="master" }
+pallet-balances                ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+pallet-session                 ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+pallet-timestamp               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+pallet-bags-list               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+pallet-staking-reward-curve    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+sp-npos-elections              ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+frame-election-provider-support={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+pallet-staking-extension       ={ version="3.0.0", default-features=false, path="../staking" }
+pallet-relayer                 ={ version="3.0.0", default-features=false, path="../relayer" }
+pallet-authorship              ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 
 [features]
 default=["std"]
@@ -24,13 +36,15 @@ runtime-benchmarks=[
   'frame-benchmarking',
   'frame-support/runtime-benchmarks',
   'frame-system/runtime-benchmarks',
-  'pallet-balances/runtime-benchmarks',
 ]
 std=[
   "scale-info/std",
   "sp-runtime/std",
   "frame-support/std",
   "frame-system/std",
+  "sp-staking/std",
+  "pallet-staking/std",
+  'pallet-staking-extension/std',
   "pallet-balances/std",
   "log/std",
 ]
