@@ -6,11 +6,14 @@
 //! Propgates messages to signing client through offchain worker
 pub use pallet::*;
 
-#[cfg(test)] mod mock;
+#[cfg(test)]
+mod mock;
 
-#[cfg(test)] mod tests;
+#[cfg(test)]
+mod tests;
 
-#[cfg(feature = "runtime-benchmarks")] mod benchmarking;
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {

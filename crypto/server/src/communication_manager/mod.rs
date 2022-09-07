@@ -3,10 +3,12 @@ pub mod deprecating_sign;
 mod errors;
 mod handle_signing;
 mod request_guards;
-#[cfg(test)] mod tests;
+#[cfg(test)]
+mod tests;
 use std::{collections::HashMap, sync::Mutex};
 
-#[cfg(test)] pub use tests::{get_path, setup_client};
+#[cfg(test)]
+pub use tests::{get_path, setup_client};
 
 /// holds KVDB instance, threshold mnemonic and endpoint of running node
 #[derive(Debug, Default)]

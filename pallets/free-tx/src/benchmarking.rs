@@ -7,7 +7,8 @@ use frame_system::RawOrigin;
 use sp_std::prelude::Box;
 
 use super::*;
-#[allow(unused)] use crate::Pallet as FreeTx;
+#[allow(unused)]
+use crate::Pallet as FreeTx;
 
 benchmarks! {
   try_free_call {

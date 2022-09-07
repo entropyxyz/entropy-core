@@ -12,11 +12,14 @@ use frame_system::pallet_prelude::*;
 use sp_runtime::DispatchResult;
 use sp_std::{prelude::*, vec::Vec};
 
-#[cfg(test)] mod mock;
+#[cfg(test)]
+mod mock;
 
-#[cfg(test)] mod tests;
+#[cfg(test)]
+mod tests;
 
-#[cfg(feature = "runtime-benchmarks")] mod benchmarking;
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 
 pub mod weights;
 

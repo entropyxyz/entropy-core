@@ -27,7 +27,6 @@ imports_granularity="Crate"            # aggressively group imports
 
 # width settings: everything to 100
 comment_width         =100   # default: 80
-inline_attribute_width=60    # inlines #[cfg(test)]\nmod test -> #[cfg(test)] mod test
 max_width             =100   # default: 100
 use_small_heuristics  ="Max" # don't ever newline short of `max_width`.
 wrap_comments         =true  # wrap comments at `comment_width`
