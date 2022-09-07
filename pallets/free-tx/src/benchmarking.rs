@@ -3,6 +3,7 @@
 
 use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_system::RawOrigin;
+use sp_staking::EraIndex;
 use sp_std::prelude::Box;
 
 use super::*;
@@ -10,12 +11,20 @@ use super::*;
 
 benchmarks! {
   try_free_call {
-    FreeCallsLeft::<T>::set(Some(2u8));
+    let caller: T::AccountId = whitelisted_caller();
+    FreeCallsRemaining::<T>::insert(&caller, FreeCallInfo { free_calls_remaining: 2 as FreeCallCount, era_index: 1 as EraIndex});
 
     let call: <T as Config>::Call = frame_system::Call::<T>::remark { remark: b"entropy rocks".to_vec() }.into();
-    let caller: T::AccountId = whitelisted_caller();
-  }: _(RawOrigin::Signed(caller), Box::new(call))
+  }: _(RawOrigin::Signed(caller.clone()), Box::new(call))
   verify {
-    assert_eq!(FreeCallsLeft::<T>::get(), Some(1u8));
+    let FreeCallInfo { free_calls_remaining, .. } = FreeCallsRemaining::<T>::get(&caller).unwrap();
+    assert_eq!(free_calls_remaining, 1 as FreeCallCount);
+  }
+  set_free_calls_per_era {
+    let caller: T::AccountId = whitelisted_caller();
+    let free_calls = 1 as FreeCallCount;
+  }: _(RawOrigin::Root, free_calls as FreeCallCount)
+  verify {
+    assert_eq!(FreeCallsPerEra::<T>::get().unwrap(), free_calls as FreeCallCount);
   }
 }
