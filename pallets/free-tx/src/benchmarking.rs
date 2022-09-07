@@ -2,6 +2,7 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use frame_benchmarking::{benchmarks, whitelisted_caller};
+use frame_support::{assert_ok, traits::EnsureOrigin};
 use frame_system::RawOrigin;
 use sp_staking::EraIndex;
 use sp_std::prelude::Box;
@@ -21,9 +22,13 @@ benchmarks! {
     assert_eq!(free_calls_remaining, 1 as FreeCallCount);
   }
   set_free_calls_per_era {
-    let caller: T::AccountId = whitelisted_caller();
+    let origin = T::UpdateOrigin::successful_origin();
     let free_calls = 1 as FreeCallCount;
-  }: _(RawOrigin::Root, free_calls as FreeCallCount)
+  }: {
+    assert_ok!(
+      <FreeTx<T>>::set_free_calls_per_era(origin, free_calls)
+    );
+  }
   verify {
     assert_eq!(FreeCallsPerEra::<T>::get().unwrap(), free_calls as FreeCallCount);
   }

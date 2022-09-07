@@ -1205,6 +1205,10 @@ impl pallet_bags_list::Config for Runtime {
 impl pallet_free_tx::Config for Runtime {
   type Call = Call;
   type Event = Event;
+  type UpdateOrigin = EnsureOneOf<
+    EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>,
+  >;
   type WeightInfo = weights::pallet_free_tx::WeightInfo<Runtime>;
 }
 
