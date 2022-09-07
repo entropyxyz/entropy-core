@@ -1,5 +1,11 @@
 //! Errors used in User creation
-use rocket::response::Responder;
+
+use std::io::Cursor;
+
+use rocket::{
+    http::Status,
+    response::{Responder, Response},
+};
 use thiserror::Error;
 
 // #[derive(Responder, Debug)]
@@ -16,7 +22,11 @@ pub enum UserErr {
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {
-    fn respond_to(self, request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
-        todo!()
+    fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
+        let body = format!("{}", self).into_bytes();
+        Response::build()
+            .sized_body(body.len(), Cursor::new(body))
+            .status(Status::InternalServerError)
+            .ok()
     }
 }
