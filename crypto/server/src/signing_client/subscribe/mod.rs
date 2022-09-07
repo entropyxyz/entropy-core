@@ -14,6 +14,7 @@ use super::{new_party::SignContext, SigningErr, SigningMessage};
 pub async fn subscribe_to_them(
   ctx: &SignContext,
 ) -> Result<BoxStream<'static, SigningMessage>, SigningErr> {
+  dbg!(ctx.clone());
   let handles: Vec<_> = ctx
     .sign_init
     .ip_addresses

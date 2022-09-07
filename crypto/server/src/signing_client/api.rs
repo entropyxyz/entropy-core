@@ -46,12 +46,12 @@ pub async fn new_party(
     let gg20_service = Gg20Service::new(state, kv_manager);
     let info = SignInit::new(
       "test".to_string(),
-      vec!["test".to_string()],
-      vec![0],
+      vec!["test".to_string(), "test1".to_string()],
+      vec![0, 0],
       digest,
       "test".to_string(),
       user.to_string(),
-      vec!["127.0.0.1:3002".to_string()],
+      vec!["127.0.0.1:3001".to_string(), "127.0.0.1:3002".to_string()],
     );
     // set up context for signing protocol execution
     let sign_context = gg20_service.get_sign_context(info).await.unwrap();
@@ -88,10 +88,14 @@ pub async fn subscribe_to_me(
     // CM hasn't yet informed this node of the party. Wait for a timeout and procede (or fail below)
     tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
   };
+  info!("test 1");
 
   let rx = {
     let mut listeners = state.listeners.lock().unwrap();
+    info!("test 2 {}", msg.party_id);
     let listener = listeners.get_mut(&msg.party_id).ok_or(SubscribeErr::NoListener("no"))?;
+    info!("test 3, {:?}", listener);
+
     let rx_outcome = listener.subscribe(&msg)?;
 
     // If this is the last subscriber, remove the listener from state
@@ -105,7 +109,9 @@ pub async fn subscribe_to_me(
         rx
       },
     }
+    // info!("test 3");
   };
+  info!("test 4");
 
   Ok(Listener::create_event_stream(rx, end))
 }

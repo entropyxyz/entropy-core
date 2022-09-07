@@ -51,9 +51,11 @@ impl SignContext {
     length: usize,
     sign_indices: &[usize],
   ) -> anyhow::Result<SignParties> {
+    dbg!(length.clone(), sign_indices.clone());
     let mut sign_parties = Subset::with_max_size(length);
     for signer_idx in sign_indices.iter() {
       if sign_parties.add(tofn::collections::TypedUsize::from_usize(*signer_idx)).is_err() {
+        dbg!(sign_parties.add(tofn::collections::TypedUsize::from_usize(*signer_idx)));
         return Err(anyhow::anyhow!("failed to call Subset::add"));
       }
     }

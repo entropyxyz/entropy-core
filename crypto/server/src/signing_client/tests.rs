@@ -49,19 +49,42 @@ async fn test_new_party() {
   store_key(&client, port_0.clone(), "0".to_string()).await;
   store_key(&client, port_1.clone(), "1".to_string()).await;
 
-  let encoded_data = vec![
-    8, 128, 209, 136, 240, 217, 145, 69, 231, 221, 189, 15, 30, 70, 231, 253, 64, 109, 185, 39, 68,
-    21, 132, 87, 28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128, 212, 53, 147, 199, 21, 253, 211, 28,
-    97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165,
-    109, 162, 125, 128, 209, 136, 240, 217, 145, 69, 231, 221, 189, 15, 30, 70, 231, 253, 64, 109,
-    185, 39, 68, 21, 132, 87, 28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128, 212, 53, 147, 199, 21,
-    253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86,
-    132, 231, 165, 109, 162, 125,
-  ];
-  let url = format!("http:///127.0.0.1:{}/signer/new_party", port_0);
+  let handle = tokio::spawn(async move {
+    let encoded_data = vec![
+      8, 128, 209, 136, 240, 217, 145, 69, 231, 221, 189, 15, 30, 70, 231, 253, 64, 109, 185, 39,
+      68, 21, 132, 87, 28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128, 212, 53, 147, 199, 21, 253,
+      211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86,
+      132, 231, 165, 109, 162, 125, 128, 209, 136, 240, 217, 145, 69, 231, 221, 189, 15, 30, 70,
+      231, 253, 64, 109, 185, 39, 68, 21, 132, 87, 28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128,
+      212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88,
+      133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125,
+    ];
 
-  let response = client.post(url).body(encoded_data.clone()).send().await;
-  assert_eq!(response.unwrap().status(), 200);
+    let client = reqwest::Client::new();
+
+    let url = format!("http:///127.0.0.1:{}/signer/new_party", port_0);
+    let response = client.post(url).body(encoded_data.clone()).send().await;
+    assert_eq!(response.unwrap().status(), 200);
+  });
+  let handle_2 = tokio::spawn(async move {
+    let encoded_data = vec![
+      8, 128, 209, 136, 240, 217, 145, 69, 231, 221, 189, 15, 30, 70, 231, 253, 64, 109, 185, 39,
+      68, 21, 132, 87, 28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128, 212, 53, 147, 199, 21, 253,
+      211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86,
+      132, 231, 165, 109, 162, 125, 128, 209, 136, 240, 217, 145, 69, 231, 221, 189, 15, 30, 70,
+      231, 253, 64, 109, 185, 39, 68, 21, 132, 87, 28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128,
+      212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88,
+      133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125,
+    ];
+
+    let client = reqwest::Client::new();
+
+    let url2 = format!("http:///127.0.0.1:{}/signer/new_party", port_1);
+    let response_2 = client.post(url2).body(encoded_data.clone()).send().await;
+    assert_eq!(response_2.unwrap().status(), 200);
+  });
+  handle.await.unwrap();
+  handle_2.await.unwrap();
   clean_tests();
 }
 
@@ -100,7 +123,7 @@ async fn create_clients(port: i64, key_number: String) {
   let kv_store =
     KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
 
-  rocket::custom(config)
+  let _ = rocket::custom(config)
     .mount("/signer", routes![new_party, subscribe_to_me])
     .mount("/user", routes![new_user])
     .manage(communication_manager_state)
