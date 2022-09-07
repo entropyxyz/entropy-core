@@ -4,7 +4,6 @@
 use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_support::{assert_ok, traits::EnsureOrigin};
 use frame_system::RawOrigin;
-use sp_staking::EraIndex;
 use sp_std::prelude::Box;
 
 use super::*;
@@ -13,7 +12,7 @@ use super::*;
 benchmarks! {
   try_free_call {
     let caller: T::AccountId = whitelisted_caller();
-    FreeCallsRemaining::<T>::insert(&caller, FreeCallInfo { free_calls_remaining: 2 as FreeCallCount, era_index: 1 as EraIndex});
+    FreeCallsPerEra::<T>::set(Some(2));
 
     let call: <T as Config>::Call = frame_system::Call::<T>::remark { remark: b"entropy rocks".to_vec() }.into();
   }: _(RawOrigin::Signed(caller.clone()), Box::new(call))

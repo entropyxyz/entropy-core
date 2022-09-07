@@ -21,6 +21,7 @@ pub mod pallet {
     dispatch::Dispatchable,
     pallet_prelude::*,
     traits::IsSubType,
+    transactional,
     weights::{GetDispatchInfo, PostDispatchInfo},
   };
   use frame_system::{pallet_prelude::*, RawOrigin};
@@ -32,6 +33,7 @@ pub mod pallet {
   use sp_staking::EraIndex;
   use sp_std::{fmt::Debug, prelude::*};
 
+  // use super::*;
   pub use crate::weights::WeightInfo;
 
   #[pallet::config]
@@ -153,7 +155,8 @@ pub mod pallet {
     /// Sets the number of free calls each account gets per era.
     /// To disable free calls, set this to `0`.
     /// TODO: weight
-    #[pallet::weight(10_000)]
+    #[pallet::weight(<T as crate::Config>::WeightInfo::set_free_calls_per_era())]
+    #[transactional]
     pub fn set_free_calls_per_era(
       origin: OriginFor<T>,
       free_calls_per_era: FreeCallCount,
