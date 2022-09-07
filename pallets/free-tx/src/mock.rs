@@ -2,10 +2,11 @@ use core::convert::{TryFrom, TryInto};
 
 use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
 use frame_support::{
-  parameter_types,
+  ord_parameter_types, parameter_types,
   traits::{ConstU32, GenesisBuild, Get, Hooks, OneSessionHandler},
 };
 use frame_system as system;
+use frame_system::EnsureSignedBy;
 use pallet_session::historical as pallet_session_historical;
 use pallet_staking::StakerStatus;
 use sp_core::H256;
@@ -258,9 +259,14 @@ impl pallet_staking_extension::Config for Test {
   type WeightInfo = ();
 }
 
+ord_parameter_types! {
+  pub const One: AccountId = 1;
+}
+
 impl pallet_free_tx::Config for Test {
   type Call = Call;
   type Event = Event;
+  type UpdateOrigin = EnsureSignedBy<One, AccountId>;
   type WeightInfo = ();
 }
 
@@ -462,7 +468,7 @@ pub(crate) fn current_era() -> EraIndex { FrameStaking::current_era().unwrap() }
 
 /// Progress until the given era.
 pub(crate) fn start_active_era(era_index: EraIndex) {
-  start_session((era_index * <SessionsPerEra as Get<u32>>::get()));
+  start_session(era_index * <SessionsPerEra as Get<u32>>::get());
   assert_eq!(active_era(), era_index);
   // One way or another, current_era must have changed before the active era, so they must match
   // at this point.

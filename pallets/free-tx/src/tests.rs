@@ -105,7 +105,7 @@ fn free_calls_refresh_every_era() {
     start_active_era(1);
 
     // enable free calls via extrinsic
-    let _ = FreeTx::set_free_calls_per_era(Origin::root(), 5);
+    let _ = FreeTx::set_free_calls_per_era(Origin::signed(1), 5);
     assert_eq!(FreeTx::free_calls_remaining(&1u64), 5 as FreeCallCount);
 
     // make a call that works, check call is used
