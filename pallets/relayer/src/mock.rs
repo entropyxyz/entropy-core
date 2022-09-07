@@ -108,13 +108,15 @@ impl OneSessionHandler<AccountId> for OtherSessionHandler {
     fn on_genesis_session<'a, I: 'a>(_: I)
     where
         I: Iterator<Item = (&'a AccountId, Self::Key)>,
-        AccountId: 'a, {
+        AccountId: 'a,
+    {
     }
 
     fn on_new_session<'a, I: 'a>(_: bool, _: I, _: I)
     where
         I: Iterator<Item = (&'a AccountId, Self::Key)>,
-        AccountId: 'a, {
+        AccountId: 'a,
+    {
     }
 
     fn on_disabled(_validator_index: u32) {}

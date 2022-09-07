@@ -140,7 +140,8 @@ impl EncryptedDb {
     pub fn insert<K, V>(&self, key: K, value: V) -> EncryptedDbResult<Option<IVec>>
     where
         K: AsRef<[u8]>,
-        V: Into<IVec>, {
+        V: Into<IVec>,
+    {
         let record = self.encrypt(value)?;
         let prev_record_bytes_opt = self.kv.insert(&key, record.to_bytes()?)?;
         self.decrypt(prev_record_bytes_opt)
