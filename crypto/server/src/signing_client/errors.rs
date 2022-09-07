@@ -1,6 +1,11 @@
 //! Errors for everyone ✅
+use std::io::Cursor;
+
 use kvdb::kv_manager::error::InnerKvError;
-use rocket::response::Responder;
+use rocket::{
+    http::Status,
+    response::{Responder, Response},
+};
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
@@ -36,9 +41,12 @@ pub enum SigningErr {
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
-    #[allow(unused_variables)]
-    fn respond_to(self, request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
-        todo!()
+    fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
+        let body = format!("{}", self).into_bytes();
+        Response::build()
+            .sized_body(body.len(), Cursor::new(body))
+            .status(Status::InternalServerError)
+            .ok()
     }
 }
 
