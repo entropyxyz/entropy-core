@@ -4,6 +4,7 @@ use bincode::Options;
 use kvdb::{
   clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
+use parity_scale_codec::{Decode, Encode};
 use rocket::{
   http::{ContentType, Status},
   local::asynchronous::Client,
@@ -11,6 +12,7 @@ use rocket::{
 };
 use serial_test::serial;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
+use substrate_common::{Message, SigRequest};
 use subxt::{sp_core::sr25519, PairSigner};
 use testing_utils::context::{test_context, test_context_stationary};
 use tofn::{
@@ -50,15 +52,15 @@ async fn test_new_party() {
   store_key(&client, port_1.clone(), "1".to_string()).await;
 
   let handle = tokio::spawn(async move {
-    let encoded_data = vec![
-      8, 128, 209, 136, 240, 217, 145, 69, 231, 221, 189, 15, 30, 70, 231, 253, 64, 109, 185, 39,
-      68, 21, 132, 87, 28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128, 212, 53, 147, 199, 21, 253,
-      211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86,
-      132, 231, 165, 109, 162, 125, 128, 209, 136, 240, 217, 145, 69, 231, 221, 189, 15, 30, 70,
-      231, 253, 64, 109, 185, 39, 68, 21, 132, 87, 28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128,
-      212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88,
-      133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125,
-    ];
+    let encoded_data: Vec<u8> = Message {
+      sig_request: SigRequest { sig_hash: [128, 209].to_vec() },
+      account:     [
+        240, 217, 145, 69, 231, 221, 189, 15, 30, 70, 231, 253, 64, 109, 185, 39, 68, 21, 132, 87,
+        28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128, 212, 53, 147,
+      ]
+      .to_vec(),
+    }
+    .encode();
 
     let client = reqwest::Client::new();
 
@@ -66,16 +68,24 @@ async fn test_new_party() {
     let response = client.post(url).body(encoded_data.clone()).send().await;
     assert_eq!(response.unwrap().status(), 200);
   });
+  // [
+  //   message: {
+  //     sig: {
+  //       sig: hash
+  //     },
+  //     address: "0x0000000000000000000000000000000000000000",
+  //   }
+  // ]
   let handle_2 = tokio::spawn(async move {
-    let encoded_data = vec![
-      8, 128, 209, 136, 240, 217, 145, 69, 231, 221, 189, 15, 30, 70, 231, 253, 64, 109, 185, 39,
-      68, 21, 132, 87, 28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128, 212, 53, 147, 199, 21, 253,
-      211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86,
-      132, 231, 165, 109, 162, 125, 128, 209, 136, 240, 217, 145, 69, 231, 221, 189, 15, 30, 70,
-      231, 253, 64, 109, 185, 39, 68, 21, 132, 87, 28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128,
-      212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88,
-      133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125,
-    ];
+    let encoded_data: Vec<u8> = Message {
+      sig_request: SigRequest { sig_hash: [128, 209].to_vec() },
+      account:     [
+        240, 217, 145, 69, 231, 221, 189, 15, 30, 70, 231, 253, 64, 109, 185, 39, 68, 21, 132, 87,
+        28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128, 212, 53, 147,
+      ]
+      .to_vec(),
+    }
+    .encode();
 
     let client = reqwest::Client::new();
 
