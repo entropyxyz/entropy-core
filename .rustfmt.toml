@@ -2,7 +2,6 @@
 # https://rust-lang.github.io/rustfmt
 
 # version-related
-edition          ="2021" # redundant, fmt will read Cargo.toml for editor edition year
 unstable_features=true
 use_try_shorthand=true   # replace any `try!` (2015 Rust) with `?` 
 
