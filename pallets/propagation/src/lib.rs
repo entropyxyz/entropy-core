@@ -27,7 +27,8 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config:
-        frame_system::Config + pallet_authorship::Config + pallet_relayer::Config {
+        frame_system::Config + pallet_authorship::Config + pallet_relayer::Config
+    {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
     }
 
