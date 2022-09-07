@@ -33,6 +33,7 @@ use sp_std::marker::PhantomData;
 
 pub trait WeightInfo {
 	fn try_free_call() -> Weight;
+	fn set_free_calls_per_era() -> Weight;
 }
 
 /// Weight functions for `pallet_free_tx`.
@@ -44,6 +45,12 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
+
+	fn set_free_calls_per_era() -> Weight {
+		(14_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
 }
 
 // For backwards compatibility and tests
@@ -51,6 +58,12 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 impl WeightInfo for () {
 	// Storage: FreeTx FreeCallsLeft (r:1 w:1)
 	fn try_free_call() -> Weight {
+		(14_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
+	}
+
+	fn set_free_calls_per_era() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))

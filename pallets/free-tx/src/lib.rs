@@ -2,18 +2,6 @@
 
 //! TODO JH: This is NOT SAFE for production yet. This is an MVP and likely DoS-able.
 
-//! TODO JH: Free Transactions per Era
-//! [x] FreeTxPerEra StorageValue - Enable pallet by setting it to Some(u16)
-//! [x] FreeTxLeft StorageMap(AccountId, u16) - store the number of free transactions left for each
-//!   account
-//! [x] try_free_tx modification
-//! [x] SignedExtension modification
-//! [] on_idle hook (optional/future) - prunes FreeCallsRemaining
-//! [x] reset_free_tx - root function clears FreeTxLeft
-//!
-//! [] Remove GenesisConfig and fix tests - remove genesis config
-//! [] new tests
-
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://docs.substrate.io/reference/frame-pallets/>
@@ -33,6 +21,7 @@ pub mod pallet {
     dispatch::Dispatchable,
     pallet_prelude::*,
     traits::IsSubType,
+    transactional,
     weights::{GetDispatchInfo, PostDispatchInfo},
   };
   use frame_system::{pallet_prelude::*, RawOrigin};
@@ -44,6 +33,7 @@ pub mod pallet {
   use sp_staking::EraIndex;
   use sp_std::{fmt::Debug, prelude::*};
 
+  // use super::*;
   pub use crate::weights::WeightInfo;
 
   #[pallet::config]
@@ -56,6 +46,9 @@ pub mod pallet {
       + Dispatchable<Origin = Self::Origin, PostInfo = PostDispatchInfo>
       + GetDispatchInfo
       + From<frame_system::Call<Self>>;
+
+    // Counsil (or another) can update the number of free transactions per era
+    type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
     // The weight information of this pallet.
     type WeightInfo: WeightInfo;
@@ -162,12 +155,13 @@ pub mod pallet {
     /// Sets the number of free calls each account gets per era.
     /// To disable free calls, set this to `0`.
     /// TODO: weight
-    #[pallet::weight(10_000)]
+    #[pallet::weight(<T as crate::Config>::WeightInfo::set_free_calls_per_era())]
+    #[transactional]
     pub fn set_free_calls_per_era(
       origin: OriginFor<T>,
       free_calls_per_era: FreeCallCount,
     ) -> DispatchResult {
-      ensure_root(origin)?;
+      T::UpdateOrigin::ensure_origin(origin)?;
       if free_calls_per_era == 0 {
         // make sure that <FreeCallsPerEra<T>>::get() returns None instead of Some(0)
         <FreeCallsPerEra<T>>::kill();
