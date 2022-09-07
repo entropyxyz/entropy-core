@@ -6,7 +6,8 @@ use frame_system::{EventRecord, RawOrigin};
 use pallet_staking::{Pallet as FrameStaking, RewardDestination, ValidatorPrefs};
 
 use super::*;
-#[allow(unused_imports)] use crate::Pallet as Staking;
+#[allow(unused_imports)]
+use crate::Pallet as Staking;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
     let events = frame_system::Pallet::<T>::events();

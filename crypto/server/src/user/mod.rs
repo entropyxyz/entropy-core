@@ -24,7 +24,8 @@ use serde::{Deserialize, Serialize};
 
 pub use self::errors::*;
 
-#[cfg(test)] mod tests;
+#[cfg(test)]
+mod tests;
 
 /// User input, contains key (substrate key) and value (entropy shard)
 #[derive(Debug, Deserialize, Serialize, Clone)]
