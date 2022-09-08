@@ -12,53 +12,55 @@ use super::SigningMessage;
 // note: TofnFatal doesn't implement Error, so we have to use map_err for those.
 #[derive(Debug, Error)]
 pub enum SigningErr {
-  // #[error("Init error: {0}")]
-  // Init(&'static str),
-  #[error("Kv error: {0}")]
-  Kv(#[from] kvdb::kv_manager::error::KvError),
-  #[error("TryFrom error: {0}")]
-  InnerKv(#[from] InnerKvError),
-  // Validation(&'static str),
-  #[error("Oneshot timeout error: {0}")]
-  OneshotTimeout(#[from] RecvError),
-  #[error("Tofn fatal")]
-  Subscribe(#[from] SubscribeErr),
-  #[error("Protocol Execution error: {0}")]
-  ProtocolExecution(String),
-  #[error("Protocol Output error: {0}")]
-  ProtocolOutput(String),
-  #[error("reqwest error: {0}")]
-  Reqwest(#[from] reqwest::Error),
-  #[error("Broadcast error: {0}")]
-  Broadcast(#[from] tokio::sync::broadcast::error::SendError<SigningMessage>),
-  #[error("anyhow error: {0}")]
-  Anyhow(#[from] anyhow::Error),
+    // #[error("Init error: {0}")]
+    // Init(&'static str),
+    #[error("Kv error: {0}")]
+    Kv(#[from] kvdb::kv_manager::error::KvError),
+    #[error("TryFrom error: {0}")]
+    InnerKv(#[from] InnerKvError),
+    // Validation(&'static str),
+    #[error("Oneshot timeout error: {0}")]
+    OneshotTimeout(#[from] RecvError),
+    #[error("Tofn fatal")]
+    Subscribe(#[from] SubscribeErr),
+    #[error("Protocol Execution error: {0}")]
+    ProtocolExecution(String),
+    #[error("Protocol Output error: {0}")]
+    ProtocolOutput(String),
+    #[error("reqwest error: {0}")]
+    Reqwest(#[from] reqwest::Error),
+    #[error("Broadcast error: {0}")]
+    Broadcast(#[from] tokio::sync::broadcast::error::SendError<SigningMessage>),
+    #[error("anyhow error: {0}")]
+    Anyhow(#[from] anyhow::Error),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
-  #[allow(unused_variables)]
-  fn respond_to(self, request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> { todo!() }
+    #[allow(unused_variables)]
+    fn respond_to(self, request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
+        todo!()
+    }
 }
 
 /// Errors for the `subscribe` API
 #[derive(Responder, Debug, Error)]
 #[response(status = 418, content_type = "json")]
 pub enum SubscribeErr {
-  // #[error("Timeout error: {0}")]
-  // Timeout(&'static str),
-  #[error("no listener: {0}")]
-  NoListener(&'static str),
-  // #[error("Validation error: {0}")]
-  // Validation(&'static str),
+    // #[error("Timeout error: {0}")]
+    // Timeout(&'static str),
+    #[error("no listener: {0}")]
+    NoListener(&'static str),
+    // #[error("Validation error: {0}")]
+    // Validation(&'static str),
 }
 
 // todo: delete
 #[derive(Debug, Error)]
 pub enum SigningMessageError {
-  #[error("No ':' to split")]
-  BadSplit,
-  #[error("Utf8Error: {0:?}")]
-  Utf8(#[from] std::str::Utf8Error),
-  #[error("Deserialization Error: {0:?}")]
-  Deserialization(#[from] serde_json::Error),
+    #[error("No ':' to split")]
+    BadSplit,
+    #[error("Utf8Error: {0:?}")]
+    Utf8(#[from] std::str::Utf8Error),
+    #[error("Deserialization Error: {0:?}")]
+    Deserialization(#[from] serde_json::Error),
 }

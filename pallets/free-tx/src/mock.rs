@@ -2,8 +2,8 @@ use core::convert::{TryFrom, TryInto};
 
 use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
 use frame_support::{
-  ord_parameter_types, parameter_types,
-  traits::{ConstU32, GenesisBuild, Get, Hooks, OneSessionHandler},
+    ord_parameter_types, parameter_types,
+    traits::{ConstU32, GenesisBuild, Get, Hooks, OneSessionHandler},
 };
 use frame_system as system;
 use frame_system::EnsureSignedBy;
@@ -11,10 +11,10 @@ use pallet_session::historical as pallet_session_historical;
 use pallet_staking::StakerStatus;
 use sp_core::H256;
 use sp_runtime::{
-  curve::PiecewiseLinear,
-  testing::{Header, TestXt, UintAuthorityId},
-  traits::{BlakeTwo256, ConvertInto, IdentityLookup, Zero},
-  Perbill,
+    curve::PiecewiseLinear,
+    testing::{Header, TestXt, UintAuthorityId},
+    traits::{BlakeTwo256, ConvertInto, IdentityLookup, Zero},
+    Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::collections::btree_map::BTreeMap;
@@ -55,30 +55,30 @@ parameter_types! {
 }
 
 impl system::Config for Test {
-  type AccountData = pallet_balances::AccountData<Balance>;
-  type AccountId = AccountId;
-  type BaseCallFilter = frame_support::traits::Everything;
-  type BlockHashCount = BlockHashCount;
-  type BlockLength = ();
-  type BlockNumber = u64;
-  type BlockWeights = ();
-  type Call = Call;
-  type DbWeight = ();
-  type Event = Event;
-  type Hash = H256;
-  type Hashing = BlakeTwo256;
-  type Header = Header;
-  type Index = u64;
-  type Lookup = IdentityLookup<Self::AccountId>;
-  type MaxConsumers = frame_support::traits::ConstU32<16>;
-  type OnKilledAccount = ();
-  type OnNewAccount = ();
-  type OnSetCode = ();
-  type Origin = Origin;
-  type PalletInfo = PalletInfo;
-  type SS58Prefix = SS58Prefix;
-  type SystemWeightInfo = ();
-  type Version = ();
+    type AccountData = pallet_balances::AccountData<Balance>;
+    type AccountId = AccountId;
+    type BaseCallFilter = frame_support::traits::Everything;
+    type BlockHashCount = BlockHashCount;
+    type BlockLength = ();
+    type BlockNumber = u64;
+    type BlockWeights = ();
+    type Call = Call;
+    type DbWeight = ();
+    type Event = Event;
+    type Hash = H256;
+    type Hashing = BlakeTwo256;
+    type Header = Header;
+    type Index = u64;
+    type Lookup = IdentityLookup<Self::AccountId>;
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type OnKilledAccount = ();
+    type OnNewAccount = ();
+    type OnSetCode = ();
+    type Origin = Origin;
+    type PalletInfo = PalletInfo;
+    type SS58Prefix = SS58Prefix;
+    type SystemWeightInfo = ();
+    type Version = ();
 }
 
 parameter_types! {
@@ -86,10 +86,10 @@ parameter_types! {
 }
 
 impl pallet_timestamp::Config for Test {
-  type MinimumPeriod = MinimumPeriod;
-  type Moment = u64;
-  type OnTimestampSet = ();
-  type WeightInfo = ();
+    type MinimumPeriod = MinimumPeriod;
+    type Moment = u64;
+    type OnTimestampSet = ();
+    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -97,38 +97,40 @@ parameter_types! {
   pub const MaxLocks: u32 = 5;
 }
 impl pallet_balances::Config for Test {
-  type AccountStore = System;
-  type Balance = Balance;
-  type DustRemoval = ();
-  type Event = Event;
-  type ExistentialDeposit = ExistentialDeposit;
-  type MaxLocks = MaxLocks;
-  type MaxReserves = ();
-  type ReserveIdentifier = [u8; 8];
-  type WeightInfo = ();
+    type AccountStore = System;
+    type Balance = Balance;
+    type DustRemoval = ();
+    type Event = Event;
+    type ExistentialDeposit = ExistentialDeposit;
+    type MaxLocks = MaxLocks;
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
+    type WeightInfo = ();
 }
 
 pub struct OtherSessionHandler;
 impl OneSessionHandler<AccountId> for OtherSessionHandler {
-  type Key = UintAuthorityId;
+    type Key = UintAuthorityId;
 
-  fn on_genesis_session<'a, I: 'a>(_: I)
-  where
-    I: Iterator<Item = (&'a AccountId, Self::Key)>,
-    AccountId: 'a, {
-  }
+    fn on_genesis_session<'a, I: 'a>(_: I)
+    where
+        I: Iterator<Item = (&'a AccountId, Self::Key)>,
+        AccountId: 'a,
+    {
+    }
 
-  fn on_new_session<'a, I: 'a>(_: bool, _: I, _: I)
-  where
-    I: Iterator<Item = (&'a AccountId, Self::Key)>,
-    AccountId: 'a, {
-  }
+    fn on_new_session<'a, I: 'a>(_: bool, _: I, _: I)
+    where
+        I: Iterator<Item = (&'a AccountId, Self::Key)>,
+        AccountId: 'a,
+    {
+    }
 
-  fn on_disabled(_validator_index: u32) {}
+    fn on_disabled(_validator_index: u32) {}
 }
 
 impl sp_runtime::BoundToRuntimeAppPublic for OtherSessionHandler {
-  type Public = UintAuthorityId;
+    type Public = UintAuthorityId;
 }
 
 parameter_types! {
@@ -144,9 +146,9 @@ sp_runtime::impl_opaque_keys! {
 
 pub struct OnChainSeqPhragmen;
 impl onchain::ExecutionConfig for OnChainSeqPhragmen {
-  type DataProvider = FrameStaking;
-  type Solver = SequentialPhragmen<AccountId, Perbill>;
-  type System = Test;
+    type DataProvider = FrameStaking;
+    type Solver = SequentialPhragmen<AccountId, Perbill>;
+    type System = Test;
 }
 
 pallet_staking_reward_curve::build! {
@@ -170,23 +172,23 @@ parameter_types! {
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
 where Call: From<C>
 {
-  type Extrinsic = TestXt<Call, ()>;
-  type OverarchingCall = Call;
+    type Extrinsic = TestXt<Call, ()>;
+    type OverarchingCall = Call;
 }
 
 const THRESHOLDS: [sp_npos_elections::VoteWeight; 9] =
-  [10, 20, 30, 40, 50, 60, 1_000, 2_000, 10_000];
+    [10, 20, 30, 40, 50, 60, 1_000, 2_000, 10_000];
 
 parameter_types! {
   pub static BagThresholds: &'static [sp_npos_elections::VoteWeight] = &THRESHOLDS;
 }
 
 impl pallet_bags_list::Config for Test {
-  type BagThresholds = BagThresholds;
-  type Event = Event;
-  type Score = VoteWeight;
-  type ScoreProvider = FrameStaking;
-  type WeightInfo = ();
+    type BagThresholds = BagThresholds;
+    type Event = Event;
+    type Score = VoteWeight;
+    type ScoreProvider = FrameStaking;
+    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -202,61 +204,61 @@ parameter_types! {
 
 pub struct StakingBenchmarkingConfig;
 impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
-  type MaxNominators = ConstU32<1000>;
-  type MaxValidators = ConstU32<1000>;
+    type MaxNominators = ConstU32<1000>;
+    type MaxValidators = ConstU32<1000>;
 }
 
 impl pallet_staking::Config for Test {
-  type BenchmarkingConfig = StakingBenchmarkingConfig;
-  type BondingDuration = BondingDuration;
-  type Currency = Balances;
-  type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
-  type ElectionProvider = onchain::UnboundedExecution<OnChainSeqPhragmen>;
-  type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
-  type Event = Event;
-  type GenesisElectionProvider = Self::ElectionProvider;
-  type MaxNominations = MaxNominations;
-  type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
-  type MaxUnlockingChunks = ConstU32<32>;
-  type NextNewSession = Session;
-  type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
-  type Reward = ();
-  type RewardRemainder = ();
-  type SessionInterface = Self;
-  type SessionsPerEra = SessionsPerEra;
-  type Slash = ();
-  type SlashCancelOrigin = frame_system::EnsureRoot<Self::AccountId>;
-  type SlashDeferDuration = SlashDeferDuration;
-  type UnixTime = pallet_timestamp::Pallet<Test>;
-  type VoterList = BagsList;
-  type WeightInfo = ();
+    type BenchmarkingConfig = StakingBenchmarkingConfig;
+    type BondingDuration = BondingDuration;
+    type Currency = Balances;
+    type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
+    type ElectionProvider = onchain::UnboundedExecution<OnChainSeqPhragmen>;
+    type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
+    type Event = Event;
+    type GenesisElectionProvider = Self::ElectionProvider;
+    type MaxNominations = MaxNominations;
+    type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
+    type MaxUnlockingChunks = ConstU32<32>;
+    type NextNewSession = Session;
+    type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
+    type Reward = ();
+    type RewardRemainder = ();
+    type SessionInterface = Self;
+    type SessionsPerEra = SessionsPerEra;
+    type Slash = ();
+    type SlashCancelOrigin = frame_system::EnsureRoot<Self::AccountId>;
+    type SlashDeferDuration = SlashDeferDuration;
+    type UnixTime = pallet_timestamp::Pallet<Test>;
+    type VoterList = BagsList;
+    type WeightInfo = ();
 }
 
 impl pallet_session::Config for Test {
-  type Event = Event;
-  type Keys = SessionKeys;
-  type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
-  type SessionHandler = (OtherSessionHandler,);
-  type SessionManager = pallet_session::historical::NoteHistoricalRoot<Test, FrameStaking>;
-  type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
-  type ValidatorId = AccountId;
-  type ValidatorIdOf = ConvertInto;
-  type WeightInfo = ();
+    type Event = Event;
+    type Keys = SessionKeys;
+    type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+    type SessionHandler = (OtherSessionHandler,);
+    type SessionManager = pallet_session::historical::NoteHistoricalRoot<Test, FrameStaking>;
+    type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
+    type ValidatorId = AccountId;
+    type ValidatorIdOf = ConvertInto;
+    type WeightInfo = ();
 }
 
 impl pallet_session::historical::Config for Test {
-  type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
-  type FullIdentificationOf = pallet_staking::ExposureOf<Test>;
+    type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
+    type FullIdentificationOf = pallet_staking::ExposureOf<Test>;
 }
 
 parameter_types! {
   pub const MaxEndpointLength: u32 = 3;
 }
 impl pallet_staking_extension::Config for Test {
-  type Currency = Balances;
-  type Event = Event;
-  type MaxEndpointLength = MaxEndpointLength;
-  type WeightInfo = ();
+    type Currency = Balances;
+    type Event = Event;
+    type MaxEndpointLength = MaxEndpointLength;
+    type WeightInfo = ();
 }
 
 ord_parameter_types! {
@@ -264,202 +266,209 @@ ord_parameter_types! {
 }
 
 impl pallet_free_tx::Config for Test {
-  type Call = Call;
-  type Event = Event;
-  type UpdateOrigin = EnsureSignedBy<One, AccountId>;
-  type WeightInfo = ();
+    type Call = Call;
+    type Event = Event;
+    type UpdateOrigin = EnsureSignedBy<One, AccountId>;
+    type WeightInfo = ();
 }
 
 pub struct ExtBuilder {
-  nominate:                 bool,
-  validator_count:          u32,
-  minimum_validator_count:  u32,
-  invulnerables:            Vec<AccountId>,
-  has_stakers:              bool,
-  initialize_first_session: bool,
-  pub min_nominator_bond:   Balance,
-  min_validator_bond:       Balance,
-  balance_factor:           Balance,
-  status:                   BTreeMap<AccountId, StakerStatus<AccountId>>,
-  stakes:                   BTreeMap<AccountId, Balance>,
-  stakers:                  Vec<(AccountId, AccountId, Balance, StakerStatus<AccountId>)>,
+    nominate: bool,
+    validator_count: u32,
+    minimum_validator_count: u32,
+    invulnerables: Vec<AccountId>,
+    has_stakers: bool,
+    initialize_first_session: bool,
+    pub min_nominator_bond: Balance,
+    min_validator_bond: Balance,
+    balance_factor: Balance,
+    status: BTreeMap<AccountId, StakerStatus<AccountId>>,
+    stakes: BTreeMap<AccountId, Balance>,
+    stakers: Vec<(AccountId, AccountId, Balance, StakerStatus<AccountId>)>,
 }
 
 impl Default for ExtBuilder {
-  fn default() -> Self {
-    Self {
-      nominate:                 true,
-      validator_count:          2,
-      minimum_validator_count:  0,
-      balance_factor:           1,
-      invulnerables:            vec![],
-      has_stakers:              true,
-      initialize_first_session: true,
-      min_nominator_bond:       ExistentialDeposit::get(),
-      min_validator_bond:       ExistentialDeposit::get(),
-      status:                   Default::default(),
-      stakes:                   Default::default(),
-      stakers:                  Default::default(),
+    fn default() -> Self {
+        Self {
+            nominate: true,
+            validator_count: 2,
+            minimum_validator_count: 0,
+            balance_factor: 1,
+            invulnerables: vec![],
+            has_stakers: true,
+            initialize_first_session: true,
+            min_nominator_bond: ExistentialDeposit::get(),
+            min_validator_bond: ExistentialDeposit::get(),
+            status: Default::default(),
+            stakes: Default::default(),
+            stakers: Default::default(),
+        }
     }
-  }
 }
 
 impl ExtBuilder {
-  fn build(self) -> sp_io::TestExternalities {
-    sp_tracing::try_init_simple();
-    let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+    fn build(self) -> sp_io::TestExternalities {
+        sp_tracing::try_init_simple();
+        let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 
-    let _ = pallet_balances::GenesisConfig::<Test> {
-      balances: vec![
-        (1, 10 * self.balance_factor),
-        (2, 20 * self.balance_factor),
-        (3, 300 * self.balance_factor),
-        (4, 400 * self.balance_factor),
-        // controllers
-        (10, self.balance_factor),
-        (20, self.balance_factor),
-        (30, self.balance_factor),
-        (40, self.balance_factor),
-        (50, self.balance_factor),
-        // stashes
-        (11, self.balance_factor * 1000),
-        (21, self.balance_factor * 2000),
-        (31, self.balance_factor * 2000),
-        (41, self.balance_factor * 2000),
-        (51, self.balance_factor * 2000),
-        // optional nominator
-        (100, self.balance_factor * 2000),
-        (101, self.balance_factor * 2000),
-        // aux accounts
-        (60, self.balance_factor),
-        (61, self.balance_factor * 2000),
-        (70, self.balance_factor),
-        (71, self.balance_factor * 2000),
-        (80, self.balance_factor),
-        (81, self.balance_factor * 2000),
-        // This allows us to have a total_payout different from 0.
-        (999, 1_000_000_000_000),
-      ],
+        let _ = pallet_balances::GenesisConfig::<Test> {
+            balances: vec![
+                (1, 10 * self.balance_factor),
+                (2, 20 * self.balance_factor),
+                (3, 300 * self.balance_factor),
+                (4, 400 * self.balance_factor),
+                // controllers
+                (10, self.balance_factor),
+                (20, self.balance_factor),
+                (30, self.balance_factor),
+                (40, self.balance_factor),
+                (50, self.balance_factor),
+                // stashes
+                (11, self.balance_factor * 1000),
+                (21, self.balance_factor * 2000),
+                (31, self.balance_factor * 2000),
+                (41, self.balance_factor * 2000),
+                (51, self.balance_factor * 2000),
+                // optional nominator
+                (100, self.balance_factor * 2000),
+                (101, self.balance_factor * 2000),
+                // aux accounts
+                (60, self.balance_factor),
+                (61, self.balance_factor * 2000),
+                (70, self.balance_factor),
+                (71, self.balance_factor * 2000),
+                (80, self.balance_factor),
+                (81, self.balance_factor * 2000),
+                // This allows us to have a total_payout different from 0.
+                (999, 1_000_000_000_000),
+            ],
+        }
+        .assimilate_storage(&mut storage);
+
+        let mut stakers = vec![];
+        if self.has_stakers {
+            stakers = vec![
+                // (stash, ctrl, stake, status)
+                // these two will be elected in the default test where we elect 2.
+                (11, 10, self.balance_factor * 1000, StakerStatus::<AccountId>::Validator),
+                (21, 20, self.balance_factor * 1000, StakerStatus::<AccountId>::Validator),
+                // a loser validator
+                (31, 30, self.balance_factor * 500, StakerStatus::<AccountId>::Validator),
+                // an idle validator
+                (41, 40, self.balance_factor * 1000, StakerStatus::<AccountId>::Idle),
+            ];
+            // optionally add a nominator
+            if self.nominate {
+                stakers.push((
+                    101,
+                    100,
+                    self.balance_factor * 500,
+                    StakerStatus::<AccountId>::Nominator(vec![11, 21]),
+                ))
+            }
+            // replace any of the status if needed.
+            self.status.into_iter().for_each(|(stash, status)| {
+                let (_, _, _, ref mut prev_status) = stakers
+                    .iter_mut()
+                    .find(|s| s.0 == stash)
+                    .expect("set_status staker should exist; qed");
+                *prev_status = status;
+            });
+            // replaced any of the stakes if needed.
+            self.stakes.into_iter().for_each(|(stash, stake)| {
+                let (_, _, ref mut prev_stake, _) = stakers
+                    .iter_mut()
+                    .find(|s| s.0 == stash)
+                    .expect("set_stake staker should exits; qed.");
+                *prev_stake = stake;
+            });
+            // extend stakers if needed.
+            stakers.extend(self.stakers)
+        }
+
+        let _ = pallet_staking::GenesisConfig::<Test> {
+            stakers: stakers.clone(),
+            validator_count: self.validator_count,
+            minimum_validator_count: self.minimum_validator_count,
+            invulnerables: self.invulnerables,
+            slash_reward_fraction: Perbill::from_percent(10),
+            min_nominator_bond: self.min_nominator_bond,
+            min_validator_bond: self.min_validator_bond,
+            ..Default::default()
+        }
+        .assimilate_storage(&mut storage);
+
+        let _ = pallet_session::GenesisConfig::<Test> {
+            keys: if self.has_stakers {
+                // set the keys for the first session.
+                stakers
+                    .into_iter()
+                    .map(|(id, ..)| (id, id, SessionKeys { other: id.into() }))
+                    .collect()
+            } else {
+                // set some dummy validators in genesis.
+                (0..self.validator_count as u64)
+                    .map(|id| (id, id, SessionKeys { other: id.into() }))
+                    .collect()
+            },
+        }
+        .assimilate_storage(&mut storage);
+
+        let mut ext = sp_io::TestExternalities::from(storage);
+
+        if self.initialize_first_session {
+            // We consider all test to start after timestamp is initialized This must be ensured by
+            // having `timestamp::on_initialize` called before `staking::on_initialize`. Also, if
+            // session length is 1, then it is already triggered.
+            ext.execute_with(|| {
+                System::set_block_number(1);
+                Session::on_initialize(1);
+                <Staking as Hooks<u64>>::on_initialize(1);
+                Timestamp::set_timestamp(INIT_TIMESTAMP);
+            });
+        }
+
+        ext
     }
-    .assimilate_storage(&mut storage);
 
-    let mut stakers = vec![];
-    if self.has_stakers {
-      stakers = vec![
-        // (stash, ctrl, stake, status)
-        // these two will be elected in the default test where we elect 2.
-        (11, 10, self.balance_factor * 1000, StakerStatus::<AccountId>::Validator),
-        (21, 20, self.balance_factor * 1000, StakerStatus::<AccountId>::Validator),
-        // a loser validator
-        (31, 30, self.balance_factor * 500, StakerStatus::<AccountId>::Validator),
-        // an idle validator
-        (41, 40, self.balance_factor * 1000, StakerStatus::<AccountId>::Idle),
-      ];
-      // optionally add a nominator
-      if self.nominate {
-        stakers.push((
-          101,
-          100,
-          self.balance_factor * 500,
-          StakerStatus::<AccountId>::Nominator(vec![11, 21]),
-        ))
-      }
-      // replace any of the status if needed.
-      self.status.into_iter().for_each(|(stash, status)| {
-        let (_, _, _, ref mut prev_status) =
-          stakers.iter_mut().find(|s| s.0 == stash).expect("set_status staker should exist; qed");
-        *prev_status = status;
-      });
-      // replaced any of the stakes if needed.
-      self.stakes.into_iter().for_each(|(stash, stake)| {
-        let (_, _, ref mut prev_stake, _) =
-          stakers.iter_mut().find(|s| s.0 == stash).expect("set_stake staker should exits; qed.");
-        *prev_stake = stake;
-      });
-      // extend stakers if needed.
-      stakers.extend(self.stakers)
+    pub fn build_and_execute(self, test: impl FnOnce()) {
+        sp_tracing::try_init_simple();
+        let mut ext = self.build();
+        ext.execute_with(test);
+        // ext.execute_with(post_conditions);
     }
-
-    let _ = pallet_staking::GenesisConfig::<Test> {
-      stakers: stakers.clone(),
-      validator_count: self.validator_count,
-      minimum_validator_count: self.minimum_validator_count,
-      invulnerables: self.invulnerables,
-      slash_reward_fraction: Perbill::from_percent(10),
-      min_nominator_bond: self.min_nominator_bond,
-      min_validator_bond: self.min_validator_bond,
-      ..Default::default()
-    }
-    .assimilate_storage(&mut storage);
-
-    let _ = pallet_session::GenesisConfig::<Test> {
-      keys: if self.has_stakers {
-        // set the keys for the first session.
-        stakers.into_iter().map(|(id, ..)| (id, id, SessionKeys { other: id.into() })).collect()
-      } else {
-        // set some dummy validators in genesis.
-        (0..self.validator_count as u64)
-          .map(|id| (id, id, SessionKeys { other: id.into() }))
-          .collect()
-      },
-    }
-    .assimilate_storage(&mut storage);
-
-    let mut ext = sp_io::TestExternalities::from(storage);
-
-    if self.initialize_first_session {
-      // We consider all test to start after timestamp is initialized This must be ensured by
-      // having `timestamp::on_initialize` called before `staking::on_initialize`. Also, if
-      // session length is 1, then it is already triggered.
-      ext.execute_with(|| {
-        System::set_block_number(1);
-        Session::on_initialize(1);
-        <Staking as Hooks<u64>>::on_initialize(1);
-        Timestamp::set_timestamp(INIT_TIMESTAMP);
-      });
-    }
-
-    ext
-  }
-
-  pub fn build_and_execute(self, test: impl FnOnce()) {
-    sp_tracing::try_init_simple();
-    let mut ext = self.build();
-    ext.execute_with(test);
-    // ext.execute_with(post_conditions);
-  }
 }
 
 pub(crate) fn run_to_block(n: BlockNumber) {
-  // JH current_era is not getting set somehwere  in here
-  // print the system block number
-  FrameStaking::on_finalize(System::block_number());
-  for b in (System::block_number() + 1)..=n {
-    System::set_block_number(b);
-    Session::on_initialize(b);
-    <FrameStaking as Hooks<u64>>::on_initialize(b);
-    Timestamp::set_timestamp(System::block_number() * BLOCK_TIME + INIT_TIMESTAMP);
-    if b != n {
-      FrameStaking::on_finalize(System::block_number());
+    // JH current_era is not getting set somehwere  in here
+    // print the system block number
+    FrameStaking::on_finalize(System::block_number());
+    for b in (System::block_number() + 1)..=n {
+        System::set_block_number(b);
+        Session::on_initialize(b);
+        <FrameStaking as Hooks<u64>>::on_initialize(b);
+        Timestamp::set_timestamp(System::block_number() * BLOCK_TIME + INIT_TIMESTAMP);
+        if b != n {
+            FrameStaking::on_finalize(System::block_number());
+        }
     }
-  }
 }
 
 pub(crate) fn start_session(session_index: SessionIndex) {
-  let end: u64 = if Offset::get().is_zero() {
-    (session_index as u64) * Period::get()
-  } else {
-    Offset::get() + (session_index.saturating_sub(1) as u64) * Period::get()
-  };
-  run_to_block(end);
-  // session must have progressed properly.
-  assert_eq!(
-    Session::current_index(),
-    session_index,
-    "current session index = {}, expected = {}",
-    Session::current_index(),
-    session_index,
-  );
+    let end: u64 = if Offset::get().is_zero() {
+        (session_index as u64) * Period::get()
+    } else {
+        Offset::get() + (session_index.saturating_sub(1) as u64) * Period::get()
+    };
+    run_to_block(end);
+    // session must have progressed properly.
+    assert_eq!(
+        Session::current_index(),
+        session_index,
+        "current session index = {}, expected = {}",
+        Session::current_index(),
+        session_index,
+    );
 }
 
 pub(crate) fn active_era() -> EraIndex { FrameStaking::active_era().unwrap().index }
@@ -468,11 +477,11 @@ pub(crate) fn current_era() -> EraIndex { FrameStaking::current_era().unwrap() }
 
 /// Progress until the given era.
 pub(crate) fn start_active_era(era_index: EraIndex) {
-  start_session(era_index * <SessionsPerEra as Get<u32>>::get());
-  assert_eq!(active_era(), era_index);
-  // One way or another, current_era must have changed before the active era, so they must match
-  // at this point.
-  assert_eq!(current_era(), active_era());
+    start_session(era_index * <SessionsPerEra as Get<u32>>::get());
+    assert_eq!(active_era(), era_index);
+    // One way or another, current_era must have changed before the active era, so they must match
+    // at this point.
+    assert_eq!(current_era(), active_era());
 }
 
 pub type SystemCall = frame_system::Call<Test>;

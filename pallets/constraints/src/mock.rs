@@ -2,8 +2,8 @@ use frame_support::parameter_types;
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
-  testing::Header,
-  traits::{BlakeTwo256, IdentityLookup},
+    testing::Header,
+    traits::{BlakeTwo256, IdentityLookup},
 };
 
 use crate as pallet_constraints;
@@ -29,30 +29,30 @@ parameter_types! {
 }
 
 impl system::Config for Test {
-  type AccountData = ();
-  type AccountId = u64;
-  type BaseCallFilter = frame_support::traits::Everything;
-  type BlockHashCount = BlockHashCount;
-  type BlockLength = ();
-  type BlockNumber = u64;
-  type BlockWeights = ();
-  type Call = Call;
-  type DbWeight = ();
-  type Event = Event;
-  type Hash = H256;
-  type Hashing = BlakeTwo256;
-  type Header = Header;
-  type Index = u64;
-  type Lookup = IdentityLookup<Self::AccountId>;
-  type MaxConsumers = frame_support::traits::ConstU32<16>;
-  type OnKilledAccount = ();
-  type OnNewAccount = ();
-  type OnSetCode = ();
-  type Origin = Origin;
-  type PalletInfo = PalletInfo;
-  type SS58Prefix = SS58Prefix;
-  type SystemWeightInfo = ();
-  type Version = ();
+    type AccountData = ();
+    type AccountId = u64;
+    type BaseCallFilter = frame_support::traits::Everything;
+    type BlockHashCount = BlockHashCount;
+    type BlockLength = ();
+    type BlockNumber = u64;
+    type BlockWeights = ();
+    type Call = Call;
+    type DbWeight = ();
+    type Event = Event;
+    type Hash = H256;
+    type Hashing = BlakeTwo256;
+    type Header = Header;
+    type Index = u64;
+    type Lookup = IdentityLookup<Self::AccountId>;
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type OnKilledAccount = ();
+    type OnNewAccount = ();
+    type OnSetCode = ();
+    type Origin = Origin;
+    type PalletInfo = PalletInfo;
+    type SS58Prefix = SS58Prefix;
+    type SystemWeightInfo = ();
+    type Version = ();
 }
 
 parameter_types! {
@@ -61,13 +61,13 @@ parameter_types! {
 }
 
 impl pallet_constraints::Config for Test {
-  type Event = Event;
-  type MaxAddressLength = MaxAddressLength;
-  type MaxWhitelist = MaxWhitelist;
-  type WeightInfo = ();
+    type Event = Event;
+    type MaxAddressLength = MaxAddressLength;
+    type MaxWhitelist = MaxWhitelist;
+    type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-  system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+    system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
 }

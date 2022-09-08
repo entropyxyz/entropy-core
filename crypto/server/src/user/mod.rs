@@ -14,8 +14,8 @@ pub mod api;
 mod errors;
 
 use std::{
-  fs::File,
-  io::{BufWriter, Write},
+    fs::File,
+    io::{BufWriter, Write},
 };
 
 use kvdb::kv_manager::value::PartyInfo;
@@ -24,41 +24,42 @@ use serde::{Deserialize, Serialize};
 
 pub use self::errors::*;
 
-#[cfg(test)] mod tests;
+#[cfg(test)]
+mod tests;
 
 /// User input, contains key (substrate key) and value (entropy shard)
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct UserInputPartyInfo {
-  /// User's substrate key
-  pub key:   String,
-  // An encoded SecretKeyShare for this node
-  pub value: Vec<u8>,
+    /// User's substrate key
+    pub key: String,
+    // An encoded SecretKeyShare for this node
+    pub value: Vec<u8>,
 }
 
 impl TryInto<ParsedUserInputPartyInfo> for UserInputPartyInfo {
-  type Error = UserErr;
+    type Error = UserErr;
 
-  fn try_into(self) -> Result<ParsedUserInputPartyInfo, Self::Error> {
-    let parsed_input = ParsedUserInputPartyInfo { key: self.key, value: self.value };
-    Ok(parsed_input)
-  }
+    fn try_into(self) -> Result<ParsedUserInputPartyInfo, Self::Error> {
+        let parsed_input = ParsedUserInputPartyInfo { key: self.key, value: self.value };
+        Ok(parsed_input)
+    }
 }
 
 /// Parsed user input
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct ParsedUserInputPartyInfo {
-  /// User's substrate key
-  pub key:   String,
-  // An encoded SecretKeyShare for this node
-  pub value: Vec<u8>, // TODO(TK): write this type
+    /// User's substrate key
+    pub key: String,
+    // An encoded SecretKeyShare for this node
+    pub value: Vec<u8>, // TODO(TK): write this type
 }
 
 // TODO(TK)
 impl TryInto<PartyInfo> for ParsedUserInputPartyInfo {
-  type Error = UserErr;
+    type Error = UserErr;
 
-  fn try_into(self) -> Result<PartyInfo, Self::Error> {
-    // todo!()
-    Err(UserErr::InputValidation("error"))
-  }
+    fn try_into(self) -> Result<PartyInfo, Self::Error> {
+        // todo!()
+        Err(UserErr::InputValidation("error"))
+    }
 }
