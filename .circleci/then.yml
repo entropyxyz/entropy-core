@@ -37,14 +37,17 @@ commands:
       - run: rustup update nightly
       - run: rustup update stable
       - run: rustup component add rustfmt
-      - run: rustup default nightly  
+      - run: rustup default stable
+      # For whatever reason, substrate/wasm-builder (and therefore entropy-runtime)
+      # requires nightly Rust. The rest builds fine on stable.
       - run: rustup target add wasm32-unknown-unknown --toolchain nightly
   fmt-lint:
     steps:
       - run: curl -LsSf https://github.com/tamasfe/taplo/releases/latest/download/taplo-x86_64-unknown-linux-gnu.tar.gz | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
-      - run: cargo fmt --check
+      # We are using some unstable features of rustfmt
+      - run: rustup run nightly cargo fmt --check
       - run: taplo fmt --check
-      - run: cargo clippy -- -D warnings
+      - run: rustup run nightly cargo clippy -- -D warnings
 
 workflows:
   lint:
