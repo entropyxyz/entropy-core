@@ -11,38 +11,38 @@ pub type MessageDigest = tofn::gg20::sign::MessageDigest;
 /// Information passed from the CommunicationManager to all nodes.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SignInit {
-  /// Unique id of this signature (may be repeated if this party fails)
-  pub sig_uid:       String,
-  /// identifiers of the participating parties
-  // TK: @JA: What to use for this? IP addresses? Substrate addresses? Substrate keys?
-  // may overlap with ip_addresses below.
-  pub signer_uids: Vec<String>,
-  /// The index of the evaluated Shamir Polynomial held by each signer
-  pub signer_idxs:   Vec<usize>,
-  /// Hash of the message to sign
-  pub msg:           MessageDigest,
-  /// Unique id of this signing party.
-  /// If a prior party failed, repeat with a new `party_id`, but the same `sig_uid`
-  pub party_uid:     String,
-  /// User's substrate key. The `key` in the kv-store.
-  pub substrate_key: String,
-  /// Participating nodes' IP addresses.
-  pub ip_addresses:  Vec<String>,
+    /// Unique id of this signature (may be repeated if this party fails)
+    pub sig_uid: String,
+    /// identifiers of the participating parties
+    // TK: @JA: What to use for this? IP addresses? Substrate addresses? Substrate keys?
+    // may overlap with ip_addresses below.
+    pub signer_uids: Vec<String>,
+    /// The index of the evaluated Shamir Polynomial held by each signer
+    pub signer_idxs: Vec<usize>,
+    /// Hash of the message to sign
+    pub msg: MessageDigest,
+    /// Unique id of this signing party.
+    /// If a prior party failed, repeat with a new `party_id`, but the same `sig_uid`
+    pub party_uid: String,
+    /// User's substrate key. The `key` in the kv-store.
+    pub substrate_key: String,
+    /// Participating nodes' IP addresses.
+    pub ip_addresses: Vec<String>,
 }
 
 impl SignInit {
-  // TODO(TK): option to make msg Bytes, and have `new` do input validation
-  // todo: placeholder for actual logic
-  #[allow(dead_code)]
-  pub fn new(
-    sig_uid: String,
-    signer_uids: Vec<String>,
-    signer_idxs: Vec<usize>,
-    msg: MessageDigest,
-    party_uid: String,
-    substrate_key: String,
-    ip_addresses: Vec<String>,
-  ) -> Self {
-    Self { sig_uid, signer_uids, signer_idxs, msg, party_uid, substrate_key, ip_addresses }
-  }
+    // TODO(TK): option to make msg Bytes, and have `new` do input validation
+    // todo: placeholder for actual logic
+    #[allow(dead_code)]
+    pub fn new(
+        sig_uid: String,
+        signer_uids: Vec<String>,
+        signer_idxs: Vec<usize>,
+        msg: MessageDigest,
+        party_uid: String,
+        substrate_key: String,
+        ip_addresses: Vec<String>,
+    ) -> Self {
+        Self { sig_uid, signer_uids, signer_idxs, msg, party_uid, substrate_key, ip_addresses }
+    }
 }

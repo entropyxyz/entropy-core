@@ -2,7 +2,7 @@ use rocket::{http::Status, serde::json::Json, State};
 use tracing::instrument;
 
 use crate::communication_manager::{
-  errors::CustomIPError, handle_signing::EncodedBlockData, CommunicationManagerState,
+    errors::CustomIPError, handle_signing::EncodedBlockData, CommunicationManagerState,
 };
 
 // TODO(TK): It's unclear what this API should look like, but this method should be the kick-off
@@ -18,20 +18,20 @@ use crate::communication_manager::{
 #[instrument]
 #[rocket::post("/handle_signing", format = "json", data = "<encoded_data>")]
 pub async fn handle_signing(
-  encoded_data: Json<EncodedBlockData>,
-  state: &State<CommunicationManagerState>,
+    encoded_data: Json<EncodedBlockData>,
+    state: &State<CommunicationManagerState>,
 ) -> Result<Status, CustomIPError> {
-  // TODO JA do validation on recieved keys and if keys are already had
-  // TODO JA figure out optimal node amount
-  // TODO JA validate not a duplicated IP
-  info!("handling signing with block data: {:?}", encoded_data);
-  // let mut block = accepted_block.into_inner();
-  // assert!(block.validate_user());
+    // TODO JA do validation on recieved keys and if keys are already had
+    // TODO JA figure out optimal node amount
+    // TODO JA validate not a duplicated IP
+    info!("handling signing with block data: {:?}", encoded_data);
+    // let mut block = accepted_block.into_inner();
+    // assert!(block.validate_user());
 
-  // let cm_info = handle_signing.get_user_info_from_db(&state.kv_manager).unwrap();
-  // let signers = handle_signing.select_signers(&cm_info);
-  // if let Err(bad_signer) = handle_signing.post_new_party(&signers, &cm_info).await {
-  // 	let _ = handle_signing.punish_and_rerun(signers, bad_signer, cm_info).await;
-  // }
-  Ok(Status::Ok)
+    // let cm_info = handle_signing.get_user_info_from_db(&state.kv_manager).unwrap();
+    // let signers = handle_signing.select_signers(&cm_info);
+    // if let Err(bad_signer) = handle_signing.post_new_party(&signers, &cm_info).await {
+    // 	let _ = handle_signing.punish_and_rerun(signers, bad_signer, cm_info).await;
+    // }
+    Ok(Status::Ok)
 }

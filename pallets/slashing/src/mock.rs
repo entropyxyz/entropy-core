@@ -2,21 +2,21 @@ use std::cell::RefCell;
 
 use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
 use frame_support::{
-  parameter_types,
-  traits::{ConstU32, GenesisBuild, OneSessionHandler},
+    parameter_types,
+    traits::{ConstU32, GenesisBuild, OneSessionHandler},
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
 use sp_core::H256;
 use sp_runtime::{
-  curve::PiecewiseLinear,
-  testing::{Header, TestXt, UintAuthorityId},
-  traits::{BlakeTwo256, ConvertInto, IdentityLookup},
-  Perbill,
+    curve::PiecewiseLinear,
+    testing::{Header, TestXt, UintAuthorityId},
+    traits::{BlakeTwo256, ConvertInto, IdentityLookup},
+    Perbill,
 };
 use sp_staking::{
-  offence::{OffenceError, ReportOffence},
-  EraIndex, SessionIndex,
+    offence::{OffenceError, ReportOffence},
+    EraIndex, SessionIndex,
 };
 
 use crate as pallet_slashing;
@@ -49,68 +49,70 @@ parameter_types! {
 }
 
 impl system::Config for Test {
-  type AccountData = pallet_balances::AccountData<u128>;
-  type AccountId = AccountId;
-  type BaseCallFilter = frame_support::traits::Everything;
-  type BlockHashCount = BlockHashCount;
-  type BlockLength = ();
-  type BlockNumber = u64;
-  type BlockWeights = ();
-  type Call = Call;
-  type DbWeight = ();
-  type Event = Event;
-  type Hash = H256;
-  type Hashing = BlakeTwo256;
-  type Header = Header;
-  type Index = u64;
-  type Lookup = IdentityLookup<Self::AccountId>;
-  type MaxConsumers = frame_support::traits::ConstU32<16>;
-  type OnKilledAccount = ();
-  type OnNewAccount = ();
-  type OnSetCode = ();
-  type Origin = Origin;
-  type PalletInfo = PalletInfo;
-  type SS58Prefix = SS58Prefix;
-  type SystemWeightInfo = ();
-  type Version = ();
+    type AccountData = pallet_balances::AccountData<u128>;
+    type AccountId = AccountId;
+    type BaseCallFilter = frame_support::traits::Everything;
+    type BlockHashCount = BlockHashCount;
+    type BlockLength = ();
+    type BlockNumber = u64;
+    type BlockWeights = ();
+    type Call = Call;
+    type DbWeight = ();
+    type Event = Event;
+    type Hash = H256;
+    type Hashing = BlakeTwo256;
+    type Header = Header;
+    type Index = u64;
+    type Lookup = IdentityLookup<Self::AccountId>;
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type OnKilledAccount = ();
+    type OnNewAccount = ();
+    type OnSetCode = ();
+    type Origin = Origin;
+    type PalletInfo = PalletInfo;
+    type SS58Prefix = SS58Prefix;
+    type SystemWeightInfo = ();
+    type Version = ();
 }
 
 impl sp_runtime::BoundToRuntimeAppPublic for TestSessionHandler {
-  type Public = UintAuthorityId;
+    type Public = UintAuthorityId;
 }
 
 pub struct TestSessionHandler;
 impl pallet_session::SessionHandler<AccountId> for TestSessionHandler {
-  const KEY_TYPE_IDS: &'static [sp_runtime::KeyTypeId] = &[];
+    const KEY_TYPE_IDS: &'static [sp_runtime::KeyTypeId] = &[];
 
-  fn on_genesis_session<Ks: sp_runtime::traits::OpaqueKeys>(_validators: &[(AccountId, Ks)]) {}
+    fn on_genesis_session<Ks: sp_runtime::traits::OpaqueKeys>(_validators: &[(AccountId, Ks)]) {}
 
-  fn on_new_session<Ks: sp_runtime::traits::OpaqueKeys>(
-    _: bool,
-    _: &[(AccountId, Ks)],
-    _: &[(AccountId, Ks)],
-  ) {
-  }
+    fn on_new_session<Ks: sp_runtime::traits::OpaqueKeys>(
+        _: bool,
+        _: &[(AccountId, Ks)],
+        _: &[(AccountId, Ks)],
+    ) {
+    }
 
-  fn on_disabled(_: u32) {}
+    fn on_disabled(_: u32) {}
 }
 
 impl OneSessionHandler<AccountId> for TestSessionHandler {
-  type Key = UintAuthorityId;
+    type Key = UintAuthorityId;
 
-  fn on_genesis_session<'a, I: 'a>(_: I)
-  where
-    I: Iterator<Item = (&'a AccountId, Self::Key)>,
-    AccountId: 'a, {
-  }
+    fn on_genesis_session<'a, I: 'a>(_: I)
+    where
+        I: Iterator<Item = (&'a AccountId, Self::Key)>,
+        AccountId: 'a,
+    {
+    }
 
-  fn on_new_session<'a, I: 'a>(_: bool, _: I, _: I)
-  where
-    I: Iterator<Item = (&'a AccountId, Self::Key)>,
-    AccountId: 'a, {
-  }
+    fn on_new_session<'a, I: 'a>(_: bool, _: I, _: I)
+    where
+        I: Iterator<Item = (&'a AccountId, Self::Key)>,
+        AccountId: 'a,
+    {
+    }
 
-  fn on_disabled(_validator_index: u32) {}
+    fn on_disabled(_validator_index: u32) {}
 }
 
 parameter_types! {
@@ -125,22 +127,22 @@ sp_runtime::impl_opaque_keys! {
 }
 
 impl pallet_session::Config for Test {
-  type Event = Event;
-  type Keys = SessionKeys;
-  type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
-  type SessionHandler = (TestSessionHandler,);
-  type SessionManager = ();
-  type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
-  type ValidatorId = AccountId;
-  type ValidatorIdOf = ConvertInto;
-  type WeightInfo = ();
+    type Event = Event;
+    type Keys = SessionKeys;
+    type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+    type SessionHandler = (TestSessionHandler,);
+    type SessionManager = ();
+    type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
+    type ValidatorId = AccountId;
+    type ValidatorIdOf = ConvertInto;
+    type WeightInfo = ();
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
 where Call: From<C>
 {
-  type Extrinsic = TestXt<Call, ()>;
-  type OverarchingCall = Call;
+    type Extrinsic = TestXt<Call, ()>;
+    type OverarchingCall = Call;
 }
 
 pallet_staking_reward_curve::build! {
@@ -164,57 +166,57 @@ parameter_types! {
 }
 
 const THRESHOLDS: [sp_npos_elections::VoteWeight; 9] =
-  [10, 20, 30, 40, 50, 60, 1_000, 2_000, 10_000];
+    [10, 20, 30, 40, 50, 60, 1_000, 2_000, 10_000];
 
 parameter_types! {
   pub static BagThresholds: &'static [sp_npos_elections::VoteWeight] = &THRESHOLDS;
 }
 
 impl pallet_bags_list::Config for Test {
-  type BagThresholds = BagThresholds;
-  type Event = Event;
-  type Score = VoteWeight;
-  type ScoreProvider = Staking;
-  type WeightInfo = ();
+    type BagThresholds = BagThresholds;
+    type Event = Event;
+    type Score = VoteWeight;
+    type ScoreProvider = Staking;
+    type WeightInfo = ();
 }
 
 pub struct OnChainSeqPhragmen;
 impl onchain::ExecutionConfig for OnChainSeqPhragmen {
-  type DataProvider = Staking;
-  type Solver = SequentialPhragmen<AccountId, Perbill>;
-  type System = Test;
+    type DataProvider = Staking;
+    type Solver = SequentialPhragmen<AccountId, Perbill>;
+    type System = Test;
 }
 
 pub struct StakingBenchmarkingConfig;
 impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
-  type MaxNominators = ConstU32<1000>;
-  type MaxValidators = ConstU32<1000>;
+    type MaxNominators = ConstU32<1000>;
+    type MaxValidators = ConstU32<1000>;
 }
 
 impl pallet_staking::Config for Test {
-  type BenchmarkingConfig = StakingBenchmarkingConfig;
-  type BondingDuration = BondingDuration;
-  type Currency = Balances;
-  type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
-  type ElectionProvider = onchain::UnboundedExecution<OnChainSeqPhragmen>;
-  type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
-  type Event = Event;
-  type GenesisElectionProvider = Self::ElectionProvider;
-  type MaxNominations = MaxNominations;
-  type MaxNominatorRewardedPerValidator = ConstU32<64>;
-  type MaxUnlockingChunks = ConstU32<32>;
-  type NextNewSession = Session;
-  type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
-  type Reward = ();
-  type RewardRemainder = ();
-  type SessionInterface = Self;
-  type SessionsPerEra = SessionsPerEra;
-  type Slash = ();
-  type SlashCancelOrigin = frame_system::EnsureRoot<Self::AccountId>;
-  type SlashDeferDuration = SlashDeferDuration;
-  type UnixTime = pallet_timestamp::Pallet<Test>;
-  type VoterList = BagsList;
-  type WeightInfo = ();
+    type BenchmarkingConfig = StakingBenchmarkingConfig;
+    type BondingDuration = BondingDuration;
+    type Currency = Balances;
+    type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
+    type ElectionProvider = onchain::UnboundedExecution<OnChainSeqPhragmen>;
+    type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
+    type Event = Event;
+    type GenesisElectionProvider = Self::ElectionProvider;
+    type MaxNominations = MaxNominations;
+    type MaxNominatorRewardedPerValidator = ConstU32<64>;
+    type MaxUnlockingChunks = ConstU32<32>;
+    type NextNewSession = Session;
+    type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
+    type Reward = ();
+    type RewardRemainder = ();
+    type SessionInterface = Self;
+    type SessionsPerEra = SessionsPerEra;
+    type Slash = ();
+    type SlashCancelOrigin = frame_system::EnsureRoot<Self::AccountId>;
+    type SlashDeferDuration = SlashDeferDuration;
+    type UnixTime = pallet_timestamp::Pallet<Test>;
+    type VoterList = BagsList;
+    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -222,20 +224,20 @@ parameter_types! {
 }
 
 impl pallet_balances::Config for Test {
-  type AccountStore = System;
-  type Balance = u128;
-  type DustRemoval = ();
-  type Event = Event;
-  type ExistentialDeposit = ExistentialDeposit;
-  type MaxLocks = ();
-  type MaxReserves = ();
-  type ReserveIdentifier = [u8; 8];
-  type WeightInfo = ();
+    type AccountStore = System;
+    type Balance = u128;
+    type DustRemoval = ();
+    type Event = Event;
+    type ExistentialDeposit = ExistentialDeposit;
+    type MaxLocks = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
+    type WeightInfo = ();
 }
 
 impl pallet_session::historical::Config for Test {
-  type FullIdentification = pallet_staking::Exposure<u64, u128>;
-  type FullIdentificationOf = pallet_staking::ExposureOf<Self>;
+    type FullIdentification = pallet_staking::Exposure<u64, u128>;
+    type FullIdentificationOf = pallet_staking::ExposureOf<Self>;
 }
 
 type IdentificationTuple = (u64, pallet_staking::Exposure<u64, u128>);
@@ -247,14 +249,14 @@ thread_local! {
 
 pub struct OffenceHandler;
 impl ReportOffence<u64, IdentificationTuple, Offence> for OffenceHandler {
-  fn report_offence(reporters: Vec<u64>, offence: Offence) -> Result<(), OffenceError> {
-    OFFENCES.with(|l| l.borrow_mut().push((reporters, offence)));
-    Ok(())
-  }
+    fn report_offence(reporters: Vec<u64>, offence: Offence) -> Result<(), OffenceError> {
+        OFFENCES.with(|l| l.borrow_mut().push((reporters, offence)));
+        Ok(())
+    }
 
-  fn is_known_offence(_offenders: &[IdentificationTuple], _time_slot: &SessionIndex) -> bool {
-    false
-  }
+    fn is_known_offence(_offenders: &[IdentificationTuple], _time_slot: &SessionIndex) -> bool {
+        false
+    }
 }
 
 parameter_types! {
@@ -262,10 +264,10 @@ parameter_types! {
 }
 
 impl pallet_timestamp::Config for Test {
-  type MinimumPeriod = MinimumPeriod;
-  type Moment = u64;
-  type OnTimestampSet = ();
-  type WeightInfo = ();
+    type MinimumPeriod = MinimumPeriod;
+    type Moment = u64;
+    type OnTimestampSet = ();
+    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -273,20 +275,20 @@ parameter_types! {
 }
 
 impl pallet_slashing::Config for Test {
-  type AuthorityId = UintAuthorityId;
-  type Event = Event;
-  type MinValidators = MinValidators;
-  type ReportBad = OffenceHandler;
-  type ValidatorIdOf = ConvertInto;
-  type ValidatorSet = Historical;
+    type AuthorityId = UintAuthorityId;
+    type Event = Event;
+    type MinValidators = MinValidators;
+    type ReportBad = OffenceHandler;
+    type ValidatorIdOf = ConvertInto;
+    type ValidatorSet = Historical;
 }
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-  let mut storage = system::GenesisConfig::default().build_storage::<Test>().unwrap();
-  let _ = pallet_session::GenesisConfig::<Test> {
-    keys: (0..5).map(|id| (id, id, SessionKeys { foo: id.into() })).collect(),
-  }
-  .assimilate_storage(&mut storage);
-  sp_io::TestExternalities::from(storage)
+    let mut storage = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+    let _ = pallet_session::GenesisConfig::<Test> {
+        keys: (0..5).map(|id| (id, id, SessionKeys { foo: id.into() })).collect(),
+    }
+    .assimilate_storage(&mut storage);
+    sp_io::TestExternalities::from(storage)
 }
