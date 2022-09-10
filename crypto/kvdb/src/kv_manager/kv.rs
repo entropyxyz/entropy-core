@@ -16,9 +16,7 @@ use super::{
         KeyReservation, DEFAULT_KV_NAME, DEFAULT_KV_PATH,
     },
 };
-use crate::{
-    encrypted_sled::{self, Password},
-};
+use crate::encrypted_sled::{self, Password};
 
 #[derive(Clone)]
 pub struct Kv<V> {
@@ -152,7 +150,7 @@ async fn kv_cmd_handler<V: 'static>(
                 let kv_resp = kv.remove(&reservation.key);
                 match kv_resp {
                     Ok(_) => {},
-                    Err(err) => warn!("kv_remove failed: {}", err)
+                    Err(err) => warn!("kv_remove failed: {}", err),
                 }
             },
             Put { reservation, value, resp } => {
