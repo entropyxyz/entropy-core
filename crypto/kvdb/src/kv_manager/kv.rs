@@ -9,7 +9,7 @@ use tokio::sync::{mpsc, oneshot};
 use tracing::{info, warn};
 
 use super::{
-    error::{KvError::*, KvResult},
+    error::{InnerKvError, KvError::*, KvResult},
     sled_bindings::{handle_delete, handle_exists, handle_get, handle_put, handle_reserve},
     types::{
         Command::{self, *},
@@ -137,39 +137,53 @@ async fn kv_cmd_handler<V: 'static>(
     mut rx: mpsc::UnboundedReceiver<Command<V>>,
     kv: encrypted_sled::Db,
 ) where
-    V: Serialize + DeserializeOwned,
+    V: Debug + Serialize + DeserializeOwned,
 {
     // if resp.send() fails then log a warning and continue
     // see discussion https://github.com/axelarnetwork/tofnd/pull/15#discussion_r595426775
     while let Some(cmd) = rx.recv().await {
-        // TODO better error handling and logging: we should log when `handle_*` fails
-        // TODO refactor repeated code
         match cmd {
-            ReserveKey { key, resp } =>
-                if resp.send(handle_reserve(&kv, key)).is_err() {
-                    warn!("receiver dropped");
-                },
-            UnreserveKey { reservation } => {
-                let _ = kv.remove(&reservation.key);
+            ReserveKey { key, resp } => {
+                handle_response(handle_reserve(&kv, key), resp);
             },
-            Put { reservation, value, resp } => {
-                if resp.send(handle_put(&kv, reservation, value)).is_err() {
-                    warn!("receiver dropped");
+            UnreserveKey { reservation } => {
+                let kv_resp = kv.remove(&reservation.key);
+                match kv_resp {
+                    Ok(_) => {},
+                    Err(err) => warn!("kv_remove failed: {}", err),
                 }
             },
-            Get { key, resp } =>
-                if resp.send(handle_get(&kv, key)).is_err() {
-                    warn!("receiver dropped");
-                },
-            Exists { key, resp } =>
-                if resp.send(handle_exists(&kv, &key)).is_err() {
-                    warn!("receiver dropped");
-                },
-            Delete { key, resp } =>
-                if resp.send(handle_delete(&kv, key)).is_err() {
-                    warn!("receiver dropped");
-                },
+            Put { reservation, value, resp } => {
+                handle_response(handle_put(&kv, reservation, value), resp);
+            },
+            Get { key, resp } => {
+                handle_response(handle_get(&kv, key), resp);
+            },
+            Exists { key, resp } => {
+                handle_response(handle_exists(&kv, &key), resp);
+            },
+            Delete { key, resp } => {
+                handle_response(handle_delete(&kv, key), resp);
+            },
         }
     }
     info!("kv_manager stop");
+}
+
+fn handle_response<T>(
+    kv_resp: Result<T, InnerKvError>,
+    resp: oneshot::Sender<Result<T, InnerKvError>>,
+) where
+    T: Debug,
+{
+    match kv_resp {
+        Ok(_) => {
+            let response = resp.send(kv_resp);
+            match response {
+                Ok(_) => {},
+                Err(err) => warn!("receiver dropped: {:?}", err),
+            }
+        },
+        Err(err) => warn!("handle_func failed: {:?}", err),
+    }
 }
