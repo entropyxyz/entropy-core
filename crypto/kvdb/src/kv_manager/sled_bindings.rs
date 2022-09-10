@@ -1,5 +1,7 @@
 //! Bindings for [sled::Db] operations. Errors are mapped to [super::error::InnerKvError].
 
+use std::fmt::Debug;
+
 use serde::{de::DeserializeOwned, Serialize};
 use tofn::sdk::api::{deserialize, serialize};
 
@@ -78,7 +80,7 @@ where
 /// Get the value of an existing key.
 /// Returns [SledErr] of [LogicalErr] on failure.
 pub(super) fn handle_get<V>(kv: &encrypted_sled::Db, key: String) -> InnerKvResult<V>
-where V: DeserializeOwned {
+where V: DeserializeOwned + Debug {
     // try to get value of 'key'
     let value = match kv.get(&key)? {
         Some(bytes) => deserialize(&bytes).ok_or(DeserializationErr)?,
