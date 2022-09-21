@@ -18,6 +18,8 @@ pub enum UserErr {
     InputValidation(&'static str),
     #[error("Kv error: {0}")]
     Kv(#[from] kvdb::kv_manager::error::KvError),
+	#[error("Not Registering error: {0}")]
+    NotRegistering(&'static str),
     // Other(&'static str),
 }
 

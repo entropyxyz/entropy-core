@@ -21,7 +21,9 @@ use std::{
 use kvdb::kv_manager::value::PartyInfo;
 use rocket::{http::Status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
-
+use subxt::{
+    sp_runtime::AccountId32
+};
 pub use self::errors::*;
 
 #[cfg(test)]
@@ -31,7 +33,7 @@ mod tests;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct UserInputPartyInfo {
     /// User's substrate key
-    pub key: String,
+    pub key: AccountId32,
     // An encoded SecretKeyShare for this node
     pub value: Vec<u8>,
 }
@@ -49,7 +51,7 @@ impl TryInto<ParsedUserInputPartyInfo> for UserInputPartyInfo {
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct ParsedUserInputPartyInfo {
     /// User's substrate key
-    pub key: String,
+    pub key: AccountId32,
     // An encoded SecretKeyShare for this node
     pub value: Vec<u8>, // TODO(TK): write this type
 }

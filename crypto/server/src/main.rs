@@ -19,10 +19,10 @@
 
 mod communication_manager;
 pub(crate) mod sign_init;
+pub(crate) mod chain_api;
 mod signing_client;
 mod user;
 mod utils;
-
 #[macro_use]
 extern crate rocket;
 use rocket::routes;
