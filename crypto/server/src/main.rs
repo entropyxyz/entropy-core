@@ -17,9 +17,9 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
+pub(crate) mod chain_api;
 mod communication_manager;
 pub(crate) mod sign_init;
-pub(crate) mod chain_api;
 mod signing_client;
 mod user;
 mod utils;

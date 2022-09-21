@@ -21,9 +21,8 @@ use std::{
 use kvdb::kv_manager::value::PartyInfo;
 use rocket::{http::Status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
-use subxt::{
-    sp_runtime::AccountId32
-};
+use subxt::sp_runtime::AccountId32;
+
 pub use self::errors::*;
 
 #[cfg(test)]
