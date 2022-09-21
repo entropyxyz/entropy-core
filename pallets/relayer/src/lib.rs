@@ -115,10 +115,10 @@ pub mod pallet {
     pub type Registering<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, bool, OptionQuery>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn registered)]
-	pub type Registered<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, bool, OptionQuery>;
+    #[pallet::storage]
+    #[pallet::getter(fn registered)]
+    pub type Registered<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, bool, OptionQuery>;
 
     pub type RegResponse = substrate_common::RegistrationResponse;
     pub type SigRequest = substrate_common::SigRequest;
@@ -133,7 +133,7 @@ pub mod pallet {
         TransactionPropagated(T::AccountId),
         /// An account has signaled to be registered. [who]
         SignalRegister(T::AccountId),
-		/// An account has been registered. [who]
+        /// An account has been registered. [who]
         AccountRegistered(T::AccountId),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, T::BlockNumber, Vec<u32>),
@@ -147,7 +147,7 @@ pub mod pallet {
         NoResponsibility,
         AlreadySubmitted,
         NoThresholdKey,
-		NotRegistering
+        NotRegistering,
     }
 
     /// Allows a user to kick off signing process
@@ -179,17 +179,17 @@ pub mod pallet {
             Ok(())
         }
 
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn confirm_register(origin: OriginFor<T>, registerer: T::AccountId) -> DispatchResult {
-			let _who = ensure_signed(origin)?;
-			let _ = Self::registering(&registerer).ok_or(Error::<T>::NotRegistering)?;
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        pub fn confirm_register(origin: OriginFor<T>, registerer: T::AccountId) -> DispatchResult {
+            let _who = ensure_signed(origin)?;
+            let _ = Self::registering(&registerer).ok_or(Error::<T>::NotRegistering)?;
 
-			// TODO: JA check all sub groups have recieved
-			Registered::<T>::insert(&registerer, true);
-			Registering::<T>::remove(&registerer);
-			Self::deposit_event(Event::AccountRegistered(registerer));
-			Ok(())
-		}
+            // TODO: JA check all sub groups have recieved
+            Registered::<T>::insert(&registerer, true);
+            Registering::<T>::remove(&registerer);
+            Self::deposit_event(Event::AccountRegistered(registerer));
+            Ok(())
+        }
 
         /// Allows a node to signal they have completed a signing batch
         /// `block_number`: block number for signing batch

@@ -37,17 +37,19 @@ fn it_registers_a_user() {
 #[test]
 fn it_confirmes_registers_a_user() {
     new_test_ext().execute_with(|| {
-		assert_noop!(Relayer::confirm_register(Origin::signed(1), 1), Error::<Test>::NotRegistering);
+        assert_noop!(
+            Relayer::confirm_register(Origin::signed(1), 1),
+            Error::<Test>::NotRegistering
+        );
 
         assert_ok!(Relayer::register(Origin::signed(1)));
 
-		assert_eq!(Relayer::registered(1), None);
+        assert_eq!(Relayer::registered(1), None);
 
         assert_ok!(Relayer::confirm_register(Origin::signed(1), 1));
 
         assert_eq!(Relayer::registering(1), None);
-		assert!(Relayer::registered(1).unwrap());
-
+        assert!(Relayer::registered(1).unwrap());
     });
 }
 
@@ -239,4 +241,3 @@ fn it_fails_a_free_tx_confirm_done_err_5() {
         r.unwrap()
     });
 }
-
