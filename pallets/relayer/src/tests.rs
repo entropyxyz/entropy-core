@@ -30,7 +30,24 @@ fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
         assert_ok!(Relayer::register(Origin::signed(1)));
 
-        assert!(Relayer::registered(1));
+        assert!(Relayer::registering(1).unwrap());
+    });
+}
+
+#[test]
+fn it_confirmes_registers_a_user() {
+    new_test_ext().execute_with(|| {
+		assert_noop!(Relayer::confirm_register(Origin::signed(1), 1), Error::<Test>::NotRegistering);
+
+        assert_ok!(Relayer::register(Origin::signed(1)));
+
+		assert_eq!(Relayer::registered(1), None);
+
+        assert_ok!(Relayer::confirm_register(Origin::signed(1), 1));
+
+        assert_eq!(Relayer::registering(1), None);
+		assert!(Relayer::registered(1).unwrap());
+
     });
 }
 
@@ -114,6 +131,7 @@ fn notes_responsibility() {
 fn it_provides_free_txs_prep_tx() {
     new_test_ext().execute_with(|| {
         assert_ok!(Relayer::register(Origin::signed(1)));
+        assert_ok!(Relayer::confirm_register(Origin::signed(1), 1));
 
         let p = PrevalidateRelayer::<Test>::new();
         let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
@@ -222,14 +240,3 @@ fn it_fails_a_free_tx_confirm_done_err_5() {
     });
 }
 
-#[test]
-fn it_provides_free_txs_register() {
-    new_test_ext().execute_with(|| {
-        let p = PrevalidateRelayer::<Test>::new();
-        let c = Call::Relayer(RelayerCall::register {});
-        let di = c.get_dispatch_info();
-        assert_eq!(di.pays_fee, Pays::No);
-        let r = p.validate(&1, &c, &di, 20);
-        assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
-    });
-}
