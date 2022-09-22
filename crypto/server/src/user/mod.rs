@@ -18,7 +18,7 @@ use std::{
     io::{BufWriter, Write},
 };
 
-use kvdb::kv_manager::value::PartyInfo;
+use kvdb::kv_manager::value::{KvValue, PartyInfo};
 use rocket::{http::Status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use subxt::sp_runtime::AccountId32;
@@ -34,7 +34,7 @@ pub struct UserInputPartyInfo {
     /// User's substrate key
     pub key: AccountId32,
     // An encoded SecretKeyShare for this node
-    pub value: Vec<u8>,
+    pub value: KvValue,
 }
 
 impl TryInto<ParsedUserInputPartyInfo> for UserInputPartyInfo {
@@ -52,7 +52,7 @@ pub struct ParsedUserInputPartyInfo {
     /// User's substrate key
     pub key: AccountId32,
     // An encoded SecretKeyShare for this node
-    pub value: Vec<u8>, // TODO(TK): write this type
+    pub value: KvValue, // TODO(TK): write this type
 }
 
 // TODO(TK)
