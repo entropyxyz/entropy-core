@@ -5,8 +5,6 @@ use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use serde::Deserialize;
 
 const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
-const DEFAULT_MNEMONIC: &str =
-    "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
 
 pub(super) fn init_tracing() {
     let filter = tracing_subscriber::filter::LevelFilter::INFO.into();
@@ -20,23 +18,10 @@ pub struct Configuration {
     #[serde(default = "default_endpoint")]
     // #[allow(dead_code)] // TODO(TK): unused?
     pub endpoint: String,
-    pub mnemonic: String,
 }
 impl Configuration {
     pub(crate) fn new() -> Configuration {
-        let c = if cfg!(test) {
-            Configuration {
-                mnemonic: DEFAULT_MNEMONIC.to_string(),
-                endpoint: DEFAULT_ENDPOINT.to_string(),
-            }
-        } else {
-            envy::from_env::<Configuration>().expect("Please provide MNEMONIC as env var")
-        };
-        assert!(
-            Mnemonic::validate(&c.mnemonic, Language::English).is_ok(),
-            "MNEMONIC is incorrect"
-        );
-        c
+        return Configuration { endpoint: DEFAULT_ENDPOINT.to_string() };
     }
 }
 

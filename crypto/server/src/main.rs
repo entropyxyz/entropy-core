@@ -22,9 +22,12 @@ pub(crate) mod sign_init;
 mod signing_client;
 mod user;
 mod utils;
+use bip39::{Language, Mnemonic, MnemonicType};
 
 #[macro_use]
 extern crate rocket;
+use communication_manager::deprecating_sign::entropy::sudo::storage::Key;
+use kvdb::kv_manager::{KeyReservation, KvManager};
 use rocket::routes;
 
 use self::{
@@ -44,6 +47,15 @@ async fn rocket() -> _ {
     let configuration = Configuration::new();
     let kv_store = load_kv_store();
 
+    let exists_result = kv_store.kv().exists("MNEMONIC").await;
+    match exists_result {
+        Ok(v) =>
+            if !v {
+                set_new_mnemonic(&kv_store).await;
+            },
+        Err(v) => warn!("{:?}", v),
+    }
+
     rocket::build()
         .mount("/user", routes![new_user])
         .mount("/signer", routes![new_party, subscribe_to_me])
@@ -52,4 +64,18 @@ async fn rocket() -> _ {
         .manage(cm_state)
         .manage(configuration)
         .manage(kv_store)
+}
+
+async fn set_new_mnemonic(kv: &KvManager) {
+    // Generate a new mnemonic
+    let mnemonic = Mnemonic::new(MnemonicType::Words12, Language::English);
+    let phrase = mnemonic.phrase().as_bytes().to_vec();
+    let key = KeyReservation { key: "MNEMONIC".to_string() };
+
+    // Update the value in the kvdb
+    let result = kv.kv().put(key, phrase).await;
+    match result {
+        Ok(r) => println!("updated mnemonic"),
+        Err(r) => warn!("failed to update mnemonic: {:?}", r),
+    }
 }
