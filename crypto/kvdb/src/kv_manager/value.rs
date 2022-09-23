@@ -49,7 +49,7 @@ impl KvManager {
 }
 
 /// Value type stored in the kv-store
-type KvValue = Vec<u8>;
+pub type KvValue = Vec<u8>;
 
 /// Create PartyInfo from KvValue
 impl TryFrom<KvValue> for PartyInfo {

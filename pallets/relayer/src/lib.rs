@@ -111,9 +111,14 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, OptionQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn registering)]
+    pub type Registering<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, bool, OptionQuery>;
+
+    #[pallet::storage]
     #[pallet::getter(fn registered)]
     pub type Registered<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, bool, OptionQuery>;
 
     pub type RegResponse = substrate_common::RegistrationResponse;
     pub type SigRequest = substrate_common::SigRequest;
@@ -126,6 +131,8 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// A transaction has been propagated to the network. [who]
         TransactionPropagated(T::AccountId),
+        /// An account has signaled to be registered. [who]
+        SignalRegister(T::AccountId),
         /// An account has been registered. [who]
         AccountRegistered(T::AccountId),
         /// An account has been registered. [who, block_number, failures]
@@ -140,6 +147,7 @@ pub mod pallet {
         NoResponsibility,
         AlreadySubmitted,
         NoThresholdKey,
+        NotRegistering,
     }
 
     /// Allows a user to kick off signing process
@@ -161,16 +169,27 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Register a account with the entropy-network
+        /// Signals a user wants to register an account with the entropy-network
         /// accounts are identified by the public group key of the user.
-        // ToDo: see https://github.com/Entropyxyz/entropy-core/issues/29
-        #[pallet::weight((<T as Config>::WeightInfo::register(), Pays::No))]
+        #[pallet::weight(<T as Config>::WeightInfo::register())]
         pub fn register(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            // TODO proof
-            Registered::<T>::insert(&who, true);
-            Self::deposit_event(Event::AccountRegistered(who));
+            Registering::<T>::insert(&who, true);
+            Self::deposit_event(Event::SignalRegister(who));
+            Ok(())
+        }
 
+        // TODO(Jake): This is an insecure way to do a free transaction.
+        // secure it, please. :)
+        #[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+        pub fn confirm_register(origin: OriginFor<T>, registerer: T::AccountId) -> DispatchResult {
+            let _who = ensure_signed(origin)?;
+            let _ = Self::registering(&registerer).ok_or(Error::<T>::NotRegistering)?;
+
+            // TODO: JA check all sub groups have recieved
+            Registered::<T>::insert(&registerer, true);
+            Registering::<T>::remove(&registerer);
+            Self::deposit_event(Event::AccountRegistered(registerer));
             Ok(())
         }
 
@@ -305,7 +324,7 @@ pub mod pallet {
         ) -> TransactionValidity {
             if let Some(local_call) = call.is_sub_type() {
                 if let Call::prep_transaction { .. } = local_call {
-                    ensure!(Registered::<T>::get(who), InvalidTransaction::Custom(1));
+                    Registered::<T>::get(who).ok_or(InvalidTransaction::Custom(1))?;
                     // TODO apply filter logic
                 }
 

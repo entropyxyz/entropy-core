@@ -20,6 +20,8 @@
 node_modules/
 kvstore
 test_db/
+test_db_0/
+test_db_1/
 main_test_db/
 
 .idea
