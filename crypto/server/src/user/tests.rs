@@ -54,6 +54,9 @@ async fn test_store_share() {
     assert_eq!(response.status(), Status::Ok);
     assert_eq!(response.into_string().await, None);
 
+	check_if_registered(&api, &alice).await;
+
+	make_register(&api, &alice).await;
     // fails to add already added share
     let response = client
         .post("/user/new")
@@ -109,4 +112,12 @@ pub async fn make_register(api: &EntropyRuntime, alice: &Sr25519Keyring) {
     let is_registering_2 =
         api.storage().relayer().registering(&alice.to_account_id(), None).await.unwrap();
     assert_eq!(is_registering_2, Some(true));
+}
+
+pub async fn check_if_registered(api: &EntropyRuntime, alice: &Sr25519Keyring) {
+	let is_registering =
+	api.storage().relayer().registering(&alice.to_account_id(), None).await.unwrap();
+	assert_eq!(is_registering, None);
+	let is_registered = api.storage().relayer().registered(&alice.to_account_id(), None).await.unwrap();
+	assert_eq!(is_registered, Some(true));
 }
