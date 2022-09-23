@@ -37,8 +37,8 @@ pub async fn new_user(
 
     let signer = get_signer(&state).await.unwrap();
 
-    // TODO: Error handling.
-    let _ = confirm_registered(&api, key, &signer).await;
+    // TODO: Error handling really complex needs to be thought about.
+    let _ = confirm_registered(&api, key, &signer).await.unwrap();
 
     Ok(Status::Ok)
 }
@@ -53,21 +53,20 @@ pub async fn is_registering(
 
 // TODO: Error handling
 async fn get_signer(kv: &KvManager) -> Result<subxt::PairSigner::<DefaultConfig, sr25519::Pair>, KvError> {
-    let exists = kv.kv().exists("MNEMONIC").await;
-    let raw_m = kv.kv().get("MNEMONIC").await.unwrap();
+    let exists = kv.kv().exists(&"MNEMONIC").await.unwrap();
+    let raw_m = kv.kv().get(&"MNEMONIC").await.unwrap();
     let str_m = core::str::from_utf8(&raw_m).unwrap();
     let m = Mnemonic::from_phrase(str_m, Language::English).unwrap();
     let p = <sr25519::Pair as Pair>::from_phrase(m.phrase(), None).unwrap();
 
-    Ok(PairSigner::<DefaultConfig, sr25519::Pair>::new(p.0))   
+    Ok(PairSigner::<DefaultConfig, sr25519::Pair>::new(p.0))
 
 }
 
-pub async fn confirm_registered(api: &EntropyRuntime, 
-    who: AccountId32, 
-    signer: &subxt::PairSigner<DefaultConfig, sr25519::Pair>) -> 
+pub async fn confirm_registered(api: &EntropyRuntime,
+    who: AccountId32,
+    signer: &subxt::PairSigner<DefaultConfig, sr25519::Pair>) ->
     Result<(), subxt::Error<entropy::DispatchError>> {
-   
     // TODO error handling + return error
     let _ = api.tx().relayer()
         .confirm_register(who)
@@ -76,7 +75,6 @@ pub async fn confirm_registered(api: &EntropyRuntime,
         .sign_and_submit_then_watch_default(signer).await?
         .wait_for_in_block().await?
         .wait_for_success().await?;
-
 	Ok(())
 }
 
