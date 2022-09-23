@@ -15,7 +15,7 @@ pub(super) const DEFAULT_RESERVE: &str = "";
 /// Returned from a successful `ReserveKey` command
 #[derive(Debug)] // disallow derive Clone, Copy
 pub struct KeyReservation {
-    pub(super) key: String,
+    pub key: String,
 }
 /// kv store needs PartialEq to complare values
 impl PartialEq for KeyReservation {

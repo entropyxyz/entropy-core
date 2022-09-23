@@ -52,7 +52,7 @@ pub async fn provide_share(
     encoded_data: Vec<u8>,
     state: &State<CommunicationManagerState>,
     config: &State<Configuration>,
-    // kv_manager: &State<EntropyKvManager>,
+    // kv_manager: &State<KvManager>,
 ) -> Status {
     info!("provide_share, encoded_data: {:?}", encoded_data);
 
@@ -90,12 +90,13 @@ pub async fn provide_share(
     let api_2 = get_api(&config.endpoint).await.unwrap();
 
     let block_author = get_block_author(&api_2).await.unwrap();
-    if is_block_author(&api_2, &block_author).await.unwrap() {
-        let result = acknowledge_responsibility(&api_2, &config.mnemonic, block_number).await;
-        info!("result of acknowledge responsibility: {:?}", result)
-    } else {
-        info!("result of no acknowledgment");
-    }
+
+    // if is_block_author(&api_2, &block_author).await.unwrap() {
+    //     let result = acknowledge_responsibility(&api_2, &config.mnemonic, block_number).await;
+    //     info!("result of acknowledge responsibility: {:?}", result)
+    // } else {
+    //     info!("result of no acknowledgment");
+    // }
 
     Status::Ok
 }
