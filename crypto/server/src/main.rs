@@ -23,9 +23,14 @@ pub(crate) mod sign_init;
 mod signing_client;
 mod user;
 mod utils;
+use bip39::{Language, Mnemonic, MnemonicType};
 #[macro_use]
 extern crate rocket;
+use communication_manager::deprecating_sign::entropy::sudo::storage::Key;
+use kvdb::kv_manager::{error::KvError, KeyReservation, KvManager};
 use rocket::routes;
+use sp_core::{crypto::AccountId32, sr25519, Pair};
+use sp_keyring::AccountKeyring;
 
 use self::{
     communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState},
@@ -43,6 +48,7 @@ async fn rocket() -> _ {
     let cm_state = CommunicationManagerState::default();
     let configuration = Configuration::new();
     let kv_store = load_kv_store();
+    setup_mnemonic(&kv_store).await;
 
     rocket::build()
         .mount("/user", routes![new_user])
@@ -52,4 +58,38 @@ async fn rocket() -> _ {
         .manage(cm_state)
         .manage(configuration)
         .manage(kv_store)
+}
+
+async fn setup_mnemonic(kv: &KvManager) {
+    // Check if a mnemonic exists in the kvdb.
+    let exists_result = kv.kv().exists("MNEMONIC").await;
+    match exists_result {
+        Ok(v) => {
+            if !v {
+                // Generate a new mnemonic
+                let mut mnemonic: Mnemonic =
+                    Mnemonic::new(MnemonicType::Words24, Language::English);
+                // If using a test configuration then set to the default mnemonic.
+                if cfg!(test) {
+                    mnemonic =
+                        Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
+                };
+
+                let phrase = mnemonic.phrase();
+                let key = KeyReservation { key: "MNEMONIC".to_string() };
+
+                let p = <sr25519::Pair as Pair>::from_phrase(phrase, None).unwrap();
+                let id = AccountId32::new(p.0.public().0);
+                println!("Threshold account id: {}", id);
+
+                // Update the value in the kvdb
+                let result = kv.kv().put(key, phrase.as_bytes().to_vec()).await;
+                match result {
+                    Ok(r) => println!("updated mnemonic"),
+                    Err(r) => warn!("failed to update mnemonic: {:?}", r),
+                }
+            }
+        },
+        Err(v) => warn!("{:?}", v),
+    }
 }
