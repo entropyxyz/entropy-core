@@ -23,8 +23,7 @@ pub struct Configuration {
 }
 impl Configuration {
     pub(crate) fn new() -> Configuration {
-        let c = Configuration { endpoint: DEFAULT_ENDPOINT.to_string() };
-        c
+        Configuration { endpoint: DEFAULT_ENDPOINT.to_string() }
     }
 }
 

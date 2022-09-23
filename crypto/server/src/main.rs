@@ -27,7 +27,7 @@ use bip39::{Language, Mnemonic, MnemonicType};
 #[macro_use]
 extern crate rocket;
 use communication_manager::deprecating_sign::entropy::sudo::storage::Key;
-use kvdb::kv_manager::{KeyReservation, KvManager};
+use kvdb::kv_manager::{error::KvError, KeyReservation, KvManager};
 use rocket::routes;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use sp_keyring::AccountKeyring;
@@ -80,7 +80,7 @@ async fn setup_mnemonic(kv: &KvManager) {
 
                 let p = <sr25519::Pair as Pair>::from_phrase(phrase, None).unwrap();
                 let id = AccountId32::new(p.0.public().0);
-                println!("{}", id);
+                println!("Threshold account id: {}", id);
 
                 // Update the value in the kvdb
                 let result = kv.kv().put(key, phrase.as_bytes().to_vec()).await;
