@@ -179,7 +179,9 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        // TODO(Jake): This is an insecure way to do a free transaction.
+        // secure it, please. :)
+        #[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
         pub fn confirm_register(origin: OriginFor<T>, registerer: T::AccountId) -> DispatchResult {
             let _who = ensure_signed(origin)?;
             let _ = Self::registering(&registerer).ok_or(Error::<T>::NotRegistering)?;

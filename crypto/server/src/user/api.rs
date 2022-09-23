@@ -1,8 +1,9 @@
-use kvdb::kv_manager::{value::PartyInfo, KvManager};
+use bip39::{Mnemonic, Language};
+use kvdb::kv_manager::{value::PartyInfo, KvManager, error::KvError};
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
-use subxt::sp_runtime::AccountId32;
+use subxt::{sp_runtime::AccountId32, DefaultConfig, PairSigner};
 use tracing::instrument;
-
+use sp_core::{sr25519, Pair};
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
     chain_api::{entropy, get_api, EntropyRuntime},
@@ -20,7 +21,7 @@ pub async fn new_user(
 ) -> Result<Status, UserErr> {
     let api = get_api(&config.endpoint).await.unwrap();
     // ToDo: validate is owner of key address
-    // ToDo: JA make sure signed so other key doesn't override own key
+    // ToDo: JA make sure signed so other key does&n't override own key
     // try parsing the input and validate the result
     let parsed_user_input: ParsedUserInputPartyInfo = user_input.into_inner().try_into()?;
     let (key, value) = (parsed_user_input.key.clone(), parsed_user_input.value.clone());
@@ -34,6 +35,11 @@ pub async fn new_user(
     let reservation = state.kv().reserve_key(key.to_string()).await?;
     state.kv().put(reservation, value).await?;
 
+    let signer = get_signer(&state).await.unwrap();
+
+    // TODO: Error handling.
+    let _ = confirm_registered(&api, key, &signer).await;
+
     Ok(Status::Ok)
 }
 
@@ -44,3 +50,34 @@ pub async fn is_registering(
     let is_registering = api.storage().relayer().registering(who, None).await?.unwrap();
     Ok(is_registering)
 }
+
+// TODO: Error handling
+async fn get_signer(kv: &KvManager) -> Result<subxt::PairSigner::<DefaultConfig, sr25519::Pair>, KvError> {
+    let exists = kv.kv().exists("MNEMONIC").await;
+    let raw_m = kv.kv().get("MNEMONIC").await.unwrap();
+    let str_m = core::str::from_utf8(&raw_m).unwrap();
+    let m = Mnemonic::from_phrase(str_m, Language::English).unwrap();
+    let p = <sr25519::Pair as Pair>::from_phrase(m.phrase(), None).unwrap();
+
+    Ok(PairSigner::<DefaultConfig, sr25519::Pair>::new(p.0))   
+
+}
+
+pub async fn confirm_registered(api: &EntropyRuntime, 
+    who: AccountId32, 
+    signer: &subxt::PairSigner<DefaultConfig, sr25519::Pair>) -> 
+    Result<(), subxt::Error<entropy::DispatchError>> {
+   
+    // TODO error handling + return error
+    let _ = api.tx().relayer()
+        .confirm_register(who)
+        // TODO: Understand this better, potentially use sign_and_submit_default
+        // or other method under sign_and_*
+        .sign_and_submit_then_watch_default(signer).await?
+        .wait_for_in_block().await?
+        .wait_for_success().await?;
+
+	Ok(())
+}
+
+
