@@ -76,14 +76,14 @@ async fn setup_mnemonic(kv: &KvManager) {
                 };
 
                 let phrase = mnemonic.phrase();
-                let key = KeyReservation { key: "MNEMONIC".to_string() };
+				let reservation = kv.kv().reserve_key("MNEMONIC".to_string()).await.unwrap();
 
                 let p = <sr25519::Pair as Pair>::from_phrase(phrase, None).unwrap();
                 let id = AccountId32::new(p.0.public().0);
                 println!("Threshold account id: {}", id);
 
                 // Update the value in the kvdb
-                let result = kv.kv().put(key, phrase.as_bytes().to_vec()).await;
+                let result = kv.kv().put(reservation, phrase.as_bytes().to_vec()).await;
                 match result {
                     Ok(r) => println!("updated mnemonic"),
                     Err(r) => warn!("failed to update mnemonic: {:?}", r),
