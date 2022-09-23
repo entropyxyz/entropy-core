@@ -17,13 +17,13 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
+pub(crate) mod chain_api;
 mod communication_manager;
 pub(crate) mod sign_init;
 mod signing_client;
 mod user;
 mod utils;
 use bip39::{Language, Mnemonic, MnemonicType};
-
 #[macro_use]
 extern crate rocket;
 use communication_manager::deprecating_sign::entropy::sudo::storage::Key;
@@ -64,7 +64,7 @@ async fn setup_mnemonic(kv: &KvManager) {
     // Check if a mnemonic exists in the kvdb.
     let exists_result = kv.kv().exists("MNEMONIC").await;
     match exists_result {
-        Ok(v) =>
+        Ok(v) => {
             if !v {
                 // Generate a new mnemonic
                 let mut mnemonic: Mnemonic =
@@ -76,19 +76,20 @@ async fn setup_mnemonic(kv: &KvManager) {
                 };
 
                 let phrase = mnemonic.phrase();
-                let key = KeyReservation { key: "MNEMONIC".to_string() };
+                let reservation = kv.kv().reserve_key("MNEMONIC".to_string()).await.unwrap();
 
                 let p = <sr25519::Pair as Pair>::from_phrase(phrase, None).unwrap();
                 let id = AccountId32::new(p.0.public().0);
                 println!("Threshold account id: {}", id);
 
                 // Update the value in the kvdb
-                let result = kv.kv().put(key, phrase.as_bytes().to_vec()).await;
+                let result = kv.kv().put(reservation, phrase.as_bytes().to_vec()).await;
                 match result {
                     Ok(r) => println!("updated mnemonic"),
                     Err(r) => warn!("failed to update mnemonic: {:?}", r),
                 }
-            },
+            }
+        },
         Err(v) => warn!("{:?}", v),
     }
 }
