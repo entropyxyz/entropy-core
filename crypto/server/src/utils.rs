@@ -5,6 +5,8 @@ use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use serde::Deserialize;
 
 const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
+pub const DEFAULT_MNEMONIC: &str =
+    "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
 
 pub(super) fn init_tracing() {
     let filter = tracing_subscriber::filter::LevelFilter::INFO.into();
@@ -21,7 +23,8 @@ pub struct Configuration {
 }
 impl Configuration {
     pub(crate) fn new() -> Configuration {
-        return Configuration { endpoint: DEFAULT_ENDPOINT.to_string() };
+        let c = Configuration { endpoint: DEFAULT_ENDPOINT.to_string() };
+        c
     }
 }
 

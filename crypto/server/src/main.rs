@@ -29,6 +29,8 @@ extern crate rocket;
 use communication_manager::deprecating_sign::entropy::sudo::storage::Key;
 use kvdb::kv_manager::{KeyReservation, KvManager};
 use rocket::routes;
+use sp_core::{crypto::AccountId32, sr25519, Pair};
+use sp_keyring::AccountKeyring;
 
 use self::{
     communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState},
@@ -46,15 +48,7 @@ async fn rocket() -> _ {
     let cm_state = CommunicationManagerState::default();
     let configuration = Configuration::new();
     let kv_store = load_kv_store();
-
-    let exists_result = kv_store.kv().exists("MNEMONIC").await;
-    match exists_result {
-        Ok(v) =>
-            if !v {
-                set_new_mnemonic(&kv_store).await;
-            },
-        Err(v) => warn!("{:?}", v),
-    }
+    setup_mnemonic(&kv_store).await;
 
     rocket::build()
         .mount("/user", routes![new_user])
@@ -66,16 +60,35 @@ async fn rocket() -> _ {
         .manage(kv_store)
 }
 
-async fn set_new_mnemonic(kv: &KvManager) {
-    // Generate a new mnemonic
-    let mnemonic = Mnemonic::new(MnemonicType::Words12, Language::English);
-    let phrase = mnemonic.phrase().as_bytes().to_vec();
-    let key = KeyReservation { key: "MNEMONIC".to_string() };
+async fn setup_mnemonic(kv: &KvManager) {
+    // Check if a mnemonic exists in the kvdb.
+    let exists_result = kv.kv().exists("MNEMONIC").await;
+    match exists_result {
+        Ok(v) =>
+            if !v {
+                // Generate a new mnemonic
+                let mut mnemonic: Mnemonic =
+                    Mnemonic::new(MnemonicType::Words24, Language::English);
+                // If using a test configuration then set to the default mnemonic.
+                if cfg!(test) {
+                    mnemonic =
+                        Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
+                };
 
-    // Update the value in the kvdb
-    let result = kv.kv().put(key, phrase).await;
-    match result {
-        Ok(r) => println!("updated mnemonic"),
-        Err(r) => warn!("failed to update mnemonic: {:?}", r),
+                let phrase = mnemonic.phrase();
+                let key = KeyReservation { key: "MNEMONIC".to_string() };
+
+                let p = <sr25519::Pair as Pair>::from_phrase(phrase, None).unwrap();
+                let id = AccountId32::new(p.0.public().0);
+                println!("{}", id);
+
+                // Update the value in the kvdb
+                let result = kv.kv().put(key, phrase.as_bytes().to_vec()).await;
+                match result {
+                    Ok(r) => println!("updated mnemonic"),
+                    Err(r) => warn!("failed to update mnemonic: {:?}", r),
+                }
+            },
+        Err(v) => warn!("{:?}", v),
     }
 }
