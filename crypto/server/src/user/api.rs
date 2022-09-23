@@ -1,9 +1,10 @@
-use bip39::{Mnemonic, Language};
-use kvdb::kv_manager::{value::PartyInfo, KvManager, error::KvError};
+use bip39::{Language, Mnemonic};
+use kvdb::kv_manager::{error::KvError, value::PartyInfo, KvManager};
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
+use sp_core::{sr25519, Pair};
 use subxt::{sp_runtime::AccountId32, DefaultConfig, PairSigner};
 use tracing::instrument;
-use sp_core::{sr25519, Pair};
+
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
     chain_api::{entropy, get_api, EntropyRuntime},
@@ -52,7 +53,9 @@ pub async fn is_registering(
 }
 
 // TODO: Error handling
-async fn get_signer(kv: &KvManager) -> Result<subxt::PairSigner::<DefaultConfig, sr25519::Pair>, KvError> {
+async fn get_signer(
+    kv: &KvManager,
+) -> Result<subxt::PairSigner<DefaultConfig, sr25519::Pair>, KvError> {
     let exists = kv.kv().exists(&"MNEMONIC").await.unwrap();
     let raw_m = kv.kv().get(&"MNEMONIC").await.unwrap();
     let str_m = core::str::from_utf8(&raw_m).unwrap();
@@ -60,13 +63,13 @@ async fn get_signer(kv: &KvManager) -> Result<subxt::PairSigner::<DefaultConfig,
     let p = <sr25519::Pair as Pair>::from_phrase(m.phrase(), None).unwrap();
 
     Ok(PairSigner::<DefaultConfig, sr25519::Pair>::new(p.0))
-
 }
 
-pub async fn confirm_registered(api: &EntropyRuntime,
+pub async fn confirm_registered(
+    api: &EntropyRuntime,
     who: AccountId32,
-    signer: &subxt::PairSigner<DefaultConfig, sr25519::Pair>) ->
-    Result<(), subxt::Error<entropy::DispatchError>> {
+    signer: &subxt::PairSigner<DefaultConfig, sr25519::Pair>,
+) -> Result<(), subxt::Error<entropy::DispatchError>> {
     // TODO error handling + return error
     let _ = api.tx().relayer()
         .confirm_register(who)
@@ -75,7 +78,5 @@ pub async fn confirm_registered(api: &EntropyRuntime,
         .sign_and_submit_then_watch_default(signer).await?
         .wait_for_in_block().await?
         .wait_for_success().await?;
-	Ok(())
+    Ok(())
 }
-
-

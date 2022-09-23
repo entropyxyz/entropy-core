@@ -76,7 +76,7 @@ async fn setup_mnemonic(kv: &KvManager) {
                 };
 
                 let phrase = mnemonic.phrase();
-				let reservation = kv.kv().reserve_key("MNEMONIC".to_string()).await.unwrap();
+                let reservation = kv.kv().reserve_key("MNEMONIC".to_string()).await.unwrap();
 
                 let p = <sr25519::Pair as Pair>::from_phrase(phrase, None).unwrap();
                 let id = AccountId32::new(p.0.public().0);
