@@ -68,7 +68,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn threshold_account)]
     pub type ThresholdAccounts<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, T::AccountId, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, (T::AccountId, [u8; 32]), OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn signing_groups)]
@@ -78,7 +78,8 @@ pub mod pallet {
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         pub endpoints: Vec<(T::AccountId, Vec<u8>)>,
-        pub threshold_accounts: Vec<(T::AccountId, T::AccountId)>,
+        #[allow(clippy::type_complexity)]
+        pub threshold_accounts: Vec<(T::AccountId, (T::AccountId, [u8; 32]))>,
         pub signing_groups: Vec<(u8, Vec<T::AccountId>)>,
     }
 
@@ -131,7 +132,7 @@ pub mod pallet {
         /// Node Info has been added or edited. [who, endpoint, threshold_account]
         NodeInfoChanged(T::AccountId, Vec<u8>, T::AccountId),
         /// A threshold account has been added or edited. [validator, threshold_account]
-        ThresholdAccountChanged(T::AccountId, T::AccountId),
+        ThresholdAccountChanged(T::AccountId, (T::AccountId, [u8; 32])),
         /// Node Info has been removed [who]
         NodeInfoRemoved(T::AccountId),
     }
@@ -159,11 +160,12 @@ pub mod pallet {
         pub fn change_threshold_accounts(
             origin: OriginFor<T>,
             new_account: T::AccountId,
+            dh_pk: [u8; 32],
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             let stash = Self::get_stash(&who)?;
-            ThresholdAccounts::<T>::insert(&stash, &new_account);
-            Self::deposit_event(Event::ThresholdAccountChanged(stash, new_account));
+            ThresholdAccounts::<T>::insert(&stash, (&new_account, dh_pk));
+            Self::deposit_event(Event::ThresholdAccountChanged(stash, (new_account, dh_pk)));
             Ok(())
         }
 
@@ -194,6 +196,7 @@ pub mod pallet {
             prefs: ValidatorPrefs,
             endpoint: Vec<u8>,
             threshold_account: T::AccountId,
+            dh_pk: [u8; 32],
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
             ensure!(
@@ -203,7 +206,7 @@ pub mod pallet {
             let stash = Self::get_stash(&who)?;
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
             EndpointRegister::<T>::insert(&who, &endpoint);
-            ThresholdAccounts::<T>::insert(&stash, &threshold_account);
+            ThresholdAccounts::<T>::insert(&stash, (&threshold_account, dh_pk));
             Self::deposit_event(Event::NodeInfoChanged(who, endpoint, threshold_account));
             Ok(())
         }

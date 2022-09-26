@@ -55,6 +55,7 @@ version         ="6.0.0"
 pallet-staking={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 sp-runtime    ={ version="6.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 sp-std        ={ package="sp-std", git="https://github.com/paritytech/substrate", branch="master", default-features=false }
+sp-core       ={ package="sp-core", git="https://github.com/paritytech/substrate", branch="master", default-features=false }
 
 [dev-dependencies]
 pallet-balances                ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }

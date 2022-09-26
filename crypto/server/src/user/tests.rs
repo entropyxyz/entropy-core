@@ -1,6 +1,11 @@
 use std::env;
 
+<<<<<<< HEAD
 use bip39::{Language, Mnemonic};
+=======
+use bip39::{Language, Mnemonic, MnemonicType};
+use hex_literal::hex as h;
+>>>>>>> 0b91fcb (x25519-ChaCha20Poly1305 for SignedMessage)
 use kvdb::clean_tests;
 use rocket::{
     http::{ContentType, Status},
@@ -8,14 +13,18 @@ use rocket::{
     tokio::time::{sleep, Duration},
 };
 use serial_test::serial;
-use sp_core::{sr25519, Pair};
+use sp_core::{sr25519, Pair, Bytes};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{sp_runtime::AccountId32, DefaultConfig, PairSigner};
 use testing_utils::context::{test_context, test_context_stationary, TestContext};
+use x25519_dalek::{PublicKey, StaticSecret};
+use hex;
 
 use super::{api::get_subgroup, UserInputPartyInfo};
 use crate::{
     chain_api::{get_api, EntropyRuntime},
+    message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
+    utils,
     utils::DEFAULT_MNEMONIC,
 };
 
@@ -23,24 +32,42 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
     Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
 }
 
+
+#[rocket::async_test]
+#[serial]
+async fn test_get_signer_does_not_throw_err() {
+    let kv_store = load_kv_store().await;
+    get_signer(&kv_store).await.unwrap();
+}
+
 #[rocket::async_test]
 #[serial]
 async fn test_store_share() {
     clean_tests();
     let alice = AccountKeyring::Alice;
+    let alice_stash_id: AccountId32 =
+        h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
     let key: AccountId32 = alice.to_account_id().into();
-    let value = vec![10];
+    let value: Vec<u8> = vec![0];
 
     let cxt = test_context_stationary().await;
     let client = setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let user_input = UserInputPartyInfo { key: key.clone(), value: value.clone() };
+
+    let query_result =
+        api.storage().staking_extension().threshold_accounts(&alice_stash_id, None).await.unwrap();
+    assert!(!query_result.is_none());
+
+    let res = query_result.unwrap();
+    let server_public_key = PublicKey::from(res.1);
+    let user_input =
+        SignedMessage::new(&alice.pair(), &Bytes(value), &server_public_key).unwrap().to_json();
 
     // fails to add not registering
     let response = client
         .post("/user/new")
         .header(ContentType::JSON)
-        .body(serde_json::to_string(&user_input.clone()).unwrap())
+        .body(user_input.clone())
         .dispatch()
         .await;
 
@@ -52,7 +79,7 @@ async fn test_store_share() {
     let response_2 = client
         .post("/user/new")
         .header(ContentType::JSON)
-        .body(serde_json::to_string(&user_input.clone()).unwrap())
+        .body(user_input.clone())
         .dispatch()
         .await;
 
@@ -65,7 +92,7 @@ async fn test_store_share() {
     let response_3 = client
         .post("/user/new")
         .header(ContentType::JSON)
-        .body(serde_json::to_string(&user_input).unwrap())
+        .body(user_input.clone())
         .dispatch()
         .await;
 

@@ -235,7 +235,7 @@ pub mod pallet {
             let threshold_key =
                 pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
                     .ok_or(Error::<T>::NoThresholdKey)?;
-            ensure!(who == threshold_key, Error::<T>::NotYourResponsibility);
+            ensure!(who == threshold_key.0, Error::<T>::NotYourResponsibility);
 
             let current_failures = Self::failures(block_number);
 
@@ -365,7 +365,7 @@ pub mod pallet {
                     let threshold_key =
                         pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
                             .ok_or(InvalidTransaction::Custom(3))?;
-                    ensure!(*who == threshold_key, InvalidTransaction::Custom(4));
+                    ensure!(*who == threshold_key.0, InvalidTransaction::Custom(4));
                     let current_failures = Failures::<T>::get(block_number);
                     ensure!(current_failures.is_none(), InvalidTransaction::Custom(5));
                 }

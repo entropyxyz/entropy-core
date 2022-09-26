@@ -1,5 +1,10 @@
 use bip39::{Language, Mnemonic};
-use kvdb::kv_manager::{error::KvError, value::PartyInfo, KvManager};
+use kvdb::kv_manager::{
+    error::{InnerKvError, KvError},
+    value::PartyInfo,
+    KvManager,
+};
+use log::info;
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use sp_core::{sr25519, Pair};
 use substrate_common::SIGNING_PARTY_SIZE;
@@ -9,33 +14,39 @@ use tracing::instrument;
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
     chain_api::{entropy, get_api, EntropyRuntime},
+    message::SignedMessage,
     signing_client::SignerState,
     Configuration,
 };
 
 /// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
-#[instrument(skip(state))]
-#[post("/new", format = "json", data = "<user_input>")]
+#[post("/new", format = "json", data = "<msg>")]
 pub async fn new_user(
-    user_input: Json<UserInputPartyInfo>,
+    msg: Json<SignedMessage>,
     state: &State<KvManager>,
     config: &State<Configuration>,
 ) -> Result<Status, UserErr> {
     let api = get_api(&config.endpoint).await.unwrap();
-    // ToDo: validate is owner of key address
-    // ToDo: JA make sure signed so other key does&n't override own key
-    // try parsing the input and validate the result
-    let parsed_user_input: ParsedUserInputPartyInfo = user_input.into_inner().try_into()?;
-    let (key, value) = (parsed_user_input.key.clone(), parsed_user_input.value.clone());
-    let is_registering = is_registering(&api, &key).await;
 
-    if is_registering.is_err() || !is_registering.unwrap() {
+    // Verifies the message contains a valid sr25519 signature from the sender.
+    let signed_msg: SignedMessage = msg.into_inner();
+    if !signed_msg.verify() {
+        return Err(UserErr::InvalidSignature("Invalid signature."));
+    }
+
+    let signer = get_signer(state).await.unwrap();
+    let decrypted_message = signed_msg.decrypt(signer.signer()).unwrap();
+
+    // Checks if the user has registered onchain first.
+    let key = signed_msg.account_id();
+    let is_registering = is_registering(&api, &key).await.unwrap();
+    if !is_registering {
         return Err(UserErr::NotRegistering("Register Onchain first"));
     }
 
     // store new user data in kvdb
     let reservation = state.kv().reserve_key(key.to_string()).await?;
-    state.kv().put(reservation, value).await?;
+    state.kv().put(reservation, decrypted_message).await?;
 
     let signer = get_signer(state).await.unwrap();
     let subgroup = get_subgroup(&api, &signer).await.unwrap().unwrap();
@@ -53,17 +64,24 @@ pub async fn is_registering(api: &EntropyRuntime, who: &AccountId32) -> Result<b
     Ok(is_registering.unwrap().is_registering)
 }
 
-// TODO: Error handling
-async fn get_signer(
+// Returns PairSigner for this nodes threshold server.
+// The PairSigner is stored as an encrypted mnemonic in the kvdb and
+// is used for PKE and to submit extrensics on chain.
+pub async fn get_signer(
     kv: &KvManager,
 ) -> Result<subxt::PairSigner<DefaultConfig, sr25519::Pair>, KvError> {
-    let exists = kv.kv().exists("MNEMONIC").await.unwrap();
-    let raw_m = kv.kv().get("MNEMONIC").await.unwrap();
-    let str_m = core::str::from_utf8(&raw_m).unwrap();
-    let m = Mnemonic::from_phrase(str_m, Language::English).unwrap();
-    let p = <sr25519::Pair as Pair>::from_phrase(m.phrase(), None).unwrap();
-
-    Ok(PairSigner::<DefaultConfig, sr25519::Pair>::new(p.0))
+    let exists = kv.kv().exists("MNEMONIC").await?;
+    let raw_m = kv.kv().get("MNEMONIC").await?;
+    match core::str::from_utf8(&raw_m) {
+        Ok(s) => match Mnemonic::from_phrase(s, Language::English) {
+            Ok(m) => match <sr25519::Pair as Pair>::from_phrase(m.phrase(), None) {
+                Ok(p) => Ok(PairSigner::<DefaultConfig, sr25519::Pair>::new(p.0)),
+                Err(e) => Err(KvError::GetErr(InnerKvError::LogicalErr("SENSITIVE".to_owned()))),
+            },
+            Err(e) => Err(KvError::GetErr(InnerKvError::LogicalErr(e.to_string()))),
+        },
+        Err(e) => Err(KvError::GetErr(InnerKvError::LogicalErr(e.to_string()))),
+    }
 }
 
 pub async fn get_subgroup(

@@ -16,8 +16,11 @@
 //! - Sled DB KVDB
 #![allow(unused_variables)]
 #![allow(unused_imports)]
+#![allow(dead_code)]
+
 pub(crate) mod chain_api;
 mod communication_manager;
+pub(crate) mod message;
 pub(crate) mod sign_init;
 mod signing_client;
 mod user;
@@ -38,6 +41,10 @@ use self::{
     user::api::*,
     utils::{init_tracing, load_kv_store, Configuration},
 };
+use crate::{
+    message::{derive_static_secret, mnemonic_to_pair},
+    user::unsafe_api::get_dh,
+};
 
 #[launch]
 async fn rocket() -> _ {
@@ -45,13 +52,23 @@ async fn rocket() -> _ {
     let signer_state = SignerState::default();
     let cm_state = CommunicationManagerState::default();
     let configuration = Configuration::new();
-    let kv_store = load_kv_store();
-    setup_mnemonic(&kv_store).await;
+    let kv_store = load_kv_store().await;
+
+    // Unsafe routes are for testing purposes only
+    // they are unsafe as they can expose vulnerabilites
+    // should they be used in production. Unsafe routes
+    // are disabled by default.
+    // To enable unsafe routes compile with --feature unsafe.
+    let mut unsafe_routes = routes![];
+    if cfg!(feature = "unsafe") {
+        unsafe_routes = routes![get_dh];
+    }
 
     rocket::build()
         .mount("/user", routes![new_user])
         .mount("/signer", routes![new_party, subscribe_to_me])
         .mount("/cm", routes![provide_share, handle_signing])
+        .mount("/unsafe", unsafe_routes)
         .manage(signer_state)
         .manage(cm_state)
         .manage(configuration)
@@ -69,6 +86,7 @@ async fn setup_mnemonic(kv: &KvManager) {
                 // If using a test configuration then set to the default mnemonic.
                 if cfg!(test) {
                     mnemonic =
+                        // Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
                         Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
                 } else if cfg!(feature = "alice") {
                     mnemonic =
@@ -82,6 +100,25 @@ async fn setup_mnemonic(kv: &KvManager) {
                     mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
                 }
                 let phrase = mnemonic.phrase();
+
+                let pair = mnemonic_to_pair(&mnemonic);
+                let static_secret = derive_static_secret(&pair);
+                let dh_public = x25519_dalek::PublicKey::from(&static_secret);
+                // dh_public.
+                println!("DH_PUBLIC_KEY {:?}", dh_public.as_bytes());
+
+                let ss_reservation =
+                    kv.kv().reserve_key("SHARED_SECRET".to_string()).await.unwrap();
+                match kv.kv().put(ss_reservation, static_secret.to_bytes().to_vec()).await {
+                    Ok(r) => println!("updated ss"),
+                    Err(r) => warn!("failed to update ss: {:?}", r),
+                }
+
+                let dh_reservation = kv.kv().reserve_key("DH_PUBLIC".to_string()).await.unwrap();
+                match kv.kv().put(dh_reservation, dh_public.to_bytes().to_vec()).await {
+                    Ok(r) => println!("updated dh"),
+                    Err(r) => warn!("failed to update dh: {:?}", r),
+                }
                 let reservation = kv.kv().reserve_key("MNEMONIC".to_string()).await.unwrap();
 
                 let p = <sr25519::Pair as Pair>::from_phrase(phrase, None).unwrap();

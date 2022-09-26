@@ -326,12 +326,33 @@ pub fn testnet_genesis(
                 (
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     // 5H8qc7f4mXFY16NBWSB9qkc6pTks98HdVuoQTs1aova5fRtN
-                    hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"].into(),
+                    (
+                        hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"]
+                            .into(),
+                        // hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"
+                        // ].into(),
+                        [
+                            10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155,
+                            124, 195, 141, 148, 249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247,
+                            58, 34,
+                        ],
+                        // [172, 250, 118, 117, 156, 74, 214, 205, 60, 66, 16, 86, 255, 80, 248,
+                        // 177, 67, 45, 21, 182, 248, 218, 16, 167, 64, 26, 211, 21, 28, 226, 58,
+                        // 55]
+                    ),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                     // 5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV
-                    hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"].into(),
+                    (
+                        hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"]
+                            .into(),
+                        [
+                            177, 20, 88, 181, 110, 225, 38, 248, 123, 157, 116, 240, 131, 164, 72,
+                            69, 126, 239, 108, 148, 131, 220, 171, 99, 226, 64, 55, 79, 161, 143,
+                            208, 88,
+                        ],
+                    ),
                 ),
             ],
             signing_groups: vec![
@@ -509,6 +530,15 @@ pub(crate) mod tests {
 
     #[test]
     fn test_create_local_testnet_chain_spec() { local_testnet_config().build_storage().unwrap(); }
+
+    #[test]
+    fn t() {
+        let mut a = get_account_id_from_seed::<sr25519::Public>("Alice//stash");
+        println!("{:?}", a);
+
+        a = get_account_id_from_seed::<sr25519::Public>("Alice");
+        println!("{:?}", a);
+    }
 
     #[test]
     fn test_staging_test_net_chain_spec() { staging_testnet_config().build_storage().unwrap(); }
