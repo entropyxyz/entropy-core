@@ -16,7 +16,6 @@
 //! - Sled DB KVDB
 #![allow(unused_variables)]
 #![allow(unused_imports)]
-
 pub(crate) mod chain_api;
 mod communication_manager;
 pub(crate) mod sign_init;
@@ -73,7 +72,8 @@ async fn setup_mnemonic(kv: &KvManager) {
                         Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
                 } else if cfg!(feature = "alice") {
                     mnemonic =
-                        Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
+                        Mnemonic::from_phrase(utils::DEFAULT_ALICE_MNEMONIC, Language::English)
+                            .unwrap();
                 } else if cfg!(feature = "bob") {
                     mnemonic =
                         Mnemonic::from_phrase(utils::DEFAULT_BOB_MNEMONIC, Language::English)
