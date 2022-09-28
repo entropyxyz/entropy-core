@@ -70,16 +70,26 @@ pub mod pallet {
     pub type ThresholdAccounts<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, T::AccountId, OptionQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn signing_groups)]
+    pub type SigningGroups<T: Config> =
+        StorageMap<_, Blake2_128Concat, u8, Vec<T::AccountId>, OptionQuery>;
+
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         pub endpoints: Vec<(T::AccountId, Vec<u8>)>,
         pub threshold_accounts: Vec<(T::AccountId, T::AccountId)>,
+        pub signing_groups: Vec<(u8, Vec<T::AccountId>)>,
     }
 
     #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
-            Self { endpoints: Default::default(), threshold_accounts: Default::default() }
+            Self {
+                endpoints: Default::default(),
+                threshold_accounts: Default::default(),
+                signing_groups: Default::default(),
+            }
         }
     }
 
@@ -98,6 +108,10 @@ pub mod pallet {
 
             for (stash_account, threshold_account) in &self.threshold_accounts {
                 ThresholdAccounts::<T>::insert(stash_account, threshold_account);
+            }
+
+            for (group, accounts) in &self.signing_groups {
+                SigningGroups::<T>::insert(group, accounts);
             }
         }
     }

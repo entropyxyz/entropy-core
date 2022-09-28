@@ -13,3 +13,5 @@ pub type SigRequest = types::SigRequest;
 pub type SigResponse = types::SigResponse;
 pub type OCWMessage = Vec<types::Message>;
 pub type Message = types::Message;
+
+pub const SIGNING_PARTY_SIZE: usize = 6;

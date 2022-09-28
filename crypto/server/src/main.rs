@@ -31,6 +31,7 @@ use kvdb::kv_manager::{error::KvError, KeyReservation, KvManager};
 use rocket::routes;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use sp_keyring::AccountKeyring;
+use substrate_common::SIGNING_PARTY_SIZE;
 
 use self::{
     communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState},
@@ -38,8 +39,6 @@ use self::{
     user::api::*,
     utils::{init_tracing, load_kv_store, Configuration},
 };
-
-pub const SIGNING_PARTY_SIZE: usize = 6;
 
 #[launch]
 async fn rocket() -> _ {
@@ -67,14 +66,21 @@ async fn setup_mnemonic(kv: &KvManager) {
         Ok(v) => {
             if !v {
                 // Generate a new mnemonic
-                let mut mnemonic: Mnemonic =
-                    Mnemonic::new(MnemonicType::Words24, Language::English);
+                let mnemonic: Mnemonic;
                 // If using a test configuration then set to the default mnemonic.
                 if cfg!(test) {
                     mnemonic =
                         Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
-                };
-
+                } else if cfg!(feature = "alice") {
+                    mnemonic =
+                        Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
+                } else if cfg!(feature = "bob") {
+                    mnemonic =
+                        Mnemonic::from_phrase(utils::DEFAULT_BOB_MNEMONIC, Language::English)
+                            .unwrap();
+                } else {
+                    mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
+                }
                 let phrase = mnemonic.phrase();
                 let reservation = kv.kv().reserve_key("MNEMONIC".to_string()).await.unwrap();
 
