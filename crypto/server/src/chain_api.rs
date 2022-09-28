@@ -1,5 +1,5 @@
+#![allow(clippy::all)]
 use subxt::{ClientBuilder, DefaultConfig, PairSigner, PolkadotExtrinsicParams};
-
 #[subxt::subxt(runtime_metadata_path = "entropy_metadata.scale")]
 pub mod entropy {}
 
