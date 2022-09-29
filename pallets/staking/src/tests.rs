@@ -9,6 +9,8 @@ fn basic_setup_works() {
         assert_eq!(Staking::endpoint_register(6).unwrap(), vec![40]);
         assert_eq!(Staking::threshold_account(5).unwrap(), 7);
         assert_eq!(Staking::threshold_account(6).unwrap(), 8);
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
     });
 }
 

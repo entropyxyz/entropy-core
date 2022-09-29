@@ -334,6 +334,10 @@ pub fn testnet_genesis(
                     hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"].into(),
                 ),
             ],
+            signing_groups: vec![
+                (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
+                (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
+            ],
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {

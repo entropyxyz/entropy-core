@@ -7,7 +7,10 @@ use serde::Deserialize;
 const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
-
+pub const DEFAULT_BOB_MNEMONIC: &str =
+    "where sight patient orphan general short empower hope party hurt month voice";
+pub const DEFAULT_ALICE_MNEMONIC: &str =
+    "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
 pub(super) fn init_tracing() {
     let filter = tracing_subscriber::filter::LevelFilter::INFO.into();
     tracing_subscriber::filter::EnvFilter::builder()
