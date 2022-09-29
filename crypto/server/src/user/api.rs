@@ -71,6 +71,7 @@ pub async fn confirm_registered(
     signer: &subxt::PairSigner<DefaultConfig, sr25519::Pair>,
 ) -> Result<(), subxt::Error<entropy::DispatchError>> {
     // TODO error handling + return error
+    // TODO fire and forget, or wait for in block maybe Ddos error
     let _ = api.tx().relayer()
         .confirm_register(who)
         // TODO: Understand this better, potentially use sign_and_submit_default

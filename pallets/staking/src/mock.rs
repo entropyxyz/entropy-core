@@ -266,6 +266,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
         endpoints: vec![(5, vec![20]), (6, vec![40])],
         threshold_accounts: vec![(5, 7), (6, 8)],
+        // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
+        signing_groups: vec![(0, vec![1]), (1, vec![2])],
     };
 
     pallet_balances.assimilate_storage(&mut t).unwrap();
