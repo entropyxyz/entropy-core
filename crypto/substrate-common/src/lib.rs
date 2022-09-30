@@ -14,4 +14,10 @@ pub type SigResponse = types::SigResponse;
 pub type OCWMessage = Vec<types::Message>;
 pub type Message = types::Message;
 
-pub const SIGNING_PARTY_SIZE: usize = 6;
+#[cfg(test)]
+pub const SIGNING_PARTY_SIZE: usize = 2;
+
+// TODO: fix and change back
+#[cfg(not(test))]
+pub const SIGNING_PARTY_SIZE: usize = 2;
+
