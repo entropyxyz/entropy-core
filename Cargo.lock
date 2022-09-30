@@ -1785,6 +1785,7 @@ dependencies = [
  "sp-transaction-pool",
  "sp-version",
  "static_assertions",
+ "substrate-common",
  "substrate-wasm-builder",
 ]
 

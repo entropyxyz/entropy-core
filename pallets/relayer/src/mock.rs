@@ -276,11 +276,13 @@ impl pallet_authorship::Config for Test {
 
 parameter_types! {
   pub const PruneBlock: u64 = 3;
+  pub const SigningPartySize: usize = 2;
 }
 
 impl pallet_relayer::Config for Test {
     type Event = Event;
     type PruneBlock = PruneBlock;
+	type SigningPartySize = SigningPartySize;
     type WeightInfo = ();
 }
 

@@ -78,7 +78,7 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use static_assertions::const_assert;
-
+use substrate_common::SIGNING_PARTY_SIZE;
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
 use impls::Author;
@@ -1165,11 +1165,13 @@ impl pallet_slashing::Config for Runtime {
 
 parameter_types! {
   pub const PruneBlock: BlockNumber = 10;
+  pub const SigningPartySize: usize = SIGNING_PARTY_SIZE;
 }
 
 impl pallet_relayer::Config for Runtime {
     type Event = Event;
     type PruneBlock = PruneBlock;
+	type SigningPartySize = SigningPartySize;
     type WeightInfo = weights::pallet_relayer::WeightInfo<Runtime>;
 }
 

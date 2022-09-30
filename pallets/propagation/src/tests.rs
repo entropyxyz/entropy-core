@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use frame_support::{assert_ok, traits::OnInitialize};
-use pallet_relayer::SigRequest;
+use substrate_common::SigRequest;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
 use sp_keystore::{testing::KeyStore, KeystoreExt};

@@ -40,8 +40,8 @@ pub mod pallet {
         traits::{DispatchInfoOf, Saturating, SignedExtension},
         transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
     };
-    use sp_std::fmt::Debug;
-    use substrate_common::{Message, SigRequest, SIGNING_PARTY_SIZE};
+    use sp_std::{fmt::Debug, vec};
+    use substrate_common::{Message, SigRequest};
 
     pub use crate::weights::WeightInfo;
     /// Configure the pallet by specifying the parameters and types on which it depends.
@@ -52,7 +52,7 @@ pub mod pallet {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type PruneBlock: Get<Self::BlockNumber>;
-
+		type SigningPartySize: Get<usize>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
@@ -208,7 +208,7 @@ pub mod pallet {
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
                     .ok_or(Error::<T>::InvalidSubgroup)?;
             ensure!(signing_subgroup_addresses.contains(&who), Error::<T>::NotInSigningGroup);
-            if registering_info.confirmations.len() == SIGNING_PARTY_SIZE - 1 {
+            if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 Registered::<T>::insert(&registerer, true);
                 Registering::<T>::remove(&registerer);
                 Self::deposit_event(Event::AccountRegistered(registerer));
