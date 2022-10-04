@@ -75,7 +75,7 @@ pub async fn get_subgroup(
     for i in 0..SIGNING_PARTY_SIZE {
         let signing_group_addresses =
             api.storage().staking_extension().signing_groups(&(i as u8), None).await?.unwrap();
-        if signing_group_addresses.contains(&address) {
+        if signing_group_addresses.contains(address) {
             subgroup = Some(i as u8);
             break;
         }
