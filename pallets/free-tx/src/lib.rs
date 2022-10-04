@@ -35,7 +35,6 @@ pub mod pallet {
     use sp_staking::EraIndex;
     use sp_std::{cmp::min, fmt::Debug, prelude::*};
 
-    // use super::*;
     pub use crate::weights::WeightInfo;
 
     #[pallet::config]
@@ -56,8 +55,6 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
 
-    pub const MAX_FREE_CALLS_PER_ACCOUNT: u8 = 10;
-
     /// Represents a number of free calls
     pub type FreeCallCount = u32;
 
@@ -72,8 +69,8 @@ pub mod pallet {
     /// Keeps track of the number of free calls a user has and the number of free calls they've used
     /// this era
     pub struct FreeCallMetadata {
-        pub rechargable_calls_allocated: FreeCallCount,
-        pub fixed_calls_remaining: FreeCallCount,
+        pub rechargable_calls: FreeCallCount,
+        pub one_time_calls_remaining: FreeCallCount,
         pub calls_used: RecentCallCount,
     }
 
@@ -172,8 +169,6 @@ pub mod pallet {
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
             if call_count == 0 {
-                // make sure that <FreeCallsPerEra> returns None instead of
-                // Some(0)
                 <MaxIndividualFreeCallsPerEra<T>>::kill();
             } else {
                 <MaxIndividualFreeCallsPerEra<T>>::put(call_count);
@@ -192,12 +187,12 @@ pub mod pallet {
             T::UpdateOrigin::ensure_origin(origin)?;
             <FreeCallData<T>>::mutate(&account, |data: &mut Option<FreeCallMetadata>| match data {
                 Some(data) => {
-                    data.rechargable_calls_allocated += call_count;
+                    data.rechargable_calls += call_count;
                 },
                 None => {
                     *data = Some(FreeCallMetadata {
-                        rechargable_calls_allocated: call_count,
-                        fixed_calls_remaining: 0,
+                        rechargable_calls: call_count,
+                        one_time_calls_remaining: 0,
                         calls_used: RecentCallCount { latest_era: 0, count: 0 },
                     });
                 },
@@ -205,7 +200,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Give the recipient some free calls
+        /// Give the recipient some one-time free calls
         #[pallet::weight(<T as crate::Config>::WeightInfo::give_fixed_calls())]
         pub fn give_fixed_calls(
             origin: OriginFor<T>,
@@ -217,12 +212,12 @@ pub mod pallet {
                 &recipient,
                 |data: &mut Option<FreeCallMetadata>| match data {
                     Some(data) => {
-                        data.fixed_calls_remaining += call_count;
+                        data.one_time_calls_remaining += call_count;
                     },
                     None => {
                         *data = Some(FreeCallMetadata {
-                            rechargable_calls_allocated: 0,
-                            fixed_calls_remaining: call_count,
+                            rechargable_calls: 0,
+                            one_time_calls_remaining: call_count,
                             calls_used: RecentCallCount { latest_era: 0, count: 0 },
                         });
                     },
@@ -277,9 +272,9 @@ pub mod pallet {
                         };
 
                         let spend_fixed_call = |data: &mut FreeCallMetadata| {
-                            let count = data.fixed_calls_remaining;
+                            let count = data.one_time_calls_remaining;
 
-                            data.fixed_calls_remaining =
+                            data.one_time_calls_remaining =
                                 count.saturating_sub(1u32 as FreeCallCount);
                             spend_call(data);
                         };
@@ -290,10 +285,9 @@ pub mod pallet {
                                     !user_has_spent_more_free_calls_than_max_this_era(data)?;
 
                                 Ok(user_has_free_calls_to_spend
-                                    && (data.rechargable_calls_allocated > 0 as FreeCallCount)
+                                    && (data.rechargable_calls > 0 as FreeCallCount)
                                     && ((era_index_is_current(data)
-                                        && data.calls_used.count
-                                            < data.rechargable_calls_allocated)
+                                        && data.calls_used.count < data.rechargable_calls)
                                         || (data.calls_used.latest_era < current_era_index)))
                             };
 
@@ -303,7 +297,7 @@ pub mod pallet {
                                     !user_has_spent_more_free_calls_than_max_this_era(data)?;
 
                                 Ok(user_has_free_calls_to_spend
-                                    && data.fixed_calls_remaining > 0
+                                    && data.one_time_calls_remaining > 0
                                     && era_index_is_current(data))
                             };
 
@@ -334,14 +328,10 @@ pub mod pallet {
             // if the free call count was last updated this era, return however many free calls they
             // have left
             if let Some(data) = Self::free_call_data(account_id) {
-                let FreeCallMetadata {
-                    rechargable_calls_allocated,
-                    fixed_calls_remaining,
-                    calls_used,
-                } = data;
+                let FreeCallMetadata { rechargable_calls, one_time_calls_remaining, calls_used } =
+                    data;
 
-                let total_free_calls =
-                    rechargable_calls_allocated.saturating_add(fixed_calls_remaining);
+                let total_free_calls = rechargable_calls.saturating_add(one_time_calls_remaining);
 
                 // TODO refactor era_index_is_current() out of try_consume_free_call() for reuse
                 // here.
