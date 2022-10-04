@@ -21,12 +21,12 @@ benchmarks! {
     let FreeCallInfo { free_calls_remaining, .. } = FreeCallsRemaining::<T>::get(&caller).unwrap();
     assert_eq!(free_calls_remaining, 1 as FreeCallCount);
   }
-  set_free_calls_per_era {
+  set_max_free_calls_per_era {
     let origin = T::UpdateOrigin::successful_origin();
     let free_calls = 1 as FreeCallCount;
   }: {
     assert_ok!(
-      <FreeTx<T>>::set_free_calls_per_era(origin, free_calls)
+      <FreeTx<T>>::set_max_free_calls_per_era(origin, free_calls)
     );
   }
   verify {

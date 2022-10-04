@@ -24,7 +24,6 @@ pub mod pallet {
         dispatch::Dispatchable,
         pallet_prelude::*,
         traits::IsSubType,
-        transactional,
         weights::{GetDispatchInfo, PostDispatchInfo},
     };
     use frame_system::{pallet_prelude::*, RawOrigin};
@@ -34,7 +33,7 @@ pub mod pallet {
         transaction_validity::{InvalidTransaction, TransactionValidityError},
     };
     use sp_staking::EraIndex;
-    use sp_std::{fmt::Debug, prelude::*};
+    use sp_std::{cmp::min, fmt::Debug, prelude::*};
 
     // use super::*;
     pub use crate::weights::WeightInfo;
@@ -57,43 +56,45 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
 
-    /// Represents the number of free calls a user can have
-    pub type FreeCallCount = u16;
+    pub const MAX_FREE_CALLS_PER_ACCOUNT: u8 = 10;
 
-    /// Stores how many free calls a user has left and which era it applies to.
-    ///
-    /// This is used to track how many free calls are left per user WITHOUT requiring
-    /// FreeCallsPerEra to be pruned every era.
+    /// Represents a number of free calls
+    pub type FreeCallCount = u32;
+
+    /// Shows the number of free calls used in the previously used era
     #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
-    pub struct FreeCallInfo {
-        pub era_index: EraIndex,
-        pub free_calls_remaining: FreeCallCount,
+    pub struct RecentCallCount {
+        pub latest_era: EraIndex,
+        pub count: FreeCallCount,
+    }
+
+    #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
+    /// Keeps track of the number of free calls a user has and the number of free calls they've used
+    /// this era
+    pub struct FreeCallMetadata {
+        pub rechargable_calls_allocated: FreeCallCount,
+        pub fixed_calls_remaining: FreeCallCount,
+        pub calls_used: RecentCallCount,
     }
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
-    /// Default number of free calls users get per era.
+    /// Maximum number of free calls a user can use per era.
     ///
-    /// To disable free calls altogether, set this to `None` or leave it unitialized.
+    /// `None`: users can use as many free calls as they own.
+    /// `Some(0)`: free calls are disabled.
+    /// `Some(n)`: users can use up to `n` free calls per era
     #[pallet::storage]
-    #[pallet::getter(fn free_calls_per_era_raw)]
-    pub type FreeCallsPerEra<T: Config> = StorageValue<_, FreeCallCount>;
+    #[pallet::getter(fn max_individual_free_calls_per_era)]
+    pub type MaxIndividualFreeCallsPerEra<T: Config> = StorageValue<_, FreeCallCount>;
 
-    /// Stores how many free calls a user has left for this era.
-    ///
-    /// What the query value means:
-    ///
-    /// - `Some` where `EraIndex == current_era_index`: the user has `FreeCalls` left to use in this
-    ///   era.
-    /// - `None` OR `Some` where `EraIndex != current_era_index`: user has not used any free calls
-    ///   this era. If using a free call, reset their value to `(FreeCallsPerEra - 1,
-    ///   current_era_index)`
+    /// Stores a list of `` that are owned by an account.
     #[pallet::storage]
-    #[pallet::getter(fn free_calls_remaining_raw)]
-    pub type FreeCallsRemaining<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, FreeCallInfo, OptionQuery>;
+    #[pallet::getter(fn free_call_data)]
+    pub type FreeCallData<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, FreeCallMetadata, OptionQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -110,6 +111,8 @@ pub mod pallet {
         /// Account has no free calls left. Call the extrinsic directly or use
         /// `try_free_call_or_pay()`
         NoFreeCallsAvailable,
+        /// Account has hit max number of free calls that can be used this era
+        MaxFreeCallsPerEra,
         /// Are you fuzzing, or are you just dumb?
         WastingFreeCalls,
     }
@@ -162,19 +165,69 @@ pub mod pallet {
         /// Sets the number of free calls each account gets per era.
         /// To disable free calls, set this to `0`.
         /// TODO: weight
-        #[pallet::weight(<T as crate::Config>::WeightInfo::set_free_calls_per_era())]
-        #[transactional]
-        pub fn set_free_calls_per_era(
+        #[pallet::weight(<T as crate::Config>::WeightInfo::set_max_free_calls_per_era())]
+        pub fn set_max_free_calls_per_era(
             origin: OriginFor<T>,
-            free_calls_per_era: FreeCallCount,
+            call_count: FreeCallCount,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
-            if free_calls_per_era == 0 {
-                // make sure that <FreeCallsPerEra<T>>::get() returns None instead of Some(0)
-                <FreeCallsPerEra<T>>::kill();
+            if call_count == 0 {
+                // make sure that <FreeCallsPerEra> returns None instead of
+                // Some(0)
+                <MaxIndividualFreeCallsPerEra<T>>::kill();
             } else {
-                <FreeCallsPerEra<T>>::put(free_calls_per_era);
+                <MaxIndividualFreeCallsPerEra<T>>::put(call_count);
             }
+            Ok(())
+        }
+
+        /// Set the number of rechargable calls an account gets. Setting is safer than always
+        /// incrementing.
+        #[pallet::weight(<T as crate::Config>::WeightInfo::set_rechargable_call_count())]
+        pub fn set_rechargable_call_count(
+            origin: OriginFor<T>,
+            account: T::AccountId,
+            call_count: FreeCallCount,
+        ) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            <FreeCallData<T>>::mutate(&account, |data: &mut Option<FreeCallMetadata>| match data {
+                Some(data) => {
+                    data.rechargable_calls_allocated += call_count;
+                },
+                None => {
+                    *data = Some(FreeCallMetadata {
+                        rechargable_calls_allocated: call_count,
+                        fixed_calls_remaining: 0,
+                        calls_used: RecentCallCount { latest_era: 0, count: 0 },
+                    });
+                },
+            });
+            Ok(())
+        }
+
+        /// Give the recipient some free calls
+        #[pallet::weight(<T as crate::Config>::WeightInfo::give_fixed_calls())]
+        pub fn give_fixed_calls(
+            origin: OriginFor<T>,
+            recipient: T::AccountId,
+            call_count: FreeCallCount,
+        ) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            <FreeCallData<T>>::mutate(
+                &recipient,
+                |data: &mut Option<FreeCallMetadata>| match data {
+                    Some(data) => {
+                        data.fixed_calls_remaining += call_count;
+                    },
+                    None => {
+                        *data = Some(FreeCallMetadata {
+                            rechargable_calls_allocated: 0,
+                            fixed_calls_remaining: call_count,
+                            calls_used: RecentCallCount { latest_era: 0, count: 0 },
+                        });
+                    },
+                },
+            );
             Ok(())
         }
     }
@@ -183,82 +236,139 @@ pub mod pallet {
         // TODO make sure this is right before moving on
         // if OK(()), a free call for the provided account was available and was consumed
         pub fn try_consume_free_call(account_id: &<T>::AccountId) -> Result<(), Error<T>> {
-            // We can check if free calls are disabled and get free calls per era from the same
-            // query
-            let free_calls_per_era =
-                Self::free_calls_per_era().ok_or(Error::<T>::FreeCallsDisabled)?;
+            // gets max free call count per era or return error if free calls are disabled
+            let max_free_call_count_per_era = Self::max_free_calls_per_era();
+            if max_free_call_count_per_era == 0 as FreeCallCount {
+                return Err(Error::<T>::FreeCallsDisabled);
+            }
 
-            <FreeCallsRemaining<T>>::try_mutate(account_id, |call_info| {
+            <FreeCallData<T>>::mutate(account_id, |call_data: &mut Option<FreeCallMetadata>| {
                 let current_era_index = pallet_staking::Pallet::<T>::current_era().unwrap();
 
-                let update_info = |remaining| {
-                    Some(FreeCallInfo {
-                        era_index: current_era_index,
-                        free_calls_remaining: remaining as FreeCallCount,
-                    })
-                };
+                match call_data {
+                    // User has at least had free calls at some point
+                    Some(current_call_data) => {
+                        let era_index_is_current = |data: &mut FreeCallMetadata| -> bool {
+                            data.calls_used.latest_era == current_era_index
+                        };
 
-                // update their call data
-                match call_info {
-                    Some(prev_info) => {
-                        let FreeCallInfo { era_index, free_calls_remaining } = *prev_info;
+                        let user_has_spent_more_free_calls_than_max_this_era =
+                            |data: &mut FreeCallMetadata| -> Result<bool, Error<T>> {
+                                if era_index_is_current(data)
+                                    && data.calls_used.count >= max_free_call_count_per_era
+                                {
+                                    return Err(Error::<T>::MaxFreeCallsPerEra);
+                                }
 
-                        // if there's a new era, free calls were last used in a prev era. fill up
-                        // free calls.
-                        if era_index != current_era_index {
-                            *call_info = update_info(free_calls_per_era.saturating_sub(1));
-                            return Ok(());
-                        }
+                                Ok(false)
+                            };
 
-                        // if era is current and no remaining calls left, they've used them all
-                        if free_calls_remaining == 0 as FreeCallCount {
+                        let spend_call = |data: &mut FreeCallMetadata| {
+                            if era_index_is_current(data) {
+                                data.calls_used.count += 1;
+                            } else {
+                                data.calls_used =
+                                    RecentCallCount { latest_era: current_era_index, count: 1 }
+                            }
+                        };
+
+                        let use_rechargable_call = |data: &mut FreeCallMetadata| {
+                            spend_call(data);
+                        };
+
+                        let spend_fixed_call = |data: &mut FreeCallMetadata| {
+                            let count = data.fixed_calls_remaining;
+
+                            data.fixed_calls_remaining =
+                                count.saturating_sub(1u32 as FreeCallCount);
+                            spend_call(data);
+                        };
+
+                        let user_can_use_rechargable_calls =
+                            |data: &mut FreeCallMetadata| -> Result<bool, Error<T>> {
+                                let user_has_free_calls_to_spend =
+                                    !user_has_spent_more_free_calls_than_max_this_era(data)?;
+
+                                Ok(user_has_free_calls_to_spend
+                                    && (data.rechargable_calls_allocated > 0 as FreeCallCount)
+                                    && ((era_index_is_current(data)
+                                        && data.calls_used.count
+                                            < data.rechargable_calls_allocated)
+                                        || (data.calls_used.latest_era < current_era_index)))
+                            };
+
+                        let user_can_spend_fixed_calls =
+                            |data: &mut FreeCallMetadata| -> Result<bool, Error<T>> {
+                                let user_has_free_calls_to_spend =
+                                    !user_has_spent_more_free_calls_than_max_this_era(data)?;
+
+                                Ok(user_has_free_calls_to_spend
+                                    && data.fixed_calls_remaining > 0
+                                    && era_index_is_current(data))
+                            };
+
+                        // everything boils down this...
+                        if user_can_use_rechargable_calls(current_call_data)? {
+                            use_rechargable_call(current_call_data);
+                        } else if user_can_spend_fixed_calls(current_call_data)? {
+                            spend_fixed_call(current_call_data);
+                        } else {
                             return Err(Error::<T>::NoFreeCallsAvailable);
                         }
-                        // otherwise, consume one free call
-                        *call_info = update_info(free_calls_remaining.saturating_sub(1));
                     },
-
-                    // if None, then this is the account's first free call ever (or it was pruned)
-                    None => {
-                        *call_info = update_info(free_calls_per_era.saturating_sub(1));
-                    },
-                }
+                    // if None, then account has no free calls to use
+                    None => return Err(Error::<T>::NoFreeCallsAvailable),
+                };
                 Ok(())
             })
+
+            // Ok(())
         }
 
         /// Returns number of free calls a user has, and returns None if free calls are disabled.
         pub fn free_calls_remaining(account_id: &<T>::AccountId) -> FreeCallCount {
-            // return 0 if free calls are disabled (and gets free calls per era in the same storage
-            // query).
-            let free_calls_per_era = Self::free_calls_per_era().unwrap_or(0 as FreeCallCount);
+            if !Self::free_calls_are_enabled() {
+                return 0 as FreeCallCount;
+            }
 
             // if the free call count was last updated this era, return however many free calls they
             // have left
-            if let Some(call_info) = <FreeCallsRemaining<T>>::get(account_id) {
-                let FreeCallInfo { era_index, free_calls_remaining } = call_info;
-                if era_index == pallet_staking::Pallet::<T>::current_era().unwrap() {
-                    return free_calls_remaining;
-                };
+            if let Some(data) = Self::free_call_data(account_id) {
+                let FreeCallMetadata {
+                    rechargable_calls_allocated,
+                    fixed_calls_remaining,
+                    calls_used,
+                } = data;
+
+                let total_free_calls =
+                    rechargable_calls_allocated.saturating_add(fixed_calls_remaining);
+
+                // TODO refactor era_index_is_current() out of try_consume_free_call() for reuse
+                // here.
+                if calls_used.latest_era == pallet_staking::Pallet::<T>::current_era().unwrap() {
+                    return min(
+                        Self::max_free_calls_per_era().saturating_sub(calls_used.count),
+                        total_free_calls.saturating_sub(calls_used.count),
+                    );
+                } else {
+                    return min(Self::max_free_calls_per_era(), total_free_calls);
+                }
             };
 
-            // otherwise they have the default number of free calls per era remaining
-            free_calls_per_era
+            return 0 as FreeCallCount;
         }
 
         /// Returns the number of free calls per era a user gets, or returns None if free calls are
         /// disabled
-        pub fn free_calls_per_era() -> Option<FreeCallCount> {
-            if let Some(n) = Self::free_calls_per_era_raw() {
-                if n != 0 {
-                    return Some(n);
-                };
+        pub fn max_free_calls_per_era() -> FreeCallCount {
+            match Self::max_individual_free_calls_per_era() {
+                Some(n) => n,
+                None => FreeCallCount::MAX,
             }
-            None
         }
 
         /// Checks if free calls are enabled
-        fn free_calls_are_enabled() -> bool { Self::free_calls_per_era().is_some() }
+        fn free_calls_are_enabled() -> bool { Self::max_free_calls_per_era() != 0 as FreeCallCount }
     }
 
     /// Verifies that the account has free calls available before executing or broadcasting to other
