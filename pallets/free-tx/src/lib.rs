@@ -56,21 +56,21 @@ pub mod pallet {
     }
 
     /// Represents a number of free calls
-    pub type FreeCallCount = u32;
+    pub type TokenCount = u32;
 
     /// Shows the number of free calls used in the previously used era
     #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
     pub struct RecentCallCount {
         pub latest_era: EraIndex,
-        pub count: FreeCallCount,
+        pub count: TokenCount,
     }
 
     #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
     /// Keeps track of the number of free calls a user has and the number of free calls they've used
     /// this era
-    pub struct FreeCallMetadata {
-        pub rechargable_calls: FreeCallCount,
-        pub one_time_calls_remaining: FreeCallCount,
+    pub struct TokenBalances {
+        pub rechargable_calls: TokenCount,
+        pub one_time_calls_remaining: TokenCount,
         pub calls_used: RecentCallCount,
     }
 
@@ -85,13 +85,13 @@ pub mod pallet {
     /// `Some(n)`: users can use up to `n` free calls per era
     #[pallet::storage]
     #[pallet::getter(fn max_individual_free_calls_per_era)]
-    pub type MaxIndividualFreeCallsPerEra<T: Config> = StorageValue<_, FreeCallCount>;
+    pub type MaxIndividualFreeCallsPerEra<T: Config> = StorageValue<_, TokenCount>;
 
-    /// Stores a list of `` that are owned by an account.
+    /// Stores a list of TokenBalances that are owned by an account.
     #[pallet::storage]
     #[pallet::getter(fn free_call_data)]
-    pub type FreeCallData<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, FreeCallMetadata, OptionQuery>;
+    pub type TokenAccountData<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, TokenBalances, OptionQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -146,10 +146,6 @@ pub mod pallet {
 
             Self::try_consume_free_call(&sender)?;
 
-            // TODO JH
-            // - make sure `call` isn't another `try_free_call()` or get WastingFreeCalls
-
-            // cool, now dispatch call with account's origin
             let res = call.dispatch(RawOrigin::Signed(sender.clone()).into());
             Self::deposit_event(Event::FreeCallIssued(
                 sender,
@@ -162,10 +158,10 @@ pub mod pallet {
         /// Sets the number of free calls each account gets per era.
         /// To disable free calls, set this to `0`.
         /// TODO: weight
-        #[pallet::weight(<T as crate::Config>::WeightInfo::set_max_free_calls_per_era())]
-        pub fn set_max_free_calls_per_era(
+        #[pallet::weight(<T as crate::Config>::WeightInfo::set_individual_token_era_limit())]
+        pub fn set_individual_token_era_limit(
             origin: OriginFor<T>,
-            call_count: FreeCallCount,
+            call_count: TokenCount,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
             if call_count == 0 {
@@ -176,46 +172,49 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Set the number of rechargable calls an account gets. Setting is safer than always
-        /// incrementing.
-        #[pallet::weight(<T as crate::Config>::WeightInfo::set_rechargable_call_count())]
-        pub fn set_rechargable_call_count(
+        /// Set the number of rechargable call tokens an account has. Setting (vs giving) makes more
+        /// sense in this context.
+        #[pallet::weight(<T as crate::Config>::WeightInfo::set_rechargable_token_balance())]
+        pub fn set_rechargable_token_balance(
             origin: OriginFor<T>,
             account: T::AccountId,
-            call_count: FreeCallCount,
+            call_count: TokenCount,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
-            <FreeCallData<T>>::mutate(&account, |data: &mut Option<FreeCallMetadata>| match data {
-                Some(data) => {
-                    data.rechargable_calls += call_count;
+            <TokenAccountData<T>>::mutate(
+                &account,
+                |data: &mut Option<TokenBalances>| match data {
+                    Some(data) => {
+                        data.rechargable_calls += call_count;
+                    },
+                    None => {
+                        *data = Some(TokenBalances {
+                            rechargable_calls: call_count,
+                            one_time_calls_remaining: 0,
+                            calls_used: RecentCallCount { latest_era: 0, count: 0 },
+                        });
+                    },
                 },
-                None => {
-                    *data = Some(FreeCallMetadata {
-                        rechargable_calls: call_count,
-                        one_time_calls_remaining: 0,
-                        calls_used: RecentCallCount { latest_era: 0, count: 0 },
-                    });
-                },
-            });
+            );
             Ok(())
         }
 
         /// Give the recipient some one-time free calls
-        #[pallet::weight(<T as crate::Config>::WeightInfo::give_one_time_calls())]
-        pub fn give_one_time_calls(
+        #[pallet::weight(<T as crate::Config>::WeightInfo::give_one_time_use_tokens())]
+        pub fn give_one_time_use_tokens(
             origin: OriginFor<T>,
             recipient: T::AccountId,
-            call_count: FreeCallCount,
+            call_count: TokenCount,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
-            <FreeCallData<T>>::mutate(
+            <TokenAccountData<T>>::mutate(
                 &recipient,
-                |data: &mut Option<FreeCallMetadata>| match data {
+                |data: &mut Option<TokenBalances>| match data {
                     Some(data) => {
                         data.one_time_calls_remaining += call_count;
                     },
                     None => {
-                        *data = Some(FreeCallMetadata {
+                        *data = Some(TokenBalances {
                             rechargable_calls: 0,
                             one_time_calls_remaining: call_count,
                             calls_used: RecentCallCount { latest_era: 0, count: 0 },
@@ -232,23 +231,23 @@ pub mod pallet {
         // if OK(()), a free call for the provided account was available and was consumed
         pub fn try_consume_free_call(account_id: &<T>::AccountId) -> Result<(), Error<T>> {
             // gets max free call count per era or return error if free calls are disabled
-            let max_free_call_count_per_era = Self::max_free_calls_per_era();
-            if max_free_call_count_per_era == 0 as FreeCallCount {
+            let max_free_call_count_per_era = Self::individual_token_era_limit();
+            if max_free_call_count_per_era == 0 as TokenCount {
                 return Err(Error::<T>::FreeCallsDisabled);
             }
 
-            <FreeCallData<T>>::mutate(account_id, |call_data: &mut Option<FreeCallMetadata>| {
+            <TokenAccountData<T>>::mutate(account_id, |call_data: &mut Option<TokenBalances>| {
                 let current_era_index = pallet_staking::Pallet::<T>::current_era().unwrap();
 
                 match call_data {
                     // User has at least had free calls at some point
                     Some(current_call_data) => {
-                        let era_index_is_current = |data: &mut FreeCallMetadata| -> bool {
+                        let era_index_is_current = |data: &mut TokenBalances| -> bool {
                             data.calls_used.latest_era == current_era_index
                         };
 
                         let user_has_spent_more_free_calls_than_max_this_era =
-                            |data: &mut FreeCallMetadata| -> Result<bool, Error<T>> {
+                            |data: &mut TokenBalances| -> Result<bool, Error<T>> {
                                 if era_index_is_current(data)
                                     && data.calls_used.count >= max_free_call_count_per_era
                                 {
@@ -258,7 +257,7 @@ pub mod pallet {
                                 Ok(false)
                             };
 
-                        let spend_call = |data: &mut FreeCallMetadata| {
+                        let spend_call = |data: &mut TokenBalances| {
                             if era_index_is_current(data) {
                                 data.calls_used.count += 1;
                             } else {
@@ -267,32 +266,32 @@ pub mod pallet {
                             }
                         };
 
-                        let use_rechargable_call = |data: &mut FreeCallMetadata| {
+                        let use_rechargable_call = |data: &mut TokenBalances| {
                             spend_call(data);
                         };
 
-                        let spend_one_time_call = |data: &mut FreeCallMetadata| {
+                        let spend_one_time_call = |data: &mut TokenBalances| {
                             let count = data.one_time_calls_remaining;
 
                             data.one_time_calls_remaining =
-                                count.saturating_sub(1u32 as FreeCallCount);
+                                count.saturating_sub(1u32 as TokenCount);
                             spend_call(data);
                         };
 
                         let user_can_use_rechargable_calls =
-                            |data: &mut FreeCallMetadata| -> Result<bool, Error<T>> {
+                            |data: &mut TokenBalances| -> Result<bool, Error<T>> {
                                 let user_has_free_calls_to_spend =
                                     !user_has_spent_more_free_calls_than_max_this_era(data)?;
 
                                 Ok(user_has_free_calls_to_spend
-                                    && (data.rechargable_calls > 0 as FreeCallCount)
+                                    && (data.rechargable_calls > 0 as TokenCount)
                                     && ((era_index_is_current(data)
                                         && data.calls_used.count < data.rechargable_calls)
                                         || (data.calls_used.latest_era < current_era_index)))
                             };
 
                         let user_can_spend_one_time_calls =
-                            |data: &mut FreeCallMetadata| -> Result<bool, Error<T>> {
+                            |data: &mut TokenBalances| -> Result<bool, Error<T>> {
                                 let user_has_free_calls_to_spend =
                                     !user_has_spent_more_free_calls_than_max_this_era(data)?;
 
@@ -319,16 +318,16 @@ pub mod pallet {
             // Ok(())
         }
 
-        /// Returns number of free calls a user has, and returns None if free calls are disabled.
-        pub fn free_calls_remaining(account_id: &<T>::AccountId) -> FreeCallCount {
-            if !Self::free_calls_are_enabled() {
-                return 0 as FreeCallCount;
+        /// Returns number of free call tokens a user can use this era
+        pub fn tokens_usable_this_era(account_id: &<T>::AccountId) -> TokenCount {
+            if !Self::free_call_tokens_are_enabled() {
+                return 0 as TokenCount;
             }
 
             // if the free call count was last updated this era, return however many free calls they
             // have left
             if let Some(data) = Self::free_call_data(account_id) {
-                let FreeCallMetadata { rechargable_calls, one_time_calls_remaining, calls_used } =
+                let TokenBalances { rechargable_calls, one_time_calls_remaining, calls_used } =
                     data;
 
                 let total_free_calls = rechargable_calls.saturating_add(one_time_calls_remaining);
@@ -337,28 +336,29 @@ pub mod pallet {
                 // here.
                 if calls_used.latest_era == pallet_staking::Pallet::<T>::current_era().unwrap() {
                     return min(
-                        Self::max_free_calls_per_era().saturating_sub(calls_used.count),
+                        Self::individual_token_era_limit().saturating_sub(calls_used.count),
                         total_free_calls.saturating_sub(calls_used.count),
                     );
                 } else {
-                    return min(Self::max_free_calls_per_era(), total_free_calls);
+                    return min(Self::individual_token_era_limit(), total_free_calls);
                 }
             };
 
-            return 0 as FreeCallCount;
+            0 as TokenCount
         }
 
-        /// Returns the number of free calls per era a user gets, or returns None if free calls are
-        /// disabled
-        pub fn max_free_calls_per_era() -> FreeCallCount {
+        /// Returns the max number of free call tokens a user can use per era
+        pub fn individual_token_era_limit() -> TokenCount {
             match Self::max_individual_free_calls_per_era() {
                 Some(n) => n,
-                None => FreeCallCount::MAX,
+                None => TokenCount::MAX,
             }
         }
 
-        /// Checks if free calls are enabled
-        fn free_calls_are_enabled() -> bool { Self::max_free_calls_per_era() != 0 as FreeCallCount }
+        /// Checks if free call tokens are enabled
+        fn free_call_tokens_are_enabled() -> bool {
+            Self::individual_token_era_limit() != 0 as TokenCount
+        }
     }
 
     /// Verifies that the account has free calls available before executing or broadcasting to other
@@ -423,8 +423,8 @@ pub mod pallet {
             // is there a way to do all this shit better?
             if let Some(local_call) = call.is_sub_type() {
                 if let Call::try_free_call { .. } = local_call {
-                    if Pallet::<T>::free_calls_are_enabled()
-                        && Pallet::<T>::free_calls_remaining(who) != 0
+                    if Pallet::<T>::free_call_tokens_are_enabled()
+                        && Pallet::<T>::tokens_usable_this_era(who) != 0
                     {
                         return Ok(ValidTransaction::default());
                     }

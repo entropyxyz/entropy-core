@@ -13,9 +13,9 @@ fn try_free_call_works() {
         // must be in an era for free calls to be enabled
         start_active_era(1);
         // enable free calls (1 free call per era)
-        FreeCallData::<Test>::insert(
+        TokenAccountData::<Test>::insert(
             1,
-            FreeCallMetadata {
+            TokenBalances {
                 rechargable_calls: 1,
                 one_time_calls_remaining: 0,
                 calls_used: RecentCallCount { latest_era: 0, count: 0 },
@@ -37,9 +37,9 @@ fn try_free_call_errors_when_child_call_errors() {
         // must be in an era for free calls to be enabled
         start_active_era(1);
         // enable free calls (1 free call per era)
-        FreeCallData::<Test>::insert(
+        TokenAccountData::<Test>::insert(
             1,
-            FreeCallMetadata {
+            TokenBalances {
                 rechargable_calls: 1,
                 one_time_calls_remaining: 0,
                 calls_used: RecentCallCount { latest_era: 0, count: 0 },
@@ -65,9 +65,9 @@ fn try_free_call_errors_when_no_free_calls_left() {
         // must be in an era for free calls to be enabled
         start_active_era(1);
         // enable free calls (1 free call per era)
-        FreeCallData::<Test>::insert(
+        TokenAccountData::<Test>::insert(
             1,
-            FreeCallMetadata {
+            TokenBalances {
                 rechargable_calls: 1,
                 one_time_calls_remaining: 0,
                 calls_used: RecentCallCount { latest_era: 0, count: 0 },
@@ -99,16 +99,16 @@ fn try_free_call_still_consumes_a_free_call_on_child_fail() {
         // must be in an era for free calls to be enabled
         start_active_era(1);
         // enable free calls (1 free call per era)
-        FreeCallData::<Test>::insert(
+        TokenAccountData::<Test>::insert(
             1,
-            FreeCallMetadata {
+            TokenBalances {
                 rechargable_calls: 1,
                 one_time_calls_remaining: 0,
                 calls_used: RecentCallCount { latest_era: 0, count: 0 },
             },
         );
         // user gets 1 free call by default
-        assert_eq!(FreeTx::free_calls_remaining(&1u64), 1 as FreeCallCount);
+        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 1 as TokenCount);
 
         // choose a child call that will fail
         let call = Box::new(Call::System(SystemCall::kill_storage {
@@ -121,7 +121,7 @@ fn try_free_call_still_consumes_a_free_call_on_child_fail() {
         assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_child_error);
 
         // make sure free call was still consumed
-        assert_eq!(FreeTx::free_calls_remaining(&1u64), 0 as FreeCallCount);
+        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 0 as TokenCount);
     });
 }
 
@@ -132,26 +132,26 @@ fn free_calls_refresh_every_era() {
         start_active_era(1);
 
         // enable free calls via extrinsic
-        FreeCallData::<Test>::insert(
+        TokenAccountData::<Test>::insert(
             1,
-            FreeCallMetadata {
+            TokenBalances {
                 rechargable_calls: 5,
                 one_time_calls_remaining: 0,
                 calls_used: RecentCallCount { latest_era: 0, count: 0 },
             },
         );
-        assert_eq!(FreeTx::free_calls_remaining(&1u64), 5 as FreeCallCount);
+        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 5 as TokenCount);
 
         // make a call that works, check call is used
         let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
         assert_ok!(FreeTx::try_free_call(Origin::signed(1), call));
-        assert_eq!(FreeTx::free_calls_remaining(&1u64), 4 as FreeCallCount);
+        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 4 as TokenCount);
 
         // start a new era
         start_active_era(2);
 
         // make sure call count is refreshed
-        assert_eq!(FreeTx::free_calls_remaining(&1u64), 5 as FreeCallCount);
+        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 5 as TokenCount);
     });
 }
 
@@ -162,7 +162,7 @@ fn free_calls_disabled_by_default() {
         start_active_era(1);
 
         // make sure we have no free calls
-        assert_eq!(FreeTx::free_calls_remaining(&1u64), 0 as FreeCallCount);
+        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 0 as TokenCount);
 
         // make sure it fails bc free calls are disabled
         let call =

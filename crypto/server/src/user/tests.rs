@@ -23,7 +23,7 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 #[serial]
 async fn test_store_share() {
     let alice = AccountKeyring::Alice;
-    let key: AccountId32 = alice.to_account_id().into();
+    let key: AccountId32 = alice.to_account_id();
     let value = vec![10];
 
     let cxt = test_context_stationary().await;
