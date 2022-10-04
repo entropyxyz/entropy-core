@@ -201,8 +201,8 @@ pub mod pallet {
         }
 
         /// Give the recipient some one-time free calls
-        #[pallet::weight(<T as crate::Config>::WeightInfo::give_fixed_calls())]
-        pub fn give_fixed_calls(
+        #[pallet::weight(<T as crate::Config>::WeightInfo::give_one_time_calls())]
+        pub fn give_one_time_calls(
             origin: OriginFor<T>,
             recipient: T::AccountId,
             call_count: FreeCallCount,
@@ -271,7 +271,7 @@ pub mod pallet {
                             spend_call(data);
                         };
 
-                        let spend_fixed_call = |data: &mut FreeCallMetadata| {
+                        let spend_one_time_call = |data: &mut FreeCallMetadata| {
                             let count = data.one_time_calls_remaining;
 
                             data.one_time_calls_remaining =
@@ -291,7 +291,7 @@ pub mod pallet {
                                         || (data.calls_used.latest_era < current_era_index)))
                             };
 
-                        let user_can_spend_fixed_calls =
+                        let user_can_spend_one_time_calls =
                             |data: &mut FreeCallMetadata| -> Result<bool, Error<T>> {
                                 let user_has_free_calls_to_spend =
                                     !user_has_spent_more_free_calls_than_max_this_era(data)?;
@@ -304,8 +304,8 @@ pub mod pallet {
                         // everything boils down this...
                         if user_can_use_rechargable_calls(current_call_data)? {
                             use_rechargable_call(current_call_data);
-                        } else if user_can_spend_fixed_calls(current_call_data)? {
-                            spend_fixed_call(current_call_data);
+                        } else if user_can_spend_one_time_calls(current_call_data)? {
+                            spend_one_time_call(current_call_data);
                         } else {
                             return Err(Error::<T>::NoFreeCallsAvailable);
                         }

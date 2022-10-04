@@ -35,7 +35,7 @@ pub trait WeightInfo {
 	fn try_free_call() -> Weight;
 	fn set_max_free_calls_per_era() -> Weight;
 	fn set_rechargable_call_count() -> Weight;
-	fn give_fixed_calls() -> Weight;
+	fn give_one_time_calls() -> Weight;
 }
 
 /// Weight functions for `pallet_free_tx`.
@@ -60,7 +60,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 
-	fn give_fixed_calls() -> Weight {
+	fn give_one_time_calls() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
@@ -90,7 +90,7 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
 
-	fn give_fixed_calls() -> Weight {
+	fn give_one_time_calls() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))

@@ -43,7 +43,7 @@ impl<T: frame_system::Config> pallet_free_tx::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	// TODO
-	fn give_fixed_calls() -> Weight {
+	fn give_one_time_calls() -> Weight {
 		(0 as Weight)
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
