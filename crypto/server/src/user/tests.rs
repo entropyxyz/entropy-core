@@ -23,6 +23,7 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 #[rocket::async_test]
 #[serial]
 async fn test_store_share() {
+	clean_tests();
     let alice = AccountKeyring::Alice;
     let key: AccountId32 = alice.to_account_id().into();
     let value = vec![10];
@@ -45,28 +46,27 @@ async fn test_store_share() {
     // signal registering
     make_register(&api, &alice).await;
 
-    let response = client
+    let response_2 = client
         .post("/user/new")
         .header(ContentType::JSON)
         .body(serde_json::to_string(&user_input.clone()).unwrap())
         .dispatch()
         .await;
 
-    assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response.into_string().await, None);
+    assert_eq!(response_2.status(), Status::Ok);
+    assert_eq!(response_2.into_string().await, None);
+	// make sure there is now one confirmation
+    check_if_confirmation(&api, &alice).await;
 
-    check_if_registered(&api, &alice).await;
-
-    make_register(&api, &alice).await;
     // fails to add already added share
-    let response = client
+    let response_3 = client
         .post("/user/new")
         .header(ContentType::JSON)
         .body(serde_json::to_string(&user_input).unwrap())
         .dispatch()
         .await;
 
-    assert_eq!(response.status(), Status::InternalServerError);
+    assert_eq!(response_3.status(), Status::InternalServerError);
 
     clean_tests();
 }
@@ -123,7 +123,7 @@ pub async fn make_register(api: &EntropyRuntime, alice: &Sr25519Keyring) {
     let signer = PairSigner::new(alice.pair());
     let is_registering_1 =
         api.storage().relayer().registering(&alice.to_account_id(), None).await.unwrap();
-    assert_eq!(is_registering_1.unwrap().is_registering, false);
+    assert_eq!(is_registering_1.is_none(), true);
     api.tx()
         .relayer()
         .register()
@@ -141,11 +141,13 @@ pub async fn make_register(api: &EntropyRuntime, alice: &Sr25519Keyring) {
     assert_eq!(is_registering_2.unwrap().is_registering, true);
 }
 
-pub async fn check_if_registered(api: &EntropyRuntime, alice: &Sr25519Keyring) {
+pub async fn check_if_confirmation(api: &EntropyRuntime, alice: &Sr25519Keyring) {
     let is_registering =
         api.storage().relayer().registering(&alice.to_account_id(), None).await.unwrap();
-    assert_eq!(is_registering.is_none(), true);
+	// make sure there is one confirmation
+    assert_eq!(is_registering.unwrap().confirmations.len(), 1);
     let is_registered =
         api.storage().relayer().registered(&alice.to_account_id(), None).await.unwrap();
-    assert_eq!(is_registered.unwrap(), true);
+	// still not registered need more confirmations
+    assert_eq!(is_registered.is_none(), true);
 }
