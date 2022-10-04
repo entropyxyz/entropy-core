@@ -52,7 +52,7 @@ pub mod pallet {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type PruneBlock: Get<Self::BlockNumber>;
-		type SigningPartySize: Get<usize>;
+        type SigningPartySize: Get<usize>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }

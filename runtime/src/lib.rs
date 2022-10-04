@@ -1171,7 +1171,7 @@ parameter_types! {
 impl pallet_relayer::Config for Runtime {
     type Event = Event;
     type PruneBlock = PruneBlock;
-	type SigningPartySize = SigningPartySize;
+    type SigningPartySize = SigningPartySize;
     type WeightInfo = weights::pallet_relayer::WeightInfo<Runtime>;
 }
 

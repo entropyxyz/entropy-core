@@ -20,4 +20,3 @@ pub const SIGNING_PARTY_SIZE: usize = 2;
 // TODO: fix and change back
 #[cfg(not(test))]
 pub const SIGNING_PARTY_SIZE: usize = 2;
-

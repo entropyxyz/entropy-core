@@ -38,19 +38,16 @@ pub async fn new_user(
     state.kv().put(reservation, value).await?;
 
     let signer = get_signer(state).await.unwrap();
-	let subgroup = get_subgroup(&api, &signer).await.unwrap().unwrap();
+    let subgroup = get_subgroup(&api, &signer).await.unwrap().unwrap();
     // TODO: Error handling really complex needs to be thought about.
     confirm_registered(&api, key, subgroup, &signer).await.unwrap();
 
     Ok(Status::Ok)
 }
 
-pub async fn is_registering(
-    api: &EntropyRuntime,
-    who: &AccountId32,
-) -> Result<bool, UserErr> {
+pub async fn is_registering(api: &EntropyRuntime, who: &AccountId32) -> Result<bool, UserErr> {
     let is_registering = api.storage().relayer().registering(who, None).await.unwrap();
-	if is_registering.is_none() {
+    if is_registering.is_none() {
         return Err(UserErr::NotRegistering("Register Onchain first"));
     }
     Ok(is_registering.unwrap().is_registering)
@@ -89,7 +86,7 @@ pub async fn get_subgroup(
 pub async fn confirm_registered(
     api: &EntropyRuntime,
     who: AccountId32,
-	subgroup: u8,
+    subgroup: u8,
     signer: &subxt::PairSigner<DefaultConfig, sr25519::Pair>,
 ) -> Result<(), subxt::Error<entropy::DispatchError>> {
     // TODO error handling + return error

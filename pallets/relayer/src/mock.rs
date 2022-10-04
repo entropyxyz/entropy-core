@@ -282,7 +282,7 @@ parameter_types! {
 impl pallet_relayer::Config for Test {
     type Event = Event;
     type PruneBlock = PruneBlock;
-	type SigningPartySize = SigningPartySize;
+    type SigningPartySize = SigningPartySize;
     type WeightInfo = ();
 }
 
