@@ -16,9 +16,9 @@ fn try_free_call_works() {
         TokenAccountData::<Test>::insert(
             1,
             TokenBalances {
-                rechargable_calls: 1,
-                one_time_calls_remaining: 0,
-                calls_used: RecentCallCount { latest_era: 0, count: 0 },
+                rechargable_tokens: 1,
+                one_time_tokens_remaining: 0,
+                tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
             },
         );
 
@@ -27,7 +27,7 @@ fn try_free_call_works() {
         assert_ok!(FreeTx::try_free_call(Origin::signed(1), call));
 
         // Make sure the free call succeeded and event was emitted without an error
-        System::assert_has_event(TestEvent::FreeTx(Event::FreeCallIssued(1, Ok(()))));
+        System::assert_has_event(TestEvent::FreeTx(Event::FreeTokenUsed(1, Ok(()))));
     });
 }
 
@@ -40,9 +40,9 @@ fn try_free_call_errors_when_child_call_errors() {
         TokenAccountData::<Test>::insert(
             1,
             TokenBalances {
-                rechargable_calls: 1,
-                one_time_calls_remaining: 0,
-                calls_used: RecentCallCount { latest_era: 0, count: 0 },
+                rechargable_tokens: 1,
+                one_time_tokens_remaining: 0,
+                tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
             },
         );
         // this call will throw an error
@@ -55,7 +55,7 @@ fn try_free_call_errors_when_child_call_errors() {
         assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_error);
 
         // Make sure emitted event also contains the child error
-        System::assert_has_event(TestEvent::FreeTx(Event::FreeCallIssued(1, Err(expected_error))));
+        System::assert_has_event(TestEvent::FreeTx(Event::FreeTokenUsed(1, Err(expected_error))));
     });
 }
 
@@ -68,9 +68,9 @@ fn try_free_call_errors_when_no_free_calls_left() {
         TokenAccountData::<Test>::insert(
             1,
             TokenBalances {
-                rechargable_calls: 1,
-                one_time_calls_remaining: 0,
-                calls_used: RecentCallCount { latest_era: 0, count: 0 },
+                rechargable_tokens: 1,
+                one_time_tokens_remaining: 0,
+                tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
             },
         );
         // user gets 1 free call by default, lets use it
@@ -78,7 +78,7 @@ fn try_free_call_errors_when_no_free_calls_left() {
         assert_ok!(FreeTx::try_free_call(Origin::signed(1), call));
 
         // Make sure the child call worked
-        System::assert_last_event(TestEvent::FreeTx(Event::FreeCallIssued(1, Ok(()))));
+        System::assert_last_event(TestEvent::FreeTx(Event::FreeTokenUsed(1, Ok(()))));
 
         // try to do another free call when user has no free calls left
         let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
@@ -87,7 +87,7 @@ fn try_free_call_errors_when_no_free_calls_left() {
         let expected_error = DispatchError::Module(ModuleError {
             index: 8,
             error: [1, 0, 0, 0],
-            message: Some("NoFreeCallsAvailable"),
+            message: Some("NoTokensAvailable"),
         });
         assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_error);
     });
@@ -102,9 +102,9 @@ fn try_free_call_still_consumes_a_free_call_on_child_fail() {
         TokenAccountData::<Test>::insert(
             1,
             TokenBalances {
-                rechargable_calls: 1,
-                one_time_calls_remaining: 0,
-                calls_used: RecentCallCount { latest_era: 0, count: 0 },
+                rechargable_tokens: 1,
+                one_time_tokens_remaining: 0,
+                tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
             },
         );
         // user gets 1 free call by default
@@ -135,9 +135,9 @@ fn free_calls_refresh_every_era() {
         TokenAccountData::<Test>::insert(
             1,
             TokenBalances {
-                rechargable_calls: 5,
-                one_time_calls_remaining: 0,
-                calls_used: RecentCallCount { latest_era: 0, count: 0 },
+                rechargable_tokens: 5,
+                one_time_tokens_remaining: 0,
+                tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
             },
         );
         assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 5 as TokenCount);
@@ -170,7 +170,7 @@ fn free_calls_disabled_by_default() {
         let expected_error = DispatchError::Module(ModuleError {
             index: 8,
             error: [1, 0, 0, 0],
-            message: Some("NoFreeCallsAvailable"),
+            message: Some("NoTokensAvailable"),
         });
         assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_error);
     });
