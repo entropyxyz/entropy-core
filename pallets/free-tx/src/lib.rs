@@ -65,9 +65,9 @@ pub mod pallet {
         pub count: TokenCount,
     }
 
-    #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
     /// Keeps track of the number of free tokens a user has and the number of free tokens they've
     /// used this era
+    #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
     pub struct TokenBalances {
         pub rechargable_tokens: TokenCount,
         pub one_time_tokens_remaining: TokenCount,
@@ -78,11 +78,11 @@ pub mod pallet {
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
-    /// Maximum number of free calls a user can use per era.
+    /// Maximum number of tokens a user can use per era.
     ///
-    /// `None`: users can use as many free calls as they own.
-    /// `Some(0)`: free calls are disabled.
-    /// `Some(n)`: users can use up to `n` free calls per era
+    /// `None`: users can use as many tokens as they own.
+    /// `Some(0)`: tokens are disabled.
+    /// `Some(n)`: users can use up to `n` tokens per era
     #[pallet::storage]
     #[pallet::getter(fn max_individual_token_usage_per_era)]
     pub type MaxIndividualTokenUsagePerEra<T: Config> = StorageValue<_, TokenCount>;
@@ -96,7 +96,7 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// A user used a free call to dispatch a transaction; the account did not pay any
+        /// A user used a token to dispatch a transaction; the account did not pay any
         /// transaction fees.
         FreeTokenUsed(T::AccountId, DispatchResult),
     }
@@ -124,13 +124,13 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Try to call an extrinsic using the account's available free calls.
+        /// Try to call an extrinsic using the account's available tokens.
         ///
-        /// If free calls are available, a free call is used and the account will pay zero tx fees,
+        /// If tokens are available, a token is used and the account will pay zero tx fees,
         /// regardless of the call's result.
         ///
-        /// If no free calls are available, account pays the stupidity fee of ((base fee) +
-        /// (WeightAsFee for querying free calls)).
+        /// If no tokens are available, account pays the stupidity fee of ((base fee) +
+        /// (WeightAsFee for querying tokens)).
         #[pallet::weight({
       let dispatch_info = call.get_dispatch_info();
       let base_weight = <T as Config>::WeightInfo::try_free_call();
@@ -152,9 +152,8 @@ pub mod pallet {
             res
         }
 
-        /// Sets the number of free calls each account gets per era.
-        /// To disable free calls, set this to `0`.
-        /// TODO: weight
+        /// Put a cap on the number of tokens individual accounts can use per era.
+        /// To disable token usage, set this to `0`.
         #[pallet::weight(<T as crate::Config>::WeightInfo::set_individual_token_era_limit())]
         pub fn set_individual_token_era_limit(
             origin: OriginFor<T>,
@@ -196,7 +195,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Give the recipient some one-time free calls
+        /// Give the recipient some one-time tokens
         #[pallet::weight(<T as crate::Config>::WeightInfo::give_one_time_use_tokens())]
         pub fn give_one_time_use_tokens(
             origin: OriginFor<T>,
@@ -224,10 +223,9 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        // TODO make sure this is right before moving on
-        // if OK(()), a free call for the provided account was available and was consumed
+        // if OK(()), a token for the provided account was available
         pub fn try_consume_free_call(account_id: &<T>::AccountId) -> Result<(), Error<T>> {
-            // gets max free call count per era or return error if free calls are disabled
+            // gets max token count per era or return error if tokens are disabled
             let max_free_call_count_per_era = Self::individual_token_era_limit();
             if max_free_call_count_per_era == 0 as TokenCount {
                 return Err(Error::<T>::TokenUsageDisabled);
@@ -237,7 +235,7 @@ pub mod pallet {
                 let current_era_index = pallet_staking::Pallet::<T>::current_era().unwrap();
 
                 match call_data {
-                    // User has at least had free calls at some point
+                    // User has at least had tokens at some point
                     Some(current_call_data) => {
                         let era_index_is_current = |data: &mut TokenBalances| -> bool {
                             data.tokens_used.latest_era == current_era_index
@@ -306,7 +304,7 @@ pub mod pallet {
                             return Err(Error::<T>::NoTokensAvailable);
                         }
                     },
-                    // if None, then account has no free calls to use
+                    // if None, then account has no tokens to use
                     None => return Err(Error::<T>::NoTokensAvailable),
                 };
                 Ok(())
@@ -315,13 +313,13 @@ pub mod pallet {
             // Ok(())
         }
 
-        /// Returns number of free call tokens a user can use this era
+        /// Returns number of tokens a user can use this era
         pub fn tokens_usable_this_era(account_id: &<T>::AccountId) -> TokenCount {
             if !Self::free_call_tokens_are_enabled() {
                 return 0 as TokenCount;
             }
 
-            // if the free call count was last updated this era, return however many free calls they
+            // if the token count was last updated this era, return however many tokens they
             // have left
             if let Some(data) = Self::free_call_data(account_id) {
                 let TokenBalances { rechargable_tokens, one_time_tokens_remaining, tokens_used } =
@@ -344,7 +342,7 @@ pub mod pallet {
             0 as TokenCount
         }
 
-        /// Returns the max number of free call tokens a user can use per era
+        /// Returns the max number of tokens a user can use per era
         pub fn individual_token_era_limit() -> TokenCount {
             match Self::max_individual_token_usage_per_era() {
                 Some(n) => n,
@@ -352,13 +350,13 @@ pub mod pallet {
             }
         }
 
-        /// Checks if free call tokens are enabled
+        /// Checks if tokens are enabled
         fn free_call_tokens_are_enabled() -> bool {
             Self::individual_token_era_limit() != 0 as TokenCount
         }
     }
 
-    /// Verifies that the account has free calls available before executing or broadcasting to other
+    /// Verifies that the account has tokens available before executing or broadcasting to other
     /// validators.
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
