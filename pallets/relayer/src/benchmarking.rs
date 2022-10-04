@@ -3,6 +3,7 @@
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
 use frame_support::traits::{Get, OnInitialize};
 use frame_system::{EventRecord, RawOrigin};
+use substrate_common::SigRequest;
 
 use super::*;
 #[allow(unused)]
@@ -45,7 +46,7 @@ benchmarks! {
 
   }:  _(RawOrigin::Signed(caller.clone()))
   verify {
-    assert_last_event::<T>(Event::AccountRegistered(caller).into());
+    assert_last_event::<T>(Event::SignalRegister(caller).into());
   }
 
   //TODO: Confirm done (for thor)
