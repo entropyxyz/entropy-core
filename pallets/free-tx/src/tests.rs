@@ -13,7 +13,14 @@ fn try_free_call_works() {
         // must be in an era for free calls to be enabled
         start_active_era(1);
         // enable free calls (1 free call per era)
-        FreeCallsPerEra::<Test>::put(1 as FreeCallCount);
+        FreeCallData::<Test>::insert(
+            1,
+            FreeCallMetadata {
+                rechargable_calls: 1,
+                one_time_calls_remaining: 0,
+                calls_used: RecentCallCount { latest_era: 0, count: 0 },
+            },
+        );
 
         // Dispatch a free call
         let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
@@ -30,8 +37,14 @@ fn try_free_call_errors_when_child_call_errors() {
         // must be in an era for free calls to be enabled
         start_active_era(1);
         // enable free calls (1 free call per era)
-        FreeCallsPerEra::<Test>::put(1 as FreeCallCount);
-
+        FreeCallData::<Test>::insert(
+            1,
+            FreeCallMetadata {
+                rechargable_calls: 1,
+                one_time_calls_remaining: 0,
+                calls_used: RecentCallCount { latest_era: 0, count: 0 },
+            },
+        );
         // this call will throw an error
         let call = Box::new(Call::System(SystemCall::kill_storage {
             keys: vec![b"this call will fail".to_vec()],
@@ -52,8 +65,14 @@ fn try_free_call_errors_when_no_free_calls_left() {
         // must be in an era for free calls to be enabled
         start_active_era(1);
         // enable free calls (1 free call per era)
-        FreeCallsPerEra::<Test>::put(1 as FreeCallCount);
-
+        FreeCallData::<Test>::insert(
+            1,
+            FreeCallMetadata {
+                rechargable_calls: 1,
+                one_time_calls_remaining: 0,
+                calls_used: RecentCallCount { latest_era: 0, count: 0 },
+            },
+        );
         // user gets 1 free call by default, lets use it
         let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
         assert_ok!(FreeTx::try_free_call(Origin::signed(1), call));
@@ -80,8 +99,14 @@ fn try_free_call_still_consumes_a_free_call_on_child_fail() {
         // must be in an era for free calls to be enabled
         start_active_era(1);
         // enable free calls (1 free call per era)
-        FreeCallsPerEra::<Test>::put(1 as FreeCallCount);
-
+        FreeCallData::<Test>::insert(
+            1,
+            FreeCallMetadata {
+                rechargable_calls: 1,
+                one_time_calls_remaining: 0,
+                calls_used: RecentCallCount { latest_era: 0, count: 0 },
+            },
+        );
         // user gets 1 free call by default
         assert_eq!(FreeTx::free_calls_remaining(&1u64), 1 as FreeCallCount);
 
@@ -107,7 +132,14 @@ fn free_calls_refresh_every_era() {
         start_active_era(1);
 
         // enable free calls via extrinsic
-        let _ = FreeTx::set_max_free_calls_per_era(Origin::signed(1), 5);
+        FreeCallData::<Test>::insert(
+            1,
+            FreeCallMetadata {
+                rechargable_calls: 5,
+                one_time_calls_remaining: 0,
+                calls_used: RecentCallCount { latest_era: 0, count: 0 },
+            },
+        );
         assert_eq!(FreeTx::free_calls_remaining(&1u64), 5 as FreeCallCount);
 
         // make a call that works, check call is used
@@ -137,8 +169,8 @@ fn free_calls_disabled_by_default() {
             Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks2".to_vec() }));
         let expected_error = DispatchError::Module(ModuleError {
             index: 8,
-            error: [0, 0, 0, 0],
-            message: Some("FreeCallsDisabled"),
+            error: [1, 0, 0, 0],
+            message: Some("NoFreeCallsAvailable"),
         });
         assert_err!(FreeTx::try_free_call(Origin::signed(1), call), expected_error);
     });
