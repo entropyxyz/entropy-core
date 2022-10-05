@@ -33,9 +33,9 @@ use sp_std::marker::PhantomData;
 
 pub trait WeightInfo {
 	fn call_using_electricity() -> Weight;
-	fn set_individual_token_era_limit() -> Weight;
-	fn set_rechargable_token_balance() -> Weight;
-	fn give_one_time_use_tokens() -> Weight;
+	fn set_individual_electricity_era_limit() -> Weight;
+	fn set_battery_count() -> Weight;
+	fn give_zaps() -> Weight;
 }
 
 /// Weight functions for `pallet_free_tx`.
@@ -48,19 +48,19 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 
-	fn set_individual_token_era_limit() -> Weight {
+	fn set_individual_electricity_era_limit() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 
-	fn set_rechargable_token_balance() -> Weight {
+	fn set_battery_count() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 
-	fn give_one_time_use_tokens() -> Weight {
+	fn give_zaps() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
@@ -78,19 +78,19 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
 
-	fn set_individual_token_era_limit() -> Weight {
+	fn set_individual_electricity_era_limit() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
 
-	fn set_rechargable_token_balance() -> Weight {
+	fn set_battery_count() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
 
-	fn give_one_time_use_tokens() -> Weight {
+	fn give_zaps() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))

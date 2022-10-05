@@ -14,53 +14,53 @@ benchmarks! {
   call_using_electricity {
     let caller: T::AccountId = whitelisted_caller();
 
-    <TokenAccountData<T>>::insert(
+    <ElectricalAccount<T>>::insert(
       caller.clone(),
-      TokenBalances {
-          rechargable_tokens: 1,
-          one_time_tokens_remaining: 0,
-          tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
+      ElectricalPanel {
+          batteries: 1,
+          zaps: 0,
+          used: ElectricityMeter { latest_era: 0, count: 0 },
       },
   );
 
     let call: <T as Config>::Call = frame_system::Call::<T>::remark { remark: b"entropy rocks".to_vec() }.into();
   }: _(RawOrigin::Signed(caller.clone()), Box::new(call))
   verify {
-    assert!(<TokenAccountData<T>>::get(caller).unwrap().tokens_used.count == 1);
+    assert!(<ElectricalAccount<T>>::get(caller).unwrap().used.count == 1);
   }
-  set_individual_token_era_limit {
+  set_individual_electricity_era_limit {
     let origin = T::UpdateOrigin::successful_origin();
-    let free_tokens = 5 as TokenCount;
+    let coulombs = 5 as Coulombs;
   }: {
     assert_ok!(
-      <FreeTx<T>>::set_individual_token_era_limit(origin, free_tokens)
+      <FreeTx<T>>::set_individual_electricity_era_limit(origin, Some(coulombs))
     );
   }
   verify {
-    assert_eq!(MaxIndividualTokenUsagePerEra::<T>::get().unwrap(), free_tokens as TokenCount);
+    assert_eq!(MaxUserElectricityUsagePerEra::<T>::get().unwrap(), coulombs as Coulombs);
   }
-  set_rechargable_token_balance {
-    let origin = T::UpdateOrigin::successful_origin();
-    let whitelisted_caller: T::AccountId = whitelisted_caller();
-    let free_tokens = 5 as TokenCount;
-  }: {
-    assert_ok!(
-      <FreeTx<T>>::set_rechargable_token_balance(origin, whitelisted_caller.clone(), free_tokens)
-    );
-  }
-  verify {
-    assert_eq!(TokenAccountData::<T>::get(whitelisted_caller).unwrap().rechargable_tokens, free_tokens as TokenCount);
-  }
-  give_one_time_use_tokens{
+  set_battery_count {
     let origin = T::UpdateOrigin::successful_origin();
     let whitelisted_caller: T::AccountId = whitelisted_caller();
-    let free_tokens = 5 as TokenCount;
+    let coulombs = 5 as Coulombs;
   }: {
     assert_ok!(
-      <FreeTx<T>>::give_one_time_use_tokens(origin, whitelisted_caller.clone(), free_tokens)
+      <FreeTx<T>>::set_battery_count(origin, whitelisted_caller.clone(), coulombs)
     );
   }
   verify {
-    assert_eq!(TokenAccountData::<T>::get(whitelisted_caller).unwrap().one_time_tokens_remaining, free_tokens as TokenCount);
+    assert_eq!(ElectricalAccount::<T>::get(whitelisted_caller).unwrap().batteries, coulombs as Coulombs);
+  }
+  give_zaps{
+    let origin = T::UpdateOrigin::successful_origin();
+    let whitelisted_caller: T::AccountId = whitelisted_caller();
+    let coulombs = 5 as Coulombs;
+  }: {
+    assert_ok!(
+      <FreeTx<T>>::give_zaps(origin, whitelisted_caller.clone(), coulombs)
+    );
+  }
+  verify {
+    assert_eq!(ElectricalAccount::<T>::get(whitelisted_caller).unwrap().zaps, coulombs as Coulombs);
   }
 }

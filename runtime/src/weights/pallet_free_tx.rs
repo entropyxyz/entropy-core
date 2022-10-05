@@ -37,18 +37,18 @@ impl<T: frame_system::Config> pallet_free_tx::WeightInfo for WeightInfo<T> {
 	}
 	// Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
 	// Storage: FreeTx FreeCallsPerEra (r:0 w:1)
-	fn set_individual_token_era_limit() -> Weight {
+	fn set_individual_electricity_era_limit() -> Weight {
 		(4_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	// TODO
-	fn give_one_time_use_tokens() -> Weight {
+	fn give_zaps() -> Weight {
 		(0 as Weight)
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// TODO
-	fn set_rechargable_token_balance() -> Weight {
+	fn set_battery_count() -> Weight {
 		(0 as Weight)
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}

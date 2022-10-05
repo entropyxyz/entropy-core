@@ -13,12 +13,12 @@ fn call_using_electricity_works() {
         // must be in an era for free calls to be enabled
         start_active_era(1);
         // enable free calls (1 free call per era)
-        TokenAccountData::<Test>::insert(
+        ElectricalAccount::<Test>::insert(
             1,
-            TokenBalances {
-                rechargable_tokens: 1,
-                one_time_tokens_remaining: 0,
-                tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
+            ElectricalPanel {
+                batteries: 1,
+                zaps: 0,
+                used: ElectricityMeter { latest_era: 0, count: 0 },
             },
         );
 
@@ -27,7 +27,7 @@ fn call_using_electricity_works() {
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call));
 
         // Make sure the free call succeeded and event was emitted without an error
-        System::assert_has_event(TestEvent::FreeTx(Event::FreeTokenUsed(1, Ok(()))));
+        System::assert_has_event(TestEvent::FreeTx(Event::ElectricitySpent(1, Ok(()))));
     });
 }
 
@@ -37,12 +37,12 @@ fn call_using_electricity_errors_when_child_call_errors() {
         // must be in an era for free calls to be enabled
         start_active_era(1);
         // enable free calls (1 free call per era)
-        TokenAccountData::<Test>::insert(
+        ElectricalAccount::<Test>::insert(
             1,
-            TokenBalances {
-                rechargable_tokens: 1,
-                one_time_tokens_remaining: 0,
-                tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
+            ElectricalPanel {
+                batteries: 1,
+                zaps: 0,
+                used: ElectricityMeter { latest_era: 0, count: 0 },
             },
         );
         // this call will throw an error
@@ -55,22 +55,25 @@ fn call_using_electricity_errors_when_child_call_errors() {
         assert_err!(FreeTx::call_using_electricity(Origin::signed(1), call), expected_error);
 
         // Make sure emitted event also contains the child error
-        System::assert_has_event(TestEvent::FreeTx(Event::FreeTokenUsed(1, Err(expected_error))));
+        System::assert_has_event(TestEvent::FreeTx(Event::ElectricitySpent(
+            1,
+            Err(expected_error),
+        )));
     });
 }
 
 #[test]
-fn call_using_electricity_errors_when_no_tokens_available() {
+fn call_using_electricity_errors_when_no_coulombs_available() {
     ExtBuilder::default().build_and_execute(|| {
         // must be in an era for free calls to be enabled
         start_active_era(1);
         // enable free calls (1 free call per era)
-        TokenAccountData::<Test>::insert(
+        ElectricalAccount::<Test>::insert(
             1,
-            TokenBalances {
-                rechargable_tokens: 1,
-                one_time_tokens_remaining: 0,
-                tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
+            ElectricalPanel {
+                batteries: 1,
+                zaps: 0,
+                used: ElectricityMeter { latest_era: 0, count: 0 },
             },
         );
         // user gets 1 free call by default, lets use it
@@ -78,7 +81,7 @@ fn call_using_electricity_errors_when_no_tokens_available() {
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call));
 
         // Make sure the child call worked
-        System::assert_last_event(TestEvent::FreeTx(Event::FreeTokenUsed(1, Ok(()))));
+        System::assert_last_event(TestEvent::FreeTx(Event::ElectricitySpent(1, Ok(()))));
 
         // try to do another free call when user has no free calls left
         let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
@@ -87,28 +90,28 @@ fn call_using_electricity_errors_when_no_tokens_available() {
         let expected_error = DispatchError::Module(ModuleError {
             index: 8,
             error: [1, 0, 0, 0],
-            message: Some("NoTokensAvailable"),
+            message: Some("NoCoulombsAvailable"),
         });
         assert_err!(FreeTx::call_using_electricity(Origin::signed(1), call), expected_error);
     });
 }
 
 #[test]
-fn call_using_electricity_still_uses_a_token_on_child_fail() {
+fn call_using_electricity_still_uses_electricity_on_child_fail() {
     ExtBuilder::default().build_and_execute(|| {
         // must be in an era for free calls to be enabled
         start_active_era(1);
         // give one rechargable
-        TokenAccountData::<Test>::insert(
+        ElectricalAccount::<Test>::insert(
             1,
-            TokenBalances {
-                rechargable_tokens: 1,
-                one_time_tokens_remaining: 0,
-                tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
+            ElectricalPanel {
+                batteries: 1,
+                zaps: 0,
+                used: ElectricityMeter { latest_era: 0, count: 0 },
             },
         );
         // user gets 1 free call by default
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 1 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 1 as Coulombs);
 
         // choose a child call that will fail
         let call = Box::new(Call::System(SystemCall::kill_storage {
@@ -121,107 +124,107 @@ fn call_using_electricity_still_uses_a_token_on_child_fail() {
         assert_err!(FreeTx::call_using_electricity(Origin::signed(1), call), expected_child_error);
 
         // make sure free call was still consumed
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 0 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 0 as Coulombs);
     });
 }
 
 #[test]
-fn rechargable_tokens_refresh_every_era() {
+fn batteries_refresh_every_era() {
     ExtBuilder::default().build_and_execute(|| {
         start_active_era(1);
 
-        // enable tokens
-        TokenAccountData::<Test>::insert(
+        // enable electricity
+        ElectricalAccount::<Test>::insert(
             1,
-            TokenBalances {
-                rechargable_tokens: 5,
-                one_time_tokens_remaining: 0,
-                tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
+            ElectricalPanel {
+                batteries: 5,
+                zaps: 0,
+                used: ElectricityMeter { latest_era: 0, count: 0 },
             },
         );
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 5 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 5 as Coulombs);
 
         // make a call that works, check call is used
         let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call));
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 4 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 4 as Coulombs);
 
         // start a new era
         start_active_era(2);
 
         // make sure call count is refreshed
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 5 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 5 as Coulombs);
     });
 }
 
 #[test]
-fn one_time_tokens_are_consumed_and_not_recharged() {
+fn one_time_coulombs_are_consumed_and_not_recharged() {
     ExtBuilder::default().build_and_execute(|| {
         start_active_era(1);
 
-        // give some tokens
-        TokenAccountData::<Test>::insert(
+        // give some coulombs
+        ElectricalAccount::<Test>::insert(
             1,
-            TokenBalances {
-                rechargable_tokens: 0,
-                one_time_tokens_remaining: 5,
-                tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
+            ElectricalPanel {
+                batteries: 0,
+                zaps: 5,
+                used: ElectricityMeter { latest_era: 0, count: 0 },
             },
         );
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 5 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 5 as Coulombs);
 
         // make a call that works, check call is used
         let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call));
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 4 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 4 as Coulombs);
 
         // start a new era
         start_active_era(2);
 
         // make sure call count is refreshed
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 4 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 4 as Coulombs);
     });
 }
 
 #[test]
-fn user_has_no_free_tokens_by_default() {
+fn user_has_no_free_coulombs_by_default() {
     ExtBuilder::default().build_and_execute(|| {
         start_active_era(1);
 
         // make sure we have no free calls
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 0 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 0 as Coulombs);
 
-        // make sure it fails bc tokens are disabled
+        // make sure it fails bc coulombs are disabled
         let call =
             Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks2".to_vec() }));
         let expected_error = DispatchError::Module(ModuleError {
             index: 8,
             error: [1, 0, 0, 0],
-            message: Some("NoTokensAvailable"),
+            message: Some("NoCoulombsAvailable"),
         });
         assert_err!(FreeTx::call_using_electricity(Origin::signed(1), call), expected_error);
     });
 }
 
-// token limit works in middle of era
+// electricity limit works in middle of era
 #[test]
-fn set_individual_token_era_limit_works() {
+fn set_individual_electricity_era_limit_works() {
     ExtBuilder::default().build_and_execute(|| {
         start_active_era(1);
 
         // give 5 batteries
-        TokenAccountData::<Test>::insert(
+        ElectricalAccount::<Test>::insert(
             1,
-            TokenBalances {
-                rechargable_tokens: 0,
-                one_time_tokens_remaining: 3,
-                tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
+            ElectricalPanel {
+                batteries: 0,
+                zaps: 3,
+                used: ElectricityMeter { latest_era: 0, count: 0 },
             },
         );
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 3 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 3 as Coulombs);
 
         // disable electricity
-        FreeTx::set_individual_token_era_limit(Origin::signed(1), Some(0)).unwrap();
+        FreeTx::set_individual_electricity_era_limit(Origin::signed(1), Some(0)).unwrap();
 
         // make sure call fails bc electricity is disabled
         let call =
@@ -231,13 +234,13 @@ fn set_individual_token_era_limit_works() {
             DispatchError::Module(ModuleError {
                 index: 8,
                 error: [0, 0, 0, 0],
-                message: Some("TokenUsageDisabled"),
+                message: Some("ElectricityIsDisabled"),
             })
         );
 
         // enable electricity usage at 2 coulombs per user
-        FreeTx::set_individual_token_era_limit(Origin::signed(1), Some(2)).unwrap();
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 2 as TokenCount);
+        FreeTx::set_individual_electricity_era_limit(Origin::signed(1), Some(2)).unwrap();
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 2 as Coulombs);
 
         // have user use two coulombs, then make sure they get an error
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call.clone()));
@@ -247,36 +250,36 @@ fn set_individual_token_era_limit_works() {
             DispatchError::Module(ModuleError {
                 index: 8,
                 error: [2, 0, 0, 0],
-                message: Some("TokenEraLimitReached"),
+                message: Some("ElectricityEraLimitReached"),
             })
         );
 
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 0 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 0 as Coulombs);
 
         // start a new era
         start_active_era(2);
 
         // cap is 2, but user shuold only have 1 zap left
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 1 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 1 as Coulombs);
     });
 }
 
-// one-time tokens aren't touched until no more rechargable tokens are available
+// one-time coulombs aren't touched until no more batteries are available
 #[test]
 fn zaps_arent_used_until_all_batteries_are_used() {
     ExtBuilder::default().build_and_execute(|| {
         start_active_era(1);
 
         // give some electricity
-        TokenAccountData::<Test>::insert(
+        ElectricalAccount::<Test>::insert(
             1,
-            TokenBalances {
-                rechargable_tokens: 2,
-                one_time_tokens_remaining: 5,
-                tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
+            ElectricalPanel {
+                batteries: 2,
+                zaps: 5,
+                used: ElectricityMeter { latest_era: 0, count: 0 },
             },
         );
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 7 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 7 as Coulombs);
 
         // use two coulombs
         let call =
@@ -285,18 +288,18 @@ fn zaps_arent_used_until_all_batteries_are_used() {
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call.clone()));
 
         // make sure user hasn't used any zaps
-        let mut expected_balance = TokenBalances {
-            rechargable_tokens: 2,
-            one_time_tokens_remaining: 5,
-            tokens_used: RecentTokenUsage { latest_era: 1, count: 2 },
+        let mut expected_balance = ElectricalPanel {
+            batteries: 2,
+            zaps: 5,
+            used: ElectricityMeter { latest_era: 1, count: 2 },
         };
-        assert_eq!(TokenAccountData::<Test>::get(1).unwrap(), expected_balance);
+        assert_eq!(ElectricalAccount::<Test>::get(1).unwrap(), expected_balance);
 
         // doing another call will though:
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call.clone()));
-        expected_balance.one_time_tokens_remaining -= 1;
-        expected_balance.tokens_used.count += 1;
-        assert_eq!(TokenAccountData::<Test>::get(1).unwrap(), expected_balance);
+        expected_balance.zaps -= 1;
+        expected_balance.used.count += 1;
+        assert_eq!(ElectricalAccount::<Test>::get(1).unwrap(), expected_balance);
     });
 }
 
@@ -306,28 +309,28 @@ fn users_with_no_coulombs_get_errors() {
     ExtBuilder::default().build_and_execute(|| {
         let call =
             Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks2".to_vec() }));
-        let no_tokens_available_error = DispatchError::Module(ModuleError {
+        let no_coulombs_available_error = DispatchError::Module(ModuleError {
             index: 8,
             error: [1, 0, 0, 0],
-            message: Some("NoTokensAvailable"),
+            message: Some("NoCoulombsAvailable"),
         });
 
         // users by default have no electricity
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 0 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 0 as Coulombs);
         assert_err!(
             FreeTx::call_using_electricity(Origin::signed(1), call.clone()),
-            no_tokens_available_error
+            no_coulombs_available_error
         );
 
         // give user one zap
-        FreeTx::give_one_time_use_tokens(Origin::signed(1), 1, 1).unwrap();
+        FreeTx::give_zaps(Origin::signed(1), 1, 1).unwrap();
 
         // make sure after a user uses all their coulombs, they get an error
-        assert_eq!(FreeTx::tokens_usable_this_era(&1u64), 1 as TokenCount);
+        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 1 as Coulombs);
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call.clone()));
         assert_err!(
             FreeTx::call_using_electricity(Origin::signed(1), call.clone()),
-            no_tokens_available_error
+            no_coulombs_available_error
         );
     });
 }

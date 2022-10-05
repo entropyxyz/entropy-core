@@ -55,61 +55,62 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
 
-    /// Represents the unit of tokens
-    pub type TokenCount = u32;
+    /// Batteries and zaps are represented in the base unit of electricity: coulombs. One coulomb
+    /// can be used to do one action)
+    pub type Coulombs = u32;
 
-    /// Shows the number of tokens that were used in the previously used era
+    /// Shows the number of coulombs that were used in the previously used era
+    /// ie. `latest_era` stores the `EraIndex` that the count is valid for
     #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Debug, Eq, PartialEq)]
-    pub struct RecentTokenUsage {
+    pub struct ElectricityMeter {
         pub latest_era: EraIndex,
-        pub count: TokenCount,
+        pub count: Coulombs,
     }
 
-    /// Keeps track of the number of free tokens a user has and the number of free tokens they've
-    /// used this era
+    /// Keeps track of the electricity a user has and has spent this era
     #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Debug, Eq, PartialEq)]
-    pub struct TokenBalances {
-        pub rechargable_tokens: TokenCount,
-        pub one_time_tokens_remaining: TokenCount,
-        pub tokens_used: RecentTokenUsage,
+    pub struct ElectricalPanel {
+        pub batteries: Coulombs,
+        pub zaps: Coulombs,
+        pub used: ElectricityMeter,
     }
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
-    /// Maximum number of tokens a user can use per era.
+    /// Maximum number of coulombs a user can use per era.
     ///
-    /// `None`: users can use as many tokens as they own.
-    /// `Some(0)`: tokens are disabled.
-    /// `Some(n)`: users can use up to `n` tokens per era
+    /// `None`: users can use as many coulombs as they own.
+    /// `Some(0)`: coulombs are disabled.
+    /// `Some(n)`: users can use up to `n` coulombs per era
     #[pallet::storage]
-    #[pallet::getter(fn max_individual_token_usage_per_era)]
-    pub type MaxIndividualTokenUsagePerEra<T: Config> = StorageValue<_, TokenCount>;
+    #[pallet::getter(fn max_user_electricity_usage_per_era)]
+    pub type MaxUserElectricityUsagePerEra<T: Config> = StorageValue<_, Coulombs>;
 
-    /// Stores the type, number, and usage of tokens owned by a user.
+    /// Stores the balance of batteries, zaps, and usage of electricity of a user
     #[pallet::storage]
     #[pallet::getter(fn free_call_data)]
-    pub type TokenAccountData<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, TokenBalances, OptionQuery>;
+    pub type ElectricalAccount<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, ElectricalPanel, OptionQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// A user used a token to dispatch a transaction; the account did not pay any
+        /// A user spent electricity to dispatch a transaction; the account did not pay any
         /// transaction fees.
-        FreeTokenUsed(T::AccountId, DispatchResult),
+        ElectricitySpent(T::AccountId, DispatchResult),
     }
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Free token usage has been disabled
-        TokenUsageDisabled,
-        /// Account has no tokens left. Call the extrinsic directly or use
-        /// `try_token_or_pay()`
-        NoTokensAvailable,
-        /// Account has hit max number of tokens that can be used this era
-        TokenEraLimitReached,
+        /// Coulomb usage has been disabled
+        ElectricityIsDisabled,
+        /// Account has no coulombs left. Call the extrinsic directly or use
+        /// `call_using_electricity()`
+        NoCoulombsAvailable,
+        /// Account has hit max number of coulombs that can be used this era
+        ElectricityEraLimitReached,
         /// Are you fuzzing, or are you just dumb?
         WastingFreeCalls,
     }
@@ -124,19 +125,15 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Try to call an extrinsic using the account's available tokens.
+        /// Try to call an extrinsic using the account's available electricity.
         ///
-        /// If tokens are available, a token is used and the account will pay zero tx fees,
+        /// If electricity is available, a coulumb is used and the account will pay zero tx fees,
         /// regardless of the call's result.
-        ///
-        /// If no tokens are available, account pays the stupidity fee of ((base fee) +
-        /// (WeightAsFee for querying tokens)).
         #[pallet::weight({
-      let dispatch_info = call.get_dispatch_info();
-      let base_weight = <T as Config>::WeightInfo::call_using_electricity();
-      (base_weight.saturating_add(dispatch_info.weight), dispatch_info.class, Pays::No)
-      // (dispatch_info.weight.saturating_add(10_000), dispatch_info.class, Pays::No)
-    })]
+            let dispatch_info = call.get_dispatch_info();
+            let base_weight = <T as Config>::WeightInfo::call_using_electricity();
+            (base_weight.saturating_add(dispatch_info.weight), dispatch_info.class, Pays::No)
+        })]
         #[allow(clippy::boxed_local)]
         pub fn call_using_electricity(
             origin: OriginFor<T>,
@@ -144,51 +141,54 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
-            Self::try_consume_free_call(&sender)?;
+            Self::try_spend_coulomb(&sender)?;
 
             let res = call.dispatch(RawOrigin::Signed(sender.clone()).into());
-            Self::deposit_event(Event::FreeTokenUsed(sender, res.map(|_| ()).map_err(|e| e.error)));
+            Self::deposit_event(Event::ElectricitySpent(
+                sender,
+                res.map(|_| ()).map_err(|e| e.error),
+            ));
 
             res
         }
 
-        /// Put a cap on the number of tokens individual accounts can use per era.
-        /// To disable token usage, set this to `0`.
-        #[pallet::weight(<T as crate::Config>::WeightInfo::set_individual_token_era_limit())]
-        pub fn set_individual_token_era_limit(
+        /// Put a cap on the number of coulombs individual accounts can use per era.
+        /// To disable electricity temporary, set this to `0`.
+        #[pallet::weight(<T as crate::Config>::WeightInfo::set_individual_electricity_era_limit())]
+        pub fn set_individual_electricity_era_limit(
             origin: OriginFor<T>,
-            max_calls: Option<TokenCount>,
+            max_calls: Option<Coulombs>,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
 
             match max_calls {
-                Some(n) => MaxIndividualTokenUsagePerEra::<T>::put(n),
-                None => MaxIndividualTokenUsagePerEra::<T>::kill(),
+                Some(n) => MaxUserElectricityUsagePerEra::<T>::put(n),
+                None => MaxUserElectricityUsagePerEra::<T>::kill(),
             }
 
             Ok(())
         }
 
-        /// Set the number of rechargable call tokens an account has. Setting (vs giving) makes more
-        /// sense in this context.
-        #[pallet::weight(<T as crate::Config>::WeightInfo::set_rechargable_token_balance())]
-        pub fn set_rechargable_token_balance(
+        /// Set the number of batteries an account has. Since they are rechargable, setting (vs
+        /// giving) makes more sense in this context.
+        #[pallet::weight(<T as crate::Config>::WeightInfo::set_battery_count())]
+        pub fn set_battery_count(
             origin: OriginFor<T>,
             account: T::AccountId,
-            call_count: TokenCount,
+            battery_count: Coulombs,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
-            <TokenAccountData<T>>::mutate(
+            <ElectricalAccount<T>>::mutate(
                 &account,
-                |data: &mut Option<TokenBalances>| match data {
-                    Some(data) => {
-                        data.rechargable_tokens += call_count;
+                |electrical_panel: &mut Option<ElectricalPanel>| match electrical_panel {
+                    Some(electrical_panel) => {
+                        electrical_panel.batteries = battery_count;
                     },
                     None => {
-                        *data = Some(TokenBalances {
-                            rechargable_tokens: call_count,
-                            one_time_tokens_remaining: 0,
-                            tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
+                        *electrical_panel = Some(ElectricalPanel {
+                            batteries: battery_count,
+                            zaps: 0,
+                            used: ElectricityMeter { latest_era: 0, count: 0 },
                         });
                     },
                 },
@@ -196,25 +196,25 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Give the recipient some one-time tokens
-        #[pallet::weight(<T as crate::Config>::WeightInfo::give_one_time_use_tokens())]
-        pub fn give_one_time_use_tokens(
+        /// Give the recipient some zaps
+        #[pallet::weight(<T as crate::Config>::WeightInfo::give_zaps())]
+        pub fn give_zaps(
             origin: OriginFor<T>,
             recipient: T::AccountId,
-            call_count: TokenCount,
+            coulombs: Coulombs,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
-            <TokenAccountData<T>>::mutate(
+            <ElectricalAccount<T>>::mutate(
                 &recipient,
-                |data: &mut Option<TokenBalances>| match data {
-                    Some(data) => {
-                        data.one_time_tokens_remaining += call_count;
+                |electrical_panel: &mut Option<ElectricalPanel>| match electrical_panel {
+                    Some(electrical_panel) => {
+                        electrical_panel.zaps += coulombs;
                     },
                     None => {
-                        *data = Some(TokenBalances {
-                            rechargable_tokens: 0,
-                            one_time_tokens_remaining: call_count,
-                            tokens_used: RecentTokenUsage { latest_era: 0, count: 0 },
+                        *electrical_panel = Some(ElectricalPanel {
+                            batteries: 0,
+                            zaps: coulombs,
+                            used: ElectricityMeter { latest_era: 0, count: 0 },
                         });
                     },
                 },
@@ -224,92 +224,96 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        // if OK(()), a token for the provided account was available
-        pub fn try_consume_free_call(account_id: &<T>::AccountId) -> Result<(), Error<T>> {
-            // gets max token count per era or return error if tokens are disabled
-            let max_free_call_count_per_era = Self::individual_token_era_limit();
-            if max_free_call_count_per_era == 0 as TokenCount {
-                return Err(Error::<T>::TokenUsageDisabled);
+        // if OK(()), a electricity for the account was available
+        pub fn try_spend_coulomb(account_id: &<T>::AccountId) -> Result<(), Error<T>> {
+            // gets max coulombs per era or return error if electricity is disabled
+            let max_coulombs_per_era = Self::individual_electricity_era_limit();
+            if max_coulombs_per_era == 0 as Coulombs {
+                return Err(Error::<T>::ElectricityIsDisabled);
             }
 
-            <TokenAccountData<T>>::mutate(account_id, |call_data: &mut Option<TokenBalances>| {
+            <ElectricalAccount<T>>::mutate(account_id, |panel: &mut Option<ElectricalPanel>| {
                 let current_era_index = pallet_staking::Pallet::<T>::current_era().unwrap();
 
-                match call_data {
-                    // User has at least had tokens at some point
-                    Some(current_call_data) => {
-                        let era_index_is_current = |data: &mut TokenBalances| -> bool {
-                            data.tokens_used.latest_era == current_era_index
-                        };
+                match panel {
+                    // User has at least had electricity at some point
+                    Some(electrical_panel) => {
+                        let era_index_is_current =
+                            |electrical_panel: &mut ElectricalPanel| -> bool {
+                                electrical_panel.used.latest_era == current_era_index
+                            };
 
                         let user_has_spent_more_free_calls_than_max_this_era =
-                            |data: &mut TokenBalances| -> Result<bool, Error<T>> {
-                                if era_index_is_current(data)
-                                    && data.tokens_used.count >= max_free_call_count_per_era
+                            |electrical_panel: &mut ElectricalPanel| -> Result<bool, Error<T>> {
+                                if era_index_is_current(electrical_panel)
+                                    && electrical_panel.used.count >= max_coulombs_per_era
                                 {
-                                    return Err(Error::<T>::TokenEraLimitReached);
+                                    return Err(Error::<T>::ElectricityEraLimitReached);
                                 }
 
                                 Ok(false)
                             };
 
-                        let spend_call = |data: &mut TokenBalances| {
-                            if era_index_is_current(data) {
-                                data.tokens_used.count += 1;
+                        let spend_call = |electrical_panel: &mut ElectricalPanel| {
+                            if era_index_is_current(electrical_panel) {
+                                electrical_panel.used.count += 1;
                             } else {
-                                data.tokens_used =
-                                    RecentTokenUsage { latest_era: current_era_index, count: 1 }
+                                electrical_panel.used =
+                                    ElectricityMeter { latest_era: current_era_index, count: 1 }
                             }
                         };
 
-                        let use_rechargable_call = |data: &mut TokenBalances| {
-                            spend_call(data);
+                        let use_rechargable_call = |electrical_panel: &mut ElectricalPanel| {
+                            spend_call(electrical_panel);
                         };
 
-                        let spend_one_time_call = |data: &mut TokenBalances| {
-                            let count = data.one_time_tokens_remaining;
+                        let spend_one_time_call = |electrical_panel: &mut ElectricalPanel| {
+                            let count = electrical_panel.zaps;
 
-                            data.one_time_tokens_remaining =
-                                count.saturating_sub(1u32 as TokenCount);
-                            spend_call(data);
+                            electrical_panel.zaps = count.saturating_sub(1u32 as Coulombs);
+                            spend_call(electrical_panel);
                         };
 
-                        let user_can_use_rechargable_tokens =
-                            |data: &mut TokenBalances| -> Result<bool, Error<T>> {
+                        let user_can_use_batteries =
+                            |electrical_panel: &mut ElectricalPanel| -> Result<bool, Error<T>> {
                                 let user_has_free_calls_to_spend =
-                                    !user_has_spent_more_free_calls_than_max_this_era(data)?;
+                                    !user_has_spent_more_free_calls_than_max_this_era(
+                                        electrical_panel,
+                                    )?;
 
                                 Ok(user_has_free_calls_to_spend
-                                    && (data.rechargable_tokens > 0 as TokenCount)
-                                    && ((era_index_is_current(data)
-                                        && data.tokens_used.count < data.rechargable_tokens)
-                                        || (data.tokens_used.latest_era < current_era_index)))
+                                    && (electrical_panel.batteries > 0 as Coulombs)
+                                    && ((era_index_is_current(electrical_panel)
+                                        && electrical_panel.used.count
+                                            < electrical_panel.batteries)
+                                        || (electrical_panel.used.latest_era < current_era_index)))
                             };
 
                         let user_can_spend_one_time_calls =
-                            |data: &mut TokenBalances| -> Result<bool, Error<T>> {
+                            |electrical_panel: &mut ElectricalPanel| -> Result<bool, Error<T>> {
                                 let user_has_free_calls_to_spend =
-                                    !user_has_spent_more_free_calls_than_max_this_era(data)?;
+                                    !user_has_spent_more_free_calls_than_max_this_era(
+                                        electrical_panel,
+                                    )?;
 
                                 Ok(user_has_free_calls_to_spend
-                                    && data.one_time_tokens_remaining > 0
-                                    && ((era_index_is_current(data)
-                                        && data.tokens_used.count
-                                            < data.one_time_tokens_remaining)
-                                        || (data.tokens_used.latest_era < current_era_index)))
+                                    && electrical_panel.zaps > 0
+                                    && ((era_index_is_current(electrical_panel)
+                                        && electrical_panel.used.count < electrical_panel.zaps)
+                                        || (electrical_panel.used.latest_era < current_era_index)))
                             };
 
                         // everything boils down this...
-                        if user_can_use_rechargable_tokens(current_call_data)? {
-                            use_rechargable_call(current_call_data);
-                        } else if user_can_spend_one_time_calls(current_call_data)? {
-                            spend_one_time_call(current_call_data);
+                        if user_can_use_batteries(electrical_panel)? {
+                            use_rechargable_call(electrical_panel);
+                        } else if user_can_spend_one_time_calls(electrical_panel)? {
+                            spend_one_time_call(electrical_panel);
                         } else {
-                            return Err(Error::<T>::NoTokensAvailable);
+                            return Err(Error::<T>::NoCoulombsAvailable);
                         }
                     },
-                    // if None, then account has no tokens to use
-                    None => return Err(Error::<T>::NoTokensAvailable),
+                    // if None, then account has no coulombs to use
+                    None => return Err(Error::<T>::NoCoulombsAvailable),
                 };
                 Ok(())
             })
@@ -317,80 +321,77 @@ pub mod pallet {
             // Ok(())
         }
 
-        /// Returns number of tokens a user can use this era
-        pub fn tokens_usable_this_era(account_id: &<T>::AccountId) -> TokenCount {
-            if !Self::free_call_tokens_are_enabled() {
-                return 0 as TokenCount;
+        /// Returns number of coulombs a user can use this era
+        pub fn coulombs_usable_this_era(account_id: &<T>::AccountId) -> Coulombs {
+            if !Self::electricity_is_enabled() {
+                return 0 as Coulombs;
             }
 
-            // if the token count was last updated this era, return however many tokens they
+            // if the electricity was last used this era, return however many coulombs they
             // have left
             if let Some(data) = Self::free_call_data(account_id) {
-                let TokenBalances { rechargable_tokens, one_time_tokens_remaining, tokens_used } =
-                    data;
+                let ElectricalPanel { batteries, zaps, used } = data;
 
-                // TODO refactor era_index_is_current() out of try_consume_free_call() for reuse
+                // TODO refactor era_index_is_current() out of try_spend_coulomb() for reuse
                 // here.
-                if tokens_used.latest_era == pallet_staking::Pallet::<T>::current_era().unwrap() {
+                if used.latest_era == pallet_staking::Pallet::<T>::current_era().unwrap() {
                     return min(
-                        Self::individual_token_era_limit().saturating_sub(tokens_used.count),
-                        rechargable_tokens
-                            .saturating_sub(tokens_used.count)
-                            .saturating_add(one_time_tokens_remaining),
+                        Self::individual_electricity_era_limit().saturating_sub(used.count),
+                        batteries.saturating_sub(used.count).saturating_add(zaps),
                     );
                 } else {
                     return min(
-                        Self::individual_token_era_limit(),
-                        rechargable_tokens.saturating_add(one_time_tokens_remaining),
+                        Self::individual_electricity_era_limit(),
+                        batteries.saturating_add(zaps),
                     );
                 }
             };
 
-            0 as TokenCount
+            0 as Coulombs
         }
 
-        /// Returns the max number of tokens a user can use per era
-        pub fn individual_token_era_limit() -> TokenCount {
-            match Self::max_individual_token_usage_per_era() {
+        /// Returns the max number of coulombs a user can use per era
+        pub fn individual_electricity_era_limit() -> Coulombs {
+            match Self::max_user_electricity_usage_per_era() {
                 Some(n) => n,
-                None => TokenCount::MAX,
+                None => Coulombs::MAX,
             }
         }
 
-        /// Checks if tokens are enabled
-        fn free_call_tokens_are_enabled() -> bool {
-            Self::individual_token_era_limit() != 0 as TokenCount
+        /// Checks if electricity is enabled
+        fn electricity_is_enabled() -> bool {
+            Self::individual_electricity_era_limit() != 0 as Coulombs
         }
     }
 
-    /// Verifies that the account has tokens available before executing or broadcasting to other
+    /// Verifies that the account has coulombs available before executing or broadcasting to other
     /// validators.
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
-    pub struct InterrogateFreeTransaction<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
+    pub struct ImpedenceCheck<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
     where <T as frame_system::Config>::Call: IsSubType<Call<T>>;
 
-    impl<T: Config + Send + Sync> Debug for InterrogateFreeTransaction<T>
+    impl<T: Config + Send + Sync> Debug for ImpedenceCheck<T>
     where <T as frame_system::Config>::Call: IsSubType<Call<T>>
     {
         #[cfg(feature = "std")]
         fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-            write!(f, "InterrogateFreeTransaction")
+            write!(f, "ImpedenceCheck")
         }
 
         #[cfg(not(feature = "std"))]
         fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
     }
 
-    impl<T: Config + Send + Sync> InterrogateFreeTransaction<T>
+    impl<T: Config + Send + Sync> ImpedenceCheck<T>
     where <T as frame_system::Config>::Call: IsSubType<Call<T>>
     {
         #[allow(clippy::new_without_default)]
         pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
     }
 
-    impl<T: Config + Send + Sync> SignedExtension for InterrogateFreeTransaction<T>
+    impl<T: Config + Send + Sync> SignedExtension for ImpedenceCheck<T>
     where <T as frame_system::Config>::Call: IsSubType<Call<T>>
     {
         type AccountId = T::AccountId;
@@ -398,7 +399,7 @@ pub mod pallet {
         type Call = <T as frame_system::Config>::Call;
         type Pre = ();
 
-        const IDENTIFIER: &'static str = "InterrogateFreeTransaction";
+        const IDENTIFIER: &'static str = "ImpedenceCheck";
 
         fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
             Ok(())
@@ -425,8 +426,8 @@ pub mod pallet {
             // is there a way to do all this shit better?
             if let Some(local_call) = call.is_sub_type() {
                 if let Call::call_using_electricity { .. } = local_call {
-                    if Pallet::<T>::free_call_tokens_are_enabled()
-                        && Pallet::<T>::tokens_usable_this_era(who) != 0
+                    if Pallet::<T>::electricity_is_enabled()
+                        && Pallet::<T>::coulombs_usable_this_era(who) != 0
                     {
                         return Ok(ValidTransaction::default());
                     }
