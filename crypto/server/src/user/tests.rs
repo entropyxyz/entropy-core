@@ -1,5 +1,6 @@
 use std::env;
 
+use bip39::{Language, Mnemonic};
 use kvdb::clean_tests;
 use rocket::{
     http::{ContentType, Status},
@@ -7,13 +8,16 @@ use rocket::{
     tokio::time::{sleep, Duration},
 };
 use serial_test::serial;
-use sp_core::Pair;
+use sp_core::{sr25519, Pair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use subxt::{sp_runtime::AccountId32, PairSigner};
-use testing_utils::context::{test_context_stationary, TestContext};
+use subxt::{sp_runtime::AccountId32, DefaultConfig, PairSigner};
+use testing_utils::context::{test_context, test_context_stationary, TestContext};
 
-use super::UserInputPartyInfo;
-use crate::chain_api::{get_api, EntropyRuntime};
+use super::{api::get_subgroup, UserInputPartyInfo};
+use crate::{
+    chain_api::{get_api, EntropyRuntime},
+    utils::DEFAULT_MNEMONIC,
+};
 
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
     Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
@@ -22,6 +26,7 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 #[rocket::async_test]
 #[serial]
 async fn test_store_share() {
+    clean_tests();
     let alice = AccountKeyring::Alice;
     let key: AccountId32 = alice.to_account_id().into();
     let value = vec![10];
@@ -44,28 +49,27 @@ async fn test_store_share() {
     // signal registering
     make_register(&api, &alice).await;
 
-    let response = client
+    let response_2 = client
         .post("/user/new")
         .header(ContentType::JSON)
         .body(serde_json::to_string(&user_input.clone()).unwrap())
         .dispatch()
         .await;
 
-    assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response.into_string().await, None);
+    assert_eq!(response_2.status(), Status::Ok);
+    assert_eq!(response_2.into_string().await, None);
+    // make sure there is now one confirmation
+    check_if_confirmation(&api, &alice).await;
 
-    check_if_registered(&api, &alice).await;
-
-    make_register(&api, &alice).await;
     // fails to add already added share
-    let response = client
+    let response_3 = client
         .post("/user/new")
         .header(ContentType::JSON)
         .body(serde_json::to_string(&user_input).unwrap())
         .dispatch()
         .await;
 
-    assert_eq!(response.status(), Status::InternalServerError);
+    assert_eq!(response_3.status(), Status::InternalServerError);
 
     clean_tests();
 }
@@ -92,11 +96,35 @@ async fn test_store_share_fail_wrong_data() {
     clean_tests();
 }
 
+#[rocket::async_test]
+#[serial]
+async fn test_get_signing_group() {
+    let cxt = test_context().await;
+    let client = setup_client().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let p_alice = <sr25519::Pair as Pair>::from_string("//Alice//stash", None).unwrap();
+    let signer_alice = PairSigner::<DefaultConfig, sr25519::Pair>::new(p_alice);
+    let result_alice = get_subgroup(&api, &signer_alice).await.unwrap();
+    assert_eq!(result_alice, Some(0));
+
+    let p_bob = <sr25519::Pair as Pair>::from_string("//Bob//stash", None).unwrap();
+    let signer_bob = PairSigner::<DefaultConfig, sr25519::Pair>::new(p_bob);
+    let result_bob = get_subgroup(&api, &signer_bob).await.unwrap();
+    assert_eq!(result_bob, Some(1));
+
+    let p_charlie = <sr25519::Pair as Pair>::from_string("//Charlie//stash", None).unwrap();
+    let signer_charlie = PairSigner::<DefaultConfig, sr25519::Pair>::new(p_charlie);
+    let result_charlie = get_subgroup(&api, &signer_charlie).await.unwrap();
+    assert_eq!(result_charlie, None);
+
+    clean_tests();
+}
+
 pub async fn make_register(api: &EntropyRuntime, alice: &Sr25519Keyring) {
     let signer = PairSigner::new(alice.pair());
     let is_registering_1 =
         api.storage().relayer().registering(&alice.to_account_id(), None).await.unwrap();
-    assert_eq!(is_registering_1, None);
+    assert_eq!(is_registering_1.is_none(), true);
     api.tx()
         .relayer()
         .register()
@@ -111,14 +139,16 @@ pub async fn make_register(api: &EntropyRuntime, alice: &Sr25519Keyring) {
         .unwrap();
     let is_registering_2 =
         api.storage().relayer().registering(&alice.to_account_id(), None).await.unwrap();
-    assert_eq!(is_registering_2, Some(true));
+    assert_eq!(is_registering_2.unwrap().is_registering, true);
 }
 
-pub async fn check_if_registered(api: &EntropyRuntime, alice: &Sr25519Keyring) {
+pub async fn check_if_confirmation(api: &EntropyRuntime, alice: &Sr25519Keyring) {
     let is_registering =
         api.storage().relayer().registering(&alice.to_account_id(), None).await.unwrap();
-    assert_eq!(is_registering, None);
+    // make sure there is one confirmation
+    assert_eq!(is_registering.unwrap().confirmations.len(), 1);
     let is_registered =
         api.storage().relayer().registered(&alice.to_account_id(), None).await.unwrap();
-    assert_eq!(is_registered, Some(true));
+    // still not registered need more confirmations
+    assert_eq!(is_registered.is_none(), true);
 }

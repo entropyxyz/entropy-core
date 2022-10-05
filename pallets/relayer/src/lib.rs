@@ -40,7 +40,8 @@ pub mod pallet {
         traits::{DispatchInfoOf, Saturating, SignedExtension},
         transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
     };
-    use sp_std::fmt::Debug;
+    use sp_std::{fmt::Debug, vec};
+    use substrate_common::{Message, SigRequest};
 
     pub use crate::weights::WeightInfo;
     /// Configure the pallet by specifying the parameters and types on which it depends.
@@ -51,9 +52,15 @@ pub mod pallet {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type PruneBlock: Get<Self::BlockNumber>;
-
+        type SigningPartySize: Get<usize>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
+    }
+
+    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    pub struct RegisteringDetails {
+        pub is_registering: bool,
+        pub confirmations: Vec<u8>,
     }
 
     #[pallet::hooks]
@@ -113,16 +120,12 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn registering)]
     pub type Registering<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, bool, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn registered)]
     pub type Registered<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, bool, OptionQuery>;
-
-    pub type RegResponse = substrate_common::RegistrationResponse;
-    pub type SigRequest = substrate_common::SigRequest;
-    pub type Message = substrate_common::Message;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -133,6 +136,8 @@ pub mod pallet {
         TransactionPropagated(T::AccountId),
         /// An account has signaled to be registered. [who]
         SignalRegister(T::AccountId),
+        /// An account has been registered. [who, signing_group]
+        AccountRegistering(T::AccountId, u8),
         /// An account has been registered. [who]
         AccountRegistered(T::AccountId),
         /// An account has been registered. [who, block_number, failures]
@@ -148,6 +153,9 @@ pub mod pallet {
         AlreadySubmitted,
         NoThresholdKey,
         NotRegistering,
+        InvalidSubgroup,
+        AlreadyConfirmed,
+        NotInSigningGroup,
     }
 
     /// Allows a user to kick off signing process
@@ -174,7 +182,9 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::register())]
         pub fn register(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            Registering::<T>::insert(&who, true);
+            let registering_info =
+                RegisteringDetails { is_registering: true, confirmations: vec![] };
+            Registering::<T>::insert(&who, registering_info);
             Self::deposit_event(Event::SignalRegister(who));
             Ok(())
         }
@@ -182,14 +192,31 @@ pub mod pallet {
         // TODO(Jake): This is an insecure way to do a free transaction.
         // secure it, please. :)
         #[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
-        pub fn confirm_register(origin: OriginFor<T>, registerer: T::AccountId) -> DispatchResult {
-            let _who = ensure_signed(origin)?;
-            let _ = Self::registering(&registerer).ok_or(Error::<T>::NotRegistering)?;
-
-            // TODO: JA check all sub groups have recieved
-            Registered::<T>::insert(&registerer, true);
-            Registering::<T>::remove(&registerer);
-            Self::deposit_event(Event::AccountRegistered(registerer));
+        pub fn confirm_register(
+            origin: OriginFor<T>,
+            registerer: T::AccountId,
+            signing_subgroup: u8,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let mut registering_info =
+                Self::registering(&registerer).ok_or(Error::<T>::NotRegistering)?;
+            ensure!(
+                !registering_info.confirmations.contains(&signing_subgroup),
+                Error::<T>::AlreadyConfirmed
+            );
+            let signing_subgroup_addresses =
+                pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
+                    .ok_or(Error::<T>::InvalidSubgroup)?;
+            ensure!(signing_subgroup_addresses.contains(&who), Error::<T>::NotInSigningGroup);
+            if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
+                Registered::<T>::insert(&registerer, true);
+                Registering::<T>::remove(&registerer);
+                Self::deposit_event(Event::AccountRegistered(registerer));
+            } else {
+                registering_info.confirmations.push(signing_subgroup);
+                Registering::<T>::insert(&registerer, registering_info);
+                Self::deposit_event(Event::AccountRegistering(registerer, signing_subgroup));
+            }
             Ok(())
         }
 
