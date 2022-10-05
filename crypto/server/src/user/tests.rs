@@ -1,11 +1,8 @@
 use std::env;
 
-<<<<<<< HEAD
-use bip39::{Language, Mnemonic};
-=======
 use bip39::{Language, Mnemonic, MnemonicType};
+use hex;
 use hex_literal::hex as h;
->>>>>>> 0b91fcb (x25519-ChaCha20Poly1305 for SignedMessage)
 use kvdb::clean_tests;
 use rocket::{
     http::{ContentType, Status},
@@ -13,12 +10,11 @@ use rocket::{
     tokio::time::{sleep, Duration},
 };
 use serial_test::serial;
-use sp_core::{sr25519, Pair, Bytes};
+use sp_core::{sr25519, Bytes, Pair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{sp_runtime::AccountId32, DefaultConfig, PairSigner};
 use testing_utils::context::{test_context, test_context_stationary, TestContext};
 use x25519_dalek::{PublicKey, StaticSecret};
-use hex;
 
 use super::{api::get_subgroup, UserInputPartyInfo};
 use crate::{
@@ -31,7 +27,6 @@ use crate::{
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
     Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
 }
-
 
 #[rocket::async_test]
 #[serial]
