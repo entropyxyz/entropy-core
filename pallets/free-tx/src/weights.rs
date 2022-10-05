@@ -32,7 +32,7 @@ use sp_std::marker::PhantomData;
 
 
 pub trait WeightInfo {
-	fn try_free_call() -> Weight;
+	fn call_using_electricity() -> Weight;
 	fn set_individual_token_era_limit() -> Weight;
 	fn set_rechargable_token_balance() -> Weight;
 	fn give_one_time_use_tokens() -> Weight;
@@ -42,7 +42,7 @@ pub trait WeightInfo {
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	// Storage: FreeTx FreeCallsLeft (r:1 w:1)
-	fn try_free_call() -> Weight {
+	fn call_using_electricity() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
@@ -72,7 +72,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 
 impl WeightInfo for () {
 	// Storage: FreeTx FreeCallsLeft (r:1 w:1)
-	fn try_free_call() -> Weight {
+	fn call_using_electricity() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))

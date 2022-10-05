@@ -30,7 +30,7 @@ impl<T: frame_system::Config> pallet_free_tx::WeightInfo for WeightInfo<T> {
 	// Storage: FreeTx FreeCallsPerEra (r:1 w:0)
 	// Storage: FreeTx FreeCallsRemaining (r:1 w:1)
 	// Storage: Staking CurrentEra (r:1 w:0)
-	fn try_free_call() -> Weight {
+	fn call_using_electricity() -> Weight {
 		(18_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))

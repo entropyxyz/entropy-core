@@ -1,0 +1,23 @@
+sic - simple irc client
+=======================
+sic is an extremely fast, small and simple irc client.  It reads commands from
+standard input and prints all server output to standard output. It multiplexes
+also all channel traffic into one output so that you don't have to switch
+different channel buffers: that's actually a feature.
+
+
+Installation
+------------
+Edit the Makefile or override the flags to match your local setup. sic is
+installed into /usr/local by default.
+
+Afterwards enter the following command to build and install sic 
+(if necessary as root):
+
+	$ make
+	# make install
+
+
+Running sic
+-----------
+Simply invoke the 'sic' command with the required arguments.

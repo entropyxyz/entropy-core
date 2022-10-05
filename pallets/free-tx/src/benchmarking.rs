@@ -11,7 +11,7 @@ use super::*;
 use crate::Pallet as FreeTx;
 
 benchmarks! {
-  try_free_call {
+  call_using_electricity {
     let caller: T::AccountId = whitelisted_caller();
 
     <TokenAccountData<T>>::insert(

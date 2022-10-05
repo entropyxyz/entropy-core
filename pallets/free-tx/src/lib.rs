@@ -59,7 +59,7 @@ pub mod pallet {
     pub type TokenCount = u32;
 
     /// Shows the number of tokens that were used in the previously used era
-    #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
+    #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Debug, Eq, PartialEq)]
     pub struct RecentTokenUsage {
         pub latest_era: EraIndex,
         pub count: TokenCount,
@@ -67,7 +67,7 @@ pub mod pallet {
 
     /// Keeps track of the number of free tokens a user has and the number of free tokens they've
     /// used this era
-    #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
+    #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Debug, Eq, PartialEq)]
     pub struct TokenBalances {
         pub rechargable_tokens: TokenCount,
         pub one_time_tokens_remaining: TokenCount,
@@ -133,12 +133,12 @@ pub mod pallet {
         /// (WeightAsFee for querying tokens)).
         #[pallet::weight({
       let dispatch_info = call.get_dispatch_info();
-      let base_weight = <T as Config>::WeightInfo::try_free_call();
+      let base_weight = <T as Config>::WeightInfo::call_using_electricity();
       (base_weight.saturating_add(dispatch_info.weight), dispatch_info.class, Pays::No)
       // (dispatch_info.weight.saturating_add(10_000), dispatch_info.class, Pays::No)
     })]
         #[allow(clippy::boxed_local)]
-        pub fn try_free_call(
+        pub fn call_using_electricity(
             origin: OriginFor<T>,
             call: Box<<T as Config>::Call>,
         ) -> DispatchResultWithPostInfo {
@@ -157,14 +157,15 @@ pub mod pallet {
         #[pallet::weight(<T as crate::Config>::WeightInfo::set_individual_token_era_limit())]
         pub fn set_individual_token_era_limit(
             origin: OriginFor<T>,
-            call_count: TokenCount,
+            max_calls: Option<TokenCount>,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
-            if call_count == 0 {
-                <MaxIndividualTokenUsagePerEra<T>>::kill();
-            } else {
-                <MaxIndividualTokenUsagePerEra<T>>::put(call_count);
+
+            match max_calls {
+                Some(n) => MaxIndividualTokenUsagePerEra::<T>::put(n),
+                None => MaxIndividualTokenUsagePerEra::<T>::kill(),
             }
+
             Ok(())
         }
 
@@ -292,7 +293,10 @@ pub mod pallet {
 
                                 Ok(user_has_free_calls_to_spend
                                     && data.one_time_tokens_remaining > 0
-                                    && era_index_is_current(data))
+                                    && ((era_index_is_current(data)
+                                        && data.tokens_used.count
+                                            < data.one_time_tokens_remaining)
+                                        || (data.tokens_used.latest_era < current_era_index)))
                             };
 
                         // everything boils down this...
@@ -325,17 +329,20 @@ pub mod pallet {
                 let TokenBalances { rechargable_tokens, one_time_tokens_remaining, tokens_used } =
                     data;
 
-                let total_free_calls = rechargable_tokens.saturating_add(one_time_tokens_remaining);
-
                 // TODO refactor era_index_is_current() out of try_consume_free_call() for reuse
                 // here.
                 if tokens_used.latest_era == pallet_staking::Pallet::<T>::current_era().unwrap() {
                     return min(
                         Self::individual_token_era_limit().saturating_sub(tokens_used.count),
-                        total_free_calls.saturating_sub(tokens_used.count),
+                        rechargable_tokens
+                            .saturating_sub(tokens_used.count)
+                            .saturating_add(one_time_tokens_remaining),
                     );
                 } else {
-                    return min(Self::individual_token_era_limit(), total_free_calls);
+                    return min(
+                        Self::individual_token_era_limit(),
+                        rechargable_tokens.saturating_add(one_time_tokens_remaining),
+                    );
                 }
             };
 
@@ -417,7 +424,7 @@ pub mod pallet {
             #[allow(clippy::collapsible_match)]
             // is there a way to do all this shit better?
             if let Some(local_call) = call.is_sub_type() {
-                if let Call::try_free_call { .. } = local_call {
+                if let Call::call_using_electricity { .. } = local_call {
                     if Pallet::<T>::free_call_tokens_are_enabled()
                         && Pallet::<T>::tokens_usable_this_era(who) != 0
                     {
