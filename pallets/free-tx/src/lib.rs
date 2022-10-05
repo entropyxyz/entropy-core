@@ -90,7 +90,7 @@ pub mod pallet {
 
     /// Stores the balance of batteries, zaps, and usage of electricity of a user
     #[pallet::storage]
-    #[pallet::getter(fn free_call_data)]
+    #[pallet::getter(fn electrical_account)]
     pub type ElectricalAccount<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, ElectricalPanel, OptionQuery>;
 
@@ -111,8 +111,6 @@ pub mod pallet {
         NoCoulombsAvailable,
         /// Account has hit max number of coulombs that can be used this era
         ElectricityEraLimitReached,
-        /// Are you fuzzing, or are you just dumb?
-        WastingFreeCalls,
     }
 
     // TODO: https://linear.app/entropyxyz/issue/ENT-58/free-tx-on-idle-hook-for-pruning-old-free-tx-entries
@@ -157,11 +155,11 @@ pub mod pallet {
         #[pallet::weight(<T as crate::Config>::WeightInfo::set_individual_electricity_era_limit())]
         pub fn set_individual_electricity_era_limit(
             origin: OriginFor<T>,
-            max_calls: Option<Coulombs>,
+            max_coulombs: Option<Coulombs>,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
 
-            match max_calls {
+            match max_coulombs {
                 Some(n) => MaxUserElectricityUsagePerEra::<T>::put(n),
                 None => MaxUserElectricityUsagePerEra::<T>::kill(),
             }
@@ -243,7 +241,7 @@ pub mod pallet {
                                 electrical_panel.used.latest_era == current_era_index
                             };
 
-                        let user_has_spent_more_free_calls_than_max_this_era =
+                        let user_has_used_max_electricity_allowed_this_era =
                             |electrical_panel: &mut ElectricalPanel| -> Result<bool, Error<T>> {
                                 if era_index_is_current(electrical_panel)
                                     && electrical_panel.used.count >= max_coulombs_per_era
@@ -254,7 +252,7 @@ pub mod pallet {
                                 Ok(false)
                             };
 
-                        let spend_call = |electrical_panel: &mut ElectricalPanel| {
+                        let spend_coulomb = |electrical_panel: &mut ElectricalPanel| {
                             if era_index_is_current(electrical_panel) {
                                 electrical_panel.used.count += 1;
                             } else {
@@ -263,25 +261,25 @@ pub mod pallet {
                             }
                         };
 
-                        let use_rechargable_call = |electrical_panel: &mut ElectricalPanel| {
-                            spend_call(electrical_panel);
+                        let use_battery = |electrical_panel: &mut ElectricalPanel| {
+                            spend_coulomb(electrical_panel);
                         };
 
-                        let spend_one_time_call = |electrical_panel: &mut ElectricalPanel| {
+                        let spend_zap = |electrical_panel: &mut ElectricalPanel| {
                             let count = electrical_panel.zaps;
 
                             electrical_panel.zaps = count.saturating_sub(1u32 as Coulombs);
-                            spend_call(electrical_panel);
+                            spend_coulomb(electrical_panel);
                         };
 
                         let user_can_use_batteries =
                             |electrical_panel: &mut ElectricalPanel| -> Result<bool, Error<T>> {
-                                let user_has_free_calls_to_spend =
-                                    !user_has_spent_more_free_calls_than_max_this_era(
+                                let user_has_electricity_to_spend =
+                                    !user_has_used_max_electricity_allowed_this_era(
                                         electrical_panel,
                                     )?;
 
-                                Ok(user_has_free_calls_to_spend
+                                Ok(user_has_electricity_to_spend
                                     && (electrical_panel.batteries > 0 as Coulombs)
                                     && ((era_index_is_current(electrical_panel)
                                         && electrical_panel.used.count
@@ -289,14 +287,14 @@ pub mod pallet {
                                         || (electrical_panel.used.latest_era < current_era_index)))
                             };
 
-                        let user_can_spend_one_time_calls =
+                        let user_can_spend_zaps =
                             |electrical_panel: &mut ElectricalPanel| -> Result<bool, Error<T>> {
-                                let user_has_free_calls_to_spend =
-                                    !user_has_spent_more_free_calls_than_max_this_era(
+                                let user_has_electricity_to_spend =
+                                    !user_has_used_max_electricity_allowed_this_era(
                                         electrical_panel,
                                     )?;
 
-                                Ok(user_has_free_calls_to_spend
+                                Ok(user_has_electricity_to_spend
                                     && electrical_panel.zaps > 0
                                     && ((era_index_is_current(electrical_panel)
                                         && electrical_panel.used.count < electrical_panel.zaps)
@@ -305,9 +303,9 @@ pub mod pallet {
 
                         // everything boils down this...
                         if user_can_use_batteries(electrical_panel)? {
-                            use_rechargable_call(electrical_panel);
-                        } else if user_can_spend_one_time_calls(electrical_panel)? {
-                            spend_one_time_call(electrical_panel);
+                            use_battery(electrical_panel);
+                        } else if user_can_spend_zaps(electrical_panel)? {
+                            spend_zap(electrical_panel);
                         } else {
                             return Err(Error::<T>::NoCoulombsAvailable);
                         }
@@ -329,7 +327,7 @@ pub mod pallet {
 
             // if the electricity was last used this era, return however many coulombs they
             // have left
-            if let Some(data) = Self::free_call_data(account_id) {
+            if let Some(data) = Self::electrical_account(account_id) {
                 let ElectricalPanel { batteries, zaps, used } = data;
 
                 // TODO refactor era_index_is_current() out of try_spend_coulomb() for reuse
