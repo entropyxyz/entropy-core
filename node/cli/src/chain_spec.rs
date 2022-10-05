@@ -335,7 +335,14 @@ pub fn testnet_genesis(
                 ),
             ],
             signing_groups: vec![
-                (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
+                (
+                    0,
+                    vec![
+                        get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                        hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"]
+                            .into(),
+                    ],
+                ),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
         },

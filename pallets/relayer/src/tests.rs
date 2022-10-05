@@ -8,9 +8,10 @@ use sp_runtime::{
     traits::SignedExtension,
     transaction_validity::{TransactionValidity, ValidTransaction},
 };
+use substrate_common::{Message, SigRequest};
 
 use crate as pallet_relayer;
-use crate::{mock::*, Error, Failures, Message, PrevalidateRelayer, Responsibility, SigRequest};
+use crate::{mock::*, Error, Failures, PrevalidateRelayer, RegisteringDetails, Responsibility};
 
 #[test]
 fn it_preps_transaction() {
@@ -30,23 +31,44 @@ fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
         assert_ok!(Relayer::register(Origin::signed(1)));
 
-        assert!(Relayer::registering(1).unwrap());
+        assert!(Relayer::registering(1).unwrap().is_registering);
     });
 }
 
 #[test]
-fn it_confirmes_registers_a_user() {
+fn it_confirms_registers_a_user() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            Relayer::confirm_register(Origin::signed(1), 1),
+            Relayer::confirm_register(Origin::signed(1), 1, 0),
             Error::<Test>::NotRegistering
         );
 
         assert_ok!(Relayer::register(Origin::signed(1)));
 
+        assert_noop!(
+            Relayer::confirm_register(Origin::signed(1), 1, 3),
+            Error::<Test>::InvalidSubgroup
+        );
+
+        assert_noop!(
+            Relayer::confirm_register(Origin::signed(2), 1, 0),
+            Error::<Test>::NotInSigningGroup
+        );
+
         assert_eq!(Relayer::registered(1), None);
 
-        assert_ok!(Relayer::confirm_register(Origin::signed(1), 1));
+        assert_ok!(Relayer::confirm_register(Origin::signed(1), 1, 0));
+
+        assert_noop!(
+            Relayer::confirm_register(Origin::signed(1), 1, 0),
+            Error::<Test>::AlreadyConfirmed
+        );
+
+        let registering_info = RegisteringDetails { is_registering: true, confirmations: vec![0] };
+
+        assert_eq!(Relayer::registering(1), Some(registering_info));
+
+        assert_ok!(Relayer::confirm_register(Origin::signed(2), 1, 1));
 
         assert_eq!(Relayer::registering(1), None);
         assert!(Relayer::registered(1).unwrap());
@@ -133,7 +155,8 @@ fn notes_responsibility() {
 fn it_provides_free_txs_prep_tx() {
     new_test_ext().execute_with(|| {
         assert_ok!(Relayer::register(Origin::signed(1)));
-        assert_ok!(Relayer::confirm_register(Origin::signed(1), 1));
+        assert_ok!(Relayer::confirm_register(Origin::signed(1), 1, 0));
+        assert_ok!(Relayer::confirm_register(Origin::signed(2), 1, 1));
 
         let p = PrevalidateRelayer::<Test>::new();
         let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
