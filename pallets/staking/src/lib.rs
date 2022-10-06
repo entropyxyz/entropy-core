@@ -65,6 +65,7 @@ pub mod pallet {
     pub type EndpointRegister<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, OptionQuery>;
 
+    /// Keytype is the stash AccountId
     /// Stores the relationship between
     /// a threshold public key and a
     /// Diffie-Hellman public key.

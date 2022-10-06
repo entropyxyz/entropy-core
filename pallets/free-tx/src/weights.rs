@@ -32,38 +32,65 @@ use sp_std::marker::PhantomData;
 
 
 pub trait WeightInfo {
-	fn try_free_call() -> Weight;
-	fn set_free_calls_per_era() -> Weight;
+	fn call_using_electricity() -> Weight;
+	fn set_individual_electricity_era_limit() -> Weight;
+	fn set_battery_count() -> Weight;
+	fn give_zaps() -> Weight;
 }
 
 /// Weight functions for `pallet_free_tx`.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	// Storage: FreeTx FreeCallsLeft (r:1 w:1)
-	fn try_free_call() -> Weight {
+	fn call_using_electricity() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 
-	fn set_free_calls_per_era() -> Weight {
+	fn set_individual_electricity_era_limit() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
+
+	fn set_battery_count() -> Weight {
+		(14_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
+
+	fn give_zaps() -> Weight {
+		(14_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
+
 }
 
 // For backwards compatibility and tests
 
 impl WeightInfo for () {
 	// Storage: FreeTx FreeCallsLeft (r:1 w:1)
-	fn try_free_call() -> Weight {
+	fn call_using_electricity() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
 
-	fn set_free_calls_per_era() -> Weight {
+	fn set_individual_electricity_era_limit() -> Weight {
+		(14_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
+	}
+
+	fn set_battery_count() -> Weight {
+		(14_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
+	}
+
+	fn give_zaps() -> Weight {
 		(14_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
