@@ -367,29 +367,29 @@ pub mod pallet {
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
-    pub struct ImpedenceCheck<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
+    pub struct ValidateElectricityPayment<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
     where <T as frame_system::Config>::Call: IsSubType<Call<T>>;
 
-    impl<T: Config + Send + Sync> Debug for ImpedenceCheck<T>
+    impl<T: Config + Send + Sync> Debug for ValidateElectricityPayment<T>
     where <T as frame_system::Config>::Call: IsSubType<Call<T>>
     {
         #[cfg(feature = "std")]
         fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-            write!(f, "ImpedenceCheck")
+            write!(f, "ValidateElectricityPayment")
         }
 
         #[cfg(not(feature = "std"))]
         fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
     }
 
-    impl<T: Config + Send + Sync> ImpedenceCheck<T>
+    impl<T: Config + Send + Sync> ValidateElectricityPayment<T>
     where <T as frame_system::Config>::Call: IsSubType<Call<T>>
     {
         #[allow(clippy::new_without_default)]
         pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
     }
 
-    impl<T: Config + Send + Sync> SignedExtension for ImpedenceCheck<T>
+    impl<T: Config + Send + Sync> SignedExtension for ValidateElectricityPayment<T>
     where <T as frame_system::Config>::Call: IsSubType<Call<T>>
     {
         type AccountId = T::AccountId;
@@ -397,7 +397,7 @@ pub mod pallet {
         type Call = <T as frame_system::Config>::Call;
         type Pre = ();
 
-        const IDENTIFIER: &'static str = "ImpedenceCheck";
+        const IDENTIFIER: &'static str = "ValidateElectricityPayment";
 
         fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
             Ok(())
