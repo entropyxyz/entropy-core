@@ -21,6 +21,8 @@ pub enum UserErr {
     #[error("Not Registering error: {0}")]
     NotRegistering(&'static str),
     // Other(&'static str),
+    #[error("Invalid Signature: {0}")]
+    InvalidSignature(&'static str),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {
