@@ -230,7 +230,7 @@ pub mod pallet {
                 return Err(Error::<T>::ElectricityIsDisabled);
             }
 
-            <ElectricalAccount<T>>::mutate(account_id, |panel: &mut Option<ElectricalPanel>| {
+            <ElectricalAccount<T>>::try_mutate(account_id, |panel: &mut Option<ElectricalPanel>| {
                 let current_era_index = pallet_staking::Pallet::<T>::current_era().unwrap_or(0);
 
                 match panel {
