@@ -24,6 +24,7 @@ type BlockNumber = u64;
 
 pub const INIT_TIMESTAMP: u64 = 30_000;
 pub const BLOCK_TIME: u64 = 1000;
+const NULL_ARR: [u8; 32] = [0; 32];
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -265,7 +266,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     };
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
         endpoints: vec![(5, vec![20]), (6, vec![40])],
-        threshold_accounts: vec![(5, 7), (6, 8)],
+        threshold_accounts: vec![(5, (7, NULL_ARR)), (6, (8, NULL_ARR))],
         // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
         signing_groups: vec![(0, vec![1]), (1, vec![2])],
     };
