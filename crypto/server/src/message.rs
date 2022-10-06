@@ -11,29 +11,33 @@ use sp_core::{crypto::AccountId32, sr25519, sr25519::Signature, Bytes, Pair};
 use sp_keyring::AccountKeyring;
 use x25519_dalek::{PublicKey, StaticSecret};
 use zeroize::Zeroize;
-// Used for signing, encrypting and often sending arbitrary Bytes.
-// sr25519 is the signature scheme.
-// Use SignedMessage::new(secret_key, message) to construct
-// a new signed message.
+
+/// Used for signing, encrypting and often sending arbitrary Bytes.
+/// sr25519 is the signature scheme.
+/// Use SignedMessage::new(secret_key, message) to construct
+/// a new signed message.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SignedMessage {
-    // The public key of the message signer.
+    /// The public key of the message signer.
     pub pk: [u8; 32],
-    // The signature of the message hash.
+    /// The signature of the message hash.
     pub sig: Signature,
-    // The intended recipients public key to be included in the signature.
+    /// The intended recipients public key to be included in the signature.
     pub recip: [u8; 32],
-    // The message to be signed.
+    /// The encrypted message. 
     pub msg: Bytes,
-    // The public parameter used in diffie-hellman.
+    /// The signers public parameter used in diffie-hellman.
     a: [u8; 32],
-    // The message nonce used in ChaCha20Poly1305.
+    /// The message nonce used in ChaCha20Poly1305.
     nonce: [u8; 12],
 }
 
 impl SignedMessage {
-    /// Creates and returns a new SignedMessage.
-    /// Where sk is the secret key and msg being the message to be signed.
+    /// Encrypts and signs msg.
+    /// sk is the sr25519 key used for signing and deriving a symmetric shared key
+    /// via Diffie-Hellman for encryption. 
+    /// msg is the plaintext message to encrypt and sign
+    /// recip is the public Diffie-Hellman parameter of the recipient. 
     pub fn new(
         sk: &sr25519::Pair,
         msg: &Bytes,
@@ -62,7 +66,7 @@ impl SignedMessage {
         })
     }
 
-    // Decrypts the message and returns the plaintext.
+    /// Decrypts the message and returns the plaintext.
     pub fn decrypt(&self, sk: &sr25519::Pair) -> Result<Vec<u8>, Error> {
         let static_secret = derive_static_secret(sk);
         let shared_secret = static_secret.diffie_hellman(&PublicKey::from(self.a));
@@ -70,11 +74,11 @@ impl SignedMessage {
         cipher.decrypt(&generic_array::GenericArray::from(self.nonce), self.msg.0.as_slice())
     }
 
-    // Returns the AccountId32 of the message signer.
+    /// Returns the AccountId32 of the message signer.
     pub fn account_id(&self) -> AccountId32 { AccountId32::new(self.pk) }
 
-    // Verifies the signature of the hash of self.msg stored in self.sig
-    // with the public key self.pk.
+    /// Verifies the signature of the hash of self.msg stored in self.sig
+    /// with the public key self.pk.
     pub fn verify(&self) -> bool {
         let mut hasher = Blake2s256::new();
         hasher.update(&self.msg.0);
@@ -83,11 +87,11 @@ impl SignedMessage {
         <sr25519::Pair as Pair>::verify(&self.sig, &hash, &sr25519::Public(self.pk))
     }
 
-    // Returns a serialized json string of self.
+    /// Returns a serialized json string of self.
     pub fn to_json(&self) -> String { to_string(self).unwrap() }
 }
 
-// Derives a static secret from a sr25519 private key for usage in static Diffie-Hellman.
+/// Derives a static secret from a sr25519 private key for usage in static Diffie-Hellman.
 pub fn derive_static_secret(sk: &sr25519::Pair) -> x25519_dalek::StaticSecret {
     let mut buffer: [u8; 32] = [0; 32];
     let mut hasher = Blake2s256::new();
@@ -99,10 +103,12 @@ pub fn derive_static_secret(sk: &sr25519::Pair) -> x25519_dalek::StaticSecret {
     result
 }
 
+/// Creates a new random Mnemonic.
 pub fn new_mnemonic() -> Mnemonic {
     Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English)
 }
 
+/// Derives a sr25519::Pair from a Mnemonic
 pub fn mnemonic_to_pair(m: &Mnemonic) -> sr25519::Pair {
     <sr25519::Pair as Pair>::from_phrase(m.phrase(), None).unwrap().0
 }

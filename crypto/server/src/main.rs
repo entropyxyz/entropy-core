@@ -86,7 +86,6 @@ async fn setup_mnemonic(kv: &KvManager) {
                 // If using a test configuration then set to the default mnemonic.
                 if cfg!(test) {
                     mnemonic =
-                        // Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
                         Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
                 } else if cfg!(feature = "alice") {
                     mnemonic =
