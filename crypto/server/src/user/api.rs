@@ -10,6 +10,7 @@ use sp_core::{sr25519, Pair};
 use substrate_common::SIGNING_PARTY_SIZE;
 use subxt::{sp_runtime::AccountId32, DefaultConfig, PairSigner};
 use tracing::instrument;
+use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
@@ -18,7 +19,6 @@ use crate::{
     signing_client::SignerState,
     Configuration,
 };
-use zeroize::Zeroize;
 
 /// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
 #[post("/new", format = "json", data = "<msg>")]
@@ -48,7 +48,6 @@ pub async fn new_user(
     let reservation = state.kv().reserve_key(key.to_string()).await?;
     let decrypted_message = signed_msg.decrypt(signer.signer()).unwrap();
     state.kv().put(reservation, decrypted_message).await?;
-    decrypted_message.zeroize();
     let signer = get_signer(state).await.unwrap();
     let subgroup = get_subgroup(&api, &signer).await.unwrap().unwrap();
     // TODO: Error handling really complex needs to be thought about.

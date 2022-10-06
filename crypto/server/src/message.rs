@@ -18,14 +18,14 @@ use zeroize::Zeroize;
 /// a new signed message.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SignedMessage {
-    /// The public key of the message signer.
-    pub pk: [u8; 32],
+    /// The encrypted message.
+    pub msg: Bytes,
     /// The signature of the message hash.
     pub sig: Signature,
+    /// The public key of the message signer.
+    pk: [u8; 32],
     /// The intended recipients public key to be included in the signature.
-    pub recip: [u8; 32],
-    /// The encrypted message. 
-    pub msg: Bytes,
+    recip: [u8; 32],
     /// The signers public parameter used in diffie-hellman.
     a: [u8; 32],
     /// The message nonce used in ChaCha20Poly1305.
@@ -35,22 +35,21 @@ pub struct SignedMessage {
 impl SignedMessage {
     /// Encrypts and signs msg.
     /// sk is the sr25519 key used for signing and deriving a symmetric shared key
-    /// via Diffie-Hellman for encryption. 
+    /// via Diffie-Hellman for encryption.
     /// msg is the plaintext message to encrypt and sign
-    /// recip is the public Diffie-Hellman parameter of the recipient. 
+    /// recip is the public Diffie-Hellman parameter of the recipient.
     pub fn new(
         sk: &sr25519::Pair,
         msg: &Bytes,
         recip: &x25519_dalek::PublicKey,
     ) -> Result<SignedMessage, Error> {
-        let s = derive_static_secret(sk);
+        let mut s = derive_static_secret(sk);
         let a = x25519_dalek::PublicKey::from(&s);
         let shared_secret = s.diffie_hellman(recip);
         s.zeroize();
         let msg_nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng); // 96-bits; unique per message
         let cipher = ChaCha20Poly1305::new_from_slice(shared_secret.as_bytes()).unwrap();
         let ciphertext = cipher.encrypt(&msg_nonce, msg.0.as_slice())?;
-        msg.zeroize();
         let mut static_nonce: [u8; 12] = [0; 12];
         static_nonce.copy_from_slice(&msg_nonce);
 
@@ -70,16 +69,21 @@ impl SignedMessage {
 
     /// Decrypts the message and returns the plaintext.
     pub fn decrypt(&self, sk: &sr25519::Pair) -> Result<Vec<u8>, Error> {
-        let static_secret = derive_static_secret(sk);
+        let mut static_secret = derive_static_secret(sk);
         let shared_secret = static_secret.diffie_hellman(&PublicKey::from(self.a));
         static_secret.zeroize();
         let cipher = ChaCha20Poly1305::new_from_slice(shared_secret.as_bytes()).unwrap();
-        shared_secret.zeroize();
         cipher.decrypt(&generic_array::GenericArray::from(self.nonce), self.msg.0.as_slice())
     }
 
     /// Returns the AccountId32 of the message signer.
     pub fn account_id(&self) -> AccountId32 { AccountId32::new(self.pk) }
+
+    /// Returns the public key of the message signer.
+    pub fn pk(&self) -> sr25519::Public { sr25519::Public::from_raw(self.pk) }
+
+    /// Returns the public DH key of the message recipient.
+    pub fn recipient(&self) -> x25519_dalek::PublicKey { x25519_dalek::PublicKey::from(self.recip) }
 
     /// Verifies the signature of the hash of self.msg stored in self.sig
     /// with the public key self.pk.

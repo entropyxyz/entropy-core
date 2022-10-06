@@ -65,6 +65,13 @@ pub mod pallet {
     pub type EndpointRegister<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, OptionQuery>;
 
+    /// Stores the relationship between
+    /// a threshold public key and a
+    /// Diffie-Hellman public key.
+    /// Clients query the chain for both values,
+    /// the DH public key is used to derive shared
+    /// secrets for ChaCha20Poly1305 encryption
+    /// of secret shares over http.
     #[pallet::storage]
     #[pallet::getter(fn threshold_account)]
     pub type ThresholdAccounts<T: Config> =
