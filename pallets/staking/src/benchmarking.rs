@@ -24,7 +24,7 @@ fn prep_bond_and_validate<T: Config>(
     caller: T::AccountId,
     bonder: T::AccountId,
     threshold: T::AccountId,
-    dh_pk: [u8; 32]
+    dh_pk: [u8; 32],
 ) {
     let reward_destination = RewardDestination::Account(caller.clone());
     let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
