@@ -231,7 +231,7 @@ pub mod pallet {
             }
 
             <ElectricalAccount<T>>::mutate(account_id, |panel: &mut Option<ElectricalPanel>| {
-                let current_era_index = pallet_staking::Pallet::<T>::current_era().unwrap();
+                let current_era_index = pallet_staking::Pallet::<T>::current_era().unwrap_or(0);
 
                 match panel {
                     // User has at least had electricity at some point
@@ -315,8 +315,6 @@ pub mod pallet {
                 };
                 Ok(())
             })
-
-            // Ok(())
         }
 
         /// Returns number of cells a user can use this era
@@ -332,7 +330,7 @@ pub mod pallet {
 
                 // TODO refactor era_index_is_current() out of try_spend_cell() for reuse
                 // here.
-                if used.latest_era == pallet_staking::Pallet::<T>::current_era().unwrap() {
+                if used.latest_era == pallet_staking::Pallet::<T>::current_era().unwrap_or(0) {
                     return min(
                         Self::individual_electricity_era_limit().saturating_sub(used.count),
                         batteries.saturating_sub(used.count).saturating_add(zaps),
@@ -368,10 +366,12 @@ pub mod pallet {
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct ValidateElectricityPayment<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>;
+    where
+        <T as frame_system::Config>::Call: IsSubType<Call<T>>;
 
     impl<T: Config + Send + Sync> Debug for ValidateElectricityPayment<T>
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::Call: IsSubType<Call<T>>,
     {
         #[cfg(feature = "std")]
         fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -379,18 +379,24 @@ pub mod pallet {
         }
 
         #[cfg(not(feature = "std"))]
-        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
+        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+            Ok(())
+        }
     }
 
     impl<T: Config + Send + Sync> ValidateElectricityPayment<T>
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::Call: IsSubType<Call<T>>,
     {
         #[allow(clippy::new_without_default)]
-        pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
+        pub fn new() -> Self {
+            Self(sp_std::marker::PhantomData)
+        }
     }
 
     impl<T: Config + Send + Sync> SignedExtension for ValidateElectricityPayment<T>
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::Call: IsSubType<Call<T>>,
     {
         type AccountId = T::AccountId;
         type AdditionalSigned = ();
