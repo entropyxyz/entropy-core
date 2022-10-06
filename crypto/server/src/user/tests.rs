@@ -19,6 +19,7 @@ use x25519_dalek::{PublicKey, StaticSecret};
 use super::{api::get_subgroup, UserInputPartyInfo};
 use crate::{
     chain_api::{get_api, EntropyRuntime},
+    get_signer, load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     utils,
     utils::DEFAULT_MNEMONIC,
