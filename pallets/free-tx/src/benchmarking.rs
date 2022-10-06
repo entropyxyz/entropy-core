@@ -30,37 +30,37 @@ benchmarks! {
   }
   set_individual_electricity_era_limit {
     let origin = T::UpdateOrigin::successful_origin();
-    let coulombs = 5 as Coulombs;
+    let cells = 5 as Cells;
   }: {
     assert_ok!(
-      <FreeTx<T>>::set_individual_electricity_era_limit(origin, Some(coulombs))
+      <FreeTx<T>>::set_individual_electricity_era_limit(origin, Some(cells))
     );
   }
   verify {
-    assert_eq!(MaxUserElectricityUsagePerEra::<T>::get().unwrap(), coulombs as Coulombs);
+    assert_eq!(MaxUserElectricityUsagePerEra::<T>::get().unwrap(), cells as Cells);
   }
   set_battery_count {
     let origin = T::UpdateOrigin::successful_origin();
     let whitelisted_caller: T::AccountId = whitelisted_caller();
-    let coulombs = 5 as Coulombs;
+    let cells = 5 as Cells;
   }: {
     assert_ok!(
-      <FreeTx<T>>::set_battery_count(origin, whitelisted_caller.clone(), coulombs)
+      <FreeTx<T>>::set_battery_count(origin, whitelisted_caller.clone(), cells)
     );
   }
   verify {
-    assert_eq!(ElectricalAccount::<T>::get(whitelisted_caller).unwrap().batteries, coulombs as Coulombs);
+    assert_eq!(ElectricalAccount::<T>::get(whitelisted_caller).unwrap().batteries, cells as Cells);
   }
   give_zaps{
     let origin = T::UpdateOrigin::successful_origin();
     let whitelisted_caller: T::AccountId = whitelisted_caller();
-    let coulombs = 5 as Coulombs;
+    let cells = 5 as Cells;
   }: {
     assert_ok!(
-      <FreeTx<T>>::give_zaps(origin, whitelisted_caller.clone(), coulombs)
+      <FreeTx<T>>::give_zaps(origin, whitelisted_caller.clone(), cells)
     );
   }
   verify {
-    assert_eq!(ElectricalAccount::<T>::get(whitelisted_caller).unwrap().zaps, coulombs as Coulombs);
+    assert_eq!(ElectricalAccount::<T>::get(whitelisted_caller).unwrap().zaps, cells as Cells);
   }
 }

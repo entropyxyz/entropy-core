@@ -55,23 +55,23 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
 
-    /// Batteries and zaps are represented in the base unit of electricity: coulombs. One coulomb
+    /// Batteries and zaps are represented in the base unit of electricity: cells. One cell
     /// can be used to do one action)
-    pub type Coulombs = u32;
+    pub type Cells = u32;
 
-    /// Shows the number of coulombs that were used in the previously used era
+    /// Shows the number of cells that were used in the previously used era
     /// ie. `latest_era` stores the `EraIndex` that the count is valid for
     #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Debug, Eq, PartialEq)]
     pub struct ElectricityMeter {
         pub latest_era: EraIndex,
-        pub count: Coulombs,
+        pub count: Cells,
     }
 
     /// Keeps track of the electricity a user has and has spent this era
     #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Debug, Eq, PartialEq)]
     pub struct ElectricalPanel {
-        pub batteries: Coulombs,
-        pub zaps: Coulombs,
+        pub batteries: Cells,
+        pub zaps: Cells,
         pub used: ElectricityMeter,
     }
 
@@ -79,14 +79,14 @@ pub mod pallet {
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
-    /// Maximum number of coulombs a user can use per era.
+    /// Maximum number of cells a user can use per era.
     ///
-    /// `None`: users can use as many coulombs as they own.
-    /// `Some(0)`: coulombs are disabled.
-    /// `Some(n)`: users can use up to `n` coulombs per era
+    /// `None`: users can use as many cells as they own.
+    /// `Some(0)`: cells are disabled.
+    /// `Some(n)`: users can use up to `n` cells per era
     #[pallet::storage]
     #[pallet::getter(fn max_user_electricity_usage_per_era)]
-    pub type MaxUserElectricityUsagePerEra<T: Config> = StorageValue<_, Coulombs>;
+    pub type MaxUserElectricityUsagePerEra<T: Config> = StorageValue<_, Cells>;
 
     /// Stores the balance of batteries, zaps, and usage of electricity of a user
     #[pallet::storage]
@@ -104,12 +104,12 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Coulomb usage has been disabled
+        /// Cell usage has been disabled
         ElectricityIsDisabled,
-        /// Account has no coulombs left. Call the extrinsic directly or use
+        /// Account has no cells left. Call the extrinsic directly or use
         /// `call_using_electricity()`
-        NoCoulombsAvailable,
-        /// Account has hit max number of coulombs that can be used this era
+        NoCellsAvailable,
+        /// Account has hit max number of cells that can be used this era
         ElectricityEraLimitReached,
     }
 
@@ -139,7 +139,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
-            Self::try_spend_coulomb(&sender)?;
+            Self::try_spend_cell(&sender)?;
 
             let res = call.dispatch(RawOrigin::Signed(sender.clone()).into());
             Self::deposit_event(Event::ElectricitySpent(
@@ -150,16 +150,16 @@ pub mod pallet {
             res
         }
 
-        /// Put a cap on the number of coulombs individual accounts can use per era.
+        /// Put a cap on the number of cells individual accounts can use per era.
         /// To disable electricity temporary, set this to `0`.
         #[pallet::weight(<T as crate::Config>::WeightInfo::set_individual_electricity_era_limit())]
         pub fn set_individual_electricity_era_limit(
             origin: OriginFor<T>,
-            max_coulombs: Option<Coulombs>,
+            max_cells: Option<Cells>,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
 
-            match max_coulombs {
+            match max_cells {
                 Some(n) => MaxUserElectricityUsagePerEra::<T>::put(n),
                 None => MaxUserElectricityUsagePerEra::<T>::kill(),
             }
@@ -173,7 +173,7 @@ pub mod pallet {
         pub fn set_battery_count(
             origin: OriginFor<T>,
             account: T::AccountId,
-            battery_count: Coulombs,
+            battery_count: Cells,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
             <ElectricalAccount<T>>::mutate(
@@ -199,19 +199,19 @@ pub mod pallet {
         pub fn give_zaps(
             origin: OriginFor<T>,
             recipient: T::AccountId,
-            coulombs: Coulombs,
+            cells: Cells,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
             <ElectricalAccount<T>>::mutate(
                 &recipient,
                 |electrical_panel: &mut Option<ElectricalPanel>| match electrical_panel {
                     Some(electrical_panel) => {
-                        electrical_panel.zaps += coulombs;
+                        electrical_panel.zaps += cells;
                     },
                     None => {
                         *electrical_panel = Some(ElectricalPanel {
                             batteries: 0,
-                            zaps: coulombs,
+                            zaps: cells,
                             used: ElectricityMeter { latest_era: 0, count: 0 },
                         });
                     },
@@ -223,10 +223,10 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         // if OK(()), a electricity for the account was available
-        pub fn try_spend_coulomb(account_id: &<T>::AccountId) -> Result<(), Error<T>> {
-            // gets max coulombs per era or return error if electricity is disabled
-            let max_coulombs_per_era = Self::individual_electricity_era_limit();
-            if max_coulombs_per_era == 0 as Coulombs {
+        pub fn try_spend_cell(account_id: &<T>::AccountId) -> Result<(), Error<T>> {
+            // gets max cells per era or return error if electricity is disabled
+            let max_cells_per_era = Self::individual_electricity_era_limit();
+            if max_cells_per_era == 0 as Cells {
                 return Err(Error::<T>::ElectricityIsDisabled);
             }
 
@@ -244,7 +244,7 @@ pub mod pallet {
                         let user_has_used_max_electricity_allowed_this_era =
                             |electrical_panel: &mut ElectricalPanel| -> Result<bool, Error<T>> {
                                 if era_index_is_current(electrical_panel)
-                                    && electrical_panel.used.count >= max_coulombs_per_era
+                                    && electrical_panel.used.count >= max_cells_per_era
                                 {
                                     return Err(Error::<T>::ElectricityEraLimitReached);
                                 }
@@ -252,7 +252,7 @@ pub mod pallet {
                                 Ok(false)
                             };
 
-                        let spend_coulomb = |electrical_panel: &mut ElectricalPanel| {
+                        let spend_cell = |electrical_panel: &mut ElectricalPanel| {
                             if era_index_is_current(electrical_panel) {
                                 electrical_panel.used.count += 1;
                             } else {
@@ -262,14 +262,14 @@ pub mod pallet {
                         };
 
                         let use_battery = |electrical_panel: &mut ElectricalPanel| {
-                            spend_coulomb(electrical_panel);
+                            spend_cell(electrical_panel);
                         };
 
                         let spend_zap = |electrical_panel: &mut ElectricalPanel| {
                             let count = electrical_panel.zaps;
 
-                            electrical_panel.zaps = count.saturating_sub(1u32 as Coulombs);
-                            spend_coulomb(electrical_panel);
+                            electrical_panel.zaps = count.saturating_sub(1u32 as Cells);
+                            spend_cell(electrical_panel);
                         };
 
                         let user_can_use_batteries =
@@ -280,7 +280,7 @@ pub mod pallet {
                                     )?;
 
                                 Ok(user_has_electricity_to_spend
-                                    && (electrical_panel.batteries > 0 as Coulombs)
+                                    && (electrical_panel.batteries > 0 as Cells)
                                     && ((era_index_is_current(electrical_panel)
                                         && electrical_panel.used.count
                                             < electrical_panel.batteries)
@@ -307,11 +307,11 @@ pub mod pallet {
                         } else if user_can_spend_zaps(electrical_panel)? {
                             spend_zap(electrical_panel);
                         } else {
-                            return Err(Error::<T>::NoCoulombsAvailable);
+                            return Err(Error::<T>::NoCellsAvailable);
                         }
                     },
-                    // if None, then account has no coulombs to use
-                    None => return Err(Error::<T>::NoCoulombsAvailable),
+                    // if None, then account has no cells to use
+                    None => return Err(Error::<T>::NoCellsAvailable),
                 };
                 Ok(())
             })
@@ -319,18 +319,18 @@ pub mod pallet {
             // Ok(())
         }
 
-        /// Returns number of coulombs a user can use this era
-        pub fn coulombs_usable_this_era(account_id: &<T>::AccountId) -> Coulombs {
+        /// Returns number of cells a user can use this era
+        pub fn cells_usable_this_era(account_id: &<T>::AccountId) -> Cells {
             if !Self::electricity_is_enabled() {
-                return 0 as Coulombs;
+                return 0 as Cells;
             }
 
-            // if the electricity was last used this era, return however many coulombs they
+            // if the electricity was last used this era, return however many cells they
             // have left
             if let Some(data) = Self::electrical_account(account_id) {
                 let ElectricalPanel { batteries, zaps, used } = data;
 
-                // TODO refactor era_index_is_current() out of try_spend_coulomb() for reuse
+                // TODO refactor era_index_is_current() out of try_spend_cell() for reuse
                 // here.
                 if used.latest_era == pallet_staking::Pallet::<T>::current_era().unwrap() {
                     return min(
@@ -345,24 +345,24 @@ pub mod pallet {
                 }
             };
 
-            0 as Coulombs
+            0 as Cells
         }
 
-        /// Returns the max number of coulombs a user can use per era
-        pub fn individual_electricity_era_limit() -> Coulombs {
+        /// Returns the max number of cells a user can use per era
+        pub fn individual_electricity_era_limit() -> Cells {
             match Self::max_user_electricity_usage_per_era() {
                 Some(n) => n,
-                None => Coulombs::MAX,
+                None => Cells::MAX,
             }
         }
 
         /// Checks if electricity is enabled
         fn electricity_is_enabled() -> bool {
-            Self::individual_electricity_era_limit() != 0 as Coulombs
+            Self::individual_electricity_era_limit() != 0 as Cells
         }
     }
 
-    /// Verifies that the account has coulombs available before executing or broadcasting to other
+    /// Verifies that the account has cells available before executing or broadcasting to other
     /// validators.
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
@@ -425,7 +425,7 @@ pub mod pallet {
             if let Some(local_call) = call.is_sub_type() {
                 if let Call::call_using_electricity { .. } = local_call {
                     if Pallet::<T>::electricity_is_enabled()
-                        && Pallet::<T>::coulombs_usable_this_era(who) != 0
+                        && Pallet::<T>::cells_usable_this_era(who) != 0
                     {
                         return Ok(ValidTransaction::default());
                     }

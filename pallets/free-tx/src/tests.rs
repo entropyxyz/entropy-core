@@ -63,7 +63,7 @@ fn call_using_electricity_errors_when_child_call_errors() {
 }
 
 #[test]
-fn call_using_electricity_errors_when_no_coulombs_available() {
+fn call_using_electricity_errors_when_no_cells_available() {
     ExtBuilder::default().build_and_execute(|| {
         // must be in an era for free calls to be enabled
         start_active_era(1);
@@ -90,7 +90,7 @@ fn call_using_electricity_errors_when_no_coulombs_available() {
         let expected_error = DispatchError::Module(ModuleError {
             index: 8,
             error: [1, 0, 0, 0],
-            message: Some("NoCoulombsAvailable"),
+            message: Some("NoCellsAvailable"),
         });
         assert_err!(FreeTx::call_using_electricity(Origin::signed(1), call), expected_error);
     });
@@ -111,7 +111,7 @@ fn call_using_electricity_still_uses_electricity_on_child_fail() {
             },
         );
         // user gets 1 free call by default
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 1 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 1 as Cells);
 
         // choose a child call that will fail
         let call = Box::new(Call::System(SystemCall::kill_storage {
@@ -124,7 +124,7 @@ fn call_using_electricity_still_uses_electricity_on_child_fail() {
         assert_err!(FreeTx::call_using_electricity(Origin::signed(1), call), expected_child_error);
 
         // make sure free call was still consumed
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 0 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 0 as Cells);
     });
 }
 
@@ -142,27 +142,27 @@ fn batteries_refresh_every_era() {
                 used: ElectricityMeter { latest_era: 0, count: 0 },
             },
         );
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 5 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 5 as Cells);
 
         // make a call that works, check call is used
         let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call));
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 4 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 4 as Cells);
 
         // start a new era
         start_active_era(2);
 
         // make sure call count is refreshed
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 5 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 5 as Cells);
     });
 }
 
 #[test]
-fn one_time_coulombs_are_consumed_and_not_recharged() {
+fn one_time_cells_are_consumed_and_not_recharged() {
     ExtBuilder::default().build_and_execute(|| {
         start_active_era(1);
 
-        // give some coulombs
+        // give some cells
         ElectricalAccount::<Test>::insert(
             1,
             ElectricalPanel {
@@ -171,36 +171,36 @@ fn one_time_coulombs_are_consumed_and_not_recharged() {
                 used: ElectricityMeter { latest_era: 0, count: 0 },
             },
         );
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 5 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 5 as Cells);
 
         // make a call that works, check call is used
         let call = Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks".to_vec() }));
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call));
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 4 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 4 as Cells);
 
         // start a new era
         start_active_era(2);
 
         // make sure call count is refreshed
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 4 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 4 as Cells);
     });
 }
 
 #[test]
-fn user_has_no_free_coulombs_by_default() {
+fn user_has_no_free_cells_by_default() {
     ExtBuilder::default().build_and_execute(|| {
         start_active_era(1);
 
         // make sure we have no free calls
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 0 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 0 as Cells);
 
-        // make sure it fails bc coulombs are disabled
+        // make sure it fails bc cells are disabled
         let call =
             Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks2".to_vec() }));
         let expected_error = DispatchError::Module(ModuleError {
             index: 8,
             error: [1, 0, 0, 0],
-            message: Some("NoCoulombsAvailable"),
+            message: Some("NoCellsAvailable"),
         });
         assert_err!(FreeTx::call_using_electricity(Origin::signed(1), call), expected_error);
     });
@@ -221,7 +221,7 @@ fn set_individual_electricity_era_limit_works() {
                 used: ElectricityMeter { latest_era: 0, count: 0 },
             },
         );
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 3 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 3 as Cells);
 
         // disable electricity
         FreeTx::set_individual_electricity_era_limit(Origin::signed(1), Some(0)).unwrap();
@@ -238,11 +238,11 @@ fn set_individual_electricity_era_limit_works() {
             })
         );
 
-        // enable electricity usage at 2 coulombs per user
+        // enable electricity usage at 2 cells per user
         FreeTx::set_individual_electricity_era_limit(Origin::signed(1), Some(2)).unwrap();
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 2 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 2 as Cells);
 
-        // have user use two coulombs, then make sure they get an error
+        // have user use two cells, then make sure they get an error
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call.clone()));
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call.clone()));
         assert_err!(
@@ -254,17 +254,17 @@ fn set_individual_electricity_era_limit_works() {
             })
         );
 
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 0 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 0 as Cells);
 
         // start a new era
         start_active_era(2);
 
         // cap is 2, but user shuold only have 1 zap left
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 1 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 1 as Cells);
     });
 }
 
-// one-time coulombs aren't touched until no more batteries are available
+// one-time cells aren't touched until no more batteries are available
 #[test]
 fn zaps_arent_used_until_all_batteries_are_used() {
     ExtBuilder::default().build_and_execute(|| {
@@ -279,9 +279,9 @@ fn zaps_arent_used_until_all_batteries_are_used() {
                 used: ElectricityMeter { latest_era: 0, count: 0 },
             },
         );
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 7 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 7 as Cells);
 
-        // use two coulombs
+        // use two cells
         let call =
             Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks2".to_vec() }));
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call.clone()));
@@ -303,34 +303,34 @@ fn zaps_arent_used_until_all_batteries_are_used() {
     });
 }
 
-// users with no coulombs get errors
+// users with no cells get errors
 #[test]
-fn users_with_no_coulombs_get_errors() {
+fn users_with_no_cells_get_errors() {
     ExtBuilder::default().build_and_execute(|| {
         let call =
             Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks2".to_vec() }));
-        let no_coulombs_available_error = DispatchError::Module(ModuleError {
+        let no_cells_available_error = DispatchError::Module(ModuleError {
             index: 8,
             error: [1, 0, 0, 0],
-            message: Some("NoCoulombsAvailable"),
+            message: Some("NoCellsAvailable"),
         });
 
         // users by default have no electricity
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 0 as Coulombs);
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 0 as Cells);
         assert_err!(
             FreeTx::call_using_electricity(Origin::signed(1), call.clone()),
-            no_coulombs_available_error
+            no_cells_available_error
         );
 
         // give user one zap
         FreeTx::give_zaps(Origin::signed(1), 1, 1).unwrap();
 
-        // make sure after a user uses all their coulombs, they get an error
-        assert_eq!(FreeTx::coulombs_usable_this_era(&1u64), 1 as Coulombs);
+        // make sure after a user uses all their cells, they get an error
+        assert_eq!(FreeTx::cells_usable_this_era(&1u64), 1 as Cells);
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call.clone()));
         assert_err!(
             FreeTx::call_using_electricity(Origin::signed(1), call.clone()),
-            no_coulombs_available_error
+            no_cells_available_error
         );
     });
 }
