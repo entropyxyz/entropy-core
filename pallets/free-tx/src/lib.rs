@@ -24,7 +24,6 @@ pub mod pallet {
         dispatch::Dispatchable,
         pallet_prelude::*,
         traits::IsSubType,
-        transactional,
         weights::{GetDispatchInfo, PostDispatchInfo},
     };
     use frame_system::{pallet_prelude::*, RawOrigin};
@@ -34,9 +33,8 @@ pub mod pallet {
         transaction_validity::{InvalidTransaction, TransactionValidityError},
     };
     use sp_staking::EraIndex;
-    use sp_std::{fmt::Debug, prelude::*};
+    use sp_std::{cmp::min, fmt::Debug, prelude::*};
 
-    // use super::*;
     pub use crate::weights::WeightInfo;
 
     #[pallet::config]
@@ -57,61 +55,62 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
 
-    /// Represents the number of free calls a user can have
-    pub type FreeCallCount = u16;
+    /// Batteries and zaps are represented in the base unit of electricity: cells. One cell
+    /// can be used to do one action)
+    pub type Cells = u32;
 
-    /// Stores how many free calls a user has left and which era it applies to.
-    ///
-    /// This is used to track how many free calls are left per user WITHOUT requiring
-    /// FreeCallsPerEra to be pruned every era.
-    #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
-    pub struct FreeCallInfo {
-        pub era_index: EraIndex,
-        pub free_calls_remaining: FreeCallCount,
+    /// Shows the number of cells that were used in the previously used era
+    /// ie. `latest_era` stores the `EraIndex` that the count is valid for
+    #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Debug, Eq, PartialEq)]
+    pub struct ElectricityMeter {
+        pub latest_era: EraIndex,
+        pub count: Cells,
+    }
+
+    /// Keeps track of the electricity a user has and has spent this era
+    #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Debug, Eq, PartialEq)]
+    pub struct ElectricalPanel {
+        pub batteries: Cells,
+        pub zaps: Cells,
+        pub used: ElectricityMeter,
     }
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
-    /// Default number of free calls users get per era.
+    /// Maximum number of cells a user can use per era.
     ///
-    /// To disable free calls altogether, set this to `None` or leave it unitialized.
+    /// `None`: users can use as many cells as they own.
+    /// `Some(0)`: cells are disabled.
+    /// `Some(n)`: users can use up to `n` cells per era
     #[pallet::storage]
-    #[pallet::getter(fn free_calls_per_era_raw)]
-    pub type FreeCallsPerEra<T: Config> = StorageValue<_, FreeCallCount>;
+    #[pallet::getter(fn max_user_electricity_usage_per_era)]
+    pub type MaxUserElectricityUsagePerEra<T: Config> = StorageValue<_, Cells>;
 
-    /// Stores how many free calls a user has left for this era.
-    ///
-    /// What the query value means:
-    ///
-    /// - `Some` where `EraIndex == current_era_index`: the user has `FreeCalls` left to use in this
-    ///   era.
-    /// - `None` OR `Some` where `EraIndex != current_era_index`: user has not used any free calls
-    ///   this era. If using a free call, reset their value to `(FreeCallsPerEra - 1,
-    ///   current_era_index)`
+    /// Stores the balance of batteries, zaps, and usage of electricity of a user
     #[pallet::storage]
-    #[pallet::getter(fn free_calls_remaining_raw)]
-    pub type FreeCallsRemaining<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, FreeCallInfo, OptionQuery>;
+    #[pallet::getter(fn electrical_account)]
+    pub type ElectricalAccount<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, ElectricalPanel, OptionQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// A user used a free call to dispatch a transaction; the account did not pay any
+        /// A user spent electricity to dispatch a transaction; the account did not pay any
         /// transaction fees.
-        FreeCallIssued(T::AccountId, DispatchResult),
+        ElectricitySpent(T::AccountId, DispatchResult),
     }
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Free calls have been disabled
-        FreeCallsDisabled,
-        /// Account has no free calls left. Call the extrinsic directly or use
-        /// `try_free_call_or_pay()`
-        NoFreeCallsAvailable,
-        /// Are you fuzzing, or are you just dumb?
-        WastingFreeCalls,
+        /// Cell usage has been disabled
+        ElectricityIsDisabled,
+        /// Account has no cells left. Call the extrinsic directly or use
+        /// `call_using_electricity()`
+        NoCellsAvailable,
+        /// Account has hit max number of cells that can be used this era
+        ElectricityEraLimitReached,
     }
 
     // TODO: https://linear.app/entropyxyz/issue/ENT-58/free-tx-on-idle-hook-for-pruning-old-free-tx-entries
@@ -124,34 +123,26 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Try to call an extrinsic using the account's available free calls.
+        /// Try to call an extrinsic using the account's available electricity.
         ///
-        /// If free calls are available, a free call is used and the account will pay zero tx fees,
+        /// If electricity is available, a cell is used and the account will pay zero tx fees,
         /// regardless of the call's result.
-        ///
-        /// If no free calls are available, account pays the stupidity fee of ((base fee) +
-        /// (WeightAsFee for querying free calls)).
         #[pallet::weight({
-      let dispatch_info = call.get_dispatch_info();
-      let base_weight = <T as Config>::WeightInfo::try_free_call();
-      (base_weight.saturating_add(dispatch_info.weight), dispatch_info.class, Pays::No)
-      // (dispatch_info.weight.saturating_add(10_000), dispatch_info.class, Pays::No)
-    })]
+            let dispatch_info = call.get_dispatch_info();
+            let base_weight = <T as Config>::WeightInfo::call_using_electricity();
+            (base_weight.saturating_add(dispatch_info.weight), dispatch_info.class, Pays::No)
+        })]
         #[allow(clippy::boxed_local)]
-        pub fn try_free_call(
+        pub fn call_using_electricity(
             origin: OriginFor<T>,
             call: Box<<T as Config>::Call>,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
-            Self::try_consume_free_call(&sender)?;
+            Self::try_spend_cell(&sender)?;
 
-            // TODO JH
-            // - make sure `call` isn't another `try_free_call()` or get WastingFreeCalls
-
-            // cool, now dispatch call with account's origin
             let res = call.dispatch(RawOrigin::Signed(sender.clone()).into());
-            Self::deposit_event(Event::FreeCallIssued(
+            Self::deposit_event(Event::ElectricitySpent(
                 sender,
                 res.map(|_| ()).map_err(|e| e.error),
             ));
@@ -159,136 +150,244 @@ pub mod pallet {
             res
         }
 
-        /// Sets the number of free calls each account gets per era.
-        /// To disable free calls, set this to `0`.
-        /// TODO: weight
-        #[pallet::weight(<T as crate::Config>::WeightInfo::set_free_calls_per_era())]
-        #[transactional]
-        pub fn set_free_calls_per_era(
+        /// Put a cap on the number of cells individual accounts can use per era.
+        /// To disable electricity temporary, set this to `0`.
+        #[pallet::weight(<T as crate::Config>::WeightInfo::set_individual_electricity_era_limit())]
+        pub fn set_individual_electricity_era_limit(
             origin: OriginFor<T>,
-            free_calls_per_era: FreeCallCount,
+            max_cells: Option<Cells>,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
-            if free_calls_per_era == 0 {
-                // make sure that <FreeCallsPerEra<T>>::get() returns None instead of Some(0)
-                <FreeCallsPerEra<T>>::kill();
-            } else {
-                <FreeCallsPerEra<T>>::put(free_calls_per_era);
+
+            match max_cells {
+                Some(n) => MaxUserElectricityUsagePerEra::<T>::put(n),
+                None => MaxUserElectricityUsagePerEra::<T>::kill(),
             }
+
+            Ok(())
+        }
+
+        /// Set the number of batteries an account has. Since they are rechargable, setting (vs
+        /// giving) makes more sense in this context.
+        #[pallet::weight(<T as crate::Config>::WeightInfo::set_battery_count())]
+        pub fn set_battery_count(
+            origin: OriginFor<T>,
+            account: T::AccountId,
+            battery_count: Cells,
+        ) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            <ElectricalAccount<T>>::mutate(
+                &account,
+                |electrical_panel: &mut Option<ElectricalPanel>| match electrical_panel {
+                    Some(electrical_panel) => {
+                        electrical_panel.batteries = battery_count;
+                    },
+                    None => {
+                        *electrical_panel = Some(ElectricalPanel {
+                            batteries: battery_count,
+                            zaps: 0,
+                            used: ElectricityMeter { latest_era: 0, count: 0 },
+                        });
+                    },
+                },
+            );
+            Ok(())
+        }
+
+        /// Give the recipient some zaps
+        #[pallet::weight(<T as crate::Config>::WeightInfo::give_zaps())]
+        pub fn give_zaps(
+            origin: OriginFor<T>,
+            recipient: T::AccountId,
+            cells: Cells,
+        ) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            <ElectricalAccount<T>>::mutate(
+                &recipient,
+                |electrical_panel: &mut Option<ElectricalPanel>| match electrical_panel {
+                    Some(electrical_panel) => {
+                        electrical_panel.zaps += cells;
+                    },
+                    None => {
+                        *electrical_panel = Some(ElectricalPanel {
+                            batteries: 0,
+                            zaps: cells,
+                            used: ElectricityMeter { latest_era: 0, count: 0 },
+                        });
+                    },
+                },
+            );
             Ok(())
         }
     }
 
     impl<T: Config> Pallet<T> {
-        // TODO make sure this is right before moving on
-        // if OK(()), a free call for the provided account was available and was consumed
-        pub fn try_consume_free_call(account_id: &<T>::AccountId) -> Result<(), Error<T>> {
-            // We can check if free calls are disabled and get free calls per era from the same
-            // query
-            let free_calls_per_era =
-                Self::free_calls_per_era().ok_or(Error::<T>::FreeCallsDisabled)?;
+        // if OK(()), a electricity for the account was available
+        pub fn try_spend_cell(account_id: &<T>::AccountId) -> Result<(), Error<T>> {
+            // gets max cells per era or return error if electricity is disabled
+            let max_cells_per_era = Self::individual_electricity_era_limit();
+            if max_cells_per_era == 0 as Cells {
+                return Err(Error::<T>::ElectricityIsDisabled);
+            }
 
-            <FreeCallsRemaining<T>>::try_mutate(account_id, |call_info| {
-                let current_era_index = pallet_staking::Pallet::<T>::current_era().unwrap();
+            <ElectricalAccount<T>>::try_mutate(account_id, |panel: &mut Option<ElectricalPanel>| {
+                let current_era_index = pallet_staking::Pallet::<T>::current_era().unwrap_or(0);
 
-                let update_info = |remaining| {
-                    Some(FreeCallInfo {
-                        era_index: current_era_index,
-                        free_calls_remaining: remaining as FreeCallCount,
-                    })
+                match panel {
+                    // User has at least had electricity at some point
+                    Some(electrical_panel) => {
+                        let era_index_is_current =
+                            |electrical_panel: &mut ElectricalPanel| -> bool {
+                                electrical_panel.used.latest_era == current_era_index
+                            };
+
+                        let user_has_used_max_electricity_allowed_this_era =
+                            |electrical_panel: &mut ElectricalPanel| -> Result<bool, Error<T>> {
+                                if era_index_is_current(electrical_panel)
+                                    && electrical_panel.used.count >= max_cells_per_era
+                                {
+                                    return Err(Error::<T>::ElectricityEraLimitReached);
+                                }
+
+                                Ok(false)
+                            };
+
+                        let spend_cell = |electrical_panel: &mut ElectricalPanel| {
+                            if era_index_is_current(electrical_panel) {
+                                electrical_panel.used.count += 1;
+                            } else {
+                                electrical_panel.used =
+                                    ElectricityMeter { latest_era: current_era_index, count: 1 }
+                            }
+                        };
+
+                        let use_battery = |electrical_panel: &mut ElectricalPanel| {
+                            spend_cell(electrical_panel);
+                        };
+
+                        let spend_zap = |electrical_panel: &mut ElectricalPanel| {
+                            let count = electrical_panel.zaps;
+
+                            electrical_panel.zaps = count.saturating_sub(1u32 as Cells);
+                            spend_cell(electrical_panel);
+                        };
+
+                        let user_can_use_batteries =
+                            |electrical_panel: &mut ElectricalPanel| -> Result<bool, Error<T>> {
+                                let user_has_electricity_to_spend =
+                                    !user_has_used_max_electricity_allowed_this_era(
+                                        electrical_panel,
+                                    )?;
+
+                                Ok(user_has_electricity_to_spend
+                                    && (electrical_panel.batteries > 0 as Cells)
+                                    && ((era_index_is_current(electrical_panel)
+                                        && electrical_panel.used.count
+                                            < electrical_panel.batteries)
+                                        || (electrical_panel.used.latest_era < current_era_index)))
+                            };
+
+                        let user_can_spend_zaps =
+                            |electrical_panel: &mut ElectricalPanel| -> Result<bool, Error<T>> {
+                                let user_has_electricity_to_spend =
+                                    !user_has_used_max_electricity_allowed_this_era(
+                                        electrical_panel,
+                                    )?;
+
+                                Ok(user_has_electricity_to_spend
+                                    && electrical_panel.zaps > 0
+                                    && ((era_index_is_current(electrical_panel)
+                                        && electrical_panel.used.count < electrical_panel.zaps)
+                                        || (electrical_panel.used.latest_era < current_era_index)))
+                            };
+
+                        // everything boils down this...
+                        if user_can_use_batteries(electrical_panel)? {
+                            use_battery(electrical_panel);
+                        } else if user_can_spend_zaps(electrical_panel)? {
+                            spend_zap(electrical_panel);
+                        } else {
+                            return Err(Error::<T>::NoCellsAvailable);
+                        }
+                    },
+                    // if None, then account has no cells to use
+                    None => return Err(Error::<T>::NoCellsAvailable),
                 };
-
-                // update their call data
-                match call_info {
-                    Some(prev_info) => {
-                        let FreeCallInfo { era_index, free_calls_remaining } = *prev_info;
-
-                        // if there's a new era, free calls were last used in a prev era. fill up
-                        // free calls.
-                        if era_index != current_era_index {
-                            *call_info = update_info(free_calls_per_era.saturating_sub(1));
-                            return Ok(());
-                        }
-
-                        // if era is current and no remaining calls left, they've used them all
-                        if free_calls_remaining == 0 as FreeCallCount {
-                            return Err(Error::<T>::NoFreeCallsAvailable);
-                        }
-                        // otherwise, consume one free call
-                        *call_info = update_info(free_calls_remaining.saturating_sub(1));
-                    },
-
-                    // if None, then this is the account's first free call ever (or it was pruned)
-                    None => {
-                        *call_info = update_info(free_calls_per_era.saturating_sub(1));
-                    },
-                }
                 Ok(())
             })
         }
 
-        /// Returns number of free calls a user has, and returns None if free calls are disabled.
-        pub fn free_calls_remaining(account_id: &<T>::AccountId) -> FreeCallCount {
-            // return 0 if free calls are disabled (and gets free calls per era in the same storage
-            // query).
-            let free_calls_per_era = Self::free_calls_per_era().unwrap_or(0 as FreeCallCount);
+        /// Returns number of cells a user can use this era
+        pub fn cells_usable_this_era(account_id: &<T>::AccountId) -> Cells {
+            if !Self::electricity_is_enabled() {
+                return 0 as Cells;
+            }
 
-            // if the free call count was last updated this era, return however many free calls they
+            // if the electricity was last used this era, return however many cells they
             // have left
-            if let Some(call_info) = <FreeCallsRemaining<T>>::get(account_id) {
-                let FreeCallInfo { era_index, free_calls_remaining } = call_info;
-                if era_index == pallet_staking::Pallet::<T>::current_era().unwrap() {
-                    return free_calls_remaining;
-                };
+            if let Some(data) = Self::electrical_account(account_id) {
+                let ElectricalPanel { batteries, zaps, used } = data;
+
+                // TODO refactor era_index_is_current() out of try_spend_cell() for reuse
+                // here.
+                if used.latest_era == pallet_staking::Pallet::<T>::current_era().unwrap_or(0) {
+                    return min(
+                        Self::individual_electricity_era_limit().saturating_sub(used.count),
+                        batteries.saturating_sub(used.count).saturating_add(zaps),
+                    );
+                } else {
+                    return min(
+                        Self::individual_electricity_era_limit(),
+                        batteries.saturating_add(zaps),
+                    );
+                }
             };
 
-            // otherwise they have the default number of free calls per era remaining
-            free_calls_per_era
+            0 as Cells
         }
 
-        /// Returns the number of free calls per era a user gets, or returns None if free calls are
-        /// disabled
-        pub fn free_calls_per_era() -> Option<FreeCallCount> {
-            if let Some(n) = Self::free_calls_per_era_raw() {
-                if n != 0 {
-                    return Some(n);
-                };
+        /// Returns the max number of cells a user can use per era
+        pub fn individual_electricity_era_limit() -> Cells {
+            match Self::max_user_electricity_usage_per_era() {
+                Some(n) => n,
+                None => Cells::MAX,
             }
-            None
         }
 
-        /// Checks if free calls are enabled
-        fn free_calls_are_enabled() -> bool { Self::free_calls_per_era().is_some() }
+        /// Checks if electricity is enabled
+        fn electricity_is_enabled() -> bool {
+            Self::individual_electricity_era_limit() != 0 as Cells
+        }
     }
 
-    /// Verifies that the account has free calls available before executing or broadcasting to other
+    /// Verifies that the account has cells available before executing or broadcasting to other
     /// validators.
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
-    pub struct InterrogateFreeTransaction<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
+    pub struct ValidateElectricityPayment<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
     where <T as frame_system::Config>::Call: IsSubType<Call<T>>;
 
-    impl<T: Config + Send + Sync> Debug for InterrogateFreeTransaction<T>
+    impl<T: Config + Send + Sync> Debug for ValidateElectricityPayment<T>
     where <T as frame_system::Config>::Call: IsSubType<Call<T>>
     {
         #[cfg(feature = "std")]
         fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-            write!(f, "InterrogateFreeTransaction")
+            write!(f, "ValidateElectricityPayment")
         }
 
         #[cfg(not(feature = "std"))]
         fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
     }
 
-    impl<T: Config + Send + Sync> InterrogateFreeTransaction<T>
+    impl<T: Config + Send + Sync> ValidateElectricityPayment<T>
     where <T as frame_system::Config>::Call: IsSubType<Call<T>>
     {
         #[allow(clippy::new_without_default)]
         pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
     }
 
-    impl<T: Config + Send + Sync> SignedExtension for InterrogateFreeTransaction<T>
+    impl<T: Config + Send + Sync> SignedExtension for ValidateElectricityPayment<T>
     where <T as frame_system::Config>::Call: IsSubType<Call<T>>
     {
         type AccountId = T::AccountId;
@@ -296,7 +395,7 @@ pub mod pallet {
         type Call = <T as frame_system::Config>::Call;
         type Pre = ();
 
-        const IDENTIFIER: &'static str = "InterrogateFreeTransaction";
+        const IDENTIFIER: &'static str = "ValidateElectricityPayment";
 
         fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
             Ok(())
@@ -322,9 +421,9 @@ pub mod pallet {
             #[allow(clippy::collapsible_match)]
             // is there a way to do all this shit better?
             if let Some(local_call) = call.is_sub_type() {
-                if let Call::try_free_call { .. } = local_call {
-                    if Pallet::<T>::free_calls_are_enabled()
-                        && Pallet::<T>::free_calls_remaining(who) != 0
+                if let Call::call_using_electricity { .. } = local_call {
+                    if Pallet::<T>::electricity_is_enabled()
+                        && Pallet::<T>::cells_usable_this_era(who) != 0
                     {
                         return Ok(ValidTransaction::default());
                     }
