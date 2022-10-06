@@ -33,10 +33,14 @@ pub mod pallet {
     use core::convert::TryInto;
 
     use frame_support::{
-        dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency,
+        dispatch::DispatchResult,
+        inherent::Vec,
+        pallet_prelude::*,
+        traits::{Currency, OneSessionHandler},
     };
     use frame_system::pallet_prelude::*;
     use pallet_staking::ValidatorPrefs;
+    use sp_runtime::RuntimeAppPublic;
 
     pub use crate::weights::WeightInfo;
 
@@ -45,6 +49,11 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
+        type AuthorityId: Member
+            + Parameter
+            + RuntimeAppPublic
+            + MaybeSerializeDeserialize
+            + MaxEncodedLen;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
@@ -224,5 +233,25 @@ pub mod pallet {
                 pallet_staking::Pallet::<T>::ledger(controller).ok_or(Error::<T>::NotController)?;
             Ok(ledger.stash)
         }
+    }
+
+    impl<T: Config> sp_runtime::BoundToRuntimeAppPublic for Pallet<T> {
+        type Public = T::AuthorityId;
+    }
+
+    impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
+        type Key = T::AuthorityId;
+
+        fn on_genesis_session<'a, I: 'a>(validators: I)
+        where I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)> {
+        }
+
+        fn on_new_session<'a, I: 'a>(changed: bool, validators: I, _queued_validators: I)
+        where I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)> {
+            // instant changes
+            if changed {}
+        }
+
+        fn on_disabled(i: u32) {}
     }
 }
