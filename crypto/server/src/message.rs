@@ -46,9 +46,11 @@ impl SignedMessage {
         let s = derive_static_secret(sk);
         let a = x25519_dalek::PublicKey::from(&s);
         let shared_secret = s.diffie_hellman(recip);
+        s.zeroize();
         let msg_nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng); // 96-bits; unique per message
         let cipher = ChaCha20Poly1305::new_from_slice(shared_secret.as_bytes()).unwrap();
         let ciphertext = cipher.encrypt(&msg_nonce, msg.0.as_slice())?;
+        msg.zeroize();
         let mut static_nonce: [u8; 12] = [0; 12];
         static_nonce.copy_from_slice(&msg_nonce);
 
@@ -70,7 +72,9 @@ impl SignedMessage {
     pub fn decrypt(&self, sk: &sr25519::Pair) -> Result<Vec<u8>, Error> {
         let static_secret = derive_static_secret(sk);
         let shared_secret = static_secret.diffie_hellman(&PublicKey::from(self.a));
+        static_secret.zeroize();
         let cipher = ChaCha20Poly1305::new_from_slice(shared_secret.as_bytes()).unwrap();
+        shared_secret.zeroize();
         cipher.decrypt(&generic_array::GenericArray::from(self.nonce), self.msg.0.as_slice())
     }
 
@@ -124,9 +128,6 @@ mod tests {
         let alice = mnemonic_to_pair(&new_mnemonic());
         let alice_secret = derive_static_secret(&alice);
         let alice_public_key = PublicKey::from(&alice_secret);
-
-        println!("{:?}", alice_secret.to_bytes());
-        println!("{:?}", alice_public_key.as_bytes());
 
         let bob = mnemonic_to_pair(&new_mnemonic());
         let bob_secret = derive_static_secret(&bob);

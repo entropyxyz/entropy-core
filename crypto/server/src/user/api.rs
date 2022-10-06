@@ -18,6 +18,7 @@ use crate::{
     signing_client::SignerState,
     Configuration,
 };
+use zeroize::Zeroize;
 
 /// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
 #[post("/new", format = "json", data = "<msg>")]
@@ -35,7 +36,6 @@ pub async fn new_user(
     }
 
     let signer = get_signer(state).await.unwrap();
-    let decrypted_message = signed_msg.decrypt(signer.signer()).unwrap();
 
     // Checks if the user has registered onchain first.
     let key = signed_msg.account_id();
@@ -46,8 +46,9 @@ pub async fn new_user(
 
     // store new user data in kvdb
     let reservation = state.kv().reserve_key(key.to_string()).await?;
+    let decrypted_message = signed_msg.decrypt(signer.signer()).unwrap();
     state.kv().put(reservation, decrypted_message).await?;
-
+    decrypted_message.zeroize();
     let signer = get_signer(state).await.unwrap();
     let subgroup = get_subgroup(&api, &signer).await.unwrap().unwrap();
     // TODO: Error handling really complex needs to be thought about.

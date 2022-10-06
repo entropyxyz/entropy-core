@@ -525,16 +525,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_create_local_testnet_chain_spec() { local_testnet_config().build_storage().unwrap(); }
-
-    #[test]
-    fn t() {
-        let mut a = get_account_id_from_seed::<sr25519::Public>("Alice//stash");
-        println!("{:?}", a);
-
-        a = get_account_id_from_seed::<sr25519::Public>("Alice");
-        println!("{:?}", a);
-    }
-
+    
     #[test]
     fn test_staging_test_net_chain_spec() { staging_testnet_config().build_storage().unwrap(); }
 }

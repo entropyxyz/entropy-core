@@ -23,7 +23,5 @@ use crate::{
 #[get("/dh")]
 pub async fn get_dh(state: &State<KvManager>, config: &State<Configuration>) -> String {
     let dh_public = state.kv().get("DH_PUBLIC").await.unwrap();
-    println!("{:?}", dh_public);
-
     hex::encode(&dh_public)
 }
