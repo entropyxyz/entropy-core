@@ -11,6 +11,8 @@ use super::*;
 use crate::Pallet as FreeTx;
 
 benchmarks! {
+
+  // TODO JH: include both battery and zap consumption paths as each will have different weights
   call_using_electricity {
     let caller: T::AccountId = whitelisted_caller();
 
