@@ -100,35 +100,33 @@ async fn setup_mnemonic(kv: &KvManager) {
                     mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
                 }
                 let phrase = mnemonic.phrase();
-
+                println!("[server-config]");
                 let pair = mnemonic_to_pair(&mnemonic);
                 let static_secret = derive_static_secret(&pair);
                 let dh_public = x25519_dalek::PublicKey::from(&static_secret);
-                // dh_public.
-                println!("DH_PUBLIC_KEY {:?}", dh_public.as_bytes());
 
                 let ss_reservation =
                     kv.kv().reserve_key("SHARED_SECRET".to_string()).await.unwrap();
                 match kv.kv().put(ss_reservation, static_secret.to_bytes().to_vec()).await {
-                    Ok(r) => println!("updated ss"),
+                    Ok(r) => {},
                     Err(r) => warn!("failed to update ss: {:?}", r),
                 }
 
                 let dh_reservation = kv.kv().reserve_key("DH_PUBLIC".to_string()).await.unwrap();
                 match kv.kv().put(dh_reservation, dh_public.to_bytes().to_vec()).await {
-                    Ok(r) => println!("updated dh"),
+                    Ok(r) => println!("dh_public_key={:?}", dh_public),
                     Err(r) => warn!("failed to update dh: {:?}", r),
                 }
                 let reservation = kv.kv().reserve_key("MNEMONIC".to_string()).await.unwrap();
 
                 let p = <sr25519::Pair as Pair>::from_phrase(phrase, None).unwrap();
                 let id = AccountId32::new(p.0.public().0);
-                println!("Threshold account id: {}", id);
+                println!("account_id={}", id);
 
                 // Update the value in the kvdb
                 let result = kv.kv().put(reservation, phrase.as_bytes().to_vec()).await;
                 match result {
-                    Ok(r) => println!("updated mnemonic"),
+                    Ok(r) => {},
                     Err(r) => warn!("failed to update mnemonic: {:?}", r),
                 }
             }
