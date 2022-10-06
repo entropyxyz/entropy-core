@@ -1,4 +1,4 @@
-use frame_support::{assert_err, assert_ok};
+use frame_support::{assert_err, assert_noop, assert_ok};
 use mock::{
     start_active_era, Call, Event as TestEvent, ExtBuilder, FreeTx, Origin, System, SystemCall,
     Test,
@@ -92,7 +92,7 @@ fn call_using_electricity_errors_when_no_cells_available() {
             error: [1, 0, 0, 0],
             message: Some("NoCellsAvailable"),
         });
-        assert_err!(FreeTx::call_using_electricity(Origin::signed(1), call), expected_error);
+        assert_noop!(FreeTx::call_using_electricity(Origin::signed(1), call), expected_error);
     });
 }
 
@@ -202,7 +202,7 @@ fn user_has_no_free_cells_by_default() {
             error: [1, 0, 0, 0],
             message: Some("NoCellsAvailable"),
         });
-        assert_err!(FreeTx::call_using_electricity(Origin::signed(1), call), expected_error);
+        assert_noop!(FreeTx::call_using_electricity(Origin::signed(1), call), expected_error);
     });
 }
 
@@ -229,7 +229,7 @@ fn set_individual_electricity_era_limit_works() {
         // make sure call fails bc electricity is disabled
         let call =
             Box::new(Call::System(SystemCall::remark { remark: b"entropy rocks2".to_vec() }));
-        assert_err!(
+        assert_noop!(
             FreeTx::call_using_electricity(Origin::signed(1), call.clone()),
             DispatchError::Module(ModuleError {
                 index: 8,
@@ -245,7 +245,7 @@ fn set_individual_electricity_era_limit_works() {
         // have user use two cells, then make sure they get an error
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call.clone()));
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call.clone()));
-        assert_err!(
+        assert_noop!(
             FreeTx::call_using_electricity(Origin::signed(1), call.clone()),
             DispatchError::Module(ModuleError {
                 index: 8,
@@ -317,7 +317,7 @@ fn users_with_no_cells_get_errors() {
 
         // users by default have no electricity
         assert_eq!(FreeTx::cells_usable_this_era(&1u64), 0 as Cells);
-        assert_err!(
+        assert_noop!(
             FreeTx::call_using_electricity(Origin::signed(1), call.clone()),
             no_cells_available_error
         );
@@ -328,7 +328,7 @@ fn users_with_no_cells_get_errors() {
         // make sure after a user uses all their cells, they get an error
         assert_eq!(FreeTx::cells_usable_this_era(&1u64), 1 as Cells);
         assert_ok!(FreeTx::call_using_electricity(Origin::signed(1), call.clone()));
-        assert_err!(
+        assert_noop!(
             FreeTx::call_using_electricity(Origin::signed(1), call.clone()),
             no_cells_available_error
         );
