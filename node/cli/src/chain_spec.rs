@@ -326,16 +326,39 @@ pub fn testnet_genesis(
                 (
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     // 5H8qc7f4mXFY16NBWSB9qkc6pTks98HdVuoQTs1aova5fRtN
-                    hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"].into(),
+                    (
+                        hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"]
+                            .into(),
+                        [
+                            10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155,
+                            124, 195, 141, 148, 249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247,
+                            58, 34,
+                        ],
+                    ),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                     // 5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV
-                    hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"].into(),
+                    (
+                        hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"]
+                            .into(),
+                        [
+                            177, 20, 88, 181, 110, 225, 38, 248, 123, 157, 116, 240, 131, 164, 72,
+                            69, 126, 239, 108, 148, 131, 220, 171, 99, 226, 64, 55, 79, 161, 143,
+                            208, 88,
+                        ],
+                    ),
                 ),
             ],
             signing_groups: vec![
-                (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
+                (
+                    0,
+                    vec![
+                        get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                        hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"]
+                            .into(),
+                    ],
+                ),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
         },

@@ -9,6 +9,8 @@ use super::*;
 #[allow(unused_imports)]
 use crate::Pallet as Staking;
 
+const NULL_ARR: [u8; 32] = [0; 32];
+
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
     let events = frame_system::Pallet::<T>::events();
     let system_event: <T as frame_system::Config>::Event = generic_event.into();
@@ -22,6 +24,7 @@ fn prep_bond_and_validate<T: Config>(
     caller: T::AccountId,
     bonder: T::AccountId,
     threshold: T::AccountId,
+    dh_pk: [u8; 32],
 ) {
     let reward_destination = RewardDestination::Account(caller.clone());
     let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
@@ -42,6 +45,7 @@ fn prep_bond_and_validate<T: Config>(
             ValidatorPrefs::default(),
             vec![20, 20],
             threshold,
+            dh_pk
         ));
     }
 }
@@ -53,8 +57,8 @@ benchmarks! {
     let caller: T::AccountId = whitelisted_caller();
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
-
-    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone());
+    let dh_pk = NULL_ARR;
+    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
 
 
   }:  _(RawOrigin::Signed(caller.clone()), vec![30])
@@ -66,13 +70,13 @@ benchmarks! {
     let caller: T::AccountId = whitelisted_caller();
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
+    let dh_pk: [u8; 32] = NULL_ARR;
+    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
 
-    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone());
 
-
-  }:  _(RawOrigin::Signed(caller.clone()), bonder.clone())
+  }:  _(RawOrigin::Signed(caller.clone()), bonder.clone(), NULL_ARR)
   verify {
-    assert_last_event::<T>(Event::ThresholdAccountChanged(bonder.clone(), bonder).into());
+    assert_last_event::<T>(Event::ThresholdAccountChanged(bonder.clone(), (bonder, NULL_ARR)).into());
   }
 
 
@@ -81,7 +85,7 @@ benchmarks! {
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
 
-    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone());
+    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
     let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
 
     // assume fully unbonded as slightly more weight, but not enough to handle partial unbond
@@ -103,13 +107,13 @@ benchmarks! {
     let caller: T::AccountId = whitelisted_caller();
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
-
-    prep_bond_and_validate::<T>(false, caller.clone(), bonder.clone(), threshold.clone());
+    let dh_pk: [u8; 32] = NULL_ARR;
+    prep_bond_and_validate::<T>(false, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
 
     let validator_preferance = ValidatorPrefs::default();
 
 
-  }:  _(RawOrigin::Signed(caller.clone()), validator_preferance, vec![20], threshold.clone())
+  }:  _(RawOrigin::Signed(caller.clone()), validator_preferance, vec![20], threshold.clone(), NULL_ARR)
   verify {
     assert_last_event::<T>(Event::NodeInfoChanged(caller,  vec![20], threshold).into());
   }
