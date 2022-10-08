@@ -73,7 +73,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Adds an address to be whitelisted
         /// - `whitelist_addresses`: Addresses to be whitelisted
-        #[pallet::weight((T::WeightInfo::add_whitelist_address(T::MaxWhitelist::get() as u32), Pays::No))]
+        #[pallet::weight((T::WeightInfo::add_whitelist_address(T::MaxWhitelist::get()), Pays::No))]
         pub fn add_whitelist_address(
             origin: OriginFor<T>,
             whitelist_addresses: Vec<Vec<u8>>,
