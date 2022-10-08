@@ -23,27 +23,8 @@ pub struct SigningMessage {
 impl TryFrom<&String> for SigningMessage {
     type Error = SigningMessageError;
 
-    // Reqwest responses come back formatted with an added crud feature:
-    // 'data:{<actual_message>}\n'
-    // 👆👆👆  this is crud    👆
     fn try_from(value: &String) -> Result<Self, Self::Error> {
-        // dbg!(value.clone());
-        // let parsed_msg: Result<SigningMessage, _> = deserialize(value);
-        // if parsed_msg.is_ok() {
-        // 	// dbg!(parsed_msg.unwrap());
-        // 	Ok(parsed_msg.unwrap())
-        // } else {
-        // 	Err(SigningMessageError::BadSplit)
-        // }
-        // let raw_msg = std::str::from_utf8(value)?;
-        let trim_msg_2 = value.replace(":\ndata:", "");
-        let trimmed_msg_data = trim_msg_2.replace("data:", "");
-        let trimmed_msg = trimmed_msg_data.replace('\n', "");
-
-        // trimmed_msg = raw_msg.split_once(':').ok_or(SigningMessageError::BadSplit)?.1;
-        // dbg!(raw_msg, trimmed_msg.clone());
-        let parsed_msg: SigningMessage = serde_json::from_str(&trimmed_msg)?;
-        // dbg!(parsed_msg.clone());
+        let parsed_msg: SigningMessage = serde_json::from_str(value)?;
         Ok(parsed_msg)
     }
 }
