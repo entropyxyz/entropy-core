@@ -35,6 +35,7 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use helpers::unwrap_or_return;
+    use pallet_staking_extension::{Key, KeySet};
     use scale_info::TypeInfo;
     use sp_runtime::{
         traits::{DispatchInfoOf, Saturating, SignedExtension},
@@ -230,12 +231,24 @@ pub mod pallet {
             failures: Vec<u32>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
+
+            // TODO @Jesse let me know if this is the stash or controller account, I will assume stash
             let responsibility =
                 Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
-            let threshold_key =
-                pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
+            let keyset_id = pallet_staking_extension::Pallet::<T>::get_keyset_id(Key::<T>::Stash(
+                responsibility,
+            ))
+            .ok_or(Error::<T>::NoThresholdKey)?; // TODO new error type
+
+            let KeySet { threshold, .. } =
+                pallet_staking_extension::Pallet::<T>::get_keyset(keyset_id)
                     .ok_or(Error::<T>::NoThresholdKey)?;
-            ensure!(who == threshold_key.0, Error::<T>::NotYourResponsibility);
+
+            if let Key::<T>::Threshold(threshold_key) = threshold {
+                ensure!(who == threshold_key, Error::<T>::NotYourResponsibility);
+            } else {
+                return Err(Error::<T>::NoThresholdKey.into());
+            }
 
             let current_failures = Self::failures(block_number);
 
@@ -294,10 +307,12 @@ pub mod pallet {
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct PrevalidateRelayer<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>;
+    where
+        <T as frame_system::Config>::Call: IsSubType<Call<T>>;
 
     impl<T: Config + Send + Sync> Debug for PrevalidateRelayer<T>
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::Call: IsSubType<Call<T>>,
     {
         #[cfg(feature = "std")]
         fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -305,18 +320,24 @@ pub mod pallet {
         }
 
         #[cfg(not(feature = "std"))]
-        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
+        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+            Ok(())
+        }
     }
 
     impl<T: Config + Send + Sync> PrevalidateRelayer<T>
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::Call: IsSubType<Call<T>>,
     {
         /// Create new `SignedExtension` to check runtime version.
-        pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
+        pub fn new() -> Self {
+            Self(sp_std::marker::PhantomData)
+        }
     }
 
     impl<T: Config + Send + Sync> SignedExtension for PrevalidateRelayer<T>
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::Call: IsSubType<Call<T>>,
     {
         type AccountId = T::AccountId;
         type AdditionalSigned = ();
@@ -362,10 +383,23 @@ pub mod pallet {
                 if let Call::confirm_done { block_number, .. } = local_call {
                     let responsibility = Responsibility::<T>::get(block_number)
                         .ok_or(InvalidTransaction::Custom(2))?;
-                    let threshold_key =
-                        pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
-                            .ok_or(InvalidTransaction::Custom(3))?;
-                    ensure!(*who == threshold_key.0, InvalidTransaction::Custom(4));
+
+                    let keyset_id = pallet_staking_extension::Pallet::<T>::get_keyset_id(
+                        Key::<T>::Stash(responsibility),
+                    )
+                    .ok_or(InvalidTransaction::Custom(3))?;
+
+                    let KeySet { threshold, .. } =
+                        pallet_staking_extension::Pallet::<T>::get_keyset(keyset_id)
+                            .ok_or(InvalidTransaction::Custom(4))?;
+                    if let Key::<T>::Threshold(threshold_key) = threshold {
+                        ensure!(*who == threshold_key, InvalidTransaction::Custom(4));
+                    } else {
+                        return Err(TransactionValidityError::Invalid(InvalidTransaction::Custom(
+                            5,
+                        )));
+                    }
+
                     let current_failures = Failures::<T>::get(block_number);
                     ensure!(current_failures.is_none(), InvalidTransaction::Custom(5));
                 }
