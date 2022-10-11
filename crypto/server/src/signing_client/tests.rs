@@ -14,6 +14,7 @@ use rocket::{
     http::{ContentType, Status},
     local::asynchronous::Client,
     tokio::time::{sleep, Duration},
+    Ignite, Rocket,
 };
 use serial_test::serial;
 use sp_core::{crypto::AccountId32, sr25519::Pair as Sr25519Pair, Pair as Pair2};
@@ -41,15 +42,16 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 async fn test_new_party() {
     let port_0 = 3001;
     let port_1 = 3002;
-    // Construct a client to use for dispatching requests.
-    tokio::spawn(async move {
-        create_clients(port_0, "0".to_string()).await;
-    });
-    tokio::time::sleep(Duration::from_secs(1)).await;
 
-    tokio::spawn(async move {
-        create_clients(port_1, "1".to_string()).await;
-    });
+    // Construct a client to use for dispatching requests.
+    let client0 = create_clients(port_0, "0".to_string()).await;
+    let client1 = create_clients(port_1, "1".to_string()).await;
+
+    tokio::spawn(async move { client0.launch().await.unwrap() });
+    tokio::spawn(async move { client1.launch().await.unwrap() });
+
+    // Unfortunately, we cannot get a notification when a Rocket server has finished starting up,
+    // so we will give them a second for that.
     tokio::time::sleep(Duration::from_secs(1)).await;
 
     let client = reqwest::Client::new();
@@ -109,7 +111,7 @@ async fn new_party_fail_wrong_data() {
     clean_tests();
 }
 
-async fn create_clients(port: i64, key_number: String) {
+async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
     let config = rocket::Config::figment().merge(("port", port));
 
     let communication_manager_state = CommunicationManagerState::default();
@@ -135,14 +137,14 @@ async fn create_clients(port: i64, key_number: String) {
     let reservation = kv_store.kv().reserve_key(key.to_string()).await.unwrap();
     let result = kv_store.kv().put(reservation, v_serialized).await;
 
-    let _ = rocket::custom(config)
+    rocket::custom(config)
         .mount("/signer", routes![new_party, subscribe_to_me])
         .mount("/user", routes![new_user])
         .manage(communication_manager_state)
         .manage(signer_state)
         .manage(configuration)
         .manage(kv_store)
-        .launch()
+        .ignite()
         .await
-        .expect("valid `Rocket`");
+        .unwrap()
 }
