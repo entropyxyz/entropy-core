@@ -1,4 +1,5 @@
 use core::convert::{TryFrom, TryInto};
+use std::cell::RefCell;
 
 use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
 use frame_support::{
@@ -6,17 +7,16 @@ use frame_support::{
     traits::{ConstU32, GenesisBuild, Get, Hooks, OneSessionHandler},
 };
 use frame_system as system;
-use pallet_session::historical as pallet_session_historical;
+use pallet_session::{historical as pallet_session_historical, ShouldEndSession};
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
+    impl_opaque_keys,
     testing::{Header, TestXt, UintAuthorityId},
-    traits::{BlakeTwo256, ConvertInto, IdentityLookup, Zero, OpaqueKeys},
-    Perbill, impl_opaque_keys, KeyTypeId
+    traits::{BlakeTwo256, ConvertInto, IdentityLookup, OpaqueKeys, Zero},
+    KeyTypeId, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
-use std::{cell::RefCell};
-use pallet_session::ShouldEndSession;
 
 use crate as pallet_staking_extension;
 
@@ -48,15 +48,13 @@ frame_support::construct_runtime!(
 );
 
 thread_local! {
-	pub static FORCE_SESSION_END: RefCell<bool> = RefCell::new(false);
-	pub static SESSION_LENGTH: RefCell<u64> = RefCell::new(2);
-	pub static SESSION_CHANGED: RefCell<bool> = RefCell::new(false);
+    pub static FORCE_SESSION_END: RefCell<bool> = RefCell::new(false);
+    pub static SESSION_LENGTH: RefCell<u64> = RefCell::new(2);
+    pub static SESSION_CHANGED: RefCell<bool> = RefCell::new(false);
 
 
 }
-pub fn force_new_session() {
-	FORCE_SESSION_END.with(|l| *l.borrow_mut() = true)
-}
+pub fn force_new_session() { FORCE_SESSION_END.with(|l| *l.borrow_mut() = true) }
 type AccountId = u64;
 type Balance = u64;
 
@@ -121,24 +119,22 @@ impl pallet_balances::Config for Test {
 
 #[derive(Debug, Clone, codec::Encode, codec::Decode, PartialEq, Eq)]
 pub struct PreUpgradeMockSessionKeys {
-	pub a: [u8; 32],
-	pub b: [u8; 64],
+    pub a: [u8; 32],
+    pub b: [u8; 64],
 }
 
 impl OpaqueKeys for PreUpgradeMockSessionKeys {
-	type KeyTypeIdProviders = ();
+    type KeyTypeIdProviders = ();
 
-	fn key_ids() -> &'static [KeyTypeId] {
-		&[KEY_ID_A, KEY_ID_B]
-	}
+    fn key_ids() -> &'static [KeyTypeId] { &[KEY_ID_A, KEY_ID_B] }
 
-	fn get_raw(&self, i: KeyTypeId) -> &[u8] {
-		match i {
-			i if i == KEY_ID_A => &self.a[..],
-			i if i == KEY_ID_B => &self.b[..],
-			_ => &[],
-		}
-	}
+    fn get_raw(&self, i: KeyTypeId) -> &[u8] {
+        match i {
+            i if i == KEY_ID_A => &self.a[..],
+            i if i == KEY_ID_B => &self.b[..],
+            _ => &[],
+        }
+    }
 }
 
 pub struct OtherSessionHandler;
@@ -152,21 +148,17 @@ impl OneSessionHandler<AccountId> for OtherSessionHandler {
     {
     }
 
-    fn on_new_session<'a, I: 'a>(changed: bool,
-		validators: I,
-		queued_validators: I,)
+    fn on_new_session<'a, I: 'a>(changed: bool, validators: I, queued_validators: I)
     where
-		I: Iterator<Item = (&'a AccountId, Self::Key)>,
-		AccountId: 'a,
+        I: Iterator<Item = (&'a AccountId, Self::Key)>,
+        AccountId: 'a,
     {
-		Staking::on_new_session(changed, validators, queued_validators)
-		// let authorities = validators.map(|(_account, k)| (k, 1)).collect::<Vec<_>>();
-		// let next_authorities = queued_validators.map(|(_account, k)| (k, 1)).collect::<Vec<_>>();
-
+        Staking::on_new_session(changed, validators, queued_validators)
+        // let authorities = validators.map(|(_account, k)| (k, 1)).collect::<Vec<_>>();
+        // let next_authorities = queued_validators.map(|(_account, k)| (k, 1)).collect::<Vec<_>>();
     }
 
-	fn on_disabled(_validator_index: u32) {
-	}
+    fn on_disabled(_validator_index: u32) {}
 }
 
 impl sp_runtime::BoundToRuntimeAppPublic for OtherSessionHandler {
@@ -276,17 +268,16 @@ impl pallet_staking::Config for Test {
 
 pub struct TestShouldEndSession;
 impl ShouldEndSession<u64> for TestShouldEndSession {
-	fn should_end_session(now: u64) -> bool {
-		let l = SESSION_LENGTH.with(|l| *l.borrow());
-		now % l == 0 ||
-			FORCE_SESSION_END.with(|l| {
-				let r = *l.borrow();
-				*l.borrow_mut() = false;
-				r
-			})
-	}
+    fn should_end_session(now: u64) -> bool {
+        let l = SESSION_LENGTH.with(|l| *l.borrow());
+        now % l == 0
+            || FORCE_SESSION_END.with(|l| {
+                let r = *l.borrow();
+                *l.borrow_mut() = false;
+                r
+            })
+    }
 }
-
 
 impl pallet_session::Config for Test {
     type Event = Event;
@@ -309,9 +300,9 @@ parameter_types! {
   pub const MaxEndpointLength: u32 = 3;
 }
 impl pallet_staking_extension::Config for Test {
+    type AuthorityId = UintAuthorityId;
     type Currency = Balances;
     type Event = Event;
-	type AuthorityId = UintAuthorityId;
     type MaxEndpointLength = MaxEndpointLength;
     type WeightInfo = ();
 }
@@ -374,7 +365,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 // 	Session::on_initialize(n);
 // 	Staking::on_initialize(n);
 // }
-
 
 pub(crate) fn run_to_block(n: BlockNumber) {
     FrameStaking::on_finalize(System::block_number());

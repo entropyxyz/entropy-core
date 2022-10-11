@@ -51,7 +51,6 @@ use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
-pub use sp_consensus_babe::{AuthorityId as BabeId};
 use pallet_session::historical as pallet_session_historical;
 #[cfg(any(feature = "std", test))]
 pub use pallet_staking::StakerStatus;
@@ -59,6 +58,7 @@ pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdj
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use sp_api::impl_runtime_apis;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
+pub use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_inherents::{CheckInherentsResult, InherentData};
 #[cfg(any(feature = "std", test))]
@@ -555,9 +555,9 @@ parameter_types! {
   pub const MaxEndpointLength: u32 = 100;
 }
 impl pallet_staking_extension::Config for Runtime {
+    type AuthorityId = BabeId;
     type Currency = Balances;
     type Event = Event;
-	type AuthorityId = BabeId;
     type MaxEndpointLength = MaxEndpointLength;
     type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
 }

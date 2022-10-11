@@ -1,13 +1,14 @@
 use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use sp_runtime::testing::UintAuthorityId;
+
 use crate::{mock::*, Error};
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
 fn initialize_block(block: u64) {
-	SESSION_CHANGED.with(|l| *l.borrow_mut() = false);
-	System::set_block_number(block);
-	Session::on_initialize(block);
+    SESSION_CHANGED.with(|l| *l.borrow_mut() = false);
+    System::set_block_number(block);
+    Session::on_initialize(block);
 }
 
 #[test]
@@ -165,12 +166,79 @@ fn it_deletes_when_no_bond_left() {
     });
 }
 
-
 #[test]
 fn it_tests_on_new_session() {
     new_test_ext().execute_with(|| {
-		let authority = UintAuthorityId::from(1);
-		Staking::on_new_session(false, vec![(&1u64, authority.clone())].into_iter(), vec![(&1u64, authority)].into_iter());
+        let authority_1 = (&1u64, UintAuthorityId::from(1));
+        let authority_2 = (&2u64, UintAuthorityId::from(2));
+        let authority_3 = (&3u64, UintAuthorityId::from(3));
+        let authority_4 = (&4u64, UintAuthorityId::from(4));
 
+
+        // situation 1 - changed is false no changes should be made
+        Staking::on_new_session(
+            false,
+            vec![authority_1.clone()].into_iter(),
+            vec![authority_1.clone()].into_iter(),
+        );
+		// nothing is changed
+		assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+
+        // situation 2 - authority 2 leaves authority 3 enters
+        Staking::on_new_session(
+            true,
+            vec![authority_1.clone(), authority_2.clone()].into_iter(),
+            vec![authority_1.clone(), authority_3.clone()].into_iter(),
+        );
+
+		// authority 3 replaces authority 2
+		assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
+
+		 // situation 3 - authority 2 leaves not replaces
+		 Staking::on_new_session(
+            true,
+            vec![authority_1.clone(), authority_2.clone()].into_iter(),
+            vec![authority_1.clone()].into_iter(),
+        );
+
+		// authority 2 left sig group 1 has no one in signing group
+		assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1), None);
+
+		 // situation 4 - authority 2 enters a new group
+		 Staking::on_new_session(
+            true,
+            vec![authority_1.clone()].into_iter(),
+            vec![authority_1.clone(), authority_2.clone()].into_iter(),
+        );
+
+		assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+
+
+		 // situation 5 - same number but both authorities change
+		 Staking::on_new_session(
+            true,
+            vec![authority_1.clone(), authority_2.clone()].into_iter(),
+            vec![authority_3.clone(), authority_4.clone()].into_iter(),
+        );
+		// auth 3 and 4 are now the signing groups
+		assert_eq!(Staking::signing_groups(0).unwrap(), vec![3]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![4]);
+
+
+
+		 // situation 6 - both validators leave one replaces both
+		 Staking::on_new_session(
+            true,
+            vec![authority_3.clone(), authority_4.clone()].into_iter(),
+            vec![authority_1.clone()].into_iter(),
+        );
+
+		// Just authority_1 is left
+		assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+		assert_eq!(Staking::signing_groups(1), None);
     });
 }
