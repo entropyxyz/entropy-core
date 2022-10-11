@@ -15,10 +15,12 @@ use crate::{mock::*, Error, Failures, PrevalidateRelayer, RegisteringDetails, Re
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
+pub const SIG_HASH: &[u8; 64] = b"d188f0d99145e7ddbd0f1e46e7fd406db927441584571c623aff1d1652e14b06";
+
 #[test]
 fn it_preps_transaction() {
     new_test_ext().execute_with(|| {
-        let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
+        let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
         let message =
             Message { account: vec![1, 0, 0, 0, 0, 0, 0, 0], sig_request: sig_request.clone() };
 
@@ -120,7 +122,7 @@ fn moves_active_to_pending() {
         Failures::<Test>::insert(2, failures.clone());
         Failures::<Test>::insert(5, failures.clone());
 
-        let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
+        let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
         let message =
             Message { account: vec![1, 0, 0, 0, 0, 0, 0, 0], sig_request: sig_request.clone() };
 
@@ -161,7 +163,8 @@ fn it_provides_free_txs_prep_tx() {
         assert_ok!(Relayer::confirm_register(Origin::signed(2), 1, 1));
 
         let p = PrevalidateRelayer::<Test>::new();
-        let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
+        let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
+
         let c = Call::Relayer(RelayerCall::prep_transaction { sig_request });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
@@ -174,7 +177,8 @@ fn it_provides_free_txs_prep_tx() {
 fn it_fails_a_free_tx_prep_tx() {
     new_test_ext().execute_with(|| {
         let p = PrevalidateRelayer::<Test>::new();
-        let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
+        let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
+
         let c = Call::Relayer(RelayerCall::prep_transaction { sig_request });
         let di = c.get_dispatch_info();
         let r = p.validate(&42, &c, &di, 20);
@@ -200,7 +204,7 @@ fn it_provides_free_txs_confirm_done() {
 #[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(1)"]
 fn it_fails_a_free_tx_confirm_done_err_1() {
     new_test_ext().execute_with(|| {
-        let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
+        let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
 
         let p = PrevalidateRelayer::<Test>::new();
         let c = Call::Relayer(RelayerCall::prep_transaction { sig_request });

@@ -1,3 +1,4 @@
+//! TODO: this module pending removal
 pub mod api;
 pub mod deprecating_sign;
 mod errors;
@@ -6,9 +7,6 @@ mod request_guards;
 #[cfg(test)]
 mod tests;
 use std::{collections::HashMap, sync::Mutex};
-
-#[cfg(test)]
-pub use tests::{get_path, setup_client};
 
 /// holds KVDB instance, threshold mnemonic and endpoint of running node
 #[derive(Debug, Default)]
