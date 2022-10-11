@@ -57,7 +57,6 @@ impl TryFrom<KvValue> for PartyInfo {
     type Error = InnerKvError;
 
     fn try_from(v: KvValue) -> Result<Self, Self::Error> {
-        dbg!(v.clone());
         deserialize(&v).ok_or(InnerKvError::DeserializationErr)
     }
 }

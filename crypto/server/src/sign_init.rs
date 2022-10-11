@@ -18,6 +18,7 @@ pub struct SignInit {
     // may overlap with ip_addresses below.
     pub signer_uids: Vec<String>,
     /// The index of the evaluated Shamir Polynomial held by each signer
+    // TODO: do we need this? Are these ever not `0..signer_uids.len()`?
     pub signer_idxs: Vec<usize>,
     /// Hash of the message to sign
     pub msg: MessageDigest,
@@ -54,7 +55,6 @@ impl SignInit {
         let address_slice: &[u8; 32] =
             &raw_address.clone().try_into().expect("slice with incorrect length");
         let user = sp_core::crypto::AccountId32::new(*address_slice);
-        // let address_string = str::from_utf8(address_slice).unwrap().to_string();
         SignInit::new(
             "test".to_string(),
             vec!["test".to_string(), "test1".to_string()],

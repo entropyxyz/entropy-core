@@ -56,7 +56,6 @@ where
             }
         }
 
-        // dbg!(&chans.0, party_uids, round_count);
         // handle outgoing traffic
         handle_outgoing(&chans.0, &round, party_uids, round_count, index)?;
 
@@ -72,7 +71,6 @@ where
         .await?;
 
         // check if everything was ok this round (note tofn-fatal)
-        // dbg!("test next thing");
         party =
             round.execute_next_round().map_err(|_| anyhow!("Error in tofn::execute_next_round"))?;
     }
@@ -90,7 +88,7 @@ fn handle_outgoing<F, K, P, const MAX_MSG_IN_LEN: usize>(
     round: &Round<F, K, P, MAX_MSG_IN_LEN>,
     party_uids: &[String],
     round_count: usize,
-    index: usize, // span: Span,
+    index: usize,
 ) -> Result<(), SigningErr> {
     // send outgoing bcasts
     if let Some(bcast) = round.bcast_out() {
