@@ -1,9 +1,15 @@
-use std::{env, fs, path::Path, str::FromStr, time};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+    str::FromStr,
+    time,
+};
 
 use bincode::Options;
 use kvdb::{
     clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
+use parity_scale_codec::{Decode, Encode};
 use rocket::{
     http::{ContentType, Status},
     local::asynchronous::Client,
@@ -11,6 +17,8 @@ use rocket::{
 };
 use serial_test::serial;
 use sp_core::{crypto::AccountId32, sr25519::Pair as Sr25519Pair, Pair as Pair2};
+use sp_keyring::AccountKeyring;
+use substrate_common::{Message, SigRequest};
 use subxt::{sp_core::sr25519, PairSigner};
 use testing_utils::context::{test_context, test_context_stationary};
 use tofn::{
@@ -46,15 +54,18 @@ async fn test_new_party() {
 
     let client = reqwest::Client::new();
 
-    let encoded_data_1 = vec![
-        8, 128, 209, 136, 240, 217, 145, 69, 231, 221, 189, 15, 30, 70, 231, 253, 64, 109, 185, 39,
-        68, 21, 132, 87, 28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128, 212, 53, 147, 199, 21, 253,
-        211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86,
-        132, 231, 165, 109, 162, 125, 128, 209, 136, 240, 217, 145, 69, 231, 221, 189, 15, 30, 70,
-        231, 253, 64, 109, 185, 39, 68, 21, 132, 87, 28, 98, 58, 255, 29, 22, 82, 225, 75, 6, 128,
-        212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88,
-        133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125,
-    ];
+    let encoded_data_1: Vec<u8> = vec![
+        Message {
+            sig_request: SigRequest { sig_hash: (0..32).collect() },
+            account: AccountKeyring::Alice.to_raw_public_vec(),
+        },
+        Message {
+            sig_request: SigRequest { sig_hash: (0..32).collect() },
+            account: AccountKeyring::Alice.to_raw_public_vec(),
+        },
+    ]
+    .encode();
+
     let encoded_data_2 = encoded_data_1.clone();
 
     let handle = tokio::spawn(async move {
@@ -113,9 +124,13 @@ async fn create_clients(port: i64, key_number: String) {
 
     // Shortcut: store the shares manually
     let root = project_root::get_project_root().unwrap();
-    let path = format!("{}/{}", root.display(), if port == 3001 { 0 } else { 1 });
+    let share_id = if port == 3001 { 0 } else { 1 };
+    let path: PathBuf =
+        [root, "test_data".into(), "key_shares".into(), share_id.to_string().into()]
+            .into_iter()
+            .collect();
     let v_serialized = fs::read(path).unwrap();
-    let key = AccountId32::from_str("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY").unwrap();
+    let key = AccountKeyring::Alice.to_account_id();
 
     let reservation = kv_store.kv().reserve_key(key.to_string()).await.unwrap();
     let result = kv_store.kv().put(reservation, v_serialized).await;

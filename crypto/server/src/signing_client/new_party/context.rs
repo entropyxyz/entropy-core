@@ -50,10 +50,9 @@ impl SignContext {
     ) -> anyhow::Result<SignParties> {
         let mut sign_parties = Subset::with_max_size(length);
         for signer_idx in sign_indices.iter() {
-            if let Err(e) = sign_parties.add(tofn::collections::TypedUsize::from_usize(*signer_idx))
-            {
-                return Err(anyhow::anyhow!("failed to call Subset::add: {:?}", e));
-            }
+            sign_parties
+                .add(tofn::collections::TypedUsize::from_usize(*signer_idx))
+                .map_err(|err| anyhow::anyhow!("failed to call Subset::add: {:?}", err))?;
         }
         Ok(sign_parties)
     }
@@ -72,29 +71,24 @@ impl SignContext {
     // sign_party_uids: [d,c,a]
     // result: [a,c,d]
     pub fn sign_uids(&self) -> Vec<String> {
-        let a = self.sign_init.signer_uids.clone();
-        let b = self.party_info.tofnd.party_uids.clone();
-        info!(
-            "temporary log. got participant_uids: {:?};\ngot party_uids: {:?}",
-            self.sign_init.signer_uids.clone(),
-            self.party_info.tofnd.party_uids.clone()
-        );
-        assert_eq!(a, b);
-        a
-        // self
-        //   .party_info
-        //   .tofnd
-        //   .party_uids
-        //   .iter()
-        //   .filter_map(|uid| {
-        //     let pred = true;
-        //     if pred {
-        //       // self.sign_parties.contains(uid) {
-        //       Some(uid.clone())
-        //     } else {
-        //       None
-        //     }
-        //   })
-        //   .collect::<Vec<_>>()
+        // TODO: why do we have two datastructures with seemingly identical contents?
+        // It's a potential source of errors.
+        assert_eq!(&self.sign_init.signer_uids, &self.party_info.tofnd.party_uids);
+        self.sign_init
+            .signer_uids
+            .iter()
+            .zip(self.sign_init.signer_idxs.iter())
+            .filter_map(|(uid, idx)| {
+                if self
+                    .sign_parties
+                    .iter()
+                    .any(|s_idx| s_idx == tofn::collections::TypedUsize::from_usize(*idx))
+                {
+                    Some(uid.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
     }
 }

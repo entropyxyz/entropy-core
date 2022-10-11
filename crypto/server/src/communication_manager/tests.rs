@@ -5,6 +5,7 @@ use std::{env, time};
 use kvdb::{
     clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
+use parity_scale_codec::{Decode, Encode};
 use rocket::{
     http::{ContentType, Status},
     local::asynchronous::Client,
@@ -12,6 +13,8 @@ use rocket::{
 };
 use serial_test::serial;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
+use sp_keyring::AccountKeyring;
+use substrate_common::{Message, SigRequest};
 use subxt::{sp_core::sr25519, PairSigner};
 use testing_utils::context::{test_context, test_context_stationary};
 use uuid::Uuid;
@@ -39,28 +42,6 @@ async fn wait_for_chain(api: &EntropyRuntime, block: u32) {
         sleep(Duration::from_secs(2u64)).await;
         result = get_block_number(api).await;
     }
-}
-
-#[rocket::async_test]
-#[serial]
-async fn test_sign() {
-    let cxt = test_context_stationary().await;
-    let now = time::Instant::now();
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-
-    wait_for_chain(&api, 1).await;
-
-    let encoded_data = vec![
-        4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189,
-        4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162,
-        125,
-    ];
-    // Construct a client to use for dispatching requests.
-    let client = setup_client().await;
-
-    let response = client.post("/signer/new_party").body(&encoded_data).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    clean_tests();
 }
 
 #[rocket::async_test]
