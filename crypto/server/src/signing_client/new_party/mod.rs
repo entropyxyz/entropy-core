@@ -3,9 +3,17 @@
 mod context;
 mod signing_message;
 mod tofn_protocol;
-
-use kvdb::kv_manager::{value::PartyInfo, KvManager};
-use tofn::gg20;
+use bincode::Options;
+use kvdb::kv_manager::{
+    value::{KvValue, PartyInfo},
+    KvManager,
+};
+use tofn::{
+    collections::TypedUsize,
+    gg20,
+    gg20::keygen::{KeygenPartyId, KeygenShareId, SecretKeyShare},
+    sdk::api::PartyShareCounts,
+};
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
 
@@ -42,8 +50,15 @@ impl<'a> Gg20Service<'a> {
     #[instrument]
     pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, SigningErr> {
         info!("check_sign_init: {sign_init:?}");
-        let party_info: PartyInfo =
-            self.kv_manager.kv().get(&sign_init.substrate_key).await?.try_into()?;
+        let party_vec = self.kv_manager.kv().get(&sign_init.substrate_key).await.unwrap();
+        let bincode = bincode::DefaultOptions::new();
+        let value: SecretKeyShare = bincode.deserialize(&party_vec).unwrap();
+        let party_info = PartyInfo::get_party_info(
+            vec![value.clone()],
+            vec!["test".to_string(), "test1".to_string()],
+            vec![0],
+            TypedUsize::<KeygenShareId>::as_usize(&value.share().index()),
+        );
         Ok(SignContext::new(sign_init, party_info))
     }
 
@@ -59,16 +74,15 @@ impl<'a> Gg20Service<'a> {
         let new_sign =
             gg20::sign::new_sign(ctx.group(), &ctx.share, &ctx.sign_parties, ctx.msg_to_sign())
                 .map_err(|e| SigningErr::ProtocolExecution(format!("{e:?}")))?;
-
         let result = tofn_protocol::execute_protocol(
             new_sign,
             channels,
             &ctx.sign_uids(),
-            &ctx.sign_share_counts,
+            &[1usize, 1usize],
+            ctx.party_info.tofnd.index,
         )
         .await?
         .map_err(|e| SigningErr::ProtocolOutput(format!("{e:?}")))?;
-
         Ok(result)
     }
 
