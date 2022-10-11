@@ -27,25 +27,26 @@ mod tests;
 mod benchmarking;
 
 pub mod weights;
+use core::convert::TryInto;
+
+use frame_support::{
+	dispatch::DispatchResult,
+	inherent::Vec,
+	pallet_prelude::*,
+	traits::{Currency, OneSessionHandler},
+};
+use frame_system::pallet_prelude::*;
+use pallet_staking::ValidatorPrefs;
+use sp_runtime::RuntimeAppPublic;
+
+pub use crate::weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use core::convert::TryInto;
-
-    use frame_support::{
-        dispatch::DispatchResult,
-        inherent::Vec,
-        pallet_prelude::*,
-        traits::{Currency, OneSessionHandler},
-    };
-    use frame_system::pallet_prelude::*;
-    use pallet_staking::ValidatorPrefs;
-    use sp_runtime::RuntimeAppPublic;
-
-    pub use crate::weights::WeightInfo;
+	use super::*;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_staking::Config {
+    pub trait Config: frame_system::Config + pallet_staking::Config + pallet_session::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
@@ -233,25 +234,48 @@ pub mod pallet {
                 pallet_staking::Pallet::<T>::ledger(controller).ok_or(Error::<T>::NotController)?;
             Ok(ledger.stash)
         }
-    }
 
-    impl<T: Config> sp_runtime::BoundToRuntimeAppPublic for Pallet<T> {
-        type Public = T::AuthorityId;
-    }
+		pub fn on_new_session<'a, I: 'a>(changed: bool, validators: I, queued_validators: I) where
+		I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>, {
 
-    impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
-        type Key = T::AuthorityId;
-
-        fn on_genesis_session<'a, I: 'a>(validators: I)
-        where I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)> {
-        }
-
-        fn on_new_session<'a, I: 'a>(changed: bool, validators: I, _queued_validators: I)
-        where I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)> {
-            // instant changes
-            if changed {}
-        }
-
-        fn on_disabled(i: u32) {}
+			let authorities = validators.map(|(_, k)| (k, 1)).collect::<Vec<_>>();
+			let new_authorities = queued_validators.map(|(_, k)| (k, 1)).collect::<Vec<_>>();
+			if !changed {
+				// do nothing
+			} else {
+				// check to see if x happened
+				// check if y
+			}
+			dbg!("here test 2 {:?}, {:?}, {:?}", changed, authorities, new_authorities);
+		}
     }
 }
+
+	impl<T: Config> sp_runtime::BoundToRuntimeAppPublic for Pallet<T> {
+		type Public = T::AuthorityId;
+	}
+
+	impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T>
+	where
+		T: pallet_session::Config,
+	{
+		type Key = T::AuthorityId;
+
+		fn on_genesis_session<'a, I: 'a>(validators: I)
+		where
+			I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
+		{
+			log::info!("hehreht tests");
+			let authorities = validators.map(|(_, k)| (k, 1)).collect::<Vec<_>>();
+		}
+
+		fn on_new_session<'a, I: 'a>(changed: bool, validators: I, _queued_validators: I)
+		where
+			I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
+		{
+			log::info!("hehreht tests new session");
+		}
+
+		fn on_disabled(i: u32) {
+		}
+	}

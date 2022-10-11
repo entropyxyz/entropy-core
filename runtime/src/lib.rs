@@ -51,6 +51,7 @@ use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+pub use sp_consensus_babe::{AuthorityId as BabeId};
 use pallet_session::historical as pallet_session_historical;
 #[cfg(any(feature = "std", test))]
 pub use pallet_staking::StakerStatus;
@@ -556,6 +557,7 @@ parameter_types! {
 impl pallet_staking_extension::Config for Runtime {
     type Currency = Balances;
     type Event = Event;
+	type AuthorityId = BabeId;
     type MaxEndpointLength = MaxEndpointLength;
     type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
 }

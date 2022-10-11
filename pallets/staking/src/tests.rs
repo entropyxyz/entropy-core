@@ -1,8 +1,14 @@
-use frame_support::{assert_noop, assert_ok};
-
+use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
+use sp_runtime::testing::UintAuthorityId;
 use crate::{mock::*, Error};
 
 const NULL_ARR: [u8; 32] = [0; 32];
+
+fn initialize_block(block: u64) {
+	SESSION_CHANGED.with(|l| *l.borrow_mut() = false);
+	System::set_block_number(block);
+	Session::on_initialize(block);
+}
 
 #[test]
 fn basic_setup_works() {
@@ -156,5 +162,15 @@ fn it_deletes_when_no_bond_left() {
         assert_eq!(lock.len(), 0);
         assert_eq!(Staking::endpoint_register(1), None);
         assert_eq!(Staking::threshold_account(2), None);
+    });
+}
+
+
+#[test]
+fn it_tests_on_new_session() {
+    new_test_ext().execute_with(|| {
+		let authority = UintAuthorityId::from(1);
+		Staking::on_new_session(false, vec![(&1u64, authority.clone())].into_iter(), vec![(&1u64, authority)].into_iter());
+
     });
 }
