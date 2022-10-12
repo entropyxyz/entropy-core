@@ -37,12 +37,11 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use pallet_staking::ValidatorPrefs;
-    use sp_std::borrow::ToOwned;
 
     pub use crate::weights::WeightInfo;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_staking::Config + scale_info::TypeInfo {
+    pub trait Config: frame_system::Config + pallet_staking::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
@@ -50,35 +49,6 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
     // TODO: JA add build for initial endpoints
-
-    /// Unique identifier for a KeySet
-    pub type KeySetId = u32;
-
-    /// Represents a generic 256-bit public key (For Threshold and ECDH public keys)
-    pub type GenericPubKey = [u8; 32];
-
-    #[derive(
-        Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebugNoBound, Eq, PartialEq, Clone, Copy,
-    )]
-    #[scale_info(skip_type_params(T))]
-    pub enum Key<T: Config> {
-        Stash(T::AccountId),
-        Controller(T::AccountId),
-        Threshold(T::AccountId),
-        Ecdh(GenericPubKey),
-    }
-
-    #[derive(
-        Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebugNoBound, Eq, PartialEq, Clone,
-    )]
-    #[scale_info(skip_type_params(T))]
-    pub struct KeySet<T: Config> {
-        pub stash: Key<T>,
-        pub controller: Key<T>,
-        pub threshold: Key<T>,
-        pub ecdh: Key<T>,
-        //TODO JH discuss adding a weight/rank? u32
-    }
 
     /// The balance type of this pallet.
     pub type BalanceOf<T> = <<T as pallet_staking::Config>::Currency as Currency<
@@ -95,29 +65,7 @@ pub mod pallet {
     pub type EndpointRegister<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, OptionQuery>;
 
-    // #[pallet::storage]
-    // #[pallet::getter(fn threshold_account)]
-    // pub type ThresholdAccounts<T: Config> =
-    //     StorageMap<_, Blake2_128Concat, T::AccountId, (T::AccountId, [u8; 32]), OptionQuery>;
-
-    /// Maps partition identifiers to the validators in that set
-    /// `u8` is the network partition identifier
-    /// `<T::AccountId>` is a vector of addresses of the validators in the partition
-    /// TODO JH Update Vec to Vec of KeySetId
-    #[pallet::storage]
-    #[pallet::getter(fn signing_groups)]
-    pub type SigningGroups<T: Config> =
-        StorageMap<_, Blake2_128Concat, u8, Vec<T::AccountId>, OptionQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn get_next_keyset_id)]
-    pub type KeySetIdCounter<T: Config> = StorageValue<_, KeySetId, ValueQuery>;
-
-    /// Get the KeySetId that the Key belongs to
-    #[pallet::storage]
-    #[pallet::getter(fn get_keyset_id)]
-    pub type KeySetIds<T: Config> = StorageMap<_, Blake2_128Concat, Key<T>, KeySetId, OptionQuery>;
-
+    /// Keytype is the stash AccountId
     /// Stores the relationship between
     /// a threshold public key and a
     /// Diffie-Hellman public key.
@@ -126,8 +74,14 @@ pub mod pallet {
     /// secrets for ChaCha20Poly1305 encryption
     /// of secret shares over http.
     #[pallet::storage]
-    #[pallet::getter(fn get_keyset)]
-    pub type KeySets<T: Config> = StorageMap<_, Blake2_128Concat, KeySetId, KeySet<T>, OptionQuery>;
+    #[pallet::getter(fn threshold_account)]
+    pub type ThresholdAccounts<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, (T::AccountId, [u8; 32]), OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn signing_groups)]
+    pub type SigningGroups<T: Config> =
+        StorageMap<_, Blake2_128Concat, u8, Vec<T::AccountId>, OptionQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
@@ -161,10 +115,9 @@ pub mod pallet {
                 EndpointRegister::<T>::insert(account, endpoint);
             }
 
-            // TODO JH add new full accounts to genesis
-            // for (stash_account, threshold_account) in &self.threshold_accounts {
-            //     ThresholdAccounts::<T>::insert(stash_account, threshold_account);
-            // }
+            for (stash_account, threshold_account) in &self.threshold_accounts {
+                ThresholdAccounts::<T>::insert(stash_account, threshold_account);
+            }
 
             for (group, accounts) in &self.signing_groups {
                 SigningGroups::<T>::insert(group, accounts);
@@ -177,10 +130,6 @@ pub mod pallet {
         EndpointTooLong,
         NoBond,
         NotController,
-        /// A KeySet does not exist under that keyId
-        KeySetNonexistant,
-        /// That key does not associated with a KeySet
-        NoKeySetIdAssociation,
     }
 
     #[pallet::event]
@@ -189,9 +138,9 @@ pub mod pallet {
         /// An endpoint has been added or edited. [who, endpoint]
         EndpointChanged(T::AccountId, Vec<u8>),
         /// Node Info has been added or edited. [who, endpoint, threshold_account]
-        NodeInfoChanged(KeySetId, KeySet<T>),
+        NodeInfoChanged(T::AccountId, Vec<u8>, T::AccountId),
         /// A threshold account has been added or edited. [validator, threshold_account]
-        ThresholdAccountChanged(KeySetId, KeySet<T>),
+        ThresholdAccountChanged(T::AccountId, (T::AccountId, [u8; 32])),
         /// Node Info has been removed [who]
         NodeInfoRemoved(T::AccountId),
     }
@@ -222,24 +171,9 @@ pub mod pallet {
             dh_pk: [u8; 32],
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-
             let stash = Self::get_stash(&who)?;
-            let keyset_id = Self::get_keyset_id(Key::<T>::Stash(stash.clone()))
-                .ok_or(Error::<T>::NoKeySetIdAssociation)?;
-
-            let keyset = KeySets::<T>::try_mutate(keyset_id, |keyset: &mut Option<KeySet<T>>| {
-                if let Some(keys) = keyset {
-                    keys.threshold = Key::<T>::Threshold(new_account.clone());
-                    keys.ecdh = Key::<T>::Ecdh(dh_pk.clone());
-                    Ok(keys.to_owned())
-                } else {
-                    Err(Error::<T>::KeySetNonexistant)
-                }
-            })?;
-            KeySetIds::<T>::insert(Key::<T>::Threshold(new_account.clone()), keyset_id);
-            KeySetIds::<T>::insert(Key::<T>::Ecdh(dh_pk.clone()), keyset_id);
-
-            Self::deposit_event(Event::ThresholdAccountChanged(keyset_id, keyset));
+            ThresholdAccounts::<T>::insert(&stash, (&new_account, dh_pk));
+            Self::deposit_event(Event::ThresholdAccountChanged(stash, (new_account, dh_pk)));
             Ok(())
         }
 
@@ -255,11 +189,7 @@ pub mod pallet {
             let ledger = pallet_staking::Pallet::<T>::ledger(&controller);
             if ledger.is_none() && Self::endpoint_register(&controller).is_some() {
                 EndpointRegister::<T>::remove(&controller);
-
-                let keyset_id = KeySetIds::<T>::take(Key::<T>::Stash(stash.clone()))
-                    .ok_or(Error::<T>::NoKeySetIdAssociation)?;
-                Self::remove_keyset_and_associations(keyset_id);
-
+                ThresholdAccounts::<T>::remove(stash);
                 Self::deposit_event(Event::NodeInfoRemoved(controller));
             }
             Ok(().into())
@@ -284,16 +214,8 @@ pub mod pallet {
             let stash = Self::get_stash(&who)?;
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
             EndpointRegister::<T>::insert(&who, &endpoint);
-
-            let keyset = KeySet {
-                stash: Key::<T>::Stash(stash.clone()),
-                controller: Key::<T>::Controller(who.clone()),
-                threshold: Key::<T>::Threshold(threshold_account.clone()),
-                ecdh: Key::<T>::Ecdh(dh_pk.clone()),
-            };
-
-            let keyset_id = Self::insert_new_keyset_and_associations(keyset.clone());
-            Self::deposit_event(Event::NodeInfoChanged(keyset_id, keyset));
+            ThresholdAccounts::<T>::insert(&stash, (&threshold_account, dh_pk));
+            Self::deposit_event(Event::NodeInfoChanged(who, endpoint, threshold_account));
             Ok(())
         }
     }
@@ -302,36 +224,6 @@ pub mod pallet {
             let ledger =
                 pallet_staking::Pallet::<T>::ledger(controller).ok_or(Error::<T>::NotController)?;
             Ok(ledger.stash)
-        }
-
-        /// Inserts a new KeySet and returns its new KeySetId
-        pub fn insert_new_keyset_and_associations(keyset: KeySet<T>) -> KeySetId {
-            let keyset_id = Self::get_next_keyset_id();
-            KeySets::<T>::insert(keyset_id, keyset.clone());
-
-            KeySetIds::<T>::insert(keyset.stash.clone(), keyset_id);
-            KeySetIds::<T>::insert(keyset.controller.clone(), keyset_id);
-            KeySetIds::<T>::insert(keyset.threshold.clone(), keyset_id);
-            KeySetIds::<T>::insert(keyset.ecdh.clone(), keyset_id);
-
-            KeySetIdCounter::<T>::mutate(|id| *id += 1);
-
-            keyset_id
-        }
-
-        /// Remove a keyset from the database and remove references to it in remove_keyset_and_associations
-        pub fn remove_keyset_and_associations(keyset_id: KeySetId) -> Option<KeySet<T>> {
-            if let Some(keyset) = KeySets::<T>::take(keyset_id) {
-                let KeySet { stash, controller, threshold, ecdh } = keyset.clone();
-
-                KeySetIds::<T>::remove(stash);
-                KeySetIds::<T>::remove(controller);
-                KeySetIds::<T>::remove(threshold);
-                KeySetIds::<T>::remove(ecdh);
-                Some(keyset)
-            } else {
-                None
-            }
         }
     }
 }
