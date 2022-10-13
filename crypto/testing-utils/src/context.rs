@@ -1,6 +1,6 @@
 use sp_core::Pair;
 use sp_keyring::AccountKeyring;
-use subxt::{config::PolkadotConfig, tx::PairSigner, tx::SubstrateExtrinsicParams, OnlineClient};
+use subxt::{config::EntropyConfig, tx::PairSigner, tx::SubstrateExtrinsicParams, OnlineClient};
 
 use super::node_proc::TestNodeProcess;
 
@@ -12,34 +12,34 @@ fn get_path() -> String {
     )
 }
 
-pub type NodeRuntimeSignedExtra = SubstrateExtrinsicParams<PolkadotConfig>;
+pub type NodeRuntimeSignedExtra = SubstrateExtrinsicParams<EntropyConfig>;
 
-pub async fn test_node_process_with(key: AccountKeyring) -> TestNodeProcess<PolkadotConfig> {
+pub async fn test_node_process_with(key: AccountKeyring) -> TestNodeProcess<EntropyConfig> {
     let path = get_path();
 
-    let proc = TestNodeProcess::<PolkadotConfig>::build(path.as_str())
+    let proc = TestNodeProcess::<EntropyConfig>::build(path.as_str())
         .with_authority(key)
         .scan_for_open_ports()
-        .spawn::<PolkadotConfig>()
+        .spawn::<EntropyConfig>()
         .await;
     proc.unwrap()
 }
 
-pub async fn test_node(key: AccountKeyring) -> TestNodeProcess<PolkadotConfig> {
+pub async fn test_node(key: AccountKeyring) -> TestNodeProcess<EntropyConfig> {
     let path = get_path();
 
-    let proc = TestNodeProcess::<PolkadotConfig>::build(path.as_str())
+    let proc = TestNodeProcess::<EntropyConfig>::build(path.as_str())
         .with_authority(key)
-        .spawn::<PolkadotConfig>()
+        .spawn::<EntropyConfig>()
         .await;
     proc.unwrap()
 }
 
-pub async fn test_node_process() -> TestNodeProcess<PolkadotConfig> {
+pub async fn test_node_process() -> TestNodeProcess<EntropyConfig> {
     test_node_process_with(AccountKeyring::Alice).await
 }
 
-pub async fn test_node_process_stationary() -> TestNodeProcess<PolkadotConfig> {
+pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
     test_node(AccountKeyring::Alice).await
 }
 
@@ -47,30 +47,30 @@ pub async fn test_node_process_stationary() -> TestNodeProcess<PolkadotConfig> {
 pub mod entropy {}
 
 pub struct TestContext {
-    pub node_proc: TestNodeProcess<PolkadotConfig>,
-    pub api: entropy::RuntimeApi<PolkadotConfig, SubstrateExtrinsicParams<PolkadotConfig>>,
+    pub node_proc: TestNodeProcess<EntropyConfig>,
+    pub api: entropy::RuntimeApi<EntropyConfig, SubstrateExtrinsicParams<EntropyConfig>>,
 }
 
 impl TestContext {
-    pub fn client(&self) -> &OnlineClient<PolkadotConfig> {
+    pub fn client(&self) -> &OnlineClient<EntropyConfig> {
         &self.api.client
     }
 }
 
 pub async fn test_context() -> TestContext {
     env_logger::try_init().ok();
-    let node_proc: TestNodeProcess<PolkadotConfig> = test_node_process().await;
+    let node_proc: TestNodeProcess<EntropyConfig> = test_node_process().await;
     let api = node_proc.client().clone().to_runtime_api();
     TestContext { node_proc, api }
 }
 
 pub async fn test_context_stationary() -> TestContext {
     env_logger::try_init().ok();
-    let node_proc: TestNodeProcess<PolkadotConfig> = test_node_process_stationary().await;
+    let node_proc: TestNodeProcess<EntropyConfig> = test_node_process_stationary().await;
     let api = node_proc.client().clone().to_runtime_api();
     TestContext { node_proc, api }
 }
 
-pub fn pair_signer(pair: Pair) -> PairSigner<PolkadotConfig, Pair> {
+pub fn pair_signer(pair: Pair) -> PairSigner<EntropyConfig, Pair> {
     PairSigner::new(pair)
 }

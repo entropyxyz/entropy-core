@@ -29,21 +29,15 @@ use subxt::{
     ext::sp_runtime::AccountId32,
     tx::PairSigner,
     tx::SubstrateExtrinsicParams,
-    OnlineClient, PolkadotConfig,
+    OnlineClient, EntropyConfig,
 };
 use tracing::instrument;
 
 use crate::{
+    chain_api::{entropy, EntropyConfig},
     communication_manager::{self, CommunicationManagerState},
     utils::Configuration,
 };
-
-// load entropy metadata so that subxt knows what types can be handled by the entropy network
-#[subxt::subxt(runtime_metadata_path = "entropy_metadata.scale")]
-pub mod entropy {}
-
-pub type EntropyRuntime =
-    entropy::RuntimeApi<PolkadotConfig, SubstrateExtrinsicParams<PolkadotConfig>>;
 
 // TODO(TK): merge this with api::handle_signing
 // TODO(TK): increase the abstraction of the method, for readability
@@ -107,20 +101,17 @@ pub async fn provide_share(
 
 /// Creates an api instance to talk to chain
 /// Chain endpoint set on launch
-pub async fn get_api(url: &str) -> Result<EntropyRuntime, subxt::Error<entropy::DispatchError>> {
-    let api = OnlineClient::<PolkadotConfig>::from_url(url)
-        .build()
-        .await?
-        .to_runtime_api::<EntropyRuntime>();
+pub async fn get_api(url: &str) -> Result<OnlineClient<EntropyConfig>, subxt::Error> {
+    let api = OnlineClient::<EntropyConfig>::from_url(url).await?;
     Ok(api)
 }
 
 /// Identifies if this node is the block author
 /// O(n) n = number of validators
 pub async fn is_block_author(
-    api: &EntropyRuntime,
+    api: &OnlineClient<EntropyConfig>,
     block_author: &AccountId32,
-) -> Result<bool, subxt::Error<entropy::DispatchError>> {
+) -> Result<bool, subxt::Error> {
     let all_validator_keys = api.storage().session().queued_keys(None).await?;
 
     let author_keys = all_validator_keys.iter().find(|&key| &key.0 == block_author);
@@ -131,26 +122,24 @@ pub async fn is_block_author(
 
 /// Identifies who the current block's author is by quering node
 pub async fn get_block_author(
-    api: &EntropyRuntime,
-) -> Result<AccountId32, subxt::Error<entropy::DispatchError>> {
+    api: &OnlineClient<EntropyConfig>,
+) -> Result<AccountId32, subxt::Error> {
     let block_number = get_block_number(api).await?;
     let author = api.storage().propagation().block_author(&block_number, None).await?.unwrap();
     Ok(author)
 }
 
 /// Identifies current block number by quering node
-pub async fn get_block_number(
-    api: &EntropyRuntime,
-) -> Result<u32, subxt::Error<entropy::DispatchError>> {
+pub async fn get_block_number(api: &OnlineClient<EntropyConfig>) -> Result<u32, subxt::Error> {
     let block_number = api.storage().system().number(None).await?;
     Ok(block_number)
 }
 
 /// Identifies the block author's endpoint by querying node
 pub async fn get_author_endpoint(
-    api: &EntropyRuntime,
+    api: &OnlineClient<EntropyConfig>,
     block_author: &AccountId32,
-) -> Result<Vec<u8>, subxt::Error<entropy::DispatchError>> {
+) -> Result<Vec<u8>, subxt::Error> {
     let author_endpoint =
         api.storage().staking_extension().endpoint_register(block_author, None).await?.unwrap();
     Ok(author_endpoint)
@@ -164,10 +153,10 @@ pub fn convert_endpoint(author_endpoint: &[u8]) -> Result<&str, std::str::Utf8Er
 /// Sends message to chain stating that it has concluded all signings in a block
 /// notes any failures in said messages
 pub async fn acknowledge_responsibility(
-    api: &EntropyRuntime,
+    api: &OnlineClient<EntropyConfig>,
     mnemonic: &str,
     block_number: u32,
-) -> Result<(), subxt::Error<entropy::DispatchError>> {
+) -> Result<(), subxt::Error> {
     let pair: Sr25519Pair = Pair::from_string(mnemonic, None).unwrap();
     let signer = PairSigner::new(pair);
     // TODO: JA unhardcode failures and block number should be of the target block
@@ -192,9 +181,9 @@ pub async fn acknowledge_responsibility(
 
 /// Identifies a user's whitelisted addresses from chain
 pub async fn get_whitelist(
-    api: &EntropyRuntime,
+    api: &OnlineClient<EntropyConfig>,
     user: &AccountId32,
-) -> Result<Vec<Vec<u8>>, subxt::Error<entropy::DispatchError>> {
+) -> Result<Vec<Vec<u8>>, subxt::Error> {
     let whitelist = api.storage().constraints().address_whitelist(user, None).await?;
 
     Ok(whitelist)

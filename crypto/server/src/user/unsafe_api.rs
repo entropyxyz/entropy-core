@@ -9,12 +9,12 @@ use kvdb::kv_manager::{
 use log::info;
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use sp_core::{sr25519, Pair};
-use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, PolkadotConfig};
+use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner};
 use tracing::instrument;
 
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
-    chain_api::{entropy, get_api, EntropyRuntime},
+    chain_api::{entropy, get_api},
     message::SignedMessage,
     signing_client::SignerState,
     Configuration,

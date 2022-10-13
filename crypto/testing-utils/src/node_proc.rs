@@ -127,7 +127,7 @@ impl TestNodeProcessBuilder {
                 attempts,
                 MAX_ATTEMPTS
             );
-            let result = OnlineClient::<PolkadotConfig>::from_url(ws_url.clone()).build().await;
+            let result = OnlineClient::<EntropyConfig>::from_url(ws_url.clone()).build().await;
             match result {
                 Ok(client) => break Ok(client),
                 Err(err) => {

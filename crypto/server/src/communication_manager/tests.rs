@@ -19,7 +19,6 @@ use uuid::Uuid;
 use super::deprecating_sign::{
     acknowledge_responsibility, convert_endpoint, does_have_key, get_api, get_author_endpoint,
     get_block_author, get_block_number, get_whitelist, is_block_author, send_ip_address,
-    EntropyRuntime,
 };
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
     Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
@@ -33,7 +32,7 @@ pub fn get_path(extension: &str) -> String {
     file_path
 }
 
-async fn wait_for_chain(api: &EntropyRuntime, block: u32) {
+async fn wait_for_chain(api: &OnlineClient<EntropyConfig>, block: u32) {
     let mut result = get_block_number(api).await;
     while result.unwrap() < block {
         sleep(Duration::from_secs(2u64)).await;

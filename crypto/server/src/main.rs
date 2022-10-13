@@ -19,7 +19,7 @@
 #![allow(dead_code)]
 
 pub(crate) mod chain_api;
-mod communication_manager;
+// mod communication_manager;
 pub(crate) mod message;
 pub(crate) mod sign_init;
 mod signing_client;
@@ -28,15 +28,14 @@ mod utils;
 use bip39::{Language, Mnemonic, MnemonicType};
 #[macro_use]
 extern crate rocket;
-use communication_manager::deprecating_sign::entropy::sudo::storage::Key;
+// use communication_manager::deprecating_sign::entropy::sudo::storage::Key;
 use kvdb::kv_manager::{error::KvError, KeyReservation, KvManager};
 use rocket::routes;
-use sp_core::{crypto::AccountId32, sr25519, Pair};
 use sp_keyring::AccountKeyring;
 use substrate_common::SIGNING_PARTY_SIZE;
+use subxt::ext::sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use self::{
-    communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState},
     signing_client::{api::*, SignerState},
     user::api::*,
     utils::{init_tracing, load_kv_store, Configuration},
@@ -50,7 +49,6 @@ use crate::{
 async fn rocket() -> _ {
     init_tracing();
     let signer_state = SignerState::default();
-    let cm_state = CommunicationManagerState::default();
     let configuration = Configuration::new();
     let kv_store = load_kv_store().await;
 
@@ -67,10 +65,8 @@ async fn rocket() -> _ {
     rocket::build()
         .mount("/user", routes![new_user])
         .mount("/signer", routes![new_party, subscribe_to_me])
-        .mount("/cm", routes![provide_share, handle_signing])
         .mount("/unsafe", unsafe_routes)
         .manage(signer_state)
-        .manage(cm_state)
         .manage(configuration)
         .manage(kv_store)
 }
