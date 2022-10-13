@@ -1,5 +1,5 @@
 use sp_keyring::AccountKeyring;
-use subxt::{OnlineClient, DefaultConfig, DefaultExtra, PairSigner};
+use subxt::{OnlineClient, PolkadotConfig, DefaultExtra, tx::PairSigner};
 
 #[subxt::subxt(runtime_metadata_path = "src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -11,10 +11,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	//TODO replace accept weak inclusion
 	let api = OnlineClient::new()
-		.set_url("ws://localhost:9944")
+		.ws_client("ws://localhost:9944")
 		.build()
 		.await?
-		.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, DefaultExtra<_>>>();
+		.to_runtime_api::<entropy::RuntimeApi<PolkadotConfig, DefaultExtra<_>>>();
 
 	let result = api
 		.tx()

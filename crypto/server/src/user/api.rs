@@ -6,9 +6,12 @@ use kvdb::kv_manager::{
 };
 use log::info;
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
-use sp_core::{sr25519, Pair};
+// use sp_core::{sr25519, Pair};
 use substrate_common::SIGNING_PARTY_SIZE;
-use subxt::{sp_runtime::AccountId32, DefaultConfig, PairSigner};
+use subxt::{
+    ext::sp_core::sr25519, ext::sp_core::Pair, ext::sp_runtime::AccountId32, tx::PairSigner,
+    PolkadotConfig,
+};
 use tracing::instrument;
 use zeroize::Zeroize;
 
@@ -27,7 +30,7 @@ pub async fn new_user(
     state: &State<KvManager>,
     config: &State<Configuration>,
 ) -> Result<Status, UserErr> {
-    let api = get_api(&config.endpoint).await.unwrap();
+    let api: EntropyRuntime = get_api(&config.endpoint).await.unwrap();
 
     // Verifies the message contains a valid sr25519 signature from the sender.
     let signed_msg: SignedMessage = msg.into_inner();
@@ -69,13 +72,13 @@ pub async fn is_registering(api: &EntropyRuntime, who: &AccountId32) -> Result<b
 // is used for PKE and to submit extrensics on chain.
 pub async fn get_signer(
     kv: &KvManager,
-) -> Result<subxt::PairSigner<DefaultConfig, sr25519::Pair>, KvError> {
+) -> Result<PairSigner<PolkadotConfig, sr25519::Pair>, KvError> {
     let exists = kv.kv().exists("MNEMONIC").await?;
     let raw_m = kv.kv().get("MNEMONIC").await?;
     match core::str::from_utf8(&raw_m) {
         Ok(s) => match Mnemonic::from_phrase(s, Language::English) {
             Ok(m) => match <sr25519::Pair as Pair>::from_phrase(m.phrase(), None) {
-                Ok(p) => Ok(PairSigner::<DefaultConfig, sr25519::Pair>::new(p.0)),
+                Ok(p) => Ok(PairSigner::<PolkadotConfig, sr25519::Pair>::new(p.0)),
                 Err(e) => Err(KvError::GetErr(InnerKvError::LogicalErr("SENSITIVE".to_owned()))),
             },
             Err(e) => Err(KvError::GetErr(InnerKvError::LogicalErr(e.to_string()))),
@@ -86,7 +89,7 @@ pub async fn get_signer(
 
 pub async fn get_subgroup(
     api: &EntropyRuntime,
-    signer: &subxt::PairSigner<DefaultConfig, sr25519::Pair>,
+    signer: &PairSigner<PolkadotConfig, sr25519::Pair>,
 ) -> Result<Option<u8>, subxt::Error<entropy::DispatchError>> {
     let mut subgroup: Option<u8> = None;
     let address = signer.account_id();
@@ -105,7 +108,7 @@ pub async fn confirm_registered(
     api: &EntropyRuntime,
     who: AccountId32,
     subgroup: u8,
-    signer: &subxt::PairSigner<DefaultConfig, sr25519::Pair>,
+    signer: &PairSigner<PolkadotConfig, sr25519::Pair>,
 ) -> Result<(), subxt::Error<entropy::DispatchError>> {
     // TODO error handling + return error
     // TODO fire and forget, or wait for in block maybe Ddos error

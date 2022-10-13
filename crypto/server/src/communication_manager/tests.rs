@@ -12,7 +12,7 @@ use rocket::{
 };
 use serial_test::serial;
 use sp_core::{sr25519::Pair as Sr25519Pair, Pair as Pair2};
-use subxt::{sp_core::sr25519, PairSigner};
+use subxt::{sp_core::sr25519, tx::PairSigner};
 use testing_utils::context::{test_context, test_context_stationary};
 use uuid::Uuid;
 
@@ -90,7 +90,7 @@ async fn provide_share_fail_wrong_data() {
 async fn get_is_block_author() {
     let cxt = test_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await;
-    let alice_stash_id: subxt::sp_runtime::AccountId32 =
+    let alice_stash_id: subxt::ext::sp_runtime::AccountId32 =
         sr25519::Pair::from_string("//Alice//stash", None)
             .expect("Could not obtain stash signer pair")
             .public()
@@ -103,7 +103,7 @@ async fn get_is_block_author() {
 async fn not_is_block_author() {
     let cxt = test_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await;
-    let bob_stash_id: subxt::sp_runtime::AccountId32 =
+    let bob_stash_id: subxt::ext::sp_runtime::AccountId32 =
         sr25519::Pair::from_string("//Bob//stash", None)
             .expect("Could not obtain stash signer pair")
             .public()
@@ -118,10 +118,11 @@ async fn not_is_block_author() {
 async fn not_validator_block_author() {
     let cxt = test_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await;
-    let bob_stash_id: subxt::sp_runtime::AccountId32 = sr25519::Pair::from_string("//Bob", None)
-        .expect("Could not obtain stash signer pair")
-        .public()
-        .into();
+    let bob_stash_id: subxt::ext::sp_runtime::AccountId32 =
+        sr25519::Pair::from_string("//Bob", None)
+            .expect("Could not obtain stash signer pair")
+            .public()
+            .into();
     let result = is_block_author(&api.unwrap(), &bob_stash_id).await;
     assert_eq!(result.unwrap(), false);
 }
@@ -133,7 +134,7 @@ async fn test_get_block_author() {
     wait_for_chain(&api, 1).await;
     let result = get_block_author(&api).await;
     println!("result {:?}", result);
-    let alice_stash_id: subxt::sp_runtime::AccountId32 =
+    let alice_stash_id: subxt::ext::sp_runtime::AccountId32 =
         sr25519::Pair::from_string("//Alice//stash", None)
             .expect("Could not obtain stash signer pair")
             .public()
@@ -154,7 +155,7 @@ async fn test_get_block_number() {
 async fn test_get_author_endpoint() {
     let cxt = test_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await;
-    let alice_stash_id: subxt::sp_runtime::AccountId32 =
+    let alice_stash_id: subxt::ext::sp_runtime::AccountId32 =
         sr25519::Pair::from_string("//Alice//stash", None)
             .expect("Could not obtain stash signer pair")
             .public()
@@ -183,7 +184,7 @@ async fn test_send_responsibility_message() {
 async fn test_get_whitelist() {
     let cxt = test_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await;
-    let alice_stash_id: subxt::sp_runtime::AccountId32 =
+    let alice_stash_id: subxt::ext::sp_runtime::AccountId32 =
         sr25519::Pair::from_string("//Alice//stash", None)
             .expect("Could not obtain stash signer pair")
             .public()

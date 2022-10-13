@@ -7,12 +7,12 @@ use std::{
 };
 
 use sp_keyring::AccountKeyring;
-use subxt::{Client, Config, OnlineClient};
+use subxt::{Config, OnlineClient};
 
 /// Spawn a local substrate node for testing subxt.
 pub struct TestNodeProcess<R: Config> {
     proc: process::Child,
-    client: Client<R>,
+    client: OnlineClient<R>,
     pub ws_url: String,
 }
 
@@ -49,7 +49,7 @@ where
     }
 
     /// Returns the subxt client connected to the running node.
-    pub fn client(&self) -> &Client<R> {
+    pub fn client(&self) -> &OnlineClient<R> {
         &self.client
     }
 }
@@ -127,7 +127,7 @@ impl TestNodeProcessBuilder {
                 attempts,
                 MAX_ATTEMPTS
             );
-            let result = OnlineClient::new().set_url(ws_url.clone()).build().await;
+            let result = OnlineClient::<PolkadotConfig>::from_url(ws_url.clone()).build().await;
             match result {
                 Ok(client) => break Ok(client),
                 Err(err) => {

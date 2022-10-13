@@ -22,10 +22,14 @@ use constraints::whitelist::is_on_whitelist;
 use kvdb::kv_manager::value::KvManager;
 use parity_scale_codec::{Decode, Encode};
 use rocket::{http::Status, State};
-use sp_core::{sr25519::Pair as Sr25519Pair, Pair};
+// use sp_core::{sr25519::Pair as Sr25519Pair, Pair};
 use substrate_common::OCWMessage;
 use subxt::{
-    sp_runtime::AccountId32, DefaultConfig, OnlineClient, PairSigner, PolkadotExtrinsicParams,
+    ext::sp_core::{sr25519::Pair as Sr25519Pair, Pair},
+    ext::sp_runtime::AccountId32,
+    tx::PairSigner,
+    tx::SubstrateExtrinsicParams,
+    OnlineClient, PolkadotConfig,
 };
 use tracing::instrument;
 
@@ -39,7 +43,7 @@ use crate::{
 pub mod entropy {}
 
 pub type EntropyRuntime =
-    entropy::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
+    entropy::RuntimeApi<PolkadotConfig, SubstrateExtrinsicParams<PolkadotConfig>>;
 
 // TODO(TK): merge this with api::handle_signing
 // TODO(TK): increase the abstraction of the method, for readability
@@ -104,7 +108,10 @@ pub async fn provide_share(
 /// Creates an api instance to talk to chain
 /// Chain endpoint set on launch
 pub async fn get_api(url: &str) -> Result<EntropyRuntime, subxt::Error<entropy::DispatchError>> {
-    let api = OnlineClient::new().set_url(url).build().await?.to_runtime_api::<EntropyRuntime>();
+    let api = OnlineClient::<PolkadotConfig>::from_url(url)
+        .build()
+        .await?
+        .to_runtime_api::<EntropyRuntime>();
     Ok(api)
 }
 
