@@ -61,7 +61,6 @@ pallet-bounties={ version="4.0.0-dev", default-features=false, git='https://gith
 pallet-collective={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 pallet-contracts={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 pallet-contracts-primitives={ version="6.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
-pallet-contracts-rpc-runtime-api={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 pallet-conviction-voting={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 pallet-democracy={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 pallet-election-provider-multi-phase={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
@@ -129,7 +128,6 @@ std=[
   "pallet-contracts/std",
   "pallet-constraints/std",
   "pallet-contracts-primitives/std",
-  "pallet-contracts-rpc-runtime-api/std",
   "pallet-conviction-voting/std",
   "pallet-democracy/std",
   "pallet-elections-phragmen/std",

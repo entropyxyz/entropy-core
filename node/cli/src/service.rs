@@ -30,7 +30,7 @@ use sc_client_api::{BlockBackend, ExecutorProvider};
 use sc_consensus_babe::{self, SlotProportion};
 use sc_executor::NativeElseWasmExecutor;
 use sc_network::{Event, NetworkService};
-use sc_service::{config::Configuration, error::Error as ServiceError, TaskManager};
+use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_runtime::traits::Block as BlockT;
 
@@ -173,6 +173,7 @@ pub fn new_partial(
         let keystore = keystore_container.sync_keystore();
         let chain_spec = config.chain_spec.cloned_box();
 
+        let rpc_backend = backend.clone();
         let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
             let deps = node_rpc::FullDeps {
                 client: client.clone(),
@@ -194,7 +195,7 @@ pub fn new_partial(
                 },
             };
 
-            node_rpc::create_full(deps).map_err(Into::into)
+            node_rpc::create_full(deps, rpc_backend.clone()).map_err(Into::into)
         };
 
         (rpc_extensions_builder, rpc_setup)
@@ -217,6 +218,7 @@ pub struct NewFullBase {
     pub client: Arc<FullClient>,
     pub network: Arc<NetworkService<Block, <Block as BlockT>::Hash>>,
     pub transaction_pool: Arc<sc_transaction_pool::FullPool<Block, FullClient>>,
+    pub rpc_handlers: RpcHandlers,
 }
 
 /// Creates a full service from the configuration.
@@ -282,7 +284,7 @@ pub fn new_full_base(
     let enable_grandpa = !config.disable_grandpa;
     let prometheus_registry = config.prometheus_registry().cloned();
 
-    let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
+    let rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
         config,
         backend,
         client: client.clone(),
@@ -438,7 +440,7 @@ pub fn new_full_base(
     }
 
     network_starter.start_network();
-    Ok(NewFullBase { task_manager, client, network, transaction_pool })
+    Ok(NewFullBase { task_manager, client, network, transaction_pool, rpc_handlers })
 }
 
 /// Builds a new service for a full client.

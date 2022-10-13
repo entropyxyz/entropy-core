@@ -7,7 +7,7 @@ use std::{
 };
 
 use sp_keyring::AccountKeyring;
-use subxt::{Client, ClientBuilder, Config};
+use subxt::{Client, Config, OnlineClient};
 
 /// Spawn a local substrate node for testing subxt.
 pub struct TestNodeProcess<R: Config> {
@@ -17,17 +17,23 @@ pub struct TestNodeProcess<R: Config> {
 }
 
 impl<R> Drop for TestNodeProcess<R>
-where R: Config
+where
+    R: Config,
 {
-    fn drop(&mut self) { let _ = self.kill(); }
+    fn drop(&mut self) {
+        let _ = self.kill();
+    }
 }
 
 impl<R> TestNodeProcess<R>
-where R: Config
+where
+    R: Config,
 {
     /// Construct a builder for spawning a test node process.
     pub fn build<S>(program: S) -> TestNodeProcessBuilder
-    where S: AsRef<OsStr> + Clone {
+    where
+        S: AsRef<OsStr> + Clone,
+    {
         TestNodeProcessBuilder::new(program)
     }
 
@@ -43,7 +49,9 @@ where R: Config
     }
 
     /// Returns the subxt client connected to the running node.
-    pub fn client(&self) -> &Client<R> { &self.client }
+    pub fn client(&self) -> &Client<R> {
+        &self.client
+    }
 }
 
 /// Construct a test node process.
@@ -55,7 +63,9 @@ pub struct TestNodeProcessBuilder {
 
 impl TestNodeProcessBuilder {
     pub fn new<P>(node_path: P) -> TestNodeProcessBuilder
-    where P: AsRef<OsStr> {
+    where
+        P: AsRef<OsStr>,
+    {
         Self { node_path: node_path.as_ref().into(), authority: None, scan_port_range: false }
     }
 
@@ -75,7 +85,9 @@ impl TestNodeProcessBuilder {
 
     /// Spawn the substrate node at the given path, and wait for rpc to be initialized.
     pub async fn spawn<R>(&self) -> Result<TestNodeProcess<R>, String>
-    where R: Config {
+    where
+        R: Config,
+    {
         let mut cmd = process::Command::new(&self.node_path);
         cmd.env("RUST_LOG", "error").arg("--dev").arg("--tmp");
 
@@ -115,7 +127,7 @@ impl TestNodeProcessBuilder {
                 attempts,
                 MAX_ATTEMPTS
             );
-            let result = ClientBuilder::new().set_url(ws_url.clone()).build().await;
+            let result = OnlineClient::new().set_url(ws_url.clone()).build().await;
             match result {
                 Ok(client) => break Ok(client),
                 Err(err) => {

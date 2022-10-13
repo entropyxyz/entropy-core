@@ -26,10 +26,10 @@ rocket ={ version="0.5.0-rc.1", default-features=false, features=["json"] }
 reqwest={ version="0.11", features=["json", "stream"] }
 
 # Substrate
+subxt             ={ git="https://github.com/jakehemmerle/subxt.git", branch="substrate-master" }
 parity-scale-codec="3.0.0"
-subxt             ={ git="https://github.com/paritytech/subxt.git" }
-sp-keyring        ="6.0.0"
-sp-core           ="6.0.0"
+sp-keyring        ={ package="sp-keyring", git="https://github.com/paritytech/substrate", branch="master" }
+sp-core           ={ package="sp-core", git="https://github.com/paritytech/substrate", branch="master" }
 tofn              ={ git="https://github.com/Entropyxyz/tofn", branch="main" }
 
 # Entropy

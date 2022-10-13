@@ -1,5 +1,5 @@
 use sp_keyring::AccountKeyring;
-use subxt::{ClientBuilder, DefaultConfig, DefaultExtra, PairSigner};
+use subxt::{OnlineClient, DefaultConfig, DefaultExtra, PairSigner};
 
 #[subxt::subxt(runtime_metadata_path = "src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -10,7 +10,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let dest = AccountKeyring::Bob.to_account_id().into();
 
 	//TODO replace accept weak inclusion
-	let api = ClientBuilder::new()
+	let api = OnlineClient::new()
 		.set_url("ws://localhost:9944")
 		.build()
 		.await?
