@@ -20,7 +20,6 @@ pub mod pallet {
     use codec::Encode;
     use frame_support::{inherent::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
     use frame_system::pallet_prelude::*;
-    use helpers::unwrap_or_return_db_read;
     use scale_info::prelude::vec;
     use sp_core;
     use sp_runtime::{
@@ -41,27 +40,8 @@ pub mod pallet {
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
-    #[pallet::storage]
-    #[pallet::getter(fn get_block_author)]
-    pub type BlockAuthor<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, OptionQuery>;
-
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn on_initialize(block_number: T::BlockNumber) -> Weight {
-            // TODO: JA return one DB read
-            // also maybe less efficient can get this from rpc and digest
-            let block_author = unwrap_or_return_db_read!(
-                pallet_authorship::Pallet::<T>::author(),
-                1,
-                "on_init block_author"
-            );
-
-            BlockAuthor::<T>::insert(block_number, block_author);
-            BlockAuthor::<T>::remove(block_number.saturating_sub(20u32.into()));
-            T::DbWeight::get().reads_writes(1, 2)
-        }
-
         fn offchain_worker(block_number: T::BlockNumber) { let _ = Self::post(block_number); }
     }
 

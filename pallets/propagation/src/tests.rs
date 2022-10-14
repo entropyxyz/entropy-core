@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use frame_support::{assert_ok, traits::OnInitialize};
+use frame_support::assert_ok;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
 use sp_keystore::{testing::KeyStore, KeystoreExt};
@@ -31,11 +31,11 @@ fn knows_how_to_mock_several_http_calls() {
                 8, 1, 1, 100, 49, 56, 56, 102, 48, 100, 57, 57, 49, 52, 53, 101, 55, 100, 100, 98,
                 100, 48, 102, 49, 101, 52, 54, 101, 55, 102, 100, 52, 48, 54, 100, 98, 57, 50, 55,
                 52, 52, 49, 53, 56, 52, 53, 55, 49, 99, 54, 50, 51, 97, 102, 102, 49, 100, 49, 54,
-                53, 50, 101, 49, 52, 98, 48, 54, 32, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 100, 49, 56, 56,
-                102, 48, 100, 57, 57, 49, 52, 53, 101, 55, 100, 100, 98, 100, 48, 102, 49, 101, 52,
-                54, 101, 55, 102, 100, 52, 48, 54, 100, 98, 57, 50, 55, 52, 52, 49, 53, 56, 52, 53,
-                55, 49, 99, 54, 50, 51, 97, 102, 102, 49, 100, 49, 54, 53, 50, 101, 49, 52, 98, 48,
-                54, 32, 1, 0, 0, 0, 0, 0, 0, 0,
+                53, 50, 101, 49, 52, 98, 48, 54, 32, 1, 0, 0, 0, 0, 0, 0, 0, 8, 4, 10, 4, 11, 1, 1,
+                100, 49, 56, 56, 102, 48, 100, 57, 57, 49, 52, 53, 101, 55, 100, 100, 98, 100, 48,
+                102, 49, 101, 52, 54, 101, 55, 102, 100, 52, 48, 54, 100, 98, 57, 50, 55, 52, 52,
+                49, 53, 56, 52, 53, 55, 49, 99, 54, 50, 51, 97, 102, 102, 49, 100, 49, 54, 53, 50,
+                101, 49, 52, 98, 48, 54, 32, 1, 0, 0, 0, 0, 0, 0, 0, 8, 4, 10, 4, 11,
             ]
             .to_vec(),
             ..Default::default()
@@ -55,18 +55,6 @@ fn knows_how_to_mock_several_http_calls() {
     })
 }
 
-#[test]
-fn notes_block_author() {
-    new_test_ext().execute_with(|| {
-        Propagation::on_initialize(1);
-        assert_eq!(Propagation::get_block_author(1), Some(11));
-
-        Propagation::on_initialize(21);
-        assert_eq!(Propagation::get_block_author(1), None);
-        assert_eq!(Propagation::get_block_author(21), Some(11));
-    });
-}
-
 fn offchain_worker_env(state_updater: fn(&mut testing::OffchainState)) -> TestExternalities {
     // const PHRASE: &str =
     // 	"news slush supreme milk chapter athlete soap sausage put clutch what kitten";
@@ -81,7 +69,7 @@ fn offchain_worker_env(state_updater: fn(&mut testing::OffchainState)) -> TestEx
     // )
     // .unwrap();
 
-    let mut t = sp_io::TestExternalities::default();
+    let mut t = new_test_ext();
     t.register_extension(OffchainDbExt::new(offchain.clone()));
     t.register_extension(OffchainWorkerExt::new(offchain));
     t.register_extension(TransactionPoolExt::new(pool));

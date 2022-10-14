@@ -14,15 +14,18 @@ use crate as pallet_relayer;
 use crate::{mock::*, Error, Failures, PrevalidateRelayer, RegisteringDetails, Responsibility};
 
 const NULL_ARR: [u8; 32] = [0; 32];
-
 pub const SIG_HASH: &[u8; 64] = b"d188f0d99145e7ddbd0f1e46e7fd406db927441584571c623aff1d1652e14b06";
 
 #[test]
 fn it_preps_transaction() {
     new_test_ext().execute_with(|| {
+        let ip_addresses: Vec<Vec<u8>> = vec![vec![10], vec![11]];
         let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
-        let message =
-            Message { account: vec![1, 0, 0, 0, 0, 0, 0, 0], sig_request: sig_request.clone() };
+        let message = Message {
+            account: vec![1, 0, 0, 0, 0, 0, 0, 0],
+            sig_request: sig_request.clone(),
+            ip_addresses,
+        };
 
         assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request));
 
@@ -122,9 +125,13 @@ fn moves_active_to_pending() {
         Failures::<Test>::insert(2, failures.clone());
         Failures::<Test>::insert(5, failures.clone());
 
+        let ip_addresses: Vec<Vec<u8>> = vec![vec![10], vec![11]];
         let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
-        let message =
-            Message { account: vec![1, 0, 0, 0, 0, 0, 0, 0], sig_request: sig_request.clone() };
+        let message = Message {
+            account: vec![1, 0, 0, 0, 0, 0, 0, 0],
+            sig_request: sig_request.clone(),
+            ip_addresses,
+        };
 
         assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request));
         assert_eq!(Relayer::messages(3), vec![message.clone()]);

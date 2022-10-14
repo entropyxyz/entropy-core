@@ -55,15 +55,18 @@ async fn test_new_party() {
     tokio::time::sleep(Duration::from_secs(1)).await;
 
     let client = reqwest::Client::new();
+    let ip_addresses: Vec<Vec<u8>> = vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()];
 
     let encoded_data_1: Vec<u8> = vec![
         Message {
             sig_request: SigRequest { sig_hash: (0..32).collect() },
             account: AccountKeyring::Alice.to_raw_public_vec(),
+            ip_addresses: ip_addresses.clone(),
         },
         Message {
             sig_request: SigRequest { sig_hash: (0..32).collect() },
             account: AccountKeyring::Alice.to_raw_public_vec(),
+            ip_addresses,
         },
     ]
     .encode();
