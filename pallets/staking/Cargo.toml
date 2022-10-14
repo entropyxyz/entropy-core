@@ -59,12 +59,12 @@ sp-core       ={ package="sp-core", git="https://github.com/paritytech/substrate
 sp-consensus-babe = { version = "0.10.0-dev", default-features = false, git='https://github.com/paritytech/substrate.git', branch="master" }
 log                  ={ version="0.4.0", default-features=false }
 pallet-session                 ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
+sp-staking                     ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 
 [dev-dependencies]
 pallet-balances                ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 pallet-timestamp               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 frame-election-provider-support={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
-sp-staking                     ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 pallet-staking-reward-curve    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 pallet-bags-list               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
 sp-npos-elections              ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="master" }
@@ -84,6 +84,7 @@ std=[
   'pallet-balances/std',
   'frame-benchmarking/std',
   "sp-npos-elections/std",
+  "sp-staking/std",
 	 "sp-consensus-babe/std",
 	   'log/std',
 

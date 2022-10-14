@@ -38,9 +38,10 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_staking::ValidatorPrefs;
 use sp_runtime::RuntimeAppPublic;
-
+use sp_staking::SessionIndex;
 pub use crate::weights::WeightInfo;
-
+use pallet_session::{SessionManager as OtherSessionHandler};
+use sp_std::convert::TryFrom;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
@@ -52,11 +53,6 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
-        type AuthorityId: Member
-            + Parameter
-            + RuntimeAppPublic
-            + MaybeSerializeDeserialize
-            + MaxEncodedLen;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
@@ -237,39 +233,48 @@ pub mod pallet {
             Ok(ledger.stash)
         }
 
-        pub fn on_new_session<'a, I: 'a>(changed: bool, validators: I, queued_validators: I)
-        where I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)> {
-            let authorities = validators.map(|(_, k)| (k, 1)).collect::<Vec<_>>();
-            let new_authorities = queued_validators.map(|(_, k)| (k, 1)).collect::<Vec<_>>();
-            if !changed {
-                // do nothing
-            } else {
-                // check to see if x happened
-                // check if y
-            }
-            dbg!("here test 2 {:?}, {:?}, {:?}", changed, authorities, new_authorities);
-        }
+        // pub fn on_new_session<'a, I: 'a>(changed: bool, validators: I, queued_validators: I)
+        // where I: Iterator<Item = (&'a T::AccountId, T::ValidatorId)> {
+        //     let authorities = validators.map(|(_, k)| (k, 1)).collect::<Vec<_>>();
+        //     let new_authorities = queued_validators.map(|(_, k)| (k, 1)).collect::<Vec<_>>();
+        //     if !changed {
+        //         // do nothing
+        //     } else {
+        //         // check to see if x happened
+        //         // check if y
+        //     }
+        //     // dbg!("here test 2 {:?}, {:?}, {:?}", changed, authorities, new_authorities);
+        // }
     }
-}
+	pub struct SessionManager<I>(sp_std::marker::PhantomData<I>);
 
-impl<T: Config> sp_runtime::BoundToRuntimeAppPublic for Pallet<T> {
-    type Public = T::AuthorityId;
-}
+	impl<I: pallet_session::SessionManager<ValidatorId>, ValidatorId> pallet_session::SessionManager<ValidatorId> for SessionManager<I> {
+		fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
+			let new_session = I::new_session(new_index);
+			log::info!("test inside new_session");
+			if let Some(validators) = &new_session {
+				// Note the validators
+			}
 
-impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T>
-{
-    type Key = T::AuthorityId;
+			new_session
+		}
 
-    fn on_genesis_session<'a, I: 'a>(validators: I)
-    where I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)> {
-        log::info!("hehreht tests");
-        let authorities = validators.map(|(_, k)| (k, 1)).collect::<Vec<_>>();
-    }
+		fn new_session_genesis(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
+			log::info!("test inside gesnsisi");
 
-    fn on_new_session<'a, I: 'a>(changed: bool, validators: I, _queued_validators: I)
-    where I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)> {
-        log::info!("hehreht tests new session");
-    }
+			I::new_session_genesis(new_index)
+		}
 
-    fn on_disabled(i: u32) {}
+		fn end_session(end_index: SessionIndex) { I::end_session(end_index); }
+		fn start_session(start_index: SessionIndex) { I::start_session(start_index); }
+	}
+
+
+
+// impl fmt::Debug for ValidatorId {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+
+// 	}
+// }
+
 }

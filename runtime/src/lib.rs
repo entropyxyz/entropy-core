@@ -465,7 +465,7 @@ impl pallet_session::Config for Runtime {
     type Keys = SessionKeys;
     type NextSessionRotation = Babe;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
-    type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, Staking>;
+    type SessionManager = pallet_staking_extension::SessionManager<pallet_session::historical::NoteHistoricalRoot<Self, Staking>>;
     type ShouldEndSession = Babe;
     type ValidatorId = <Self as frame_system::Config>::AccountId;
     type ValidatorIdOf = pallet_staking::StashOf<Self>;
@@ -555,7 +555,7 @@ parameter_types! {
   pub const MaxEndpointLength: u32 = 100;
 }
 impl pallet_staking_extension::Config for Runtime {
-    type AuthorityId = BabeId;
+    // type AuthorityId = BabeId;
     type Currency = Balances;
     type Event = Event;
     type MaxEndpointLength = MaxEndpointLength;
