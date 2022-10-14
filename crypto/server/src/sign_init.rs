@@ -1,6 +1,4 @@
 //! Message sent by the Communication Manager to Signing Clients on protocol initiation.
-use std;
-
 use serde::{Deserialize, Serialize};
 
 pub type MessageDigest = tofn::gg20::sign::MessageDigest;
