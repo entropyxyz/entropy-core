@@ -108,22 +108,6 @@ async fn not_validator_block_author() {
 }
 
 #[rocket::async_test]
-async fn test_get_block_author() {
-    let cxt = test_context().await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    wait_for_chain(&api, 1).await;
-    let result = get_block_author(&api).await;
-    println!("result {:?}", result);
-    let alice_stash_id: subxt::sp_runtime::AccountId32 =
-        sr25519::Pair::from_string("//Alice//stash", None)
-            .expect("Could not obtain stash signer pair")
-            .public()
-            .into();
-
-    assert_eq!(result.unwrap(), alice_stash_id);
-}
-
-#[rocket::async_test]
 async fn test_get_block_number() {
     let cxt = test_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await;
