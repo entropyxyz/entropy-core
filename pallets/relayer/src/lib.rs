@@ -252,8 +252,8 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         pub fn get_ip_addresses() -> Result<Vec<Vec<u8>>, Error<T>> {
             let mut ip_addresses: Vec<Vec<u8>> = vec![];
-			// TODO: JA simple hacky way to do this, get the first address from each signing group
-			// need good algorithim for this
+            // TODO: JA simple hacky way to do this, get the first address from each signing group
+            // need good algorithim for this
             for i in 0..SIGNING_PARTY_SIZE {
                 let addresses = pallet_staking_extension::Pallet::<T>::signing_groups(i as u8)
                     .ok_or(Error::<T>::SigningGroupError)?;
