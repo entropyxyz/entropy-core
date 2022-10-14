@@ -40,11 +40,6 @@ pub mod pallet {
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
-    #[pallet::storage]
-    #[pallet::getter(fn get_block_author)]
-    pub type BlockAuthor<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, OptionQuery>;
-
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn offchain_worker(block_number: T::BlockNumber) { let _ = Self::post(block_number); }
