@@ -1,4 +1,6 @@
 //! Message sent by the Communication Manager to Signing Clients on protocol initiation.
+use std;
+
 use serde::{Deserialize, Serialize};
 
 pub type MessageDigest = tofn::gg20::sign::MessageDigest;
@@ -55,6 +57,11 @@ impl SignInit {
         let address_slice: &[u8; 32] =
             &raw_address.clone().try_into().expect("slice with incorrect length");
         let user = sp_core::crypto::AccountId32::new(*address_slice);
+        let ip_addresses = message
+            .ip_addresses
+            .into_iter()
+            .map(|ip_address| String::from_utf8(ip_address).unwrap())
+            .collect::<Vec<_>>();
         SignInit::new(
             "test".to_string(),
             vec!["test".to_string(), "test1".to_string()],
@@ -62,7 +69,7 @@ impl SignInit {
             digest,
             "test".to_string(),
             user.to_string(),
-            vec!["127.0.0.1:3001".to_string(), "127.0.0.1:3002".to_string()],
+            ip_addresses,
         )
     }
 }

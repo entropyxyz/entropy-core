@@ -156,8 +156,8 @@ pub mod pallet {
         InvalidSubgroup,
         AlreadyConfirmed,
         NotInSigningGroup,
-		IpAddressError,
-		SigningGroupError,
+        IpAddressError,
+        SigningGroupError,
     }
 
     /// Allows a user to kick off signing process
@@ -168,7 +168,7 @@ pub mod pallet {
         pub fn prep_transaction(origin: OriginFor<T>, sig_request: SigRequest) -> DispatchResult {
             log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
             let who = ensure_signed(origin)?;
-			let ip_addresses = Self::get_ip_addresses()?;
+            let ip_addresses = Self::get_ip_addresses()?;
             let message = Message { sig_request, account: who.encode(), ip_addresses };
             let block_number = <frame_system::Pallet<T>>::block_number();
             Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
@@ -250,17 +250,20 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
+        pub fn get_ip_addresses() -> Result<Vec<Vec<u8>>, Error<T>> {
+            let mut ip_addresses: Vec<Vec<u8>> = vec![];
+            for i in 0..SIGNING_PARTY_SIZE {
+                let addresses = pallet_staking_extension::Pallet::<T>::signing_groups(i as u8)
+                    .ok_or(Error::<T>::SigningGroupError)?;
+                dbg!(addresses.clone());
+                let ip_address =
+                    pallet_staking_extension::Pallet::<T>::endpoint_register(&addresses[0])
+                        .ok_or(Error::<T>::IpAddressError)?;
+                ip_addresses.push(ip_address);
+            }
+            Ok(ip_addresses)
+        }
 
-		pub fn get_ip_addresses() -> Result<Vec<Vec<u8>>, Error<T>> {
-			let mut ip_addresses: Vec<Vec<u8>> = vec![];
-			for i in 0..SIGNING_PARTY_SIZE {
-				let addresses = pallet_staking_extension::Pallet::<T>::signing_groups(i as u8).ok_or(Error::<T>::SigningGroupError)?;
-				dbg!(addresses.clone());
-				let ip_address = pallet_staking_extension::Pallet::<T>::endpoint_register(&addresses[0]).ok_or(Error::<T>::IpAddressError)?;
-				ip_addresses.push(ip_address);
-			}
-			Ok(ip_addresses)
-		}
         pub fn move_active_to_pending(
             target_block: T::BlockNumber,
             prune_block: T::BlockNumber,
