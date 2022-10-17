@@ -12,7 +12,7 @@ use tofn::{
     collections::TypedUsize,
     gg20,
     gg20::keygen::{KeygenPartyId, KeygenShareId, SecretKeyShare},
-    sdk::api::PartyShareCounts,
+    sdk::api::{PartyShareCounts, Signature},
 };
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
@@ -69,12 +69,12 @@ impl<'a> Gg20Service<'a> {
         &self,
         ctx: &SignContext,
         channels: Channels,
-    ) -> Result<Vec<u8>, SigningErr> {
+    ) -> Result<Signature, SigningErr> {
         info!("execute_sign: {ctx:?}");
         let new_sign =
             gg20::sign::new_sign(ctx.group(), &ctx.share, &ctx.sign_parties, ctx.msg_to_sign())
                 .map_err(|e| SigningErr::ProtocolExecution(format!("{e:?}")))?;
-        let result = tofn_protocol::execute_protocol(
+        tofn_protocol::execute_protocol(
             new_sign,
             channels,
             &ctx.sign_uids(),
@@ -82,14 +82,13 @@ impl<'a> Gg20Service<'a> {
             ctx.party_info.tofnd.index,
         )
         .await?
-        .map_err(|e| SigningErr::ProtocolOutput(format!("{e:?}")))?;
-        Ok(result)
+        .map_err(|e| SigningErr::ProtocolOutput(format!("{e:?}")))
     }
 
     // todo placeholder for any result handling
     #[instrument]
     #[allow(unused_variables)]
-    pub fn handle_result(&self, signature: &[u8], sign_context: &SignContext) {
+    pub fn handle_result(&self, signature: &Signature, sign_context: &SignContext) {
         info!("good job team");
     }
 }
