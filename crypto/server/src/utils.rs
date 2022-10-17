@@ -1,13 +1,13 @@
 //! Utilities for starting and running the server.
 
+use std::{collections::HashMap, sync::Mutex};
+
 use bip39::{Language, Mnemonic};
 use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use serde::Deserialize;
-use tofn::{
-    sdk::api::{Signature},
-};
+use tofn::sdk::api::Signature;
+
 use crate::{setup_mnemonic, sign_init::MessageDigest};
-use std::{collections::HashMap, sync::Mutex};
 
 const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
@@ -60,13 +60,13 @@ pub struct SignatureState {
 }
 
 impl SignatureState {
-	pub fn new() -> SignatureState {
-		let signatures = Mutex::new(HashMap::new());
+    pub fn new() -> SignatureState {
+        let signatures = Mutex::new(HashMap::new());
         SignatureState { signatures }
     }
 
-	pub fn insert(&self, key: [u8; 32], value: &Signature) {
-		let mut signatures = self.signatures.lock().unwrap();
-		signatures.insert(key, *value);
-	}
+    pub fn insert(&self, key: [u8; 32], value: &Signature) {
+        let mut signatures = self.signatures.lock().unwrap();
+        signatures.insert(key, *value);
+    }
 }

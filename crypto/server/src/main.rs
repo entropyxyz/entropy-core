@@ -53,7 +53,7 @@ async fn rocket() -> _ {
     let cm_state = CommunicationManagerState::default();
     let configuration = Configuration::new();
     let kv_store = load_kv_store().await;
-	let signature_state = SignatureState::new();
+    let signature_state = SignatureState::new();
     // Unsafe routes are for testing purposes only
     // they are unsafe as they can expose vulnerabilites
     // should they be used in production. Unsafe routes
@@ -71,7 +71,7 @@ async fn rocket() -> _ {
         .mount("/unsafe", unsafe_routes)
         .manage(signer_state)
         .manage(cm_state)
-		.manage(signature_state)
+        .manage(signature_state)
         .manage(configuration)
         .manage(kv_store)
 }

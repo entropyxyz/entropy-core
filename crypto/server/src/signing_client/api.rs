@@ -14,7 +14,7 @@ use crate::{
         subscribe::{subscribe_to_them, Listener, Receiver},
         SignerState, SigningErr, SubscribeErr, SubscribeMessage,
     },
-	utils::SignatureState
+    utils::SignatureState,
 };
 
 const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
@@ -28,7 +28,7 @@ pub async fn new_party(
     encoded_data: Vec<u8>,
     state: &State<SignerState>,
     kv_manager: &State<KvManager>,
-	signatures: &State<SignatureState>
+    signatures: &State<SignatureState>,
 ) -> Result<Status, ()> {
     let data = OCWMessage::decode(&mut encoded_data.as_ref()).unwrap();
 
@@ -54,7 +54,11 @@ pub async fn new_party(
         };
 
         let result = gg20_service.execute_sign(&sign_context, channels).await.unwrap();
-        gg20_service.handle_result(&result, message.sig_request.sig_hash.as_slice().try_into().unwrap(), signatures);
+        gg20_service.handle_result(
+            &result,
+            message.sig_request.sig_hash.as_slice().try_into().unwrap(),
+            signatures,
+        );
     }
 
     Ok(Status::Ok)
