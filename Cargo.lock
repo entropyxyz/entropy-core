@@ -10804,7 +10804,7 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 [[package]]
 name = "tofn"
 version = "0.1.0"
-source = "git+https://github.com/Entropyxyz/tofn?branch=main#7bdc47e4956ae8c6618624f47e5da046d5385b54"
+source = "git+https://github.com/Entropyxyz/tofn?branch=main#d4d63da29f1585c8ab8ea6c78a19ffcc8b887b1d"
 dependencies = [
  "anyhow",
  "bincode",
@@ -10817,6 +10817,7 @@ dependencies = [
  "libpaillier",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
  "serde",
  "serde_json",
  "sha2 0.10.2",
@@ -10829,18 +10830,20 @@ dependencies = [
 [[package]]
 name = "tofn"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/tofn#5dd46fb369333c5825f0000902efa1c765f2f331"
+source = "git+https://github.com/entropyxyz/tofn#d4d63da29f1585c8ab8ea6c78a19ffcc8b887b1d"
 dependencies = [
  "anyhow",
  "bincode",
  "chrono",
  "clap 3.1.8",
  "ecdsa",
+ "hex",
  "hmac 0.12.1",
  "k256",
  "libpaillier",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
  "serde",
  "serde_json",
  "sha2 0.10.2",
