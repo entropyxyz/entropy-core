@@ -43,8 +43,6 @@ pub async fn new_user(
         return Err(UserErr::NotRegistering("Register Onchain first"));
     }
 
-    println!("Updating threshold key for: {}", key.to_string());
-
     // store new user data in kvdb
     let reservation = state.kv().reserve_key(key.to_string()).await?;
     let decrypted_message = signed_msg.decrypt(signer.signer());
