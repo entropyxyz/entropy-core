@@ -21,6 +21,7 @@ pub use self::{context::SignContext, signing_message::SigningMessage, tofn_proto
 use crate::{
     sign_init::SignInit,
     signing_client::{SignerState, SigningErr},
+    utils::SignatureState,
 };
 
 /// corresponds to https://github.com/axelarnetwork/tofnd/blob/0a70c4bb8c86b26804f59d0921dcd3235e85fdc0/src/gg20/service/mod.rs#L12
@@ -88,7 +89,13 @@ impl<'a> Gg20Service<'a> {
     // todo placeholder for any result handling
     #[instrument]
     #[allow(unused_variables)]
-    pub fn handle_result(&self, signature: &Signature, sign_context: &SignContext) {
+    pub fn handle_result(
+        &self,
+        signature: &Signature,
+        msg: [u8; 32],
+        signatures: &rocket::State<SignatureState>,
+    ) {
+        signatures.insert(msg, signature);
         info!("good job team");
     }
 }

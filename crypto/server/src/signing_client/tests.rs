@@ -28,9 +28,10 @@ use tofn::{
 };
 
 use crate::{
-    new_party, new_user, subscribe_to_me,
+    drain, get, new_party, new_user, subscribe_to_me,
     user::{ParsedUserInputPartyInfo, UserInputPartyInfo},
-    CommunicationManagerState, Configuration, SignerState,
+    utils::SignatureState,
+    CommunicationManagerState, Configuration, Message as SigMessage, SignerState,
 };
 
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
@@ -79,6 +80,28 @@ async fn test_new_party() {
         let url = format!("http:///127.0.0.1:{}/signer/new_party", port_0);
         let response = client.post(url).body(encoded_data_1).send().await;
         assert_eq!(response.unwrap().status(), 200);
+        // all of this can be removed
+        let test: Vec<u8> = (0..32).collect();
+        let message: [u8; 32] = test.try_into().unwrap();
+
+        let sig_message = SigMessage { message };
+        let response_2 = client
+            .post("http:///127.0.0.1:3001/signer/get")
+            .body(serde_json::to_string(&sig_message).unwrap())
+            .send()
+            .await;
+        assert_eq!(response_2.as_ref().unwrap().status(), 202);
+        assert_eq!(response_2.unwrap().text().await.unwrap().len(), 135);
+
+        let response_3 = client.get("http:///127.0.0.1:3001/signer/drain").send().await;
+        assert_eq!(response_3.unwrap().status(), 200);
+
+        let response_4 = client
+            .post("http:///127.0.0.1:3001/signer/get")
+            .body(serde_json::to_string(&sig_message).unwrap())
+            .send()
+            .await;
+        assert_eq!(response_4.unwrap().status(), 500);
     });
     let handle_2 = tokio::spawn(async move {
         let client = reqwest::Client::new();
@@ -120,6 +143,7 @@ async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
     let communication_manager_state = CommunicationManagerState::default();
     let signer_state = SignerState::default();
     let configuration = Configuration::new();
+    let signature_state = SignatureState::new();
 
     let path = format!("test_db_{}", key_number);
     let _ = std::fs::remove_dir_all(path.clone());
@@ -141,12 +165,13 @@ async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
     let result = kv_store.kv().put(reservation, v_serialized).await;
 
     rocket::custom(config)
-        .mount("/signer", routes![new_party, subscribe_to_me])
+        .mount("/signer", routes![new_party, subscribe_to_me, get, drain])
         .mount("/user", routes![new_user])
         .manage(communication_manager_state)
         .manage(signer_state)
         .manage(configuration)
         .manage(kv_store)
+        .manage(signature_state)
         .ignite()
         .await
         .unwrap()

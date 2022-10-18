@@ -39,7 +39,7 @@ use self::{
     communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState},
     signing_client::{api::*, SignerState},
     user::api::*,
-    utils::{init_tracing, load_kv_store, Configuration},
+    utils::{init_tracing, load_kv_store, Configuration, SignatureState},
 };
 use crate::{
     message::{derive_static_secret, mnemonic_to_pair},
@@ -53,7 +53,7 @@ async fn rocket() -> _ {
     let cm_state = CommunicationManagerState::default();
     let configuration = Configuration::new();
     let kv_store = load_kv_store().await;
-
+    let signature_state = SignatureState::new();
     // Unsafe routes are for testing purposes only
     // they are unsafe as they can expose vulnerabilites
     // should they be used in production. Unsafe routes
@@ -66,11 +66,12 @@ async fn rocket() -> _ {
 
     rocket::build()
         .mount("/user", routes![new_user])
-        .mount("/signer", routes![new_party, subscribe_to_me])
+        .mount("/signer", routes![new_party, subscribe_to_me, get, drain])
         .mount("/cm", routes![provide_share, handle_signing])
         .mount("/unsafe", unsafe_routes)
         .manage(signer_state)
         .manage(cm_state)
+        .manage(signature_state)
         .manage(configuration)
         .manage(kv_store)
 }
