@@ -5,6 +5,7 @@ use parity_scale_codec::Decode;
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use substrate_common::OCWMessage;
 use subxt::sp_runtime::AccountId32;
+use tofn::sdk::api::Signature;
 use tracing::instrument;
 
 use crate::{
@@ -14,6 +15,7 @@ use crate::{
         subscribe::{subscribe_to_them, Listener, Receiver},
         SignerState, SigningErr, SubscribeErr, SubscribeMessage,
     },
+    utils::SignatureState,
 };
 
 const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
@@ -27,16 +29,17 @@ pub async fn new_party(
     encoded_data: Vec<u8>,
     state: &State<SignerState>,
     kv_manager: &State<KvManager>,
+    signatures: &State<SignatureState>,
 ) -> Result<Status, ()> {
     let data = OCWMessage::decode(&mut encoded_data.as_ref()).unwrap();
 
     for message in data {
         // todo: temporary hack, replace with correct data
-        let info = SignInit::temporary_data(message);
+        let info = SignInit::temporary_data(message.clone());
         let gg20_service = Gg20Service::new(state, kv_manager);
 
         // set up context for signing protocol execution
-        let sign_context = gg20_service.get_sign_context(info).await.unwrap();
+        let sign_context = gg20_service.get_sign_context(info.clone()).await.unwrap();
 
         // subscribe to all other participating parties. Listener waits for other subscribers.
         let (rx_ready, listener) = Listener::new();
@@ -52,7 +55,11 @@ pub async fn new_party(
         };
 
         let result = gg20_service.execute_sign(&sign_context, channels).await.unwrap();
-        gg20_service.handle_result(&result, &sign_context);
+        gg20_service.handle_result(
+            &result,
+            message.sig_request.sig_hash.as_slice().try_into().unwrap(),
+            signatures,
+        );
     }
 
     Ok(Status::Ok)
@@ -96,4 +103,27 @@ pub async fn subscribe_to_me(
     };
 
     Ok(Listener::create_event_stream(rx, end))
+}
+
+use rocket::response::status;
+use serde::{Deserialize, Serialize};
+// TODO: JA remove all below temporary
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Message {
+    pub message: [u8; 32],
+}
+
+#[post("/get", data = "<msg>")]
+pub async fn get(
+    msg: Json<Message>,
+    signatures: &State<SignatureState>,
+) -> status::Accepted<String> {
+    let sig = signatures.get(&msg.message).to_string();
+    status::Accepted(Some(format!("sig: '{}'", sig)))
+}
+
+#[get("/drain")]
+pub async fn drain(signatures: &State<SignatureState>) -> Result<Status, ()> {
+    signatures.drain();
+    Ok(Status::Ok)
 }

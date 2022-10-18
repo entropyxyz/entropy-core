@@ -1,10 +1,13 @@
 //! Utilities for starting and running the server.
 
+use std::{collections::HashMap, sync::Mutex};
+
 use bip39::{Language, Mnemonic};
 use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use serde::Deserialize;
+use tofn::sdk::api::Signature;
 
-use crate::setup_mnemonic;
+use crate::{setup_mnemonic, sign_init::MessageDigest};
 
 const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
@@ -48,4 +51,33 @@ pub(super) async fn load_kv_store() -> KvManager {
     };
     setup_mnemonic(&kv_store).await;
     kv_store
+}
+
+// TODO: JA Remove all below, temporary
+/// The state used to temporarily store completed signatures
+#[derive(Debug)]
+pub struct SignatureState {
+    pub signatures: Mutex<HashMap<[u8; 32], Signature>>,
+}
+
+impl SignatureState {
+    pub fn new() -> SignatureState {
+        let signatures = Mutex::new(HashMap::new());
+        SignatureState { signatures }
+    }
+
+    pub fn insert(&self, key: [u8; 32], value: &Signature) {
+        let mut signatures = self.signatures.lock().unwrap();
+        signatures.insert(key, *value);
+    }
+
+    pub fn get(&self, key: &[u8; 32]) -> Signature {
+        let signatures = self.signatures.lock().unwrap();
+        *signatures.get(key).unwrap()
+    }
+
+    pub fn drain(&self) {
+        let mut signatures = self.signatures.lock().unwrap();
+        let _ = signatures.drain();
+    }
 }
