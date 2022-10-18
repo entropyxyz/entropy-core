@@ -5,6 +5,7 @@ use parity_scale_codec::Decode;
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use substrate_common::OCWMessage;
 use subxt::sp_runtime::AccountId32;
+use tofn::sdk::api::Signature;
 use tracing::instrument;
 
 use crate::{
@@ -102,4 +103,27 @@ pub async fn subscribe_to_me(
     };
 
     Ok(Listener::create_event_stream(rx, end))
+}
+
+use rocket::response::status;
+use serde::{Deserialize, Serialize};
+// TODO: JA remove all below temporary
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Message {
+    pub message: [u8; 32],
+}
+
+#[post("/get", data = "<msg>")]
+pub async fn get(
+    msg: Json<Message>,
+    signatures: &State<SignatureState>,
+) -> status::Accepted<String> {
+    let sig = signatures.get(&msg.message).to_string();
+    status::Accepted(Some(format!("sig: '{}'", sig)))
+}
+
+#[get("/drain")]
+pub async fn drain(signatures: &State<SignatureState>) -> Result<Status, ()> {
+    signatures.drain();
+    Ok(Status::Ok)
 }

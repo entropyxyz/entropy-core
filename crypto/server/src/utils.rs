@@ -53,6 +53,7 @@ pub(super) async fn load_kv_store() -> KvManager {
     kv_store
 }
 
+// TODO: JA Remove all below, temporary
 /// The state used to temporarily store completed signatures
 #[derive(Debug)]
 pub struct SignatureState {
@@ -68,5 +69,15 @@ impl SignatureState {
     pub fn insert(&self, key: [u8; 32], value: &Signature) {
         let mut signatures = self.signatures.lock().unwrap();
         signatures.insert(key, *value);
+    }
+
+    pub fn get(&self, key: &[u8; 32]) -> Signature {
+        let signatures = self.signatures.lock().unwrap();
+        *signatures.get(key).unwrap()
+    }
+
+    pub fn drain(&self) {
+        let mut signatures = self.signatures.lock().unwrap();
+        let _ = signatures.drain();
     }
 }
