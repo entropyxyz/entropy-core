@@ -21,10 +21,9 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::{
-        dispatch::Dispatchable,
+        dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
         pallet_prelude::*,
         traits::IsSubType,
-        weights::{GetDispatchInfo, PostDispatchInfo},
     };
     use frame_system::{pallet_prelude::*, RawOrigin};
     use scale_info::TypeInfo;
@@ -40,16 +39,16 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_staking::Config {
         /// Pallet emits events
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Requirements for callable functions
         type Call: Parameter
-            + Dispatchable<Origin = Self::Origin, PostInfo = PostDispatchInfo>
+            + Dispatchable<RuntimeOrigin = Self::RuntimeOrigin, PostInfo = PostDispatchInfo>
             + GetDispatchInfo
             + From<frame_system::Call<Self>>;
 
         // Counsil (or another) can update the number of free transactions per era
-        type UpdateOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         // The weight information of this pallet.
         type WeightInfo: WeightInfo;
@@ -129,8 +128,7 @@ pub mod pallet {
         /// regardless of the call's result.
         #[pallet::weight({
             let dispatch_info = call.get_dispatch_info();
-            let base_weight = <T as Config>::WeightInfo::call_using_electricity();
-            (base_weight.saturating_add(dispatch_info.weight), dispatch_info.class, Pays::No)
+            (<T as Config>::WeightInfo::call_using_electricity().saturating_add(dispatch_info.weight), dispatch_info.class, Pays::No)
         })]
         #[allow(clippy::boxed_local)]
         pub fn call_using_electricity(
@@ -366,10 +364,10 @@ pub mod pallet {
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct ValidateElectricityPayment<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>;
+    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
 
     impl<T: Config + Send + Sync> Debug for ValidateElectricityPayment<T>
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
     {
         #[cfg(feature = "std")]
         fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -381,18 +379,18 @@ pub mod pallet {
     }
 
     impl<T: Config + Send + Sync> ValidateElectricityPayment<T>
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
     {
         #[allow(clippy::new_without_default)]
         pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
     }
 
     impl<T: Config + Send + Sync> SignedExtension for ValidateElectricityPayment<T>
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
     {
         type AccountId = T::AccountId;
         type AdditionalSigned = ();
-        type Call = <T as frame_system::Config>::Call;
+        type Call = <T as frame_system::Config>::RuntimeCall;
         type Pre = ();
 
         const IDENTIFIER: &'static str = "ValidateElectricityPayment";
