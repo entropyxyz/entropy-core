@@ -43,7 +43,7 @@ use self::{
 };
 use crate::{
     message::{derive_static_secret, mnemonic_to_pair},
-    user::unsafe_api::get_dh,
+    user::unsafe_api::{delete, get, put, remove_keys},
 };
 
 #[launch]
@@ -61,7 +61,7 @@ async fn rocket() -> _ {
     // To enable unsafe routes compile with --feature unsafe.
     let mut unsafe_routes = routes![];
     if cfg!(feature = "unsafe") {
-        unsafe_routes = routes![get_dh];
+        unsafe_routes = routes![remove_keys, get, put, delete];
     }
 
     rocket::build()
