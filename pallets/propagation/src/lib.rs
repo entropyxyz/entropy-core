@@ -32,7 +32,7 @@ pub mod pallet {
     pub trait Config:
         frame_system::Config + pallet_authorship::Config + pallet_relayer::Config
     {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
     }
 
     pub type Message = substrate_common::Message;

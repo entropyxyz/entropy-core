@@ -8,7 +8,8 @@ use crate::mock::*;
 #[test]
 fn slash_fraction_works() {
     new_test_ext().execute_with(|| {
-        assert_eq!(TuxAngry::<()>::slash_fraction(1, 2), Perbill::from_perthousand(0));
+        let offence = TuxAngry { session_index: 0, validator_set_count: 50, offenders: vec![()] };
+        assert_eq!(offence.slash_fraction(1), Perbill::from_perthousand(0));
     });
 }
 

@@ -42,7 +42,7 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_staking::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
         /// The weight information of this pallet.
@@ -50,11 +50,14 @@ pub mod pallet {
     }
     // TODO: JA add build for initial endpoints
 
-    /// A unique identifier of a subgroup or partition of validators that have the same set of threshold shares.
+    /// A unique identifier of a subgroup or partition of validators that have the same set of
+    /// threshold shares.
     pub type SubgroupId = u8;
-    /// Unique type to differentiate the threshold server's account ID from the validator's stash/controller accounts
+    /// Unique type to differentiate the threshold server's account ID from the validator's
+    /// stash/controller accounts
     pub type TssServerAccount<AccountId> = AccountId;
-    /// X25519 public key used by the client in non-interactive ECDH to authenticate/encrypt interactions with the threshold server (eg distributing threshold shares).
+    /// X25519 public key used by the client in non-interactive ECDH to authenticate/encrypt
+    /// interactions with the threshold server (eg distributing threshold shares).
     pub type X25519PublicKey = [u8; 32];
     /// Endpoint where a threshold server can be reached at
     pub type TssServerURL = Vec<u8>;
@@ -69,9 +72,11 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    // TODO JH We could prob use more efficient data structures (less duplicate data or query time) for storing validator/server/endpoint/subgroup information
+    // TODO JH We could prob use more efficient data structures (less duplicate data or query time)
+    // for storing validator/server/endpoint/subgroup information
 
-    /// Stores the relationship between a validator's stash account and the IP address/endpoint they can be reached at.
+    /// Stores the relationship between a validator's stash account and the IP address/endpoint they
+    /// can be reached at.
     #[pallet::storage]
     #[pallet::getter(fn endpoint_register)]
     pub type EndpointRegister<T: Config> =
@@ -81,7 +86,8 @@ pub mod pallet {
     /// a validator's stash account and their threshold server's sr25519 and x25519 keys.
     ///
     /// Clients query this via state or `stakingExtension_getKeys` RPC and uses
-    /// the x25519 pub key in noninteractive ECDH for authenticating/encrypting distribute TSS shares over HTTP.
+    /// the x25519 pub key in noninteractive ECDH for authenticating/encrypting distribute TSS
+    /// shares over HTTP.
     #[pallet::storage]
     #[pallet::getter(fn threshold_account)]
     pub type ThresholdAccounts<T: Config> = StorageMap<
@@ -92,7 +98,8 @@ pub mod pallet {
         OptionQuery,
     >;
 
-    /// Stores the relationship between a signing group (u8) and its member's (validator's) threshold server's account.
+    /// Stores the relationship between a signing group (u8) and its member's (validator's)
+    /// threshold server's account.
     #[pallet::storage]
     #[pallet::getter(fn signing_groups)]
     pub type SigningGroups<T: Config> = StorageMap<

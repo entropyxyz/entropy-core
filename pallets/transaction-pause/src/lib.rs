@@ -32,7 +32,7 @@ pub mod module {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// The origin which may set filter.
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
@@ -128,7 +128,7 @@ pub mod module {
 
 pub struct PausedTransactionFilter<T>(sp_std::marker::PhantomData<T>);
 impl<T: Config> Contains<T::Call> for PausedTransactionFilter<T>
-where <T as frame_system::Config>::Call: GetCallMetadata
+where <T as frame_system::Config>::RuntimeCall: GetCallMetadata
 {
     fn contains(call: &T::Call) -> bool {
         let CallMetadata { function_name, pallet_name } = call.get_call_metadata();

@@ -26,7 +26,7 @@ use sp_runtime::traits::BadOrigin;
 
 use super::*;
 
-const BALANCE_TRANSFER: &<Runtime as frame_system::Config>::Call =
+const BALANCE_TRANSFER: &<Runtime as frame_system::Config>::RuntimeCall =
     &mock::Call::Balances(pallet_balances::Call::transfer { dest: ALICE, value: 10 });
 
 #[test]
