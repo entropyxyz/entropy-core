@@ -35,7 +35,7 @@ pub mod module {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// The origin which may set filter.
-        type UpdateOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Weight information for the extrinsics in this module.
         type WeightInfo: WeightInfo;
@@ -127,10 +127,10 @@ pub mod module {
 }
 
 pub struct PausedTransactionFilter<T>(sp_std::marker::PhantomData<T>);
-impl<T: Config> Contains<T::Call> for PausedTransactionFilter<T>
+impl<T: Config> Contains<T::RuntimeCall> for PausedTransactionFilter<T>
 where <T as frame_system::Config>::RuntimeCall: GetCallMetadata
 {
-    fn contains(call: &T::Call) -> bool {
+    fn contains(call: &T::RuntimeCall) -> bool {
         let CallMetadata { function_name, pallet_name } = call.get_call_metadata();
         PausedTransactions::<T>::contains_key((pallet_name.as_bytes(), function_name.as_bytes()))
     }
