@@ -40,8 +40,8 @@ fn knows_how_to_mock_several_http_calls() {
         System::set_block_number(3);
         let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
 
-        assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request.clone()));
-        assert_ok!(Relayer::prep_transaction(Origin::signed(1), sig_request));
+        assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request.clone()));
+        assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request));
         // full send
         Propagation::post(4).unwrap();
     })

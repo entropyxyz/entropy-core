@@ -23,6 +23,7 @@ use crate as pallet_slashing;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+type Balance = u64;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -49,7 +50,7 @@ parameter_types! {
 }
 
 impl system::Config for Test {
-    type AccountData = pallet_balances::AccountData<u128>;
+    type AccountData = pallet_balances::AccountData<Balance>;
     type AccountId = AccountId;
     type BaseCallFilter = frame_support::traits::Everything;
     type BlockHashCount = BlockHashCount;
@@ -139,10 +140,10 @@ impl pallet_session::Config for Test {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where Call: From<C>
+where RuntimeCall: From<C>
 {
-    type Extrinsic = TestXt<Call, ()>;
-    type OverarchingCall = Call;
+    type Extrinsic = TestXt<RuntimeCall, ()>;
+    type OverarchingCall = RuntimeCall;
 }
 
 pallet_staking_reward_curve::build! {
@@ -181,10 +182,11 @@ impl pallet_bags_list::Config for Test {
 }
 
 pub struct OnChainSeqPhragmen;
-impl onchain::ExecutionConfig for OnChainSeqPhragmen {
+impl onchain::Config for OnChainSeqPhragmen {
     type DataProvider = Staking;
     type Solver = SequentialPhragmen<AccountId, Perbill>;
     type System = Test;
+    type WeightInfo = ();
 }
 
 pub struct StakingBenchmarkingConfig;
@@ -224,12 +226,12 @@ impl pallet_staking::Config for Test {
 }
 
 parameter_types! {
-  pub const ExistentialDeposit: u128 = 1;
+  pub const ExistentialDeposit: Balance = 1;
 }
 
 impl pallet_balances::Config for Test {
     type AccountStore = System;
-    type Balance = u128;
+    type Balance = Balance;
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
     type MaxLocks = ();
@@ -240,11 +242,11 @@ impl pallet_balances::Config for Test {
 }
 
 impl pallet_session::historical::Config for Test {
-    type FullIdentification = pallet_staking::Exposure<u64, u128>;
+    type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
     type FullIdentificationOf = pallet_staking::ExposureOf<Self>;
 }
 
-type IdentificationTuple = (u64, pallet_staking::Exposure<u64, u128>);
+type IdentificationTuple = (u64, pallet_staking::Exposure<u64, Balance>);
 type Offence = crate::TuxAngry<IdentificationTuple>;
 
 thread_local! {

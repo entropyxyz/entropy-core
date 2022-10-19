@@ -139,10 +139,11 @@ sp_runtime::impl_opaque_keys! {
 }
 
 pub struct OnChainSeqPhragmen;
-impl onchain::ExecutionConfig for OnChainSeqPhragmen {
+impl onchain::Config for OnChainSeqPhragmen {
     type DataProvider = FrameStaking;
     type Solver = SequentialPhragmen<AccountId, Perbill>;
     type System = Test;
+    type WeightInfo = ();
 }
 
 pallet_staking_reward_curve::build! {
@@ -164,10 +165,10 @@ parameter_types! {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where Call: From<C>
+where RuntimeCall: From<C>
 {
-    type Extrinsic = TestXt<Call, ()>;
-    type OverarchingCall = Call;
+    type Extrinsic = TestXt<RuntimeCall, ()>;
+    type OverarchingCall = RuntimeCall;
 }
 
 const THRESHOLDS: [sp_npos_elections::VoteWeight; 9] =
@@ -206,15 +207,18 @@ impl pallet_staking::Config for Test {
     type BenchmarkingConfig = StakingBenchmarkingConfig;
     type BondingDuration = BondingDuration;
     type Currency = Balances;
+    type CurrencyBalance = Balance;
     type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
     type ElectionProvider = onchain::UnboundedExecution<OnChainSeqPhragmen>;
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
     type GenesisElectionProvider = Self::ElectionProvider;
+    type HistoryDepth = ConstU32<84>;
     type MaxNominations = MaxNominations;
     type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
+    type OnStakerSlash = ();
     type Reward = ();
     type RewardRemainder = ();
     type RuntimeEvent = RuntimeEvent;
@@ -223,6 +227,7 @@ impl pallet_staking::Config for Test {
     type Slash = ();
     type SlashCancelOrigin = frame_system::EnsureRoot<Self::AccountId>;
     type SlashDeferDuration = SlashDeferDuration;
+    type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = pallet_timestamp::Pallet<Test>;
     type VoterList = BagsList;
     type WeightInfo = ();
