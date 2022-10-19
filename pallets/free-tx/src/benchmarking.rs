@@ -25,7 +25,7 @@ benchmarks! {
       },
   );
 
-    let call: <T as Config>::Call = frame_system::Call::<T>::remark { remark: b"entropy rocks".to_vec() }.into();
+    let call: <T as Config>::RuntimeCall = frame_system::Call::<T>::remark { remark: b"entropy rocks".to_vec() }.into();
   }: _(RawOrigin::Signed(caller.clone()), Box::new(call))
   verify {
     assert!(<ElectricalAccount<T>>::get(caller).unwrap().used.count == 1);

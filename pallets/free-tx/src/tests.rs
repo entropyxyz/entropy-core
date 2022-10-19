@@ -1,4 +1,4 @@
-use frame_support::{assert_err, assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok};
 use mock::{
     start_active_era, ExtBuilder, FreeTx, RuntimeCall, RuntimeEvent as TestEvent, RuntimeOrigin,
     System, SystemCall, Test,
@@ -54,7 +54,7 @@ fn call_using_electricity_errors_when_child_call_errors() {
         let expected_error = DispatchError::BadOrigin;
 
         // Make sure call_using_electricity returns child call error to user
-        assert_err!(FreeTx::call_using_electricity(RuntimeOrigin::signed(1), call), expected_error);
+        assert_ok!(FreeTx::call_using_electricity(RuntimeOrigin::signed(1), call));
 
         // Make sure emitted event also contains the child error
         System::assert_has_event(TestEvent::FreeTx(Event::ElectricitySpent(
@@ -128,10 +128,13 @@ fn call_using_electricity_still_uses_electricity_on_child_fail() {
         // Make sure call_using_electricity fails only bc child fails, not because user has no free
         // calls left
         let expected_child_error = DispatchError::BadOrigin;
-        assert_err!(
-            FreeTx::call_using_electricity(RuntimeOrigin::signed(1), call),
-            expected_child_error
-        );
+
+        assert_ok!(FreeTx::call_using_electricity(RuntimeOrigin::signed(1), call));
+
+        System::assert_has_event(TestEvent::FreeTx(Event::ElectricitySpent(
+            1,
+            Err(expected_child_error),
+        )));
 
         // make sure free call was still consumed
         assert_eq!(FreeTx::cells_usable_this_era(&1u64), 0 as Cells);

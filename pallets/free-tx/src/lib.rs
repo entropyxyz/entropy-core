@@ -134,7 +134,7 @@ pub mod pallet {
         pub fn call_using_electricity(
             origin: OriginFor<T>,
             call: Box<<T as Config>::RuntimeCall>,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             let sender = ensure_signed(origin)?;
 
             Self::try_spend_cell(&sender)?;
@@ -147,7 +147,7 @@ pub mod pallet {
 
             Self::deposit_event(event);
 
-            Ok(res.into()).into()
+            Ok(())
         }
 
         /// Put a cap on the number of cells individual accounts can use per era.
@@ -223,6 +223,8 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         // if OK(()), a electricity for the account was available
+        /// TODO JH: maybe remove 'try' from the name since the updated version of Substrate makes
+        /// all transactions `transactional`
         pub fn try_spend_cell(account_id: &<T>::AccountId) -> Result<(), Error<T>> {
             // gets max cells per era or return error if electricity is disabled
             let max_cells_per_era = Self::individual_electricity_era_limit();
