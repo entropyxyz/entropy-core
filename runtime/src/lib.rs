@@ -221,9 +221,7 @@ impl frame_system::Config for Runtime {
     type BlockLength = RuntimeBlockLength;
     type BlockNumber = BlockNumber;
     type BlockWeights = RuntimeBlockWeights;
-    type Call = Call;
     type DbWeight = RocksDbWeight;
-    type Event = Event;
     type Hash = Hash;
     type Hashing = BlakeTwo256;
     type Header = generic::Header<BlockNumber, BlakeTwo256>;
@@ -233,8 +231,10 @@ impl frame_system::Config for Runtime {
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
-    type Origin = Origin;
     type PalletInfo = PalletInfo;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
     type SS58Prefix = SS58Prefix;
     type SystemWeightInfo = frame_system::weights::SubstrateWeight<Runtime>;
     type Version = Version;
@@ -243,9 +243,9 @@ impl frame_system::Config for Runtime {
 impl pallet_randomness_collective_flip::Config for Runtime {}
 
 impl pallet_utility::Config for Runtime {
-    type Call = Call;
-    type Event = Event;
     type PalletsOrigin = OriginCaller;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
 }
 
@@ -258,12 +258,12 @@ parameter_types! {
 }
 
 impl pallet_multisig::Config for Runtime {
-    type Call = Call;
     type Currency = Balances;
     type DepositBase = DepositBase;
     type DepositFactor = DepositFactor;
-    type Event = Event;
     type MaxSignatories = MaxSignatories;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_multisig::weights::SubstrateWeight<Runtime>;
 }
 
@@ -338,15 +338,15 @@ impl InstanceFilter<Call> for ProxyType {
 impl pallet_proxy::Config for Runtime {
     type AnnouncementDepositBase = AnnouncementDepositBase;
     type AnnouncementDepositFactor = AnnouncementDepositFactor;
-    type Call = Call;
     type CallHasher = BlakeTwo256;
     type Currency = Balances;
-    type Event = Event;
     type MaxPending = MaxPending;
     type MaxProxies = MaxProxies;
     type ProxyDepositBase = ProxyDepositBase;
     type ProxyDepositFactor = ProxyDepositFactor;
     type ProxyType = ProxyType;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_proxy::weights::SubstrateWeight<Runtime>;
 }
 
@@ -387,7 +387,7 @@ impl pallet_indices::Config for Runtime {
     type AccountIndex = AccountIndex;
     type Currency = Balances;
     type Deposit = IndexDeposit;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_indices::weights::SubstrateWeight<Runtime>;
 }
 
@@ -403,11 +403,11 @@ impl pallet_balances::Config for Runtime {
     type AccountStore = frame_system::Pallet<Runtime>;
     type Balance = Balance;
     type DustRemoval = ();
-    type Event = Event;
     type ExistentialDeposit = ExistentialDeposit;
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 }
 
@@ -460,9 +460,9 @@ impl_opaque_keys! {
 }
 
 impl pallet_session::Config for Runtime {
-    type Event = Event;
     type Keys = SessionKeys;
     type NextSessionRotation = Babe;
+    type RuntimeEvent = RuntimeEvent;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, Staking>;
     type ShouldEndSession = Babe;
@@ -525,7 +525,6 @@ impl pallet_staking::Config for Runtime {
     type CurrencyToVote = U128CurrencyToVote;
     type ElectionProvider = ElectionProviderMultiPhase;
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
-    type Event = Event;
     type GenesisElectionProvider = onchain::UnboundedExecution<OnChainSeqPhragmen>;
     type MaxNominations = MaxNominations;
     type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
@@ -535,6 +534,7 @@ impl pallet_staking::Config for Runtime {
     // send the slashed funds to the treasury.
     type Reward = ();
     type RewardRemainder = Treasury;
+    type RuntimeEvent = RuntimeEvent;
     type SessionInterface = Self;
     // rewards are minted from the void
     type SessionsPerEra = SessionsPerEra;
@@ -555,8 +555,8 @@ parameter_types! {
 }
 impl pallet_staking_extension::Config for Runtime {
     type Currency = Balances;
-    type Event = Event;
     type MaxEndpointLength = MaxEndpointLength;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
 }
 
@@ -647,7 +647,6 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
     // nothing to do upon rewards
     type DataProvider = Staking;
     type EstimateCallFee = TransactionPayment;
-    type Event = Event;
     type Fallback = onchain::BoundedExecution<OnChainSeqPhragmen>;
     type ForceOrigin = EnsureRootOrHalfCouncil;
     type GovernanceFallback = onchain::BoundedExecution<OnChainSeqPhragmen>;
@@ -659,6 +658,7 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
     type OffchainRepeat = OffchainRepeat;
     // burn slashes
     type RewardHandler = ();
+    type RuntimeEvent = RuntimeEvent;
     type SignedDepositBase = SignedDepositBase;
     type SignedDepositByte = SignedDepositByte;
     type SignedDepositWeight = ();
@@ -704,7 +704,6 @@ impl pallet_democracy::Config for Runtime {
     type CooloffPeriod = CooloffPeriod;
     type Currency = Balances;
     type EnactmentPeriod = EnactmentPeriod;
-    type Event = Event;
     /// A unanimous council can have the next scheduled referendum be a straight default-carries
     /// (NTB) vote.
     type ExternalDefaultOrigin =
@@ -732,6 +731,7 @@ impl pallet_democracy::Config for Runtime {
     type PalletsOrigin = OriginCaller;
     type PreimageByteDeposit = PreimageByteDeposit;
     type Proposal = Call;
+    type RuntimeEvent = RuntimeEvent;
     type Scheduler = Scheduler;
     type Slash = Treasury;
     // Any single technical committee member may veto a coming council proposal, however they can
@@ -751,12 +751,12 @@ parameter_types! {
 type CouncilCollective = pallet_collective::Instance1;
 impl pallet_collective::Config<CouncilCollective> for Runtime {
     type DefaultVote = pallet_collective::PrimeDefaultVote;
-    type Event = Event;
     type MaxMembers = CouncilMaxMembers;
     type MaxProposals = CouncilMaxProposals;
     type MotionDuration = CouncilMotionDuration;
-    type Origin = Origin;
     type Proposal = Call;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
     type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
 
@@ -782,13 +782,13 @@ impl pallet_elections_phragmen::Config for Runtime {
     type CurrencyToVote = U128CurrencyToVote;
     type DesiredMembers = DesiredMembers;
     type DesiredRunnersUp = DesiredRunnersUp;
-    type Event = Event;
     // NOTE: this implies that council's genesis members cannot be set directly and must come from
     // this module.
     type InitializeMembers = Council;
     type KickedMember = ();
     type LoserCandidate = ();
     type PalletId = ElectionsPhragmenPalletId;
+    type RuntimeEvent = RuntimeEvent;
     type TermDuration = TermDuration;
     type VotingBondBase = VotingBondBase;
     type VotingBondFactor = VotingBondFactor;
@@ -804,12 +804,12 @@ parameter_types! {
 type TechnicalCollective = pallet_collective::Instance2;
 impl pallet_collective::Config<TechnicalCollective> for Runtime {
     type DefaultVote = pallet_collective::PrimeDefaultVote;
-    type Event = Event;
     type MaxMembers = TechnicalMaxMembers;
     type MaxProposals = TechnicalMaxProposals;
     type MotionDuration = TechnicalMotionDuration;
-    type Origin = Origin;
     type Proposal = Call;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
     type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
 
@@ -819,13 +819,13 @@ type EnsureRootOrHalfCouncil = EnsureOneOf<
 >;
 impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
     type AddOrigin = EnsureRootOrHalfCouncil;
-    type Event = Event;
     type MaxMembers = TechnicalMaxMembers;
     type MembershipChanged = TechnicalCommittee;
     type MembershipInitialized = TechnicalCommittee;
     type PrimeOrigin = EnsureRootOrHalfCouncil;
     type RemoveOrigin = EnsureRootOrHalfCouncil;
     type ResetOrigin = EnsureRootOrHalfCouncil;
+    type RuntimeEvent = RuntimeEvent;
     type SwapOrigin = EnsureRootOrHalfCouncil;
     type WeightInfo = pallet_membership::weights::SubstrateWeight<Runtime>;
 }
@@ -860,7 +860,6 @@ impl pallet_treasury::Config for Runtime {
     type Burn = Burn;
     type BurnDestination = ();
     type Currency = Balances;
-    type Event = Event;
     type MaxApprovals = MaxApprovals;
     type OnSlash = ();
     type PalletId = TreasuryPalletId;
@@ -871,6 +870,7 @@ impl pallet_treasury::Config for Runtime {
         EnsureRoot<AccountId>,
         pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
     >;
+    type RuntimeEvent = RuntimeEvent;
     type SpendFunds = Bounties;
     type SpendPeriod = SpendPeriod;
     type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
@@ -886,15 +886,15 @@ impl pallet_bounties::Config for Runtime {
     type CuratorDepositMin = CuratorDepositMin;
     type CuratorDepositMultiplier = CuratorDepositMultiplier;
     type DataDepositPerByte = DataDepositPerByte;
-    type Event = Event;
     type MaximumReasonLength = MaximumReasonLength;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_bounties::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_tips::Config for Runtime {
     type DataDepositPerByte = DataDepositPerByte;
-    type Event = Event;
     type MaximumReasonLength = MaximumReasonLength;
+    type RuntimeEvent = RuntimeEvent;
     type TipCountdown = TipCountdown;
     type TipFindersFee = TipFindersFee;
     type TipReportDepositBase = TipReportDepositBase;
@@ -910,15 +910,15 @@ parameter_types! {
 }
 
 impl pallet_scheduler::Config for Runtime {
-    type Call = Call;
-    type Event = Event;
     type MaxScheduledPerBlock = ConstU32<50>;
     type MaximumWeight = MaximumSchedulerWeight;
     type NoPreimagePostponement = NoPreimagePostponement;
-    type Origin = Origin;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type PalletsOrigin = OriginCaller;
     type PreimageProvider = Preimage;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
     type ScheduleOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
 }
@@ -934,15 +934,15 @@ impl pallet_preimage::Config for Runtime {
     type BaseDeposit = PreimageBaseDeposit;
     type ByteDeposit = PreimageByteDeposit;
     type Currency = Balances;
-    type Event = Event;
     type ManagerOrigin = EnsureRoot<AccountId>;
     type MaxSize = PreimageMaxSize;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_preimage::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_sudo::Config for Runtime {
-    type Call = Call;
-    type Event = Event;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {
@@ -1010,21 +1010,21 @@ where Call: From<C>
 
 impl pallet_im_online::Config for Runtime {
     type AuthorityId = ImOnlineId;
-    type Event = Event;
     type MaxKeys = MaxKeys;
     type MaxPeerDataEncodingSize = MaxPeerDataEncodingSize;
     type MaxPeerInHeartbeats = MaxPeerInHeartbeats;
     type NextSessionRotation = Babe;
     type ReportUnresponsiveness = Offences;
+    type RuntimeEvent = RuntimeEvent;
     type UnsignedPriority = ImOnlineUnsignedPriority;
     type ValidatorSet = Historical;
     type WeightInfo = pallet_im_online::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_offences::Config for Runtime {
-    type Event = Event;
     type IdentificationTuple = pallet_session::historical::IdentificationTuple<Self>;
     type OnOffenceHandler = Staking;
+    type RuntimeEvent = RuntimeEvent;
 }
 
 impl pallet_authority_discovery::Config for Runtime {
@@ -1032,8 +1032,6 @@ impl pallet_authority_discovery::Config for Runtime {
 }
 
 impl pallet_grandpa::Config for Runtime {
-    type Call = Call;
-    type Event = Event;
     type HandleEquivocation = pallet_grandpa::EquivocationHandler<
         Self::KeyOwnerIdentification,
         Offences,
@@ -1047,6 +1045,8 @@ impl pallet_grandpa::Config for Runtime {
         <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
     type KeyOwnerProofSystem = Historical;
     type MaxAuthorities = MaxAuthorities;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
 
@@ -1062,13 +1062,13 @@ parameter_types! {
 impl pallet_identity::Config for Runtime {
     type BasicDeposit = BasicDeposit;
     type Currency = Balances;
-    type Event = Event;
     type FieldDeposit = FieldDeposit;
     type ForceOrigin = EnsureRootOrHalfCouncil;
     type MaxAdditionalFields = MaxAdditionalFields;
     type MaxRegistrars = MaxRegistrars;
     type MaxSubAccounts = MaxSubAccounts;
     type RegistrarOrigin = EnsureRootOrHalfCouncil;
+    type RuntimeEvent = RuntimeEvent;
     type Slashed = Treasury;
     type SubAccountDeposit = SubAccountDeposit;
     type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
@@ -1082,13 +1082,13 @@ parameter_types! {
 }
 
 impl pallet_recovery::Config for Runtime {
-    type Call = Call;
     type ConfigDepositBase = ConfigDepositBase;
     type Currency = Balances;
-    type Event = Event;
     type FriendDepositFactor = FriendDepositFactor;
     type MaxFriends = MaxFriends;
     type RecoveryDeposit = RecoveryDeposit;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {
@@ -1107,7 +1107,6 @@ impl pallet_society::Config for Runtime {
     type CandidateDeposit = CandidateDeposit;
     type ChallengePeriod = ChallengePeriod;
     type Currency = Balances;
-    type Event = Event;
     type FounderSetOrigin =
         pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>;
     type MaxCandidateIntake = MaxCandidateIntake;
@@ -1118,6 +1117,7 @@ impl pallet_society::Config for Runtime {
     type PeriodSpend = PeriodSpend;
     type Randomness = RandomnessCollectiveFlip;
     type RotationPeriod = RotationPeriod;
+    type RuntimeEvent = RuntimeEvent;
     type SuspensionJudgementOrigin = pallet_society::EnsureFounder<Runtime>;
     type WrongSideDeduction = WrongSideDeduction;
 }
@@ -1129,8 +1129,8 @@ parameter_types! {
 impl pallet_vesting::Config for Runtime {
     type BlockNumberToBalance = ConvertInto;
     type Currency = Balances;
-    type Event = Event;
     type MinVestedTransfer = MinVestedTransfer;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
 
     // `VestingInfo` encode length is 36bytes. 28 schedules gets encoded as 1009 bytes, which is the
@@ -1139,15 +1139,15 @@ impl pallet_vesting::Config for Runtime {
 }
 
 impl pallet_transaction_storage::Config for Runtime {
-    type Call = Call;
     type Currency = Balances;
-    type Event = Event;
     type FeeDestination = ();
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_transaction_storage::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_propagation::Config for Runtime {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {
@@ -1156,9 +1156,9 @@ parameter_types! {
 
 impl pallet_slashing::Config for Runtime {
     type AuthorityId = pallet_babe::AuthorityId;
-    type Event = Event;
     type MinValidators = MinValidators;
     type ReportBad = Offences;
+    type RuntimeEvent = RuntimeEvent;
     type ValidatorIdOf = pallet_staking::StashOf<Self>;
     type ValidatorSet = Historical;
 }
@@ -1169,8 +1169,8 @@ parameter_types! {
 }
 
 impl pallet_relayer::Config for Runtime {
-    type Event = Event;
     type PruneBlock = PruneBlock;
+    type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
     type WeightInfo = weights::pallet_relayer::WeightInfo<Runtime>;
 }
@@ -1183,14 +1183,14 @@ parameter_types! {
 }
 
 impl pallet_constraints::Config for Runtime {
-    type Event = Event;
     type MaxAddressLength = MaxAddressLengthNum;
     type MaxWhitelist = MaxWhitelistNum;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_constraints::WeightInfo<Runtime>;
 }
 
 impl pallet_transaction_pause::Config for Runtime {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureOneOf<
         EnsureRoot<AccountId>,
         pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>,
@@ -1204,15 +1204,15 @@ parameter_types! {
 
 impl pallet_bags_list::Config for Runtime {
     type BagThresholds = BagThresholds;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Score = VoteWeight;
     type ScoreProvider = Staking;
     type WeightInfo = pallet_bags_list::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_free_tx::Config for Runtime {
-    type Call = Call;
-    type Event = Event;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureOneOf<
         EnsureRoot<AccountId>,
         pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>,

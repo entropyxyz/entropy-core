@@ -30,8 +30,10 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::{
-        dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::IsSubType,
-        weights::Pays,
+        dispatch::{DispatchResult, Pays},
+        inherent::Vec,
+        pallet_prelude::*,
+        traits::IsSubType,
     };
     use frame_system::pallet_prelude::*;
     use helpers::unwrap_or_return;
@@ -80,9 +82,9 @@ pub mod pallet {
             );
             Self::note_responsibility(block_number);
             if is_prune_failures {
-                <T as Config>::WeightInfo::move_active_to_pending_failure(messages.len() as u32)
+                <T as Config>::WeightInfo::move_active_to_pending_failure(messages.len() as u64)
             } else {
-                <T as Config>::WeightInfo::move_active_to_pending_no_failure(messages.len() as u32)
+                <T as Config>::WeightInfo::move_active_to_pending_no_failure(messages.len() as u64)
             }
         }
     }
@@ -191,7 +193,7 @@ pub mod pallet {
 
         // TODO(Jake): This is an insecure way to do a free transaction.
         // secure it, please. :)
-        #[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+        #[pallet::weight((T::DbWeight::get().writes(1), Pays::No))]
         pub fn confirm_register(
             origin: OriginFor<T>,
             registerer: T::AccountId,
@@ -223,7 +225,7 @@ pub mod pallet {
         /// Allows a node to signal they have completed a signing batch
         /// `block_number`: block number for signing batch
         /// `failure`: index of any failures in all sig request arrays
-        #[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+        #[pallet::weight((T::DbWeight::get().writes(1), Pays::No))]
         pub fn confirm_done(
             origin: OriginFor<T>,
             block_number: T::BlockNumber,

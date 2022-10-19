@@ -42,7 +42,7 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Requirements for callable functions
-        type Call: Parameter
+        type RuntimeCall: Parameter
             + Dispatchable<RuntimeOrigin = Self::RuntimeOrigin, PostInfo = PostDispatchInfo>
             + GetDispatchInfo
             + From<frame_system::Call<Self>>;
@@ -133,19 +133,21 @@ pub mod pallet {
         #[allow(clippy::boxed_local)]
         pub fn call_using_electricity(
             origin: OriginFor<T>,
-            call: Box<<T as Config>::Call>,
+            call: Box<<T as Config>::RuntimeCall>,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
             Self::try_spend_cell(&sender)?;
 
-            let res = call.dispatch(RawOrigin::Signed(sender.clone()).into());
-            Self::deposit_event(Event::ElectricitySpent(
-                sender,
-                res.map(|_| ()).map_err(|e| e.error),
-            ));
+            let res = call
+                .dispatch(RawOrigin::Signed(sender.clone()).into())
+                .map(|_| ())
+                .map_err(|e| e.error);
+            let event = Event::ElectricitySpent(sender, res.clone());
 
-            res
+            Self::deposit_event(event);
+
+            Ok(res.into()).into()
         }
 
         /// Put a cap on the number of cells individual accounts can use per era.
