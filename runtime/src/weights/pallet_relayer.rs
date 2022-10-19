@@ -29,14 +29,14 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 	// Storage: Relayer Messages (r:1 w:1)
 	fn prep_transaction() -> Weight {
-		(34_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_ref_time(34_000_000 as u64)
+			.saturating_add(T::DbWeight::get().reads(1 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: Relayer Registered (r:0 w:1)
 	fn register() -> Weight {
-		(22_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_ref_time(22_000_000 as u64)
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: Relayer Messages (r:1 w:0)
 	// Storage: Relayer Failures (r:1 w:0)
@@ -45,12 +45,12 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 	// Storage: Authorship Author (r:1 w:0)
 	// Storage: System Digest (r:1 w:0)
 	// Storage: Relayer Pending (r:0 w:1)
-	fn move_active_to_pending_no_failure(m: u32, ) -> Weight {
-		(32_945_000 as Weight)
+	fn move_active_to_pending_no_failure(m: u64, ) -> Weight {
+		Weight::from_ref_time(32_945_000 as u64)
 			// Standard Error: 24_000
-			.saturating_add((449_000 as Weight).saturating_mul(m as Weight))
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+			+ Weight::from_ref_time((449_000 as u64).saturating_mul(m as u64))
+			.saturating_add(T::DbWeight::get().reads(6 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	// Storage: Relayer Messages (r:1 w:0)
 	// Storage: Relayer Failures (r:1 w:0)
@@ -59,11 +59,11 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 	// Storage: Authorship Author (r:1 w:0)
 	// Storage: System Digest (r:1 w:0)
 	// Storage: Relayer Pending (r:0 w:1)
-	fn move_active_to_pending_failure(m: u32, ) -> Weight {
-		(31_050_000 as Weight)
+	fn move_active_to_pending_failure(m: u64, ) -> Weight {
+		Weight::from_ref_time(31_050_000 as u64)
 			// Standard Error: 43_000
-			.saturating_add((734_000 as Weight).saturating_mul(m as Weight))
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+			+ Weight::from_ref_time((734_000 as u64).saturating_mul(m as u64))
+			.saturating_add(T::DbWeight::get().reads(6 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 }

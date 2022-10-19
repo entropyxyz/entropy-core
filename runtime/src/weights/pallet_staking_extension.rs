@@ -30,25 +30,25 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 	// Storage: Staking Ledger (r:1 w:0)
 	// Storage: StakingExtension EndpointRegister (r:0 w:1)
 	fn change_endpoint() -> Weight {
-		(34_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_ref_time(34_000_000 as u64)
+			.saturating_add(T::DbWeight::get().reads(1 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: Staking Ledger (r:1 w:0)
 	// Storage: StakingExtension ThresholdAccounts (r:0 w:1)
 	fn change_threshold_accounts() -> Weight {
-		(34_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_ref_time(34_000_000 as u64)
+			.saturating_add(T::DbWeight::get().reads(1 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: Staking Ledger (r:1 w:1)
 	// Storage: Staking CurrentEra (r:1 w:0)
 	// Storage: Balances Locks (r:1 w:1)
 	// Storage: System Account (r:1 w:1)
 	fn withdraw_unbonded() -> Weight {
-		(41_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+		Weight::from_ref_time(41_000_000 as u64)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	// Storage: Staking Ledger (r:1 w:0)
 	// Storage: Staking MinValidatorBond (r:1 w:0)
@@ -64,8 +64,8 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 	// Storage: StakingExtension ThresholdAccounts (r:0 w:1)
 	// Storage: StakingExtension EndpointRegister (r:0 w:1)
 	fn validate() -> Weight {
-		(95_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(11 as Weight))
-			.saturating_add(T::DbWeight::get().writes(7 as Weight))
+		Weight::from_ref_time(95_000_000 as u64)
+			.saturating_add(T::DbWeight::get().reads(11 as u64))
+			.saturating_add(T::DbWeight::get().writes(7 as u64))
 	}
 }

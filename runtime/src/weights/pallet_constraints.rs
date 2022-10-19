@@ -29,10 +29,10 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_constraints::WeightInfo for WeightInfo<T> {
 	// Storage: Constraints AddressWhitelist (r:1 w:1)
 	fn add_whitelist_address(a: u32, ) -> Weight {
-		(24_526_000 as Weight)
+		Weight::from_ref_time(24_526_000  as u64)
 			// Standard Error: 0
-			.saturating_add((265_000 as Weight).saturating_mul(a as Weight))
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+			+ Weight::from_ref_time((265_000  as u64).saturating_mul(a  as u64))
+			.saturating_add(T::DbWeight::get().reads(1  as u64))
+			.saturating_add(T::DbWeight::get().writes(1  as u64))
 	}
 }

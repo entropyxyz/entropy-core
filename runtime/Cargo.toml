@@ -64,6 +64,7 @@ pallet-contracts-primitives={ version="6.0.0", default-features=false, git='http
 pallet-conviction-voting={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 pallet-democracy={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 pallet-election-provider-multi-phase={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+pallet-election-provider-support-benchmarking={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30", optional=true }
 pallet-elections-phragmen={ version="5.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 pallet-grandpa={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 pallet-im-online={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
@@ -95,6 +96,9 @@ pallet-utility={ version="4.0.0-dev", default-features=false, git='https://githu
 pallet-transaction-payment={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 pallet-transaction-payment-rpc-runtime-api={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 pallet-transaction-storage={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+pallet-nomination-pools={ version="1.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+pallet-nomination-pools-benchmarking={ version="1.0.0", default-features=false, optional=true, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+pallet-nomination-pools-runtime-api={ version="1.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 pallet-vesting={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 
 pallet-propagation      ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/propagation' }
@@ -152,6 +156,9 @@ std=[
   "pallet-proxy/std",
   "sp-core/std",
   "pallet-randomness-collective-flip/std",
+  "pallet-nomination-pools/std",
+  "pallet-nomination-pools-runtime-api/std",
+  "pallet-nomination-pools-benchmarking?/std",
   "sp-std/std",
   "pallet-session/std",
   "sp-api/std",
@@ -191,6 +198,7 @@ runtime-benchmarks=[
   "frame-support/runtime-benchmarks",
   "frame-system/runtime-benchmarks",
   "pallet-election-provider-multi-phase/runtime-benchmarks",
+  "pallet-election-provider-support-benchmarking/runtime-benchmarks",
   "sp-runtime/runtime-benchmarks",
   "pallet-assets/runtime-benchmarks",
   "pallet-babe/runtime-benchmarks",
@@ -199,6 +207,7 @@ runtime-benchmarks=[
   "pallet-bounties/runtime-benchmarks",
   "pallet-collective/runtime-benchmarks",
   "pallet-constraints/runtime-benchmarks",
+  "pallet-nomination-pools-benchmarking/runtime-benchmarks",
   "pallet-conviction-voting/runtime-benchmarks",
   "pallet-democracy/runtime-benchmarks",
   "pallet-elections-phragmen/runtime-benchmarks",
@@ -225,9 +234,9 @@ runtime-benchmarks=[
   "pallet-treasury/runtime-benchmarks",
   "pallet-utility/runtime-benchmarks",
   "pallet-vesting/runtime-benchmarks",
-  "pallet-offences-benchmarking",
-  "pallet-session-benchmarking",
-  "frame-system-benchmarking",
+  "pallet-offences-benchmarking/runtime-benchmarks",
+  "pallet-session-benchmarking/runtime-benchmarks",
+  "frame-system-benchmarking/runtime-benchmarks",
   "hex-literal",
 ]
 try-runtime=[
@@ -238,6 +247,7 @@ try-runtime=[
   "pallet-authority-discovery/try-runtime",
   "pallet-authorship/try-runtime",
   "pallet-babe/try-runtime",
+  "pallet-nomination-pools/try-runtime",
   "pallet-balances/try-runtime",
   "pallet-bounties/try-runtime",
   "pallet-collective/try-runtime",
