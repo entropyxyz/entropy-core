@@ -113,8 +113,8 @@ pub struct Message {
     pub message: [u8; 32],
 }
 
-#[post("/get", data = "<msg>")]
-pub async fn get(
+#[post("/signature", data = "<msg>")]
+pub async fn get_signature(
     msg: Json<Message>,
     signatures: &State<SignatureState>,
 ) -> status::Accepted<String> {

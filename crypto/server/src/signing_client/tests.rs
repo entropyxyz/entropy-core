@@ -28,7 +28,7 @@ use tofn::{
 };
 
 use crate::{
-    drain, get, new_party, new_user, subscribe_to_me,
+    drain, get_signature, new_party, new_user, subscribe_to_me,
     user::{ParsedUserInputPartyInfo, UserInputPartyInfo},
     utils::SignatureState,
     CommunicationManagerState, Configuration, Message as SigMessage, SignerState,
@@ -86,7 +86,7 @@ async fn test_new_party() {
 
         let sig_message = SigMessage { message };
         let response_2 = client
-            .post("http:///127.0.0.1:3001/signer/get")
+            .post("http:///127.0.0.1:3001/signer/signature")
             .body(serde_json::to_string(&sig_message).unwrap())
             .send()
             .await;
@@ -97,7 +97,7 @@ async fn test_new_party() {
         assert_eq!(response_3.unwrap().status(), 200);
 
         let response_4 = client
-            .post("http:///127.0.0.1:3001/signer/get")
+            .post("http:///127.0.0.1:3001/signer/signature")
             .body(serde_json::to_string(&sig_message).unwrap())
             .send()
             .await;
@@ -165,7 +165,7 @@ async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
     let result = kv_store.kv().put(reservation, v_serialized).await;
 
     rocket::custom(config)
-        .mount("/signer", routes![new_party, subscribe_to_me, get, drain])
+        .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
         .mount("/user", routes![new_user])
         .manage(communication_manager_state)
         .manage(signer_state)
