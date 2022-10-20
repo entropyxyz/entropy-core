@@ -44,7 +44,11 @@ pub(super) async fn load_kv_store() -> KvManager {
         KvManager::new(kvdb::get_db_path().into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap()
     } else {
-        let root = project_root::get_project_root().unwrap();
+        let mut root = project_root::get_project_root().unwrap();
+        if cfg!(feature = "bob") {
+            let formatted = format!("{}/bob", root.display());
+            root = formatted.into()
+        }
         let password = PasswordMethod::Prompt.execute().unwrap();
         // this step takes a long time due to password-based decryption
         KvManager::new(root, password).unwrap()

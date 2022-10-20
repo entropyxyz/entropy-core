@@ -343,9 +343,9 @@ pub fn testnet_genesis(
                         hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"]
                             .into(),
                         [
-                            177, 20, 88, 181, 110, 225, 38, 248, 123, 157, 116, 240, 131, 164, 72,
-                            69, 126, 239, 108, 148, 131, 220, 171, 99, 226, 64, 55, 79, 161, 143,
-                            208, 88,
+                            225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245,
+                            89, 36, 170, 169, 181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136,
+                            102, 10,
                         ],
                     ),
                 ),
@@ -359,7 +359,14 @@ pub fn testnet_genesis(
                             .into(),
                     ],
                 ),
-                (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
+                (
+                    1,
+                    vec![
+                        get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                        hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"]
+                            .into(),
+                    ],
+                ),
             ],
         },
         democracy: DemocracyConfig::default(),

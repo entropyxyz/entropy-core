@@ -94,6 +94,7 @@ pub async fn get_subgroup(
 ) -> Result<Option<u8>, subxt::Error<entropy::DispatchError>> {
     let mut subgroup: Option<u8> = None;
     let address = signer.account_id();
+    // TODO: stash keys are broken up into subgroups....need to get stash key here from threshold
     for i in 0..SIGNING_PARTY_SIZE {
         let signing_group_addresses =
             api.storage().staking_extension().signing_groups(&(i as u8), None).await?.unwrap();
