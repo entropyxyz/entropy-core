@@ -315,11 +315,11 @@ pub fn testnet_genesis(
             endpoints: vec![
                 (
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    "ws://localhost:3001".as_bytes().to_vec(),
+                    "127.0.0.1:3001".as_bytes().to_vec(),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    "ws://localhost:3001".as_bytes().to_vec(),
+                    "127.0.0.1:3002".as_bytes().to_vec(),
                 ),
             ],
             threshold_accounts: vec![

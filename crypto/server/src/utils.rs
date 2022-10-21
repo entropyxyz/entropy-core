@@ -6,7 +6,7 @@ use bip39::{Language, Mnemonic};
 use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use serde::Deserialize;
 use tofn::sdk::api::Signature;
-
+use hex;
 use crate::{setup_mnemonic, sign_init::MessageDigest};
 
 const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
@@ -61,7 +61,7 @@ pub(super) async fn load_kv_store() -> KvManager {
 /// The state used to temporarily store completed signatures
 #[derive(Debug)]
 pub struct SignatureState {
-    pub signatures: Mutex<HashMap<[u8; 32], Signature>>,
+    pub signatures: Mutex<HashMap<String, Signature>>,
 }
 
 impl SignatureState {
@@ -71,17 +71,20 @@ impl SignatureState {
     }
 
     pub fn insert(&self, key: [u8; 32], value: &Signature) {
-        let mut signatures = self.signatures.lock().unwrap();
-        signatures.insert(key, *value);
+        let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
+		println!("inside insert value: {:?}", value.clone());
+        signatures.insert(hex::encode(key), *value);
     }
 
-    pub fn get(&self, key: &[u8; 32]) -> Signature {
-        let signatures = self.signatures.lock().unwrap();
-        *signatures.get(key).unwrap()
+    pub fn get(&self, key: &String) -> [u8; 64] {
+        let signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
+        let result = *signatures.get(key).unwrap();
+		println!("inside get value: {:?}", result.clone());
+		result.as_ref().try_into().expect("slice with incorrect length")
     }
 
     pub fn drain(&self) {
-        let mut signatures = self.signatures.lock().unwrap();
+        let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
         let _ = signatures.drain();
     }
 }

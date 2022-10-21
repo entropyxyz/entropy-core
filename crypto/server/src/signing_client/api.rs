@@ -55,6 +55,7 @@ pub async fn new_party(
         };
 
         let result = gg20_service.execute_sign(&sign_context, channels).await.unwrap();
+		println!("result: {:?}", result.clone());
         gg20_service.handle_result(
             &result,
             message.sig_request.sig_hash.as_slice().try_into().unwrap(),
@@ -110,7 +111,7 @@ use serde::{Deserialize, Serialize};
 // TODO: JA remove all below temporary
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Message {
-    pub message: [u8; 32],
+    pub message: String,
 }
 
 #[post("/signature", data = "<msg>")]
@@ -118,8 +119,8 @@ pub async fn get_signature(
     msg: Json<Message>,
     signatures: &State<SignatureState>,
 ) -> status::Accepted<String> {
-    let sig = signatures.get(&msg.message).to_string();
-    status::Accepted(Some(format!("sig: '{}'", sig)))
+    let sig = signatures.get(&msg.message).to_vec();
+    status::Accepted(Some(base64::encode(&sig)))
 }
 
 #[get("/drain")]
