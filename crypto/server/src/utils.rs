@@ -6,7 +6,7 @@ use bip39::{Language, Mnemonic};
 use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use serde::Deserialize;
 use tofn::sdk::api::Signature;
-use hex;
+
 use crate::{setup_mnemonic, sign_init::MessageDigest};
 
 const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
@@ -72,15 +72,15 @@ impl SignatureState {
 
     pub fn insert(&self, key: [u8; 32], value: &Signature) {
         let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
-		println!("inside insert value: {:?}", value.clone());
+        println!("inside insert value: {:?}", value.clone());
         signatures.insert(hex::encode(key), *value);
     }
 
     pub fn get(&self, key: &String) -> [u8; 64] {
         let signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
-        let result = *signatures.get(key).unwrap();
-		println!("inside get value: {:?}", result.clone());
-		result.as_ref().try_into().expect("slice with incorrect length")
+        let result = *signatures.get(&hex::encode(key)).unwrap();
+        println!("inside get value: {:?}", result.clone());
+        result.as_ref().try_into().expect("slice with incorrect length")
     }
 
     pub fn drain(&self) {

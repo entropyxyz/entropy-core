@@ -55,12 +55,10 @@ pub async fn new_party(
         };
 
         let result = gg20_service.execute_sign(&sign_context, channels).await.unwrap();
-		println!("result: {:?}", result.clone());
-        gg20_service.handle_result(
-            &result,
-            message.sig_request.sig_hash.as_slice().try_into().unwrap(),
-            signatures,
-        );
+        println!("result: {:?}", result.clone());
+        let key = message.sig_request.sig_hash.as_slice().try_into().unwrap();
+        println!("NEW KEY: {:?}", key);
+        gg20_service.handle_result(&result, key, signatures);
     }
 
     Ok(Status::Ok)
