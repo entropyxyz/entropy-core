@@ -12,7 +12,7 @@ use tofn::{
     collections::TypedUsize,
     gg20,
     gg20::keygen::{KeygenPartyId, KeygenShareId, SecretKeyShare},
-    sdk::api::{PartyShareCounts, Signature},
+    sdk::api::{to_recoverable_signature, PartyShareCounts, RecoverableSignature, Signature},
 };
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
@@ -70,12 +70,12 @@ impl<'a> Gg20Service<'a> {
         &self,
         ctx: &SignContext,
         channels: Channels,
-    ) -> Result<Signature, SigningErr> {
+    ) -> Result<RecoverableSignature, SigningErr> {
         info!("execute_sign: {ctx:?}");
         let new_sign =
             gg20::sign::new_sign(ctx.group(), &ctx.share, &ctx.sign_parties, ctx.msg_to_sign())
                 .map_err(|e| SigningErr::ProtocolExecution(format!("{e:?}")))?;
-        tofn_protocol::execute_protocol(
+        let sig = tofn_protocol::execute_protocol(
             new_sign,
             channels,
             &ctx.sign_uids(),
@@ -83,7 +83,14 @@ impl<'a> Gg20Service<'a> {
             ctx.party_info.tofnd.index,
         )
         .await?
-        .map_err(|e| SigningErr::ProtocolOutput(format!("{e:?}")))
+        .map_err(|e| SigningErr::ProtocolOutput(format!("{e:?}")))?;
+
+        to_recoverable_signature(
+            &ctx.party_info.common.verifying_key(),
+            ctx.sign_init.msg.as_ref(),
+            &sig,
+        )
+        .ok_or(SigningErr::SignatureError)
     }
 
     // todo placeholder for any result handling
@@ -91,7 +98,7 @@ impl<'a> Gg20Service<'a> {
     #[allow(unused_variables)]
     pub fn handle_result(
         &self,
-        signature: &k256::ecdsa::recoverable::Signature,
+        signature: &RecoverableSignature,
         msg: [u8; 32],
         signatures: &rocket::State<SignatureState>,
     ) {

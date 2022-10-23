@@ -1,12 +1,10 @@
 use std::{io, str};
 
-use k256::ecdsa::recoverable;
 use kvdb::kv_manager::KvManager;
 use parity_scale_codec::Decode;
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use substrate_common::OCWMessage;
 use subxt::ext::sp_runtime::AccountId32;
-use tofn::sdk::api::Signature;
 use tracing::instrument;
 
 use crate::{
@@ -55,26 +53,13 @@ pub async fn new_party(
             Channels(broadcast_out, stream_in)
         };
 
-        let result = gg20_service.execute_sign(&sign_context, channels).await?;
-        use k256::{ecdsa::VerifyingKey, elliptic_curve::sec1::FromEncodedPoint};
-        let pubkey_bytes = sign_context.party_info.common.encoded_pubkey();
-        // unwrap left here since recoverable signature PR removes
-        let ep = k256::EncodedPoint::from_bytes(pubkey_bytes).unwrap();
-        let pubkey = VerifyingKey::from_encoded_point(&ep).unwrap();
+        let result = gg20_service.execute_sign(&sign_context, channels).await.unwrap();
 
-        let rec_sig0 =
-            recoverable::Signature::new(&result, recoverable::Id::new(0).unwrap()).unwrap();
-        let msg: &[u8] = message.sig_request.sig_hash.as_ref();
-        let recovered_key =
-            rec_sig0.recover_verify_key_from_digest_bytes(msg.try_into().unwrap()).unwrap();
-        let rec_sig = if recovered_key == pubkey {
-            rec_sig0
-        } else {
-            recoverable::Signature::new(&result, recoverable::Id::new(1).unwrap()).unwrap()
-        };
-        let key = message.sig_request.sig_hash.as_slice().try_into()?;
-
-        gg20_service.handle_result(&rec_sig, key, signatures);
+        gg20_service.handle_result(
+            &result,
+            message.sig_request.sig_hash.as_slice().try_into().unwrap(),
+            signatures,
+        );
     }
 
     Ok(Status::Ok)
@@ -135,8 +120,8 @@ pub async fn get_signature(
     msg: Json<Message>,
     signatures: &State<SignatureState>,
 ) -> status::Accepted<String> {
-    let sig = signatures.get(&msg.message).to_vec();
-    status::Accepted(Some(base64::encode(sig)))
+    let sig = signatures.get(&msg.message);
+    status::Accepted(Some(base64::encode(sig.as_ref())))
 }
 
 #[get("/drain")]

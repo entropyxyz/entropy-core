@@ -44,6 +44,8 @@ pub enum SigningErr {
     ProtocolExecution(String),
     #[error("Protocol Output error: {0}")]
     ProtocolOutput(String),
+    #[error("Cannot make a recoverable signature")]
+    SignatureError,
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("Broadcast error: {0}")]
