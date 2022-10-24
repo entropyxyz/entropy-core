@@ -23,6 +23,7 @@ version='3.0.0'
 
 [dependencies]
 jsonrpc-core                ='18.0.0'
+codec                       ={ package="parity-scale-codec", version="3.0.0" }
 structopt                   ='0.3.8'
 grandpa-primitives          ={ version="4.0.0-dev", package="sp-finality-grandpa", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 hex-literal                 ="0.3.1"
@@ -52,16 +53,17 @@ grandpa                     ={ version="0.10.0-dev", package="sc-finality-grandp
 sp-keystore                 ={ version="0.12.0", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 clap                        ={ version="3.0", features=["derive"] }
 jsonrpsee                   ={ version="0.15.1", features=["server"] }
+sp-inherents                ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+sp-keyring                  ={ version="6.0.0", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+frame-system                ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+frame-system-rpc-runtime-api={ version="4.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+pallet-transaction-payment  ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+pallet-free-tx              ={ version="3.0.0-monthly-2021-10", path="../../pallets/free-tx" }
 
 [dev-dependencies]
-sc-service-test           ={ version="2.0.0", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
-sp-inherents              ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
-sp-keyring                ={ version="6.0.0", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
-sp-tracing                ={ version="5.0.0", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
-frame-system              ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
-pallet-transaction-payment={ version="4.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
-tempfile                  ="3.1.0"
-pallet-free-tx            ={ version="3.0.0-monthly-2021-10", path="../../pallets/free-tx" }
+sc-service-test={ version="2.0.0", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+sp-tracing     ={ version="5.0.0", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+tempfile       ="3.1.0"
 
 [dependencies.entropy-runtime]
 path   ='../../runtime'

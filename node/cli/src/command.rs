@@ -16,10 +16,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use entropy_runtime::Block;
+use entropy::benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder};
+use entropy_runtime::{Block, ExistentialDeposit, RuntimeApi};
+use frame_benchmarking_cli::*;
 use node_executor::ExecutorDispatch;
 use sc_cli::{ChainSpec, Result, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
+use sp_keyring::Sr25519Keyring;
 
 use crate::{
     chain_spec,
@@ -73,16 +76,79 @@ pub fn run() -> Result<()> {
                     .map_err(sc_cli::Error::Service)
             })
         },
-        Some(Subcommand::Benchmark(cmd)) =>
-            if cfg!(feature = "runtime-benchmarks") {
-                let runner = cli.create_runner(cmd)?;
+        Some(Subcommand::Benchmark(cmd)) => {
+            let runner = cli.create_runner(cmd)?;
 
-                runner.sync_run(|config| cmd.run::<Block, ExecutorDispatch>(config))
-            } else {
-                Err("Benchmarking wasn't enabled when building the node. You can enable it with \
-                     `--features runtime-benchmarks`."
-                    .into())
-            },
+            runner.sync_run(|config| {
+                // This switch needs to be in the client, since the client decides
+                // which sub-commands it wants to support.
+                match cmd {
+                    BenchmarkCmd::Pallet(cmd) => {
+                        if !cfg!(feature = "runtime-benchmarks") {
+                            return Err("Runtime benchmarking wasn't enabled when building the \
+                                        node. You can enable it with `--features \
+                                        runtime-benchmarks`."
+                                .into());
+                        }
+
+                        cmd.run::<Block, ExecutorDispatch>(config)
+                    },
+                    BenchmarkCmd::Block(cmd) => {
+                        // ensure that we keep the task manager alive
+                        let partial = new_partial(&config)?;
+                        cmd.run(partial.client)
+                    },
+                    #[cfg(not(feature = "runtime-benchmarks"))]
+                    BenchmarkCmd::Storage(_) => Err("Storage benchmarking can be enabled with \
+                                                     `--features runtime-benchmarks`."
+                        .into()),
+                    #[cfg(feature = "runtime-benchmarks")]
+                    BenchmarkCmd::Storage(cmd) => {
+                        // ensure that we keep the task manager alive
+                        let partial = new_partial(&config)?;
+                        let db = partial.backend.expose_db();
+                        let storage = partial.backend.expose_storage();
+
+                        cmd.run(config, partial.client, db, storage)
+                    },
+                    BenchmarkCmd::Overhead(cmd) => {
+                        // ensure that we keep the task manager alive
+                        let partial = new_partial(&config)?;
+                        let ext_builder = RemarkBuilder::new(partial.client.clone());
+
+                        cmd.run(
+                            config,
+                            partial.client,
+                            inherent_benchmark_data()?,
+                            Vec::new(),
+                            &ext_builder,
+                        )
+                    },
+                    BenchmarkCmd::Extrinsic(cmd) => {
+                        // ensure that we keep the task manager alive
+                        let partial = service::new_partial(&config)?;
+                        // Register the *Remark* and *TKA* builders.
+                        let ext_factory = ExtrinsicFactory(vec![
+                            Box::new(RemarkBuilder::new(partial.client.clone())),
+                            Box::new(TransferKeepAliveBuilder::new(
+                                partial.client.clone(),
+                                Sr25519Keyring::Alice.to_account_id(),
+                                ExistentialDeposit::get(),
+                            )),
+                        ]);
+
+                        cmd.run(
+                            partial.client,
+                            inherent_benchmark_data()?,
+                            Vec::new(),
+                            &ext_factory,
+                        )
+                    },
+                    BenchmarkCmd::Machine(cmd) =>
+                        cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()),
+                }
+            })
+        },
         Some(Subcommand::Key(cmd)) => cmd.run(&cli),
         Some(Subcommand::BuildSpec(cmd)) => {
             let runner = cli.create_runner(cmd)?;

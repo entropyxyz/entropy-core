@@ -1,6 +1,5 @@
 use sc_cli::RunCmd;
 
-/// An overarching CLI command definition.
 #[derive(Debug, clap::Parser)]
 pub struct Cli {
     /// Possible subcommand with parameters.
@@ -9,7 +8,17 @@ pub struct Cli {
 
     #[allow(missing_docs)]
     #[clap(flatten)]
-    pub run: RunCmd,
+    pub run: sc_cli::RunCmd,
+
+    /// Disable automatic hardware benchmarks.
+    ///
+    /// By default these benchmarks are automatically ran at startup and measure
+    /// the CPU speed, the memory bandwidth and the disk speed.
+    ///
+    /// The results are then printed out in the logs, and also sent as part of
+    /// telemetry, if telemetry is enabled.
+    #[clap(long)]
+    pub no_hardware_benchmarks: bool,
 }
 
 #[derive(Debug, clap::Subcommand)]
@@ -39,6 +48,6 @@ pub enum Subcommand {
     Revert(sc_cli::RevertCmd),
 
     /// The custom benchmark subcommmand benchmarking runtime pallets.
-    #[clap(name = "benchmark", about = "Benchmark runtime pallets.")]
+    #[clap(subcommand)]
     Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 }
