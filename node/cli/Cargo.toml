@@ -37,11 +37,11 @@ node-primitives             ={ version="2.0.0", git='https://github.com/parityte
 rand                        ="0.7.2"
 sc-sync-state-rpc           ={ version="0.10.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 futures                     ="0.3.16"
-node-executor               ={ version="3.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+entropy-executor            ={ version="3.0.0-dev", path='../executor' }
 sc-consensus-babe           ={ version="0.10.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 sc-network                  ={ version="0.10.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 sc-network-common           ={ version="0.10.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
-node-rpc                    ={ version="3.0.0-dev", path="../rpc" }
+entropy-rpc                 ={ version="3.0.0-dev", path="../rpc" }
 sc-consensus-slots          ={ version="0.10.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 sp-transaction-storage-proof={ version="4.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 sc-authority-discovery      ={ version="0.10.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }

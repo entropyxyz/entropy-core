@@ -132,7 +132,7 @@ pub fn new_partial(
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
             impl Fn(
-                node_rpc::DenyUnsafe,
+                entropy_rpc::DenyUnsafe,
                 sc_rpc::SubscriptionTaskExecutor,
             ) -> Result<jsonrpsee::RpcModule<()>, sc_service::Error>,
             (
@@ -253,18 +253,18 @@ pub fn new_partial(
 
         let rpc_backend = backend.clone();
         let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
-            let deps = node_rpc::FullDeps {
+            let deps = entropy_rpc::FullDeps {
                 client: client.clone(),
                 pool: pool.clone(),
                 select_chain: select_chain.clone(),
                 chain_spec: chain_spec.cloned_box(),
                 deny_unsafe,
-                babe: node_rpc::BabeDeps {
+                babe: entropy_rpc::BabeDeps {
                     babe_config: babe_config.clone(),
                     shared_epoch_changes: shared_epoch_changes.clone(),
                     keystore: keystore.clone(),
                 },
-                grandpa: node_rpc::GrandpaDeps {
+                grandpa: entropy_rpc::GrandpaDeps {
                     shared_voter_state: shared_voter_state.clone(),
                     shared_authority_set: shared_authority_set.clone(),
                     justification_stream: justification_stream.clone(),
@@ -273,7 +273,7 @@ pub fn new_partial(
                 },
             };
 
-            node_rpc::create_full(deps, rpc_backend.clone()).map_err(Into::into)
+            entropy_rpc::create_full(deps, rpc_backend.clone()).map_err(Into::into)
         };
 
         (rpc_extensions_builder, rpc_setup)
