@@ -32,14 +32,14 @@
 
 use std::sync::Arc;
 
+use sc_finality_grandpa::{
+    FinalityProofProvider, GrandpaJustificationStream, SharedAuthoritySet, SharedVoterState,
+};
 use jsonrpsee::RpcModule;
 use node_primitives::{AccountId, Balance, Block, BlockNumber, Hash, Index};
 use sc_client_api::AuxStore;
 use sc_consensus_babe::{BabeConfiguration, Epoch};
 use sc_consensus_epochs::SharedEpochChanges;
-use sc_finality_grandpa::{
-    FinalityProofProvider, GrandpaJustificationStream, SharedAuthoritySet, SharedVoterState,
-};
 // use sc_finality_grandpa_rpc::GrandpaRpcHandler;
 use sc_rpc::SubscriptionTaskExecutor;
 pub use sc_rpc_api::DenyUnsafe;
@@ -118,7 +118,7 @@ where
 {
     // use pallet_contracts_rpc::{Contracts, ContractsApiServer};
     // use pallet_mmr_rpc::{Mmr, MmrApiServer};
-    use pallet_transaction_payment_rpc::TransactionPayment;
+    use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
     use sc_consensus_babe_rpc::{Babe, BabeApiServer};
     use sc_finality_grandpa_rpc::{Grandpa, GrandpaApiServer};
     use sc_rpc::dev::{Dev, DevApiServer};

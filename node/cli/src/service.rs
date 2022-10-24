@@ -29,7 +29,8 @@ use node_primitives::Block;
 use sc_client_api::{BlockBackend, ExecutorProvider};
 use sc_consensus_babe::{self, SlotProportion};
 use sc_executor::NativeElseWasmExecutor;
-use sc_network::{Event, NetworkService};
+use sc_network::NetworkService;
+use sc_network_common::{protocol::event::Event, service::NetworkEventStream};
 use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_runtime::traits::Block as BlockT;
@@ -41,7 +42,10 @@ type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 type FullGrandpaBlockImport =
     grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>;
 
+pub type TransactionPool = sc_transaction_pool::FullPool<Block, FullClient>;
+
 #[allow(clippy::type_complexity)] // todo @jesse, refactor this result type to a wrapper
+/// Creates a new partial node.
 pub fn new_partial(
     config: &Configuration,
 ) -> Result<
@@ -55,7 +59,7 @@ pub fn new_partial(
             impl Fn(
                 node_rpc::DenyUnsafe,
                 sc_rpc::SubscriptionTaskExecutor,
-            ) -> Result<node_rpc::IoHandler, sc_service::Error>,
+            ) -> Result<jsonrpsee::RpcModule<()>, sc_service::Error>,
             (
                 sc_consensus_babe::BabeBlockImport<Block, FullClient, FullGrandpaBlockImport>,
                 grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
@@ -117,7 +121,7 @@ pub fn new_partial(
     let justification_import = grandpa_block_import.clone();
 
     let (block_import, babe_link) = sc_consensus_babe::block_import(
-        sc_consensus_babe::Config::get(&*client)?,
+        sc_consensus_babe::configuration(&*client)?,
         grandpa_block_import,
         client.clone(),
     )?;
@@ -133,19 +137,18 @@ pub fn new_partial(
             let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
             let slot =
-        sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-          *timestamp,
-          slot_duration,
-        );
+				sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+					*timestamp,
+					slot_duration,
+				);
 
             let uncles =
                 sp_authorship::InherentDataProvider::<<Block as BlockT>::Header>::check_inherents();
 
-            Ok((timestamp, slot, uncles))
+            Ok((slot, timestamp, uncles))
         },
         &task_manager.spawn_essential_handle(),
         config.prometheus_registry(),
-        sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
         telemetry.as_ref().map(|x| x.handle()),
     )?;
 
@@ -213,17 +216,24 @@ pub fn new_partial(
     })
 }
 
+/// Result of [`new_full_base`].
 pub struct NewFullBase {
+    /// The task manager of the node.
     pub task_manager: TaskManager,
+    /// The client instance of the node.
     pub client: Arc<FullClient>,
+    /// The networking service of the node.
     pub network: Arc<NetworkService<Block, <Block as BlockT>::Hash>>,
-    pub transaction_pool: Arc<sc_transaction_pool::FullPool<Block, FullClient>>,
+    /// The transaction pool of the node.
+    pub transaction_pool: Arc<TransactionPool>,
+    /// The rpc handlers of the node.
     pub rpc_handlers: RpcHandlers,
 }
 
 /// Creates a full service from the configuration.
 pub fn new_full_base(
     mut config: Configuration,
+    disable_hardware_benchmarks: bool,
     with_startup_data: impl FnOnce(
         &sc_consensus_babe::BabeBlockImport<Block, FullClient, FullGrandpaBlockImport>,
         &sc_consensus_babe::BabeLink<Block>,
@@ -237,7 +247,7 @@ pub fn new_full_base(
         keystore_container,
         select_chain,
         transaction_pool,
-        other: (rpc_extensions_builder, import_setup, rpc_setup, mut telemetry),
+        other: (rpc_builder, import_setup, rpc_setup, mut telemetry),
     } = new_partial(&config)?;
 
     let shared_voter_state = rpc_setup;
@@ -256,7 +266,7 @@ pub fn new_full_base(
         Vec::default(),
     ));
 
-    let (network, system_rpc_tx, network_starter) =
+    let (network, system_rpc_tx, tx_handler_controller, network_starter) =
         sc_service::build_network(sc_service::BuildNetworkParams {
             config: &config,
             client: client.clone(),
@@ -290,10 +300,11 @@ pub fn new_full_base(
         client: client.clone(),
         keystore: keystore_container.sync_keystore(),
         network: network.clone(),
-        rpc_extensions_builder: Box::new(rpc_extensions_builder),
+        rpc_builder: Box::new(rpc_builder),
         transaction_pool: transaction_pool.clone(),
         task_manager: &mut task_manager,
         system_rpc_tx,
+        tx_handler_controller,
         telemetry: telemetry.as_mut(),
     })?;
 
@@ -309,9 +320,6 @@ pub fn new_full_base(
             prometheus_registry.as_ref(),
             telemetry.as_ref().map(|x| x.handle()),
         );
-
-        let can_author_with =
-            sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 
         let client_clone = client.clone();
         let slot_duration = babe_link.config().slot_duration();
@@ -334,10 +342,10 @@ pub fn new_full_base(
                     let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
                     let slot =
-            sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-              *timestamp,
-              slot_duration,
-            );
+						sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+							*timestamp,
+							slot_duration,
+						);
 
                     let storage_proof =
                         sp_transaction_storage_proof::registration::new_data_provider(
@@ -345,13 +353,12 @@ pub fn new_full_base(
                             &parent,
                         )?;
 
-                    Ok((timestamp, slot, uncles, storage_proof))
+                    Ok((slot, timestamp, uncles, storage_proof))
                 }
             },
             force_authoring,
             backoff_authoring_blocks,
             babe_link,
-            can_author_with,
             block_proposal_slot_portion: SlotProportion::new(0.5),
             max_block_proposal_slot_portion: None,
             telemetry: telemetry.as_ref().map(|x| x.handle()),
@@ -444,8 +451,12 @@ pub fn new_full_base(
 }
 
 /// Builds a new service for a full client.
-pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
-    new_full_base(config, |_, _| ()).map(|NewFullBase { task_manager, .. }| task_manager)
+pub fn new_full(
+    config: Configuration,
+    disable_hardware_benchmarks: bool,
+) -> Result<TaskManager, ServiceError> {
+    new_full_base(config, disable_hardware_benchmarks, |_, _| ())
+        .map(|NewFullBase { task_manager, .. }| task_manager)
 }
 
 #[cfg(test)]
@@ -454,7 +465,7 @@ mod tests {
 
     use entropy_runtime::{
         constants::{currency::CENTS, time::SLOT_DURATION},
-        Address, BalancesCall, Call, UncheckedExtrinsic,
+        Address, BalancesCall, RuntimeCall, UncheckedExtrinsic,
     };
     use node_primitives::{Block, DigestItem, Signature};
     use sc_client_api::BlockBackend;
@@ -513,6 +524,7 @@ mod tests {
                 let NewFullBase { task_manager, client, network, transaction_pool, .. } =
                     new_full_base(
                         config,
+                        false,
                         |block_import: &sc_consensus_babe::BabeBlockImport<Block, _, _>,
                          babe_link: &sc_consensus_babe::BabeLink<Block>| {
                             setup_handles = Some((block_import.clone(), babe_link.clone()));
@@ -566,10 +578,7 @@ mod tests {
                         .epoch_changes()
                         .shared_data()
                         .epoch_data(&epoch_descriptor, |slot| {
-                            sc_consensus_babe::Epoch::genesis(
-                                babe_link.config().genesis_config(),
-                                slot,
-                            )
+                            sc_consensus_babe::Epoch::genesis(babe_link.config(), slot)
                         })
                         .unwrap();
 
@@ -646,7 +655,8 @@ mod tests {
                 };
                 let signer = charlie.clone();
 
-                let function = Call::Balances(BalancesCall::transfer { dest: to, value: amount });
+                let function =
+                    RuntimeCall::Balances(BalancesCall::transfer { dest: to, value: amount });
 
                 let check_spec_version = frame_system::CheckSpecVersion::new();
                 let check_tx_version = frame_system::CheckTxVersion::new();
@@ -689,7 +699,7 @@ mod tests {
             crate::chain_spec::tests::integration_test_config_with_two_authorities(),
             |config| {
                 let NewFullBase { task_manager, client, network, transaction_pool, .. } =
-                    new_full_base(config, |_, _| ())?;
+                    new_full_base(config, false, |_, _| ())?;
                 Ok(sc_service_test::TestNetComponents::new(
                     task_manager,
                     client,

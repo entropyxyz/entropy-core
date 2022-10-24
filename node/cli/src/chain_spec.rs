@@ -402,6 +402,7 @@ pub fn testnet_genesis(
         vesting: Default::default(),
         transaction_storage: Default::default(),
         transaction_payment: Default::default(),
+        nomination_pools: Default::default(),
     }
 }
 
@@ -510,7 +511,7 @@ pub(crate) mod tests {
 
         sc_service_test::connectivity(integration_test_config_with_two_authorities(), |config| {
             let NewFullBase { task_manager, client, network, transaction_pool, .. } =
-                new_full_base(config, |_, _| ())?;
+                new_full_base(config, false, |_, _| ())?;
             Ok(sc_service_test::TestNetComponents::new(
                 task_manager,
                 client,

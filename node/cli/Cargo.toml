@@ -38,7 +38,7 @@ futures                     ="0.3.16"
 node-executor               ={ version="3.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 sc-consensus-babe           ={ version="0.10.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 sc-network                  ={ version="0.10.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
-grandpa                     ={ version="0.10.0-dev", package="sc-finality-grandpa", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+sc-network-common           ={ version="0.10.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 node-rpc                    ={ version="3.0.0-dev", path="../rpc" }
 sc-consensus-slots          ={ version="0.10.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 sp-transaction-storage-proof={ version="4.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
@@ -48,8 +48,10 @@ sc-consensus-uncles         ={ version="0.10.0-dev", git='https://github.com/par
 sc-consensus-babe-rpc       ={ version="0.10.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 sc-consensus-epochs         ={ version="0.10.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 sc-finality-grandpa-rpc     ={ version="0.10.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+grandpa                     ={ version="0.10.0-dev", package="sc-finality-grandpa", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 sp-keystore                 ={ version="0.12.0", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 clap                        ={ version="3.0", features=["derive"] }
+jsonrpsee                   ={ version="0.15.1", features=["server"] }
 
 [dev-dependencies]
 sc-service-test           ={ version="2.0.0", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
