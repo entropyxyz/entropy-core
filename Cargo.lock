@@ -986,6 +986,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap_complete"
+version = "3.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f7a2e0a962c45ce25afce14220bc24f9dade0a1787f185cecf96bfba7847cd8"
+dependencies = [
+ "clap 3.2.22",
+]
+
+[[package]]
 name = "clap_derive"
 version = "3.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1795,6 +1804,7 @@ name = "entropy"
 version = "3.0.0-monthly-2021-10"
 dependencies = [
  "clap 3.2.22",
+ "clap_complete",
  "entropy-runtime",
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -1805,8 +1815,10 @@ dependencies = [
  "jsonrpc-core",
  "jsonrpsee",
  "node-executor",
+ "node-inspect",
  "node-primitives",
  "node-rpc",
+ "pallet-balances",
  "pallet-free-tx",
  "pallet-im-online",
  "pallet-transaction-payment",
@@ -1857,10 +1869,13 @@ dependencies = [
  "sp-timestamp",
  "sp-tracing",
  "sp-transaction-storage-proof",
+ "sp-trie",
  "structopt",
  "substrate-build-script-utils",
+ "substrate-frame-cli",
  "substrate-frame-rpc-system",
  "tempfile",
+ "try-runtime-cli",
 ]
 
 [[package]]
@@ -3324,6 +3339,7 @@ dependencies = [
  "jsonrpsee-http-server",
  "jsonrpsee-proc-macros",
  "jsonrpsee-types",
+ "jsonrpsee-ws-client",
  "jsonrpsee-ws-server",
  "tracing",
 ]
@@ -3423,6 +3439,18 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tracing",
+]
+
+[[package]]
+name = "jsonrpsee-ws-client"
+version = "0.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ee5feddd5188e62ac08fcf0e56478138e581509d4730f3f7be9b57dd402a4ff"
+dependencies = [
+ "http",
+ "jsonrpsee-client-transport",
+ "jsonrpsee-core",
+ "jsonrpsee-types",
 ]
 
 [[package]]
@@ -4838,6 +4866,23 @@ dependencies = [
  "sp-state-machine",
  "sp-tracing",
  "sp-trie",
+]
+
+[[package]]
+name = "node-inspect"
+version = "0.9.0-dev"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.30#a3ed0119c45cdd0d571ad34e5b3ee7518c8cef8d"
+dependencies = [
+ "clap 3.2.22",
+ "parity-scale-codec",
+ "sc-cli",
+ "sc-client-api",
+ "sc-executor",
+ "sc-service",
+ "sp-blockchain",
+ "sp-core",
+ "sp-runtime",
+ "thiserror",
 ]
 
 [[package]]
@@ -7444,6 +7489,23 @@ name = "regex-syntax"
 version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
+
+[[package]]
+name = "remote-externalities"
+version = "0.10.0-dev"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.30#a3ed0119c45cdd0d571ad34e5b3ee7518c8cef8d"
+dependencies = [
+ "env_logger",
+ "jsonrpsee",
+ "log",
+ "parity-scale-codec",
+ "serde",
+ "serde_json",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-version",
+]
 
 [[package]]
 name = "remove_dir_all"
@@ -10471,6 +10533,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "substrate-frame-cli"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.30#a3ed0119c45cdd0d571ad34e5b3ee7518c8cef8d"
+dependencies = [
+ "clap 3.2.22",
+ "frame-support",
+ "frame-system",
+ "sc-cli",
+ "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
 name = "substrate-frame-rpc-system"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.30#a3ed0119c45cdd0d571ad34e5b3ee7518c8cef8d"
@@ -11252,6 +11327,32 @@ name = "try-lock"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59547bce71d9c38b83d9c0e92b6066c4253371f15005def0c30d9657f50c7642"
+
+[[package]]
+name = "try-runtime-cli"
+version = "0.10.0-dev"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.30#a3ed0119c45cdd0d571ad34e5b3ee7518c8cef8d"
+dependencies = [
+ "clap 3.2.22",
+ "frame-try-runtime",
+ "jsonrpsee",
+ "log",
+ "parity-scale-codec",
+ "remote-externalities",
+ "sc-chain-spec",
+ "sc-cli",
+ "sc-executor",
+ "sc-service",
+ "serde",
+ "sp-core",
+ "sp-externalities",
+ "sp-io",
+ "sp-keystore",
+ "sp-runtime",
+ "sp-state-machine",
+ "sp-version",
+ "zstd",
+]
 
 [[package]]
 name = "tt-call"

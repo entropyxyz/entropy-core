@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2017-2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2017-2022 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
 
 // This program is free software: you can redistribute it and/or modify
@@ -16,19 +16,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use entropy::benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder};
-use entropy_runtime::{Block, ExistentialDeposit, RuntimeApi};
+use std::sync::Arc;
+
+use entropy_runtime::{ExistentialDeposit, RuntimeApi};
 use frame_benchmarking_cli::*;
 use node_executor::ExecutorDispatch;
+use node_primitives::Block;
 use sc_cli::{ChainSpec, Result, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
 use sp_keyring::Sr25519Keyring;
 
+use super::benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder};
 use crate::{
-    chain_spec,
-    cli::{Cli, Subcommand},
-    service,
-    service::new_partial,
+    chain_spec, service,
+    service::{new_partial, FullClient},
+    Cli, Subcommand,
 };
 
 impl SubstrateCli for Cli {
@@ -75,6 +77,11 @@ pub fn run() -> Result<()> {
                 service::new_full(config, cli.no_hardware_benchmarks)
                     .map_err(sc_cli::Error::Service)
             })
+        },
+        Some(Subcommand::Inspect(cmd)) => {
+            let runner = cli.create_runner(cmd)?;
+
+            runner.sync_run(|config| cmd.run::<Block, RuntimeApi, ExecutorDispatch>(config))
         },
         Some(Subcommand::Benchmark(cmd)) => {
             let runner = cli.create_runner(cmd)?;
@@ -150,6 +157,9 @@ pub fn run() -> Result<()> {
             })
         },
         Some(Subcommand::Key(cmd)) => cmd.run(&cli),
+        Some(Subcommand::Sign(cmd)) => cmd.run(),
+        Some(Subcommand::Verify(cmd)) => cmd.run(),
+        Some(Subcommand::Vanity(cmd)) => cmd.run(),
         Some(Subcommand::BuildSpec(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
@@ -192,14 +202,35 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
                 let PartialComponents { client, task_manager, backend, .. } = new_partial(&config)?;
-                let revert_aux = Box::new(|client, backend, blocks| {
-                    sc_consensus_babe::revert(client, backend, blocks)?;
-                    // TODO: grandpa revert
+                let aux_revert = Box::new(|client: Arc<FullClient>, backend, blocks| {
+                    sc_consensus_babe::revert(client.clone(), backend, blocks)?;
+                    grandpa::revert(client, blocks)?;
                     Ok(())
                 });
-
-                Ok((cmd.run(client, backend, Some(revert_aux)), task_manager))
+                Ok((cmd.run(client, backend, Some(aux_revert)), task_manager))
             })
+        },
+        #[cfg(feature = "try-runtime")]
+        Some(Subcommand::TryRuntime(cmd)) => {
+            let runner = cli.create_runner(cmd)?;
+            runner.async_run(|config| {
+                // we don't need any of the components of new_partial, just a runtime, or a task
+                // manager to do `async_run`.
+                let registry = config.prometheus_config.as_ref().map(|cfg| &cfg.registry);
+                let task_manager =
+                    sc_service::TaskManager::new(config.tokio_handle.clone(), registry)
+                        .map_err(|e| sc_cli::Error::Service(sc_service::Error::Prometheus(e)))?;
+
+                Ok((cmd.run::<Block, ExecutorDispatch>(config), task_manager))
+            })
+        },
+        #[cfg(not(feature = "try-runtime"))]
+        Some(Subcommand::TryRuntime) => Err("TryRuntime wasn't enabled when building the node. \
+                                             You can enable it with `--features try-runtime`."
+            .into()),
+        Some(Subcommand::ChainInfo(cmd)) => {
+            let runner = cli.create_runner(cmd)?;
+            runner.sync_run(|config| cmd.run::<Block>(&config))
         },
     }
 }
