@@ -61,7 +61,7 @@ pub(super) async fn load_kv_store() -> KvManager {
 /// The state used to temporarily store completed signatures
 #[derive(Debug)]
 pub struct SignatureState {
-    pub signatures: Mutex<HashMap<String, Signature>>,
+    pub signatures: Mutex<HashMap<String, k256::ecdsa::recoverable::Signature>>,
 }
 
 impl SignatureState {
@@ -70,13 +70,13 @@ impl SignatureState {
         SignatureState { signatures }
     }
 
-    pub fn insert(&self, key: [u8; 32], value: &Signature) {
+    pub fn insert(&self, key: [u8; 32], value: &k256::ecdsa::recoverable::Signature) {
         let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
         println!("inside insert value: {:?}", value.clone());
         signatures.insert(hex::encode(key), *value);
     }
 
-    pub fn get(&self, key: &String) -> [u8; 64] {
+    pub fn get(&self, key: &String) -> [u8; 65] {
         let signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
         let result = *signatures.get(&hex::encode(key)).unwrap();
         println!("inside get value: {:?}", result.clone());

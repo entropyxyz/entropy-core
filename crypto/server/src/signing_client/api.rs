@@ -55,10 +55,30 @@ pub async fn new_party(
         };
 
         let result = gg20_service.execute_sign(&sign_context, channels).await.unwrap();
-        println!("result: {:?}", result.clone());
-        let key = message.sig_request.sig_hash.as_slice().try_into().unwrap();
-        println!("NEW KEY: {:?}", key);
-        gg20_service.handle_result(&result, key, signatures);
+		use k256::{ecdsa::VerifyingKey, elliptic_curve::sec1::FromEncodedPoint};
+        let pubkey_bytes = sign_context.party_info.common.encoded_pubkey();
+        let ep = k256::EncodedPoint::from_bytes(pubkey_bytes).unwrap();
+        let pubkey = VerifyingKey::from_encoded_point(&ep).unwrap();
+
+        use k256::ecdsa::recoverable;
+        let rec_sig0 =
+            recoverable::Signature::new(&result, recoverable::Id::new(0).unwrap()).unwrap();
+        let msg: &[u8] = message.sig_request.sig_hash.as_ref();
+        let recovered_key =
+            rec_sig0.recover_verify_key_from_digest_bytes(msg.try_into().unwrap()).unwrap();
+        let rec_sig = if recovered_key == pubkey {
+            rec_sig0
+        } else {
+            recoverable::Signature::new(&result, recoverable::Id::new(1).unwrap()).unwrap()
+        };
+		println!("result: {:?}", rec_sig.clone());
+		let key = message.sig_request.sig_hash.as_slice().try_into().unwrap();
+
+        gg20_service.handle_result(
+            &rec_sig,
+            key,
+            signatures,
+        );
     }
 
     Ok(Status::Ok)
