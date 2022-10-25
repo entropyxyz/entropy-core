@@ -1,8 +1,12 @@
-use sp_core::Pair;
 use sp_keyring::AccountKeyring;
-use subxt::{config::EntropyConfig, tx::PairSigner, tx::SubstrateExtrinsicParams, OnlineClient};
+use subxt::{
+    ext::sp_core::Pair,
+    tx::{PairSigner, SubstrateExtrinsicParams},
+    OnlineClient,
+};
 
 use super::node_proc::TestNodeProcess;
+use crate::chain_api::*;
 
 /// substrate node should be installed
 fn get_path() -> String {
@@ -43,34 +47,25 @@ pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
     test_node(AccountKeyring::Alice).await
 }
 
-#[subxt::subxt(runtime_metadata_path = "../server/entropy_metadata.scale")]
-pub mod entropy {}
-
 pub struct TestContext {
     pub node_proc: TestNodeProcess<EntropyConfig>,
-    pub api: entropy::RuntimeApi<EntropyConfig, SubstrateExtrinsicParams<EntropyConfig>>,
+    pub api: OnlineClient<EntropyConfig>,
 }
 
 impl TestContext {
-    pub fn client(&self) -> &OnlineClient<EntropyConfig> {
-        &self.api.client
-    }
+    pub fn client(&self) -> &OnlineClient<EntropyConfig> { &self.api }
 }
 
 pub async fn test_context() -> TestContext {
     env_logger::try_init().ok();
     let node_proc: TestNodeProcess<EntropyConfig> = test_node_process().await;
-    let api = node_proc.client().clone().to_runtime_api();
+    let api = node_proc.client().clone();
     TestContext { node_proc, api }
 }
 
 pub async fn test_context_stationary() -> TestContext {
     env_logger::try_init().ok();
     let node_proc: TestNodeProcess<EntropyConfig> = test_node_process_stationary().await;
-    let api = node_proc.client().clone().to_runtime_api();
+    let api = node_proc.client().clone();
     TestContext { node_proc, api }
-}
-
-pub fn pair_signer(pair: Pair) -> PairSigner<EntropyConfig, Pair> {
-    PairSigner::new(pair)
 }
