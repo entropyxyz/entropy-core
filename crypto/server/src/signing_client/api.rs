@@ -133,7 +133,7 @@ pub async fn get_signature(
     signatures: &State<SignatureState>,
 ) -> status::Accepted<String> {
     let sig = signatures.get(&msg.message).to_vec();
-    status::Accepted(Some(base64::encode(&sig)))
+    status::Accepted(Some(base64::encode(sig)))
 }
 
 #[get("/drain")]
