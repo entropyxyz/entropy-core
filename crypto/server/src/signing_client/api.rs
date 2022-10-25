@@ -1,10 +1,10 @@
-use std::str;
+use std::{io, str};
 
 use kvdb::kv_manager::KvManager;
 use parity_scale_codec::Decode;
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use substrate_common::OCWMessage;
-use subxt::sp_runtime::AccountId32;
+use subxt::ext::sp_runtime::AccountId32;
 use tofn::sdk::api::Signature;
 use tracing::instrument;
 
@@ -67,7 +67,6 @@ pub async fn new_party(
 
 /// Other nodes in the party call this method to subscribe to this node's broadcasts.
 /// The SigningProtocol begins when all nodes in the party have called this method on this node.
-#[instrument]
 #[post("/subscribe_to_me", data = "<msg>")]
 pub async fn subscribe_to_me(
     msg: Json<SubscribeMessage>,

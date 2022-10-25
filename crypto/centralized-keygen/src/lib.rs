@@ -12,7 +12,7 @@ pub fn ceygen(
     threshold: usize,
     secret_key: Vec<u8>,
 ) -> anyhow::Result<()> {
-    let ceygen = ceygen::ceygen(parties, threshold, &secret_key)?;
+    let ceygen = ceygen::ceygen(parties, threshold, secret_key)?;
     // write the results to a local dir.
     tofn::gg20::ceygen::write_ceygen_results(ceygen, Some(path))?;
     Ok(())
