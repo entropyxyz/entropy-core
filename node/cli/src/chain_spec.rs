@@ -62,7 +62,7 @@ pub struct Extensions {
 }
 
 /// Specialized `ChainSpec`.
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
+pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
 
 fn session_keys(
     grandpa: GrandpaId,
@@ -507,8 +507,6 @@ pub(crate) mod tests {
     #[test]
     #[ignore]
     fn test_connectivity() {
-        sp_tracing::try_init_simple();
-
         sc_service_test::connectivity(integration_test_config_with_two_authorities(), |config| {
             let NewFullBase { task_manager, client, network, transaction_pool, .. } =
                 new_full_base(config, false, |_, _| ())?;

@@ -167,6 +167,8 @@ const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 /// We allow for 2 seconds of compute with a 6 second average block time.
 const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND.saturating_mul(2 as u64);
 
+pub const EXISTENTIAL_DEPOSIT: Balance = 1 * DOLLARS;
+
 parameter_types! {
   pub const BlockHashCount: BlockNumber = 2400;
   pub const Version: RuntimeVersion = VERSION;
@@ -398,7 +400,7 @@ impl pallet_indices::Config for Runtime {
 }
 
 parameter_types! {
-  pub const ExistentialDeposit: Balance = DOLLARS;
+  pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT;
   // For weight estimation, we assume that the most locks on an individual account will be 50.
   // This number may need to be adjusted in the future if this assumption no longer holds true.
   pub const MaxLocks: u32 = 50;

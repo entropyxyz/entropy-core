@@ -33,14 +33,14 @@
 
 use std::sync::Arc;
 
-use grandpa::{
-    FinalityProofProvider, GrandpaJustificationStream, SharedAuthoritySet, SharedVoterState,
-};
 use jsonrpsee::RpcModule;
 use node_primitives::{AccountId, Balance, Block, BlockNumber, Hash, Index};
 use sc_client_api::AuxStore;
 use sc_consensus_babe::{BabeConfiguration, Epoch};
 use sc_consensus_epochs::SharedEpochChanges;
+use sc_finality_grandpa::{
+    FinalityProofProvider, GrandpaJustificationStream, SharedAuthoritySet, SharedVoterState,
+};
 use sc_rpc::SubscriptionTaskExecutor;
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
@@ -148,17 +148,6 @@ where
         )
         .into_rpc(),
     )?;
-    io.merge(
-        Grandpa::new(
-            subscription_executor,
-            shared_authority_set.clone(),
-            shared_voter_state,
-            justification_stream,
-            finality_provider,
-        )
-        .into_rpc(),
-    )?;
-
     io.merge(
         SyncState::new(chain_spec, client.clone(), shared_authority_set, shared_epoch_changes)?
             .into_rpc(),
