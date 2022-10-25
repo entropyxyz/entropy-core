@@ -47,9 +47,9 @@ pub async fn new_user(
     match decrypted_message {
         Ok(v) => {
             // store new user data in kvdb
+            let subgroup = get_subgroup(&api, &signer).await.unwrap().unwrap();
             let reservation = state.kv().reserve_key(key.to_string()).await?;
             state.kv().put(reservation, v).await?;
-            let subgroup = get_subgroup(&api, &signer).await.unwrap().unwrap();
             // TODO: Error handling really complex needs to be thought about.
             confirm_registered(&api, key, subgroup, &signer).await.unwrap();
         },
