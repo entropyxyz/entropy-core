@@ -17,7 +17,7 @@ generic-array      ="0.14.6"
 zeroize            ="1.5.7"
 hex                ="*"
 reqwest-eventsource="0.4"
-k256 = { version = "0.10", features = ["serde", "ecdsa"] }
+k256               ={ version="0.10", features=["serde", "ecdsa"] }
 
 # Async
 futures="0.3"
