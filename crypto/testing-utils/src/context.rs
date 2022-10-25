@@ -1,7 +1,6 @@
 use sp_keyring::AccountKeyring;
 use subxt::{
-    ext::sp_core::Pair,
-    tx::{PairSigner, SubstrateExtrinsicParams},
+    tx::{SubstrateExtrinsicParams},
     OnlineClient,
 };
 

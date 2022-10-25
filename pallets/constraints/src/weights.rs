@@ -17,11 +17,11 @@ pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     // Storage: Constraints AddressWhitelist (r:1 w:1)
     fn add_whitelist_address(a: u32) -> Weight {
-        Weight::from_ref_time(24_045_000 as u64)
+        Weight::from_ref_time(24_045_000_u64)
 			// Standard Error: 0
-			+ Weight::from_ref_time((278_000 as u64).saturating_mul(a as u64))
-			.saturating_add(T::DbWeight::get().reads(1 as u64))
-			.saturating_add(T::DbWeight::get().writes(1 as u64))
+			+ Weight::from_ref_time(278_000_u64.saturating_mul(a as u64))
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
     }
 }
 
@@ -29,10 +29,10 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 impl WeightInfo for () {
     // Storage: Constraints AddressWhitelist (r:1 w:1)
     fn add_whitelist_address(a: u32) -> Weight {
-        Weight::from_ref_time(24_045_000 as u64)
+        Weight::from_ref_time(24_045_000_u64)
 			// Standard Error: 0
-			+ Weight::from_ref_time((278_000 as u64).saturating_mul(a as u64))
-			.saturating_add(RocksDbWeight::get().reads(1 as u64))
-			.saturating_add(RocksDbWeight::get().writes(1 as u64))
+			+ Weight::from_ref_time(278_000_u64.saturating_mul(a as u64))
+			.saturating_add(RocksDbWeight::get().reads(1_u64))
+			.saturating_add(RocksDbWeight::get().writes(1_u64))
     }
 }

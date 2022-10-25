@@ -1,7 +1,7 @@
 #![allow(clippy::all)]
 use subxt::{
     config::{Config, SubstrateConfig},
-    tx::{PairSigner, SubstrateExtrinsicParams},
+    tx::{SubstrateExtrinsicParams},
     OnlineClient,
 };
 #[subxt::subxt(runtime_metadata_path = "../server/entropy_metadata.scale")]

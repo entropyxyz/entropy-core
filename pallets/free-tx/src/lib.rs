@@ -143,7 +143,7 @@ pub mod pallet {
                 .dispatch(RawOrigin::Signed(sender.clone()).into())
                 .map(|_| ())
                 .map_err(|e| e.error);
-            let event = Event::ElectricitySpent(sender, res.clone());
+            let event = Event::ElectricitySpent(sender, res);
 
             Self::deposit_event(event);
 

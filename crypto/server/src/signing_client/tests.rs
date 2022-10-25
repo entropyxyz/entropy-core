@@ -20,7 +20,7 @@ use serial_test::serial;
 use sp_core::{crypto::AccountId32, sr25519::Pair as Sr25519Pair, Pair as Pair2};
 use sp_keyring::AccountKeyring;
 use substrate_common::{Message, SigRequest};
-use subxt::{sp_core::sr25519, PairSigner};
+use subxt::{ext::sp_core::sr25519, tx::PairSigner};
 use testing_utils::context::{test_context, test_context_stationary};
 use tofn::{
     gg20::keygen::{KeygenPartyId, SecretKeyShare},
@@ -31,7 +31,7 @@ use crate::{
     drain, get, new_party, new_user, subscribe_to_me,
     user::{ParsedUserInputPartyInfo, UserInputPartyInfo},
     utils::SignatureState,
-    CommunicationManagerState, Configuration, Message as SigMessage, SignerState,
+    Configuration, Message as SigMessage, SignerState,
 };
 
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
@@ -140,7 +140,6 @@ async fn new_party_fail_wrong_data() {
 async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
     let config = rocket::Config::figment().merge(("port", port));
 
-    let communication_manager_state = CommunicationManagerState::default();
     let signer_state = SignerState::default();
     let configuration = Configuration::new();
     let signature_state = SignatureState::new();
@@ -167,7 +166,6 @@ async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
     rocket::custom(config)
         .mount("/signer", routes![new_party, subscribe_to_me, get, drain])
         .mount("/user", routes![new_user])
-        .manage(communication_manager_state)
         .manage(signer_state)
         .manage(configuration)
         .manage(kv_store)

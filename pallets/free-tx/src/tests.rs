@@ -266,7 +266,7 @@ fn set_individual_electricity_era_limit_works() {
         assert_ok!(FreeTx::call_using_electricity(RuntimeOrigin::signed(1), call.clone()));
         assert_ok!(FreeTx::call_using_electricity(RuntimeOrigin::signed(1), call.clone()));
         assert_noop!(
-            FreeTx::call_using_electricity(RuntimeOrigin::signed(1), call.clone()),
+            FreeTx::call_using_electricity(RuntimeOrigin::signed(1), call),
             DispatchError::Module(ModuleError {
                 index: 8,
                 error: [2, 0, 0, 0],
@@ -317,7 +317,7 @@ fn zaps_arent_used_until_all_batteries_are_used() {
         assert_eq!(ElectricalAccount::<Test>::get(1).unwrap(), expected_balance);
 
         // doing another call will though:
-        assert_ok!(FreeTx::call_using_electricity(RuntimeOrigin::signed(1), call.clone()));
+        assert_ok!(FreeTx::call_using_electricity(RuntimeOrigin::signed(1), call));
         expected_balance.zaps -= 1;
         expected_balance.used.count += 1;
         assert_eq!(ElectricalAccount::<Test>::get(1).unwrap(), expected_balance);
@@ -351,7 +351,7 @@ fn users_with_no_cells_get_errors() {
         assert_eq!(FreeTx::cells_usable_this_era(&1u64), 1 as Cells);
         assert_ok!(FreeTx::call_using_electricity(RuntimeOrigin::signed(1), call.clone()));
         assert_noop!(
-            FreeTx::call_using_electricity(RuntimeOrigin::signed(1), call.clone()),
+            FreeTx::call_using_electricity(RuntimeOrigin::signed(1), call),
             no_cells_available_error
         );
     });

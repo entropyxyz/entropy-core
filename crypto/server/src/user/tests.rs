@@ -12,13 +12,13 @@ use rocket::{
 use serial_test::serial;
 use sp_core::{sr25519, Bytes, Pair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, EntropyConfig};
+use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner};
 use testing_utils::context::{test_context, test_context_stationary, TestContext};
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::{api::get_subgroup, UserInputPartyInfo};
 use crate::{
-    chain_api::{get_api, EntropyRuntime},
+    chain_api::{entropy::EntropyRuntime, get_api, EntropyConfig},
     get_signer, load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     user::unsafe_api::UnsafeQuery,

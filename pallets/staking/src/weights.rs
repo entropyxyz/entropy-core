@@ -19,17 +19,17 @@ pub trait WeightInfo {
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn change_endpoint() -> Weight {
-        Weight::from_ref_time(34_000_000 as u64)
-            .saturating_add(T::DbWeight::get().reads(1 as u64))
-            .saturating_add(T::DbWeight::get().writes(1 as u64))
+        Weight::from_ref_time(34_000_000_u64)
+            .saturating_add(T::DbWeight::get().reads(1_u64))
+            .saturating_add(T::DbWeight::get().writes(1_u64))
     }
 
     // Storage: Staking Ledger (r:1 w:0)
     // Storage: StakingExtension ThresholdAccounts (r:0 w:1)
     fn change_threshold_accounts() -> Weight {
-        Weight::from_ref_time(34_000_000 as u64)
-            .saturating_add(T::DbWeight::get().reads(1 as u64))
-            .saturating_add(T::DbWeight::get().writes(1 as u64))
+        Weight::from_ref_time(34_000_000_u64)
+            .saturating_add(T::DbWeight::get().reads(1_u64))
+            .saturating_add(T::DbWeight::get().writes(1_u64))
     }
 
     // Storage: Staking Ledger (r:1 w:1)
@@ -37,9 +37,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     // Storage: Balances Locks (r:1 w:1)
     // Storage: System Account (r:1 w:1)
     fn withdraw_unbonded() -> Weight {
-        Weight::from_ref_time(41_000_000 as u64)
-            .saturating_add(T::DbWeight::get().reads(4 as u64))
-            .saturating_add(T::DbWeight::get().writes(3 as u64))
+        Weight::from_ref_time(41_000_000_u64)
+            .saturating_add(T::DbWeight::get().reads(4_u64))
+            .saturating_add(T::DbWeight::get().writes(3_u64))
     }
 
     // Storage: Staking Ledger (r:1 w:0)
@@ -56,26 +56,26 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     // Storage: StakingExtension ThresholdAccounts (r:0 w:1)
     // Storage: StakingExtension EndpointRegister (r:0 w:1)
     fn validate() -> Weight {
-        Weight::from_ref_time(95_000_000 as u64)
-            .saturating_add(T::DbWeight::get().reads(11 as u64))
-            .saturating_add(T::DbWeight::get().writes(7 as u64))
+        Weight::from_ref_time(95_000_000_u64)
+            .saturating_add(T::DbWeight::get().reads(11_u64))
+            .saturating_add(T::DbWeight::get().writes(7_u64))
     }
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
     fn change_endpoint() -> Weight {
-        Weight::from_ref_time(34_000_000 as u64)
-            .saturating_add(RocksDbWeight::get().reads(1 as u64))
-            .saturating_add(RocksDbWeight::get().writes(1 as u64))
+        Weight::from_ref_time(34_000_000_u64)
+            .saturating_add(RocksDbWeight::get().reads(1_u64))
+            .saturating_add(RocksDbWeight::get().writes(1_u64))
     }
 
     // Storage: Staking Ledger (r:1 w:0)
     // Storage: StakingExtension ThresholdAccounts (r:0 w:1)
     fn change_threshold_accounts() -> Weight {
-        Weight::from_ref_time(34_000_000 as u64)
-            .saturating_add(RocksDbWeight::get().reads(1 as u64))
-            .saturating_add(RocksDbWeight::get().writes(1 as u64))
+        Weight::from_ref_time(34_000_000_u64)
+            .saturating_add(RocksDbWeight::get().reads(1_u64))
+            .saturating_add(RocksDbWeight::get().writes(1_u64))
     }
 
     // Storage: Staking Ledger (r:1 w:1)
@@ -83,9 +83,9 @@ impl WeightInfo for () {
     // Storage: Balances Locks (r:1 w:1)
     // Storage: System Account (r:1 w:1)
     fn withdraw_unbonded() -> Weight {
-        Weight::from_ref_time(41_000_000 as u64)
-            .saturating_add(RocksDbWeight::get().reads(4 as u64))
-            .saturating_add(RocksDbWeight::get().writes(3 as u64))
+        Weight::from_ref_time(41_000_000_u64)
+            .saturating_add(RocksDbWeight::get().reads(4_u64))
+            .saturating_add(RocksDbWeight::get().writes(3_u64))
     }
 
     // Storage: Staking Ledger (r:1 w:0)
@@ -102,8 +102,8 @@ impl WeightInfo for () {
     // Storage: StakingExtension ThresholdAccounts (r:0 w:1)
     // Storage: StakingExtension EndpointRegister (r:0 w:1)
     fn validate() -> Weight {
-        Weight::from_ref_time(95_000_000 as u64)
-            .saturating_add(RocksDbWeight::get().reads(11 as u64))
-            .saturating_add(RocksDbWeight::get().writes(7 as u64))
+        Weight::from_ref_time(95_000_000_u64)
+            .saturating_add(RocksDbWeight::get().reads(11_u64))
+            .saturating_add(RocksDbWeight::get().writes(7_u64))
     }
 }
