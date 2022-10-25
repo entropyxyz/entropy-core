@@ -79,7 +79,6 @@ impl SignatureState {
     pub fn get(&self, key: &String) -> [u8; 65] {
         let signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
         let result = *signatures.get(&hex::encode(key)).unwrap();
-        println!("inside get value: {:?}", result.clone());
         result.as_ref().try_into().expect("slice with incorrect length")
     }
 

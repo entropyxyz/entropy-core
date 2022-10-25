@@ -1,5 +1,6 @@
 use std::str;
 
+use k256::ecdsa::recoverable;
 use kvdb::kv_manager::KvManager;
 use parity_scale_codec::Decode;
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
@@ -55,12 +56,11 @@ pub async fn new_party(
         };
 
         let result = gg20_service.execute_sign(&sign_context, channels).await.unwrap();
-		use k256::{ecdsa::VerifyingKey, elliptic_curve::sec1::FromEncodedPoint};
+        use k256::{ecdsa::VerifyingKey, elliptic_curve::sec1::FromEncodedPoint};
         let pubkey_bytes = sign_context.party_info.common.encoded_pubkey();
         let ep = k256::EncodedPoint::from_bytes(pubkey_bytes).unwrap();
         let pubkey = VerifyingKey::from_encoded_point(&ep).unwrap();
 
-        use k256::ecdsa::recoverable;
         let rec_sig0 =
             recoverable::Signature::new(&result, recoverable::Id::new(0).unwrap()).unwrap();
         let msg: &[u8] = message.sig_request.sig_hash.as_ref();
@@ -71,14 +71,9 @@ pub async fn new_party(
         } else {
             recoverable::Signature::new(&result, recoverable::Id::new(1).unwrap()).unwrap()
         };
-		println!("result: {:?}", rec_sig.clone());
-		let key = message.sig_request.sig_hash.as_slice().try_into().unwrap();
+        let key = message.sig_request.sig_hash.as_slice().try_into().unwrap();
 
-        gg20_service.handle_result(
-            &rec_sig,
-            key,
-            signatures,
-        );
+        gg20_service.handle_result(&rec_sig, key, signatures);
     }
 
     Ok(Status::Ok)

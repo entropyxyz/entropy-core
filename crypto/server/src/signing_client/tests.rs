@@ -97,15 +97,15 @@ async fn test_new_party() {
         assert_eq!(response_2.as_ref().unwrap().status(), 202);
         assert_eq!(response_2.unwrap().text().await.unwrap().len(), 88);
 
-        // let response_3 = client.get("http:///127.0.0.1:3001/signer/drain").send().await;
-        // assert_eq!(response_3.unwrap().status(), 200);
+        let response_3 = client.get("http:///127.0.0.1:3001/signer/drain").send().await;
+        assert_eq!(response_3.unwrap().status(), 200);
 
-        // let response_4 = client
-        //     .post("http:///127.0.0.1:3001/signer/signature")
-        //     .body(serde_json::to_string(&sig_message).unwrap())
-        //     .send()
-        //     .await;
-        // assert_eq!(response_4.unwrap().status(), 500);
+        let response_4 = client
+            .post("http:///127.0.0.1:3001/signer/signature")
+            .body(serde_json::to_string(&sig_message).unwrap())
+            .send()
+            .await;
+        assert_eq!(response_4.unwrap().status(), 500);
     });
     let handle_2 = tokio::spawn(async move {
         let client = reqwest::Client::new();

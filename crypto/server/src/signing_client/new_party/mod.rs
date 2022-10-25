@@ -95,8 +95,6 @@ impl<'a> Gg20Service<'a> {
         msg: [u8; 32],
         signatures: &rocket::State<SignatureState>,
     ) {
-        println!("insert sig {:?}", signature);
         signatures.insert(msg, signature);
-        info!("good job team");
     }
 }
