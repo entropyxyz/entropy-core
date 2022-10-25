@@ -734,6 +734,9 @@ name = "bytes"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec8a7b6a70fde80372154c65702f00a0f56f3e1c36abbc6c440484be248856db"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bzip2-sys"
@@ -2038,6 +2041,17 @@ name = "event-listener"
 version = "2.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
+
+[[package]]
+name = "eventsource-stream"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74fef4569247a5f429d9156b9d0a2599914385dd189c539334c625d8099d90ab"
+dependencies = [
+ "futures-core",
+ "nom",
+ "pin-project-lite 0.2.9",
+]
 
 [[package]]
 name = "exit-future"
@@ -5577,7 +5591,6 @@ dependencies = [
  "frame-election-provider-support",
  "frame-support",
  "frame-system",
- "helpers",
  "lite-json",
  "log",
  "pallet-authorship",
@@ -7172,6 +7185,22 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "winreg 0.10.1",
+]
+
+[[package]]
+name = "reqwest-eventsource"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f03f570355882dd8d15acc3a313841e6e90eddbc76a93c748fd82cc13ba9f51"
+dependencies = [
+ "eventsource-stream",
+ "futures-core",
+ "futures-timer",
+ "mime",
+ "nom",
+ "pin-project-lite 0.2.9",
+ "reqwest",
+ "thiserror",
 ]
 
 [[package]]
@@ -8946,8 +8975,11 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64",
+ "bincode",
  "bip39",
  "blake2",
+ "bytes",
  "chacha20poly1305 0.10.1",
  "constraints",
  "envy",
@@ -8962,6 +8994,7 @@ dependencies = [
  "project-root",
  "rand_core 0.6.4",
  "reqwest",
+ "reqwest-eventsource",
  "rocket",
  "serde",
  "serde_json",
@@ -10642,20 +10675,18 @@ dependencies = [
 [[package]]
 name = "tofn"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/tofn#d4d63da29f1585c8ab8ea6c78a19ffcc8b887b1d"
+source = "git+https://github.com/entropyxyz/tofn#5dd46fb369333c5825f0000902efa1c765f2f331"
 dependencies = [
  "anyhow",
  "bincode",
  "chrono",
  "clap 3.2.23",
  "ecdsa",
- "hex",
  "hmac 0.12.1",
  "k256",
  "libpaillier",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
- "rand_core 0.6.4",
  "serde",
  "serde_json",
  "sha2 0.10.6",

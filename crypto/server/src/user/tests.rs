@@ -21,6 +21,7 @@ use crate::{
     chain_api::{get_api, EntropyRuntime},
     get_signer, load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
+    user::unsafe_api::UnsafeQuery,
     utils,
     utils::DEFAULT_MNEMONIC,
 };
@@ -34,6 +35,48 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 async fn test_get_signer_does_not_throw_err() {
     let kv_store = load_kv_store().await;
     get_signer(&kv_store).await.unwrap();
+}
+
+#[rocket::async_test]
+#[serial]
+async fn test_unsafe_get_endpoint() {
+    if cfg!(feature = "unsafe") {
+        let cxt = test_context_stationary().await;
+        let client = setup_client().await;
+        let get_query = UnsafeQuery::new("MNEMONIC".to_string(), "foo".to_string()).to_json();
+
+        // Test that the get endpoint works
+        let response = client
+            .post("/unsafe/get")
+            .header(ContentType::JSON)
+            .body(get_query.clone())
+            .dispatch()
+            .await;
+
+        assert_eq!(response.status(), Status::Ok);
+        let response_mnemonic = response.into_string().await.unwrap();
+        assert!(response_mnemonic.len() > 0);
+
+        // Update the mnemonic, testing the put endpoint works
+        let put_response = client
+            .post("/unsafe/put")
+            .header(ContentType::JSON)
+            .body(get_query.clone())
+            .dispatch()
+            .await;
+
+        assert_eq!(put_response.status(), Status::Ok);
+
+        // Check the updated mnemonic is the new value
+        let get_response =
+            client.post("/unsafe/get").header(ContentType::JSON).body(get_query).dispatch().await;
+
+        assert_eq!(get_response.status(), Status::Ok);
+        let updated_response_mnemonic = get_response.into_string().await.unwrap();
+        assert_eq!(updated_response_mnemonic, "foo".to_string());
+
+        clean_tests();
+    }
 }
 
 #[rocket::async_test]

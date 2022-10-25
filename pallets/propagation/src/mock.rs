@@ -1,7 +1,7 @@
 use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
 use frame_support::{
     parameter_types,
-    traits::{ConstU32, FindAuthor, OneSessionHandler},
+    traits::{ConstU32, FindAuthor, GenesisBuild, OneSessionHandler},
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
@@ -15,6 +15,8 @@ use sp_runtime::{
 use sp_staking::{EraIndex, SessionIndex};
 
 use crate as pallet_propagation;
+
+const NULL_ARR: [u8; 32] = [0; 32];
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -298,5 +300,14 @@ impl pallet_propagation::Config for Test {
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+    let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+    let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
+        endpoints: vec![(5, vec![20]), (6, vec![40]), (1, vec![10]), (2, vec![11])],
+        threshold_accounts: vec![(5, (7, NULL_ARR)), (6, (8, NULL_ARR))],
+        // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
+        signing_groups: vec![(0, vec![1]), (1, vec![2])],
+    };
+
+    pallet_staking_extension.assimilate_storage(&mut t).unwrap();
+    t.into()
 }

@@ -41,18 +41,8 @@ pub struct RegistrationResponse {
 /// body of a signature generation request by the user to the entropy network
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct SigRequest {
-    // TypeInfo marco lets parity-scale-codec .encode() the fields in this struct
-    // only works for basic types out of the box.
-    // Out of the box it does not work for types like SecretKey or PublicKey
-    // TypeInfo needs to be implemented for these types.
-    // see https://github.com/Entropyxyz/entropy-core/issues/29
-    /// Signature_ID. this is a hash of the message to be signed
-    pub sig_id: u16,
-    // pub sig_id: codec::alloc::vec::Vec<u8>,
-    /// Session ID/nonce. Check that this ID has not beed used before
-    pub nonce: u32,
-    /// signature to authenticate the user
-    pub signature: u32,
+    /// sig_hash. this is a hash of the message to be signed
+    pub sig_hash: codec::alloc::vec::Vec<u8>,
 }
 
 #[derive(Clone, Encode, Debug, Decode, Eq, PartialEq, TypeInfo)]
@@ -77,4 +67,5 @@ pub struct Message {
     // pub thing: u128,
     pub sig_request: SigRequest,
     pub account: codec::alloc::vec::Vec<u8>,
+    pub ip_addresses: codec::alloc::vec::Vec<codec::alloc::vec::Vec<u8>>,
 }
