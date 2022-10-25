@@ -102,7 +102,7 @@ pub async fn get_subgroup(
     let address = signer.account_id();
     for i in 0..SIGNING_PARTY_SIZE {
         let signing_group_addresses_query =
-            entropy::storage().staking_extension().signing_groups((i as u8));
+            entropy::storage().staking_extension().signing_groups(i as u8);
         let signing_group_addresses =
             api.storage().fetch(&signing_group_addresses_query, None).await?.unwrap();
         if signing_group_addresses.contains(address) {

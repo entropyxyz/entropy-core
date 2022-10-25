@@ -31,23 +31,23 @@ impl<T: frame_system::Config> pallet_free_tx::WeightInfo for WeightInfo<T> {
 	// Storage: FreeTx FreeCallsRemaining (r:1 w:1)
 	// Storage: Staking CurrentEra (r:1 w:0)
 	fn call_using_electricity() -> Weight {
-		Weight::from_ref_time(18_000_000 as u64)
-			.saturating_add(T::DbWeight::get().reads(3 as u64))
-			.saturating_add(T::DbWeight::get().writes(1 as u64))
+		Weight::from_ref_time(18_000_000_u64)
+			.saturating_add(T::DbWeight::get().reads(3_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	// Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
 	// Storage: FreeTx FreeCallsPerEra (r:0 w:1)
 	fn set_individual_electricity_era_limit() -> Weight {
-		Weight::from_ref_time(4_000_000 as u64)
-			.saturating_add(T::DbWeight::get().reads(1 as u64))
-			.saturating_add(T::DbWeight::get().writes(2 as u64))
+		Weight::from_ref_time(4_000_000_u64)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
 	// TODO
 	fn give_zaps() -> Weight {
-		T::DbWeight::get().writes(1 as u64)
+		T::DbWeight::get().writes(1_u64)
 	}
 	// TODO
 	fn set_battery_count() -> Weight {
-		T::DbWeight::get().writes(1 as u64)
+		T::DbWeight::get().writes(1_u64)
 	}
 }

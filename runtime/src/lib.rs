@@ -165,9 +165,9 @@ const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
 /// by  Operational  extrinsics.
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 /// We allow for 2 seconds of compute with a 6 second average block time.
-const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND.saturating_mul(2 as u64);
+const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND.saturating_mul(2_u64);
 
-pub const EXISTENTIAL_DEPOSIT: Balance = 1 * DOLLARS;
+pub const EXISTENTIAL_DEPOSIT: Balance = DOLLARS;
 
 parameter_types! {
   pub const BlockHashCount: BlockNumber = 2400;
@@ -600,9 +600,9 @@ parameter_types! {
     pub const UnsignedPhase: u32 = EPOCH_DURATION_IN_BLOCKS / 4;
 
     // signed config
-    pub const SignedRewardBase: Balance = 1 * DOLLARS;
-    pub const SignedDepositBase: Balance = 1 * DOLLARS;
-    pub const SignedDepositByte: Balance = 1 * CENTS;
+    pub const SignedRewardBase: Balance = DOLLARS;
+    pub const SignedDepositBase: Balance = DOLLARS;
+    pub const SignedDepositByte: Balance = CENTS;
 
     pub BetterUnsignedThreshold: Perbill = Perbill::from_rational(1u32, 10_000);
 

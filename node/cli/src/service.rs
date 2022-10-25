@@ -20,17 +20,17 @@
 
 //! Service implementation. Specialized wrapper over substrate service.
 
-use std::{sync::Arc, time::Duration};
+use std::{sync::Arc};
 
 use codec::Encode;
 use entropy_runtime::RuntimeApi;
 use frame_system_rpc_runtime_api::AccountNonceApi;
 use futures::prelude::*;
 use node_primitives::Block;
-use sc_client_api::{BlockBackend, ExecutorProvider};
+use sc_client_api::{BlockBackend};
 use sc_consensus_babe::{self, SlotProportion};
 use sc_executor::NativeElseWasmExecutor;
-use sc_finality_grandpa::SharedVoterState;
+
 use sc_network::NetworkService;
 use sc_network_common::{protocol::event::Event, service::NetworkEventStream};
 use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};
@@ -271,7 +271,7 @@ pub fn new_partial(
         let keystore = keystore_container.sync_keystore();
         let chain_spec = config.chain_spec.cloned_box();
 
-        let rpc_backend = backend.clone();
+        let _rpc_backend = backend.clone();
         let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
@@ -336,7 +336,7 @@ pub fn new_full_base(
 ) -> Result<NewFullBase, ServiceError> {
     let hwbench = if !disable_hardware_benchmarks {
         config.database.path().map(|database_path| {
-            let _ = std::fs::create_dir_all(&database_path);
+            let _ = std::fs::create_dir_all(database_path);
             sc_sysinfo::gather_hwbench(Some(database_path))
         })
     } else {

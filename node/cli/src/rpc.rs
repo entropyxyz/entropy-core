@@ -116,7 +116,7 @@ where
 {
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
     use sc_consensus_babe_rpc::{Babe, BabeApiServer};
-    use sc_finality_grandpa_rpc::{Grandpa, GrandpaApiServer};
+    use sc_finality_grandpa_rpc::{GrandpaApiServer};
     use sc_sync_state_rpc::{SyncState, SyncStateApiServer};
     use substrate_frame_rpc_system::{System, SystemApiServer};
 
@@ -125,11 +125,11 @@ where
 
     let BabeDeps { keystore, babe_config, shared_epoch_changes } = babe;
     let GrandpaDeps {
-        shared_voter_state,
+        shared_voter_state: _,
         shared_authority_set,
-        justification_stream,
-        subscription_executor,
-        finality_provider,
+        justification_stream: _,
+        subscription_executor: _,
+        finality_provider: _,
     } = grandpa;
 
     io.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
@@ -149,7 +149,7 @@ where
         .into_rpc(),
     )?;
     io.merge(
-        SyncState::new(chain_spec, client.clone(), shared_authority_set, shared_epoch_changes)?
+        SyncState::new(chain_spec, client, shared_authority_set, shared_epoch_changes)?
             .into_rpc(),
     )?;
 
