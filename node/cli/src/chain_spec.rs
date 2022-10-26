@@ -62,7 +62,7 @@ pub struct Extensions {
 }
 
 /// Specialized `ChainSpec`.
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
+pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
 fn session_keys(
     grandpa: GrandpaId,
