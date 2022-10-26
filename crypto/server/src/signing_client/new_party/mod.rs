@@ -91,11 +91,10 @@ impl<'a> Gg20Service<'a> {
     #[allow(unused_variables)]
     pub fn handle_result(
         &self,
-        signature: &Signature,
+        signature: &k256::ecdsa::recoverable::Signature,
         msg: [u8; 32],
         signatures: &rocket::State<SignatureState>,
     ) {
         signatures.insert(msg, signature);
-        info!("good job team");
     }
 }

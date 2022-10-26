@@ -199,7 +199,7 @@ pub fn staging_testnet_config() -> ChainSpec {
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-    TPublic::Pair::from_string(&format!("//{}", seed), None)
+    TPublic::Pair::from_string(&format!("//{seed}"), None)
         .expect("static values are valid; qed")
         .public()
 }
@@ -215,7 +215,7 @@ pub fn authority_keys_from_seed(
     seed: &str,
 ) -> (AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId) {
     (
-        get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", seed)),
+        get_account_id_from_seed::<sr25519::Public>(&format!("{seed}//stash")),
         get_account_id_from_seed::<sr25519::Public>(seed),
         get_from_seed::<GrandpaId>(seed),
         get_from_seed::<BabeId>(seed),
@@ -315,11 +315,11 @@ pub fn testnet_genesis(
             endpoints: vec![
                 (
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    "ws://localhost:3001".as_bytes().to_vec(),
+                    "127.0.0.1:3001".as_bytes().to_vec(),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    "ws://localhost:3001".as_bytes().to_vec(),
+                    "127.0.0.1:3002".as_bytes().to_vec(),
                 ),
             ],
             threshold_accounts: vec![
@@ -343,9 +343,9 @@ pub fn testnet_genesis(
                         hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"]
                             .into(),
                         [
-                            177, 20, 88, 181, 110, 225, 38, 248, 123, 157, 116, 240, 131, 164, 72,
-                            69, 126, 239, 108, 148, 131, 220, 171, 99, 226, 64, 55, 79, 161, 143,
-                            208, 88,
+                            225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245,
+                            89, 36, 170, 169, 181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136,
+                            102, 10,
                         ],
                     ),
                 ),
@@ -359,7 +359,14 @@ pub fn testnet_genesis(
                             .into(),
                     ],
                 ),
-                (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
+                (
+                    1,
+                    vec![
+                        get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                        hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"]
+                            .into(),
+                    ],
+                ),
             ],
         },
         democracy: DemocracyConfig::default(),

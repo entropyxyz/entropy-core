@@ -19,7 +19,6 @@
 #![allow(dead_code)]
 
 pub(crate) mod chain_api;
-// mod communication_manager;
 pub(crate) mod message;
 pub(crate) mod sign_init;
 mod signing_client;
@@ -28,7 +27,6 @@ mod utils;
 use bip39::{Language, Mnemonic, MnemonicType};
 #[macro_use]
 extern crate rocket;
-// use communication_manager::deprecating_sign::entropy::sudo::storage::Key;
 use kvdb::kv_manager::{error::KvError, KeyReservation, KvManager};
 use rocket::routes;
 use sp_keyring::AccountKeyring;
@@ -64,7 +62,7 @@ async fn rocket() -> _ {
 
     rocket::build()
         .mount("/user", routes![new_user])
-        .mount("/signer", routes![new_party, subscribe_to_me, get, drain])
+        .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
         .mount("/unsafe", unsafe_routes)
         .manage(signer_state)
         .manage(signature_state)
@@ -110,14 +108,14 @@ async fn setup_mnemonic(kv: &KvManager) {
 
                 let dh_reservation = kv.kv().reserve_key("DH_PUBLIC".to_string()).await.unwrap();
                 match kv.kv().put(dh_reservation, dh_public.to_bytes().to_vec()).await {
-                    Ok(r) => println!("dh_public_key={:?}", dh_public),
+                    Ok(r) => println!("dh_public_key={dh_public:?}"),
                     Err(r) => warn!("failed to update dh: {:?}", r),
                 }
                 let reservation = kv.kv().reserve_key("MNEMONIC".to_string()).await.unwrap();
 
                 let p = <sr25519::Pair as Pair>::from_phrase(phrase, None).unwrap();
                 let id = AccountId32::new(p.0.public().0);
-                println!("account_id={}", id);
+                println!("account_id={id}");
 
                 // Update the value in the kvdb
                 let result = kv.kv().put(reservation, phrase.as_bytes().to_vec()).await;

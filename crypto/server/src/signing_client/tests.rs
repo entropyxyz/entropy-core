@@ -1,6 +1,7 @@
 use std::{
     env, fs,
     path::{Path, PathBuf},
+    str,
     str::FromStr,
     time,
 };
@@ -27,11 +28,12 @@ use tofn::{
     sdk::api::PartyShareCounts,
 };
 
+use super::SignerState;
 use crate::{
-    drain, get, new_party, new_user, subscribe_to_me,
+    drain, get_signature, new_party, new_user, subscribe_to_me,
     user::{ParsedUserInputPartyInfo, UserInputPartyInfo},
-    utils::SignatureState,
-    Configuration, Message as SigMessage, SignerState,
+    utils::{Configuration, SignatureState},
+    Message as SigMessage,
 };
 
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
@@ -57,20 +59,20 @@ async fn test_new_party() {
 
     let client = reqwest::Client::new();
     let ip_addresses: Vec<Vec<u8>> = vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()];
-
-    let encoded_data_1: Vec<u8> = vec![
+    let message: String = "00001111222233334444555566667777".to_string();
+    let unencoded_data_1 = vec![
         Message {
-            sig_request: SigRequest { sig_hash: (0..32).collect() },
+            sig_request: SigRequest { sig_hash: message.as_bytes().to_vec() },
             account: AccountKeyring::Alice.to_raw_public_vec(),
             ip_addresses: ip_addresses.clone(),
         },
         Message {
-            sig_request: SigRequest { sig_hash: (0..32).collect() },
+            sig_request: SigRequest { sig_hash: message.as_bytes().to_vec() },
             account: AccountKeyring::Alice.to_raw_public_vec(),
             ip_addresses,
         },
-    ]
-    .encode();
+    ];
+    let encoded_data_1: Vec<u8> = unencoded_data_1.encode();
 
     let encoded_data_2 = encoded_data_1.clone();
 
@@ -81,23 +83,25 @@ async fn test_new_party() {
         let response = client.post(url).body(encoded_data_1).send().await;
         assert_eq!(response.unwrap().status(), 200);
         // all of this can be removed
-        let test: Vec<u8> = (0..32).collect();
-        let message: [u8; 32] = test.try_into().unwrap();
-
-        let sig_message = SigMessage { message };
+        let _s = String::from_utf8_lossy(
+            unencoded_data_1[0].sig_request.sig_hash.as_slice().try_into().unwrap(),
+        )
+        .to_string();
+        let sig_message = SigMessage { message: _s.clone() };
+        println!("EXPECTED_KEY: {}", _s);
         let response_2 = client
-            .post("http:///127.0.0.1:3001/signer/get")
+            .post("http:///127.0.0.1:3001/signer/signature")
             .body(serde_json::to_string(&sig_message).unwrap())
             .send()
             .await;
         assert_eq!(response_2.as_ref().unwrap().status(), 202);
-        assert_eq!(response_2.unwrap().text().await.unwrap().len(), 135);
+        assert_eq!(response_2.unwrap().text().await.unwrap().len(), 88);
 
         let response_3 = client.get("http:///127.0.0.1:3001/signer/drain").send().await;
         assert_eq!(response_3.unwrap().status(), 200);
 
         let response_4 = client
-            .post("http:///127.0.0.1:3001/signer/get")
+            .post("http:///127.0.0.1:3001/signer/signature")
             .body(serde_json::to_string(&sig_message).unwrap())
             .send()
             .await;
@@ -159,12 +163,11 @@ async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
             .collect();
     let v_serialized = fs::read(path).unwrap();
     let key = AccountKeyring::Alice.to_account_id();
-
     let reservation = kv_store.kv().reserve_key(key.to_string()).await.unwrap();
     let result = kv_store.kv().put(reservation, v_serialized).await;
 
     rocket::custom(config)
-        .mount("/signer", routes![new_party, subscribe_to_me, get, drain])
+        .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
         .mount("/user", routes![new_user])
         .manage(signer_state)
         .manage(configuration)
