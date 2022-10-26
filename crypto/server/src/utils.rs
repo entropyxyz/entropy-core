@@ -44,7 +44,11 @@ pub(super) async fn load_kv_store() -> KvManager {
         KvManager::new(kvdb::get_db_path().into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap()
     } else {
-        let root = project_root::get_project_root().unwrap();
+        let mut root = project_root::get_project_root().unwrap();
+        if cfg!(feature = "bob") {
+            let formatted = format!("{}/bob", root.display());
+            root = formatted.into()
+        }
         let password = PasswordMethod::Prompt.execute().unwrap();
         // this step takes a long time due to password-based decryption
         KvManager::new(root, password).unwrap()
@@ -57,7 +61,7 @@ pub(super) async fn load_kv_store() -> KvManager {
 /// The state used to temporarily store completed signatures
 #[derive(Debug)]
 pub struct SignatureState {
-    pub signatures: Mutex<HashMap<[u8; 32], Signature>>,
+    pub signatures: Mutex<HashMap<String, k256::ecdsa::recoverable::Signature>>,
 }
 
 impl SignatureState {
@@ -66,18 +70,20 @@ impl SignatureState {
         SignatureState { signatures }
     }
 
-    pub fn insert(&self, key: [u8; 32], value: &Signature) {
-        let mut signatures = self.signatures.lock().unwrap();
-        signatures.insert(key, *value);
+    pub fn insert(&self, key: [u8; 32], value: &k256::ecdsa::recoverable::Signature) {
+        let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
+        println!("inside insert value: {:?}", value.clone());
+        signatures.insert(hex::encode(key), *value);
     }
 
-    pub fn get(&self, key: &[u8; 32]) -> Signature {
-        let signatures = self.signatures.lock().unwrap();
-        *signatures.get(key).unwrap()
+    pub fn get(&self, key: &String) -> [u8; 65] {
+        let signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
+        let result = *signatures.get(&hex::encode(key)).unwrap();
+        result.as_ref().try_into().expect("slice with incorrect length")
     }
 
     pub fn drain(&self) {
-        let mut signatures = self.signatures.lock().unwrap();
+        let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
         let _ = signatures.drain();
     }
 }
