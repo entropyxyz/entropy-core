@@ -9,7 +9,7 @@ use tofn::sdk::api::Signature;
 
 use crate::{setup_mnemonic, sign_init::MessageDigest};
 
-const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
+const DEFAULT_ENDPOINT: &str = "ws://172.31.55.109:9946";
 
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
