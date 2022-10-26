@@ -72,13 +72,12 @@ impl SignatureState {
 
     pub fn insert(&self, key: [u8; 32], value: &k256::ecdsa::recoverable::Signature) {
         let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
-        println!("inside insert value: {:?}", value.clone());
         signatures.insert(hex::encode(key), *value);
     }
 
     pub fn get(&self, key: &String) -> [u8; 65] {
         let signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
-        let result = *signatures.get(&hex::encode(key)).unwrap();
+        let result = *signatures.get(key).unwrap();
         result.as_ref().try_into().expect("slice with incorrect length")
     }
 
