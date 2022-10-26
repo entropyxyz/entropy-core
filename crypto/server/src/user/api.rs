@@ -43,13 +43,13 @@ pub async fn new_user(
         return Err(UserErr::NotRegistering("Register Onchain first"));
     }
 
-    // store new user data in kvdb
-    let reservation = state.kv().reserve_key(key.to_string()).await?;
     let decrypted_message = signed_msg.decrypt(signer.signer());
     match decrypted_message {
         Ok(v) => {
-            state.kv().put(reservation, v).await?;
+            // store new user data in kvdb
             let subgroup = get_subgroup(&api, &signer).await.unwrap().unwrap();
+            let reservation = state.kv().reserve_key(key.to_string()).await?;
+            state.kv().put(reservation, v).await?;
             // TODO: Error handling really complex needs to be thought about.
             confirm_registered(&api, key, subgroup, &signer).await.unwrap();
         },
@@ -94,6 +94,7 @@ pub async fn get_subgroup(
 ) -> Result<Option<u8>, subxt::Error<entropy::DispatchError>> {
     let mut subgroup: Option<u8> = None;
     let address = signer.account_id();
+    // TODO: stash keys are broken up into subgroups....need to get stash key here from threshold
     for i in 0..SIGNING_PARTY_SIZE {
         let signing_group_addresses =
             api.storage().staking_extension().signing_groups(&(i as u8), None).await?.unwrap();

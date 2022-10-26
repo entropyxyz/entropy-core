@@ -35,7 +35,7 @@ where R: Config
     pub fn kill(&mut self) -> Result<(), String> {
         log::info!("Killing node process {}", self.proc.id());
         if let Err(err) = self.proc.kill() {
-            let err = format!("Error killing node process {}: {}", self.proc.id(), err);
+            let err = format!("Error killing node process {}: {err}", self.proc.id());
             log::error!("{}", err);
             return Err(err);
         }
@@ -80,7 +80,7 @@ impl TestNodeProcessBuilder {
         cmd.env("RUST_LOG", "error").arg("--dev").arg("--tmp");
 
         if let Some(authority) = self.authority {
-            let authority = format!("{:?}", authority);
+            let authority = format!("{authority:?}");
             let arg = format!("--{}", authority.as_str().to_lowercase());
             cmd.arg(arg);
         }
@@ -89,20 +89,20 @@ impl TestNodeProcessBuilder {
             let (p2p_port, http_port, ws_port) = next_open_port()
                 .ok_or_else(|| "No available ports in the given port range".to_owned())?;
 
-            cmd.arg(format!("--port={}", p2p_port));
-            cmd.arg(format!("--rpc-port={}", http_port));
-            cmd.arg(format!("--ws-port={}", ws_port));
-            println!("ws port: {}", ws_port);
+            cmd.arg(format!("--port={p2p_port}"));
+            cmd.arg(format!("--rpc-port={http_port}"));
+            cmd.arg(format!("--ws-port={ws_port}"));
+            println!("ws port: {ws_port}");
             ws_port
         } else {
             // the default Websockets port
             9944
         };
 
-        let ws_url = format!("ws://127.0.0.1:{}", ws_port);
+        let ws_url = format!("ws://127.0.0.1:{ws_port}");
 
         let mut proc = cmd.spawn().map_err(|e| {
-            format!("Error spawning substrate node '{}': {}", self.node_path.to_string_lossy(), e)
+            format!("Error spawning substrate node '{}': {e}", self.node_path.to_string_lossy())
         })?;
         // wait for rpc to be initialized
         const MAX_ATTEMPTS: u32 = 6;
@@ -132,13 +132,11 @@ impl TestNodeProcessBuilder {
             Ok(client) => Ok(TestNodeProcess { proc, client, ws_url }),
             Err(err) => {
                 let err = format!(
-                    "Failed to connect to node rpc at {} after {} attempts: {}",
-                    ws_url, attempts, err
+                    "Failed to connect to node rpc at {ws_url} after {attempts} attempts: {err}"
                 );
                 log::error!("{}", err);
-                proc.kill().map_err(|e| {
-                    format!("Error killing substrate process '{}': {}", proc.id(), e)
-                })?;
+                proc.kill()
+                    .map_err(|e| format!("Error killing substrate process '{}': {e}", proc.id()))?;
                 Err(err)
             },
         }

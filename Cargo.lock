@@ -8904,6 +8904,7 @@ dependencies = [
  "generic-array 0.14.6",
  "hex",
  "hex-literal",
+ "k256",
  "kvdb 0.1.0",
  "local-ip",
  "log",

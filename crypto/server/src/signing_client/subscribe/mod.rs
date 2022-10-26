@@ -18,7 +18,7 @@ pub async fn subscribe_to_them(
     let event_sources_init = ctx.sign_init.ip_addresses.iter().map(|ip| async move {
         // TODO: handle errors
         let mut es = reqwest::Client::new()
-            .post(format!("http://{}/signer/subscribe_to_me", ip))
+            .post(format!("http://{ip}/signer/subscribe_to_me"))
             .json(&SubscribeMessage::new(ctx.sign_init.party_uid.to_string()))
             .eventsource()
             .unwrap();
@@ -31,7 +31,7 @@ pub async fn subscribe_to_them(
         let first_event = first_event.expect("a valid event");
 
         if !matches!(first_event, Event::Open) {
-            panic!("Unexpected first event: {:?}", first_event);
+            panic!("Unexpected first event: {first_event:?}");
         }
 
         es
