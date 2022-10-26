@@ -12,13 +12,13 @@ use rocket::{
 use serial_test::serial;
 use sp_core::{sr25519, Bytes, Pair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner};
+use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
 use testing_utils::context::{test_context, test_context_stationary, TestContext};
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::{api::get_subgroup, UserInputPartyInfo};
 use crate::{
-    chain_api::{entropy::EntropyRuntime, get_api, EntropyConfig},
+    chain_api::{entropy, get_api, EntropyConfig},
     get_signer, load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     user::unsafe_api::UnsafeQuery,
@@ -93,8 +93,9 @@ async fn test_store_share() {
     let client = setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-    let query_result =
-        api.storage().staking_extension().threshold_accounts(&alice_stash_id, None).await.unwrap();
+    let threshold_accounts_query =
+        entropy::storage().staking_extension().threshold_accounts(&alice.to_account_id());
+    let query_result = api.storage().fetch(&threshold_accounts_query, None).await.unwrap();
     assert!(!query_result.is_none());
 
     let res = query_result.unwrap();
@@ -186,15 +187,16 @@ async fn test_get_signing_group() {
     clean_tests();
 }
 
-pub async fn make_register(api: &EntropyRuntime, alice: &Sr25519Keyring) {
+pub async fn make_register(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Keyring) {
     let signer = PairSigner::new(alice.pair());
-    let is_registering_1 =
-        api.storage().relayer().registering(&alice.to_account_id(), None).await.unwrap();
-    assert_eq!(is_registering_1.is_none(), true);
+    let registering_query = entropy::storage().relayer().registering(&alice.to_account_id());
+    let is_registering_1 = api.storage().fetch(&registering_query, None).await;
+    assert_eq!(is_registering_1.is_err(), true);
+
+    let registering_tx = entropy::tx().relayer().register();
+
     api.tx()
-        .relayer()
-        .register()
-        .sign_and_submit_then_watch_default(&signer)
+        .sign_and_submit_then_watch_default(&registering_tx, &signer)
         .await
         .unwrap()
         .wait_for_in_block()
@@ -203,18 +205,18 @@ pub async fn make_register(api: &EntropyRuntime, alice: &Sr25519Keyring) {
         .wait_for_success()
         .await
         .unwrap();
-    let is_registering_2 =
-        api.storage().relayer().registering(&alice.to_account_id(), None).await.unwrap();
-    assert_eq!(is_registering_2.unwrap().is_registering, true);
+
+    let is_registering_2 = api.storage().fetch(&registering_query, None).await;
+    assert_eq!(is_registering_2.unwrap().unwrap().is_registering, true);
 }
 
-pub async fn check_if_confirmation(api: &EntropyRuntime, alice: &Sr25519Keyring) {
-    let is_registering =
-        api.storage().relayer().registering(&alice.to_account_id(), None).await.unwrap();
+pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Keyring) {
+    let registering_query = entropy::storage().relayer().registering(&alice.to_account_id());
+    let registered_query = entropy::storage().relayer().registered(&alice.to_account_id());
+    let is_registering = api.storage().fetch(&registering_query, None).await.unwrap();
     // make sure there is one confirmation
     assert_eq!(is_registering.unwrap().confirmations.len(), 1);
-    let is_registered =
-        api.storage().relayer().registered(&alice.to_account_id(), None).await.unwrap();
+    let is_registered = api.storage().fetch(&registered_query, None).await.unwrap();
     // still not registered need more confirmations
     assert_eq!(is_registered.is_none(), true);
 }
