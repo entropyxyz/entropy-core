@@ -72,6 +72,7 @@ impl SignatureState {
 
     pub fn insert(&self, key: [u8; 32], value: &k256::ecdsa::recoverable::Signature) {
         let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
+        println!("inside insert value: {:?}", value.clone());
         signatures.insert(hex::encode(key), *value);
     }
 
