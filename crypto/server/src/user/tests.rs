@@ -94,7 +94,7 @@ async fn test_store_share() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let threshold_accounts_query =
-        entropy::storage().staking_extension().threshold_accounts(&alice.to_account_id());
+        entropy::storage().staking_extension().threshold_accounts(&alice_stash_id);
     let query_result = api.storage().fetch(&threshold_accounts_query, None).await.unwrap();
     assert!(!query_result.is_none());
 
@@ -190,8 +190,8 @@ async fn test_get_signing_group() {
 pub async fn make_register(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Keyring) {
     let signer = PairSigner::new(alice.pair());
     let registering_query = entropy::storage().relayer().registering(&alice.to_account_id());
-    let is_registering_1 = api.storage().fetch(&registering_query, None).await;
-    assert_eq!(is_registering_1.is_err(), true);
+    let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();
+    assert_eq!(is_registering_1.is_none(), true);
 
     let registering_tx = entropy::tx().relayer().register();
 
