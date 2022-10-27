@@ -1859,6 +1859,7 @@ dependencies = [
  "substrate-build-script-utils",
  "substrate-frame-cli",
  "substrate-frame-rpc-system",
+ "substrate-state-trie-migration-rpc",
  "tempfile",
  "try-runtime-cli",
 ]
@@ -10206,6 +10207,27 @@ dependencies = [
  "prometheus",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "substrate-state-trie-migration-rpc"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.30#a3ed0119c45cdd0d571ad34e5b3ee7518c8cef8d"
+dependencies = [
+ "jsonrpsee",
+ "log",
+ "parity-scale-codec",
+ "sc-client-api",
+ "sc-rpc-api",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-state-machine",
+ "sp-std",
+ "sp-trie",
+ "trie-db",
 ]
 
 [[package]]

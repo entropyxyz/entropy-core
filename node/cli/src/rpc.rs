@@ -99,6 +99,7 @@ pub fn create_full<C, P, SC, B>(
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
     C: ProvideRuntimeApi<Block>
+        + sc_client_api::BlockBackend<Block>
         + HeaderBackend<Block>
         + AuxStore
         + HeaderMetadata<Block, Error = BlockChainError>
@@ -116,20 +117,22 @@ where
 {
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
     use sc_consensus_babe_rpc::{Babe, BabeApiServer};
-    use sc_finality_grandpa_rpc::{GrandpaApiServer};
+    use sc_finality_grandpa_rpc::{Grandpa, GrandpaApiServer};
+    use sc_rpc::dev::{Dev, DevApiServer};
     use sc_sync_state_rpc::{SyncState, SyncStateApiServer};
     use substrate_frame_rpc_system::{System, SystemApiServer};
+    // use substrate_state_trie_migration_rpc::{StateMigration, StateMigrationApiServer};
 
     let mut io = RpcModule::new(());
-    let FullDeps { client, pool, select_chain, chain_spec, deny_unsafe, babe, grandpa } = deps;
 
+    let FullDeps { client, pool, select_chain, chain_spec, deny_unsafe, babe, grandpa } = deps;
     let BabeDeps { keystore, babe_config, shared_epoch_changes } = babe;
     let GrandpaDeps {
-        shared_voter_state: _,
+        shared_voter_state,
         shared_authority_set,
-        justification_stream: _,
-        subscription_executor: _,
-        finality_provider: _,
+        justification_stream,
+        subscription_executor,
+        finality_provider,
     } = grandpa;
 
     io.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
@@ -149,9 +152,20 @@ where
         .into_rpc(),
     )?;
     io.merge(
-        SyncState::new(chain_spec, client, shared_authority_set, shared_epoch_changes)?
+        Grandpa::new(
+            subscription_executor,
+            shared_authority_set.clone(),
+            shared_voter_state,
+            justification_stream,
+            finality_provider,
+        )
+        .into_rpc(),
+    )?;
+    io.merge(
+        SyncState::new(chain_spec, client.clone(), shared_authority_set, shared_epoch_changes)?
             .into_rpc(),
     )?;
+    io.merge(Dev::new(client, deny_unsafe).into_rpc())?;
 
     Ok(io)
 }
