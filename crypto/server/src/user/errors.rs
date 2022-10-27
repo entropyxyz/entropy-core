@@ -8,6 +8,7 @@ use rocket::{
 };
 use thiserror::Error;
 
+use crate::chain_api::entropy;
 // #[derive(Responder, Debug)]
 // #[response(status = 418, content_type = "json")]
 #[derive(Debug, Error)]
@@ -18,8 +19,14 @@ pub enum UserErr {
     InputValidation(&'static str),
     #[error("Kv error: {0}")]
     Kv(#[from] kvdb::kv_manager::error::KvError),
+    #[error("Substrate error: {0}")]
+    Substrate(#[from] subxt::Error<entropy::DispatchError>),
+    #[error("Generic Substrate error: {0}")]
+    GenericSubstrate(#[from] subxt::GenericError<std::convert::Infallible>),
     #[error("Not Registering error: {0}")]
     NotRegistering(&'static str),
+    #[error("Subgroup error: {0}")]
+    SubgroupError(&'static str),
     // Other(&'static str),
     #[error("Invalid Signature: {0}")]
     InvalidSignature(&'static str),
