@@ -18,6 +18,7 @@
 
 //! Substrate chain configurations.
 
+#![allow(dead_code)]
 pub use entropy_runtime::GenesisConfig;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,

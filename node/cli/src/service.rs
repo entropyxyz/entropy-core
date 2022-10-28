@@ -20,17 +20,16 @@
 
 //! Service implementation. Specialized wrapper over substrate service.
 
-use std::{sync::Arc};
+use std::sync::Arc;
 
 use codec::Encode;
 use entropy_runtime::RuntimeApi;
 use frame_system_rpc_runtime_api::AccountNonceApi;
 use futures::prelude::*;
 use node_primitives::Block;
-use sc_client_api::{BlockBackend};
+use sc_client_api::BlockBackend;
 use sc_consensus_babe::{self, SlotProportion};
 use sc_executor::NativeElseWasmExecutor;
-
 use sc_network::NetworkService;
 use sc_network_common::{protocol::event::Event, service::NetworkEventStream};
 use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};

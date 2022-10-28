@@ -54,8 +54,7 @@ impl WeightInfo for () {
     }
 
     fn register() -> Weight {
-        Weight::from_ref_time(23_000_000_u64)
-            .saturating_add(RocksDbWeight::get().writes(1_u64))
+        Weight::from_ref_time(23_000_000_u64).saturating_add(RocksDbWeight::get().writes(1_u64))
     }
 
     fn move_active_to_pending_no_failure(m: u64) -> Weight {

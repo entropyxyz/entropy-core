@@ -8,7 +8,11 @@ use log::info;
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use substrate_common::SIGNING_PARTY_SIZE;
 use subxt::{
-    ext::sp_core::sr25519, ext::sp_core::Pair, ext::sp_runtime::AccountId32, tx::PairSigner,
+    ext::{
+        sp_core::{sr25519, Pair},
+        sp_runtime::AccountId32,
+    },
+    tx::PairSigner,
     OnlineClient,
 };
 use tracing::instrument;
