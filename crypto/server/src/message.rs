@@ -140,7 +140,7 @@ mod tests {
         // Test encryption & signing.
         let encrypt_result = SignedMessage::new(&alice, &plaintext, &bob_public_key);
         // Assert no error received in encryption.
-        assert!(!encrypt_result.is_err());
+        assert!(encrypt_result.is_ok());
         let encrypted_message = encrypt_result.unwrap();
 
         // Test signature validity
@@ -149,7 +149,7 @@ mod tests {
         // Test decryption
         let decrypt_result = encrypted_message.decrypt(&bob);
         // Assert no error received in decryption.
-        assert!(!decrypt_result.is_err());
+        assert!(decrypt_result.is_ok());
         let decrypted_result = decrypt_result.unwrap();
 
         // Check the decrypted message equals the plaintext.

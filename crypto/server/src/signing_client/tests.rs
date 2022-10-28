@@ -83,10 +83,8 @@ async fn test_new_party() {
         let response = client.post(url).body(encoded_data_1).send().await;
         assert_eq!(response.unwrap().status(), 200);
         // all of this can be removed
-        let _s = String::from_utf8_lossy(
-            unencoded_data_1[0].sig_request.sig_hash.as_slice().try_into().unwrap(),
-        )
-        .to_string();
+        let _s = String::from_utf8_lossy(unencoded_data_1[0].sig_request.sig_hash.as_slice())
+            .to_string();
         let sig_message = SigMessage { message: _s.clone() };
         println!("EXPECTED_KEY: {}", _s);
         let response_2 = client
@@ -156,7 +154,7 @@ async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
 
     // Shortcut: store the shares manually
     let root = project_root::get_project_root().unwrap();
-    let share_id = if port == 3001 { 0 } else { 1 };
+    let share_id = i32::from(port != 3001);
     let path: PathBuf =
         [root, "test_data".into(), "key_shares".into(), share_id.to_string().into()]
             .into_iter()

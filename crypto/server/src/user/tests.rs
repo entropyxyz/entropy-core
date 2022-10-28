@@ -1,7 +1,6 @@
 use std::env;
 
 use bip39::{Language, Mnemonic, MnemonicType};
-use hex;
 use hex_literal::hex as h;
 use kvdb::clean_tests;
 use rocket::{
@@ -55,7 +54,7 @@ async fn test_unsafe_get_endpoint() {
 
         assert_eq!(response.status(), Status::Ok);
         let response_mnemonic = response.into_string().await.unwrap();
-        assert!(response_mnemonic.len() > 0);
+        assert!(!response_mnemonic.is_empty());
 
         // Update the mnemonic, testing the put endpoint works
         let put_response = client
@@ -86,7 +85,7 @@ async fn test_store_share() {
     let alice = AccountKeyring::Alice;
     let alice_stash_id: AccountId32 =
         h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
-    let key: AccountId32 = alice.to_account_id().into();
+    let key: AccountId32 = alice.to_account_id();
     let value: Vec<u8> = vec![0];
 
     let cxt = test_context_stationary().await;
@@ -96,7 +95,7 @@ async fn test_store_share() {
     let threshold_accounts_query =
         entropy::storage().staking_extension().threshold_accounts(&alice_stash_id);
     let query_result = api.storage().fetch(&threshold_accounts_query, None).await.unwrap();
-    assert!(!query_result.is_none());
+    assert!(query_result.is_some());
 
     let res = query_result.unwrap();
     let server_public_key = PublicKey::from(res.1);
@@ -191,7 +190,7 @@ pub async fn make_register(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Key
     let signer = PairSigner::new(alice.pair());
     let registering_query = entropy::storage().relayer().registering(&alice.to_account_id());
     let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();
-    assert_eq!(is_registering_1.is_none(), true);
+    assert!(is_registering_1.is_none());
 
     let registering_tx = entropy::tx().relayer().register();
 
@@ -207,7 +206,7 @@ pub async fn make_register(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Key
         .unwrap();
 
     let is_registering_2 = api.storage().fetch(&registering_query, None).await;
-    assert_eq!(is_registering_2.unwrap().unwrap().is_registering, true);
+    assert!(is_registering_2.unwrap().unwrap().is_registering);
 }
 
 pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Keyring) {
@@ -218,5 +217,5 @@ pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, alice: &Sr
     assert_eq!(is_registering.unwrap().confirmations.len(), 1);
     let is_registered = api.storage().fetch(&registered_query, None).await.unwrap();
     // still not registered need more confirmations
-    assert_eq!(is_registered.is_none(), true);
+    assert!(is_registered.is_none());
 }
