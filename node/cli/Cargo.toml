@@ -208,7 +208,7 @@ version='4.0.0-dev'
 [features]
 default=[]
 runtime-benchmarks=[
-    'entropy-runtime/runtime-benchmarks',
-    "frame-benchmarking/runtime-benchmarks",
-    "frame-benchmarking-cli/runtime-benchmarks",
+  'entropy-runtime/runtime-benchmarks',
+  "frame-benchmarking/runtime-benchmarks",
+  "frame-benchmarking-cli/runtime-benchmarks",
 ]
