@@ -67,6 +67,18 @@ impl SignedMessage {
         })
     }
 
+    #[cfg(test)]
+    pub fn new_test(
+        msg: Bytes,
+        sig: Signature,
+        pk: [u8; 32],
+        recip: [u8; 32],
+        a: [u8; 32],
+        nonce: [u8; 12],
+    ) -> SignedMessage {
+        SignedMessage { pk, a, msg, nonce, sig, recip }
+    }
+
     /// Decrypts the message and returns the plaintext.
     pub fn decrypt(&self, sk: &sr25519::Pair) -> Result<Vec<u8>, Error> {
         let mut static_secret = derive_static_secret(sk);
