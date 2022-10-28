@@ -53,16 +53,16 @@ workflows:
   lint:
     jobs:
       - fmt-lint-all
-  crypto:
-    when: << pipeline.parameters.crypto >>
-    jobs:
-      # - crypto-centralized-keygen
-      - crypto-server
-      # - crypto-kvdb
-      # - crypto-substrate-common
+  # crypto:
+  #   when: << pipeline.parameters.crypto >>
+  #   jobs:
+  #     # - crypto-centralized-keygen
+  #     - crypto-server
+  #     # - crypto-kvdb
+  #     # - crypto-substrate-common
   node:
     when:
-      or: [ << pipeline.parameters.node >>, << pipeline.parameters.pallets >>, << pipeline.parameters.runtime >> ]
+      or: [ << pipeline.parameters.node >>, << pipeline.parameters.pallets >>, << pipeline.parameters.runtime >>, pipeline.parameters.crypto ]
     jobs:
       - node-test
       - node-benchmark
