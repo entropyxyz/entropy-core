@@ -100,7 +100,7 @@ async fn test_store_share() {
     let res = query_result.unwrap();
     let server_public_key = PublicKey::from(res.1);
     let user_input =
-        SignedMessage::new(&alice.pair(), &Bytes(value), &server_public_key).unwrap().to_json();
+        SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key).unwrap().to_json();
 
     // fails to add not registering
     let response = client
@@ -111,6 +111,10 @@ async fn test_store_share() {
         .await;
 
     assert_eq!(response.status(), Status::InternalServerError);
+    assert_eq!(
+        response.into_string().await.unwrap(),
+        "Not Registering error: Register Onchain first"
+    );
 
     // signal registering
     make_register(&api, &alice).await;
@@ -136,7 +140,27 @@ async fn test_store_share() {
         .await;
 
     assert_eq!(response_3.status(), Status::InternalServerError);
+    assert_eq!(response_3.into_string().await.unwrap(), "Kv error: Recv Error: channel closed");
 
+	// fails with wrong node key
+    let bob_stash_id: AccountId32 =
+        h!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into();
+    let query_result_bob =
+        api.storage().staking_extension().threshold_accounts(&bob_stash_id, None).await.unwrap();
+    let res_bob = query_result_bob.unwrap();
+    let server_public_key_bob = PublicKey::from(res_bob.1);
+    let user_input_bob =
+        SignedMessage::new(&alice.pair(), &Bytes(value), &server_public_key_bob).unwrap().to_json();
+
+    let response_4 = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(user_input_bob.clone())
+        .dispatch()
+        .await;
+
+    assert_eq!(response_4.status(), Status::InternalServerError);
+    assert_eq!(response_4.into_string().await.unwrap(), "Parse error: failed decrypting message");
     clean_tests();
 }
 
