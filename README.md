@@ -1,4 +1,4 @@
-# Substrate Node Template 
+# Substrate Node Template
 
 [![Try on playground](https://img.shields.io/badge/Playground-Node_Template-brightgreen?logo=Parity%20Substrate)](https://playground.substrate.dev/?deploy=node-template) [![Matrix](https://img.shields.io/matrix/substrate-technical:matrix.org)](https://matrix.to/#/#substrate-technical:matrix.org)
 
@@ -233,3 +233,44 @@ Secret phrase `where sight patient orphan general short empower hope party hurt 
   Public key (hex):   0x2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f
   Account ID:         0x2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f
   SS58 Address:       5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV
+
+
+## Running Devnet
+* devnet requires 2 validator nodes, 2 threshold clients running on the same machine
+
+* open 5 terminals lol
+
+* In terminal 1 set up chain 1
+  * ```cargo build --release```
+  * ```./scripts/alice.sh```
+
+* In terminal 2 run alice threshold client
+  * ```cargo build --release --features="alice unsafe"```
+  * ```./scripts/server.sh```
+
+* In termainl 3 run chain 2
+  * ```./scripts/bob.sh```
+
+* In termainl 5run bob threshold client
+  * ```cargo build --release --features="bob unsafe"```
+  * ```./scripts/server_bob.sh```
+
+
+With all 4 nodes running the chain is now working, next we now have a clash where both chains by default send their OCW messages to port 3001, you need to change one of those
+
+* from this repo https://github.com/entropyxyz/util-scripts
+  * need to setup the repo and link the wasm first
+  * ```cd pkg```
+  * ```npm link```
+  * ```cd ..```
+  * ```npm link x25519-chacha20poly1305-wasm```
+* run setEndpoint.ts
+  * ```ts-node setEndpoint.ts```
+
+
+next register
+  * ```ts-node register.ts```
+
+now you can sign
+  * ```ts-node sign.ts```
+
