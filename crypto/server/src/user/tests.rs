@@ -151,7 +151,9 @@ async fn test_store_share() {
     let res_bob = query_result_bob.unwrap();
     let server_public_key_bob = PublicKey::from(res_bob.1);
     let user_input_bob =
-        SignedMessage::new(&alice.pair(), &Bytes(value), &server_public_key_bob).unwrap().to_json();
+        SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key_bob)
+            .unwrap()
+            .to_json();
 
     let response_4 = client
         .post("/user/new")
@@ -162,6 +164,28 @@ async fn test_store_share() {
 
     assert_eq!(response_4.status(), Status::InternalServerError);
     assert_eq!(response_4.into_string().await.unwrap(), "Parse error: failed decrypting message");
+    let sig: [u8; 64] = [0; 64].try_into().unwrap();
+    let slice: [u8; 32] = [0; 32].try_into().unwrap();
+    let nonce: [u8; 12] = [0; 12].try_into().unwrap();
+    let user_input_bad = SignedMessage::new_test(
+        Bytes(value),
+        sr25519::Signature::from_raw(sig),
+        slice.clone(),
+        slice.clone(),
+        slice.clone(),
+        nonce.clone(),
+    )
+    .to_json();
+
+    let response_5 = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(user_input_bad.clone())
+        .dispatch()
+        .await;
+
+    assert_eq!(response_5.status(), Status::InternalServerError);
+    assert_eq!(response_5.into_string().await.unwrap(), "Invalid Signature: Invalid signature.");
     clean_tests();
 }
 
