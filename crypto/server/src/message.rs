@@ -109,6 +109,9 @@ impl SignedMessage {
 
     /// Returns a serialized json string of self.
     pub fn to_json(&self) -> String { to_string(self).unwrap() }
+
+    /// Deserializes a json blob into a SignedMessage
+    pub fn from_json(s: String) -> Self { rocket::serde::json::from_str(s.as_str()).unwrap() }
 }
 
 /// Derives a static secret from a sr25519 private key for usage in static Diffie-Hellman.
@@ -136,6 +139,30 @@ pub fn mnemonic_to_pair(m: &Mnemonic) -> sr25519::Pair {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_bad_signatures_fails() {
+        let plaintext = Bytes(vec![69, 42, 0]);
+
+        let alice = mnemonic_to_pair(&new_mnemonic());
+        let alice_secret = derive_static_secret(&alice);
+        let alice_public_key = PublicKey::from(&alice_secret);
+
+        let bob = mnemonic_to_pair(&new_mnemonic());
+        let bob_secret = derive_static_secret(&bob);
+        let bob_public_key = PublicKey::from(&bob_secret);
+
+        let alice_to_alice = SignedMessage::new(&alice, &plaintext, &alice_public_key).unwrap();
+        let mut alice_to_bob = SignedMessage::new(&alice, &plaintext, &bob_public_key).unwrap();
+
+        // Test that replacing the public key fails to verify the signature.
+        alice_to_bob.sig = alice_to_alice.sig;
+        assert!(!alice_to_bob.verify());
+
+        // Test that decrypting with the wrong private key throws an error.
+        let res = alice_to_bob.decrypt(&alice);
+        assert!(res.is_err());
+    }
 
     #[test]
     fn test_sign_and_encrypt() {
