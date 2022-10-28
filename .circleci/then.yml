@@ -1,5 +1,5 @@
 version: 2.1
-# orbs: 
+# orbs:
 #   rust: circleci/rust@1.6.0
 
 parameters:
@@ -31,7 +31,7 @@ commands:
       - run: grep Swap /proc/meminfo
   install-dependencies:
     steps:
-      - run: sudo apt-get update 
+      - run: sudo apt-get update
       - run: sudo apt install -y libssl-dev clang libclang-dev
       - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
       - run: rustup update nightly
@@ -61,13 +61,13 @@ workflows:
       # - crypto-kvdb
       # - crypto-substrate-common
   node:
-    when: 
+    when:
       or: [ << pipeline.parameters.node >>, << pipeline.parameters.pallets >>, << pipeline.parameters.runtime >> ]
-    jobs: 
+    jobs:
       - node-test
       - node-benchmark
 
-jobs: 
+jobs:
   fmt-lint-all:
     machine:
       image: "ubuntu-2004:202201-02"
@@ -81,7 +81,7 @@ jobs:
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/server # && cargo test # placeholder for test
+      - run: cd crypto/server && cargo test # placeholder for test
         # temp
   # crypto-centralized-keygen:
   #   machine:
@@ -96,7 +96,7 @@ jobs:
   #     resource_class: "xlarge"
   #   steps:
   #     - install-dependencies-and-checkout
-  #     - run: cd crypto/kvdb 
+  #     - run: cd crypto/kvdb
   # crypto-substrate-common:
   #   machine:
   #     image: "ubuntu-2004:202201-02"
@@ -111,7 +111,7 @@ jobs:
     steps:
       - increase-swap
       - install-dependencies-and-checkout
-      - run: 
+      - run:
         # note, this must be release https://app.circleci.com/pipelines/github/entropyxyz/entropy-core/234/workflows/1ff7735d-2d69-43bd-80d7-2ba304df25e7/jobs/1175
           command: pushd node && cargo build --release -j $(nproc) && cargo test
           no_output_timeout: 45m
@@ -121,4 +121,4 @@ jobs:
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: pushd node && cargo check --features=runtime-benchmarks 
+      - run: pushd node && cargo check --features=runtime-benchmarks
