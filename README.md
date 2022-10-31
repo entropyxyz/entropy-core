@@ -204,18 +204,20 @@ by appending your own. A few useful ones are as follow.
 ```
 
 ## testnet
- * Currently our network requires 2 binaries
- * ``` cargo build --release ``` will build both
- * to run both you can reference /scrips.alice.sh for the chain and /scripts/sig_client.sh for the threshold client
- * the sig client requires a mneumonic as an env and the one in the /scripts/sig_client.sh file is already hardcoded into the chain config (best to use that one)
+
+- Currently our network requires 2 binaries
+- ``` cargo build --release ``` will build both
+- to run both you can reference /scrips.alice.sh for the chain and /scripts/sig_client.sh for the threshold client
+- the sig client requires a mneumonic as an env and the one in the /scripts/sig_client.sh file is already hardcoded into the chain config (best to use that one)
 
 ### changing defaults
-* all defaults are ready to go out the box but can be changed if needed with varying degrees of difficult
-* to change chain address away from default ws://127.0.0.1:9944 you need to inform the sig client which can be done with the env variable ```export ENDPOINT=```
-* To change the default of the sig client from ```http://127.0.0.1:3001/sign``` you need to tell the chain after it is running by making an rpc call. Example code can be found here ```https://github.com/Entropyxyz/util-scripts/blob/master/setEndpoint.ts```. You also need to maintain the route as /sign
 
+* all defaults are ready to go out the box but can be changed if needed with varying degrees of difficult
+- to change chain address away from default ws://127.0.0.1:9944 you need to inform the sig client which can be done with the env variable ```export ENDPOINT=```
+- To change the default of the sig client from ```http://127.0.0.1:3001/sign``` you need to tell the chain after it is running by making an rpc call. Example code can be found here ```https://github.com/entropyxyz/util-scripts/blob/master/setEndpoint.ts```. You also need to maintain the route as /sign
 
 ## Threshold keys
+
 * keys for internal testnet use only, not secure, here for convience do not use them for anything real
 
 Alice
@@ -234,43 +236,42 @@ Secret phrase `where sight patient orphan general short empower hope party hurt 
   Account ID:         0x2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f
   SS58 Address:       5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV
 
-
 ## Running Devnet
+
 * devnet requires 2 validator nodes, 2 threshold clients running on the same machine
 
-* open 5 terminals lol
+- open 5 terminals lol
 
-* In terminal 1 set up chain 1
-  * ```cargo build --release```
-  * ```./scripts/alice.sh```
+- In terminal 1 set up chain 1
+  - ```cargo build --release```
+  - ```./scripts/alice.sh```
 
-* In terminal 2 run alice threshold client
-  * ```cargo build --release --features="alice unsafe"```
-  * ```./scripts/server.sh```
+- In terminal 2 run alice threshold client
+  - ```cargo build --release --features="alice unsafe"```
+  - ```./scripts/server.sh```
 
-* In termainl 3 run chain 2
-  * ```./scripts/bob.sh```
+- In termainl 3 run chain 2
+  - ```./scripts/bob.sh```
 
-* In termainl 5run bob threshold client
-  * ```cargo build --release --features="bob unsafe"```
-  * ```./scripts/server_bob.sh```
-
+- In termainl 5run bob threshold client
+  - ```cargo build --release --features="bob unsafe"```
+  - ```./scripts/server_bob.sh```
 
 With all 4 nodes running the chain is now working, next we now have a clash where both chains by default send their OCW messages to port 3001, you need to change one of those
 
-* from this repo https://github.com/entropyxyz/util-scripts
-  * need to setup the repo and link the wasm first
-  * ```cd pkg```
-  * ```npm link```
-  * ```cd ..```
-  * ```npm link x25519-chacha20poly1305-wasm```
-* run setEndpoint.ts
-  * ```ts-node setEndpoint.ts```
-
+- from this repo <https://github.com/entropyxyz/util-scripts>
+  - need to setup the repo and link the wasm first
+  - ```cd pkg```
+  - ```npm link```
+  - ```cd ..```
+  - ```npm link x25519-chacha20poly1305-wasm```
+- run setEndpoint.ts
+  - ```ts-node setEndpoint.ts```
 
 next register
-  * ```ts-node register.ts```
+
+- ```ts-node register.ts```
 
 now you can sign
-  * ```ts-node sign.ts```
 
+- ```ts-node sign.ts```

@@ -5,7 +5,7 @@ use tofn::gg20::ceygen;
 
 /// Split a `secret_key` into `threshold`-of-`parties` shards, write to directory `path`.
 /// A wrapper around entropyxyz/tofn.
-/// See https://github.com/Entropyxyz/tofn for details.
+/// See https://github.com/entropyxyz/tofn for details.
 pub fn ceygen(
     path: PathBuf,
     parties: usize,

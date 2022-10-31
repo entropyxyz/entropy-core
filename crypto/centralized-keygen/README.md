@@ -1,2 +1,2 @@
 # Protocol Implementation
-A convenience wrapper around methods from our [tofn](https://github.com/Entropyxyz/tofn) fork.
+A convenience wrapper around methods from our [tofn](https://github.com/entropyxyz/tofn) fork.
