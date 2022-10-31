@@ -31,8 +31,8 @@ pub async fn new_party(
     state: &State<SignerState>,
     kv_manager: &State<KvManager>,
     signatures: &State<SignatureState>,
-) -> Result<Status, ()> {
-    let data = OCWMessage::decode(&mut encoded_data.as_ref()).unwrap();
+) -> Result<Status, SigningErr> {
+    let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
 
     for message in data {
         // todo: temporary hack, replace with correct data
@@ -40,7 +40,7 @@ pub async fn new_party(
         let gg20_service = Gg20Service::new(state, kv_manager);
 
         // set up context for signing protocol execution
-        let sign_context = gg20_service.get_sign_context(info.clone()).await.unwrap();
+        let sign_context = gg20_service.get_sign_context(info.clone()).await?;
 
         // subscribe to all other participating parties. Listener waits for other subscribers.
         let (rx_ready, listener) = Listener::new();
@@ -50,14 +50,15 @@ pub async fn new_party(
             .unwrap()
             .insert(sign_context.sign_init.party_uid.to_string(), listener);
         let channels = {
-            let stream_in = subscribe_to_them(&sign_context).await.unwrap();
-            let broadcast_out = rx_ready.await.unwrap().unwrap();
+            let stream_in = subscribe_to_them(&sign_context).await?;
+            let broadcast_out = rx_ready.await??;
             Channels(broadcast_out, stream_in)
         };
 
-        let result = gg20_service.execute_sign(&sign_context, channels).await.unwrap();
+        let result = gg20_service.execute_sign(&sign_context, channels).await?;
         use k256::{ecdsa::VerifyingKey, elliptic_curve::sec1::FromEncodedPoint};
         let pubkey_bytes = sign_context.party_info.common.encoded_pubkey();
+		// unwrap left here since recoverable signature PR removes
         let ep = k256::EncodedPoint::from_bytes(pubkey_bytes).unwrap();
         let pubkey = VerifyingKey::from_encoded_point(&ep).unwrap();
 
@@ -71,7 +72,7 @@ pub async fn new_party(
         } else {
             recoverable::Signature::new(&result, recoverable::Id::new(1).unwrap()).unwrap()
         };
-        let key = message.sig_request.sig_hash.as_slice().try_into().unwrap();
+        let key = message.sig_request.sig_hash.as_slice().try_into()?;
 
         gg20_service.handle_result(&rec_sig, key, signatures);
     }
@@ -100,7 +101,7 @@ pub async fn subscribe_to_me(
 
     let rx = {
         let mut listeners = state.listeners.lock().unwrap();
-        let listener = listeners.get_mut(&msg.party_id).ok_or(SubscribeErr::NoListener("no"))?;
+        let listener = listeners.get_mut(&msg.party_id).ok_or(SubscribeErr::NoListener("no listener"))?;
         let rx_outcome = listener.subscribe(&msg)?;
 
         // If this is the last subscriber, remove the listener from state
@@ -108,7 +109,7 @@ pub async fn subscribe_to_me(
             Receiver::Receiver(rx) => rx,
             Receiver::FinalReceiver(rx) => {
                 // all subscribed, wake up the waiting listener in new_party
-                let listener = listeners.remove(&msg.party_id).unwrap();
+                let listener = listeners.remove(&msg.party_id).ok_or(SubscribeErr::NoListener("listener remove"))?;
                 let (tx, broadcaster) = listener.into_broadcaster();
                 let _ = tx.send(Ok(broadcaster));
                 rx
