@@ -55,7 +55,7 @@ pub async fn new_user(
             // store new user data in kvdb
             let subgroup = get_subgroup(&api, &signer)
                 .await?
-                .ok_or(UserErr::SubgroupError("Subgroup Error"))?;
+                .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
             let reservation = state.kv().reserve_key(key.to_string()).await?;
             state.kv().put(reservation, v).await?;
             // TODO: Error handling really complex needs to be thought about.
@@ -74,7 +74,9 @@ pub async fn is_registering(
 ) -> Result<bool, UserErr> {
     let is_registering_query = entropy::storage().relayer().registering(who);
     let is_registering = api.storage().fetch(&is_registering_query, None).await.unwrap();
-    Ok(is_registering.ok_or(UserErr::NotRegistering("Register Onchain first"))?.is_registering)
+    Ok(is_registering
+        .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?
+        .is_registering)
 }
 
 // Returns PairSigner for this nodes threshold server.
@@ -111,7 +113,7 @@ pub async fn get_subgroup(
             .storage()
             .fetch(&signing_group_addresses_query, None)
             .await?
-            .ok_or(UserErr::SubgroupError("Subgroup Error"))?;
+            .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
         if signing_group_addresses.contains(address) {
             subgroup = Some(i as u8);
             break;

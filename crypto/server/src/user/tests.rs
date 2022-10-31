@@ -165,9 +165,9 @@ async fn test_store_share() {
 
     assert_eq!(response_4.status(), Status::InternalServerError);
     assert_eq!(response_4.into_string().await.unwrap(), "Parse error: failed decrypting message");
-    let sig: [u8; 64] = [0; 64].try_into().unwrap();
-    let slice: [u8; 32] = [0; 32].try_into().unwrap();
-    let nonce: [u8; 12] = [0; 12].try_into().unwrap();
+    let sig: [u8; 64] = [0; 64];
+    let slice: [u8; 32] = [0; 32];
+    let nonce: [u8; 12] = [0; 12];
     let user_input_bad = SignedMessage::new_test(
         Bytes(value),
         sr25519::Signature::from_raw(sig),
