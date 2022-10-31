@@ -6,7 +6,7 @@ edition="2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-subxt             ={ git="https://github.com/jakehemmerle/subxt.git", branch="substrate-master" }
+subxt             ={ git="https://github.com/entropyxyz/subxt.git", branch="substrate-master" }
 sp-keyring        ={ package="sp-keyring", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
 project-root      ="0.2.2"
 sp-core           ={ package="sp-core", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }

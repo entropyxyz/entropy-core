@@ -28,7 +28,7 @@ rocket ={ version="0.5.0-rc.2", default-features=false, features=["json"] }
 reqwest={ version="0.11", features=["json", "stream"] }
 
 # Substrate
-subxt             ={ package="subxt", git="https://github.com/jakehemmerle/subxt.git", branch="substrate-master" }
+subxt             ={ package="subxt", git="https://github.com/entropyxyz/subxt.git", branch="substrate-master" }
 parity-scale-codec="3.0.0"
 sp-keyring        ={ package="sp-keyring", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
 sp-core           ={ package="sp-core", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
