@@ -33,7 +33,7 @@ pub async fn new_user(
     state: &State<KvManager>,
     config: &State<Configuration>,
 ) -> Result<Status, UserErr> {
-    let api = get_api(&config.endpoint).await.unwrap();
+    let api = get_api(&config.endpoint).await?;
 
     // Verifies the message contains a valid sr25519 signature from the sender.
     let signed_msg: SignedMessage = msg.into_inner();
@@ -41,10 +41,10 @@ pub async fn new_user(
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
 
-    let signer = get_signer(state).await.unwrap();
+    let signer = get_signer(state).await?;
     // Checks if the user has registered onchain first.
     let key = signed_msg.account_id();
-    let is_registering = is_registering(&api, &key).await.unwrap();
+    let is_registering = is_registering(&api, &key).await?;
     if !is_registering {
         return Err(UserErr::NotRegistering("Register Onchain first"));
     }
@@ -53,11 +53,13 @@ pub async fn new_user(
     match decrypted_message {
         Ok(v) => {
             // store new user data in kvdb
-            let subgroup = get_subgroup(&api, &signer).await.unwrap().unwrap();
+            let subgroup = get_subgroup(&api, &signer)
+                .await?
+                .ok_or(UserErr::SubgroupError("Subgroup Error"))?;
             let reservation = state.kv().reserve_key(key.to_string()).await?;
             state.kv().put(reservation, v).await?;
             // TODO: Error handling really complex needs to be thought about.
-            confirm_registered(&api, key, subgroup, &signer).await.unwrap();
+            confirm_registered(&api, key, subgroup, &signer).await?;
         },
         Err(v) => {
             return Err(UserErr::Parse("failed decrypting message"));
@@ -72,10 +74,7 @@ pub async fn is_registering(
 ) -> Result<bool, UserErr> {
     let is_registering_query = entropy::storage().relayer().registering(who);
     let is_registering = api.storage().fetch(&is_registering_query, None).await.unwrap();
-    if is_registering.is_none() {
-        return Err(UserErr::NotRegistering("Register Onchain first"));
-    }
-    Ok(is_registering.unwrap().is_registering)
+    Ok(is_registering.ok_or(UserErr::NotRegistering("Register Onchain first"))?.is_registering)
 }
 
 // Returns PairSigner for this nodes threshold server.
@@ -101,15 +100,18 @@ pub async fn get_signer(
 pub async fn get_subgroup(
     api: &OnlineClient<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) -> Result<Option<u8>, subxt::Error> {
+) -> Result<Option<u8>, UserErr> {
     let mut subgroup: Option<u8> = None;
     let address = signer.account_id();
     // TODO: stash keys are broken up into subgroups....need to get stash key here from threshold
     for i in 0..SIGNING_PARTY_SIZE {
         let signing_group_addresses_query =
             entropy::storage().staking_extension().signing_groups(i as u8);
-        let signing_group_addresses =
-            api.storage().fetch(&signing_group_addresses_query, None).await?.unwrap();
+        let signing_group_addresses = api
+            .storage()
+            .fetch(&signing_group_addresses_query, None)
+            .await?
+            .ok_or(UserErr::SubgroupError("Subgroup Error"))?;
         if signing_group_addresses.contains(address) {
             subgroup = Some(i as u8);
             break;
@@ -123,7 +125,7 @@ pub async fn confirm_registered(
     who: AccountId32,
     subgroup: u8,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) -> Result<(), subxt::Error> {
+) -> Result<(), subxt::error::Error> {
     // TODO error handling + return error
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default

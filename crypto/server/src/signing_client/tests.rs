@@ -83,10 +83,8 @@ async fn test_new_party() {
         let response = client.post(url).body(encoded_data_1).send().await;
         assert_eq!(response.unwrap().status(), 200);
         // all of this can be removed
-        let _s = String::from_utf8_lossy(unencoded_data_1[0].sig_request.sig_hash.as_slice())
-            .to_string();
-        let sig_message = SigMessage { message: _s.clone() };
-        println!("EXPECTED_KEY: {}", _s);
+        let sig_message =
+            SigMessage { message: hex::encode(unencoded_data_1[0].sig_request.sig_hash.clone()) };
         let response_2 = client
             .post("http:///127.0.0.1:3001/signer/signature")
             .body(serde_json::to_string(&sig_message).unwrap())

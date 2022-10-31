@@ -99,8 +99,9 @@ async fn test_store_share() {
 
     let res = query_result.unwrap();
     let server_public_key = PublicKey::from(res.1);
-    let user_input =
-        SignedMessage::new(&alice.pair(), &Bytes(value), &server_public_key).unwrap().to_json();
+    let user_input = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
+        .unwrap()
+        .to_json();
 
     // fails to add not registering
     let response = client
@@ -111,6 +112,10 @@ async fn test_store_share() {
         .await;
 
     assert_eq!(response.status(), Status::InternalServerError);
+    assert_eq!(
+        response.into_string().await.unwrap(),
+        "Not Registering error: Register Onchain first"
+    );
 
     // signal registering
     make_register(&api, &alice).await;
@@ -136,7 +141,52 @@ async fn test_store_share() {
         .await;
 
     assert_eq!(response_3.status(), Status::InternalServerError);
+    assert_eq!(response_3.into_string().await.unwrap(), "Kv error: Recv Error: channel closed");
 
+    // fails with wrong node key
+    let bob_stash_id: AccountId32 =
+        h!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into();
+
+    let query_bob = entropy::storage().staking_extension().threshold_accounts(&bob_stash_id);
+    let query_result_bob = api.storage().fetch(&query_bob, None).await.unwrap();
+    let res_bob = query_result_bob.unwrap();
+    let server_public_key_bob = PublicKey::from(res_bob.1);
+    let user_input_bob =
+        SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key_bob)
+            .unwrap()
+            .to_json();
+
+    let response_4 = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(user_input_bob.clone())
+        .dispatch()
+        .await;
+
+    assert_eq!(response_4.status(), Status::InternalServerError);
+    assert_eq!(response_4.into_string().await.unwrap(), "Parse error: failed decrypting message");
+    let sig: [u8; 64] = [0; 64].try_into().unwrap();
+    let slice: [u8; 32] = [0; 32].try_into().unwrap();
+    let nonce: [u8; 12] = [0; 12].try_into().unwrap();
+    let user_input_bad = SignedMessage::new_test(
+        Bytes(value),
+        sr25519::Signature::from_raw(sig),
+        slice.clone(),
+        slice.clone(),
+        slice.clone(),
+        nonce.clone(),
+    )
+    .to_json();
+
+    let response_5 = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(user_input_bad.clone())
+        .dispatch()
+        .await;
+
+    assert_eq!(response_5.status(), Status::InternalServerError);
+    assert_eq!(response_5.into_string().await.unwrap(), "Invalid Signature: Invalid signature.");
     clean_tests();
 }
 
