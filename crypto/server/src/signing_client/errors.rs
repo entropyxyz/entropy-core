@@ -27,6 +27,8 @@ pub enum SigningErr {
 	CodecError(#[from] parity_scale_codec::Error),
 	#[error("Conversion Error: {0}")]
 	TryFrom(#[from] std::array::TryFromSliceError),
+	#[error("Decoding Error: {0}")]
+	Bincode(#[from] Box::<bincode::ErrorKind>),
 	#[error("Mutex Error: {0}")]
     MutexError(&'static str),
     // Validation(&'static str),
