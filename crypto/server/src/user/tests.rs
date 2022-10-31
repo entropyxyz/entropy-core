@@ -171,10 +171,10 @@ async fn test_store_share() {
     let user_input_bad = SignedMessage::new_test(
         Bytes(value),
         sr25519::Signature::from_raw(sig),
-        slice.clone(),
-        slice.clone(),
-        slice.clone(),
-        nonce.clone(),
+        slice,
+        slice,
+        slice,
+        nonce,
     )
     .to_json();
 
