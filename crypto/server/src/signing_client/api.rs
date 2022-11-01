@@ -58,7 +58,7 @@ pub async fn new_party(
         let result = gg20_service.execute_sign(&sign_context, channels).await?;
         use k256::{ecdsa::VerifyingKey, elliptic_curve::sec1::FromEncodedPoint};
         let pubkey_bytes = sign_context.party_info.common.encoded_pubkey();
-		// unwrap left here since recoverable signature PR removes
+        // unwrap left here since recoverable signature PR removes
         let ep = k256::EncodedPoint::from_bytes(pubkey_bytes).unwrap();
         let pubkey = VerifyingKey::from_encoded_point(&ep).unwrap();
 
@@ -101,7 +101,8 @@ pub async fn subscribe_to_me(
 
     let rx = {
         let mut listeners = state.listeners.lock().unwrap();
-        let listener = listeners.get_mut(&msg.party_id).ok_or(SubscribeErr::NoListener("no listener"))?;
+        let listener =
+            listeners.get_mut(&msg.party_id).ok_or(SubscribeErr::NoListener("no listener"))?;
         let rx_outcome = listener.subscribe(&msg)?;
 
         // If this is the last subscriber, remove the listener from state
@@ -109,7 +110,9 @@ pub async fn subscribe_to_me(
             Receiver::Receiver(rx) => rx,
             Receiver::FinalReceiver(rx) => {
                 // all subscribed, wake up the waiting listener in new_party
-                let listener = listeners.remove(&msg.party_id).ok_or(SubscribeErr::NoListener("listener remove"))?;
+                let listener = listeners
+                    .remove(&msg.party_id)
+                    .ok_or(SubscribeErr::NoListener("listener remove"))?;
                 let (tx, broadcaster) = listener.into_broadcaster();
                 let _ = tx.send(Ok(broadcaster));
                 rx
