@@ -15,12 +15,12 @@ use rocket::{
 };
 use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair};
-use subxt::{sp_runtime::AccountId32, DefaultConfig, PairSigner};
+use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner};
 use tracing::instrument;
 
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
-    chain_api::{entropy, get_api, EntropyRuntime},
+    chain_api::{entropy, get_api},
     message::SignedMessage,
     signing_client::SignerState,
     Configuration,
