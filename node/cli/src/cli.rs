@@ -1,5 +1,4 @@
-use sc_cli::RunCmd;
-
+/// An overarching CLI command definition.
 #[derive(Debug, clap::Parser)]
 pub struct Cli {
     /// Possible subcommand with parameters.
@@ -8,7 +7,17 @@ pub struct Cli {
 
     #[allow(missing_docs)]
     #[clap(flatten)]
-    pub run: RunCmd,
+    pub run: sc_cli::RunCmd,
+
+    /// Disable automatic hardware benchmarks.
+    ///
+    /// By default these benchmarks are automatically ran at startup and measure
+    /// the CPU speed, the memory bandwidth and the disk speed.
+    ///
+    /// The results are then printed out in the logs, and also sent as part of
+    /// telemetry, if telemetry is enabled.
+    #[clap(long)]
+    pub no_hardware_benchmarks: bool,
 }
 
 #[derive(Debug, clap::Subcommand)]
@@ -16,6 +25,7 @@ pub enum Subcommand {
     /// Key management cli utilities
     #[clap(subcommand)]
     Key(sc_cli::KeySubcommand),
+
     /// Build a chain specification.
     BuildSpec(sc_cli::BuildSpecCmd),
 
@@ -37,7 +47,18 @@ pub enum Subcommand {
     /// Revert the chain to a previous state.
     Revert(sc_cli::RevertCmd),
 
-    /// The custom benchmark subcommmand benchmarking runtime pallets.
-    #[clap(name = "benchmark", about = "Benchmark runtime pallets.")]
+    /// Sub-commands concerned with benchmarking.
+    #[clap(subcommand)]
     Benchmark(frame_benchmarking_cli::BenchmarkCmd),
+
+    /// Try some command against runtime state.
+    #[cfg(feature = "try-runtime")]
+    TryRuntime(try_runtime_cli::TryRuntimeCmd),
+
+    /// Try some command against runtime state. Note: `try-runtime` feature must be enabled.
+    #[cfg(not(feature = "try-runtime"))]
+    TryRuntime,
+
+    /// Db meta columns information.
+    ChainInfo(sc_cli::ChainInfoCmd),
 }

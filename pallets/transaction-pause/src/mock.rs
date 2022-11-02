@@ -46,9 +46,7 @@ impl frame_system::Config for Runtime {
     type BlockLength = ();
     type BlockNumber = u64;
     type BlockWeights = ();
-    type Call = Call;
     type DbWeight = ();
-    type Event = Event;
     type Hash = H256;
     type Hashing = ::sp_runtime::traits::BlakeTwo256;
     type Header = Header;
@@ -58,8 +56,10 @@ impl frame_system::Config for Runtime {
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
-    type Origin = Origin;
     type PalletInfo = PalletInfo;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
     type SS58Prefix = ();
     type SystemWeightInfo = ();
     type Version = ();
@@ -69,11 +69,11 @@ impl pallet_balances::Config for Runtime {
     type AccountStore = System;
     type Balance = Balance;
     type DustRemoval = ();
-    type Event = Event;
     type ExistentialDeposit = ConstU128<10>;
     type MaxLocks = ();
     type MaxReserves = ConstU32<50>;
     type ReserveIdentifier = ();
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
 
@@ -83,9 +83,9 @@ parameter_types! {
 }
 
 impl pallet_constraints::Config for Runtime {
-    type Event = Event;
     type MaxAddressLength = MaxAddressLength;
     type MaxWhitelist = MaxWhitelist;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
 
@@ -94,7 +94,7 @@ ord_parameter_types! {
 }
 
 impl Config for Runtime {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureSignedBy<One, AccountId>;
     type WeightInfo = ();
 }

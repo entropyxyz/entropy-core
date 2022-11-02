@@ -7,8 +7,8 @@ use chacha20poly1305::{
 use rand_core::OsRng;
 use rocket::serde::json::to_string;
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::AccountId32, sr25519, sr25519::Signature, Bytes, Pair};
 use sp_keyring::AccountKeyring;
+use subxt::ext::sp_core::{crypto::AccountId32, sr25519, sr25519::Signature, Bytes, Pair};
 use x25519_dalek::{PublicKey, StaticSecret};
 use zeroize::Zeroize;
 
@@ -60,7 +60,7 @@ impl SignedMessage {
         Ok(SignedMessage {
             pk: sk.public().0,
             a: *a.as_bytes(),
-            msg: sp_core::Bytes(ciphertext),
+            msg: subxt::ext::sp_core::Bytes(ciphertext),
             nonce: static_nonce,
             sig: sk.sign(&hash),
             recip: recip.to_bytes(),
@@ -179,7 +179,7 @@ mod tests {
         // Test encryption & signing.
         let encrypt_result = SignedMessage::new(&alice, &plaintext, &bob_public_key);
         // Assert no error received in encryption.
-        assert!(!encrypt_result.is_err());
+        assert!(encrypt_result.is_ok());
         let encrypted_message = encrypt_result.unwrap();
 
         // Test signature validity
@@ -188,7 +188,7 @@ mod tests {
         // Test decryption
         let decrypt_result = encrypted_message.decrypt(&bob);
         // Assert no error received in decryption.
-        assert!(!decrypt_result.is_err());
+        assert!(decrypt_result.is_ok());
         let decrypted_result = decrypt_result.unwrap();
 
         // Check the decrypted message equals the plaintext.

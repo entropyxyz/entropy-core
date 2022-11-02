@@ -1,5 +1,6 @@
 use sp_keyring::AccountKeyring;
-use subxt::{ClientBuilder, DefaultConfig, DefaultExtra, PairSigner};
+use subxt::{OnlineClient, PolkadotConfig as EntropyConfig, DefaultExtra, tx::PairSigner};
+use chain_api::EntropyConfig;
 
 #[subxt::subxt(runtime_metadata_path = "src/entropy_metadata.scale")]
 pub mod entropy {}
@@ -10,17 +11,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let dest = AccountKeyring::Bob.to_account_id().into();
 
 	//TODO replace accept weak inclusion
-	let api = ClientBuilder::new()
-		.set_url("ws://localhost:9944")
-		.build()
-		.await?
-		.to_runtime_api::<entropy::RuntimeApi<DefaultConfig, DefaultExtra<_>>>();
+	let api = OnlineClient::<EntropyConfig>::new().await?;
 
-	let result = api
+	let balance_transfer_tx = entropy::tx().balances().transfer(dest, 10_000);
+	
+	let balance_transfer = api
 		.tx()
-		.balances()
-		.transfer(dest, 10_000)
-		.sign_and_submit_then_watch(&signer)
+		.sign_and_submit_then_watch_default(&balance_transfer_tx, &signer)
 		.await?
 		.wait_for_finalized_success()
 		.await?;

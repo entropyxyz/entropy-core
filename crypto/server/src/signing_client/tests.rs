@@ -21,7 +21,7 @@ use serial_test::serial;
 use sp_core::{crypto::AccountId32, sr25519::Pair as Sr25519Pair, Pair as Pair2};
 use sp_keyring::AccountKeyring;
 use substrate_common::{Message, SigRequest};
-use subxt::{sp_core::sr25519, PairSigner};
+use subxt::{ext::sp_core::sr25519, tx::PairSigner};
 use testing_utils::context::{test_context, test_context_stationary};
 use tofn::{
     gg20::keygen::{KeygenPartyId, SecretKeyShare},
@@ -152,7 +152,7 @@ async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
 
     // Shortcut: store the shares manually
     let root = project_root::get_project_root().unwrap();
-    let share_id = if port == 3001 { 0 } else { 1 };
+    let share_id = i32::from(port != 3001);
     let path: PathBuf =
         [root, "test_data".into(), "key_shares".into(), share_id.to_string().into()]
             .into_iter()

@@ -18,6 +18,7 @@
 
 //! Substrate chain configurations.
 
+#![allow(dead_code)]
 pub use entropy_runtime::GenesisConfig;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
@@ -409,6 +410,7 @@ pub fn testnet_genesis(
         vesting: Default::default(),
         transaction_storage: Default::default(),
         transaction_payment: Default::default(),
+        nomination_pools: Default::default(),
     }
 }
 
@@ -513,11 +515,9 @@ pub(crate) mod tests {
     #[test]
     #[ignore]
     fn test_connectivity() {
-        sp_tracing::try_init_simple();
-
         sc_service_test::connectivity(integration_test_config_with_two_authorities(), |config| {
             let NewFullBase { task_manager, client, network, transaction_pool, .. } =
-                new_full_base(config, |_, _| ())?;
+                new_full_base(config, false, |_, _| ())?;
             Ok(sc_service_test::TestNetComponents::new(
                 task_manager,
                 client,
