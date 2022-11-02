@@ -29,9 +29,9 @@ use bip39::{Language, Mnemonic, MnemonicType};
 extern crate rocket;
 use kvdb::kv_manager::{error::KvError, KeyReservation, KvManager};
 use rocket::routes;
-use sp_core::{crypto::AccountId32, sr25519, Pair};
 use sp_keyring::AccountKeyring;
 use substrate_common::SIGNING_PARTY_SIZE;
+use subxt::ext::sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use self::{
     signing_client::{api::*, SignerState},

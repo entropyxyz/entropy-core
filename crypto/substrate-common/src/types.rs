@@ -9,7 +9,7 @@ pub struct RegistrationMessage {
     // ToDo: TypeInfo marco only works for basic types out of the box.
     // Out of the box it does not work for types like SecretKey or PublicKey
     // TypeInfo needs to be implemented for these types.
-    // see https://github.com/Entropyxyz/entropy-core/issues/29
+    // see https://github.com/entropyxyz/entropy-core/issues/29
 
     // /// Session ID/nonce. Check that this ID has not beed used before
     // /// This will be 0 for account creation.

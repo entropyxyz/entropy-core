@@ -1,14 +1,16 @@
 #![allow(clippy::all)]
-use subxt::{ClientBuilder, DefaultConfig, PairSigner, PolkadotExtrinsicParams};
+pub use subxt::config::PolkadotConfig as EntropyConfig;
+use subxt::{
+    config::Config,
+    tx::{PairSigner, SubstrateExtrinsicParams},
+    OnlineClient,
+};
 #[subxt::subxt(runtime_metadata_path = "entropy_metadata.scale")]
 pub mod entropy {}
 
-pub type EntropyRuntime =
-    entropy::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
-
 /// Creates an api instance to talk to chain
 /// Chain endpoint set on launch
-pub async fn get_api(url: &str) -> Result<EntropyRuntime, subxt::Error<entropy::DispatchError>> {
-    let api = ClientBuilder::new().set_url(url).build().await?.to_runtime_api::<EntropyRuntime>();
+pub async fn get_api(url: &str) -> Result<OnlineClient<EntropyConfig>, subxt::Error> {
+    let api = OnlineClient::<EntropyConfig>::from_url(url).await?;
     Ok(api)
 }

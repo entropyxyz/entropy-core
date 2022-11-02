@@ -20,9 +20,9 @@ pub enum UserErr {
     #[error("Kv error: {0}")]
     Kv(#[from] kvdb::kv_manager::error::KvError),
     #[error("Substrate error: {0}")]
-    Substrate(#[from] subxt::Error<entropy::DispatchError>),
+    Substrate(#[from] subxt::error::DispatchError),
     #[error("Generic Substrate error: {0}")]
-    GenericSubstrate(#[from] subxt::GenericError<std::convert::Infallible>),
+    GenericSubstrate(#[from] subxt::error::Error),
     #[error("Not Registering error: {0}")]
     NotRegistering(&'static str),
     #[error("Subgroup error: {0}")]

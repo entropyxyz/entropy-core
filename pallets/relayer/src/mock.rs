@@ -56,9 +56,7 @@ impl system::Config for Test {
     type BlockLength = ();
     type BlockNumber = u64;
     type BlockWeights = ();
-    type Call = Call;
     type DbWeight = ();
-    type Event = Event;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type Header = Header;
@@ -68,8 +66,10 @@ impl system::Config for Test {
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
-    type Origin = Origin;
     type PalletInfo = PalletInfo;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
     type SS58Prefix = SS58Prefix;
     type SystemWeightInfo = ();
     type Version = ();
@@ -94,11 +94,11 @@ impl pallet_balances::Config for Test {
     type AccountStore = System;
     type Balance = Balance;
     type DustRemoval = ();
-    type Event = Event;
     type ExistentialDeposit = ExistentialDeposit;
     type MaxLocks = MaxLocks;
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
 
@@ -139,10 +139,11 @@ sp_runtime::impl_opaque_keys! {
 }
 
 pub struct OnChainSeqPhragmen;
-impl onchain::ExecutionConfig for OnChainSeqPhragmen {
+impl onchain::Config for OnChainSeqPhragmen {
     type DataProvider = FrameStaking;
     type Solver = SequentialPhragmen<AccountId, Perbill>;
     type System = Test;
+    type WeightInfo = ();
 }
 
 pallet_staking_reward_curve::build! {
@@ -164,10 +165,10 @@ parameter_types! {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where Call: From<C>
+where RuntimeCall: From<C>
 {
-    type Extrinsic = TestXt<Call, ()>;
-    type OverarchingCall = Call;
+    type Extrinsic = TestXt<RuntimeCall, ()>;
+    type OverarchingCall = RuntimeCall;
 }
 
 const THRESHOLDS: [sp_npos_elections::VoteWeight; 9] =
@@ -179,7 +180,7 @@ parameter_types! {
 
 impl pallet_bags_list::Config for Test {
     type BagThresholds = BagThresholds;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Score = VoteWeight;
     type ScoreProvider = FrameStaking;
     type WeightInfo = ();
@@ -206,32 +207,36 @@ impl pallet_staking::Config for Test {
     type BenchmarkingConfig = StakingBenchmarkingConfig;
     type BondingDuration = BondingDuration;
     type Currency = Balances;
+    type CurrencyBalance = Balance;
     type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
     type ElectionProvider = onchain::UnboundedExecution<OnChainSeqPhragmen>;
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
-    type Event = Event;
     type GenesisElectionProvider = Self::ElectionProvider;
+    type HistoryDepth = ConstU32<84>;
     type MaxNominations = MaxNominations;
     type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
+    type OnStakerSlash = ();
     type Reward = ();
     type RewardRemainder = ();
+    type RuntimeEvent = RuntimeEvent;
     type SessionInterface = Self;
     type SessionsPerEra = SessionsPerEra;
     type Slash = ();
     type SlashCancelOrigin = frame_system::EnsureRoot<Self::AccountId>;
     type SlashDeferDuration = SlashDeferDuration;
+    type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = pallet_timestamp::Pallet<Test>;
     type VoterList = BagsList;
     type WeightInfo = ();
 }
 
 impl pallet_session::Config for Test {
-    type Event = Event;
     type Keys = UintAuthorityId;
     type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+    type RuntimeEvent = RuntimeEvent;
     type SessionHandler = (OtherSessionHandler,);
     type SessionManager = pallet_session::historical::NoteHistoricalRoot<Test, FrameStaking>;
     type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
@@ -250,8 +255,8 @@ parameter_types! {
 }
 impl pallet_staking_extension::Config for Test {
     type Currency = Balances;
-    type Event = Event;
     type MaxEndpointLength = MaxEndpointLength;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
 
@@ -281,8 +286,8 @@ parameter_types! {
 }
 
 impl pallet_relayer::Config for Test {
-    type Event = Event;
     type PruneBlock = PruneBlock;
+    type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
     type WeightInfo = ();
 }
