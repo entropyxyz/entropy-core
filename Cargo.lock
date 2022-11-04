@@ -8917,6 +8917,7 @@ dependencies = [
  "blake2",
  "bytes",
  "chacha20poly1305 0.10.1",
+ "constraints",
  "futures",
  "generic-array 0.14.6",
  "hex",
