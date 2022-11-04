@@ -1,7 +1,7 @@
 # NOTE: Use only for testing.
 # Launches alices node on the public ipv4 address passed in as the first 
 # command line parameter
-
+# TODO: add parameters for ports, currently they are hard coded.
 ALICE_IP=${1:-""}
 if [ "${#ALICE_IP}" -lt 1 ]; then echo -e "[USAGE]\n\n./alice-node.sh [ip]\n" && exit; fi
 # TODO: replace the usage of an environment variable with a command line param/config.

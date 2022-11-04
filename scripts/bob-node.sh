@@ -1,9 +1,12 @@
 # NOTE: Use only for testing.
-# Launches alices node on the public ipv4 address passed in as the first 
-# command line parameter
-
+# Launches bobs node.
+# First parameter is bobs public ipv4 address. 
+# Second parameter is alices ipv4 address used to 
+#   bootstrap alice/bob as the first two nodes of the network. 
+# TODO: add parameters for ports, currently they are hard-coded.
 BOB_IP=${1:-""}
-if [ "${#BOB_IP}" -lt 1 ]; then echo -e "[USAGE]\n\n./bob-node.sh [ip]\n" && exit; fi
+ALICE_IP=${2:-""}
+if [[ "${#BOB_IP}" -lt 1 || "${#ALICE_IP}" -lt 1 ]]; then echo -e "[USAGE]\n\n./bob-node.sh [bob_websocket_ip] [alice_peer_ip]\n" && exit; fi
 # TODO: replace the usage of an environment variable with a command line param/config.
 export ENDPOINT="ws://$BOB_IP"
 
@@ -18,7 +21,7 @@ export ENDPOINT="ws://$BOB_IP"
 --rpc-port 9934 \
 --telemetry-url "wss://telemetry.polkadot.io/submit/ 0" \
 --validator \
---bootnodes /ip4/54.90.13.241/tcp/30333/p2p/12D3KooWHBYK2Vu6E3KXRpfkNZ8nr9wZ48GvXEy5cYSt6dCwkYw9 \
+--bootnodes /ip4/$ALICE_IP/tcp/30333/p2p/12D3KooWHBYK2Vu6E3KXRpfkNZ8nr9wZ48GvXEy5cYSt6dCwkYw9 \
 --unsafe-rpc-external \
 --unsafe-ws-external \
 --rpc-methods=unsafe \
