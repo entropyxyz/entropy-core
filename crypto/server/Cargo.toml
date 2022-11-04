@@ -17,6 +17,8 @@ generic-array      ="0.14.6"
 zeroize            ="1.5.7"
 hex                ="*"
 reqwest-eventsource="0.4"
+k256               ={ version="0.10", features=["serde", "ecdsa"] }
+hex-literal     ="0.3.4"
 
 # Async
 futures="0.3"
@@ -36,6 +38,8 @@ tofn              ={ git="https://github.com/entropyxyz/tofn", branch="main" }
 # Entropy
 substrate-common={ path="../substrate-common", default-features=false }
 kvdb            ={ path="../kvdb", default-features=false }
+constraints     ={ path="../constraints" }
+
 # Logging
 log               ="0.4.17"                                          # todo: remove, overlaps tracing
 tracing           ="0.1"
