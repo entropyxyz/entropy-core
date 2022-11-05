@@ -86,13 +86,6 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    /// Stores the relationship between a validator's stash account and the IP address/endpoint they
-    /// can be reached at.
-    #[pallet::storage]
-    #[pallet::getter(fn endpoint_register)]
-    pub type EndpointRegister<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, TssServerURL, OptionQuery>;
-
     /// Stores the relationship between
     /// a validator's stash account and their threshold server's sr25519 and x25519 keys.
     ///
@@ -182,7 +175,6 @@ pub mod pallet {
                 Error::<T>::EndpointTooLong
             );
             let ledger = pallet_staking::Pallet::<T>::ledger(&who).ok_or(Error::<T>::NoBond)?;
-            // todo jh check
             ThresholdServers::<T>::try_mutate(&ledger.stash, |maybe_server_info| {
                 if let Some(server_info) = maybe_server_info {
                     server_info.endpoint = endpoint.clone();
