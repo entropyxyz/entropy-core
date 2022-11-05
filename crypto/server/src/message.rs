@@ -7,8 +7,8 @@ use chacha20poly1305::{
 use rand_core::OsRng;
 use rocket::serde::json::to_string;
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::AccountId32, sr25519, sr25519::Signature, Bytes, Pair};
 use sp_keyring::AccountKeyring;
+use subxt::ext::sp_core::{crypto::AccountId32, sr25519, sr25519::Signature, Bytes, Pair};
 use x25519_dalek::{PublicKey, StaticSecret};
 use zeroize::Zeroize;
 
@@ -60,11 +60,23 @@ impl SignedMessage {
         Ok(SignedMessage {
             pk: sk.public().0,
             a: *a.as_bytes(),
-            msg: sp_core::Bytes(ciphertext),
+            msg: subxt::ext::sp_core::Bytes(ciphertext),
             nonce: static_nonce,
             sig: sk.sign(&hash),
             recip: recip.to_bytes(),
         })
+    }
+
+    #[cfg(test)]
+    pub fn new_test(
+        msg: Bytes,
+        sig: Signature,
+        pk: [u8; 32],
+        recip: [u8; 32],
+        a: [u8; 32],
+        nonce: [u8; 12],
+    ) -> SignedMessage {
+        SignedMessage { pk, a, msg, nonce, sig, recip }
     }
 
     /// Decrypts the message and returns the plaintext.
@@ -92,11 +104,14 @@ impl SignedMessage {
         hasher.update(&self.msg.0);
         hasher.update(self.recip);
         let hash = hasher.finalize().to_vec();
-        <sr25519::Pair as Pair>::verify(&self.sig, &hash, &sr25519::Public(self.pk))
+        <sr25519::Pair as Pair>::verify(&self.sig, hash, &sr25519::Public(self.pk))
     }
 
     /// Returns a serialized json string of self.
     pub fn to_json(&self) -> String { to_string(self).unwrap() }
+
+    /// Deserializes a json blob into a SignedMessage
+    pub fn from_json(s: String) -> Self { rocket::serde::json::from_str(s.as_str()).unwrap() }
 }
 
 /// Derives a static secret from a sr25519 private key for usage in static Diffie-Hellman.
@@ -126,6 +141,30 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_bad_signatures_fails() {
+        let plaintext = Bytes(vec![69, 42, 0]);
+
+        let alice = mnemonic_to_pair(&new_mnemonic());
+        let alice_secret = derive_static_secret(&alice);
+        let alice_public_key = PublicKey::from(&alice_secret);
+
+        let bob = mnemonic_to_pair(&new_mnemonic());
+        let bob_secret = derive_static_secret(&bob);
+        let bob_public_key = PublicKey::from(&bob_secret);
+
+        let alice_to_alice = SignedMessage::new(&alice, &plaintext, &alice_public_key).unwrap();
+        let mut alice_to_bob = SignedMessage::new(&alice, &plaintext, &bob_public_key).unwrap();
+
+        // Test that replacing the public key fails to verify the signature.
+        alice_to_bob.sig = alice_to_alice.sig;
+        assert!(!alice_to_bob.verify());
+
+        // Test that decrypting with the wrong private key throws an error.
+        let res = alice_to_bob.decrypt(&alice);
+        assert!(res.is_err());
+    }
+
+    #[test]
     fn test_sign_and_encrypt() {
         let plaintext = Bytes(vec![69, 42, 0]);
 
@@ -140,7 +179,7 @@ mod tests {
         // Test encryption & signing.
         let encrypt_result = SignedMessage::new(&alice, &plaintext, &bob_public_key);
         // Assert no error received in encryption.
-        assert!(!encrypt_result.is_err());
+        assert!(encrypt_result.is_ok());
         let encrypted_message = encrypt_result.unwrap();
 
         // Test signature validity
@@ -149,7 +188,7 @@ mod tests {
         // Test decryption
         let decrypt_result = encrypted_message.decrypt(&bob);
         // Assert no error received in decryption.
-        assert!(!decrypt_result.is_err());
+        assert!(decrypt_result.is_ok());
         let decrypted_result = decrypt_result.unwrap();
 
         // Check the decrypted message equals the plaintext.

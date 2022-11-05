@@ -33,7 +33,7 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type MaxWhitelist: Get<u32>;
         type MaxAddressLength: Get<u32>;
 
@@ -73,7 +73,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Adds an address to be whitelisted
         /// - `whitelist_addresses`: Addresses to be whitelisted
-        #[pallet::weight((T::WeightInfo::add_whitelist_address(T::MaxWhitelist::get() as u32), Pays::No))]
+        #[pallet::weight((T::WeightInfo::add_whitelist_address(T::MaxWhitelist::get()), Pays::No))]
         pub fn add_whitelist_address(
             origin: OriginFor<T>,
             whitelist_addresses: Vec<Vec<u8>>,

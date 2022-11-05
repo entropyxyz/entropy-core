@@ -20,7 +20,7 @@ pub(super) fn handle_reserve(
     // search key in kv store.
     // If reserve key already exists inside our database, return an error
     if kv.contains_key(&key)? {
-        return Err(LogicalErr(format!("kv_manager key <{}> already reserved.", key)));
+        return Err(LogicalErr(format!("kv_manager key <{key}> already reserved.")));
     }
 
     // try to insert the new key with default value
@@ -39,7 +39,7 @@ pub(super) fn handle_delete(kv: &encrypted_sled::Db, key: String) -> InnerKvResu
 
     // check if key holds the default reserve value. If yes, can't delete it.
     if kv.get(&key)? == Some(sled::IVec::from(DEFAULT_RESERVE)) {
-        return Err(LogicalErr(format!("can't delete reserved key <{}> in kv store.", key)));
+        return Err(LogicalErr(format!("can't delete reserved key <{key}> in kv store.")));
     }
 
     kv.remove(&key)?;
@@ -84,7 +84,7 @@ where V: DeserializeOwned + Debug {
     // try to get value of 'key'
     let value = match kv.get(&key)? {
         Some(bytes) => deserialize(&bytes).ok_or(DeserializationErr)?,
-        None => return Err(LogicalErr(format!("key <{}> does not have a value.", key))),
+        None => return Err(LogicalErr(format!("key <{key}> does not have a value."))),
     };
 
     // return value
@@ -95,9 +95,6 @@ where V: DeserializeOwned + Debug {
 /// Returns [SledErr] of [LogicalErr] on failure.
 pub(super) fn handle_exists(kv: &encrypted_sled::Db, key: &str) -> InnerKvResult<bool> {
     kv.contains_key(key).map_err(|err| {
-        LogicalErr(format!(
-            "Could not perform 'contains_key' for key <{}> due to error: {}",
-            key, err
-        ))
+        LogicalErr(format!("Could not perform 'contains_key' for key <{key}> due to error: {err}"))
     })
 }

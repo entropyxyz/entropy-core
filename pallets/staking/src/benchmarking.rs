@@ -11,9 +11,9 @@ use crate::Pallet as Staking;
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
-fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
+fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     let events = frame_system::Pallet::<T>::events();
-    let system_event: <T as frame_system::Config>::Event = generic_event.into();
+    let system_event: <T as frame_system::Config>::RuntimeEvent = generic_event.into();
     // compare to the last event record
     let EventRecord { event, .. } = &events[events.len() - 1];
     assert_eq!(event, &system_event);
@@ -24,7 +24,7 @@ fn prep_bond_and_validate<T: Config>(
     caller: T::AccountId,
     bonder: T::AccountId,
     threshold: T::AccountId,
-    dh_pk: [u8; 32],
+    x25519_public_key: [u8; 32],
 ) {
     let reward_destination = RewardDestination::Account(caller.clone());
     let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
@@ -45,7 +45,7 @@ fn prep_bond_and_validate<T: Config>(
             ValidatorPrefs::default(),
             vec![20, 20],
             threshold,
-            dh_pk
+            x25519_public_key
         ));
     }
 }
@@ -57,26 +57,31 @@ benchmarks! {
     let caller: T::AccountId = whitelisted_caller();
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
-    let dh_pk = NULL_ARR;
+    let x25519_public_key = NULL_ARR;
     prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
 
 
   }:  _(RawOrigin::Signed(caller.clone()), vec![30])
   verify {
-    assert_last_event::<T>(Event::EndpointChanged(caller, vec![30]).into());
+    assert_last_event::<T>(Event::<T>::EndpointChanged(caller, vec![30]).into());
   }
 
   change_threshold_accounts {
     let caller: T::AccountId = whitelisted_caller();
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
-    let dh_pk: [u8; 32] = NULL_ARR;
+    let x25519_public_key: [u8; 32] = NULL_ARR;
     prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
 
 
   }:  _(RawOrigin::Signed(caller.clone()), bonder.clone(), NULL_ARR)
   verify {
-    assert_last_event::<T>(Event::ThresholdAccountChanged(bonder.clone(), (bonder, NULL_ARR)).into());
+    let server_info = ServerInfo {
+      endpoint: vec![20, 20],
+      tss_account: bonder.clone(),
+      x25519_public_key: NULL_ARR,
+    };
+    assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder.clone(), server_info).into());
   }
 
 
@@ -107,7 +112,7 @@ benchmarks! {
     let caller: T::AccountId = whitelisted_caller();
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
-    let dh_pk: [u8; 32] = NULL_ARR;
+    let x25519_public_key: [u8; 32] = NULL_ARR;
     prep_bond_and_validate::<T>(false, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
 
     let validator_preferance = ValidatorPrefs::default();
@@ -115,7 +120,7 @@ benchmarks! {
 
   }:  _(RawOrigin::Signed(caller.clone()), validator_preferance, vec![20], threshold.clone(), NULL_ARR)
   verify {
-    assert_last_event::<T>(Event::NodeInfoChanged(caller,  vec![20], threshold).into());
+    assert_last_event::<T>(Event::<T>::NodeInfoChanged(caller,  vec![20], threshold).into());
   }
 
 

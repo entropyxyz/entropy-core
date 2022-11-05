@@ -30,8 +30,10 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::{
-        dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::IsSubType,
-        weights::Pays,
+        dispatch::{DispatchResult, Pays},
+        inherent::Vec,
+        pallet_prelude::*,
+        traits::IsSubType,
     };
     use frame_system::pallet_prelude::*;
     use helpers::unwrap_or_return;
@@ -41,7 +43,7 @@ pub mod pallet {
         transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
     };
     use sp_std::{fmt::Debug, vec};
-    use substrate_common::{Message, SigRequest};
+    use substrate_common::{Message, SigRequest, SIGNING_PARTY_SIZE};
 
     pub use crate::weights::WeightInfo;
     /// Configure the pallet by specifying the parameters and types on which it depends.
@@ -50,7 +52,7 @@ pub mod pallet {
         frame_system::Config + pallet_authorship::Config + pallet_staking_extension::Config
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type PruneBlock: Get<Self::BlockNumber>;
         type SigningPartySize: Get<usize>;
         /// The weight information of this pallet.
@@ -80,9 +82,9 @@ pub mod pallet {
             );
             Self::note_responsibility(block_number);
             if is_prune_failures {
-                <T as Config>::WeightInfo::move_active_to_pending_failure(messages.len() as u32)
+                <T as Config>::WeightInfo::move_active_to_pending_failure(messages.len() as u64)
             } else {
-                <T as Config>::WeightInfo::move_active_to_pending_no_failure(messages.len() as u32)
+                <T as Config>::WeightInfo::move_active_to_pending_no_failure(messages.len() as u64)
             }
         }
     }
@@ -156,6 +158,8 @@ pub mod pallet {
         InvalidSubgroup,
         AlreadyConfirmed,
         NotInSigningGroup,
+        IpAddressError,
+        SigningGroupError,
     }
 
     /// Allows a user to kick off signing process
@@ -166,7 +170,8 @@ pub mod pallet {
         pub fn prep_transaction(origin: OriginFor<T>, sig_request: SigRequest) -> DispatchResult {
             log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
             let who = ensure_signed(origin)?;
-            let message = Message { sig_request, account: who.encode() };
+            let ip_addresses = Self::get_ip_addresses()?;
+            let message = Message { sig_request, account: who.encode(), ip_addresses };
             let block_number = <frame_system::Pallet<T>>::block_number();
             Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
                 request.push(message);
@@ -191,7 +196,7 @@ pub mod pallet {
 
         // TODO(Jake): This is an insecure way to do a free transaction.
         // secure it, please. :)
-        #[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+        #[pallet::weight((T::DbWeight::get().writes(1), Pays::No))]
         pub fn confirm_register(
             origin: OriginFor<T>,
             registerer: T::AccountId,
@@ -223,7 +228,7 @@ pub mod pallet {
         /// Allows a node to signal they have completed a signing batch
         /// `block_number`: block number for signing batch
         /// `failure`: index of any failures in all sig request arrays
-        #[pallet::weight((10_000 + T::DbWeight::get().writes(1), Pays::No))]
+        #[pallet::weight((T::DbWeight::get().writes(1), Pays::No))]
         pub fn confirm_done(
             origin: OriginFor<T>,
             block_number: T::BlockNumber,
@@ -232,10 +237,10 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let responsibility =
                 Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
-            let threshold_key =
-                pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
+            let server_info =
+                pallet_staking_extension::Pallet::<T>::threshold_server(&responsibility)
                     .ok_or(Error::<T>::NoThresholdKey)?;
-            ensure!(who == threshold_key.0, Error::<T>::NotYourResponsibility);
+            ensure!(who == server_info.tss_account, Error::<T>::NotYourResponsibility);
 
             let current_failures = Self::failures(block_number);
 
@@ -247,6 +252,21 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
+        pub fn get_ip_addresses() -> Result<Vec<Vec<u8>>, Error<T>> {
+            let mut ip_addresses: Vec<Vec<u8>> = vec![];
+            // TODO: JA simple hacky way to do this, get the first address from each signing group
+            // need good algorithim for this
+            for i in 0..SIGNING_PARTY_SIZE {
+                let addresses = pallet_staking_extension::Pallet::<T>::signing_groups(i as u8)
+                    .ok_or(Error::<T>::SigningGroupError)?;
+                let ip_address =
+                    pallet_staking_extension::Pallet::<T>::endpoint_register(&addresses[0])
+                        .ok_or(Error::<T>::IpAddressError)?;
+                ip_addresses.push(ip_address);
+            }
+            Ok(ip_addresses)
+        }
+
         pub fn move_active_to_pending(
             target_block: T::BlockNumber,
             prune_block: T::BlockNumber,
@@ -294,10 +314,12 @@ pub mod pallet {
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct PrevalidateRelayer<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>;
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
 
     impl<T: Config + Send + Sync> Debug for PrevalidateRelayer<T>
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         #[cfg(feature = "std")]
         fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -305,22 +327,28 @@ pub mod pallet {
         }
 
         #[cfg(not(feature = "std"))]
-        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
+        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+            Ok(())
+        }
     }
 
     impl<T: Config + Send + Sync> PrevalidateRelayer<T>
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         /// Create new `SignedExtension` to check runtime version.
-        pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
+        pub fn new() -> Self {
+            Self(sp_std::marker::PhantomData)
+        }
     }
 
     impl<T: Config + Send + Sync> SignedExtension for PrevalidateRelayer<T>
-    where <T as frame_system::Config>::Call: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         type AccountId = T::AccountId;
         type AdditionalSigned = ();
-        type Call = <T as frame_system::Config>::Call;
+        type Call = <T as frame_system::Config>::RuntimeCall;
         type Pre = ();
 
         const IDENTIFIER: &'static str = "PrevalidateRelayer";
@@ -362,10 +390,10 @@ pub mod pallet {
                 if let Call::confirm_done { block_number, .. } = local_call {
                     let responsibility = Responsibility::<T>::get(block_number)
                         .ok_or(InvalidTransaction::Custom(2))?;
-                    let threshold_key =
-                        pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
+                    let server_info =
+                        pallet_staking_extension::Pallet::<T>::threshold_server(&responsibility)
                             .ok_or(InvalidTransaction::Custom(3))?;
-                    ensure!(*who == threshold_key.0, InvalidTransaction::Custom(4));
+                    ensure!(*who == server_info.tss_account, InvalidTransaction::Custom(4));
                     let current_failures = Failures::<T>::get(block_number);
                     ensure!(current_failures.is_none(), InvalidTransaction::Custom(5));
                 }

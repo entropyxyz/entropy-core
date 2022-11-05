@@ -9,9 +9,11 @@ use super::*;
 #[allow(unused)]
 use crate::Pallet as Relayer;
 
-fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
+const SIG_HASH: &[u8; 64] = b"d188f0d99145e7ddbd0f1e46e7fd406db927441584571c623aff1d1652e14b06";
+
+fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     let events = frame_system::Pallet::<T>::events();
-    let system_event: <T as frame_system::Config>::Event = generic_event.into();
+    let system_event: <T as frame_system::Config>::RuntimeEvent = generic_event.into();
     // compare to the last event record
     let EventRecord { event, .. } = &events[events.len() - 1];
     assert_eq!(event, &system_event);
@@ -24,7 +26,7 @@ fn add_failures<T: Config>(failure_count: u32, block_number: T::BlockNumber) {
 
 fn add_messages<T: Config>(caller: T::AccountId, messages_count: u32) {
     for _ in 0..messages_count {
-        let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
+        let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
         let _ =
             <Relayer<T>>::prep_transaction(RawOrigin::Signed(caller.clone()).into(), sig_request);
     }
@@ -34,11 +36,11 @@ benchmarks! {
   prep_transaction {
     let caller: T::AccountId = whitelisted_caller();
     <Registered<T>>::insert(caller.clone(), true);
-    let sig_request = SigRequest { sig_id: 1u16, nonce: 1u32, signature: 1u32 };
+    let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
 
   }: _(RawOrigin::Signed(caller.clone()), sig_request)
   verify {
-    assert_last_event::<T>(Event::TransactionPropagated(caller).into());
+    assert_last_event::<T>(Event::<T>::TransactionPropagated(caller).into());
   }
 
   register {

@@ -42,7 +42,7 @@ pub enum SigningErr {
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
     fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
-        let body = format!("{}", self).into_bytes();
+        let body = format!("{self}").into_bytes();
         Response::build()
             .sized_body(body.len(), Cursor::new(body))
             .status(Status::InternalServerError)

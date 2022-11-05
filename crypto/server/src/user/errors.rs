@@ -8,6 +8,7 @@ use rocket::{
 };
 use thiserror::Error;
 
+use crate::chain_api::entropy;
 // #[derive(Responder, Debug)]
 // #[response(status = 418, content_type = "json")]
 #[derive(Debug, Error)]
@@ -18,8 +19,14 @@ pub enum UserErr {
     InputValidation(&'static str),
     #[error("Kv error: {0}")]
     Kv(#[from] kvdb::kv_manager::error::KvError),
+    #[error("Substrate error: {0}")]
+    Substrate(#[from] subxt::error::DispatchError),
+    #[error("Generic Substrate error: {0}")]
+    GenericSubstrate(#[from] subxt::error::Error),
     #[error("Not Registering error: {0}")]
     NotRegistering(&'static str),
+    #[error("Subgroup error: {0}")]
+    SubgroupError(&'static str),
     // Other(&'static str),
     #[error("Invalid Signature: {0}")]
     InvalidSignature(&'static str),
@@ -27,7 +34,7 @@ pub enum UserErr {
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {
     fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
-        let body = format!("{}", self).into_bytes();
+        let body = format!("{self}").into_bytes();
         Response::build()
             .sized_body(body.len(), Cursor::new(body))
             .status(Status::InternalServerError)
