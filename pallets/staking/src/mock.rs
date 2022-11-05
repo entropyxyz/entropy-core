@@ -169,8 +169,7 @@ parameter_types! {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where
-    RuntimeCall: From<C>,
+where RuntimeCall: From<C>
 {
     type Extrinsic = TestXt<RuntimeCall, ()>;
     type OverarchingCall = RuntimeCall;

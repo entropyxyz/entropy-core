@@ -16,6 +16,7 @@
 //! threshold key and endpoint
 
 use core::convert::TryInto;
+
 pub use pallet::*;
 use pallet_staking::ValidatorPrefs;
 #[cfg(feature = "std")]
@@ -36,12 +37,12 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use super::*;
     use frame_support::{
         dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency,
     };
-
     use frame_system::pallet_prelude::*;
+
+    use super::*;
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_staking::Config {
@@ -209,7 +210,7 @@ pub mod pallet {
                 ThresholdServers::<T>::try_mutate(&stash, |maybe_server_info| {
                     if let Some(server_info) = maybe_server_info {
                         server_info.tss_account = tss_account.clone();
-                        server_info.x25519_public_key = x25519_public_key.clone();
+                        server_info.x25519_public_key = x25519_public_key;
                         Ok(server_info.clone())
                     } else {
                         Err(Error::<T>::NoBond)
