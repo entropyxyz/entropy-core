@@ -8989,7 +8989,6 @@ dependencies = [
  "generic-array 0.14.6",
  "hex",
  "hex-literal",
- "k256",
  "kvdb 0.1.0",
  "local-ip",
  "log",
@@ -10673,7 +10672,7 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 [[package]]
 name = "tofn"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/tofn?branch=main#d4d63da29f1585c8ab8ea6c78a19ffcc8b887b1d"
+source = "git+https://github.com/entropyxyz/tofn?branch=main#7006f0e7bbfb96b1923225e18ce15f5f5e80e9df"
 dependencies = [
  "anyhow",
  "bincode",
@@ -10699,7 +10698,7 @@ dependencies = [
 [[package]]
 name = "tofn"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/tofn#d4d63da29f1585c8ab8ea6c78a19ffcc8b887b1d"
+source = "git+https://github.com/entropyxyz/tofn#7006f0e7bbfb96b1923225e18ce15f5f5e80e9df"
 dependencies = [
  "anyhow",
  "bincode",
