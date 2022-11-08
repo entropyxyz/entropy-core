@@ -8,7 +8,7 @@ use tofn::{
     multisig::sign::MessageDigest,
 };
 
-use crate::sign_init::SignInit;
+use crate::{sign_init::SignInit, signing_client::SigningErr};
 
 /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/types.rs#L30
 /// Context for Signing Protocol execution.
@@ -31,17 +31,17 @@ pub struct SignContext {
 
 impl SignContext {
     #[allow(dead_code)]
-    pub fn new(sign_init: SignInit, party_info: PartyInfo) -> Self {
+    pub fn new(sign_init: SignInit, party_info: PartyInfo) -> Result<Self, SigningErr> {
         let share = party_info.shares.get(0).expect("secret share vec corrupted").clone();
-        let sign_parties = SignContext::get_sign_parties(2, &sign_init.signer_idxs).unwrap();
-        Self {
+        let sign_parties = SignContext::get_sign_parties(2, &sign_init.signer_idxs)?;
+        Ok(Self {
             sign_init,
             party_info,
             share,
             sign_parties,
             sign_share_counts: vec![1],
             tofnd_subindex: 0,
-        }
+        })
     }
 
     pub(super) fn get_sign_parties(

@@ -1,5 +1,9 @@
 //! Errors for everyone ✅
-use std::io::Cursor;
+use std::{
+    collections::HashMap,
+    io::Cursor,
+    sync::{MutexGuard, PoisonError},
+};
 
 use kvdb::kv_manager::error::InnerKvError;
 use rocket::{
@@ -10,7 +14,7 @@ use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
 use super::SigningMessage;
-
+use crate::signing_client::subscribe::Listener;
 // #[derive(Responder, Debug, Error)]
 // #[response(status = 418, content_type = "json")]
 /// Errors for the `new_party` API
@@ -21,8 +25,16 @@ pub enum SigningErr {
     // Init(&'static str),
     #[error("Kv error: {0}")]
     Kv(#[from] kvdb::kv_manager::error::KvError),
-    #[error("TryFrom error: {0}")]
+    #[error("Inner Kv error: {0}")]
     InnerKv(#[from] InnerKvError),
+    #[error("Codec decoding error: {0}")]
+    CodecError(#[from] parity_scale_codec::Error),
+    #[error("Conversion Error: {0}")]
+    TryFrom(#[from] std::array::TryFromSliceError),
+    #[error("Decoding Error: {0}")]
+    Bincode(#[from] Box<bincode::ErrorKind>),
+    #[error("Mutex Error: {0}")]
+    MutexError(&'static str),
     // Validation(&'static str),
     #[error("Oneshot timeout error: {0}")]
     OneshotTimeout(#[from] RecvError),

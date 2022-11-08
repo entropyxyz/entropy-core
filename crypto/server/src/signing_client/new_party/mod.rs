@@ -51,16 +51,16 @@ impl<'a> Gg20Service<'a> {
     #[instrument]
     pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, SigningErr> {
         info!("check_sign_init: {sign_init:?}");
-        let party_vec = self.kv_manager.kv().get(&sign_init.substrate_key).await.unwrap();
+        let party_vec = self.kv_manager.kv().get(&sign_init.substrate_key).await?;
         let bincode = bincode::DefaultOptions::new();
-        let value: SecretKeyShare = bincode.deserialize(&party_vec).unwrap();
+        let value: SecretKeyShare = bincode.deserialize(&party_vec)?;
         let party_info = PartyInfo::get_party_info(
             vec![value.clone()],
             vec!["test".to_string(), "test1".to_string()],
             vec![0],
             TypedUsize::<KeygenShareId>::as_usize(&value.share().index()),
         );
-        Ok(SignContext::new(sign_init, party_info))
+        SignContext::new(sign_init, party_info)
     }
 
     /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/execute.rs#L22
