@@ -60,7 +60,7 @@ impl<'a> Gg20Service<'a> {
             vec![0],
             TypedUsize::<KeygenShareId>::as_usize(&value.share().index()),
         );
-        Ok(SignContext::new(sign_init, party_info)?)
+        SignContext::new(sign_init, party_info)
     }
 
     /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/execute.rs#L22
