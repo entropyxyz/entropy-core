@@ -98,6 +98,17 @@ pub mod pallet {
         OptionQuery,
     >;
 
+	#[pallet::storage]
+    #[pallet::getter(fn threshold_to_stash)]
+    pub type ThresholdToStash<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        T::AccountId,
+        OptionQuery,
+    >;
+
+
     /// Stores the relationship between a signing group (u8) and its member's (validator's)
     /// threshold server's account.
     #[pallet::storage]
@@ -143,7 +154,8 @@ pub mod pallet {
             }
 
             for (validator_stash, tss_server_keys) in &self.threshold_accounts {
-                ThresholdAccounts::<T>::insert(validator_stash, tss_server_keys);
+                ThresholdAccounts::<T>::insert(&validator_stash, &tss_server_keys);
+				ThresholdToStash::<T>::insert(&tss_server_keys.0, &validator_stash);
             }
 
             for (group_id, tss_server_account) in &self.signing_groups {
@@ -157,6 +169,7 @@ pub mod pallet {
         EndpointTooLong,
         NoBond,
         NotController,
+		NoThresholdKey,
     }
 
     #[pallet::event]
@@ -200,6 +213,7 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let stash = Self::get_stash(&who)?;
             ThresholdAccounts::<T>::insert(&stash, (&threshold_account, ecdh_pub_key));
+			ThresholdToStash::<T>::insert(&threshold_account, &stash);
             Self::deposit_event(Event::ThresholdAccountChanged(
                 stash,
                 (threshold_account, ecdh_pub_key),
@@ -219,7 +233,8 @@ pub mod pallet {
             let ledger = pallet_staking::Pallet::<T>::ledger(&controller);
             if ledger.is_none() && Self::endpoint_register(&controller).is_some() {
                 EndpointRegister::<T>::remove(&controller);
-                ThresholdAccounts::<T>::remove(stash);
+                let threshold_account = ThresholdAccounts::<T>::take(stash).ok_or(Error::<T>::NoThresholdKey)?;
+				ThresholdToStash::<T>::remove(&threshold_account.0);
                 Self::deposit_event(Event::NodeInfoRemoved(controller));
             }
             Ok(().into())
@@ -245,6 +260,7 @@ pub mod pallet {
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
             EndpointRegister::<T>::insert(&who, &endpoint);
             ThresholdAccounts::<T>::insert(&stash, (&threshold_account, ecdh_pub_key));
+			ThresholdToStash::<T>::insert(&threshold_account, &stash);
             Self::deposit_event(Event::NodeInfoChanged(who, endpoint, threshold_account));
             Ok(())
         }

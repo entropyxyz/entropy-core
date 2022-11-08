@@ -203,6 +203,7 @@ pub mod pallet {
             signing_subgroup: u8,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
+			let stash_key = pallet_staking_extension::Pallet::<T>::threshold_to_stash(&who).ok_or(Error::<T>::NoThresholdKey)?;
             let mut registering_info =
                 Self::registering(&registerer).ok_or(Error::<T>::NotRegistering)?;
             ensure!(
@@ -212,7 +213,7 @@ pub mod pallet {
             let signing_subgroup_addresses =
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
                     .ok_or(Error::<T>::InvalidSubgroup)?;
-            ensure!(signing_subgroup_addresses.contains(&who), Error::<T>::NotInSigningGroup);
+            ensure!(signing_subgroup_addresses.contains(&stash_key), Error::<T>::NotInSigningGroup);
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 Registered::<T>::insert(&registerer, true);
                 Registering::<T>::remove(&registerer);
