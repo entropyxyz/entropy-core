@@ -31,6 +31,7 @@ use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 pub use node_primitives::{AccountId, Balance, Signature};
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use pallet_staking_extension::ServerInfo;
 use sc_chain_spec::ChainSpecExtension;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
@@ -207,7 +208,9 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 
 /// Helper function to generate an account ID from seed
 pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
-where AccountPublic: From<<TPublic::Pair as Pair>::Public> {
+where
+    AccountPublic: From<<TPublic::Pair as Pair>::Public>,
+{
     AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
@@ -313,61 +316,41 @@ pub fn testnet_genesis(
             ..Default::default()
         },
         staking_extension: StakingExtensionConfig {
-            endpoints: vec![
+            info_threshold_servers: vec![
                 (
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    "127.0.0.1:3001".as_bytes().to_vec(),
-                ),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    "127.0.0.1:3002".as_bytes().to_vec(),
-                ),
-            ],
-            threshold_accounts: vec![
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    // 5H8qc7f4mXFY16NBWSB9qkc6pTks98HdVuoQTs1aova5fRtN
-                    (
-                        hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"]
-                            .into(),
-                        [
+                    ServerInfo {
+                        tss_account: hex![
+                            "e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"
+                        ]
+                        .into(),
+                        endpoint: "127.0.0.1:3001".as_bytes().to_vec(),
+                        x25519_public_key: [
                             10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155,
                             124, 195, 141, 148, 249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247,
                             58, 34,
                         ],
-                    ),
+                    },
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    // 5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV
-                    (
-                        hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"]
-                            .into(),
-                        [
+                    ServerInfo {
+                        tss_account: hex![
+                            "2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"
+                        ]
+                        .into(),
+                        endpoint: "127.0.0.1:3002".as_bytes().to_vec(),
+                        x25519_public_key: [
                             225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245,
                             89, 36, 170, 169, 181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136,
                             102, 10,
                         ],
-                    ),
+                    },
                 ),
             ],
             signing_groups: vec![
-                (
-                    0,
-                    vec![
-                        get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                        hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"]
-                            .into(),
-                    ],
-                ),
-                (
-                    1,
-                    vec![
-                        get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                        hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"]
-                            .into(),
-                    ],
-                ),
+                (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
+                (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
         },
         democracy: DemocracyConfig::default(),
@@ -528,11 +511,17 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_create_development_chain_spec() { development_config().build_storage().unwrap(); }
+    fn test_create_development_chain_spec() {
+        development_config().build_storage().unwrap();
+    }
 
     #[test]
-    fn test_create_local_testnet_chain_spec() { local_testnet_config().build_storage().unwrap(); }
+    fn test_create_local_testnet_chain_spec() {
+        local_testnet_config().build_storage().unwrap();
+    }
 
     #[test]
-    fn test_staging_test_net_chain_spec() { staging_testnet_config().build_storage().unwrap(); }
+    fn test_staging_test_net_chain_spec() {
+        staging_testnet_config().build_storage().unwrap();
+    }
 }

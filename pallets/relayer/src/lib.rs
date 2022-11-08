@@ -37,6 +37,7 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use helpers::unwrap_or_return;
+    use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_runtime::{
         traits::{DispatchInfoOf, Saturating, SignedExtension},
@@ -259,10 +260,10 @@ pub mod pallet {
             for i in 0..SIGNING_PARTY_SIZE {
                 let addresses = pallet_staking_extension::Pallet::<T>::signing_groups(i as u8)
                     .ok_or(Error::<T>::SigningGroupError)?;
-                let ip_address =
-                    pallet_staking_extension::Pallet::<T>::endpoint_register(&addresses[0])
+                let ServerInfo { endpoint, .. } =
+                    pallet_staking_extension::Pallet::<T>::threshold_server(&addresses[0])
                         .ok_or(Error::<T>::IpAddressError)?;
-                ip_addresses.push(ip_address);
+                ip_addresses.push(endpoint.clone());
             }
             Ok(ip_addresses)
         }

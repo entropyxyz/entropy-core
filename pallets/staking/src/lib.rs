@@ -105,7 +105,7 @@ pub mod pallet {
         _,
         Blake2_128Concat,
         SubgroupId,
-        Vec<TssServerAccount<T::AccountId>>,
+        Vec<ValidatorStashAccount<T::AccountId>>,
         OptionQuery,
     >;
 
@@ -114,7 +114,7 @@ pub mod pallet {
         #[allow(clippy::type_complexity)]
         pub info_threshold_servers:
             Vec<(ValidatorStashAccount<T::AccountId>, ServerInfo<T::AccountId>)>,
-        pub signing_groups: Vec<(u8, Vec<T::AccountId>)>,
+        pub signing_groups: Vec<(u8, ValidatorStashAccount<T::AccountId>)>,
     }
 
     #[cfg(feature = "std")]
@@ -133,12 +133,12 @@ pub mod pallet {
                 .into_iter()
                 .map(|x| assert!(x.1.endpoint.len() as u32 <= T::MaxEndpointLength::get()));
 
-            for (validator_controller, server_info) in &self.info_threshold_servers {
-                ThresholdServers::<T>::insert(validator_controller, server_info);
+            for (validator_stash, server_info) in &self.info_threshold_servers {
+                ThresholdServers::<T>::insert(validator_stash, server_info);
             }
 
-            for (group_id, tss_server_account) in &self.signing_groups {
-                SigningGroups::<T>::insert(group_id, tss_server_account);
+            for (group_id, validator_stash) in &self.signing_groups {
+                SigningGroups::<T>::insert(group_id, validator_stash);
             }
         }
     }
