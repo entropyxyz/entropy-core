@@ -148,8 +148,8 @@ pub mod pallet {
             }
 
             for (validator_stash, tss_server_keys) in &self.threshold_accounts {
-                ThresholdAccounts::<T>::insert(&validator_stash, &tss_server_keys);
-                ThresholdToStash::<T>::insert(&tss_server_keys.0, &validator_stash);
+                ThresholdAccounts::<T>::insert(validator_stash, tss_server_keys);
+                ThresholdToStash::<T>::insert(&tss_server_keys.0, validator_stash);
             }
 
             for (group_id, tss_server_account) in &self.signing_groups {
