@@ -29,8 +29,8 @@ pub async fn new_party(
     state: &State<SignerState>,
     kv_manager: &State<KvManager>,
     signatures: &State<SignatureState>,
-) -> Result<Status, ()> {
-    let data = OCWMessage::decode(&mut encoded_data.as_ref()).unwrap();
+) -> Result<Status, SigningErr> {
+    let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
 
     for message in data {
         // todo: temporary hack, replace with correct data
@@ -38,18 +38,18 @@ pub async fn new_party(
         let gg20_service = Gg20Service::new(state, kv_manager);
 
         // set up context for signing protocol execution
-        let sign_context = gg20_service.get_sign_context(info.clone()).await.unwrap();
+        let sign_context = gg20_service.get_sign_context(info.clone()).await?;
 
         // subscribe to all other participating parties. Listener waits for other subscribers.
         let (rx_ready, listener) = Listener::new();
         state
             .listeners
             .lock()
-            .unwrap()
+            .expect("lock shared data")
             .insert(sign_context.sign_init.party_uid.to_string(), listener);
         let channels = {
-            let stream_in = subscribe_to_them(&sign_context).await.unwrap();
-            let broadcast_out = rx_ready.await.unwrap().unwrap();
+            let stream_in = subscribe_to_them(&sign_context).await?;
+            let broadcast_out = rx_ready.await??;
             Channels(broadcast_out, stream_in)
         };
 
@@ -84,8 +84,9 @@ pub async fn subscribe_to_me(
     };
 
     let rx = {
-        let mut listeners = state.listeners.lock().unwrap();
-        let listener = listeners.get_mut(&msg.party_id).ok_or(SubscribeErr::NoListener("no"))?;
+        let mut listeners = state.listeners.lock().expect("lock shared data");
+        let listener =
+            listeners.get_mut(&msg.party_id).ok_or(SubscribeErr::NoListener("no listener"))?;
         let rx_outcome = listener.subscribe(&msg)?;
 
         // If this is the last subscriber, remove the listener from state
@@ -93,7 +94,9 @@ pub async fn subscribe_to_me(
             Receiver::Receiver(rx) => rx,
             Receiver::FinalReceiver(rx) => {
                 // all subscribed, wake up the waiting listener in new_party
-                let listener = listeners.remove(&msg.party_id).unwrap();
+                let listener = listeners
+                    .remove(&msg.party_id)
+                    .ok_or(SubscribeErr::NoListener("listener remove"))?;
                 let (tx, broadcaster) = listener.into_broadcaster();
                 let _ = tx.send(Ok(broadcaster));
                 rx
