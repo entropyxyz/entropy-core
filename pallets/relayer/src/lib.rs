@@ -203,7 +203,8 @@ pub mod pallet {
             signing_subgroup: u8,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-			let stash_key = pallet_staking_extension::Pallet::<T>::threshold_to_stash(&who).ok_or(Error::<T>::NoThresholdKey)?;
+            let stash_key = pallet_staking_extension::Pallet::<T>::threshold_to_stash(&who)
+                .ok_or(Error::<T>::NoThresholdKey)?;
             let mut registering_info =
                 Self::registering(&registerer).ok_or(Error::<T>::NotRegistering)?;
             ensure!(

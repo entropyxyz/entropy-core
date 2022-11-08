@@ -22,7 +22,7 @@ use crate::{
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     user::unsafe_api::UnsafeQuery,
     utils,
-    utils::{DEFAULT_MNEMONIC, DEFAULT_BOB_MNEMONIC},
+    utils::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
 };
 
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
@@ -231,7 +231,7 @@ async fn test_get_signing_group() {
     let p_charlie = <sr25519::Pair as Pair>::from_string("//Charlie//stash", None).unwrap();
     let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
     let result_charlie = get_subgroup(&api, &signer_charlie).await;
-    assert_eq!(result_charlie.is_err(),  true);
+    assert_eq!(result_charlie.is_err(), true);
 
     clean_tests();
 }

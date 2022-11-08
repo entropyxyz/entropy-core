@@ -352,18 +352,8 @@ pub fn testnet_genesis(
                 ),
             ],
             signing_groups: vec![
-                (
-                    0,
-                    vec![
-                        get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    ],
-                ),
-                (
-                    1,
-                    vec![
-                        get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    ],
-                ),
+                (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
+                (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
         },
         democracy: DemocracyConfig::default(),

@@ -105,8 +105,13 @@ pub async fn get_subgroup(
 ) -> Result<Option<u8>, UserErr> {
     let mut subgroup: Option<u8> = None;
     let threshold_address = signer.account_id();
-	let stash_address_query = entropy::storage().staking_extension().threshold_to_stash(threshold_address);
-    let stash_address = api.storage().fetch(&stash_address_query, None).await?.ok_or_else(|| UserErr::SubgroupError("Stash Fetch Error"))?;
+    let stash_address_query =
+        entropy::storage().staking_extension().threshold_to_stash(threshold_address);
+    let stash_address = api
+        .storage()
+        .fetch(&stash_address_query, None)
+        .await?
+        .ok_or_else(|| UserErr::SubgroupError("Stash Fetch Error"))?;
     // TODO: stash keys are broken up into subgroups....need to get stash key here from threshold
     for i in 0..SIGNING_PARTY_SIZE {
         let signing_group_addresses_query =

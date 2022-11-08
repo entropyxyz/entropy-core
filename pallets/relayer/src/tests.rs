@@ -45,13 +45,12 @@ fn it_registers_a_user() {
 #[test]
 fn it_confirms_registers_a_user() {
     new_test_ext().execute_with(|| {
-
-		assert_noop!(
+        assert_noop!(
             Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0),
             Error::<Test>::NoThresholdKey
         );
 
-		pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
 
         assert_noop!(
             Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0),
@@ -65,7 +64,7 @@ fn it_confirms_registers_a_user() {
             Error::<Test>::InvalidSubgroup
         );
 
-		pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
 
         assert_noop!(
             Relayer::confirm_register(RuntimeOrigin::signed(2), 1, 0),
@@ -176,8 +175,8 @@ fn notes_responsibility() {
 fn it_provides_free_txs_prep_tx() {
     new_test_ext().execute_with(|| {
         assert_ok!(Relayer::register(RuntimeOrigin::signed(1)));
-		pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
-		pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
         assert_ok!(Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0));
         assert_ok!(Relayer::confirm_register(RuntimeOrigin::signed(2), 1, 1));
 
