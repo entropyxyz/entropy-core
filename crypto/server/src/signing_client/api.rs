@@ -45,7 +45,7 @@ pub async fn new_party(
         state
             .listeners
             .lock()
-            .unwrap()
+            .expect("lock shared data")
             .insert(sign_context.sign_init.party_uid.to_string(), listener);
         let channels = {
             let stream_in = subscribe_to_them(&sign_context).await?;
@@ -84,7 +84,7 @@ pub async fn subscribe_to_me(
     };
 
     let rx = {
-        let mut listeners = state.listeners.lock().unwrap();
+        let mut listeners = state.listeners.lock().expect("lock shared data");
         let listener =
             listeners.get_mut(&msg.party_id).ok_or(SubscribeErr::NoListener("no listener"))?;
         let rx_outcome = listener.subscribe(&msg)?;
