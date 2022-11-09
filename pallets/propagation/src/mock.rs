@@ -14,6 +14,8 @@ use sp_runtime::{
 };
 use sp_staking::{EraIndex, SessionIndex};
 
+use pallet_staking_extension::ServerInfo;
+
 use crate as pallet_propagation;
 
 const NULL_ARR: [u8; 32] = [0; 32];
@@ -167,7 +169,8 @@ parameter_types! {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where RuntimeCall: From<C>
+where
+    RuntimeCall: From<C>,
 {
     type Extrinsic = TestXt<RuntimeCall, ()>;
     type OverarchingCall = RuntimeCall;
@@ -270,7 +273,9 @@ parameter_types! {
 pub struct Author11;
 impl FindAuthor<u64> for Author11 {
     fn find_author<'a, I>(_digests: I) -> Option<u64>
-    where I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])> {
+    where
+        I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])>,
+    {
         Some(11)
     }
 }
@@ -302,10 +307,14 @@ impl pallet_propagation::Config for Test {
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
-        endpoints: vec![(5, vec![20]), (6, vec![40]), (1, vec![10]), (2, vec![11])],
-        threshold_accounts: vec![(5, (7, NULL_ARR)), (6, (8, NULL_ARR))],
+        threshold_servers: vec![
+            (5, ServerInfo { tss_account: 7, x25519_public_key: NULL_ARR, endpoint: vec![20] }),
+            (6, ServerInfo { tss_account: 8, x25519_public_key: NULL_ARR, endpoint: vec![40] }),
+            (1, ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![10] }),
+            (2, ServerInfo { tss_account: 4, x25519_public_key: NULL_ARR, endpoint: vec![11] }),
+        ],
         // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
-        signing_groups: vec![(0, vec![1]), (1, vec![2])],
+        signing_groups: vec![(0, vec![1, 5]), (1, vec![2, 6])],
     };
 
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();

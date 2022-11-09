@@ -117,15 +117,14 @@ pub mod pallet {
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub info_threshold_servers:
-            Vec<(ValidatorStashAccount<T::AccountId>, ServerInfo<T::AccountId>)>,
-        pub signing_groups: Vec<(u8, ValidatorStashAccount<T::AccountId>)>,
+        pub threshold_servers: Vec<(ValidatorStashAccount<T::AccountId>, ServerInfo<T::AccountId>)>,
+        pub signing_groups: Vec<(u8, Vec<ValidatorStashAccount<T::AccountId>>)>,
     }
 
     #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
-            Self { info_threshold_servers: Default::default(), signing_groups: Default::default() }
+            Self { threshold_servers: Default::default(), signing_groups: Default::default() }
         }
     }
 
@@ -133,18 +132,18 @@ pub mod pallet {
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
             let _ = self
-                .info_threshold_servers
+                .threshold_servers
                 .clone()
                 .into_iter()
                 .map(|x| assert!(x.1.endpoint.len() as u32 <= T::MaxEndpointLength::get()));
 
             for (validator_stash, server_info) in &self.threshold_servers {
-                ThresholdServers::<T>::insert(&validator_stash, server_info);
+                ThresholdServers::<T>::insert(&validator_stash, server_info.clone());
                 ThresholdToStash::<T>::insert(&server_info.tss_account, validator_stash);
             }
 
-            for (group_id, tss_server_account) in &self.signing_groups {
-                SigningGroups::<T>::insert(group_id, tss_server_account);
+            for (group_id, validators_stash) in &self.signing_groups {
+                SigningGroups::<T>::insert(group_id, validators_stash);
             }
         }
     }

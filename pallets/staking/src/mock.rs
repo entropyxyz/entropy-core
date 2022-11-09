@@ -169,7 +169,8 @@ parameter_types! {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where RuntimeCall: From<C>
+where
+    RuntimeCall: From<C>,
 {
     type Extrinsic = TestXt<RuntimeCall, ()>;
     type OverarchingCall = RuntimeCall;
@@ -271,7 +272,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         balances: vec![(1, 100), (2, 100), (3, 100), (4, 100)],
     };
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
-        info_threshold_servers: vec![
+        threshold_servers: vec![
             (5, ServerInfo { tss_account: 7, x25519_public_key: NULL_ARR, endpoint: vec![20] }),
             (6, ServerInfo { tss_account: 8, x25519_public_key: NULL_ARR, endpoint: vec![40] }),
         ],

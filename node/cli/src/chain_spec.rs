@@ -316,7 +316,7 @@ pub fn testnet_genesis(
             ..Default::default()
         },
         staking_extension: StakingExtensionConfig {
-            info_threshold_servers: vec![
+            threshold_servers: vec![
                 (
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     ServerInfo {

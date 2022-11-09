@@ -1799,6 +1799,7 @@ dependencies = [
  "pallet-balances",
  "pallet-free-tx",
  "pallet-im-online",
+ "pallet-staking-extension",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
  "parity-scale-codec",
@@ -1854,6 +1855,18 @@ dependencies = [
  "substrate-state-trie-migration-rpc",
  "tempfile",
  "try-runtime-cli",
+]
+
+[[package]]
+name = "entropy-rpc"
+version = "0.1.0"
+
+[[package]]
+name = "entropy-rpc-api"
+version = "0.1.0"
+dependencies = [
+ "jsonrpsee",
+ "pallet-staking-extension",
 ]
 
 [[package]]
@@ -5795,6 +5808,7 @@ dependencies = [
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
+ "serde",
  "sp-core",
  "sp-io",
  "sp-npos-elections",
