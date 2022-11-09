@@ -56,12 +56,14 @@ pallet-staking={ version="4.0.0-dev", default-features=false, git='https://githu
 sp-runtime    ={ version="6.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 sp-std        ={ package="sp-std", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30", default-features=false }
 sp-core       ={ package="sp-core", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30", default-features=false }
+sp-consensus-babe = { version = "0.10.0-dev", default-features = false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+log                  ={ version="0.4.0", default-features=false }
+pallet-session                 ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 
 [dev-dependencies]
 pallet-balances                ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 pallet-timestamp               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 frame-election-provider-support={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
-pallet-session                 ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 sp-staking                     ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 pallet-staking-reward-curve    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 pallet-bags-list               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
@@ -78,8 +80,12 @@ std=[
   'sp-runtime/std',
   "sp-std/std",
   'pallet-staking/std',
+    'pallet-session/std',
   'pallet-balances/std',
   'frame-benchmarking/std',
   "sp-npos-elections/std",
+	 "sp-consensus-babe/std",
+	   'log/std',
+
 ]
 try-runtime=['frame-support/try-runtime']
