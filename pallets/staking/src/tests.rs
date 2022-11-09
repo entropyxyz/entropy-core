@@ -15,6 +15,8 @@ fn basic_setup_works() {
             Staking::threshold_server(6).unwrap(),
             ServerInfo { tss_account: 8, x25519_public_key: NULL_ARR, endpoint: vec![40] }
         );
+        assert_eq!(Staking::threshold_to_stash(7).unwrap(), 5);
+        assert_eq!(Staking::threshold_to_stash(8).unwrap(), 6);
         assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
         assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
     });
@@ -39,6 +41,7 @@ fn it_takes_in_an_endpoint() {
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
         assert_eq!(endpoint, vec![20]);
         assert_eq!(tss_account, 3);
+        assert_eq!(Staking::threshold_to_stash(3).unwrap(), 2);
         assert_noop!(
             Staking::validate(
                 RuntimeOrigin::signed(4),
@@ -108,6 +111,7 @@ fn it_changes_threshold_account() {
 
         assert_ok!(Staking::change_threshold_accounts(RuntimeOrigin::signed(1), 4, NULL_ARR));
         assert_eq!(Staking::threshold_server(2).unwrap().tss_account, 4);
+        assert_eq!(Staking::threshold_to_stash(4).unwrap(), 2);
 
         assert_noop!(
             Staking::change_threshold_accounts(RuntimeOrigin::signed(4), 5, NULL_ARR),
@@ -137,6 +141,7 @@ fn it_deletes_when_no_bond_left() {
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
         assert_eq!(endpoint, vec![20]);
         assert_eq!(tss_account, 3);
+        assert_eq!(Staking::threshold_to_stash(3).unwrap(), 2);
 
         let mut lock = Balances::locks(2);
         assert_eq!(lock[0].amount, 100);
@@ -158,6 +163,7 @@ fn it_deletes_when_no_bond_left() {
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
         assert_eq!(endpoint, vec![20]);
         assert_eq!(tss_account, 3);
+        assert_eq!(Staking::threshold_to_stash(3).unwrap(), 2);
 
         assert_ok!(FrameStaking::unbond(RuntimeOrigin::signed(1), 50u64,));
 
@@ -165,5 +171,6 @@ fn it_deletes_when_no_bond_left() {
         lock = Balances::locks(2);
         assert_eq!(lock.len(), 0);
         assert_eq!(Staking::threshold_server(2), None);
+        assert_eq!(Staking::threshold_to_stash(3), None);
     });
 }

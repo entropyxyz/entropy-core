@@ -5,7 +5,7 @@ use std::{collections::HashMap, sync::Mutex};
 use bip39::{Language, Mnemonic};
 use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use serde::Deserialize;
-use tofn::sdk::api::Signature;
+use tofn::sdk::api::{RecoverableSignature, Signature};
 
 use crate::{setup_mnemonic, sign_init::MessageDigest};
 
@@ -61,7 +61,7 @@ pub(super) async fn load_kv_store() -> KvManager {
 /// The state used to temporarily store completed signatures
 #[derive(Debug)]
 pub struct SignatureState {
-    pub signatures: Mutex<HashMap<String, k256::ecdsa::recoverable::Signature>>,
+    pub signatures: Mutex<HashMap<String, RecoverableSignature>>,
 }
 
 impl SignatureState {
@@ -70,7 +70,7 @@ impl SignatureState {
         SignatureState { signatures }
     }
 
-    pub fn insert(&self, key: [u8; 32], value: &k256::ecdsa::recoverable::Signature) {
+    pub fn insert(&self, key: [u8; 32], value: &RecoverableSignature) {
         let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
         println!("inside insert value: {:?}", value.clone());
         signatures.insert(hex::encode(key), *value);

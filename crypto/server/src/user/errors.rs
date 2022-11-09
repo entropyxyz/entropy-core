@@ -9,8 +9,7 @@ use rocket::{
 use thiserror::Error;
 
 use crate::chain_api::entropy;
-// #[derive(Responder, Debug)]
-// #[response(status = 418, content_type = "json")]
+
 #[derive(Debug, Error)]
 pub enum UserErr {
     #[error("Parse error: {0}")]

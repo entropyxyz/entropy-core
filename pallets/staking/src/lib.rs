@@ -97,6 +97,11 @@ pub mod pallet {
     pub type ThresholdServers<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, ServerInfo<T::AccountId>, OptionQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn threshold_to_stash)]
+    pub type ThresholdToStash<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, T::AccountId, OptionQuery>;
+
     /// Stores the relationship between a signing group (u8) and its member's (validator's)
     /// threshold server's account.
     #[pallet::storage]
@@ -133,12 +138,13 @@ pub mod pallet {
                 .into_iter()
                 .map(|x| assert!(x.1.endpoint.len() as u32 <= T::MaxEndpointLength::get()));
 
-            for (validator_stash, server_info) in &self.info_threshold_servers {
-                ThresholdServers::<T>::insert(validator_stash, server_info);
+            for (validator_stash, server_info) in &self.threshold_servers {
+                ThresholdServers::<T>::insert(&validator_stash, server_info);
+                ThresholdToStash::<T>::insert(&server_info.tss_account, validator_stash);
             }
 
-            for (group_id, validator_stash) in &self.signing_groups {
-                SigningGroups::<T>::insert(group_id, validator_stash);
+            for (group_id, tss_server_account) in &self.signing_groups {
+                SigningGroups::<T>::insert(group_id, tss_server_account);
             }
         }
     }
@@ -148,6 +154,7 @@ pub mod pallet {
         EndpointTooLong,
         NoBond,
         NotController,
+        NoThresholdKey,
     }
 
     #[pallet::event]
@@ -203,6 +210,7 @@ pub mod pallet {
                     if let Some(server_info) = maybe_server_info {
                         server_info.tss_account = tss_account.clone();
                         server_info.x25519_public_key = x25519_public_key;
+                        ThresholdToStash::<T>::insert(&tss_account, &stash);
                         Ok(server_info.clone())
                     } else {
                         Err(Error::<T>::NoBond)
@@ -224,7 +232,9 @@ pub mod pallet {
                     let stash = ledger.stash;
                     pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
                     if pallet_staking::Pallet::<T>::ledger(&controller).is_none() {
-                        ThresholdServers::<T>::remove(&stash);
+                        let server_info = ThresholdServers::<T>::take(&stash)
+                            .ok_or(Error::<T>::NoThresholdKey)?;
+                        ThresholdToStash::<T>::remove(&server_info.tss_account);
                     }
                 },
                 None => return Err(Error::<T>::NotController.into()),
@@ -253,13 +263,14 @@ pub mod pallet {
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
 
             ThresholdServers::<T>::insert(
-                stash,
+                stash.clone(),
                 ServerInfo {
                     tss_account: tss_account.clone(),
                     x25519_public_key,
                     endpoint: endpoint.clone(),
                 },
             );
+            ThresholdToStash::<T>::insert(&tss_account, stash);
 
             Self::deposit_event(Event::NodeInfoChanged(who, endpoint, tss_account));
             Ok(())

@@ -12,7 +12,7 @@ use tofn::{
     collections::TypedUsize,
     gg20,
     gg20::keygen::{KeygenPartyId, KeygenShareId, SecretKeyShare},
-    sdk::api::{PartyShareCounts, Signature},
+    sdk::api::{to_recoverable_signature, PartyShareCounts, RecoverableSignature, Signature},
 };
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
@@ -51,16 +51,16 @@ impl<'a> Gg20Service<'a> {
     #[instrument]
     pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, SigningErr> {
         info!("check_sign_init: {sign_init:?}");
-        let party_vec = self.kv_manager.kv().get(&sign_init.substrate_key).await.unwrap();
+        let party_vec = self.kv_manager.kv().get(&sign_init.substrate_key).await?;
         let bincode = bincode::DefaultOptions::new();
-        let value: SecretKeyShare = bincode.deserialize(&party_vec).unwrap();
+        let value: SecretKeyShare = bincode.deserialize(&party_vec)?;
         let party_info = PartyInfo::get_party_info(
             vec![value.clone()],
             vec!["test".to_string(), "test1".to_string()],
             vec![0],
             TypedUsize::<KeygenShareId>::as_usize(&value.share().index()),
         );
-        Ok(SignContext::new(sign_init, party_info))
+        SignContext::new(sign_init, party_info)
     }
 
     /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/execute.rs#L22
@@ -70,12 +70,12 @@ impl<'a> Gg20Service<'a> {
         &self,
         ctx: &SignContext,
         channels: Channels,
-    ) -> Result<Signature, SigningErr> {
+    ) -> Result<RecoverableSignature, SigningErr> {
         info!("execute_sign: {ctx:?}");
         let new_sign =
             gg20::sign::new_sign(ctx.group(), &ctx.share, &ctx.sign_parties, ctx.msg_to_sign())
                 .map_err(|e| SigningErr::ProtocolExecution(format!("{e:?}")))?;
-        tofn_protocol::execute_protocol(
+        let sig = tofn_protocol::execute_protocol(
             new_sign,
             channels,
             &ctx.sign_uids(),
@@ -83,7 +83,14 @@ impl<'a> Gg20Service<'a> {
             ctx.party_info.tofnd.index,
         )
         .await?
-        .map_err(|e| SigningErr::ProtocolOutput(format!("{e:?}")))
+        .map_err(|e| SigningErr::ProtocolOutput(format!("{e:?}")))?;
+
+        to_recoverable_signature(
+            &ctx.party_info.common.verifying_key(),
+            ctx.sign_init.msg.as_ref(),
+            &sig,
+        )
+        .ok_or(SigningErr::SignatureError)
     }
 
     // todo placeholder for any result handling
@@ -91,7 +98,7 @@ impl<'a> Gg20Service<'a> {
     #[allow(unused_variables)]
     pub fn handle_result(
         &self,
-        signature: &k256::ecdsa::recoverable::Signature,
+        signature: &RecoverableSignature,
         msg: [u8; 32],
         signatures: &rocket::State<SignatureState>,
     ) {

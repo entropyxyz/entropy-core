@@ -43,7 +43,7 @@ commands:
       - run: rustup target add wasm32-unknown-unknown --toolchain nightly
   fmt-lint:
     steps:
-      - run: curl -LsSf https://github.com/tamasfe/taplo/releases/latest/download/taplo-x86_64-unknown-linux-gnu.tar.gz | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+      - run:  curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
       # We are using some unstable features of rustfmt
       - run: rustup run nightly cargo fmt --check
       - run: taplo fmt --check
