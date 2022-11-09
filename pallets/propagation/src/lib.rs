@@ -20,7 +20,6 @@ pub mod pallet {
     use codec::Encode;
     use frame_support::{inherent::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
     use frame_system::pallet_prelude::*;
-    use helpers::unwrap_or_return_db_read;
     use scale_info::prelude::vec;
     use sp_core;
     use sp_runtime::{
@@ -32,7 +31,7 @@ pub mod pallet {
     pub trait Config:
         frame_system::Config + pallet_authorship::Config + pallet_relayer::Config
     {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
     }
 
     pub type Message = substrate_common::Message;
@@ -41,27 +40,8 @@ pub mod pallet {
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
-    #[pallet::storage]
-    #[pallet::getter(fn get_block_author)]
-    pub type BlockAuthor<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, OptionQuery>;
-
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn on_initialize(block_number: T::BlockNumber) -> Weight {
-            // TODO: JA return one DB read
-            // also maybe less efficient can get this from rpc and digest
-            let block_author = unwrap_or_return_db_read!(
-                pallet_authorship::Pallet::<T>::author(),
-                1,
-                "on_init block_author"
-            );
-
-            BlockAuthor::<T>::insert(block_number, block_author);
-            BlockAuthor::<T>::remove(block_number.saturating_sub(20u32.into()));
-            T::DbWeight::get().reads_writes(1, 2)
-        }
-
         fn offchain_worker(block_number: T::BlockNumber) { let _ = Self::post(block_number); }
     }
 
@@ -84,9 +64,9 @@ pub mod pallet {
             let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
-                .unwrap_or_else(|| b"http://localhost:3001/cm/provide_share".to_vec());
+                .unwrap_or_else(|| b"http://localhost:3001/signer/new_party".to_vec());
             let url =
-                str::from_utf8(&from_local).unwrap_or("http://localhost:3001/cm/provide_share");
+                str::from_utf8(&from_local).unwrap_or("http://localhost:3001/signer/new_party");
 
             log::warn!("propagation::post::messages: {:?}", &messages);
             // the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()

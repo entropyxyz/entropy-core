@@ -8,7 +8,7 @@ use tofn::{
     multisig::sign::MessageDigest,
 };
 
-use crate::sign_init::SignInit;
+use crate::{sign_init::SignInit, signing_client::SigningErr};
 
 /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/types.rs#L30
 /// Context for Signing Protocol execution.
@@ -31,22 +31,17 @@ pub struct SignContext {
 
 impl SignContext {
     #[allow(dead_code)]
-    pub fn new(sign_init: SignInit, party_info: PartyInfo) -> Self {
+    pub fn new(sign_init: SignInit, party_info: PartyInfo) -> Result<Self, SigningErr> {
         let share = party_info.shares.get(0).expect("secret share vec corrupted").clone();
-        let sign_parties = SignContext::get_sign_parties(
-            party_info.tofnd.party_uids.len(),
-            &sign_init.signer_idxs,
-        )
-        .unwrap();
-
-        Self {
+        let sign_parties = SignContext::get_sign_parties(2, &sign_init.signer_idxs)?;
+        Ok(Self {
             sign_init,
             party_info,
             share,
             sign_parties,
             sign_share_counts: vec![1],
             tofnd_subindex: 0,
-        }
+        })
     }
 
     pub(super) fn get_sign_parties(
@@ -55,9 +50,9 @@ impl SignContext {
     ) -> anyhow::Result<SignParties> {
         let mut sign_parties = Subset::with_max_size(length);
         for signer_idx in sign_indices.iter() {
-            if sign_parties.add(tofn::collections::TypedUsize::from_usize(*signer_idx)).is_err() {
-                return Err(anyhow::anyhow!("failed to call Subset::add"));
-            }
+            sign_parties
+                .add(tofn::collections::TypedUsize::from_usize(*signer_idx))
+                .map_err(|err| anyhow::anyhow!("failed to call Subset::add: {:?}", err))?;
         }
         Ok(sign_parties)
     }
@@ -66,15 +61,29 @@ impl SignContext {
 
     pub fn msg_to_sign(&self) -> &MessageDigest { &self.sign_init.msg }
 
+    // TODO(TK):  unclear whether this method is correctly implemented. The upstream version takes
+    // the intersection of self.party_info.tofnd.party_uids and self.sign_init.participant_uids.
+    //
+    //
+    // https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/types.rs#L152
+    // Ex:
+    // keygen_party_uids: [a,b,c,d]
+    // sign_party_uids: [d,c,a]
+    // result: [a,c,d]
     pub fn sign_uids(&self) -> Vec<String> {
-        self.party_info
-            .tofnd
-            .party_uids
+        // TODO: why do we have two datastructures with seemingly identical contents?
+        // It's a potential source of errors.
+        assert_eq!(&self.sign_init.signer_uids, &self.party_info.tofnd.party_uids);
+        self.sign_init
+            .signer_uids
             .iter()
-            .filter_map(|uid| {
-                let pred = true;
-                if pred {
-                    // self.sign_parties.contains(uid) {
+            .zip(self.sign_init.signer_idxs.iter())
+            .filter_map(|(uid, idx)| {
+                if self
+                    .sign_parties
+                    .iter()
+                    .any(|s_idx| s_idx == tofn::collections::TypedUsize::from_usize(*idx))
+                {
                     Some(uid.clone())
                 } else {
                     None

@@ -11,9 +11,9 @@ use crate::Pallet as Staking;
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
-fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
+fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     let events = frame_system::Pallet::<T>::events();
-    let system_event: <T as frame_system::Config>::Event = generic_event.into();
+    let system_event: <T as frame_system::Config>::RuntimeEvent = generic_event.into();
     // compare to the last event record
     let EventRecord { event, .. } = &events[events.len() - 1];
     assert_eq!(event, &system_event);
@@ -63,7 +63,7 @@ benchmarks! {
 
   }:  _(RawOrigin::Signed(caller.clone()), vec![30])
   verify {
-    assert_last_event::<T>(Event::EndpointChanged(caller, vec![30]).into());
+    assert_last_event::<T>(Event::<T>::EndpointChanged(caller, vec![30]).into());
   }
 
   change_threshold_accounts {
@@ -76,7 +76,7 @@ benchmarks! {
 
   }:  _(RawOrigin::Signed(caller.clone()), bonder.clone(), NULL_ARR)
   verify {
-    assert_last_event::<T>(Event::ThresholdAccountChanged(bonder.clone(), (bonder, NULL_ARR)).into());
+    assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder.clone(), (bonder, NULL_ARR)).into());
   }
 
 
@@ -115,7 +115,7 @@ benchmarks! {
 
   }:  _(RawOrigin::Signed(caller.clone()), validator_preferance, vec![20], threshold.clone(), NULL_ARR)
   verify {
-    assert_last_event::<T>(Event::NodeInfoChanged(caller,  vec![20], threshold).into());
+    assert_last_event::<T>(Event::<T>::NodeInfoChanged(caller,  vec![20], threshold).into());
   }
 
 

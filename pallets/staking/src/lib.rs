@@ -47,16 +47,26 @@ pub mod pallet {
     use super::*;
 
     #[pallet::config]
-    pub trait Config:
-        frame_system::Config + pallet_staking::Config
-    {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+    pub trait Config: frame_system::Config + pallet_staking::Config {
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
     // TODO: JA add build for initial endpoints
+
+    /// A unique identifier of a subgroup or partition of validators that have the same set of
+    /// threshold shares.
+    pub type SubgroupId = u8;
+    /// Unique type to differentiate the threshold server's account ID from the validator's
+    /// stash/controller accounts
+    pub type TssServerAccount<AccountId> = AccountId;
+    /// X25519 public key used by the client in non-interactive ECDH to authenticate/encrypt
+    /// interactions with the threshold server (eg distributing threshold shares).
+    pub type X25519PublicKey = [u8; 32];
+    /// Endpoint where a threshold server can be reached at
+    pub type TssServerURL = Vec<u8>;
 
     /// The balance type of this pallet.
     pub type BalanceOf<T> = <<T as pallet_staking::Config>::Currency as Currency<
@@ -68,27 +78,48 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
+    // TODO JH We could prob use more efficient data structures (less duplicate data or query time)
+    // for storing validator/server/endpoint/subgroup information
+
+    /// Stores the relationship between a validator's stash account and the IP address/endpoint they
+    /// can be reached at.
     #[pallet::storage]
     #[pallet::getter(fn endpoint_register)]
     pub type EndpointRegister<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, TssServerURL, OptionQuery>;
 
     /// Stores the relationship between
-    /// a threshold public key and a
-    /// Diffie-Hellman public key.
-    /// Clients query the chain for both values,
-    /// the DH public key is used to derive shared
-    /// secrets for ChaCha20Poly1305 encryption
-    /// of secret shares over http.
+    /// a validator's stash account and their threshold server's sr25519 and x25519 keys.
+    ///
+    /// Clients query this via state or `stakingExtension_getKeys` RPC and uses
+    /// the x25519 pub key in noninteractive ECDH for authenticating/encrypting distribute TSS
+    /// shares over HTTP.
     #[pallet::storage]
     #[pallet::getter(fn threshold_account)]
-    pub type ThresholdAccounts<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, (T::AccountId, [u8; 32]), OptionQuery>;
+    pub type ThresholdAccounts<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        (TssServerAccount<T::AccountId>, X25519PublicKey),
+        OptionQuery,
+    >;
 
     #[pallet::storage]
+    #[pallet::getter(fn threshold_to_stash)]
+    pub type ThresholdToStash<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, T::AccountId, OptionQuery>;
+
+    /// Stores the relationship between a signing group (u8) and its member's (validator's)
+    /// threshold server's account.
+    #[pallet::storage]
     #[pallet::getter(fn signing_groups)]
-    pub type SigningGroups<T: Config> =
-        StorageMap<_, Blake2_128Concat, u8, Vec<T::AccountId>, OptionQuery>;
+    pub type SigningGroups<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        SubgroupId,
+        Vec<TssServerAccount<T::AccountId>>,
+        OptionQuery,
+    >;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
@@ -118,16 +149,17 @@ pub mod pallet {
                 .into_iter()
                 .map(|x| assert!(x.1.len() as u32 <= T::MaxEndpointLength::get()));
 
-            for (account, endpoint) in &self.endpoints {
-                EndpointRegister::<T>::insert(account, endpoint);
+            for (validator_stash, tss_endpoint_url) in &self.endpoints {
+                EndpointRegister::<T>::insert(validator_stash, tss_endpoint_url);
             }
 
-            for (stash_account, threshold_account) in &self.threshold_accounts {
-                ThresholdAccounts::<T>::insert(stash_account, threshold_account);
+            for (validator_stash, tss_server_keys) in &self.threshold_accounts {
+                ThresholdAccounts::<T>::insert(validator_stash, tss_server_keys);
+                ThresholdToStash::<T>::insert(&tss_server_keys.0, validator_stash);
             }
 
-            for (group, accounts) in &self.signing_groups {
-                SigningGroups::<T>::insert(group, accounts);
+            for (group_id, tss_server_account) in &self.signing_groups {
+                SigningGroups::<T>::insert(group_id, tss_server_account);
             }
         }
     }
@@ -137,6 +169,7 @@ pub mod pallet {
         EndpointTooLong,
         NoBond,
         NotController,
+        NoThresholdKey,
     }
 
     #[pallet::event]
@@ -174,13 +207,17 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::change_threshold_accounts())]
         pub fn change_threshold_accounts(
             origin: OriginFor<T>,
-            new_account: T::AccountId,
-            dh_pk: [u8; 32],
+            threshold_account: TssServerAccount<T::AccountId>,
+            ecdh_pub_key: X25519PublicKey,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             let stash = Self::get_stash(&who)?;
-            ThresholdAccounts::<T>::insert(&stash, (&new_account, dh_pk));
-            Self::deposit_event(Event::ThresholdAccountChanged(stash, (new_account, dh_pk)));
+            ThresholdAccounts::<T>::insert(&stash, (&threshold_account, ecdh_pub_key));
+            ThresholdToStash::<T>::insert(&threshold_account, &stash);
+            Self::deposit_event(Event::ThresholdAccountChanged(
+                stash,
+                (threshold_account, ecdh_pub_key),
+            ));
             Ok(())
         }
 
@@ -196,7 +233,9 @@ pub mod pallet {
             let ledger = pallet_staking::Pallet::<T>::ledger(&controller);
             if ledger.is_none() && Self::endpoint_register(&controller).is_some() {
                 EndpointRegister::<T>::remove(&controller);
-                ThresholdAccounts::<T>::remove(stash);
+                let threshold_account =
+                    ThresholdAccounts::<T>::take(stash).ok_or(Error::<T>::NoThresholdKey)?;
+                ThresholdToStash::<T>::remove(&threshold_account.0);
                 Self::deposit_event(Event::NodeInfoRemoved(controller));
             }
             Ok(().into())
@@ -210,8 +249,8 @@ pub mod pallet {
             origin: OriginFor<T>,
             prefs: ValidatorPrefs,
             endpoint: Vec<u8>,
-            threshold_account: T::AccountId,
-            dh_pk: [u8; 32],
+            threshold_account: TssServerAccount<T::AccountId>,
+            ecdh_pub_key: X25519PublicKey,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
             ensure!(
@@ -221,7 +260,8 @@ pub mod pallet {
             let stash = Self::get_stash(&who)?;
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
             EndpointRegister::<T>::insert(&who, &endpoint);
-            ThresholdAccounts::<T>::insert(&stash, (&threshold_account, dh_pk));
+            ThresholdAccounts::<T>::insert(&stash, (&threshold_account, ecdh_pub_key));
+            ThresholdToStash::<T>::insert(&threshold_account, &stash);
             Self::deposit_event(Event::NodeInfoChanged(who, endpoint, threshold_account));
             Ok(())
         }

@@ -7,13 +7,12 @@ edition="2021"
 
 [dependencies]
 # Common
-rand        ={ version="0.8", default-features=false }
-serde       ={ version="1.0", features=["derive"] }
-thiserror   ="1.0.31"
-project-root="0.2.2"
+rand     ={ version="0.8", default-features=false }
+serde    ={ version="1.0", features=["derive"] }
+thiserror="1.0.31"
 
 # Crypto
-tofn            ={ git="https://github.com/Entropyxyz/tofn", branch="main" }
+tofn            ={ git="https://github.com/entropyxyz/tofn", branch="main" }
 zeroize         ={ version="1.4", features=["zeroize_derive"], default-features=false }
 rpassword       ={ version="5.0", default-features=false }
 scrypt          ={ version="0.8", default-features=false, features=["std"] }

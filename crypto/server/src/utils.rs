@@ -1,10 +1,13 @@
 //! Utilities for starting and running the server.
 
+use std::{collections::HashMap, sync::Mutex};
+
 use bip39::{Language, Mnemonic};
 use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use serde::Deserialize;
+use tofn::sdk::api::{RecoverableSignature, Signature};
 
-use crate::setup_mnemonic;
+use crate::{setup_mnemonic, sign_init::MessageDigest};
 
 const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
@@ -41,11 +44,46 @@ pub(super) async fn load_kv_store() -> KvManager {
         KvManager::new(kvdb::get_db_path().into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap()
     } else {
-        let root = project_root::get_project_root().unwrap();
+        let mut root = project_root::get_project_root().unwrap();
+        if cfg!(feature = "bob") {
+            let formatted = format!("{}/bob", root.display());
+            root = formatted.into()
+        }
         let password = PasswordMethod::Prompt.execute().unwrap();
         // this step takes a long time due to password-based decryption
         KvManager::new(root, password).unwrap()
     };
     setup_mnemonic(&kv_store).await;
     kv_store
+}
+
+// TODO: JA Remove all below, temporary
+/// The state used to temporarily store completed signatures
+#[derive(Debug)]
+pub struct SignatureState {
+    pub signatures: Mutex<HashMap<String, RecoverableSignature>>,
+}
+
+impl SignatureState {
+    pub fn new() -> SignatureState {
+        let signatures = Mutex::new(HashMap::new());
+        SignatureState { signatures }
+    }
+
+    pub fn insert(&self, key: [u8; 32], value: &RecoverableSignature) {
+        let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
+        println!("inside insert value: {:?}", value.clone());
+        signatures.insert(hex::encode(key), *value);
+    }
+
+    pub fn get(&self, key: &String) -> [u8; 65] {
+        let signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
+        let result = *signatures.get(key).unwrap();
+        result.as_ref().try_into().expect("slice with incorrect length")
+    }
+
+    pub fn drain(&self) {
+        let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
+        let _ = signatures.drain();
+    }
 }

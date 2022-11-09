@@ -36,7 +36,7 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type AuthorityId: Member
             + Parameter
             + RuntimeAppPublic
@@ -87,7 +87,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// An example dispatchable that may throw a custom error.
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1).ref_time())]
         pub fn demo_offence(origin: OriginFor<T>, offenders: Vec<T::AccountId>) -> DispatchResult {
             // TODO remove this function, it is for demo purposes only
             let who = ensure_signed(origin)?;
@@ -163,8 +163,6 @@ pub mod pallet {
 
         fn time_slot(&self) -> Self::TimeSlot { self.session_index }
 
-        fn slash_fraction(_offenders: u32, _validator_set_count: u32) -> Perbill {
-            Perbill::from_perthousand(0)
-        }
+        fn slash_fraction(&self, _offenders_count: u32) -> Perbill { Perbill::from_perthousand(0) }
     }
 }

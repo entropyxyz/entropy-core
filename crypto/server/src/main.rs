@@ -19,7 +19,6 @@
 #![allow(dead_code)]
 
 pub(crate) mod chain_api;
-mod communication_manager;
 pub(crate) mod message;
 pub(crate) mod sign_init;
 mod signing_client;
@@ -28,32 +27,29 @@ mod utils;
 use bip39::{Language, Mnemonic, MnemonicType};
 #[macro_use]
 extern crate rocket;
-use communication_manager::deprecating_sign::entropy::sudo::storage::Key;
 use kvdb::kv_manager::{error::KvError, KeyReservation, KvManager};
 use rocket::routes;
-use sp_core::{crypto::AccountId32, sr25519, Pair};
 use sp_keyring::AccountKeyring;
 use substrate_common::SIGNING_PARTY_SIZE;
+use subxt::ext::sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use self::{
-    communication_manager::{api::*, deprecating_sign::provide_share, CommunicationManagerState},
     signing_client::{api::*, SignerState},
     user::api::*,
-    utils::{init_tracing, load_kv_store, Configuration},
+    utils::{init_tracing, load_kv_store, Configuration, SignatureState},
 };
 use crate::{
     message::{derive_static_secret, mnemonic_to_pair},
-    user::unsafe_api::get_dh,
+    user::unsafe_api::{delete, get, put, remove_keys},
 };
 
 #[launch]
 async fn rocket() -> _ {
     init_tracing();
     let signer_state = SignerState::default();
-    let cm_state = CommunicationManagerState::default();
     let configuration = Configuration::new();
     let kv_store = load_kv_store().await;
-
+    let signature_state = SignatureState::new();
     // Unsafe routes are for testing purposes only
     // they are unsafe as they can expose vulnerabilites
     // should they be used in production. Unsafe routes
@@ -61,16 +57,15 @@ async fn rocket() -> _ {
     // To enable unsafe routes compile with --feature unsafe.
     let mut unsafe_routes = routes![];
     if cfg!(feature = "unsafe") {
-        unsafe_routes = routes![get_dh];
+        unsafe_routes = routes![remove_keys, get, put, delete];
     }
 
     rocket::build()
         .mount("/user", routes![new_user])
-        .mount("/signer", routes![new_party, subscribe_to_me])
-        .mount("/cm", routes![provide_share, handle_signing])
+        .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
         .mount("/unsafe", unsafe_routes)
         .manage(signer_state)
-        .manage(cm_state)
+        .manage(signature_state)
         .manage(configuration)
         .manage(kv_store)
 }
@@ -113,14 +108,14 @@ async fn setup_mnemonic(kv: &KvManager) {
 
                 let dh_reservation = kv.kv().reserve_key("DH_PUBLIC".to_string()).await.unwrap();
                 match kv.kv().put(dh_reservation, dh_public.to_bytes().to_vec()).await {
-                    Ok(r) => println!("dh_public_key={:?}", dh_public),
+                    Ok(r) => println!("dh_public_key={dh_public:?}"),
                     Err(r) => warn!("failed to update dh: {:?}", r),
                 }
                 let reservation = kv.kv().reserve_key("MNEMONIC".to_string()).await.unwrap();
 
                 let p = <sr25519::Pair as Pair>::from_phrase(phrase, None).unwrap();
                 let id = AccountId32::new(p.0.public().0);
-                println!("account_id={}", id);
+                println!("account_id={id}");
 
                 // Update the value in the kvdb
                 let result = kv.kv().put(reservation, phrase.as_bytes().to_vec()).await;

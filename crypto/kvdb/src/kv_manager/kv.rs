@@ -147,7 +147,7 @@ async fn kv_cmd_handler<V: 'static>(
                 handle_response(handle_reserve(&kv, key), resp);
             },
             UnreserveKey { reservation } => {
-                let kv_resp = kv.remove(&reservation.key);
+                let kv_resp = kv.remove(reservation.key);
                 match kv_resp {
                     Ok(_) => {},
                     Err(err) => warn!("kv_remove failed: {}", err),
