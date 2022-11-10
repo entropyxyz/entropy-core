@@ -36,22 +36,23 @@ use frame_support::{
     traits::{Currency, OneSessionHandler, ValidatorSet, ValidatorSetWithIdentification},
 };
 use frame_system::pallet_prelude::*;
+use pallet_session::SessionManager as OtherSessionHandler;
 use pallet_staking::ValidatorPrefs;
 use sp_runtime::RuntimeAppPublic;
 use sp_staking::SessionIndex;
-pub use crate::weights::WeightInfo;
-use pallet_session::{SessionManager as OtherSessionHandler};
 use sp_std::convert::TryFrom;
+
+pub use crate::weights::WeightInfo;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_staking::Config  {
+    pub trait Config: frame_system::Config + pallet_staking::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
-		type ValidatorId: Parameter + MaxEncodedLen;
+        type ValidatorId: Parameter + MaxEncodedLen;
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
@@ -75,10 +76,9 @@ pub mod pallet {
         <T as frame_system::Config>::AccountId,
     >>::Balance;
 
-	// pub type ValidatorId<T> = ValidatorSet::ValidatorId;
+    // pub type ValidatorId<T> = ValidatorSet::ValidatorId;
 
-
-// pub type ValidatorId<T> = <T as frame_system::Config>::AccountId;
+    // pub type ValidatorId<T> = <T as frame_system::Config>::AccountId;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -280,45 +280,49 @@ pub mod pallet {
             Ok(ledger.stash)
         }
 
-		pub fn new_session_handler(validators: &Vec<T::ValidatorId>) {
-			// dbg!("testing here", validators);
-			log::info!("test inside {:?}", validators);
-
-		}
+        pub fn new_session_handler(validators: &Vec<T::ValidatorId>) {
+            dbg!("testing here", validators);
+            log::info!("test inside {:?}", validators);
+        }
     }
 
-	pub struct SessionManager<I, T: Config>(sp_std::marker::PhantomData<I>, sp_std::marker::PhantomData<T>);
-	// <T as frame_system::Config>::AccountId
-	impl<I: pallet_session::SessionManager<ValidatorId>, ValidatorId, T: Config + pallet::Config<ValidatorId = ValidatorId>> pallet_session::SessionManager<ValidatorId> for SessionManager<I, T>
-	 {
-		fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
-			let new_session = I::new_session(new_index);
-			// dbg!("test test");
-			log::info!("test inside new_session");
-			if let Some(validators) = &new_session {
-				use crate::Pallet;
-				// Note the validators
-				// let converted_validators = validators.iter().map(|validator| {
+    pub struct SessionManager<I, T: Config>(
+        sp_std::marker::PhantomData<I>,
+        sp_std::marker::PhantomData<T>,
+    );
+    // <T as frame_system::Config>::AccountId
+    impl<
+            I: pallet_session::SessionManager<ValidatorId>,
+            ValidatorId,
+            T: Config + pallet::Config<ValidatorId = ValidatorId>,
+        > pallet_session::SessionManager<ValidatorId> for SessionManager<I, T>
+    {
+        fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
+            let new_session = I::new_session(new_index);
+            // dbg!("test test");
+            log::info!("test inside new_session");
+            if let Some(validators) = &new_session {
+                // Note the validators
+                // let converted_validators = validators.iter().map(|validator| {
 
-				// 	<T as SessionConfig>::ValidatorIdOf::convert(validator).unwrap()
-				// }).collect();
-					Pallet::<T>::new_session_handler(validators);
+                // 	<T as SessionConfig>::ValidatorIdOf::convert(validator).unwrap()
+                // }).collect();
+                Pallet::<T>::new_session_handler(validators);
 
-				// Self::new_session_handler(validators);
-			}
+                // Self::new_session_handler(validators);
+            }
 
-			new_session
-		}
+            new_session
+        }
 
-		fn new_session_genesis(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
-			log::info!("test inside gesnsisi");
+        fn new_session_genesis(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
+            log::info!("test inside gesnsisi");
 
-			I::new_session_genesis(new_index)
-		}
+            I::new_session_genesis(new_index)
+        }
 
-		fn end_session(end_index: SessionIndex) { I::end_session(end_index); }
-		fn start_session(start_index: SessionIndex) { I::start_session(start_index); }
-	}
+        fn end_session(end_index: SessionIndex) { I::end_session(end_index); }
 
-
+        fn start_session(start_index: SessionIndex) { I::start_session(start_index); }
+    }
 }

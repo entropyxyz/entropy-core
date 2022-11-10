@@ -137,23 +137,30 @@ impl OpaqueKeys for PreUpgradeMockSessionKeys {
     }
 }
 
-
 pub struct MockSessionManager;
 impl pallet_session::SessionManager<u64> for MockSessionManager {
-	fn end_session(_: sp_staking::SessionIndex) {}
-	fn start_session(_: sp_staking::SessionIndex) {}
-	fn new_session(idx: sp_staking::SessionIndex) -> Option<Vec<u64>> {
-        Staking::new_session_handler(&vec![1, 2]);
-		dbg!("test");
-		if idx == 0 || idx == 1 {
+    fn end_session(_: sp_staking::SessionIndex) {}
 
-			Some(vec![1, 2])
-		} else if idx == 2 {
-			Some(vec![3, 4])
-		} else {
-			None
-		}
-	}
+    fn start_session(_: sp_staking::SessionIndex) {}
+
+    fn new_session(idx: sp_staking::SessionIndex) -> Option<Vec<u64>> {
+        let validators;
+        if idx == 0 {
+            validators = vec![1, 2]
+        } else if idx == 1 {
+            validators = vec![2, 1]
+        } else if idx == 2 {
+            validators = vec![1, 3]
+        } else if idx == 3 {
+            validators = vec![1]
+        } else if idx == 4 {
+            validators = vec![3, 4]
+        } else {
+            validators = vec![]
+        }
+        Staking::new_session_handler(&validators);
+        Some(validators)
+    }
 }
 
 pub struct OtherSessionHandler;
@@ -326,7 +333,7 @@ impl pallet_staking_extension::Config for Test {
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
     type RuntimeEvent = RuntimeEvent;
-	type ValidatorId = AccountId;
+    type ValidatorId = AccountId;
     type WeightInfo = ();
 }
 
