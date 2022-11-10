@@ -53,13 +53,19 @@ pub async fn new_party(
             Channels(broadcast_out, stream_in)
         };
 
-        let result = gg20_service.execute_sign(&sign_context, channels).await.unwrap();
-
-        gg20_service.handle_result(
-            &result,
-            message.sig_request.sig_hash.as_slice().try_into().unwrap(),
-            signatures,
-        );
+        let result = gg20_service.execute_sign(&sign_context, channels).await;
+        match result {
+            Err(e) => {
+                warn!("{}", e.to_string());
+            },
+            Ok(v) => {
+                gg20_service.handle_result(
+                    &v,
+                    message.sig_request.sig_hash.as_slice().try_into().unwrap(),
+                    signatures,
+                );
+            },
+        }
     }
 
     Ok(Status::Ok)

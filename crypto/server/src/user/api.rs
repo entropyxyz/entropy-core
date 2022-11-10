@@ -73,10 +73,12 @@ pub async fn is_registering(
     who: &AccountId32,
 ) -> Result<bool, UserErr> {
     let is_registering_query = entropy::storage().relayer().registering(who);
-    let is_registering = api.storage().fetch(&is_registering_query, None).await.unwrap();
-    Ok(is_registering
-        .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?
-        .is_registering)
+    let is_registering = api.storage().fetch(&is_registering_query, None).await;
+    match is_registering {
+        Err(v) => Err(UserErr::NotRegistering("Register Onchain first")),
+        Ok(v) =>
+            Ok(v.ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?.is_registering),
+    }
 }
 
 // Returns PairSigner for this nodes threshold server.
