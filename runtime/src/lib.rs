@@ -474,7 +474,7 @@ impl pallet_session::Config for Runtime {
     type NextSessionRotation = Babe;
     type RuntimeEvent = RuntimeEvent;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
-    type SessionManager = pallet_staking_extension::SessionManager<pallet_session::historical::NoteHistoricalRoot<Self, Staking>>;
+    type SessionManager = pallet_staking_extension::SessionManager<pallet_session::historical::NoteHistoricalRoot<Self, Staking>, Runtime>;
     type ShouldEndSession = Babe;
     type ValidatorId = <Self as frame_system::Config>::AccountId;
     type ValidatorIdOf = pallet_staking::StashOf<Self>;
@@ -592,6 +592,7 @@ impl pallet_staking_extension::Config for Runtime {
     // type AuthorityId = BabeId;
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
+	type ValidatorId = <Self as frame_system::Config>::AccountId;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
 }

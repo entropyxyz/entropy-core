@@ -137,6 +137,25 @@ impl OpaqueKeys for PreUpgradeMockSessionKeys {
     }
 }
 
+
+pub struct MockSessionManager;
+impl pallet_session::SessionManager<u64> for MockSessionManager {
+	fn end_session(_: sp_staking::SessionIndex) {}
+	fn start_session(_: sp_staking::SessionIndex) {}
+	fn new_session(idx: sp_staking::SessionIndex) -> Option<Vec<u64>> {
+        Staking::new_session_handler(&vec![1, 2]);
+		dbg!("test");
+		if idx == 0 || idx == 1 {
+
+			Some(vec![1, 2])
+		} else if idx == 2 {
+			Some(vec![3, 4])
+		} else {
+			None
+		}
+	}
+}
+
 pub struct OtherSessionHandler;
 impl OneSessionHandler<AccountId> for OtherSessionHandler {
     type Key = UintAuthorityId;
@@ -153,7 +172,6 @@ impl OneSessionHandler<AccountId> for OtherSessionHandler {
         I: Iterator<Item = (&'a AccountId, Self::Key)>,
         AccountId: 'a,
     {
-        Staking::on_new_session(changed, validators, queued_validators)
         // let authorities = validators.map(|(_account, k)| (k, 1)).collect::<Vec<_>>();
         // let next_authorities = queued_validators.map(|(_account, k)| (k, 1)).collect::<Vec<_>>();
     }
@@ -305,10 +323,10 @@ parameter_types! {
   pub const MaxEndpointLength: u32 = 3;
 }
 impl pallet_staking_extension::Config for Test {
-    type AuthorityId = UintAuthorityId;
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
     type RuntimeEvent = RuntimeEvent;
+	type ValidatorId = AccountId;
     type WeightInfo = ();
 }
 

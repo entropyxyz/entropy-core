@@ -33,7 +33,7 @@ use frame_support::{
     dispatch::DispatchResult,
     inherent::Vec,
     pallet_prelude::*,
-    traits::{Currency, OneSessionHandler},
+    traits::{Currency, OneSessionHandler, ValidatorSet, ValidatorSetWithIdentification},
 };
 use frame_system::pallet_prelude::*;
 use pallet_staking::ValidatorPrefs;
@@ -47,10 +47,12 @@ pub mod pallet {
     use super::*;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_staking::Config {
+    pub trait Config: frame_system::Config + pallet_staking::Config  {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
+		type ValidatorId: Parameter + MaxEncodedLen;
+
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
@@ -72,6 +74,11 @@ pub mod pallet {
     pub type BalanceOf<T> = <<T as pallet_staking::Config>::Currency as Currency<
         <T as frame_system::Config>::AccountId,
     >>::Balance;
+
+	// pub type ValidatorId<T> = ValidatorSet::ValidatorId;
+
+
+// pub type ValidatorId<T> = <T as frame_system::Config>::AccountId;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -273,27 +280,31 @@ pub mod pallet {
             Ok(ledger.stash)
         }
 
-        // pub fn on_new_session<'a, I: 'a>(changed: bool, validators: I, queued_validators: I)
-        // where I: Iterator<Item = (&'a T::AccountId, T::ValidatorId)> {
-        //     let authorities = validators.map(|(_, k)| (k, 1)).collect::<Vec<_>>();
-        //     let new_authorities = queued_validators.map(|(_, k)| (k, 1)).collect::<Vec<_>>();
-        //     if !changed {
-        //         // do nothing
-        //     } else {
-        //         // check to see if x happened
-        //         // check if y
-        //     }
-        //     // dbg!("here test 2 {:?}, {:?}, {:?}", changed, authorities, new_authorities);
-        // }
-    }
-	pub struct SessionManager<I>(sp_std::marker::PhantomData<I>);
+		pub fn new_session_handler(validators: &Vec<T::ValidatorId>) {
+			// dbg!("testing here", validators);
+			log::info!("test inside {:?}", validators);
 
-	impl<I: pallet_session::SessionManager<ValidatorId>, ValidatorId> pallet_session::SessionManager<ValidatorId> for SessionManager<I> {
+		}
+    }
+
+	pub struct SessionManager<I, T: Config>(sp_std::marker::PhantomData<I>, sp_std::marker::PhantomData<T>);
+	// <T as frame_system::Config>::AccountId
+	impl<I: pallet_session::SessionManager<ValidatorId>, ValidatorId, T: Config + pallet::Config<ValidatorId = ValidatorId>> pallet_session::SessionManager<ValidatorId> for SessionManager<I, T>
+	 {
 		fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
 			let new_session = I::new_session(new_index);
+			// dbg!("test test");
 			log::info!("test inside new_session");
 			if let Some(validators) = &new_session {
+				use crate::Pallet;
 				// Note the validators
+				// let converted_validators = validators.iter().map(|validator| {
+
+				// 	<T as SessionConfig>::ValidatorIdOf::convert(validator).unwrap()
+				// }).collect();
+					Pallet::<T>::new_session_handler(validators);
+
+				// Self::new_session_handler(validators);
 			}
 
 			new_session
@@ -309,12 +320,5 @@ pub mod pallet {
 		fn start_session(start_index: SessionIndex) { I::start_session(start_index); }
 	}
 
-
-
-// impl fmt::Debug for ValidatorId {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-
-// 	}
-// }
 
 }
