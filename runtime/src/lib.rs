@@ -596,7 +596,7 @@ impl pallet_staking_extension::Config for Runtime {
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
     type RuntimeEvent = RuntimeEvent;
-    type ValidatorId = <Self as frame_system::Config>::AccountId;
+    // type ValidatorId = <Self as frame_system::Config>::AccountId;
     type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
 }
 

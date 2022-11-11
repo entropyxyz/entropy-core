@@ -38,25 +38,17 @@ use crate as pallet_staking_extension;
 pub use crate::weights::WeightInfo;
 #[frame_support::pallet]
 pub mod pallet {
-    use core::{convert::TryFrom, fmt::Debug};
-
-    use sp_runtime::traits::{MaybeDisplay, MaybeSerializeDeserialize};
+    use sp_runtime::traits::Convert;
     use substrate_common::SIGNING_PARTY_SIZE;
 
     use super::*;
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_staking::Config {
+    pub trait Config:
+        pallet_session::Config + frame_system::Config + pallet_staking::Config
+    {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
-        type ValidatorId: Parameter
-            + Member
-            + MaybeSerializeDeserialize
-            + Debug
-            + MaybeDisplay
-            + Ord
-            + MaxEncodedLen;
-
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
@@ -79,10 +71,6 @@ pub mod pallet {
         <T as frame_system::Config>::AccountId,
     >>::Balance;
 
-    // pub type ValidatorId<T> = ValidatorSet::ValidatorId;
-
-    // pub type ValidatorId<T> = <T as frame_system::Config>::AccountId;
-
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
@@ -95,8 +83,13 @@ pub mod pallet {
     /// can be reached at.
     #[pallet::storage]
     #[pallet::getter(fn endpoint_register)]
-    pub type EndpointRegister<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, TssServerURL, OptionQuery>;
+    pub type EndpointRegister<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        <T as pallet_session::Config>::ValidatorId,
+        TssServerURL,
+        OptionQuery,
+    >;
 
     /// Stores the relationship between
     /// a validator's stash account and their threshold server's sr25519 and x25519 keys.
@@ -127,17 +120,16 @@ pub mod pallet {
         _,
         Blake2_128Concat,
         SubgroupId,
-        // Vec<TssServerAccount<T::AccountId>>,
-        Vec<T::ValidatorId>,
+        Vec<<T as pallet_session::Config>::ValidatorId>,
         OptionQuery,
     >;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
-        pub endpoints: Vec<(T::AccountId, Vec<u8>)>,
+        pub endpoints: Vec<(<T as pallet_session::Config>::ValidatorId, Vec<u8>)>,
         #[allow(clippy::type_complexity)]
         pub threshold_accounts: Vec<(T::AccountId, (T::AccountId, [u8; 32]))>,
-        pub signing_groups: Vec<(u8, Vec<T::ValidatorId>)>,
+        pub signing_groups: Vec<(u8, Vec<<T as pallet_session::Config>::ValidatorId>)>,
     }
 
     #[cfg(feature = "std")]
@@ -208,7 +200,8 @@ pub mod pallet {
                 Error::<T>::EndpointTooLong
             );
             pallet_staking::Pallet::<T>::ledger(&who).ok_or(Error::<T>::NoBond)?;
-            EndpointRegister::<T>::insert(&who, &endpoint);
+            let sk = <T as pallet_session::Config>::ValidatorIdOf::convert(who.clone()).unwrap();
+            EndpointRegister::<T>::insert(&sk, &endpoint);
             Self::deposit_event(Event::EndpointChanged(who, endpoint));
             Ok(())
         }
@@ -242,8 +235,10 @@ pub mod pallet {
             let stash = Self::get_stash(&controller)?;
             pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
             let ledger = pallet_staking::Pallet::<T>::ledger(&controller);
-            if ledger.is_none() && Self::endpoint_register(&controller).is_some() {
-                EndpointRegister::<T>::remove(&controller);
+            let sk =
+                <T as pallet_session::Config>::ValidatorIdOf::convert(controller.clone()).unwrap();
+            if ledger.is_none() && Self::endpoint_register(&sk).is_some() {
+                EndpointRegister::<T>::remove(&sk);
                 let threshold_account =
                     ThresholdAccounts::<T>::take(stash).ok_or(Error::<T>::NoThresholdKey)?;
                 ThresholdToStash::<T>::remove(&threshold_account.0);
@@ -270,7 +265,8 @@ pub mod pallet {
             );
             let stash = Self::get_stash(&who)?;
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
-            EndpointRegister::<T>::insert(&who, &endpoint);
+            let sk = <T as pallet_session::Config>::ValidatorIdOf::convert(who.clone()).unwrap();
+            EndpointRegister::<T>::insert(&sk, &endpoint);
             ThresholdAccounts::<T>::insert(&stash, (&threshold_account, ecdh_pub_key));
             ThresholdToStash::<T>::insert(&threshold_account, &stash);
             Self::deposit_event(Event::NodeInfoChanged(who, endpoint, threshold_account));
@@ -298,15 +294,19 @@ pub mod pallet {
             Ok(ledger.stash)
         }
 
-        pub fn new_session_handler(validators: &Vec<T::ValidatorId>) {
+        // TODO(JS): do not reassign validator IDs to new subgroups
+        // add checks to ensure validators stay in the same subgroup and
+        // have new validators still be inserted with proper partitioning.
+        pub fn new_session_handler(validators: &Vec<<T as pallet_session::Config>::ValidatorId>) {
             // Find the size of each subgroup
             let subgroup_size = Self::max(validators.len(), SIGNING_PARTY_SIZE)
                 / Self::min(validators.len(), SIGNING_PARTY_SIZE);
             // Init a 2D Vec where indices and values represent subgroups and validators,
             // respectively.
-            let mut new_validators_set: Vec<Vec<T::ValidatorId>> =
+            let mut new_validators_set: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> =
                 Vec::with_capacity(SIGNING_PARTY_SIZE);
             new_validators_set.resize(SIGNING_PARTY_SIZE, Vec::new());
+
             // Chunk the new validator list by subgroup size
             // and append each chunk to the new validator list.
             let mut iter = validators.chunks(subgroup_size);
@@ -337,13 +337,13 @@ pub mod pallet {
     {
         fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
             let new_session = I::new_session(new_index);
-            if let Some(validators) = &new_session {
+            if let Some(_validators) = &new_session {
                 // Note the validators
                 // let converted_validators = validators.iter().map(|validator| {
 
                 // 	<T as SessionConfig>::ValidatorIdOf::convert(validator).unwrap()
                 // }).collect();
-                Pallet::<T>::new_session_handler(validators);
+                // Pallet::<T>::new_session_handler(validators);
 
                 // Self::new_session_handler(validators);
             }

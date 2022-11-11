@@ -39,11 +39,12 @@ pub mod pallet {
     use helpers::unwrap_or_return;
     use scale_info::TypeInfo;
     use sp_runtime::{
-        traits::{DispatchInfoOf, Saturating, SignedExtension},
+        traits::{Convert, DispatchInfoOf, Saturating, SignedExtension},
         transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
     };
     use sp_std::{fmt::Debug, vec};
     use substrate_common::{Message, SigRequest, SIGNING_PARTY_SIZE};
+
     pub use crate::weights::WeightInfo;
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
@@ -214,11 +215,12 @@ pub mod pallet {
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
                     .ok_or(Error::<T>::InvalidSubgroup)?;
 
-            // let sk =
-                // <T as pallet_staking_extension::Config>::ValidatorId::try_from(stash_key).unwrap();
-            // let sk =
-                // <T as pallet_session::pallet::Config>::ValidatorIdOf::convert(stash_key).unwrap();
-            ensure!(signing_subgroup_addresses.contains(&sk), Error::<T>::NotInSigningGroup);
+            let validator_id =
+                <T as pallet_session::Config>::ValidatorIdOf::convert(stash_key).unwrap();
+            ensure!(
+                signing_subgroup_addresses.contains(&validator_id),
+                Error::<T>::NotInSigningGroup
+            );
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 Registered::<T>::insert(&registerer, true);
                 Registering::<T>::remove(&registerer);

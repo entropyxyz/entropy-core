@@ -182,6 +182,9 @@ fn it_tests_on_new_session() {
     new_test_ext().execute_with(|| {
         // // situation 1 - changed is false no changes should be made
         MockSessionManager::new_session(0);
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+
         // catches out of order validators
         MockSessionManager::new_session(1);
 
