@@ -4,13 +4,12 @@ use frame_support::{
     traits::OnInitialize,
 };
 use pallet_relayer::Call as RelayerCall;
+use pallet_staking_extension::ServerInfo;
 use sp_runtime::{
     traits::SignedExtension,
     transaction_validity::{TransactionValidity, ValidTransaction},
 };
 use substrate_common::{Message, SigRequest};
-
-use pallet_staking_extension::ServerInfo;
 
 use crate as pallet_relayer;
 use crate::{mock::*, Error, Failures, PrevalidateRelayer, RegisteringDetails, Responsibility};
