@@ -1879,14 +1879,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "entropy-rpc-api"
-version = "0.1.0"
-dependencies = [
- "jsonrpsee",
- "pallet-staking-extension",
-]
-
-[[package]]
 name = "entropy-runtime"
 version = "3.0.0-monthly-2021-10"
 dependencies = [

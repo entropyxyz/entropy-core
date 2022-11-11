@@ -57,10 +57,6 @@ pub mod pallet {
     /// A unique identifier of a subgroup or partition of validators that have the same set of
     /// threshold shares.
     pub type SubgroupId = u8;
-    /// Unique type to differentiate the threshold server's account ID from the validator's
-    pub type TssServerAccount<AccountId> = AccountId;
-    /// Unique type to differentiate the threshold server's account ID from the validator's
-    pub type ValidatorStashAccount<AccountId> = AccountId;
     /// X25519 public key used by the client in non-interactive ECDH to authenticate/encrypt
     /// interactions with the threshold server (eg distributing threshold shares).
     pub type X25519PublicKey = [u8; 32];
@@ -76,7 +72,7 @@ pub mod pallet {
     #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct ServerInfo<AccountId> {
-        pub tss_account: TssServerAccount<AccountId>,
+        pub tss_account: AccountId,
         pub x25519_public_key: X25519PublicKey,
         pub endpoint: TssServerURL,
     }
@@ -110,15 +106,15 @@ pub mod pallet {
         _,
         Blake2_128Concat,
         SubgroupId,
-        Vec<ValidatorStashAccount<T::AccountId>>,
+        Vec<T::AccountId>,
         OptionQuery,
     >;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub threshold_servers: Vec<(ValidatorStashAccount<T::AccountId>, ServerInfo<T::AccountId>)>,
-        pub signing_groups: Vec<(u8, Vec<ValidatorStashAccount<T::AccountId>>)>,
+        pub threshold_servers: Vec<(T::AccountId, ServerInfo<T::AccountId>)>,
+        pub signing_groups: Vec<(u8, Vec<T::AccountId>)>,
     }
 
     #[cfg(feature = "std")]
@@ -198,7 +194,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::change_threshold_accounts())]
         pub fn change_threshold_accounts(
             origin: OriginFor<T>,
-            tss_account: TssServerAccount<T::AccountId>,
+            tss_account: AccountId
             x25519_public_key: X25519PublicKey,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
@@ -250,7 +246,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             prefs: ValidatorPrefs,
             endpoint: Vec<u8>,
-            tss_account: TssServerAccount<T::AccountId>,
+            tss_account: AccountId,
             x25519_public_key: X25519PublicKey,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
