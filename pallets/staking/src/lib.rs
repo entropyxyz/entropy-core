@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::needless_range_loop)]
 //! # Staking Pallet
 //!
 //!
@@ -36,6 +37,7 @@ use sp_staking::SessionIndex;
 
 use crate as pallet_staking_extension;
 pub use crate::weights::WeightInfo;
+
 #[frame_support::pallet]
 pub mod pallet {
     use sp_runtime::traits::Convert;
@@ -274,59 +276,64 @@ pub mod pallet {
         }
     }
     impl<T: Config> Pallet<T> {
-        fn min(l: usize, r: usize) -> usize {
-            if l < r {
-                return l;
-            }
-            r
-        }
-
-        fn max(l: usize, r: usize) -> usize {
-            if l > r {
-                return l;
-            }
-            r
-        }
-
         pub fn get_stash(controller: &T::AccountId) -> Result<T::AccountId, DispatchError> {
             let ledger =
                 pallet_staking::Pallet::<T>::ledger(controller).ok_or(Error::<T>::NotController)?;
             Ok(ledger.stash)
         }
 
-        // TODO(JS): do not reassign validator IDs to new subgroups
-        // add checks to ensure validators stay in the same subgroup and
-        // have new validators still be inserted with proper partitioning.
-        // Approach that does not move remaining validators between subgroups:
-        // 1) Create two hashmaps
-        // .  1a) An inverse mapping from CurrentValidatorId -> Subgroup
-        // .  2a) A result mapping from Subgroup -> Vec<NewValidatorId>
-        // 2) Create one Vec<UnplacedValidatorId>
-        // Iterate the new validators, checking if it exists in the inverse mapping
-        // if it exists in the mapping, append the ValidatorId to the Vec in the result map.
-        // if it does not exist, place it in the Vec<UnplacedValidatorId>
-        // Sort the result mapping by length of Vec<NewValidatorId>
-        // Redistribute the Vec<UnplacedValidatorId> to balance subgroup size
-        // as best as possible.
-        pub fn new_session_handler(validators: &Vec<<T as pallet_session::Config>::ValidatorId>) {
-            // Find the size of each subgroup
-            let subgroup_size = Self::max(validators.len(), SIGNING_PARTY_SIZE)
-                / Self::min(validators.len(), SIGNING_PARTY_SIZE);
+        pub fn new_session_handler(validators: &[<T as pallet_session::Config>::ValidatorId]) {
             // Init a 2D Vec where indices and values represent subgroups and validators,
             // respectively.
             let mut new_validators_set: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> =
                 Vec::with_capacity(SIGNING_PARTY_SIZE);
             new_validators_set.resize(SIGNING_PARTY_SIZE, Vec::new());
 
-            // Chunk the new validator list by subgroup size
-            // and append each chunk to the new validator list.
-            let mut iter = validators.chunks(subgroup_size);
-            let mut sg = 0;
-            while iter.len() > 0 {
-                let mut sgv = iter.next().unwrap().to_vec();
-                new_validators_set[sg].append(&mut sgv);
-                sg = (sg + 1) % SIGNING_PARTY_SIZE;
+            // Init current validators vec
+            let mut curr_validators_set: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> =
+                Vec::with_capacity(SIGNING_PARTY_SIZE);
+            curr_validators_set.resize(SIGNING_PARTY_SIZE, Vec::new());
+
+            // Init new unplaced validator vec
+            let mut unplaced_validators_set: Vec<<T as pallet_session::Config>::ValidatorId> =
+                Vec::new();
+
+            // Populate the current validators set
+            for signing_group in 0..SIGNING_PARTY_SIZE {
+                curr_validators_set[signing_group] =
+                    pallet_staking_extension::Pallet::<T>::signing_groups(signing_group as u8)
+                        .unwrap();
             }
+
+            // Replace existing validators into the same subgroups
+            for new_validator in validators.iter() {
+                let mut exists = false;
+                for (sg, sg_validators) in curr_validators_set.iter().enumerate() {
+                    if sg_validators.contains(new_validator) {
+                        exists = true;
+                        new_validators_set[sg].push(new_validator.clone());
+                        break;
+                    }
+                }
+                if !exists {
+                    unplaced_validators_set.push(new_validator.clone());
+                }
+            }
+
+            // Evenly distribute new validators.
+            while let Some(curr) = unplaced_validators_set.pop() {
+                let mut min_sg_len = u64::MAX;
+                let mut min_sg = 0;
+                for (sg, validators) in new_validators_set.iter().enumerate() {
+                    let n = validators.len() as u64;
+                    if n < min_sg_len {
+                        min_sg_len = n;
+                        min_sg = sg;
+                    }
+                }
+                new_validators_set[min_sg].push(curr);
+            }
+
             // Update the new validator set
             for (sg, vs) in new_validators_set.iter().enumerate() {
                 pallet_staking_extension::SigningGroups::<T>::remove(sg as u8);

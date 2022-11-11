@@ -158,6 +158,7 @@ pub mod pallet {
         InvalidSubgroup,
         AlreadyConfirmed,
         NotInSigningGroup,
+        InvalidValidatorId,
         IpAddressError,
         SigningGroupError,
     }
@@ -215,8 +216,10 @@ pub mod pallet {
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
                     .ok_or(Error::<T>::InvalidSubgroup)?;
 
-            let validator_id =
-                <T as pallet_session::Config>::ValidatorIdOf::convert(stash_key).unwrap();
+            let validator_id_res =
+                <T as pallet_session::Config>::ValidatorIdOf::convert(stash_key);
+            ensure!(validator_id_res.is_some(), Error::<T>::InvalidValidatorId);
+            let validator_id = validator_id_res.unwrap();
             ensure!(
                 signing_subgroup_addresses.contains(&validator_id),
                 Error::<T>::NotInSigningGroup
