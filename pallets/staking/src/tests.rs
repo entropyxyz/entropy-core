@@ -180,44 +180,40 @@ fn it_deletes_when_no_bond_left() {
 #[test]
 fn it_tests_on_new_session() {
     new_test_ext().execute_with(|| {
-        // let authority_1 = (&1u64, UintAuthorityId::from(1));
-        // let authority_2 = (&2u64, UintAuthorityId::from(2));
-        // let authority_3 = (&3u64, UintAuthorityId::from(3));
-        // let authority_4 = (&4u64, UintAuthorityId::from(4));
-
         // // situation 1 - changed is false no changes should be made
         MockSessionManager::new_session(0);
         // catches out of order validators
         MockSessionManager::new_session(1);
 
         // nothing is changed
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![2]);
 
         // // situation 2 - authority 2 leaves authority 3 enters
         MockSessionManager::new_session(2);
         // authority 3 replaces authority 2
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
         assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
 
         // situation 3 - authority 2 leaves not replaces
         MockSessionManager::new_session(3);
 
         // authority 2 left sig group 1 has no one in signing group
         assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
-        assert_eq!(Staking::signing_groups(1), None);
+        assert_eq!(Staking::signing_groups(1), Some(vec![]));
 
         //  // situation 4 - same number but both authorities change
         MockSessionManager::new_session(4);
-
-        //  Staking::on_new_session(
-        //     true,
-        //     vec![authority_1.clone(), authority_2.clone()].into_iter(),
-        //     vec![authority_3.clone(), authority_4.clone()].into_iter(),
-        // );
-
-        // auth 3 and 4 are now the signing groups
         assert_eq!(Staking::signing_groups(0).unwrap(), vec![3]);
         assert_eq!(Staking::signing_groups(1).unwrap(), vec![4]);
+
+        // situation 5/6 = odd number of validators
+        MockSessionManager::new_session(5);
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1, 3]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+
+        MockSessionManager::new_session(6);
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1, 2, 5]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3, 4]);
     });
 }

@@ -5803,6 +5803,7 @@ dependencies = [
  "sp-runtime",
  "sp-staking",
  "sp-std",
+ "substrate-common",
 ]
 
 [[package]]

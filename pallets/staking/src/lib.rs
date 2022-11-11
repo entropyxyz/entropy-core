@@ -29,30 +29,33 @@ mod benchmarking;
 pub mod weights;
 use core::convert::TryInto;
 
-use frame_support::{
-    dispatch::DispatchResult,
-    inherent::Vec,
-    pallet_prelude::*,
-    traits::{Currency, OneSessionHandler, ValidatorSet, ValidatorSetWithIdentification},
-};
+use frame_support::{dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency};
 use frame_system::pallet_prelude::*;
-use pallet_session::SessionManager as OtherSessionHandler;
 use pallet_staking::ValidatorPrefs;
-use sp_runtime::RuntimeAppPublic;
 use sp_staking::SessionIndex;
-use sp_std::convert::TryFrom;
 
+use crate as pallet_staking_extension;
 pub use crate::weights::WeightInfo;
 #[frame_support::pallet]
 pub mod pallet {
-    use super::*;
+    use core::{convert::TryFrom, fmt::Debug};
 
+    use sp_runtime::traits::{MaybeDisplay, MaybeSerializeDeserialize};
+    use substrate_common::SIGNING_PARTY_SIZE;
+
+    use super::*;
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_staking::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
-        type ValidatorId: Parameter + MaxEncodedLen;
+        type ValidatorId: Parameter
+            + Member
+            + MaybeSerializeDeserialize
+            + Debug
+            + MaybeDisplay
+            + Ord
+            + MaxEncodedLen;
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
@@ -124,7 +127,8 @@ pub mod pallet {
         _,
         Blake2_128Concat,
         SubgroupId,
-        Vec<TssServerAccount<T::AccountId>>,
+        // Vec<TssServerAccount<T::AccountId>>,
+        Vec<T::ValidatorId>,
         OptionQuery,
     >;
 
@@ -133,7 +137,7 @@ pub mod pallet {
         pub endpoints: Vec<(T::AccountId, Vec<u8>)>,
         #[allow(clippy::type_complexity)]
         pub threshold_accounts: Vec<(T::AccountId, (T::AccountId, [u8; 32]))>,
-        pub signing_groups: Vec<(u8, Vec<T::AccountId>)>,
+        pub signing_groups: Vec<(u8, Vec<T::ValidatorId>)>,
     }
 
     #[cfg(feature = "std")]
@@ -274,6 +278,20 @@ pub mod pallet {
         }
     }
     impl<T: Config> Pallet<T> {
+        fn min(l: usize, r: usize) -> usize {
+            if l < r {
+                return l;
+            }
+            r
+        }
+
+        fn max(l: usize, r: usize) -> usize {
+            if l > r {
+                return l;
+            }
+            r
+        }
+
         pub fn get_stash(controller: &T::AccountId) -> Result<T::AccountId, DispatchError> {
             let ledger =
                 pallet_staking::Pallet::<T>::ledger(controller).ok_or(Error::<T>::NotController)?;
@@ -281,8 +299,28 @@ pub mod pallet {
         }
 
         pub fn new_session_handler(validators: &Vec<T::ValidatorId>) {
-            dbg!("testing here", validators);
-            log::info!("test inside {:?}", validators);
+            // Find the size of each subgroup
+            let subgroup_size = Self::max(validators.len(), SIGNING_PARTY_SIZE)
+                / Self::min(validators.len(), SIGNING_PARTY_SIZE);
+            // Init a 2D Vec where indices and values represent subgroups and validators,
+            // respectively.
+            let mut new_validators_set: Vec<Vec<T::ValidatorId>> =
+                Vec::with_capacity(SIGNING_PARTY_SIZE);
+            new_validators_set.resize(SIGNING_PARTY_SIZE, Vec::new());
+            // Chunk the new validator list by subgroup size
+            // and append each chunk to the new validator list.
+            let mut iter = validators.chunks(subgroup_size);
+            let mut sg = 0;
+            while iter.len() > 0 {
+                let mut sgv = iter.next().unwrap().to_vec();
+                new_validators_set[sg].append(&mut sgv);
+                sg = (sg + 1) % SIGNING_PARTY_SIZE;
+            }
+            // Update the new validator set
+            for (sg, vs) in new_validators_set.iter().enumerate() {
+                pallet_staking_extension::SigningGroups::<T>::remove(sg as u8);
+                pallet_staking_extension::SigningGroups::<T>::insert(sg as u8, vs);
+            }
         }
     }
 
@@ -299,8 +337,6 @@ pub mod pallet {
     {
         fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
             let new_session = I::new_session(new_index);
-            // dbg!("test test");
-            log::info!("test inside new_session");
             if let Some(validators) = &new_session {
                 // Note the validators
                 // let converted_validators = validators.iter().map(|validator| {

@@ -44,7 +44,6 @@ pub mod pallet {
     };
     use sp_std::{fmt::Debug, vec};
     use substrate_common::{Message, SigRequest, SIGNING_PARTY_SIZE};
-
     pub use crate::weights::WeightInfo;
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
@@ -214,7 +213,12 @@ pub mod pallet {
             let signing_subgroup_addresses =
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
                     .ok_or(Error::<T>::InvalidSubgroup)?;
-            ensure!(signing_subgroup_addresses.contains(&stash_key), Error::<T>::NotInSigningGroup);
+
+            // let sk =
+                // <T as pallet_staking_extension::Config>::ValidatorId::try_from(stash_key).unwrap();
+            // let sk =
+                // <T as pallet_session::pallet::Config>::ValidatorIdOf::convert(stash_key).unwrap();
+            ensure!(signing_subgroup_addresses.contains(&sk), Error::<T>::NotInSigningGroup);
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 Registered::<T>::insert(&registerer, true);
                 Registering::<T>::remove(&registerer);

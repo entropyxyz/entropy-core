@@ -145,6 +145,7 @@ impl pallet_session::SessionManager<u64> for MockSessionManager {
 
     fn new_session(idx: sp_staking::SessionIndex) -> Option<Vec<u64>> {
         let validators;
+        println!("- - TESTING H");
         if idx == 0 {
             validators = vec![1, 2]
         } else if idx == 1 {
@@ -155,6 +156,10 @@ impl pallet_session::SessionManager<u64> for MockSessionManager {
             validators = vec![1]
         } else if idx == 4 {
             validators = vec![3, 4]
+        } else if idx == 5 {
+            validators = vec![1, 2, 3]
+        } else if idx == 6 {
+            validators = vec![1, 2, 3, 4, 5]
         } else {
             validators = vec![]
         }
