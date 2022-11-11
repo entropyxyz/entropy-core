@@ -335,7 +335,7 @@ impl pallet_session::Config for Test {
     type SessionHandler = (OtherSessionHandler,);
     type SessionManager = pallet_session::historical::NoteHistoricalRoot<Test, FrameStaking>;
     type ShouldEndSession = TestShouldEndSession;
-    type ValidatorId = ValidatorId;
+    type ValidatorId = AccountId;
     type ValidatorIdOf = ConvertInto;
     type WeightInfo = ();
 }
