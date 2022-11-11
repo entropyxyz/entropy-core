@@ -164,8 +164,8 @@ async fn test_unsafe_get_endpoint() {
 //         .await;
 
 //     assert_eq!(response_4.status(), Status::InternalServerError);
-//     assert_eq!(response_4.into_string().await.unwrap(), "Parse error: failed decrypting message");
-//     let sig: [u8; 64] = [0; 64];
+//     assert_eq!(response_4.into_string().await.unwrap(), "Parse error: failed decrypting
+// message");     let sig: [u8; 64] = [0; 64];
 //     let slice: [u8; 32] = [0; 32];
 //     let nonce: [u8; 12] = [0; 12];
 //     let user_input_bad = SignedMessage::new_test(

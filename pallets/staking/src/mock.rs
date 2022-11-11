@@ -28,20 +28,6 @@ pub const INIT_TIMESTAMP: u64 = 30_000;
 pub const BLOCK_TIME: u64 = 1000;
 const NULL_ARR: [u8; 32] = [0; 32];
 
-// const VALIDATOR_0: [u8; 32] = [0; 32];
-// const VALIDATOR_1: [u8; 32] = [1; 32];
-// const VALIDATOR_2: [u8; 32] = [2; 32];
-// const VALIDATOR_3: [u8; 32] = [3; 32];
-// const VALIDATOR_4: [u8; 32] = [4; 32];
-// const VALIDATOR_5: [u8; 32] = [5; 32];
-
-// const VALIDATOR_0: u64 = 0;
-// const VALIDATOR_1:u64= 0&1;
-// const VALIDATOR_2:u64= 0&2;
-// const VALIDATOR_3:u64= 0&3;
-// const VALIDATOR_4:u64= 0&4;
-// const VALIDATOR_5:u64= 0&5;
-
 pub const KEY_ID_A: KeyTypeId = KeyTypeId([4; 4]);
 pub const KEY_ID_B: KeyTypeId = KeyTypeId([9; 4]);
 // Configure a mock runtime to test the pallet.

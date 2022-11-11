@@ -1,16 +1,17 @@
+#!/usr/bin/python3
 # A python implementation of the partitioning function
 # for validators during a session refresh for testing purposes.
 curr_validators = [[1,2,3], [4], [5,6,7,8], [11], [12,13,14], [22], [100], [500,501,502,503,504,505]]
-next_validators = [[] for _ in  curr_validators]
 new_validators = [1,2,5,6,9,10, 14, 100, 500, 501, 300, 200]
-new_validators.extend(x for x in range(2000,2100))
+next_validators = [[] for _ in  curr_validators]
 unplaced_validators = []
-print("")
+
+print("# Starting validator set:\n#\t"+":".join([str(x) for idx, x in enumerate(curr_validators)]))
+print("# Incoming list of validators:\n#\t"+", ".join([str(x) for x in new_validators]))
 for new_validator in new_validators:
     exists = False
     for sg, sg_validators in enumerate(curr_validators):
         if new_validator in sg_validators:
-            print("# found existing validator: " + str(new_validator) + " at sg: "+str(sg))
             next_validators[sg].append(new_validator)
             exists = True
             break
@@ -18,9 +19,8 @@ for new_validator in new_validators:
         unplaced_validators.append(new_validator)
 
 
-print("")
-print("# unplaced validators: " + ", ".join([str(x) for x in unplaced_validators]))
-print("# unbalanced validators: " + ", ".join([str(x) for x in next_validators]))
+print("# unplaced validators: \n#\t" + ", ".join([str(x) for x in unplaced_validators]))
+print("# unbalanced validator set: \n#\t" + ", ".join([str(x) for x in next_validators]))
 
 while unplaced_validators:
     to_place = unplaced_validators.pop()
@@ -32,18 +32,15 @@ while unplaced_validators:
             min_sg = sg
     next_validators[min_sg].append(to_place)
 
-
-print("# balanced validators: " + ", ".join([str(x) for x in next_validators]))
-
-# found existing validator: 1 at sg: 0
-# found existing validator: 2 at sg: 0
-# found existing validator: 5 at sg: 2
-# found existing validator: 6 at sg: 2
-# found existing validator: 14 at sg: 4
-# found existing validator: 100 at sg: 6
-# found existing validator: 500 at sg: 7
-# found existing validator: 501 at sg: 7
-
-# unplaced validators: 9, 10
-# unbalanced validators: [1, 2], [], [5, 6], [], [14], [], [100], [500, 501]
-# balanced validators: [1, 2], [10], [5, 6], [9], [14], [], [100], [500, 501]
+print("# new, balanced validator set: \n#\t" + ", ".join([str(x) for x in next_validators]))
+#
+# Starting validator set:
+#       [1, 2, 3]:[4]:[5, 6, 7, 8]:[11]:[12, 13, 14]:[22]:[100]:[500, 501, 502, 503, 504, 505]
+# Incoming list of validators:
+#       1, 2, 5, 6, 9, 10, 14, 100, 500, 501, 300, 200
+# unplaced validators: 
+#       9, 10, 300, 200
+# unbalanced validator set: 
+#       [1, 2], [], [5, 6], [], [14], [], [100], [500, 501]
+# new, balanced validator set: 
+#       [1, 2], [200, 9], [5, 6], [300], [14], [10], [100], [500, 501]
