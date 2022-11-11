@@ -297,6 +297,17 @@ pub mod pallet {
         // TODO(JS): do not reassign validator IDs to new subgroups
         // add checks to ensure validators stay in the same subgroup and
         // have new validators still be inserted with proper partitioning.
+        // Approach that does not move remaining validators between subgroups:
+        // 1) Create two hashmaps
+        // .  1a) An inverse mapping from CurrentValidatorId -> Subgroup
+        // .  2a) A result mapping from Subgroup -> Vec<NewValidatorId>
+        // 2) Create one Vec<UnplacedValidatorId>
+        // Iterate the new validators, checking if it exists in the inverse mapping
+        // if it exists in the mapping, append the ValidatorId to the Vec in the result map.
+        // if it does not exist, place it in the Vec<UnplacedValidatorId>
+        // Sort the result mapping by length of Vec<NewValidatorId>
+        // Redistribute the Vec<UnplacedValidatorId> to balance subgroup size
+        // as best as possible.
         pub fn new_session_handler(validators: &Vec<<T as pallet_session::Config>::ValidatorId>) {
             // Find the size of each subgroup
             let subgroup_size = Self::max(validators.len(), SIGNING_PARTY_SIZE)
@@ -328,7 +339,6 @@ pub mod pallet {
         sp_std::marker::PhantomData<I>,
         sp_std::marker::PhantomData<T>,
     );
-    // <T as frame_system::Config>::AccountId
     impl<
             I: pallet_session::SessionManager<ValidatorId>,
             ValidatorId,
@@ -337,17 +347,9 @@ pub mod pallet {
     {
         fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
             let new_session = I::new_session(new_index);
-            if let Some(_validators) = &new_session {
-                // Note the validators
-                // let converted_validators = validators.iter().map(|validator| {
-
-                // 	<T as SessionConfig>::ValidatorIdOf::convert(validator).unwrap()
-                // }).collect();
-                // Pallet::<T>::new_session_handler(validators);
-
-                // Self::new_session_handler(validators);
+            if let Some(validators) = &new_session {
+                Pallet::<T>::new_session_handler(validators);
             }
-
             new_session
         }
 
