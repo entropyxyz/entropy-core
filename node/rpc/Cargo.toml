@@ -1,0 +1,25 @@
+[package]
+name   ="entropy-rpc"
+version="0.1.0"
+edition="2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# entropy-rpc-api={ path="../rpc-api" }
+jsonrpsee               ={ version="0.15.1", features=["server", "macros"] }
+pallet-staking-extension={ path="../../pallets/staking" }
+
+rustc-hex="2.1.0"
+serde    ={ version="1.0.136", features=["derive"] }
+
+frame-support                             ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
+pallet-transaction-payment-rpc-runtime-api={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
+sc-rpc-api                                ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
+sp-api                                    ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
+sp-blockchain                             ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
+sp-core                                   ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
+sp-io                                     ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
+sp-rpc                                    ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
+sp-runtime                                ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
+sp-storage                                ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }

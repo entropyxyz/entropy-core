@@ -1785,6 +1785,7 @@ version = "3.0.0-monthly-2021-10"
 dependencies = [
  "clap 3.2.23",
  "clap_complete",
+ "entropy-rpc",
  "entropy-runtime",
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -1855,6 +1856,34 @@ dependencies = [
  "substrate-state-trie-migration-rpc",
  "tempfile",
  "try-runtime-cli",
+]
+
+[[package]]
+name = "entropy-rpc"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "jsonrpsee",
+ "pallet-staking-extension",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "rustc-hex",
+ "sc-rpc-api",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-core",
+ "sp-io",
+ "sp-rpc",
+ "sp-runtime",
+ "sp-storage",
+]
+
+[[package]]
+name = "entropy-rpc-api"
+version = "0.1.0"
+dependencies = [
+ "jsonrpsee",
+ "pallet-staking-extension",
 ]
 
 [[package]]

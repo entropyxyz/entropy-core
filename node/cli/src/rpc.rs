@@ -94,6 +94,7 @@ pub struct FullDeps<C, P, SC, B> {
 }
 
 /// Instantiate all Full RPC extensions.
+/// TODO JH add entropy rpc constraints to C::Api
 pub fn create_full<C, P, SC, B>(
     deps: FullDeps<C, P, SC, B>,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
@@ -115,6 +116,8 @@ where
     B: sc_client_api::Backend<Block> + Send + Sync + 'static,
     B::State: sc_client_api::backend::StateBackend<sp_runtime::traits::HashFor<Block>>,
 {
+    use entropy_rpc::{Example, ExampleApiServer};
+    // use entropy_rpc::{StakingExtension, StakingExtensionApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
     use sc_consensus_babe_rpc::{Babe, BabeApiServer};
     use sc_finality_grandpa_rpc::{Grandpa, GrandpaApiServer};
@@ -165,7 +168,8 @@ where
         SyncState::new(chain_spec, client.clone(), shared_authority_set, shared_epoch_changes)?
             .into_rpc(),
     )?;
-    io.merge(Dev::new(client, deny_unsafe).into_rpc())?;
+    io.merge(Dev::new(client.clone(), deny_unsafe).into_rpc())?;
+    io.merge(Example::new().into_rpc())?;
 
     Ok(io)
 }
