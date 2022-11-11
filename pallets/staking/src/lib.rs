@@ -138,7 +138,7 @@ pub mod pallet {
                 .map(|x| assert!(x.1.endpoint.len() as u32 <= T::MaxEndpointLength::get()));
 
             for (validator_stash, server_info) in &self.threshold_servers {
-                ThresholdServers::<T>::insert(&validator_stash, server_info.clone());
+                ThresholdServers::<T>::insert(validator_stash, server_info.clone());
                 ThresholdToStash::<T>::insert(&server_info.tss_account, validator_stash);
             }
 

@@ -231,14 +231,14 @@ async fn test_get_signing_group() {
     let p_charlie = <sr25519::Pair as Pair>::from_string("//Charlie//stash", None).unwrap();
     let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
     let result_charlie = get_subgroup(&api, &signer_charlie).await;
-    assert_eq!(result_charlie.is_err(), true);
+    assert!(result_charlie.is_err());
 
     clean_tests();
 }
 
 pub async fn make_register(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Keyring) {
     let signer = PairSigner::new(alice.pair());
-    let registering_query = entropy::storage().relayer().registering(&alice.to_account_id());
+    let registering_query = entropy::storage().relayer().registering(alice.to_account_id());
     let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();
     assert!(is_registering_1.is_none());
 
@@ -260,8 +260,8 @@ pub async fn make_register(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Key
 }
 
 pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Keyring) {
-    let registering_query = entropy::storage().relayer().registering(&alice.to_account_id());
-    let registered_query = entropy::storage().relayer().registered(&alice.to_account_id());
+    let registering_query = entropy::storage().relayer().registering(alice.to_account_id());
+    let registered_query = entropy::storage().relayer().registered(alice.to_account_id());
     let is_registering = api.storage().fetch(&registering_query, None).await.unwrap();
     // make sure there is one confirmation
     assert_eq!(is_registering.unwrap().confirmations.len(), 1);
