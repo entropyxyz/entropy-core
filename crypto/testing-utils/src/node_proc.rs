@@ -77,7 +77,7 @@ impl TestNodeProcessBuilder {
     pub async fn spawn<R>(&self) -> Result<TestNodeProcess<R>, String>
     where R: Config {
         let mut cmd = process::Command::new(&self.node_path);
-        cmd.env("RUST_LOG", "error").arg("--dev").arg("--tmp");
+        cmd.env("RUST_LOG", "warn").arg("--dev").arg("--tmp");
 
         if let Some(authority) = self.authority {
             let authority = format!("{authority:?}");

@@ -29,6 +29,7 @@ mod benchmarking;
 
 pub mod weights;
 use core::convert::TryInto;
+use core::convert::TryFrom;
 
 use frame_support::{dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency};
 use frame_system::pallet_prelude::*;
@@ -175,6 +176,7 @@ pub mod pallet {
         NoBond,
         NotController,
         NoThresholdKey,
+        InvalidValidatorId,
     }
 
     #[pallet::event]
@@ -202,8 +204,11 @@ pub mod pallet {
                 Error::<T>::EndpointTooLong
             );
             pallet_staking::Pallet::<T>::ledger(&who).ok_or(Error::<T>::NoBond)?;
-            let sk = <T as pallet_session::Config>::ValidatorIdOf::convert(who.clone()).unwrap();
-            EndpointRegister::<T>::insert(&sk, &endpoint);
+            let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(who.clone()).or(Err(Error::<T>::InvalidValidatorId));
+            ensure!(validator_id_res.is_ok(), pallet_staking_extension::Error::<T>::InvalidValidatorId);
+            let validator_id = validator_id_res.expect("Issue converting account id into validator id");
+            // let sk = <T as pallet_session::Config>::ValidatorIdOf::convert(who.clone()).unwrap();
+            EndpointRegister::<T>::insert(&validator_id, &endpoint);
             Self::deposit_event(Event::EndpointChanged(who, endpoint));
             Ok(())
         }
@@ -227,6 +232,7 @@ pub mod pallet {
             Ok(())
         }
 
+
         /// Wraps's substrate withdraw unbonded but clears extra state if fully unbonded
         #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
         pub fn withdraw_unbonded(
@@ -237,10 +243,12 @@ pub mod pallet {
             let stash = Self::get_stash(&controller)?;
             pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
             let ledger = pallet_staking::Pallet::<T>::ledger(&controller);
-            let sk =
-                <T as pallet_session::Config>::ValidatorIdOf::convert(controller.clone()).unwrap();
-            if ledger.is_none() && Self::endpoint_register(&sk).is_some() {
-                EndpointRegister::<T>::remove(&sk);
+            // let sk = <T as pallet_session::Config>::ValidatorIdOf::convert(controller.clone()).unwrap();
+                let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(controller.clone()).or(Err(Error::<T>::InvalidValidatorId));
+                ensure!(validator_id_res.is_ok(), pallet_staking_extension::Error::<T>::InvalidValidatorId);
+                let validator_id = validator_id_res.expect("Issue converting account id into validator id");
+            if ledger.is_none() && Self::endpoint_register(&validator_id).is_some() {
+                EndpointRegister::<T>::remove(&validator_id);
                 let threshold_account =
                     ThresholdAccounts::<T>::take(stash).ok_or(Error::<T>::NoThresholdKey)?;
                 ThresholdToStash::<T>::remove(&threshold_account.0);
@@ -267,8 +275,11 @@ pub mod pallet {
             );
             let stash = Self::get_stash(&who)?;
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
-            let sk = <T as pallet_session::Config>::ValidatorIdOf::convert(who.clone()).unwrap();
-            EndpointRegister::<T>::insert(&sk, &endpoint);
+            // let sk = <T as pallet_session::Config>::ValidatorIdOf::convert(who.clone()).unwrap();
+            let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(who.clone()).or(Err(Error::<T>::InvalidValidatorId));
+            ensure!(validator_id_res.is_ok(), pallet_staking_extension::Error::<T>::InvalidValidatorId);
+            let validator_id = validator_id_res.expect("Issue converting account id into validator id");
+            EndpointRegister::<T>::insert(&validator_id, &endpoint);
             ThresholdAccounts::<T>::insert(&stash, (&threshold_account, ecdh_pub_key));
             ThresholdToStash::<T>::insert(&threshold_account, &stash);
             Self::deposit_event(Event::NodeInfoChanged(who, endpoint, threshold_account));
@@ -370,4 +381,6 @@ pub mod pallet {
 
         fn start_session(start_index: SessionIndex) { I::start_session(start_index); }
     }
+
+
 }

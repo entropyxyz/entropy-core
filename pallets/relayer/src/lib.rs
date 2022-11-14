@@ -49,6 +49,7 @@ pub mod pallet {
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
     pub trait Config:
+        pallet_session::Config +
         frame_system::Config + pallet_authorship::Config + pallet_staking_extension::Config
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
@@ -216,9 +217,9 @@ pub mod pallet {
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
                     .ok_or(Error::<T>::InvalidSubgroup)?;
 
-            let validator_id_res = <T as pallet_session::Config>::ValidatorIdOf::convert(stash_key);
-            ensure!(validator_id_res.is_some(), Error::<T>::InvalidValidatorId);
-            let validator_id = validator_id_res.unwrap();
+            let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(stash_key).or(Err(Error::<T>::InvalidValidatorId));
+            ensure!(validator_id_res.is_ok(), Error::<T>::InvalidValidatorId);
+            let validator_id = validator_id_res.expect("Issue converting account id into validator id");
             ensure!(
                 signing_subgroup_addresses.contains(&validator_id),
                 Error::<T>::NotInSigningGroup

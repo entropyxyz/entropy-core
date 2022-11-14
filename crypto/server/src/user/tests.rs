@@ -78,117 +78,119 @@ async fn test_unsafe_get_endpoint() {
     }
 }
 
-// #[rocket::async_test]
-// #[serial]
-// async fn test_store_share() {
-//     clean_tests();
-//     let alice = AccountKeyring::Alice;
-//     let alice_stash_id: AccountId32 =
-//         h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
-//     let key: AccountId32 = alice.to_account_id();
-//     let value: Vec<u8> = vec![0];
+#[rocket::async_test]
+#[serial]
+async fn test_store_share() {
+    clean_tests();
+    let alice = AccountKeyring::Alice;
+    let alice_stash_id: AccountId32 =
+        h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
+    let key: AccountId32 = alice.to_account_id();
+    let value: Vec<u8> = vec![0];
 
-//     let cxt = test_context_stationary().await;
-//     let client = setup_client().await;
-//     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let cxt = test_context_stationary().await;
+    let client = setup_client().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-//     let threshold_accounts_query =
-//         entropy::storage().staking_extension().threshold_accounts(&alice_stash_id);
-//     let query_result = api.storage().fetch(&threshold_accounts_query, None).await.unwrap();
-//     assert!(query_result.is_some());
+    let threshold_accounts_query =
+        entropy::storage().staking_extension().threshold_accounts(&alice_stash_id);
+    let query_result = api.storage().fetch(&threshold_accounts_query, None).await.unwrap();
+    assert!(query_result.is_some());
 
-//     let res = query_result.unwrap();
-//     let server_public_key = PublicKey::from(res.1);
-//     let user_input = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
-//         .unwrap()
-//         .to_json();
+    let res = query_result.unwrap();
+    let server_public_key = PublicKey::from(res.1);
+    let user_input = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
+        .unwrap()
+        .to_json();
 
-//     // fails to add not registering
-//     let response = client
-//         .post("/user/new")
-//         .header(ContentType::JSON)
-//         .body(user_input.clone())
-//         .dispatch()
-//         .await;
+    println!("RES: {:?}", res);
 
-//     assert_eq!(response.status(), Status::InternalServerError);
-//     assert_eq!(
-//         response.into_string().await.unwrap(),
-//         "Not Registering error: Register Onchain first"
-//     );
+    // fails to add not registering
+    let response = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(user_input.clone())
+        .dispatch()
+        .await;
 
-//     // signal registering
-//     make_register(&api, &alice).await;
+    assert_eq!(response.status(), Status::InternalServerError);
+    assert_eq!(
+        response.into_string().await.unwrap(),
+        "Not Registering error: Register Onchain first"
+    );
 
-//     let response_2 = client
-//         .post("/user/new")
-//         .header(ContentType::JSON)
-//         .body(user_input.clone())
-//         .dispatch()
-//         .await;
+    // signal registering
+    make_register(&api, &alice).await;
 
-//     assert_eq!(response_2.status(), Status::Ok);
-//     assert_eq!(response_2.into_string().await, None);
-//     // make sure there is now one confirmation
-//     check_if_confirmation(&api, &alice).await;
+    let response_2 = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(user_input.clone())
+        .dispatch()
+        .await;
+    assert_eq!(response_2.status(), Status::Ok);
+    assert_eq!(response_2.into_string().await, None);
+    // make sure there is now one confirmation
+    check_if_confirmation(&api, &alice).await;
 
-//     // fails to add already added share
-//     let response_3 = client
-//         .post("/user/new")
-//         .header(ContentType::JSON)
-//         .body(user_input.clone())
-//         .dispatch()
-//         .await;
+    // fails to add already added share
+    let response_3 = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(user_input.clone())
+        .dispatch()
+        .await;
 
-//     assert_eq!(response_3.status(), Status::InternalServerError);
-//     assert_eq!(response_3.into_string().await.unwrap(), "Kv error: Recv Error: channel closed");
+    assert_eq!(response_3.status(), Status::InternalServerError);
+    assert_eq!(response_3.into_string().await.unwrap(), "Kv error: Recv Error: channel closed");
 
-//     // fails with wrong node key
-//     let bob_stash_id: AccountId32 =
-//         h!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into();
+    // fails with wrong node key
+    let bob_stash_id: AccountId32 =
+        h!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into();
 
-//     let query_bob = entropy::storage().staking_extension().threshold_accounts(&bob_stash_id);
-//     let query_result_bob = api.storage().fetch(&query_bob, None).await.unwrap();
-//     let res_bob = query_result_bob.unwrap();
-//     let server_public_key_bob = PublicKey::from(res_bob.1);
-//     let user_input_bob =
-//         SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key_bob)
-//             .unwrap()
-//             .to_json();
+    let query_bob = entropy::storage().staking_extension().threshold_accounts(&bob_stash_id);
+    let query_result_bob = api.storage().fetch(&query_bob, None).await.unwrap();
+    let res_bob = query_result_bob.unwrap();
+    let server_public_key_bob = PublicKey::from(res_bob.1);
+    let user_input_bob =
+        SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key_bob)
+            .unwrap()
+            .to_json();
 
-//     let response_4 = client
-//         .post("/user/new")
-//         .header(ContentType::JSON)
-//         .body(user_input_bob.clone())
-//         .dispatch()
-//         .await;
+    let response_4 = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(user_input_bob.clone())
+        .dispatch()
+        .await;
 
-//     assert_eq!(response_4.status(), Status::InternalServerError);
-//     assert_eq!(response_4.into_string().await.unwrap(), "Parse error: failed decrypting
-// message");     let sig: [u8; 64] = [0; 64];
-//     let slice: [u8; 32] = [0; 32];
-//     let nonce: [u8; 12] = [0; 12];
-//     let user_input_bad = SignedMessage::new_test(
-//         Bytes(value),
-//         sr25519::Signature::from_raw(sig),
-//         slice,
-//         slice,
-//         slice,
-//         nonce,
-//     )
-//     .to_json();
+    assert_eq!(response_4.status(), Status::InternalServerError);
+    let expected_err = "Parse error: failed decrypting message";
+    assert_eq!( response_4.into_string().await.unwrap(), expected_err);     
+    let sig: [u8; 64] = [0; 64];
+    let slice: [u8; 32] = [0; 32];
+    let nonce: [u8; 12] = [0; 12];
+    let user_input_bad = SignedMessage::new_test(
+        Bytes(value),
+        sr25519::Signature::from_raw(sig),
+        slice,
+        slice,
+        slice,
+        nonce,
+    )
+    .to_json();
 
-//     let response_5 = client
-//         .post("/user/new")
-//         .header(ContentType::JSON)
-//         .body(user_input_bad.clone())
-//         .dispatch()
-//         .await;
+    let response_5 = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(user_input_bad.clone())
+        .dispatch()
+        .await;
 
-//     assert_eq!(response_5.status(), Status::InternalServerError);
-//     assert_eq!(response_5.into_string().await.unwrap(), "Invalid Signature: Invalid signature.");
-//     clean_tests();
-// }
+    assert_eq!(response_5.status(), Status::InternalServerError);
+    assert_eq!(response_5.into_string().await.unwrap(), "Invalid Signature: Invalid signature.");
+    clean_tests();
+}
 
 // #[rocket::async_test]
 // #[serial]
