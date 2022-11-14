@@ -5,9 +5,9 @@ use crate::{clean_tests, encrypted_sled::Db, get_db_path};
 
 fn setup_db(require_password: bool) -> Db {
     let db = if !require_password {
-        EncryptedDb::open(&get_db_path(), get_test_password())
+        EncryptedDb::open(get_db_path(), get_test_password())
     } else {
-        EncryptedDb::open(&get_db_path(), Password::from("super-secret password."))
+        EncryptedDb::open(get_db_path(), Password::from("super-secret password."))
     };
     assert!(db.is_ok());
     db.unwrap()
@@ -63,7 +63,7 @@ fn test_use_existing_salt() {
     let db_path = get_db_path();
     drop(db);
     // open existing db
-    assert!(EncryptedDb::open(&db_path, get_test_password()).is_ok());
+    assert!(EncryptedDb::open(db_path, get_test_password()).is_ok());
     clean_tests();
 }
 
@@ -77,7 +77,7 @@ fn test_password() {
 
     // try to open the kv store using a different password
     let db = EncryptedDb::open(
-        &db_path,
+        db_path,
         Password::from("super-secret password!"), // replace '.' with '!'
     );
     assert!(matches!(db, Err(super::result::EncryptedDbError::WrongPassword)));
