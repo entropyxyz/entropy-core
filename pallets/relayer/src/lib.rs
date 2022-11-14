@@ -37,6 +37,7 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use helpers::unwrap_or_return;
+    use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_runtime::{
         traits::{Convert, DispatchInfoOf, Saturating, SignedExtension},
@@ -217,11 +218,11 @@ pub mod pallet {
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
                     .ok_or(Error::<T>::InvalidSubgroup)?;
 
-            let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(stash_key).or(Err(Error::<T>::InvalidValidatorId));
-            ensure!(validator_id_res.is_ok(), Error::<T>::InvalidValidatorId);
-            let validator_id = validator_id_res.expect("Issue converting account id into validator id");
+            // let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(stash_key).or(Err(Error::<T>::InvalidValidatorId));
+            // ensure!(validator_id_res.is_ok(), Error::<T>::InvalidValidatorId);
+            // let validator_id = validator_id_res.expect("Issue converting account id into validator id");
             ensure!(
-                signing_subgroup_addresses.contains(&validator_id),
+                signing_subgroup_addresses.contains(&stash_key),
                 Error::<T>::NotInSigningGroup
             );
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
@@ -248,10 +249,13 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let responsibility =
                 Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
-            let threshold_key =
-                pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
+                let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(responsibility).or(Err(Error::<T>::InvalidValidatorId));
+                ensure!(validator_id_res.is_ok(), Error::<T>::InvalidValidatorId);
+                let validator_id = validator_id_res.expect("Issue converting account id into validator id");
+            let server_info =
+                pallet_staking_extension::Pallet::<T>::threshold_server(&validator_id)
                     .ok_or(Error::<T>::NoThresholdKey)?;
-            ensure!(who == threshold_key.0, Error::<T>::NotYourResponsibility);
+            ensure!(who == server_info.tss_account, Error::<T>::NotYourResponsibility);
 
             let current_failures = Self::failures(block_number);
 
@@ -270,10 +274,10 @@ pub mod pallet {
             for i in 0..SIGNING_PARTY_SIZE {
                 let addresses = pallet_staking_extension::Pallet::<T>::signing_groups(i as u8)
                     .ok_or(Error::<T>::SigningGroupError)?;
-                let ip_address =
-                    pallet_staking_extension::Pallet::<T>::endpoint_register(&addresses[0])
+                let ServerInfo { endpoint, .. } =
+                    pallet_staking_extension::Pallet::<T>::threshold_server(&addresses[0])
                         .ok_or(Error::<T>::IpAddressError)?;
-                ip_addresses.push(ip_address);
+                ip_addresses.push(endpoint.clone());
             }
             Ok(ip_addresses)
         }
@@ -393,10 +397,13 @@ pub mod pallet {
                 if let Call::confirm_done { block_number, .. } = local_call {
                     let responsibility = Responsibility::<T>::get(block_number)
                         .ok_or(InvalidTransaction::Custom(2))?;
-                    let threshold_key =
-                        pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
+                        let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(responsibility.clone()).or(Err(Error::<T>::InvalidValidatorId));
+                        ensure!(validator_id_res.is_ok(), TransactionValidityError::Invalid(InvalidTransaction::Payment));
+                        let validator_id = validator_id_res.expect("Issue converting account id into validator id");
+                    let server_info =
+                        pallet_staking_extension::Pallet::<T>::threshold_server(&validator_id)
                             .ok_or(InvalidTransaction::Custom(3))?;
-                    ensure!(*who == threshold_key.0, InvalidTransaction::Custom(4));
+                    ensure!(*who == server_info.tss_account, InvalidTransaction::Custom(4));
                     let current_failures = Failures::<T>::get(block_number);
                     ensure!(current_failures.is_none(), InvalidTransaction::Custom(5));
                 }

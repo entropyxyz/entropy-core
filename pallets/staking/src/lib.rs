@@ -16,7 +16,14 @@
 //! endpoint and threshold key if all is unbonded validate - wraps substrate's call but forces a
 //! threshold key and endpoint
 
+use core::convert::TryInto;
+
 pub use pallet::*;
+use pallet_staking::ValidatorPrefs;
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+
+pub use crate::weights::WeightInfo;
 
 #[cfg(test)]
 mod mock;
@@ -28,23 +35,28 @@ mod tests;
 mod benchmarking;
 
 pub mod weights;
-use core::convert::TryInto;
+// use core::convert::TryInto;
 use core::convert::TryFrom;
 
 use frame_support::{dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency};
 use frame_system::pallet_prelude::*;
-use pallet_staking::ValidatorPrefs;
+// use pallet_staking::ValidatorPrefs;
 use sp_staking::SessionIndex;
 
 use crate as pallet_staking_extension;
-pub use crate::weights::WeightInfo;
+// pub use crate::weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {
     use sp_runtime::traits::Convert;
     use substrate_common::SIGNING_PARTY_SIZE;
+    use frame_support::{
+        dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency,
+    };
+    use frame_system::pallet_prelude::*;
 
     use super::*;
+
     #[pallet::config]
     pub trait Config:
         pallet_session::Config + frame_system::Config + pallet_staking::Config
@@ -60,9 +72,6 @@ pub mod pallet {
     /// A unique identifier of a subgroup or partition of validators that have the same set of
     /// threshold shares.
     pub type SubgroupId = u8;
-    /// Unique type to differentiate the threshold server's account ID from the validator's
-    /// stash/controller accounts
-    pub type TssServerAccount<AccountId> = AccountId;
     /// X25519 public key used by the client in non-interactive ECDH to authenticate/encrypt
     /// interactions with the threshold server (eg distributing threshold shares).
     pub type X25519PublicKey = [u8; 32];
@@ -74,25 +83,19 @@ pub mod pallet {
         <T as frame_system::Config>::AccountId,
     >>::Balance;
 
+    /// Information about a threshold server
+    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+    pub struct ServerInfo<AccountId> {
+        pub tss_account: AccountId,
+        pub x25519_public_key: X25519PublicKey,
+        pub endpoint: TssServerURL,
+    }
+
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
-
-    // TODO JH We could prob use more efficient data structures (less duplicate data or query time)
-    // for storing validator/server/endpoint/subgroup information
-
-    /// Stores the relationship between a validator's stash account and the IP address/endpoint they
-    /// can be reached at.
-    #[pallet::storage]
-    #[pallet::getter(fn endpoint_register)]
-    pub type EndpointRegister<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        <T as pallet_session::Config>::ValidatorId,
-        TssServerURL,
-        OptionQuery,
-    >;
 
     /// Stores the relationship between
     /// a validator's stash account and their threshold server's sr25519 and x25519 keys.
@@ -101,19 +104,14 @@ pub mod pallet {
     /// the x25519 pub key in noninteractive ECDH for authenticating/encrypting distribute TSS
     /// shares over HTTP.
     #[pallet::storage]
-    #[pallet::getter(fn threshold_account)]
-    pub type ThresholdAccounts<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        T::AccountId,
-        (TssServerAccount<T::AccountId>, X25519PublicKey),
-        OptionQuery,
-    >;
+    #[pallet::getter(fn threshold_server)]
+    pub type ThresholdServers<T: Config> =
+        StorageMap<_, Blake2_128Concat, <T as pallet_session::Config>::ValidatorId, ServerInfo<T::AccountId>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn threshold_to_stash)]
     pub type ThresholdToStash<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, T::AccountId, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, <T as pallet_session::Config>::ValidatorId, OptionQuery>;
 
     /// Stores the relationship between a signing group (u8) and its member's (validator's)
     /// threshold server's account.
@@ -129,20 +127,15 @@ pub mod pallet {
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
-        pub endpoints: Vec<(<T as pallet_session::Config>::ValidatorId, Vec<u8>)>,
         #[allow(clippy::type_complexity)]
-        pub threshold_accounts: Vec<(T::AccountId, (T::AccountId, [u8; 32]))>,
+        pub threshold_servers: Vec<(<T as pallet_session::Config>::ValidatorId, ServerInfo<T::AccountId>)>,
         pub signing_groups: Vec<(u8, Vec<<T as pallet_session::Config>::ValidatorId>)>,
     }
 
     #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
-            Self {
-                endpoints: Default::default(),
-                threshold_accounts: Default::default(),
-                signing_groups: Default::default(),
-            }
+            Self { threshold_servers: Default::default(), signing_groups: Default::default() }
         }
     }
 
@@ -150,22 +143,21 @@ pub mod pallet {
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
             let _ = self
-                .endpoints
+                .threshold_servers
                 .clone()
                 .into_iter()
-                .map(|x| assert!(x.1.len() as u32 <= T::MaxEndpointLength::get()));
+                .map(|x| assert!(x.1.endpoint.len() as u32 <= T::MaxEndpointLength::get()));
 
-            for (validator_stash, tss_endpoint_url) in &self.endpoints {
-                EndpointRegister::<T>::insert(validator_stash, tss_endpoint_url);
+            for (validator_stash, server_info) in &self.threshold_servers {
+                ThresholdServers::<T>::insert(validator_stash, server_info.clone());
+                // let acc_id_res = <T as frame_system::Config>::AccountId::try_into(*validator_stash).or(Err(Error::<T>::InvalidValidatorId));
+                // ensure!(acc_id_res.is_ok(), Error::<T>::InvalidValidatorId);
+                // let acc_id = validator_id_res.expect("Issue converting account id into validator id");
+                // ThresholdToStash::<T>::insert(&server_info.tss_account, acc_id);
             }
 
-            for (validator_stash, tss_server_keys) in &self.threshold_accounts {
-                ThresholdAccounts::<T>::insert(validator_stash, tss_server_keys);
-                ThresholdToStash::<T>::insert(&tss_server_keys.0, validator_stash);
-            }
-
-            for (group_id, tss_server_account) in &self.signing_groups {
-                SigningGroups::<T>::insert(group_id, tss_server_account);
+            for (group_id, validator_ids) in &self.signing_groups {
+                SigningGroups::<T>::insert(group_id, validator_ids);
             }
         }
     }
@@ -187,7 +179,7 @@ pub mod pallet {
         /// Node Info has been added or edited. [who, endpoint, threshold_account]
         NodeInfoChanged(T::AccountId, Vec<u8>, T::AccountId),
         /// A threshold account has been added or edited. [validator, threshold_account]
-        ThresholdAccountChanged(T::AccountId, (T::AccountId, [u8; 32])),
+        ThresholdAccountChanged(<T as pallet_session::Config>::ValidatorId, ServerInfo<T::AccountId>),
         /// Node Info has been removed [who]
         NodeInfoRemoved(T::AccountId),
     }
@@ -203,12 +195,23 @@ pub mod pallet {
                 endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
             );
+
             pallet_staking::Pallet::<T>::ledger(&who).ok_or(Error::<T>::NoBond)?;
-            let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(who.clone()).or(Err(Error::<T>::InvalidValidatorId));
+            let ledger = pallet_staking::Pallet::<T>::ledger(&who).ok_or(Error::<T>::NoBond)?;
+            let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash.clone()).or(Err(Error::<T>::InvalidValidatorId));
             ensure!(validator_id_res.is_ok(), pallet_staking_extension::Error::<T>::InvalidValidatorId);
             let validator_id = validator_id_res.expect("Issue converting account id into validator id");
             // let sk = <T as pallet_session::Config>::ValidatorIdOf::convert(who.clone()).unwrap();
-            EndpointRegister::<T>::insert(&validator_id, &endpoint);
+            // EndpointRegister::<T>::insert(&validator_id, &endpoint);
+            
+            ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
+                if let Some(server_info) = maybe_server_info {
+                    server_info.endpoint = endpoint.clone();
+                    Ok(())
+                } else {
+                    Err(Error::<T>::NoBond)
+                }
+            })?;
             Self::deposit_event(Event::EndpointChanged(who, endpoint));
             Ok(())
         }
@@ -218,17 +221,26 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::change_threshold_accounts())]
         pub fn change_threshold_accounts(
             origin: OriginFor<T>,
-            threshold_account: TssServerAccount<T::AccountId>,
-            ecdh_pub_key: X25519PublicKey,
+            tss_account: T::AccountId,
+            x25519_public_key: X25519PublicKey,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             let stash = Self::get_stash(&who)?;
-            ThresholdAccounts::<T>::insert(&stash, (&threshold_account, ecdh_pub_key));
-            ThresholdToStash::<T>::insert(&threshold_account, &stash);
-            Self::deposit_event(Event::ThresholdAccountChanged(
-                stash,
-                (threshold_account, ecdh_pub_key),
-            ));
+            let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(stash.clone()).or(Err(Error::<T>::InvalidValidatorId));
+            ensure!(validator_id_res.is_ok(), pallet_staking_extension::Error::<T>::InvalidValidatorId);
+            let validator_id = validator_id_res.expect("Issue converting account id into validator id"); 
+            let new_server_info: ServerInfo<T::AccountId> =
+                ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
+                    if let Some(server_info) = maybe_server_info {
+                        server_info.tss_account = tss_account.clone();
+                        server_info.x25519_public_key = x25519_public_key;
+                        ThresholdToStash::<T>::insert(&tss_account, &validator_id);
+                        Ok(server_info.clone())
+                    } else {
+                        Err(Error::<T>::NoBond)
+                    }
+                })?;
+            Self::deposit_event(Event::ThresholdAccountChanged(validator_id, new_server_info));
             Ok(())
         }
 
@@ -240,20 +252,22 @@ pub mod pallet {
             num_slashing_spans: u32,
         ) -> DispatchResultWithPostInfo {
             let controller = ensure_signed(origin.clone())?;
-            let stash = Self::get_stash(&controller)?;
-            pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
-            let ledger = pallet_staking::Pallet::<T>::ledger(&controller);
-            // let sk = <T as pallet_session::Config>::ValidatorIdOf::convert(controller.clone()).unwrap();
-                let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(controller.clone()).or(Err(Error::<T>::InvalidValidatorId));
-                ensure!(validator_id_res.is_ok(), pallet_staking_extension::Error::<T>::InvalidValidatorId);
-                let validator_id = validator_id_res.expect("Issue converting account id into validator id");
-            if ledger.is_none() && Self::endpoint_register(&validator_id).is_some() {
-                EndpointRegister::<T>::remove(&validator_id);
-                let threshold_account =
-                    ThresholdAccounts::<T>::take(stash).ok_or(Error::<T>::NoThresholdKey)?;
-                ThresholdToStash::<T>::remove(&threshold_account.0);
-                Self::deposit_event(Event::NodeInfoRemoved(controller));
+            match pallet_staking::Pallet::<T>::ledger(&controller) {
+                Some(ledger) => {
+                    let stash = ledger.stash;
+                    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(stash.clone()).or(Err(Error::<T>::InvalidValidatorId));
+                    ensure!(validator_id_res.is_ok(), pallet_staking_extension::Error::<T>::InvalidValidatorId);
+                    let validator_id = validator_id_res.expect("Issue converting account id into validator id"); 
+                    pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
+                    if pallet_staking::Pallet::<T>::ledger(&controller).is_none() {
+                        let server_info = ThresholdServers::<T>::take(&validator_id)
+                            .ok_or(Error::<T>::NoThresholdKey)?;
+                        ThresholdToStash::<T>::remove(&server_info.tss_account);
+                    }
+                },
+                None => return Err(Error::<T>::NotController.into()),
             }
+            Self::deposit_event(Event::NodeInfoRemoved(controller));
             Ok(().into())
         }
 
@@ -265,8 +279,8 @@ pub mod pallet {
             origin: OriginFor<T>,
             prefs: ValidatorPrefs,
             endpoint: Vec<u8>,
-            threshold_account: TssServerAccount<T::AccountId>,
-            ecdh_pub_key: X25519PublicKey,
+            tss_account: T::AccountId,
+            x25519_public_key: X25519PublicKey,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
             ensure!(
@@ -275,14 +289,21 @@ pub mod pallet {
             );
             let stash = Self::get_stash(&who)?;
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
-            // let sk = <T as pallet_session::Config>::ValidatorIdOf::convert(who.clone()).unwrap();
-            let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(who.clone()).or(Err(Error::<T>::InvalidValidatorId));
+            let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(stash.clone()).or(Err(Error::<T>::InvalidValidatorId));
             ensure!(validator_id_res.is_ok(), pallet_staking_extension::Error::<T>::InvalidValidatorId);
             let validator_id = validator_id_res.expect("Issue converting account id into validator id");
-            EndpointRegister::<T>::insert(&validator_id, &endpoint);
-            ThresholdAccounts::<T>::insert(&stash, (&threshold_account, ecdh_pub_key));
-            ThresholdToStash::<T>::insert(&threshold_account, &stash);
-            Self::deposit_event(Event::NodeInfoChanged(who, endpoint, threshold_account));
+
+            ThresholdServers::<T>::insert(
+                validator_id.clone(),
+                ServerInfo {
+                    tss_account: tss_account.clone(),
+                    x25519_public_key,
+                    endpoint: endpoint.clone(),
+                },
+            );
+            ThresholdToStash::<T>::insert(&tss_account, validator_id);
+
+            Self::deposit_event(Event::NodeInfoChanged(who, endpoint, tss_account));
             Ok(())
         }
     }

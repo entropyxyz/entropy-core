@@ -92,13 +92,13 @@ async fn test_store_share() {
     let client = setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-    let threshold_accounts_query =
-        entropy::storage().staking_extension().threshold_accounts(&alice_stash_id);
-    let query_result = api.storage().fetch(&threshold_accounts_query, None).await.unwrap();
+    let threshold_servers_query =
+        entropy::storage().staking_extension().threshold_servers(&alice_stash_id);
+    let query_result = api.storage().fetch(&threshold_servers_query, None).await.unwrap();
     assert!(query_result.is_some());
 
     let res = query_result.unwrap();
-    let server_public_key = PublicKey::from(res.1);
+    let server_public_key = PublicKey::from(res.x25519_public_key);
     let user_input = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
         .unwrap()
         .to_json();
@@ -148,10 +148,10 @@ async fn test_store_share() {
     let bob_stash_id: AccountId32 =
         h!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into();
 
-    let query_bob = entropy::storage().staking_extension().threshold_accounts(&bob_stash_id);
+    let query_bob = entropy::storage().staking_extension().threshold_servers(&bob_stash_id);
     let query_result_bob = api.storage().fetch(&query_bob, None).await.unwrap();
     let res_bob = query_result_bob.unwrap();
-    let server_public_key_bob = PublicKey::from(res_bob.1);
+    let server_public_key_bob = PublicKey::from(res_bob.x25519_public_key);
     let user_input_bob =
         SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key_bob)
             .unwrap()
@@ -233,14 +233,14 @@ async fn test_get_signing_group() {
     let p_charlie = <sr25519::Pair as Pair>::from_string("//Charlie//stash", None).unwrap();
     let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
     let result_charlie = get_subgroup(&api, &signer_charlie).await;
-    assert_eq!(result_charlie.is_err(), true);
+    assert!(result_charlie.is_err());
 
     clean_tests();
 }
 
 pub async fn make_register(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Keyring) {
     let signer = PairSigner::new(alice.pair());
-    let registering_query = entropy::storage().relayer().registering(&alice.to_account_id());
+    let registering_query = entropy::storage().relayer().registering(alice.to_account_id());
     let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();
     assert!(is_registering_1.is_none());
 
@@ -262,8 +262,8 @@ pub async fn make_register(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Key
 }
 
 pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Keyring) {
-    let registering_query = entropy::storage().relayer().registering(&alice.to_account_id());
-    let registered_query = entropy::storage().relayer().registered(&alice.to_account_id());
+    let registering_query = entropy::storage().relayer().registering(alice.to_account_id());
+    let registered_query = entropy::storage().relayer().registered(alice.to_account_id());
     let is_registering = api.storage().fetch(&registering_query, None).await.unwrap();
     // make sure there is one confirmation
     assert_eq!(is_registering.unwrap().confirmations.len(), 1);

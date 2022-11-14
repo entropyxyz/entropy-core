@@ -2,7 +2,12 @@ use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use pallet_session::SessionManager;
 use sp_runtime::testing::UintAuthorityId;
 
+<<<<<<< HEAD
 use crate::{mock::*, Error};
+=======
+use crate::{mock::*, Error, ServerInfo};
+
+>>>>>>> master
 const NULL_ARR: [u8; 32] = [0; 32];
 
 fn initialize_block(block: u64) {
@@ -14,10 +19,14 @@ fn initialize_block(block: u64) {
 #[test]
 fn basic_setup_works() {
     new_test_ext().execute_with(|| {
-        assert_eq!(Staking::endpoint_register(5).unwrap(), vec![20]);
-        assert_eq!(Staking::endpoint_register(6).unwrap(), vec![40]);
-        assert_eq!(Staking::threshold_account(5).unwrap().0, 7);
-        assert_eq!(Staking::threshold_account(6).unwrap().0, 8);
+        assert_eq!(
+            Staking::threshold_server(5).unwrap(),
+            ServerInfo { tss_account: 7, x25519_public_key: NULL_ARR, endpoint: vec![20] }
+        );
+        assert_eq!(
+            Staking::threshold_server(6).unwrap(),
+            ServerInfo { tss_account: 8, x25519_public_key: NULL_ARR, endpoint: vec![40] }
+        );
         assert_eq!(Staking::threshold_to_stash(7).unwrap(), 5);
         assert_eq!(Staking::threshold_to_stash(8).unwrap(), 6);
         assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
@@ -41,8 +50,9 @@ fn it_takes_in_an_endpoint() {
             3,
             NULL_ARR
         ));
-        assert_eq!(Staking::endpoint_register(1).unwrap(), vec![20]);
-        assert_eq!(Staking::threshold_account(2).unwrap().0, 3);
+        let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
+        assert_eq!(endpoint, vec![20]);
+        assert_eq!(tss_account, 3);
         assert_eq!(Staking::threshold_to_stash(3).unwrap(), 2);
         assert_noop!(
             Staking::validate(
@@ -85,7 +95,7 @@ fn it_changes_endpoint() {
         ));
 
         assert_ok!(Staking::change_endpoint(RuntimeOrigin::signed(1), vec![30]));
-        assert_eq!(Staking::endpoint_register(1).unwrap(), vec![30]);
+        assert_eq!(Staking::threshold_server(2).unwrap().endpoint, vec![30]);
 
         assert_noop!(
             Staking::change_endpoint(RuntimeOrigin::signed(3), vec![30]),
@@ -112,7 +122,7 @@ fn it_changes_threshold_account() {
         ));
 
         assert_ok!(Staking::change_threshold_accounts(RuntimeOrigin::signed(1), 4, NULL_ARR));
-        assert_eq!(Staking::threshold_account(2).unwrap().0, 4);
+        assert_eq!(Staking::threshold_server(2).unwrap().tss_account, 4);
         assert_eq!(Staking::threshold_to_stash(4).unwrap(), 2);
 
         assert_noop!(
@@ -140,8 +150,9 @@ fn it_deletes_when_no_bond_left() {
             NULL_ARR
         ));
 
-        assert_eq!(Staking::endpoint_register(1).unwrap(), vec![20]);
-        assert_eq!(Staking::threshold_account(2).unwrap().0, 3);
+        let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
+        assert_eq!(endpoint, vec![20]);
+        assert_eq!(tss_account, 3);
         assert_eq!(Staking::threshold_to_stash(3).unwrap(), 2);
 
         let mut lock = Balances::locks(2);
@@ -162,8 +173,9 @@ fn it_deletes_when_no_bond_left() {
         assert_eq!(lock[0].amount, 50);
         assert_eq!(lock.len(), 1);
 
-        assert_eq!(Staking::endpoint_register(1).unwrap(), vec![20]);
-        assert_eq!(Staking::threshold_account(2).unwrap().0, 3);
+        let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
+        assert_eq!(endpoint, vec![20]);
+        assert_eq!(tss_account, 3);
         assert_eq!(Staking::threshold_to_stash(3).unwrap(), 2);
 
         assert_ok!(FrameStaking::unbond(RuntimeOrigin::signed(1), 50u64,));
@@ -171,8 +183,7 @@ fn it_deletes_when_no_bond_left() {
         assert_ok!(Staking::withdraw_unbonded(RuntimeOrigin::signed(1), 0,));
         lock = Balances::locks(2);
         assert_eq!(lock.len(), 0);
-        assert_eq!(Staking::endpoint_register(1), None);
-        assert_eq!(Staking::threshold_account(2), None);
+        assert_eq!(Staking::threshold_server(2), None);
         assert_eq!(Staking::threshold_to_stash(3), None);
     });
 }
