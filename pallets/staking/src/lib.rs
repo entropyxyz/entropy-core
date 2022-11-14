@@ -35,16 +35,11 @@ mod tests;
 mod benchmarking;
 
 pub mod weights;
-// use core::convert::TryInto;
 use core::convert::TryFrom;
 
-// use frame_support::{dispatch::DispatchResult, inherent::Vec, pallet_prelude::*,
-// traits::Currency}; use frame_system::pallet_prelude::*;
-// use pallet_staking::ValidatorPrefs;
 use sp_staking::SessionIndex;
 
 use crate as pallet_staking_extension;
-// pub use crate::weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -160,11 +155,6 @@ pub mod pallet {
 
             for (validator_stash, server_info) in &self.threshold_servers {
                 ThresholdServers::<T>::insert(validator_stash, server_info.clone());
-                // let acc_id_res = <T as
-                // frame_system::Config>::AccountId::try_into(*validator_stash).
-                // or(Err(Error::<T>::InvalidValidatorId)); ensure!(acc_id_res.
-                // is_ok(), Error::<T>::InvalidValidatorId); let acc_id =
-                // validator_id_res.expect("Issue converting account id into validator id");
                 ThresholdToStash::<T>::insert(&server_info.tss_account, validator_stash);
             }
 
@@ -222,9 +212,6 @@ pub mod pallet {
             );
             let validator_id =
                 validator_id_res.expect("Issue converting account id into validator id");
-            // let sk = <T as pallet_session::Config>::ValidatorIdOf::convert(who.clone()).unwrap();
-            // EndpointRegister::<T>::insert(&validator_id, &endpoint);
-
             ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
                 if let Some(server_info) = maybe_server_info {
                     server_info.endpoint = endpoint.clone();

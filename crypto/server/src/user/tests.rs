@@ -128,7 +128,6 @@ async fn test_store_share() {
         .body(user_input.clone())
         .dispatch()
         .await;
-    // println!("{:?}",response_2.into_string().await);
     assert_eq!(response_2.status(), Status::Ok);
     assert_eq!(response_2.into_string().await, None);
     // make sure there is now one confirmation
