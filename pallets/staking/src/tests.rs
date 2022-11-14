@@ -2,12 +2,8 @@ use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use pallet_session::SessionManager;
 use sp_runtime::testing::UintAuthorityId;
 
-<<<<<<< HEAD
-use crate::{mock::*, Error};
-=======
 use crate::{mock::*, Error, ServerInfo};
 
->>>>>>> master
 const NULL_ARR: [u8; 32] = [0; 32];
 
 fn initialize_block(block: u64) {

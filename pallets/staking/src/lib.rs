@@ -153,7 +153,7 @@ pub mod pallet {
                 // let acc_id_res = <T as frame_system::Config>::AccountId::try_into(*validator_stash).or(Err(Error::<T>::InvalidValidatorId));
                 // ensure!(acc_id_res.is_ok(), Error::<T>::InvalidValidatorId);
                 // let acc_id = validator_id_res.expect("Issue converting account id into validator id");
-                // ThresholdToStash::<T>::insert(&server_info.tss_account, acc_id);
+                ThresholdToStash::<T>::insert(&server_info.tss_account, validator_stash);
             }
 
             for (group_id, validator_ids) in &self.signing_groups {

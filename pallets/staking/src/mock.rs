@@ -7,12 +7,9 @@ use frame_support::{
     traits::{ConstU32, GenesisBuild, Get, Hooks, OneSessionHandler},
 };
 use frame_system as system;
-<<<<<<< HEAD
 use pallet_session::{historical as pallet_session_historical, ShouldEndSession};
-=======
-use pallet_session::historical as pallet_session_historical;
+// use pallet_session::historical as pallet_session_historical;
 use pallet_staking_extension::ServerInfo;
->>>>>>> master
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
