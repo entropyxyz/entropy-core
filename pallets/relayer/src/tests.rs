@@ -4,6 +4,7 @@ use frame_support::{
     traits::OnInitialize,
 };
 use pallet_relayer::Call as RelayerCall;
+use pallet_staking_extension::ServerInfo;
 use sp_runtime::{
     traits::SignedExtension,
     transaction_validity::{TransactionValidity, ValidTransaction},
@@ -96,8 +97,10 @@ fn it_confirms_done() {
     new_test_ext().execute_with(|| {
         Responsibility::<Test>::insert(5, 2);
         let failures = vec![0u32, 3u32];
-        pallet_staking_extension::ThresholdAccounts::<Test>::insert(2, (1, NULL_ARR));
-
+        pallet_staking_extension::ThresholdServers::<Test>::insert(
+            2,
+            ServerInfo { tss_account: 1, x25519_public_key: NULL_ARR, endpoint: vec![20] },
+        );
         assert_ok!(Relayer::confirm_done(RuntimeOrigin::signed(1), 5, failures.clone()));
         assert_eq!(Relayer::failures(5), Some(failures.clone()));
 
@@ -114,7 +117,10 @@ fn it_confirms_done() {
             Relayer::confirm_done(RuntimeOrigin::signed(2), 6, failures.clone()),
             Error::<Test>::NoThresholdKey
         );
-        pallet_staking_extension::ThresholdAccounts::<Test>::insert(2, (5, NULL_ARR));
+        pallet_staking_extension::ThresholdServers::<Test>::insert(
+            2,
+            ServerInfo { tss_account: 5, x25519_public_key: NULL_ARR, endpoint: vec![20] },
+        );
         assert_noop!(
             Relayer::confirm_done(RuntimeOrigin::signed(2), 5, failures),
             Error::<Test>::NotYourResponsibility
@@ -208,7 +214,10 @@ fn it_fails_a_free_tx_prep_tx() {
 fn it_provides_free_txs_confirm_done() {
     new_test_ext().execute_with(|| {
         Responsibility::<Test>::insert(5, 1);
-        pallet_staking_extension::ThresholdAccounts::<Test>::insert(1, (2, NULL_ARR));
+        pallet_staking_extension::ThresholdServers::<Test>::insert(
+            1,
+            ServerInfo { tss_account: 2, x25519_public_key: NULL_ARR, endpoint: vec![20] },
+        );
         let p = PrevalidateRelayer::<Test>::new();
         let c =
             RuntimeCall::Relayer(RelayerCall::confirm_done { block_number: 5, failures: vec![] });
@@ -250,7 +259,7 @@ fn it_fails_a_free_tx_confirm_done_err_2() {
 #[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(3)"]
 fn it_fails_a_free_tx_confirm_done_err_3() {
     new_test_ext().execute_with(|| {
-        Responsibility::<Test>::insert(5, 1);
+        Responsibility::<Test>::insert(5, 3); // 3 is not a validator in the mock environment
         let p = PrevalidateRelayer::<Test>::new();
         let c =
             RuntimeCall::Relayer(RelayerCall::confirm_done { block_number: 5, failures: vec![] });
@@ -265,7 +274,10 @@ fn it_fails_a_free_tx_confirm_done_err_3() {
 fn it_fails_a_free_tx_confirm_done_err_4() {
     new_test_ext().execute_with(|| {
         Responsibility::<Test>::insert(5, 1);
-        pallet_staking_extension::ThresholdAccounts::<Test>::insert(1, (2, NULL_ARR));
+        pallet_staking_extension::ThresholdServers::<Test>::insert(
+            1,
+            ServerInfo { tss_account: 2, x25519_public_key: NULL_ARR, endpoint: vec![20] },
+        );
         Failures::<Test>::insert(5, vec![1]);
         let p = PrevalidateRelayer::<Test>::new();
         let c =
@@ -281,7 +293,10 @@ fn it_fails_a_free_tx_confirm_done_err_4() {
 fn it_fails_a_free_tx_confirm_done_err_5() {
     new_test_ext().execute_with(|| {
         Responsibility::<Test>::insert(5, 1);
-        pallet_staking_extension::ThresholdAccounts::<Test>::insert(1, (2, NULL_ARR));
+        pallet_staking_extension::ThresholdServers::<Test>::insert(
+            1,
+            ServerInfo { tss_account: 2, x25519_public_key: NULL_ARR, endpoint: vec![20] },
+        );
         Failures::<Test>::insert(5, vec![1]);
         let p = PrevalidateRelayer::<Test>::new();
         let c =

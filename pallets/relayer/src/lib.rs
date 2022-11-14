@@ -37,6 +37,7 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use helpers::unwrap_or_return;
+    use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_runtime::{
         traits::{DispatchInfoOf, Saturating, SignedExtension},
@@ -239,10 +240,10 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let responsibility =
                 Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
-            let threshold_key =
-                pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
+            let server_info =
+                pallet_staking_extension::Pallet::<T>::threshold_server(&responsibility)
                     .ok_or(Error::<T>::NoThresholdKey)?;
-            ensure!(who == threshold_key.0, Error::<T>::NotYourResponsibility);
+            ensure!(who == server_info.tss_account, Error::<T>::NotYourResponsibility);
 
             let current_failures = Self::failures(block_number);
 
@@ -261,10 +262,10 @@ pub mod pallet {
             for i in 0..SIGNING_PARTY_SIZE {
                 let addresses = pallet_staking_extension::Pallet::<T>::signing_groups(i as u8)
                     .ok_or(Error::<T>::SigningGroupError)?;
-                let ip_address =
-                    pallet_staking_extension::Pallet::<T>::endpoint_register(&addresses[0])
+                let ServerInfo { endpoint, .. } =
+                    pallet_staking_extension::Pallet::<T>::threshold_server(&addresses[0])
                         .ok_or(Error::<T>::IpAddressError)?;
-                ip_addresses.push(ip_address);
+                ip_addresses.push(endpoint.clone());
             }
             Ok(ip_addresses)
         }
@@ -384,10 +385,10 @@ pub mod pallet {
                 if let Call::confirm_done { block_number, .. } = local_call {
                     let responsibility = Responsibility::<T>::get(block_number)
                         .ok_or(InvalidTransaction::Custom(2))?;
-                    let threshold_key =
-                        pallet_staking_extension::Pallet::<T>::threshold_account(&responsibility)
+                    let server_info =
+                        pallet_staking_extension::Pallet::<T>::threshold_server(&responsibility)
                             .ok_or(InvalidTransaction::Custom(3))?;
-                    ensure!(*who == threshold_key.0, InvalidTransaction::Custom(4));
+                    ensure!(*who == server_info.tss_account, InvalidTransaction::Custom(4));
                     let current_failures = Failures::<T>::get(block_number);
                     ensure!(current_failures.is_none(), InvalidTransaction::Custom(5));
                 }
