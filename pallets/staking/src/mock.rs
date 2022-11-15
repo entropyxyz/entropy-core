@@ -365,46 +365,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     t.into()
 }
 
-// /// Slots will grow accordingly to blocks
-// pub fn progress_to_block(n: u64) {
-// 	let mut slot = u64::from(Babe::current_slot()) + 1;
-// 	for i in System::block_number() + 1..=n {
-// 		go_to_block(i, slot);
-// 		slot += 1;
-// 	}
-// }
-
-// /// Progress to the first block at the given session
-// pub fn start_session_2(session_index: SessionIndex) {
-// 	let missing = (session_index - Session::current_index()) * 3;
-// 	progress_to_block(System::block_number() + missing as u64 + 1);
-// 	assert_eq!(Session::current_index(), session_index);
-// }
-
-// pub fn go_to_block(n: u64, s: u64) {
-// 	use frame_support::traits::OnFinalize;
-
-// 	Babe::on_finalize(System::block_number());
-// 	Session::on_finalize(System::block_number());
-// 	Staking::on_finalize(System::block_number());
-
-// 	let parent_hash = if System::block_number() > 1 {
-// 		let hdr = System::finalize();
-// 		hdr.hash()
-// 	} else {
-// 		System::parent_hash()
-// 	};
-
-// 	let pre_digest = make_secondary_plain_pre_digest(0, s.into());
-
-// 	System::reset_events();
-// 	System::initialize(&n, &parent_hash, &pre_digest);
-
-// 	Babe::on_initialize(n);
-// 	Session::on_initialize(n);
-// 	Staking::on_initialize(n);
-// }
-
 pub(crate) fn run_to_block(n: BlockNumber) {
     FrameStaking::on_finalize(System::block_number());
     for b in (System::block_number() + 1)..=n {

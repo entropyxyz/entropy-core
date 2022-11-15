@@ -402,7 +402,7 @@ pub mod pallet {
                             .or(Err(Error::<T>::InvalidValidatorId));
                     ensure!(
                         validator_id_res.is_ok(),
-                        TransactionValidityError::Invalid(InvalidTransaction::Payment)
+                        TransactionValidityError::Invalid(InvalidTransaction::BadProof)
                     );
                     let validator_id =
                         validator_id_res.expect("Issue converting account id into validator id");

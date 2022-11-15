@@ -190,27 +190,27 @@ async fn test_store_share() {
     clean_tests();
 }
 
-// #[rocket::async_test]
-// #[serial]
-// async fn test_store_share_fail_wrong_data() {
-//     // Construct a client to use for dispatching requests.
-//     let client = setup_client().await;
-//     let cxt = test_context_stationary().await;
-//     let response = client
-//         .post("/user/new")
-//         .header(ContentType::JSON)
-//         .body(
-//             r##"{
-// 		"name": "John Doe",
-// 		"email": "j.doe@m.com",
-// 		"password": "123456"
-// 	}"##,
-//         )
-//         .dispatch()
-//         .await;
-//     assert_eq!(response.status(), Status::UnprocessableEntity);
-//     clean_tests();
-// }
+#[rocket::async_test]
+#[serial]
+async fn test_store_share_fail_wrong_data() {
+    // Construct a client to use for dispatching requests.
+    let client = setup_client().await;
+    let cxt = test_context_stationary().await;
+    let response = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(
+            r##"{
+		"name": "John Doe",
+		"email": "j.doe@m.com",
+		"password": "123456"
+	}"##,
+        )
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::UnprocessableEntity);
+    clean_tests();
+}
 
 #[rocket::async_test]
 #[serial]
