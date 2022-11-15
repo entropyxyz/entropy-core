@@ -34,11 +34,9 @@ pub async fn new_user(
     config: &State<Configuration>,
 ) -> Result<Status, UserErr> {
     let api = get_api(&config.endpoint).await?;
-    println!("USER/NEW");
     // Verifies the message contains a valid sr25519 signature from the sender.
     let signed_msg: SignedMessage = msg.into_inner();
     if !signed_msg.verify() {
-        println!("INVALID SIGNATURE");
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
 
@@ -47,7 +45,6 @@ pub async fn new_user(
     let key = signed_msg.account_id();
     let is_registering = is_registering(&api, &key).await?;
     if !is_registering {
-        println!("REGISTER ONCHAIN FIRST");
         return Err(UserErr::NotRegistering("Register Onchain first"));
     }
 
@@ -64,7 +61,6 @@ pub async fn new_user(
             confirm_registered(&api, key, subgroup, &signer).await?;
         },
         Err(v) => {
-            println!("FAILED TO DECRYPT");
             return Err(UserErr::Parse("failed decrypting message"));
         },
     }

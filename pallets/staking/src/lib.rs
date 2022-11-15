@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::needless_range_loop)]
+#![allow(clippy::or_fun_call)]
 //! # Staking Pallet
 //!
 //!

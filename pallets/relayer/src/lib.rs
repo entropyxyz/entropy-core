@@ -13,6 +13,7 @@
 //! confirm_done - allows a node to confirm signing has happened and if a failure occured
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::new_without_default)]
+#![allow(clippy::or_fun_call)]
 #![allow(clippy::derive_partial_eq_without_eq)] // Substrate confuses clippy
 pub use pallet::*;
 
@@ -220,11 +221,6 @@ pub mod pallet {
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
                     .ok_or(Error::<T>::InvalidSubgroup)?;
 
-            // let validator_id_res = <T as
-            // pallet_session::Config>::ValidatorId::try_from(stash_key).
-            // or(Err(Error::<T>::InvalidValidatorId)); ensure!(validator_id_res.
-            // is_ok(), Error::<T>::InvalidValidatorId); let validator_id =
-            // validator_id_res.expect("Issue converting account id into validator id");
             ensure!(signing_subgroup_addresses.contains(&stash_key), Error::<T>::NotInSigningGroup);
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 Registered::<T>::insert(&registerer, true);

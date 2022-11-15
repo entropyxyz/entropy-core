@@ -103,8 +103,6 @@ async fn test_store_share() {
         .unwrap()
         .to_json();
 
-    println!("RES: {:?}", res);
-
     // fails to add not registering
     let response = client
         .post("/user/new")
