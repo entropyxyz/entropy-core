@@ -34,7 +34,6 @@ pub async fn new_user(
     config: &State<Configuration>,
 ) -> Result<Status, UserErr> {
     let api = get_api(&config.endpoint).await?;
-
     // Verifies the message contains a valid sr25519 signature from the sender.
     let signed_msg: SignedMessage = msg.into_inner();
     if !signed_msg.verify() {

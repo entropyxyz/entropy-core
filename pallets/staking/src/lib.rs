@@ -1,4 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::needless_range_loop)]
+#![allow(clippy::or_fun_call)]
 //! # Staking Pallet
 //!
 //!
@@ -34,6 +36,11 @@ mod tests;
 mod benchmarking;
 
 pub mod weights;
+use core::convert::TryFrom;
+
+use sp_staking::SessionIndex;
+
+use crate as pallet_staking_extension;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -41,11 +48,14 @@ pub mod pallet {
         dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency,
     };
     use frame_system::pallet_prelude::*;
+    use substrate_common::SIGNING_PARTY_SIZE;
 
     use super::*;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_staking::Config {
+    pub trait Config:
+        pallet_session::Config + frame_system::Config + pallet_staking::Config
+    {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
@@ -90,26 +100,42 @@ pub mod pallet {
     /// shares over HTTP.
     #[pallet::storage]
     #[pallet::getter(fn threshold_server)]
-    pub type ThresholdServers<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, ServerInfo<T::AccountId>, OptionQuery>;
+    pub type ThresholdServers<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        <T as pallet_session::Config>::ValidatorId,
+        ServerInfo<T::AccountId>,
+        OptionQuery,
+    >;
 
     #[pallet::storage]
     #[pallet::getter(fn threshold_to_stash)]
-    pub type ThresholdToStash<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, T::AccountId, OptionQuery>;
+    pub type ThresholdToStash<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        <T as pallet_session::Config>::ValidatorId,
+        OptionQuery,
+    >;
 
     /// Stores the relationship between a signing group (u8) and its member's (validator's)
     /// threshold server's account.
     #[pallet::storage]
     #[pallet::getter(fn signing_groups)]
-    pub type SigningGroups<T: Config> =
-        StorageMap<_, Blake2_128Concat, SubgroupId, Vec<T::AccountId>, OptionQuery>;
+    pub type SigningGroups<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        SubgroupId,
+        Vec<<T as pallet_session::Config>::ValidatorId>,
+        OptionQuery,
+    >;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub threshold_servers: Vec<(T::AccountId, ServerInfo<T::AccountId>)>,
-        pub signing_groups: Vec<(u8, Vec<T::AccountId>)>,
+        pub threshold_servers:
+            Vec<(<T as pallet_session::Config>::ValidatorId, ServerInfo<T::AccountId>)>,
+        pub signing_groups: Vec<(u8, Vec<<T as pallet_session::Config>::ValidatorId>)>,
     }
 
     #[cfg(feature = "std")]
@@ -133,8 +159,8 @@ pub mod pallet {
                 ThresholdToStash::<T>::insert(&server_info.tss_account, validator_stash);
             }
 
-            for (group_id, validators_stash) in &self.signing_groups {
-                SigningGroups::<T>::insert(group_id, validators_stash);
+            for (group_id, validator_ids) in &self.signing_groups {
+                SigningGroups::<T>::insert(group_id, validator_ids);
             }
         }
     }
@@ -145,6 +171,7 @@ pub mod pallet {
         NoBond,
         NotController,
         NoThresholdKey,
+        InvalidValidatorId,
     }
 
     #[pallet::event]
@@ -155,7 +182,10 @@ pub mod pallet {
         /// Node Info has been added or edited. [who, endpoint, threshold_account]
         NodeInfoChanged(T::AccountId, Vec<u8>, T::AccountId),
         /// A threshold account has been added or edited. [validator, threshold_account]
-        ThresholdAccountChanged(T::AccountId, ServerInfo<T::AccountId>),
+        ThresholdAccountChanged(
+            <T as pallet_session::Config>::ValidatorId,
+            ServerInfo<T::AccountId>,
+        ),
         /// Node Info has been removed [who]
         NodeInfoRemoved(T::AccountId),
     }
@@ -171,8 +201,19 @@ pub mod pallet {
                 endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
             );
+
+            pallet_staking::Pallet::<T>::ledger(&who).ok_or(Error::<T>::NoBond)?;
             let ledger = pallet_staking::Pallet::<T>::ledger(&who).ok_or(Error::<T>::NoBond)?;
-            ThresholdServers::<T>::try_mutate(&ledger.stash, |maybe_server_info| {
+            let validator_id_res =
+                <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
+                    .or(Err(Error::<T>::InvalidValidatorId));
+            ensure!(
+                validator_id_res.is_ok(),
+                pallet_staking_extension::Error::<T>::InvalidValidatorId
+            );
+            let validator_id =
+                validator_id_res.expect("Issue converting account id into validator id");
+            ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
                 if let Some(server_info) = maybe_server_info {
                     server_info.endpoint = endpoint.clone();
                     Ok(())
@@ -194,19 +235,26 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             let stash = Self::get_stash(&who)?;
-
+            let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(stash)
+                .or(Err(Error::<T>::InvalidValidatorId));
+            ensure!(
+                validator_id_res.is_ok(),
+                pallet_staking_extension::Error::<T>::InvalidValidatorId
+            );
+            let validator_id =
+                validator_id_res.expect("Issue converting account id into validator id");
             let new_server_info: ServerInfo<T::AccountId> =
-                ThresholdServers::<T>::try_mutate(&stash, |maybe_server_info| {
+                ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
                     if let Some(server_info) = maybe_server_info {
                         server_info.tss_account = tss_account.clone();
                         server_info.x25519_public_key = x25519_public_key;
-                        ThresholdToStash::<T>::insert(&tss_account, &stash);
+                        ThresholdToStash::<T>::insert(&tss_account, &validator_id);
                         Ok(server_info.clone())
                     } else {
                         Err(Error::<T>::NoBond)
                     }
                 })?;
-            Self::deposit_event(Event::ThresholdAccountChanged(stash, new_server_info));
+            Self::deposit_event(Event::ThresholdAccountChanged(validator_id, new_server_info));
             Ok(())
         }
 
@@ -220,9 +268,18 @@ pub mod pallet {
             match pallet_staking::Pallet::<T>::ledger(&controller) {
                 Some(ledger) => {
                     let stash = ledger.stash;
+                    let validator_id_res =
+                        <T as pallet_session::Config>::ValidatorId::try_from(stash)
+                            .or(Err(Error::<T>::InvalidValidatorId));
+                    ensure!(
+                        validator_id_res.is_ok(),
+                        pallet_staking_extension::Error::<T>::InvalidValidatorId
+                    );
+                    let validator_id =
+                        validator_id_res.expect("Issue converting account id into validator id");
                     pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
                     if pallet_staking::Pallet::<T>::ledger(&controller).is_none() {
-                        let server_info = ThresholdServers::<T>::take(&stash)
+                        let server_info = ThresholdServers::<T>::take(&validator_id)
                             .ok_or(Error::<T>::NoThresholdKey)?;
                         ThresholdToStash::<T>::remove(&server_info.tss_account);
                     }
@@ -251,16 +308,24 @@ pub mod pallet {
             );
             let stash = Self::get_stash(&who)?;
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
+            let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(stash)
+                .or(Err(Error::<T>::InvalidValidatorId));
+            ensure!(
+                validator_id_res.is_ok(),
+                pallet_staking_extension::Error::<T>::InvalidValidatorId
+            );
+            let validator_id =
+                validator_id_res.expect("Issue converting account id into validator id");
 
             ThresholdServers::<T>::insert(
-                stash.clone(),
+                validator_id.clone(),
                 ServerInfo {
                     tss_account: tss_account.clone(),
                     x25519_public_key,
                     endpoint: endpoint.clone(),
                 },
             );
-            ThresholdToStash::<T>::insert(&tss_account, stash);
+            ThresholdToStash::<T>::insert(&tss_account, validator_id);
 
             Self::deposit_event(Event::NodeInfoChanged(who, endpoint, tss_account));
             Ok(())
@@ -272,5 +337,93 @@ pub mod pallet {
                 pallet_staking::Pallet::<T>::ledger(controller).ok_or(Error::<T>::NotController)?;
             Ok(ledger.stash)
         }
+
+        pub fn new_session_handler(validators: &[<T as pallet_session::Config>::ValidatorId]) {
+            // Init a 2D Vec where indices and values represent subgroups and validators,
+            // respectively.
+            let mut new_validators_set: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> =
+                Vec::with_capacity(SIGNING_PARTY_SIZE);
+            new_validators_set.resize(SIGNING_PARTY_SIZE, Vec::new());
+
+            // Init current validators vec
+            let mut curr_validators_set: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> =
+                Vec::with_capacity(SIGNING_PARTY_SIZE);
+            curr_validators_set.resize(SIGNING_PARTY_SIZE, Vec::new());
+
+            // Init new unplaced validator vec
+            let mut unplaced_validators_set: Vec<<T as pallet_session::Config>::ValidatorId> =
+                Vec::new();
+
+            // Populate the current validators set
+            for signing_group in 0..SIGNING_PARTY_SIZE {
+                curr_validators_set[signing_group] =
+                    pallet_staking_extension::Pallet::<T>::signing_groups(signing_group as u8)
+                        .unwrap();
+            }
+
+            // Replace existing validators into the same subgroups
+            for new_validator in validators.iter() {
+                let mut exists = false;
+                for (sg, sg_validators) in curr_validators_set.iter().enumerate() {
+                    if sg_validators.contains(new_validator) {
+                        exists = true;
+                        new_validators_set[sg].push(new_validator.clone());
+                        break;
+                    }
+                }
+                if !exists {
+                    unplaced_validators_set.push(new_validator.clone());
+                }
+            }
+
+            // Evenly distribute new validators.
+            while let Some(curr) = unplaced_validators_set.pop() {
+                let mut min_sg_len = u64::MAX;
+                let mut min_sg = 0;
+                for (sg, validators) in new_validators_set.iter().enumerate() {
+                    let n = validators.len() as u64;
+                    if n < min_sg_len {
+                        min_sg_len = n;
+                        min_sg = sg;
+                    }
+                }
+                new_validators_set[min_sg].push(curr);
+            }
+
+            // Update the new validator set
+            for (sg, vs) in new_validators_set.iter().enumerate() {
+                pallet_staking_extension::SigningGroups::<T>::remove(sg as u8);
+                pallet_staking_extension::SigningGroups::<T>::insert(sg as u8, vs);
+            }
+        }
+    }
+
+    pub struct SessionManager<I, T: Config>(
+        sp_std::marker::PhantomData<I>,
+        sp_std::marker::PhantomData<T>,
+    );
+    impl<
+            I: pallet_session::SessionManager<ValidatorId>,
+            ValidatorId,
+            T: Config + pallet::Config<ValidatorId = ValidatorId>,
+        > pallet_session::SessionManager<ValidatorId> for SessionManager<I, T>
+    {
+        fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
+            let new_session = I::new_session(new_index);
+            if let Some(validators) = &new_session {
+                Pallet::<T>::new_session_handler(validators);
+            }
+            new_session
+        }
+
+        fn new_session_genesis(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
+            log::info!("test inside gesnsisi");
+
+            I::new_session_genesis(new_index)
+        }
+
+        fn end_session(end_index: SessionIndex) { I::end_session(end_index); }
+
+        fn start_session(start_index: SessionIndex) { I::start_session(start_index); }
     }
 }

@@ -1,8 +1,16 @@
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
+use pallet_session::SessionManager;
+use sp_runtime::testing::UintAuthorityId;
 
 use crate::{mock::*, Error, ServerInfo};
 
 const NULL_ARR: [u8; 32] = [0; 32];
+
+fn initialize_block(block: u64) {
+    SESSION_CHANGED.with(|l| *l.borrow_mut() = false);
+    System::set_block_number(block);
+    Session::on_initialize(block);
+}
 
 #[test]
 fn basic_setup_works() {
@@ -153,6 +161,7 @@ fn it_deletes_when_no_bond_left() {
         assert_eq!(lock[0].amount, 100);
         assert_eq!(lock.len(), 1);
         println!(":{:?}", FrameStaking::ledger(1));
+        MockSessionManager::new_session(0);
 
         assert_ok!(Staking::withdraw_unbonded(RuntimeOrigin::signed(1), 0,));
 
@@ -172,5 +181,49 @@ fn it_deletes_when_no_bond_left() {
         assert_eq!(lock.len(), 0);
         assert_eq!(Staking::threshold_server(2), None);
         assert_eq!(Staking::threshold_to_stash(3), None);
+    });
+}
+
+#[test]
+fn it_tests_on_new_session() {
+    new_test_ext().execute_with(|| {
+        // // situation 1 - changed is false no changes should be made
+        MockSessionManager::new_session(0);
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+
+        // catches out of order validators
+        MockSessionManager::new_session(1);
+
+        // nothing is changed
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+
+        // // situation 2 - authority 2 leaves authority 3 enters
+        MockSessionManager::new_session(2);
+        // authority 3 replaces authority 2
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+
+        // situation 3 - authority 2 leaves not replaces
+        MockSessionManager::new_session(3);
+
+        // authority 2 left sig group 1 has no one in signing group
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1), Some(vec![]));
+
+        //  // situation 4 - same number but both authorities change
+        MockSessionManager::new_session(4);
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![4]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
+
+        // situation 5/6 = odd number of validators
+        MockSessionManager::new_session(5);
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![2, 1]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
+
+        MockSessionManager::new_session(6);
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1, 2, 4]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3, 5]);
     });
 }

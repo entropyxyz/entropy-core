@@ -13,6 +13,7 @@
 //! confirm_done - allows a node to confirm signing has happened and if a failure occured
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::new_without_default)]
+#![allow(clippy::or_fun_call)]
 #![allow(clippy::derive_partial_eq_without_eq)] // Substrate confuses clippy
 pub use pallet::*;
 
@@ -50,7 +51,10 @@ pub mod pallet {
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
     pub trait Config:
-        frame_system::Config + pallet_authorship::Config + pallet_staking_extension::Config
+        pallet_session::Config
+        + frame_system::Config
+        + pallet_authorship::Config
+        + pallet_staking_extension::Config
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -159,6 +163,7 @@ pub mod pallet {
         InvalidSubgroup,
         AlreadyConfirmed,
         NotInSigningGroup,
+        InvalidValidatorId,
         IpAddressError,
         SigningGroupError,
     }
@@ -215,6 +220,7 @@ pub mod pallet {
             let signing_subgroup_addresses =
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
                     .ok_or(Error::<T>::InvalidSubgroup)?;
+
             ensure!(signing_subgroup_addresses.contains(&stash_key), Error::<T>::NotInSigningGroup);
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 Registered::<T>::insert(&registerer, true);
@@ -240,8 +246,14 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let responsibility =
                 Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
+            let validator_id_res =
+                <T as pallet_session::Config>::ValidatorId::try_from(responsibility)
+                    .or(Err(Error::<T>::InvalidValidatorId));
+            ensure!(validator_id_res.is_ok(), Error::<T>::InvalidValidatorId);
+            let validator_id =
+                validator_id_res.expect("Issue converting account id into validator id");
             let server_info =
-                pallet_staking_extension::Pallet::<T>::threshold_server(&responsibility)
+                pallet_staking_extension::Pallet::<T>::threshold_server(&validator_id)
                     .ok_or(Error::<T>::NoThresholdKey)?;
             ensure!(who == server_info.tss_account, Error::<T>::NotYourResponsibility);
 
@@ -385,8 +397,17 @@ pub mod pallet {
                 if let Call::confirm_done { block_number, .. } = local_call {
                     let responsibility = Responsibility::<T>::get(block_number)
                         .ok_or(InvalidTransaction::Custom(2))?;
+                    let validator_id_res =
+                        <T as pallet_session::Config>::ValidatorId::try_from(responsibility)
+                            .or(Err(Error::<T>::InvalidValidatorId));
+                    ensure!(
+                        validator_id_res.is_ok(),
+                        TransactionValidityError::Invalid(InvalidTransaction::BadProof)
+                    );
+                    let validator_id =
+                        validator_id_res.expect("Issue converting account id into validator id");
                     let server_info =
-                        pallet_staking_extension::Pallet::<T>::threshold_server(&responsibility)
+                        pallet_staking_extension::Pallet::<T>::threshold_server(&validator_id)
                             .ok_or(InvalidTransaction::Custom(3))?;
                     ensure!(*who == server_info.tss_account, InvalidTransaction::Custom(4));
                     let current_failures = Failures::<T>::get(block_number);
