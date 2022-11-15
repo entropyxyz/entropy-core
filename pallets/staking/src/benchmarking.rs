@@ -1,7 +1,7 @@
 //! Benchmarking setup for pallet-propgation
 #![allow(unused_imports)]
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
-use frame_support::{assert_ok, sp_runtime::traits::StaticLookup, traits::Currency};
+use frame_support::{assert_ok, ensure, sp_runtime::traits::StaticLookup, traits::Currency};
 use frame_system::{EventRecord, RawOrigin};
 use pallet_staking::{Pallet as FrameStaking, RewardDestination, ValidatorPrefs};
 
@@ -68,17 +68,19 @@ benchmarks! {
 
   change_threshold_accounts {
     let caller: T::AccountId = whitelisted_caller();
-    let bonder: T::AccountId = account("bond", 0, SEED);
+    let _bonder: T::AccountId = account("bond", 0, SEED);
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(_bonder.clone()).or(Err(Error::<T>::InvalidValidatorId));
+    let bonder: T::ValidatorId = validator_id_res.expect("Issue converting account id into validator id");
     let threshold: T::AccountId = account("threshold", 0, SEED);
     let x25519_public_key: [u8; 32] = NULL_ARR;
-    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
+    prep_bond_and_validate::<T>(true, caller.clone(), _bonder.clone(), threshold.clone(), NULL_ARR);
 
 
-  }:  _(RawOrigin::Signed(caller.clone()), bonder.clone(), NULL_ARR)
+  }:  _(RawOrigin::Signed(caller.clone()), _bonder.clone(), NULL_ARR)
   verify {
     let server_info = ServerInfo {
       endpoint: vec![20, 20],
-      tss_account: bonder.clone(),
+      tss_account: _bonder.clone(),
       x25519_public_key: NULL_ARR,
     };
     assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder.clone(), server_info).into());

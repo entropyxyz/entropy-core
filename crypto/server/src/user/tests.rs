@@ -126,7 +126,6 @@ async fn test_store_share() {
         .body(user_input.clone())
         .dispatch()
         .await;
-
     assert_eq!(response_2.status(), Status::Ok);
     assert_eq!(response_2.into_string().await, None);
     // make sure there is now one confirmation
@@ -164,7 +163,8 @@ async fn test_store_share() {
         .await;
 
     assert_eq!(response_4.status(), Status::InternalServerError);
-    assert_eq!(response_4.into_string().await.unwrap(), "Parse error: failed decrypting message");
+    let expected_err = "Parse error: failed decrypting message";
+    assert_eq!(response_4.into_string().await.unwrap(), expected_err);
     let sig: [u8; 64] = [0; 64];
     let slice: [u8; 32] = [0; 32];
     let nonce: [u8; 12] = [0; 12];
