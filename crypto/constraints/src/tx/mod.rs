@@ -14,7 +14,6 @@ pub use utils::*;
 pub struct BasicTransaction<A: Architecture> {
     pub from: A::Address,
     pub to: Option<A::Address>,
-    // pub amount: A::Balance
 }
 
 /// Trait that defines types for the architecture the transaction is for
@@ -25,8 +24,6 @@ pub trait Architecture: Serialize + for<'de> Deserialize<'de> {
         + HasReceiver<Self>
         + Serialize
         + for<'de> Deserialize<'de>;
-    // Units for that chain or something
-    // type Balance: PartialEq
 }
 
 /// Trait for getting the the sender of a transaction
