@@ -1,5 +1,5 @@
 use crate::tx::evm::EVM;
-use crate::tx::{parse_raw_tx_json, BasicTransaction, ParsingError};
+use crate::tx::parse_raw_tx_json;
 use crate::whitelist::is_on_whitelist;
 
 #[test]
@@ -16,8 +16,9 @@ fn test_whitelist() {
 }
 
 #[test]
-fn test_parse_raw_evm_transaction() {
-    let raw_unsigned_evm_tx = r#"{
+fn should_parse_json_evm_tx_request() {
+    // copied from https://ethereum.org/en/developers/docs/transactions/#whats-a-transaction
+    let evm_tx_request_json = r#"{
         "from": "0x1923f626bb8dc025849e00f99c25fe2b2f7fb0db",
         "gas": "0x55555",
         "maxFeePerGas": "0x1234",
@@ -28,10 +29,25 @@ fn test_parse_raw_evm_transaction() {
         "value": "0x1234"
     }"#;
 
-    let parsed_tx = parse_raw_tx_json::<EVM>(raw_unsigned_evm_tx.to_string()).unwrap();
+    let basic_tx = parse_raw_tx_json::<EVM>(evm_tx_request_json.to_string()).unwrap();
 
-    assert!(parsed_tx.from.is_some());
-    assert!(parsed_tx.to.is_some());
+    println!("Parsed tx: {:?}", basic_tx);
+}
 
-    println!("Parsed tx: {:?}", parsed_tx);
+#[test]
+fn should_error_on_invalid_json_evm_tx_request() {
+    // missing "from" field
+    let evm_tx_request_json = r#"{
+        "gas": "0x55555",
+        "maxFeePerGas": "0x1234",
+        "maxPriorityFeePerGas": "0x1234",
+        "input": "0xabcd",
+        "nonce": "0x0",
+        "to": "0x07a565b7ed7d7a678680a4c162885bedbb695fe0",
+        "value": "0x1234"
+    }"#;
+
+    let basic_tx_result = parse_raw_tx_json::<EVM>(evm_tx_request_json.to_string());
+
+    assert!(basic_tx_result.is_err());
 }
