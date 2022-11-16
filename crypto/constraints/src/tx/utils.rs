@@ -18,6 +18,6 @@ pub fn parse_raw_tx_json<A: Architecture>(
 
     match from_value::<A::TransactionRequest>(untyped_json_tx) {
         Ok(tx) => Ok(BasicTransaction { from: tx.sender(), to: tx.receiver() }),
-        Err(_e) => return Err(ParsingError::UndetectableArchitecture),
+        Err(_e) => Err(ParsingError::UndetectableArchitecture),
     }
 }
