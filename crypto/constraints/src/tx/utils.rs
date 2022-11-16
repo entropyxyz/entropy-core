@@ -1,5 +1,6 @@
-use crate::tx::{Architecture, BasicTransaction, HasReceiver, HasSender};
 use serde_json::from_value;
+
+use crate::tx::{Architecture, BasicTransaction, HasReceiver, HasSender};
 
 /// Errors related to parsing raw transactions
 #[derive(Debug, PartialEq)]

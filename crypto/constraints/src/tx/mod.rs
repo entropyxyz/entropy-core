@@ -1,13 +1,13 @@
-//! This module provides generic transaction types for constraints to use, unsigned transaction parsing utilities, and architecture information
-//! about the differet ways transactions are handled on each platform (EVM, BTC, Substrate, etc).
+//! This module provides generic transaction types for constraints to use, unsigned transaction
+//! parsing utilities, and architecture information about the differet ways transactions are handled
+//! on each platform (EVM, BTC, Substrate, etc).
 
 pub mod evm;
 pub mod utils;
 
-pub use utils::*;
-
 use serde::{Deserialize, Serialize};
 use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
+pub use utils::*;
 
 /// Basic transaction that has a sender and receiver with single accounts
 #[derive(Default, Debug, Clone, PartialEq, SerializeDerive, DeserializeDerive)]

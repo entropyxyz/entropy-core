@@ -1,6 +1,7 @@
-use crate::tx::evm::EVM;
-use crate::tx::parse_raw_tx_json;
-use crate::whitelist::is_on_whitelist;
+use crate::{
+    tx::{evm::EVM, parse_raw_tx_json},
+    whitelist::is_on_whitelist,
+};
 
 #[test]
 fn test_whitelist() {
