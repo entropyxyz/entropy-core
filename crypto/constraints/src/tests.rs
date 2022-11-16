@@ -1,5 +1,5 @@
 use crate::{
-    tx::{evm::EVM, parse_raw_tx_json},
+    tx::{evm::EVM, parse_tx_request_json},
     whitelist::is_on_whitelist,
 };
 
@@ -30,7 +30,7 @@ fn should_parse_json_evm_tx_request() {
         "value": "0x1234"
     }"#;
 
-    let basic_tx = parse_raw_tx_json::<EVM>(evm_tx_request_json.to_string()).unwrap();
+    let basic_tx = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string()).unwrap();
 
     println!("Parsed tx: {:?}", basic_tx);
 }
@@ -48,7 +48,7 @@ fn should_error_on_invalid_json_evm_tx_request() {
         "value": "0x1234"
     }"#;
 
-    let basic_tx_result = parse_raw_tx_json::<EVM>(evm_tx_request_json.to_string());
+    let basic_tx_result = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string());
 
     assert!(basic_tx_result.is_err());
 }
