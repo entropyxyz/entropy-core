@@ -11,6 +11,8 @@ pub enum Error {
 }
 
 /// Takes raw transaction data and parses it into a basic transaction
+/// TODO JH : 'from' field won't exist in raw_tx for EVM transactions, so we need to get it from
+/// onchain somehow (during sig request)
 pub fn parse_tx_request_json<A: Architecture>(
     raw_tx: String,
 ) -> Result<BasicTransaction<A>, Error> {
