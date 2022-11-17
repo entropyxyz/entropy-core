@@ -17,13 +17,9 @@ impl Architecture for EVM {
 }
 
 impl HasSender<EVM> for EvmTransactionRequest {
-    fn sender(&self) -> <EVM as Architecture>::Address {
-        self.from
-    }
+    fn sender(&self) -> <EVM as Architecture>::Address { self.from }
 }
 
 impl HasReceiver<EVM> for EvmTransactionRequest {
-    fn receiver(&self) -> Option<<EVM as Architecture>::Address> {
-        self.to
-    }
+    fn receiver(&self) -> Option<<EVM as Architecture>::Address> { self.to }
 }
