@@ -1,9 +1,10 @@
 //! Benchmarking setup for pallet-propgation
 
+use codec::Encode;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
 use frame_support::traits::{Get, OnInitialize};
 use frame_system::{EventRecord, RawOrigin};
-use substrate_common::SigRequest;
+use substrate_common::{Message, SigRequest};
 
 use super::*;
 #[allow(unused)]
@@ -34,13 +35,15 @@ fn add_messages<T: Config>(caller: T::AccountId, messages_count: u32) {
 
 benchmarks! {
   prep_transaction {
-    let caller: T::AccountId = whitelisted_caller();
-    <Registered<T>>::insert(caller.clone(), true);
+    let account: T::AccountId = whitelisted_caller();
+
+    <Registered<T>>::insert(account.clone(), true);
+    let ip_addresses = Pallet::<T>::get_ip_addresses().unwrap();
     let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
 
-  }: _(RawOrigin::Signed(caller.clone()), sig_request)
+  }: _(RawOrigin::Signed(account.clone()), sig_request.clone())
   verify {
-    assert_last_event::<T>(Event::<T>::TransactionPropagated(caller).into());
+    assert_last_event::<T>(Event::<T>::SignatureRequested(Message {account: account.encode(), sig_request, ip_addresses}).into());
   }
 
   register {

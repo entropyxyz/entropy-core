@@ -35,6 +35,26 @@ fn it_preps_transaction() {
 }
 
 #[test]
+fn it_emits_a_signature_request_event() {
+    new_test_ext().execute_with(|| {
+        System::set_block_number(1);
+        let ip_addresses: Vec<Vec<u8>> = vec![vec![10], vec![11]];
+        let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
+        let message = Message {
+            account: vec![1, 0, 0, 0, 0, 0, 0, 0],
+            sig_request: sig_request.clone(),
+            ip_addresses,
+        };
+
+        assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request));
+
+        System::assert_last_event(RuntimeEvent::Relayer(crate::Event::SignatureRequested(
+            message.clone(),
+        )));
+    });
+}
+
+#[test]
 fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
         assert_ok!(Relayer::register(RuntimeOrigin::signed(1)));
