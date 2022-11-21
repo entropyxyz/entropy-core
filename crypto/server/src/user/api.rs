@@ -1,4 +1,5 @@
 use bip39::{Language, Mnemonic};
+use entropy_constraints::tx::{evm::EVM, BasicTransaction};
 use kvdb::kv_manager::{
     error::{InnerKvError, KvError},
     value::PartyInfo,
@@ -26,6 +27,14 @@ use crate::{
     Configuration,
 };
 
+#[post("/tx", format = "json", data = "<tx>")]
+pub async fn store_tx(
+    tx: Json<BasicTransaction<EVM>>,
+    state: &State<KvManager>,
+    config: &State<Configuration>,
+) -> Result<Status, UserErr> {
+    Ok(Status::Ok)
+}
 /// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
 #[post("/new", format = "json", data = "<msg>")]
 pub async fn new_user(
