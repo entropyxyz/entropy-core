@@ -27,6 +27,12 @@ use crate::{
     Configuration,
 };
 
+// struct UserTx<A: Architecture> {
+//     arch: A,
+//     tx: A::TransactionRequest,
+//     hash: A::TransactionHash,
+// }
+
 #[post("/tx", format = "json", data = "<tx>")]
 pub async fn store_tx(
     tx: Json<BasicTransaction<EVM>>,

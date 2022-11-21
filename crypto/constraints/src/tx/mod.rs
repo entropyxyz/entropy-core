@@ -9,6 +9,12 @@ use serde::{Deserialize, Serialize};
 use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
 pub use utils::*;
 
+/// Errors related to parsing raw transactions
+pub enum Arch {
+    EVM,
+    BTC,
+}
+
 /// Basic transaction that has a sender and receiver with single accounts
 #[derive(Default, Debug, Clone, PartialEq, SerializeDerive, DeserializeDerive)]
 pub struct BasicTransaction<A: Architecture> {
@@ -17,13 +23,18 @@ pub struct BasicTransaction<A: Architecture> {
 }
 
 /// Trait that defines types for the architecture the transaction is for
-pub trait Architecture: Serialize + for<'de> Deserialize<'de> {
+pub trait Architecture: Serialize + for<'de> Deserialize<'de> + HasArch {
     /// Account type for that chain(SS58, H160, etc)
     type Address: Serialize + for<'de> Deserialize<'de>;
     type TransactionRequest: HasSender<Self>
         + HasReceiver<Self>
         + Serialize
         + for<'de> Deserialize<'de>;
+    type TransactionHash: Serialize + for<'de> Deserialize<'de>;
+}
+
+pub trait HasArch {
+    fn arch() -> Arch;
 }
 
 /// Trait for getting the the sender of a transaction
