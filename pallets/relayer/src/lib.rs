@@ -140,7 +140,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// A transaction has been propagated to the network. [who]
-        TransactionPropagated(T::AccountId),
+        SignatureRequested(Message),
         /// An account has signaled to be registered. [who]
         SignalRegister(T::AccountId),
         /// An account has been registered. [who, signing_group]
@@ -180,11 +180,11 @@ pub mod pallet {
             let message = Message { sig_request, account: who.encode(), ip_addresses };
             let block_number = <frame_system::Pallet<T>>::block_number();
             Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
-                request.push(message);
+                request.push(message.clone());
                 Ok(())
             })?;
 
-            Self::deposit_event(Event::TransactionPropagated(who));
+            Self::deposit_event(Event::SignatureRequested(message));
             Ok(())
         }
 
