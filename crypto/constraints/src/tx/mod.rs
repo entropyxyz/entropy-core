@@ -18,7 +18,7 @@ pub enum Arch {
 /// Basic transaction that has a sender and receiver with single accounts
 #[derive(Default, Debug, Clone, PartialEq, SerializeDerive, DeserializeDerive)]
 pub struct BasicTransaction<A: Architecture> {
-    pub from: A::Address,
+    pub from: Option<A::Address>,
     pub to: Option<A::Address>,
 }
 
@@ -39,7 +39,7 @@ pub trait HasArch {
 
 /// Trait for getting the the sender of a transaction
 pub trait HasSender<A: Architecture + ?Sized> {
-    fn sender(&self) -> A::Address;
+    fn sender(&self) -> Option<A::Address>;
 }
 
 /// Trait for getting the the receiver of a transaction
