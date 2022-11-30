@@ -40,6 +40,8 @@ pub struct EVMUserTx {
     hash: String,
 }
 
+/// TODO: Add block based removal for unsigned transactions in the KVDB.
+/// https://github.com/entropyxyz/entropy-core/issues/248
 /// Maps a tx hash -> unsigned transaction in the kvdb.
 #[post("/tx", format = "json", data = "<tx>")]
 pub async fn store_tx(
