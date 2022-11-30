@@ -1,5 +1,4 @@
 //! This includes all EVM-architecture related types and functions.
-
 use serde_derive::{Deserialize, Serialize};
 use web3::types::Address;
 pub use web3::types::TransactionRequest as EvmTransactionRequest;

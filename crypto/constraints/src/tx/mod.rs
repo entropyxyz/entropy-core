@@ -1,7 +1,6 @@
 //! This module provides generic transaction types for constraints to use, unsigned transaction
 //! parsing utilities, and architecture information about the differet ways transactions are handled
 //! on each platform (EVM, BTC, Substrate, etc).
-
 pub mod evm;
 pub mod utils;
 
@@ -25,7 +24,7 @@ pub struct BasicTransaction<A: Architecture> {
 /// Trait that defines types for the architecture the transaction is for
 pub trait Architecture: Serialize + for<'de> Deserialize<'de> + HasArch {
     /// Account type for that chain(SS58, H160, etc)
-    type Address: Serialize + for<'de> Deserialize<'de>;
+    type Address: Eq + Serialize + for<'de> Deserialize<'de>;
     type TransactionRequest: HasSender<Self>
         + HasReceiver<Self>
         + Serialize
