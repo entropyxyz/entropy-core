@@ -7,14 +7,14 @@ use substrate_common::types::{BasicTransaction, Architecture, HasReceiver, HasSe
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Invalid transaction request: {0}")]
-    InvalidTransactionRequest(&'a str),
+    InvalidTransactionRequest(#[from] serde_json::Error),
 }
 
 /// Takes raw transaction data and parses it into a basic transaction
 /// TODO JH : 'from' field won't exist in raw_tx for EVM transactions, so we need to get it from
 /// onchain somehow (during sig request)
 pub fn parse_tx_request_json<A: Architecture>(
-    raw_tx: &str,
+    raw_tx: String,
 ) -> Result<BasicTransaction<A>, Error> {
     let untyped_json_tx = serde_json::from_str(&raw_tx)?;
     match from_value::<A::TransactionRequest>(untyped_json_tx) {
