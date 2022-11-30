@@ -2,6 +2,10 @@
 /// common structs etc, shared among the substrate-blockchain-code and the crypto-code
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
+// use sp_std::Vec;
+use sp_std::vec::Vec;
+use serde::{Deserialize, Serialize};
+use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
 /// RegistrationMessage holds the information sent by the User to the extropy-network during
 /// account-registration
 #[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
@@ -68,4 +72,46 @@ pub struct Message {
     pub sig_request: SigRequest,
     pub account: codec::alloc::vec::Vec<u8>,
     pub ip_addresses: codec::alloc::vec::Vec<codec::alloc::vec::Vec<u8>>,
+}
+
+pub enum ACL {
+    Allow,
+    Deny,
+}
+
+pub struct ACLConstraint<A: Architecture> {
+    pub acl: Vec<A::Address>,
+    pub acl_type: ACL,
+} 
+
+pub struct AccessControl<A: Architecture>{
+    pub AllowedAddresses: Vec<A::Address>,
+    pub DeniedAddresses: Vec<A::Address>,
+}
+
+/// Trait that defines types for the architecture the transaction is for
+pub trait Architecture: Serialize + for<'de> Deserialize<'de> {
+    /// Account type for that chain(SS58, H160, etc)
+    type Address: Eq + Serialize + for<'de>Deserialize<'de>;
+    type TransactionRequest: HasSender<Self>
+        + HasReceiver<Self>
+        + Serialize
+        + for<'de> Deserialize<'de>;
+}
+
+/// Trait for getting the the sender of a transaction
+pub trait HasSender<A: Architecture + ?Sized> {
+    fn sender(&self) -> A::Address;
+}
+
+/// Trait for getting the the receiver of a transaction
+pub trait HasReceiver<A: Architecture + ?Sized> {
+    fn receiver(&self) -> Option<A::Address>;
+}
+
+/// Basic transaction that has a sender and receiver with single accounts
+#[derive(Default, Debug, Clone, PartialEq, SerializeDerive, DeserializeDerive)]
+pub struct BasicTransaction<A: Architecture> {
+    pub from: A::Address,
+    pub to: Option<A::Address>,
 }

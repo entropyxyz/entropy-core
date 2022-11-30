@@ -4,7 +4,7 @@
 //!
 //! This helps ensures those structs are synced among clients and nodes.
 
-mod types;
+pub mod types;
 use codec::alloc::vec::Vec;
 
 pub type RegistrationMessage = types::RegistrationMessage;

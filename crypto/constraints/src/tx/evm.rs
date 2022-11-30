@@ -2,10 +2,7 @@
 use serde_derive::{Deserialize, Serialize};
 use web3::types::Address;
 pub use web3::types::TransactionRequest as EvmTransactionRequest;
-
-// use crate::tx::HasArch;
-use super::{Arch, HasArch, HasReceiver, HasSender};
-use crate::tx::Architecture;
+use substrate_common::types::{Architecture, HasReceiver, HasSender};
 
 /// EVM architecture
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
