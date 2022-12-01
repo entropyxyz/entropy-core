@@ -1,11 +1,19 @@
 use bip39::{Language, Mnemonic};
+use entropy_constraints::tx::{evm::EVM, Architecture, BasicTransaction};
 use kvdb::kv_manager::{
     error::{InnerKvError, KvError},
     value::PartyInfo,
     KvManager,
 };
 use log::info;
-use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
+use rocket::{
+    http::Status,
+    response::stream::EventStream,
+    serde::json::{to_string, Json},
+    Shutdown, State,
+};
+use serde::{Deserialize, Serialize};
+use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
 use substrate_common::SIGNING_PARTY_SIZE;
 use subxt::{
     ext::{
@@ -26,6 +34,32 @@ use crate::{
     Configuration,
 };
 
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EVMUserTx {
+    tx: BasicTransaction<EVM>,
+    hash: String,
+}
+
+/// TODO: Add block based removal for unsigned transactions in the KVDB.
+/// https://github.com/entropyxyz/entropy-core/issues/248
+/// Maps a tx hash -> unsigned transaction in the kvdb.
+#[post("/tx", format = "json", data = "<tx>")]
+pub async fn store_tx(
+    tx: Json<EVMUserTx>,
+    state: &State<KvManager>,
+    config: &State<Configuration>,
+) -> Result<Status, UserErr> {
+    // TODO: the type used for transactions in the constraints lib
+    // does not contain all the fields of an actual ETH transaction
+    // so we don't have a way to validate the hash.
+    if tx.hash.len() != 64 {
+        return Err(UserErr::Parse("hash.len() != 64"));
+    }
+    let val = serde_json::to_string(&tx.clone().0).unwrap().into_bytes();
+    let reservation = state.kv().reserve_key(tx.hash.clone()).await?;
+    state.kv().put(reservation, val).await?;
+    Ok(Status::Ok)
+}
 /// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
 #[post("/new", format = "json", data = "<msg>")]
 pub async fn new_user(
