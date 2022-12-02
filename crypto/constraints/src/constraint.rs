@@ -1,6 +1,6 @@
-use thiserror::Error;
 // use crate::tx::{evm::EVM, Architecture, BasicTransaction};
-use substrate_common::types::{BasicTransaction, ACL, Architecture, ACLConstraint, AccessControl};
+use substrate_common::types::{ACLConstraint, Architecture, BasicTransaction, ACL};
+use thiserror::Error;
 /// Constraint errors.
 #[derive(Error, Debug)]
 pub enum ConstraintError {
@@ -13,10 +13,13 @@ pub trait Constraint<A: Architecture> {
     fn eval(&self, tx: BasicTransaction<A>) -> Result<bool, ConstraintError>;
 }
 
-impl <A: Architecture> Constraint<A> for ACLConstraint<A> {
+/// Generic implementation of Access Control Lists (Allow/Deny lists).
+impl<A: Architecture> Constraint<A> for ACLConstraint<A> {
     fn eval(&self, tx: BasicTransaction<A>) -> Result<bool, ConstraintError> {
         if tx.to.is_none() {
-            return Err(ConstraintError::EvaluationError("Unspecified recipient in transaction".to_string()));
+            return Err(ConstraintError::EvaluationError(
+                "Unspecified recipient in transaction".to_string(),
+            ));
         }
         match self.acl_type {
             ACL::Allow => {
@@ -25,10 +28,6 @@ impl <A: Architecture> Constraint<A> for ACLConstraint<A> {
             ACL::Deny => {
                 return Ok(!self.acl.contains(&tx.to.unwrap()));
             },
-            _ => {
-                return Err(ConstraintError::EvaluationError("Incorrect ACL type".to_string()));
-            },
         }
-        Ok(true)
     }
 }

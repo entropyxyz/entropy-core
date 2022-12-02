@@ -1,7 +1,6 @@
 use serde_json::from_value;
+use substrate_common::types::{Architecture, BasicTransaction, HasReceiver, HasSender};
 use thiserror::Error;
-
-use substrate_common::types::{BasicTransaction, Architecture, HasReceiver, HasSender};
 
 /// Errors related to parsing raw transactions
 #[derive(Error, Debug)]

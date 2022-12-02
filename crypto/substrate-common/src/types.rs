@@ -2,10 +2,9 @@
 /// common structs etc, shared among the substrate-blockchain-code and the crypto-code
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-// use sp_std::Vec;
-use sp_std::vec::Vec;
 use serde::{Deserialize, Serialize};
 use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
+use sp_std::vec::Vec;
 /// RegistrationMessage holds the information sent by the User to the extropy-network during
 /// account-registration
 #[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
@@ -68,50 +67,59 @@ pub struct SigResponse {
 // TODO(TK): rename to PropagationMessage
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct Message {
-    // pub thing: u128,
     pub sig_request: SigRequest,
     pub account: codec::alloc::vec::Vec<u8>,
     pub ip_addresses: codec::alloc::vec::Vec<codec::alloc::vec::Vec<u8>>,
 }
 
+/// Supported architectures.
+pub enum Arch {
+    EVM,
+    BTC,
+}
+
+/// Represents either an allow or deny list.
 pub enum ACL {
     Allow,
     Deny,
 }
 
+/// An AccessControl constraint (Allow/Deny lists).
+/// acl is the vector of allowed or denied addresses.
+/// acl_type represents if the constraint is either allow/deny.
 pub struct ACLConstraint<A: Architecture> {
     pub acl: Vec<A::Address>,
     pub acl_type: ACL,
-} 
-
-pub struct AccessControl<A: Architecture>{
-    pub AllowedAddresses: Vec<A::Address>,
-    pub DeniedAddresses: Vec<A::Address>,
 }
 
-/// Trait that defines types for the architecture the transaction is for
+/// Trait that defines types for the architecture for a transaction.
 pub trait Architecture: Serialize + for<'de> Deserialize<'de> {
     /// Account type for that chain(SS58, H160, etc)
-    type Address: Eq + Serialize + for<'de>Deserialize<'de>;
+    type Address: Eq + Serialize + for<'de> Deserialize<'de>;
     type TransactionRequest: HasSender<Self>
         + HasReceiver<Self>
         + Serialize
         + for<'de> Deserialize<'de>;
 }
 
-/// Trait for getting the the sender of a transaction
+/// Trait for getting the the sender of a transaction.
 pub trait HasSender<A: Architecture + ?Sized> {
-    fn sender(&self) -> A::Address;
+    fn sender(&self) -> Option<A::Address>;
 }
 
-/// Trait for getting the the receiver of a transaction
+/// Trait for getting the the receiver of a transaction.
 pub trait HasReceiver<A: Architecture + ?Sized> {
     fn receiver(&self) -> Option<A::Address>;
 }
 
-/// Basic transaction that has a sender and receiver with single accounts
+/// Trait for getting the Arch of a transaction.
+pub trait HasArch {
+    fn arch() -> Arch;
+}
+
+/// Basic transaction that has a sender and receiver with single accounts.
 #[derive(Default, Debug, Clone, PartialEq, SerializeDerive, DeserializeDerive)]
 pub struct BasicTransaction<A: Architecture> {
-    pub from: A::Address,
+    pub from: Option<A::Address>,
     pub to: Option<A::Address>,
 }
