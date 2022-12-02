@@ -24,6 +24,7 @@ pub(crate) mod sign_init;
 mod signing_client;
 mod user;
 mod utils;
+mod validator;
 use bip39::{Language, Mnemonic, MnemonicType};
 #[macro_use]
 extern crate rocket;
@@ -41,6 +42,7 @@ use self::{
 use crate::{
     message::{derive_static_secret, mnemonic_to_pair},
     user::unsafe_api::{delete, get, put, remove_keys},
+    validator::api::sync_keys,
 };
 
 #[launch]
@@ -63,6 +65,7 @@ async fn rocket() -> _ {
     rocket::build()
         .mount("/user", routes![new_user])
         .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
+        .mount("/validator", routes![sync_keys])
         .mount("/unsafe", unsafe_routes)
         .manage(signer_state)
         .manage(signature_state)
