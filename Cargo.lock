@@ -10267,7 +10267,6 @@ dependencies = [
  "scale-info",
  "serde",
  "serde_derive",
- "serde_json",
  "sp-std",
 ]
 

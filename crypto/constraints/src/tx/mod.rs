@@ -3,8 +3,3 @@
 // handled //! on each platform (EVM, BTC, Substrate, etc).
 pub mod evm;
 pub mod utils;
-
-pub enum Arch {
-    EVM,
-    BTC,
-}

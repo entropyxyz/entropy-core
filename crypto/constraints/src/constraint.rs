@@ -1,6 +1,6 @@
-// use crate::tx::{evm::EVM, Architecture, BasicTransaction};
 use substrate_common::types::{ACLConstraint, Architecture, BasicTransaction, ACL};
 use thiserror::Error;
+
 /// Constraint errors.
 #[derive(Error, Debug)]
 pub enum ConstraintError {
@@ -22,12 +22,8 @@ impl<A: Architecture> Constraint<A> for ACLConstraint<A> {
             ));
         }
         match self.acl_type {
-            ACL::Allow => {
-                return Ok(self.acl.contains(&tx.to.unwrap()));
-            },
-            ACL::Deny => {
-                return Ok(!self.acl.contains(&tx.to.unwrap()));
-            },
+            ACL::Allow => Ok(self.acl.contains(&tx.to.unwrap())),
+            ACL::Deny => Ok(!self.acl.contains(&tx.to.unwrap())),
         }
     }
 }

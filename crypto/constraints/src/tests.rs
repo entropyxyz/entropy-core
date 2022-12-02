@@ -1,20 +1,9 @@
+use substrate_common::types::{ACLConstraint, ACL};
+
 use crate::{
-    tx::{evm::EVM, parse_tx_request_json},
-    whitelist::is_on_whitelist,
+    constraint::Constraint,
+    tx::{evm::EVM, utils::parse_tx_request_json},
 };
-
-#[test]
-fn test_whitelist() {
-    let address = vec![1u8];
-    let list = vec![vec![2u8], vec![1u8]];
-
-    // No whitelist not set passes check
-    assert!(is_on_whitelist(vec![], &address));
-    // on list
-    assert!(is_on_whitelist(list.clone(), &address));
-    // not on list
-    assert!(!is_on_whitelist(list, &vec![3u8]));
-}
 
 #[test]
 fn should_parse_json_evm_tx_request() {
@@ -72,4 +61,66 @@ fn should_fail_if_evm_address_not_h160() {
     assert!(basic_tx_result.is_err());
 
     println!("{:?}", basic_tx_result);
+}
+
+#[test]
+fn test_allow_list() {
+    let evm_tx_request_json = r#"{
+        "from": "0x1923f626bb8dc025849e00f99c25fe2b2f7fb0db",
+        "gas": "0x55555",
+        "maxFeePerGas": "0x1234",
+        "maxPriorityFeePerGas": "0x1234",
+        "input": "0xabcd",
+        "nonce": "0x0",
+        "to": "0x07a565b7ed7d7a678680a4c162885bedbb695fe0",
+        "value": "0x1234"
+    }"#;
+
+    let tx_result = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string());
+    assert!(!tx_result.is_err());
+    let tx = tx_result.unwrap();
+    let to = tx.to.clone().unwrap();
+
+    // Assert that an allow list with no items in it does not evaluate to true.
+    let constraint = ACLConstraint::<EVM> { acl_type: ACL::Allow, acl: vec![] };
+    let evaluation = constraint.eval(tx.clone());
+    assert!(!evaluation.is_err());
+    assert!(!evaluation.unwrap());
+
+    // Assert that an allow list with a valid item in it evaluates to true.
+    let constraint_2 = ACLConstraint::<EVM> { acl_type: ACL::Allow, acl: vec![to] };
+    let evaluation_2 = constraint_2.eval(tx.clone());
+    assert!(!evaluation_2.is_err());
+    assert!(evaluation_2.unwrap());
+}
+
+#[test]
+fn test_deny_list() {
+    let evm_tx_request_json = r#"{
+        "from": "0x1923f626bb8dc025849e00f99c25fe2b2f7fb0db",
+        "gas": "0x55555",
+        "maxFeePerGas": "0x1234",
+        "maxPriorityFeePerGas": "0x1234",
+        "input": "0xabcd",
+        "nonce": "0x0",
+        "to": "0x07a565b7ed7d7a678680a4c162885bedbb695fe0",
+        "value": "0x1234"
+    }"#;
+
+    let tx_result = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string());
+    assert!(!tx_result.is_err());
+    let tx = tx_result.unwrap();
+    let to = tx.to.clone().unwrap();
+
+    // Assert that a deny list with no items in it does evaluates to true.
+    let constraint = ACLConstraint::<EVM> { acl_type: ACL::Deny, acl: vec![] };
+    let evaluation = constraint.eval(tx.clone());
+    assert!(!evaluation.is_err());
+    assert!(evaluation.unwrap());
+
+    // Assert that a deny list with the specified recipient evalutes to false.
+    let constraint_2 = ACLConstraint::<EVM> { acl_type: ACL::Deny, acl: vec![to] };
+    let evaluation_2 = constraint_2.eval(tx.clone());
+    assert!(!evaluation_2.is_err());
+    assert!(!evaluation_2.unwrap());
 }
