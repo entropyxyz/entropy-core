@@ -23,8 +23,8 @@ pub use entropy_runtime::GenesisConfig;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, Block, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
-    ImOnlineConfig, IndicesConfig, MaxNominations, SessionConfig, SessionKeys, SocietyConfig,
-    StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
+    ImOnlineConfig, IndicesConfig, MaxNominations, RelayerConfig, SessionConfig, SessionKeys,
+    SocietyConfig, StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeConfig,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
@@ -387,6 +387,13 @@ pub fn testnet_genesis(
                 .collect(),
             pot: 0,
             max_members: 999,
+        },
+        relayer: RelayerConfig {
+            registered_accounts: vec![
+                (get_account_id_from_seed::<sr25519::Public>("Dave"), true),
+                (get_account_id_from_seed::<sr25519::Public>("Eve"), true),
+                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), true),
+            ],
         },
         vesting: Default::default(),
         transaction_storage: Default::default(),
