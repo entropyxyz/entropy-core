@@ -90,6 +90,7 @@ pub enum ACL {
 pub struct ACLConstraint<A: Architecture> {
     pub acl: Vec<A::Address>,
     pub acl_type: ACL,
+    pub allow_null_recipient: bool,
 }
 
 /// Trait that defines types for the architecture for a transaction.

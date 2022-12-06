@@ -82,13 +82,15 @@ fn test_allow_list() {
     let to = tx.to.clone().unwrap();
 
     // Assert that an allow list with no items in it does not evaluate to true.
-    let constraint = ACLConstraint::<EVM> { acl_type: ACL::Allow, acl: vec![] };
+    let constraint =
+        ACLConstraint::<EVM> { acl_type: ACL::Allow, acl: vec![], allow_null_recipient: true };
     let evaluation = constraint.eval(tx.clone());
     assert!(!evaluation.is_err());
     assert!(!evaluation.unwrap());
 
     // Assert that an allow list with a valid item in it evaluates to true.
-    let constraint_2 = ACLConstraint::<EVM> { acl_type: ACL::Allow, acl: vec![to] };
+    let constraint_2 =
+        ACLConstraint::<EVM> { acl_type: ACL::Allow, acl: vec![to], allow_null_recipient: true };
     let evaluation_2 = constraint_2.eval(tx.clone());
     assert!(!evaluation_2.is_err());
     assert!(evaluation_2.unwrap());
@@ -113,14 +115,44 @@ fn test_deny_list() {
     let to = tx.to.clone().unwrap();
 
     // Assert that a deny list with no items in it does evaluates to true.
-    let constraint = ACLConstraint::<EVM> { acl_type: ACL::Deny, acl: vec![] };
+    let constraint =
+        ACLConstraint::<EVM> { acl_type: ACL::Deny, acl: vec![], allow_null_recipient: true };
     let evaluation = constraint.eval(tx.clone());
     assert!(!evaluation.is_err());
     assert!(evaluation.unwrap());
 
     // Assert that a deny list with the specified recipient evalutes to false.
-    let constraint_2 = ACLConstraint::<EVM> { acl_type: ACL::Deny, acl: vec![to] };
+    let constraint_2 =
+        ACLConstraint::<EVM> { acl_type: ACL::Deny, acl: vec![to], allow_null_recipient: true };
     let evaluation_2 = constraint_2.eval(tx.clone());
     assert!(!evaluation_2.is_err());
     assert!(!evaluation_2.unwrap());
+}
+
+#[test]
+fn test_allow_null_recip() {
+    let evm_tx_request_json = r#"{
+        "from": "0x1923f626bb8dc025849e00f99c25fe2b2f7fb0db",
+        "gas": "0x55555",
+        "maxFeePerGas": "0x1234",
+        "maxPriorityFeePerGas": "0x1234",
+        "input": "0xabcd",
+        "nonce": "0x0",
+        "value": "0x1234"
+    }"#;
+
+    let tx_result = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string());
+    assert!(!tx_result.is_err());
+    let tx = tx_result.unwrap();
+
+    let constraint =
+        ACLConstraint::<EVM> { acl_type: ACL::Deny, acl: vec![], allow_null_recipient: false };
+    let evaluation = constraint.eval(tx.clone());
+    assert!(evaluation.is_err());
+
+    let constraint_2 =
+        ACLConstraint::<EVM> { acl_type: ACL::Allow, acl: vec![], allow_null_recipient: true };
+    let evaluation_2 = constraint_2.eval(tx.clone());
+    assert!(!evaluation_2.is_err());
+    assert!(evaluation_2.unwrap());
 }
