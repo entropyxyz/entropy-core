@@ -29,7 +29,7 @@ pub struct Keys {
     pub keys: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(crate = "rocket::serde")]
 pub struct Values {
     pub values: Vec<Vec<u8>>,
@@ -105,7 +105,10 @@ pub async fn get_and_store_keys(
     dbg!(all_keys.clone(), url.clone());
     let mut keys_stored = 0;
     while keys_stored < all_keys.len() {
-        let keys_to_send = Keys { keys: all_keys[keys_stored..batch_size].to_vec() };
+        dbg!(keys_stored);
+        let keys_to_send =
+            Keys { keys: all_keys[keys_stored..(batch_size + keys_stored)].to_vec() };
+        dbg!(keys_to_send.clone());
         let client = reqwest::Client::new();
         let formatted_url = format!("{}/validator/sync_keys", url);
         dbg!(formatted_url.clone());
@@ -116,13 +119,17 @@ pub async fn get_and_store_keys(
             .send()
             .await
             .unwrap();
-        dbg!(result);
-        // let returned_values: Values = result.json().await.unwrap();
-        // for (i, value) in returned_values.values.iter().enumerate() {
-        //     let reservation = kv.kv().reserve_key(keys_to_send.keys[i].clone()).await.unwrap();
-        //     kv.kv().put(reservation, value.to_vec()).await.unwrap();
-        keys_stored += 1
-        // }
+        let returned_values: Values = result.json().await.unwrap();
+        dbg!(returned_values.clone());
+        if returned_values.values.len() == 0 {
+            break;
+        }
+        for (i, value) in returned_values.values.iter().enumerate() {
+            dbg!(value.clone());
+            let reservation = kv.kv().reserve_key(keys_to_send.keys[i].clone()).await.unwrap();
+            kv.kv().put(reservation, value.to_vec()).await.unwrap();
+            keys_stored += 1
+        }
     }
     Ok(())
 }

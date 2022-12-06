@@ -89,9 +89,11 @@ async fn test_get_and_store_keys() {
     let port_1 = 3003;
     let value_0 = vec![10];
     let value_1 = vec![11];
+    let value_2 = vec![12];
     // Construct a client to use for dispatching requests.
     let client0 =
-        create_clients(port_0, "0".to_string(), vec![value_0, value_1], keys.clone()).await;
+        create_clients(port_0, "0".to_string(), vec![value_0, value_1, value_2], keys.clone())
+            .await;
     let client1 = create_clients(port_1, "1".to_string(), vec![], keys.clone()).await;
 
     tokio::spawn(async move { client0.0.launch().await.unwrap() });
