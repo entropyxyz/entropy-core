@@ -4,10 +4,17 @@ use hex_literal::hex;
 use kvdb::kv_manager::{
     error::{InnerKvError, KvError},
     value::PartyInfo,
-    KvManager,
+    KeyReservation, KvManager,
 };
 use parity_scale_codec::Decode;
-use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
+use reqwest;
+use rocket::{
+    http::{ContentType, Status},
+    response::{self, content, stream::EventStream, Responder, Response},
+    serde::json::Json,
+    Shutdown, State,
+};
+use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Pair, Public};
 use subxt::OnlineClient;
 use tokio::sync::{mpsc, oneshot};
@@ -16,16 +23,37 @@ use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     Configuration,
 };
-#[post("/sync_keys", format = "json")]
-pub async fn sync_keys(kv: &State<KvManager>, config: &State<Configuration>) -> Result<(), ()> {
-    let api = get_api(&config.endpoint).await.unwrap();
-    // dbg!(tree_names);
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Keys {
+    pub keys: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct Values {
+    pub values: Vec<Vec<u8>>,
+}
+
+#[post("/sync_keys", format = "json", data = "<keys>")]
+pub async fn sync_keys(
+    keys: Json<Keys>,
+    state: &State<KvManager>,
+    config: &State<Configuration>,
+) -> Json<Values> {
+    // let api = get_api(&config.endpoint).await.unwrap();
     // validate on chain that this user in your subgroup
     // validate the message comes from individual
     // validate the message is intended for me
 
     // encrypt message and send to other validator
-    Ok(())
+    let mut values = vec![];
+    for key in keys.keys.clone() {
+        let result = state.kv().get(&key).await.unwrap();
+        values.push(result);
+    }
+    let values_json = Values { values };
+    Json(values_json)
 }
 
 /// Joining the network should get all keys that are registered
@@ -33,8 +61,8 @@ pub async fn get_all_keys(
     api: &OnlineClient<EntropyConfig>,
     batch_size: u32,
 ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-	// zero batch size will cause infinite loop, also not needed
-	assert_ne!(batch_size, 0);
+    // zero batch size will cause infinite loop, also not needed
+    assert_ne!(batch_size, 0);
     let mut result_length = batch_size;
     let mut addresses: Vec<String> = vec![];
     while result_length == batch_size {
@@ -48,7 +76,7 @@ pub async fn get_all_keys(
 
             let address: AccountId32 = AccountId32::from_str(final_key).unwrap();
 
-			// todo add validation
+            // todo add validation
             // dbg!(address.to_string(), bool::decode(mut account));
             // if account.to_value()? {
             if addresses.contains(&address.to_string()) {
@@ -60,4 +88,41 @@ pub async fn get_all_keys(
         }
     }
     Ok(addresses)
+}
+
+pub async fn get_key_url() -> Result<String, ()> {
+    // get anyone in your subgroup
+    // use get_subgroup from user to get your subgroup
+    Ok("temp".to_string())
+}
+
+pub async fn get_and_store_keys(
+    all_keys: Vec<String>,
+    kv: &KvManager,
+    url: String,
+    batch_size: usize,
+) -> Result<(), ()> {
+    dbg!(all_keys.clone(), url.clone());
+    let mut keys_stored = 0;
+    while keys_stored < all_keys.len() {
+        let keys_to_send = Keys { keys: all_keys[keys_stored..batch_size].to_vec() };
+        let client = reqwest::Client::new();
+        let formatted_url = format!("{}/validator/sync_keys", url);
+        dbg!(formatted_url.clone());
+        let result = client
+            .post(formatted_url)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&keys_to_send).unwrap())
+            .send()
+            .await
+            .unwrap();
+        dbg!(result);
+        // let returned_values: Values = result.json().await.unwrap();
+        // for (i, value) in returned_values.values.iter().enumerate() {
+        //     let reservation = kv.kv().reserve_key(keys_to_send.keys[i].clone()).await.unwrap();
+        //     kv.kv().put(reservation, value.to_vec()).await.unwrap();
+        keys_stored += 1
+        // }
+    }
+    Ok(())
 }
