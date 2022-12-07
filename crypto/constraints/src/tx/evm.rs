@@ -1,12 +1,8 @@
 //! This includes all EVM-architecture related types and functions.
-
 use serde_derive::{Deserialize, Serialize};
+use substrate_common::types::{Arch, Architecture, HasArch, HasReceiver, HasSender};
 use web3::types::Address;
 pub use web3::types::TransactionRequest as EvmTransactionRequest;
-
-// use crate::tx::HasArch;
-use super::{Arch, HasArch, HasReceiver, HasSender};
-use crate::tx::Architecture;
 
 /// EVM architecture
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -14,7 +10,6 @@ pub struct EVM;
 
 impl Architecture for EVM {
     type Address = Address;
-    type TransactionHash = [u8; 32];
     type TransactionRequest = EvmTransactionRequest;
 }
 
