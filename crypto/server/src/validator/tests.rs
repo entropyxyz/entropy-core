@@ -87,20 +87,20 @@ async fn test_get_and_store_keys() {
 
     let port_0 = 3002;
     let port_1 = 3003;
-    let value_0 = vec![10];
-    let value_1 = vec![11];
-    let value_2 = vec![12];
+    let values = vec![vec![10], vec![11], vec![12]];
     // Construct a client to use for dispatching requests.
-    let client0 =
-        create_clients(port_0, "0".to_string(), vec![value_0, value_1, value_2], keys.clone())
-            .await;
+    let client0 = create_clients(port_0, "0".to_string(), values.clone(), keys.clone()).await;
     let client1 = create_clients(port_1, "1".to_string(), vec![], keys.clone()).await;
 
     tokio::spawn(async move { client0.0.launch().await.unwrap() });
     tokio::spawn(async move { client1.0.launch().await.unwrap() });
 
-    let result = get_and_store_keys(keys, &client1.1, "http://127.0.0.1:3002".to_string(), 1).await;
-    dbg!(result);
+    let _result =
+        get_and_store_keys(keys.clone(), &client1.1, "http://127.0.0.1:3002".to_string(), 1).await;
+    for (i, key) in keys.iter().enumerate() {
+        let value = client1.1.kv().get(&key).await.unwrap();
+        assert_eq!(value, values[i]);
+    }
     clean_tests();
 }
 
