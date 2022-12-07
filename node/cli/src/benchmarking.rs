@@ -19,7 +19,7 @@
 //! Setup code for [`super::command`] which would otherwise bloat that module.
 //!
 //! Should only be used for benchmarking as it may break in other contexts.
-
+![allow(clippy::uninlined_format_args)]
 use std::{sync::Arc, time::Duration};
 
 use entropy_runtime::{BalancesCall, SystemCall};
