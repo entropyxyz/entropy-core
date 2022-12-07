@@ -1,4 +1,5 @@
 //! A wrapper to the `tofn` to handle sending and receiving messages.
+#![allow(clippy::uninlined_format_args)]
 use anyhow::anyhow;
 use futures::StreamExt;
 use tofn::{
