@@ -16,11 +16,12 @@ use rocket::{
 };
 use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Pair, Public};
-use subxt::OnlineClient;
+use subxt::{tx::PairSigner, OnlineClient};
 use tokio::sync::{mpsc, oneshot};
 
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
+    user::api::get_subgroup,
     Configuration,
 };
 
@@ -35,8 +36,8 @@ pub struct Values {
     pub values: Vec<Vec<u8>>,
 }
 
-#[post("/sync_keys", format = "json", data = "<keys>")]
-pub async fn sync_keys(
+#[post("/sync_kvdb", format = "json", data = "<keys>")]
+pub async fn sync_kvdb(
     keys: Json<Keys>,
     state: &State<KvManager>,
     config: &State<Configuration>,
@@ -90,13 +91,26 @@ pub async fn get_all_keys(
     Ok(addresses)
 }
 
-pub async fn get_key_url() -> Result<String, ()> {
-    // get anyone in your subgroup
-    // use get_subgroup from user to get your subgroup
-    Ok("temp".to_string())
+pub async fn get_key_url(
+    api: &OnlineClient<EntropyConfig>,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+) -> Result<String, ()> {
+    let my_subgroup = get_subgroup(api, signer).await.unwrap().unwrap();
+    let signing_group_addresses_query =
+        entropy::storage().staking_extension().signing_groups(my_subgroup);
+    let signing_group_addresses =
+        api.storage().fetch(&signing_group_addresses_query, None).await.unwrap().unwrap();
+
+    // TODO: Just gets first person in subgroup, maybe do this randomly?
+    let server_info_query =
+        entropy::storage().staking_extension().threshold_servers(&signing_group_addresses[0]);
+    let server_info = api.storage().fetch(&server_info_query, None).await.unwrap().unwrap();
+
+    let ip_address = String::from_utf8(server_info.endpoint).unwrap();
+    Ok(ip_address)
 }
 
-pub async fn get_and_store_keys(
+pub async fn get_and_store_values(
     all_keys: Vec<String>,
     kv: &KvManager,
     url: String,
@@ -107,7 +121,7 @@ pub async fn get_and_store_keys(
         let keys_to_send =
             Keys { keys: all_keys[keys_stored..(batch_size + keys_stored)].to_vec() };
         let client = reqwest::Client::new();
-        let formatted_url = format!("{}/validator/sync_keys", url);
+        let formatted_url = format!("http://{}/validator/sync_kvdb", url);
         let result = client
             .post(formatted_url)
             .header("Content-Type", "application/json")

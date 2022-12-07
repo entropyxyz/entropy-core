@@ -16,7 +16,7 @@ use sp_keyring::AccountKeyring;
 use subxt::tx::{PairSigner, Signer};
 use testing_utils::context::test_context;
 
-use super::api::{get_all_keys, get_and_store_keys, sync_keys};
+use super::api::{get_all_keys, get_and_store_values, get_key_url, sync_kvdb};
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     new_user,
@@ -29,11 +29,11 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 
 #[rocket::async_test]
 #[serial]
-async fn test_sync_keys() {
+async fn test_sync_kvdb() {
     clean_tests();
     let client = setup_client().await;
 
-    let response = client.post("/validator/sync_keys").header(ContentType::JSON).dispatch().await;
+    let response = client.post("/validator/sync_kvdb").header(ContentType::JSON).dispatch().await;
 
     dbg!(response);
 }
@@ -75,7 +75,7 @@ async fn test_get_all_keys_fail() {
 
 #[rocket::async_test]
 #[serial]
-async fn test_get_and_store_keys() {
+async fn test_get_and_store_values() {
     clean_tests();
     let cxt = test_context().await;
 
@@ -96,12 +96,26 @@ async fn test_get_and_store_keys() {
     tokio::spawn(async move { client1.0.launch().await.unwrap() });
 
     let _result =
-        get_and_store_keys(keys.clone(), &client1.1, "http://127.0.0.1:3002".to_string(), 1).await;
+        get_and_store_values(keys.clone(), &client1.1, "127.0.0.1:3002".to_string(), 1).await;
     for (i, key) in keys.iter().enumerate() {
         let value = client1.1.kv().get(&key).await.unwrap();
         assert_eq!(value, values[i]);
     }
     clean_tests();
+}
+
+#[rocket::async_test]
+#[serial]
+async fn test_get_key_url() {
+    clean_tests();
+    let cxt = test_context().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
+    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+
+    let result = get_key_url(&api, &signer_alice).await.unwrap();
+
+    assert_eq!("127.0.0.1:3001", result);
 }
 
 async fn create_clients(
@@ -136,7 +150,7 @@ async fn create_clients(
     }
 
     let result = rocket::custom(config)
-        .mount("/validator", routes![sync_keys])
+        .mount("/validator", routes![sync_kvdb])
         .mount("/user", routes![new_user])
         .manage(signer_state)
         .manage(configuration)
