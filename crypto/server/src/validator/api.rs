@@ -60,7 +60,7 @@ pub async fn sync_kvdb(
 /// Joining the network should get all keys that are registered
 pub async fn get_all_keys(
     api: &OnlineClient<EntropyConfig>,
-    batch_size: u32,
+    batch_size: usize,
 ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     // zero batch size will cause infinite loop, also not needed
     assert_ne!(batch_size, 0);
@@ -69,7 +69,7 @@ pub async fn get_all_keys(
     while result_length == batch_size {
         result_length = 0;
         let storage_address = subxt::dynamic::storage_root("Relayer", "Registered");
-        let mut iter = api.storage().iter(storage_address, batch_size, None).await.unwrap();
+        let mut iter = api.storage().iter(storage_address, batch_size as u32, None).await.unwrap();
         while let Some((key, account)) = iter.next().await.unwrap() {
             let new_key = hex::encode(key);
             let len = new_key.len();

@@ -3,10 +3,10 @@
 use std::{collections::HashMap, sync::Mutex};
 
 use bip39::{Language, Mnemonic};
+use clap::{Args, Parser, Subcommand};
 use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use serde::Deserialize;
 use tofn::sdk::api::{RecoverableSignature, Signature};
-use clap::{Args, Parser, Subcommand};
 
 use crate::{setup_mnemonic, sign_init::MessageDigest};
 
@@ -60,9 +60,9 @@ pub(super) async fn load_kv_store() -> KvManager {
 
 #[derive(Parser, Debug, Clone)]
 pub struct StartupArgs {
-   /// Wether to sync the keystore
-   #[arg(short = 's', long = "sync")]
-   pub sync: bool,
+    /// Wether to sync the keystore
+    #[arg(short = 's', long = "sync")]
+    pub sync: bool,
 }
 // TODO: JA Remove all below, temporary
 /// The state used to temporarily store completed signatures
