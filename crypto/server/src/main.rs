@@ -33,17 +33,20 @@ use rocket::routes;
 use sp_keyring::AccountKeyring;
 use substrate_common::SIGNING_PARTY_SIZE;
 use subxt::ext::sp_core::{crypto::AccountId32, sr25519, Pair};
+use clap::{Parser};
 
 use self::{
     signing_client::{api::*, SignerState},
     user::api::*,
-    utils::{init_tracing, load_kv_store, Configuration, SignatureState},
+	chain_api::get_api,
+    utils::{init_tracing, load_kv_store, Configuration, SignatureState, StartupArgs},
 };
 use crate::{
     message::{derive_static_secret, mnemonic_to_pair},
     user::unsafe_api::{delete, get, put, remove_keys},
     validator::api::sync_kvdb,
 };
+
 
 #[launch]
 async fn rocket() -> _ {
@@ -52,6 +55,17 @@ async fn rocket() -> _ {
     let configuration = Configuration::new();
     let kv_store = load_kv_store().await;
     let signature_state = SignatureState::new();
+
+	let args = StartupArgs::parse();
+
+	println!("args : {:?}", args.clone());
+
+	if args.sync {
+		let api = get_api(&configuration.endpoint).await.unwrap();
+		let health = api.rpc().system.health().await.unwrap();
+		println!("inside");
+	}
+
     // Unsafe routes are for testing purposes only
     // they are unsafe as they can expose vulnerabilites
     // should they be used in production. Unsafe routes
