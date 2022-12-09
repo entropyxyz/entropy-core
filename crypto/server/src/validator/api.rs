@@ -36,6 +36,7 @@ pub struct Values {
     pub values: Vec<Vec<u8>>,
 }
 
+/// Endpoint to allow a new node to sync their kvdb with a member of their subgroup
 #[post("/sync_kvdb", format = "json", data = "<keys>")]
 pub async fn sync_kvdb(
     keys: Json<Keys>,
@@ -57,7 +58,8 @@ pub async fn sync_kvdb(
     Json(values_json)
 }
 
-/// Joining the network should get all keys that are registered
+/// As a node is joining the network should get all keys that are registered
+/// This is done by reading the registered mapping and getting all the keys of that mapping
 pub async fn get_all_keys(
     api: &OnlineClient<EntropyConfig>,
     batch_size: usize,
@@ -68,6 +70,7 @@ pub async fn get_all_keys(
     let mut addresses: Vec<String> = vec![];
     while result_length == batch_size {
         result_length = 0;
+        // query the registered mapping in the relayer pallet
         let storage_address = subxt::dynamic::storage_root("Relayer", "Registered");
         let mut iter = api.storage().iter(storage_address, batch_size as u32, None).await.unwrap();
         while let Some((key, account)) = iter.next().await.unwrap() {
@@ -91,6 +94,7 @@ pub async fn get_all_keys(
     Ok(addresses)
 }
 
+// get a url of someone in your signing group
 pub async fn get_key_url(
     api: &OnlineClient<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
@@ -102,6 +106,7 @@ pub async fn get_key_url(
         api.storage().fetch(&signing_group_addresses_query, None).await.unwrap().unwrap();
 
     // TODO: Just gets first person in subgroup, maybe do this randomly?
+    // TODO: Validate that the url is an already synced validator
     let server_info_query =
         entropy::storage().staking_extension().threshold_servers(&signing_group_addresses[0]);
     let server_info = api.storage().fetch(&server_info_query, None).await.unwrap().unwrap();
@@ -110,6 +115,7 @@ pub async fn get_key_url(
     Ok(ip_address)
 }
 
+/// from keys of registered account get their corresponding entropy threshold keys
 pub async fn get_and_store_values(
     all_keys: Vec<String>,
     kv: &KvManager,
@@ -129,6 +135,7 @@ pub async fn get_and_store_values(
             .send()
             .await
             .unwrap();
+        // handle no value better? or don't maybe good to fail
         let returned_values: Values = result.json().await.unwrap();
         if returned_values.values.len() == 0 {
             break;

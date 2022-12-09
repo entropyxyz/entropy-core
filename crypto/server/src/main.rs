@@ -61,6 +61,7 @@ async fn rocket() -> _ {
 
     println!("args : {:?}", args.clone());
 
+    // Below deals with syncing the kvdb
     if args.sync {
         let api = get_api(&configuration.endpoint).await.unwrap();
         let mut is_syncing = true;
@@ -74,6 +75,7 @@ async fn rocket() -> _ {
                 thread::sleep(sleep_time);
             }
         }
+        // TODO: find a proper batch size
         let batch_size = 10;
         let signer = get_signer(&kv_store).await.unwrap();
         let key_server_url = get_key_url(&api, &signer).await.unwrap();
