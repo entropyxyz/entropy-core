@@ -127,7 +127,7 @@ pub async fn get_and_store_values(
         let keys_to_send =
             Keys { keys: all_keys[keys_stored..(batch_size + keys_stored)].to_vec() };
         let client = reqwest::Client::new();
-        let formatted_url = format!("http://{}/validator/sync_kvdb", url);
+        let formatted_url = format!("http://{url}/validator/sync_kvdb");
         let result = client
             .post(formatted_url)
             .header("Content-Type", "application/json")
@@ -137,7 +137,7 @@ pub async fn get_and_store_values(
             .unwrap();
         // handle no value better? or don't maybe good to fail
         let returned_values: Values = result.json().await.unwrap();
-        if returned_values.values.len() == 0 {
+        if returned_values.values.is_empty() {
             break;
         }
         for (i, value) in returned_values.values.iter().enumerate() {

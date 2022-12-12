@@ -69,7 +69,7 @@ async fn rocket() -> _ {
             let health = api.rpc().system_health().await.unwrap();
             is_syncing = health.is_syncing;
             if is_syncing {
-                println!("chain syncing, retrying {:?}", is_syncing);
+                println!("chain syncing, retrying {is_syncing:?}");
                 thread::sleep(sleep_time);
             }
         }
