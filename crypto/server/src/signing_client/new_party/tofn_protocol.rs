@@ -50,8 +50,7 @@ where
 
             if round.msg_in(TypedUsize::from_usize(from), &message.payload).is_err() {
                 return Err(SigningErr::ProtocolOutput(format!(
-                    "error calling tofn::msg_in with [from: {}]",
-                    from
+                    "error calling tofn::msg_in with [from: {from}]"
                 )));
             }
         }
@@ -124,10 +123,10 @@ async fn handle_incoming<F, K, P, const MAX_MSG_IN_LEN: usize>(
     // loop until no more messages are needed for this round
     while round.expecting_more_msgs_this_round() {
         // get internal message from broadcaster
-        let traffic = channel_in.next().await.ok_or(format!(
-            "{}: stream closed by client before protocol has completed",
-            round_count
-        ));
+        let traffic = channel_in
+            .next()
+            .await
+            .ok_or(format!("{round_count}: stream closed by client before protocol has completed"));
 
         // unpeel TrafficIn
         let traffic = match traffic {
@@ -163,8 +162,7 @@ async fn handle_incoming<F, K, P, const MAX_MSG_IN_LEN: usize>(
         // try to set a message
         if round.msg_in(TypedUsize::from_usize(from), &traffic.payload).is_err() {
             return Err(SigningErr::ProtocolOutput(format!(
-                "error calling tofn::msg_in with [from: {}]",
-                from
+                "error calling tofn::msg_in with [from: {from}]"
             )));
         }
     }
