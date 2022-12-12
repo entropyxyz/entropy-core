@@ -70,6 +70,26 @@ pub mod pallet {
         pub confirmations: Vec<u8>,
     }
 
+    #[pallet::genesis_config]
+    pub struct GenesisConfig<T: Config> {
+        #[allow(clippy::type_complexity)]
+        pub registered_accounts: Vec<(T::AccountId, bool)>,
+    }
+
+    #[cfg(feature = "std")]
+    impl<T: Config> Default for GenesisConfig<T> {
+        fn default() -> Self { Self { registered_accounts: Default::default() } }
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+        fn build(&self) {
+            for (account, registered) in &self.registered_accounts {
+                Registered::<T>::insert(account, registered);
+            }
+        }
+    }
+
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(block_number: T::BlockNumber) -> Weight {

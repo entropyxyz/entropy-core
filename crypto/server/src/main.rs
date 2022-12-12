@@ -24,9 +24,13 @@ pub(crate) mod sign_init;
 mod signing_client;
 mod user;
 mod utils;
+mod validator;
 use bip39::{Language, Mnemonic, MnemonicType};
 #[macro_use]
 extern crate rocket;
+use std::{thread, time::Duration};
+
+use clap::Parser;
 use kvdb::kv_manager::{error::KvError, KeyReservation, KvManager};
 use rocket::routes;
 use sp_keyring::AccountKeyring;
@@ -34,13 +38,15 @@ use substrate_common::SIGNING_PARTY_SIZE;
 use subxt::ext::sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use self::{
+    chain_api::get_api,
     signing_client::{api::*, SignerState},
     user::api::*,
-    utils::{init_tracing, load_kv_store, Configuration, SignatureState},
+    utils::{init_tracing, load_kv_store, Configuration, SignatureState, StartupArgs},
 };
 use crate::{
     message::{derive_static_secret, mnemonic_to_pair},
     user::unsafe_api::{delete, get, put, remove_keys},
+    validator::api::{get_all_keys, get_and_store_values, get_key_url, sync_kvdb},
 };
 
 #[launch]
@@ -50,6 +56,31 @@ async fn rocket() -> _ {
     let configuration = Configuration::new();
     let kv_store = load_kv_store().await;
     let signature_state = SignatureState::new();
+
+    let args = StartupArgs::parse();
+
+    // Below deals with syncing the kvdb
+    if args.sync {
+        let api = get_api(&configuration.endpoint).await.unwrap();
+        let mut is_syncing = true;
+        let sleep_time = Duration::from_secs(20);
+        // wait for chain to be fully synced before starting key swap
+        while is_syncing {
+            let health = api.rpc().system_health().await.unwrap();
+            is_syncing = health.is_syncing;
+            if is_syncing {
+                println!("chain syncing, retrying {is_syncing:?}");
+                thread::sleep(sleep_time);
+            }
+        }
+        // TODO: find a proper batch size
+        let batch_size = 10;
+        let signer = get_signer(&kv_store).await.unwrap();
+        let key_server_url = get_key_url(&api, &signer).await.unwrap();
+        let all_keys = get_all_keys(&api, batch_size).await.unwrap();
+        let _ = get_and_store_values(all_keys, &kv_store, key_server_url, batch_size).await;
+    }
+
     // Unsafe routes are for testing purposes only
     // they are unsafe as they can expose vulnerabilites
     // should they be used in production. Unsafe routes
@@ -63,6 +94,7 @@ async fn rocket() -> _ {
     rocket::build()
         .mount("/user", routes![store_tx, new_user])
         .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
+        .mount("/validator", routes![sync_kvdb])
         .mount("/unsafe", unsafe_routes)
         .manage(signer_state)
         .manage(signature_state)
@@ -111,13 +143,13 @@ async fn setup_mnemonic(kv: &KvManager) {
                     Ok(r) => println!("dh_public_key={dh_public:?}"),
                     Err(r) => warn!("failed to update dh: {:?}", r),
                 }
-                let reservation = kv.kv().reserve_key("MNEMONIC".to_string()).await.unwrap();
 
                 let p = <sr25519::Pair as Pair>::from_phrase(phrase, None).unwrap();
                 let id = AccountId32::new(p.0.public().0);
                 println!("account_id={id}");
 
                 // Update the value in the kvdb
+                let reservation = kv.kv().reserve_key("MNEMONIC".to_string()).await.unwrap();
                 let result = kv.kv().put(reservation, phrase.as_bytes().to_vec()).await;
                 match result {
                     Ok(r) => {},
