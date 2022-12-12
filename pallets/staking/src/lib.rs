@@ -130,6 +130,17 @@ pub mod pallet {
         OptionQuery,
     >;
 
+    /// Tracks wether the validator's kvdb is synced
+    #[pallet::storage]
+    #[pallet::getter(fn is_validator_synced)]
+    pub type IsValidatorSynced<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        <T as pallet_session::Config>::ValidatorId,
+        bool,
+        ValueQuery,
+    >;
+
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
@@ -161,6 +172,9 @@ pub mod pallet {
 
             for (group_id, validator_ids) in &self.signing_groups {
                 SigningGroups::<T>::insert(group_id, validator_ids);
+				for validator_id in validator_ids {
+					IsValidatorSynced::<T>::insert(validator_id, true);
+				}
             }
         }
     }
@@ -188,6 +202,8 @@ pub mod pallet {
         ),
         /// Node Info has been removed [who]
         NodeInfoRemoved(T::AccountId),
+        /// Validator sync status changed [who, sync_status]
+        ValidatorSyncStatus(<T as pallet_session::Config>::ValidatorId, bool),
     }
 
     #[pallet::call]
@@ -330,7 +346,19 @@ pub mod pallet {
             Self::deposit_event(Event::NodeInfoChanged(who, endpoint, tss_account));
             Ok(())
         }
+
+		/// Let a validator declare if their kvdb is synced or not synced
+		/// `synced`: State of validator's kvdb
+        #[pallet::weight(<T as Config>::WeightInfo::declare_synced())]
+        pub fn declare_synced(origin: OriginFor<T>, synced: bool) -> DispatchResult {
+            let who = ensure_signed(origin.clone())?;
+            let stash = Self::threshold_to_stash(who).ok_or(Error::<T>::NoThresholdKey)?;
+            IsValidatorSynced::<T>::insert(&stash, synced);
+            Self::deposit_event(Event::ValidatorSyncStatus(stash, synced));
+            Ok(())
+        }
     }
+
     impl<T: Config> Pallet<T> {
         pub fn get_stash(controller: &T::AccountId) -> Result<T::AccountId, DispatchError> {
             let ledger =

@@ -1,16 +1,9 @@
-use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
+use frame_support::{assert_noop, assert_ok};
 use pallet_session::SessionManager;
-use sp_runtime::testing::UintAuthorityId;
 
-use crate::{mock::*, Error, ServerInfo};
+use crate::{mock::*, Error, ServerInfo, ThresholdToStash};
 
 const NULL_ARR: [u8; 32] = [0; 32];
-
-fn initialize_block(block: u64) {
-    SESSION_CHANGED.with(|l| *l.borrow_mut() = false);
-    System::set_block_number(block);
-    Session::on_initialize(block);
-}
 
 #[test]
 fn basic_setup_works() {
@@ -27,6 +20,8 @@ fn basic_setup_works() {
         assert_eq!(Staking::threshold_to_stash(8).unwrap(), 6);
         assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
         assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+		assert_eq!(Staking::is_validator_synced(1), true);
+		assert_eq!(Staking::is_validator_synced(2), true);
     });
 }
 
@@ -225,5 +220,21 @@ fn it_tests_on_new_session() {
         MockSessionManager::new_session(6);
         assert_eq!(Staking::signing_groups(0).unwrap(), vec![1, 2, 4]);
         assert_eq!(Staking::signing_groups(1).unwrap(), vec![3, 5]);
+    });
+}
+
+#[test]
+fn it_declares_synced() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            Staking::declare_synced(RuntimeOrigin::signed(5), true),
+            Error::<Test>::NoThresholdKey
+        );
+
+        ThresholdToStash::<Test>::insert(5, 5);
+
+        assert_eq!(Staking::is_validator_synced(5), false);
+        assert_ok!(Staking::declare_synced(RuntimeOrigin::signed(5), true));
+        assert_eq!(Staking::is_validator_synced(5), true);
     });
 }

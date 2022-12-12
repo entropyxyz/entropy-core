@@ -13,6 +13,7 @@ pub trait WeightInfo {
     fn change_threshold_accounts() -> Weight;
     fn withdraw_unbonded() -> Weight;
     fn validate() -> Weight;
+	fn declare_synced() -> Weight;
 }
 
 /// Weights for pallet_realyer using the Substrate node and recommended hardware.
@@ -60,6 +61,12 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(11_u64))
             .saturating_add(T::DbWeight::get().writes(7_u64))
     }
+
+	fn declare_synced() -> Weight {
+		Weight::from_ref_time(36_000_000 as u64)
+			.saturating_add(T::DbWeight::get().reads(1 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
+	}
 }
 
 // For backwards compatibility and tests
@@ -106,4 +113,10 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().reads(11_u64))
             .saturating_add(RocksDbWeight::get().writes(7_u64))
     }
+
+	fn declare_synced() -> Weight {
+		Weight::from_ref_time(36_000_000 as u64)
+			.saturating_add(RocksDbWeight::get().reads(1 as u64))
+			.saturating_add(RocksDbWeight::get().writes(1 as u64))
+	}
 }

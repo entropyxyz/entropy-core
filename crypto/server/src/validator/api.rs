@@ -18,7 +18,6 @@ use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Pair, Public};
 use subxt::{tx::PairSigner, OnlineClient};
 use tokio::sync::{mpsc, oneshot};
-
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     user::api::get_subgroup,
@@ -107,11 +106,19 @@ pub async fn get_key_url(
 
     // TODO: Just gets first person in subgroup, maybe do this randomly?
     // TODO: Validate that the url is an already synced validator
-    let server_info_query =
-        entropy::storage().staking_extension().threshold_servers(&signing_group_addresses[0]);
-    let server_info = api.storage().fetch(&server_info_query, None).await.unwrap().unwrap();
+	let mut server_sync_state = false;
+	let mut server_to_query = 0;
+	let mut server_info: Option<entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo<sp_core::crypto::AccountId32>> = None;
+	while !server_sync_state {
+		let server_info_query =
+			entropy::storage().staking_extension().threshold_servers(&signing_group_addresses[server_to_query]);
+		server_info = Some(api.storage().fetch(&server_info_query, None).await.unwrap().unwrap());
+		let server_state_query = entropy::storage().staking_extension().is_validator_synced(&server_info.as_mut().unwrap().tss_account);
+		server_sync_state = api.storage().fetch(&server_state_query, None).await.unwrap().unwrap();
+		server_to_query += 1;
+	}
 
-    let ip_address = String::from_utf8(server_info.endpoint).unwrap();
+    let ip_address = String::from_utf8(server_info.unwrap().endpoint).unwrap();
     Ok(ip_address)
 }
 
