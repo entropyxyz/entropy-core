@@ -59,8 +59,6 @@ async fn rocket() -> _ {
 
     let args = StartupArgs::parse();
 
-    println!("args : {:?}", args.clone());
-
     // Below deals with syncing the kvdb
     if args.sync {
         let api = get_api(&configuration.endpoint).await.unwrap();
@@ -81,7 +79,6 @@ async fn rocket() -> _ {
         let key_server_url = get_key_url(&api, &signer).await.unwrap();
         let all_keys = get_all_keys(&api, batch_size).await.unwrap();
         let _ = get_and_store_values(all_keys, &kv_store, key_server_url, batch_size).await;
-        println!("inside {:?}", is_syncing);
     }
 
     // Unsafe routes are for testing purposes only
