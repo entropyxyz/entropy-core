@@ -47,13 +47,14 @@ version         ='4.0.0-dev'
 [dependencies]
 pallet-authorship={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 
-scale-info={ version="2.0.1", default-features=false, features=["derive"] }
-log       ={ version="0.4.0", default-features=false }
-sp-staking={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
-sp-io     ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
-lite-json ={ version="0.1", default-features=false }
-sp-runtime={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
-sp-std    ={ package="sp-std", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30", default-features=false }
+scale-info      ={ version="2.0.1", default-features=false, features=["derive"] }
+log             ={ version="0.4.0", default-features=false }
+sp-staking      ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+sp-io           ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
+lite-json       ={ version="0.1", default-features=false }
+sp-runtime      ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
+sp-std          ={ package="sp-std", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30", default-features=false }
+substrate-common={ path="../../crypto/substrate-common", default-features=false }
 
 [features]
 default=['std']

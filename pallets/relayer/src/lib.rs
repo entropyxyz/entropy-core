@@ -222,6 +222,7 @@ pub mod pallet {
 
         // TODO(Jake): This is an insecure way to do a free transaction.
         // secure it, please. :)
+        /// Used by validators to confirm they have received a key-share from a user that is registering.
         #[pallet::weight((T::DbWeight::get().writes(1), Pays::No))]
         pub fn confirm_register(
             origin: OriginFor<T>,
@@ -254,7 +255,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Allows a node to signal they have completed a signing batch
+        /// Allows a validator to signal they have completed a signing batch
         /// `block_number`: block number for signing batch
         /// `failure`: index of any failures in all sig request arrays
         #[pallet::weight((T::DbWeight::get().writes(1), Pays::No))]

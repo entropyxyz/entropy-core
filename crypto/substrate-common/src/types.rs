@@ -5,6 +5,7 @@ use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
 use sp_std::vec::Vec;
+
 /// RegistrationMessage holds the information sent by the User to the extropy-network during
 /// account-registration
 #[derive(Clone, Encode, Decode, Debug, PartialEq, Eq, TypeInfo)]
@@ -73,6 +74,7 @@ pub struct Message {
 }
 
 /// Supported architectures.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, TypeInfo)]
 pub enum Arch {
     EVM,
     BTC,

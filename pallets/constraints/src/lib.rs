@@ -25,9 +25,13 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use frame_support::{dispatch::DispatchResultWithPostInfo, inherent::Vec, pallet_prelude::*};
+
+    use frame_support::{
+        dispatch::DispatchResultWithPostInfo, inherent::Vec, pallet_prelude::*, BoundedVec,
+    };
     use frame_system::pallet_prelude::*;
     use sp_runtime::sp_std::str;
+    use substrate_common::types::Arch;
 
     pub use crate::weights::WeightInfo;
 
@@ -39,6 +43,17 @@ pub mod pallet {
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
+
+        #[pallet::constant]
+        type MaxAclLength: Get<u32>;
+    }
+
+    /// Represents an ACL allow/deny list; takes list of (platform-id, address) hashes
+    #[derive(Clone, RuntimeDebug, Encode, Decode, scale_info::TypeInfo, MaxEncodedLen)]
+    #[scale_info(skip_type_params(T))]
+    pub enum Acl<T: Config> {
+        Allow(BoundedVec<[u8; 32], T::MaxAclLength>),
+        Deny(BoundedVec<[u8; 32], T::MaxAclLength>),
     }
 
     #[pallet::pallet]
@@ -46,11 +61,24 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
+    // TODO Get rid of this
     #[pallet::storage]
     #[pallet::getter(fn address_whitelist)]
     /// Mapping of whitelisted addresses
     pub type AddressWhitelist<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, Vec<Vec<u8>>, ValueQuery>;
+
+    #[pallet::storage]
+    // #[pallet::getter(fn )]
+    /// Maps AccountIds that can modify constraints to the accounts they're allowed to modify the constraints of.
+    pub type SigReqAccounts<T: Config> =
+        StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Blake2_128Concat, T::AccountId, ()>;
+
+    /// Stores the ACL of each user for every architecture. Maps signature-request AccountId and the platform in question to their constraints
+    #[pallet::storage]
+    #[pallet::getter(fn acl)]
+    pub type AclAddresses<T: Config> =
+        StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Blake2_128Concat, Arch, Acl<T>>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]

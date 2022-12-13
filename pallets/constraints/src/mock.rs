@@ -65,6 +65,7 @@ impl pallet_constraints::Config for Test {
     type MaxWhitelist = MaxWhitelist;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
+    type MaxAclLength = frame_support::traits::ConstU32<2>;
 }
 
 // Build genesis storage according to the mock runtime.
