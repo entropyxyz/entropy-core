@@ -14,9 +14,8 @@ pub type SigResponse = types::SigResponse;
 pub type OCWMessage = Vec<types::Message>;
 pub type Message = types::Message;
 
-#[cfg(test)]
 pub const SIGNING_PARTY_SIZE: usize = 2;
 
-// TODO: fix and change back
-#[cfg(not(test))]
-pub const SIGNING_PARTY_SIZE: usize = 2;
+// min balance 12 decimal chain = 0.1
+pub const MIN_BALANCE: u128 = 10000000000;
+

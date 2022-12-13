@@ -46,8 +46,10 @@ use self::{
 use crate::{
     message::{derive_static_secret, mnemonic_to_pair},
     user::unsafe_api::{delete, get, put, remove_keys},
-    validator::api::{get_all_keys, get_and_store_values, get_key_url, sync_kvdb},
+    validator::api::{get_all_keys, get_and_store_values, get_key_url, sync_kvdb, tell_chain_syncing_is_done, check_balance_for_fees},
 };
+use substrate_common::MIN_BALANCE;
+
 
 #[launch]
 async fn rocket() -> _ {
@@ -61,24 +63,30 @@ async fn rocket() -> _ {
 
     // Below deals with syncing the kvdb
     if args.sync {
-        let api = get_api(&configuration.endpoint).await.unwrap();
+		let api = get_api(&configuration.endpoint).await.unwrap();
         let mut is_syncing = true;
         let sleep_time = Duration::from_secs(20);
         // wait for chain to be fully synced before starting key swap
         while is_syncing {
-            let health = api.rpc().system_health().await.unwrap();
+			let health = api.rpc().system_health().await.unwrap();
             is_syncing = health.is_syncing;
             if is_syncing {
-                println!("chain syncing, retrying {is_syncing:?}");
+				println!("chain syncing, retrying {is_syncing:?}");
                 thread::sleep(sleep_time);
             }
         }
         // TODO: find a proper batch size
+		// TODO: will need to make tx to chain so make sure thereshold account has gas balance
         let batch_size = 10;
         let signer = get_signer(&kv_store).await.unwrap();
+		let has_fee_balance = check_balance_for_fees(&api, &signer.account_id(), MIN_BALANCE).await.unwrap();
+		if !has_fee_balance {
+			panic!("threshold account needs balance: {:?}", signer.account_id());
+		}
         let key_server_url = get_key_url(&api, &signer).await.unwrap();
         let all_keys = get_all_keys(&api, batch_size).await.unwrap();
         let _ = get_and_store_values(all_keys, &kv_store, key_server_url, batch_size).await;
+		tell_chain_syncing_is_done(&api, &signer).await;
     }
 
     // Unsafe routes are for testing purposes only

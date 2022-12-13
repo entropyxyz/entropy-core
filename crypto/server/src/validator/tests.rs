@@ -15,14 +15,15 @@ use sp_core::{crypto::AccountId32, sr25519, Pair};
 use sp_keyring::AccountKeyring;
 use subxt::tx::{PairSigner, Signer};
 use testing_utils::context::test_context;
-
-use super::api::{get_all_keys, get_and_store_values, get_key_url, sync_kvdb};
+use super::api::{get_all_keys, get_and_store_values, get_key_url, sync_kvdb, check_balance_for_fees};
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     new_user,
     signing_client::SignerState,
     utils::{Configuration, SignatureState, DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
 };
+use substrate_common::MIN_BALANCE;
+
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
     Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
 }
@@ -105,7 +106,6 @@ async fn test_get_and_store_values() {
 }
 
 #[rocket::async_test]
-#[serial]
 async fn test_get_key_url() {
     clean_tests();
     let cxt = test_context().await;
@@ -116,6 +116,27 @@ async fn test_get_key_url() {
     let result = get_key_url(&api, &signer_alice).await.unwrap();
 
     assert_eq!("127.0.0.1:3001", result);
+}
+
+#[rocket::async_test]
+#[should_panic = "Account does not exist, add balance"]
+async fn test_check_balance_for_fees() {
+    clean_tests();
+    let cxt = test_context().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+	let alice_stash_address: AccountId32 =
+        hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
+	let result = check_balance_for_fees(&api, &alice_stash_address, MIN_BALANCE).await.unwrap();
+
+	assert_eq!(result, true);
+
+	let result_2 = check_balance_for_fees(&api, &alice_stash_address, 10000000000000000000000u128).await.unwrap();
+	assert_eq!(result_2, false);
+
+
+	let random_account: AccountId32 =
+        hex!["8676839ca1e196624106d17c56b1efbb90508a86d8053f7d4fcd21127a9f7565"].into();
+	let _ = check_balance_for_fees(&api, &random_account, MIN_BALANCE).await.unwrap();
 }
 
 async fn create_clients(
@@ -162,3 +183,4 @@ async fn create_clients(
 
     (result, kv_store)
 }
+

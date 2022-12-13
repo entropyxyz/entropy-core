@@ -24,6 +24,7 @@ use crate::{
     Configuration,
 };
 
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Keys {
     pub keys: Vec<String>,
@@ -106,6 +107,7 @@ pub async fn get_key_url(
 
     // TODO: Just gets first person in subgroup, maybe do this randomly?
     // TODO: Validate that the url is an already synced validator
+	// find kvdb that isn't syncing and get their URL
 	let mut server_sync_state = false;
 	let mut server_to_query = 0;
 	let mut server_info: Option<entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo<sp_core::crypto::AccountId32>> = None;
@@ -154,4 +156,30 @@ pub async fn get_and_store_values(
         }
     }
     Ok(())
+}
+
+
+pub async fn tell_chain_syncing_is_done(api: &OnlineClient<EntropyConfig>, signer: &PairSigner<EntropyConfig, sr25519::Pair>) {
+	let synced_tx = entropy::tx().staking_extension().declare_synced(true);
+    let _ = api
+        .tx()
+        .sign_and_submit_then_watch_default(&synced_tx, signer)
+        .await
+		.unwrap()
+        .wait_for_in_block()
+        .await
+		.unwrap()
+        .wait_for_success()
+        .await
+		.unwrap();
+}
+
+pub async fn check_balance_for_fees(api: &OnlineClient<EntropyConfig>, address: &AccountId32, min_balance: u128) -> Result<bool, ()> {
+	let balance_query =
+			entropy::storage().system().account(address);
+	let	account_info = api.storage().fetch(&balance_query, None).await.unwrap().expect("Account does not exist, add balance");
+	let balance = account_info.data.free;
+	let mut is_min_balance = false;
+	if balance >= min_balance { is_min_balance = true };
+	Ok(is_min_balance)
 }
