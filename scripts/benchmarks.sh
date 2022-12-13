@@ -5,7 +5,11 @@ repeat=20
 entropyOutput=./runtime/src/weights/
 entropyChain=dev
 pallets=(
+  pallet_relayer
   pallet_staking_extension
+  pallet_constraints
+  pallet_transaction_pause
+  pallet_free_tx
 )
 
 for p in ${pallets[@]}
