@@ -172,9 +172,9 @@ pub mod pallet {
 
             for (group_id, validator_ids) in &self.signing_groups {
                 SigningGroups::<T>::insert(group_id, validator_ids);
-				for validator_id in validator_ids {
-					IsValidatorSynced::<T>::insert(validator_id, true);
-				}
+                for validator_id in validator_ids {
+                    IsValidatorSynced::<T>::insert(validator_id, true);
+                }
             }
         }
     }
@@ -347,8 +347,8 @@ pub mod pallet {
             Ok(())
         }
 
-		/// Let a validator declare if their kvdb is synced or not synced
-		/// `synced`: State of validator's kvdb
+        /// Let a validator declare if their kvdb is synced or not synced
+        /// `synced`: State of validator's kvdb
         #[pallet::weight(<T as Config>::WeightInfo::declare_synced())]
         pub fn declare_synced(origin: OriginFor<T>, synced: bool) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;

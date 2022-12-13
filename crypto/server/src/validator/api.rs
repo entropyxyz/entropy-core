@@ -18,12 +18,12 @@ use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Pair, Public};
 use subxt::{tx::PairSigner, OnlineClient};
 use tokio::sync::{mpsc, oneshot};
+
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     user::api::get_subgroup,
     Configuration,
 };
-
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Keys {
@@ -107,18 +107,25 @@ pub async fn get_key_url(
 
     // TODO: Just gets first person in subgroup, maybe do this randomly?
     // TODO: Validate that the url is an already synced validator
-	// find kvdb that isn't syncing and get their URL
-	let mut server_sync_state = false;
-	let mut server_to_query = 0;
-	let mut server_info: Option<entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo<sp_core::crypto::AccountId32>> = None;
-	while !server_sync_state {
-		let server_info_query =
-			entropy::storage().staking_extension().threshold_servers(&signing_group_addresses[server_to_query]);
-		server_info = Some(api.storage().fetch(&server_info_query, None).await.unwrap().unwrap());
-		let server_state_query = entropy::storage().staking_extension().is_validator_synced(&server_info.as_mut().unwrap().tss_account);
-		server_sync_state = api.storage().fetch(&server_state_query, None).await.unwrap().unwrap();
-		server_to_query += 1;
-	}
+    // find kvdb that isn't syncing and get their URL
+    let mut server_sync_state = false;
+    let mut server_to_query = 0;
+    let mut server_info: Option<
+        entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo<
+            sp_core::crypto::AccountId32,
+        >,
+    > = None;
+    while !server_sync_state {
+        let server_info_query = entropy::storage()
+            .staking_extension()
+            .threshold_servers(&signing_group_addresses[server_to_query]);
+        server_info = Some(api.storage().fetch(&server_info_query, None).await.unwrap().unwrap());
+        let server_state_query = entropy::storage()
+            .staking_extension()
+            .is_validator_synced(&server_info.as_mut().unwrap().tss_account);
+        server_sync_state = api.storage().fetch(&server_state_query, None).await.unwrap().unwrap();
+        server_to_query += 1;
+    }
 
     let ip_address = String::from_utf8(server_info.unwrap().endpoint).unwrap();
     Ok(ip_address)
@@ -158,28 +165,40 @@ pub async fn get_and_store_values(
     Ok(())
 }
 
-
-pub async fn tell_chain_syncing_is_done(api: &OnlineClient<EntropyConfig>, signer: &PairSigner<EntropyConfig, sr25519::Pair>) {
-	let synced_tx = entropy::tx().staking_extension().declare_synced(true);
+pub async fn tell_chain_syncing_is_done(
+    api: &OnlineClient<EntropyConfig>,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+) {
+    let synced_tx = entropy::tx().staking_extension().declare_synced(true);
     let _ = api
         .tx()
         .sign_and_submit_then_watch_default(&synced_tx, signer)
         .await
-		.unwrap()
+        .unwrap()
         .wait_for_in_block()
         .await
-		.unwrap()
+        .unwrap()
         .wait_for_success()
         .await
-		.unwrap();
+        .unwrap();
 }
 
-pub async fn check_balance_for_fees(api: &OnlineClient<EntropyConfig>, address: &AccountId32, min_balance: u128) -> Result<bool, ()> {
-	let balance_query =
-			entropy::storage().system().account(address);
-	let	account_info = api.storage().fetch(&balance_query, None).await.unwrap().expect("Account does not exist, add balance");
-	let balance = account_info.data.free;
-	let mut is_min_balance = false;
-	if balance >= min_balance { is_min_balance = true };
-	Ok(is_min_balance)
+pub async fn check_balance_for_fees(
+    api: &OnlineClient<EntropyConfig>,
+    address: &AccountId32,
+    min_balance: u128,
+) -> Result<bool, ()> {
+    let balance_query = entropy::storage().system().account(address);
+    let account_info = api
+        .storage()
+        .fetch(&balance_query, None)
+        .await
+        .unwrap()
+        .expect("Account does not exist, add balance");
+    let balance = account_info.data.free;
+    let mut is_min_balance = false;
+    if balance >= min_balance {
+        is_min_balance = true
+    };
+    Ok(is_min_balance)
 }

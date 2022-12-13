@@ -20,8 +20,8 @@ fn basic_setup_works() {
         assert_eq!(Staking::threshold_to_stash(8).unwrap(), 6);
         assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
         assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
-		assert_eq!(Staking::is_validator_synced(1), true);
-		assert_eq!(Staking::is_validator_synced(2), true);
+        assert_eq!(Staking::is_validator_synced(1), true);
+        assert_eq!(Staking::is_validator_synced(2), true);
     });
 }
 
