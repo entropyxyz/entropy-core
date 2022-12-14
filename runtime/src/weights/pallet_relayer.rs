@@ -53,7 +53,7 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 	// Storage: System Digest (r:1 w:0)
 	// Storage: Relayer Pending (r:0 w:1)
 	/// The range of component `m` is `[0, 10]`.
-	fn move_active_to_pending_no_failure(m: u32, ) -> Weight {
+	fn move_active_to_pending_no_failure(m: u64, ) -> Weight {
 		Weight::from_ref_time(40_000_000 as u64)
 			// Standard Error: 416_205
 			.saturating_add(Weight::from_ref_time(7_067_174 as u64).saturating_mul(m as u64))
@@ -68,7 +68,7 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 	// Storage: System Digest (r:1 w:0)
 	// Storage: Relayer Pending (r:0 w:1)
 	/// The range of component `m` is `[0, 10]`.
-	fn move_active_to_pending_failure(m: u32, ) -> Weight {
+	fn move_active_to_pending_failure(m: u64, ) -> Weight {
 		Weight::from_ref_time(41_000_000 as u64)
 			// Standard Error: 79_818
 			.saturating_add(Weight::from_ref_time(4_686_495 as u64).saturating_mul(m as u64))
