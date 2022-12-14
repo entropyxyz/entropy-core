@@ -22,6 +22,7 @@ do
 		--extrinsic='*' \
 		--steps=$steps  \
 		--repeat=$repeat \
+    --header=./file_header.txt \
 		--output=$entropyOutput
 
 done

@@ -1,4 +1,3 @@
-#![allow(clippy::all)]
 pub mod pallet_constraints;
 pub mod pallet_free_tx;
 pub mod pallet_relayer;
