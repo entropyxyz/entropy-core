@@ -77,7 +77,6 @@ async fn rocket() -> _ {
             }
         }
         // TODO: find a proper batch size
-        // TODO: will need to make tx to chain so make sure thereshold account has gas balance
         let batch_size = 10;
         let signer = get_signer(&kv_store).await.unwrap();
         let has_fee_balance =

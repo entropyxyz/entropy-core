@@ -94,7 +94,7 @@ pub async fn get_all_keys(
     Ok(addresses)
 }
 
-// get a url of someone in your signing group
+/// get a url of someone in your signing group
 pub async fn get_key_url(
     api: &OnlineClient<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
@@ -106,7 +106,6 @@ pub async fn get_key_url(
         api.storage().fetch(&signing_group_addresses_query, None).await.unwrap().unwrap();
 
     // TODO: Just gets first person in subgroup, maybe do this randomly?
-    // TODO: Validate that the url is an already synced validator
     // find kvdb that isn't syncing and get their URL
     let mut server_sync_state = false;
     let mut server_to_query = 0;
@@ -164,7 +163,7 @@ pub async fn get_and_store_values(
     }
     Ok(())
 }
-
+/// Sends a transaction telling the chain it is fully synced
 pub async fn tell_chain_syncing_is_done(
     api: &OnlineClient<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
@@ -183,6 +182,7 @@ pub async fn tell_chain_syncing_is_done(
         .unwrap();
 }
 
+/// Validation for if an account can cover tx fees for a tx
 pub async fn check_balance_for_fees(
     api: &OnlineClient<EntropyConfig>,
     address: &AccountId32,
