@@ -52,11 +52,11 @@ use crate::{
 #[launch]
 async fn rocket() -> _ {
     init_tracing();
+    let args = StartupArgs::parse();
     let signer_state = SignerState::default();
-    let configuration = Configuration::new();
+    let configuration = Configuration::new(args.chain_endpoint);
     let kv_store = load_kv_store().await;
     let signature_state = SignatureState::new();
-    let args = StartupArgs::parse();
 
     setup_mnemonic(&kv_store, args.alice, args.bob).await;
     // Below deals with syncing the kvdb

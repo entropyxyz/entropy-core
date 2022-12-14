@@ -10,8 +10,6 @@ use tofn::sdk::api::{RecoverableSignature, Signature};
 
 use crate::{setup_mnemonic, sign_init::MessageDigest};
 
-const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
-
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
 pub const DEFAULT_BOB_MNEMONIC: &str =
@@ -28,17 +26,13 @@ pub(super) fn init_tracing() {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Configuration {
-    #[serde(default = "default_endpoint")]
+    // #[serde(default = "default_endpoint")]
     // #[allow(dead_code)] // TODO(TK): unused?
     pub endpoint: String,
 }
 impl Configuration {
-    pub(crate) fn new() -> Configuration {
-        Configuration { endpoint: DEFAULT_ENDPOINT.to_string() }
-    }
+    pub(crate) fn new(endpoint: String) -> Configuration { Configuration { endpoint } }
 }
-
-fn default_endpoint() -> String { DEFAULT_ENDPOINT.to_string() }
 
 pub(super) async fn load_kv_store() -> KvManager {
     let kv_store: KvManager = if cfg!(test) {
@@ -68,6 +62,9 @@ pub struct StartupArgs {
     /// Use the developer key Alice
     #[arg(short = 'a', long = "alice")]
     pub alice: bool,
+    /// Use the developer key Alice
+    #[arg(short = 'c', long = "chain-endpoint", value_name = "ws://localhost:9944")]
+    pub chain_endpoint: String,
 }
 
 // TODO: JA Remove all below, temporary
