@@ -26,17 +26,18 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 
+    pub use crate::weights::WeightInfo;
+    use core::fmt::Debug;
     use frame_support::{
-        dispatch::DispatchResultWithPostInfo, inherent::Vec, pallet_prelude::*, BoundedVec,
+        dispatch::DispatchResultWithPostInfo, inherent::Vec, pallet_prelude::*, traits::ConstU32,
+        BoundedVec,
     };
     use frame_system::pallet_prelude::*;
     use sp_runtime::sp_std::str;
     use substrate_common::types::Arch;
 
-    pub use crate::weights::WeightInfo;
-
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config: frame_system::Config + pallet_relayer::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type MaxWhitelist: Get<u32>;
         type MaxAddressLength: Get<u32>;
@@ -45,15 +46,18 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
 
         #[pallet::constant]
-        type MaxAclLength: Get<u32>;
+        type MaxAclLength: Get<u32> + Debug;
     }
 
     /// Represents an ACL allow/deny list; takes list of (platform-id, address) hashes
-    #[derive(Clone, RuntimeDebug, Encode, Decode, scale_info::TypeInfo, MaxEncodedLen)]
-    #[scale_info(skip_type_params(T))]
-    pub enum Acl<T: Config> {
-        Allow(BoundedVec<[u8; 32], T::MaxAclLength>),
-        Deny(BoundedVec<[u8; 32], T::MaxAclLength>),
+    #[derive(
+        CloneNoBound, Debug, Encode, Decode, PartialEq, Eq, scale_info::TypeInfo, MaxEncodedLen,
+    )]
+    // #[scale_info(skip_type_params(T))]
+    // #[codec(mel_bound())]
+    pub enum Acl {
+        Allow(BoundedVec<[u8; 32], ConstU32<25>>),
+        Deny(BoundedVec<[u8; 32], ConstU32<25>>),
     }
 
     #[pallet::pallet]
@@ -78,69 +82,63 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn acl)]
     pub type AclAddresses<T: Config> =
-        StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Blake2_128Concat, Arch, Acl<T>>;
+        StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Blake2_128Concat, Arch, Acl>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// All whitelisted addresses in call. [who, whitelisted_addresses]
-        AddressesWhitelisted(T::AccountId, Vec<Vec<u8>>),
+        AclUpdated(T::AccountId, Arch),
     }
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Max amount of whitelisted addresses reached.
+        /// ACL is too large.
         MaxWhitelist,
         /// Address already whitelisted.
         AlreadyWhitelisted,
+        // TODO get rid of
         /// Address to whitelist is too long.
         AddressTooLong,
+        /// Constraint account doesn't have permission to modify these constraionts
+        NotAuthorized,
+        /// Constraint account is not a registered account on the network
+        NotRegistered,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Adds an address to be whitelisted
-        /// - `whitelist_addresses`: Addresses to be whitelisted
-        #[pallet::weight((T::WeightInfo::add_whitelist_address(T::MaxWhitelist::get()), Pays::No))]
-        pub fn add_whitelist_address(
+        /// Set the ACL for a given user and architecture
+        #[pallet::weight((<T as Config>::WeightInfo::add_whitelist_address(T::MaxWhitelist::get()), Pays::No))]
+        pub fn set_acl(
             origin: OriginFor<T>,
-            whitelist_addresses: Vec<Vec<u8>>,
+            sig_req_account: T::AccountId,
+            arch: Arch,
+            acl: Acl,
         ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            // TODO ensure registered
-            if whitelist_addresses
-                .clone()
-                .into_iter()
-                .any(|address| address.len() as u32 > T::MaxAddressLength::get())
-            {
-                Err(Error::<T>::AddressTooLong)?
-            }
+            let constraint_account = ensure_signed(origin)?;
+            // ensure registered
             ensure!(
-                whitelist_addresses.len() as u32 <= T::MaxWhitelist::get(),
-                Error::<T>::MaxWhitelist
+                pallet_relayer::Pallet::<T>::registered(&constraint_account).is_some(),
+                Error::<T>::NotRegistered
             );
-            let whitelist_length = AddressWhitelist::<T>::try_mutate(
-                who.clone(),
-                |addresses| -> Result<usize, DispatchError> {
-                    if (addresses.len() as u32 + whitelist_addresses.len() as u32)
-                        > T::MaxWhitelist::get()
-                    {
-                        Err(Error::<T>::MaxWhitelist)?
-                    }
-                    if addresses.iter().any(|address| {
-                        whitelist_addresses
-                            .clone()
-                            .into_iter()
-                            .any(|address_to_whitelist| *address == address_to_whitelist)
-                    }) {
-                        Err(Error::<T>::AlreadyWhitelisted)?
-                    }
-                    addresses.extend(whitelist_addresses.clone().into_iter().collect::<Vec<_>>());
-                    Ok(addresses.len())
-                },
-            )?;
-            Self::deposit_event(Event::AddressesWhitelisted(who, whitelist_addresses));
-            Ok(Some(T::WeightInfo::add_whitelist_address(whitelist_length as u32)).into())
+            // make sure constraint account has permission to modify constraints
+            ensure!(
+                SigReqAccounts::<T>::contains_key(&constraint_account, &sig_req_account),
+                Error::<T>::NotAuthorized
+            );
+            // make sure the acl length is not too long
+            let acl_length = match acl.clone() {
+                Acl::Allow(acl) => acl.len() as u32,
+                Acl::Deny(acl) => acl.len() as u32,
+            };
+            ensure!(acl_length <= T::MaxAclLength::get(), Error::<T>::MaxWhitelist);
+
+            // insert them into storage
+            AclAddresses::<T>::set(sig_req_account.clone(), arch, Some(acl.clone()));
+
+            Self::deposit_event(Event::AclUpdated(constraint_account, arch));
+            Ok(Some(<T as Config>::WeightInfo::add_whitelist_address(acl_length)).into())
         }
     }
 }

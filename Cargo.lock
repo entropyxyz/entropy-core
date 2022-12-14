@@ -5312,6 +5312,7 @@ dependencies = [
  "lite-json",
  "log",
  "pallet-authorship",
+ "pallet-relayer",
  "parity-scale-codec 3.2.1",
  "scale-info",
  "sp-core",

@@ -86,6 +86,7 @@ pub enum ACL {
     Deny,
 }
 
+// TODO rewrite tests etc to use this struct
 /// An AccessControl constraint (Allow/Deny lists).
 /// acl is the vector of allowed or denied addresses.
 /// acl_type represents if the constraint is either allow/deny.
