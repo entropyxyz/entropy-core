@@ -34,7 +34,7 @@ use clap::Parser;
 use kvdb::kv_manager::{error::KvError, KeyReservation, KvManager};
 use rocket::routes;
 use sp_keyring::AccountKeyring;
-use substrate_common::SIGNING_PARTY_SIZE;
+use substrate_common::{MIN_BALANCE, SIGNING_PARTY_SIZE};
 use subxt::ext::sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use self::{
@@ -46,7 +46,10 @@ use self::{
 use crate::{
     message::{derive_static_secret, mnemonic_to_pair},
     user::unsafe_api::{delete, get, put, remove_keys},
-    validator::api::{get_all_keys, get_and_store_values, get_key_url, sync_kvdb},
+    validator::api::{
+        check_balance_for_fees, get_all_keys, get_and_store_values, get_key_url, sync_kvdb,
+        tell_chain_syncing_is_done,
+    },
 };
 
 #[launch]
@@ -76,9 +79,15 @@ async fn rocket() -> _ {
         // TODO: find a proper batch size
         let batch_size = 10;
         let signer = get_signer(&kv_store).await.unwrap();
+        let has_fee_balance =
+            check_balance_for_fees(&api, signer.account_id(), MIN_BALANCE).await.unwrap();
+        if !has_fee_balance {
+            panic!("threshold account needs balance: {:?}", signer.account_id());
+        }
         let key_server_url = get_key_url(&api, &signer).await.unwrap();
         let all_keys = get_all_keys(&api, batch_size).await.unwrap();
         let _ = get_and_store_values(all_keys, &kv_store, key_server_url, batch_size).await;
+        tell_chain_syncing_is_done(&api, &signer).await;
     }
 
     // Unsafe routes are for testing purposes only

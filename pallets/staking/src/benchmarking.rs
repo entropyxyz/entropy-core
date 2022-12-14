@@ -125,6 +125,16 @@ benchmarks! {
     assert_last_event::<T>(Event::<T>::NodeInfoChanged(caller,  vec![20], threshold).into());
   }
 
+  declare_synced {
+    let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    ThresholdToStash::<T>::insert(caller.clone(), validator_id_res.clone());
+
+  }:  _(RawOrigin::Signed(caller.clone()), true)
+  verify {
+    assert_last_event::<T>(Event::<T>::ValidatorSyncStatus(validator_id_res,  true).into());
+  }
+
 
 
 }

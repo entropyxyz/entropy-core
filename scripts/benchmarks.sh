@@ -5,7 +5,7 @@ repeat=20
 entropyOutput=./runtime/src/weights/
 entropyChain=dev
 pallets=(
-	pallet_relayer
+  pallet_relayer
   pallet_staking_extension
   pallet_constraints
   pallet_transaction_pause
@@ -14,14 +14,15 @@ pallets=(
 
 for p in ${pallets[@]}
 do
-	./target/release/entropy benchmark \
-		--chain=$entropyChain \
+	./target/release/entropy benchmark pallet \
+		--chain $entropyChain \
 		--execution=wasm \
 		--wasm-execution=compiled \
 		--pallet=$p  \
 		--extrinsic='*' \
 		--steps=$steps  \
 		--repeat=$repeat \
+    --header=./file_header.txt \
 		--output=$entropyOutput
 
 done
