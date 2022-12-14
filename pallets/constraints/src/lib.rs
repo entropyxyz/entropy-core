@@ -50,11 +50,10 @@ pub mod pallet {
     }
 
     /// Represents an ACL allow/deny list; takes list of (platform-id, address) hashes
+    /// TODO make this size configurable, instead of a static `25` addresses
     #[derive(
         CloneNoBound, Debug, Encode, Decode, PartialEq, Eq, scale_info::TypeInfo, MaxEncodedLen,
     )]
-    // #[scale_info(skip_type_params(T))]
-    // #[codec(mel_bound())]
     pub enum Acl {
         Allow(BoundedVec<[u8; 32], ConstU32<25>>),
         Deny(BoundedVec<[u8; 32], ConstU32<25>>),
@@ -74,11 +73,11 @@ pub mod pallet {
 
     #[pallet::storage]
     // #[pallet::getter(fn )]
-    /// Maps AccountIds that can modify constraints to the accounts they're allowed to modify the constraints of.
+    /// Maps constraint-modification `AccountId`s to the signature-request accounts they're allowed to modify the constraints of.
     pub type SigReqAccounts<T: Config> =
         StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Blake2_128Concat, T::AccountId, ()>;
 
-    /// Stores the ACL of each user for every architecture. Maps signature-request AccountId and the platform in question to their constraints
+    /// Stores the ACL of each user for every architecture. Maps a signature-request AccountId and a platform to the platform-specific constraints
     #[pallet::storage]
     #[pallet::getter(fn acl)]
     pub type AclAddresses<T: Config> =
@@ -108,37 +107,41 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Set the ACL for a given user and architecture
-        #[pallet::weight((<T as Config>::WeightInfo::add_whitelist_address(T::MaxWhitelist::get()), Pays::No))]
-        pub fn set_acl(
+        /// Sets or clears the ACL for a given signature-request account and architecture.
+        /// If `new_acl` is `None`, the ACL is cleared.
+        /// Must be sent from a constraint-modification account.
+        /// TODO update weights
+        #[pallet::weight((<T as Config>::WeightInfo::add_whitelist_address(25), Pays::No))]
+        pub fn update_acl(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
             arch: Arch,
-            acl: Acl,
+            new_acl: Option<Acl>,
         ) -> DispatchResultWithPostInfo {
             let constraint_account = ensure_signed(origin)?;
-            // ensure registered
-            ensure!(
-                pallet_relayer::Pallet::<T>::registered(&constraint_account).is_some(),
-                Error::<T>::NotRegistered
-            );
-            // make sure constraint account has permission to modify constraints
+
+            // ensure registered and account has permission to modify constraints
             ensure!(
                 SigReqAccounts::<T>::contains_key(&constraint_account, &sig_req_account),
                 Error::<T>::NotAuthorized
             );
-            // make sure the acl length is not too long
-            let acl_length = match acl.clone() {
-                Acl::Allow(acl) => acl.len() as u32,
-                Acl::Deny(acl) => acl.len() as u32,
-            };
-            ensure!(acl_length <= T::MaxAclLength::get(), Error::<T>::MaxWhitelist);
 
-            // insert them into storage
-            AclAddresses::<T>::set(sig_req_account.clone(), arch, Some(acl.clone()));
+            // update the ACL, clearing it if `new_acl` is `None`
+            AclAddresses::<T>::mutate_exists(sig_req_account.clone(), arch, |current_acl| {
+                *current_acl = new_acl.clone();
+            });
 
             Self::deposit_event(Event::AclUpdated(constraint_account, arch));
-            Ok(Some(<T as Config>::WeightInfo::add_whitelist_address(acl_length)).into())
+
+            // TODO change Acl to a struct to make accessing length cleaner, new weight
+            let acl_length = match new_acl.clone() {
+                Some(acl) => match acl {
+                    Acl::Allow(acl) => acl.len(),
+                    Acl::Deny(acl) => acl.len(),
+                },
+                None => 0,
+            };
+            Ok(Some(<T as Config>::WeightInfo::add_whitelist_address(3)).into())
         }
     }
 }
