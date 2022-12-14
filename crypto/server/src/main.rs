@@ -80,7 +80,7 @@ async fn rocket() -> _ {
         let batch_size = 10;
         let signer = get_signer(&kv_store).await.unwrap();
         let has_fee_balance =
-            check_balance_for_fees(&api, &signer.account_id(), MIN_BALANCE).await.unwrap();
+            check_balance_for_fees(&api, signer.account_id(), MIN_BALANCE).await.unwrap();
         if !has_fee_balance {
             panic!("threshold account needs balance: {:?}", signer.account_id());
         }
