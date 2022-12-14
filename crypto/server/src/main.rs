@@ -56,9 +56,9 @@ async fn rocket() -> _ {
     let configuration = Configuration::new();
     let kv_store = load_kv_store().await;
     let signature_state = SignatureState::new();
-
     let args = StartupArgs::parse();
 
+    setup_mnemonic(&kv_store, args.alice, args.bob).await;
     // Below deals with syncing the kvdb
     if args.sync {
         let api = get_api(&configuration.endpoint).await.unwrap();
@@ -102,7 +102,7 @@ async fn rocket() -> _ {
         .manage(kv_store)
 }
 
-async fn setup_mnemonic(kv: &KvManager) {
+pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) {
     // Check if a mnemonic exists in the kvdb.
     let exists_result = kv.kv().exists("MNEMONIC").await;
     match exists_result {
@@ -111,14 +111,14 @@ async fn setup_mnemonic(kv: &KvManager) {
                 // Generate a new mnemonic
                 let mnemonic: Mnemonic;
                 // If using a test configuration then set to the default mnemonic.
-                if cfg!(test) {
+                if cfg!(test) && !(is_alice && is_bob) {
                     mnemonic =
                         Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
-                } else if cfg!(feature = "alice") {
+                } else if is_alice {
                     mnemonic =
                         Mnemonic::from_phrase(utils::DEFAULT_ALICE_MNEMONIC, Language::English)
                             .unwrap();
-                } else if cfg!(feature = "bob") {
+                } else if is_bob {
                     mnemonic =
                         Mnemonic::from_phrase(utils::DEFAULT_BOB_MNEMONIC, Language::English)
                             .unwrap();

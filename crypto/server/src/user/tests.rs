@@ -22,6 +22,7 @@ use crate::{
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     user::unsafe_api::UnsafeQuery,
     utils,
+    setup_mnemonic,
     utils::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
 };
 
@@ -33,6 +34,7 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 #[serial]
 async fn test_get_signer_does_not_throw_err() {
     let kv_store = load_kv_store().await;
+    setup_mnemonic(&kv_store, false, false).await;
     get_signer(&kv_store).await.unwrap();
 }
 

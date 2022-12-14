@@ -54,7 +54,6 @@ pub(super) async fn load_kv_store() -> KvManager {
         // this step takes a long time due to password-based decryption
         KvManager::new(root, password).unwrap()
     };
-    setup_mnemonic(&kv_store).await;
     kv_store
 }
 
@@ -63,7 +62,14 @@ pub struct StartupArgs {
     /// Wether to sync the keystore
     #[arg(short = 's', long = "sync")]
     pub sync: bool,
+    /// Use the developer key Alice
+    #[arg(short = 'b', long = "bob")]
+    pub bob: bool,
+    /// Use the developer key Alice
+    #[arg(short = 'a', long = "alice")]
+    pub alice: bool,
 }
+
 // TODO: JA Remove all below, temporary
 /// The state used to temporarily store completed signatures
 #[derive(Debug)]
