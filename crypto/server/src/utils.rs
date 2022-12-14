@@ -17,6 +17,8 @@ pub const DEFAULT_BOB_MNEMONIC: &str =
 pub const DEFAULT_ALICE_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
 
+pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
+
 pub(super) fn init_tracing() {
     let filter = tracing_subscriber::filter::LevelFilter::INFO.into();
     tracing_subscriber::filter::EnvFilter::builder()
@@ -26,12 +28,19 @@ pub(super) fn init_tracing() {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Configuration {
-    // #[serde(default = "default_endpoint")]
-    // #[allow(dead_code)] // TODO(TK): unused?
     pub endpoint: String,
 }
+
 impl Configuration {
-    pub(crate) fn new(endpoint: String) -> Configuration { Configuration { endpoint } }
+    pub(crate) fn new_with_endpoint(endpoint: String) -> Configuration {
+        Configuration { endpoint }
+    }
+}
+
+impl Configuration {
+    pub(crate) fn new() -> Configuration {
+        Configuration { endpoint: DEFAULT_ENDPOINT.to_string() }
+    }
 }
 
 pub(super) async fn load_kv_store() -> KvManager {

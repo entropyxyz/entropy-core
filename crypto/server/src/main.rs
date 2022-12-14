@@ -28,7 +28,7 @@ mod validator;
 use bip39::{Language, Mnemonic, MnemonicType};
 #[macro_use]
 extern crate rocket;
-use std::{thread, time::Duration};
+use std::{string::String, thread, time::Duration};
 
 use clap::Parser;
 use kvdb::kv_manager::{error::KvError, KeyReservation, KvManager};
@@ -54,7 +54,7 @@ async fn rocket() -> _ {
     init_tracing();
     let args = StartupArgs::parse();
     let signer_state = SignerState::default();
-    let configuration = Configuration::new(args.chain_endpoint);
+    let configuration = Configuration::new_with_endpoint(args.chain_endpoint);
     let kv_store = load_kv_store().await;
     let signature_state = SignatureState::new();
 
@@ -109,22 +109,24 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) {
         Ok(v) => {
             if !v {
                 // Generate a new mnemonic
-                let mnemonic: Mnemonic;
+                let mut mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
                 // If using a test configuration then set to the default mnemonic.
-                if cfg!(test) && !(is_alice && is_bob) {
-                    mnemonic =
-                        Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
-                } else if is_alice {
-                    mnemonic =
-                        Mnemonic::from_phrase(utils::DEFAULT_ALICE_MNEMONIC, Language::English)
-                            .unwrap();
-                } else if is_bob {
-                    mnemonic =
-                        Mnemonic::from_phrase(utils::DEFAULT_BOB_MNEMONIC, Language::English)
-                            .unwrap();
-                } else {
-                    mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
+                if cfg!(test) {
+                    if !(is_alice && is_bob) {
+                        mnemonic =
+                            Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English)
+                                .unwrap();
+                    } else if is_alice {
+                        mnemonic =
+                            Mnemonic::from_phrase(utils::DEFAULT_ALICE_MNEMONIC, Language::English)
+                                .unwrap();
+                    } else if is_bob {
+                        mnemonic =
+                            Mnemonic::from_phrase(utils::DEFAULT_BOB_MNEMONIC, Language::English)
+                                .unwrap();
+                    }
                 }
+
                 let phrase = mnemonic.phrase();
                 println!("[server-config]");
                 let pair = mnemonic_to_pair(&mnemonic);
