@@ -20,9 +20,9 @@ use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     get_signer, load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
+    setup_mnemonic,
     user::unsafe_api::UnsafeQuery,
     utils,
-    setup_mnemonic,
     utils::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
 };
 
