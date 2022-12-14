@@ -122,7 +122,7 @@ pub async fn get_key_url(
         server_info = Some(api.storage().fetch(&server_info_query, None).await.unwrap().unwrap());
         let server_state_query = entropy::storage()
             .staking_extension()
-            .is_validator_synced(&server_info.as_mut().unwrap().tss_account);
+            .is_validator_synced(&signing_group_addresses[server_to_query]);
         server_sync_state = api.storage().fetch(&server_state_query, None).await.unwrap().unwrap();
         server_to_query += 1;
     }
