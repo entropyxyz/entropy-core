@@ -55,7 +55,7 @@ async fn rocket() -> _ {
     let args = StartupArgs::parse();
     let signer_state = SignerState::default();
     let configuration = Configuration::new(args.chain_endpoint);
-    let kv_store = load_kv_store(args.is_bob).await;
+    let kv_store = load_kv_store(args.bob).await;
     let signature_state = SignatureState::new();
 
     setup_mnemonic(&kv_store, args.alice, args.bob).await;
@@ -112,19 +112,19 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) {
                 let mut mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
                 // If using a test configuration then set to the default mnemonic.
                 if cfg!(test) {
-                        mnemonic =
-                            Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English)
-                                .unwrap();
+                    mnemonic =
+                        Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
                 }
-                    if is_alice {
-                        mnemonic =
-                            Mnemonic::from_phrase(utils::DEFAULT_ALICE_MNEMONIC, Language::English)
-                                .unwrap();
-                    if is_bob {
-                        mnemonic =
-                            Mnemonic::from_phrase(utils::DEFAULT_BOB_MNEMONIC, Language::English)
-                                .unwrap();
-                    }
+                if is_alice {
+                    mnemonic =
+                        Mnemonic::from_phrase(utils::DEFAULT_ALICE_MNEMONIC, Language::English)
+                            .unwrap();
+                }
+                if is_bob {
+                    mnemonic =
+                        Mnemonic::from_phrase(utils::DEFAULT_BOB_MNEMONIC, Language::English)
+                            .unwrap();
+                }
 
                 let phrase = mnemonic.phrase();
                 println!("[server-config]");
