@@ -67,9 +67,10 @@ log                     ={ version="0.4.0", default-features=false }
 pallet-slashing         ={ version="3.0.0", default-features=false, path="../slashing" }
 pallet-staking-extension={ version="3.0.0", default-features=false, path="../staking" }
 # non-substrate-common    ={ path="../../crypto/non-substrate-common", default-features=false }
-substrate-common={ path="../../crypto/substrate-common", default-features=false }
-helpers         ={ path="../helpers", default-features=false }
-pallet-session  ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+substrate-common  ={ path="../../crypto/substrate-common", default-features=false }
+pallet-constraints={ path="../constraints", default-features=false }
+helpers           ={ path="../helpers", default-features=false }
+pallet-session    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 
 [dev-dependencies]
 pallet-balances                ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
@@ -92,6 +93,7 @@ std=[
   'frame-system/std',
   'frame-benchmarking/std',
   'pallet-balances/std',
+  'pallet-constraints/std',
   'pallet-slashing/std',
   'pallet-staking-extension/std',
   'helpers/std',

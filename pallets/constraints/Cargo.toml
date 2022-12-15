@@ -55,7 +55,7 @@ lite-json       ={ version="0.1", default-features=false }
 sp-runtime      ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
 sp-std          ={ package="sp-std", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30", default-features=false }
 substrate-common={ path="../../crypto/substrate-common", default-features=false }
-pallet-relayer  ={ path="../../pallets/relayer", default-features=false }
+# pallet-relayer  ={ path="../../pallets/relayer", default-features=false }
 
 [features]
 default=['std']
@@ -70,6 +70,6 @@ std=[
   'pallet-authorship/std',
   "sp-io/std",
   "sp-runtime/std",
-  "pallet-relayer/std",
+  # "pallet-relayer/std",
 ]
 try-runtime=['frame-support/try-runtime']

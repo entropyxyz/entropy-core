@@ -4,6 +4,7 @@ use frame_support::{
     traits::{ConstU32, FindAuthor, GenesisBuild, OneSessionHandler},
 };
 use frame_system as system;
+use pallet_constraints;
 use pallet_session::historical as pallet_session_historical;
 use pallet_staking_extension::ServerInfo;
 use sp_core::H256;
@@ -41,6 +42,7 @@ frame_support::construct_runtime!(
     Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
     Historical: pallet_session_historical::{Pallet},
     BagsList: pallet_bags_list::{Pallet, Call, Storage, Event<T>},
+    Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
   }
 );
 
@@ -166,7 +168,8 @@ parameter_types! {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where RuntimeCall: From<C>
+where
+    RuntimeCall: From<C>,
 {
     type Extrinsic = TestXt<RuntimeCall, ()>;
     type OverarchingCall = RuntimeCall;
@@ -269,7 +272,9 @@ parameter_types! {
 pub struct Author11;
 impl FindAuthor<u64> for Author11 {
     fn find_author<'a, I>(_digests: I) -> Option<u64>
-    where I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])> {
+    where
+        I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])>,
+    {
         Some(11)
     }
 }
@@ -291,6 +296,19 @@ impl pallet_relayer::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
     type WeightInfo = ();
+}
+
+parameter_types! {
+  pub const MaxWhitelist: u32 = 3;
+  pub const MaxAddressLength: u32 = 2;
+}
+
+impl pallet_constraints::Config for Test {
+    type MaxAddressLength = MaxAddressLength;
+    type MaxWhitelist = MaxWhitelist;
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
+    type MaxAclLength = frame_support::traits::ConstU32<2>;
 }
 
 // Build genesis storage according to the mock runtime.

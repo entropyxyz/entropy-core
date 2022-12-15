@@ -37,7 +37,7 @@ pub mod pallet {
     use substrate_common::types::Arch;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_relayer::Config {
+    pub trait Config: frame_system::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type MaxWhitelist: Get<u32>;
         type MaxAddressLength: Get<u32>;
@@ -133,14 +133,7 @@ pub mod pallet {
 
             Self::deposit_event(Event::AclUpdated(constraint_account, arch));
 
-            // TODO change Acl to a struct to make accessing length cleaner, new weight
-            let acl_length = match new_acl.clone() {
-                Some(acl) => match acl {
-                    Acl::Allow(acl) => acl.len(),
-                    Acl::Deny(acl) => acl.len(),
-                },
-                None => 0,
-            };
+            // TODO new weight
             Ok(Some(<T as Config>::WeightInfo::add_whitelist_address(3)).into())
         }
     }

@@ -55,6 +55,7 @@ pub mod pallet {
         + frame_system::Config
         + pallet_authorship::Config
         + pallet_staking_extension::Config
+        + pallet_constraints::Config
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -65,8 +66,10 @@ pub mod pallet {
     }
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
-    pub struct RegisteringDetails {
+    #[scale_info(skip_type_params(T))]
+    pub struct RegisteringDetails<T: Config> {
         pub is_registering: bool,
+        pub constraint_account: T::AccountId,
         pub confirmations: Vec<u8>,
     }
 
@@ -78,7 +81,9 @@ pub mod pallet {
 
     #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self { Self { registered_accounts: Default::default() } }
+        fn default() -> Self {
+            Self { registered_accounts: Default::default() }
+        }
     }
 
     #[pallet::genesis_build]
@@ -147,7 +152,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn registering)]
     pub type Registering<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails<T>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn registered)]
@@ -161,8 +166,8 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// A transaction has been propagated to the network. [who]
         SignatureRequested(Message),
-        /// An account has signaled to be registered. [who]
-        SignalRegister(T::AccountId),
+        /// An account has signaled to be registered. [signature request account, constraint account]
+        SignalRegister(T::AccountId, T::AccountId),
         /// An account has been registered. [who, signing_group]
         AccountRegistering(T::AccountId, u8),
         /// An account has been registered. [who]
@@ -208,15 +213,40 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Signals a user wants to register an account with the entropy-network
-        /// accounts are identified by the public group key of the user.
+        /// Signals that a user wants to register an account with Entropy.
+        ///
+        /// This should be called by the signature-request account, and specify the initial constraint-modification `AccountId`
+        /// that can set constraints.
+        ///
+        /// TODO add an initial constraint configuration
         #[pallet::weight(<T as Config>::WeightInfo::register())]
-        pub fn register(origin: OriginFor<T>) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-            let registering_info =
-                RegisteringDetails { is_registering: true, confirmations: vec![] };
-            Registering::<T>::insert(&who, registering_info);
-            Self::deposit_event(Event::SignalRegister(who));
+        pub fn register(origin: OriginFor<T>, constraint_account: T::AccountId) -> DispatchResult {
+            let sig_req_account = ensure_signed(origin)?;
+
+            // ensure account isn't already registered or has existing constraints
+            ensure!(!Registered::<T>::contains_key(&sig_req_account), Error::<T>::AlreadySubmitted);
+            ensure!(
+                !Registering::<T>::contains_key(&sig_req_account),
+                Error::<T>::AlreadySubmitted
+            );
+            ensure!(
+                pallet_constraints::pallet::AclAddresses::<T>::iter_key_prefix(&sig_req_account)
+                    .next()
+                    .is_none(),
+                Error::<T>::AlreadySubmitted
+            );
+
+            // put account into a registering state
+            Registering::<T>::insert(
+                &sig_req_account,
+                RegisteringDetails::<T> {
+                    is_registering: true,
+                    constraint_account: constraint_account.clone(),
+                    confirmations: vec![],
+                },
+            );
+
+            Self::deposit_event(Event::SignalRegister(sig_req_account, constraint_account));
             Ok(())
         }
 
@@ -226,14 +256,15 @@ pub mod pallet {
         #[pallet::weight((T::DbWeight::get().writes(1), Pays::No))]
         pub fn confirm_register(
             origin: OriginFor<T>,
-            registerer: T::AccountId,
+            sig_req_account: T::AccountId,
             signing_subgroup: u8,
         ) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-            let stash_key = pallet_staking_extension::Pallet::<T>::threshold_to_stash(&who)
-                .ok_or(Error::<T>::NoThresholdKey)?;
+            let ts_server_account = ensure_signed(origin)?;
+            let validator_stash =
+                pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
+                    .ok_or(Error::<T>::NoThresholdKey)?;
             let mut registering_info =
-                Self::registering(&registerer).ok_or(Error::<T>::NotRegistering)?;
+                Self::registering(&sig_req_account).ok_or(Error::<T>::NotRegistering)?;
             ensure!(
                 !registering_info.confirmations.contains(&signing_subgroup),
                 Error::<T>::AlreadyConfirmed
@@ -242,15 +273,18 @@ pub mod pallet {
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
                     .ok_or(Error::<T>::InvalidSubgroup)?;
 
-            ensure!(signing_subgroup_addresses.contains(&stash_key), Error::<T>::NotInSigningGroup);
+            ensure!(
+                signing_subgroup_addresses.contains(&validator_stash),
+                Error::<T>::NotInSigningGroup
+            );
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
-                Registered::<T>::insert(&registerer, true);
-                Registering::<T>::remove(&registerer);
-                Self::deposit_event(Event::AccountRegistered(registerer));
+                Registered::<T>::insert(&sig_req_account, true);
+                Registering::<T>::remove(&sig_req_account);
+                Self::deposit_event(Event::AccountRegistered(sig_req_account));
             } else {
                 registering_info.confirmations.push(signing_subgroup);
-                Registering::<T>::insert(&registerer, registering_info);
-                Self::deposit_event(Event::AccountRegistering(registerer, signing_subgroup));
+                Registering::<T>::insert(&sig_req_account, registering_info);
+                Self::deposit_event(Event::AccountRegistering(sig_req_account, signing_subgroup));
             }
             Ok(())
         }
@@ -264,7 +298,7 @@ pub mod pallet {
             block_number: T::BlockNumber,
             failures: Vec<u32>,
         ) -> DispatchResult {
-            let who = ensure_signed(origin)?;
+            let ts_server_account = ensure_signed(origin)?;
             let responsibility =
                 Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
             let validator_id_res =
@@ -276,13 +310,16 @@ pub mod pallet {
             let server_info =
                 pallet_staking_extension::Pallet::<T>::threshold_server(&validator_id)
                     .ok_or(Error::<T>::NoThresholdKey)?;
-            ensure!(who == server_info.tss_account, Error::<T>::NotYourResponsibility);
+            ensure!(
+                ts_server_account == server_info.tss_account,
+                Error::<T>::NotYourResponsibility
+            );
 
             let current_failures = Self::failures(block_number);
 
             ensure!(current_failures.is_none(), Error::<T>::AlreadySubmitted);
             Failures::<T>::insert(block_number, &failures);
-            Self::deposit_event(Event::ConfirmedDone(who, block_number, failures));
+            Self::deposit_event(Event::ConfirmedDone(ts_server_account, block_number, failures));
             Ok(())
         }
     }
@@ -350,10 +387,12 @@ pub mod pallet {
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct PrevalidateRelayer<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
 
     impl<T: Config + Send + Sync> Debug for PrevalidateRelayer<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         #[cfg(feature = "std")]
         fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -361,18 +400,24 @@ pub mod pallet {
         }
 
         #[cfg(not(feature = "std"))]
-        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
+        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+            Ok(())
+        }
     }
 
     impl<T: Config + Send + Sync> PrevalidateRelayer<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         /// Create new `SignedExtension` to check runtime version.
-        pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
+        pub fn new() -> Self {
+            Self(sp_std::marker::PhantomData)
+        }
     }
 
     impl<T: Config + Send + Sync> SignedExtension for PrevalidateRelayer<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         type AccountId = T::AccountId;
         type AdditionalSigned = ();

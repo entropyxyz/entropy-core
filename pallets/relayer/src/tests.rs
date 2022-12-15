@@ -57,7 +57,10 @@ fn it_emits_a_signature_request_event() {
 #[test]
 fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Relayer::register(RuntimeOrigin::signed(1)));
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(1),
+            2 as <Test as frame_system::Config>::AccountId
+        ));
 
         assert!(Relayer::registering(1).unwrap().is_registering);
     });
@@ -78,7 +81,10 @@ fn it_confirms_registers_a_user() {
             Error::<Test>::NotRegistering
         );
 
-        assert_ok!(Relayer::register(RuntimeOrigin::signed(1)));
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(1),
+            2 as <Test as frame_system::Config>::AccountId
+        ));
 
         assert_noop!(
             Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 3),
@@ -101,7 +107,11 @@ fn it_confirms_registers_a_user() {
             Error::<Test>::AlreadyConfirmed
         );
 
-        let registering_info = RegisteringDetails { is_registering: true, confirmations: vec![0] };
+        let registering_info = RegisteringDetails::<Test> {
+            is_registering: true,
+            constraint_account: 2 as <Test as frame_system::Config>::AccountId,
+            confirmations: vec![0],
+        };
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
 
@@ -200,7 +210,10 @@ fn notes_responsibility() {
 #[test]
 fn it_provides_free_txs_prep_tx() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Relayer::register(RuntimeOrigin::signed(1)));
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(1),
+            2 as <Test as frame_system::Config>::AccountId
+        ));
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
         assert_ok!(Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0));
