@@ -62,17 +62,22 @@ pub(super) async fn load_kv_store() -> KvManager {
 
 #[derive(Parser, Debug, Clone)]
 pub struct StartupArgs {
-    /// Wether to sync the keystore
+    /// Wether to sync the keystore.
     #[arg(short = 's', long = "sync")]
     pub sync: bool,
-    /// Use the developer key Alice
+    /// Use the developer key Bob.
     #[arg(short = 'b', long = "bob")]
     pub bob: bool,
-    /// Use the developer key Alice
+    /// Use the developer key Alice.
     #[arg(short = 'a', long = "alice")]
     pub alice: bool,
-    /// Use the developer key Alice
-    #[arg(short = 'c', long = "chain-endpoint", value_name = "ws://localhost:9944")]
+    /// Websocket endpoint for the entropy blockchain.
+    #[arg(
+        short = 'c',
+        long = "chain-endpoint",
+        required = false,
+        default_value = "ws://localhost:9944"
+    )]
     pub chain_endpoint: String,
 }
 
