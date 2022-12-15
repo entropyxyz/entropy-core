@@ -32,24 +32,16 @@ pub struct Configuration {
 }
 
 impl Configuration {
-    pub(crate) fn new_with_endpoint(endpoint: String) -> Configuration {
-        Configuration { endpoint }
-    }
+    pub(crate) fn new(endpoint: String) -> Configuration { Configuration { endpoint } }
 }
 
-impl Configuration {
-    pub(crate) fn new() -> Configuration {
-        Configuration { endpoint: DEFAULT_ENDPOINT.to_string() }
-    }
-}
-
-pub(super) async fn load_kv_store() -> KvManager {
+pub(super) async fn load_kv_store(is_bob: bool) -> KvManager {
     let kv_store: KvManager = if cfg!(test) {
         KvManager::new(kvdb::get_db_path().into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap()
     } else {
         let mut root = project_root::get_project_root().unwrap();
-        if cfg!(feature = "bob") {
+        if is_bob {
             let formatted = format!("{}/bob", root.display());
             root = formatted.into()
         }
