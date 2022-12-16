@@ -1,4 +1,4 @@
-use substrate_common::{Acl, AclKind, Architecture, BasicTransaction, HasReceiver, HasSender};
+use substrate_common::{Acl, AclKind, Architecture, BasicTransaction};
 use thiserror::Error;
 
 /// Constraint errors.

@@ -4,9 +4,9 @@ pub use crate::constraints::*;
 use codec::alloc::vec::Vec;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use serde::{Deserialize, Serialize};
-use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
-use sp_core::{bounded::BoundedVec, ConstU32};
+
+
+
 
 /// RegistrationMessage holds the information sent by the User to the extropy-network during
 /// account-registration

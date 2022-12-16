@@ -27,13 +27,10 @@ pub mod weights;
 pub mod pallet {
 
     pub use crate::weights::WeightInfo;
-    use core::fmt::Debug;
+    
     use frame_support::{
         dispatch::DispatchResultWithPostInfo,
-        inherent::Vec,
         pallet_prelude::{ResultQuery, *},
-        traits::ConstU32,
-        BoundedVec,
     };
     use frame_system::pallet_prelude::*;
     use sp_runtime::sp_std::str;
