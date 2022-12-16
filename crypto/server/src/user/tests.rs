@@ -259,7 +259,8 @@ pub async fn make_register(
     sig_req_keyring: &Sr25519Keyring,
     constraint_keyring: &Sr25519Keyring,
 ) {
-    let sig_req_account = PairSigner::new(sig_req_keyring.pair());
+    let sig_req_account =
+        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
     let constraint_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(constraint_keyring.pair());
     let registering_query =
