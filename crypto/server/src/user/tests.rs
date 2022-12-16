@@ -96,8 +96,6 @@ async fn test_unsafe_get_endpoint() {
 #[serial]
 async fn test_store_share() {
     clean_tests();
-    let kv_store = load_kv_store(false).await;
-    setup_mnemonic(&kv_store, false, false).await;
     let alice = AccountKeyring::Alice;
     let alice_stash_id: AccountId32 =
         h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
