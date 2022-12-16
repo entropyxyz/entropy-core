@@ -24,7 +24,9 @@ use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     new_user,
     signing_client::SignerState,
-    utils::{Configuration, SignatureState, DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
+    utils::{
+        Configuration, SignatureState, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+    },
 };
 
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
@@ -152,7 +154,7 @@ async fn create_clients(
     let config = rocket::Config::figment().merge(("port", port));
 
     let signer_state = SignerState::default();
-    let configuration = Configuration::new();
+    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let signature_state = SignatureState::new();
 
     let path = format!("test_db_{}", key_number);
