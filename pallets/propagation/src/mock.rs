@@ -37,6 +37,7 @@ frame_support::construct_runtime!(
     Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
     Relayer: pallet_relayer::{Pallet, Call, Storage, Event<T>},
+    Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
     Propagation: pallet_propagation::{Pallet, Call, Storage, Event<T>},
     Staking: pallet_staking_extension::{Pallet, Call, Storage, Event<T>, Config<T>},
     FrameStaking: pallet_staking::{Pallet, Call, Storage, Event<T>},
@@ -168,7 +169,8 @@ parameter_types! {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where RuntimeCall: From<C>
+where
+    RuntimeCall: From<C>,
 {
     type Extrinsic = TestXt<RuntimeCall, ()>;
     type OverarchingCall = RuntimeCall;
@@ -271,7 +273,9 @@ parameter_types! {
 pub struct Author11;
 impl FindAuthor<u64> for Author11 {
     fn find_author<'a, I>(_digests: I) -> Option<u64>
-    where I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])> {
+    where
+        I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])>,
+    {
         Some(11)
     }
 }
@@ -292,6 +296,11 @@ impl pallet_relayer::Config for Test {
     type PruneBlock = PruneBlock;
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
+    type WeightInfo = ();
+}
+
+impl pallet_constraints::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
 

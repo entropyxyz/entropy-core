@@ -298,17 +298,9 @@ impl pallet_relayer::Config for Test {
     type WeightInfo = ();
 }
 
-parameter_types! {
-  pub const MaxWhitelist: u32 = 3;
-  pub const MaxAddressLength: u32 = 2;
-}
-
 impl pallet_constraints::Config for Test {
-    type MaxAddressLength = MaxAddressLength;
-    type MaxWhitelist = MaxWhitelist;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
-    type MaxAclLength = frame_support::traits::ConstU32<2>;
 }
 
 // Build genesis storage according to the mock runtime.

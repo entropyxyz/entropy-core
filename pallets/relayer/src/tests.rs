@@ -1,15 +1,18 @@
+use core::default;
+
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
     traits::OnInitialize,
 };
+use pallet_constraints::{AclAddresses, SigReqAccounts, H160};
 use pallet_relayer::Call as RelayerCall;
 use pallet_staking_extension::ServerInfo;
 use sp_runtime::{
     traits::SignedExtension,
     transaction_validity::{TransactionValidity, ValidTransaction},
 };
-use substrate_common::{Message, SigRequest};
+use substrate_common::{Acl, Arch, Message, SigRequest};
 
 use crate as pallet_relayer;
 use crate::{mock::*, Error, Failures, PrevalidateRelayer, RegisteringDetails, Responsibility};
@@ -57,9 +60,11 @@ fn it_emits_a_signature_request_event() {
 #[test]
 fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
+        use super::*;
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
-            2 as <Test as frame_system::Config>::AccountId
+            2 as <Test as frame_system::Config>::AccountId,
+            None
         ));
 
         assert!(Relayer::registering(1).unwrap().is_registering);
@@ -83,7 +88,8 @@ fn it_confirms_registers_a_user() {
 
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
-            2 as <Test as frame_system::Config>::AccountId
+            2 as <Test as frame_system::Config>::AccountId,
+            Some(Acl::<H160>::default()),
         ));
 
         assert_noop!(
@@ -111,6 +117,7 @@ fn it_confirms_registers_a_user() {
             is_registering: true,
             constraint_account: 2 as <Test as frame_system::Config>::AccountId,
             confirmations: vec![0],
+            initial_acl: Some(Acl::<H160>::default()),
         };
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
@@ -119,6 +126,10 @@ fn it_confirms_registers_a_user() {
 
         assert_eq!(Relayer::registering(1), None);
         assert!(Relayer::registered(1).unwrap());
+
+        // make sure constraint and sig req keys are set
+        assert!(SigReqAccounts::<Test>::contains_key(2, 1));
+        assert!(AclAddresses::<Test>::contains_key(1, Arch::EVM));
     });
 }
 
@@ -212,7 +223,8 @@ fn it_provides_free_txs_prep_tx() {
     new_test_ext().execute_with(|| {
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
-            2 as <Test as frame_system::Config>::AccountId
+            2 as <Test as frame_system::Config>::AccountId,
+            None
         ));
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);

@@ -1276,11 +1276,8 @@ parameter_types! {
 }
 
 impl pallet_constraints::Config for Runtime {
-    type MaxAddressLength = MaxAddressLengthNum;
-    type MaxWhitelist = MaxWhitelistNum;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_constraints::WeightInfo<Runtime>;
-    type MaxAclLength = frame_support::traits::ConstU32<20>;
 }
 
 impl pallet_transaction_pause::Config for Runtime {

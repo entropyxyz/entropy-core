@@ -15,7 +15,7 @@ use rocket::{
 use serde::{Deserialize, Serialize};
 use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
 use substrate_common::{
-    types::{ACLConstraint, Architecture, BasicTransaction, ACL},
+    types::{Acl, AclKind, Architecture, BasicTransaction},
     SIGNING_PARTY_SIZE,
 };
 use subxt::{

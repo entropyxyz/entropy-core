@@ -83,8 +83,6 @@ parameter_types! {
 }
 
 impl pallet_constraints::Config for Runtime {
-    type MaxAddressLength = MaxAddressLength;
-    type MaxWhitelist = MaxWhitelist;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
@@ -118,7 +116,9 @@ construct_runtime!(
 pub struct ExtBuilder;
 
 impl Default for ExtBuilder {
-    fn default() -> Self { ExtBuilder }
+    fn default() -> Self {
+        ExtBuilder
+    }
 }
 
 impl ExtBuilder {

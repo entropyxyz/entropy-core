@@ -1,6 +1,6 @@
 //! This includes all EVM-architecture related types and functions.
 use serde_derive::{Deserialize, Serialize};
-use substrate_common::types::{Arch, Architecture, HasArch, HasReceiver, HasSender};
+use substrate_common::{Arch, Architecture, HasArch, HasReceiver, HasSender};
 use web3::types::Address;
 pub use web3::types::TransactionRequest as EvmTransactionRequest;
 
@@ -14,13 +14,19 @@ impl Architecture for EVM {
 }
 
 impl HasSender<EVM> for EvmTransactionRequest {
-    fn sender(&self) -> Option<<EVM as Architecture>::Address> { Some(self.from) }
+    fn sender(&self) -> Option<<EVM as Architecture>::Address> {
+        Some(self.from)
+    }
 }
 
 impl HasReceiver<EVM> for EvmTransactionRequest {
-    fn receiver(&self) -> Option<<EVM as Architecture>::Address> { self.to }
+    fn receiver(&self) -> Option<<EVM as Architecture>::Address> {
+        self.to
+    }
 }
 
 impl HasArch for EVM {
-    fn arch() -> Arch { Arch::EVM }
+    fn arch() -> Arch {
+        Arch::EVM
+    }
 }

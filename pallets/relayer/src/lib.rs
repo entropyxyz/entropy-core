@@ -38,6 +38,7 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use helpers::unwrap_or_return;
+    use pallet_constraints::{AclAddresses, SigReqAccounts};
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_runtime::{
@@ -45,7 +46,7 @@ pub mod pallet {
         transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
     };
     use sp_std::{fmt::Debug, vec};
-    use substrate_common::{Message, SigRequest, SIGNING_PARTY_SIZE};
+    use substrate_common::{Acl, Arch, Message, SigRequest, H160, SIGNING_PARTY_SIZE};
 
     pub use crate::weights::WeightInfo;
     /// Configure the pallet by specifying the parameters and types on which it depends.
@@ -71,6 +72,7 @@ pub mod pallet {
         pub is_registering: bool,
         pub constraint_account: T::AccountId,
         pub confirmations: Vec<u8>,
+        pub initial_acl: Option<Acl<H160>>,
     }
 
     #[pallet::genesis_config]
@@ -220,7 +222,11 @@ pub mod pallet {
         ///
         /// TODO add an initial constraint configuration
         #[pallet::weight(<T as Config>::WeightInfo::register())]
-        pub fn register(origin: OriginFor<T>, constraint_account: T::AccountId) -> DispatchResult {
+        pub fn register(
+            origin: OriginFor<T>,
+            constraint_account: T::AccountId,
+            initial_acl: Option<Acl<H160>>,
+        ) -> DispatchResult {
             let sig_req_account = ensure_signed(origin)?;
 
             // ensure account isn't already registered or has existing constraints
@@ -243,6 +249,7 @@ pub mod pallet {
                     is_registering: true,
                     constraint_account: constraint_account.clone(),
                     confirmations: vec![],
+                    initial_acl,
                 },
             );
 
@@ -253,6 +260,7 @@ pub mod pallet {
         // TODO(Jake): This is an insecure way to do a free transaction.
         // secure it, please. :)
         /// Used by validators to confirm they have received a key-share from a user that is registering.
+        /// After a validator from each partition confirms they have a keyshare, this should get the user to a `Registered` state
         #[pallet::weight((T::DbWeight::get().writes(1), Pays::No))]
         pub fn confirm_register(
             origin: OriginFor<T>,
@@ -280,6 +288,21 @@ pub mod pallet {
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 Registered::<T>::insert(&sig_req_account, true);
                 Registering::<T>::remove(&sig_req_account);
+                SigReqAccounts::<T>::insert(
+                    &registering_info.constraint_account,
+                    sig_req_account.clone(),
+                    (),
+                );
+                match registering_info.initial_acl {
+                    Some(constraints) => {
+                        pallet_constraints::pallet::AclAddresses::<T>::insert(
+                            &sig_req_account,
+                            Arch::EVM,
+                            &constraints,
+                        );
+                    },
+                    None => {},
+                }
                 Self::deposit_event(Event::AccountRegistered(sig_req_account));
             } else {
                 registering_info.confirmations.push(signing_subgroup);

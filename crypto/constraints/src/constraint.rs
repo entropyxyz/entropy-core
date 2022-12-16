@@ -1,4 +1,4 @@
-use substrate_common::types::{ACLConstraint, Architecture, BasicTransaction, ACL};
+use substrate_common::{Acl, AclKind, Architecture, BasicTransaction, HasReceiver, HasSender};
 use thiserror::Error;
 
 /// Constraint errors.
@@ -14,7 +14,7 @@ pub trait Constraint<A: Architecture> {
 }
 
 /// Generic implementation of Access Control Lists (Allow/Deny lists).
-impl<A: Architecture> Constraint<A> for ACLConstraint<A> {
+impl<A: Architecture> Constraint<A> for Acl<A::Address> {
     fn eval(&self, tx: BasicTransaction<A>) -> Result<bool, ConstraintError> {
         if !self.allow_null_recipient && tx.to.is_none() {
             return Err(ConstraintError::EvaluationError(
@@ -25,8 +25,8 @@ impl<A: Architecture> Constraint<A> for ACLConstraint<A> {
             return Ok(true);
         }
         match self.acl_type {
-            ACL::Allow => Ok(self.acl.contains(&tx.to.unwrap())),
-            ACL::Deny => Ok(!self.acl.contains(&tx.to.unwrap())),
+            AclKind::Allow => Ok(self.acl.contains(&tx.to.unwrap())),
+            AclKind::Deny => Ok(!self.acl.contains(&tx.to.unwrap())),
         }
     }
 }
