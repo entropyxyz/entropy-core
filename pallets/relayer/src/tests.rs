@@ -1,5 +1,3 @@
-
-
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
@@ -51,16 +49,13 @@ fn it_emits_a_signature_request_event() {
 
         assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request));
 
-        System::assert_last_event(RuntimeEvent::Relayer(crate::Event::SignatureRequested(
-            message,
-        )));
+        System::assert_last_event(RuntimeEvent::Relayer(crate::Event::SignatureRequested(message)));
     });
 }
 
 #[test]
 fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
-        use super::*;
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,

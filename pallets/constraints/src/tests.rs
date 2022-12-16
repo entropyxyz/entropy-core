@@ -1,7 +1,5 @@
-
-
 use frame_support::{assert_err, assert_noop, assert_ok, BoundedVec};
-use sp_core::{H160};
+use sp_core::H160;
 
 use crate::{mock::*, Acl, AclKind, Arch, Error, SigReqAccounts};
 
@@ -14,7 +12,6 @@ use crate::{mock::*, Acl, AclKind, Arch, Error, SigReqAccounts};
 /// consts used for testing
 const CONSTRAINT_ACCOUNT: u64 = 1u64;
 const SIG_REQ_ACCOUNT: u64 = 2u64;
-const UNUSED_ACCOUNT: u64 = 3u64;
 
 // Integration Test
 #[test]

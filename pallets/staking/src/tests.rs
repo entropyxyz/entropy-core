@@ -1,16 +1,9 @@
 use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use pallet_session::SessionManager;
 
-
 use crate::{mock::*, Error, ServerInfo};
 
 const NULL_ARR: [u8; 32] = [0; 32];
-
-fn initialize_block(block: u64) {
-    SESSION_CHANGED.with(|l| *l.borrow_mut() = false);
-    System::set_block_number(block);
-    Session::on_initialize(block);
-}
 
 #[test]
 fn basic_setup_works() {
