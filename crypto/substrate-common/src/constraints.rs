@@ -50,7 +50,6 @@ pub struct BasicTransaction<A: Architecture> {
 }
 
 // TODO Move all EVM architecture stuff in entropy-constraints to substrate-common
-// pub struct GenericArch;
 
 /// This includes tpes related to ACL constraints.
 mod acl {

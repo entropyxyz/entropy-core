@@ -218,8 +218,6 @@ pub mod pallet {
         ///
         /// This should be called by the signature-request account, and specify the initial
         /// constraint-modification `AccountId` that can set constraints.
-        ///
-        /// TODO add an initial constraint configuration
         #[pallet::weight(<T as Config>::WeightInfo::register())]
         pub fn register(
             origin: OriginFor<T>,
