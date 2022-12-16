@@ -69,23 +69,23 @@ mod acl {
     /// TODO make this a non-bounded or generic vec
     #[derive(Clone, Debug, Encode, Decode, PartialEq, Eq, scale_info::TypeInfo, MaxEncodedLen)]
     pub struct Acl<Address> {
-        pub acl: BoundedVec<Address, ConstU32<25>>,
-        pub acl_type: AclKind,
+        pub addresses: BoundedVec<Address, ConstU32<25>>,
+        pub kind: AclKind,
         pub allow_null_recipient: bool,
     }
 
     impl<A: Default> Default for Acl<A> {
         fn default() -> Self {
-            let acl = BoundedVec::<A, ConstU32<25>>::default();
-            Self { acl, acl_type: AclKind::Allow, allow_null_recipient: false }
+            let addresses = BoundedVec::<A, ConstU32<25>>::default();
+            Self { addresses, kind: AclKind::Allow, allow_null_recipient: false }
         }
     }
 
     impl<A: Default> Acl<A> {
         /// Try to create a new Allow ACL from a `Vec` of addresses.
-        pub fn try_from(acl: Vec<A>) -> Result<Self, &'static str> {
+        pub fn try_from(addresses: Vec<A>) -> Result<Self, &'static str> {
             let mut new_acl = Acl::<A>::default();
-            new_acl.acl.try_extend(acl.into_iter()).map_err(|_| "ACL is too long.")?;
+            new_acl.addresses.try_extend(addresses.into_iter()).map_err(|_| "ACL is too long.")?;
 
             Ok(new_acl)
         }

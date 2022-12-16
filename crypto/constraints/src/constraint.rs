@@ -24,9 +24,9 @@ impl<A: Architecture> Constraint<A> for Acl<A::Address> {
         if self.allow_null_recipient && tx.to.is_none() {
             return Ok(true);
         }
-        match self.acl_type {
-            AclKind::Allow => Ok(self.acl.contains(&tx.to.unwrap())),
-            AclKind::Deny => Ok(!self.acl.contains(&tx.to.unwrap())),
+        match self.kind {
+            AclKind::Allow => Ok(self.addresses.contains(&tx.to.unwrap())),
+            AclKind::Deny => Ok(!self.addresses.contains(&tx.to.unwrap())),
         }
     }
 }

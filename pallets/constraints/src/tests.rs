@@ -19,8 +19,8 @@ fn assert_modification_permissions_work_as_expected() {
     new_test_ext().execute_with(|| {
         // a valid one-address allowlist
         let valid_acl = Acl {
-            acl: BoundedVec::try_from(vec![H160::from([0u8; 20])]).unwrap(),
-            acl_type: AclKind::Allow,
+            addresses: BoundedVec::try_from(vec![H160::from([0u8; 20])]).unwrap(),
+            kind: AclKind::Allow,
             allow_null_recipient: false,
         };
         // make sure noone can add a constraint without explicit permissions
@@ -83,8 +83,8 @@ fn assert_storage_updates_as_expected() {
     new_test_ext().execute_with(|| {
         // a valid one-address allowlist
         let valid_acl = Acl {
-            acl: BoundedVec::try_from(vec![H160::from([0u8; 20])]).unwrap(),
-            acl_type: AclKind::Allow,
+            addresses: BoundedVec::try_from(vec![H160::from([0u8; 20])]).unwrap(),
+            kind: AclKind::Allow,
             allow_null_recipient: false,
         };
 

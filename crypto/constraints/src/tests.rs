@@ -84,8 +84,8 @@ fn test_allow_list() {
 
     // Assert that an allow list with no items in it does not evaluate to true.
     let constraint = Acl::<<EVM as Architecture>::Address> {
-        acl_type: AclKind::Allow,
-        acl: BoundedVec::default(),
+        kind: AclKind::Allow,
+        addresses: BoundedVec::default(),
         allow_null_recipient: true,
     };
     let evaluation = constraint.eval(tx.clone());
@@ -94,8 +94,8 @@ fn test_allow_list() {
 
     // Assert that an allow list with a valid item in it evaluates to true.
     let constraint_2 = Acl::<<EVM as Architecture>::Address> {
-        acl_type: AclKind::Allow,
-        acl: BoundedVec::try_from(vec![to]).unwrap(),
+        kind: AclKind::Allow,
+        addresses: BoundedVec::try_from(vec![to]).unwrap(),
         allow_null_recipient: true,
     };
     let evaluation_2 = constraint_2.eval(tx);
@@ -123,8 +123,8 @@ fn test_deny_list() {
 
     // Assert that a deny list with no items in it does evaluates to true.
     let constraint = Acl::<<EVM as Architecture>::Address> {
-        acl_type: AclKind::Deny,
-        acl: BoundedVec::default(),
+        kind: AclKind::Deny,
+        addresses: BoundedVec::default(),
         allow_null_recipient: true,
     };
     let evaluation = constraint.eval(tx.clone());
@@ -133,8 +133,8 @@ fn test_deny_list() {
 
     // Assert that a deny list with the specified recipient evalutes to false.
     let constraint_2 = Acl::<<EVM as Architecture>::Address> {
-        acl_type: AclKind::Deny,
-        acl: BoundedVec::try_from(vec![to]).unwrap(),
+        kind: AclKind::Deny,
+        addresses: BoundedVec::try_from(vec![to]).unwrap(),
         allow_null_recipient: true,
     };
     let evaluation_2 = constraint_2.eval(tx);
@@ -159,16 +159,16 @@ fn test_allow_null_recip() {
     let tx = tx_result.unwrap();
 
     let constraint = Acl::<<EVM as Architecture>::Address> {
-        acl_type: AclKind::Deny,
-        acl: BoundedVec::default(),
+        kind: AclKind::Deny,
+        addresses: BoundedVec::default(),
         allow_null_recipient: false,
     };
     let evaluation = constraint.eval(tx.clone());
     assert!(evaluation.is_err());
 
     let constraint_2 = Acl::<<EVM as Architecture>::Address> {
-        acl_type: AclKind::Allow,
-        acl: BoundedVec::default(),
+        kind: AclKind::Allow,
+        addresses: BoundedVec::default(),
         allow_null_recipient: true,
     };
     let evaluation_2 = constraint_2.eval(tx);
