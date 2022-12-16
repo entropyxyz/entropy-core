@@ -6,21 +6,21 @@ pub use web3::types::TransactionRequest as EvmTransactionRequest;
 
 /// EVM architecture
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct EVM;
+pub struct Evm;
 
-impl Architecture for EVM {
+impl Architecture for Evm {
     type Address = Address;
     type TransactionRequest = EvmTransactionRequest;
 }
 
-impl HasSender<EVM> for EvmTransactionRequest {
-    fn sender(&self) -> Option<<EVM as Architecture>::Address> { Some(self.from) }
+impl HasSender<Evm> for EvmTransactionRequest {
+    fn sender(&self) -> Option<<Evm as Architecture>::Address> { Some(self.from) }
 }
 
-impl HasReceiver<EVM> for EvmTransactionRequest {
-    fn receiver(&self) -> Option<<EVM as Architecture>::Address> { self.to }
+impl HasReceiver<Evm> for EvmTransactionRequest {
+    fn receiver(&self) -> Option<<Evm as Architecture>::Address> { self.to }
 }
 
-impl HasArch for EVM {
+impl HasArch for Evm {
     fn arch() -> Arch { Arch::Evm }
 }
