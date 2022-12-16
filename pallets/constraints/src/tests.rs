@@ -89,8 +89,8 @@ fn assert_modification_permissions_work_as_expected() {
         //         RuntimeOrigin::signed(1),
         //         [address_2.clone(), address_3.clone()].to_vec()
         //     ));
-        //     assert_eq!(Constraints::address_whitelist(1), [address_2.clone(), address_3.clone()]);
-        //     assert_noop!(
+        //     assert_eq!(Constraints::address_whitelist(1), [address_2.clone(),
+        // address_3.clone()]);     assert_noop!(
         //         Constraints::add_whitelist_address(
         //             RuntimeOrigin::signed(1),
         //             [address_2.clone()].to_vec()
@@ -103,8 +103,8 @@ fn assert_modification_permissions_work_as_expected() {
         //     ));
         //     assert_eq!(Constraints::address_whitelist(1), [address_2, address_3, address_4]);
         //     assert_noop!(
-        //         Constraints::add_whitelist_address(RuntimeOrigin::signed(1), [address_5].to_vec()),
-        //         Error::<Test>::MaxWhitelist
+        //         Constraints::add_whitelist_address(RuntimeOrigin::signed(1),
+        // [address_5].to_vec()),         Error::<Test>::MaxWhitelist
         //     );
         //     assert_noop!(
         //         Constraints::add_whitelist_address(

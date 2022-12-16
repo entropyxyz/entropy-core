@@ -3,7 +3,6 @@
 //! i.e. messages sent from one to the other and structs contained in those messages
 //!
 //! This helps ensures those structs are synced among clients and nodes.
-//!
 pub use constraints::*;
 pub use types::*;
 

@@ -26,8 +26,6 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 
-    pub use crate::weights::WeightInfo;
-    
     use frame_support::{
         dispatch::DispatchResultWithPostInfo,
         pallet_prelude::{ResultQuery, *},
@@ -35,6 +33,8 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use sp_runtime::sp_std::str;
     pub use substrate_common::{Acl, AclKind, Arch, H160};
+
+    pub use crate::weights::WeightInfo;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -50,7 +50,8 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn sig_req_accounts)]
-    /// Maps constraint-modification `AccountId`s to the signature-request accounts they're allowed to modify the constraints of.
+    /// Maps constraint-modification `AccountId`s to the signature-request accounts they're allowed
+    /// to modify the constraints of.
     pub type SigReqAccounts<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
@@ -61,7 +62,8 @@ pub mod pallet {
         ResultQuery<Error<T>::NotAuthorized>,
     >;
 
-    /// Stores the ACL of each user for every architecture. Maps a signature-request AccountId and a platform to the platform-specific constraints
+    /// Stores the ACL of each user for every architecture. Maps a signature-request AccountId and a
+    /// platform to the platform-specific constraints
     #[pallet::storage]
     #[pallet::getter(fn acl)]
     pub type AclAddresses<T: Config> = StorageDoubleMap<

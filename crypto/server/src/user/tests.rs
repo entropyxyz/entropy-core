@@ -23,8 +23,10 @@ use crate::{
     },
     get_signer, load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
-    user::tests::entropy::runtime_types::substrate_common::constraints::acl::Acl,
-    user::unsafe_api::UnsafeQuery,
+    user::{
+        tests::entropy::runtime_types::substrate_common::constraints::acl::Acl,
+        unsafe_api::UnsafeQuery,
+    },
     utils,
     utils::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
 };

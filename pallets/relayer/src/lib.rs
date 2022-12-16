@@ -83,9 +83,7 @@ pub mod pallet {
 
     #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self {
-            Self { registered_accounts: Default::default() }
-        }
+        fn default() -> Self { Self { registered_accounts: Default::default() } }
     }
 
     #[pallet::genesis_build]
@@ -168,7 +166,8 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// A transaction has been propagated to the network. [who]
         SignatureRequested(Message),
-        /// An account has signaled to be registered. [signature request account, constraint account]
+        /// An account has signaled to be registered. [signature request account, constraint
+        /// account]
         SignalRegister(T::AccountId, T::AccountId),
         /// An account has been registered. [who, signing_group]
         AccountRegistering(T::AccountId, u8),
@@ -217,8 +216,8 @@ pub mod pallet {
 
         /// Signals that a user wants to register an account with Entropy.
         ///
-        /// This should be called by the signature-request account, and specify the initial constraint-modification `AccountId`
-        /// that can set constraints.
+        /// This should be called by the signature-request account, and specify the initial
+        /// constraint-modification `AccountId` that can set constraints.
         ///
         /// TODO add an initial constraint configuration
         #[pallet::weight(<T as Config>::WeightInfo::register())]
@@ -259,8 +258,9 @@ pub mod pallet {
 
         // TODO(Jake): This is an insecure way to do a free transaction.
         // secure it, please. :)
-        /// Used by validators to confirm they have received a key-share from a user that is registering.
-        /// After a validator from each partition confirms they have a keyshare, this should get the user to a `Registered` state
+        /// Used by validators to confirm they have received a key-share from a user that is
+        /// registering. After a validator from each partition confirms they have a
+        /// keyshare, this should get the user to a `Registered` state
         #[pallet::weight((T::DbWeight::get().writes(1), Pays::No))]
         pub fn confirm_register(
             origin: OriginFor<T>,
@@ -410,12 +410,10 @@ pub mod pallet {
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct PrevalidateRelayer<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
-    where
-        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
+    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
 
     impl<T: Config + Send + Sync> Debug for PrevalidateRelayer<T>
-    where
-        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
+    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
     {
         #[cfg(feature = "std")]
         fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -423,24 +421,18 @@ pub mod pallet {
         }
 
         #[cfg(not(feature = "std"))]
-        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-            Ok(())
-        }
+        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
     }
 
     impl<T: Config + Send + Sync> PrevalidateRelayer<T>
-    where
-        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
+    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
     {
         /// Create new `SignedExtension` to check runtime version.
-        pub fn new() -> Self {
-            Self(sp_std::marker::PhantomData)
-        }
+        pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
     }
 
     impl<T: Config + Send + Sync> SignedExtension for PrevalidateRelayer<T>
-    where
-        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
+    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
     {
         type AccountId = T::AccountId;
         type AdditionalSigned = ();

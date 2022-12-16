@@ -1,12 +1,9 @@
 #![allow(dead_code)]
-/// common structs etc, shared among the substrate-blockchain-code and the crypto-code
-pub use crate::constraints::*;
-use codec::alloc::vec::Vec;
-use codec::{Decode, Encode};
+use codec::{alloc::vec::Vec, Decode, Encode};
 use scale_info::TypeInfo;
 
-
-
+/// common structs etc, shared among the substrate-blockchain-code and the crypto-code
+pub use crate::constraints::*;
 
 /// RegistrationMessage holds the information sent by the User to the extropy-network during
 /// account-registration
