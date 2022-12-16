@@ -21,7 +21,6 @@ use tokio::sync::{mpsc, oneshot};
 
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
-    user::api::get_subgroup,
     Configuration,
 };
 
@@ -98,8 +97,8 @@ pub async fn get_all_keys(
 pub async fn get_key_url(
     api: &OnlineClient<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    my_subgroup: u8,
 ) -> Result<String, ()> {
-    let my_subgroup = get_subgroup(api, signer).await.unwrap().unwrap();
     let signing_group_addresses_query =
         entropy::storage().staking_extension().signing_groups(my_subgroup);
     let signing_group_addresses =

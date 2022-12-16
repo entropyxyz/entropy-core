@@ -84,7 +84,16 @@ async fn rocket() -> _ {
         if !has_fee_balance {
             panic!("threshold account needs balance: {:?}", signer.account_id());
         }
-        let key_server_url = get_key_url(&api, &signer).await.unwrap();
+
+        // if not in subgroup retry until you are
+        let mut my_subgroup = get_subgroup(&api, &signer).await.unwrap();
+        while my_subgroup.is_none() {
+            println!("you are not currently a validator, retrying");
+            thread::sleep(sleep_time);
+            my_subgroup = get_subgroup(&api, &signer).await.unwrap();
+        }
+
+        let key_server_url = get_key_url(&api, &signer, my_subgroup.unwrap()).await.unwrap();
         let all_keys = get_all_keys(&api, batch_size).await.unwrap();
         let _ = get_and_store_values(all_keys, &kv_store, key_server_url, batch_size).await;
         tell_chain_syncing_is_done(&api, &signer).await;
