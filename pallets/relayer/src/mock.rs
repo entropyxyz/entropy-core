@@ -4,7 +4,6 @@ use frame_support::{
     traits::{ConstU32, FindAuthor, GenesisBuild, OneSessionHandler},
 };
 use frame_system as system;
-
 use pallet_session::historical as pallet_session_historical;
 use pallet_staking_extension::ServerInfo;
 use sp_core::H256;

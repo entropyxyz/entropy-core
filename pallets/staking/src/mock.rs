@@ -127,9 +127,7 @@ pub struct PreUpgradeMockSessionKeys {
 impl OpaqueKeys for PreUpgradeMockSessionKeys {
     type KeyTypeIdProviders = ();
 
-    fn key_ids() -> &'static [KeyTypeId] {
-        &[KEY_ID_A, KEY_ID_B]
-    }
+    fn key_ids() -> &'static [KeyTypeId] { &[KEY_ID_A, KEY_ID_B] }
 
     fn get_raw(&self, i: KeyTypeId) -> &[u8] {
         match i {
@@ -235,8 +233,7 @@ parameter_types! {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where
-    RuntimeCall: From<C>,
+where RuntimeCall: From<C>
 {
     type Extrinsic = TestXt<RuntimeCall, ()>;
     type OverarchingCall = RuntimeCall;
