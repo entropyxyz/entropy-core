@@ -165,6 +165,20 @@ fn it_confirms_done() {
 }
 
 #[test]
+fn it_doesnt_allow_double_registering() {
+    new_test_ext().execute_with(|| {
+        // register a user
+        assert_ok!(Relayer::register(RuntimeOrigin::signed(1), 2, None));
+
+        // error if they try to submit another request, even with a different constraint key
+        assert_noop!(
+            Relayer::register(RuntimeOrigin::signed(1), 2, None),
+            Error::<Test>::AlreadySubmitted
+        );
+    });
+}
+
+#[test]
 fn moves_active_to_pending() {
     new_test_ext().execute_with(|| {
         // no failures pings unresponsive

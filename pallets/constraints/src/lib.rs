@@ -86,8 +86,6 @@ pub mod pallet {
     #[derive(PartialEq, Eq)]
     #[pallet::error]
     pub enum Error<T> {
-        /// TODO ACL is too large
-        AclTooLarge,
         /// Constraint account doesn't have permission to modify these constraionts
         NotAuthorized,
         /// Threshold account has never had constraints set

@@ -1,13 +1,7 @@
-use frame_support::{assert_err, assert_noop, assert_ok, BoundedVec};
+use frame_support::{assert_err, assert_noop, assert_ok};
 use sp_core::H160;
 
-use crate::{mock::*, Acl, AclKind, Arch, Error, SigReqAccounts};
-
-// Tests:
-// adds whitelist and checks max whitelist and already whitelisted
-// check max whitelist
-// error if not registered
-// make sure error if no permission
+use crate::{mock::*, Acl, Arch, Error, SigReqAccounts};
 
 /// consts used for testing
 const CONSTRAINT_ACCOUNT: u64 = 1u64;
@@ -15,14 +9,11 @@ const SIG_REQ_ACCOUNT: u64 = 2u64;
 
 // Integration Test
 #[test]
-fn assert_modification_permissions_work_as_expected() {
+fn assert_permissions_are_restricted_properly() {
     new_test_ext().execute_with(|| {
         // a valid one-address allowlist
-        let valid_acl = Acl {
-            addresses: BoundedVec::try_from(vec![H160::from([0u8; 20])]).unwrap(),
-            kind: AclKind::Allow,
-            allow_null_recipient: false,
-        };
+        let valid_acl = Acl::<H160>::try_from(vec![H160::default()]).unwrap();
+
         // make sure noone can add a constraint without explicit permissions
         assert_noop!(
             Constraints::update_acl(
@@ -79,14 +70,10 @@ fn assert_modification_permissions_work_as_expected() {
 }
 
 #[test]
-fn assert_storage_updates_as_expected() {
+fn return_error_if_constraints_arent_set() {
     new_test_ext().execute_with(|| {
         // a valid one-address allowlist
-        let valid_acl = Acl {
-            addresses: BoundedVec::try_from(vec![H160::from([0u8; 20])]).unwrap(),
-            kind: AclKind::Allow,
-            allow_null_recipient: false,
-        };
+        let valid_acl = Acl::<H160>::try_from(vec![H160::default()]).unwrap();
 
         // give permission to modify constraints
         SigReqAccounts::<Test>::insert(&CONSTRAINT_ACCOUNT, &SIG_REQ_ACCOUNT, ());

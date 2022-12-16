@@ -43,15 +43,14 @@ pub trait HasArch {
 }
 
 /// Basic transaction that has a sender and receiver with single accounts.
+/// TODO remove this and compose Constraints using trait bounds (eg. HasSender + HasReceiver, etc)
 #[derive(Default, Debug, Clone, PartialEq, SerializeDerive, DeserializeDerive)]
 pub struct BasicTransaction<A: Architecture> {
     pub from: Option<A::Address>,
     pub to: Option<A::Address>,
 }
 
-// TODO Move all EVM architecture stuff in entropy-constraints to substrate-common
-
-/// This includes tpes related to ACL constraints.
+/// This includes common types and functions related to using ACL functionality.
 mod acl {
     use super::*;
 
@@ -63,8 +62,6 @@ mod acl {
     }
 
     /// An access control list (Allow/Deny lists).
-    /// acl is the vector of allowed or denied addresses.
-    /// acl_type represents if the constraint is either allow/deny.
     /// TODO make this a non-bounded or generic vec
     #[derive(Clone, Debug, Encode, Decode, PartialEq, Eq, scale_info::TypeInfo, MaxEncodedLen)]
     pub struct Acl<Address> {
@@ -73,6 +70,7 @@ mod acl {
         pub allow_null_recipient: bool,
     }
 
+    /// Creates an empty ACL that always evaluates to false.
     impl<A: Default> Default for Acl<A> {
         fn default() -> Self {
             let addresses = BoundedVec::<A, ConstU32<25>>::default();
@@ -81,7 +79,7 @@ mod acl {
     }
 
     impl<A: Default> Acl<A> {
-        /// Try to create a new Allow ACL from a `Vec` of addresses.
+        /// Try to create a new ACL restricted to the provided `Vec` of addresses.
         pub fn try_from(addresses: Vec<A>) -> Result<Self, &'static str> {
             let mut new_acl = Acl::<A>::default();
             new_acl.addresses.try_extend(addresses.into_iter()).map_err(|_| "ACL is too long.")?;

@@ -51,8 +51,7 @@ benchmarks! {
     let sig_req_account: T::AccountId = whitelisted_caller();
     let constraint_account: T::AccountId = whitelisted_caller();
 
-    let whitelisted_account: H160 = H160::default();
-    let initial_acl = Some(Acl::<H160>::try_from(vec![whitelisted_account.clone()]).unwrap());
+    let initial_acl = Some(Acl::<H160>::try_from(vec![H160::default()]).unwrap());
   }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account.clone(), initial_acl)
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone(), constraint_account).into());
