@@ -23,6 +23,7 @@ use crate::{
     },
     get_signer, load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
+    setup_mnemonic,
     user::{
         tests::entropy::runtime_types::substrate_common::constraints::acl::Acl,
         unsafe_api::UnsafeQuery,
@@ -38,7 +39,8 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 #[rocket::async_test]
 #[serial]
 async fn test_get_signer_does_not_throw_err() {
-    let kv_store = load_kv_store().await;
+    let kv_store = load_kv_store(false).await;
+    setup_mnemonic(&kv_store, false, false).await;
     get_signer(&kv_store).await.unwrap();
 }
 

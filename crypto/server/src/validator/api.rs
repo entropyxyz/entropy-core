@@ -94,7 +94,7 @@ pub async fn get_all_keys(
     Ok(addresses)
 }
 
-// get a url of someone in your signing group
+/// get a url of someone in your signing group
 pub async fn get_key_url(
     api: &OnlineClient<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
@@ -106,12 +106,27 @@ pub async fn get_key_url(
         api.storage().fetch(&signing_group_addresses_query, None).await.unwrap().unwrap();
 
     // TODO: Just gets first person in subgroup, maybe do this randomly?
-    // TODO: Validate that the url is an already synced validator
-    let server_info_query =
-        entropy::storage().staking_extension().threshold_servers(&signing_group_addresses[0]);
-    let server_info = api.storage().fetch(&server_info_query, None).await.unwrap().unwrap();
+    // find kvdb that isn't syncing and get their URL
+    let mut server_sync_state = false;
+    let mut server_to_query = 0;
+    let mut server_info: Option<
+        entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo<
+            sp_core::crypto::AccountId32,
+        >,
+    > = None;
+    while !server_sync_state {
+        let server_info_query = entropy::storage()
+            .staking_extension()
+            .threshold_servers(&signing_group_addresses[server_to_query]);
+        server_info = Some(api.storage().fetch(&server_info_query, None).await.unwrap().unwrap());
+        let server_state_query = entropy::storage()
+            .staking_extension()
+            .is_validator_synced(&signing_group_addresses[server_to_query]);
+        server_sync_state = api.storage().fetch(&server_state_query, None).await.unwrap().unwrap();
+        server_to_query += 1;
+    }
 
-    let ip_address = String::from_utf8(server_info.endpoint).unwrap();
+    let ip_address = String::from_utf8(server_info.unwrap().endpoint).unwrap();
     Ok(ip_address)
 }
 
@@ -147,4 +162,43 @@ pub async fn get_and_store_values(
         }
     }
     Ok(())
+}
+/// Sends a transaction telling the chain it is fully synced
+pub async fn tell_chain_syncing_is_done(
+    api: &OnlineClient<EntropyConfig>,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+) {
+    let synced_tx = entropy::tx().staking_extension().declare_synced(true);
+    let _ = api
+        .tx()
+        .sign_and_submit_then_watch_default(&synced_tx, signer)
+        .await
+        .unwrap()
+        .wait_for_in_block()
+        .await
+        .unwrap()
+        .wait_for_success()
+        .await
+        .unwrap();
+}
+
+/// Validation for if an account can cover tx fees for a tx
+pub async fn check_balance_for_fees(
+    api: &OnlineClient<EntropyConfig>,
+    address: &AccountId32,
+    min_balance: u128,
+) -> Result<bool, ()> {
+    let balance_query = entropy::storage().system().account(address);
+    let account_info = api
+        .storage()
+        .fetch(&balance_query, None)
+        .await
+        .unwrap()
+        .expect("Account does not exist, add balance");
+    let balance = account_info.data.free;
+    let mut is_min_balance = false;
+    if balance >= min_balance {
+        is_min_balance = true
+    };
+    Ok(is_min_balance)
 }

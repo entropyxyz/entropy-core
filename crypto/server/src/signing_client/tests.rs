@@ -32,7 +32,7 @@ use super::SignerState;
 use crate::{
     drain, get_signature, new_party, new_user, subscribe_to_me,
     user::{ParsedUserInputPartyInfo, UserInputPartyInfo},
-    utils::{Configuration, SignatureState},
+    utils::{Configuration, SignatureState, DEFAULT_ENDPOINT},
     Message as SigMessage,
 };
 
@@ -141,7 +141,7 @@ async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
     let config = rocket::Config::figment().merge(("port", port));
 
     let signer_state = SignerState::default();
-    let configuration = Configuration::new();
+    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let signature_state = SignatureState::new();
 
     let path = format!("test_db_{key_number}");

@@ -24,6 +24,7 @@
 // ./weights.rs
 
 #![cfg_attr(rustfmt, rustfmt_skip)]
+#![allow(clippy::all)]
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 

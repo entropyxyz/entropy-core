@@ -28,13 +28,13 @@ mod validator;
 use bip39::{Language, Mnemonic, MnemonicType};
 #[macro_use]
 extern crate rocket;
-use std::{thread, time::Duration};
+use std::{string::String, thread, time::Duration};
 
 use clap::Parser;
 use kvdb::kv_manager::{error::KvError, KeyReservation, KvManager};
 use rocket::routes;
 use sp_keyring::AccountKeyring;
-use substrate_common::SIGNING_PARTY_SIZE;
+use substrate_common::{MIN_BALANCE, SIGNING_PARTY_SIZE};
 use subxt::ext::sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use self::{
@@ -46,19 +46,22 @@ use self::{
 use crate::{
     message::{derive_static_secret, mnemonic_to_pair},
     user::unsafe_api::{delete, get, put, remove_keys},
-    validator::api::{get_all_keys, get_and_store_values, get_key_url, sync_kvdb},
+    validator::api::{
+        check_balance_for_fees, get_all_keys, get_and_store_values, get_key_url, sync_kvdb,
+        tell_chain_syncing_is_done,
+    },
 };
 
 #[launch]
 async fn rocket() -> _ {
     init_tracing();
+    let args = StartupArgs::parse();
     let signer_state = SignerState::default();
-    let configuration = Configuration::new();
-    let kv_store = load_kv_store().await;
+    let configuration = Configuration::new(args.chain_endpoint);
+    let kv_store = load_kv_store(args.bob).await;
     let signature_state = SignatureState::new();
 
-    let args = StartupArgs::parse();
-
+    setup_mnemonic(&kv_store, args.alice, args.bob).await;
     // Below deals with syncing the kvdb
     if args.sync {
         let api = get_api(&configuration.endpoint).await.unwrap();
@@ -76,9 +79,15 @@ async fn rocket() -> _ {
         // TODO: find a proper batch size
         let batch_size = 10;
         let signer = get_signer(&kv_store).await.unwrap();
+        let has_fee_balance =
+            check_balance_for_fees(&api, signer.account_id(), MIN_BALANCE).await.unwrap();
+        if !has_fee_balance {
+            panic!("threshold account needs balance: {:?}", signer.account_id());
+        }
         let key_server_url = get_key_url(&api, &signer).await.unwrap();
         let all_keys = get_all_keys(&api, batch_size).await.unwrap();
         let _ = get_and_store_values(all_keys, &kv_store, key_server_url, batch_size).await;
+        tell_chain_syncing_is_done(&api, &signer).await;
     }
 
     // Unsafe routes are for testing purposes only
@@ -102,29 +111,30 @@ async fn rocket() -> _ {
         .manage(kv_store)
 }
 
-async fn setup_mnemonic(kv: &KvManager) {
+pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) {
     // Check if a mnemonic exists in the kvdb.
     let exists_result = kv.kv().exists("MNEMONIC").await;
     match exists_result {
         Ok(v) => {
             if !v {
                 // Generate a new mnemonic
-                let mnemonic: Mnemonic;
+                let mut mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
                 // If using a test configuration then set to the default mnemonic.
                 if cfg!(test) {
                     mnemonic =
                         Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
-                } else if cfg!(feature = "alice") {
+                }
+                if is_alice {
                     mnemonic =
                         Mnemonic::from_phrase(utils::DEFAULT_ALICE_MNEMONIC, Language::English)
                             .unwrap();
-                } else if cfg!(feature = "bob") {
+                }
+                if is_bob {
                     mnemonic =
                         Mnemonic::from_phrase(utils::DEFAULT_BOB_MNEMONIC, Language::English)
                             .unwrap();
-                } else {
-                    mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
                 }
+
                 let phrase = mnemonic.phrase();
                 println!("[server-config]");
                 let pair = mnemonic_to_pair(&mnemonic);
