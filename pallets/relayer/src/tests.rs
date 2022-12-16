@@ -1,4 +1,4 @@
-use core::default;
+
 
 use frame_support::{
     assert_noop, assert_ok,
@@ -52,7 +52,7 @@ fn it_emits_a_signature_request_event() {
         assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request));
 
         System::assert_last_event(RuntimeEvent::Relayer(crate::Event::SignatureRequested(
-            message.clone(),
+            message,
         )));
     });
 }

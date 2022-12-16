@@ -22,7 +22,7 @@ fn should_parse_json_evm_tx_request() {
 
     let basic_tx = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string()).unwrap();
 
-    println!("Parsed tx: {:?}", basic_tx);
+    println!("Parsed tx: {basic_tx:?}");
 }
 
 #[test]
@@ -61,7 +61,7 @@ fn should_fail_if_evm_address_not_h160() {
 
     assert!(basic_tx_result.is_err());
 
-    println!("{:?}", basic_tx_result);
+    println!("{basic_tx_result:?}");
 }
 
 #[test]
@@ -78,9 +78,9 @@ fn test_allow_list() {
     }"#;
 
     let tx_result = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string());
-    assert!(!tx_result.is_err());
+    assert!(tx_result.is_ok());
     let tx = tx_result.unwrap();
-    let to = tx.to.clone().unwrap();
+    let to = tx.to.unwrap();
 
     // Assert that an allow list with no items in it does not evaluate to true.
     let constraint = Acl::<<EVM as Architecture>::Address> {
@@ -89,7 +89,7 @@ fn test_allow_list() {
         allow_null_recipient: true,
     };
     let evaluation = constraint.eval(tx.clone());
-    assert!(!evaluation.is_err());
+    assert!(evaluation.is_ok());
     assert!(!evaluation.unwrap());
 
     // Assert that an allow list with a valid item in it evaluates to true.
@@ -98,8 +98,8 @@ fn test_allow_list() {
         acl: BoundedVec::try_from(vec![to]).unwrap(),
         allow_null_recipient: true,
     };
-    let evaluation_2 = constraint_2.eval(tx.clone());
-    assert!(!evaluation_2.is_err());
+    let evaluation_2 = constraint_2.eval(tx);
+    assert!(evaluation_2.is_ok());
     assert!(evaluation_2.unwrap());
 }
 
@@ -117,9 +117,9 @@ fn test_deny_list() {
     }"#;
 
     let tx_result = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string());
-    assert!(!tx_result.is_err());
+    assert!(tx_result.is_ok());
     let tx = tx_result.unwrap();
-    let to = tx.to.clone().unwrap();
+    let to = tx.to.unwrap();
 
     // Assert that a deny list with no items in it does evaluates to true.
     let constraint = Acl::<<EVM as Architecture>::Address> {
@@ -128,7 +128,7 @@ fn test_deny_list() {
         allow_null_recipient: true,
     };
     let evaluation = constraint.eval(tx.clone());
-    assert!(!evaluation.is_err());
+    assert!(evaluation.is_ok());
     assert!(evaluation.unwrap());
 
     // Assert that a deny list with the specified recipient evalutes to false.
@@ -137,8 +137,8 @@ fn test_deny_list() {
         acl: BoundedVec::try_from(vec![to]).unwrap(),
         allow_null_recipient: true,
     };
-    let evaluation_2 = constraint_2.eval(tx.clone());
-    assert!(!evaluation_2.is_err());
+    let evaluation_2 = constraint_2.eval(tx);
+    assert!(evaluation_2.is_ok());
     assert!(!evaluation_2.unwrap());
 }
 
@@ -155,7 +155,7 @@ fn test_allow_null_recip() {
     }"#;
 
     let tx_result = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string());
-    assert!(!tx_result.is_err());
+    assert!(tx_result.is_ok());
     let tx = tx_result.unwrap();
 
     let constraint = Acl::<<EVM as Architecture>::Address> {
@@ -171,7 +171,7 @@ fn test_allow_null_recip() {
         acl: BoundedVec::default(),
         allow_null_recipient: true,
     };
-    let evaluation_2 = constraint_2.eval(tx.clone());
-    assert!(!evaluation_2.is_err());
+    let evaluation_2 = constraint_2.eval(tx);
+    assert!(evaluation_2.is_ok());
     assert!(evaluation_2.unwrap());
 }

@@ -98,7 +98,7 @@ async fn test_get_and_store_values() {
     let _result =
         get_and_store_values(keys.clone(), &client1.1, "127.0.0.1:3002".to_string(), 1).await;
     for (i, key) in keys.iter().enumerate() {
-        let value = client1.1.kv().get(&key).await.unwrap();
+        let value = client1.1.kv().get(key).await.unwrap();
         assert_eq!(value, values[i]);
     }
     clean_tests();
@@ -130,7 +130,7 @@ async fn create_clients(
     let configuration = Configuration::new();
     let signature_state = SignatureState::new();
 
-    let path = format!("test_db_{}", key_number);
+    let path = format!("test_db_{key_number}");
     let _ = std::fs::remove_dir_all(path.clone());
 
     let kv_store =

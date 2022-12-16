@@ -1,6 +1,6 @@
 use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use pallet_session::SessionManager;
-use sp_runtime::testing::UintAuthorityId;
+
 
 use crate::{mock::*, Error, ServerInfo};
 

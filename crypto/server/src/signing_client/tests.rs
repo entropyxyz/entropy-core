@@ -79,7 +79,7 @@ async fn test_new_party() {
     let handle = tokio::spawn(async move {
         let client = reqwest::Client::new();
 
-        let url = format!("http:///127.0.0.1:{}/signer/new_party", port_0);
+        let url = format!("http:///127.0.0.1:{port_0}/signer/new_party");
         let response = client.post(url).body(encoded_data_1).send().await;
         assert_eq!(response.unwrap().status(), 200);
         // all of this can be removed
@@ -106,7 +106,7 @@ async fn test_new_party() {
     let handle_2 = tokio::spawn(async move {
         let client = reqwest::Client::new();
 
-        let url2 = format!("http:///127.0.0.1:{}/signer/new_party", port_1);
+        let url2 = format!("http:///127.0.0.1:{port_1}/signer/new_party");
         let response_2 = client.post(url2).body(encoded_data_2).send().await;
         assert_eq!(response_2.unwrap().status(), 200);
     });
@@ -144,7 +144,7 @@ async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
     let configuration = Configuration::new();
     let signature_state = SignatureState::new();
 
-    let path = format!("test_db_{}", key_number);
+    let path = format!("test_db_{key_number}");
     let _ = std::fs::remove_dir_all(path.clone());
 
     let kv_store =

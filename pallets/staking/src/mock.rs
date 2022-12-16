@@ -13,7 +13,6 @@ use pallet_staking_extension::ServerInfo;
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
-    impl_opaque_keys,
     testing::{Header, TestXt, UintAuthorityId},
     traits::{BlakeTwo256, ConvertInto, IdentityLookup, OpaqueKeys, Zero},
     KeyTypeId, Perbill,
@@ -181,7 +180,7 @@ impl OneSessionHandler<AccountId> for OtherSessionHandler {
     {
     }
 
-    fn on_new_session<'a, I: 'a>(changed: bool, validators: I, queued_validators: I)
+    fn on_new_session<'a, I: 'a>(_changed: bool, _validators: I, _queued_validators: I)
     where
         I: Iterator<Item = (&'a AccountId, Self::Key)>,
         AccountId: 'a,

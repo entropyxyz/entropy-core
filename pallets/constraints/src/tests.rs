@@ -1,9 +1,9 @@
-use core::default;
+
 
 use frame_support::{assert_err, assert_noop, assert_ok, BoundedVec};
-use sp_core::{ConstU32, H160};
+use sp_core::{H160};
 
-use crate::{mock::*, Acl, AclKind, Arch, Config, Error, SigReqAccounts};
+use crate::{mock::*, Acl, AclKind, Arch, Error, SigReqAccounts};
 
 // Tests:
 // adds whitelist and checks max whitelist and already whitelisted
@@ -74,7 +74,7 @@ fn assert_modification_permissions_work_as_expected() {
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
                 SIG_REQ_ACCOUNT,
                 Arch::EVM,
-                Some(valid_acl.clone())
+                Some(valid_acl)
             ),
             Error::<Test>::NotAuthorized
         );
