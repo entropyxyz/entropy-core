@@ -12,8 +12,8 @@ use sp_std::vec::Vec;
 /// Supported architectures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, TypeInfo)]
 pub enum Arch {
-    EVM,
-    BTC,
+    Evm,
+    Btc,
     Generic,
 }
 

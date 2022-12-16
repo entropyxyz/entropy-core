@@ -28,7 +28,7 @@ fn assert_modification_permissions_work_as_expected() {
             Constraints::update_acl(
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                Arch::EVM,
+                Arch::Evm,
                 Some(valid_acl.clone()),
             ),
             Error::<Test>::NotAuthorized
@@ -39,17 +39,17 @@ fn assert_modification_permissions_work_as_expected() {
         assert_ok!(Constraints::update_acl(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
-            Arch::EVM,
+            Arch::Evm,
             Some(valid_acl.clone())
         ));
-        assert_eq!(Constraints::acl(SIG_REQ_ACCOUNT, Arch::EVM), Ok(valid_acl.clone()));
+        assert_eq!(Constraints::acl(SIG_REQ_ACCOUNT, Arch::Evm), Ok(valid_acl.clone()));
 
         // make sure sig-req key can't modify or delete constraints
         assert_noop!(
             Constraints::update_acl(
                 RuntimeOrigin::signed(SIG_REQ_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                Arch::EVM,
+                Arch::Evm,
                 Some(valid_acl.clone()),
             ),
             Error::<Test>::NotAuthorized
@@ -58,7 +58,7 @@ fn assert_modification_permissions_work_as_expected() {
             Constraints::update_acl(
                 RuntimeOrigin::signed(SIG_REQ_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                Arch::EVM,
+                Arch::Evm,
                 None
             ),
             Error::<Test>::NotAuthorized
@@ -70,7 +70,7 @@ fn assert_modification_permissions_work_as_expected() {
             Constraints::update_acl(
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                Arch::EVM,
+                Arch::Evm,
                 Some(valid_acl)
             ),
             Error::<Test>::NotAuthorized
@@ -93,7 +93,7 @@ fn assert_storage_updates_as_expected() {
 
         // make sure acl is empty
         assert_err!(
-            Constraints::acl(SIG_REQ_ACCOUNT, Arch::EVM),
+            Constraints::acl(SIG_REQ_ACCOUNT, Arch::Evm),
             Error::<Test>::AccountDoesNotExist
         );
 
@@ -101,11 +101,11 @@ fn assert_storage_updates_as_expected() {
         assert_ok!(Constraints::update_acl(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
-            Arch::EVM,
+            Arch::Evm,
             Some(valid_acl.clone())
         ));
 
         // make sure acl updates
-        assert_eq!(Constraints::acl(SIG_REQ_ACCOUNT, Arch::EVM), Ok(valid_acl));
+        assert_eq!(Constraints::acl(SIG_REQ_ACCOUNT, Arch::Evm), Ok(valid_acl));
     });
 }

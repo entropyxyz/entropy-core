@@ -136,7 +136,7 @@ fn paused_transaction_filter_work() {
         let whitelist_address_call =
             &mock::RuntimeCall::Constraints(pallet_constraints::Call::update_acl {
                 sig_req_account: ALICE,
-                arch: Arch::EVM,
+                arch: Arch::Evm,
                 new_acl: Some(Acl::<H160>::default()),
             });
         assert!(!PausedTransactionFilter::<Runtime>::contains(BALANCE_TRANSFER));

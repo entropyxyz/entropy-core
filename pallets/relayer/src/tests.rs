@@ -124,7 +124,7 @@ fn it_confirms_registers_a_user() {
 
         // make sure constraint and sig req keys are set
         assert!(SigReqAccounts::<Test>::contains_key(2, 1));
-        assert!(AclAddresses::<Test>::contains_key(1, Arch::EVM));
+        assert!(AclAddresses::<Test>::contains_key(1, Arch::Evm));
     });
 }
 
