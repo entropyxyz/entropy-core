@@ -52,10 +52,11 @@ benchmarks! {
     let constraint_account: T::AccountId = whitelisted_caller();
 
     let whitelisted_account: H160 = H160::default();
-    let initial_acl = Some(Acl::<H160>::try_from_allow(vec![whitelisted_account.clone()]).unwrap());
-  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account.clone(), initial_acl.clone())
+    let initial_acl = Some(Acl::<H160>::try_from(vec![whitelisted_account.clone()]).unwrap());
+  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account.clone(), initial_acl)
   verify {
-    assert_last_event::<T>(Event::SignalRegister(sig_req_account, constraint_account).into());
+    assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone(), constraint_account).into());
+    assert!(Registering::<T>::contains_key(sig_req_account));
   }
 
   //TODO: Confirm done (for thor)
