@@ -10,14 +10,14 @@ use tofn::sdk::api::{RecoverableSignature, Signature};
 
 use crate::{setup_mnemonic, sign_init::MessageDigest};
 
-const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
-
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
 pub const DEFAULT_BOB_MNEMONIC: &str =
     "where sight patient orphan general short empower hope party hurt month voice";
 pub const DEFAULT_ALICE_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
+
+pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
 pub(super) fn init_tracing() {
     let filter = tracing_subscriber::filter::LevelFilter::INFO.into();
@@ -28,25 +28,20 @@ pub(super) fn init_tracing() {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Configuration {
-    #[serde(default = "default_endpoint")]
-    // #[allow(dead_code)] // TODO(TK): unused?
     pub endpoint: String,
 }
+
 impl Configuration {
-    pub(crate) fn new() -> Configuration {
-        Configuration { endpoint: DEFAULT_ENDPOINT.to_string() }
-    }
+    pub(crate) fn new(endpoint: String) -> Configuration { Configuration { endpoint } }
 }
 
-fn default_endpoint() -> String { DEFAULT_ENDPOINT.to_string() }
-
-pub(super) async fn load_kv_store() -> KvManager {
+pub(super) async fn load_kv_store(is_bob: bool) -> KvManager {
     let kv_store: KvManager = if cfg!(test) {
         KvManager::new(kvdb::get_db_path().into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap()
     } else {
         let mut root = project_root::get_project_root().unwrap();
-        if cfg!(feature = "bob") {
+        if is_bob {
             let formatted = format!("{}/bob", root.display());
             root = formatted.into()
         }
@@ -54,16 +49,30 @@ pub(super) async fn load_kv_store() -> KvManager {
         // this step takes a long time due to password-based decryption
         KvManager::new(root, password).unwrap()
     };
-    setup_mnemonic(&kv_store).await;
     kv_store
 }
 
 #[derive(Parser, Debug, Clone)]
 pub struct StartupArgs {
-    /// Wether to sync the keystore
+    /// Wether to sync the keystore.
     #[arg(short = 's', long = "sync")]
     pub sync: bool,
+    /// Use the developer key Bob.
+    #[arg(short = 'b', long = "bob")]
+    pub bob: bool,
+    /// Use the developer key Alice.
+    #[arg(short = 'a', long = "alice")]
+    pub alice: bool,
+    /// Websocket endpoint for the entropy blockchain.
+    #[arg(
+        short = 'c',
+        long = "chain-endpoint",
+        required = false,
+        default_value = "ws://localhost:9944"
+    )]
+    pub chain_endpoint: String,
 }
+
 // TODO: JA Remove all below, temporary
 /// The state used to temporarily store completed signatures
 #[derive(Debug)]
