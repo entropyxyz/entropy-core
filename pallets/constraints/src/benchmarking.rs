@@ -1,8 +1,8 @@
 //! Benchmarking setup for pallet-propgation
 
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
-use frame_support::traits::Get;
 use frame_system::{EventRecord, RawOrigin};
+use substrate_common::Arch;
 
 use super::*;
 #[allow(unused)]
@@ -18,17 +18,21 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 
 benchmarks! {
 
-  add_whitelist_address {
-    let a in 0 .. T::MaxWhitelist::get() - 1;
-    let caller: T::AccountId = whitelisted_caller();
+  update_acl {
+    // number of addresses in the ACL
+    let a in 0 .. 24;
 
-    let addresses = vec![vec![1u8]; a as usize];
-    <AddressWhitelist<T>>::insert(caller.clone(), addresses.clone());
+    let constraint_account: T::AccountId = whitelisted_caller();
+    let sig_req_account: T::AccountId = whitelisted_caller();
 
+    let addresses = vec![H160::default(); a as usize];
+    let initial_acl = Acl::<H160>::try_from(addresses.clone()).unwrap();
 
-  }: _(RawOrigin::Signed(caller.clone()), vec![vec![2u8]])
+    // give permission to update constraints for Arch::Generic
+    <SigReqAccounts<T>>::insert(constraint_account.clone(), sig_req_account.clone(), ());
+  }: _(RawOrigin::Signed(constraint_account.clone()), sig_req_account.clone(), Arch::Generic, Some(initial_acl.clone()))
   verify {
-    assert_last_event::<T>(Event::AddressesWhitelisted(caller, vec![vec![2u8]]).into());
+    assert_last_event::<T>(Event::<T>::AclUpdated(constraint_account, Arch::Generic).into());
   }
 
 }

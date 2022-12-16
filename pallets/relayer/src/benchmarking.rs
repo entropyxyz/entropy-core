@@ -4,7 +4,8 @@ use codec::Encode;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
 use frame_support::traits::{Get, OnInitialize};
 use frame_system::{EventRecord, RawOrigin};
-use substrate_common::{Message, SigRequest};
+use sp_core::H160;
+use substrate_common::{Acl, Message, SigRequest};
 
 use super::*;
 #[allow(unused)]
@@ -47,15 +48,17 @@ benchmarks! {
   }
 
   register {
-    let caller: T::AccountId = whitelisted_caller();
+    let sig_req_account: T::AccountId = whitelisted_caller();
+    let constraint_account: T::AccountId = whitelisted_caller();
 
-  }:  _(RawOrigin::Signed(caller.clone()))
+    let whitelisted_account: H160 = H160::default();
+    let initial_acl = Some(Acl::<H160>::try_from_allow(vec![whitelisted_account.clone()]).unwrap());
+  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account.clone(), initial_acl.clone())
   verify {
-    assert_last_event::<T>(Event::SignalRegister(caller).into());
+    assert_last_event::<T>(Event::SignalRegister(sig_req_account, constraint_account).into());
   }
 
   //TODO: Confirm done (for thor)
-
 
   move_active_to_pending_no_failure {
     let m in 0 .. 10;

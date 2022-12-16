@@ -10439,6 +10439,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "sp-core",
+ "sp-std",
 ]
 
 [[package]]

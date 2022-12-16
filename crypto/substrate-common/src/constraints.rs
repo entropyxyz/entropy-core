@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
 pub use sp_core::H160;
 use sp_core::{bounded::BoundedVec, ConstU32};
+use sp_std::vec::Vec;
 
 /// Supported architectures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, TypeInfo)]
@@ -62,7 +63,7 @@ mod acl {
         Deny,
     }
 
-    /// An AccessControl constraint (Allow/Deny lists).
+    /// An access control list (Allow/Deny lists).
     /// acl is the vector of allowed or denied addresses.
     /// acl_type represents if the constraint is either allow/deny.
     /// TODO make this a non-bounded or generic vec
@@ -77,6 +78,16 @@ mod acl {
         fn default() -> Self {
             let acl = BoundedVec::<A, ConstU32<25>>::default();
             Self { acl, acl_type: AclKind::Allow, allow_null_recipient: false }
+        }
+    }
+
+    impl<A: Default> Acl<A> {
+        /// Try to create a new Allow ACL from a `Vec` of addresses.
+        pub fn try_from(acl: Vec<A>) -> Result<Self, &'static str> {
+            let mut new_acl = Acl::<A>::default();
+            new_acl.acl.try_extend(acl.into_iter()).map_err(|_| "ACL is too long.")?;
+
+            Ok(new_acl)
         }
     }
 }

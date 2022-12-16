@@ -79,7 +79,7 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// All whitelisted addresses in call. [who, whitelisted_addresses]
+        /// All whitelisted addresses in call. [constraint_account, arch]
         AclUpdated(T::AccountId, Arch),
     }
 
