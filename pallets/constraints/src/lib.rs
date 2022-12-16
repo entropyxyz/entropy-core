@@ -7,7 +7,7 @@
 //!
 //! ### Public Functions
 //!
-//! add_whitelist_address - lets a user add a whitelisted address to their account
+//! update_acl - lets a user update their acl
 
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
@@ -100,7 +100,7 @@ pub mod pallet {
         /// If `new_acl` is `None`, the ACL is cleared.
         /// Must be sent from a constraint-modification account.
         /// TODO update weights
-        #[pallet::weight((<T as Config>::WeightInfo::add_whitelist_address(25), Pays::No))]
+        #[pallet::weight((<T as Config>::WeightInfo::update_acl(25), Pays::No))]
         pub fn update_acl(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
@@ -128,7 +128,7 @@ pub mod pallet {
             Self::deposit_event(Event::AclUpdated(constraint_account, arch));
 
             // TODO new weight
-            Ok(Some(<T as Config>::WeightInfo::add_whitelist_address(3)).into())
+            Ok(Some(<T as Config>::WeightInfo::update_acl(3)).into())
         }
     }
 }

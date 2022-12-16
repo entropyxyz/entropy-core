@@ -34,7 +34,7 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_constraints::WeightInfo for WeightInfo<T> {
 	// Storage: Constraints AddressWhitelist (r:1 w:1)
 	/// The range of component `a` is `[0, 99]`.
-	fn add_whitelist_address(a: u32, ) -> Weight {
+	fn update_acl(a: u32, ) -> Weight {
 		Weight::from_ref_time(44_000_000 as u64)
 			// Standard Error: 25_000
 			.saturating_add(Weight::from_ref_time(552_759 as u64).saturating_mul(a as u64))
