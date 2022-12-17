@@ -24,7 +24,7 @@ use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     new_user,
     signing_client::SignerState,
-	user::api::get_subgroup,
+    user::api::get_subgroup,
     utils::{
         Configuration, SignatureState, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
     },
@@ -103,7 +103,8 @@ async fn test_get_and_store_values() {
     tokio::spawn(async move { client1.0.launch().await.unwrap() });
 
     let _result =
-        get_and_store_values(keys.clone(), &client1.1, "127.0.0.1:3002".to_string(), 1).await;
+        get_and_store_values(keys.clone(), &client1.1, "127.0.0.1:3002".to_string(), 1, false)
+            .await;
     for (i, key) in keys.iter().enumerate() {
         let value = client1.1.kv().get(&key).await.unwrap();
         assert_eq!(value, values[i]);
@@ -118,7 +119,7 @@ async fn test_get_key_url() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-	let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().unwrap();
+    let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().unwrap();
 
     let result = get_key_url(&api, &signer_alice, my_subgroup).await.unwrap();
 

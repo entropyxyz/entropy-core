@@ -86,16 +86,18 @@ async fn rocket() -> _ {
         }
 
         // if not in subgroup retry until you are
-        let mut my_subgroup = get_subgroup(&api, &signer).await.unwrap();
-        while my_subgroup.is_none() {
+        let mut my_subgroup = get_subgroup(&api, &signer).await;
+        while my_subgroup.is_err() {
             println!("you are not currently a validator, retrying");
             thread::sleep(sleep_time);
-            my_subgroup = get_subgroup(&api, &signer).await.unwrap();
+            my_subgroup = get_subgroup(&api, &signer).await;
         }
 
-        let key_server_url = get_key_url(&api, &signer, my_subgroup.unwrap()).await.unwrap();
+        let key_server_url =
+            get_key_url(&api, &signer, my_subgroup.unwrap().unwrap()).await.unwrap();
         let all_keys = get_all_keys(&api, batch_size).await.unwrap();
-        let _ = get_and_store_values(all_keys, &kv_store, key_server_url, batch_size).await;
+        let _ =
+            get_and_store_values(all_keys, &kv_store, key_server_url, batch_size, args.dev).await;
         tell_chain_syncing_is_done(&api, &signer).await;
     }
 

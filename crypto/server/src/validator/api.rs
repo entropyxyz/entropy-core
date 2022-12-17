@@ -135,6 +135,7 @@ pub async fn get_and_store_values(
     kv: &KvManager,
     url: String,
     batch_size: usize,
+    dev: bool,
 ) -> Result<(), ()> {
     let mut keys_stored = 0;
     while keys_stored < all_keys.len() {
@@ -149,6 +150,11 @@ pub async fn get_and_store_values(
             .send()
             .await
             .unwrap();
+
+        if result.status() == 500 && dev {
+            keys_stored += 1;
+            continue;
+        }
         // handle no value better? or don't maybe good to fail
         let returned_values: Values = result.json().await.unwrap();
         if returned_values.values.is_empty() {
