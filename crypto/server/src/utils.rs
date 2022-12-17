@@ -71,6 +71,10 @@ pub struct StartupArgs {
         default_value = "ws://localhost:9944"
     )]
     pub chain_endpoint: String,
+
+    /// Wether to allow a validator key to be null.
+    #[arg(short = 'd', long = "dev")]
+    pub dev: bool,
 }
 
 // TODO: JA Remove all below, temporary
