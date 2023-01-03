@@ -118,7 +118,7 @@ impl SignedMessage {
 pub fn derive_static_secret(sk: &sr25519::Pair) -> x25519_dalek::StaticSecret {
     let mut buffer: [u8; 32] = [0; 32];
     let mut hasher = Blake2s256::new();
-    hasher.update(&sk.to_raw_vec());
+    hasher.update(sk.to_raw_vec());
     let hash = hasher.finalize().to_vec();
     buffer.copy_from_slice(&hash);
     let result = StaticSecret::from(buffer);
