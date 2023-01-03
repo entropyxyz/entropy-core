@@ -139,8 +139,11 @@ pub async fn get_and_store_values(
 ) -> Result<(), ()> {
     let mut keys_stored = 0;
     while keys_stored < all_keys.len() {
-        let keys_to_send =
-            Keys { keys: all_keys[keys_stored..(batch_size + keys_stored)].to_vec() };
+        let mut keys_to_send_slice = batch_size + keys_stored;
+        if keys_to_send_slice > all_keys.len() {
+            keys_to_send_slice = all_keys.len();
+        }
+        let keys_to_send = Keys { keys: all_keys[keys_stored..(keys_to_send_slice)].to_vec() };
         let client = reqwest::Client::new();
         let formatted_url = format!("http://{url}/validator/sync_kvdb");
         let result = client
