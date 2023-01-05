@@ -50,8 +50,8 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn sig_req_accounts)]
-    /// Maps constraint-modification `AccountId`s to the signature-request accounts they're allowed
-    /// to modify the constraints of.
+    /// If the constraint-modification `AccountId` and signature-request `AccountId` tuple as a key exists, then
+    /// the constraint-modification `AccountId` is authorized to modify the constraints for this account
     pub type SigReqAccounts<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
