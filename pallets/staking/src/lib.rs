@@ -186,6 +186,7 @@ pub mod pallet {
         NotController,
         NoThresholdKey,
         InvalidValidatorId,
+        SigningGroupError,
     }
 
     #[pallet::event]
@@ -220,15 +221,9 @@ pub mod pallet {
 
             pallet_staking::Pallet::<T>::ledger(&who).ok_or(Error::<T>::NoBond)?;
             let ledger = pallet_staking::Pallet::<T>::ledger(&who).ok_or(Error::<T>::NoBond)?;
-            let validator_id_res =
-                <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
-                    .or(Err(Error::<T>::InvalidValidatorId));
-            ensure!(
-                validator_id_res.is_ok(),
-                pallet_staking_extension::Error::<T>::InvalidValidatorId
-            );
-            let validator_id =
-                validator_id_res.expect("Issue converting account id into validator id");
+            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
+                .or(Err(Error::<T>::InvalidValidatorId))?;
+
             ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
                 if let Some(server_info) = maybe_server_info {
                     server_info.endpoint = endpoint.clone();
@@ -366,7 +361,9 @@ pub mod pallet {
             Ok(ledger.stash)
         }
 
-        pub fn new_session_handler(validators: &[<T as pallet_session::Config>::ValidatorId]) {
+        pub fn new_session_handler(
+            validators: &[<T as pallet_session::Config>::ValidatorId],
+        ) -> Result<(), DispatchError> {
             // Init a 2D Vec where indices and values represent subgroups and validators,
             // respectively.
             let mut new_validators_set: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> =
@@ -386,7 +383,7 @@ pub mod pallet {
             for signing_group in 0..SIGNING_PARTY_SIZE {
                 curr_validators_set[signing_group] =
                     pallet_staking_extension::Pallet::<T>::signing_groups(signing_group as u8)
-                        .unwrap();
+                        .ok_or(Error::<T>::SigningGroupError)?;
             }
 
             // Replace existing validators into the same subgroups
@@ -423,6 +420,7 @@ pub mod pallet {
                 pallet_staking_extension::SigningGroups::<T>::remove(sg as u8);
                 pallet_staking_extension::SigningGroups::<T>::insert(sg as u8, vs);
             }
+            Ok(())
         }
     }
 
@@ -439,14 +437,15 @@ pub mod pallet {
         fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
             let new_session = I::new_session(new_index);
             if let Some(validators) = &new_session {
-                Pallet::<T>::new_session_handler(validators);
+                let result = Pallet::<T>::new_session_handler(validators);
+                if result.is_err() {
+                    log::warn!("Error splitting validators, Session: {:?}", new_index)
+                }
             }
             new_session
         }
 
         fn new_session_genesis(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
-            log::info!("test inside gesnsisi");
-
             I::new_session_genesis(new_index)
         }
 
