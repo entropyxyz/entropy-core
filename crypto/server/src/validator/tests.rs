@@ -103,7 +103,7 @@ async fn test_get_and_store_values() {
     tokio::spawn(async move { client1.0.launch().await.unwrap() });
 
     let _result =
-        get_and_store_values(keys.clone(), &client1.1, "127.0.0.1:3002".to_string(), 1, false)
+        get_and_store_values(keys.clone(), &client1.1, "127.0.0.1:3002".to_string(), 9, false)
             .await;
     for (i, key) in keys.iter().enumerate() {
         let value = client1.1.kv().get(&key).await.unwrap();
