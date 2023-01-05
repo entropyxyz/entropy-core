@@ -275,7 +275,6 @@ pub fn testnet_genesis(
             let nominations = initial_authorities
                 .as_slice()
                 .choose_multiple(&mut rng, count)
-                .into_iter()
                 .map(|choice| choice.0.clone())
                 .collect::<Vec<_>>();
             (x.clone(), x.clone(), STASH, StakerStatus::Nominator(nominations))
