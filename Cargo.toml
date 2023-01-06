@@ -7,6 +7,4 @@ members=[
   'node/*',
   'pallets/*',
   'runtime',
-  # 'alice-send',
-  # 'subxttest'
 ]
