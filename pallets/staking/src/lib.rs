@@ -420,6 +420,13 @@ pub mod pallet {
                 pallet_staking_extension::SigningGroups::<T>::remove(sg as u8);
                 pallet_staking_extension::SigningGroups::<T>::insert(sg as u8, vs);
             }
+            frame_system::Pallet::<T>::register_extra_weight_unchecked(
+                <T as pallet::Config>::WeightInfo::new_session_handler_helper(
+                    curr_validators_set.len() as u32,
+                    new_validators_set.len() as u32,
+                ),
+                DispatchClass::Mandatory,
+            );
             Ok(())
         }
     }
