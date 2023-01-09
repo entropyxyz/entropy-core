@@ -2,11 +2,4 @@
 panic='unwind'
 
 [workspace]
-members=[
-  'crypto/*',
-  'node/*',
-  'pallets/*',
-  'runtime',
-  # 'alice-send',
-  # 'subxttest'
-]
+members=['crypto/*', 'node/*', 'pallets/*', 'runtime']

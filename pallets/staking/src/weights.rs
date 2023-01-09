@@ -15,6 +15,7 @@ pub trait WeightInfo {
     fn withdraw_unbonded() -> Weight;
     fn validate() -> Weight;
     fn declare_synced() -> Weight;
+    fn new_session_handler_helper(_c: u32, _n: u32) -> Weight;
 }
 
 /// Weights for pallet_realyer using the Substrate node and recommended hardware.
@@ -68,6 +69,19 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(1 as u64))
             .saturating_add(T::DbWeight::get().writes(1 as u64))
     }
+
+    // Storage: StakingExtension SigningGroups (r:2 w:2)
+    /// The range of component `c` is `[0, 1000]`.
+    /// The range of component `n` is `[0, 1000]`.
+    fn new_session_handler_helper(c: u32, n: u32) -> Weight {
+        Weight::from_ref_time(39_000_000 as u64)
+			// Standard Error: 42_909
+			.saturating_add(Weight::from_ref_time(1_364_743 as u64).saturating_mul(c as u64))
+			// Standard Error: 42_909
+			.saturating_add(Weight::from_ref_time(1_392_245 as u64).saturating_mul(n as u64))
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
+    }
 }
 
 // For backwards compatibility and tests
@@ -119,5 +133,18 @@ impl WeightInfo for () {
         Weight::from_ref_time(36_000_000 as u64)
             .saturating_add(RocksDbWeight::get().reads(1 as u64))
             .saturating_add(RocksDbWeight::get().writes(1 as u64))
+    }
+
+    // Storage: StakingExtension SigningGroups (r:2 w:2)
+    /// The range of component `c` is `[0, 1000]`.
+    /// The range of component `n` is `[0, 1000]`.
+    fn new_session_handler_helper(c: u32, n: u32) -> Weight {
+        Weight::from_ref_time(39_000_000 as u64)
+			// Standard Error: 42_909
+			.saturating_add(Weight::from_ref_time(1_364_743 as u64).saturating_mul(c as u64))
+			// Standard Error: 42_909
+			.saturating_add(Weight::from_ref_time(1_392_245 as u64).saturating_mul(n as u64))
+			.saturating_add(RocksDbWeight::get().reads(2 as u64))
+			.saturating_add(RocksDbWeight::get().writes(2 as u64))
     }
 }
