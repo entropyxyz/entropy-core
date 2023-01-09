@@ -22,6 +22,7 @@ use tokio::sync::{mpsc, oneshot};
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     Configuration,
+	validator::errors::ValidatorErr
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -62,7 +63,7 @@ pub async fn sync_kvdb(
 pub async fn get_all_keys(
     api: &OnlineClient<EntropyConfig>,
     batch_size: usize,
-) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+) -> Result<Vec<String>, ValidatorErr> {
     // zero batch size will cause infinite loop, also not needed
     assert_ne!(batch_size, 0);
     let mut result_length = batch_size;
@@ -71,13 +72,13 @@ pub async fn get_all_keys(
         result_length = 0;
         // query the registered mapping in the relayer pallet
         let storage_address = subxt::dynamic::storage_root("Relayer", "Registered");
-        let mut iter = api.storage().iter(storage_address, batch_size as u32, None).await.unwrap();
-        while let Some((key, account)) = iter.next().await.unwrap() {
+        let mut iter = api.storage().iter(storage_address, batch_size as u32, None).await?;
+        while let Some((key, account)) = iter.next().await? {
             let new_key = hex::encode(key);
             let len = new_key.len();
             let final_key = &new_key[len - 64..];
 
-            let address: AccountId32 = AccountId32::from_str(final_key).unwrap();
+            let address: AccountId32 = AccountId32::from_str(final_key).expect("Account conversion error");
 
             // todo add validation
             // dbg!(address.to_string(), bool::decode(mut account));
@@ -98,11 +99,11 @@ pub async fn get_key_url(
     api: &OnlineClient<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     my_subgroup: u8,
-) -> Result<String, ()> {
+) -> Result<String, ValidatorErr> {
     let signing_group_addresses_query =
         entropy::storage().staking_extension().signing_groups(my_subgroup);
     let signing_group_addresses =
-        api.storage().fetch(&signing_group_addresses_query, None).await.unwrap().unwrap();
+        api.storage().fetch(&signing_group_addresses_query, None).await?.ok_or_else(|| ValidatorErr::OptionUnwrapError("Querying Signing Groups"))?;
 
     // TODO: Just gets first person in subgroup, maybe do this randomly?
     // find kvdb that isn't syncing and get their URL
@@ -117,15 +118,15 @@ pub async fn get_key_url(
         let server_info_query = entropy::storage()
             .staking_extension()
             .threshold_servers(&signing_group_addresses[server_to_query]);
-        server_info = Some(api.storage().fetch(&server_info_query, None).await.unwrap().unwrap());
+        server_info = Some(api.storage().fetch(&server_info_query, None).await?.ok_or_else(|| ValidatorErr::OptionUnwrapError("Server Info Fetch Error"))?);
         let server_state_query = entropy::storage()
             .staking_extension()
             .is_validator_synced(&signing_group_addresses[server_to_query]);
-        server_sync_state = api.storage().fetch(&server_state_query, None).await.unwrap().unwrap();
+        server_sync_state = api.storage().fetch(&server_state_query, None).await?.ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
         server_to_query += 1;
     }
 
-    let ip_address = String::from_utf8(server_info.unwrap().endpoint).unwrap();
+    let ip_address = String::from_utf8(server_info.unwrap().endpoint)?;
     Ok(ip_address)
 }
 
@@ -136,7 +137,7 @@ pub async fn get_and_store_values(
     url: String,
     batch_size: usize,
     dev: bool,
-) -> Result<(), ()> {
+) -> Result<(), ValidatorErr> {
     let mut keys_stored = 0;
     while keys_stored < all_keys.len() {
         let mut keys_to_send_slice = batch_size + keys_stored;
@@ -149,23 +150,22 @@ pub async fn get_and_store_values(
         let result = client
             .post(formatted_url)
             .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&keys_to_send).unwrap())
+            .body(serde_json::to_string(&keys_to_send)?)
             .send()
-            .await
-            .unwrap();
+            .await?;
 
         if result.status() == 500 && dev {
             keys_stored += 1;
             continue;
         }
         // handle no value better? or don't maybe good to fail
-        let returned_values: Values = result.json().await.unwrap();
+        let returned_values: Values = result.json().await?;
         if returned_values.values.is_empty() {
             break;
         }
         for (i, value) in returned_values.values.iter().enumerate() {
-            let reservation = kv.kv().reserve_key(keys_to_send.keys[i].clone()).await.unwrap();
-            kv.kv().put(reservation, value.to_vec()).await.unwrap();
+            let reservation = kv.kv().reserve_key(keys_to_send.keys[i].clone()).await?;
+            kv.kv().put(reservation, value.to_vec()).await?;
             keys_stored += 1
         }
     }
@@ -175,19 +175,17 @@ pub async fn get_and_store_values(
 pub async fn tell_chain_syncing_is_done(
     api: &OnlineClient<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) {
+) -> Result<(), ValidatorErr>{
     let synced_tx = entropy::tx().staking_extension().declare_synced(true);
     let _ = api
         .tx()
         .sign_and_submit_then_watch_default(&synced_tx, signer)
-        .await
-        .unwrap()
+        .await?
         .wait_for_in_block()
-        .await
-        .unwrap()
+        .await?
         .wait_for_success()
-        .await
-        .unwrap();
+        .await?;
+	Ok(())
 }
 
 /// Validation for if an account can cover tx fees for a tx
@@ -195,14 +193,13 @@ pub async fn check_balance_for_fees(
     api: &OnlineClient<EntropyConfig>,
     address: &AccountId32,
     min_balance: u128,
-) -> Result<bool, ()> {
+) -> Result<bool, ValidatorErr> {
     let balance_query = entropy::storage().system().account(address);
     let account_info = api
         .storage()
         .fetch(&balance_query, None)
-        .await
-        .unwrap()
-        .expect("Account does not exist, add balance");
+        .await?
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Account does not exist, add balance"))?;
     let balance = account_info.data.free;
     let mut is_min_balance = false;
     if balance >= min_balance {
