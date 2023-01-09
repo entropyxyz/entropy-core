@@ -21,8 +21,8 @@ use tokio::sync::{mpsc, oneshot};
 
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
+    validator::errors::ValidatorErr,
     Configuration,
-	validator::errors::ValidatorErr
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -78,7 +78,8 @@ pub async fn get_all_keys(
             let len = new_key.len();
             let final_key = &new_key[len - 64..];
 
-            let address: AccountId32 = AccountId32::from_str(final_key).expect("Account conversion error");
+            let address: AccountId32 =
+                AccountId32::from_str(final_key).expect("Account conversion error");
 
             // todo add validation
             // dbg!(address.to_string(), bool::decode(mut account));
@@ -102,8 +103,11 @@ pub async fn get_key_url(
 ) -> Result<String, ValidatorErr> {
     let signing_group_addresses_query =
         entropy::storage().staking_extension().signing_groups(my_subgroup);
-    let signing_group_addresses =
-        api.storage().fetch(&signing_group_addresses_query, None).await?.ok_or_else(|| ValidatorErr::OptionUnwrapError("Querying Signing Groups"))?;
+    let signing_group_addresses = api
+        .storage()
+        .fetch(&signing_group_addresses_query, None)
+        .await?
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Querying Signing Groups"))?;
 
     // TODO: Just gets first person in subgroup, maybe do this randomly?
     // find kvdb that isn't syncing and get their URL
@@ -118,11 +122,20 @@ pub async fn get_key_url(
         let server_info_query = entropy::storage()
             .staking_extension()
             .threshold_servers(&signing_group_addresses[server_to_query]);
-        server_info = Some(api.storage().fetch(&server_info_query, None).await?.ok_or_else(|| ValidatorErr::OptionUnwrapError("Server Info Fetch Error"))?);
+        server_info = Some(
+            api.storage()
+                .fetch(&server_info_query, None)
+                .await?
+                .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server Info Fetch Error"))?,
+        );
         let server_state_query = entropy::storage()
             .staking_extension()
             .is_validator_synced(&signing_group_addresses[server_to_query]);
-        server_sync_state = api.storage().fetch(&server_state_query, None).await?.ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
+        server_sync_state = api
+            .storage()
+            .fetch(&server_state_query, None)
+            .await?
+            .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
         server_to_query += 1;
     }
 
@@ -175,7 +188,7 @@ pub async fn get_and_store_values(
 pub async fn tell_chain_syncing_is_done(
     api: &OnlineClient<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) -> Result<(), ValidatorErr>{
+) -> Result<(), ValidatorErr> {
     let synced_tx = entropy::tx().staking_extension().declare_synced(true);
     let _ = api
         .tx()
@@ -185,7 +198,7 @@ pub async fn tell_chain_syncing_is_done(
         .await?
         .wait_for_success()
         .await?;
-	Ok(())
+    Ok(())
 }
 
 /// Validation for if an account can cover tx fees for a tx
@@ -195,11 +208,10 @@ pub async fn check_balance_for_fees(
     min_balance: u128,
 ) -> Result<bool, ValidatorErr> {
     let balance_query = entropy::storage().system().account(address);
-    let account_info = api
-        .storage()
-        .fetch(&balance_query, None)
-        .await?
-        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Account does not exist, add balance"))?;
+    let account_info =
+        api.storage().fetch(&balance_query, None).await?.ok_or_else(|| {
+            ValidatorErr::OptionUnwrapError("Account does not exist, add balance")
+        })?;
     let balance = account_info.data.free;
     let mut is_min_balance = false;
     if balance >= min_balance {
