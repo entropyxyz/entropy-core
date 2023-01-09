@@ -1,7 +1,13 @@
 //! Benchmarking setup for pallet-propgation
 #![allow(unused_imports)]
-use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
-use frame_support::{assert_ok, ensure, sp_runtime::traits::StaticLookup, traits::Currency};
+use frame_benchmarking::{
+    account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec,
+};
+use frame_support::{
+    assert_ok, ensure,
+    sp_runtime::traits::StaticLookup,
+    traits::{Currency, Get},
+};
 use frame_system::{EventRecord, RawOrigin};
 use pallet_staking::{Pallet as FrameStaking, RewardDestination, ValidatorPrefs};
 
@@ -10,6 +16,10 @@ use super::*;
 use crate::Pallet as Staking;
 
 const NULL_ARR: [u8; 32] = [0; 32];
+const SEED: u32 = 0;
+const SEED_2: u32 = 1;
+
+type MaxValidators<T> =  <<T as pallet_staking::Config>::BenchmarkingConfig as pallet_staking::BenchmarkingConfig>::MaxValidators;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     let events = frame_system::Pallet::<T>::events();
@@ -17,6 +27,22 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     // compare to the last event record
     let EventRecord { event, .. } = &events[events.len() - 1];
     assert_eq!(event, &system_event);
+}
+
+fn create_validators<T: Config>(
+    count: u32,
+    seed: u32,
+) -> Vec<<T as pallet_session::Config>::ValidatorId> {
+    let candidates =
+        (0..count).map(|c| account::<T::AccountId>("candidate", c, seed)).collect::<Vec<_>>();
+    let mut validators = vec![];
+    for who in candidates {
+        let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(who.clone())
+            .or(Err(Error::<T>::InvalidValidatorId))
+            .unwrap();
+        validators.push(validator_id_res);
+    }
+    validators
 }
 
 fn prep_bond_and_validate<T: Config>(
@@ -49,8 +75,6 @@ fn prep_bond_and_validate<T: Config>(
         ));
     }
 }
-
-const SEED: u32 = 0;
 
 benchmarks! {
   change_endpoint {
@@ -135,7 +159,25 @@ benchmarks! {
     assert_last_event::<T>(Event::<T>::ValidatorSyncStatus(validator_id_res,  true).into());
   }
 
+  new_session_handler_helper {
+    let c in 0 .. MaxValidators::<T>::get();
+    let n in 0 .. MaxValidators::<T>::get();
+    let current_validators = create_validators::<T>(c, SEED);
+    let new_validators = create_validators::<T>(n, SEED_2);
+    let _ =Staking::<T>::new_session_handler(&current_validators);
 
+}: {
+    let _ = Staking::<T>::new_session_handler(&new_validators);
+} verify {
+    let one_current_validator = &SigningGroups::<T>::get(0).unwrap();
+    if n == 0 {
+        if one_current_validator.len() != 0 {
+            assert!(!new_validators.contains(&one_current_validator[0]));
+        }
+    } else {
+        assert!(new_validators.contains(&one_current_validator[0]));
+    }
+}
 
 }
 
