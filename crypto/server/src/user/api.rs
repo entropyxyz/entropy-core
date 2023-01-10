@@ -80,8 +80,9 @@ pub async fn new_user(
     let signer = get_signer(state).await?;
     // Checks if the user has registered onchain first.
     let key = signed_msg.account_id();
-    let is_registering = is_registering(&api, &key).await?;
-    if !is_registering {
+    let is_registering = register_info(&api, &key, true).await?;
+    let is_swaping = register_info(&api, &key, false).await?;
+    if !is_registering && !is_swaping {
         return Err(UserErr::NotRegistering("Register Onchain first"));
     }
 
@@ -92,6 +93,9 @@ pub async fn new_user(
             let subgroup = get_subgroup(&api, &signer)
                 .await?
                 .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+            if is_swaping {
+                state.kv().delete(&key.to_string()).await?;
+            }
             let reservation = state.kv().reserve_key(key.to_string()).await?;
             state.kv().put(reservation, v).await?;
             // TODO: Error handling really complex needs to be thought about.
@@ -104,15 +108,19 @@ pub async fn new_user(
     Ok(Status::Ok)
 }
 
-pub async fn is_registering(
+pub async fn register_info(
     api: &OnlineClient<EntropyConfig>,
     who: &AccountId32,
+    registering: bool,
 ) -> Result<bool, UserErr> {
-    let is_registering_query = entropy::storage().relayer().registering(who);
-    let is_registering = api.storage().fetch(&is_registering_query, None).await.unwrap();
-    Ok(is_registering
-        .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?
-        .is_registering)
+    let registering_info_query = entropy::storage().relayer().registering(who);
+    let register_info = api.storage().fetch(&registering_info_query, None).await.unwrap();
+    if registering {
+        return Ok(register_info
+            .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?
+            .is_registering);
+    }
+    Ok(register_info.ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?.is_swaping)
 }
 
 // Returns PairSigner for this nodes threshold server.

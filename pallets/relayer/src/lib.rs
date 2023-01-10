@@ -67,6 +67,7 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     pub struct RegisteringDetails {
         pub is_registering: bool,
+        pub is_swaping: bool,
         pub confirmations: Vec<u8>,
     }
 
@@ -180,6 +181,7 @@ pub mod pallet {
         AlreadySubmitted,
         NoThresholdKey,
         NotRegistering,
+        NotRegistered,
         InvalidSubgroup,
         AlreadyConfirmed,
         NotInSigningGroup,
@@ -213,8 +215,28 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::register())]
         pub fn register(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            let registering_info =
-                RegisteringDetails { is_registering: true, confirmations: vec![] };
+            let registering_info = RegisteringDetails {
+                is_registering: true,
+                is_swaping: false,
+                confirmations: vec![],
+            };
+            Registering::<T>::insert(&who, registering_info);
+            Self::deposit_event(Event::SignalRegister(who));
+            Ok(())
+        }
+
+        #[pallet::weight(<T as Config>::WeightInfo::register())]
+        pub fn swap_keys(origin: OriginFor<T>) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            ensure!(
+                Self::registered(&who).ok_or(Error::<T>::NotRegistered)?,
+                Error::<T>::NotRegistered
+            );
+            let registering_info = RegisteringDetails {
+                is_registering: false,
+                is_swaping: true,
+                confirmations: vec![],
+            };
             Registering::<T>::insert(&who, registering_info);
             Self::deposit_event(Event::SignalRegister(who));
             Ok(())

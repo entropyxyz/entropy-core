@@ -64,7 +64,7 @@ fn it_registers_a_user() {
 }
 
 #[test]
-fn it_confirms_registers_a_user() {
+fn it_confirms_registers_a_user_then_swap() {
     new_test_ext().execute_with(|| {
         assert_noop!(
             Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0),
@@ -101,7 +101,8 @@ fn it_confirms_registers_a_user() {
             Error::<Test>::AlreadyConfirmed
         );
 
-        let registering_info = RegisteringDetails { is_registering: true, confirmations: vec![0] };
+        let registering_info =
+            RegisteringDetails { is_registering: true, is_swaping: false, confirmations: vec![0] };
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
 
@@ -109,6 +110,14 @@ fn it_confirms_registers_a_user() {
 
         assert_eq!(Relayer::registering(1), None);
         assert!(Relayer::registered(1).unwrap());
+        // test swaping keys
+        assert_noop!(Relayer::swap_keys(RuntimeOrigin::signed(2)), Error::<Test>::NotRegistered);
+
+        let swaping_info =
+            RegisteringDetails { is_registering: false, is_swaping: true, confirmations: vec![] };
+        assert_ok!(Relayer::swap_keys(RuntimeOrigin::signed(1)));
+
+        assert_eq!(Relayer::registering(1), Some(swaping_info));
     });
 }
 
