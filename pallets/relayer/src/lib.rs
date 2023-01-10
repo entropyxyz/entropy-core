@@ -233,7 +233,7 @@ pub mod pallet {
                 Error::<T>::NotRegistered
             );
             let registering_info = RegisteringDetails {
-                is_registering: false,
+                is_registering: true,
                 is_swaping: true,
                 confirmations: vec![],
             };

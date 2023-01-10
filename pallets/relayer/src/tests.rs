@@ -114,7 +114,7 @@ fn it_confirms_registers_a_user_then_swap() {
         assert_noop!(Relayer::swap_keys(RuntimeOrigin::signed(2)), Error::<Test>::NotRegistered);
 
         let swaping_info =
-            RegisteringDetails { is_registering: false, is_swaping: true, confirmations: vec![] };
+            RegisteringDetails { is_registering: true, is_swaping: true, confirmations: vec![] };
         assert_ok!(Relayer::swap_keys(RuntimeOrigin::signed(1)));
 
         assert_eq!(Relayer::registering(1), Some(swaping_info));
