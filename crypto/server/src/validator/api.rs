@@ -107,7 +107,7 @@ pub async fn get_key_url(
         .storage()
         .fetch(&signing_group_addresses_query, None)
         .await?
-        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Querying Signing Groups"))?;
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Querying Signing Groups Error"))?;
 
     // TODO: Just gets first person in subgroup, maybe do this randomly?
     // find kvdb that isn't syncing and get their URL
