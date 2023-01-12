@@ -58,7 +58,7 @@ pub async fn store_tx(
     if tx.hash.len() != 64 {
         return Err(UserErr::Parse("hash.len() != 64"));
     }
-    let val = serde_json::to_string(&tx.clone().0).unwrap().into_bytes();
+    let val = serde_json::to_string(&tx.clone().0)?.into_bytes();
     let reservation = state.kv().reserve_key(tx.hash.clone()).await?;
     state.kv().put(reservation, val).await?;
     Ok(Status::Ok)
@@ -109,7 +109,7 @@ pub async fn is_registering(
     who: &AccountId32,
 ) -> Result<bool, UserErr> {
     let is_registering_query = entropy::storage().relayer().registering(who);
-    let is_registering = api.storage().fetch(&is_registering_query, None).await.unwrap();
+    let is_registering = api.storage().fetch(&is_registering_query, None).await?;
     Ok(is_registering
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?
         .is_registering)

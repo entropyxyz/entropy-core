@@ -22,6 +22,8 @@ pub enum UserErr {
     Substrate(#[from] subxt::error::DispatchError),
     #[error("Generic Substrate error: {0}")]
     GenericSubstrate(#[from] subxt::error::Error),
+    #[error("Serde Json error: {0}")]
+    SerdeJson(#[from] serde_json::Error),
     #[error("Not Registering error: {0}")]
     NotRegistering(&'static str),
     #[error("Subgroup error: {0}")]
