@@ -98,7 +98,7 @@ async fn rocket() -> _ {
         let all_keys = get_all_keys(&api, batch_size).await.unwrap();
         let _ =
             get_and_store_values(all_keys, &kv_store, key_server_url, batch_size, args.dev).await;
-        tell_chain_syncing_is_done(&api, &signer).await;
+        tell_chain_syncing_is_done(&api, &signer).await.unwrap();
     }
 
     // Unsafe routes are for testing purposes only
