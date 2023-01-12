@@ -102,7 +102,7 @@ fn it_confirms_registers_a_user_then_swap() {
         );
 
         let registering_info =
-            RegisteringDetails { is_registering: true, is_swaping: false, confirmations: vec![0] };
+            RegisteringDetails { is_registering: true, is_swapping: false, confirmations: vec![0] };
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
 
@@ -110,14 +110,14 @@ fn it_confirms_registers_a_user_then_swap() {
 
         assert_eq!(Relayer::registering(1), None);
         assert!(Relayer::registered(1).unwrap());
-        // test swaping keys
+        // test swapping keys
         assert_noop!(Relayer::swap_keys(RuntimeOrigin::signed(2)), Error::<Test>::NotRegistered);
 
-        let swaping_info =
-            RegisteringDetails { is_registering: true, is_swaping: true, confirmations: vec![] };
+        let swapping_info =
+            RegisteringDetails { is_registering: true, is_swapping: true, confirmations: vec![] };
         assert_ok!(Relayer::swap_keys(RuntimeOrigin::signed(1)));
 
-        assert_eq!(Relayer::registering(1), Some(swaping_info));
+        assert_eq!(Relayer::registering(1), Some(swapping_info));
     });
 }
 

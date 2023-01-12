@@ -117,7 +117,7 @@ async fn test_store_share() {
         .unwrap()
         .to_json();
 
-    // fails to add not registering or swaping
+    // fails to add not registering or swapping
     let response = client
         .post("/user/new")
         .header(ContentType::JSON)
@@ -247,7 +247,7 @@ async fn test_update_keys() {
 
     assert_eq!(response.status(), Status::Ok);
 
-    // fails to add not registering or swaping
+    // fails to add not registering or swapping
     let response_2 = client
         .post("/user/new")
         .header(ContentType::JSON)
@@ -262,7 +262,7 @@ async fn test_update_keys() {
     );
 
     // signal registering
-    make_swaping(&api, &dave).await;
+    make_swapping(&api, &dave).await;
 
     let response_3 = client
         .post("/user/new")
@@ -356,7 +356,7 @@ pub async fn make_register(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Key
     assert!(is_registering_2.unwrap().unwrap().is_registering);
 }
 
-pub async fn make_swaping(api: &OnlineClient<EntropyConfig>, key: &Sr25519Keyring) {
+pub async fn make_swapping(api: &OnlineClient<EntropyConfig>, key: &Sr25519Keyring) {
     let signer = PairSigner::new(key.pair());
     let registering_query = entropy::storage().relayer().registering(key.to_account_id());
     let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();

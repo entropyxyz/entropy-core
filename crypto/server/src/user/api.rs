@@ -81,7 +81,7 @@ pub async fn new_user(
     // Checks if the user has registered onchain first.
     let key = signed_msg.account_id();
     let is_registering = register_info(&api, &key, true).await?;
-    let is_swaping = register_info(&api, &key, false).await?;
+    let is_swapping = register_info(&api, &key, false).await?;
 
     let decrypted_message = signed_msg.decrypt(signer.signer());
     match decrypted_message {
@@ -90,7 +90,7 @@ pub async fn new_user(
             let subgroup = get_subgroup(&api, &signer)
                 .await?
                 .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-            if is_swaping {
+            if is_swapping {
                 state.kv().delete(&key.to_string()).await?;
             }
             let reservation = state.kv().reserve_key(key.to_string()).await?;
@@ -117,7 +117,7 @@ pub async fn register_info(
             .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?
             .is_registering);
     }
-	Ok(register_info.ok_or_else(|| UserErr::NotRegistering("Declare swap Onchain first"))?.is_swaping)
+	Ok(register_info.ok_or_else(|| UserErr::NotRegistering("Declare swap Onchain first"))?.is_swapping)
 }
 
 // Returns PairSigner for this nodes threshold server.

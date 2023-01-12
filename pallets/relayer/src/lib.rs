@@ -67,7 +67,7 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     pub struct RegisteringDetails {
         pub is_registering: bool,
-        pub is_swaping: bool,
+        pub is_swapping: bool,
         pub confirmations: Vec<u8>,
     }
 
@@ -217,7 +217,7 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let registering_info = RegisteringDetails {
                 is_registering: true,
-                is_swaping: false,
+                is_swapping: false,
                 confirmations: vec![],
             };
             Registering::<T>::insert(&who, registering_info);
@@ -234,7 +234,7 @@ pub mod pallet {
             );
             let registering_info = RegisteringDetails {
                 is_registering: true,
-                is_swaping: true,
+                is_swapping: true,
                 confirmations: vec![],
             };
             Registering::<T>::insert(&who, registering_info);
