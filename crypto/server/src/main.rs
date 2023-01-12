@@ -107,7 +107,7 @@ async fn rocket() -> _ {
     // are disabled by default.
     // To enable unsafe routes compile with --feature unsafe.
     let mut unsafe_routes = routes![];
-    if cfg!(feature = "unsafe") {
+    if cfg!(feature = "unsafe") || cfg!(test) {
         unsafe_routes = routes![remove_keys, get, put, delete];
     }
 

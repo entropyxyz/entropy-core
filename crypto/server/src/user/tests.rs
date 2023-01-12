@@ -117,7 +117,7 @@ async fn test_store_share() {
         .unwrap()
         .to_json();
 
-    // fails to add not registering
+    // fails to add not registering or swaping
     let response = client
         .post("/user/new")
         .header(ContentType::JSON)
@@ -206,6 +206,89 @@ async fn test_store_share() {
 
 #[rocket::async_test]
 #[serial]
+async fn test_update_keys() {
+    clean_tests();
+    let dave = AccountKeyring::Dave;
+	let alice = AccountKeyring::Alice;
+    let alice_stash_id: AccountId32 =
+        h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
+
+    let key: AccountId32 = dave.to_account_id();
+    let value: Vec<u8> = vec![0];
+	let new_value: Vec<u8> = vec![1];
+    let cxt = test_context_stationary().await;
+    let client = setup_client().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+
+    let threshold_servers_query =
+        entropy::storage().staking_extension().threshold_servers(&alice_stash_id);
+    let query_result = api.storage().fetch(&threshold_servers_query, None).await.unwrap();
+    assert!(query_result.is_some());
+
+    let res = query_result.unwrap();
+    let server_public_key = PublicKey::from(res.x25519_public_key);
+    let user_input = SignedMessage::new(&dave.pair(), &Bytes(new_value.clone()), &server_public_key)
+        .unwrap()
+        .to_json();
+
+	let user_input_alice = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
+        .unwrap()
+        .to_json();
+
+    let put_query =
+        UnsafeQuery::new(key.to_string(), serde_json::to_string(&value).unwrap()).to_json();
+    // manually add dave's key to replace it
+    let response = client
+        .post("/unsafe/put")
+        .header(ContentType::JSON)
+        .body(put_query.clone())
+        .dispatch()
+        .await;
+
+    assert_eq!(response.status(), Status::Ok);
+
+    // fails to add not registering or swaping
+    let response_2 = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(user_input.clone())
+        .dispatch()
+        .await;
+
+    assert_eq!(response_2.status(), Status::InternalServerError);
+    assert_eq!(
+        response_2.into_string().await.unwrap(),
+        "Not Registering error: Register Onchain first"
+    );
+
+    // signal registering
+    make_swaping(&api, &dave).await;
+
+    let response_3 = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(user_input.clone())
+        .dispatch()
+        .await;
+    assert_eq!(response_3.status(), Status::Ok);
+    assert_eq!(response_3.into_string().await, None);
+    // make sure there is now one confirmation
+    check_if_confirmation(&api, &dave).await;
+
+	// check dave has new key
+	let response_4 = client
+	 .post("/unsafe/get")
+	 .header(ContentType::JSON)
+	 .body(put_query.clone())
+	 .dispatch()
+	 .await;
+
+	 assert_eq!(response_4.into_string().await, Some(std::str::from_utf8(&new_value).unwrap().to_string()));
+
+}
+
+#[rocket::async_test]
+#[serial]
 async fn test_store_share_fail_wrong_data() {
     // Construct a client to use for dispatching requests.
     let client = setup_client().await;
@@ -273,13 +356,34 @@ pub async fn make_register(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Key
     assert!(is_registering_2.unwrap().unwrap().is_registering);
 }
 
-pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Keyring) {
-    let registering_query = entropy::storage().relayer().registering(alice.to_account_id());
-    let registered_query = entropy::storage().relayer().registered(alice.to_account_id());
+pub async fn make_swaping(api: &OnlineClient<EntropyConfig>, key: &Sr25519Keyring) {
+    let signer = PairSigner::new(key.pair());
+    let registering_query = entropy::storage().relayer().registering(key.to_account_id());
+    let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();
+    assert!(is_registering_1.is_none());
+
+    let registering_tx = entropy::tx().relayer().swap_keys();
+
+    api.tx()
+        .sign_and_submit_then_watch_default(&registering_tx, &signer)
+        .await
+        .unwrap()
+        .wait_for_in_block()
+        .await
+        .unwrap()
+        .wait_for_success()
+        .await
+        .unwrap();
+
+    let is_registering_2 = api.storage().fetch(&registering_query, None).await;
+    assert!(is_registering_2.unwrap().unwrap().is_registering);
+}
+
+pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &Sr25519Keyring) {
+    let registering_query = entropy::storage().relayer().registering(key.to_account_id());
+    let registered_query = entropy::storage().relayer().registered(key.to_account_id());
     let is_registering = api.storage().fetch(&registering_query, None).await.unwrap();
     // make sure there is one confirmation
     assert_eq!(is_registering.unwrap().confirmations.len(), 1);
     let is_registered = api.storage().fetch(&registered_query, None).await.unwrap();
-    // still not registered need more confirmations
-    assert!(is_registered.is_none());
 }

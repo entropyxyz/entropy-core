@@ -82,14 +82,11 @@ pub async fn new_user(
     let key = signed_msg.account_id();
     let is_registering = register_info(&api, &key, true).await?;
     let is_swaping = register_info(&api, &key, false).await?;
-    if !is_registering && !is_swaping {
-        return Err(UserErr::NotRegistering("Register Onchain first"));
-    }
 
     let decrypted_message = signed_msg.decrypt(signer.signer());
     match decrypted_message {
         Ok(v) => {
-            // store new user data in kvdb
+            // store new user data in kvdb or deletes and replaces it if swapping
             let subgroup = get_subgroup(&api, &signer)
                 .await?
                 .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
@@ -120,7 +117,7 @@ pub async fn register_info(
             .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?
             .is_registering);
     }
-    Ok(register_info.ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?.is_swaping)
+	Ok(register_info.ok_or_else(|| UserErr::NotRegistering("Declare swap Onchain first"))?.is_swaping)
 }
 
 // Returns PairSigner for this nodes threshold server.
@@ -156,7 +153,6 @@ pub async fn get_subgroup(
         .fetch(&stash_address_query, None)
         .await?
         .ok_or_else(|| UserErr::SubgroupError("Stash Fetch Error"))?;
-    // TODO: stash keys are broken up into subgroups....need to get stash key here from threshold
     for i in 0..SIGNING_PARTY_SIZE {
         let signing_group_addresses_query =
             entropy::storage().staking_extension().signing_groups(i as u8);
