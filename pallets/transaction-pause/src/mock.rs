@@ -109,14 +109,16 @@ construct_runtime!(
     System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
     TransactionPause: transaction_pause::{Pallet, Storage, Call, Event<T>},
     Balances: pallet_balances::{Pallet, Storage, Call, Event<T>},
-    Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
+    ConstraintsPallet: pallet_constraints::{Pallet, Call, Storage, Event<T>},
   }
 );
 
 pub struct ExtBuilder;
 
 impl Default for ExtBuilder {
-    fn default() -> Self { ExtBuilder }
+    fn default() -> Self {
+        ExtBuilder
+    }
 }
 
 impl ExtBuilder {

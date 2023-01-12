@@ -5,8 +5,8 @@ use frame_support::pallet_prelude::*;
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
-pub use sp_core::H160;
 use sp_core::{bounded::BoundedVec, ConstU32};
+pub use sp_core::{H160, H256};
 use sp_std::vec::Vec;
 
 /// Supported architectures.
@@ -40,6 +40,13 @@ pub trait HasReceiver<A: Architecture + ?Sized> {
 /// Trait for getting the Arch of a transaction.
 pub trait HasArch {
     fn arch() -> Arch;
+}
+
+/// Represents a user's constraints
+#[derive(Default, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+pub struct Constraints {
+    pub evm_acl: Option<Acl<H160>>,
+    pub btc_acl: Option<Acl<H256>>,
 }
 
 /// Basic transaction that has a sender and receiver with single accounts.

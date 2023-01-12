@@ -1,7 +1,7 @@
 use frame_support::{assert_err, assert_noop, assert_ok};
-use sp_core::H160;
+use sp_core::{H160, H256};
 
-use crate::{mock::*, Acl, Arch, Error, SigReqAccounts};
+use crate::{mock::*, Acl, Constraints, Error, ModificationPermissions};
 
 /// consts used for testing
 const CONSTRAINT_ACCOUNT: u64 = 1u64;
@@ -11,58 +11,57 @@ const SIG_REQ_ACCOUNT: u64 = 2u64;
 #[test]
 fn assert_permissions_are_restricted_properly() {
     new_test_ext().execute_with(|| {
-        // a valid one-address allowlist
-        let valid_acl = Acl::<H160>::try_from(vec![H160::default()]).unwrap();
+        // In practice, we should use `None` instead of `Some(Acl::default())`,
+        // but this is fine to test permission
+        let valid_constraints = Constraints {
+            evm_acl: Some(Acl::<H160>::default()),
+            btc_acl: Some(Acl::<H256>::default()),
+        };
 
         // make sure noone can add a constraint without explicit permissions
         assert_noop!(
-            Constraints::update_acl(
+            ConstraintsPallet::update_constraints(
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                Arch::Evm,
-                Some(valid_acl.clone()),
+                valid_constraints.clone(),
             ),
             Error::<Test>::NotAuthorized
         );
 
         // give permission to modify constraints and make sure the acl can be updated
-        SigReqAccounts::<Test>::insert(&CONSTRAINT_ACCOUNT, &SIG_REQ_ACCOUNT, ());
-        assert_ok!(Constraints::update_acl(
+        ModificationPermissions::<Test>::insert(&CONSTRAINT_ACCOUNT, &SIG_REQ_ACCOUNT, ());
+        assert_ok!(ConstraintsPallet::update_constraints(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
-            Arch::Evm,
-            Some(valid_acl.clone())
+            valid_constraints.clone()
         ));
-        assert_eq!(Constraints::acl(SIG_REQ_ACCOUNT, Arch::Evm), Ok(valid_acl.clone()));
+        assert_eq!(ConstraintsPallet::evm_acl(SIG_REQ_ACCOUNT), Ok(Acl::<H160>::default()));
 
         // make sure sig-req key can't modify or delete constraints
         assert_noop!(
-            Constraints::update_acl(
+            ConstraintsPallet::update_constraints(
                 RuntimeOrigin::signed(SIG_REQ_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                Arch::Evm,
-                Some(valid_acl.clone()),
+                valid_constraints.clone(),
             ),
             Error::<Test>::NotAuthorized
         );
         assert_noop!(
-            Constraints::update_acl(
+            ConstraintsPallet::update_constraints(
                 RuntimeOrigin::signed(SIG_REQ_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                Arch::Evm,
-                None
+                valid_constraints.clone(),
             ),
             Error::<Test>::NotAuthorized
         );
 
         // removing permissions should prevent modification
-        SigReqAccounts::<Test>::remove(&CONSTRAINT_ACCOUNT, &SIG_REQ_ACCOUNT);
+        ModificationPermissions::<Test>::remove(&CONSTRAINT_ACCOUNT, &SIG_REQ_ACCOUNT);
         assert_noop!(
-            Constraints::update_acl(
+            ConstraintsPallet::update_constraints(
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                Arch::Evm,
-                Some(valid_acl)
+                valid_constraints
             ),
             Error::<Test>::NotAuthorized
         );
@@ -72,27 +71,30 @@ fn assert_permissions_are_restricted_properly() {
 #[test]
 fn return_error_if_constraints_arent_set() {
     new_test_ext().execute_with(|| {
-        // a valid one-address allowlist
-        let valid_acl = Acl::<H160>::try_from(vec![H160::default()]).unwrap();
+        // In practice, we should use `None` instead of `Some(Acl::default())`,
+        // but this is fine to test permission
+        let valid_constraints = Constraints {
+            evm_acl: Some(Acl::<H160>::default()),
+            btc_acl: Some(Acl::<H256>::default()),
+        };
 
         // give permission to modify constraints
-        SigReqAccounts::<Test>::insert(&CONSTRAINT_ACCOUNT, &SIG_REQ_ACCOUNT, ());
+        ModificationPermissions::<Test>::insert(&CONSTRAINT_ACCOUNT, &SIG_REQ_ACCOUNT, ());
 
         // make sure acl is empty
         assert_err!(
-            Constraints::acl(SIG_REQ_ACCOUNT, Arch::Evm),
+            ConstraintsPallet::evm_acl(SIG_REQ_ACCOUNT),
             Error::<Test>::AccountDoesNotExist
         );
 
         // make sure we can update the ACL
-        assert_ok!(Constraints::update_acl(
+        assert_ok!(ConstraintsPallet::update_constraints(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
-            Arch::Evm,
-            Some(valid_acl.clone())
+            valid_constraints.clone()
         ));
 
         // make sure acl updates
-        assert_eq!(Constraints::acl(SIG_REQ_ACCOUNT, Arch::Evm), Ok(valid_acl));
+        assert_eq!(ConstraintsPallet::evm_acl(SIG_REQ_ACCOUNT), Ok(Acl::<H160>::default()));
     });
 }

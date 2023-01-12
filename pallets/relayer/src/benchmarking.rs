@@ -4,8 +4,7 @@ use codec::Encode;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
 use frame_support::traits::{Get, OnInitialize};
 use frame_system::{EventRecord, RawOrigin};
-use sp_core::H160;
-use substrate_common::{Acl, Message, SigRequest};
+use substrate_common::{Constraints, Message, SigRequest};
 
 use super::*;
 #[allow(unused)]
@@ -51,8 +50,8 @@ benchmarks! {
     let sig_req_account: T::AccountId = whitelisted_caller();
     let constraint_account: T::AccountId = whitelisted_caller();
 
-    let initial_acl = Some(Acl::<H160>::try_from(vec![H160::default()]).unwrap());
-  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account.clone(), initial_acl)
+    let initial_constraints = Constraints::default();
+  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account.clone(), Some(initial_constraints))
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone(), constraint_account).into());
     assert!(Registering::<T>::contains_key(sig_req_account));

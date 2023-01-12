@@ -19,7 +19,7 @@ frame_support::construct_runtime!(
     UncheckedExtrinsic = UncheckedExtrinsic,
   {
     System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-    Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
+    ConstraintsPallet: pallet_constraints::{Pallet, Call, Storage, Event<T>},
   }
 );
 

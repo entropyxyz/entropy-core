@@ -3,14 +3,14 @@ use frame_support::{
     dispatch::{GetDispatchInfo, Pays},
     traits::OnInitialize,
 };
-use pallet_constraints::{AclAddresses, SigReqAccounts, H160};
+use pallet_constraints::{ActiveArchitectures, ModificationPermissions};
 use pallet_relayer::Call as RelayerCall;
 use pallet_staking_extension::ServerInfo;
 use sp_runtime::{
     traits::SignedExtension,
     transaction_validity::{TransactionValidity, ValidTransaction},
 };
-use substrate_common::{Acl, Arch, Message, SigRequest};
+use substrate_common::{Constraints, Message, SigRequest};
 
 use crate as pallet_relayer;
 use crate::{mock::*, Error, Failures, PrevalidateRelayer, RegisteringDetails, Responsibility};
@@ -84,7 +84,7 @@ fn it_confirms_registers_a_user() {
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
-            Some(Acl::<H160>::default()),
+            Some(Constraints::default()),
         ));
 
         assert_noop!(
@@ -112,7 +112,7 @@ fn it_confirms_registers_a_user() {
             is_registering: true,
             constraint_account: 2 as <Test as frame_system::Config>::AccountId,
             confirmations: vec![0],
-            initial_acl: Some(Acl::<H160>::default()),
+            initial_constraints: Some(Constraints::default()),
         };
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
@@ -123,8 +123,8 @@ fn it_confirms_registers_a_user() {
         assert!(Relayer::registered(1).unwrap());
 
         // make sure constraint and sig req keys are set
-        assert!(SigReqAccounts::<Test>::contains_key(2, 1));
-        assert!(AclAddresses::<Test>::contains_key(1, Arch::Evm));
+        assert!(ModificationPermissions::<Test>::contains_key(2, 1));
+        assert!(ActiveArchitectures::<Test>::iter_key_prefix(1).count() == 0);
     });
 }
 

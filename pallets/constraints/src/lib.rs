@@ -7,7 +7,7 @@
 //!
 //! ### Public Functions
 //!
-//! update_acl - lets a user update their acl
+//! update_constraints - lets a user update their constraints
 
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
@@ -32,14 +32,13 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use sp_runtime::sp_std::str;
-    pub use substrate_common::{Acl, AclKind, Arch, H160};
+    pub use substrate_common::{Acl, AclKind, Arch, Constraints, H160, H256};
 
     pub use crate::weights::WeightInfo;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
 
@@ -48,11 +47,11 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    #[pallet::storage]
-    #[pallet::getter(fn sig_req_accounts)]
     /// If the constraint-modification `AccountId` and signature-request `AccountId` tuple as a key exists, then
     /// the constraint-modification `AccountId` is authorized to modify the constraints for this account
-    pub type SigReqAccounts<T: Config> = StorageDoubleMap<
+    #[pallet::storage]
+    #[pallet::getter(fn sig_req_accounts)]
+    pub type ModificationPermissions<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
         T::AccountId,
@@ -62,25 +61,46 @@ pub mod pallet {
         ResultQuery<Error<T>::NotAuthorized>,
     >;
 
-    /// Stores the ACL of each user for every architecture. Maps a signature-request AccountId and a
-    /// platform to the platform-specific constraints
+    /// 2-ary set associating a signature-request account to the architectures it has active constraints on.
     #[pallet::storage]
-    #[pallet::getter(fn acl)]
-    pub type AclAddresses<T: Config> = StorageDoubleMap<
+    #[pallet::getter(fn active_constraints_by_arch)]
+    pub type ActiveArchitectures<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
         T::AccountId,
         Blake2_128Concat,
         Arch,
+        (),
+        ResultQuery<Error<T>::NotAuthorized>,
+    >;
+
+    /// Stores the EVM ACL of each user
+    #[pallet::storage]
+    #[pallet::getter(fn evm_acl)]
+    pub type EvmAcl<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
         Acl<H160>,
+        ResultQuery<Error<T>::AccountDoesNotExist>,
+    >;
+
+    /// Stores the BTC ACL of each user
+    #[pallet::storage]
+    #[pallet::getter(fn btc_acl)]
+    pub type BtcAcl<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        Acl<H256>,
         ResultQuery<Error<T>::AccountDoesNotExist>,
     >;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// All whitelisted addresses in call. [constraint_account, arch]
-        AclUpdated(T::AccountId, Arch),
+        /// All new constraints. [constraint_account, constraints]
+        ConstraintsUpdated(T::AccountId, Constraints),
     }
 
     #[derive(PartialEq, Eq)]
@@ -94,39 +114,56 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Sets or clears the ACL for a given signature-request account and architecture.
-        /// If `new_acl` is `None`, the ACL is cleared.
+        /// Sets or clears the constraints for a given signature-request account.
+        /// If the members of `new_constraints` are `None`, those constraints will be removed.
         /// Must be sent from a constraint-modification account.
         /// TODO update weights
-        #[pallet::weight((<T as Config>::WeightInfo::update_acl(25), Pays::No))]
-        pub fn update_acl(
+        #[pallet::weight((<T as Config>::WeightInfo::update_constraints(25), Pays::No))]
+        pub fn update_constraints(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
-            arch: Arch,
-            new_acl: Option<Acl<H160>>,
+            new_constraints: Constraints,
         ) -> DispatchResultWithPostInfo {
             let constraint_account = ensure_signed(origin)?;
 
-            // ensure registered and account has permission to modify constraints
             ensure!(
-                SigReqAccounts::<T>::contains_key(&constraint_account, &sig_req_account),
+                ModificationPermissions::<T>::contains_key(&constraint_account, &sig_req_account),
                 Error::<T>::NotAuthorized
             );
 
-            // update the ACL, clearing it if `new_acl` is `None`
-            match new_acl {
-                Some(acl) => {
-                    AclAddresses::<T>::insert(sig_req_account.clone(), arch, acl);
-                },
-                None => {
-                    AclAddresses::<T>::remove(sig_req_account.clone(), arch);
-                },
-            }
+            Self::set_constraints(sig_req_account.clone(), new_constraints.clone());
 
-            Self::deposit_event(Event::AclUpdated(constraint_account, arch));
+            Self::deposit_event(Event::ConstraintsUpdated(sig_req_account, new_constraints));
 
             // TODO new weight
-            Ok(Some(<T as Config>::WeightInfo::update_acl(3)).into())
+            Ok(Some(<T as Config>::WeightInfo::update_constraints(3)).into())
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        /// Sets the constraints for a given signature-request account.
+        pub fn set_constraints(sig_req_account: T::AccountId, constraints: Constraints) {
+            let Constraints { evm_acl, btc_acl } = constraints;
+            match evm_acl {
+                Some(acl) => {
+                    EvmAcl::<T>::insert(sig_req_account.clone(), acl);
+                    ActiveArchitectures::<T>::insert(sig_req_account.clone(), Arch::Evm, ());
+                },
+                None => {
+                    ActiveArchitectures::<T>::remove(sig_req_account.clone(), Arch::Evm);
+                    EvmAcl::<T>::remove(sig_req_account.clone());
+                },
+            }
+            match btc_acl {
+                Some(acl) => {
+                    BtcAcl::<T>::insert(sig_req_account.clone(), acl);
+                    ActiveArchitectures::<T>::insert(sig_req_account.clone(), Arch::Btc, ());
+                },
+                None => {
+                    ActiveArchitectures::<T>::remove(sig_req_account.clone(), Arch::Btc);
+                    BtcAcl::<T>::remove(sig_req_account.clone());
+                },
+            }
         }
     }
 }
