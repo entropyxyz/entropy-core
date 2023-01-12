@@ -209,13 +209,13 @@ async fn test_store_share() {
 async fn test_update_keys() {
     clean_tests();
     let dave = AccountKeyring::Dave;
-	let alice = AccountKeyring::Alice;
+    let alice = AccountKeyring::Alice;
     let alice_stash_id: AccountId32 =
         h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
 
     let key: AccountId32 = dave.to_account_id();
     let value: Vec<u8> = vec![0];
-	let new_value: Vec<u8> = vec![1];
+    let new_value: Vec<u8> = vec![1];
     let cxt = test_context_stationary().await;
     let client = setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
@@ -227,13 +227,15 @@ async fn test_update_keys() {
 
     let res = query_result.unwrap();
     let server_public_key = PublicKey::from(res.x25519_public_key);
-    let user_input = SignedMessage::new(&dave.pair(), &Bytes(new_value.clone()), &server_public_key)
-        .unwrap()
-        .to_json();
+    let user_input =
+        SignedMessage::new(&dave.pair(), &Bytes(new_value.clone()), &server_public_key)
+            .unwrap()
+            .to_json();
 
-	let user_input_alice = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
-        .unwrap()
-        .to_json();
+    let user_input_alice =
+        SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
+            .unwrap()
+            .to_json();
 
     let put_query =
         UnsafeQuery::new(key.to_string(), serde_json::to_string(&value).unwrap()).to_json();
@@ -275,16 +277,18 @@ async fn test_update_keys() {
     // make sure there is now one confirmation
     check_if_confirmation(&api, &dave).await;
 
-	// check dave has new key
-	let response_4 = client
-	 .post("/unsafe/get")
-	 .header(ContentType::JSON)
-	 .body(put_query.clone())
-	 .dispatch()
-	 .await;
+    // check dave has new key
+    let response_4 = client
+        .post("/unsafe/get")
+        .header(ContentType::JSON)
+        .body(put_query.clone())
+        .dispatch()
+        .await;
 
-	 assert_eq!(response_4.into_string().await, Some(std::str::from_utf8(&new_value).unwrap().to_string()));
-
+    assert_eq!(
+        response_4.into_string().await,
+        Some(std::str::from_utf8(&new_value).unwrap().to_string())
+    );
 }
 
 #[rocket::async_test]

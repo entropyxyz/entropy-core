@@ -117,7 +117,9 @@ pub async fn register_info(
             .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?
             .is_registering);
     }
-	Ok(register_info.ok_or_else(|| UserErr::NotRegistering("Declare swap Onchain first"))?.is_swapping)
+    Ok(register_info
+        .ok_or_else(|| UserErr::NotRegistering("Declare swap Onchain first"))?
+        .is_swapping)
 }
 
 // Returns PairSigner for this nodes threshold server.
