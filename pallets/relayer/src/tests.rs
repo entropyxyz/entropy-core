@@ -37,7 +37,7 @@ fn it_preps_transaction() {
 #[test]
 fn it_emits_a_signature_request_event() {
     new_test_ext().execute_with(|| {
-        System::set_block_number(1);
+        System::set_block_number(2);
         let ip_addresses: Vec<Vec<u8>> = vec![vec![10], vec![11]];
         let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
         let message = Message {
@@ -51,6 +51,35 @@ fn it_emits_a_signature_request_event() {
         System::assert_last_event(RuntimeEvent::Relayer(crate::Event::SignatureRequested(
             message.clone(),
         )));
+    });
+}
+
+#[test]
+fn it_tests_get_validator_rotation() {
+    new_test_ext().execute_with(|| {
+        let result_1 = Relayer::get_validator_rotation(0, 0).unwrap();
+        let result_2 = Relayer::get_validator_rotation(1, 0).unwrap();
+        assert_eq!(result_1, 1);
+        assert_eq!(result_2, 2);
+
+        let result_3 = Relayer::get_validator_rotation(0, 1).unwrap();
+        let result_4 = Relayer::get_validator_rotation(1, 1).unwrap();
+        assert_eq!(result_3, 5);
+        assert_eq!(result_4, 6);
+
+        let result_5 = Relayer::get_validator_rotation(0, 100).unwrap();
+        let result_6 = Relayer::get_validator_rotation(1, 100).unwrap();
+        assert_eq!(result_5, 1);
+        assert_eq!(result_6, 2);
+
+        let result_7 = Relayer::get_validator_rotation(0, 101).unwrap();
+        let result_8 = Relayer::get_validator_rotation(1, 101).unwrap();
+        assert_eq!(result_7, 5);
+        assert_eq!(result_8, 6);
+
+        // really big number does not crash
+        let result_8 = Relayer::get_validator_rotation(0, 1000000000000000000).unwrap();
+        assert_eq!(result_8, 1);
     });
 }
 
@@ -160,7 +189,7 @@ fn moves_active_to_pending() {
         Failures::<Test>::insert(2, failures.clone());
         Failures::<Test>::insert(5, failures.clone());
 
-        let ip_addresses: Vec<Vec<u8>> = vec![vec![10], vec![11]];
+        let ip_addresses: Vec<Vec<u8>> = vec![vec![20], vec![40]];
         let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
         let message = Message {
             account: vec![1, 0, 0, 0, 0, 0, 0, 0],

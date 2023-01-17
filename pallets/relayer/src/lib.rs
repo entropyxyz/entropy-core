@@ -289,17 +289,32 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         pub fn get_ip_addresses() -> Result<Vec<Vec<u8>>, Error<T>> {
             let mut ip_addresses: Vec<Vec<u8>> = vec![];
+            let block_number = <frame_system::Pallet<T>>::block_number();
+
             // TODO: JA simple hacky way to do this, get the first address from each signing group
             // need good algorithim for this
             for i in 0..SIGNING_PARTY_SIZE {
-                let addresses = pallet_staking_extension::Pallet::<T>::signing_groups(i as u8)
-                    .ok_or(Error::<T>::SigningGroupError)?;
+                let address = Self::get_validator_rotation(i as u8, block_number)?;
                 let ServerInfo { endpoint, .. } =
-                    pallet_staking_extension::Pallet::<T>::threshold_server(&addresses[0])
+                    pallet_staking_extension::Pallet::<T>::threshold_server(&address)
                         .ok_or(Error::<T>::IpAddressError)?;
                 ip_addresses.push(endpoint.clone());
             }
             Ok(ip_addresses)
+        }
+
+        pub fn get_validator_rotation(
+            signing_group: u8,
+            block_number: T::BlockNumber,
+        ) -> Result<<T as pallet_session::Config>::ValidatorId, Error<T>> {
+            let addresses = pallet_staking_extension::Pallet::<T>::signing_groups(signing_group)
+                .ok_or(Error::<T>::SigningGroupError)?;
+            let converted_block_number: u32 =
+                T::BlockNumber::try_into(block_number).unwrap_or_default();
+            let selection: u32 = converted_block_number % addresses.len() as u32;
+
+            let address = &addresses[selection as usize];
+            Ok(address.clone())
         }
 
         pub fn move_active_to_pending(
