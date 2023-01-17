@@ -27,7 +27,7 @@ benchmarks! {
     let initial_constraints = Constraints::default();
 
     // give permission to update constraints for Arch::Generic
-    <ModificationPermissions<T>>::insert(constraint_account.clone(), sig_req_account.clone(), ());
+    <AllowedToModifyConstraints<T>>::insert(constraint_account.clone(), sig_req_account.clone(), ());
   }: _(RawOrigin::Signed(constraint_account.clone()), sig_req_account.clone(), initial_constraints.clone())
   verify {
     assert_last_event::<T>(Event::<T>::ConstraintsUpdated(constraint_account, initial_constraints).into());

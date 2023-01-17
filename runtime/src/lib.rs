@@ -308,7 +308,9 @@ pub enum ProxyType {
     Staking,
 }
 impl Default for ProxyType {
-    fn default() -> Self { Self::Any }
+    fn default() -> Self {
+        Self::Any
+    }
 }
 impl InstanceFilter<RuntimeCall> for ProxyType {
     fn filter(&self, c: &RuntimeCall) -> bool {
@@ -991,7 +993,8 @@ parameter_types! {
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
-where RuntimeCall: From<LocalCall>
+where
+    RuntimeCall: From<LocalCall>,
 {
     fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
         call: RuntimeCall,
@@ -1037,7 +1040,8 @@ impl frame_system::offchain::SigningTypes for Runtime {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
-where RuntimeCall: From<C>
+where
+    RuntimeCall: From<C>,
 {
     type Extrinsic = UncheckedExtrinsic;
     type OverarchingCall = RuntimeCall;
@@ -1208,11 +1212,15 @@ parameter_types! {
 use sp_runtime::traits::Convert;
 pub struct BalanceToU256;
 impl Convert<Balance, sp_core::U256> for BalanceToU256 {
-    fn convert(balance: Balance) -> sp_core::U256 { sp_core::U256::from(balance) }
+    fn convert(balance: Balance) -> sp_core::U256 {
+        sp_core::U256::from(balance)
+    }
 }
 pub struct U256ToBalance;
 impl Convert<sp_core::U256, Balance> for U256ToBalance {
-    fn convert(n: sp_core::U256) -> Balance { n.try_into().unwrap_or(Balance::max_value()) }
+    fn convert(n: sp_core::U256) -> Balance {
+        n.try_into().unwrap_or(Balance::max_value())
+    }
 }
 
 impl pallet_nomination_pools::Config for Runtime {
@@ -1261,15 +1269,13 @@ impl pallet_relayer::Config for Runtime {
 }
 
 parameter_types! {
-  // Max length of intems in the whitelist. Feel free to change this number.
-  pub const MaxWhitelistNum: u32 = 100;
-  // ethereum addresses are 20 bytes (40 characters) excluding the 0x prefix
-  pub const MaxAddressLengthNum: u32 = 20;
+  pub const MaxAclLength: u32 = 25;
 }
 
 impl pallet_constraints::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_constraints::WeightInfo<Runtime>;
+    type MaxAclLength = MaxAclLength;
 }
 
 impl pallet_transaction_pause::Config for Runtime {
@@ -1706,7 +1712,9 @@ mod tests {
     #[test]
     fn validate_transaction_submitter_bounds() {
         fn is_submit_signed_transaction<T>()
-        where T: CreateSignedTransaction<RuntimeCall> {
+        where
+            T: CreateSignedTransaction<RuntimeCall>,
+        {
         }
 
         is_submit_signed_transaction::<Runtime>();

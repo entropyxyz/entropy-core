@@ -38,7 +38,8 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use helpers::unwrap_or_return;
-    use pallet_constraints::ModificationPermissions;
+    use pallet_constraints::AllowedToModifyConstraints;
+    use pallet_constraints::Pallet as ConstraintsPallet;
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_runtime::{
@@ -234,6 +235,9 @@ pub mod pallet {
                 !Registering::<T>::contains_key(&sig_req_account),
                 Error::<T>::AlreadySubmitted
             );
+            if let Some(constraints) = &initial_constraints {
+                ConstraintsPallet::<T>::validate_constraints(constraints)?;
+            }
 
             // put account into a registering state
             Registering::<T>::insert(
@@ -265,31 +269,33 @@ pub mod pallet {
             let validator_stash =
                 pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
                     .ok_or(Error::<T>::NoThresholdKey)?;
+
             let mut registering_info =
                 Self::registering(&sig_req_account).ok_or(Error::<T>::NotRegistering)?;
             ensure!(
                 !registering_info.confirmations.contains(&signing_subgroup),
                 Error::<T>::AlreadyConfirmed
             );
+
             let signing_subgroup_addresses =
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
                     .ok_or(Error::<T>::InvalidSubgroup)?;
-
             ensure!(
                 signing_subgroup_addresses.contains(&validator_stash),
                 Error::<T>::NotInSigningGroup
             );
+
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 Registered::<T>::insert(&sig_req_account, true);
                 Registering::<T>::remove(&sig_req_account);
-                ModificationPermissions::<T>::insert(
+                AllowedToModifyConstraints::<T>::insert(
                     &registering_info.constraint_account,
                     sig_req_account.clone(),
                     (),
                 );
 
                 if let Some(constraints) = registering_info.initial_constraints {
-                    pallet_constraints::Pallet::<T>::set_constraints(
+                    ConstraintsPallet::<T>::set_constraints_unchecked(
                         sig_req_account.clone(),
                         constraints,
                     );

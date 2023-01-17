@@ -1,4 +1,3 @@
-use sp_core::bounded::BoundedVec;
 use substrate_common::{Acl, AclKind, Architecture};
 
 use crate::{
@@ -85,7 +84,7 @@ fn test_allow_list() {
     // Assert that an allow list with no items in it does not evaluate to true.
     let constraint = Acl::<<Evm as Architecture>::Address> {
         kind: AclKind::Allow,
-        addresses: BoundedVec::default(),
+        addresses: Vec::default(),
         allow_null_recipient: true,
     };
     let evaluation = constraint.eval(tx.clone());
@@ -95,7 +94,7 @@ fn test_allow_list() {
     // Assert that an allow list with a valid item in it evaluates to true.
     let constraint_2 = Acl::<<Evm as Architecture>::Address> {
         kind: AclKind::Allow,
-        addresses: BoundedVec::try_from(vec![to]).unwrap(),
+        addresses: vec![to],
         allow_null_recipient: true,
     };
     let evaluation_2 = constraint_2.eval(tx);
@@ -124,7 +123,7 @@ fn test_deny_list() {
     // Assert that a deny list with no items in it does evaluates to true.
     let constraint = Acl::<<Evm as Architecture>::Address> {
         kind: AclKind::Deny,
-        addresses: BoundedVec::default(),
+        addresses: Vec::default(),
         allow_null_recipient: true,
     };
     let evaluation = constraint.eval(tx.clone());
@@ -134,7 +133,7 @@ fn test_deny_list() {
     // Assert that a deny list with the specified recipient evalutes to false.
     let constraint_2 = Acl::<<Evm as Architecture>::Address> {
         kind: AclKind::Deny,
-        addresses: BoundedVec::try_from(vec![to]).unwrap(),
+        addresses: vec![to],
         allow_null_recipient: true,
     };
     let evaluation_2 = constraint_2.eval(tx);
@@ -160,7 +159,7 @@ fn test_allow_null_recip() {
 
     let constraint = Acl::<<Evm as Architecture>::Address> {
         kind: AclKind::Deny,
-        addresses: BoundedVec::default(),
+        addresses: Vec::default(),
         allow_null_recipient: false,
     };
     let evaluation = constraint.eval(tx.clone());
@@ -168,7 +167,7 @@ fn test_allow_null_recip() {
 
     let constraint_2 = Acl::<<Evm as Architecture>::Address> {
         kind: AclKind::Allow,
-        addresses: BoundedVec::default(),
+        addresses: Vec::default(),
         allow_null_recipient: true,
     };
     let evaluation_2 = constraint_2.eval(tx);

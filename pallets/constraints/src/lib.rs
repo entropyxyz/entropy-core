@@ -40,6 +40,7 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type WeightInfo: WeightInfo;
+        type MaxAclLength: Get<u32>;
     }
 
     #[pallet::pallet]
@@ -51,7 +52,7 @@ pub mod pallet {
     /// the constraint-modification `AccountId` is authorized to modify the constraints for this account
     #[pallet::storage]
     #[pallet::getter(fn sig_req_accounts)]
-    pub type ModificationPermissions<T: Config> = StorageDoubleMap<
+    pub type AllowedToModifyConstraints<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
         T::AccountId,
@@ -71,7 +72,7 @@ pub mod pallet {
         Blake2_128Concat,
         Arch,
         (),
-        ResultQuery<Error<T>::NotAuthorized>,
+        ResultQuery<Error<T>::ArchitectureDisabled>,
     >;
 
     /// Stores the EVM ACL of each user
@@ -82,7 +83,7 @@ pub mod pallet {
         Blake2_128Concat,
         T::AccountId,
         Acl<H160>,
-        ResultQuery<Error<T>::AccountDoesNotExist>,
+        ResultQuery<Error<T>::ArchitectureDisabled>,
     >;
 
     /// Stores the BTC ACL of each user
@@ -93,7 +94,7 @@ pub mod pallet {
         Blake2_128Concat,
         T::AccountId,
         Acl<H256>,
-        ResultQuery<Error<T>::AccountDoesNotExist>,
+        ResultQuery<Error<T>::ArchitectureDisabled>,
     >;
 
     #[pallet::event]
@@ -103,13 +104,14 @@ pub mod pallet {
         ConstraintsUpdated(T::AccountId, Constraints),
     }
 
-    #[derive(PartialEq, Eq)]
     #[pallet::error]
     pub enum Error<T> {
-        /// Constraint account doesn't have permission to modify these constraionts
+        /// Constraint account doesn't have permission to modify these constraints
         NotAuthorized,
-        /// Threshold account has never had constraints set
-        AccountDoesNotExist,
+        /// User has disabled signing for this architecture
+        ArchitectureDisabled,
+        /// ACL is too long, make it smaller
+        AclLengthExceeded,
     }
 
     #[pallet::call]
@@ -127,11 +129,15 @@ pub mod pallet {
             let constraint_account = ensure_signed(origin)?;
 
             ensure!(
-                ModificationPermissions::<T>::contains_key(&constraint_account, &sig_req_account),
+                AllowedToModifyConstraints::<T>::contains_key(
+                    &constraint_account,
+                    &sig_req_account
+                ),
                 Error::<T>::NotAuthorized
             );
 
-            Self::set_constraints(sig_req_account.clone(), new_constraints.clone());
+            Self::validate_constraints(&new_constraints)?;
+            Self::set_constraints_unchecked(sig_req_account.clone(), new_constraints.clone());
 
             Self::deposit_event(Event::ConstraintsUpdated(sig_req_account, new_constraints));
 
@@ -141,9 +147,10 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        /// Sets the constraints for a given signature-request account.
-        pub fn set_constraints(sig_req_account: T::AccountId, constraints: Constraints) {
+        /// Sets the constraints for a given signature-request account without validating the constraints (eg ACL length checks, etc.)
+        pub fn set_constraints_unchecked(sig_req_account: T::AccountId, constraints: Constraints) {
             let Constraints { evm_acl, btc_acl } = constraints;
+
             match evm_acl {
                 Some(acl) => {
                     EvmAcl::<T>::insert(sig_req_account.clone(), acl);
@@ -157,13 +164,35 @@ pub mod pallet {
             match btc_acl {
                 Some(acl) => {
                     BtcAcl::<T>::insert(sig_req_account.clone(), acl);
-                    ActiveArchitectures::<T>::insert(sig_req_account.clone(), Arch::Btc, ());
+                    ActiveArchitectures::<T>::insert(sig_req_account, Arch::Btc, ());
                 },
                 None => {
                     ActiveArchitectures::<T>::remove(sig_req_account.clone(), Arch::Btc);
-                    BtcAcl::<T>::remove(sig_req_account.clone());
+                    BtcAcl::<T>::remove(sig_req_account);
                 },
             }
+        }
+
+        /// Validates constraints before they are stored anywhere as a set of valid constraints
+        pub fn validate_constraints(constraints: &Constraints) -> Result<(), Error<T>> {
+            let Constraints { evm_acl, btc_acl } = constraints;
+
+            Self::validate_acl(evm_acl)?;
+            Self::validate_acl(btc_acl)?;
+
+            Ok(())
+        }
+
+        /// Validates an ACL before it is stored anywhere as a valid constraint
+        fn validate_acl<A>(acl: &Option<Acl<A>>) -> Result<(), Error<T>> {
+            if let Some(acl) = acl {
+                ensure!(
+                    acl.addresses.len() as u32 <= T::MaxAclLength::get(),
+                    Error::<T>::AclLengthExceeded
+                );
+            }
+
+            Ok(())
         }
     }
 }

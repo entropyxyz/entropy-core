@@ -3,7 +3,7 @@ use frame_support::{
     dispatch::{GetDispatchInfo, Pays},
     traits::OnInitialize,
 };
-use pallet_constraints::{ActiveArchitectures, ModificationPermissions};
+use pallet_constraints::{ActiveArchitectures, AllowedToModifyConstraints};
 use pallet_relayer::Call as RelayerCall;
 use pallet_staking_extension::ServerInfo;
 use sp_runtime::{
@@ -123,7 +123,7 @@ fn it_confirms_registers_a_user() {
         assert!(Relayer::registered(1).unwrap());
 
         // make sure constraint and sig req keys are set
-        assert!(ModificationPermissions::<Test>::contains_key(2, 1));
+        assert!(AllowedToModifyConstraints::<Test>::contains_key(2, 1));
         assert!(ActiveArchitectures::<Test>::iter_key_prefix(1).count() == 0);
     });
 }
