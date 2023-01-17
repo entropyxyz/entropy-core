@@ -17,13 +17,18 @@ use substrate_common::MIN_BALANCE;
 use subxt::tx::{PairSigner, Signer};
 use testing_utils::context::test_context;
 
-use super::api::{
-    check_balance_for_fees, get_all_keys, get_and_store_values, get_key_url, sync_kvdb,
+use super::{
+    api::{
+        check_balance_for_fees, get_all_keys, get_and_store_values, get_key_url, sync_kvdb,
+        tell_chain_syncing_is_done,
+    },
+    errors::ValidatorErr,
 };
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     new_user,
     signing_client::SignerState,
+    user::api::get_subgroup,
     utils::{
         Configuration, SignatureState, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
     },
@@ -102,7 +107,8 @@ async fn test_get_and_store_values() {
     tokio::spawn(async move { client1.0.launch().await.unwrap() });
 
     let _result =
-        get_and_store_values(keys.clone(), &client1.1, "127.0.0.1:3002".to_string(), 1).await;
+        get_and_store_values(keys.clone(), &client1.1, "127.0.0.1:3002".to_string(), 9, false)
+            .await;
     for (i, key) in keys.iter().enumerate() {
         let value = client1.1.kv().get(key).await.unwrap();
         assert_eq!(value, values[i]);
@@ -117,8 +123,9 @@ async fn test_get_key_url() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+    let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().unwrap();
 
-    let result = get_key_url(&api, &signer_alice).await.unwrap();
+    let result = get_key_url(&api, &signer_alice, my_subgroup).await.unwrap();
 
     assert_eq!("127.0.0.1:3001", result);
 }
@@ -143,6 +150,22 @@ async fn test_check_balance_for_fees() {
     let random_account: AccountId32 =
         hex!["8676839ca1e196624106d17c56b1efbb90508a86d8053f7d4fcd21127a9f7565"].into();
     let _ = check_balance_for_fees(&api, &random_account, MIN_BALANCE).await.unwrap();
+}
+
+#[rocket::async_test]
+#[should_panic = "called `Result::unwrap()` on an `Err` value: \
+                  GenericSubstrate(Runtime(Module(ModuleError { pallet: \"StakingExtension\", \
+                  error: \"NoThresholdKey\", description: [], error_data: ModuleErrorData { \
+                  pallet_index: 12, error: [3, 0, 0, 0] } })))"]
+async fn test_tell_chain_syncing_is_done() {
+    clean_tests();
+    let cxt = test_context().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let p_alice = <sr25519::Pair as Pair>::from_string("//Alice", None).unwrap();
+    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+
+    // expect this to fail in the proper way
+    let result = tell_chain_syncing_is_done(&api, &signer_alice).await.unwrap();
 }
 
 async fn create_clients(

@@ -1,5 +1,5 @@
 pub mod api;
-mod errors;
+pub mod errors;
 
 #[cfg(test)]
 mod tests;
