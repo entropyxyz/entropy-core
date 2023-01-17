@@ -80,8 +80,7 @@ pub async fn new_user(
     let signer = get_signer(state).await?;
     // Checks if the user has registered onchain first.
     let key = signed_msg.account_id();
-    let is_registering = register_info(&api, &key, true).await?;
-    let is_swapping = register_info(&api, &key, false).await?;
+    let is_swapping = register_info(&api, &key).await?;
 
     let decrypted_message = signed_msg.decrypt(signer.signer());
     match decrypted_message {
@@ -104,22 +103,22 @@ pub async fn new_user(
     }
     Ok(Status::Ok)
 }
-
+/// Returns wether an account is registering or swapping. If it is not, it returns error
 pub async fn register_info(
     api: &OnlineClient<EntropyConfig>,
     who: &AccountId32,
-    registering: bool,
 ) -> Result<bool, UserErr> {
     let registering_info_query = entropy::storage().relayer().registering(who);
-    let register_info = api.storage().fetch(&registering_info_query, None).await?;
-    if registering {
-        return Ok(register_info
-            .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?
-            .is_registering);
+    let register_info = api
+        .storage()
+        .fetch(&registering_info_query, None)
+        .await?
+        .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
+    if !register_info.is_swapping && !register_info.is_registering {
+        return Err(UserErr::NotRegistering("Declare swap Onchain first"));
     }
-    Ok(register_info
-        .ok_or_else(|| UserErr::NotRegistering("Declare swap Onchain first"))?
-        .is_swapping)
+
+    Ok(register_info.is_swapping)
 }
 
 // Returns PairSigner for this nodes threshold server.

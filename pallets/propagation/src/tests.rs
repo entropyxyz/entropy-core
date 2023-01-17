@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use frame_support::assert_ok;
+use pallet_relayer::Registered;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
 use sp_keystore::{testing::KeyStore, KeystoreExt};
@@ -47,6 +48,7 @@ fn knows_how_to_mock_several_http_calls() {
 
         System::set_block_number(3);
         let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
+        Registered::<Test>::insert(1, true);
 
         assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request.clone()));
         assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request));
