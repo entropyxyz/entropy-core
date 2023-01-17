@@ -88,7 +88,7 @@ fn return_error_if_constraints_arent_set() {
         assert_ok!(ConstraintsPallet::update_constraints(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
-            valid_constraints.clone()
+            valid_constraints
         ));
 
         // make sure acl updates
