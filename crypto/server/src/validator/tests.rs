@@ -165,7 +165,7 @@ async fn test_tell_chain_syncing_is_done() {
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
 
     // expect this to fail in the proper way
-    let result = tell_chain_syncing_is_done(&api, &signer_alice).await.unwrap();
+    tell_chain_syncing_is_done(&api, &signer_alice).await.unwrap();
 }
 
 async fn create_clients(
