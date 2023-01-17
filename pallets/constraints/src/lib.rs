@@ -48,8 +48,9 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    /// If the constraint-modification `AccountId` and signature-request `AccountId` tuple as a key exists, then
-    /// the constraint-modification `AccountId` is authorized to modify the constraints for this account
+    /// If the constraint-modification `AccountId` and signature-request `AccountId` tuple as a key
+    /// exists, then the constraint-modification `AccountId` is authorized to modify the
+    /// constraints for this account
     #[pallet::storage]
     #[pallet::getter(fn sig_req_accounts)]
     pub type AllowedToModifyConstraints<T: Config> = StorageDoubleMap<
@@ -62,7 +63,8 @@ pub mod pallet {
         ResultQuery<Error<T>::NotAuthorized>,
     >;
 
-    /// 2-ary set associating a signature-request account to the architectures it has active constraints on.
+    /// 2-ary set associating a signature-request account to the architectures it has active
+    /// constraints on.
     #[pallet::storage]
     #[pallet::getter(fn active_constraints_by_arch)]
     pub type ActiveArchitectures<T: Config> = StorageDoubleMap<
@@ -147,7 +149,8 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        /// Sets the constraints for a given signature-request account without validating the constraints (eg ACL length checks, etc.)
+        /// Sets the constraints for a given signature-request account without validating the
+        /// constraints (eg ACL length checks, etc.)
         pub fn set_constraints_unchecked(sig_req_account: T::AccountId, constraints: Constraints) {
             let Constraints { evm_acl, btc_acl } = constraints;
 

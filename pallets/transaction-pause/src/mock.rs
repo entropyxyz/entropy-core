@@ -82,9 +82,9 @@ parameter_types! {
 }
 
 impl pallet_constraints::Config for Runtime {
+    type MaxAclLength = MaxAclLength;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
-    type MaxAclLength = MaxAclLength;
 }
 
 ord_parameter_types! {
@@ -116,9 +116,7 @@ construct_runtime!(
 pub struct ExtBuilder;
 
 impl Default for ExtBuilder {
-    fn default() -> Self {
-        ExtBuilder
-    }
+    fn default() -> Self { ExtBuilder }
 }
 
 impl ExtBuilder {

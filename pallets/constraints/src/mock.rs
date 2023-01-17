@@ -60,9 +60,9 @@ parameter_types! {
 }
 
 impl pallet_constraints::Config for Test {
+    type MaxAclLength = MaxAclLength;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
-    type MaxAclLength = MaxAclLength;
 }
 
 // Build genesis storage according to the mock runtime.
