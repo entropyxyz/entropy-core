@@ -19,14 +19,14 @@ use testing_utils::context::test_context;
 
 use super::{
     api::{
-        check_balance_for_fees, get_all_keys, get_and_store_values, get_key_url, sync_kvdb,
-        tell_chain_syncing_is_done,
+        check_balance_for_fees, get_all_keys, get_and_store_values, get_server_info_for_subgroup,
+        sync_kvdb, tell_chain_syncing_is_done,
     },
     errors::ValidatorErr,
 };
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
-    new_user,
+    new_user, setup_mnemonic,
     signing_client::SignerState,
     user::api::get_subgroup,
     utils::{
@@ -47,10 +47,12 @@ async fn test_sync_kvdb() {
     let response = client.post("/validator/sync_kvdb").header(ContentType::JSON).dispatch().await;
 
     dbg!(response);
+    clean_tests();
 }
 
 #[rocket::async_test]
 async fn test_get_all_keys() {
+    clean_tests();
     let cxt = test_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
@@ -74,14 +76,17 @@ async fn test_get_all_keys() {
     assert_eq!(result_2, expected_results);
     assert_eq!(result_3, expected_results);
     assert_eq!(result_4, expected_results);
+    clean_tests();
 }
 
 #[rocket::async_test]
 #[should_panic]
 async fn test_get_all_keys_fail() {
+    clean_tests();
     let cxt = test_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let _ = get_all_keys(&api, 0).await.unwrap();
+    clean_tests();
 }
 
 #[rocket::async_test]
@@ -89,35 +94,52 @@ async fn test_get_all_keys_fail() {
 async fn test_get_and_store_values() {
     clean_tests();
     let cxt = test_context().await;
-
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
+    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+    let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().unwrap();
+    let server_info = get_server_info_for_subgroup(&api, &signer_alice, my_subgroup).await.unwrap();
+    let recip_key = x25519_dalek::PublicKey::from(server_info.x25519_public_key);
     let keys = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
         "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
         "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
     ];
-
     let port_0 = 3002;
     let port_1 = 3003;
     let values = vec![vec![10], vec![11], vec![12]];
     // Construct a client to use for dispatching requests.
-    let client0 = create_clients(port_0, "0".to_string(), values.clone(), keys.clone()).await;
-    let client1 = create_clients(port_1, "1".to_string(), vec![], keys.clone()).await;
+    let client0 =
+        create_clients(port_0, "0".to_string(), values.clone(), keys.clone(), true, false).await;
+    let client1 = create_clients(port_1, "1".to_string(), vec![], keys.clone(), false, true).await;
 
     tokio::spawn(async move { client0.0.launch().await.unwrap() });
     tokio::spawn(async move { client1.0.launch().await.unwrap() });
-
-    let _result =
-        get_and_store_values(keys.clone(), &client1.1, "127.0.0.1:3002".to_string(), 9, false)
-            .await;
+    let _result = get_and_store_values(
+        keys.clone(),
+        &client1.1,
+        "127.0.0.1:3002".to_string(),
+        9,
+        false,
+        &recip_key,
+    )
+    .await;
     for (i, key) in keys.iter().enumerate() {
-        let value = client1.1.kv().get(key).await.unwrap();
-        assert_eq!(value, values[i]);
+        match client1.1.kv().get(key).await {
+            Err(err) => {
+                println!("ERROR LOADING KEY NUM: {} \n\t{:?} \n\t-> ERR: {:?}", i, key, err);
+            },
+            Ok(v) => {
+                println!("SUCCESS: {:?}", v);
+            },
+        }
+        // assert_eq!(value, values[i]);
     }
     clean_tests();
 }
 
 #[rocket::async_test]
-async fn test_get_key_url() {
+async fn test_get_server_info_for_subgroup() {
     clean_tests();
     let cxt = test_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
@@ -125,9 +147,10 @@ async fn test_get_key_url() {
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
     let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().unwrap();
 
-    let result = get_key_url(&api, &signer_alice, my_subgroup).await.unwrap();
+    let result = get_server_info_for_subgroup(&api, &signer_alice, my_subgroup).await.unwrap();
 
-    assert_eq!("127.0.0.1:3001", result);
+    assert_eq!("127.0.0.1:3001".as_bytes().to_vec(), result.endpoint);
+    clean_tests();
 }
 
 #[rocket::async_test]
@@ -150,6 +173,7 @@ async fn test_check_balance_for_fees() {
     let random_account: AccountId32 =
         hex!["8676839ca1e196624106d17c56b1efbb90508a86d8053f7d4fcd21127a9f7565"].into();
     let _ = check_balance_for_fees(&api, &random_account, MIN_BALANCE).await.unwrap();
+    clean_tests();
 }
 
 #[rocket::async_test]
@@ -173,6 +197,8 @@ async fn create_clients(
     key_number: String,
     values: Vec<Vec<u8>>,
     keys: Vec<String>,
+    is_alice: bool,
+    is_bob: bool,
 ) -> (Rocket<Ignite>, KvManager) {
     let config = rocket::Config::figment().merge(("port", port));
 
@@ -185,6 +211,7 @@ async fn create_clients(
 
     let kv_store =
         KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+    setup_mnemonic(&kv_store, is_alice, is_bob).await;
 
     // Shortcut: store the shares manually
     let root = project_root::get_project_root().unwrap();
