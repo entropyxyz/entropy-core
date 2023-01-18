@@ -186,6 +186,7 @@ pub mod pallet {
         InvalidValidatorId,
         IpAddressError,
         SigningGroupError,
+        NoSyncedValidators,
     }
 
     /// Allows a user to kick off signing process
@@ -307,13 +308,23 @@ pub mod pallet {
             signing_group: u8,
             block_number: T::BlockNumber,
         ) -> Result<<T as pallet_session::Config>::ValidatorId, Error<T>> {
-            let addresses = pallet_staking_extension::Pallet::<T>::signing_groups(signing_group)
-                .ok_or(Error::<T>::SigningGroupError)?;
+            let mut addresses =
+                pallet_staking_extension::Pallet::<T>::signing_groups(signing_group)
+                    .ok_or(Error::<T>::SigningGroupError)?;
             let converted_block_number: u32 =
                 T::BlockNumber::try_into(block_number).unwrap_or_default();
-            let selection: u32 = converted_block_number % addresses.len() as u32;
-
-            let address = &addresses[selection as usize];
+            let address = loop {
+                ensure!(!addresses.is_empty(), Error::<T>::NoSyncedValidators);
+                let selection: u32 = converted_block_number % addresses.len() as u32;
+                let address = &addresses[selection as usize];
+                let address_state =
+                    pallet_staking_extension::Pallet::<T>::is_validator_synced(address);
+                if !address_state {
+                    addresses.remove(selection as usize);
+                } else {
+                    break address;
+                }
+            };
             Ok(address.clone())
         }
 
