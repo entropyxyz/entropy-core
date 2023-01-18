@@ -51,9 +51,9 @@ benchmarks! {
     let constraint_account: T::AccountId = whitelisted_caller();
 
     let initial_constraints = Constraints::default();
-  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account.clone(), Some(initial_constraints))
+  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account, Some(initial_constraints))
   verify {
-    assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone(), constraint_account).into());
+    assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
     assert!(Registering::<T>::contains_key(sig_req_account));
   }
 

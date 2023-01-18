@@ -13,7 +13,9 @@ use sp_runtime::{
 use substrate_common::{Constraints, Message, SigRequest};
 
 use crate as pallet_relayer;
-use crate::{mock::*, Error, Failures, PrevalidateRelayer, RegisteringDetails, Responsibility};
+use crate::{
+    mock::*, Error, Failures, PrevalidateRelayer, Registered, RegisteringDetails, Responsibility,
+};
 
 const NULL_ARR: [u8; 32] = [0; 32];
 pub const SIG_HASH: &[u8; 64] = b"d188f0d99145e7ddbd0f1e46e7fd406db927441584571c623aff1d1652e14b06";
@@ -21,6 +23,7 @@ pub const SIG_HASH: &[u8; 64] = b"d188f0d99145e7ddbd0f1e46e7fd406db927441584571c
 #[test]
 fn it_preps_transaction() {
     new_test_ext().execute_with(|| {
+        Registered::<Test>::insert(1, true);
         let ip_addresses: Vec<Vec<u8>> = vec![vec![10], vec![11]];
         let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
         let message = Message {
@@ -39,6 +42,7 @@ fn it_preps_transaction() {
 fn it_emits_a_signature_request_event() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
+        Registered::<Test>::insert(1, true);
         let ip_addresses: Vec<Vec<u8>> = vec![vec![10], vec![11]];
         let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
         let message = Message {
@@ -67,7 +71,7 @@ fn it_registers_a_user() {
 }
 
 #[test]
-fn it_confirms_registers_a_user() {
+fn it_confirms_registers_a_user_then_swap() {
     new_test_ext().execute_with(|| {
         assert_noop!(
             Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0),
@@ -111,6 +115,7 @@ fn it_confirms_registers_a_user() {
         let registering_info = RegisteringDetails::<Test> {
             is_registering: true,
             constraint_account: 2 as <Test as frame_system::Config>::AccountId,
+            is_swapping: false,
             confirmations: vec![0],
             initial_constraints: Some(Constraints::default()),
         };
@@ -125,6 +130,20 @@ fn it_confirms_registers_a_user() {
         // make sure constraint and sig req keys are set
         assert!(AllowedToModifyConstraints::<Test>::contains_key(2, 1));
         assert!(ActiveArchitectures::<Test>::iter_key_prefix(1).count() == 0);
+
+        // test swapping keys
+        assert_noop!(Relayer::swap_keys(RuntimeOrigin::signed(2)), Error::<Test>::NotRegistered);
+
+        let swapping_info = RegisteringDetails::<Test> {
+            is_registering: true,
+            constraint_account: 2 as <Test as frame_system::Config>::AccountId,
+            is_swapping: true,
+            confirmations: vec![],
+            initial_constraints: Some(Constraints::default()),
+        };
+        assert_ok!(Relayer::swap_keys(RuntimeOrigin::signed(1)));
+
+        assert_eq!(Relayer::registering(1), Some(swapping_info));
     });
 }
 
@@ -197,7 +216,7 @@ fn moves_active_to_pending() {
             sig_request: sig_request.clone(),
             ip_addresses,
         };
-
+        Registered::<Test>::insert(1, true);
         assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request));
         assert_eq!(Relayer::messages(3), vec![message.clone()]);
 

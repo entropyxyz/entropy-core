@@ -71,6 +71,7 @@ pub mod pallet {
     pub struct RegisteringDetails<T: Config> {
         pub is_registering: bool,
         pub constraint_account: T::AccountId,
+        pub is_swapping: bool,
         pub confirmations: Vec<u8>,
         pub initial_constraints: Option<Constraints>,
     }
@@ -83,7 +84,9 @@ pub mod pallet {
 
     #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self { Self { registered_accounts: Default::default() } }
+        fn default() -> Self {
+            Self { registered_accounts: Default::default() }
+        }
     }
 
     #[pallet::genesis_build]
@@ -166,9 +169,8 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// A transaction has been propagated to the network. [who]
         SignatureRequested(Message),
-        /// An account has signaled to be registered. [signature request account, constraint
-        /// account]
-        SignalRegister(T::AccountId, T::AccountId),
+        /// An account has signaled to be registered. [signature request account]
+        SignalRegister(T::AccountId),
         /// An account has been registered. [who, signing_group]
         AccountRegistering(T::AccountId, u8),
         /// An account has been registered. [who]
@@ -186,6 +188,7 @@ pub mod pallet {
         AlreadySubmitted,
         NoThresholdKey,
         NotRegistering,
+        NotRegistered,
         InvalidSubgroup,
         AlreadyConfirmed,
         NotInSigningGroup,
@@ -202,6 +205,10 @@ pub mod pallet {
         pub fn prep_transaction(origin: OriginFor<T>, sig_request: SigRequest) -> DispatchResult {
             log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
             let who = ensure_signed(origin)?;
+            ensure!(
+                Self::registered(&who).ok_or(Error::<T>::NotRegistered)?,
+                Error::<T>::NotRegistered
+            );
             let ip_addresses = Self::get_ip_addresses()?;
             let message = Message { sig_request, account: who.encode(), ip_addresses };
             let block_number = <frame_system::Pallet<T>>::block_number();
@@ -242,12 +249,36 @@ pub mod pallet {
                 RegisteringDetails::<T> {
                     is_registering: true,
                     constraint_account: constraint_account.clone(),
+                    is_swapping: false,
                     confirmations: vec![],
                     initial_constraints,
                 },
             );
 
-            Self::deposit_event(Event::SignalRegister(sig_req_account, constraint_account));
+            Self::deposit_event(Event::SignalRegister(sig_req_account));
+
+            Ok(())
+        }
+
+        /// Signals that a user wants to swap our their keys
+        // TODO: John do benchmarks
+        #[pallet::weight(<T as Config>::WeightInfo::register())]
+        pub fn swap_keys(origin: OriginFor<T>) -> DispatchResult {
+            let sig_req_account = ensure_signed(origin)?;
+            ensure!(
+                Self::registered(&sig_req_account).ok_or(Error::<T>::NotRegistered)?,
+                Error::<T>::NotRegistered
+            );
+            let registering_info = RegisteringDetails::<T> {
+                is_registering: true,
+                constraint_account: sig_req_account.clone(),
+                is_swapping: true,
+                confirmations: vec![],
+                initial_constraints: None,
+            };
+            Registered::<T>::remove(&sig_req_account);
+            Registering::<T>::insert(&sig_req_account, registering_info);
+            Self::deposit_event(Event::SignalRegister(sig_req_account));
             Ok(())
         }
 
@@ -405,10 +436,12 @@ pub mod pallet {
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct PrevalidateRelayer<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
 
     impl<T: Config + Send + Sync> Debug for PrevalidateRelayer<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         #[cfg(feature = "std")]
         fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -416,18 +449,24 @@ pub mod pallet {
         }
 
         #[cfg(not(feature = "std"))]
-        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
+        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+            Ok(())
+        }
     }
 
     impl<T: Config + Send + Sync> PrevalidateRelayer<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         /// Create new `SignedExtension` to check runtime version.
-        pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
+        pub fn new() -> Self {
+            Self(sp_std::marker::PhantomData)
+        }
     }
 
     impl<T: Config + Send + Sync> SignedExtension for PrevalidateRelayer<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         type AccountId = T::AccountId;
         type AdditionalSigned = ();
