@@ -67,6 +67,7 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     pub struct RegisteringDetails {
         pub is_registering: bool,
+        pub is_swapping: bool,
         pub confirmations: Vec<u8>,
     }
 
@@ -180,6 +181,7 @@ pub mod pallet {
         AlreadySubmitted,
         NoThresholdKey,
         NotRegistering,
+        NotRegistered,
         InvalidSubgroup,
         AlreadyConfirmed,
         NotInSigningGroup,
@@ -196,6 +198,10 @@ pub mod pallet {
         pub fn prep_transaction(origin: OriginFor<T>, sig_request: SigRequest) -> DispatchResult {
             log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
             let who = ensure_signed(origin)?;
+            ensure!(
+                Self::registered(&who).ok_or(Error::<T>::NotRegistered)?,
+                Error::<T>::NotRegistered
+            );
             let ip_addresses = Self::get_ip_addresses()?;
             let message = Message { sig_request, account: who.encode(), ip_addresses };
             let block_number = <frame_system::Pallet<T>>::block_number();
@@ -213,8 +219,31 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::register())]
         pub fn register(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            let registering_info =
-                RegisteringDetails { is_registering: true, confirmations: vec![] };
+            let registering_info = RegisteringDetails {
+                is_registering: true,
+                is_swapping: false,
+                confirmations: vec![],
+            };
+            Registering::<T>::insert(&who, registering_info);
+            Self::deposit_event(Event::SignalRegister(who));
+            Ok(())
+        }
+
+        /// Signals that a user wants to swap our their keys
+        // TODO: John do benchmarks
+        #[pallet::weight(<T as Config>::WeightInfo::register())]
+        pub fn swap_keys(origin: OriginFor<T>) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            ensure!(
+                Self::registered(&who).ok_or(Error::<T>::NotRegistered)?,
+                Error::<T>::NotRegistered
+            );
+            let registering_info = RegisteringDetails {
+                is_registering: true,
+                is_swapping: true,
+                confirmations: vec![],
+            };
+            Registered::<T>::remove(&who);
             Registering::<T>::insert(&who, registering_info);
             Self::deposit_event(Event::SignalRegister(who));
             Ok(())
