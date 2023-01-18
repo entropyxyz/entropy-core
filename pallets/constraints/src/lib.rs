@@ -26,10 +26,7 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 
-    use frame_support::{
-        dispatch::DispatchResultWithPostInfo,
-        pallet_prelude::{ResultQuery, *},
-    };
+    use frame_support::pallet_prelude::{ResultQuery, *};
     use frame_system::pallet_prelude::*;
     use sp_runtime::sp_std::str;
     pub use substrate_common::{Acl, AclKind, Arch, Constraints, H160, H256};
@@ -123,20 +120,21 @@ pub mod pallet {
         /// Must be sent from a constraint-modification account.
         /// TODO update weights
         #[pallet::weight({
-            let mut acl_lengths: u32 = 0;
+            let mut evm_acl_len: u32 = 0;
             if let Some(acl) = &new_constraints.evm_acl {
-                acl_lengths += acl.addresses.len() as u32;
+                evm_acl_len += acl.addresses.len() as u32;
             }
+            let mut btc_acl_len: u32 = 0;
             if let Some(acl) = &new_constraints.btc_acl {
-                acl_lengths += acl.addresses.len() as u32;
+                btc_acl_len += acl.addresses.len() as u32;
             }
-            (<T as Config>::WeightInfo::update_constraints(acl_lengths), Pays::No)
+            (<T as Config>::WeightInfo::update_constraints(evm_acl_len, btc_acl_len), Pays::No)
         })]
         pub fn update_constraints(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
             new_constraints: Constraints,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             let constraint_account = ensure_signed(origin)?;
 
             ensure!(
@@ -152,8 +150,7 @@ pub mod pallet {
 
             Self::deposit_event(Event::ConstraintsUpdated(sig_req_account, new_constraints));
 
-            // TODO new weight
-            Ok(Some(<T as Config>::WeightInfo::update_constraints(3)).into())
+            Ok(())
         }
     }
 

@@ -4,6 +4,7 @@ use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_call
 use frame_system::{EventRecord, RawOrigin};
 
 use super::*;
+use crate::pallet::{Acl, Constraints, H160, H256};
 #[allow(unused)]
 use crate::Pallet as ConstraintsPallet;
 
@@ -19,12 +20,22 @@ benchmarks! {
 
   update_constraints {
     // number of addresses in the ACL
-    let a in 0 .. 24;
+    let a in 0 .. 20;
+    let b in 0 .. 20;
 
     let constraint_account: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();
 
-    let initial_constraints = Constraints::default();
+    // create a new constraints from above ACL counts
+    let mut evm_acl = Acl::<H160>::default();
+    let mut btc_acl = Acl::<H256>::default();
+
+    evm_acl.addresses = (0..a).map(|_| H160::default()).collect::<Vec<_>>();
+    btc_acl.addresses = (0..b).map(|_| H256::default()).collect::<Vec<_>>();
+
+    let mut initial_constraints = Constraints::default();
+    initial_constraints.evm_acl = Some(evm_acl);
+    initial_constraints.btc_acl = Some(btc_acl);
 
     // give permission to update constraints for Arch::Generic
     <AllowedToModifyConstraints<T>>::insert(constraint_account.clone(), sig_req_account.clone(), ());
