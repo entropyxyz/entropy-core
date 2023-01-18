@@ -7,6 +7,7 @@ use super::*;
 use crate::pallet::{Acl, Constraints, H160, H256};
 #[allow(unused)]
 use crate::Pallet as ConstraintsPallet;
+use sp_std::vec::Vec;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     let events = frame_system::Pallet::<T>::events();
