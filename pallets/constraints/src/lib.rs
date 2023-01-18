@@ -122,7 +122,16 @@ pub mod pallet {
         /// If the members of `new_constraints` are `None`, those constraints will be removed.
         /// Must be sent from a constraint-modification account.
         /// TODO update weights
-        #[pallet::weight((<T as Config>::WeightInfo::update_constraints(25), Pays::No))]
+        #[pallet::weight({
+            let mut acl_lengths: u32 = 0;
+            if let Some(acl) = &new_constraints.evm_acl {
+                acl_lengths += acl.addresses.len() as u32;
+            }
+            if let Some(acl) = &new_constraints.btc_acl {
+                acl_lengths += acl.addresses.len() as u32;
+            }
+            (<T as Config>::WeightInfo::update_constraints(acl_lengths), Pays::No)
+        })]
         pub fn update_constraints(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
