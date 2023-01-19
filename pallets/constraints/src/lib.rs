@@ -120,7 +120,7 @@ pub mod pallet {
         /// Must be sent from a constraint-modification account.
         /// TODO update weights
         #[pallet::weight({
-            let (evm_acl_len, btc_acl_len) = Pallet::<T>::constraint_weight_values(&new_constraints);
+            let (evm_acl_len, btc_acl_len) = Pallet::<T>::constraint_weight_values(new_constraints);
             <T as Config>::WeightInfo::update_constraints(evm_acl_len, btc_acl_len)
         })]
         pub fn update_constraints(
