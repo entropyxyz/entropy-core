@@ -49,7 +49,7 @@ fn it_preps_transaction() {
 fn it_emits_a_signature_request_event() {
     new_test_ext().execute_with(|| {
         System::set_block_number(2);
-		Registered::<Test>::insert(1, true);
+        Registered::<Test>::insert(1, true);
         let ip_addresses: Vec<Vec<u8>> = vec![vec![10], vec![50]];
         let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
         let message = Message {
