@@ -128,7 +128,7 @@ pub mod pallet {
             if let Some(acl) = &new_constraints.btc_acl {
                 btc_acl_len += acl.addresses.len() as u32;
             }
-            (<T as Config>::WeightInfo::update_constraints(evm_acl_len, btc_acl_len), Pays::No)
+            <T as Config>::WeightInfo::update_constraints(evm_acl_len, btc_acl_len)
         })]
         pub fn update_constraints(
             origin: OriginFor<T>,
