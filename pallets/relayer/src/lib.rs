@@ -73,7 +73,7 @@ pub mod pallet {
         pub constraint_account: T::AccountId,
         pub is_swapping: bool,
         pub confirmations: Vec<u8>,
-        pub initial_constraints: Option<Constraints>,
+        pub constraints: Option<Constraints>,
     }
 
     #[pallet::genesis_config]
@@ -84,7 +84,9 @@ pub mod pallet {
 
     #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self { Self { registered_accounts: Default::default() } }
+        fn default() -> Self {
+            Self { registered_accounts: Default::default() }
+        }
     }
 
     #[pallet::genesis_build]
@@ -249,7 +251,7 @@ pub mod pallet {
                     constraint_account: constraint_account.clone(),
                     is_swapping: false,
                     confirmations: vec![],
-                    initial_constraints,
+                    constraints: initial_constraints,
                 },
             );
 
@@ -267,15 +269,20 @@ pub mod pallet {
                 Self::registered(&sig_req_account).ok_or(Error::<T>::NotRegistered)?,
                 Error::<T>::NotRegistered
             );
+
             let registering_info = RegisteringDetails::<T> {
                 is_registering: true,
+                // This value doesn't get used in confirm_done() when is_swapping is true
                 constraint_account: sig_req_account.clone(),
                 is_swapping: true,
                 confirmations: vec![],
-                initial_constraints: None,
+                // This value doesn't get used in confirm_done() when is_swapping is true
+                constraints: None,
             };
+
             Registered::<T>::remove(&sig_req_account);
             Registering::<T>::insert(&sig_req_account, registering_info);
+
             Self::deposit_event(Event::SignalRegister(sig_req_account));
             Ok(())
         }
@@ -314,17 +321,19 @@ pub mod pallet {
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 Registered::<T>::insert(&sig_req_account, true);
                 Registering::<T>::remove(&sig_req_account);
-                AllowedToModifyConstraints::<T>::insert(
-                    &registering_info.constraint_account,
-                    sig_req_account.clone(),
-                    (),
-                );
-
-                if let Some(constraints) = registering_info.initial_constraints {
-                    ConstraintsPallet::<T>::set_constraints_unchecked(
+                if !registering_info.is_swapping {
+                    AllowedToModifyConstraints::<T>::insert(
+                        &registering_info.constraint_account,
                         sig_req_account.clone(),
-                        constraints,
+                        (),
                     );
+
+                    if let Some(constraints) = registering_info.constraints {
+                        ConstraintsPallet::<T>::set_constraints_unchecked(
+                            sig_req_account.clone(),
+                            constraints,
+                        );
+                    }
                 }
 
                 Self::deposit_event(Event::AccountRegistered(sig_req_account));
@@ -434,10 +443,12 @@ pub mod pallet {
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct PrevalidateRelayer<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
 
     impl<T: Config + Send + Sync> Debug for PrevalidateRelayer<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         #[cfg(feature = "std")]
         fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -445,18 +456,24 @@ pub mod pallet {
         }
 
         #[cfg(not(feature = "std"))]
-        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
+        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+            Ok(())
+        }
     }
 
     impl<T: Config + Send + Sync> PrevalidateRelayer<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         /// Create new `SignedExtension` to check runtime version.
-        pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
+        pub fn new() -> Self {
+            Self(sp_std::marker::PhantomData)
+        }
     }
 
     impl<T: Config + Send + Sync> SignedExtension for PrevalidateRelayer<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         type AccountId = T::AccountId;
         type AdditionalSigned = ();

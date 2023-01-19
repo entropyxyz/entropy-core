@@ -35,15 +35,15 @@ benchmarks! {
     evm_acl.addresses = (0..a).map(|_| H160::default()).collect::<Vec<_>>();
     btc_acl.addresses = (0..b).map(|_| H256::default()).collect::<Vec<_>>();
 
-    let mut initial_constraints = Constraints::default();
-    initial_constraints.evm_acl = Some(evm_acl);
-    initial_constraints.btc_acl = Some(btc_acl);
+    let mut constraints = Constraints::default();
+    constraints.evm_acl = Some(evm_acl);
+    constraints.btc_acl = Some(btc_acl);
 
     // give permission to update constraints for Arch::Generic
     <AllowedToModifyConstraints<T>>::insert(constraint_account.clone(), sig_req_account.clone(), ());
-  }: _(RawOrigin::Signed(constraint_account.clone()), sig_req_account.clone(), initial_constraints.clone())
+  }: _(RawOrigin::Signed(constraint_account.clone()), sig_req_account.clone(), constraints.clone())
   verify {
-    assert_last_event::<T>(Event::<T>::ConstraintsUpdated(constraint_account, initial_constraints).into());
+    assert_last_event::<T>(Event::<T>::ConstraintsUpdated(constraint_account, constraints).into());
   }
 
 }

@@ -117,7 +117,7 @@ fn it_confirms_registers_a_user_then_swap() {
             constraint_account: 2 as <Test as frame_system::Config>::AccountId,
             is_swapping: false,
             confirmations: vec![0],
-            initial_constraints: Some(Constraints::default()),
+            constraints: Some(Constraints::default()),
         };
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
@@ -136,10 +136,10 @@ fn it_confirms_registers_a_user_then_swap() {
 
         let swapping_info = RegisteringDetails::<Test> {
             is_registering: true,
-            constraint_account: 2 as <Test as frame_system::Config>::AccountId,
+            constraint_account: 1 as <Test as frame_system::Config>::AccountId,
             is_swapping: true,
             confirmations: vec![],
-            initial_constraints: Some(Constraints::default()),
+            constraints: None,
         };
         assert_ok!(Relayer::swap_keys(RuntimeOrigin::signed(1)));
 
