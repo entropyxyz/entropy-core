@@ -34,7 +34,7 @@ fn create_validators<T: Config>(
     seed: u32,
 ) -> Vec<<T as pallet_session::Config>::ValidatorId> {
     let candidates =
-        (0..count).map(|c| account::<T::AccountId>("candidate", c, seed)).collect::<Vec<_>>();
+        (0..count).map(|c| account::<T::AccountId>("validator", c, seed)).collect::<Vec<_>>();
     let mut validators = vec![];
     for who in candidates {
         let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(who.clone())
