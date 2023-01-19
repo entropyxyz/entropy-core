@@ -41,9 +41,11 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: Relayer Registering (r:0 w:1)
-	fn register() -> Weight {
+	fn register(evm_acl_len: u32, btc_acl_len: u32) -> Weight {
 		Weight::from_ref_time(39_000_000 as u64)
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
+			.saturating_add(Weight::from_ref_time(1_000_000 as u64).saturating_mul(evm_acl_len as u64))
+			.saturating_add(Weight::from_ref_time(1_000_000 as u64).saturating_mul(btc_acl_len as u64))
 	}
 	// Storage: Relayer Messages (r:1 w:0)
 	// Storage: Relayer Failures (r:1 w:0)

@@ -19,7 +19,7 @@ mod mock;
 mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
+pub mod benchmarking;
 
 pub mod weights;
 
@@ -120,14 +120,7 @@ pub mod pallet {
         /// Must be sent from a constraint-modification account.
         /// TODO update weights
         #[pallet::weight({
-            let mut evm_acl_len: u32 = 0;
-            if let Some(acl) = &new_constraints.evm_acl {
-                evm_acl_len += acl.addresses.len() as u32;
-            }
-            let mut btc_acl_len: u32 = 0;
-            if let Some(acl) = &new_constraints.btc_acl {
-                btc_acl_len += acl.addresses.len() as u32;
-            }
+            let (evm_acl_len, btc_acl_len) = Pallet::<T>::constraint_weight_values(&new_constraints);
             <T as Config>::WeightInfo::update_constraints(evm_acl_len, btc_acl_len)
         })]
         pub fn update_constraints(
@@ -202,6 +195,23 @@ pub mod pallet {
             }
 
             Ok(())
+        }
+
+        /// Returns information about Constraints that can be used to calculate weights.
+        /// Used as values in some `#[pallet::weight]` macros.
+        pub fn constraint_weight_values(constraints: &Constraints) -> (u32, u32) {
+            let Constraints { evm_acl, btc_acl } = constraints;
+
+            let mut evm_acl_len: u32 = 0;
+            if let Some(acl) = evm_acl {
+                evm_acl_len += acl.addresses.len() as u32;
+            }
+            let mut btc_acl_len: u32 = 0;
+            if let Some(acl) = btc_acl {
+                btc_acl_len += acl.addresses.len() as u32;
+            }
+
+            (evm_acl_len, btc_acl_len)
         }
     }
 }

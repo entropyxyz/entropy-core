@@ -9,6 +9,7 @@ use super::*;
 use crate::pallet::{Acl, Constraints, H160, H256};
 #[allow(unused)]
 use crate::Pallet as ConstraintsPallet;
+use frame_support::traits::Get;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     let events = frame_system::Pallet::<T>::events();
@@ -18,28 +19,31 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     assert_eq!(event, &system_event);
 }
 
+/// Generates a set of constraints fit to the specified storage complexity parameters
+pub fn generate_benchmarking_constraints<T: Config>(
+    evm_acl_len: u32,
+    btc_acl_len: u32,
+) -> Constraints {
+    let mut evm_acl = Acl::<H160>::default();
+    let mut btc_acl = Acl::<H256>::default();
+
+    evm_acl.addresses = (0..evm_acl_len).map(|_| H160::default()).collect::<Vec<_>>();
+    btc_acl.addresses = (0..btc_acl_len).map(|_| H256::default()).collect::<Vec<_>>();
+
+    Constraints { evm_acl: Some(evm_acl), btc_acl: Some(btc_acl) }
+}
+
 benchmarks! {
 
   update_constraints {
     // number of addresses in the ACL
-    let a in 0 .. 20;
-    let b in 0 .. 20;
+    let a in 0 .. <T as crate::Config>::MaxAclLength::get();
+    let b in 0 .. <T as crate::Config>::MaxAclLength::get();
+    let constraints = generate_benchmarking_constraints::<T>(a, b);
 
     let constraint_account: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();
 
-    // create a new constraints from above ACL counts
-    let mut evm_acl = Acl::<H160>::default();
-    let mut btc_acl = Acl::<H256>::default();
-
-    evm_acl.addresses = (0..a).map(|_| H160::default()).collect::<Vec<_>>();
-    btc_acl.addresses = (0..b).map(|_| H256::default()).collect::<Vec<_>>();
-
-    let mut constraints = Constraints::default();
-    constraints.evm_acl = Some(evm_acl);
-    constraints.btc_acl = Some(btc_acl);
-
-    // give permission to update constraints for Arch::Generic
     <AllowedToModifyConstraints<T>>::insert(constraint_account.clone(), sig_req_account.clone(), ());
   }: _(RawOrigin::Signed(constraint_account.clone()), sig_req_account.clone(), constraints.clone())
   verify {

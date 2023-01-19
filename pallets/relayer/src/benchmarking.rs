@@ -4,7 +4,10 @@ use codec::Encode;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
 use frame_support::traits::{Get, OnInitialize};
 use frame_system::{EventRecord, RawOrigin};
-use substrate_common::{Constraints, Message, SigRequest};
+use substrate_common::{Message, SigRequest};
+
+#[cfg(feature = "runtime-benchmarks")]
+use pallet_constraints::benchmarking::generate_benchmarking_constraints;
 
 use super::*;
 #[allow(unused)]
@@ -47,10 +50,14 @@ benchmarks! {
   }
 
   register {
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    let constraint_account: T::AccountId = whitelisted_caller();
+    // number of addresses in the ACL
+    let a in 0 .. <T as pallet_constraints::Config>::MaxAclLength::get();
+    let b in 0 .. <T as pallet_constraints::Config>::MaxAclLength::get();
+    let constraints = generate_benchmarking_constraints::<T>(a, b);
 
-    let constraints = Constraints::default();
+    let constraint_account: T::AccountId = whitelisted_caller();
+    let sig_req_account: T::AccountId = whitelisted_caller();
+
   }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account, Some(constraints))
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());

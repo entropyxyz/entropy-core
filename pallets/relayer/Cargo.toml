@@ -84,7 +84,7 @@ frame-election-provider-support={ version="4.0.0-dev", default-features=false, g
 
 [features]
 default=['std']
-runtime-benchmarks=['frame-benchmarking']
+runtime-benchmarks=['frame-benchmarking', 'pallet-constraints/runtime-benchmarks']
 std=[
   'codec/std',
   'log/std',
