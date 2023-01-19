@@ -4,10 +4,9 @@ use codec::Encode;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
 use frame_support::traits::{Get, OnInitialize};
 use frame_system::{EventRecord, RawOrigin};
-use substrate_common::{Message, SigRequest};
-
 #[cfg(feature = "runtime-benchmarks")]
 use pallet_constraints::benchmarking::generate_benchmarking_constraints;
+use substrate_common::{Message, SigRequest};
 
 use super::*;
 #[allow(unused)]
