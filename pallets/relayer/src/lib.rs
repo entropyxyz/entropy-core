@@ -109,9 +109,9 @@ pub mod pallet {
             );
             Self::note_responsibility(block_number);
             if is_prune_failures {
-                <T as Config>::WeightInfo::move_active_to_pending_failure(messages.len() as u64)
+                <T as Config>::WeightInfo::move_active_to_pending_failure(messages.len() as u32)
             } else {
-                <T as Config>::WeightInfo::move_active_to_pending_no_failure(messages.len() as u64)
+                <T as Config>::WeightInfo::move_active_to_pending_no_failure(messages.len() as u32)
             }
         }
     }

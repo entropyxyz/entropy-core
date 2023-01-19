@@ -67,32 +67,32 @@ fn it_tests_get_validator_rotation() {
     new_test_ext().execute_with(|| {
         let result_1 = Relayer::get_validator_rotation(0, 0).unwrap();
         let result_2 = Relayer::get_validator_rotation(1, 0).unwrap();
-        assert_eq!(result_1, 1);
-        assert_eq!(result_2, 2);
+        assert_eq!(result_1.0, 1);
+        assert_eq!(result_2.0, 2);
 
         let result_3 = Relayer::get_validator_rotation(0, 1).unwrap();
         let result_4 = Relayer::get_validator_rotation(1, 1).unwrap();
-        assert_eq!(result_3, 5);
-        assert_eq!(result_4, 6);
+        assert_eq!(result_3.0, 5);
+        assert_eq!(result_4.0, 6);
 
         let result_5 = Relayer::get_validator_rotation(0, 100).unwrap();
         let result_6 = Relayer::get_validator_rotation(1, 100).unwrap();
-        assert_eq!(result_5, 1);
-        assert_eq!(result_6, 6);
+        assert_eq!(result_5.0, 1);
+        assert_eq!(result_6.0, 6);
 
         let result_7 = Relayer::get_validator_rotation(0, 101).unwrap();
         let result_8 = Relayer::get_validator_rotation(1, 101).unwrap();
-        assert_eq!(result_7, 5);
-        assert_eq!(result_8, 7);
+        assert_eq!(result_7.0, 5);
+        assert_eq!(result_8.0, 7);
 
         pallet_staking_extension::IsValidatorSynced::<Test>::insert(7, false);
 
         let result_9 = Relayer::get_validator_rotation(1, 101).unwrap();
-        assert_eq!(result_9, 6);
+        assert_eq!(result_9.0, 6);
 
         // really big number does not crash
         let result_10 = Relayer::get_validator_rotation(0, 1000000000000000000).unwrap();
-        assert_eq!(result_10, 1);
+        assert_eq!(result_10.0, 1);
     });
 }
 
