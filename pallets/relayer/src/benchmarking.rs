@@ -1,11 +1,11 @@
 //! Benchmarking setup for pallet-propgation
 
 use codec::Encode;
-use frame_benchmarking::{
-    account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec,
-};
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
 use frame_support::traits::{Get, OnInitialize};
 use frame_system::{EventRecord, RawOrigin};
+#[cfg(feature = "runtime-benchmarks")]
+use pallet_staking_extension::benchmarking::create_validators;
 use pallet_staking_extension::{IsValidatorSynced, ServerInfo, SigningGroups, ThresholdServers};
 use substrate_common::{Message, SigRequest, SIGNING_PARTY_SIZE as SIG_PARTIES};
 
@@ -38,22 +38,6 @@ fn add_messages<T: Config>(caller: T::AccountId, messages_count: u32) {
         let _ =
             <Relayer<T>>::prep_transaction(RawOrigin::Signed(caller.clone()).into(), sig_request);
     }
-}
-
-fn create_validators<T: Config>(
-    count: u32,
-    seed: u32,
-) -> Vec<<T as pallet_session::Config>::ValidatorId> {
-    let candidates =
-        (0..count).map(|c| account::<T::AccountId>("validator", c, seed)).collect::<Vec<_>>();
-    let mut validators = vec![];
-    for who in candidates {
-        let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(who.clone())
-            .or(Err(Error::<T>::InvalidValidatorId))
-            .unwrap();
-        validators.push(validator_id_res);
-    }
-    validators
 }
 
 pub fn add_non_syncing_validators<T: Config>(

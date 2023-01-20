@@ -29,7 +29,7 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     assert_eq!(event, &system_event);
 }
 
-fn create_validators<T: Config>(
+pub fn create_validators<T: Config>(
     count: u32,
     seed: u32,
 ) -> Vec<<T as pallet_session::Config>::ValidatorId> {
