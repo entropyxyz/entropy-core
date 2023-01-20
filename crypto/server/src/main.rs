@@ -64,12 +64,12 @@ async fn rocket() -> _ {
     setup_mnemonic(&kv_store, args.alice, args.bob).await;
     // Below deals with syncing the kvdb
     if args.sync {
-        let api = get_api(&configuration.endpoint).await.unwrap();
+        let api = get_api(&configuration.endpoint).await.expect("Issue acquiring chain API");
         let mut is_syncing = true;
         let sleep_time = Duration::from_secs(20);
         // wait for chain to be fully synced before starting key swap
         while is_syncing {
-            let health = api.rpc().system_health().await.unwrap();
+            let health = api.rpc().system_health().await.expect("Issue checking chain health");
             is_syncing = health.is_syncing;
             if is_syncing {
                 println!("chain syncing, retrying {is_syncing:?}");
@@ -78,9 +78,10 @@ async fn rocket() -> _ {
         }
         // TODO: find a proper batch size
         let batch_size = 10;
-        let signer = get_signer(&kv_store).await.unwrap();
-        let has_fee_balance =
-            check_balance_for_fees(&api, signer.account_id(), MIN_BALANCE).await.unwrap();
+        let signer = get_signer(&kv_store).await.expect("Issue acquiring threshold signer key");
+        let has_fee_balance = check_balance_for_fees(&api, signer.account_id(), MIN_BALANCE)
+            .await
+            .expect("Issue checking chain for signer balance");
         if !has_fee_balance {
             panic!("threshold account needs balance: {:?}", signer.account_id());
         }
@@ -93,12 +94,20 @@ async fn rocket() -> _ {
             my_subgroup = get_subgroup(&api, &signer).await;
         }
 
-        let key_server_url =
-            get_key_url(&api, &signer, my_subgroup.unwrap().unwrap()).await.unwrap();
-        let all_keys = get_all_keys(&api, batch_size).await.unwrap();
+        let key_server_url = get_key_url(
+            &api,
+            &signer,
+            my_subgroup.expect("Issue getting my subgroup").expect("Issue getting my subgroup"),
+        )
+        .await
+        .expect("Issue getting a url in signing group");
+        let all_keys =
+            get_all_keys(&api, batch_size).await.expect("Issue getting registered keys from chain");
         let _ =
             get_and_store_values(all_keys, &kv_store, key_server_url, batch_size, args.dev).await;
-        tell_chain_syncing_is_done(&api, &signer).await.unwrap();
+        tell_chain_syncing_is_done(&api, &signer)
+            .await
+            .expect("Issue telling chain syncing is done");
     }
 
     // Unsafe routes are for testing purposes only
@@ -132,18 +141,18 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) {
                 let mut mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
                 // If using a test configuration then set to the default mnemonic.
                 if cfg!(test) {
-                    mnemonic =
-                        Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English).unwrap();
+                    mnemonic = Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English)
+                        .expect("Issue creating Mnemonic");
                 }
                 if is_alice {
                     mnemonic =
                         Mnemonic::from_phrase(utils::DEFAULT_ALICE_MNEMONIC, Language::English)
-                            .unwrap();
+                            .expect("Issue creating Mnemonic");
                 }
                 if is_bob {
                     mnemonic =
                         Mnemonic::from_phrase(utils::DEFAULT_BOB_MNEMONIC, Language::English)
-                            .unwrap();
+                            .expect("Issue creating Mnemonic");
                 }
 
                 let phrase = mnemonic.phrase();
@@ -152,25 +161,37 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) {
                 let static_secret = derive_static_secret(&pair);
                 let dh_public = x25519_dalek::PublicKey::from(&static_secret);
 
-                let ss_reservation =
-                    kv.kv().reserve_key("SHARED_SECRET".to_string()).await.unwrap();
+                let ss_reservation = kv
+                    .kv()
+                    .reserve_key("SHARED_SECRET".to_string())
+                    .await
+                    .expect("Issue reserving ss key");
                 match kv.kv().put(ss_reservation, static_secret.to_bytes().to_vec()).await {
                     Ok(r) => {},
                     Err(r) => warn!("failed to update ss: {:?}", r),
                 }
 
-                let dh_reservation = kv.kv().reserve_key("DH_PUBLIC".to_string()).await.unwrap();
+                let dh_reservation = kv
+                    .kv()
+                    .reserve_key("DH_PUBLIC".to_string())
+                    .await
+                    .expect("Issue reserving DH key");
                 match kv.kv().put(dh_reservation, dh_public.to_bytes().to_vec()).await {
                     Ok(r) => println!("dh_public_key={dh_public:?}"),
                     Err(r) => warn!("failed to update dh: {:?}", r),
                 }
 
-                let p = <sr25519::Pair as Pair>::from_phrase(phrase, None).unwrap();
+                let p = <sr25519::Pair as Pair>::from_phrase(phrase, None)
+                    .expect("Issue getting pair from mnemonic");
                 let id = AccountId32::new(p.0.public().0);
                 println!("account_id={id}");
 
                 // Update the value in the kvdb
-                let reservation = kv.kv().reserve_key("MNEMONIC".to_string()).await.unwrap();
+                let reservation = kv
+                    .kv()
+                    .reserve_key("MNEMONIC".to_string())
+                    .await
+                    .expect("Issue reserving mnemonic");
                 let result = kv.kv().put(reservation, phrase.as_bytes().to_vec()).await;
                 match result {
                     Ok(r) => {},
