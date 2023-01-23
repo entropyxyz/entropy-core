@@ -35,7 +35,7 @@ cargo build --release
 Use Rust's native `cargo` command to build and launch the template node:
 
 ```sh
-cargo run --release -- --dev --tmp
+cargo build --release -p entropy
 ```
 
 
