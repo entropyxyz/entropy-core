@@ -26,6 +26,12 @@ pub enum UserErr {
     SerdeJson(#[from] serde_json::Error),
 	#[error("ChaCha20 decryption error: {0}")]
     Decryption(String),
+	#[error("mnemonic failure: {0:?}")]
+    Mnemonic(String),
+    #[error("Secret String failure: {0:?}")]
+    SecretString(&'static str),
+	#[error("Utf8Error: {0:?}")]
+    Utf8(#[from] std::str::Utf8Error),
     #[error("Not Registering error: {0}")]
     NotRegistering(&'static str),
     #[error("Subgroup error: {0}")]
