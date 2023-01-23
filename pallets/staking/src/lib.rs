@@ -276,26 +276,17 @@ pub mod pallet {
             num_slashing_spans: u32,
         ) -> DispatchResultWithPostInfo {
             let controller = ensure_signed(origin.clone())?;
-            match pallet_staking::Pallet::<T>::ledger(&controller) {
-                Some(ledger) => {
-                    let stash = ledger.stash;
-                    let validator_id_res =
-                        <T as pallet_session::Config>::ValidatorId::try_from(stash)
-                            .or(Err(Error::<T>::InvalidValidatorId));
-                    ensure!(
-                        validator_id_res.is_ok(),
-                        pallet_staking_extension::Error::<T>::InvalidValidatorId
-                    );
-                    let validator_id =
-                        validator_id_res.expect("Issue converting account id into validator id");
-                    pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
-                    if pallet_staking::Pallet::<T>::ledger(&controller).is_none() {
-                        let server_info = ThresholdServers::<T>::take(&validator_id)
-                            .ok_or(Error::<T>::NoThresholdKey)?;
-                        ThresholdToStash::<T>::remove(&server_info.tss_account);
-                    }
-                },
-                None => return Err(Error::<T>::NotController.into()),
+            let ledger = pallet_staking::Pallet::<T>::ledger(&controller)
+                .ok_or(Error::<T>::NoThresholdKey)?;
+
+			let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
+                .or(Err(Error::<T>::InvalidValidatorId))?;
+
+            pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
+            if pallet_staking::Pallet::<T>::ledger(&controller).is_none() {
+                let server_info =
+                    ThresholdServers::<T>::take(&validator_id).ok_or(Error::<T>::NoThresholdKey)?;
+                ThresholdToStash::<T>::remove(&server_info.tss_account);
             }
             Self::deposit_event(Event::NodeInfoRemoved(controller));
             Ok(().into())
@@ -319,17 +310,11 @@ pub mod pallet {
             );
             let stash = Self::get_stash(&who)?;
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
-            let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(stash)
-                .or(Err(Error::<T>::InvalidValidatorId));
-            ensure!(
-                validator_id_res.is_ok(),
-                pallet_staking_extension::Error::<T>::InvalidValidatorId
-            );
-            let validator_id =
-                validator_id_res.expect("Issue converting account id into validator id");
+            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)
+                .or(Err(Error::<T>::InvalidValidatorId))?;
 
             ThresholdServers::<T>::insert(
-                validator_id.clone(),
+                &validator_id,
                 ServerInfo {
                     tss_account: tss_account.clone(),
                     x25519_public_key,
