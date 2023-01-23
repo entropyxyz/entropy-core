@@ -295,12 +295,10 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let responsibility =
                 Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
-            let validator_id_res =
-                <T as pallet_session::Config>::ValidatorId::try_from(responsibility)
-                    .or(Err(Error::<T>::InvalidValidatorId));
-            ensure!(validator_id_res.is_ok(), Error::<T>::InvalidValidatorId);
             let validator_id =
-                validator_id_res.expect("Issue converting account id into validator id");
+                <T as pallet_session::Config>::ValidatorId::try_from(responsibility)
+                    .or(Err(Error::<T>::InvalidValidatorId))?;
+
             let server_info =
                 pallet_staking_extension::Pallet::<T>::threshold_server(&validator_id)
                     .ok_or(Error::<T>::NoThresholdKey)?;

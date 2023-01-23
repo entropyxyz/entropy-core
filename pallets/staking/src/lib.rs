@@ -246,14 +246,9 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             let stash = Self::get_stash(&who)?;
-            let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(stash)
-                .or(Err(Error::<T>::InvalidValidatorId));
-            ensure!(
-                validator_id_res.is_ok(),
-                pallet_staking_extension::Error::<T>::InvalidValidatorId
-            );
-            let validator_id =
-                validator_id_res.expect("Issue converting account id into validator id");
+            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)
+                .or(Err(Error::<T>::InvalidValidatorId))?;
+
             let new_server_info: ServerInfo<T::AccountId> =
                 ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
                     if let Some(server_info) = maybe_server_info {
