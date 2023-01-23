@@ -177,7 +177,7 @@ async fn test_store_share() {
         .await;
 
     assert_eq!(response_4.status(), Status::InternalServerError);
-    let expected_err = "Parse error: failed decrypting message";
+    let expected_err = "ChaCha20 decryption error: aead::Error";
     assert_eq!(response_4.into_string().await.unwrap(), expected_err);
     let sig: [u8; 64] = [0; 64];
     let slice: [u8; 32] = [0; 32];

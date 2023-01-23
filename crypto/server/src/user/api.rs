@@ -82,25 +82,18 @@ pub async fn new_user(
     let key = signed_msg.account_id();
     let is_swapping = register_info(&api, &key).await?;
 
-    let decrypted_message = signed_msg.decrypt(signer.signer());
-    match decrypted_message {
-        Ok(v) => {
-            // store new user data in kvdb or deletes and replaces it if swapping
-            let subgroup = get_subgroup(&api, &signer)
-                .await?
-                .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-            if is_swapping {
-                state.kv().delete(&key.to_string()).await?;
-            }
-            let reservation = state.kv().reserve_key(key.to_string()).await?;
-            state.kv().put(reservation, v).await?;
-            // TODO: Error handling really complex needs to be thought about.
-            confirm_registered(&api, key, subgroup, &signer).await?;
-        },
-        Err(v) => {
-            return Err(UserErr::Parse("failed decrypting message"));
-        },
+    let decrypted_message = signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+    // store new user data in kvdb or deletes and replaces it if swapping
+    let subgroup = get_subgroup(&api, &signer)
+        .await?
+        .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+    if is_swapping {
+        state.kv().delete(&key.to_string()).await?;
     }
+    let reservation = state.kv().reserve_key(key.to_string()).await?;
+    state.kv().put(reservation, decrypted_message).await?;
+    // TODO: Error handling really complex needs to be thought about.
+    confirm_registered(&api, key, subgroup, &signer).await?;
     Ok(Status::Ok)
 }
 /// Returns wether an account is registering or swapping. If it is not, it returns error
