@@ -82,7 +82,8 @@ pub async fn new_user(
     let key = signed_msg.account_id();
     let is_swapping = register_info(&api, &key).await?;
 
-    let decrypted_message = signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+    let decrypted_message =
+        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
     // store new user data in kvdb or deletes and replaces it if swapping
     let subgroup = get_subgroup(&api, &signer)
         .await?
@@ -122,10 +123,12 @@ pub async fn get_signer(
 ) -> Result<PairSigner<EntropyConfig, sr25519::Pair>, UserErr> {
     let exists = kv.kv().exists("MNEMONIC").await?;
     let raw_m = kv.kv().get("MNEMONIC").await?;
-	let secret = core::str::from_utf8(&raw_m)?;
-	let mnemonic = Mnemonic::from_phrase(secret, Language::English).map_err(|e| UserErr::Mnemonic(e.to_string()))?;
-	let pair = <sr25519::Pair as Pair>::from_phrase(mnemonic.phrase(), None).map_err(|e| UserErr::SecretString("Secret String Error"))?;
-	Ok(PairSigner::<EntropyConfig, sr25519::Pair>::new(pair.0))
+    let secret = core::str::from_utf8(&raw_m)?;
+    let mnemonic = Mnemonic::from_phrase(secret, Language::English)
+        .map_err(|e| UserErr::Mnemonic(e.to_string()))?;
+    let pair = <sr25519::Pair as Pair>::from_phrase(mnemonic.phrase(), None)
+        .map_err(|e| UserErr::SecretString("Secret String Error"))?;
+    Ok(PairSigner::<EntropyConfig, sr25519::Pair>::new(pair.0))
 }
 
 pub async fn get_subgroup(

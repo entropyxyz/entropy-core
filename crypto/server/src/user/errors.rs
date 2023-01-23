@@ -24,13 +24,13 @@ pub enum UserErr {
     GenericSubstrate(#[from] subxt::error::Error),
     #[error("Serde Json error: {0}")]
     SerdeJson(#[from] serde_json::Error),
-	#[error("ChaCha20 decryption error: {0}")]
+    #[error("ChaCha20 decryption error: {0}")]
     Decryption(String),
-	#[error("mnemonic failure: {0:?}")]
+    #[error("mnemonic failure: {0:?}")]
     Mnemonic(String),
     #[error("Secret String failure: {0:?}")]
     SecretString(&'static str),
-	#[error("Utf8Error: {0:?}")]
+    #[error("Utf8Error: {0:?}")]
     Utf8(#[from] std::str::Utf8Error),
     #[error("Not Registering error: {0}")]
     NotRegistering(&'static str),
