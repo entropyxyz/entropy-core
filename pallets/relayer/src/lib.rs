@@ -295,9 +295,8 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let responsibility =
                 Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
-            let validator_id =
-                <T as pallet_session::Config>::ValidatorId::try_from(responsibility)
-                    .or(Err(Error::<T>::InvalidValidatorId))?;
+            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(responsibility)
+                .or(Err(Error::<T>::InvalidValidatorId))?;
 
             let server_info =
                 pallet_staking_extension::Pallet::<T>::threshold_server(&validator_id)

@@ -274,7 +274,7 @@ pub mod pallet {
             let ledger = pallet_staking::Pallet::<T>::ledger(&controller)
                 .ok_or(Error::<T>::NoThresholdKey)?;
 
-			let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
+            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
             pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;

@@ -181,8 +181,7 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) {
         // Update the value in the kvdb
         let reservation =
             kv.kv().reserve_key("MNEMONIC".to_string()).await.expect("Issue reserving mnemonic");
-        let result = kv
-            .kv()
+        kv.kv()
             .put(reservation, phrase.as_bytes().to_vec())
             .await
             .expect("failed to update mnemonic");
