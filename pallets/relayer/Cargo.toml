@@ -61,20 +61,20 @@ branch          ="polkadot-v0.9.30"
 version         ='6.0.0'
 
 [dependencies]
+
+substrate-common        ={ path="../../crypto/substrate-common", default-features=false }
 sp-std                  ={ package="sp-std", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30", default-features=false }
 pallet-authorship       ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 log                     ={ version="0.4.0", default-features=false }
 pallet-slashing         ={ version="3.0.0", default-features=false, path="../slashing" }
 pallet-staking-extension={ version="3.0.0", default-features=false, path="../staking" }
-# non-substrate-common    ={ path="../../crypto/non-substrate-common", default-features=false }
-substrate-common  ={ path="../../crypto/substrate-common", default-features=false }
-pallet-constraints={ path="../constraints", default-features=false }
-helpers           ={ path="../helpers", default-features=false }
-pallet-session    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+pallet-constraints      ={ path="../constraints", default-features=false }
+pallet-staking          ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
+helpers                 ={ path="../helpers", default-features=false }
+pallet-session          ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 
 [dev-dependencies]
 pallet-balances                ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
-pallet-staking                 ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 pallet-timestamp               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 pallet-bags-list               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 pallet-staking-reward-curve    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
@@ -83,8 +83,7 @@ sp-npos-elections              ={ version="4.0.0-dev", default-features=false, g
 frame-election-provider-support={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 
 [features]
-default=['std']
-runtime-benchmarks=['frame-benchmarking', 'pallet-constraints/runtime-benchmarks']
+
 std=[
   'codec/std',
   'log/std',
@@ -100,5 +99,11 @@ std=[
   "sp-std/std",
   "sp-runtime/std",
   "sp-npos-elections/std",
+]
+default=['std']
+runtime-benchmarks=[
+  'frame-benchmarking',
+  'pallet-constraints/runtime-benchmarks',
+  'pallet-staking-extension/runtime-benchmarks',
 ]
 try-runtime=['frame-support/try-runtime']

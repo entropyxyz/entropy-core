@@ -32,18 +32,26 @@ fn it_preps_transaction() {
             ip_addresses,
         };
 
-        assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request));
+        assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request.clone()));
 
         assert_eq!(Relayer::messages(0), vec![message]);
+
+        // handle gracefully if all validators in a subgroup in syncing state
+        pallet_staking_extension::IsValidatorSynced::<Test>::insert(1, false);
+        pallet_staking_extension::IsValidatorSynced::<Test>::insert(5, false);
+        assert_noop!(
+            Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request),
+            Error::<Test>::NoSyncedValidators
+        );
     });
 }
 
 #[test]
 fn it_emits_a_signature_request_event() {
     new_test_ext().execute_with(|| {
-        System::set_block_number(1);
+        System::set_block_number(2);
         Registered::<Test>::insert(1, true);
-        let ip_addresses: Vec<Vec<u8>> = vec![vec![10], vec![11]];
+        let ip_addresses: Vec<Vec<u8>> = vec![vec![10], vec![50]];
         let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
         let message = Message {
             account: vec![1, 0, 0, 0, 0, 0, 0, 0],
@@ -54,6 +62,40 @@ fn it_emits_a_signature_request_event() {
         assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request));
 
         System::assert_last_event(RuntimeEvent::Relayer(crate::Event::SignatureRequested(message)));
+    });
+}
+
+#[test]
+fn it_tests_get_validator_rotation() {
+    new_test_ext().execute_with(|| {
+        let result_1 = Relayer::get_validator_rotation(0, 0).unwrap();
+        let result_2 = Relayer::get_validator_rotation(1, 0).unwrap();
+        assert_eq!(result_1.0, 1);
+        assert_eq!(result_2.0, 2);
+
+        let result_3 = Relayer::get_validator_rotation(0, 1).unwrap();
+        let result_4 = Relayer::get_validator_rotation(1, 1).unwrap();
+        assert_eq!(result_3.0, 5);
+        assert_eq!(result_4.0, 6);
+
+        let result_5 = Relayer::get_validator_rotation(0, 100).unwrap();
+        let result_6 = Relayer::get_validator_rotation(1, 100).unwrap();
+        assert_eq!(result_5.0, 1);
+        assert_eq!(result_6.0, 6);
+
+        let result_7 = Relayer::get_validator_rotation(0, 101).unwrap();
+        let result_8 = Relayer::get_validator_rotation(1, 101).unwrap();
+        assert_eq!(result_7.0, 5);
+        assert_eq!(result_8.0, 7);
+
+        pallet_staking_extension::IsValidatorSynced::<Test>::insert(7, false);
+
+        let result_9 = Relayer::get_validator_rotation(1, 101).unwrap();
+        assert_eq!(result_9.0, 6);
+
+        // really big number does not crash
+        let result_10 = Relayer::get_validator_rotation(0, 1000000000000000000).unwrap();
+        assert_eq!(result_10.0, 1);
     });
 }
 
@@ -209,7 +251,7 @@ fn moves_active_to_pending() {
         Failures::<Test>::insert(2, failures.clone());
         Failures::<Test>::insert(5, failures.clone());
 
-        let ip_addresses: Vec<Vec<u8>> = vec![vec![10], vec![11]];
+        let ip_addresses: Vec<Vec<u8>> = vec![vec![20], vec![11]];
         let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
         let message = Message {
             account: vec![1, 0, 0, 0, 0, 0, 0, 0],

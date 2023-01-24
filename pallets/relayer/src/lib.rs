@@ -31,7 +31,7 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::{
-        dispatch::{DispatchResult, Pays},
+        dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays},
         inherent::Vec,
         pallet_prelude::*,
         traits::IsSubType,
@@ -65,6 +65,8 @@ pub mod pallet {
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
+
+    type MaxValidators<T> =  <<T as pallet_staking::Config>::BenchmarkingConfig as pallet_staking::BenchmarkingConfig>::MaxValidators;
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
@@ -113,9 +115,9 @@ pub mod pallet {
             );
             Self::note_responsibility(block_number);
             if is_prune_failures {
-                <T as Config>::WeightInfo::move_active_to_pending_failure(messages.len() as u64)
+                <T as Config>::WeightInfo::move_active_to_pending_failure(messages.len() as u32)
             } else {
-                <T as Config>::WeightInfo::move_active_to_pending_no_failure(messages.len() as u64)
+                <T as Config>::WeightInfo::move_active_to_pending_no_failure(messages.len() as u32)
             }
         }
     }
@@ -193,21 +195,25 @@ pub mod pallet {
         InvalidValidatorId,
         IpAddressError,
         SigningGroupError,
+        NoSyncedValidators,
     }
 
     /// Allows a user to kick off signing process
     /// `sig_request`: signature request for user
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::weight((<T as Config>::WeightInfo::prep_transaction(), Pays::No))]
-        pub fn prep_transaction(origin: OriginFor<T>, sig_request: SigRequest) -> DispatchResult {
+        #[pallet::weight((<T as Config>::WeightInfo::prep_transaction(MaxValidators::<T>::get() / SIGNING_PARTY_SIZE as u32), Pays::No))]
+        pub fn prep_transaction(
+            origin: OriginFor<T>,
+            sig_request: SigRequest,
+        ) -> DispatchResultWithPostInfo {
             log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
             let who = ensure_signed(origin)?;
             ensure!(
                 Self::registered(&who).ok_or(Error::<T>::NotRegistered)?,
                 Error::<T>::NotRegistered
             );
-            let ip_addresses = Self::get_ip_addresses()?;
+            let (ip_addresses, i) = Self::get_ip_addresses()?;
             let message = Message { sig_request, account: who.encode(), ip_addresses };
             let block_number = <frame_system::Pallet<T>>::block_number();
             Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
@@ -216,7 +222,8 @@ pub mod pallet {
             })?;
 
             Self::deposit_event(Event::SignatureRequested(message));
-            Ok(())
+
+            Ok(Some(<T as Config>::WeightInfo::prep_transaction(i)).into())
         }
 
         /// Signals that a user wants to register an account with Entropy.
@@ -385,19 +392,49 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        pub fn get_ip_addresses() -> Result<Vec<Vec<u8>>, Error<T>> {
+        pub fn get_ip_addresses() -> Result<(Vec<Vec<u8>>, u32), Error<T>> {
             let mut ip_addresses: Vec<Vec<u8>> = vec![];
+            let block_number = <frame_system::Pallet<T>>::block_number();
+
             // TODO: JA simple hacky way to do this, get the first address from each signing group
             // need good algorithim for this
+            let mut l: u32 = 0;
             for i in 0..SIGNING_PARTY_SIZE {
-                let addresses = pallet_staking_extension::Pallet::<T>::signing_groups(i as u8)
-                    .ok_or(Error::<T>::SigningGroupError)?;
+                let tuple = Self::get_validator_rotation(i as u8, block_number)?;
+                l = tuple.1;
                 let ServerInfo { endpoint, .. } =
-                    pallet_staking_extension::Pallet::<T>::threshold_server(&addresses[0])
+                    pallet_staking_extension::Pallet::<T>::threshold_server(&tuple.0)
                         .ok_or(Error::<T>::IpAddressError)?;
                 ip_addresses.push(endpoint.clone());
             }
-            Ok(ip_addresses)
+            Ok((ip_addresses, l))
+        }
+
+        pub fn get_validator_rotation(
+            signing_group: u8,
+            block_number: T::BlockNumber,
+        ) -> Result<(<T as pallet_session::Config>::ValidatorId, u32), Error<T>> {
+            let mut i: u32 = 0;
+            let mut addresses =
+                pallet_staking_extension::Pallet::<T>::signing_groups(signing_group)
+                    .ok_or(Error::<T>::SigningGroupError)?;
+            let converted_block_number: u32 =
+                T::BlockNumber::try_into(block_number).unwrap_or_default();
+            let address = loop {
+                ensure!(!addresses.is_empty(), Error::<T>::NoSyncedValidators);
+                let selection: u32 = converted_block_number % addresses.len() as u32;
+                let address = &addresses[selection as usize];
+                let address_state =
+                    pallet_staking_extension::Pallet::<T>::is_validator_synced(address);
+                if !address_state {
+                    addresses.remove(selection as usize);
+                    i += 1;
+                } else {
+                    i += 1;
+                    break address;
+                }
+            };
+            Ok((address.clone(), i))
         }
 
         pub fn move_active_to_pending(

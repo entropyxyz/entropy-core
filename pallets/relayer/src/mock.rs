@@ -313,9 +313,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (6, ServerInfo { tss_account: 8, x25519_public_key: NULL_ARR, endpoint: vec![40] }),
             (1, ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![10] }),
             (2, ServerInfo { tss_account: 4, x25519_public_key: NULL_ARR, endpoint: vec![11] }),
+            (7, ServerInfo { tss_account: 4, x25519_public_key: NULL_ARR, endpoint: vec![50] }),
         ],
         // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
-        signing_groups: vec![(0, vec![1, 5]), (1, vec![2, 6])],
+        signing_groups: vec![(0, vec![1, 5]), (1, vec![2, 6, 7])],
     };
 
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
