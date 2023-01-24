@@ -37,6 +37,7 @@ frame_support::construct_runtime!(
     Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
     Relayer: pallet_relayer::{Pallet, Call, Storage, Event<T>},
+    Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
     Propagation: pallet_propagation::{Pallet, Call, Storage, Event<T>},
     Staking: pallet_staking_extension::{Pallet, Call, Storage, Event<T>, Config<T>},
     FrameStaking: pallet_staking::{Pallet, Call, Storage, Event<T>},
@@ -292,6 +293,16 @@ impl pallet_relayer::Config for Test {
     type PruneBlock = PruneBlock;
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
+    type WeightInfo = ();
+}
+
+parameter_types! {
+  pub const MaxAclLength: u32 = 3;
+}
+
+impl pallet_constraints::Config for Test {
+    type MaxAclLength = MaxAclLength;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
 

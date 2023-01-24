@@ -7,7 +7,7 @@
 //!
 //! ### Public Functions
 //!
-//! add_whitelist_address - lets a user add a whitelisted address to their account
+//! update_constraints - lets a user update their constraints
 
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
@@ -19,26 +19,25 @@ mod mock;
 mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
+pub mod benchmarking;
 
 pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use frame_support::{dispatch::DispatchResultWithPostInfo, inherent::Vec, pallet_prelude::*};
+
+    use frame_support::pallet_prelude::{ResultQuery, *};
     use frame_system::pallet_prelude::*;
     use sp_runtime::sp_std::str;
+    pub use substrate_common::{Acl, AclKind, Arch, Constraints, H160, H256};
 
     pub use crate::weights::WeightInfo;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        type MaxWhitelist: Get<u32>;
-        type MaxAddressLength: Get<u32>;
-
-        /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
+        type MaxAclLength: Get<u32>;
     }
 
     #[pallet::pallet]
@@ -46,73 +45,173 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
+    /// If the constraint-modification `AccountId` and signature-request `AccountId` tuple as a key
+    /// exists, then the constraint-modification `AccountId` is authorized to modify the
+    /// constraints for this account
     #[pallet::storage]
-    #[pallet::getter(fn address_whitelist)]
-    /// Mapping of whitelisted addresses
-    pub type AddressWhitelist<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<Vec<u8>>, ValueQuery>;
+    #[pallet::getter(fn sig_req_accounts)]
+    pub type AllowedToModifyConstraints<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        Blake2_128Concat,
+        T::AccountId,
+        (),
+        ResultQuery<Error<T>::NotAuthorized>,
+    >;
+
+    /// 2-ary set associating a signature-request account to the architectures it has active
+    /// constraints on.
+    #[pallet::storage]
+    #[pallet::getter(fn active_constraints_by_arch)]
+    pub type ActiveArchitectures<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        Blake2_128Concat,
+        Arch,
+        (),
+        ResultQuery<Error<T>::ArchitectureDisabled>,
+    >;
+
+    /// Stores the EVM ACL of each user
+    #[pallet::storage]
+    #[pallet::getter(fn evm_acl)]
+    pub type EvmAcl<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        Acl<H160>,
+        ResultQuery<Error<T>::ArchitectureDisabled>,
+    >;
+
+    /// Stores the BTC ACL of each user
+    #[pallet::storage]
+    #[pallet::getter(fn btc_acl)]
+    pub type BtcAcl<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        Acl<H256>,
+        ResultQuery<Error<T>::ArchitectureDisabled>,
+    >;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// All whitelisted addresses in call. [who, whitelisted_addresses]
-        AddressesWhitelisted(T::AccountId, Vec<Vec<u8>>),
+        /// All new constraints. [constraint_account, constraints]
+        ConstraintsUpdated(T::AccountId, Constraints),
     }
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Max amount of whitelisted addresses reached.
-        MaxWhitelist,
-        /// Address already whitelisted.
-        AlreadyWhitelisted,
-        /// Address to whitelist is too long.
-        AddressTooLong,
+        /// Constraint account doesn't have permission to modify these constraints
+        NotAuthorized,
+        /// User has disabled signing for this architecture
+        ArchitectureDisabled,
+        /// ACL is too long, make it smaller
+        AclLengthExceeded,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Adds an address to be whitelisted
-        /// - `whitelist_addresses`: Addresses to be whitelisted
-        #[pallet::weight((T::WeightInfo::add_whitelist_address(T::MaxWhitelist::get()), Pays::No))]
-        pub fn add_whitelist_address(
+        /// Sets or clears the constraints for a given signature-request account.
+        /// If the members of `new_constraints` are `None`, those constraints will be removed.
+        /// Must be sent from a constraint-modification account.
+        /// TODO update weights
+        #[pallet::weight({
+            let (evm_acl_len, btc_acl_len) = Pallet::<T>::constraint_weight_values(new_constraints);
+            <T as Config>::WeightInfo::update_constraints(evm_acl_len, btc_acl_len)
+        })]
+        pub fn update_constraints(
             origin: OriginFor<T>,
-            whitelist_addresses: Vec<Vec<u8>>,
-        ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            // TODO ensure registered
-            if whitelist_addresses
-                .clone()
-                .into_iter()
-                .any(|address| address.len() as u32 > T::MaxAddressLength::get())
-            {
-                Err(Error::<T>::AddressTooLong)?
-            }
+            sig_req_account: T::AccountId,
+            new_constraints: Constraints,
+        ) -> DispatchResult {
+            let constraint_account = ensure_signed(origin)?;
+
             ensure!(
-                whitelist_addresses.len() as u32 <= T::MaxWhitelist::get(),
-                Error::<T>::MaxWhitelist
+                AllowedToModifyConstraints::<T>::contains_key(
+                    &constraint_account,
+                    &sig_req_account
+                ),
+                Error::<T>::NotAuthorized
             );
-            let whitelist_length = AddressWhitelist::<T>::try_mutate(
-                who.clone(),
-                |addresses| -> Result<usize, DispatchError> {
-                    if (addresses.len() as u32 + whitelist_addresses.len() as u32)
-                        > T::MaxWhitelist::get()
-                    {
-                        Err(Error::<T>::MaxWhitelist)?
-                    }
-                    if addresses.iter().any(|address| {
-                        whitelist_addresses
-                            .clone()
-                            .into_iter()
-                            .any(|address_to_whitelist| *address == address_to_whitelist)
-                    }) {
-                        Err(Error::<T>::AlreadyWhitelisted)?
-                    }
-                    addresses.extend(whitelist_addresses.clone().into_iter().collect::<Vec<_>>());
-                    Ok(addresses.len())
+
+            Self::validate_constraints(&new_constraints)?;
+            Self::set_constraints_unchecked(sig_req_account.clone(), new_constraints.clone());
+
+            Self::deposit_event(Event::ConstraintsUpdated(sig_req_account, new_constraints));
+
+            Ok(())
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        /// Sets the constraints for a given signature-request account without validating the
+        /// constraints (eg ACL length checks, etc.)
+        pub fn set_constraints_unchecked(sig_req_account: T::AccountId, constraints: Constraints) {
+            let Constraints { evm_acl, btc_acl } = constraints;
+
+            match evm_acl {
+                Some(acl) => {
+                    EvmAcl::<T>::insert(sig_req_account.clone(), acl);
+                    ActiveArchitectures::<T>::insert(sig_req_account.clone(), Arch::Evm, ());
                 },
-            )?;
-            Self::deposit_event(Event::AddressesWhitelisted(who, whitelist_addresses));
-            Ok(Some(T::WeightInfo::add_whitelist_address(whitelist_length as u32)).into())
+                None => {
+                    ActiveArchitectures::<T>::remove(sig_req_account.clone(), Arch::Evm);
+                    EvmAcl::<T>::remove(sig_req_account.clone());
+                },
+            }
+            match btc_acl {
+                Some(acl) => {
+                    BtcAcl::<T>::insert(sig_req_account.clone(), acl);
+                    ActiveArchitectures::<T>::insert(sig_req_account, Arch::Btc, ());
+                },
+                None => {
+                    ActiveArchitectures::<T>::remove(sig_req_account.clone(), Arch::Btc);
+                    BtcAcl::<T>::remove(sig_req_account);
+                },
+            }
+        }
+
+        /// Validates constraints before they are stored anywhere as a set of valid constraints
+        pub fn validate_constraints(constraints: &Constraints) -> Result<(), Error<T>> {
+            let Constraints { evm_acl, btc_acl } = constraints;
+
+            Self::validate_acl(evm_acl)?;
+            Self::validate_acl(btc_acl)?;
+
+            Ok(())
+        }
+
+        /// Validates an ACL before it is stored anywhere as a valid constraint
+        fn validate_acl<A>(acl: &Option<Acl<A>>) -> Result<(), Error<T>> {
+            if let Some(acl) = acl {
+                ensure!(
+                    acl.addresses.len() as u32 <= T::MaxAclLength::get(),
+                    Error::<T>::AclLengthExceeded
+                );
+            }
+
+            Ok(())
+        }
+
+        /// Returns information about Constraints that can be used to calculate weights.
+        /// Used as values in some `#[pallet::weight]` macros.
+        pub fn constraint_weight_values(constraints: &Constraints) -> (u32, u32) {
+            let Constraints { evm_acl, btc_acl } = constraints;
+
+            let mut evm_acl_len: u32 = 0;
+            if let Some(acl) = evm_acl {
+                evm_acl_len += acl.addresses.len() as u32;
+            }
+            let mut btc_acl_len: u32 = 0;
+            if let Some(acl) = btc_acl {
+                btc_acl_len += acl.addresses.len() as u32;
+            }
+
+            (evm_acl_len, btc_acl_len)
         }
     }
 }

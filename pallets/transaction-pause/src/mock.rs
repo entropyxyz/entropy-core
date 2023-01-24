@@ -78,13 +78,11 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-  pub const MaxWhitelist: u32 = 3;
-  pub const MaxAddressLength: u32 = 2;
+  pub const MaxAclLength: u32 = 25;
 }
 
 impl pallet_constraints::Config for Runtime {
-    type MaxAddressLength = MaxAddressLength;
-    type MaxWhitelist = MaxWhitelist;
+    type MaxAclLength = MaxAclLength;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
@@ -111,7 +109,7 @@ construct_runtime!(
     System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
     TransactionPause: transaction_pause::{Pallet, Storage, Call, Event<T>},
     Balances: pallet_balances::{Pallet, Storage, Call, Event<T>},
-    Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
+    ConstraintsPallet: pallet_constraints::{Pallet, Call, Storage, Event<T>},
   }
 );
 

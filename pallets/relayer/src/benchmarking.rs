@@ -5,8 +5,10 @@ use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, vec, wh
 use frame_support::traits::{Get, OnInitialize};
 use frame_system::{EventRecord, RawOrigin};
 #[cfg(feature = "runtime-benchmarks")]
-use pallet_staking_extension::benchmarking::create_validators;
-use pallet_staking_extension::{IsValidatorSynced, ServerInfo, SigningGroups, ThresholdServers};
+use pallet_constraints::benchmarking::generate_benchmarking_constraints;
+use pallet_staking_extension::{
+    benchmarking::create_validators, IsValidatorSynced, ServerInfo, SigningGroups, ThresholdServers,
+};
 use substrate_common::{Message, SigRequest, SIGNING_PARTY_SIZE as SIG_PARTIES};
 
 use super::*;
@@ -79,15 +81,21 @@ benchmarks! {
   }
 
   register {
-    let caller: T::AccountId = whitelisted_caller();
+    // number of addresses in the ACL
+    let a in 0 .. <T as pallet_constraints::Config>::MaxAclLength::get();
+    let b in 0 .. <T as pallet_constraints::Config>::MaxAclLength::get();
+    let constraints = generate_benchmarking_constraints::<T>(a, b);
 
-  }:  _(RawOrigin::Signed(caller.clone()))
+    let constraint_account: T::AccountId = whitelisted_caller();
+    let sig_req_account: T::AccountId = whitelisted_caller();
+
+  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account, Some(constraints))
   verify {
-        assert_last_event::<T>(Event::SignalRegister(caller).into());
+    assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
+    assert!(Registering::<T>::contains_key(sig_req_account));
   }
 
   //TODO: Confirm done (for thor)
-
 
   move_active_to_pending_no_failure {
     let m in 0 .. 10;

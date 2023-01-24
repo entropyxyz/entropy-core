@@ -1261,15 +1261,11 @@ impl pallet_relayer::Config for Runtime {
 }
 
 parameter_types! {
-  // Max length of intems in the whitelist. Feel free to change this number.
-  pub const MaxWhitelistNum: u32 = 100;
-  // ethereum addresses are 20 bytes (40 characters) excluding the 0x prefix
-  pub const MaxAddressLengthNum: u32 = 20;
+  pub const MaxAclLength: u32 = 25;
 }
 
 impl pallet_constraints::Config for Runtime {
-    type MaxAddressLength = MaxAddressLengthNum;
-    type MaxWhitelist = MaxWhitelistNum;
+    type MaxAclLength = MaxAclLength;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_constraints::WeightInfo<Runtime>;
 }

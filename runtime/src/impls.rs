@@ -296,7 +296,7 @@ mod multiplier_tests {
                     Multiplier::from_inner(100),
                 );
                 // must always increase
-                assert!(next > original, "{:?} !>= {:?}", next, original);
+                assert!(next > original, "{next:?} !>= {original:?}");
                 original = next;
             });
         });
@@ -311,7 +311,7 @@ mod multiplier_tests {
             for _ in 0..100 {
                 // decreases
                 next = runtime_multiplier_update(original);
-                assert!(next < original, "{:?} !<= {:?}", next, original);
+                assert!(next < original, "{next:?} !<= {original:?}");
                 original = next;
             }
         })
