@@ -6,8 +6,9 @@ use frame_support::traits::{Get, OnInitialize};
 use frame_system::{EventRecord, RawOrigin};
 #[cfg(feature = "runtime-benchmarks")]
 use pallet_constraints::benchmarking::generate_benchmarking_constraints;
-use pallet_staking_extension::benchmarking::create_validators;
-use pallet_staking_extension::{IsValidatorSynced, ServerInfo, SigningGroups, ThresholdServers};
+use pallet_staking_extension::{
+    benchmarking::create_validators, IsValidatorSynced, ServerInfo, SigningGroups, ThresholdServers,
+};
 use substrate_common::{Message, SigRequest, SIGNING_PARTY_SIZE as SIG_PARTIES};
 
 use super::*;
