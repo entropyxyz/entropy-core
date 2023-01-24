@@ -29,12 +29,12 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     assert_eq!(event, &system_event);
 }
 
-fn create_validators<T: Config>(
+pub fn create_validators<T: Config>(
     count: u32,
     seed: u32,
 ) -> Vec<<T as pallet_session::Config>::ValidatorId> {
     let candidates =
-        (0..count).map(|c| account::<T::AccountId>("candidate", c, seed)).collect::<Vec<_>>();
+        (0..count).map(|c| account::<T::AccountId>("validator", c, seed)).collect::<Vec<_>>();
     let mut validators = vec![];
     for who in candidates {
         let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(who.clone())
