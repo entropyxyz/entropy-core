@@ -1,5 +1,5 @@
 use bip39::{Language, Mnemonic};
-use entropy_constraints::tx::evm::EVM;
+use entropy_constraints::tx::evm::Evm;
 use kvdb::kv_manager::{
     error::{InnerKvError, KvError},
     value::PartyInfo,
@@ -15,7 +15,7 @@ use rocket::{
 use serde::{Deserialize, Serialize};
 use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
 use substrate_common::{
-    types::{ACLConstraint, Architecture, BasicTransaction, ACL},
+    types::{Acl, AclKind, Architecture, BasicTransaction},
     SIGNING_PARTY_SIZE,
 };
 use subxt::{
@@ -39,7 +39,7 @@ use crate::{
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EVMUserTx {
-    tx: BasicTransaction<EVM>,
+    tx: BasicTransaction<Evm>,
     hash: String,
 }
 

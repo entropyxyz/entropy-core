@@ -9,7 +9,7 @@ use rocket::{
     tokio::time::{sleep, Duration},
 };
 use serial_test::serial;
-use sp_core::{sr25519, Bytes, Pair};
+use sp_core::{sr25519, Bytes, Pair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
 use testing_utils::context::{test_context, test_context_stationary, TestContext};
@@ -21,7 +21,10 @@ use crate::{
     get_signer, load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     setup_mnemonic,
-    user::unsafe_api::UnsafeQuery,
+    user::{
+        tests::entropy::runtime_types::substrate_common::constraints::acl::Acl,
+        unsafe_api::UnsafeQuery,
+    },
     utils,
     utils::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
 };
@@ -97,8 +100,10 @@ async fn test_unsafe_get_endpoint() {
 async fn test_store_share() {
     clean_tests();
     let alice = AccountKeyring::Alice;
+    let alice_constraint = AccountKeyring::Charlie;
     let alice_stash_id: AccountId32 =
         h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
+
     let key: AccountId32 = alice.to_account_id();
     let value: Vec<u8> = vec![0];
 
@@ -132,7 +137,7 @@ async fn test_store_share() {
     );
 
     // signal registering
-    make_register(&api, &alice).await;
+    make_register(&api, &alice, &alice_constraint).await;
 
     let response_2 = client
         .post("/user/new")
@@ -337,16 +342,24 @@ async fn test_get_signing_group() {
     clean_tests();
 }
 
-pub async fn make_register(api: &OnlineClient<EntropyConfig>, alice: &Sr25519Keyring) {
-    let signer = PairSigner::new(alice.pair());
-    let registering_query = entropy::storage().relayer().registering(alice.to_account_id());
+pub async fn make_register(
+    api: &OnlineClient<EntropyConfig>,
+    sig_req_keyring: &Sr25519Keyring,
+    constraint_keyring: &Sr25519Keyring,
+) {
+    let sig_req_account =
+        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
+    let constraint_account =
+        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(constraint_keyring.pair());
+    let registering_query =
+        entropy::storage().relayer().registering(sig_req_keyring.to_account_id());
     let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();
     assert!(is_registering_1.is_none());
 
-    let registering_tx = entropy::tx().relayer().register();
+    let registering_tx = entropy::tx().relayer().register(constraint_keyring.to_account_id(), None);
 
     api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &signer)
+        .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
         .await
         .unwrap()
         .wait_for_in_block()

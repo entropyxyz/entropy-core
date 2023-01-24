@@ -1,8 +1,8 @@
-use substrate_common::types::{ACLConstraint, ACL};
+use substrate_common::{Acl, AclKind, Architecture};
 
 use crate::{
     constraint::Constraint,
-    tx::{evm::EVM, utils::parse_tx_request_json},
+    tx::{evm::Evm, utils::parse_tx_request_json},
 };
 
 #[test]
@@ -19,9 +19,9 @@ fn should_parse_json_evm_tx_request() {
         "value": "0x1234"
     }"#;
 
-    let basic_tx = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string()).unwrap();
+    let basic_tx = parse_tx_request_json::<Evm>(evm_tx_request_json.to_string()).unwrap();
 
-    println!("Parsed tx: {:?}", basic_tx);
+    println!("Parsed tx: {basic_tx:?}");
 }
 
 #[test]
@@ -37,7 +37,7 @@ fn should_error_on_invalid_json_evm_tx_request() {
         "value": "0x1234"
     }"#;
 
-    let basic_tx_result = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string());
+    let basic_tx_result = parse_tx_request_json::<Evm>(evm_tx_request_json.to_string());
 
     assert!(basic_tx_result.is_err());
 }
@@ -56,11 +56,11 @@ fn should_fail_if_evm_address_not_h160() {
         "value": "0x1234"
     }"#;
 
-    let basic_tx_result = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string());
+    let basic_tx_result = parse_tx_request_json::<Evm>(evm_tx_request_json.to_string());
 
     assert!(basic_tx_result.is_err());
 
-    println!("{:?}", basic_tx_result);
+    println!("{basic_tx_result:?}");
 }
 
 #[test]
@@ -76,23 +76,29 @@ fn test_allow_list() {
         "value": "0x1234"
     }"#;
 
-    let tx_result = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string());
-    assert!(!tx_result.is_err());
+    let tx_result = parse_tx_request_json::<Evm>(evm_tx_request_json.to_string());
+    assert!(tx_result.is_ok());
     let tx = tx_result.unwrap();
-    let to = tx.to.clone().unwrap();
+    let to = tx.to.unwrap();
 
     // Assert that an allow list with no items in it does not evaluate to true.
-    let constraint =
-        ACLConstraint::<EVM> { acl_type: ACL::Allow, acl: vec![], allow_null_recipient: true };
+    let constraint = Acl::<<Evm as Architecture>::Address> {
+        kind: AclKind::Allow,
+        addresses: Vec::default(),
+        allow_null_recipient: true,
+    };
     let evaluation = constraint.eval(tx.clone());
-    assert!(!evaluation.is_err());
+    assert!(evaluation.is_ok());
     assert!(!evaluation.unwrap());
 
     // Assert that an allow list with a valid item in it evaluates to true.
-    let constraint_2 =
-        ACLConstraint::<EVM> { acl_type: ACL::Allow, acl: vec![to], allow_null_recipient: true };
-    let evaluation_2 = constraint_2.eval(tx.clone());
-    assert!(!evaluation_2.is_err());
+    let constraint_2 = Acl::<<Evm as Architecture>::Address> {
+        kind: AclKind::Allow,
+        addresses: vec![to],
+        allow_null_recipient: true,
+    };
+    let evaluation_2 = constraint_2.eval(tx);
+    assert!(evaluation_2.is_ok());
     assert!(evaluation_2.unwrap());
 }
 
@@ -109,23 +115,29 @@ fn test_deny_list() {
         "value": "0x1234"
     }"#;
 
-    let tx_result = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string());
-    assert!(!tx_result.is_err());
+    let tx_result = parse_tx_request_json::<Evm>(evm_tx_request_json.to_string());
+    assert!(tx_result.is_ok());
     let tx = tx_result.unwrap();
-    let to = tx.to.clone().unwrap();
+    let to = tx.to.unwrap();
 
     // Assert that a deny list with no items in it does evaluates to true.
-    let constraint =
-        ACLConstraint::<EVM> { acl_type: ACL::Deny, acl: vec![], allow_null_recipient: true };
+    let constraint = Acl::<<Evm as Architecture>::Address> {
+        kind: AclKind::Deny,
+        addresses: Vec::default(),
+        allow_null_recipient: true,
+    };
     let evaluation = constraint.eval(tx.clone());
-    assert!(!evaluation.is_err());
+    assert!(evaluation.is_ok());
     assert!(evaluation.unwrap());
 
     // Assert that a deny list with the specified recipient evalutes to false.
-    let constraint_2 =
-        ACLConstraint::<EVM> { acl_type: ACL::Deny, acl: vec![to], allow_null_recipient: true };
-    let evaluation_2 = constraint_2.eval(tx.clone());
-    assert!(!evaluation_2.is_err());
+    let constraint_2 = Acl::<<Evm as Architecture>::Address> {
+        kind: AclKind::Deny,
+        addresses: vec![to],
+        allow_null_recipient: true,
+    };
+    let evaluation_2 = constraint_2.eval(tx);
+    assert!(evaluation_2.is_ok());
     assert!(!evaluation_2.unwrap());
 }
 
@@ -141,18 +153,24 @@ fn test_allow_null_recip() {
         "value": "0x1234"
     }"#;
 
-    let tx_result = parse_tx_request_json::<EVM>(evm_tx_request_json.to_string());
-    assert!(!tx_result.is_err());
+    let tx_result = parse_tx_request_json::<Evm>(evm_tx_request_json.to_string());
+    assert!(tx_result.is_ok());
     let tx = tx_result.unwrap();
 
-    let constraint =
-        ACLConstraint::<EVM> { acl_type: ACL::Deny, acl: vec![], allow_null_recipient: false };
+    let constraint = Acl::<<Evm as Architecture>::Address> {
+        kind: AclKind::Deny,
+        addresses: Vec::default(),
+        allow_null_recipient: false,
+    };
     let evaluation = constraint.eval(tx.clone());
     assert!(evaluation.is_err());
 
-    let constraint_2 =
-        ACLConstraint::<EVM> { acl_type: ACL::Allow, acl: vec![], allow_null_recipient: true };
-    let evaluation_2 = constraint_2.eval(tx.clone());
-    assert!(!evaluation_2.is_err());
+    let constraint_2 = Acl::<<Evm as Architecture>::Address> {
+        kind: AclKind::Allow,
+        addresses: Vec::default(),
+        allow_null_recipient: true,
+    };
+    let evaluation_2 = constraint_2.eval(tx);
+    assert!(evaluation_2.is_ok());
     assert!(evaluation_2.unwrap());
 }

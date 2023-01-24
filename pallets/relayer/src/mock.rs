@@ -41,6 +41,7 @@ frame_support::construct_runtime!(
     Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
     Historical: pallet_session_historical::{Pallet},
     BagsList: pallet_bags_list::{Pallet, Call, Storage, Event<T>},
+    Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
   }
 );
 
@@ -290,6 +291,16 @@ impl pallet_relayer::Config for Test {
     type PruneBlock = PruneBlock;
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
+    type WeightInfo = ();
+}
+
+parameter_types! {
+  pub const MaxAclLength: u32 = 25;
+}
+
+impl pallet_constraints::Config for Test {
+    type MaxAclLength = MaxAclLength;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
 

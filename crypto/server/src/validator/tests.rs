@@ -110,7 +110,7 @@ async fn test_get_and_store_values() {
         get_and_store_values(keys.clone(), &client1.1, "127.0.0.1:3002".to_string(), 9, false)
             .await;
     for (i, key) in keys.iter().enumerate() {
-        let value = client1.1.kv().get(&key).await.unwrap();
+        let value = client1.1.kv().get(key).await.unwrap();
         assert_eq!(value, values[i]);
     }
     clean_tests();
@@ -165,7 +165,7 @@ async fn test_tell_chain_syncing_is_done() {
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
 
     // expect this to fail in the proper way
-    let result = tell_chain_syncing_is_done(&api, &signer_alice).await.unwrap();
+    tell_chain_syncing_is_done(&api, &signer_alice).await.unwrap();
 }
 
 async fn create_clients(
@@ -180,7 +180,7 @@ async fn create_clients(
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let signature_state = SignatureState::new();
 
-    let path = format!("test_db_{}", key_number);
+    let path = format!("test_db_{key_number}");
     let _ = std::fs::remove_dir_all(path.clone());
 
     let kv_store =
