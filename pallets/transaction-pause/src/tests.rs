@@ -22,6 +22,7 @@
 
 use frame_support::{assert_noop, assert_ok};
 use mock::{RuntimeEvent, *};
+use pallet_constraints::Constraints;
 use sp_runtime::traits::BadOrigin;
 
 use super::*;
@@ -133,8 +134,9 @@ fn unpause_transaction_work() {
 fn paused_transaction_filter_work() {
     ExtBuilder::default().build().execute_with(|| {
         let whitelist_address_call =
-            &mock::RuntimeCall::Constraints(pallet_constraints::Call::add_whitelist_address {
-                whitelist_addresses: vec![b"1".to_vec()],
+            &mock::RuntimeCall::ConstraintsPallet(pallet_constraints::Call::update_constraints {
+                sig_req_account: ALICE,
+                new_constraints: Constraints::default(),
             });
         assert!(!PausedTransactionFilter::<Runtime>::contains(BALANCE_TRANSFER));
         assert!(!PausedTransactionFilter::<Runtime>::contains(whitelist_address_call));
@@ -145,8 +147,8 @@ fn paused_transaction_filter_work() {
         ));
         assert_ok!(TransactionPause::pause_transaction(
             RuntimeOrigin::signed(1),
-            b"Constraints".to_vec(),
-            b"add_whitelist_address".to_vec()
+            b"ConstraintsPallet".to_vec(),
+            b"update_constraints".to_vec()
         ));
 
         assert!(PausedTransactionFilter::<Runtime>::contains(BALANCE_TRANSFER));
@@ -158,8 +160,8 @@ fn paused_transaction_filter_work() {
         ));
         assert_ok!(TransactionPause::unpause_transaction(
             RuntimeOrigin::signed(1),
-            b"Constraints".to_vec(),
-            b"add_whitelist_address".to_vec()
+            b"ConstraintsPallet".to_vec(),
+            b"update_constraints".to_vec()
         ));
 
         assert!(!PausedTransactionFilter::<Runtime>::contains(BALANCE_TRANSFER));

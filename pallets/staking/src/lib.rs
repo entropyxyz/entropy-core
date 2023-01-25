@@ -33,7 +33,7 @@ mod mock;
 mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
+pub mod benchmarking;
 
 pub mod weights;
 use core::convert::TryFrom;

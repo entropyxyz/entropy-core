@@ -19,7 +19,7 @@ frame_support::construct_runtime!(
     UncheckedExtrinsic = UncheckedExtrinsic,
   {
     System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-    Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
+    ConstraintsPallet: pallet_constraints::{Pallet, Call, Storage, Event<T>},
   }
 );
 
@@ -56,13 +56,11 @@ impl system::Config for Test {
 }
 
 parameter_types! {
-  pub const MaxWhitelist: u32 = 3;
-  pub const MaxAddressLength: u32 = 2;
+  pub const MaxAclLength: u32 = 25;
 }
 
 impl pallet_constraints::Config for Test {
-    type MaxAddressLength = MaxAddressLength;
-    type MaxWhitelist = MaxWhitelist;
+    type MaxAclLength = MaxAclLength;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }

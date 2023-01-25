@@ -1,5 +1,5 @@
 use serde_json::from_value;
-use substrate_common::types::{Architecture, BasicTransaction, HasReceiver, HasSender};
+use substrate_common::{Architecture, BasicTransaction, HasReceiver, HasSender};
 use thiserror::Error;
 
 /// Errors related to parsing raw transactions

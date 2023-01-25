@@ -41,6 +41,7 @@ frame_support::construct_runtime!(
     Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
     Historical: pallet_session_historical::{Pallet},
     BagsList: pallet_bags_list::{Pallet, Call, Storage, Event<T>},
+    Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
   }
 );
 
@@ -293,6 +294,16 @@ impl pallet_relayer::Config for Test {
     type WeightInfo = ();
 }
 
+parameter_types! {
+  pub const MaxAclLength: u32 = 25;
+}
+
+impl pallet_constraints::Config for Test {
+    type MaxAclLength = MaxAclLength;
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
+}
+
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
@@ -302,9 +313,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (6, ServerInfo { tss_account: 8, x25519_public_key: NULL_ARR, endpoint: vec![40] }),
             (1, ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![10] }),
             (2, ServerInfo { tss_account: 4, x25519_public_key: NULL_ARR, endpoint: vec![11] }),
+            (7, ServerInfo { tss_account: 4, x25519_public_key: NULL_ARR, endpoint: vec![50] }),
         ],
         // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
-        signing_groups: vec![(0, vec![1, 5]), (1, vec![2, 6])],
+        signing_groups: vec![(0, vec![1, 5]), (1, vec![2, 6, 7])],
     };
 
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();

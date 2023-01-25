@@ -37,7 +37,7 @@ sp-core           ={ package="sp-core", git="https://github.com/paritytech/subst
 tofn              ={ git="https://github.com/entropyxyz/tofn", branch="main" }
 
 # Entropy
-substrate-common   ={ path="../substrate-common", default-features=false }
+substrate-common   ={ path="../substrate-common" }
 kvdb               ={ path="../kvdb", default-features=false }
 entropy-constraints={ path="../constraints" }
 
