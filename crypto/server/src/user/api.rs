@@ -82,25 +82,19 @@ pub async fn new_user(
     let key = signed_msg.account_id();
     let is_swapping = register_info(&api, &key).await?;
 
-    let decrypted_message = signed_msg.decrypt(signer.signer());
-    match decrypted_message {
-        Ok(v) => {
-            // store new user data in kvdb or deletes and replaces it if swapping
-            let subgroup = get_subgroup(&api, &signer)
-                .await?
-                .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-            if is_swapping {
-                state.kv().delete(&key.to_string()).await?;
-            }
-            let reservation = state.kv().reserve_key(key.to_string()).await?;
-            state.kv().put(reservation, v).await?;
-            // TODO: Error handling really complex needs to be thought about.
-            confirm_registered(&api, key, subgroup, &signer).await?;
-        },
-        Err(v) => {
-            return Err(UserErr::Parse("failed decrypting message"));
-        },
+    let decrypted_message =
+        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+    // store new user data in kvdb or deletes and replaces it if swapping
+    let subgroup = get_subgroup(&api, &signer)
+        .await?
+        .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+    if is_swapping {
+        state.kv().delete(&key.to_string()).await?;
     }
+    let reservation = state.kv().reserve_key(key.to_string()).await?;
+    state.kv().put(reservation, decrypted_message).await?;
+    // TODO: Error handling really complex needs to be thought about.
+    confirm_registered(&api, key, subgroup, &signer).await?;
     Ok(Status::Ok)
 }
 /// Returns wether an account is registering or swapping. If it is not, it returns error
@@ -126,19 +120,15 @@ pub async fn register_info(
 // is used for PKE and to submit extrensics on chain.
 pub async fn get_signer(
     kv: &KvManager,
-) -> Result<PairSigner<EntropyConfig, sr25519::Pair>, KvError> {
+) -> Result<PairSigner<EntropyConfig, sr25519::Pair>, UserErr> {
     let exists = kv.kv().exists("MNEMONIC").await?;
     let raw_m = kv.kv().get("MNEMONIC").await?;
-    match core::str::from_utf8(&raw_m) {
-        Ok(s) => match Mnemonic::from_phrase(s, Language::English) {
-            Ok(m) => match <sr25519::Pair as Pair>::from_phrase(m.phrase(), None) {
-                Ok(p) => Ok(PairSigner::<EntropyConfig, sr25519::Pair>::new(p.0)),
-                Err(e) => Err(KvError::GetErr(InnerKvError::LogicalErr("SENSITIVE".to_owned()))),
-            },
-            Err(e) => Err(KvError::GetErr(InnerKvError::LogicalErr(e.to_string()))),
-        },
-        Err(e) => Err(KvError::GetErr(InnerKvError::LogicalErr(e.to_string()))),
-    }
+    let secret = core::str::from_utf8(&raw_m)?;
+    let mnemonic = Mnemonic::from_phrase(secret, Language::English)
+        .map_err(|e| UserErr::Mnemonic(e.to_string()))?;
+    let pair = <sr25519::Pair as Pair>::from_phrase(mnemonic.phrase(), None)
+        .map_err(|e| UserErr::SecretString("Secret String Error"))?;
+    Ok(PairSigner::<EntropyConfig, sr25519::Pair>::new(pair.0))
 }
 
 pub async fn get_subgroup(

@@ -133,72 +133,57 @@ async fn rocket() -> _ {
 
 pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) {
     // Check if a mnemonic exists in the kvdb.
-    let exists_result = kv.kv().exists("MNEMONIC").await;
-    match exists_result {
-        Ok(v) => {
-            if !v {
-                // Generate a new mnemonic
-                let mut mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
-                // If using a test configuration then set to the default mnemonic.
-                if cfg!(test) {
-                    mnemonic = Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English)
-                        .expect("Issue creating Mnemonic");
-                }
-                if is_alice {
-                    mnemonic =
-                        Mnemonic::from_phrase(utils::DEFAULT_ALICE_MNEMONIC, Language::English)
-                            .expect("Issue creating Mnemonic");
-                }
-                if is_bob {
-                    mnemonic =
-                        Mnemonic::from_phrase(utils::DEFAULT_BOB_MNEMONIC, Language::English)
-                            .expect("Issue creating Mnemonic");
-                }
+    let exists_result = kv.kv().exists("MNEMONIC").await.expect("issue querying DB");
+    if !exists_result {
+        // Generate a new mnemonic
+        let mut mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
+        // If using a test configuration then set to the default mnemonic.
+        if cfg!(test) {
+            mnemonic = Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English)
+                .expect("Issue creating Mnemonic");
+        }
+        if is_alice {
+            mnemonic = Mnemonic::from_phrase(utils::DEFAULT_ALICE_MNEMONIC, Language::English)
+                .expect("Issue creating Mnemonic");
+        }
+        if is_bob {
+            mnemonic = Mnemonic::from_phrase(utils::DEFAULT_BOB_MNEMONIC, Language::English)
+                .expect("Issue creating Mnemonic");
+        }
 
-                let phrase = mnemonic.phrase();
-                println!("[server-config]");
-                let pair = mnemonic_to_pair(&mnemonic);
-                let static_secret = derive_static_secret(&pair);
-                let dh_public = x25519_dalek::PublicKey::from(&static_secret);
+        let phrase = mnemonic.phrase();
+        println!("[server-config]");
+        let pair = mnemonic_to_pair(&mnemonic);
+        let static_secret = derive_static_secret(&pair);
+        let dh_public = x25519_dalek::PublicKey::from(&static_secret);
 
-                let ss_reservation = kv
-                    .kv()
-                    .reserve_key("SHARED_SECRET".to_string())
-                    .await
-                    .expect("Issue reserving ss key");
-                match kv.kv().put(ss_reservation, static_secret.to_bytes().to_vec()).await {
-                    Ok(r) => {},
-                    Err(r) => warn!("failed to update ss: {:?}", r),
-                }
+        let ss_reservation =
+            kv.kv().reserve_key("SHARED_SECRET".to_string()).await.expect("Issue reserving ss key");
+        kv.kv()
+            .put(ss_reservation, static_secret.to_bytes().to_vec())
+            .await
+            .expect("failed to update secret share");
 
-                let dh_reservation = kv
-                    .kv()
-                    .reserve_key("DH_PUBLIC".to_string())
-                    .await
-                    .expect("Issue reserving DH key");
-                match kv.kv().put(dh_reservation, dh_public.to_bytes().to_vec()).await {
-                    Ok(r) => println!("dh_public_key={dh_public:?}"),
-                    Err(r) => warn!("failed to update dh: {:?}", r),
-                }
+        let dh_reservation =
+            kv.kv().reserve_key("DH_PUBLIC".to_string()).await.expect("Issue reserving DH key");
 
-                let p = <sr25519::Pair as Pair>::from_phrase(phrase, None)
-                    .expect("Issue getting pair from mnemonic");
-                let id = AccountId32::new(p.0.public().0);
-                println!("account_id={id}");
+        kv.kv()
+            .put(dh_reservation, dh_public.to_bytes().to_vec())
+            .await
+            .expect("failed to update dh");
+        println!("dh_public_key={dh_public:?}");
 
-                // Update the value in the kvdb
-                let reservation = kv
-                    .kv()
-                    .reserve_key("MNEMONIC".to_string())
-                    .await
-                    .expect("Issue reserving mnemonic");
-                let result = kv.kv().put(reservation, phrase.as_bytes().to_vec()).await;
-                match result {
-                    Ok(r) => {},
-                    Err(r) => warn!("failed to update mnemonic: {:?}", r),
-                }
-            }
-        },
-        Err(v) => warn!("{:?}", v),
+        let p = <sr25519::Pair as Pair>::from_phrase(phrase, None)
+            .expect("Issue getting pair from mnemonic");
+        let id = AccountId32::new(p.0.public().0);
+        println!("account_id={id}");
+
+        // Update the value in the kvdb
+        let reservation =
+            kv.kv().reserve_key("MNEMONIC".to_string()).await.expect("Issue reserving mnemonic");
+        kv.kv()
+            .put(reservation, phrase.as_bytes().to_vec())
+            .await
+            .expect("failed to update mnemonic");
     }
 }
