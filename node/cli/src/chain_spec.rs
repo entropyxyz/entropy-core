@@ -409,6 +409,15 @@ fn development_config_genesis() -> GenesisConfig {
         None,
     )
 }
+//TODO: configure for devnet
+fn devnet_config_genesis() -> GenesisConfig {
+    testnet_genesis(
+        vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
+        vec![],
+        get_account_id_from_seed::<sr25519::Public>("Alice"),
+        None,
+    )
+}
 
 /// Development config (single validator Alice)
 pub fn development_config() -> ChainSpec {
@@ -416,6 +425,22 @@ pub fn development_config() -> ChainSpec {
         "Development",
         "dev",
         ChainType::Development,
+        development_config_genesis,
+        vec![],
+        None,
+        None,
+        None,
+        None,
+        Default::default(),
+    )
+}
+
+/// Development config (single validator Alice)
+pub fn devnet_config() -> ChainSpec {
+    ChainSpec::from_genesis(
+        "Devnet",
+        "devnet",
+        ChainType::Live,
         development_config_genesis,
         vec![],
         None,
@@ -522,4 +547,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_staging_test_net_chain_spec() { staging_testnet_config().build_storage().unwrap(); }
+
+	#[test]
+    fn test_create_devnett_chain_spec() { devnet_config().build_storage().unwrap(); }
 }
