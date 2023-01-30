@@ -1,3 +1,4 @@
+use entropy_shared::{Constraints, Message, SigRequest};
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
@@ -10,7 +11,6 @@ use sp_runtime::{
     traits::SignedExtension,
     transaction_validity::{TransactionValidity, ValidTransaction},
 };
-use substrate_common::{Constraints, Message, SigRequest};
 
 use crate as pallet_relayer;
 use crate::{

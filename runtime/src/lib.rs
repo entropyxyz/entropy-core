@@ -24,6 +24,7 @@
 #![allow(unused_imports)]
 
 use codec::{Decode, Encode, MaxEncodedLen};
+use entropy_shared::SIGNING_PARTY_SIZE;
 use frame_election_provider_support::{
     onchain, BalancingConfig, ElectionDataProvider, ExtendedBalance, SequentialPhragmen, VoteWeight,
 };
@@ -85,7 +86,6 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use static_assertions::const_assert;
-use substrate_common::SIGNING_PARTY_SIZE;
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
 use impls::Author;

@@ -1,5 +1,5 @@
 [package]
-name   ="substrate-common"
+name   ="entropy-shared"
 version="0.1.0"
 edition="2021"
 

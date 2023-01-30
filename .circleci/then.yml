@@ -59,7 +59,7 @@ workflows:
   #     # - crypto-centralized-keygen
   #     - crypto-server
   #     # - crypto-kvdb
-  #     # - crypto-substrate-common
+  #     # - crypto-entropy-shared
   node:
     when:
       or: [ << pipeline.parameters.node >>, << pipeline.parameters.pallets >>, << pipeline.parameters.runtime >>, pipeline.parameters.crypto ]
@@ -97,13 +97,13 @@ jobs:
   #   steps:
   #     - install-dependencies-and-checkout
   #     - run: cd crypto/kvdb
-  # crypto-substrate-common:
+  # crypto-entropy-shared:
   #   machine:
   #     image: "ubuntu-2004:202201-02"
   #     resource_class: "xlarge"
   #   steps:
   #     - install-dependencies-and-checkout
-  #     - run: cd crypto/substrate-common
+  #     - run: cd crypto/shared
   node-test:
     machine:
       image: "ubuntu-2004:202201-02"

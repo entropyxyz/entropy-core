@@ -1,5 +1,9 @@
 use bip39::{Language, Mnemonic};
 use entropy_constraints::tx::evm::Evm;
+use entropy_shared::{
+    types::{Acl, AclKind, Architecture, BasicTransaction},
+    SIGNING_PARTY_SIZE,
+};
 use kvdb::kv_manager::{
     error::{InnerKvError, KvError},
     value::PartyInfo,
@@ -14,10 +18,6 @@ use rocket::{
 };
 use serde::{Deserialize, Serialize};
 use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
-use substrate_common::{
-    types::{Acl, AclKind, Architecture, BasicTransaction},
-    SIGNING_PARTY_SIZE,
-};
 use subxt::{
     ext::{
         sp_core::{sr25519, Pair},

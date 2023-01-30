@@ -51,8 +51,8 @@ sp-io     ={ version="6.0.0", default-features=false, git="https://github.com/pa
 lite-json ={ version="0.1", default-features=false }
 sp-runtime={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
 sp-core   ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.30" }
-# non-substrate-common ={ path="../../crypto/non-substrate-common", default-features=false }
-substrate-common     ={ path="../../crypto/substrate-common", default-features=false }
+# non-entropy-shared ={ path="../../crypto/non-entropy-shared", default-features=false }
+entropy-shared       ={ path="../../crypto/shared", default-features=false }
 sp-application-crypto={ version="6.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 
 [dev-dependencies]
