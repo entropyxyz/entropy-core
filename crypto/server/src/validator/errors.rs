@@ -22,6 +22,8 @@ pub enum ValidatorErr {
     Reqwest(#[from] reqwest::Error),
     #[error("Kv error: {0}")]
     Kv(#[from] kvdb::kv_manager::error::KvError),
+    #[error("Sync error: {0}")]
+    SafeCryptoError(&'static str),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for ValidatorErr {
