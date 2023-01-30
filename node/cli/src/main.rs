@@ -8,5 +8,7 @@ mod benchmarking;
 mod cli;
 mod command;
 mod rpc;
+mod admin;
+mod endowed_accounts;
 
 fn main() -> sc_cli::Result<()> { command::run() }
