@@ -139,9 +139,7 @@ pub fn mnemonic_to_pair(m: &Mnemonic) -> sr25519::Pair {
     <sr25519::Pair as Pair>::from_phrase(m.phrase(), None).unwrap().0
 }
 
-pub fn to_bytes(b: &[u8]) -> Bytes {
-    Bytes(b.to_vec())
-}
+pub fn to_bytes(b: &[u8]) -> Bytes { Bytes(b.to_vec()) }
 
 #[cfg(test)]
 mod tests {

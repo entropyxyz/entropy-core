@@ -1,11 +1,11 @@
 use std::{fs, path::PathBuf};
+
 use bip39::{Language, Mnemonic};
 use hex_literal::hex;
 use k256::pkcs8::der::Encodable;
 use kvdb::{
     clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
-use x25519_dalek::{PublicKey};
 use rocket::{
     http::{ContentType, Status},
     local::asynchronous::Client,
@@ -18,26 +18,23 @@ use sp_keyring::AccountKeyring;
 use substrate_common::MIN_BALANCE;
 use subxt::tx::{PairSigner, Signer};
 use testing_utils::context::test_context;
+use x25519_dalek::PublicKey;
 
 use super::{
     api::{
         check_balance_for_fees, get_all_keys, get_and_store_values, get_server_info_for_subgroup,
-        sync_kvdb, tell_chain_syncing_is_done,
-        Keys,
+        sync_kvdb, tell_chain_syncing_is_done, Keys,
     },
     errors::ValidatorErr,
-
 };
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
+    message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
     new_user, setup_mnemonic,
     signing_client::SignerState,
     user::api::get_subgroup,
     utils::{
         Configuration, SignatureState, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
-    },
-    message::{
-        mnemonic_to_pair, derive_static_secret, new_mnemonic, SignedMessage, to_bytes,
     },
 };
 
@@ -96,8 +93,6 @@ async fn test_get_all_keys_fail() {
     clean_tests();
 }
 
-
-
 #[rocket::async_test]
 #[serial]
 async fn test_get_no_safe_crypto_error() {
@@ -106,7 +101,7 @@ async fn test_get_no_safe_crypto_error() {
     let cxt = test_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-    let addrs =  vec![
+    let addrs = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
         "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
         "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
@@ -116,7 +111,8 @@ async fn test_get_no_safe_crypto_error() {
     let a_usr_ss = derive_static_secret(&a_usr_sk);
     let sender = PublicKey::from(&a_usr_ss).to_bytes();
 
-    let b_usr_sk = mnemonic_to_pair(&Mnemonic::from_phrase(DEFAULT_BOB_MNEMONIC, Language::English).unwrap());
+    let b_usr_sk =
+        mnemonic_to_pair(&Mnemonic::from_phrase(DEFAULT_BOB_MNEMONIC, Language::English).unwrap());
     let b_usr_ss = derive_static_secret(&b_usr_sk);
     let recip = PublicKey::from(&b_usr_ss);
     let values = vec![vec![10], vec![11], vec![12]];
@@ -125,7 +121,7 @@ async fn test_get_no_safe_crypto_error() {
         enckeys.push(SignedMessage::new(&a_usr_sk, &to_bytes(addr.as_bytes()), &recip).unwrap());
     }
 
-    let keys = Keys{enckeys, sender};
+    let keys = Keys { enckeys, sender };
     let port = 3001;
     let client1 = create_clients(port, "bob".to_string(), values, addrs, false, true).await;
     tokio::spawn(async move { client1.0.launch().await.unwrap() });
@@ -137,14 +133,14 @@ async fn test_get_no_safe_crypto_error() {
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&keys).unwrap())
         .send()
-        .await.unwrap();
+        .await
+        .unwrap();
 
     // Validates that keys signed/encrypted to the correct key
     // return no error (status code 200).
     assert_eq!(result.status(), 200);
-   clean_tests();
+    clean_tests();
 }
-
 
 #[rocket::async_test]
 #[serial]
@@ -154,12 +150,11 @@ async fn test_get_safe_crypto_error() {
     let cxt = test_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-    let addrs: Vec<&[u8]>= vec![
+    let addrs: Vec<&[u8]> = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".as_bytes(),
         "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".as_bytes(),
         "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".as_bytes(),
     ];
-
 
     let a_usr_sk = mnemonic_to_pair(&new_mnemonic());
     let a_usr_ss = derive_static_secret(&a_usr_sk);
@@ -174,7 +169,7 @@ async fn test_get_safe_crypto_error() {
         enckeys.push(SignedMessage::new(&a_usr_sk, &to_bytes(addr), &recip).unwrap());
     }
 
-    let keys = Keys{enckeys, sender};
+    let keys = Keys { enckeys, sender };
     let port = 3001;
     let client1 = create_clients(port, "bob".to_string(), vec![], vec![], false, true).await;
     tokio::spawn(async move { client1.0.launch().await.unwrap() });
@@ -186,16 +181,14 @@ async fn test_get_safe_crypto_error() {
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&keys).unwrap())
         .send()
-        .await.unwrap();
-
+        .await
+        .unwrap();
 
     // Validates that keys signed/encrypted to a different key
     // than the validator server return with a 500 error.
     assert_eq!(result.status(), 500);
-   clean_tests();
+    clean_tests();
 }
-
-
 
 #[rocket::async_test]
 #[serial]
@@ -218,8 +211,10 @@ async fn test_get_and_store_values() {
     let values = vec![vec![10], vec![11], vec![12]];
     // Construct a client to use for dispatching requests.
     let client0 =
-        create_clients(port_0, "alice".to_string(), values.clone(), keys.clone(), true, false).await;
-    let client1 = create_clients(port_1, "bob".to_string(), vec![], keys.clone(), false, true).await;
+        create_clients(port_0, "alice".to_string(), values.clone(), keys.clone(), true, false)
+            .await;
+    let client1 =
+        create_clients(port_1, "bob".to_string(), vec![], keys.clone(), false, true).await;
 
     tokio::spawn(async move { client0.0.launch().await.unwrap() });
     tokio::spawn(async move { client1.0.launch().await.unwrap() });

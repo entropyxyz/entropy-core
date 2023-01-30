@@ -27,7 +27,7 @@ use crate::{
     },
     get_signer,
     message::SignedMessage,
-    validator::errors::{ValidatorErr},
+    validator::errors::ValidatorErr,
     Configuration,
 };
 
@@ -61,17 +61,16 @@ pub async fn sync_kvdb(
         }
         let dmsg = encrypted_key.decrypt(recip_secret_key);
         if dmsg.is_err() {
-                return Err(ValidatorErr::SafeCryptoError("Decryption failed."));
+            return Err(ValidatorErr::SafeCryptoError("Decryption failed."));
         }
         let key = dmsg.unwrap();
-                // encrypt message and send to other validator
-                let skey = String::from_utf8_lossy(&key).to_string();
-                let result = state.kv().get(skey.as_str()).await.unwrap();
-                let reencrypted_key_result =
-                    SignedMessage::new(recip_secret_key, &Bytes(result), &sender);
-                values.push(reencrypted_key_result.unwrap())
+        // encrypt message and send to other validator
+        let skey = String::from_utf8_lossy(&key).to_string();
+        let result = state.kv().get(skey.as_str()).await.unwrap();
+        let reencrypted_key_result = SignedMessage::new(recip_secret_key, &Bytes(result), &sender);
+        values.push(reencrypted_key_result.unwrap())
     }
-    Ok(Json(Values { values } ))
+    Ok(Json(Values { values }))
 }
 
 /// As a node is joining the network should get all keys that are registered
