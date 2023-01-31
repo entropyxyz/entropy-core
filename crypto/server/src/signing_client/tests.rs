@@ -7,6 +7,7 @@ use std::{
 };
 
 use bincode::Options;
+use entropy_shared::{Message, SigRequest};
 use kvdb::{
     clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
@@ -20,7 +21,6 @@ use rocket::{
 use serial_test::serial;
 use sp_core::{crypto::AccountId32, sr25519::Pair as Sr25519Pair, Pair as Pair2};
 use sp_keyring::AccountKeyring;
-use substrate_common::{Message, SigRequest};
 use subxt::{ext::sp_core::sr25519, tx::PairSigner};
 use testing_utils::context::{test_context, test_context_stationary};
 use tofn::{

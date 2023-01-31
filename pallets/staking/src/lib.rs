@@ -44,11 +44,11 @@ use crate as pallet_staking_extension;
 
 #[frame_support::pallet]
 pub mod pallet {
+    use entropy_shared::SIGNING_PARTY_SIZE;
     use frame_support::{
         dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency,
     };
     use frame_system::pallet_prelude::*;
-    use substrate_common::SIGNING_PARTY_SIZE;
 
     use super::*;
 

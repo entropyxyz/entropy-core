@@ -30,6 +30,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
+    use entropy_shared::{Constraints, Message, SigRequest, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays},
         inherent::Vec,
@@ -46,7 +47,6 @@ pub mod pallet {
         transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
     };
     use sp_std::{fmt::Debug, vec};
-    use substrate_common::{Constraints, Message, SigRequest, SIGNING_PARTY_SIZE};
 
     pub use crate::weights::WeightInfo;
     /// Configure the pallet by specifying the parameters and types on which it depends.

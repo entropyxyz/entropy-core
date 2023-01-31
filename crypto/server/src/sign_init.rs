@@ -49,7 +49,7 @@ impl SignInit {
 
     // TODO: remove when we have a real implementation
     // Generate temporary data for API testing.
-    pub(crate) fn temporary_data(message: substrate_common::Message) -> Self {
+    pub(crate) fn temporary_data(message: entropy_shared::Message) -> Self {
         let digest: MessageDigest = message.sig_request.sig_hash.as_slice().try_into().unwrap();
         let raw_address = &message.account;
         let address_slice: &[u8; 32] =

@@ -60,7 +60,7 @@ sp-consensus-babe={ version="0.10.0-dev", default-features=false, git='https://g
 log              ={ version="0.4.0", default-features=false }
 pallet-session   ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
 sp-staking       ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.30" }
-substrate-common ={ path="../../crypto/substrate-common", default-features=false }
+entropy-shared   ={ path="../../crypto/shared", default-features=false }
 serde            ={ version="1.0.147", default-features=false }
 
 [dev-dependencies]

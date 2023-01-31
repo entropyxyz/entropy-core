@@ -1,6 +1,7 @@
 //! Benchmarking setup for pallet-propgation
 
 use codec::Encode;
+use entropy_shared::{Message, SigRequest, SIGNING_PARTY_SIZE as SIG_PARTIES};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
 use frame_support::traits::{Get, OnInitialize};
 use frame_system::{EventRecord, RawOrigin};
@@ -9,7 +10,6 @@ use pallet_constraints::benchmarking::generate_benchmarking_constraints;
 use pallet_staking_extension::{
     benchmarking::create_validators, IsValidatorSynced, ServerInfo, SigningGroups, ThresholdServers,
 };
-use substrate_common::{Message, SigRequest, SIGNING_PARTY_SIZE as SIG_PARTIES};
 
 use super::*;
 #[allow(unused)]

@@ -26,10 +26,10 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 
+    pub use entropy_shared::{Acl, AclKind, Arch, Constraints, H160, H256};
     use frame_support::pallet_prelude::{ResultQuery, *};
     use frame_system::pallet_prelude::*;
     use sp_runtime::sp_std::str;
-    pub use substrate_common::{Acl, AclKind, Arch, Constraints, H160, H256};
 
     pub use crate::weights::WeightInfo;
 

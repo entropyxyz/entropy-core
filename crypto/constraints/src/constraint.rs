@@ -1,4 +1,4 @@
-use substrate_common::{Acl, AclKind, Architecture, BasicTransaction};
+use entropy_shared::{Acl, AclKind, Architecture, BasicTransaction};
 use thiserror::Error;
 
 /// Constraint errors.
