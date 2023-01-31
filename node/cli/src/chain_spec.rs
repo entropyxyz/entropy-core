@@ -282,6 +282,132 @@ pub fn testnet_genesis(
     }
 }
 
+/// Helper function to create GenesisConfig for testing
+pub fn devnet_genesis(
+    initial_authorities: Vec<(
+        AccountId,
+        AccountId,
+        GrandpaId,
+        BabeId,
+        ImOnlineId,
+        AuthorityDiscoveryId,
+    )>,
+    initial_nominators: Vec<AccountId>,
+    root_key: AccountId,
+    endowed_accounts: Option<Vec<AccountId>>,
+) -> GenesisConfig {
+    let mut endowed_accounts = endowed_accounts_dev();
+    // endow all authorities and nominators.
+    initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
+        if !endowed_accounts.contains(x) {
+            endowed_accounts.push(x.clone())
+        }
+    });
+
+    // stakers: all validators and nominators.
+    let mut rng = rand::thread_rng();
+    let stakers = initial_authorities
+        .iter()
+        .map(|x| (x.0.clone(), x.1.clone(), STASH, StakerStatus::Validator))
+        .chain(initial_nominators.iter().map(|x| {
+            use rand::{seq::SliceRandom, Rng};
+            let limit = (MaxNominations::get() as usize).min(initial_authorities.len());
+            let count = rng.gen::<usize>() % limit;
+            let nominations = initial_authorities
+                .as_slice()
+                .choose_multiple(&mut rng, count)
+                .map(|choice| choice.0.clone())
+                .collect::<Vec<_>>();
+            (x.clone(), x.clone(), STASH, StakerStatus::Nominator(nominations))
+        }))
+        .collect::<Vec<_>>();
+
+    let num_endowed_accounts = endowed_accounts.len();
+
+    const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
+    const STASH: Balance = ENDOWMENT / 1000;
+
+    GenesisConfig {
+        system: SystemConfig { code: wasm_binary_unwrap().to_vec() },
+        balances: BalancesConfig {
+            balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
+        },
+        indices: IndicesConfig { indices: vec![] },
+        session: SessionConfig {
+            keys: initial_authorities
+                .iter()
+                .map(|x| {
+                    (
+                        x.0.clone(),
+                        x.0.clone(),
+                        session_keys(x.2.clone(), x.3.clone(), x.4.clone(), x.5.clone()),
+                    )
+                })
+                .collect::<Vec<_>>(),
+        },
+        staking: StakingConfig {
+            validator_count: initial_authorities.len() as u32,
+            minimum_validator_count: 0,
+            invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
+            slash_reward_fraction: Perbill::from_percent(10),
+            stakers,
+            ..Default::default()
+        },
+        staking_extension: StakingExtensionConfig {
+            threshold_servers: vec![],
+            signing_groups: vec![],
+        },
+        democracy: DemocracyConfig::default(),
+        elections: ElectionsConfig {
+            members: endowed_accounts
+                .iter()
+                .take((num_endowed_accounts + 1) / 2)
+                .cloned()
+                .map(|member| (member, STASH))
+                .collect(),
+        },
+        council: CouncilConfig::default(),
+        technical_committee: TechnicalCommitteeConfig {
+            members: endowed_accounts
+                .iter()
+                .take((num_endowed_accounts + 1) / 2)
+                .cloned()
+                .collect(),
+            phantom: Default::default(),
+        },
+        sudo: SudoConfig { key: Some(root_key) },
+        babe: BabeConfig {
+            authorities: vec![],
+            epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
+        },
+        im_online: ImOnlineConfig { keys: vec![] },
+        authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
+        grandpa: GrandpaConfig { authorities: vec![] },
+        technical_membership: Default::default(),
+        treasury: Default::default(),
+        society: SocietyConfig {
+            members: endowed_accounts
+                .iter()
+                .take((num_endowed_accounts + 1) / 2)
+                .cloned()
+                .collect(),
+            pot: 0,
+            max_members: 999,
+        },
+        relayer: RelayerConfig {
+            registered_accounts: vec![
+                (get_account_id_from_seed::<sr25519::Public>("Dave"), true),
+                (get_account_id_from_seed::<sr25519::Public>("Eve"), true),
+                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), true),
+            ],
+        },
+        vesting: Default::default(),
+        transaction_storage: Default::default(),
+        transaction_payment: Default::default(),
+        nomination_pools: Default::default(),
+    }
+}
+
 fn development_config_genesis() -> GenesisConfig {
     testnet_genesis(
         vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
