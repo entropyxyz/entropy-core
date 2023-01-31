@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
+use entropy_shared::SigRequest;
 use frame_support::assert_ok;
 use pallet_relayer::Registered;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
 use sp_keystore::{testing::KeyStore, KeystoreExt};
-use substrate_common::SigRequest;
 
 use crate::mock::*;
 
