@@ -32,10 +32,11 @@ use hex_literal::hex;
 pub use node_primitives::{AccountId, Balance, Signature};
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_staking_extension::ServerInfo;
-use sc_chain_spec::ChainSpecExtension;
+use sc_chain_spec::{ChainSpecExtension, Properties};
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{sr25519, Pair, Public};
@@ -43,10 +44,20 @@ use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     Perbill,
 };
-use crate::{admin, endowed_accounts::{endowed_accounts_dev, endowed_accounts_devnet}};
+
+use crate::{
+    admin,
+    endowed_accounts::{endowed_accounts_dev, endowed_accounts_devnet},
+};
 type AccountPublic = <Signature as Verify>::Signer;
 
 const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
+const DEFAULT_PROTOCOL_ID: &str = "Entropy"; // TODO finalize
+
+// TODO: finalize
+fn entropy_props() -> Properties {
+    json!({"tokenDecimals": 10, "tokenSymbol": "BITS" }).as_object().unwrap().clone()
+}
 
 /// Node `ChainSpec` extensions.
 ///
@@ -301,9 +312,9 @@ pub fn devnet_genesis(
             endowed_accounts.push(x.clone())
         }
     });
-	if !endowed_accounts.contains(&root_key) {
-		endowed_accounts.push(root_key.clone())
-	}
+    if !endowed_accounts.contains(&root_key) {
+        endowed_accounts.push(root_key.clone())
+    }
     // stakers: all validators and nominators.
     let mut rng = rand::thread_rng();
     let stakers = initial_authorities
@@ -394,13 +405,7 @@ pub fn devnet_genesis(
             pot: 0,
             max_members: 999,
         },
-        relayer: RelayerConfig {
-            registered_accounts: vec![
-                (get_account_id_from_seed::<sr25519::Public>("Dave"), true),
-                (get_account_id_from_seed::<sr25519::Public>("Eve"), true),
-                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), true),
-            ],
-        },
+        relayer: RelayerConfig { registered_accounts: vec![] },
         vesting: Default::default(),
         transaction_storage: Default::default(),
         transaction_payment: Default::default(),
@@ -427,15 +432,18 @@ pub fn development_config() -> ChainSpec {
 /// Development config (single validator Alice)
 pub fn devnet_config() -> ChainSpec {
     ChainSpec::from_genesis(
-        "Devnet",
-        "devnet",
+        "EntropyDevnet",
+        "EDev",
         ChainType::Live,
         admin::devnet_config_genesis,
         vec![],
+        Some(
+            TelemetryEndpoints::new(vec![(STAGING_TELEMETRY_URL.to_string(), 0)])
+                .expect("Staging telemetry url is valid; qed"),
+        ),
+        Some(DEFAULT_PROTOCOL_ID),
         None,
-        None,
-        None,
-        None,
+        Some(entropy_props()),
         Default::default(),
     )
 }
@@ -536,6 +544,6 @@ pub(crate) mod tests {
     #[test]
     fn test_staging_test_net_chain_spec() { staging_testnet_config().build_storage().unwrap(); }
 
-	#[test]
+    #[test]
     fn test_create_devnet_chain_spec() { devnet_config().build_storage().unwrap(); }
 }

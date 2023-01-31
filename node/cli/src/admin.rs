@@ -1,14 +1,15 @@
-use hex_literal::hex;
-use node_primitives::{AccountId};
-use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
-use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use entropy_runtime::GenesisConfig;
 use grandpa_primitives::AuthorityId as GrandpaId;
+use hex_literal::hex;
+use node_primitives::AccountId;
+use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
-use entropy_runtime::{GenesisConfig};
-use crate::chain_spec::{testnet_genesis, devnet_genesis, get_account_id_from_seed, authority_keys_from_seed};
 use sp_core::{crypto::UncheckedInto, sr25519};
 
-
+use crate::chain_spec::{
+    authority_keys_from_seed, devnet_genesis, get_account_id_from_seed, testnet_genesis,
+};
 
 pub fn devnet_config_genesis() -> GenesisConfig {
     #[rustfmt::skip]
@@ -108,8 +109,8 @@ pub fn devnet_config_genesis() -> GenesisConfig {
 		),
 	];
 
-    let root_key: AccountId = hex!["4e5c769d0007d4da9603f7be2afff9abdc944fec97d7da7c19efc8b7150b524b"]
-    .into();
+    let root_key: AccountId =
+        hex!["4e5c769d0007d4da9603f7be2afff9abdc944fec97d7da7c19efc8b7150b524b"].into();
 
     devnet_genesis(initial_authorities, vec![], root_key)
 }
@@ -215,7 +216,6 @@ pub fn staging_testnet_config_genesis() -> GenesisConfig {
 
     testnet_genesis(initial_authorities, vec![], root_key)
 }
-
 
 pub fn development_config_genesis() -> GenesisConfig {
     testnet_genesis(
