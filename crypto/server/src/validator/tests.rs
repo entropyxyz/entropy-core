@@ -1,5 +1,6 @@
 use std::{fs, path::PathBuf};
 
+use entropy_shared::MIN_BALANCE;
 use hex_literal::hex;
 use kvdb::{
     clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
@@ -13,7 +14,6 @@ use rocket::{
 use serial_test::serial;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use sp_keyring::AccountKeyring;
-use substrate_common::MIN_BALANCE;
 use subxt::tx::{PairSigner, Signer};
 use testing_utils::context::test_context;
 

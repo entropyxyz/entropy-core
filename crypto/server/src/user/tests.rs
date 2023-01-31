@@ -22,7 +22,7 @@ use crate::{
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     setup_mnemonic,
     user::{
-        tests::entropy::runtime_types::substrate_common::constraints::acl::Acl,
+        tests::entropy::runtime_types::entropy_shared::constraints::acl::Acl,
         unsafe_api::UnsafeQuery,
     },
     utils,

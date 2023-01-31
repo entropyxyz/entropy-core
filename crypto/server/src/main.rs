@@ -31,10 +31,10 @@ extern crate rocket;
 use std::{string::String, thread, time::Duration};
 
 use clap::Parser;
+use entropy_shared::{MIN_BALANCE, SIGNING_PARTY_SIZE};
 use kvdb::kv_manager::{error::KvError, KeyReservation, KvManager};
 use rocket::routes;
 use sp_keyring::AccountKeyring;
-use substrate_common::{MIN_BALANCE, SIGNING_PARTY_SIZE};
 use subxt::ext::sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use self::{

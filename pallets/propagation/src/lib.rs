@@ -34,7 +34,7 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
     }
 
-    pub type Message = substrate_common::Message;
+    pub type Message = entropy_shared::Message;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]

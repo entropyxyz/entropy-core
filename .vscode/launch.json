@@ -98,16 +98,16 @@
 		{
 			"type": "lldb",
 			"request": "launch",
-			"name": "Debug unit tests in library 'substrate-common'",
+			"name": "Debug unit tests in library 'entropy-shared'",
 			"cargo": {
 				"args": [
 					"test",
 					"--no-run",
 					"--lib",
-					"--package=substrate-common"
+					"--package=entropy-shared"
 				],
 				"filter": {
-					"name": "substrate-common",
+					"name": "entropy-shared",
 					"kind": "lib"
 				}
 			},
