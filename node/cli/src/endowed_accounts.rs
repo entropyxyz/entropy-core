@@ -1,4 +1,4 @@
-use hex_literal::hex;
+// use hex_literal::hex;
 use crate::chain_spec::get_account_id_from_seed;
 pub use node_primitives::{AccountId};
 use sp_core::{sr25519};

@@ -5,8 +5,8 @@ use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use grandpa_primitives::AuthorityId as GrandpaId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use entropy_runtime::{GenesisConfig};
-use crate::chain_spec::{testnet_genesis, devnet_genesis};
-use sp_core::{crypto::UncheckedInto};
+use crate::chain_spec::{testnet_genesis, devnet_genesis, get_account_id_from_seed, authority_keys_from_seed};
+use sp_core::{crypto::UncheckedInto, sr25519};
 
 
 
@@ -111,9 +111,7 @@ pub fn devnet_config_genesis() -> GenesisConfig {
     let root_key: AccountId = hex!["4e5c769d0007d4da9603f7be2afff9abdc944fec97d7da7c19efc8b7150b524b"]
     .into();
 
-    let endowed_accounts: Vec<AccountId> = vec![root_key.clone()];
-
-    devnet_genesis(initial_authorities, vec![], root_key, Some(endowed_accounts))
+    devnet_genesis(initial_authorities, vec![], root_key)
 }
 
 pub fn staging_testnet_config_genesis() -> GenesisConfig {
@@ -215,7 +213,14 @@ pub fn staging_testnet_config_genesis() -> GenesisConfig {
     ]
     .into();
 
-    let endowed_accounts: Vec<AccountId> = vec![root_key.clone()];
+    testnet_genesis(initial_authorities, vec![], root_key)
+}
 
-    testnet_genesis(initial_authorities, vec![], root_key, Some(endowed_accounts))
+
+pub fn development_config_genesis() -> GenesisConfig {
+    testnet_genesis(
+        vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
+        vec![],
+        get_account_id_from_seed::<sr25519::Public>("Alice"),
+    )
 }

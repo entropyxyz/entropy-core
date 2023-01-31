@@ -43,7 +43,7 @@ use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     Perbill,
 };
-use crate::{admin, endowed_accounts::{endowed_accounts_dev}};
+use crate::{admin, endowed_accounts::{endowed_accounts_dev, endowed_accounts_devnet}};
 type AccountPublic = <Signature as Verify>::Signer;
 
 const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -134,7 +134,6 @@ pub fn testnet_genesis(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
-    endowed_accounts: Option<Vec<AccountId>>,
 ) -> GenesisConfig {
     let mut endowed_accounts = endowed_accounts_dev();
     // endow all authorities and nominators.
@@ -294,16 +293,17 @@ pub fn devnet_genesis(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
-    endowed_accounts: Option<Vec<AccountId>>,
 ) -> GenesisConfig {
-    let mut endowed_accounts = endowed_accounts_dev();
+    let mut endowed_accounts = endowed_accounts_devnet();
     // endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
         if !endowed_accounts.contains(x) {
             endowed_accounts.push(x.clone())
         }
     });
-
+	if !endowed_accounts.contains(&root_key) {
+		endowed_accounts.push(root_key.clone())
+	}
     // stakers: all validators and nominators.
     let mut rng = rand::thread_rng();
     let stakers = initial_authorities
@@ -408,31 +408,13 @@ pub fn devnet_genesis(
     }
 }
 
-fn development_config_genesis() -> GenesisConfig {
-    testnet_genesis(
-        vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
-        vec![],
-        get_account_id_from_seed::<sr25519::Public>("Alice"),
-        None,
-    )
-}
-//TODO: configure for devnet
-fn devnet_config_genesis() -> GenesisConfig {
-    testnet_genesis(
-        vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
-        vec![],
-        get_account_id_from_seed::<sr25519::Public>("Alice"),
-        None,
-    )
-}
-
 /// Development config (single validator Alice)
 pub fn development_config() -> ChainSpec {
     ChainSpec::from_genesis(
         "Development",
         "dev",
         ChainType::Development,
-        development_config_genesis,
+        admin::development_config_genesis,
         vec![],
         None,
         None,
@@ -448,7 +430,7 @@ pub fn devnet_config() -> ChainSpec {
         "Devnet",
         "devnet",
         ChainType::Live,
-        development_config_genesis,
+        admin::devnet_config_genesis,
         vec![],
         None,
         None,
@@ -463,7 +445,6 @@ fn local_testnet_genesis() -> GenesisConfig {
         vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
         vec![],
         get_account_id_from_seed::<sr25519::Public>("Alice"),
-        None,
     )
 }
 
@@ -556,5 +537,5 @@ pub(crate) mod tests {
     fn test_staging_test_net_chain_spec() { staging_testnet_config().build_storage().unwrap(); }
 
 	#[test]
-    fn test_create_devnett_chain_spec() { devnet_config().build_storage().unwrap(); }
+    fn test_create_devnet_chain_spec() { devnet_config().build_storage().unwrap(); }
 }
