@@ -2,7 +2,6 @@ use std::{fs, path::PathBuf};
 
 use bip39::{Language, Mnemonic};
 use hex_literal::hex;
-use k256::pkcs8::der::Encodable;
 use kvdb::{
     clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
 };
@@ -318,9 +317,9 @@ async fn create_clients(
             .into_iter()
             .collect();
 
-    for (i, value) in values.iter().enumerate() {
+    for (i, value) in values.into_iter().enumerate() {
         let reservation = kv_store.clone().kv().reserve_key(keys[i].to_string()).await.unwrap();
-        let result = kv_store.clone().kv().put(reservation, value.to_vec().unwrap()).await;
+        let result = kv_store.clone().kv().put(reservation, value).await;
     }
 
     let result = rocket::custom(config)
