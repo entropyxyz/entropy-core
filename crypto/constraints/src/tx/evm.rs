@@ -1,6 +1,6 @@
 //! This includes all EVM-architecture related types and functions.
 use entropy_shared::{Arch, Architecture, HasArch, HasReceiver, HasSender};
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use web3::types::Address;
 pub use web3::types::TransactionRequest as EvmTransactionRequest;
 
