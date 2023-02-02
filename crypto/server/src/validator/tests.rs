@@ -189,6 +189,7 @@ async fn test_get_safe_crypto_error() {
     clean_tests();
 }
 
+
 #[rocket::async_test]
 #[serial]
 async fn test_get_and_store_values() {
@@ -227,6 +228,7 @@ async fn test_get_and_store_values() {
     )
     .await;
     for (i, key) in keys.iter().enumerate() {
+        println!("!! -> -> RECEIVED KEY at IDX {} of value {:?}", i, key);
         let val = client1.1.kv().get(key).await;
         assert_eq!(val.is_err(), false);
         assert_eq!(val.unwrap(), values[i]);

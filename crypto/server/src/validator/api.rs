@@ -110,14 +110,12 @@ pub async fn get_all_keys(
     Ok(addresses)
 }
 
-/// get a url of someone in your signing group
-// pub async fn get_key_url(
-pub async fn get_server_info_for_subgroup(
+/// Returns a random server from a given sub-group.
+pub async fn get_random_server_info(
     api: &OnlineClient<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     my_subgroup: u8,
 ) -> Result<ServerInfo<AccountId32>, ValidatorErr> {
-    // ) -> Result<String, ValidatorErr> {
     let signing_group_addresses_query =
         entropy::storage().staking_extension().signing_groups(my_subgroup);
     let signing_group_addresses = api

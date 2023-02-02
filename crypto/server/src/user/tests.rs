@@ -14,7 +14,7 @@ use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
 use testing_utils::context::{test_context, test_context_stationary, TestContext};
 use x25519_dalek::{PublicKey, StaticSecret};
-
+use crate::validator::api::get_random_server_info;
 use super::{api::get_subgroup, UserInputPartyInfo};
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
@@ -358,7 +358,7 @@ pub async fn make_register(
     sig_req_keyring: &Sr25519Keyring,
     constraint_keyring: &Sr25519Keyring,
 ) {
-    // clean_tests();
+    clean_tests();
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
     let constraint_account =
@@ -383,7 +383,6 @@ pub async fn make_register(
 
     let is_registering_2 = api.storage().fetch(&registering_query, None).await;
     assert!(is_registering_2.unwrap().unwrap().is_registering);
-    // clean_tests();
 }
 
 pub async fn make_swapping(api: &OnlineClient<EntropyConfig>, key: &Sr25519Keyring) {
