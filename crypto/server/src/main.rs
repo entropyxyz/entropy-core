@@ -63,7 +63,7 @@ async fn rocket() -> _ {
     let kv_store = load_kv_store(args.bob).await;
     let signature_state = SignatureState::new();
 
-    let mnemonic = setup_mnemonic(&kv_store, args.alice, args.bob).await.expect("Issue creating Mnemonic");
+    setup_mnemonic(&kv_store, args.alice, args.bob).await.expect("Issue creating Mnemonic");
     // Below deals with syncing the kvdb
     if args.sync {
         let api = get_api(&configuration.endpoint).await.expect("Issue acquiring chain API");
@@ -96,9 +96,9 @@ async fn rocket() -> _ {
             my_subgroup = get_subgroup(&api, &signer).await;
         }
 
-        let key_server_info =
-            get_random_server_info(&api, &signer, my_subgroup.unwrap().unwrap())
-                .await.expect("Issue getting registered keys from chain");
+        let key_server_info = get_random_server_info(&api, &signer, my_subgroup.unwrap().unwrap())
+            .await
+            .expect("Issue getting registered keys from chain");
         let ip_address = String::from_utf8(key_server_info.endpoint).unwrap();
         let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
         let all_keys = get_all_keys(&api, batch_size).await.unwrap();

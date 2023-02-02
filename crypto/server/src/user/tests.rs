@@ -14,7 +14,7 @@ use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
 use testing_utils::context::{test_context, test_context_stationary, TestContext};
 use x25519_dalek::{PublicKey, StaticSecret};
-use crate::validator::api::get_random_server_info;
+
 use super::{api::get_subgroup, UserInputPartyInfo};
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
@@ -27,6 +27,7 @@ use crate::{
     },
     utils,
     utils::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
+    validator::api::get_random_server_info,
 };
 
 pub async fn setup_client() -> rocket::local::asynchronous::Client {

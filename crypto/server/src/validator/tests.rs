@@ -189,7 +189,6 @@ async fn test_get_safe_crypto_error() {
     clean_tests();
 }
 
-
 #[rocket::async_test]
 #[serial]
 async fn test_get_and_store_values() {
