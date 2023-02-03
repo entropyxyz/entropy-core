@@ -15,25 +15,32 @@ use rocket::{
     Shutdown, State,
 };
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::AccountId32, sr25519, Pair, Public};
+use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair, Public};
 use subxt::{tx::PairSigner, OnlineClient};
 use tokio::sync::{mpsc, oneshot};
+use x25519_dalek::PublicKey;
 
 use crate::{
-    chain_api::{entropy, get_api, EntropyConfig},
+    chain_api::{
+        entropy::{self, runtime_types::pallet_staking_extension::pallet::ServerInfo},
+        get_api, EntropyConfig,
+    },
+    get_signer,
+    message::SignedMessage,
     validator::errors::ValidatorErr,
     Configuration,
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Keys {
-    pub keys: Vec<String>,
+    pub enckeys: Vec<SignedMessage>,
+    pub sender: [u8; 32],
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(crate = "rocket::serde")]
 pub struct Values {
-    pub values: Vec<Vec<u8>>,
+    pub values: Vec<SignedMessage>,
 }
 
 /// Endpoint to allow a new node to sync their kvdb with a member of their subgroup
@@ -42,20 +49,28 @@ pub async fn sync_kvdb(
     keys: Json<Keys>,
     state: &State<KvManager>,
     config: &State<Configuration>,
-) -> Json<Values> {
-    // let api = get_api(&config.endpoint).await.unwrap();
-    // validate on chain that this user in your subgroup
-    // validate the message comes from individual
-    // validate the message is intended for me
-
-    // encrypt message and send to other validator
-    let mut values = vec![];
-    for key in keys.keys.clone() {
-        let result = state.kv().get(&key).await.unwrap();
-        values.push(result);
+) -> Result<Json<Values>, ValidatorErr> {
+    // TODO(JS): validate on chain that this user in your subgroup
+    let sender = PublicKey::from(keys.sender);
+    let signer = get_signer(state).await.unwrap();
+    let recip_secret_key = signer.signer();
+    let mut values: Vec<SignedMessage> = vec![];
+    for encrypted_key in keys.enckeys.clone() {
+        if !encrypted_key.verify() {
+            return Err(ValidatorErr::SafeCryptoError("Invalid signature."));
+        }
+        let dmsg = encrypted_key.decrypt(recip_secret_key);
+        if dmsg.is_err() {
+            return Err(ValidatorErr::SafeCryptoError("Decryption failed."));
+        }
+        let key = dmsg.unwrap();
+        // encrypt message and send to other validator
+        let skey = String::from_utf8_lossy(&key).to_string();
+        let result = state.kv().get(skey.as_str()).await.unwrap();
+        let reencrypted_key_result = SignedMessage::new(recip_secret_key, &Bytes(result), &sender);
+        values.push(reencrypted_key_result.unwrap())
     }
-    let values_json = Values { values };
-    Json(values_json)
+    Ok(Json(Values { values }))
 }
 
 /// As a node is joining the network should get all keys that are registered
@@ -95,12 +110,12 @@ pub async fn get_all_keys(
     Ok(addresses)
 }
 
-/// get a url of someone in your signing group
-pub async fn get_key_url(
+/// Returns a random server from a given sub-group.
+pub async fn get_random_server_info(
     api: &OnlineClient<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     my_subgroup: u8,
-) -> Result<String, ValidatorErr> {
+) -> Result<ServerInfo<AccountId32>, ValidatorErr> {
     let signing_group_addresses_query =
         entropy::storage().staking_extension().signing_groups(my_subgroup);
     let signing_group_addresses = api
@@ -138,9 +153,7 @@ pub async fn get_key_url(
             .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
         server_to_query += 1;
     }
-
-    let ip_address = String::from_utf8(server_info.unwrap().endpoint)?;
-    Ok(ip_address)
+    Ok(server_info.unwrap())
 }
 
 /// from keys of registered account get their corresponding entropy threshold keys
@@ -150,6 +163,7 @@ pub async fn get_and_store_values(
     url: String,
     batch_size: usize,
     dev: bool,
+    recip: &x25519_dalek::PublicKey,
 ) -> Result<(), ValidatorErr> {
     let mut keys_stored = 0;
     while keys_stored < all_keys.len() {
@@ -157,7 +171,18 @@ pub async fn get_and_store_values(
         if keys_to_send_slice > all_keys.len() {
             keys_to_send_slice = all_keys.len();
         }
-        let keys_to_send = Keys { keys: all_keys[keys_stored..(keys_to_send_slice)].to_vec() };
+        let signer = get_signer(kv).await.unwrap();
+        let remaining_keys = all_keys[keys_stored..(keys_to_send_slice)].to_vec();
+        let mut enckeys: Vec<SignedMessage> = vec![];
+        let mut sender: [u8; 32] = [0; 32];
+        for _key in &remaining_keys {
+            let new_msg =
+                SignedMessage::new(signer.signer(), &Bytes(_key.clone().into_bytes()), recip)
+                    .unwrap();
+            sender = new_msg.sender().to_bytes();
+            enckeys.push(new_msg);
+        }
+        let keys_to_send = Keys { enckeys, sender };
         let client = reqwest::Client::new();
         let formatted_url = format!("http://{url}/validator/sync_kvdb");
         let result = client
@@ -176,9 +201,10 @@ pub async fn get_and_store_values(
         if returned_values.values.is_empty() {
             break;
         }
-        for (i, value) in returned_values.values.iter().enumerate() {
-            let reservation = kv.kv().reserve_key(keys_to_send.keys[i].clone()).await?;
-            kv.kv().put(reservation, value.to_vec()).await?;
+        for (i, encrypted_key) in returned_values.values.iter().enumerate() {
+            let reservation = kv.kv().reserve_key(remaining_keys[i].clone()).await?;
+            let key = encrypted_key.decrypt(signer.signer()).unwrap();
+            kv.kv().put(reservation, key).await?;
             keys_stored += 1
         }
     }
