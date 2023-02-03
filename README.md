@@ -73,18 +73,18 @@ by appending your own. A few useful ones are as follow.
 
 - Currently our network requires 2 binaries
 - `cargo build --release` will build both
-- to run both you can reference /scripts/sdk-entropy-node.sh for the chain and /scripts/sdk-alice-tss.sh for the threshold client
+- To run both you can reference /scripts/sdk-entropy-node.sh for the chain and /scripts/sdk-alice-tss.sh for the threshold client
 
 ### Changing Defaults
 
-- all defaults are ready to go out the box but can be changed if needed with varying degrees of difficult
+- All defaults are ready to go out the box but can be changed if needed with varying degrees of difficult
 
-- to change chain address away from default ws://127.0.0.1:9944 you need to inform the sig client which can be done with the env variable `export ENDPOINT=`
+- To change chain address away from default ws://127.0.0.1:9944 you need to inform the sig client which can be done with the env variable `export ENDPOINT=`
 - To change the default of the sig client from `http://127.0.0.1:3001/sign` you need to tell the chain after it is running by making an rpc call. Example code can be found here `https://github.com/entropyxyz/util-scripts/blob/master/setEndpoint.ts`. You also need to maintain the route as /sign
 
 ## Threshold Keys
 
-- keys for internal testnet use only, not secure, here for convenience do not use them for anything real
+- Keys for internal testnet use only, not secure, here for convenience do not use them for anything real
 
 #### Alice
 
@@ -106,9 +106,9 @@ SS58 Address: `5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV`
 
 ## Running Devnet
 
-- devnet requires 2 validator nodes, 2 threshold clients running on the same machine
+- Devnet requires 2 validator nodes, 2 threshold clients running on the same machine
 
-- open 5 terminals lol
+- Open 5 terminals lol
 
 - In terminal 1 set up chain 1
 
@@ -130,13 +130,13 @@ SS58 Address: `5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV`
 
 With all 4 nodes running the chain is now working, next we now have a clash where both chains by default send their OCW messages to port 3001, you need to change one of those
 
-- from this repo <https://github.com/entropyxyz/util-scripts>
-  - need to setup the repo and link the wasm first
+- From this repo <https://github.com/entropyxyz/util-scripts>
+  - Need to setup the repo and link the wasm first
   - `cd pkg`
   - `npm link`
   - `cd ..`
   - `npm link x25519-chacha20poly1305-wasm`
-- run setEndpoint.ts
+- Run setEndpoint.ts
   - `ts-node setEndpoint.ts`
 
 next register
