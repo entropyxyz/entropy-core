@@ -25,3 +25,5 @@ test_db_1/
 main_test_db/
 
 .idea
+*/.entropy
+.entropy

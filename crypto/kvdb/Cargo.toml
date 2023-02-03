@@ -24,12 +24,6 @@ tracing={ version="0.1", default-features=false }
 
 # Misc
 sled="0.34.7"
-# dirs = { version = "4.0", default-features = false }
-# clap = { version = "3.0", default-features = false, features = [
-#   "std",
-#   "cargo",
-#   "env",
-# ] }
 
 [dev-dependencies]
 serial_test="0.6.0"
