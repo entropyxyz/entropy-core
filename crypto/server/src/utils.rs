@@ -1,9 +1,10 @@
 //! Utilities for starting and running the server.
 
-use std::{collections::HashMap, sync::Mutex};
+use std::{collections::HashMap, fs, path::PathBuf, sync::Mutex};
 
 use bip39::{Language, Mnemonic};
 use clap::{Args, Parser, Subcommand};
+use dirs::home_dir;
 use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use serde::Deserialize;
 use tofn::sdk::api::{RecoverableSignature, Signature};
@@ -40,11 +41,13 @@ pub(super) async fn load_kv_store(is_bob: bool) -> KvManager {
         KvManager::new(kvdb::get_db_path().into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap()
     } else {
-        let mut root = project_root::get_project_root().unwrap();
+        let mut root: PathBuf = home_dir().expect("could not get home directory");
+        root.push(".entropy");
+        root.push("db");
         if is_bob {
-            let formatted = format!("{}/bob", root.display());
-            root = formatted.into()
+            root.push("bob");
         }
+        fs::create_dir_all(root.clone()).expect("could not create directory");
         let password = PasswordMethod::Prompt.execute().unwrap();
         // this step takes a long time due to password-based decryption
         KvManager::new(root, password).unwrap()

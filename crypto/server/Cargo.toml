@@ -45,6 +45,7 @@ entropy-constraints={ path="../constraints" }
 log               ="0.4.17"                                          # todo: remove, overlaps tracing
 tracing           ="0.1"
 tracing-subscriber={ version="0.3", features=["env-filter", "fmt"] }
+dirs              ="4.0.0"
 
 # Misc
 bip39       ={ git="https://github.com/infincia/bip39-rs.git", tag="v0.6.0-beta.1" }
