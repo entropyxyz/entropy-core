@@ -26,6 +26,8 @@ mod user;
 mod utils;
 mod validator;
 use bip39::{Language, Mnemonic, MnemonicType};
+use validator::api::get_random_server_info;
+
 #[macro_use]
 extern crate rocket;
 use std::{string::String, thread, time::Duration};
@@ -47,7 +49,7 @@ use crate::{
     message::{derive_static_secret, mnemonic_to_pair},
     user::unsafe_api::{delete, get, put, remove_keys},
     validator::api::{
-        check_balance_for_fees, get_all_keys, get_and_store_values, get_key_url, sync_kvdb,
+        check_balance_for_fees, get_all_keys, get_and_store_values, sync_kvdb,
         tell_chain_syncing_is_done,
     },
 };
@@ -61,7 +63,7 @@ async fn rocket() -> _ {
     let kv_store = load_kv_store(args.bob, args.alice).await;
     let signature_state = SignatureState::new();
 
-    setup_mnemonic(&kv_store, args.alice, args.bob).await;
+    setup_mnemonic(&kv_store, args.alice, args.bob).await.expect("Issue creating Mnemonic");
     // Below deals with syncing the kvdb
     if args.sync {
         let api = get_api(&configuration.endpoint).await.expect("Issue acquiring chain API");
@@ -85,29 +87,25 @@ async fn rocket() -> _ {
         if !has_fee_balance {
             panic!("threshold account needs balance: {:?}", signer.account_id());
         }
-
         // if not in subgroup retry until you are
         let mut my_subgroup = get_subgroup(&api, &signer).await;
         while my_subgroup.is_err() {
             println!("you are not currently a validator, retrying");
             thread::sleep(sleep_time);
-            my_subgroup = get_subgroup(&api, &signer).await;
+            my_subgroup = Ok(get_subgroup(&api, &signer).await.expect("Failed to get subgroup."));
         }
-
-        let key_server_url = get_key_url(
-            &api,
-            &signer,
-            my_subgroup.expect("Issue getting my subgroup").expect("Issue getting my subgroup"),
-        )
-        .await
-        .expect("Issue getting a url in signing group");
-        let all_keys =
-            get_all_keys(&api, batch_size).await.expect("Issue getting registered keys from chain");
-        let _ =
-            get_and_store_values(all_keys, &kv_store, key_server_url, batch_size, args.dev).await;
-        tell_chain_syncing_is_done(&api, &signer)
+        let sbgrp = my_subgroup.expect("Failed to get subgroup.").expect("failed to get subgroup");
+        let key_server_info = get_random_server_info(&api, &signer, sbgrp)
             .await
-            .expect("Issue telling chain syncing is done");
+            .expect("Issue getting registered keys from chain.");
+        let ip_address =
+            String::from_utf8(key_server_info.endpoint).expect("failed to parse IP address.");
+        let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
+        let all_keys = get_all_keys(&api, batch_size).await.expect("failed to get all keys.");
+        let _ =
+            get_and_store_values(all_keys, &kv_store, ip_address, batch_size, args.dev, &recip_key)
+                .await;
+        tell_chain_syncing_is_done(&api, &signer).await.expect("failed to finish chain sync.");
     }
 
     // Unsafe routes are for testing purposes only
@@ -131,7 +129,7 @@ async fn rocket() -> _ {
         .manage(kv_store)
 }
 
-pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) {
+pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Result<(), KvError> {
     // Check if a mnemonic exists in the kvdb.
     let exists_result = kv.kv().exists("MNEMONIC").await.expect("issue querying DB");
     if !exists_result {
@@ -172,7 +170,6 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) {
             .await
             .expect("failed to update dh");
         println!("dh_public_key={dh_public:?}");
-
         let p = <sr25519::Pair as Pair>::from_phrase(phrase, None)
             .expect("Issue getting pair from mnemonic");
         let id = AccountId32::new(p.0.public().0);
@@ -186,4 +183,5 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) {
             .await
             .expect("failed to update mnemonic");
     }
+    Ok(())
 }

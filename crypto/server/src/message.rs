@@ -94,8 +94,11 @@ impl SignedMessage {
     /// Returns the public key of the message signer.
     pub fn pk(&self) -> sr25519::Public { sr25519::Public::from_raw(self.pk) }
 
-    /// Returns the public DH key of the message recipient.
+    /// Returns the public DH parameter of the message recipient.
     pub fn recipient(&self) -> x25519_dalek::PublicKey { x25519_dalek::PublicKey::from(self.recip) }
+
+    /// Returns the public DH parameter of the message sender.
+    pub fn sender(&self) -> x25519_dalek::PublicKey { x25519_dalek::PublicKey::from(self.a) }
 
     /// Verifies the signature of the hash of self.msg stored in self.sig
     /// with the public key self.pk.
@@ -135,6 +138,8 @@ pub fn new_mnemonic() -> Mnemonic {
 pub fn mnemonic_to_pair(m: &Mnemonic) -> sr25519::Pair {
     <sr25519::Pair as Pair>::from_phrase(m.phrase(), None).unwrap().0
 }
+
+pub fn to_bytes(b: &[u8]) -> Bytes { Bytes(b.to_vec()) }
 
 #[cfg(test)]
 mod tests {

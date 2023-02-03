@@ -27,6 +27,7 @@ use crate::{
     },
     utils,
     utils::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
+    validator::api::get_random_server_info,
 };
 
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
@@ -36,9 +37,12 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 #[rocket::async_test]
 #[serial]
 async fn test_get_signer_does_not_throw_err() {
+    clean_tests();
     let kv_store = load_kv_store(false, false).await;
-    setup_mnemonic(&kv_store, false, false).await;
+    let mnemonic = setup_mnemonic(&kv_store, false, false).await;
+    assert!(!mnemonic.is_err());
     get_signer(&kv_store).await.unwrap();
+    clean_tests();
 }
 
 #[rocket::async_test]
@@ -212,93 +216,100 @@ async fn test_store_share() {
 #[rocket::async_test]
 #[serial]
 async fn test_update_keys() {
-    clean_tests();
-    let dave = AccountKeyring::Dave;
-    let alice = AccountKeyring::Alice;
-    let alice_stash_id: AccountId32 =
-        h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
+    if cfg!(feature = "unsafe") {
+        clean_tests();
+        let dave = AccountKeyring::Dave;
+        let alice = AccountKeyring::Alice;
+        let alice_stash_id: AccountId32 =
+            h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
 
-    let key: AccountId32 = dave.to_account_id();
-    let value: Vec<u8> = vec![0];
-    let new_value: Vec<u8> = vec![1];
-    let cxt = test_context_stationary().await;
-    let client = setup_client().await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+        let key: AccountId32 = dave.to_account_id();
+        let value: Vec<u8> = vec![0];
+        let new_value: Vec<u8> = vec![1];
+        let cxt = test_context_stationary().await;
+        let client = setup_client().await;
+        let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-    let threshold_servers_query =
-        entropy::storage().staking_extension().threshold_servers(&alice_stash_id);
-    let query_result = api.storage().fetch(&threshold_servers_query, None).await.unwrap();
-    assert!(query_result.is_some());
+        let threshold_servers_query =
+            entropy::storage().staking_extension().threshold_servers(&alice_stash_id);
+        let query_result = api.storage().fetch(&threshold_servers_query, None).await.unwrap();
+        assert!(query_result.is_some());
 
-    let res = query_result.unwrap();
-    let server_public_key = PublicKey::from(res.x25519_public_key);
-    let user_input =
-        SignedMessage::new(&dave.pair(), &Bytes(new_value.clone()), &server_public_key)
-            .unwrap()
-            .to_json();
+        let res = query_result.unwrap();
+        let server_public_key = PublicKey::from(res.x25519_public_key);
+        let user_input =
+            SignedMessage::new(&dave.pair(), &Bytes(new_value.clone()), &server_public_key)
+                .unwrap()
+                .to_json();
 
-    let user_input_alice =
-        SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
-            .unwrap()
-            .to_json();
+        let user_input_alice =
+            SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
+                .unwrap()
+                .to_json();
 
-    let put_query =
-        UnsafeQuery::new(key.to_string(), serde_json::to_string(&value).unwrap()).to_json();
-    // manually add dave's key to replace it
-    let response = client
-        .post("/unsafe/put")
-        .header(ContentType::JSON)
-        .body(put_query.clone())
-        .dispatch()
-        .await;
+        let put_query =
+            UnsafeQuery::new(key.to_string(), serde_json::to_string(&value).unwrap()).to_json();
+        // manually add dave's key to replace it
+        let response = client
+            .post("/unsafe/put")
+            .header(ContentType::JSON)
+            .body(put_query.clone())
+            .dispatch()
+            .await;
 
-    assert_eq!(response.status(), Status::Ok);
+        assert_eq!(response.status(), Status::Ok);
 
-    // fails to add not registering or swapping
-    let response_2 = client
-        .post("/user/new")
-        .header(ContentType::JSON)
-        .body(user_input.clone())
-        .dispatch()
-        .await;
+        // fails to add not registering or swapping
+        let response_2 = client
+            .post("/user/new")
+            .header(ContentType::JSON)
+            .body(user_input.clone())
+            .dispatch()
+            .await;
 
-    assert_eq!(response_2.status(), Status::InternalServerError);
-    assert_eq!(
-        response_2.into_string().await.unwrap(),
-        "Not Registering error: Register Onchain first"
-    );
+        assert_eq!(response_2.status(), Status::InternalServerError);
+        assert_eq!(
+            response_2.into_string().await.unwrap(),
+            "Not Registering error: Register Onchain first" /* "Generic Substrate error:
+                                                             * Metadata: Pallet Relayer Storage
+                                                             * Relayer has incompatible
+                                                             * metadata" */
+        );
 
-    // signal registering
-    make_swapping(&api, &dave).await;
+        // signal registering
+        make_swapping(&api, &dave).await;
 
-    let response_3 = client
-        .post("/user/new")
-        .header(ContentType::JSON)
-        .body(user_input.clone())
-        .dispatch()
-        .await;
-    assert_eq!(response_3.status(), Status::Ok);
-    assert_eq!(response_3.into_string().await, None);
-    // make sure there is now one confirmation
-    check_if_confirmation(&api, &dave).await;
+        let response_3 = client
+            .post("/user/new")
+            .header(ContentType::JSON)
+            .body(user_input.clone())
+            .dispatch()
+            .await;
+        assert_eq!(response_3.status(), Status::Ok);
+        assert_eq!(response_3.into_string().await, None);
+        // make sure there is now one confirmation
+        check_if_confirmation(&api, &dave).await;
 
-    // check dave has new key
-    let response_4 = client
-        .post("/unsafe/get")
-        .header(ContentType::JSON)
-        .body(put_query.clone())
-        .dispatch()
-        .await;
+        // check dave has new key
+        let response_4 = client
+            .post("/unsafe/get")
+            .header(ContentType::JSON)
+            .body(put_query.clone())
+            .dispatch()
+            .await;
 
-    assert_eq!(
-        response_4.into_string().await,
-        Some(std::str::from_utf8(&new_value).unwrap().to_string())
-    );
+        assert_eq!(
+            response_4.into_string().await,
+            Some(std::str::from_utf8(&new_value).unwrap().to_string())
+        );
+        clean_tests();
+    }
 }
 
 #[rocket::async_test]
 #[serial]
 async fn test_store_share_fail_wrong_data() {
+    clean_tests();
     // Construct a client to use for dispatching requests.
     let client = setup_client().await;
     let cxt = test_context_stationary().await;
@@ -321,6 +332,7 @@ async fn test_store_share_fail_wrong_data() {
 #[rocket::async_test]
 #[serial]
 async fn test_get_signing_group() {
+    clean_tests();
     let cxt = test_context().await;
     let client = setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
@@ -347,6 +359,7 @@ pub async fn make_register(
     sig_req_keyring: &Sr25519Keyring,
     constraint_keyring: &Sr25519Keyring,
 ) {
+    clean_tests();
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
     let constraint_account =
