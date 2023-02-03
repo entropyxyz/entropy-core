@@ -45,13 +45,9 @@ pub(super) async fn load_kv_store(is_bob: bool) -> KvManager {
         .unwrap()
     } else {
         let mut root: PathBuf = PathBuf::from(kvdb::get_db_path(false));
-        // let mut root: PathBuf = home_dir().expect("could not get home directory");
-        // root.push(".entropy");
-        // root.push("db");
         if is_bob {
             root.push("bob");
         }
-        // fs::create_dir_all(root.clone()).expect("could not create directory");
         let password = PasswordMethod::Prompt.execute().unwrap();
         // this step takes a long time due to password-based decryption
         KvManager::new(root, password).unwrap()
