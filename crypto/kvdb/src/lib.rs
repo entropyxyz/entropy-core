@@ -2,10 +2,8 @@ pub mod encrypted_sled;
 pub mod kv_manager;
 use std::{fs, path::PathBuf};
 
-use dirs::home_dir;
-
 pub fn get_db_path(testing: bool) -> String {
-    let mut root: PathBuf = home_dir().expect("could not get home directory");
+    let mut root: PathBuf = std::env::current_dir().expect("could not get home directory");
     root.push(".entropy");
     if testing {
         root.push("testing");

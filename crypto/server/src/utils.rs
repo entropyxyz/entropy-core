@@ -4,7 +4,6 @@ use std::{collections::HashMap, fs, path::PathBuf, sync::Mutex};
 
 use bip39::{Language, Mnemonic};
 use clap::{Args, Parser, Subcommand};
-use dirs::home_dir;
 use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use serde::Deserialize;
 use tofn::sdk::api::{RecoverableSignature, Signature};
@@ -36,23 +35,25 @@ impl Configuration {
     pub(crate) fn new(endpoint: String) -> Configuration { Configuration { endpoint } }
 }
 
-pub(super) async fn load_kv_store(is_bob: bool) -> KvManager {
-    let kv_store: KvManager = if cfg!(test) {
-        KvManager::new(
+pub(super) async fn load_kv_store(is_bob: bool, is_alice: bool) -> KvManager {
+    let mut root: PathBuf = PathBuf::from(kvdb::get_db_path(false));
+    if cfg!(test) {
+        return KvManager::new(
             kvdb::get_db_path(true).into(),
             PasswordMethod::NoPassword.execute().unwrap(),
         )
-        .unwrap()
-    } else {
-        let mut root: PathBuf = PathBuf::from(kvdb::get_db_path(false));
-        if is_bob {
-            root.push("bob");
-        }
-        let password = PasswordMethod::Prompt.execute().unwrap();
-        // this step takes a long time due to password-based decryption
-        KvManager::new(root, password).unwrap()
+        .unwrap();
+    }
+    if is_bob {
+        root.push("bob");
+        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     };
-    kv_store
+    if is_alice {
+        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+    };
+    let password = PasswordMethod::Prompt.execute().unwrap();
+    // this step takes a long time due to password-based decryption
+    KvManager::new(root, password).unwrap()
 }
 
 #[derive(Parser, Debug, Clone)]

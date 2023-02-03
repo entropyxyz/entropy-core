@@ -36,7 +36,7 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 #[rocket::async_test]
 #[serial]
 async fn test_get_signer_does_not_throw_err() {
-    let kv_store = load_kv_store(false).await;
+    let kv_store = load_kv_store(false, false).await;
     setup_mnemonic(&kv_store, false, false).await;
     get_signer(&kv_store).await.unwrap();
 }
