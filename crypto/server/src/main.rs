@@ -87,25 +87,24 @@ async fn rocket() -> _ {
         if !has_fee_balance {
             panic!("threshold account needs balance: {:?}", signer.account_id());
         }
-
         // if not in subgroup retry until you are
         let mut my_subgroup = get_subgroup(&api, &signer).await;
         while my_subgroup.is_err() {
             println!("you are not currently a validator, retrying");
             thread::sleep(sleep_time);
-            my_subgroup = get_subgroup(&api, &signer).await;
+            my_subgroup = Ok(get_subgroup(&api, &signer).await.expect("Failed to get subgroup."));
         }
-
-        let key_server_info = get_random_server_info(&api, &signer, my_subgroup.unwrap().unwrap())
+        let mut sbgrp = my_subgroup.expect("Failed to get subgroup.").expect("failed to get subgroup");
+        let key_server_info = get_random_server_info(&api, &signer, sbgrp)
             .await
-            .expect("Issue getting registered keys from chain");
-        let ip_address = String::from_utf8(key_server_info.endpoint).unwrap();
+            .expect("Issue getting registered keys from chain.");
+        let ip_address = String::from_utf8(key_server_info.endpoint).expect("failed to parse IP address.");
         let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
-        let all_keys = get_all_keys(&api, batch_size).await.unwrap();
+        let all_keys = get_all_keys(&api, batch_size).await.expect("failed to get all keys.");
         let _ =
             get_and_store_values(all_keys, &kv_store, ip_address, batch_size, args.dev, &recip_key)
                 .await;
-        tell_chain_syncing_is_done(&api, &signer).await.unwrap();
+        tell_chain_syncing_is_done(&api, &signer).await.expect("failed to finish chain sync.");
     }
 
     // Unsafe routes are for testing purposes only
