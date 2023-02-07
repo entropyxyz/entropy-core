@@ -8,7 +8,7 @@ readonly tar="entropy-$fn.tar.zst"
 rustup show
 rustup target add $ARCH
 rustup target add wasm32-unknown-unknown
-#cargo build -p entropy --target wasm32-unknown-unknown --release
+cargo build -p entropy --release
 cargo build -p server --target $ARCH --release
 touch $tar
 mkdir -p $fn
