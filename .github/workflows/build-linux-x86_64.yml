@@ -1,0 +1,21 @@
+name: build and upload linux-x86_64
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-env:
+    name: build/upload
+    runs-on: ubuntu-latest
+    rust:
+      - stable
+    target:
+      - wasm32-unknown-unknown 
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+      - run:
+            ./scripts/setup-debian.sh
+      - run: 
+            cargo build --target x86_64-unknown-linux-gnu --release
