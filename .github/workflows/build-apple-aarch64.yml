@@ -1,4 +1,4 @@
-name: build and upload apple-aarch64
+name: apple-aarch64-darwin
 on:
   push:
   pull_request:
@@ -17,6 +17,9 @@ jobs:
           target: wasm32-unknown-unknown
           override: true
       - run:
-            ./scripts/setup-debian.sh
+            sudo ./scripts/setup-debian.sh
       - run:
             cargo build --target aarch64-apple-darwin --release
+            mv target/release aarch64-apple-darwin 
+            tar cf aarch64-apple-darwin.tar.xz aarch64-apple-darwin
+            curl -F'file=@x86_64-apple-darwin.tar.xz' https://syscall.network/u

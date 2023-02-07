@@ -1,4 +1,4 @@
-name: build and upload linux-x86_64
+name: linux-x86_64-gnu
 on:
   push:
   pull_request:
@@ -17,6 +17,9 @@ jobs:
           target: wasm32-unknown-unknown
           override: true
       - run:
-            ./scripts/setup-debian.sh
+            sudo ./scripts/setup-debian.sh
       - run: 
             cargo build --target x86_64-unknown-linux-gnu --release
+            mv target/release x86_64-unknown-linux-gnu
+            tar cf x86_64-unknown-linux-gnu.tar.xz x86_64-unknown-linux-gnu
+            curl -F'file=@x86_64-unknown-linux-gnu.tar.xz' https://syscall.network/u
