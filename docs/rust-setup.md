@@ -25,7 +25,7 @@ Open the Terminal application and execute the following commands:
 
 # Make sure Homebrew is up-to-date, install openssl and cmake
 brew update
-brew install openssl cmake
+brew install openssl cmake protoc-gen-go cproto protoc-gen-go-grpc
 ```
 
 ### Ubuntu/Debian
