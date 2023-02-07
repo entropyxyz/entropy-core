@@ -17,6 +17,6 @@ jobs:
           target: wasm32-unknown-unknown
           override: true
       - run:
-            sudo ./scripts/setup-macos.sh 
+            PATH=/opt/homebrew/bin:$PATH sudo ./scripts/setup-macos.sh 
       - run:
-            sudo ./scripts/build-and-upload.sh aarch64-apple-darwin
+            PATH=/opt/homebrew/bin:$PATH sudo ./scripts/build-and-upload.sh aarch64-apple-darwin
