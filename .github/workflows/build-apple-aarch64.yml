@@ -17,5 +17,5 @@ jobs:
           target: wasm32-unknown-unknown
           override: true
       - run:
-            sudo ./scripts/setup-debian.sh &&
-            ./scripts/build-and-upload.sh aarch64-apple-darwin 
+            sudo ./scripts/setup-debian.sh 
+            sudo ./scripts/build-and-upload.sh aarch64-apple-darwin 

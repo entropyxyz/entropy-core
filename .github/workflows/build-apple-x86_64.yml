@@ -16,9 +16,7 @@ jobs:
           toolchain: stable
           target: wasm32-unknown-unknown
           override: true
-      - run:
-            sudo ./scripts/setup-debian.sh
       - run: 
-            sudo ./scripts/setup-debian.sh &&
-            ./scripts/build-and-upload.sh x86_64-apple-darwin
+            sudo ./scripts/setup-debian.sh 
+            sudo ./scripts/build-and-upload.sh x86_64-apple-darwin 
             
