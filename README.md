@@ -1,5 +1,10 @@
-# Entropy Core
+[![apple-x86_64-darwin](https://github.com/entropyxyz/entropy-core/actions/workflows/build-apple-x86_64.yml/badge.svg)](https://github.com/entropyxyz/entropy-core/actions/workflows/build-apple-x86_64.yml)
 
+[![apple-aarch64-darwin](https://github.com/entropyxyz/entropy-core/actions/workflows/build-apple-aarch64.yml/badge.svg)](https://github.com/entropyxyz/entropy-core/actions/workflows/build-apple-aarch64.yml)
+
+[![linux-x86_64-gnu](https://github.com/entropyxyz/entropy-core/actions/workflows/build-linux-x86_64.yml/badge.svg)](https://github.com/entropyxyz/entropy-core/actions/workflows/build-linux-x86_64.yml)
+
+# Entropy Core
 This repo contains the Entropy blockchain node, the validator server (evaulates constraints, stores threshold keyshares, and coordinates threshold-signing), and misc. testing utilities for the network.
 
 Our blockchain node is written with Substrate, and its documentation can be found [here](https://github.com/substrate-developer-hub/substrate-node-template).

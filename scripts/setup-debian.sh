@@ -3,7 +3,7 @@ if [[ $EUID -ne 0 ]]; then echo "This script must be run as root" && exit 1; fi
 apt update  
 apt upgrade
 apt install -y cmake pkg-config libssl-dev build-essential clang libclang-dev libgmp-dev unzip curl git
-export PROTOC_VERSION="$(curl -s "https://api.github.com/repos/protocolbuffers/protobuf/releases/latest" | grep -Po '"tag_name": "v\K[0-9.]+')"
+PROTOC_VERSION=$(curl -s "https://api.github.com/repos/protocolbuffers/protobuf/releases/latest" | grep -Po '"tag_name": "v\K[0-9.]+')
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source ~/.cargo/env
 rustup default stable
