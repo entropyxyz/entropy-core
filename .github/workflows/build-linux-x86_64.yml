@@ -18,5 +18,6 @@ jobs:
           override: true
       - run:
            sudo ./scripts/setup-debian.sh 
+      - run:
            sudo ./scripts/build-and-upload.sh x86_64-unknown-linux-gnu 
            

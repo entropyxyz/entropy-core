@@ -18,4 +18,5 @@ jobs:
           override: true
       - run:
             sudo ./scripts/setup-debian.sh 
+      - run:
             sudo ./scripts/build-and-upload.sh aarch64-apple-darwin 
