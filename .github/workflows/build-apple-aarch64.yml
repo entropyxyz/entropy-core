@@ -1,6 +1,5 @@
 name: apple-aarch64-darwin
 on:
-  push:
   pull_request:
   workflow_dispatch:
 

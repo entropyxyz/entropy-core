@@ -1,6 +1,5 @@
 name: apple-x86_64-darwin
 on:
-  push:
   pull_request:
   workflow_dispatch:
 
