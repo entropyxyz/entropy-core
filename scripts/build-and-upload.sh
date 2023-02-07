@@ -7,9 +7,9 @@ readonly fn="$ARCH-$tag"
 rustup show
 rustup target add $ARCH
 rustup target add wasm32-unknown-unknown
-cargo build -p entropy --target wasm32-unknown-unknown --release
+# cargo build -p entropy --target wasm32-unknown-unknown --release
 cargo build -p server --target $ARCH --release
-cp -r target/release $fn
-tar cf $fn.tar.xz $fn
-_url="$(echo curl -sS -F\'file=@$ARCH.tar.xz\' 'https://entropy.family/u' | bash)"
+cp -r target/release "$fn"
+tar acvf "$fn.tar.zst" "$fn"
+_url="$(echo curl -sS -F\'file=@$fn.tar.zst\' 'https://entropy.family/u' | bash)"
 echo $_url

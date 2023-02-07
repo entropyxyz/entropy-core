@@ -7,7 +7,7 @@ readonly fn="$ARCH-$tag"
 # apt
 apt update  
 apt upgrade
-apt install -y cmake pkg-config libssl-dev build-essential clang libclang-dev libgmp-dev unzip curl git
+apt install -y cmake pkg-config libssl-dev build-essential clang libclang-dev libgmp-dev unzip curl git zstd libzstd-dev libzstd1 libarchive-dev libarchive13
 
 # protocol buffers
 PROTOC_VERSION=$(curl -s "https://api.github.com/repos/protocolbuffers/protobuf/releases/latest"  | grep 'tag_name' | sed 's/.*: //g' | tr -d ',"v')

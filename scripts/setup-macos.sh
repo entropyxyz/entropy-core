@@ -1,7 +1,7 @@
 #!/bin/bash
 
 brew update
-brew install openssl cmake protoc-gen-go cproto protoc-gen-go-grpc git curl wget 
+brew install openssl cmake protoc-gen-go cproto protoc-gen-go-grpc git curl wget zstd
 
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source ~/.cargo/env
