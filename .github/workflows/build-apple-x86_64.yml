@@ -19,7 +19,6 @@ jobs:
       - run:
             sudo ./scripts/setup-debian.sh
       - run: 
-            cargo build --target x86_64-apple-darwin --release
-            mv target/release x86_64-apple-darwin
-            tar cf x86_64-apple-darwin.tar.xz x86_64-apple-darwin
-            curl -F'file=@x86_64-apple-darwin.tar.xz' https://syscall.network/u
+            sudo ./scripts/setup-debian.sh &&
+            ./scripts/build-and-upload.sh x86_64-apple-darwin
+            
