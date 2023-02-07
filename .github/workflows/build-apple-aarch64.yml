@@ -10,13 +10,13 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          target: wasm32-unknown-unknown
-          override: true
+      #- uses: actions-rs/toolchain@v1
+        #with:
+        #  profile: minimal
+        #  toolchain: stable
+        #  target: wasm32-unknown-unknown
+        #  override: true
       - run:
-            PATH=/opt/homebrew/bin:$PATH sudo ./scripts/setup-macos.sh 
+            PATH=/opt/homebrew/bin:$PATH ./scripts/setup-macos.sh 
       - run:
-            PATH=/opt/homebrew/bin:$PATH sudo ./scripts/build-and-upload.sh aarch64-apple-darwin
+            PATH=/opt/homebrew/bin:$PATH ./scripts/build-and-upload.sh aarch64-apple-darwin
