@@ -10,9 +10,9 @@ rustup default stable
 rustup update nightly
 rustup update stable
 rustup target add wasm32-unknown-unknown --toolchain nightly
-rustup toolchain add nightly-aarch64-apple-darwin    
-rustup toolchain add nightly-x86_64-apple-darwin     
-rustup toolchain add nightly-x86_64-unknown-linux-gnu
+rustup toolchain add aarch64-apple-darwin    
+rustup toolchain add x86_64-apple-darwin     
+rustup toolchain add x86_64-unknown-linux-gnu
 curl -Lo protoc.zip "https://github.com/protocolbuffers/protobuf/releases/latest/download/protoc-${PROTOC_VERSION}-linux-x86_64.zip"
 unzip -o -q protoc.zip bin/protoc -d /usr/local
 chmod a+x /usr/local/bin/protoc
