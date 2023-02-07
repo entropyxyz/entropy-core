@@ -19,5 +19,7 @@ jobs:
       - run: 
             sudo ./scripts/setup-debian.sh 
       - run:
-            sudo ./scripts/build-and-upload.sh x86_64-apple-darwin 
+            wget https://download.swift.org/swift-5.7.3-release/ubuntu2204/swift-5.7.3-RELEASE/swift-5.7.3-RELEASE-ubuntu22.04.tar.gz 
+            tar xf swift-5.7.3-RELEASE-ubuntu22.04.tar.gz
+            PATH=swift-5.7.3-RELEASE-ubuntu22.04/usr/bin:$PATH sudo ./scripts/build-and-upload.sh x86_64-apple-darwin 
             
