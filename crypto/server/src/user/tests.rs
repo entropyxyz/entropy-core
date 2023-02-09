@@ -9,7 +9,7 @@ use rocket::{
     tokio::time::{sleep, Duration},
 };
 use serial_test::serial;
-use sp_core::{sr25519, Bytes, Pair, H160};
+use subxt::ext::sp_core::{sr25519, Bytes, Pair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
 use testing_utils::context::{test_context, test_context_stationary, TestContext};
@@ -315,9 +315,9 @@ pub async fn make_register(
 ) {
     clean_tests();
     let sig_req_account =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
+        PairSigner::<EntropyConfig, subxt::ext::sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
     let constraint_account =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(constraint_keyring.pair());
+        PairSigner::<EntropyConfig, subxt::ext::sp_core::sr25519::Pair>::new(constraint_keyring.pair());
     let registering_query =
         entropy::storage().relayer().registering(sig_req_keyring.to_account_id());
     let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();

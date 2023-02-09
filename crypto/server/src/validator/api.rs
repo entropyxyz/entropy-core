@@ -15,8 +15,7 @@ use rocket::{
     Shutdown, State,
 };
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair, Public};
-use subxt::{tx::PairSigner, OnlineClient};
+use subxt::{tx::PairSigner, OnlineClient, ext::sp_core::{ crypto::AccountId32, Pair, Public, Bytes, sr25519}};
 use tokio::sync::{mpsc, oneshot};
 use x25519_dalek::PublicKey;
 
@@ -130,7 +129,7 @@ pub async fn get_random_server_info(
     let mut server_to_query = 0;
     let mut server_info: Option<
         entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo<
-            sp_core::crypto::AccountId32,
+            AccountId32,
         >,
     > = None;
     while !server_sync_state {
