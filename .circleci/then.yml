@@ -81,7 +81,7 @@ jobs:
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
-      - run: cd crypto/server && cargo test # placeholder for test
+      - run: cd crypto/server && cargo test --release # placeholder for test
         # temp
   # crypto-centralized-keygen:
   #   machine:
@@ -113,7 +113,7 @@ jobs:
       - install-dependencies-and-checkout
       - run:
         # note, this must be release https://app.circleci.com/pipelines/github/entropyxyz/entropy-core/234/workflows/1ff7735d-2d69-43bd-80d7-2ba304df25e7/jobs/1175
-          command: pushd node && cargo build --release -j $(nproc) && cargo test
+          command: pushd node && cargo build --tests --release -j $(nproc) && cargo test --release
           no_output_timeout: 45m
   node-benchmark:
     machine:
