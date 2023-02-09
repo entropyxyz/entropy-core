@@ -32,21 +32,17 @@ pub mod weights;
 pub mod pallet {
     use entropy_shared::{Constraints, Message, SigRequest, SIGNING_PARTY_SIZE};
     use frame_support::{
-        dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays},
+        dispatch::{DispatchResult, DispatchResultWithPostInfo},
         inherent::Vec,
         pallet_prelude::*,
-        traits::IsSubType,
     };
     use frame_system::pallet_prelude::*;
     use helpers::unwrap_or_return;
     use pallet_constraints::{AllowedToModifyConstraints, Pallet as ConstraintsPallet};
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
-    use sp_runtime::{
-        traits::{DispatchInfoOf, Saturating, SignedExtension},
-        transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
-    };
-    use sp_std::{fmt::Debug, vec};
+    use sp_runtime::traits::Saturating;
+    use sp_std::vec;
 
     pub use crate::weights::WeightInfo;
     /// Configure the pallet by specifying the parameters and types on which it depends.
@@ -202,7 +198,7 @@ pub mod pallet {
     /// `sig_request`: signature request for user
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::weight((<T as Config>::WeightInfo::prep_transaction(MaxValidators::<T>::get() / SIGNING_PARTY_SIZE as u32), Pays::No))]
+        #[pallet::weight(<T as Config>::WeightInfo::prep_transaction(MaxValidators::<T>::get() / SIGNING_PARTY_SIZE as u32))]
         pub fn prep_transaction(
             origin: OriginFor<T>,
             sig_request: SigRequest,
@@ -303,7 +299,7 @@ pub mod pallet {
         /// Used by validators to confirm they have received a key-share from a user that is
         /// registering. After a validator from each partition confirms they have a
         /// keyshare, this should get the user to a `Registered` state
-        #[pallet::weight((T::DbWeight::get().writes(1), Pays::No))]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn confirm_register(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
@@ -359,7 +355,7 @@ pub mod pallet {
         /// Allows a validator to signal they have completed a signing batch
         /// `block_number`: block number for signing batch
         /// `failure`: index of any failures in all sig request arrays
-        #[pallet::weight((T::DbWeight::get().writes(1), Pays::No))]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn confirm_done(
             origin: OriginFor<T>,
             block_number: T::BlockNumber,
@@ -474,99 +470,6 @@ pub mod pallet {
 
             let prune_block = block_number.saturating_sub(T::PruneBlock::get());
             Responsibility::<T>::remove(prune_block);
-        }
-    }
-
-    /// Validate `attest` calls prior to execution. Needed to avoid a DoS attack since they are
-    #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
-    #[scale_info(skip_type_params(T))]
-    pub struct PrevalidateRelayer<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
-
-    impl<T: Config + Send + Sync> Debug for PrevalidateRelayer<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
-    {
-        #[cfg(feature = "std")]
-        fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-            write!(f, "PrevalidateRelayer")
-        }
-
-        #[cfg(not(feature = "std"))]
-        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
-    }
-
-    impl<T: Config + Send + Sync> PrevalidateRelayer<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
-    {
-        /// Create new `SignedExtension` to check runtime version.
-        pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
-    }
-
-    impl<T: Config + Send + Sync> SignedExtension for PrevalidateRelayer<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
-    {
-        type AccountId = T::AccountId;
-        type AdditionalSigned = ();
-        type Call = <T as frame_system::Config>::RuntimeCall;
-        type Pre = ();
-
-        const IDENTIFIER: &'static str = "PrevalidateRelayer";
-
-        fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
-            Ok(())
-        }
-
-        fn pre_dispatch(
-            self,
-            who: &Self::AccountId,
-            call: &Self::Call,
-            info: &DispatchInfoOf<Self::Call>,
-            len: usize,
-        ) -> Result<Self::Pre, TransactionValidityError> {
-            self.validate(who, call, info, len).map(|_| ())
-        }
-
-        // <weight>
-        // The weight of this logic is included in the `attest` dispatchable.
-        // </weight>
-        fn validate(
-            &self,
-            who: &Self::AccountId,
-            call: &Self::Call,
-            _info: &DispatchInfoOf<Self::Call>,
-            _len: usize,
-        ) -> TransactionValidity {
-            if let Some(local_call) = call.is_sub_type() {
-                if let Call::prep_transaction { .. } = local_call {
-                    Registered::<T>::get(who).ok_or(InvalidTransaction::Custom(1))?;
-                    // TODO apply filter logic
-                }
-
-                if let Call::register { .. } = local_call {
-                    // TODO ensure proof
-                }
-
-                if let Call::confirm_done { block_number, .. } = local_call {
-                    let responsibility = Responsibility::<T>::get(block_number)
-                        .ok_or(InvalidTransaction::Custom(2))?;
-                    let validator_id_res =
-                        <T as pallet_session::Config>::ValidatorId::try_from(responsibility)
-                            .or(Err(Error::<T>::InvalidValidatorId));
-                    ensure!(
-                        validator_id_res.is_ok(),
-                        TransactionValidityError::Invalid(InvalidTransaction::BadProof)
-                    );
-                    let validator_id =
-                        validator_id_res.expect("Issue converting account id into validator id");
-                    let server_info =
-                        pallet_staking_extension::Pallet::<T>::threshold_server(&validator_id)
-                            .ok_or(InvalidTransaction::Custom(3))?;
-                    ensure!(*who == server_info.tss_account, InvalidTransaction::Custom(4));
-                    let current_failures = Failures::<T>::get(block_number);
-                    ensure!(current_failures.is_none(), InvalidTransaction::Custom(5));
-                }
-            }
-            Ok(ValidTransaction::default())
         }
     }
 }
