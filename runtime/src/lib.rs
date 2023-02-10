@@ -36,6 +36,7 @@ use frame_support::{
     traits::{
         ConstU16, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
         InstanceFilter, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, U128CurrencyToVote,
+        WithdrawReasons,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -75,7 +76,7 @@ use sp_runtime::{
     curve::PiecewiseLinear,
     generic, impl_opaque_keys,
     traits::{
-        self, BlakeTwo256, Block as BlockT, ConvertInto, NumberFor, OpaqueKeys,
+        self, BlakeTwo256, Block as BlockT, Bounded, ConvertInto, NumberFor, OpaqueKeys,
         SaturatedConversion, StaticLookup,
     },
     transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
@@ -166,7 +167,7 @@ const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
 /// by  Operational  extrinsics.
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 /// We allow for 2 seconds of compute with a 6 second average block time.
-const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND.saturating_mul(2_u64);
+const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND.saturating_mul(2).set_proof_size(u64::MAX);
 
 pub const EXISTENTIAL_DEPOSIT: Balance = DOLLARS;
 
@@ -426,11 +427,17 @@ parameter_types! {
   pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
   pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(1, 100_000);
   pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000_000u128);
+  pub MaximumMultiplier: Multiplier = Bounded::max_value();
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-    type FeeMultiplierUpdate =
-        TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
+    type FeeMultiplierUpdate = TargetedFeeAdjustment<
+        Self,
+        TargetBlockFullness,
+        AdjustmentVariable,
+        MinimumMultiplier,
+        MaximumMultiplier,
+    >;
     type LengthToFee = IdentityFee<Balance>;
     type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
@@ -709,15 +716,13 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 }
 
 parameter_types! {
-  pub const LaunchPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;
-  pub const VotingPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;
-  pub const FastTrackVotingPeriod: BlockNumber = 3 * 24 * 60 * MINUTES;
-  pub const InstantAllowed: bool = true;
-  pub const MinimumDeposit: Balance = 100 * DOLLARS;
-  pub const EnactmentPeriod: BlockNumber = 30 * 24 * 60 * MINUTES;
-  pub const CooloffPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;
-  pub const MaxVotes: u32 = 100;
-  pub const MaxProposals: u32 = 100;
+    pub const LaunchPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;
+    pub const VotingPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;
+    pub const FastTrackVotingPeriod: BlockNumber = 3 * 24 * 60 * MINUTES;
+    pub const MinimumDeposit: Balance = 100 * DOLLARS;
+    pub const EnactmentPeriod: BlockNumber = 30 * 24 * 60 * MINUTES;
+    pub const CooloffPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;
+    pub const MaxProposals: u32 = 100;
 }
 
 impl pallet_democracy::Config for Runtime {
@@ -753,14 +758,14 @@ impl pallet_democracy::Config for Runtime {
     type InstantOrigin =
         pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>;
     type LaunchPeriod = LaunchPeriod;
+    type MaxBlacklisted = ConstU32<100>;
+    type MaxDeposits = ConstU32<100>;
     type MaxProposals = MaxProposals;
-    type MaxVotes = MaxVotes;
+    type MaxVotes = ConstU32<100>;
     // Same as EnactmentPeriod
     type MinimumDeposit = MinimumDeposit;
-    type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
     type PalletsOrigin = OriginCaller;
-    type PreimageByteDeposit = PreimageByteDeposit;
-    type Proposal = RuntimeCall;
+    type Preimages = Preimage;
     type RuntimeEvent = RuntimeEvent;
     type Scheduler = Scheduler;
     type Slash = Treasury;
@@ -938,19 +943,16 @@ impl pallet_tips::Config for Runtime {
 }
 
 parameter_types! {
-  pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
-    RuntimeBlockWeights::get().max_block;
-  // Retry a scheduled item every 10 blocks (1 minute) until the preimage exists.
-  pub const NoPreimagePostponement: Option<u32> = Some(10);
+    pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
+        RuntimeBlockWeights::get().max_block;
 }
 
 impl pallet_scheduler::Config for Runtime {
-    type MaxScheduledPerBlock = ConstU32<50>;
+    type MaxScheduledPerBlock = ConstU32<512>;
     type MaximumWeight = MaximumSchedulerWeight;
-    type NoPreimagePostponement = NoPreimagePostponement;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type PalletsOrigin = OriginCaller;
-    type PreimageProvider = Preimage;
+    type Preimages = Preimage;
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
     type RuntimeOrigin = RuntimeOrigin;
@@ -970,7 +972,6 @@ impl pallet_preimage::Config for Runtime {
     type ByteDeposit = PreimageByteDeposit;
     type Currency = Balances;
     type ManagerOrigin = EnsureRoot<AccountId>;
-    type MaxSize = PreimageMaxSize;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_preimage::weights::SubstrateWeight<Runtime>;
 }
@@ -1158,7 +1159,9 @@ impl pallet_society::Config for Runtime {
 }
 
 parameter_types! {
-  pub const MinVestedTransfer: Balance = 100 * DOLLARS;
+    pub const MinVestedTransfer: Balance = 100 * DOLLARS;
+    pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
+        WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
 }
 
 impl pallet_vesting::Config for Runtime {
@@ -1166,6 +1169,7 @@ impl pallet_vesting::Config for Runtime {
     type Currency = Balances;
     type MinVestedTransfer = MinVestedTransfer;
     type RuntimeEvent = RuntimeEvent;
+    type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
     type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
 
     // `VestingInfo` encode length is 36bytes. 28 schedules gets encoded as 1009 bytes, which is the
