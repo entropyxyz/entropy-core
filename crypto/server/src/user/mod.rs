@@ -12,7 +12,6 @@
 #![allow(unused_imports)]
 pub mod api;
 mod errors;
-pub(crate) mod unsafe_api;
 
 use std::{
     fs::File,

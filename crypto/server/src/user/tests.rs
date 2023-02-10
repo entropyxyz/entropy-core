@@ -20,12 +20,8 @@ use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     get_signer, load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
-    setup_mnemonic,
-    user::{
-        tests::entropy::runtime_types::entropy_shared::constraints::acl::Acl,
-        unsafe_api::UnsafeQuery,
-    },
-    utils,
+    r#unsafe::api::UnsafeQuery,
+    setup_mnemonic, utils,
     utils::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
     validator::api::get_random_server_info,
 };
@@ -55,48 +51,6 @@ async fn test_unsigned_tx_endpoint() {
     let response = client.post("/user/tx").header(ContentType::JSON).body(tx_req).dispatch().await;
     assert_eq!(response.status(), Status::Ok);
     clean_tests();
-}
-
-#[rocket::async_test]
-#[serial]
-async fn test_unsafe_get_endpoint() {
-    if cfg!(feature = "unsafe") {
-        let cxt = test_context_stationary().await;
-        let client = setup_client().await;
-        let get_query = UnsafeQuery::new("MNEMONIC".to_string(), "foo".to_string()).to_json();
-
-        // Test that the get endpoint works
-        let response = client
-            .post("/unsafe/get")
-            .header(ContentType::JSON)
-            .body(get_query.clone())
-            .dispatch()
-            .await;
-
-        assert_eq!(response.status(), Status::Ok);
-        let response_mnemonic = response.into_string().await.unwrap();
-        assert!(!response_mnemonic.is_empty());
-
-        // Update the mnemonic, testing the put endpoint works
-        let put_response = client
-            .post("/unsafe/put")
-            .header(ContentType::JSON)
-            .body(get_query.clone())
-            .dispatch()
-            .await;
-
-        assert_eq!(put_response.status(), Status::Ok);
-
-        // Check the updated mnemonic is the new value
-        let get_response =
-            client.post("/unsafe/get").header(ContentType::JSON).body(get_query).dispatch().await;
-
-        assert_eq!(get_response.status(), Status::Ok);
-        let updated_response_mnemonic = get_response.into_string().await.unwrap();
-        assert_eq!(updated_response_mnemonic, "foo".to_string());
-
-        clean_tests();
-    }
 }
 
 #[rocket::async_test]

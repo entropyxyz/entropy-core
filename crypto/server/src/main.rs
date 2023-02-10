@@ -22,6 +22,7 @@ pub(crate) mod chain_api;
 pub(crate) mod message;
 pub(crate) mod sign_init;
 mod signing_client;
+mod r#unsafe;
 mod user;
 mod utils;
 mod validator;
@@ -47,7 +48,7 @@ use self::{
 };
 use crate::{
     message::{derive_static_secret, mnemonic_to_pair},
-    user::unsafe_api::{delete, get, put, remove_keys},
+    r#unsafe::api::{delete, get, put, remove_keys},
     validator::api::{
         check_balance_for_fees, get_all_keys, get_and_store_values, sync_kvdb,
         tell_chain_syncing_is_done,
