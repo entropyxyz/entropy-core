@@ -308,7 +308,7 @@ async fn create_clients(
 
     let kv_store =
         KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
-    setup_mnemonic(&kv_store, is_alice, is_bob).await;
+    let _ = setup_mnemonic(&kv_store, is_alice, is_bob).await;
 
     // Shortcut: store the shares manually
     let root = project_root::get_project_root().unwrap();

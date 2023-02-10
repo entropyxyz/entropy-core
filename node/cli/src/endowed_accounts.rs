@@ -1,4 +1,4 @@
-// use hex_literal::hex;
+use hex_literal::hex;
 pub use node_primitives::AccountId;
 use sp_core::sr25519;
 
@@ -18,6 +18,8 @@ pub fn endowed_accounts_dev() -> Vec<AccountId> {
         get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
         get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
         get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+        hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"].into(),
+        hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"].into(),
     ]
 }
 
