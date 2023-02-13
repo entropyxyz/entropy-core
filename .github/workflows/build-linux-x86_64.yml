@@ -1,5 +1,6 @@
 name: linux-x86_64-gnu
 on:
+  push:
   pull_request:
   workflow_dispatch:
 
