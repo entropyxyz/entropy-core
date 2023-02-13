@@ -6,9 +6,11 @@ Our blockchain node is written with Substrate, and its documentation can be foun
 
 ## Getting Started
 
-### Rust Setup
+### Substrate Setup
 
-First, complete the [basic Rust setup instructions](./doc/rust-setup.md).
+Go through the [Substrate Developer Hub](https://substrate.dev/docs/en/knowledgebase/getting-started/) to get your machine set up for Substrate development with `entropy-core`.
+
+- https://docs.substrate.io/
 
 ### Build
 
@@ -75,72 +77,75 @@ by appending your own. A few useful ones are as follow.
 ## Testnet
 
 - Currently our network requires 2 binaries
-- ``` cargo build --release ``` will build both
+- `cargo build --release` will build both
 - to run both you can reference /scripts/sdk-entropy-node.sh for the chain and /scripts/sdk-alice-tss.sh for the threshold client
-
 
 ### changing defaults
 
-* all defaults are ready to go out the box but can be changed if needed with varying degrees of difficult
-- to change chain address away from default ws://127.0.0.1:9944 you need to inform the sig client which can be done with the env variable ```export ENDPOINT=```
-- To change the default of the sig client from ```http://127.0.0.1:3001/sign``` you need to tell the chain after it is running by making an rpc call. Example code can be found here ```https://github.com/entropyxyz/util-scripts/blob/master/setEndpoint.ts```. You also need to maintain the route as /sign
+- all defaults are ready to go out the box but can be changed if needed with varying degrees of difficult
+
+* to change chain address away from default ws://127.0.0.1:9944 you need to inform the sig client which can be done with the env variable `export ENDPOINT=`
+* To change the default of the sig client from `http://127.0.0.1:3001/sign` you need to tell the chain after it is running by making an rpc call. Example code can be found here `https://github.com/entropyxyz/util-scripts/blob/master/setEndpoint.ts`. You also need to maintain the route as /sign
 
 ## Threshold keys
 
-* keys for internal testnet use only, not secure, here for convience do not use them for anything real
+- keys for internal testnet use only, not secure, here for convience do not use them for anything real
 
 Alice
 Secret phrase `alarm mutual concert decrease hurry invest culture survey diagram crash snap click` is account:
- Network ID/version: substrate
-  Secret seed:        0x29b55504652cedded9ce0ee1f5a25b328ae6c6e97827f84eee6315d0f44816d8
-  Public key (hex):   0xe0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876
-  Account ID:         0xe0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876
-  SS58 Address:       5H8qc7f4mXFY16NBWSB9qkc6pTks98HdVuoQTs1aova5fRtN
+Network ID/version: substrate
+Secret seed: 0x29b55504652cedded9ce0ee1f5a25b328ae6c6e97827f84eee6315d0f44816d8
+Public key (hex): 0xe0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876
+Account ID: 0xe0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876
+SS58 Address: 5H8qc7f4mXFY16NBWSB9qkc6pTks98HdVuoQTs1aova5fRtN
 
 Bob
 Secret phrase `where sight patient orphan general short empower hope party hurt month voice` is account:
-  Network ID/version: substrate
-  Secret seed:        0xb0b5348db82db32d10a37b578e4c6242e148f14648661dccf8b3002fafa72cdd
-  Public key (hex):   0x2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f
-  Account ID:         0x2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f
-  SS58 Address:       5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV
+Network ID/version: substrate
+Secret seed: 0xb0b5348db82db32d10a37b578e4c6242e148f14648661dccf8b3002fafa72cdd
+Public key (hex): 0x2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f
+Account ID: 0x2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f
+SS58 Address: 5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV
 
 ## Running Devnet
 
-* devnet requires 2 validator nodes, 2 threshold clients running on the same machine
+- devnet requires 2 validator nodes, 2 threshold clients running on the same machine
 
-- open 5 terminals lol
+* open 5 terminals lol
 
-- In terminal 1 set up chain 1
-  - ```cargo build --release```
-  - ```./scripts/alice.sh```
+* In terminal 1 set up chain 1
 
-- In terminal 2 run alice threshold client
-  - ```cargo build --release --features="alice unsafe"```
-  - ```./scripts/server.sh```
+  - `cargo build --release`
+  - `./scripts/alice.sh`
 
-- In termainl 3 run chain 2
-  - ```./scripts/bob.sh```
+* In terminal 2 run alice threshold client
 
-- In termainl 5run bob threshold client
-  - ```cargo build --release --features="bob unsafe"```
-  - ```./scripts/server_bob.sh```
+  - `cargo build --release --features="alice unsafe"`
+  - `./scripts/server.sh`
+
+* In termainl 3 run chain 2
+
+  - `./scripts/bob.sh`
+
+* In termainl 5run bob threshold client
+  - `cargo build --release --features="bob unsafe"`
+  - `./scripts/server_bob.sh`
 
 With all 4 nodes running the chain is now working, next we now have a clash where both chains by default send their OCW messages to port 3001, you need to change one of those
 
 - from this repo <https://github.com/entropyxyz/util-scripts>
   - need to setup the repo and link the wasm first
-  - ```cd pkg```
-  - ```npm link```
-  - ```cd ..```
-  - ```npm link x25519-chacha20poly1305-wasm```
+  - `cd pkg`
+  - `npm link`
+  - `cd ..`
+  - `npm link x25519-chacha20poly1305-wasm`
 - run setEndpoint.ts
-  - ```ts-node setEndpoint.ts```
+  - `ts-node setEndpoint.ts`
 
 next register
 
-- ```ts-node register.ts```
+- `ts-node register.ts`
 
 now you can sign
 
-- ```ts-node sign.ts```
+- `ts-node sign.ts`
