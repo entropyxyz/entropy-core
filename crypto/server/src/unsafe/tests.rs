@@ -1,11 +1,9 @@
-use hex_literal::hex as h;
 use kvdb::clean_tests;
 use rocket::{
     http::{ContentType, Status},
     local::asynchronous::Client,
 };
 use serial_test::serial;
-use testing_utils::context::test_context_stationary;
 
 use super::api::UnsafeQuery;
 
@@ -16,7 +14,6 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 #[rocket::async_test]
 #[serial]
 async fn test_unsafe_get_endpoint() {
-    let cxt = test_context_stationary().await;
     let client = setup_client().await;
     let get_query = UnsafeQuery::new("MNEMONIC".to_string(), "foo".to_string()).to_json();
 

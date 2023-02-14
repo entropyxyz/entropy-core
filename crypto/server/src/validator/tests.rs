@@ -1,40 +1,30 @@
-use std::{fs, path::PathBuf};
-
 use bip39::{Language, Mnemonic};
 use entropy_shared::MIN_BALANCE;
 use hex_literal::hex;
-use kvdb::{
-    clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
-};
-use rocket::{
-    http::{ContentType, Status},
-    local::asynchronous::Client,
-    tokio::time::{sleep, Duration},
-    Ignite, Rocket,
-};
+use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
+use rocket::{http::ContentType, local::asynchronous::Client, Ignite, Rocket};
 use serial_test::serial;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
-use sp_keyring::AccountKeyring;
-use subxt::tx::{PairSigner, Signer};
+use subxt::tx::PairSigner;
 use testing_utils::context::test_context;
 use x25519_dalek::PublicKey;
 
-use super::{
-    api::{
-        check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info,
-        sync_kvdb, tell_chain_syncing_is_done, Keys,
-    },
-    errors::ValidatorErr,
+use super::api::{
+    check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info, sync_kvdb,
+    tell_chain_syncing_is_done, Keys,
 };
 use crate::{
-    chain_api::{entropy, get_api, EntropyConfig},
-    message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
-    new_user, setup_mnemonic,
-    signing_client::SignerState,
-    user::api::get_subgroup,
-    utils::{
-        Configuration, SignatureState, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+    chain_api::{get_api, EntropyConfig},
+    helpers::{
+        launch::{
+            setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+        },
+        signing::SignatureState,
+        validator::get_subgroup,
     },
+    message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
+    new_user,
+    signing_client::SignerState,
 };
 
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
@@ -97,9 +87,6 @@ async fn test_get_all_keys_fail() {
 async fn test_get_no_safe_crypto_error() {
     clean_tests();
 
-    let cxt = test_context().await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-
     let addrs = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
         "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
@@ -145,9 +132,6 @@ async fn test_get_no_safe_crypto_error() {
 #[serial]
 async fn test_get_safe_crypto_error() {
     clean_tests();
-
-    let cxt = test_context().await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let addrs: Vec<&[u8]> = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".as_bytes(),
@@ -198,7 +182,7 @@ async fn test_get_and_store_values() {
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
     let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().unwrap();
-    let server_info = get_random_server_info(&api, &signer_alice, my_subgroup).await.unwrap();
+    let server_info = get_random_server_info(&api, my_subgroup).await.unwrap();
     let recip_key = x25519_dalek::PublicKey::from(server_info.x25519_public_key);
     let keys = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
@@ -244,7 +228,7 @@ async fn test_get_random_server_info() {
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
     let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().unwrap();
 
-    let result = get_random_server_info(&api, &signer_alice, my_subgroup).await.unwrap();
+    let result = get_random_server_info(&api, my_subgroup).await.unwrap();
 
     assert_eq!("127.0.0.1:3001".as_bytes().to_vec(), result.endpoint);
     clean_tests();
@@ -310,17 +294,9 @@ async fn create_clients(
         KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     let _ = setup_mnemonic(&kv_store, is_alice, is_bob).await;
 
-    // Shortcut: store the shares manually
-    let root = project_root::get_project_root().unwrap();
-    let share_id = i32::from(port != 3001);
-    let path: PathBuf =
-        [root, "test_data".into(), "key_shares".into(), share_id.to_string().into()]
-            .into_iter()
-            .collect();
-
     for (i, value) in values.into_iter().enumerate() {
         let reservation = kv_store.clone().kv().reserve_key(keys[i].to_string()).await.unwrap();
-        let result = kv_store.clone().kv().put(reservation, value).await;
+        let _ = kv_store.clone().kv().put(reservation, value).await;
     }
 
     let result = rocket::custom(config)

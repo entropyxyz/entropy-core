@@ -1,9 +1,5 @@
 //! Errors for everyone ✅
-use std::{
-    collections::HashMap,
-    io::Cursor,
-    sync::{MutexGuard, PoisonError},
-};
+use std::io::Cursor;
 
 use kvdb::kv_manager::error::InnerKvError;
 use rocket::{
@@ -14,7 +10,6 @@ use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
 use super::SigningMessage;
-use crate::signing_client::subscribe::Listener;
 // #[derive(Responder, Debug, Error)]
 // #[response(status = 418, content_type = "json")]
 /// Errors for the `new_party` API
@@ -33,8 +28,6 @@ pub enum SigningErr {
     TryFrom(#[from] std::array::TryFromSliceError),
     #[error("Decoding Error: {0}")]
     Bincode(#[from] Box<bincode::ErrorKind>),
-    #[error("Mutex Error: {0}")]
-    MutexError(&'static str),
     // Validation(&'static str),
     #[error("Oneshot timeout error: {0}")]
     OneshotTimeout(#[from] RecvError),
@@ -79,8 +72,6 @@ pub enum SubscribeErr {
 // todo: delete
 #[derive(Debug, Error)]
 pub enum SigningMessageError {
-    #[error("No ':' to split")]
-    BadSplit,
     #[error("Utf8Error: {0:?}")]
     Utf8(#[from] std::str::Utf8Error),
     #[error("Deserialization Error: {0:?}")]
