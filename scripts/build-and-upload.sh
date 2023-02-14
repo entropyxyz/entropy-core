@@ -16,7 +16,7 @@ mkdir -p $fn
 rustup show
 rustup target add wasm32-unknown-unknown
 rustup target add $ARCH
-cargo build -p entropy --target $ARCH --release 
+cargo build -p entropy --release 
 cargo build -p server --target $ARCH --release
 
 mv "target/${ARCH}/release/entropy" "target/${ARCH}/release/server" $fn
