@@ -47,8 +47,20 @@ async fn test_unsigned_tx_endpoint() {
     clean_tests();
     let cxt = test_context_stationary().await;
     let client = setup_client().await;
-    let tx_req = r#"{"tx":{"to":"0x772b9a9e8aa1c9db861c6611a82d251db4fac990","value":{"type":"BigNumber","hex":"0x64"},"chainId":5,"gasPrice":{"type":"BigNumber","hex":"0x45d964b800"},"gasLimit":{"type":"BigNumber","hex":"0x07c830"},"nonce":5,"data":"0x6d656f77","type":0},"hash":"b31312f9f26bdb33357e63eec6095dae8ae5ae1e6a8a2f1f2170b78f9c28ad09"}"#;
-    let response = client.post("/user/tx").header(ContentType::JSON).body(tx_req).dispatch().await;
+
+    let arch = r#"evm"#;
+    // encoded_tx_req comes from ethers serializeTransaction() of the following UnsignedTransaction:
+    // {"to":"0x772b9a9e8aa1c9db861c6611a82d251db4fac990","value":{"type":"BigNumber","hex":"0x01"},"chainId":1,"nonce":1,"data":"0x43726561746564204f6e20456e74726f7079"}
+    // See frontend threshold-server tests for more context
+    let encoded_tx_req = r#"0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080"#;
+    let tx_req = serde_json::json!({
+        "arch": arch,
+        "encoded_tx_req": encoded_tx_req,
+    });
+    println!("tx_req: {:?}\n", tx_req.clone());
+
+    let response = client.post("/user/tx").header(ContentType::JSON).body(tx_req.to_string()).dispatch().await;
+    println!("response: {:?}\n", response);
     assert_eq!(response.status(), Status::Ok);
     clean_tests();
 }

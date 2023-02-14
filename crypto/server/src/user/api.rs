@@ -1,7 +1,7 @@
 use bip39::{Language, Mnemonic};
-use entropy_constraints::tx::evm::Evm;
+use entropy_constraints::{Evm, Architecture, Parse};
 use entropy_shared::{
-    types::{Acl, AclKind, Architecture, BasicTransaction},
+    types::{Acl, AclKind, Arch},
     SIGNING_PARTY_SIZE,
 };
 use kvdb::kv_manager::{
@@ -37,30 +37,46 @@ use crate::{
     Configuration,
 };
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct EVMUserTx {
-    tx: BasicTransaction<Evm>,
-    hash: String,
+/// Represents an unparsed, transaction request coming from the client.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct RawTransactionRequest {
+    /// 'eth', etc.
+    pub arch: String,
+    /// ETH: RLP encoded transaction request
+    pub encoded_tx_req: String,
 }
 
 /// TODO: Add block based removal for unsigned transactions in the KVDB.
 /// https://github.com/entropyxyz/entropy-core/issues/248
 /// Maps a tx hash -> unsigned transaction in the kvdb.
-#[post("/tx", format = "json", data = "<tx>")]
+#[post("/tx", format = "json", data = "<raw_tx_req>")]
 pub async fn store_tx(
-    tx: Json<EVMUserTx>,
+    raw_tx_req: Json<RawTransactionRequest>,
     state: &State<KvManager>,
     config: &State<Configuration>,
 ) -> Result<Status, UserErr> {
-    // TODO: the type used for transactions in the constraints lib
-    // does not contain all the fields of an actual ETH transaction
-    // so we don't have a way to validate the hash.
-    if tx.hash.len() != 64 {
-        return Err(UserErr::Parse("hash.len() != 64"));
+    println!("/tx: raw_tx_req is {:?}\n", raw_tx_req.clone());
+    // validate the transaction request and get its messages hash
+    match raw_tx_req.arch.as_str() {
+        "evm" => {
+            let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(raw_tx_req.encoded_tx_req.clone()).map_err(|_| UserErr::Parse("Unable to parse `encoded_tx_req`"))?;
+            println!("parsed_tx!: {:?}\n", parsed_tx);
+            // let hash = tx.hash();
+            // println!("hash: {:?}\n", hash);
+        }
+        _ => {
+            return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
+        }
     }
-    let val = serde_json::to_string(&tx.clone().0)?.into_bytes();
-    let reservation = state.kv().reserve_key(tx.hash.clone()).await?;
-    state.kv().put(reservation, val).await?;
+
+    // store req in the database
+    // let val = serde_json::to_string(&tx)?.into_bytes();
+    // let reservation = state.kv().reserve_key(hash).await?;
+    // state.kv().put(reservation, val).await?;
+
+    // let val = serde_json::to_string(&tx.clone().0)?.into_bytes();
+    // let reservation = state.kv().reserve_key(tx.hash.clone()).await?;
+    // state.kv().put(reservation, val).await?;
     Ok(Status::Ok)
 }
 /// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.

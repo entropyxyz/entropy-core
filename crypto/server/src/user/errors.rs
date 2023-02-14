@@ -10,6 +10,8 @@ use thiserror::Error;
 
 use crate::chain_api::entropy;
 
+use entropy_constraints::Error as ConstraintsError;
+
 #[derive(Debug, Error)]
 pub enum UserErr {
     #[error("Parse error: {0}")]
@@ -36,9 +38,10 @@ pub enum UserErr {
     NotRegistering(&'static str),
     #[error("Subgroup error: {0}")]
     SubgroupError(&'static str),
-    // Other(&'static str),
     #[error("Invalid Signature: {0}")]
     InvalidSignature(&'static str),
+    #[error("Constraints error: {0}")]
+    ConstraintsError(#[from] ConstraintsError),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {

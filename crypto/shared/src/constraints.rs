@@ -1,44 +1,19 @@
-// use frame_support::*;
-pub use acl::*;
+use serde::{Deserialize, Serialize};
 use codec::{Decode, Encode};
+
 use frame_support::pallet_prelude::*;
 use scale_info::TypeInfo;
-use serde::{Deserialize, Serialize};
-use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
 pub use sp_core::{H160, H256};
 use sp_std::{fmt::Debug, vec::Vec};
 
+pub use acl::*;
+
 /// Supported architectures.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, TypeInfo)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, Serialize, Deserialize, TypeInfo)]
 pub enum Arch {
     Evm,
+    /// Not yet supported on the client, supported in Substrate storage/ACL
     Btc,
-    Generic,
-}
-
-/// Trait that defines types for the architecture for a transaction.
-pub trait Architecture: Serialize + for<'de> Deserialize<'de> {
-    /// Account type for that chain(SS58, H160, etc)
-    type Address: Eq + Serialize + for<'de> Deserialize<'de>;
-    type TransactionRequest: HasSender<Self>
-        + HasReceiver<Self>
-        + Serialize
-        + for<'de> Deserialize<'de>;
-}
-
-/// Trait for getting the the sender of a transaction.
-pub trait HasSender<A: Architecture + ?Sized> {
-    fn sender(&self) -> Option<A::Address>;
-}
-
-/// Trait for getting the the receiver of a transaction.
-pub trait HasReceiver<A: Architecture + ?Sized> {
-    fn receiver(&self) -> Option<A::Address>;
-}
-
-/// Trait for getting the Arch of a transaction.
-pub trait HasArch {
-    fn arch() -> Arch;
 }
 
 /// Represents a user's constraints
@@ -46,14 +21,6 @@ pub trait HasArch {
 pub struct Constraints {
     pub evm_acl: Option<Acl<H160>>,
     pub btc_acl: Option<Acl<H256>>,
-}
-
-/// Basic transaction that has a sender and receiver with single accounts.
-/// TODO remove this and compose Constraints using trait bounds (eg. HasSender + HasReceiver, etc)
-#[derive(Default, Debug, Clone, PartialEq, SerializeDerive, DeserializeDerive)]
-pub struct BasicTransaction<A: Architecture> {
-    pub from: Option<A::Address>,
-    pub to: Option<A::Address>,
 }
 
 /// This includes common types and functions related to using ACL functionality.
