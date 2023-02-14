@@ -1,6 +1,6 @@
 use entropy_shared::{Acl, AclKind};
 
-use crate::{Evaluate, Evm, utils::parse_tx_request_json, Architecture};
+use crate::{utils::parse_tx_request_json, Architecture, Evaluate, Evm};
 
 #[test]
 fn should_parse_json_evm_tx_request() {

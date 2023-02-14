@@ -1,12 +1,10 @@
-use serde::{Deserialize, Serialize};
+pub use acl::*;
 use codec::{Decode, Encode};
-
 use frame_support::pallet_prelude::*;
 use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
 pub use sp_core::{H160, H256};
 use sp_std::{fmt::Debug, vec::Vec};
-
-pub use acl::*;
 
 /// Supported architectures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, Serialize, Deserialize, TypeInfo)]

@@ -1,11 +1,10 @@
 //! This includes the supported architectures and traits for adding new ones.
 
 use entropy_shared::Arch;
-use crate::Error;
-
+pub use evm::*;
 use serde::{Deserialize, Serialize};
 
-pub use evm::*;
+use crate::Error;
 
 /// Trait for defining important types associated with an architecture.
 pub trait Architecture: Serialize + for<'de> Deserialize<'de> {
@@ -41,10 +40,13 @@ pub trait GetArch {
 
 /// EVM architecture
 pub mod evm {
-    use super::*;
     use ethers_core::types::NameOrAddress;
-    pub use ethers_core::types::{Address as EvmAddress, transaction::request::TransactionRequest as EvmTransactionRequest};
+    pub use ethers_core::types::{
+        transaction::request::TransactionRequest as EvmTransactionRequest, Address as EvmAddress,
+    };
     use rlp::Rlp;
+
+    use super::*;
 
     #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
     pub struct Evm;
@@ -55,9 +57,7 @@ pub mod evm {
     }
 
     impl GetSender<Evm> for <Evm as Architecture>::TransactionRequest {
-        fn sender(&self) -> Option<<Evm as Architecture>::Address> {
-            self.from
-        }
+        fn sender(&self) -> Option<<Evm as Architecture>::Address> { self.from }
     }
 
     impl GetReceiver<Evm> for <Evm as Architecture>::TransactionRequest {
@@ -65,7 +65,8 @@ pub mod evm {
             match &self.to {
                 Some(to) => match to {
                     NameOrAddress::Address(addr) => Some(addr.to_owned()),
-                    // This should never get returned because we Error on ENS names in the `parse` function
+                    // This should never get returned because we Error on ENS names in the `parse`
+                    // function
                     NameOrAddress::Name(_) => None,
                 },
                 None => None,
@@ -74,22 +75,28 @@ pub mod evm {
     }
 
     impl GetArch for <Evm as Architecture>::TransactionRequest {
-        fn arch() -> Arch {
-            Arch::Evm
-        }
+        fn arch() -> Arch { Arch::Evm }
     }
 
     impl Parse<Evm> for <Evm as Architecture>::TransactionRequest {
-        fn parse(hex_rlp_raw_tx: String) -> Result<<Evm as Architecture>::TransactionRequest, Error> {
-            let bytes = hex::decode(hex_rlp_raw_tx.replace("0x", "").clone()).map_err(|e| Error::InvalidTransactionRequest(format!("Unable to parse to RLP: {}", e)))?;
+        fn parse(
+            hex_rlp_raw_tx: String,
+        ) -> Result<<Evm as Architecture>::TransactionRequest, Error> {
+            let bytes = hex::decode(hex_rlp_raw_tx.replace("0x", "").clone()).map_err(|e| {
+                Error::InvalidTransactionRequest(format!("Unable to parse to RLP: {}", e))
+            })?;
             let rlp = Rlp::new(&bytes);
             match Self::decode_unsigned_rlp(&rlp) {
                 Ok(tx) => match tx.to {
-                    // Clients shouldn't even be able to serialize tx reqs with ENS names, but it it does somehow, err
-                    Some(NameOrAddress::Name(_)) => Err(Error::InvalidTransactionRequest("ENS recipients not supported. Resolve to an address first.".to_string())),
+                    // Clients shouldn't even be able to serialize tx reqs with ENS names, but it it
+                    // does somehow, err
+                    Some(NameOrAddress::Name(_)) => Err(Error::InvalidTransactionRequest(
+                        "ENS recipients not supported. Resolve to an address first.".to_string(),
+                    )),
                     _ => Ok(tx),
                 },
-                Err(e) => Err(Error::InvalidTransactionRequest(format!("Unable to decode string: {}", e))),
+                Err(e) =>
+                    Err(Error::InvalidTransactionRequest(format!("Unable to decode string: {}", e))),
             }
         }
     }
@@ -106,8 +113,10 @@ pub mod evm {
             let raw_tx = "0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080".to_string();
             let tx = EvmTransactionRequest::parse(raw_tx).unwrap();
             assert_eq!(tx.sender(), None);
-            assert_eq!(tx.receiver(), Some(EvmAddress::from_str("772b9a9e8aa1c9db861c6611a82d251db4fac990").unwrap())); // manually removed the 0x
+            assert_eq!(
+                tx.receiver(),
+                Some(EvmAddress::from_str("772b9a9e8aa1c9db861c6611a82d251db4fac990").unwrap())
+            ); // manually removed the 0x
         }
-}
-
+    }
 }

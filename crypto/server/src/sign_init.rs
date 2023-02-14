@@ -1,6 +1,6 @@
 //! Message sent by the Communication Manager to Signing Clients on protocol initiation.
-use serde::{Deserialize, Serialize};
 use entropy_shared::Message;
+use serde::{Deserialize, Serialize};
 
 pub type MessageDigest = tofn::gg20::sign::MessageDigest;
 

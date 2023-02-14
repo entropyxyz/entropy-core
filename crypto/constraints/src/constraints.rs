@@ -1,7 +1,8 @@
 //! Contains the traits and implementations of each supported constraint.
 
-use crate::{Error, BasicTransaction, Architecture};
 use entropy_shared::{Acl, AclKind};
+
+use crate::{Architecture, BasicTransaction, Error};
 
 /// Constraints must implement an evaluation trait that parses.
 pub trait Evaluate<A: Architecture> {

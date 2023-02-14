@@ -3,13 +3,13 @@ use thiserror::Error;
 #[cfg(test)]
 mod tests;
 
-pub mod constraints;
 pub mod architectures;
+pub mod constraints;
 pub mod tx;
 pub mod utils;
 
-pub use constraints::*;
 pub use architectures::*;
+pub use constraints::*;
 pub use tx::*;
 pub use utils::*;
 

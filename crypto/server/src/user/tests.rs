@@ -50,8 +50,9 @@ async fn test_unsigned_tx_endpoint() {
 
     let arch = r#"evm"#;
     // encoded_tx_req comes from ethers serializeTransaction() of the following UnsignedTransaction:
-    // {"to":"0x772b9a9e8aa1c9db861c6611a82d251db4fac990","value":{"type":"BigNumber","hex":"0x01"},"chainId":1,"nonce":1,"data":"0x43726561746564204f6e20456e74726f7079"}
-    // See frontend threshold-server tests for more context
+    // {"to":"0x772b9a9e8aa1c9db861c6611a82d251db4fac990","value":{"type":"BigNumber","hex":"0x01"},
+    // "chainId":1,"nonce":1,"data":"0x43726561746564204f6e20456e74726f7079"} See frontend
+    // threshold-server tests for more context
     let encoded_tx_req = r#"0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080"#;
     let tx_req = serde_json::json!({
         "arch": arch,
@@ -59,7 +60,8 @@ async fn test_unsigned_tx_endpoint() {
     });
     println!("tx_req: {:?}\n", tx_req.clone());
 
-    let response = client.post("/user/tx").header(ContentType::JSON).body(tx_req.to_string()).dispatch().await;
+    let response =
+        client.post("/user/tx").header(ContentType::JSON).body(tx_req.to_string()).dispatch().await;
     println!("response: {:?}\n", response);
     assert_eq!(response.status(), Status::Ok);
     clean_tests();

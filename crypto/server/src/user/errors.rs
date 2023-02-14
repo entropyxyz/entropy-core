@@ -2,6 +2,7 @@
 
 use std::io::Cursor;
 
+use entropy_constraints::Error as ConstraintsError;
 use rocket::{
     http::Status,
     response::{Responder, Response},
@@ -9,8 +10,6 @@ use rocket::{
 use thiserror::Error;
 
 use crate::chain_api::entropy;
-
-use entropy_constraints::Error as ConstraintsError;
 
 #[derive(Debug, Error)]
 pub enum UserErr {

@@ -1,5 +1,5 @@
 use bip39::{Language, Mnemonic};
-use entropy_constraints::{Evm, Architecture, Parse};
+use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{
     types::{Acl, AclKind, Arch},
     SIGNING_PARTY_SIZE,
@@ -59,14 +59,16 @@ pub async fn store_tx(
     // validate the transaction request and get its messages hash
     match raw_tx_req.arch.as_str() {
         "evm" => {
-            let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(raw_tx_req.encoded_tx_req.clone()).map_err(|_| UserErr::Parse("Unable to parse `encoded_tx_req`"))?;
+            let parsed_tx =
+                <Evm as Architecture>::TransactionRequest::parse(raw_tx_req.encoded_tx_req.clone())
+                    .map_err(|_| UserErr::Parse("Unable to parse `encoded_tx_req`"))?;
             println!("parsed_tx!: {:?}\n", parsed_tx);
             // let hash = tx.hash();
             // println!("hash: {:?}\n", hash);
-        }
+        },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
-        }
+        },
     }
 
     // store req in the database

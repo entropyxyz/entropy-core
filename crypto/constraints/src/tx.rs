@@ -1,9 +1,9 @@
 //! This module provides (un)signed transaction types and parsing utilities for each architecture,
 //! and traits for adding additional architectures to the constraints system.
 
-use crate::Architecture;
 use serde::{Deserialize, Serialize};
 
+use crate::Architecture;
 
 /// Basic transaction that has a sender and receiver with single accounts.
 /// TODO remove this and compose Constraints using trait bounds (eg. GetSender + GetReceiver, etc)
