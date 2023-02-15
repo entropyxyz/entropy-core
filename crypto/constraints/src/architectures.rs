@@ -126,7 +126,14 @@ pub mod evm {
         fn test_evm_parsed_sighash_matches_client() {
             // These are from from entropy-js threshold-server tests
             let raw_unsigned_tx = "0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080".to_string();
-            let known_expected_sighash: H256 = H256::from_slice(hex::decode("0xe62e139a15f27f3d5ba043756aaca2b6fe9597a95973befa36dbe6095ee16da2".replace("0x", "")).unwrap().as_slice());
+            let known_expected_sighash: H256 = H256::from_slice(
+                hex::decode(
+                    "0xe62e139a15f27f3d5ba043756aaca2b6fe9597a95973befa36dbe6095ee16da2"
+                        .replace("0x", ""),
+                )
+                .unwrap()
+                .as_slice(),
+            );
 
             let unsigned_tx = EvmTransactionRequest::parse(raw_unsigned_tx).unwrap();
             assert_eq!(unsigned_tx.sighash(), known_expected_sighash);

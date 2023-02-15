@@ -57,18 +57,21 @@ pub async fn store_tx(
 ) -> Result<Status, UserErr> {
     match generic_tx_req.arch.as_str() {
         "evm" => {
-            let parsed_tx =
-                <Evm as Architecture>::TransactionRequest::parse(generic_tx_req.transaction_request.clone())?;
+            let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
+                generic_tx_req.transaction_request.clone(),
+            )?;
             let sighash = parsed_tx.sighash();
 
             match state.kv().reserve_key(sighash.to_string()).await {
                 Ok(reservation) => {
-                    state.kv().put(reservation, generic_tx_req.transaction_request.clone().into()).await?;
-                }
-                // If the key is already reserved, then we can assume the transaction is already stored. 
-                Err(e) => {
-                    return Ok(Status::Ok)
-                }
+                    state
+                        .kv()
+                        .put(reservation, generic_tx_req.transaction_request.clone().into())
+                        .await?;
+                },
+                // If the key is already reserved, then we can assume the transaction is already
+                // stored.
+                Err(e) => return Ok(Status::Ok),
             }
         },
         _ => {
