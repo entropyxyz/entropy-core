@@ -1,34 +1,21 @@
 use std::str::FromStr;
 
-use hex_literal::hex;
-use kvdb::kv_manager::{
-    error::{InnerKvError, KvError},
-    value::PartyInfo,
-    KeyReservation, KvManager,
-};
-use parity_scale_codec::Decode;
+use kvdb::kv_manager::KvManager;
 use reqwest;
-use rocket::{
-    http::{ContentType, Status},
-    response::{self, content, stream::EventStream, Responder, Response},
-    serde::json::Json,
-    Shutdown, State,
-};
+use rocket::{serde::json::Json, State};
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair, Public};
+use sp_core::{crypto::AccountId32, sr25519, Bytes};
 use subxt::{tx::PairSigner, OnlineClient};
-use tokio::sync::{mpsc, oneshot};
 use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{
         entropy::{self, runtime_types::pallet_staking_extension::pallet::ServerInfo},
-        get_api, EntropyConfig,
+        EntropyConfig,
     },
     get_signer,
     message::SignedMessage,
     validator::errors::ValidatorErr,
-    Configuration,
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -48,7 +35,6 @@ pub struct Values {
 pub async fn sync_kvdb(
     keys: Json<Keys>,
     state: &State<KvManager>,
-    config: &State<Configuration>,
 ) -> Result<Json<Values>, ValidatorErr> {
     // TODO(JS): validate on chain that this user in your subgroup
     let sender = PublicKey::from(keys.sender);
@@ -88,7 +74,7 @@ pub async fn get_all_keys(
         // query the registered mapping in the relayer pallet
         let storage_address = subxt::dynamic::storage_root("Relayer", "Registered");
         let mut iter = api.storage().iter(storage_address, batch_size as u32, None).await?;
-        while let Some((key, account)) = iter.next().await? {
+        while let Some((key, _account)) = iter.next().await? {
             let new_key = hex::encode(key);
             let len = new_key.len();
             let final_key = &new_key[len - 64..];
@@ -113,7 +99,6 @@ pub async fn get_all_keys(
 /// Returns a random server from a given sub-group.
 pub async fn get_random_server_info(
     api: &OnlineClient<EntropyConfig>,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     my_subgroup: u8,
 ) -> Result<ServerInfo<AccountId32>, ValidatorErr> {
     let signing_group_addresses_query =

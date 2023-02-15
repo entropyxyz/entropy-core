@@ -4,8 +4,7 @@ mod message;
 
 use futures::{future, stream, stream::BoxStream, StreamExt};
 pub(super) use listener::Receiver;
-use reqwest_eventsource::{Error, Event, EventSource, RequestBuilderExt};
-use tokio::time::{sleep, Duration};
+use reqwest_eventsource::{Error, Event, RequestBuilderExt};
 
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
 use super::{new_party::SignContext, SigningErr, SigningMessage};

@@ -1,20 +1,19 @@
-use std::{io, str};
+use std::str;
 
 use entropy_shared::OCWMessage;
 use kvdb::kv_manager::KvManager;
 use parity_scale_codec::Decode;
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
-use subxt::ext::sp_runtime::AccountId32;
 use tracing::instrument;
 
 use crate::{
-    sign_init::{MessageDigest, SignInit},
+    helpers::signing::SignatureState,
+    sign_init::SignInit,
     signing_client::{
         new_party::{Channels, Gg20Service},
         subscribe::{subscribe_to_them, Listener, Receiver},
         SignerState, SigningErr, SubscribeErr, SubscribeMessage,
     },
-    utils::SignatureState,
 };
 
 const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;

@@ -1,10 +1,6 @@
 #![allow(clippy::all)]
 pub use subxt::config::PolkadotConfig as EntropyConfig;
-use subxt::{
-    config::Config,
-    tx::{PairSigner, SubstrateExtrinsicParams},
-    OnlineClient,
-};
+use subxt::OnlineClient;
 #[subxt::subxt(runtime_metadata_path = "entropy_metadata.scale")]
 pub mod entropy {}
 

@@ -1,13 +1,13 @@
 use bip39::Mnemonic;
 use blake2::{Blake2s256, Digest};
 use chacha20poly1305::{
-    aead::{self, Aead, AeadCore, Error, KeyInit, Nonce},
+    aead::{Aead, AeadCore, Error, KeyInit},
     ChaCha20Poly1305,
 };
 use rand_core::OsRng;
+#[cfg(test)]
 use rocket::serde::json::to_string;
 use serde::{Deserialize, Serialize};
-use sp_keyring::AccountKeyring;
 use subxt::ext::sp_core::{crypto::AccountId32, sr25519, sr25519::Signature, Bytes, Pair};
 use x25519_dalek::{PublicKey, StaticSecret};
 use zeroize::Zeroize;
@@ -91,12 +91,6 @@ impl SignedMessage {
     /// Returns the AccountId32 of the message signer.
     pub fn account_id(&self) -> AccountId32 { AccountId32::new(self.pk) }
 
-    /// Returns the public key of the message signer.
-    pub fn pk(&self) -> sr25519::Public { sr25519::Public::from_raw(self.pk) }
-
-    /// Returns the public DH parameter of the message recipient.
-    pub fn recipient(&self) -> x25519_dalek::PublicKey { x25519_dalek::PublicKey::from(self.recip) }
-
     /// Returns the public DH parameter of the message sender.
     pub fn sender(&self) -> x25519_dalek::PublicKey { x25519_dalek::PublicKey::from(self.a) }
 
@@ -110,11 +104,9 @@ impl SignedMessage {
         <sr25519::Pair as Pair>::verify(&self.sig, hash, &sr25519::Public(self.pk))
     }
 
+    #[cfg(test)]
     /// Returns a serialized json string of self.
     pub fn to_json(&self) -> String { to_string(self).unwrap() }
-
-    /// Deserializes a json blob into a SignedMessage
-    pub fn from_json(s: String) -> Self { rocket::serde::json::from_str(s.as_str()).unwrap() }
 }
 
 /// Derives a static secret from a sr25519 private key for usage in static Diffie-Hellman.
@@ -129,16 +121,17 @@ pub fn derive_static_secret(sk: &sr25519::Pair) -> x25519_dalek::StaticSecret {
     result
 }
 
+/// Derives a sr25519::Pair from a Mnemonic
+pub fn mnemonic_to_pair(m: &Mnemonic) -> sr25519::Pair {
+    <sr25519::Pair as Pair>::from_phrase(m.phrase(), None).unwrap().0
+}
+#[cfg(test)]
 /// Creates a new random Mnemonic.
 pub fn new_mnemonic() -> Mnemonic {
     Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English)
 }
 
-/// Derives a sr25519::Pair from a Mnemonic
-pub fn mnemonic_to_pair(m: &Mnemonic) -> sr25519::Pair {
-    <sr25519::Pair as Pair>::from_phrase(m.phrase(), None).unwrap().0
-}
-
+#[cfg(test)]
 pub fn to_bytes(b: &[u8]) -> Bytes { Bytes(b.to_vec()) }
 
 #[cfg(test)]
@@ -174,8 +167,6 @@ mod tests {
         let plaintext = Bytes(vec![69, 42, 0]);
 
         let alice = mnemonic_to_pair(&new_mnemonic());
-        let alice_secret = derive_static_secret(&alice);
-        let alice_public_key = PublicKey::from(&alice_secret);
 
         let bob = mnemonic_to_pair(&new_mnemonic());
         let bob_secret = derive_static_secret(&bob);

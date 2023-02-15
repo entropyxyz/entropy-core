@@ -45,13 +45,11 @@ branch          ="polkadot-v0.9.31"
 version         ='4.0.0-dev'
 
 [dependencies]
-pallet-authorship={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.31" }
 
 scale-info    ={ version="2.0.1", default-features=false, features=["derive"] }
 log           ={ version="0.4.0", default-features=false }
 sp-staking    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.31" }
 sp-io         ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
-lite-json     ={ version="0.1", default-features=false }
 sp-runtime    ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
 sp-std        ={ package="sp-std", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31", default-features=false }
 entropy-shared={ path="../../crypto/shared", default-features=false }
@@ -67,7 +65,6 @@ std=[
   'frame-support/std',
   'frame-system/std',
   'frame-benchmarking/std',
-  'pallet-authorship/std',
   "sp-io/std",
   "sp-runtime/std",
   # "pallet-relayer/std",
