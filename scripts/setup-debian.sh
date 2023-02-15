@@ -5,8 +5,8 @@ readonly tag="$(git tag|head -n 1)-$(git rev-parse --short HEAD)"
 readonly fn="$ARCH-$tag"
 
 # apt
-apt update  
-apt upgrade
+apt update -y
+apt upgrade -y
 apt install -y cmake pkg-config libssl-dev build-essential clang libclang-dev libgmp-dev unzip curl git zstd libzstd-dev libzstd1 libarchive-dev libarchive13
 
 # protocol buffers
