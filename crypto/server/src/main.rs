@@ -14,19 +14,14 @@
 //! ## Pieces Launched
 //! - Rocket server - Includes global state and mutex locked IPs
 //! - Sled DB KVDB
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(dead_code)]
-
 pub(crate) mod chain_api;
+mod helpers;
 pub(crate) mod message;
 pub(crate) mod sign_init;
 mod signing_client;
 mod r#unsafe;
 mod user;
-mod utils;
 mod validator;
-use bip39::{Language, Mnemonic, MnemonicType};
 use validator::api::get_random_server_info;
 
 #[macro_use]
@@ -35,19 +30,19 @@ use std::{string::String, thread, time::Duration};
 
 use clap::Parser;
 use entropy_shared::{MIN_BALANCE, SIGNING_PARTY_SIZE};
-use kvdb::kv_manager::{error::KvError, KeyReservation, KvManager};
 use rocket::routes;
-use sp_keyring::AccountKeyring;
-use subxt::ext::sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use self::{
     chain_api::get_api,
     signing_client::{api::*, SignerState},
     user::api::*,
-    utils::{init_tracing, load_kv_store, Configuration, SignatureState, StartupArgs},
 };
 use crate::{
-    message::{derive_static_secret, mnemonic_to_pair},
+    helpers::{
+        launch::{init_tracing, load_kv_store, setup_mnemonic, Configuration, StartupArgs},
+        signing::SignatureState,
+        validator::{get_signer, get_subgroup},
+    },
     r#unsafe::api::{delete, get, put, remove_keys},
     validator::api::{
         check_balance_for_fees, get_all_keys, get_and_store_values, sync_kvdb,
@@ -96,7 +91,7 @@ async fn rocket() -> _ {
             my_subgroup = Ok(get_subgroup(&api, &signer).await.expect("Failed to get subgroup."));
         }
         let sbgrp = my_subgroup.expect("Failed to get subgroup.").expect("failed to get subgroup");
-        let key_server_info = get_random_server_info(&api, &signer, sbgrp)
+        let key_server_info = get_random_server_info(&api, sbgrp)
             .await
             .expect("Issue getting registered keys from chain.");
         let ip_address =
@@ -128,61 +123,4 @@ async fn rocket() -> _ {
         .manage(signature_state)
         .manage(configuration)
         .manage(kv_store)
-}
-
-pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Result<(), KvError> {
-    // Check if a mnemonic exists in the kvdb.
-    let exists_result = kv.kv().exists("MNEMONIC").await.expect("issue querying DB");
-    if !exists_result {
-        // Generate a new mnemonic
-        let mut mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
-        // If using a test configuration then set to the default mnemonic.
-        if cfg!(test) {
-            mnemonic = Mnemonic::from_phrase(utils::DEFAULT_MNEMONIC, Language::English)
-                .expect("Issue creating Mnemonic");
-        }
-        if is_alice {
-            mnemonic = Mnemonic::from_phrase(utils::DEFAULT_ALICE_MNEMONIC, Language::English)
-                .expect("Issue creating Mnemonic");
-        }
-        if is_bob {
-            mnemonic = Mnemonic::from_phrase(utils::DEFAULT_BOB_MNEMONIC, Language::English)
-                .expect("Issue creating Mnemonic");
-        }
-
-        let phrase = mnemonic.phrase();
-        println!("[server-config]");
-        let pair = mnemonic_to_pair(&mnemonic);
-        let static_secret = derive_static_secret(&pair);
-        let dh_public = x25519_dalek::PublicKey::from(&static_secret);
-
-        let ss_reservation =
-            kv.kv().reserve_key("SHARED_SECRET".to_string()).await.expect("Issue reserving ss key");
-        kv.kv()
-            .put(ss_reservation, static_secret.to_bytes().to_vec())
-            .await
-            .expect("failed to update secret share");
-
-        let dh_reservation =
-            kv.kv().reserve_key("DH_PUBLIC".to_string()).await.expect("Issue reserving DH key");
-
-        kv.kv()
-            .put(dh_reservation, dh_public.to_bytes().to_vec())
-            .await
-            .expect("failed to update dh");
-        println!("dh_public_key={dh_public:?}");
-        let p = <sr25519::Pair as Pair>::from_phrase(phrase, None)
-            .expect("Issue getting pair from mnemonic");
-        let id = AccountId32::new(p.0.public().0);
-        println!("account_id={id}");
-
-        // Update the value in the kvdb
-        let reservation =
-            kv.kv().reserve_key("MNEMONIC".to_string()).await.expect("Issue reserving mnemonic");
-        kv.kv()
-            .put(reservation, phrase.as_bytes().to_vec())
-            .await
-            .expect("failed to update mnemonic");
-    }
-    Ok(())
 }

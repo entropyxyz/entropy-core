@@ -1,44 +1,22 @@
-use std::{
-    env, fs,
-    path::{Path, PathBuf},
-    str,
-    str::FromStr,
-    time,
-};
+use std::{fs, path::PathBuf};
 
-use bincode::Options;
 use entropy_shared::{Message, SigRequest};
-use kvdb::{
-    clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::value::KvManager,
-};
-use parity_scale_codec::{Decode, Encode};
-use rocket::{
-    http::{ContentType, Status},
-    local::asynchronous::Client,
-    tokio::time::{sleep, Duration},
-    Ignite, Rocket,
-};
+use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
+use parity_scale_codec::Encode;
+use rocket::{http::Status, tokio::time::Duration, Ignite, Rocket};
 use serial_test::serial;
-use sp_core::{crypto::AccountId32, sr25519::Pair as Sr25519Pair, Pair as Pair2};
 use sp_keyring::AccountKeyring;
-use subxt::{ext::sp_core::sr25519, tx::PairSigner};
-use testing_utils::context::{test_context, test_context_stationary};
-use tofn::{
-    gg20::keygen::{KeygenPartyId, SecretKeyShare},
-    sdk::api::PartyShareCounts,
-};
 
 use super::SignerState;
 use crate::{
-    drain, get_signature, new_party, new_user, subscribe_to_me,
-    user::{ParsedUserInputPartyInfo, UserInputPartyInfo},
-    utils::{Configuration, SignatureState, DEFAULT_ENDPOINT},
-    Message as SigMessage,
+    drain, get_signature,
+    helpers::{
+        launch::{Configuration, DEFAULT_ENDPOINT},
+        signing::SignatureState,
+        tests::setup_client,
+    },
+    new_party, new_user, subscribe_to_me, Message as SigMessage,
 };
-
-pub async fn setup_client() -> rocket::local::asynchronous::Client {
-    Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
-}
 
 #[rocket::async_test]
 #[serial]
@@ -57,7 +35,6 @@ async fn test_new_party() {
     // so we will give them a second for that.
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    let client = reqwest::Client::new();
     let ip_addresses: Vec<Vec<u8>> = vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()];
     let message: String = "00001111222233334444555566667777".to_string();
     let unencoded_data_1 = vec![
@@ -116,7 +93,7 @@ async fn test_new_party() {
 }
 
 #[rocket::async_test]
-#[ignore]
+#[serial]
 async fn new_party_fail_wrong_data() {
     // Construct a client to use for dispatching requests.
     let client = setup_client().await;
@@ -160,7 +137,7 @@ async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
     let v_serialized = fs::read(path).unwrap();
     let key = AccountKeyring::Alice.to_account_id();
     let reservation = kv_store.kv().reserve_key(key.to_string()).await.unwrap();
-    let result = kv_store.kv().put(reservation, v_serialized).await;
+    let _ = kv_store.kv().put(reservation, v_serialized).await;
 
     rocket::custom(config)
         .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])

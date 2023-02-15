@@ -45,7 +45,7 @@ impl Listener {
         }
     }
 
-    pub(crate) fn subscribe(&mut self, msg: &SubscribeMessage) -> Result<Receiver, SubscribeErr> {
+    pub(crate) fn subscribe(&mut self, _msg: &SubscribeMessage) -> Result<Receiver, SubscribeErr> {
         self.subscriber_count += 1;
         let rx = self.tx.subscribe();
         if self.subscriber_count == SIGNING_PARTY_SIZE {
