@@ -39,46 +39,42 @@ use crate::{
 
 /// Represents an unparsed, transaction request coming from the client.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
-pub struct RawTransactionRequest {
+pub struct GenericTransactionRequest {
     /// 'eth', etc.
     pub arch: String,
     /// ETH: RLP encoded transaction request
-    pub encoded_tx_req: String,
+    pub transaction_request: String,
 }
 
 /// TODO: Add block based removal for unsigned transactions in the KVDB.
 /// https://github.com/entropyxyz/entropy-core/issues/248
 /// Maps a tx hash -> unsigned transaction in the kvdb.
-#[post("/tx", format = "json", data = "<raw_tx_req>")]
+#[post("/tx", format = "json", data = "<generic_tx_req>")]
 pub async fn store_tx(
-    raw_tx_req: Json<RawTransactionRequest>,
+    generic_tx_req: Json<GenericTransactionRequest>,
     state: &State<KvManager>,
     config: &State<Configuration>,
 ) -> Result<Status, UserErr> {
-    println!("/tx: raw_tx_req is {:?}\n", raw_tx_req.clone());
-    // validate the transaction request and get its messages hash
-    match raw_tx_req.arch.as_str() {
+    match generic_tx_req.arch.as_str() {
         "evm" => {
             let parsed_tx =
-                <Evm as Architecture>::TransactionRequest::parse(raw_tx_req.encoded_tx_req.clone())
-                    .map_err(|_| UserErr::Parse("Unable to parse `encoded_tx_req`"))?;
-            println!("parsed_tx!: {:?}\n", parsed_tx);
-            // let hash = tx.hash();
-            // println!("hash: {:?}\n", hash);
+                <Evm as Architecture>::TransactionRequest::parse(generic_tx_req.transaction_request.clone())?;
+            let sighash = parsed_tx.sighash();
+
+            match state.kv().reserve_key(sighash.to_string()).await {
+                Ok(reservation) => {
+                    state.kv().put(reservation, generic_tx_req.transaction_request.clone().into()).await?;
+                }
+                // If the key is already reserved, then we can assume the transaction is already stored. 
+                Err(e) => {
+                    return Ok(Status::Ok)
+                }
+            }
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
         },
     }
-
-    // store req in the database
-    // let val = serde_json::to_string(&tx)?.into_bytes();
-    // let reservation = state.kv().reserve_key(hash).await?;
-    // state.kv().put(reservation, val).await?;
-
-    // let val = serde_json::to_string(&tx.clone().0)?.into_bytes();
-    // let reservation = state.kv().reserve_key(tx.hash.clone()).await?;
-    // state.kv().put(reservation, val).await?;
     Ok(Status::Ok)
 }
 /// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
