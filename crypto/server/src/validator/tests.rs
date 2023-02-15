@@ -2,7 +2,7 @@ use bip39::{Language, Mnemonic};
 use entropy_shared::MIN_BALANCE;
 use hex_literal::hex;
 use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
-use rocket::{http::ContentType, local::asynchronous::Client, Ignite, Rocket};
+use rocket::{http::ContentType, Ignite, Rocket};
 use serial_test::serial;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use subxt::tx::PairSigner;
@@ -20,16 +20,13 @@ use crate::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::SignatureState,
+        tests::setup_client,
         validator::get_subgroup,
     },
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
     new_user,
     signing_client::SignerState,
 };
-
-pub async fn setup_client() -> rocket::local::asynchronous::Client {
-    Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
-}
 
 #[rocket::async_test]
 #[serial]

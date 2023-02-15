@@ -5,7 +5,6 @@ use hex_literal::hex as h;
 use kvdb::clean_tests;
 use rocket::{
     http::{ContentType, Status},
-    local::asynchronous::Client,
     tokio::time::{sleep, Duration},
 };
 use serial_test::serial;
@@ -19,16 +18,15 @@ use super::UserInputPartyInfo;
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     get_signer,
-    helpers::launch::{setup_mnemonic, DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
+    helpers::{
+        launch::{setup_mnemonic, DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
+        tests::setup_client,
+    },
     load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     r#unsafe::api::UnsafeQuery,
     validator::api::get_random_server_info,
 };
-
-pub async fn setup_client() -> rocket::local::asynchronous::Client {
-    Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
-}
 
 #[rocket::async_test]
 #[serial]

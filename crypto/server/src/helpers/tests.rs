@@ -1,8 +1,14 @@
 use kvdb::clean_tests;
-use testing_utils::context::{test_context};
+use rocket::local::asynchronous::Client;
+use serial_test::serial;
+use sp_core::{sr25519, Pair};
+use subxt::tx::PairSigner;
+use testing_utils::context::test_context;
 
+use super::validator::get_subgroup;
 use crate::{
-    chain_api::{get_api},
+    chain_api::{get_api, EntropyConfig},
+    helpers::launch::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
 };
 pub async fn setup_client() -> rocket::local::asynchronous::Client {
     Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
@@ -13,7 +19,7 @@ pub async fn setup_client() -> rocket::local::asynchronous::Client {
 async fn test_get_signing_group() {
     clean_tests();
     let cxt = test_context().await;
-    let client = setup_client().await;
+    let _ = setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);

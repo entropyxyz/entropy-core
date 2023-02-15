@@ -1,15 +1,9 @@
 use kvdb::clean_tests;
-use rocket::{
-    http::{ContentType, Status},
-    local::asynchronous::Client,
-};
+use rocket::http::{ContentType, Status};
 use serial_test::serial;
 
 use super::api::UnsafeQuery;
-
-pub async fn setup_client() -> rocket::local::asynchronous::Client {
-    Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
-}
+use crate::helpers::tests::setup_client;
 
 #[rocket::async_test]
 #[serial]

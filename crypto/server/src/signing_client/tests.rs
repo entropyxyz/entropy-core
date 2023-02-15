@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf};
 use entropy_shared::{Message, SigRequest};
 use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
 use parity_scale_codec::Encode;
-use rocket::{http::Status, local::asynchronous::Client, tokio::time::Duration, Ignite, Rocket};
+use rocket::{http::Status, tokio::time::Duration, Ignite, Rocket};
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
 
@@ -13,13 +13,10 @@ use crate::{
     helpers::{
         launch::{Configuration, DEFAULT_ENDPOINT},
         signing::SignatureState,
+        tests::setup_client,
     },
     new_party, new_user, subscribe_to_me, Message as SigMessage,
 };
-
-pub async fn setup_client() -> rocket::local::asynchronous::Client {
-    Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
-}
 
 #[rocket::async_test]
 #[serial]
