@@ -80,6 +80,7 @@ pub async fn store_tx(
     }
     Ok(Status::Ok)
 }
+
 /// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
 #[post("/new", format = "json", data = "<msg>")]
 pub async fn new_user(

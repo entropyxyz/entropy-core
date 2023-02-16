@@ -229,7 +229,7 @@ async fn test_get_and_store_values() {
     for (i, key) in keys.iter().enumerate() {
         println!("!! -> -> RECEIVED KEY at IDX {} of value {:?}", i, key);
         let val = client1.1.kv().get(key).await;
-        assert_eq!(val.is_err(), false);
+        assert!(!val.is_err());
         assert_eq!(val.unwrap(), values[i]);
     }
     clean_tests();
@@ -260,12 +260,12 @@ async fn test_check_balance_for_fees() {
         hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
     let result = check_balance_for_fees(&api, &alice_stash_address, MIN_BALANCE).await.unwrap();
 
-    assert_eq!(result, true);
+    assert!(result);
 
     let result_2 = check_balance_for_fees(&api, &alice_stash_address, 10000000000000000000000u128)
         .await
         .unwrap();
-    assert_eq!(result_2, false);
+    assert!(!result_2);
 
     let random_account: AccountId32 =
         hex!["8676839ca1e196624106d17c56b1efbb90508a86d8053f7d4fcd21127a9f7565"].into();
