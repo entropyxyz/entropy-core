@@ -62,6 +62,7 @@ pub async fn store_tx(
             )?;
             let sighash = parsed_tx.sighash();
 
+            // Map the sighash to the serialize transaction request
             match state.kv().reserve_key(sighash.to_string()).await {
                 Ok(reservation) => {
                     state
