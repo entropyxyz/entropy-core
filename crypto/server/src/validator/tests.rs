@@ -229,7 +229,7 @@ async fn test_get_and_store_values() {
     for (i, key) in keys.iter().enumerate() {
         println!("!! -> -> RECEIVED KEY at IDX {} of value {:?}", i, key);
         let val = client1.1.kv().get(key).await;
-        assert!(!val.is_err());
+        assert!(val.is_ok());
         assert_eq!(val.unwrap(), values[i]);
     }
     clean_tests();
