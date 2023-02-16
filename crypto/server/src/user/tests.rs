@@ -50,10 +50,10 @@ async fn test_unsigned_tx_endpoint() {
     // {"to":"0x772b9a9e8aa1c9db861c6611a82d251db4fac990","value":{"type":"BigNumber","hex":"0x01"},
     // "chainId":1,"nonce":1,"data":"0x43726561746564204f6e20456e74726f7079"} See frontend
     // threshold-server tests for more context
-    let encoded_tx_req = r#"0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080"#;
+    let transaction_request = r#"0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080"#;
     let tx_req = serde_json::json!({
         "arch": arch,
-        "encoded_tx_req": encoded_tx_req,
+        "transaction_request": transaction_request,
     });
     println!("tx_req: {:?}\n", tx_req.clone());
 
