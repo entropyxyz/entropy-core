@@ -42,7 +42,7 @@ fi
 #LDFLAGS="-L/opt/homebrew/lib" 
 #CPPFLAGS="-I/opt/homebrew/include" 
 
-rustup target add wasm32-unknown-unknown
+rustup target add wasm32-unknown-unknown --toolchain nightly
 rustup target add $ARCH
 rustup show
 cargo build -p entropy --target $ARCH --release 
