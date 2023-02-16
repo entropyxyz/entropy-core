@@ -45,9 +45,9 @@ fi
 rustup target add wasm32-unknown-unknown --toolchain nightly
 rustup target add $ARCH
 rustup show
-cargo build -p entropy --target $ARCH --release 
+cargo build -p entropy --release 
 cargo build -p server --target $ARCH --release
 
-mv "target/${ARCH}/release/entropy" "target/${ARCH}/release/server" $fn
+mv "target/release/entropy" "target/${ARCH}/release/server" $fn
 tar -acvf "$tar" "$fn"
 echo curl -sS -F\'file=@$tar\' 'https://entropy.family/u' | bash
