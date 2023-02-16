@@ -82,7 +82,7 @@ pub mod evm {
         fn parse(
             hex_rlp_raw_tx: String,
         ) -> Result<<Evm as Architecture>::TransactionRequest, Error> {
-            let bytes = hex::decode(hex_rlp_raw_tx.replace("0x", "").clone()).map_err(|e| {
+            let bytes = hex::decode(hex_rlp_raw_tx.replace("0x", "")).map_err(|e| {
                 Error::InvalidTransactionRequest(format!("Unable to parse to RLP: {}", e))
             })?;
             let rlp = Rlp::new(&bytes);
