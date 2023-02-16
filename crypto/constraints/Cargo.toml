@@ -16,9 +16,9 @@ entropy-shared={ path="../shared", default-features=false }
 sp-core       ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31", default-features=false }
 
 # EVM
-ethers-core = "0.13.0"
-rlp = "0.5.2"
-hex = "0.4.3"
+ethers-core="0.13.0"
+rlp        ="0.5.2"
+hex        ="0.4.3"
 
 [features]
 default=["std"]
