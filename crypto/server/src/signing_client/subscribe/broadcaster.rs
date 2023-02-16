@@ -2,8 +2,7 @@
 
 use tokio::sync::broadcast::{self, error::SendError};
 
-use super::Listener;
-use crate::signing_client::{SigningErr, SigningMessage};
+use crate::signing_client::SigningMessage;
 
 #[derive(Debug)]
 pub struct Broadcaster(pub broadcast::Sender<SigningMessage>);

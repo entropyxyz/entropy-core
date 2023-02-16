@@ -5,7 +5,6 @@ use hex_literal::hex as h;
 use kvdb::clean_tests;
 use rocket::{
     http::{ContentType, Status},
-    local::asynchronous::Client,
     tokio::time::{sleep, Duration},
 };
 use serial_test::serial;
@@ -15,20 +14,19 @@ use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
 use testing_utils::context::{test_context, test_context_stationary, TestContext};
 use x25519_dalek::{PublicKey, StaticSecret};
 
-use super::{api::get_subgroup, UserInputPartyInfo};
+use super::UserInputPartyInfo;
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
-    get_signer, load_kv_store,
+    get_signer,
+    helpers::{
+        launch::{setup_mnemonic, DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
+        tests::setup_client,
+    },
+    load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     r#unsafe::api::UnsafeQuery,
-    setup_mnemonic, utils,
-    utils::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
     validator::api::get_random_server_info,
 };
-
-pub async fn setup_client() -> rocket::local::asynchronous::Client {
-    Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
-}
 
 #[rocket::async_test]
 #[serial]
@@ -45,7 +43,6 @@ async fn test_get_signer_does_not_throw_err() {
 #[serial]
 async fn test_unsigned_tx_endpoint() {
     clean_tests();
-    let cxt = test_context_stationary().await;
     let client = setup_client().await;
 
     let arch = r#"evm"#;
@@ -76,7 +73,6 @@ async fn test_store_share() {
     let alice_stash_id: AccountId32 =
         h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
 
-    let key: AccountId32 = alice.to_account_id();
     let value: Vec<u8> = vec![0];
 
     let cxt = test_context_stationary().await;
@@ -187,7 +183,6 @@ async fn test_update_keys() {
     if cfg!(feature = "unsafe") {
         clean_tests();
         let dave = AccountKeyring::Dave;
-        let alice = AccountKeyring::Alice;
         let alice_stash_id: AccountId32 =
             h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
 
@@ -207,11 +202,6 @@ async fn test_update_keys() {
         let server_public_key = PublicKey::from(res.x25519_public_key);
         let user_input =
             SignedMessage::new(&dave.pair(), &Bytes(new_value.clone()), &server_public_key)
-                .unwrap()
-                .to_json();
-
-        let user_input_alice =
-            SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
                 .unwrap()
                 .to_json();
 
@@ -280,7 +270,6 @@ async fn test_store_share_fail_wrong_data() {
     clean_tests();
     // Construct a client to use for dispatching requests.
     let client = setup_client().await;
-    let cxt = test_context_stationary().await;
     let response = client
         .post("/user/new")
         .header(ContentType::JSON)
@@ -297,31 +286,6 @@ async fn test_store_share_fail_wrong_data() {
     clean_tests();
 }
 
-#[rocket::async_test]
-#[serial]
-async fn test_get_signing_group() {
-    clean_tests();
-    let cxt = test_context().await;
-    let client = setup_client().await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
-    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let result_alice = get_subgroup(&api, &signer_alice).await.unwrap();
-    assert_eq!(result_alice, Some(0));
-
-    let p_bob = <sr25519::Pair as Pair>::from_string(DEFAULT_BOB_MNEMONIC, None).unwrap();
-    let signer_bob = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_bob);
-    let result_bob = get_subgroup(&api, &signer_bob).await.unwrap();
-    assert_eq!(result_bob, Some(1));
-
-    let p_charlie = <sr25519::Pair as Pair>::from_string("//Charlie//stash", None).unwrap();
-    let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
-    let result_charlie = get_subgroup(&api, &signer_charlie).await;
-    assert!(result_charlie.is_err());
-
-    clean_tests();
-}
-
 pub async fn make_register(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: &Sr25519Keyring,
@@ -330,8 +294,6 @@ pub async fn make_register(
     clean_tests();
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
-    let constraint_account =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(constraint_keyring.pair());
     let registering_query =
         entropy::storage().relayer().registering(sig_req_keyring.to_account_id());
     let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();
@@ -383,5 +345,5 @@ pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &Sr25
     let is_registering = api.storage().fetch(&registering_query, None).await.unwrap();
     // make sure there is one confirmation
     assert_eq!(is_registering.unwrap().confirmations.len(), 1);
-    let is_registered = api.storage().fetch(&registered_query, None).await.unwrap();
+    let _ = api.storage().fetch(&registered_query, None).await.unwrap();
 }

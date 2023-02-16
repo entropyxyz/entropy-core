@@ -4,13 +4,9 @@ use anyhow::anyhow;
 use futures::StreamExt;
 use tofn::{
     collections::TypedUsize,
-    sdk::api::{Protocol, ProtocolOutput, Round, TofnResult},
+    sdk::api::{Protocol, ProtocolOutput, Round},
 };
-use tokio::{
-    sync::mpsc::{UnboundedReceiver, UnboundedSender},
-    time::{sleep, Duration},
-};
-use tracing::{debug, error, instrument, span, warn, Level, Span};
+use tracing::{error, instrument};
 
 use crate::signing_client::{SigningErr, SigningMessage};
 
@@ -100,7 +96,7 @@ fn handle_outgoing<F, K, P, const MAX_MSG_IN_LEN: usize>(
     if let Some(p2ps_out) = round.p2ps_out() {
         for (i, p2p) in p2ps_out.iter() {
             // get tofnd index from tofn
-            let tofnd_idx = round
+            let _ = round
                 .info()
                 .party_share_counts()
                 .share_to_party_id(i)
@@ -119,7 +115,7 @@ async fn handle_incoming<F, K, P, const MAX_MSG_IN_LEN: usize>(
     message_cache: &mut Vec<SigningMessage>,
     party_uids: &[String],
     round_count: usize,
-    index: usize, // span: Span,
+    _index: usize, // span: Span,
 ) -> Result<(), SigningErr> {
     // loop until no more messages are needed for this round
     while round.expecting_more_msgs_this_round() {
