@@ -25,15 +25,13 @@ mkdir -p $fn
 
 if [ "$(identify_os)" == "Mac" ]; then
 	#export CFLAGS="$CFLAGS -target $ARCH"
-	export LIBRARY_PATH="$LIBRARY_PATH:$(brew --prefix)/lib"
-	export PATH="/opt/homebrew/bin:$PATH:$HOME/.cargo/bin"
-	export LDFLAGS="-L/opt/homebrew/lib L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libpng/lib -L/opt/homebrew/opt/zlib/lib -L/opt/homebrew/opt/gmp/lib"
-	export CPPFLAGS="-I/opt/homebrew/include -I/opt/homebrew/opt/llvm/include -L/opt/homebrew/opt/libpng/include -I/opt/homebrew/opt/zlib/include -I/opt/homebrew/opt/gmp/include"
+	export LIBRARY_PATH="$(brew --prefix)/lib"
+	export PATH="/opt/homebrew/opt/make/libexec/gnubin:/opt/homebrew/bin:$PATH:$HOME/.cargo/bin"
+	export LDFLAGS="-L/opt/homebrew/opt/curl/lib -L/opt/homebrew/lib L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libpng/lib -L/opt/homebrew/opt/zlib/lib -L/opt/homebrew/opt/gmp/lib"
+	export CPPFLAGS="-I/opt/homebrew/opt/curl/include -I/opt/homebrew/include -I/opt/homebrew/opt/llvm/include -L/opt/homebrew/opt/libpng/include -I/opt/homebrew/opt/zlib/include -I/opt/homebrew/opt/gmp/include"
 	export CC="/opt/homebrew/opt/llvm/bin/clang"
 	export AR="/opt/homebrew/opt/llvm/bin/llvm-ar"
 	export PKG_CONFIG_PATH="/opt/homebrew/opt/zlib/lib/pkgconfig"
-	export LDFLAGS="-L/opt/homebrew/opt/curl/lib $LDFLAGS"
-	export CPPFLAGS="-I/opt/homebrew/opt/curl/include $CPPFLAGS"
 	export PKG_CONFIG_PATH="/opt/homebrew/opt/curl/lib/pkgconfig:$PKG_CONFIG_PATH"
 fi
 #LIBRARY_PATH="$LIBRARY_PATH:$(brew --prefix)/lib"
