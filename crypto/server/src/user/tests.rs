@@ -77,7 +77,7 @@ async fn test_unsigned_tx_endpoint() {
         let query_parsed_tx = client
             .post("/unsafe/get")
             .header(ContentType::JSON)
-            .body(UnsafeQuery::new(sighash, "this should be an option...".to_string()).to_json())
+            .body(UnsafeQuery::new(sighash, String::new()).to_json())
             .dispatch()
             .await;
 

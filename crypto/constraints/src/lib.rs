@@ -19,10 +19,6 @@ pub enum Error {
     /// Transaction request could not be parsed
     #[error("Invalid transaction request: {0}")]
     InvalidTransactionRequest(String),
-    // /// Architecture associated with the transaction request could not be parsed
-    // /// or is not supported
-    // #[error("Invalid architecture: {0}")]
-    // InvalidArchitecture(String),
     /// Transaction request did not meet constraint requirements.
     #[error("Constraint Evaluation error: {0}")]
     EvaluationError(String),
