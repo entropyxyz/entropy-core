@@ -141,7 +141,9 @@ pub mod evm {
 
         #[test]
         fn throws_error_parsing_malformed_evm_rlp() {
-            let random_bytes = "0x1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080".to_string();
+            let random_bytes =
+                "0x1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080"
+                    .to_string();
 
             let unsigned_tx = EvmTransactionRequest::parse(random_bytes);
             assert!(unsigned_tx.is_err());
