@@ -71,14 +71,14 @@ workflows:
 jobs:
   fmt-lint-all:
     machine:
-      image: "ubuntu-2204:current"
+      image: "ubuntu-2204:2022.10.2"
       resource_class: "large"
     steps:
       - install-dependencies-and-checkout
       - fmt-lint
   crypto-server:
     machine:
-      image: "ubuntu-2204:current"
+      image: "ubuntu-2204:2022.10.2"
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
@@ -86,28 +86,28 @@ jobs:
         # temp
   # crypto-centralized-keygen:
   #   machine:
-  #     image: "ubuntu-2204:current"
+  #     image: "ubuntu-2204:2022.10.2"
   #     resource_class: "xlarge"
   #   steps:
   #     - install-dependencies-and-checkout
   #     - run: cd crypto/centralized-keygen
   # crypto-kvdb:
   #   machine:
-  #     image: "ubuntu-2204:current"
+  #     image: "ubuntu-2204:2022.10.2"
   #     resource_class: "xlarge"
   #   steps:
   #     - install-dependencies-and-checkout
   #     - run: cd crypto/kvdb
   # crypto-entropy-shared:
   #   machine:
-  #     image: "ubuntu-2204:current"
+  #     image: "ubuntu-2204:2022.10.2"
   #     resource_class: "xlarge"
   #   steps:
   #     - install-dependencies-and-checkout
   #     - run: cd crypto/shared
   node-test:
     machine:
-      image: "ubuntu-2204:current"
+      image: "ubuntu-2204:2022.10.2"
       resource_class: "xlarge"
     steps:
       - increase-swap
@@ -118,7 +118,7 @@ jobs:
           no_output_timeout: 45m
   node-benchmark:
     machine:
-      image: "ubuntu-2204:current"
+      image: "ubuntu-2204:2022.10.2"
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout

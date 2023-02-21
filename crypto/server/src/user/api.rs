@@ -47,7 +47,7 @@ pub struct GenericTransactionRequest {
     pub transaction_request: String,
 }
 
-/// TODO: Add block based removal for unsigned transactions in the KVDB.
+// TODO: Add block based removal for unsigned transactions in the KVDB.
 /// https://github.com/entropyxyz/entropy-core/issues/248
 /// Maps a tx hash -> unsigned transaction in the kvdb.
 #[post("/tx", format = "json", data = "<generic_tx_req>")]
@@ -55,6 +55,7 @@ pub async fn store_tx(
     generic_tx_req: Json<GenericTransactionRequest>,
     state: &State<KvManager>,
 ) -> Result<Status, UserErr> {
+    // TODO: client data needs to come in encrypted and authenticated
     match generic_tx_req.arch.as_str() {
         "evm" => {
             let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
@@ -74,6 +75,8 @@ pub async fn store_tx(
                 // stored.
                 Err(_) => return Ok(Status::Ok),
             }
+
+            // TODO confirm user has submitted `sighash` to the chain, and if so, kick off signing process
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
