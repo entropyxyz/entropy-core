@@ -249,7 +249,7 @@ pub mod pallet {
             Ok(())
         }
 
-		// TODO add benchmarks
+        // TODO add benchmarks
         /// Used by validators to confirm they have received a key-share from a user that is
         /// registering. After a validator from each partition confirms they have a
         /// keyshare, this should get the user to a `Registered` state
@@ -352,5 +352,5 @@ pub mod pallet {
             };
             Ok((address.clone(), i))
         }
-	}
+    }
 }
