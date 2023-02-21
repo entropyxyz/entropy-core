@@ -1,11 +1,9 @@
 use entropy_shared::{Constraints, Message, SigRequest};
-use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
+use frame_support::{assert_noop, assert_ok};
 use pallet_constraints::{ActiveArchitectures, AllowedToModifyConstraints};
-use pallet_staking_extension::ServerInfo;
 
-use crate::{mock::*, Error, Failures, Registered, RegisteringDetails, Responsibility};
+use crate::{mock::*, Error, Registered, RegisteringDetails};
 
-const NULL_ARR: [u8; 32] = [0; 32];
 pub const SIG_HASH: &[u8; 64] = b"d188f0d99145e7ddbd0f1e46e7fd406db927441584571c623aff1d1652e14b06";
 
 #[test]
@@ -178,42 +176,6 @@ fn it_confirms_registers_a_user_then_swap() {
 }
 
 #[test]
-fn it_confirms_done() {
-    new_test_ext().execute_with(|| {
-        Responsibility::<Test>::insert(5, 2);
-        let failures = vec![0u32, 3u32];
-        pallet_staking_extension::ThresholdServers::<Test>::insert(
-            2,
-            ServerInfo { tss_account: 1, x25519_public_key: NULL_ARR, endpoint: vec![20] },
-        );
-        assert_ok!(Relayer::confirm_done(RuntimeOrigin::signed(1), 5, failures.clone()));
-        assert_eq!(Relayer::failures(5), Some(failures.clone()));
-
-        assert_noop!(
-            Relayer::confirm_done(RuntimeOrigin::signed(1), 5, failures.clone()),
-            Error::<Test>::AlreadySubmitted
-        );
-        assert_noop!(
-            Relayer::confirm_done(RuntimeOrigin::signed(1), 6, failures.clone()),
-            Error::<Test>::NoResponsibility
-        );
-        Responsibility::<Test>::insert(6, 3);
-        assert_noop!(
-            Relayer::confirm_done(RuntimeOrigin::signed(2), 6, failures.clone()),
-            Error::<Test>::NoThresholdKey
-        );
-        pallet_staking_extension::ThresholdServers::<Test>::insert(
-            2,
-            ServerInfo { tss_account: 5, x25519_public_key: NULL_ARR, endpoint: vec![20] },
-        );
-        assert_noop!(
-            Relayer::confirm_done(RuntimeOrigin::signed(2), 5, failures),
-            Error::<Test>::NotYourResponsibility
-        );
-    });
-}
-
-#[test]
 fn it_doesnt_allow_double_registering() {
     new_test_ext().execute_with(|| {
         // register a user
@@ -224,54 +186,5 @@ fn it_doesnt_allow_double_registering() {
             Relayer::register(RuntimeOrigin::signed(1), 2, None),
             Error::<Test>::AlreadySubmitted
         );
-    });
-}
-
-#[test]
-fn moves_active_to_pending() {
-    new_test_ext().execute_with(|| {
-        // no failures pings unresponsive
-        System::set_block_number(3);
-        Responsibility::<Test>::insert(3, 1);
-        Relayer::on_initialize(5);
-        assert_eq!(Relayer::unresponsive(1), 1);
-        let failures = vec![0u32, 3u32];
-        Failures::<Test>::insert(2, failures.clone());
-        Failures::<Test>::insert(5, failures.clone());
-
-        let ip_addresses: Vec<Vec<u8>> = vec![vec![20], vec![11]];
-        let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
-        let message = Message {
-            account: vec![1, 0, 0, 0, 0, 0, 0, 0],
-            sig_request: sig_request.clone(),
-            ip_addresses,
-        };
-        Registered::<Test>::insert(1, true);
-        assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request));
-        assert_eq!(Relayer::messages(3), vec![message.clone()]);
-
-        // prunes old failure remove messages put into pending
-        assert_eq!(Relayer::failures(2), Some(failures.clone()));
-        Relayer::on_initialize(5);
-        assert_eq!(Relayer::failures(2), None);
-        assert_eq!(Relayer::messages(3), vec![]);
-        assert_eq!(Relayer::pending(3), vec![message]);
-        assert_eq!(Relayer::unresponsive(1), 0);
-        // pending pruned
-        Responsibility::<Test>::insert(4, 1);
-        Failures::<Test>::insert(3, failures);
-        Relayer::on_initialize(6);
-        assert_eq!(Relayer::pending(3), vec![]);
-        assert_eq!(Relayer::failures(3), None);
-    });
-}
-
-#[test]
-fn notes_responsibility() {
-    new_test_ext().execute_with(|| {
-        Responsibility::<Test>::insert(2, 1);
-        Relayer::note_responsibility(5);
-        assert_eq!(Relayer::responsibility(4), Some(11));
-        assert_eq!(Relayer::responsibility(2), None);
     });
 }

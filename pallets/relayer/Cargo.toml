@@ -69,7 +69,6 @@ log                     ={ version="0.4.0", default-features=false }
 pallet-staking-extension={ version="3.0.0", default-features=false, path="../staking" }
 pallet-constraints      ={ path="../constraints", default-features=false }
 pallet-staking          ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.31" }
-helpers                 ={ path="../helpers", default-features=false }
 pallet-session          ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.31" }
 
 [dev-dependencies]
@@ -93,7 +92,6 @@ std=[
   'pallet-balances/std',
   'pallet-constraints/std',
   'pallet-staking-extension/std',
-  'helpers/std',
   "sp-std/std",
   "sp-runtime/std",
   "sp-npos-elections/std",

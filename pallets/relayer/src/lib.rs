@@ -37,11 +37,9 @@ pub mod pallet {
         pallet_prelude::*,
     };
     use frame_system::pallet_prelude::*;
-    use helpers::unwrap_or_return;
     use pallet_constraints::{AllowedToModifyConstraints, Pallet as ConstraintsPallet};
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
-    use sp_runtime::traits::Saturating;
     use sp_std::vec;
 
     pub use crate::weights::WeightInfo;
@@ -94,30 +92,6 @@ pub mod pallet {
         }
     }
 
-    #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn on_initialize(block_number: T::BlockNumber) -> Weight {
-            let target_block = block_number.saturating_sub(2u32.into());
-            let messages = Messages::<T>::take(target_block);
-
-            let prune_block = block_number.saturating_sub(T::PruneBlock::get());
-            let prune_failures = Self::failures(prune_block);
-            let is_prune_failures = prune_failures.is_some();
-            Self::move_active_to_pending(
-                target_block,
-                prune_block,
-                messages.clone(),
-                is_prune_failures,
-            );
-            Self::note_responsibility(block_number);
-            if is_prune_failures {
-                <T as Config>::WeightInfo::move_active_to_pending_failure(messages.len() as u32)
-            } else {
-                <T as Config>::WeightInfo::move_active_to_pending_no_failure(messages.len() as u32)
-            }
-        }
-    }
-
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
@@ -129,24 +103,9 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn pending)]
-    pub type Pending<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
-
-    #[pallet::storage]
     #[pallet::getter(fn failures)]
     pub type Failures<T: Config> =
         StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<u32>, OptionQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn unresponsive)]
-    pub type Unresponsive<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, u32, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn responsibility)]
-    pub type Responsibility<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::BlockNumber, T::AccountId, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn registering)]
@@ -178,9 +137,6 @@ pub mod pallet {
     // Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {
-        Test,
-        NotYourResponsibility,
-        NoResponsibility,
         AlreadySubmitted,
         NoThresholdKey,
         NotRegistering,
@@ -188,7 +144,6 @@ pub mod pallet {
         InvalidSubgroup,
         AlreadyConfirmed,
         NotInSigningGroup,
-        InvalidValidatorId,
         IpAddressError,
         SigningGroupError,
         NoSyncedValidators,
@@ -294,8 +249,7 @@ pub mod pallet {
             Ok(())
         }
 
-        // TODO(Jake): This is an insecure way to do a free transaction.
-        // secure it, please. :)
+        // TODO add benchmarks
         /// Used by validators to confirm they have received a key-share from a user that is
         /// registering. After a validator from each partition confirms they have a
         /// keyshare, this should get the user to a `Registered` state
@@ -351,37 +305,6 @@ pub mod pallet {
             }
             Ok(())
         }
-
-        /// Allows a validator to signal they have completed a signing batch
-        /// `block_number`: block number for signing batch
-        /// `failure`: index of any failures in all sig request arrays
-        #[pallet::weight(T::DbWeight::get().writes(1))]
-        pub fn confirm_done(
-            origin: OriginFor<T>,
-            block_number: T::BlockNumber,
-            failures: Vec<u32>,
-        ) -> DispatchResult {
-            let ts_server_account = ensure_signed(origin)?;
-            let responsibility =
-                Self::responsibility(block_number).ok_or(Error::<T>::NoResponsibility)?;
-            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(responsibility)
-                .or(Err(Error::<T>::InvalidValidatorId))?;
-
-            let server_info =
-                pallet_staking_extension::Pallet::<T>::threshold_server(&validator_id)
-                    .ok_or(Error::<T>::NoThresholdKey)?;
-            ensure!(
-                ts_server_account == server_info.tss_account,
-                Error::<T>::NotYourResponsibility
-            );
-
-            let current_failures = Self::failures(block_number);
-
-            ensure!(current_failures.is_none(), Error::<T>::AlreadySubmitted);
-            Failures::<T>::insert(block_number, &failures);
-            Self::deposit_event(Event::ConfirmedDone(ts_server_account, block_number, failures));
-            Ok(())
-        }
     }
 
     impl<T: Config> Pallet<T> {
@@ -428,48 +351,6 @@ pub mod pallet {
                 }
             };
             Ok((address.clone(), i))
-        }
-
-        pub fn move_active_to_pending(
-            target_block: T::BlockNumber,
-            prune_block: T::BlockNumber,
-            messages: Vec<Message>,
-            is_prune_failures: bool,
-        ) {
-            let responsibility = unwrap_or_return!(
-                Self::responsibility(target_block),
-                "active to pending, responsibility warning"
-            );
-            if !is_prune_failures {
-                Unresponsive::<T>::mutate(responsibility, |dings| *dings += 1);
-
-            // TODO slash or point for failure then slash after pointed a few times
-            // If someone is slashed they probably should reset their unresponsive dings
-            // let _result = pallet_slashing::Pallet::<T>::do_offence(responsibility,
-            // vec![responsibility]);
-            } else {
-                Failures::<T>::remove(prune_block);
-                Unresponsive::<T>::remove(responsibility);
-            }
-
-            if !messages.is_empty() {
-                Pending::<T>::insert(target_block, messages);
-            }
-
-            Pending::<T>::remove(prune_block);
-        }
-
-        pub fn note_responsibility(block_number: T::BlockNumber) {
-            let target_block = block_number.saturating_sub(1u32.into());
-            let block_author = unwrap_or_return!(
-                pallet_authorship::Pallet::<T>::author(),
-                "note responsibility block author warning"
-            );
-
-            Responsibility::<T>::insert(target_block, block_author);
-
-            let prune_block = block_number.saturating_sub(T::PruneBlock::get());
-            Responsibility::<T>::remove(prune_block);
         }
     }
 }
