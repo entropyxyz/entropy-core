@@ -76,7 +76,8 @@ pub async fn store_tx(
                 Err(_) => return Ok(Status::Ok),
             }
 
-            // TODO confirm user has submitted `sighash` to the chain, and if so, kick off signing process
+            // TODO confirm user has submitted `sighash` to the chain, and if so, kick off signing
+            // process
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
