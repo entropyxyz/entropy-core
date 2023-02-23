@@ -85,7 +85,8 @@
 					"test",
 					"--no-run",
 					"--bin=server",
-					"--package=server"
+					"--package=server",
+					"--features=unsafe"
 				],
 				"filter": {
 					"name": "server",

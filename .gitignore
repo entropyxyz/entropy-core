@@ -27,3 +27,5 @@ main_test_db/
 .idea
 */.entropy
 .entropy
+
+./scripts/copy-releases-to-sdk.sh

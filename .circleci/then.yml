@@ -31,6 +31,7 @@ commands:
       - run: grep Swap /proc/meminfo
   install-dependencies:
     steps:
+      - run: sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
       - run: sudo apt-get update
       - run: sudo apt install -y libssl-dev clang libclang-dev
       - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -70,14 +71,14 @@ workflows:
 jobs:
   fmt-lint-all:
     machine:
-      image: "ubuntu-2004:202201-02"
+      image: "ubuntu-2204:2022.10.2"
       resource_class: "large"
     steps:
       - install-dependencies-and-checkout
       - fmt-lint
   crypto-server:
     machine:
-      image: "ubuntu-2004:202201-02"
+      image: "ubuntu-2204:2022.10.2"
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout
@@ -85,28 +86,28 @@ jobs:
         # temp
   # crypto-centralized-keygen:
   #   machine:
-  #     image: "ubuntu-2004:202201-02"
+  #     image: "ubuntu-2204:2022.10.2"
   #     resource_class: "xlarge"
   #   steps:
   #     - install-dependencies-and-checkout
   #     - run: cd crypto/centralized-keygen
   # crypto-kvdb:
   #   machine:
-  #     image: "ubuntu-2004:202201-02"
+  #     image: "ubuntu-2204:2022.10.2"
   #     resource_class: "xlarge"
   #   steps:
   #     - install-dependencies-and-checkout
   #     - run: cd crypto/kvdb
   # crypto-entropy-shared:
   #   machine:
-  #     image: "ubuntu-2004:202201-02"
+  #     image: "ubuntu-2204:2022.10.2"
   #     resource_class: "xlarge"
   #   steps:
   #     - install-dependencies-and-checkout
   #     - run: cd crypto/shared
   node-test:
     machine:
-      image: "ubuntu-2004:202201-02"
+      image: "ubuntu-2204:2022.10.2"
       resource_class: "xlarge"
     steps:
       - increase-swap
@@ -117,7 +118,7 @@ jobs:
           no_output_timeout: 45m
   node-benchmark:
     machine:
-      image: "ubuntu-2004:202201-02"
+      image: "ubuntu-2204:2022.10.2"
       resource_class: "xlarge"
     steps:
       - install-dependencies-and-checkout

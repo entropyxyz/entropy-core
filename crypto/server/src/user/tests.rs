@@ -1,6 +1,7 @@
 use std::env;
 
 use bip39::{Language, Mnemonic, MnemonicType};
+use entropy_constraints::{Architecture, Evm, Parse};
 use hex_literal::hex as h;
 use kvdb::clean_tests;
 use rocket::{
@@ -42,12 +43,49 @@ async fn test_get_signer_does_not_throw_err() {
 #[rocket::async_test]
 #[serial]
 async fn test_unsigned_tx_endpoint() {
-    clean_tests();
-    let client = setup_client().await;
-    let tx_req = r#"{"tx":{"to":"0x772b9a9e8aa1c9db861c6611a82d251db4fac990","value":{"type":"BigNumber","hex":"0x64"},"chainId":5,"gasPrice":{"type":"BigNumber","hex":"0x45d964b800"},"gasLimit":{"type":"BigNumber","hex":"0x07c830"},"nonce":5,"data":"0x6d656f77","type":0},"hash":"b31312f9f26bdb33357e63eec6095dae8ae5ae1e6a8a2f1f2170b78f9c28ad09"}"#;
-    let response = client.post("/user/tx").header(ContentType::JSON).body(tx_req).dispatch().await;
-    assert_eq!(response.status(), Status::Ok);
-    clean_tests();
+    if cfg!(feature = "unsafe") {
+        clean_tests();
+        let client = setup_client().await;
+
+        let arch = r#"evm"#;
+        // encoded_tx_req comes from ethers serializeTransaction() of the following
+        // UnsignedTransaction: {"to":"0x772b9a9e8aa1c9db861c6611a82d251db4fac990","value":
+        // {"type":"BigNumber","hex":"0x01"}, "chainId":1,"nonce":1,"data":"
+        // 0x43726561746564204f6e20456e74726f7079"} See frontend threshold-server tests for
+        // more context
+        let transaction_request = r#"0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080"#;
+        let tx_req = serde_json::json!({
+            "arch": arch,
+            "transaction_request": transaction_request,
+        });
+        println!("tx_req: {}", tx_req.to_string());
+
+        // request to store tx
+        let response = client
+            .post("/user/tx")
+            .header(ContentType::JSON)
+            .body(tx_req.to_string())
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::Ok);
+
+        // verify that sighash and transaction have been stored correctly
+        let parsed_tx =
+            <Evm as Architecture>::TransactionRequest::parse(transaction_request.to_string())
+                .unwrap();
+        let sighash = parsed_tx.sighash().to_string();
+        let query_parsed_tx = client
+            .post("/unsafe/get")
+            .header(ContentType::JSON)
+            .body(UnsafeQuery::new(sighash, String::new()).to_json())
+            .dispatch()
+            .await;
+
+        // make sure it could find the user's transaction request
+        assert_eq!(query_parsed_tx.into_string().await, Some(transaction_request.to_string()));
+
+        clean_tests();
+    }
 }
 
 #[rocket::async_test]
