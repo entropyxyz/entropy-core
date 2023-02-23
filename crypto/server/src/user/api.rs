@@ -1,7 +1,7 @@
 use bip39::{Language, Mnemonic};
-use entropy_constraints::tx::evm::Evm;
+use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{
-    types::{Acl, AclKind, Architecture, BasicTransaction},
+    types::{Acl, AclKind, Arch},
     SIGNING_PARTY_SIZE,
 };
 use kvdb::kv_manager::{
@@ -38,28 +38,54 @@ use crate::{
     Configuration,
 };
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct EVMUserTx {
-    tx: BasicTransaction<Evm>,
-    hash: String,
+/// Represents an unparsed, transaction request coming from the client.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct GenericTransactionRequest {
+    /// 'eth', etc.
+    pub arch: String,
+    /// ETH: RLP encoded transaction request
+    pub transaction_request: String,
 }
 
-/// TODO: Add block based removal for unsigned transactions in the KVDB.
+// TODO: Add block based removal for unsigned transactions in the KVDB.
 /// https://github.com/entropyxyz/entropy-core/issues/248
 /// Maps a tx hash -> unsigned transaction in the kvdb.
-#[post("/tx", format = "json", data = "<tx>")]
-pub async fn store_tx(tx: Json<EVMUserTx>, state: &State<KvManager>) -> Result<Status, UserErr> {
-    // TODO: the type used for transactions in the constraints lib
-    // does not contain all the fields of an actual ETH transaction
-    // so we don't have a way to validate the hash.
-    if tx.hash.len() != 64 {
-        return Err(UserErr::Parse("hash.len() != 64"));
+#[post("/tx", format = "json", data = "<generic_tx_req>")]
+pub async fn store_tx(
+    generic_tx_req: Json<GenericTransactionRequest>,
+    state: &State<KvManager>,
+) -> Result<Status, UserErr> {
+    // TODO: client data needs to come in encrypted and authenticated
+    match generic_tx_req.arch.as_str() {
+        "evm" => {
+            let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
+                generic_tx_req.transaction_request.clone(),
+            )?;
+            let sighash = parsed_tx.sighash();
+
+            // Map the sighash to the serialize transaction request
+            match state.kv().reserve_key(sighash.to_string()).await {
+                Ok(reservation) => {
+                    state
+                        .kv()
+                        .put(reservation, generic_tx_req.transaction_request.clone().into())
+                        .await?;
+                },
+                // If the key is already reserved, then we can assume the transaction is already
+                // stored.
+                Err(_) => return Ok(Status::Ok),
+            }
+
+            // TODO confirm user has submitted `sighash` to the chain, and if so, kick off signing
+            // process
+        },
+        _ => {
+            return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
+        },
     }
-    let val = serde_json::to_string(&tx.clone().0)?.into_bytes();
-    let reservation = state.kv().reserve_key(tx.hash.clone()).await?;
-    state.kv().put(reservation, val).await?;
     Ok(Status::Ok)
 }
+
 /// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
 #[post("/new", format = "json", data = "<msg>")]
 pub async fn new_user(

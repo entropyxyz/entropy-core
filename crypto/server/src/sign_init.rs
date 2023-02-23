@@ -1,4 +1,5 @@
 //! Message sent by the Communication Manager to Signing Clients on protocol initiation.
+use entropy_shared::Message;
 use serde::{Deserialize, Serialize};
 
 pub type MessageDigest = tofn::gg20::sign::MessageDigest;
@@ -49,7 +50,7 @@ impl SignInit {
 
     // TODO: remove when we have a real implementation
     // Generate temporary data for API testing.
-    pub(crate) fn temporary_data(message: entropy_shared::Message) -> Self {
+    pub(crate) fn temporary_data(message: Message) -> Self {
         let digest: MessageDigest = message.sig_request.sig_hash.as_slice().try_into().unwrap();
         let raw_address = &message.account;
         let address_slice: &[u8; 32] =
