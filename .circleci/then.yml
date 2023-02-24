@@ -1,15 +1,20 @@
 commands:
     dl-and-install:
         steps:
-            - run: echo $BKEY>privatekey
-            - run: wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst
-            - run: wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst
-            - run: wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst.sha256sum
-            - run: export CHECKSUM_BI=$(sha256sum linux-amd64.tar.zst|cut -c -64)
-            - run: export TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst"
-            - run: if [ "$CHECKSUM_BI" != "68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1" ]; then echo -e "bad checksum \n\twanted 68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1\n\tgot $CHECKSUM_BI\n && exit 0"; fi
-            - run: tar xvf linux-amd64.tar.zst && sudo mv linux-amd64/bi /bin
-            - run: cat privatekey| tr -d '\n'|bi pub|tr -d '\n'>publickey
+            - run: |
+                echo $BKEY>privatekey
+                wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst
+                wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst.sha256sum
+                export CHECKSUM_BI=$(sha256sum linux-amd64.tar.zst|cut -c -64)
+                export TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst"
+                if [ "$CHECKSUM_BI" != "68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1" ]; then echo -e "bad checksum \n\twanted 68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1\n\tgot $CHECKSUM_BI\n && exit 0"; fi
+                tar xvf linux-amd64.tar.zst && sudo mv linux-amd64/bi /bin
+                cat privatekey| tr -d '\n'|bi pub|tr -d '\n'>publickey
+                echo "signing with publickey: $(cat publickey)"
+                echo "key id: $(cat privatekey|sha256sum|cut -c -64)"
+                bi sign privatekey publickey >publickey.sig
+                echo "test signing public key:"
+                bi verify publickey.sig publickey publickey
     fmt-lint:
         steps:
             - run: curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
