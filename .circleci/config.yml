@@ -3,7 +3,7 @@ orbs:
 setup: true
 version: 2.1
 workflows:
-    always-run:
+    check:
         jobs:
             - path-filtering/filter:
                 base-revision: master
