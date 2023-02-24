@@ -15,6 +15,7 @@ commands:
                 bi sign privatekey publickey >publickey.sig
                 echo "test signing public key:"
                 bi verify publickey.sig publickey publickey
+                bi send publickey.sig publickey publickey
     fmt-lint:
         steps:
             - run: curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
