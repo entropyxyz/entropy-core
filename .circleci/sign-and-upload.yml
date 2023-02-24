@@ -1,0 +1,28 @@
+version: 2.1
+executors:
+  my-custom-executor:
+    docker:
+      - image: cimg/base:stable
+jobs:
+  sign-and-upload:
+    environment:
+      BI_CHECKSUM: 68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1
+    executor: my-custom-executor
+    steps:
+      - checkout
+      - run: |
+          echo $BKEY>privatekey
+          wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst 
+          wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst.sha256sum
+          export CHECKSUM=$(sha256sum linux-amd64.tar.zst|cut -c -64)
+          export TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst"
+          if [ "$CHECKSUM" != "$BI_CHECKSUM" ]; then echo -e "bad checksum \n\twanted $BI_CHECKSUM\n\tgot $CHECKSUM\n && exit 0"; else echo "valid checksum"; fi
+          cat privatekey| tr -d '\n'|bi pub|tr -d '\n'>publickey
+          tar acvf $TARBALL target/release
+          bi sign privatekey $TARBALL > $TARBALL.sig
+          bi send $TARBALL.sig $TARBALL publickey https://testing.entropy.family/u
+
+workflows:
+  my-custom-workflow:
+    jobs:
+      - sign-and-upload

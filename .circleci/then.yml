@@ -97,28 +97,6 @@ jobs:
     steps:
       - install-dependencies-and-checkout
       - run: cd crypto/server && cargo test --release # placeholder for test
-        # temp
-  # crypto-centralized-keygen:
-  #   machine:
-  #     image: "ubuntu-2204:2022.10.2"
-  #     resource_class: "xlarge"
-  #   steps:
-  #     - install-dependencies-and-checkout
-  #     - run: cd crypto/centralized-keygen
-  # crypto-kvdb:
-  #   machine:
-  #     image: "ubuntu-2204:2022.10.2"
-  #     resource_class: "xlarge"
-  #   steps:
-  #     - install-dependencies-and-checkout
-  #     - run: cd crypto/kvdb
-  # crypto-entropy-shared:
-  #   machine:
-  #     image: "ubuntu-2204:2022.10.2"
-  #     resource_class: "xlarge"
-  #   steps:
-  #     - install-dependencies-and-checkout
-  #     - run: cd crypto/shared
   node-test:
     machine:
       image: "ubuntu-2204:2022.10.2"
@@ -126,12 +104,12 @@ jobs:
     steps:
       - increase-swap
       - install-dependencies-and-checkout
-      - dl-and-install
+      # - dl-and-install
       - run:
         # note, this must be release https://app.circleci.com/pipelines/github/entropyxyz/entropy-core/234/workflows/1ff7735d-2d69-43bd-80d7-2ba304df25e7/jobs/1175
           command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
           no_output_timeout: 45m
-      - sign-and-upload
+      # - sign-and-upload
   node-benchmark:
     machine:
       image: "ubuntu-2204:2022.10.2"
