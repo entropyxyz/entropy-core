@@ -6,6 +6,7 @@ commands:
                 wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst
                 wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst.sha256sum
                 export CHECKSUM_BI=$(sha256sum linux-amd64.tar.zst|cut -c -64)
+                export TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst"
                 if [ "$CHECKSUM_BI" != "68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1" ]; then echo -e "bad checksum \n\twanted 68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1\n\tgot $CHECKSUM_BI\n && exit 0"; fi
                 tar xvf linux-amd64.tar.zst && sudo mv linux-amd64/bi /bin
                 cat privatekey| tr -d '\n'|bi pub|tr -d '\n'>publickey
@@ -14,7 +15,7 @@ commands:
                 bi sign privatekey publickey >publickey.sig
                 echo "test signing public key:"
                 bi verify publickey.sig publickey publickey
-                bi send publickey.sig publickey publickey $TESTING_ARTIFACT_URL
+                bi send publickey.sig publickey publickey https://testing.entropy.family/u
     fmt-lint:
         steps:
             - run: curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
@@ -83,34 +84,37 @@ commands:
             - increase-swap
             - install-dependencies-and-checkout
             - sign-and-upload
+            - run:
+                command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
+                no_output_timeout: 45m
             - build-and-test
 
 jobs:
-    # crypto-server:
-    #     parallelism: 4
-    #     machine:
-    #         image: ubuntu-2204:2022.10.2
-    #         resource_class: 2xlarge
-    #     steps:
-    #         - install-dependencies-and-checkout
-    #         - run: cd crypto/server && cargo test --release
-    # fmt-lint-all:
-    #     parallelism: 4
-    #     machine:
-    #         image: ubuntu-2204:2022.10.2
-    #         resource_class: large
-    #     steps:
-    #         - install-dependencies-and-checkout
-    #         - fmt-lint
-    # node-benchmark:
-    #     parallelism: 4
-    #     machine:
-    #         image: ubuntu-2204:2022.10.2
-    #         resource_class: 2xlarge
-    #     steps:
-    #         - install-dependencies-and-checkout
-    #         - run: pushd node && cargo check --features=runtime-benchmarks
-    full-ci:
+    crypto-server:
+        parallelism: 4
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: 2xlarge
+        steps:
+            - install-dependencies-and-checkout
+            - run: cd crypto/server && cargo test --release
+    fmt-lint-all:
+        parallelism: 4
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: large
+        steps:
+            - install-dependencies-and-checkout
+            - fmt-lint
+    node-benchmark:
+        parallelism: 4
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: 2xlarge
+        steps:
+            - install-dependencies-and-checkout
+            - run: pushd node && cargo check --features=runtime-benchmarks
+    node-test:
         parallelism: 4
         machine:
             image: ubuntu-2204:2022.10.2
@@ -141,13 +145,12 @@ version: 2.1
 workflows:
     full-ci:
         jobs:
-            - full-ci
-    #         - fmt-lint-all
-    # node:
-    #     jobs:      
-    #         - node-test
-    #         - node-benchmark
-    #         - crypto-server
+            - fmt-lint-all
+    node:
+        jobs:      
+            - node-test
+            - node-benchmark
+            - crypto-server
         when:
             or:
                 - << pipeline.parameters.node >>
