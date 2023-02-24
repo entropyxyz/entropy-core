@@ -88,30 +88,26 @@ commands:
       
 jobs:
     crypto-server:
-        machine:
-            image: ubuntu-2204:2022.10.2
-            resource_class: entropyxyz/el-jefe
+        machine: true
+        resource_class: entropyxyz/el-jefe
         steps:
             - install-dependencies-and-checkout
             - run: cd crypto/server && cargo test --release
     fmt-lint-all:
-        machine:
-            image: ubuntu-2204:2022.10.2
-            resource_class: entropyxyz/el-jefe
+        machine: true
+        resource_class: entropyxyz/el-jefe
         steps:
             - install-dependencies-and-checkout
             - fmt-lint
     node-benchmark:
-        machine:
-            image: ubuntu-2204:2022.10.2
-            resource_class: entropyxyz/el-jefe
+        machine: true
+        resource_class: entropyxyz/el-jefe
         steps:
             - install-dependencies-and-checkout
             - run: pushd node && cargo check --features=runtime-benchmarks
     node-test:
-        machine:
-            image: ubuntu-2204:2022.10.2
-            resource_class: entropyxyz/el-jefe
+        machine: true
+        resource_class: entropyxyz/el-jefe
         steps:
             - increase-swap
             - install-dependencies-and-checkout
