@@ -4,6 +4,7 @@ This document serves as a partial spec of this repo.
 
 The major actors in this repo are:
 
+
 - `server`:
   - `signing-client` - HTTP endpoints run by all nodes for signing protocols
   - `communication-manager` (TO BE DEPRECATED, see note below) - AKA, the previous block's proposer. The CM is run by the previous block-proposer, and is responsible for choosing and notifying signing parties for each user signing-tx in the previous block.
