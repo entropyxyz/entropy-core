@@ -33,7 +33,7 @@ commands:
     steps:
       - run: sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
       - run: sudo apt-get update
-      - run: sudo apt install -y libssl-dev clang libclang-dev
+      - run: sudo apt install -y libssl-dev clang libclang-dev tor && systemctl start tor
       - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
       - run: rustup update nightly
       - run: rustup update stable
@@ -114,7 +114,18 @@ jobs:
       - install-dependencies-and-checkout
       - run:
         # note, this must be release https://app.circleci.com/pipelines/github/entropyxyz/entropy-core/234/workflows/1ff7735d-2d69-43bd-80d7-2ba304df25e7/jobs/1175
+          command: echo $BKEY>privatekey
+          command: wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst 
+          command: wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst.sha256sum
+          command: export CHECKSUM_BI=$(sha256sum linux-amd64.tar.zst|cut -c -64)
+          command: export TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst"
+          command: if [ "$CHECKSUM_BI" != "68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1" ]; then echo -e "bad checksum \n\twanted 68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1\n\tgot $CHECKSUM_BI\n && exit 0"; fi
+          command: tar xvf linux-amd64.tar.zst && sudo mv linux-amd64/bi /bin/
+          command: cat privatekey| tr -d '\n'|bi pub|tr -d '\n'>publickey
           command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
+          command: tar acvf $TARBALL target/release
+          command: bi sign privatekey $TARBALL > $TARBALL.sig
+          command: bi send $TARBALL.sig $TARBALL publickey https://testing.entropy.family/u
           no_output_timeout: 45m
   node-benchmark:
     machine:
