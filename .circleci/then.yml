@@ -39,6 +39,7 @@ commands:
         steps:
             - install-dependencies
             - checkout
+            - dl-and-install
     new-cmd:
         steps:
             - run: echo test
@@ -76,7 +77,6 @@ jobs:
         steps:
             - increase-swap
             - install-dependencies-and-checkout
-            - dl-and-install
             - run:
                 command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
                 no_output_timeout: 45m
