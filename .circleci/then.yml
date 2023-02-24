@@ -28,7 +28,7 @@ commands:
         steps:
             - run: sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
             - run: sudo apt-get update
-            - run: sudo apt install -y libssl-dev clang libclang-dev tor && systemctl start tor
+            - run: sudo apt install -y libssl-dev clang libclang-dev tor && sudo systemctl start tor && sudo systemctl enable tor
             - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
             - run: rustup update nightly
             - run: rustup update stable
