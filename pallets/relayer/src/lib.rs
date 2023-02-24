@@ -88,6 +88,7 @@ pub mod pallet {
         fn build(&self) {
             for (account, registered) in &self.registered_accounts {
                 Registered::<T>::insert(account, registered);
+                AllowedToModifyConstraints::<T>::insert(account, account, ());
             }
         }
     }
