@@ -35,100 +35,69 @@ commands:
             - run: sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
             - run: sudo apt-get update
             - run: sudo apt install -y libssl-dev clang libclang-dev tor && sudo systemctl start tor && sudo systemctl enable tor
+    install-rust:
+        steps:
             - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
             - run: rustup update nightly
             - run: rustup update stable
-            - run: rustup component add rustfmt
-            - run: rustup default stable
+@@ -43,9 +45,10 @@ commands:
             - run: rustup target add wasm32-unknown-unknown --toolchain nightly
     install-dependencies-and-checkout:
         steps:
             - install-dependencies
             - checkout
+            - install-dependencies
             - dl-and-install
+            - install-rust
     new-cmd:
         steps:
             - run: echo test
     sign-and-upload:
         steps:
             - run: |
-                mkdir -p target/release
-                echo "foo" > target/release/test
-                TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst"
-                tar acvf $TARBALL target/release
-                bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
-                bi -tor=false send $TARBALL.sig $TARBALL publickey $TESTING_ARTIFACT_URL > artifact-url
+              mkdir -p target/release
+              TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst" 
+              echo $TARBALL >target/release/version
+              tar acvf $TARBALL target/release
+              bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
+              bi -tor=false send $TARBALL.sig $TARBALL publickey https://testing.entropy.family/u > artifact-url
             - store_artifacts:
                 path: artifact-url
                 destination: artifact-url
-    build-and-test:
-        steps:
-            - run: |
-                pushd node 
-                cargo build --all-targets --release -j $(nproc) 
-                cargo test --all-targets --release
-    crypto-server:
-        steps:
-            - install-dependencies-and-checkout
-            - run: cd crypto/server && cargo test --release
-    fmt-lint-all:
-        steps:
-            - install-dependencies-and-checkout
-            - sign-and-upload
-            - fmt-lint
-    node-benchmark:
-        steps:
-            - install-dependencies-and-checkout
-            - run: pushd node && cargo check --features=runtime-benchmarks
-    node-test:
-        steps:
-            - increase-swap
-            - install-dependencies-and-checkout
-            - sign-and-upload
-            - run:
-                command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
-                no_output_timeout: 45m
-            - build-and-test
-
 jobs:
     crypto-server:
-        parallelism: 4
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: 2xlarge
+            resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
             - run: cd crypto/server && cargo test --release
     fmt-lint-all:
-        parallelism: 4
         machine:
             image: ubuntu-2204:2022.10.2
             resource_class: large
         steps:
             - install-dependencies-and-checkout
+            - sign-and-upload
             - fmt-lint
     node-benchmark:
-        parallelism: 4
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: 2xlarge
+            resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
             - run: pushd node && cargo check --features=runtime-benchmarks
     node-test:
-        parallelism: 4
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: 2xlarge
+            resource_class: xlarge
         steps:
-            - node-test
-            - crypto-server
-            - fmt-lint-all
-            - node-benchmark
-            # - increase-swap
-            # - install-dependencies-and-checkout
-            # - sign-and-upload
-            # - build-and-test
+            - increase-swap
+            - install-dependencies-and-checkout
+            - run:
+                command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
+                no_output_timeout: 45m
+            - sign-and-upload
 parameters:
     crypto:
         default: false
@@ -144,14 +113,13 @@ parameters:
         type: boolean
 version: 2.1
 workflows:
-    full-ci:
+    lint:
         jobs:
             - fmt-lint-all
     node:
-        jobs:      
+        jobs:
             - node-test
             - node-benchmark
-            - crypto-server
         when:
             or:
                 - << pipeline.parameters.node >>
