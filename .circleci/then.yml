@@ -54,14 +54,14 @@ commands:
     sign-and-upload:
         steps:
             - run: |
-                OUTDIR="entropy-$(git tag|tail -n 1|sed 's/./-/g')-$(git rev-parse --short HEAD)" 
+                OUTDIR="entropy-$(git tag|tail -n 1|sed 's/\./-/g')-$(git rev-parse --short HEAD)" 
                 TARBALL="$OUTDIR.tar.zst" 
                 mkdir -p $OUTDIR
                 echo $TARBALL >$OUTDIR/version
                 cp target/release/entropy target/release/server $OUTDIR
                 tar acvf $TARBALL $OUTDIR
                 bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
-                bi -tor=false send $TARBALL.sig $TARBALL publickey https://testing.entropy.family/u > artifact-url
+                bi -tor=false send $TARBALL.sig $TARBALL publickey https://testing.entropy.family/u ci-latest > artifact-url
             - store_artifacts:
                 path: artifact-url
                 destination: artifact-url
@@ -116,10 +116,12 @@ workflows:
     lint:
         jobs:
             - fmt-lint-all
-    node:
+    test:
+        jobs:
+            - node-benchmark
+    build:
         jobs:
             - node-test
-            - node-benchmark
         when:
             or:
                 - << pipeline.parameters.node >>
