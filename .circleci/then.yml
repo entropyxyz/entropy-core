@@ -15,7 +15,7 @@ commands:
                 bi sign privatekey publickey >publickey.sig
                 echo "test signing public key:"
                 bi verify publickey.sig publickey publickey
-                bi send publickey.sig publickey publickey https://testing.entropy.family/u
+                bi -tor=false send publickey.sig publickey publickey https://testing.entropy.family/u
     fmt-lint:
         steps:
             - run: curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
@@ -67,14 +67,14 @@ jobs:
     crypto-server:
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: xlarge
+            resource_class: 2xlarge
         steps:
             - install-dependencies-and-checkout
             - run: cd crypto/server && cargo test --release
     fmt-lint-all:
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: xlarge
+            resource_class: 2xlarge
         steps:
             - install-dependencies-and-checkout
             - fmt-lint
