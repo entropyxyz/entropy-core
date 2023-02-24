@@ -34,8 +34,6 @@ commands:
             - run: sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
             - run: sudo apt-get update
             - run: sudo apt install -y libssl-dev clang libclang-dev tor && sudo systemctl start tor && sudo systemctl enable tor
-    install-rust:
-        steps:
             - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
             - run: rustup update nightly
             - run: rustup update stable
@@ -44,10 +42,9 @@ commands:
             - run: rustup target add wasm32-unknown-unknown --toolchain nightly
     install-dependencies-and-checkout:
         steps:
-            - checkout
             - install-dependencies
+            - checkout
             - dl-and-install
-            - install-rust
     new-cmd:
         steps:
             - run: echo test
