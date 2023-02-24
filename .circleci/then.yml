@@ -15,7 +15,7 @@ commands:
                 bi sign privatekey publickey >publickey.sig
                 echo "test signing public key:"
                 bi verify publickey.sig publickey publickey
-                bi send publickey.sig publickey publickey $ARTIFACT_URL
+                bi send publickey.sig publickey publickey https://testing.entropy.family/u
     fmt-lint:
         steps:
             - run: curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
@@ -53,7 +53,7 @@ commands:
         steps:
             - run: tar acvf $TARBALL target/release
             - run: bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
-            - run: bi -tor=false send $TARBALL.sig $TARBALL publickey $ARTIFACT_URL > artifact-url
+            - run: bi -tor=false send $TARBALL.sig $TARBALL publickey https://testing.entropy.family/u > artifact-url
             - store_artifacts:
                 path: artifact-url
                 destination: artifact-url
