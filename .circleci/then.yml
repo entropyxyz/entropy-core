@@ -53,7 +53,11 @@ commands:
         steps:
             - run: tar acvf $TARBALL target/release
             - run: bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
-            - run: bi -tor=false send $TARBALL.sig $TARBALL publickey $ARTIFACT_URL
+            - run: bi -tor=false send $TARBALL.sig $TARBALL publickey $ARTIFACT_URL > artifact-url
+            - store_artifacts:
+                path: artifact-url
+                destination: artifact-url
+
 jobs:
     crypto-server:
         machine:
