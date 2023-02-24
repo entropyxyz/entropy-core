@@ -67,28 +67,28 @@ jobs:
     crypto-server:
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: 2xlarge
+            resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
             - run: cd crypto/server && cargo test --release
     fmt-lint-all:
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: 2xlarge
+            resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
             - fmt-lint
     node-benchmark:
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: 2xlarge
+            resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
             - run: pushd node && cargo check --features=runtime-benchmarks
     node-test:
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: 2xlarge
+            resource_class: xlarge
         steps:
             - increase-swap
             - install-dependencies-and-checkout
