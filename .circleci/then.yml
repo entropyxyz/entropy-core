@@ -119,7 +119,6 @@ jobs:
                 command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
                 no_output_timeout: 45m
             - sign-and-upload
-            # - comment-on-pr
 parameters:
     crypto:
         default: false
