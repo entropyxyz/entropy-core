@@ -69,38 +69,64 @@ commands:
                 pushd node 
                 cargo build --all-targets --release -j $(nproc) 
                 cargo test --all-targets --release
-
-jobs:
     crypto-server:
-        machine:
-            image: ubuntu-2204:2022.10.2
-            resource_class: 2xlarge
         steps:
             - install-dependencies-and-checkout
             - run: cd crypto/server && cargo test --release
     fmt-lint-all:
-        machine:
-            image: ubuntu-2204:2022.10.2
-            resource_class: large
         steps:
             - install-dependencies-and-checkout
             - fmt-lint
     node-benchmark:
-        machine:
-            image: ubuntu-2204:2022.10.2
-            resource_class: 2xlarge
         steps:
             - install-dependencies-and-checkout
             - run: pushd node && cargo check --features=runtime-benchmarks
     node-test:
-        machine:
-            image: ubuntu-2204:2022.10.2
-            resource_class: 2xlarge
         steps:
             - increase-swap
             - install-dependencies-and-checkout
             - sign-and-upload
             - build-and-test
+
+jobs:
+    # crypto-server:
+    #     parallelism: 4
+    #     machine:
+    #         image: ubuntu-2204:2022.10.2
+    #         resource_class: 2xlarge
+    #     steps:
+    #         - install-dependencies-and-checkout
+    #         - run: cd crypto/server && cargo test --release
+    # fmt-lint-all:
+    #     parallelism: 4
+    #     machine:
+    #         image: ubuntu-2204:2022.10.2
+    #         resource_class: large
+    #     steps:
+    #         - install-dependencies-and-checkout
+    #         - fmt-lint
+    # node-benchmark:
+    #     parallelism: 4
+    #     machine:
+    #         image: ubuntu-2204:2022.10.2
+    #         resource_class: 2xlarge
+    #     steps:
+    #         - install-dependencies-and-checkout
+    #         - run: pushd node && cargo check --features=runtime-benchmarks
+    full-ci:
+        parallelism: 4
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: 2xlarge
+        steps:
+            - node-test
+            - crypto-server
+            - fmt-lint-all
+            - node-benchmark
+            # - increase-swap
+            # - install-dependencies-and-checkout
+            # - sign-and-upload
+            # - build-and-test
 parameters:
     crypto:
         default: false
@@ -116,17 +142,18 @@ parameters:
         type: boolean
 version: 2.1
 workflows:
-    lint:
+    full-ci:
         jobs:
-            - fmt-lint-all
-    node:
-        jobs:
-            - node-test
-            - node-benchmark
+            - full-ci
+    #         - fmt-lint-all
+    # node:
+    #     jobs:      
+    #         - node-test
+    #         - node-benchmark
+    #         - crypto-server
         when:
             or:
                 - << pipeline.parameters.node >>
                 - << pipeline.parameters.pallets >>
                 - << pipeline.parameters.runtime >>
                 - pipeline.parameters.crypto
-
