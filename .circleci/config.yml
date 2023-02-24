@@ -1,32 +1,17 @@
-version: 2.1
-
-# this allows you to use CircleCI's dynamic configuration feature (path-filtering)
-# https://circleci.com/docs/dynamic-config
-setup: true
-
-# the path-filtering orb is required to continue a pipeline based on
-# the path of an updated fileset
-# https://circleci.com/developer/orbs/orb/circleci/path-filtering
 orbs:
-  path-filtering: circleci/path-filtering@0.1.3
-
+    path-filtering: circleci/path-filtering@0.1.3
+setup: true
+version: 2.1
 workflows:
-  # always-run is always triggered (yikes), regardless of the pipeline parameters.
-  always-run: 
-    jobs:
-      # the path-filtering/filter job determines which pipeline parameters to update.
-      - path-filtering/filter:
-          name: check-updated-files
-          # 3-column, whitespace-delimited mapping. One mapping per line:
-          # <regex path-to-test> <parameter-to-set> <value-of-pipeline-parameter>
-            # do rest after validation
-            # crypto/centralized-keygen/.* centralized-keygen-change true
-            # crypto/.* signing-client-change true
-          mapping: |
-            node/.* node true
-            crypto/.* crypto true
-            pallets/.* pallets true
-            runtime/.* runtime true
-          base-revision: master
-          # path to trigger once filtering/value updates finish 
-          config-path: .circleci/then.yml
+    check:
+        jobs:
+            - path-filtering/filter:
+                base-revision: master
+                config-path: .circleci/then.yml
+                mapping: |
+                    node/.* node true
+                    crypto/.* crypto true
+                    pallets/.* pallets true
+                    runtime/.* runtime true
+                name: check-updated-files
+
