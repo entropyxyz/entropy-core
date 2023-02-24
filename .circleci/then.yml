@@ -71,7 +71,7 @@ commands:
     comment-on-pr:
         steps:
             - run: |
-                # sudo apt-get install jq
+                sudo apt-get install jq
                 pr_response=$(curl --location --request GET "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pulls?head=$CIRCLE_PROJECT_USERNAME:$CIRCLE_BRANCH&state=open" \
                 -u $GH_USER:$GH_TOKEN)
                 if [ $(echo $pr_response | jq length) -eq 0 ]; then
@@ -88,26 +88,30 @@ commands:
       
 jobs:
     crypto-server:
-        machine: true
-        resource_class: entropyxyz/el-jefe
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
             - run: cd crypto/server && cargo test --release
     fmt-lint-all:
-        machine: true
-        resource_class: entropyxyz/el-jefe
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
             - fmt-lint
     node-benchmark:
-        machine: true
-        resource_class: entropyxyz/el-jefe
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
             - run: pushd node && cargo check --features=runtime-benchmarks
     node-test:
-        machine: true
-        resource_class: entropyxyz/el-jefe
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: xlarge
         steps:
             - increase-swap
             - install-dependencies-and-checkout
@@ -115,6 +119,7 @@ jobs:
                 command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
                 no_output_timeout: 45m
             - sign-and-upload
+            # - comment-on-pr
 parameters:
     crypto:
         default: false
