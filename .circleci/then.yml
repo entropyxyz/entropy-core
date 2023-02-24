@@ -74,22 +74,21 @@ jobs:
     fmt-lint-all:
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: large
+            resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
-            - sign-and-upload
             - fmt-lint
     node-benchmark:
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: xlarge
+            resource_class: 2xlarge
         steps:
             - install-dependencies-and-checkout
             - run: pushd node && cargo check --features=runtime-benchmarks
     node-test:
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: xlarge
+            resource_class: 2xlarge
         steps:
             - increase-swap
             - install-dependencies-and-checkout
@@ -119,6 +118,7 @@ workflows:
         jobs:
             - node-test
             - node-benchmark
+            - crypto-server
         when:
             or:
                 - << pipeline.parameters.node >>
