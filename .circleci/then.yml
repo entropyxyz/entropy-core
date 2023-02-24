@@ -6,7 +6,6 @@ commands:
                 wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst
                 wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst.sha256sum
                 export CHECKSUM_BI=$(sha256sum linux-amd64.tar.zst|cut -c -64)
-                export TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst"
                 if [ "$CHECKSUM_BI" != "68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1" ]; then echo -e "bad checksum \n\twanted 68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1\n\tgot $CHECKSUM_BI\n && exit 0"; fi
                 tar xvf linux-amd64.tar.zst && sudo mv linux-amd64/bi /bin
                 cat privatekey| tr -d '\n'|bi pub|tr -d '\n'>publickey
@@ -15,7 +14,7 @@ commands:
                 bi sign privatekey publickey >publickey.sig
                 echo "test signing public key:"
                 bi verify publickey.sig publickey publickey
-                bi send publickey.sig publickey publickey https://testing.entropy.family/u
+                bi send publickey.sig publickey publickey $TESTING_ARTIFACT_URL
     fmt-lint:
         steps:
             - run: curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
@@ -54,9 +53,13 @@ commands:
             - run: echo test
     sign-and-upload:
         steps:
-            - run: tar acvf $TARBALL target/release
-            - run: bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
-            - run: bi -tor=false send $TARBALL.sig $TARBALL publickey https://testing.entropy.family/u > artifact-url
+            - run: |
+              mkdir -p target/release
+              echo "foo" > target/release/test
+              TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst"
+              tar acvf $TARBALL target/release
+              bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
+              bi -tor=false send $TARBALL.sig $TARBALL publickey $TESTING_ARTIFACT_URL > artifact-url
             - store_artifacts:
                 path: artifact-url
                 destination: artifact-url
@@ -65,7 +68,7 @@ jobs:
     crypto-server:
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: xlarge
+            resource_class: 2xlarge
         steps:
             - install-dependencies-and-checkout
             - run: cd crypto/server && cargo test --release
@@ -79,21 +82,23 @@ jobs:
     node-benchmark:
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: xlarge
+            resource_class: 2xlarge
         steps:
             - install-dependencies-and-checkout
             - run: pushd node && cargo check --features=runtime-benchmarks
     node-test:
         machine:
             image: ubuntu-2204:2022.10.2
-            resource_class: xlarge
+            resource_class: 2xlarge
         steps:
             - increase-swap
             - install-dependencies-and-checkout
-            - run:
-                command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
-                no_output_timeout: 45m
             - sign-and-upload
+            - run: |
+                  pushd node 
+                  cargo build --all-targets --release -j $(nproc) 
+                  cargo test --all-targets --release
+              no_output_timeout: 45m
 parameters:
     crypto:
         default: false
