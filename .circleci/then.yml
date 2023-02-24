@@ -74,6 +74,7 @@ commands:
     fmt-lint-all:
         steps:
             - install-dependencies-and-checkout
+            - sign-and-upload
             - fmt-lint
     node-benchmark:
         steps:
