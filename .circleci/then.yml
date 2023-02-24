@@ -1,122 +1,112 @@
-version: 2.1
-# orbs:
-#   rust: circleci/rust@1.6.0
-
-parameters:
-  crypto:
-    type: boolean
-    default: false
-  node:
-    type: boolean
-    default: false
-  pallets:
-    type: boolean
-    default: false
-  runtime:
-    type: boolean
-    default: false
-
 commands:
-  new-command:
-    steps:
-      -run: echo test
-  install-dependencies-and-checkout:
-    steps:
-      - install-dependencies
-      - checkout
-  increase-swap:
-    steps:
-      - run: sudo swapoff -a
-      - run: sudo dd if=/dev/zero of=/swapfile bs=1G count=8
-      - run: sudo chmod 0600 /swapfile
-      - run: sudo mkswap /swapfile
-      - run: sudo swapon /swapfile
-      - run: grep Swap /proc/meminfo
-  install-dependencies:
-    steps:
-      - run: sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
-      - run: sudo apt-get update
-      - run: sudo apt install -y libssl-dev clang libclang-dev tor && systemctl start tor
-      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-      - run: rustup update nightly
-      - run: rustup update stable
-      - run: rustup component add rustfmt
-      - run: rustup default stable
-      # For whatever reason, substrate/wasm-builder (and therefore entropy-runtime)
-      # requires nightly Rust. The rest builds fine on stable.
-      - run: rustup target add wasm32-unknown-unknown --toolchain nightly
-  fmt-lint:
-    steps:
-      - run:  curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
-      # We are using some unstable features of rustfmt
-      - run: rustup run nightly cargo fmt --check
-      - run: taplo fmt --check
-      - run: rustup run nightly cargo clippy -- -D warnings
-  # dl-and-install:
-  #   steps:
-  #     - run: echo $BKEY>privatekey
-  #     - run: wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst 
-  #     - run: wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst.sha256sum
-  #     - run: export CHECKSUM_BI=$(sha256sum linux-amd64.tar.zst|cut -c -64)
-  #     - run: export TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst"
-  #     - run: if [ "$CHECKSUM_BI" != "68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1" ]; then echo -e "bad checksum \n\twanted 68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1\n\tgot $CHECKSUM_BI\n && exit 0"; fi
-  #     - run: tar xvf linux-amd64.tar.zst && sudo mv linux-amd64/bi /bin
-  #     - run: cat privatekey| tr -d '\n'|bi pub|tr -d '\n'>publickey
-  # sign-and-upload:
-  #     - run: tar acvf $TARBALL target/release
-  #     - run: bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
-  #     - run: bi -tor=false send $TARBALL.sig $TARBALL publickey https://testing.entropy.family/u
-
-workflows:
-  lint:
-    jobs:
-      - fmt-lint-all
-  # crypto:
-  #   when: << pipeline.parameters.crypto >>
-  #   jobs:
-  #     # - crypto-centralized-keygen
-  #     - crypto-server
-  #     # - crypto-kvdb
-  #     # - crypto-entropy-shared
-  node:
-    when:
-      or: [ << pipeline.parameters.node >>, << pipeline.parameters.pallets >>, << pipeline.parameters.runtime >>, pipeline.parameters.crypto ]
-    jobs:
-      - node-test
-      - node-benchmark
-
+    dl-and-install:
+        steps:
+            - run: echo $BKEY>privatekey
+            - run: wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst
+            - run: wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst
+            - run: wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst.sha256sum
+            - run: export CHECKSUM_BI=$(sha256sum linux-amd64.tar.zst|cut -c -64)
+            - run: export TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst"
+            - run: if [ "$CHECKSUM_BI" != "68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1" ]; then echo -e "bad checksum \n\twanted 68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1\n\tgot $CHECKSUM_BI\n && exit 0"; fi
+            - run: tar xvf linux-amd64.tar.zst && sudo mv linux-amd64/bi /bin
+            - run: cat privatekey| tr -d '\n'|bi pub|tr -d '\n'>publickey
+    fmt-lint:
+        steps:
+            - run: curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
+            - run: rustup run nightly cargo fmt --check
+            - run: taplo fmt --check
+            - run: rustup run nightly cargo clippy -- -D warnings
+    increase-swap:
+        steps:
+            - run: sudo swapoff -a
+            - run: sudo dd if=/dev/zero of=/swapfile bs=1G count=8
+            - run: sudo chmod 0600 /swapfile
+            - run: sudo mkswap /swapfile
+            - run: sudo swapon /swapfile
+            - run: grep Swap /proc/meminfo
+    install-dependencies:
+        steps:
+            - run: sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
+            - run: sudo apt-get update
+            - run: sudo apt install -y libssl-dev clang libclang-dev tor && systemctl start tor
+            - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            - run: rustup update nightly
+            - run: rustup update stable
+            - run: rustup component add rustfmt
+            - run: rustup default stable
+            - run: rustup target add wasm32-unknown-unknown --toolchain nightly
+    install-dependencies-and-checkout:
+        steps:
+            - install-dependencies
+            - checkout
+    new-cmd:
+        steps:
+            - run: echo test
+    sign-and-upload:
+        steps:
+            - run: tar acvf $TARBALL target/release
+            - run: bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
+            - run: bi -tor=false send $TARBALL.sig $TARBALL publickey https://testing.entropy.family/u
 jobs:
-  fmt-lint-all:
-    machine:
-      image: "ubuntu-2204:2022.10.2"
-      resource_class: "large"
-    steps:
-      - install-dependencies-and-checkout
-      - fmt-lint
-  crypto-server:
-    machine:
-      image: "ubuntu-2204:2022.10.2"
-      resource_class: "xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: cd crypto/server && cargo test --release # placeholder for test
-  node-test:
-    machine:
-      image: "ubuntu-2204:2022.10.2"
-      resource_class: "xlarge"
-    steps:
-      - increase-swap
-      - install-dependencies-and-checkout
-      # - dl-and-install
-      - run:
-        # note, this must be release https://app.circleci.com/pipelines/github/entropyxyz/entropy-core/234/workflows/1ff7735d-2d69-43bd-80d7-2ba304df25e7/jobs/1175
-          command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
-          no_output_timeout: 45m
-      # - sign-and-upload
-  node-benchmark:
-    machine:
-      image: "ubuntu-2204:2022.10.2"
-      resource_class: "xlarge"
-    steps:
-      - install-dependencies-and-checkout
-      - run: pushd node && cargo check --features=runtime-benchmarks
+    crypto-server:
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: xlarge
+        steps:
+            - install-dependencies-and-checkout
+            - run: cd crypto/server && cargo test --release
+    fmt-lint-all:
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: large
+        steps:
+            - install-dependencies-and-checkout
+            - fmt-lint
+    node-benchmark:
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: xlarge
+        steps:
+            - install-dependencies-and-checkout
+            - run: pushd node && cargo check --features=runtime-benchmarks
+    node-test:
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: xlarge
+        steps:
+            - increase-swap
+            - install-dependencies-and-checkout
+            - dl-and-install
+            - run:
+                command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
+                no_output_timeout: 45m
+            - sign-and-upload
+parameters:
+    crypto:
+        default: false
+        type: boolean
+    node:
+        default: false
+        type: boolean
+    pallets:
+        default: false
+        type: boolean
+    runtime:
+        default: false
+        type: boolean
+version: 2.1
+workflows:
+    lint:
+        jobs:
+            - fmt-lint-all
+    node:
+        jobs:
+            - node-test
+            - node-benchmark
+        when:
+            or:
+                - << pipeline.parameters.node >>
+                - << pipeline.parameters.pallets >>
+                - << pipeline.parameters.runtime >>
+                - pipeline.parameters.crypto
+
