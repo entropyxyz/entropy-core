@@ -54,15 +54,21 @@ commands:
     sign-and-upload:
         steps:
             - run: |
-              mkdir -p target/release
-              echo "foo" > target/release/test
-              TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst"
-              tar acvf $TARBALL target/release
-              bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
-              bi -tor=false send $TARBALL.sig $TARBALL publickey $TESTING_ARTIFACT_URL > artifact-url
+                mkdir -p target/release
+                echo "foo" > target/release/test
+                TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst"
+                tar acvf $TARBALL target/release
+                bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
+                bi -tor=false send $TARBALL.sig $TARBALL publickey $TESTING_ARTIFACT_URL > artifact-url
             - store_artifacts:
                 path: artifact-url
                 destination: artifact-url
+    build-and-test:
+        steps:
+            - run: |
+                pushd node 
+                cargo build --all-targets --release -j $(nproc) 
+                cargo test --all-targets --release
 
 jobs:
     crypto-server:
@@ -94,11 +100,7 @@ jobs:
             - increase-swap
             - install-dependencies-and-checkout
             - sign-and-upload
-            - run: |
-                  pushd node 
-                  cargo build --all-targets --release -j $(nproc) 
-                  cargo test --all-targets --release
-              no_output_timeout: 45m
+            - build-and-test
 parameters:
     crypto:
         default: false
