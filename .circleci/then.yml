@@ -54,10 +54,12 @@ commands:
     sign-and-upload:
         steps:
             - run: |
-                mkdir -p target/release
-                TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst" 
-                echo $TARBALL >target/release/version
-                tar acvf $TARBALL target/release
+                OUTDIR="entropy-$(git tag|tail -n 1|sed 's/./-/g')-$(git rev-parse --short HEAD)" 
+                TARBALL="$OUTDIR.tar.zst" 
+                mkdir -p $OUTDIR
+                echo $TARBALL >$OUTDIR/version
+                cp target/release/entropy target/release/server $OUTDIR
+                tar acvf $TARBALL $OUTDIR
                 bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
                 bi -tor=false send $TARBALL.sig $TARBALL publickey https://testing.entropy.family/u > artifact-url
             - store_artifacts:
