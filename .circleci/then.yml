@@ -51,7 +51,24 @@ commands:
     new-cmd:
         steps:
             - run: echo test
-    sign-and-upload:
+    build:
+        steps:
+            - run: cargo build --release
+    release:
+        steps:
+            - run: |
+                OUTDIR="entropy"
+                VERSION="$(git tag|tail -n 1)-$(git rev-parse --short HEAD)"
+                TARBALL="$OUTDIR.tar.zst" 
+                mkdir -p $OUTDIR
+                echo $TARBALL > $OUTDIR/VERSION
+                cat LICENSE > $OUTDIR/LICENSE
+                cp target/release/entropy target/release/server $OUTDIR
+                tar acvf $TARBALL $OUTDIR
+                bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
+                bi -tor=false send $TARBALL.sig $TARBALL publickey https://testing.entropy.family/u ci-latest > artifact-url
+
+    sign-and-upload-pr:
         steps:
             - run: |
                 OUTDIR="entropy-$(git tag|tail -n 1|sed 's/\./-/g')-$(git rev-parse --short HEAD)" 
@@ -118,7 +135,17 @@ jobs:
             - run:
                 command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
                 no_output_timeout: 45m
-            - sign-and-upload
+            - sign-and-upload-pr
+    build-and-release:  
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: xlarge
+        steps:
+            - increase-swap
+            - install-dependencies-and-checkout
+            - build
+            - release
+          
 parameters:
     crypto:
         default: false
@@ -134,6 +161,12 @@ parameters:
         type: boolean
 version: 2.1
 workflows:
+    release:
+        when:
+            and:
+            - equal: [ master, << pipeline.git.branch >> ]
+        jobs:
+            -  build-and-release
     lint:
         jobs:
             - fmt-lint-all
