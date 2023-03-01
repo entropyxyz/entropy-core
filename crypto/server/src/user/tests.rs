@@ -3,12 +3,11 @@ use std::{env, fs, path::PathBuf};
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{Message, OCWMessage, SigRequest};
-use ethers_core::{
-    types::{Address, TransactionRequest}
-};
-use futures::{Future, join};
+use ethers_core::types::{Address, TransactionRequest};
+use futures::{join, Future};
 use hex_literal::hex as h;
 use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
+use parity_scale_codec::Encode;
 use rocket::{
     http::{ContentType, Status},
     tokio::time::{sleep, Duration},
@@ -20,7 +19,6 @@ use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
 use testing_utils::context::{test_context, test_context_stationary, TestContext};
 use x25519_dalek::{PublicKey, StaticSecret};
-use parity_scale_codec::Encode;
 
 use super::UserInputPartyInfo;
 use crate::{
@@ -35,11 +33,10 @@ use crate::{
     },
     load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
-    new_party, new_user, store_tx,
-    r#unsafe::api::{delete, get, put, remove_keys},
-    r#unsafe::api::UnsafeQuery,
+    new_party, new_user,
+    r#unsafe::api::{delete, get, put, remove_keys, UnsafeQuery},
     signing_client::SignerState,
-    subscribe_to_me,
+    store_tx, subscribe_to_me,
     validator::api::get_random_server_info,
     Message as SigMessage,
 };
@@ -55,7 +52,6 @@ async fn test_get_signer_does_not_throw_err() {
     clean_tests();
 }
 
-
 /// TODO
 /// setup mock ocw data via /new_party
 /// kickoff /tx with mock client
@@ -69,14 +65,8 @@ async fn test_unsigned_tx_endpoint() {
 
     // setup mock client data
     let whitelisted_addresses = vec![Address::from([1u8; 20]), Address::from([2u8; 20])];
-    let alice_transaction_request = 
-        TransactionRequest::new()
-            .to(whitelisted_addresses[0])
-            .value(1);
-    let bob_transaction_request =
-        TransactionRequest::new()
-            .to(whitelisted_addresses[1])
-            .value(5);
+    let alice_transaction_request = TransactionRequest::new().to(whitelisted_addresses[0]).value(1);
+    let bob_transaction_request = TransactionRequest::new().to(whitelisted_addresses[1]).value(5);
     let alice_req_body = serde_json::json!({
         "arch": "evm",
         "transaction_request": alice_transaction_request.rlp_unsigned().to_string(),
@@ -85,7 +75,6 @@ async fn test_unsigned_tx_endpoint() {
         "arch": "evm",
         "transaction_request": bob_transaction_request.rlp_unsigned().to_string(),
     });
-   
 
     // spin up 2 threshold servers
     let port_0 = 3001;
@@ -99,10 +88,12 @@ async fn test_unsigned_tx_endpoint() {
     // Construct a client to use for dispatching requests.
     let client0 = create_clients(port_0, "0".to_string()).await;
     let client1 = create_clients(port_1, "1".to_string()).await;
-    // let clients = join_all(ports.iter().map(|port| create_clients(*port, "0".to_string())).collect()).await;
+    // let clients = join_all(ports.iter().map(|port| create_clients(*port,
+    // "0".to_string())).collect()).await;
     tokio::spawn(async move { client0.launch().await.unwrap() });
     tokio::spawn(async move { client1.launch().await.unwrap() });
-    // let spawns = join_all(clients.iter().map(|client: &Rocket<Ignite>| client.launch()).collect()).await;
+    // let spawns = join_all(clients.iter().map(|client: &Rocket<Ignite>|
+    // client.launch()).collect()).await;
 
     // Unfortunately, we cannot get a notification when a Rocket server has finished starting up,
     // so we will give them a second for that.
@@ -111,13 +102,17 @@ async fn test_unsigned_tx_endpoint() {
     let ip_addresses: Vec<Vec<u8>> = vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()];
     let raw_messages = vec![
         Message {
-            sig_request: SigRequest { sig_hash: alice_transaction_request.sighash().as_bytes().to_vec() },
+            sig_request: SigRequest {
+                sig_hash: alice_transaction_request.sighash().as_bytes().to_vec(),
+            },
             account: AccountKeyring::Alice.to_raw_public_vec(),
             ip_addresses: ip_addresses.clone(),
         },
         // TODO test bob client
         Message {
-            sig_request: SigRequest { sig_hash: bob_transaction_request.sighash().as_bytes().to_vec() },
+            sig_request: SigRequest {
+                sig_hash: bob_transaction_request.sighash().as_bytes().to_vec(),
+            },
             account: AccountKeyring::Bob.to_raw_public_vec(),
             ip_addresses,
         },
@@ -138,24 +133,24 @@ async fn test_unsigned_tx_endpoint() {
         let mock_client = reqwest::Client::new();
 
         // client requests server to sign the sighash
-        let alice_sig_req_response1= mock_client
+        let alice_sig_req_response1 = mock_client
             .post("http://127.0.0.1:3001/user/tx")
             .header("Content-Type", "application/json")
             .body(alice_req_body.to_string())
             .send();
 
-        let alice_sig_req_response2= mock_client
+        let alice_sig_req_response2 = mock_client
             .post("http://127.0.0.1:3002/user/tx")
             .header("Content-Type", "application/json")
             .body(alice_req_body.to_string())
             .send();
 
-        let (alice_sig_req_response1, alice_sig_req_response2)= join!(alice_sig_req_response1, alice_sig_req_response2);
+        let (alice_sig_req_response1, alice_sig_req_response2) =
+            join!(alice_sig_req_response1, alice_sig_req_response2);
 
         assert_eq!(alice_sig_req_response1.unwrap().status(), 200);
         assert_eq!(alice_sig_req_response2.unwrap().status(), 200);
     });
-
 
     handle.await.unwrap();
 
@@ -163,19 +158,20 @@ async fn test_unsigned_tx_endpoint() {
         let mock_client = reqwest::Client::new();
 
         // client requests server to sign the sighash
-        let bob_sig_req_response1= mock_client
+        let bob_sig_req_response1 = mock_client
             .post("http://127.0.0.1:3001/user/tx")
             .header("Content-Type", "application/json")
             .body(bob_req_body.to_string())
             .send();
 
-        let bob_sig_req_response2= mock_client
+        let bob_sig_req_response2 = mock_client
             .post("http://127.0.0.1:3002/user/tx")
             .header("Content-Type", "application/json")
             .body(bob_req_body.to_string())
             .send();
 
-        let (bob_sig_req_response1, bob_sig_req_response2)= join!(bob_sig_req_response1, bob_sig_req_response2);
+        let (bob_sig_req_response1, bob_sig_req_response2) =
+            join!(bob_sig_req_response1, bob_sig_req_response2);
         let bob_res1 = bob_sig_req_response1.unwrap();
         let bob_res2 = bob_sig_req_response2.unwrap();
 
@@ -216,9 +212,11 @@ async fn test_unsigned_tx_endpoint() {
     assert_eq!(bob_get_sig_response.unwrap().text().await.unwrap().len(), 88);
 
     // client requests server delete the signature
-    let delete_signatures_respose = mock_client.get("http://127.0.0.1:3001/signer/drain").send().await;
+    let delete_signatures_respose =
+        mock_client.get("http://127.0.0.1:3001/signer/drain").send().await;
     assert_eq!(delete_signatures_respose.unwrap().status(), 200);
-    let delete_signatures_respose = mock_client.get("http://127.0.0.1:3002/signer/drain").send().await;
+    let delete_signatures_respose =
+        mock_client.get("http://127.0.0.1:3002/signer/drain").send().await;
     assert_eq!(delete_signatures_respose.unwrap().status(), 200);
 
     // query the signature again, should error since we just deleted it
@@ -554,7 +552,6 @@ async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
     // alice and bob reuse the same keyshares for testing
     let _ = kv_store.kv().put(alice_reservation, v_serialized.clone()).await;
     let _ = kv_store.kv().put(bob_reservation, v_serialized).await;
-
 
     // Unsafe routes are for testing purposes only
     // they are unsafe as they can expose vulnerabilites

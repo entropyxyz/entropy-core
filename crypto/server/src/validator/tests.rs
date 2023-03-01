@@ -24,8 +24,9 @@ use crate::{
         validator::get_subgroup,
     },
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
-    new_user, store_tx,
+    new_user,
     signing_client::SignerState,
+    store_tx,
 };
 
 #[rocket::async_test]

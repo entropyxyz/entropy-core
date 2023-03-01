@@ -145,7 +145,7 @@ pub struct Message {
 }
 
 /// Returns the signature of the requested sighash
-/// 
+///
 /// This will be removed when after client participates in signing
 #[post("/signature", data = "<msg>")]
 pub async fn get_signature(
@@ -159,7 +159,7 @@ pub async fn get_signature(
 
 /// Drains all signatures from the state
 /// Client calls this after they receive the signature at `/signature`
-/// 
+///
 /// This will be removed when after client participates in signing
 #[get("/drain")]
 pub async fn drain(signatures: &State<SignatureState>) -> Result<Status, ()> {
