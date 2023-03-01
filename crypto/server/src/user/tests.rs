@@ -52,12 +52,6 @@ async fn test_get_signer_does_not_throw_err() {
     clean_tests();
 }
 
-/// TODO
-/// setup mock ocw data via /new_party
-/// kickoff /tx with mock client
-/// validate that sighash is signed and returned
-/// validate sighash was drained
-/// validate that sighash was stored in kvdb
 #[rocket::async_test]
 #[serial]
 async fn test_unsigned_tx_endpoint() {
@@ -184,12 +178,11 @@ async fn test_unsigned_tx_endpoint() {
 
     let mock_client = reqwest::Client::new();
 
-    // all of this can be removed
     let alice_get_sig_message =
         SigMessage { message: hex::encode(raw_messages[0].sig_request.sig_hash.clone()) };
     let bob_get_sig_message =
         SigMessage { message: hex::encode(raw_messages[1].sig_request.sig_hash.clone()) };
-    // JH what does this do?
+
     // after the signing is completed, client can get it at /signer/signature
     let alice_get_sig_response = mock_client
         .post("http://127.0.0.1:3001/signer/signature")
@@ -200,7 +193,6 @@ async fn test_unsigned_tx_endpoint() {
     assert_eq!(alice_get_sig_response.as_ref().unwrap().status(), 202);
     assert_eq!(alice_get_sig_response.unwrap().text().await.unwrap().len(), 88);
 
-    // JH what does this do?
     // after the signing is completed, client can get it at /signer/signature
     let bob_get_sig_response = mock_client
         .post("http://127.0.0.1:3001/signer/signature")
@@ -211,31 +203,34 @@ async fn test_unsigned_tx_endpoint() {
     assert_eq!(bob_get_sig_response.as_ref().unwrap().status(), 202);
     assert_eq!(bob_get_sig_response.unwrap().text().await.unwrap().len(), 88);
 
-    // client requests server delete the signature
-    let delete_signatures_respose =
-        mock_client.get("http://127.0.0.1:3001/signer/drain").send().await;
-    assert_eq!(delete_signatures_respose.unwrap().status(), 200);
-    let delete_signatures_respose =
-        mock_client.get("http://127.0.0.1:3002/signer/drain").send().await;
-    assert_eq!(delete_signatures_respose.unwrap().status(), 200);
+    // if unsafe features ie enabled, do unsafe functions
+    if cfg!(feature = "unsafe") {
+        let delete_signatures_respose =
+            mock_client.get("http://127.0.0.1:3001/signer/drain").send().await;
+        assert_eq!(delete_signatures_respose.unwrap().status(), 200);
+        let delete_signatures_respose =
+            mock_client.get("http://127.0.0.1:3002/signer/drain").send().await;
+        assert_eq!(delete_signatures_respose.unwrap().status(), 200);
 
-    // query the signature again, should error since we just deleted it
-    let alice_sig_req_response = mock_client
-        .post("http://127.0.0.1:3001/signer/signature")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&alice_get_sig_message).unwrap())
-        .send()
-        .await;
+        // query the signature again, should error since we just deleted it
+        let alice_sig_req_response = mock_client
+            .post("http://127.0.0.1:3001/signer/signature")
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&alice_get_sig_message).unwrap())
+            .send()
+            .await;
 
-    let bob_sig_req_response = mock_client
-        .post("http://127.0.0.1:3002/signer/signature")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&bob_get_sig_message).unwrap())
-        .send()
-        .await;
+        let bob_sig_req_response = mock_client
+            .post("http://127.0.0.1:3002/signer/signature")
+            // .header("Content-Type", "application/json")
+            // .body(serde_json::to_string(&bob_get_sig_message).unwrap())
+            .json(&bob_get_sig_message)
+            .send()
+            .await;
 
-    assert_eq!(alice_sig_req_response.unwrap().status(), 500);
-    assert_eq!(bob_sig_req_response.unwrap().status(), 500);
+        assert_eq!(alice_sig_req_response.unwrap().status(), 500);
+        assert_eq!(bob_sig_req_response.unwrap().status(), 500);
+    }
 
     clean_tests();
 }

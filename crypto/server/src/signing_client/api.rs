@@ -21,10 +21,7 @@ const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 /// This endpoint is called by the blockchain.
 #[instrument(skip(kv))]
 #[post("/new_party", data = "<encoded_data>")]
-pub async fn new_party(
-    encoded_data: Vec<u8>,
-    kv: &State<KvManager>,
-) -> Result<Status, SigningErr> {
+pub async fn new_party(encoded_data: Vec<u8>, kv: &State<KvManager>) -> Result<Status, SigningErr> {
     // TODO encryption and authentication.
     let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
 
@@ -33,7 +30,6 @@ pub async fn new_party(
 
         match kv.kv().reserve_key(sighash).await {
             Ok(reservation) => {
-                // TODO we should really Serialize this but `put()` needs to get refactored first
                 let value = serde_json::to_string(&message).unwrap();
 
                 kv.kv().put(reservation, value.into()).await?;
@@ -90,7 +86,6 @@ pub async fn subscribe_to_me(
 
     Ok(Listener::create_event_stream(rx, end))
 }
-
 
 use rocket::response::status;
 use serde::{Deserialize, Serialize};
