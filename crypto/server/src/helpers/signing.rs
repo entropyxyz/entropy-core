@@ -1,6 +1,18 @@
 use std::{collections::HashMap, sync::Mutex};
 
+use kvdb::kv_manager::KvManager;
+use rocket::State;
+use rocket::http::Status;
 use tofn::sdk::api::RecoverableSignature;
+
+use crate::signing_client::SignerState;
+
+use crate::{
+    sign_init::SignInit,
+    signing_client::SigningErr,
+};
+use crate::signing_client::new_party::{Channels, Gg20Service};
+use crate::signing_client::subscribe::{subscribe_to_them, Listener};
 
 // TODO: JA Remove all below, temporary
 /// The state used to temporarily store completed signatures
@@ -30,4 +42,41 @@ impl SignatureState {
         let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
         let _ = signatures.drain();
     }
+}
+
+/// Start the signing protocol for a given message
+pub async fn do_signing(
+    message: entropy_shared::Message,
+    state: &State<SignerState>,
+    kv_manager: &State<KvManager>,
+    signatures: &State<SignatureState>,
+) -> Result<Status, SigningErr> {
+    // todo: temporary hack, replace with correct data
+    let info = SignInit::temporary_data(message.clone());
+    let gg20_service = Gg20Service::new(state, kv_manager);
+
+    // set up context for signing protocol execution
+    let sign_context = gg20_service.get_sign_context(info.clone()).await?;
+
+    // subscribe to all other participating parties. Listener waits for other subscribers.
+    let (rx_ready, listener) = Listener::new();
+    state
+        .listeners
+        .lock()
+        .expect("lock shared data")
+        .insert(sign_context.sign_init.party_uid.to_string(), listener);
+    let channels = {
+        let stream_in = subscribe_to_them(&sign_context).await?;
+        let broadcast_out = rx_ready.await??;
+        Channels(broadcast_out, stream_in)
+    };
+
+    let result = gg20_service.execute_sign(&sign_context, channels).await.unwrap();
+
+    gg20_service.handle_result(
+        &result,
+        message.sig_request.sig_hash.as_slice().try_into().unwrap(),
+        signatures,
+    );
+    Ok(Status::Ok)
 }

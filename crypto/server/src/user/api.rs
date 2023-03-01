@@ -32,11 +32,11 @@ use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     helpers::{
-        signing::SignatureState,
+        signing::{SignatureState, do_signing},
         validator::{get_signer, get_subgroup},
     },
     message::SignedMessage,
-    signing_client::{api::do_signing, SignerState},
+    signing_client::SignerState,
     Configuration,
 };
 
