@@ -47,7 +47,6 @@ impl<'a> Gg20Service<'a> {
     #[instrument]
     pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, SigningErr> {
         info!("check_sign_init: {sign_init:?}");
-        println!("check_sign_init: {sign_init:?}");
         let party_vec = self.kv_manager.kv().get(&sign_init.substrate_key).await?;
         let bincode = bincode::DefaultOptions::new();
         let value: SecretKeyShare = bincode.deserialize(&party_vec)?;

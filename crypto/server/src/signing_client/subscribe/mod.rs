@@ -26,7 +26,6 @@ pub async fn subscribe_to_them(
         // otherwise we're stuck in a deadlock while servers wait for each other to subscribe.
         // The first event we receive is an empty one, so we're not losing any info.
         let first_event = es.next().await.unwrap();
-        println!("first event: {:?}", first_event);
 
         let first_event = first_event.expect("a valid event");
 

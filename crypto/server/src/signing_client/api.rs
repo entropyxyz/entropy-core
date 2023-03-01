@@ -25,16 +25,13 @@ const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 #[post("/new_party", data = "<encoded_data>")]
 pub async fn new_party(
     encoded_data: Vec<u8>,
-    state: &State<SignerState>,
     kv: &State<KvManager>,
-    signatures: &State<SignatureState>,
 ) -> Result<Status, SigningErr> {
     // TODO encryption and authentication.
     let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
 
     for message in data {
         let sighash = hex::encode(&message.sig_request.sig_hash);
-        println!("/new_party sighash as String: {}", sighash);
 
         match kv.kv().reserve_key(sighash).await {
             Ok(reservation) => {
@@ -45,7 +42,7 @@ pub async fn new_party(
             },
 
             Err(_) => {
-                println!("This sighash is already reserved. Weird! Skipping...");
+                println!("OCW submitted a sighash that was already reserved. Weird. Skipping...");
                 return Ok(Status::Ok);
             },
         }
@@ -153,7 +150,6 @@ pub async fn get_signature(
     signatures: &State<SignatureState>,
 ) -> status::Accepted<String> {
     let sig = signatures.get(&msg.message);
-    println!("Signature: {:?}", sig.clone());
     status::Accepted(Some(base64::encode(sig.as_ref())))
 }
 

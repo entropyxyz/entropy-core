@@ -21,7 +21,6 @@ impl SignatureState {
     }
 
     pub fn get(&self, key: &String) -> [u8; 65] {
-        println!("Try Query: {}", key);
         let signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
         let result = *signatures.get(key).unwrap();
         result.as_ref().try_into().expect("slice with incorrect length")

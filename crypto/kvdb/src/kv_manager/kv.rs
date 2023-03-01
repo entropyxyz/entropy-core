@@ -54,7 +54,6 @@ where V: Debug + Send + Sync + Serialize + DeserializeOwned
     /// Reserves a key in the kvstore with [super::types::DEFAULT_RESERV] value.
     /// Returns [ReserveErr] or [SendErr] on failure.
     pub async fn reserve_key(&self, key: String) -> KvResult<KeyReservation> {
-        println!("Reserving key: {}", &key);
         let (resp_tx, resp_rx) = oneshot::channel();
         self.sender
             .send(ReserveKey { key, resp: resp_tx })
