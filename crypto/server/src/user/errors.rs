@@ -9,7 +9,7 @@ use rocket::{
 };
 use thiserror::Error;
 
-use crate::chain_api::entropy;
+use crate::{chain_api::entropy, signing_client::SigningErr};
 
 #[derive(Debug, Error)]
 pub enum UserErr {
@@ -41,6 +41,8 @@ pub enum UserErr {
     InvalidSignature(&'static str),
     #[error("Constraints error: {0}")]
     ConstraintsError(#[from] ConstraintsError),
+    #[error("Signing error: {0}")]
+    SigningClientError(#[from] SigningErr),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {

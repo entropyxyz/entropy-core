@@ -1,12 +1,18 @@
-use std::env;
+use std::{env, fs, path::PathBuf};
 
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
+use entropy_shared::{Message, OCWMessage, SigRequest};
+use ethers_core::{
+    types::{Address, TransactionRequest}
+};
+use futures::{Future, join};
 use hex_literal::hex as h;
-use kvdb::clean_tests;
+use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
 use rocket::{
     http::{ContentType, Status},
     tokio::time::{sleep, Duration},
+    Ignite, Rocket,
 };
 use serial_test::serial;
 use sp_core::{sr25519, Bytes, Pair, H160};
@@ -14,19 +20,28 @@ use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
 use testing_utils::context::{test_context, test_context_stationary, TestContext};
 use x25519_dalek::{PublicKey, StaticSecret};
+use parity_scale_codec::Encode;
 
 use super::UserInputPartyInfo;
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
-    get_signer,
+    drain, get_signature, get_signer,
     helpers::{
-        launch::{setup_mnemonic, DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
+        launch::{
+            setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+        },
+        signing::SignatureState,
         tests::setup_client,
     },
     load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
+    new_party, new_user, store_tx,
+    r#unsafe::api::{delete, get, put, remove_keys},
     r#unsafe::api::UnsafeQuery,
+    signing_client::SignerState,
+    subscribe_to_me,
     validator::api::get_random_server_info,
+    Message as SigMessage,
 };
 
 #[rocket::async_test]
@@ -40,52 +55,191 @@ async fn test_get_signer_does_not_throw_err() {
     clean_tests();
 }
 
+
+/// TODO
+/// setup mock ocw data via /new_party
+/// kickoff /tx with mock client
+/// validate that sighash is signed and returned
+/// validate sighash was drained
+/// validate that sighash was stored in kvdb
 #[rocket::async_test]
 #[serial]
 async fn test_unsigned_tx_endpoint() {
-    if cfg!(feature = "unsafe") {
-        clean_tests();
-        let client = setup_client().await;
+    clean_tests();
 
-        let arch = r#"evm"#;
-        // encoded_tx_req comes from ethers serializeTransaction() of the following
-        // UnsignedTransaction: {"to":"0x772b9a9e8aa1c9db861c6611a82d251db4fac990","value":
-        // {"type":"BigNumber","hex":"0x01"}, "chainId":1,"nonce":1,"data":"
-        // 0x43726561746564204f6e20456e74726f7079"} See frontend threshold-server tests for
-        // more context
-        let transaction_request = r#"0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080"#;
-        let tx_req = serde_json::json!({
-            "arch": arch,
-            "transaction_request": transaction_request,
-        });
-        println!("tx_req: {}", tx_req.to_string());
+    // setup mock client data
+    let whitelisted_addresses = vec![Address::from([1u8; 20]), Address::from([2u8; 20])];
+    let alice_transaction_request = 
+        TransactionRequest::new()
+            .to(whitelisted_addresses[0])
+            .value(1);
+    let bob_transaction_request =
+        TransactionRequest::new()
+            .to(whitelisted_addresses[1])
+            .value(5);
+    let alice_req_body = serde_json::json!({
+        "arch": "evm",
+        "transaction_request": alice_transaction_request.rlp_unsigned().to_string(),
+    });
+    let bob_req_body = serde_json::json!({
+        "arch": "evm",
+        "transaction_request": bob_transaction_request.rlp_unsigned().to_string(),
+    });
+   
 
-        // request to store tx
-        let response = client
-            .post("/user/tx")
-            .header(ContentType::JSON)
-            .body(tx_req.to_string())
-            .dispatch()
-            .await;
-        assert_eq!(response.status(), Status::Ok);
+    // spin up 2 threshold servers
+    let port_0 = 3001;
+    // let validator_1_url = format!("http://127.0.0.1:{}", port_0);
+    let port_1 = 3002;
+    // let validator_2_url = format!("http://127.0.0.1:{}", port_1);
 
-        // verify that sighash and transaction have been stored correctly
-        let parsed_tx =
-            <Evm as Architecture>::TransactionRequest::parse(transaction_request.to_string())
-                .unwrap();
-        let sighash = parsed_tx.sighash().to_string();
-        let query_parsed_tx = client
-            .post("/unsafe/get")
-            .header(ContentType::JSON)
-            .body(UnsafeQuery::new(sighash, String::new()).to_json())
-            .dispatch()
-            .await;
+    // let ports = vec![3001i64, 3002];
+    // let validator_urls: Vec<String> = ports.iter().map(|port| format!("http://127.0.0.1:{}", port)).collect();
 
-        // make sure it could find the user's transaction request
-        assert_eq!(query_parsed_tx.into_string().await, Some(transaction_request.to_string()));
+    // Construct a client to use for dispatching requests.
+    let client0 = create_clients(port_0, "0".to_string()).await;
+    let client1 = create_clients(port_1, "1".to_string()).await;
+    // let clients = join_all(ports.iter().map(|port| create_clients(*port, "0".to_string())).collect()).await;
+    tokio::spawn(async move { client0.launch().await.unwrap() });
+    tokio::spawn(async move { client1.launch().await.unwrap() });
+    // let spawns = join_all(clients.iter().map(|client: &Rocket<Ignite>| client.launch()).collect()).await;
 
-        clean_tests();
-    }
+    // Unfortunately, we cannot get a notification when a Rocket server has finished starting up,
+    // so we will give them a second for that.
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+    let ip_addresses: Vec<Vec<u8>> = vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()];
+    let raw_messages = vec![
+        Message {
+            sig_request: SigRequest { sig_hash: alice_transaction_request.sighash().as_bytes().to_vec() },
+            account: AccountKeyring::Alice.to_raw_public_vec(),
+            ip_addresses: ip_addresses.clone(),
+        },
+        // TODO test bob client
+        Message {
+            sig_request: SigRequest { sig_hash: bob_transaction_request.sighash().as_bytes().to_vec() },
+            account: AccountKeyring::Bob.to_raw_public_vec(),
+            ip_addresses,
+        },
+    ];
+    let messages: Vec<u8> = raw_messages.encode();
+
+    let mock_ocw = reqwest::Client::new();
+
+    let url = format!("http://127.0.0.1:{port_0}/signer/new_party");
+    let mock_ocw_response = mock_ocw.post(url).body(messages.clone()).send().await;
+    assert_eq!(mock_ocw_response.unwrap().status(), 200);
+
+    let url = format!("http://127.0.0.1:{port_1}/signer/new_party");
+    let mock_ocw_response = mock_ocw.post(url).body(messages).send().await;
+    assert_eq!(mock_ocw_response.unwrap().status(), 200);
+
+    let handle = tokio::spawn(async move {
+        let mock_client = reqwest::Client::new();
+
+        // client requests server to sign the sighash
+        let alice_sig_req_response1= mock_client
+            .post("http://127.0.0.1:3001/user/tx")
+            .header("Content-Type", "application/json")
+            .body(alice_req_body.to_string())
+            .send();
+
+        let alice_sig_req_response2= mock_client
+            .post("http://127.0.0.1:3002/user/tx")
+            .header("Content-Type", "application/json")
+            .body(alice_req_body.to_string())
+            .send();
+
+        let (alice_sig_req_response1, alice_sig_req_response2)= join!(alice_sig_req_response1, alice_sig_req_response2);
+
+        assert_eq!(alice_sig_req_response1.unwrap().status(), 200);
+        assert_eq!(alice_sig_req_response2.unwrap().status(), 200);
+    });
+
+
+    handle.await.unwrap();
+
+    let handle2 = tokio::spawn(async move {
+        let mock_client = reqwest::Client::new();
+
+        // client requests server to sign the sighash
+        let bob_sig_req_response1= mock_client
+            .post("http://127.0.0.1:3001/user/tx")
+            .header("Content-Type", "application/json")
+            .body(bob_req_body.to_string())
+            .send();
+
+        let bob_sig_req_response2= mock_client
+            .post("http://127.0.0.1:3002/user/tx")
+            .header("Content-Type", "application/json")
+            .body(bob_req_body.to_string())
+            .send();
+
+        let (bob_sig_req_response1, bob_sig_req_response2)= join!(bob_sig_req_response1, bob_sig_req_response2);
+        let bob_res1 = bob_sig_req_response1.unwrap();
+        let bob_res2 = bob_sig_req_response2.unwrap();
+
+        assert_eq!(bob_res1.status(), 200);
+        assert_eq!(bob_res2.status(), 200);
+    });
+
+    handle2.await.unwrap();
+    // let (handle1, handle2) = join!(handle, handle2);
+
+    let mock_client = reqwest::Client::new();
+
+    // all of this can be removed
+    let alice_get_sig_message =
+        SigMessage { message: hex::encode(raw_messages[0].sig_request.sig_hash.clone()) };
+    let bob_get_sig_message =
+        SigMessage { message: hex::encode(raw_messages[1].sig_request.sig_hash.clone()) };
+    // JH what does this do?
+    // after the signing is completed, client can get it at /signer/signature
+    let alice_get_sig_response = mock_client
+        .post("http://127.0.0.1:3001/signer/signature")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&alice_get_sig_message).unwrap())
+        .send()
+        .await;
+    assert_eq!(alice_get_sig_response.as_ref().unwrap().status(), 202);
+    assert_eq!(alice_get_sig_response.unwrap().text().await.unwrap().len(), 88);
+
+    // JH what does this do?
+    // after the signing is completed, client can get it at /signer/signature
+    let bob_get_sig_response = mock_client
+        .post("http://127.0.0.1:3001/signer/signature")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&bob_get_sig_message).unwrap())
+        .send()
+        .await;
+    assert_eq!(bob_get_sig_response.as_ref().unwrap().status(), 202);
+    assert_eq!(bob_get_sig_response.unwrap().text().await.unwrap().len(), 88);
+
+    // client requests server delete the signature
+    let delete_signatures_respose = mock_client.get("http://127.0.0.1:3001/signer/drain").send().await;
+    assert_eq!(delete_signatures_respose.unwrap().status(), 200);
+    let delete_signatures_respose = mock_client.get("http://127.0.0.1:3002/signer/drain").send().await;
+    assert_eq!(delete_signatures_respose.unwrap().status(), 200);
+
+    // query the signature again, should error since we just deleted it
+    let alice_sig_req_response = mock_client
+        .post("http://127.0.0.1:3001/signer/signature")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&alice_get_sig_message).unwrap())
+        .send()
+        .await;
+
+    let bob_sig_req_response = mock_client
+        .post("http://127.0.0.1:3002/signer/signature")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&bob_get_sig_message).unwrap())
+        .send()
+        .await;
+
+    assert_eq!(alice_sig_req_response.unwrap().status(), 500);
+    assert_eq!(bob_sig_req_response.unwrap().status(), 500);
+
+    clean_tests();
 }
 
 #[rocket::async_test]
@@ -370,4 +524,57 @@ pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &Sr25
     // make sure there is one confirmation
     assert_eq!(is_registering.unwrap().confirmations.len(), 1);
     let _ = api.storage().fetch(&registered_query, None).await.unwrap();
+}
+
+async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
+    let config = rocket::Config::figment().merge(("port", port));
+
+    let signer_state = SignerState::default();
+    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
+    let signature_state = SignatureState::new();
+
+    let path = format!("test_db_{key_number}");
+    let _ = std::fs::remove_dir_all(path.clone());
+
+    let kv_store =
+        KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+
+    // Shortcut: store the shares manually
+    let root = project_root::get_project_root().unwrap();
+    let share_id = i32::from(port != 3001);
+    let path: PathBuf =
+        [root, "test_data".into(), "key_shares".into(), share_id.to_string().into()]
+            .into_iter()
+            .collect();
+    let v_serialized = fs::read(path).unwrap();
+    let alice_key = AccountKeyring::Alice.to_account_id();
+    let bob_key = AccountKeyring::Bob.to_account_id();
+    let alice_reservation = kv_store.kv().reserve_key(alice_key.to_string()).await.unwrap();
+    let bob_reservation = kv_store.kv().reserve_key(bob_key.to_string()).await.unwrap();
+    // alice and bob reuse the same keyshares for testing
+    let _ = kv_store.kv().put(alice_reservation, v_serialized.clone()).await;
+    let _ = kv_store.kv().put(bob_reservation, v_serialized).await;
+
+
+    // Unsafe routes are for testing purposes only
+    // they are unsafe as they can expose vulnerabilites
+    // should they be used in production. Unsafe routes
+    // are disabled by default.
+    // To enable unsafe routes compile with --feature unsafe.
+    let mut unsafe_routes = routes![];
+    if cfg!(feature = "unsafe") || cfg!(test) {
+        unsafe_routes = routes![remove_keys, get, put, delete];
+    }
+
+    rocket::custom(config)
+        .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
+        .mount("/user", routes![store_tx, new_user])
+        .mount("/unsafe", unsafe_routes)
+        .manage(signer_state)
+        .manage(configuration)
+        .manage(kv_store)
+        .manage(signature_state)
+        .ignite()
+        .await
+        .unwrap()
 }

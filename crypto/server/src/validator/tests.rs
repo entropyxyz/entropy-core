@@ -24,7 +24,7 @@ use crate::{
         validator::get_subgroup,
     },
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
-    new_user,
+    new_user, store_tx,
     signing_client::SignerState,
 };
 
@@ -298,7 +298,7 @@ async fn create_clients(
 
     let result = rocket::custom(config)
         .mount("/validator", routes![sync_kvdb])
-        .mount("/user", routes![new_user])
+        .mount("/user", routes![new_user, store_tx])
         .manage(signer_state)
         .manage(configuration)
         .manage(kv_store.clone())

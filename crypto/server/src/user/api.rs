@@ -2,7 +2,7 @@ use bip39::{Language, Mnemonic};
 use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{
     types::{Acl, AclKind, Arch},
-    SIGNING_PARTY_SIZE,
+    Message, SIGNING_PARTY_SIZE,
 };
 use kvdb::kv_manager::{
     error::{InnerKvError, KvError},
@@ -17,7 +17,6 @@ use rocket::{
     Shutdown, State,
 };
 use serde::{Deserialize, Serialize};
-use serde_derive::{Deserialize as DeserializeDerive, Serialize as SerializeDerive};
 use subxt::{
     ext::{
         sp_core::{sr25519, Pair},
@@ -32,9 +31,12 @@ use zeroize::Zeroize;
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
-    helpers::validator::{get_signer, get_subgroup},
+    helpers::{
+        signing::SignatureState,
+        validator::{get_signer, get_subgroup},
+    },
     message::SignedMessage,
-    signing_client::SignerState,
+    signing_client::{api::do_signing, SignerState},
     Configuration,
 };
 
@@ -53,7 +55,9 @@ pub struct GenericTransactionRequest {
 #[post("/tx", format = "json", data = "<generic_tx_req>")]
 pub async fn store_tx(
     generic_tx_req: Json<GenericTransactionRequest>,
-    state: &State<KvManager>,
+    state: &State<SignerState>,
+    kv: &State<KvManager>,
+    signatures: &State<SignatureState>,
 ) -> Result<Status, UserErr> {
     // TODO: client data needs to come in encrypted and authenticated
     match generic_tx_req.arch.as_str() {
@@ -61,23 +65,24 @@ pub async fn store_tx(
             let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
                 generic_tx_req.transaction_request.clone(),
             )?;
-            let sighash = parsed_tx.sighash();
+            let sighash = hex::encode(parsed_tx.sighash().as_bytes());
 
-            // Map the sighash to the serialize transaction request
-            match state.kv().reserve_key(sighash.to_string()).await {
-                Ok(reservation) => {
-                    state
-                        .kv()
-                        .put(reservation, generic_tx_req.transaction_request.clone().into())
-                        .await?;
+            // check if user submitted tx to chain already
+            match kv.kv().get(&sighash).await {
+                Ok(message_json) => {
+                    // parse their trasnaction request
+                    let message: Message =
+                        serde_json::from_str(&String::from_utf8(message_json).unwrap()).unwrap();
+                    // kickoff signing process
+                    do_signing(message, state, kv, signatures).await?;
                 },
                 // If the key is already reserved, then we can assume the transaction is already
                 // stored.
-                Err(_) => return Ok(Status::Ok),
+                Err(_) => {
+                    println!("client error: submit to chain first");
+                    return Ok(Status::FailedDependency);
+                },
             }
-
-            // TODO confirm user has submitted `sighash` to the chain, and if so, kick off signing
-            // process
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
@@ -90,7 +95,7 @@ pub async fn store_tx(
 #[post("/new", format = "json", data = "<msg>")]
 pub async fn new_user(
     msg: Json<SignedMessage>,
-    state: &State<KvManager>,
+    kv: &State<KvManager>,
     config: &State<Configuration>,
 ) -> Result<Status, UserErr> {
     let api = get_api(&config.endpoint).await?;
@@ -100,7 +105,7 @@ pub async fn new_user(
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
 
-    let signer = get_signer(state).await?;
+    let signer = get_signer(kv).await?;
     // Checks if the user has registered onchain first.
     let key = signed_msg.account_id();
     let is_swapping = register_info(&api, &key).await?;
@@ -112,10 +117,10 @@ pub async fn new_user(
         .await?
         .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     if is_swapping {
-        state.kv().delete(&key.to_string()).await?;
+        kv.kv().delete(&key.to_string()).await?;
     }
-    let reservation = state.kv().reserve_key(key.to_string()).await?;
-    state.kv().put(reservation, decrypted_message).await?;
+    let reservation = kv.kv().reserve_key(key.to_string()).await?;
+    kv.kv().put(reservation, decrypted_message).await?;
     // TODO: Error handling really complex needs to be thought about.
     confirm_registered(&api, key, subgroup, &signer).await?;
     Ok(Status::Ok)
