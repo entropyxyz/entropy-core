@@ -65,9 +65,7 @@ async fn test_unsigned_tx_endpoint() {
 
     // spawn threshold servers
     join_all(ports.iter().map(|&port| async move {
-        tokio::spawn(async move {
-            create_clients(port).await.launch().await.unwrap()
-        })
+        tokio::spawn(async move { create_clients(port).await.launch().await.unwrap() })
     }))
     .await;
     tokio::time::sleep(Duration::from_secs(1)).await;
@@ -122,16 +120,18 @@ async fn test_unsigned_tx_endpoint() {
     let submit_transaction_requests =
         |validator_urls: Arc<Vec<String>>, tx_req_body: serde_json::Value| async move {
             let mock_client = reqwest::Client::new();
-            let sig_req_responses = join_all(validator_urls
-                .iter()
-                .map(|url| async {
-                    let url = format!("{}/user/tx", url.clone());
-                    let res = mock_client.post(url).json(&tx_req_body).send().await;
-                    assert_eq!(res.unwrap().status(), 200);
-                })
-                .collect::<Vec<_>>()
-            ).await;
-    };
+            let sig_req_responses = join_all(
+                validator_urls
+                    .iter()
+                    .map(|url| async {
+                        let url = format!("{}/user/tx", url.clone());
+                        let res = mock_client.post(url).json(&tx_req_body).send().await;
+                        assert_eq!(res.unwrap().status(), 200);
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .await;
+        };
 
     // send alice's tx req, then bob's
     submit_transaction_requests(validator_urls.clone(), tx_req_bodies[0].clone()).await;
