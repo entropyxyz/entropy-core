@@ -6,10 +6,7 @@ use rocket::http::{ContentType, Status};
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
 
-use crate::{
-    helpers::tests::setup_client,
-    r#unsafe::api::UnsafeQuery,
-};
+use crate::{helpers::tests::setup_client, r#unsafe::api::UnsafeQuery};
 
 #[rocket::async_test]
 #[serial]

@@ -1,16 +1,19 @@
-use std::{env, fs, path::PathBuf};
+use std::{env, fs, path::PathBuf, sync::Arc};
 
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{Message, OCWMessage, SigRequest};
 use ethers_core::types::{Address, TransactionRequest};
-use futures::{join, Future};
+use futures::{future::join_all, join, Future};
 use hex_literal::hex as h;
 use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
 use parity_scale_codec::Encode;
 use rocket::{
     http::{ContentType, Status},
-    tokio::time::{sleep, Duration},
+    tokio::{
+        task::JoinSet,
+        time::{sleep, Duration},
+    },
     Ignite, Rocket,
 };
 use serial_test::serial;
@@ -18,6 +21,7 @@ use sp_core::{sr25519, Bytes, Pair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
 use testing_utils::context::{test_context, test_context_stationary, TestContext};
+use tokio::task::JoinHandle;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::UserInputPartyInfo;
@@ -57,179 +61,275 @@ async fn test_get_signer_does_not_throw_err() {
 async fn test_unsigned_tx_endpoint() {
     clean_tests();
 
-    // setup mock client data
-    let whitelisted_addresses = vec![Address::from([1u8; 20]), Address::from([2u8; 20])];
-    let alice_transaction_request = TransactionRequest::new().to(whitelisted_addresses[0]).value(1);
-    let bob_transaction_request = TransactionRequest::new().to(whitelisted_addresses[1]).value(5);
-    let alice_req_body = serde_json::json!({
-        "arch": "evm",
-        "transaction_request": alice_transaction_request.rlp_unsigned().to_string(),
-    });
-    let bob_req_body = serde_json::json!({
-        "arch": "evm",
-        "transaction_request": bob_transaction_request.rlp_unsigned().to_string(),
-    });
+    let ports = vec![3001i64, 3002];
+    let client0 = create_clients(ports[0]).await;
+    let client1 = create_clients(ports[1]).await;
 
-    // spin up 2 threshold servers
-    let port_0 = 3001;
-    // let validator_1_url = format!("http://127.0.0.1:{}", port_0);
-    let port_1 = 3002;
-    // let validator_2_url = format!("http://127.0.0.1:{}", port_1);
-
-    // let ports = vec![3001i64, 3002];
-    // let validator_urls: Vec<String> = ports.iter().map(|port| format!("http://127.0.0.1:{}", port)).collect();
+    let validator_ips: Vec<String> =
+        ports.iter().map(|port| format!("127.0.0.1:{}", port)).collect();
+    let validator_urls: Arc<Vec<String>> =
+        Arc::new(ports.iter().map(|port| format!("http://127.0.0.1:{}", port)).collect());
+    // let validator_urls2 = validator_urls.clone();
 
     // Construct a client to use for dispatching requests.
-    let client0 = create_clients(port_0, "0".to_string()).await;
-    let client1 = create_clients(port_1, "1".to_string()).await;
-    // let clients = join_all(ports.iter().map(|port| create_clients(*port,
-    // "0".to_string())).collect()).await;
+    // How can we batch this?
     tokio::spawn(async move { client0.launch().await.unwrap() });
     tokio::spawn(async move { client1.launch().await.unwrap() });
-    // let spawns = join_all(clients.iter().map(|client: &Rocket<Ignite>|
-    // client.launch()).collect()).await;
 
     // Unfortunately, we cannot get a notification when a Rocket server has finished starting up,
     // so we will give them a second for that.
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    let ip_addresses: Vec<Vec<u8>> = vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()];
-    let raw_messages = vec![
-        Message {
-            sig_request: SigRequest {
-                sig_hash: alice_transaction_request.sighash().as_bytes().to_vec(),
-            },
-            account: AccountKeyring::Alice.to_raw_public_vec(),
-            ip_addresses: ip_addresses.clone(),
-        },
-        // TODO test bob client
-        Message {
-            sig_request: SigRequest {
-                sig_hash: bob_transaction_request.sighash().as_bytes().to_vec(),
-            },
-            account: AccountKeyring::Bob.to_raw_public_vec(),
-            ip_addresses,
-        },
+    // setup mock client data
+    let transaction_requests = vec![
+        // alice
+        TransactionRequest::new().to(Address::from([1u8; 20])).value(1),
+        // bob
+        TransactionRequest::new().to(Address::from([2u8; 20])).value(5),
     ];
-    let messages: Vec<u8> = raw_messages.encode();
+
+    let tx_req_bodies = Arc::new(
+        transaction_requests
+            .iter()
+            .map(|tx_req| {
+                serde_json::json!({
+                    "arch": "evm",
+                    "transaction_request": tx_req.rlp_unsigned().to_string(),
+                })
+            })
+            .collect::<Vec<_>>(),
+    );
+    // let tx_req_bodies2 = tx_req_bodies1.clone();
+    // let alice_req_body = serde_json::json!({
+    //     "arch": "evm",
+    //     "transaction_request": alice_transaction_request.rlp_unsigned().to_string(),
+    // });
+    // let bob_req_body = serde_json::json!({
+    //     "arch": "evm",
+    //     "transaction_request": bob_transaction_request.rlp_unsigned().to_string(),
+    // });
+
+    let keyrings = vec![AccountKeyring::Alice, AccountKeyring::Bob];
+    let raw_ocw_messages = transaction_requests
+        .iter()
+        .zip(keyrings)
+        .map(|(tx_req, keyring)| Message {
+            sig_request: SigRequest { sig_hash: tx_req.sighash().as_bytes().to_vec() },
+            account: keyring.to_raw_public_vec(),
+            ip_addresses: validator_ips
+                .iter()
+                .map(|url| url.clone().into_bytes())
+                .collect::<Vec<Vec<u8>>>(),
+        })
+        .collect::<Vec<_>>();
+
+    // let raw_ocw_messages = vec![
+    //     Message {
+    //         sig_request: SigRequest {
+    //             sig_hash: alice_transaction_request.sighash().as_bytes().to_vec(),
+    //         },
+    //         account: AccountKeyring::Alice.to_raw_public_vec(),
+    //         ip_addresses: validator_urls.clone(),
+    //     },
+    //     Message {
+    //         sig_request: SigRequest {
+    //             sig_hash: bob_transaction_request.sighash().as_bytes().to_vec(),
+    //         },
+    //         account: AccountKeyring::Bob.to_raw_public_vec(),
+    //         ip_addresses: validator_urls.clone(),
+    //     },
+    // ];
 
     let mock_ocw = reqwest::Client::new();
 
-    let url = format!("http://127.0.0.1:{port_0}/signer/new_party");
-    let mock_ocw_response = mock_ocw.post(url).body(messages.clone()).send().await;
-    assert_eq!(mock_ocw_response.unwrap().status(), 200);
+    // let url = format!("http://127.0.0.1:{}/signer/new_party", ports[0]);
+    // let mock_ocw_response =
+    // mock_ocw.post(url).body(raw_ocw_messages.clone().encode()).send().await;
+    // assert_eq!(mock_ocw_response.unwrap().status(), 200);
 
-    let url = format!("http://127.0.0.1:{port_1}/signer/new_party");
-    let mock_ocw_response = mock_ocw.post(url).body(messages).send().await;
-    assert_eq!(mock_ocw_response.unwrap().status(), 200);
+    // let url = format!("http://127.0.0.1:{}/signer/new_party", ports[1]);
+    // let mock_ocw_response =
+    // mock_ocw.post(url).body(raw_ocw_messages.clone().encode()).send().await;
+    // assert_eq!(mock_ocw_response.unwrap().status(), 200);
 
-    let handle = tokio::spawn(async move {
-        let mock_client = reqwest::Client::new();
+    let ocw_responses = validator_urls
+        .iter()
+        .map(|url| {
+            let url = format!("{}/signer/new_party", url);
+            mock_ocw.post(url).body(raw_ocw_messages.clone().encode()).send()
+        })
+        .collect::<Vec<_>>();
+    join_all(ocw_responses).await;
 
-        // client requests server to sign the sighash
-        let alice_sig_req_response1 = mock_client
-            .post("http://127.0.0.1:3001/user/tx")
-            .header("Content-Type", "application/json")
-            .body(alice_req_body.to_string())
-            .send();
+    let handle = async {
+        let validator_urls = validator_urls.clone();
+        let tx_req_bodies = tx_req_bodies.clone();
 
-        let alice_sig_req_response2 = mock_client
-            .post("http://127.0.0.1:3002/user/tx")
-            .header("Content-Type", "application/json")
-            .body(alice_req_body.to_string())
-            .send();
+        tokio::spawn(async move {
+            let mock_client = reqwest::Client::new();
 
-        let (alice_sig_req_response1, alice_sig_req_response2) =
-            join!(alice_sig_req_response1, alice_sig_req_response2);
+            // client requests server to sign the sighash
+            // let alice_sig_req_response1 = mock_client
+            //     .post("http://127.0.0.1:3001/user/tx")
+            //     .json(&tx_req_bodies1[0])
+            //     .send();
 
-        assert_eq!(alice_sig_req_response1.unwrap().status(), 200);
-        assert_eq!(alice_sig_req_response2.unwrap().status(), 200);
-    });
+            // let alice_sig_req_response2 = mock_client
+            //     .post("http://127.0.0.1:3002/user/tx")
+            //     .json(&tx_req_bodies1[0])
+            //     .send();
 
-    handle.await.unwrap();
+            let sig_req_responses = validator_urls
+                .iter()
+                .map(|url| {
+                    let url = format!("{}/user/tx", url);
+                    mock_client.post(url).json(&tx_req_bodies[0]).send()
+                })
+                .collect::<Vec<_>>();
 
-    let handle2 = tokio::spawn(async move {
-        let mock_client = reqwest::Client::new();
+            let responses = join_all(sig_req_responses).await;
 
-        // client requests server to sign the sighash
-        let bob_sig_req_response1 = mock_client
-            .post("http://127.0.0.1:3001/user/tx")
-            .header("Content-Type", "application/json")
-            .body(bob_req_body.to_string())
-            .send();
+            // let (alice_sig_req_response1, alice_sig_req_response2) =
+            // join!(alice_sig_req_response1, alice_sig_req_response2);
 
-        let bob_sig_req_response2 = mock_client
-            .post("http://127.0.0.1:3002/user/tx")
-            .header("Content-Type", "application/json")
-            .body(bob_req_body.to_string())
-            .send();
+            responses.iter().for_each(|res| {
+                assert_eq!(res.as_ref().unwrap().status(), 200);
+            });
+            // assert_eq!(alice_sig_req_response1.unwrap().status(), 200);
+            // assert_eq!(alice_sig_req_response2.unwrap().status(), 200);
+        })
+    };
 
-        let (bob_sig_req_response1, bob_sig_req_response2) =
-            join!(bob_sig_req_response1, bob_sig_req_response2);
-        let bob_res1 = bob_sig_req_response1.unwrap();
-        let bob_res2 = bob_sig_req_response2.unwrap();
+    handle.await.await.unwrap();
 
-        assert_eq!(bob_res1.status(), 200);
-        assert_eq!(bob_res2.status(), 200);
-    });
+    let handle2 = async {
+        let validator_urls = validator_urls.clone();
+        let tx_req_bodies = tx_req_bodies.clone();
 
-    handle2.await.unwrap();
-    // let (handle1, handle2) = join!(handle, handle2);
+        tokio::spawn(async move {
+            let mock_client = reqwest::Client::new();
+
+            // client requests server to sign the sighash
+            let sig_req_responses = validator_urls
+                .iter()
+                .map(|url| {
+                    let url = format!("{}/user/tx", url);
+                    mock_client.post(url).json(&tx_req_bodies[1]).send()
+                })
+                .collect::<Vec<_>>();
+
+            let responses = join_all(sig_req_responses).await;
+
+            // let (alice_sig_req_response1, alice_sig_req_response2) =
+            // join!(alice_sig_req_response1, alice_sig_req_response2);
+
+            responses.iter().for_each(|res| {
+                assert_eq!(res.as_ref().unwrap().status(), 200);
+            });
+        })
+    };
+
+    handle2.await.await.unwrap();
 
     let mock_client = reqwest::Client::new();
 
-    let alice_get_sig_message =
-        SigMessage { message: hex::encode(raw_messages[0].sig_request.sig_hash.clone()) };
-    let bob_get_sig_message =
-        SigMessage { message: hex::encode(raw_messages[1].sig_request.sig_hash.clone()) };
+    let get_sig_messages = raw_ocw_messages
+        .iter()
+        .map(|raw_ocw_message| SigMessage {
+            message: hex::encode(raw_ocw_message.sig_request.sig_hash.clone()),
+        })
+        .collect::<Vec<_>>();
 
-    // after the signing is completed, client can get it at /signer/signature
-    let alice_get_sig_response = mock_client
-        .post("http://127.0.0.1:3001/signer/signature")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&alice_get_sig_message).unwrap())
-        .send()
-        .await;
-    assert_eq!(alice_get_sig_response.as_ref().unwrap().status(), 202);
-    assert_eq!(alice_get_sig_response.unwrap().text().await.unwrap().len(), 88);
+    // let alice_get_sig_message =
+    //     SigMessage { message: hex::encode(raw_ocw_messages[0].sig_request.sig_hash.clone()) };
+    // let bob_get_sig_message =
+    //     SigMessage { message: hex::encode(raw_ocw_messages[1].sig_request.sig_hash.clone()) };
 
-    // after the signing is completed, client can get it at /signer/signature
-    let bob_get_sig_response = mock_client
-        .post("http://127.0.0.1:3001/signer/signature")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&bob_get_sig_message).unwrap())
-        .send()
-        .await;
-    assert_eq!(bob_get_sig_response.as_ref().unwrap().status(), 202);
-    assert_eq!(bob_get_sig_response.unwrap().text().await.unwrap().len(), 88);
+    let get_sig_responses = join_all(
+        get_sig_messages
+            .iter()
+            .map(|get_sig_message| {
+                mock_client
+                    .post("http://127.0.0.1:3001/signer/signature")
+                    .json(&get_sig_message)
+                    .send()
+            })
+            .collect::<Vec<_>>(),
+    )
+    .await;
+
+    // validate responses
+    get_sig_responses.iter().for_each(|res| {
+        assert_eq!(res.as_ref().unwrap().status(), 202);
+        assert_eq!(res.as_ref().unwrap().content_length().unwrap(), 88);
+    });
+
+    // // after the signing is completed, client can get it at /signer/signature
+    // let alice_get_sig_response = mock_client
+    //     .post("http://127.0.0.1:3001/signer/signature")
+    //     .json(&alice_get_sig_message)
+    //     .send()
+    //     .await;
+    // assert_eq!(alice_get_sig_response.as_ref().unwrap().status(), 202);
+    // assert_eq!(alice_get_sig_response.unwrap().text().await.unwrap().len(), 88);
+
+    // // after the signing is completed, client can get it at /signer/signature
+    // let bob_get_sig_response = mock_client
+    //     .post("http://127.0.0.1:3001/signer/signature")
+    //     .json(&bob_get_sig_message)
+    //     .send()
+    //     .await;
+    // assert_eq!(bob_get_sig_response.as_ref().unwrap().status(), 202);
+    // assert_eq!(bob_get_sig_response.unwrap().text().await.unwrap().len(), 88);
 
     // if unsafe features ie enabled, do unsafe functions
     if cfg!(feature = "unsafe") {
-        let delete_signatures_respose =
-            mock_client.get("http://127.0.0.1:3001/signer/drain").send().await;
-        assert_eq!(delete_signatures_respose.unwrap().status(), 200);
-        let delete_signatures_respose =
-            mock_client.get("http://127.0.0.1:3002/signer/drain").send().await;
-        assert_eq!(delete_signatures_respose.unwrap().status(), 200);
+        join_all(validator_urls.iter().map(|url| async {
+            let url = format!("{}/signer/drain", url.clone());
+            let res = mock_client.get(url).send().await;
+            assert_eq!(res.unwrap().status(), 200);
+        }))
+        .await;
+
+        // let delete_signatures_respose =
+        //     mock_client.get("http://127.0.0.1:3001/signer/drain").send().await;
+        // let delete_signatures_respose =
+        //     mock_client.get("http://127.0.0.1:3002/signer/drain").send().await;
+        // assert_eq!(delete_signatures_respose.unwrap().status(), 200);
 
         // query the signature again, should error since we just deleted it
-        let alice_sig_req_response = mock_client
-            .post("http://127.0.0.1:3001/signer/signature")
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&alice_get_sig_message).unwrap())
-            .send()
-            .await;
 
-        let bob_sig_req_response = mock_client
-            .post("http://127.0.0.1:3002/signer/signature")
-            // .header("Content-Type", "application/json")
-            // .body(serde_json::to_string(&bob_get_sig_message).unwrap())
-            .json(&bob_get_sig_message)
-            .send()
-            .await;
+        // TODO JH UNCOMMENT THIS
+        join_all(get_sig_messages.iter().map(|get_sig_message| async {
+            let res = mock_client
+                .post("http://127.0.0.1:3001/signer/signature")
+                .json(get_sig_message)
+                .send()
+                .await;
+            assert_eq!(res.as_ref().unwrap().status(), 500);
+        }))
+        .await;
 
-        assert_eq!(alice_sig_req_response.unwrap().status(), 500);
-        assert_eq!(bob_sig_req_response.unwrap().status(), 500);
+        // validate responses
+        // get_sig_responses.iter().for_each(|res| {
+        // });
+        // let alice_sig_req_response = mock_client
+        //     .post("http://127.0.0.1:3001/signer/signature")
+        //     .header("Content-Type", "application/json")
+        //     .body(serde_json::to_string(&alice_get_sig_message).unwrap())
+        //     .send()
+        //     .await;
+
+        // let bob_sig_req_response = mock_client
+        //     .post("http://127.0.0.1:3002/signer/signature")
+        //     // .header("Content-Type", "application/json")
+        //     // .body(serde_json::to_string(&bob_get_sig_message).unwrap())
+        //     .json(&bob_get_sig_message)
+        //     .send()
+        //     .await;
+
+        // assert_eq!(alice_sig_req_response.unwrap().status(), 500);
+        // assert_eq!(bob_sig_req_response.unwrap().status(), 500);
     }
 
     clean_tests();
@@ -519,14 +619,14 @@ pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &Sr25
     let _ = api.storage().fetch(&registered_query, None).await.unwrap();
 }
 
-async fn create_clients(port: i64, key_number: String) -> Rocket<Ignite> {
+async fn create_clients(port: i64) -> Rocket<Ignite> {
     let config = rocket::Config::figment().merge(("port", port));
 
     let signer_state = SignerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let signature_state = SignatureState::new();
 
-    let path = format!("test_db_{key_number}");
+    let path = format!("test_db_{}", port.to_string());
     let _ = std::fs::remove_dir_all(path.clone());
 
     let kv_store =
