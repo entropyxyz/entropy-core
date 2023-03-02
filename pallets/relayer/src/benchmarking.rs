@@ -82,6 +82,15 @@ benchmarks! {
     assert!(Registering::<T>::contains_key(sig_req_account));
   }
 
+  swap_keys {
+    let sig_req_account: T::AccountId = whitelisted_caller();
+    <Registered<T>>::insert(sig_req_account.clone(), true);
+
+  }:  _(RawOrigin::Signed(sig_req_account.clone()))
+  verify {
+    assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
+    assert!(Registering::<T>::contains_key(sig_req_account));
+  }
 }
 
 impl_benchmark_test_suite!(Relayer, crate::mock::new_test_ext(), crate::mock::Test);

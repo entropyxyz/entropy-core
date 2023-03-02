@@ -224,8 +224,7 @@ pub mod pallet {
         }
 
         /// Signals that a user wants to swap our their keys
-        // TODO: John do benchmarks
-        #[pallet::weight(<T as Config>::WeightInfo::register(0, 0))]
+        #[pallet::weight(<T as Config>::WeightInfo::swap_keys())]
         pub fn swap_keys(origin: OriginFor<T>) -> DispatchResult {
             let sig_req_account = ensure_signed(origin)?;
             ensure!(
