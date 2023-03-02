@@ -66,7 +66,7 @@ async fn test_unsigned_tx_endpoint() {
     // spawn threshold servers
     join_all(ports.iter().map(|&port| async move {
         tokio::spawn(async move {
-            create_clients(port).await.launch().await.unwrap();
+            create_clients(port).await.launch().await.unwrap()
         })
     }))
     .await;
@@ -102,8 +102,8 @@ async fn test_unsigned_tx_endpoint() {
         Arc::new(validator_ips.iter().map(|ip| format!("http://{}", ip)).collect());
     join_all(validator_urls.iter().map(|url| async {
         let url = format!("{}/signer/new_party", url.clone());
-        let res = mock_ocw.post(url).body(raw_ocw_messages.clone().encode()).send().await;
-        assert_eq!(res.as_ref().unwrap().status(), 200);
+        let res = mock_ocw.post(url).body(raw_ocw_messages.clone().encode()).send().await.unwrap();
+        assert_eq!(res.status(), 200);
     }))
     .await;
 
@@ -122,20 +122,16 @@ async fn test_unsigned_tx_endpoint() {
     let submit_transaction_requests =
         |validator_urls: Arc<Vec<String>>, tx_req_body: serde_json::Value| async move {
             let mock_client = reqwest::Client::new();
-            let sig_req_responses = validator_urls
+            let sig_req_responses = join_all(validator_urls
                 .iter()
-                .map(|url| {
-                    let url = format!("{}/user/tx", url);
-                    mock_client.post(url).json(&tx_req_body).send()
+                .map(|url| async {
+                    let url = format!("{}/user/tx", url.clone());
+                    let res = mock_client.post(url).json(&tx_req_body).send().await;
+                    assert_eq!(res.unwrap().status(), 200);
                 })
-                .collect::<Vec<_>>();
-
-            let responses = join_all(sig_req_responses).await;
-
-            responses.iter().for_each(|res| {
-                assert_eq!(res.as_ref().unwrap().status(), 200);
-            });
-        };
+                .collect::<Vec<_>>()
+            ).await;
+    };
 
     // send alice's tx req, then bob's
     submit_transaction_requests(validator_urls.clone(), tx_req_bodies[0].clone()).await;
@@ -155,9 +151,10 @@ async fn test_unsigned_tx_endpoint() {
             .post("http://127.0.0.1:3001/signer/signature")
             .json(get_sig_message)
             .send()
-            .await;
-        assert_eq!(res.as_ref().unwrap().status(), 202);
-        assert_eq!(res.as_ref().unwrap().content_length().unwrap(), 88);
+            .await
+            .unwrap();
+        assert_eq!(res.status(), 202);
+        assert_eq!(res.content_length().unwrap(), 88);
     }))
     .await;
 
