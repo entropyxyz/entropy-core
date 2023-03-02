@@ -76,7 +76,6 @@ async fn test_unsigned_tx_endpoint() {
     let validator_ips: Vec<String> =
         ports.iter().map(|port| format!("127.0.0.1:{}", port)).collect();
 
-
     let transaction_requests = vec![
         // alice
         TransactionRequest::new().to(Address::from([1u8; 20])).value(1),
@@ -120,23 +119,23 @@ async fn test_unsigned_tx_endpoint() {
         .collect::<Vec<_>>();
 
     // mock client signature requests
-    let submit_transaction_requests = |validator_urls: Arc<Vec<String>>,
-                             tx_req_body: serde_json::Value| async move {
-        let mock_client = reqwest::Client::new();
-        let sig_req_responses = validator_urls
-            .iter()
-            .map(|url| {
-                let url = format!("{}/user/tx", url);
-                mock_client.post(url).json(&tx_req_body).send()
-            })
-            .collect::<Vec<_>>();
+    let submit_transaction_requests =
+        |validator_urls: Arc<Vec<String>>, tx_req_body: serde_json::Value| async move {
+            let mock_client = reqwest::Client::new();
+            let sig_req_responses = validator_urls
+                .iter()
+                .map(|url| {
+                    let url = format!("{}/user/tx", url);
+                    mock_client.post(url).json(&tx_req_body).send()
+                })
+                .collect::<Vec<_>>();
 
-        let responses = join_all(sig_req_responses).await;
+            let responses = join_all(sig_req_responses).await;
 
-        responses.iter().for_each(|res| {
-            assert_eq!(res.as_ref().unwrap().status(), 200);
-        });
-    };
+            responses.iter().for_each(|res| {
+                assert_eq!(res.as_ref().unwrap().status(), 200);
+            });
+        };
 
     // send alice's tx req, then bob's
     submit_transaction_requests(validator_urls.clone(), tx_req_bodies[0].clone()).await;
