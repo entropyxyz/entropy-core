@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 use codec::{alloc::vec::Vec, Decode, Encode};
 use scale_info::TypeInfo;
+
+#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
 /// common structs etc, shared among the substrate-blockchain-code and the crypto-code
