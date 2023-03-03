@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 use codec::{alloc::vec::Vec, Decode, Encode};
 use scale_info::TypeInfo;
-
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
