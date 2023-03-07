@@ -54,7 +54,7 @@ pub async fn register_user_single_validator(
 
     let initial_constraints = {
         let mut evm_acl = Acl::<H160>::default();
-        evm_acl.addresses.push(H160::from([0u8; 20]));
+        evm_acl.addresses.push(H160::from([1u8; 20]));
         
         Constraints {
             evm_acl: Some(evm_acl),

@@ -1,8 +1,7 @@
-use entropy_shared::{SIGNING_PARTY_SIZE, Constraints, Acl};
+use entropy_shared::{SIGNING_PARTY_SIZE, Constraints};
 use subxt::{
     ext::sp_core::sr25519,
     tx::PairSigner,
-    dynamic,
     OnlineClient,
     Config, storage::address::{StorageMapKey, StorageHasher},
 };
@@ -11,6 +10,7 @@ use crate::{
     chain_api::{
         EntropyConfig,
         entropy,
+        // entropy::runtime_types::entropy_shared::constraints::Constraints,
     },
     user::UserErr,
 };
@@ -164,12 +164,17 @@ pub async fn make_register(
     assert!(is_registering_2.unwrap().unwrap().is_registering);
 
     // This encoded call data was generated in polkadot.js.org/apps extrinsics view
-    let update_constraints_tx = subxt::tx::StaticTxPayload::new(
-        "ConstraintsPallet",
-        "update_constraints",
-        hex::decode("3600d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01041111111111111111111111111111111111111111000000").unwrap(),
-        [0u8; 32]
-    ).unvalidated();
+    // let update_constraints_tx = subxt::tx::StaticTxPayload::new(
+    //     "Constraints",
+    //     "update_constraints",
+    //     hex::decode("3600d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01041111111111111111111111111111111111111111000000").unwrap(),
+    //     [0u8; 32]
+    // ).unvalidated();
+
+    let update_constraints_tx = entropy::tx().constraints().update_constraints(
+        sig_req_keyring.to_account_id(),
+        initial_constraints.unwrap(),
+    );
 
     api.tx()
         .sign_and_submit_then_watch_default(&update_constraints_tx, &constraint_modificaiton_account)

@@ -1,7 +1,7 @@
 use bip39::{Language, Mnemonic};
-use entropy_constraints::{Architecture, Evm, Parse};
+use entropy_constraints::{Architecture, Evm, Parse, BasicTransaction, Evaluate};
 use entropy_shared::{
-    types::{Acl, AclKind, Arch},
+    types::{Acl, AclKind, Arch, Constraints},
     Message, SIGNING_PARTY_SIZE,
 };
 use kvdb::kv_manager::{
@@ -10,6 +10,7 @@ use kvdb::kv_manager::{
     KvManager,
 };
 use log::info;
+use parity_scale_codec::DecodeAll;
 use rocket::{
     http::Status,
     response::stream::EventStream,
@@ -30,7 +31,10 @@ use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
-    chain_api::{entropy, get_api, EntropyConfig},
+    chain_api::{entropy, get_api, EntropyConfig,
+        entropy::constraints::calls::UpdateConstraints,
+        entropy::runtime_types::entropy_shared::constraints,
+    },
     helpers::{
         signing::{do_signing, SignatureState},
         substrate::{get_constraints, get_subgroup},
@@ -80,8 +84,15 @@ pub async fn store_tx(
                         <[u8; 32]>::try_from(message.account.clone()).unwrap(),
                     );
                     let api = api.await;
-                    let constraints = get_constraints(&api?, &sig_req_account).await?;
-                    println!("constraints: {:?}", constraints);
+                    let constraints = get_constraints(&api?, &sig_req_account).await?.ok_or(
+                        UserErr::Parse("Constraints are unset. Please set them via the `constraints.update_constraints()` extrinsic."),
+                    )?;
+
+                    let parsed_constraints = Constraints::try_from(constraints).unwrap();
+                    println!("constraints: {:?}", parsed_constraints);
+                    // check the parsed transaction against the constraints
+                    
+
                     // kickoff signing process
                     do_signing(message, state, kv, signatures).await?;
                 },
@@ -89,6 +100,7 @@ pub async fn store_tx(
                 // stored.
                 Err(_) => {
                     println!("client error: submit to chain first");
+                    // 424
                     return Ok(Status::FailedDependency);
                 },
             }
