@@ -1,7 +1,7 @@
 pub mod api;
 mod errors;
-mod new_party;
-mod subscribe;
+pub(crate) mod new_party;
+pub(crate) mod subscribe;
 
 use std::{collections::HashMap, sync::Mutex};
 

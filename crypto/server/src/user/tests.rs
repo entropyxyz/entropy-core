@@ -1,32 +1,48 @@
-use std::env;
+use std::{env, fs, path::PathBuf, sync::Arc};
 
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
+use entropy_shared::{Message, OCWMessage, SigRequest};
+use ethers_core::types::{Address, TransactionRequest};
+use futures::{future::join_all, join, Future};
 use hex_literal::hex as h;
-use kvdb::clean_tests;
+use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
+use parity_scale_codec::Encode;
 use rocket::{
     http::{ContentType, Status},
-    tokio::time::{sleep, Duration},
+    tokio::{
+        task::JoinSet,
+        time::{sleep, Duration},
+    },
+    Ignite, Rocket,
 };
 use serial_test::serial;
 use sp_core::{sr25519, Bytes, Pair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
 use testing_utils::context::{test_context, test_context_stationary, TestContext};
+use tokio::task::JoinHandle;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::UserInputPartyInfo;
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
-    get_signer,
+    drain, get_signature, get_signer,
     helpers::{
-        launch::{setup_mnemonic, DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
+        launch::{
+            setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+        },
+        signing::SignatureState,
         tests::setup_client,
     },
     load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
-    r#unsafe::api::UnsafeQuery,
+    new_party, new_user,
+    r#unsafe::api::{delete, get, put, remove_keys, UnsafeQuery},
+    signing_client::SignerState,
+    store_tx, subscribe_to_me,
     validator::api::get_random_server_info,
+    Message as SigMessage,
 };
 
 #[rocket::async_test]
@@ -43,49 +59,128 @@ async fn test_get_signer_does_not_throw_err() {
 #[rocket::async_test]
 #[serial]
 async fn test_unsigned_tx_endpoint() {
+    clean_tests();
+
+    let ports = vec![3001i64, 3002];
+
+    // spawn threshold servers
+    join_all(ports.iter().map(|&port| async move {
+        tokio::spawn(async move { create_clients(port).await.launch().await.unwrap() })
+    }))
+    .await;
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+    // generate the mock ocw messages for simulating prep_transaction()
+    let validator_ips: Vec<String> =
+        ports.iter().map(|port| format!("127.0.0.1:{}", port)).collect();
+
+    let transaction_requests = vec![
+        // alice
+        TransactionRequest::new().to(Address::from([1u8; 20])).value(1),
+        // bob
+        TransactionRequest::new().to(Address::from([2u8; 20])).value(5),
+    ];
+    let keyrings = vec![AccountKeyring::Alice, AccountKeyring::Bob];
+    let raw_ocw_messages = transaction_requests
+        .iter()
+        .zip(keyrings)
+        .map(|(tx_req, keyring)| Message {
+            sig_request: SigRequest { sig_hash: tx_req.sighash().as_bytes().to_vec() },
+            account: keyring.to_raw_public_vec(),
+            ip_addresses: validator_ips
+                .iter()
+                .map(|url| url.clone().into_bytes())
+                .collect::<Vec<Vec<u8>>>(),
+        })
+        .collect::<Vec<_>>();
+
+    // send the mock ocw messages to the threshold servers
+    let mock_ocw = reqwest::Client::new();
+    let validator_urls: Arc<Vec<String>> =
+        Arc::new(validator_ips.iter().map(|ip| format!("http://{}", ip)).collect());
+    join_all(validator_urls.iter().map(|url| async {
+        let url = format!("{}/signer/new_party", url.clone());
+        let res = mock_ocw.post(url).body(raw_ocw_messages.clone().encode()).send().await.unwrap();
+        assert_eq!(res.status(), 200);
+    }))
+    .await;
+
+    // construct json bodies for transaction requests
+    let tx_req_bodies = transaction_requests
+        .iter()
+        .map(|tx_req| {
+            serde_json::json!({
+                "arch": "evm",
+                "transaction_request": tx_req.rlp_unsigned().to_string(),
+            })
+        })
+        .collect::<Vec<_>>();
+
+    // mock client signature requests
+    let submit_transaction_requests =
+        |validator_urls: Arc<Vec<String>>, tx_req_body: serde_json::Value| async move {
+            let mock_client = reqwest::Client::new();
+            join_all(
+                validator_urls
+                    .iter()
+                    .map(|url| async {
+                        let url = format!("{}/user/tx", url.clone());
+                        let res = mock_client.post(url).json(&tx_req_body).send().await;
+                        assert_eq!(res.unwrap().status(), 200);
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .await
+        };
+
+    // send alice's tx req, then bob's
+    submit_transaction_requests(validator_urls.clone(), tx_req_bodies[0].clone()).await;
+    submit_transaction_requests(validator_urls.clone(), tx_req_bodies[1].clone()).await;
+
+    // poll a validator and validate the threshold signatures
+    let get_sig_messages = raw_ocw_messages
+        .iter()
+        .map(|raw_ocw_message| SigMessage {
+            message: hex::encode(raw_ocw_message.sig_request.sig_hash.clone()),
+        })
+        .collect::<Vec<_>>();
+
+    let mock_client = reqwest::Client::new();
+    join_all(get_sig_messages.iter().map(|get_sig_message| async {
+        let res = mock_client
+            .post("http://127.0.0.1:3001/signer/signature")
+            .json(get_sig_message)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(res.status(), 202);
+        assert_eq!(res.content_length().unwrap(), 88);
+    }))
+    .await;
+
+    // if unsafe, then also validate signature deletion
     if cfg!(feature = "unsafe") {
-        clean_tests();
-        let client = setup_client().await;
+        // delete all signatures from the servers
+        join_all(validator_urls.iter().map(|url| async {
+            let url = format!("{}/signer/drain", url.clone());
+            let res = mock_client.get(url).send().await;
+            assert_eq!(res.unwrap().status(), 200);
+        }))
+        .await;
 
-        let arch = r#"evm"#;
-        // encoded_tx_req comes from ethers serializeTransaction() of the following
-        // UnsignedTransaction: {"to":"0x772b9a9e8aa1c9db861c6611a82d251db4fac990","value":
-        // {"type":"BigNumber","hex":"0x01"}, "chainId":1,"nonce":1,"data":"
-        // 0x43726561746564204f6e20456e74726f7079"} See frontend threshold-server tests for
-        // more context
-        let transaction_request = r#"0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080"#;
-        let tx_req = serde_json::json!({
-            "arch": arch,
-            "transaction_request": transaction_request,
-        });
-        println!("tx_req: {}", tx_req.to_string());
-
-        // request to store tx
-        let response = client
-            .post("/user/tx")
-            .header(ContentType::JSON)
-            .body(tx_req.to_string())
-            .dispatch()
-            .await;
-        assert_eq!(response.status(), Status::Ok);
-
-        // verify that sighash and transaction have been stored correctly
-        let parsed_tx =
-            <Evm as Architecture>::TransactionRequest::parse(transaction_request.to_string())
-                .unwrap();
-        let sighash = parsed_tx.sighash().to_string();
-        let query_parsed_tx = client
-            .post("/unsafe/get")
-            .header(ContentType::JSON)
-            .body(UnsafeQuery::new(sighash, String::new()).to_json())
-            .dispatch()
-            .await;
-
-        // make sure it could find the user's transaction request
-        assert_eq!(query_parsed_tx.into_string().await, Some(transaction_request.to_string()));
-
-        clean_tests();
+        // query the signature again, should error since we just deleted them
+        join_all(get_sig_messages.iter().map(|get_sig_message| async {
+            let res = mock_client
+                .post("http://127.0.0.1:3001/signer/signature")
+                .json(get_sig_message)
+                .send()
+                .await;
+            assert_eq!(res.as_ref().unwrap().status(), 500);
+        }))
+        .await;
     }
+
+    clean_tests();
 }
 
 #[rocket::async_test]
@@ -370,4 +465,56 @@ pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &Sr25
     // make sure there is one confirmation
     assert_eq!(is_registering.unwrap().confirmations.len(), 1);
     let _ = api.storage().fetch(&registered_query, None).await.unwrap();
+}
+
+async fn create_clients(port: i64) -> Rocket<Ignite> {
+    let config = rocket::Config::figment().merge(("port", port));
+
+    let signer_state = SignerState::default();
+    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
+    let signature_state = SignatureState::new();
+
+    let path = format!("test_db_{}", port.to_string());
+    let _ = std::fs::remove_dir_all(path.clone());
+
+    let kv_store =
+        KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+
+    // Shortcut: store the shares manually
+    let root = project_root::get_project_root().unwrap();
+    let share_id = i32::from(port != 3001);
+    let path: PathBuf =
+        [root, "test_data".into(), "key_shares".into(), share_id.to_string().into()]
+            .into_iter()
+            .collect();
+    let v_serialized = fs::read(path).unwrap();
+    let alice_key = AccountKeyring::Alice.to_account_id();
+    let bob_key = AccountKeyring::Bob.to_account_id();
+    let alice_reservation = kv_store.kv().reserve_key(alice_key.to_string()).await.unwrap();
+    let bob_reservation = kv_store.kv().reserve_key(bob_key.to_string()).await.unwrap();
+    // alice and bob reuse the same keyshares for testing
+    let _ = kv_store.kv().put(alice_reservation, v_serialized.clone()).await;
+    let _ = kv_store.kv().put(bob_reservation, v_serialized).await;
+
+    // Unsafe routes are for testing purposes only
+    // they are unsafe as they can expose vulnerabilites
+    // should they be used in production. Unsafe routes
+    // are disabled by default.
+    // To enable unsafe routes compile with --feature unsafe.
+    let mut unsafe_routes = routes![];
+    if cfg!(feature = "unsafe") || cfg!(test) {
+        unsafe_routes = routes![remove_keys, get, put, delete];
+    }
+
+    rocket::custom(config)
+        .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
+        .mount("/user", routes![store_tx, new_user])
+        .mount("/unsafe", unsafe_routes)
+        .manage(signer_state)
+        .manage(configuration)
+        .manage(kv_store)
+        .manage(signature_state)
+        .ignite()
+        .await
+        .unwrap()
 }

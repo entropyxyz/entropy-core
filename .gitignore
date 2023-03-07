@@ -23,6 +23,8 @@ test_db/
 test_db_0/
 test_db_1/
 main_test_db/
+test_db_3001
+test_db_3002
 
 .idea
 */.entropy
