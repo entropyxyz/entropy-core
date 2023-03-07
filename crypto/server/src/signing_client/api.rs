@@ -8,10 +8,8 @@ use tracing::instrument;
 
 use crate::{
     helpers::signing::SignatureState,
-    sign_init::SignInit,
     signing_client::{
-        new_party::{Channels, Gg20Service},
-        subscribe::{subscribe_to_them, Listener, Receiver},
+        subscribe::{Listener, Receiver},
         SignerState, SigningErr, SubscribeErr, SubscribeMessage,
     },
 };
@@ -21,44 +19,27 @@ const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/mod.rs#L39
 /// Execute a signing protocol with a new party.
 /// This endpoint is called by the blockchain.
-#[instrument(skip(kv_manager))]
+#[instrument(skip(kv))]
 #[post("/new_party", data = "<encoded_data>")]
-pub async fn new_party(
-    encoded_data: Vec<u8>,
-    state: &State<SignerState>,
-    kv_manager: &State<KvManager>,
-    signatures: &State<SignatureState>,
-) -> Result<Status, SigningErr> {
+pub async fn new_party(encoded_data: Vec<u8>, kv: &State<KvManager>) -> Result<Status, SigningErr> {
+    // TODO encryption and authentication.
     let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
 
     for message in data {
-        // todo: temporary hack, replace with correct data
-        let info = SignInit::temporary_data(message.clone());
-        let gg20_service = Gg20Service::new(state, kv_manager);
+        let sighash = hex::encode(&message.sig_request.sig_hash);
 
-        // set up context for signing protocol execution
-        let sign_context = gg20_service.get_sign_context(info.clone()).await?;
+        match kv.kv().reserve_key(sighash).await {
+            Ok(reservation) => {
+                let value = serde_json::to_string(&message).unwrap();
 
-        // subscribe to all other participating parties. Listener waits for other subscribers.
-        let (rx_ready, listener) = Listener::new();
-        state
-            .listeners
-            .lock()
-            .expect("lock shared data")
-            .insert(sign_context.sign_init.party_uid.to_string(), listener);
-        let channels = {
-            let stream_in = subscribe_to_them(&sign_context).await?;
-            let broadcast_out = rx_ready.await??;
-            Channels(broadcast_out, stream_in)
-        };
+                kv.kv().put(reservation, value.into()).await?;
+            },
 
-        let result = gg20_service.execute_sign(&sign_context, channels).await.unwrap();
-
-        gg20_service.handle_result(
-            &result,
-            message.sig_request.sig_hash.as_slice().try_into().unwrap(),
-            signatures,
-        );
+            Err(_) => {
+                println!("OCW submitted a sighash that was already reserved. Weird. Skipping...");
+                return Ok(Status::Ok);
+            },
+        }
     }
 
     Ok(Status::Ok)
@@ -108,12 +89,17 @@ pub async fn subscribe_to_me(
 
 use rocket::response::status;
 use serde::{Deserialize, Serialize};
+
 // TODO: JA remove all below temporary
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Debug))]
+#[derive(Clone)]
 pub struct Message {
     pub message: String,
 }
 
+/// Returns the signature of the requested sighash
+///
+/// This will be removed when after client participates in signing
 #[post("/signature", data = "<msg>")]
 pub async fn get_signature(
     msg: Json<Message>,
@@ -123,6 +109,10 @@ pub async fn get_signature(
     status::Accepted(Some(base64::encode(sig.as_ref())))
 }
 
+/// Drains all signatures from the state
+/// Client calls this after they receive the signature at `/signature`
+///
+/// This will be removed when after client participates in signing
 #[get("/drain")]
 pub async fn drain(signatures: &State<SignatureState>) -> Result<Status, ()> {
     signatures.drain();

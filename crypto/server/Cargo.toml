@@ -34,9 +34,12 @@ sp-core           ={ package="sp-core", git="https://github.com/paritytech/subst
 tofn              ={ git="https://github.com/entropyxyz/tofn", branch="main" }
 
 # Entropy
-entropy-shared     ={ path="../shared" }
-kvdb               ={ path="../kvdb", default-features=false }
+entropy-shared={ path="../shared" }
+kvdb          ={ path="../kvdb", default-features=false }
+
+# Constraints
 entropy-constraints={ path="../constraints" }
+ethers-core        ="0.13.0"
 
 # Logging
 log               ="0.4.17"                                          # todo: remove, overlaps tracing

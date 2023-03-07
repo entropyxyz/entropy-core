@@ -26,6 +26,7 @@ use crate::{
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
     new_user,
     signing_client::SignerState,
+    store_tx,
 };
 
 #[rocket::async_test]
@@ -298,7 +299,7 @@ async fn create_clients(
 
     let result = rocket::custom(config)
         .mount("/validator", routes![sync_kvdb])
-        .mount("/user", routes![new_user])
+        .mount("/user", routes![new_user, store_tx])
         .manage(signer_state)
         .manage(configuration)
         .manage(kv_store.clone())
