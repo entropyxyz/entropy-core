@@ -1,14 +1,12 @@
 use bip39::{Language, Mnemonic};
-use entropy_shared::SIGNING_PARTY_SIZE;
 use kvdb::kv_manager::KvManager;
 use subxt::{
     ext::sp_core::{sr25519, Pair},
     tx::PairSigner,
-    OnlineClient,
 };
 
 use crate::{
-    chain_api::{entropy, EntropyConfig},
+    chain_api::EntropyConfig,
     user::UserErr,
 };
 
@@ -28,32 +26,3 @@ pub async fn get_signer(
     Ok(PairSigner::<EntropyConfig, sr25519::Pair>::new(pair.0))
 }
 
-/// gets the subgroup of the working validator
-pub async fn get_subgroup(
-    api: &OnlineClient<EntropyConfig>,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) -> Result<Option<u8>, UserErr> {
-    let mut subgroup: Option<u8> = None;
-    let threshold_address = signer.account_id();
-    let stash_address_query =
-        entropy::storage().staking_extension().threshold_to_stash(threshold_address);
-    let stash_address = api
-        .storage()
-        .fetch(&stash_address_query, None)
-        .await?
-        .ok_or_else(|| UserErr::SubgroupError("Stash Fetch Error"))?;
-    for i in 0..SIGNING_PARTY_SIZE {
-        let signing_group_addresses_query =
-            entropy::storage().staking_extension().signing_groups(i as u8);
-        let signing_group_addresses = api
-            .storage()
-            .fetch(&signing_group_addresses_query, None)
-            .await?
-            .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-        if signing_group_addresses.contains(&stash_address) {
-            subgroup = Some(i as u8);
-            break;
-        }
-    }
-    Ok(subgroup)
-}

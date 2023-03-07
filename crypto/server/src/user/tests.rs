@@ -20,7 +20,7 @@ use serial_test::serial;
 use sp_core::{sr25519, Bytes, Pair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
-use testing_utils::context::{test_context, test_context_stationary, TestContext};
+use testing_utils::substrate_context::{test_context_stationary, SubstrateTestingContext};
 use tokio::task::JoinHandle;
 use x25519_dalek::{PublicKey, StaticSecret};
 
@@ -33,7 +33,8 @@ use crate::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::SignatureState,
-        tests::setup_client,
+        tests::{setup_client, register_user_single_validator, make_swapping, check_if_confirmation},
+        substrate::make_register,
     },
     load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
@@ -61,9 +62,20 @@ async fn test_get_signer_does_not_throw_err() {
 async fn test_unsigned_tx_endpoint() {
     clean_tests();
 
-    let ports = vec![3001i64, 3002];
+    // register alice with initial constraints
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let alice = AccountKeyring::Alice;
+    let alice_constraint = AccountKeyring::Charlie;
+
+    register_user_single_validator(
+        &entropy_api,
+        &alice,
+        &alice_constraint,
+    ).await;
 
     // spawn threshold servers
+    let ports = vec![3001i64, 3002];
     join_all(ports.iter().map(|&port| async move {
         tokio::spawn(async move { create_clients(port).await.launch().await.unwrap() })
     }))
@@ -187,10 +199,11 @@ async fn test_unsigned_tx_endpoint() {
 #[serial]
 async fn test_store_share() {
     clean_tests();
+    let validator_1_stash_id: AccountId32 =
+        h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into(); // alice stash;
+
     let alice = AccountKeyring::Alice;
     let alice_constraint = AccountKeyring::Charlie;
-    let alice_stash_id: AccountId32 =
-        h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
 
     let value: Vec<u8> = vec![0];
 
@@ -199,7 +212,7 @@ async fn test_store_share() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let threshold_servers_query =
-        entropy::storage().staking_extension().threshold_servers(&alice_stash_id);
+        entropy::storage().staking_extension().threshold_servers(&validator_1_stash_id);
     let query_result = api.storage().fetch(&threshold_servers_query, None).await.unwrap();
     assert!(query_result.is_some());
 
@@ -224,7 +237,7 @@ async fn test_store_share() {
     );
 
     // signal registering
-    make_register(&api, &alice, &alice_constraint).await;
+    make_register(&api, &alice, &alice_constraint, None).await;
 
     let response_2 = client
         .post("/user/new")
@@ -302,7 +315,7 @@ async fn test_update_keys() {
     if cfg!(feature = "unsafe") {
         clean_tests();
         let dave = AccountKeyring::Dave;
-        let alice_stash_id: AccountId32 =
+        let validator_1_stash_id: AccountId32 =
             h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
 
         let key: AccountId32 = dave.to_account_id();
@@ -313,7 +326,7 @@ async fn test_update_keys() {
         let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
         let threshold_servers_query =
-            entropy::storage().staking_extension().threshold_servers(&alice_stash_id);
+            entropy::storage().staking_extension().threshold_servers(&validator_1_stash_id);
         let query_result = api.storage().fetch(&threshold_servers_query, None).await.unwrap();
         assert!(query_result.is_some());
 
@@ -405,68 +418,7 @@ async fn test_store_share_fail_wrong_data() {
     clean_tests();
 }
 
-pub async fn make_register(
-    api: &OnlineClient<EntropyConfig>,
-    sig_req_keyring: &Sr25519Keyring,
-    constraint_keyring: &Sr25519Keyring,
-) {
-    clean_tests();
-    let sig_req_account =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
-    let registering_query =
-        entropy::storage().relayer().registering(sig_req_keyring.to_account_id());
-    let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();
-    assert!(is_registering_1.is_none());
-
-    let registering_tx = entropy::tx().relayer().register(constraint_keyring.to_account_id(), None);
-
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
-
-    let is_registering_2 = api.storage().fetch(&registering_query, None).await;
-    assert!(is_registering_2.unwrap().unwrap().is_registering);
-}
-
-pub async fn make_swapping(api: &OnlineClient<EntropyConfig>, key: &Sr25519Keyring) {
-    let signer = PairSigner::new(key.pair());
-    let registering_query = entropy::storage().relayer().registering(key.to_account_id());
-    let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();
-    assert!(is_registering_1.is_none());
-
-    let registering_tx = entropy::tx().relayer().swap_keys();
-
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &signer)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
-
-    let is_registering_2 = api.storage().fetch(&registering_query, None).await;
-    assert!(is_registering_2.unwrap().unwrap().is_registering);
-}
-
-pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &Sr25519Keyring) {
-    let registering_query = entropy::storage().relayer().registering(key.to_account_id());
-    let registered_query = entropy::storage().relayer().registered(key.to_account_id());
-    let is_registering = api.storage().fetch(&registering_query, None).await.unwrap();
-    // make sure there is one confirmation
-    assert_eq!(is_registering.unwrap().confirmations.len(), 1);
-    let _ = api.storage().fetch(&registered_query, None).await.unwrap();
-}
-
+// TODO this is duplicate code in validators
 async fn create_clients(port: i64) -> Rocket<Ignite> {
     let config = rocket::Config::figment().merge(("port", port));
 

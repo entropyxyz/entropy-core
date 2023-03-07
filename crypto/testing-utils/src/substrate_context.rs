@@ -43,25 +43,30 @@ pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
     test_node(AccountKeyring::Alice).await
 }
 
-pub struct TestContext {
+/// Spins up Substrate node and a connected `subxt` client.
+pub struct SubstrateTestingContext {
     pub node_proc: TestNodeProcess<EntropyConfig>,
     pub api: OnlineClient<EntropyConfig>,
 }
 
-impl TestContext {
+impl SubstrateTestingContext {
+    /// Returns a `subxt` client connected to the test Substrate node.
     pub fn client(&self) -> &OnlineClient<EntropyConfig> { &self.api }
 }
 
-pub async fn test_context() -> TestContext {
+/// Constructs a new testing context for when we need multiple Substrate nodes.
+pub async fn testing_context() -> SubstrateTestingContext {
     env_logger::try_init().ok();
     let node_proc: TestNodeProcess<EntropyConfig> = test_node_process().await;
     let api = node_proc.client().clone();
-    TestContext { node_proc, api }
+    SubstrateTestingContext { node_proc, api }
 }
 
-pub async fn test_context_stationary() -> TestContext {
+
+/// Construct a new testing context for when we only need one Substrate node.
+pub async fn test_context_stationary() -> SubstrateTestingContext {
     env_logger::try_init().ok();
     let node_proc: TestNodeProcess<EntropyConfig> = test_node_process_stationary().await;
     let api = node_proc.client().clone();
-    TestContext { node_proc, api }
+    SubstrateTestingContext { node_proc, api }
 }

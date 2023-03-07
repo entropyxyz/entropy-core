@@ -83,6 +83,16 @@ pub struct StartupArgs {
     /// Wether to allow a validator key to be null.
     #[arg(short = 'd', long = "dev")]
     pub dev: bool,
+
+    /// Whether or not to execute a specific test
+    #[cfg(test)]
+    #[arg(long = "test")]
+    pub test: String,
+
+    /// Whether or not to print stdout during testing
+    #[arg(long = "nocapture")]
+    pub nocapture: bool,
+
 }
 
 pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Result<(), KvError> {

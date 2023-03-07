@@ -86,7 +86,9 @@
 					"--no-run",
 					"--bin=server",
 					"--package=server",
-					"--features=unsafe"
+					"--features=unsafe",
+					"--",
+					"--nocapture"
 				],
 				"filter": {
 					"name": "server",

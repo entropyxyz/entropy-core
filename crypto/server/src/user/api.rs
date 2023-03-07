@@ -23,7 +23,7 @@ use subxt::{
         sp_runtime::AccountId32,
     },
     tx::PairSigner,
-    OnlineClient,
+    OnlineClient, Config,
 };
 use tracing::instrument;
 use zeroize::Zeroize;
@@ -33,7 +33,8 @@ use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     helpers::{
         signing::{do_signing, SignatureState},
-        validator::{get_signer, get_subgroup},
+        validator::get_signer,
+        substrate::{get_subgroup, get_constraints},
     },
     message::SignedMessage,
     signing_client::SignerState,
@@ -58,6 +59,7 @@ pub async fn store_tx(
     state: &State<SignerState>,
     kv: &State<KvManager>,
     signatures: &State<SignatureState>,
+    config: &State<Configuration>,
 ) -> Result<Status, UserErr> {
     // TODO: client data needs to come in encrypted and authenticated
     match generic_tx_req.arch.as_str() {
@@ -66,13 +68,18 @@ pub async fn store_tx(
                 generic_tx_req.transaction_request.clone(),
             )?;
             let sighash = hex::encode(parsed_tx.sighash().as_bytes());
+            let api = get_api(&config.endpoint);
 
             // check if user submitted tx to chain already
             match kv.kv().get(&sighash).await {
                 Ok(message_json) => {
-                    // parse their trasnaction request
+                    // parse their transaction request
                     let message: Message =
                         serde_json::from_str(&String::from_utf8(message_json).unwrap()).unwrap();
+                    let sig_req_account = <EntropyConfig as Config>::AccountId::from(<[u8; 32]>::try_from(message.account.clone()).unwrap());
+                    let api =api.await;
+                    let constraints = get_constraints(&api?, &sig_req_account).await?;
+                    println!("constraints: {:?}", constraints);
                     // kickoff signing process
                     do_signing(message, state, kv, signatures).await?;
                 },

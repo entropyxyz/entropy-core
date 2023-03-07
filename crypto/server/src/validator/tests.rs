@@ -6,7 +6,7 @@ use rocket::{http::ContentType, Ignite, Rocket};
 use serial_test::serial;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use subxt::tx::PairSigner;
-use testing_utils::context::test_context;
+use testing_utils::substrate_context::testing_context;
 use x25519_dalek::PublicKey;
 
 use super::api::{
@@ -21,7 +21,7 @@ use crate::{
         },
         signing::SignatureState,
         tests::setup_client,
-        validator::get_subgroup,
+        substrate::get_subgroup,
     },
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
     new_user,
@@ -44,7 +44,7 @@ async fn test_sync_kvdb() {
 #[rocket::async_test]
 async fn test_get_all_keys() {
     clean_tests();
-    let cxt = test_context().await;
+    let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let mut result = get_all_keys(&api, 3).await.unwrap();
@@ -74,7 +74,7 @@ async fn test_get_all_keys() {
 #[should_panic]
 async fn test_get_all_keys_fail() {
     clean_tests();
-    let cxt = test_context().await;
+    let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let _ = get_all_keys(&api, 0).await.unwrap();
     clean_tests();
@@ -175,7 +175,7 @@ async fn test_get_safe_crypto_error() {
 #[serial]
 async fn test_get_and_store_values() {
     clean_tests();
-    let cxt = test_context().await;
+    let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
@@ -220,7 +220,7 @@ async fn test_get_and_store_values() {
 #[rocket::async_test]
 async fn test_get_random_server_info() {
     clean_tests();
-    let cxt = test_context().await;
+    let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
@@ -236,7 +236,7 @@ async fn test_get_random_server_info() {
 #[should_panic = "Account does not exist, add balance"]
 async fn test_check_balance_for_fees() {
     clean_tests();
-    let cxt = test_context().await;
+    let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let alice_stash_address: AccountId32 =
         hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
@@ -262,7 +262,7 @@ async fn test_check_balance_for_fees() {
                   pallet_index: 12, error: [3, 0, 0, 0] } })))"]
 async fn test_tell_chain_syncing_is_done() {
     clean_tests();
-    let cxt = test_context().await;
+    let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string("//Alice", None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);

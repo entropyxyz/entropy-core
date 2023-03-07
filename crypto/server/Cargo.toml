@@ -32,6 +32,7 @@ subxt             ={ package="subxt", git="https://github.com/entropyxyz/subxt.g
 parity-scale-codec="3.0.0"
 sp-core           ={ package="sp-core", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
 tofn              ={ git="https://github.com/entropyxyz/tofn", branch="main" }
+sp-keyring   ={ package="sp-keyring", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
 
 # Entropy
 entropy-shared={ path="../shared" }
@@ -51,13 +52,12 @@ bip39  ={ git="https://github.com/infincia/bip39-rs.git", tag="v0.6.0-beta.1" }
 bincode="1.3.3"
 bytes  ={ version="1.0", default-features=false, features=["serde"] }
 base64 ="0.13.0"
-clap   ={ version="4.0.29", features=["derive"] }
+clap   ={ version="^4.1.8", features=["derive"] }
 
 [dev-dependencies]
 testing-utils={ path="../testing-utils" }
 serial_test  ="0.8.0"
 hex-literal  ="0.3.4"
-sp-keyring   ={ package="sp-keyring", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
 project-root ="0.2.2"
 
 [features]
