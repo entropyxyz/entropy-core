@@ -23,7 +23,7 @@ use subxt::{
         sp_runtime::AccountId32,
     },
     tx::PairSigner,
-    OnlineClient, Config,
+    Config, OnlineClient,
 };
 use tracing::instrument;
 use zeroize::Zeroize;
@@ -33,8 +33,8 @@ use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     helpers::{
         signing::{do_signing, SignatureState},
+        substrate::{get_constraints, get_subgroup},
         validator::get_signer,
-        substrate::{get_subgroup, get_constraints},
     },
     message::SignedMessage,
     signing_client::SignerState,
@@ -76,8 +76,10 @@ pub async fn store_tx(
                     // parse their transaction request
                     let message: Message =
                         serde_json::from_str(&String::from_utf8(message_json).unwrap()).unwrap();
-                    let sig_req_account = <EntropyConfig as Config>::AccountId::from(<[u8; 32]>::try_from(message.account.clone()).unwrap());
-                    let api =api.await;
+                    let sig_req_account = <EntropyConfig as Config>::AccountId::from(
+                        <[u8; 32]>::try_from(message.account.clone()).unwrap(),
+                    );
+                    let api = api.await;
                     let constraints = get_constraints(&api?, &sig_req_account).await?;
                     println!("constraints: {:?}", constraints);
                     // kickoff signing process

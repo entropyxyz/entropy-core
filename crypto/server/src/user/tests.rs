@@ -33,8 +33,10 @@ use crate::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::SignatureState,
-        tests::{setup_client, register_user_single_validator, make_swapping, check_if_confirmation},
         substrate::make_register,
+        tests::{
+            check_if_confirmation, make_swapping, register_user_single_validator, setup_client,
+        },
     },
     load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
@@ -68,11 +70,7 @@ async fn test_unsigned_tx_endpoint() {
     let alice = AccountKeyring::Alice;
     let alice_constraint = AccountKeyring::Charlie;
 
-    register_user_single_validator(
-        &entropy_api,
-        &alice,
-        &alice_constraint,
-    ).await;
+    register_user_single_validator(&entropy_api, &alice, &alice_constraint).await;
 
     // spawn threshold servers
     let ports = vec![3001i64, 3002];
@@ -419,6 +417,58 @@ async fn test_store_share_fail_wrong_data() {
 }
 
 // TODO this is duplicate code in validators
+async fn create_clients(port: i64) -> Rocket<Ignite> {
+    let config = rocket::Config::figment().merge(("port", port));
+
+    let signer_state = SignerState::default();
+    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
+    let signature_state = SignatureState::new();
+
+    let path = format!("test_db_{}", port.to_string());
+    let _ = std::fs::remove_dir_all(path.clone());
+
+    let kv_store =
+        KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+
+    // Shortcut: store the shares manually
+    let root = project_root::get_project_root().unwrap();
+    let share_id = i32::from(port != 3001);
+    let path: PathBuf =
+        [root, "test_data".into(), "key_shares".into(), share_id.to_string().into()]
+            .into_iter()
+            .collect();
+    let v_serialized = fs::read(path).unwrap();
+    let alice_key = AccountKeyring::Alice.to_account_id();
+    let bob_key = AccountKeyring::Bob.to_account_id();
+    let alice_reservation = kv_store.kv().reserve_key(alice_key.to_string()).await.unwrap();
+    let bob_reservation = kv_store.kv().reserve_key(bob_key.to_string()).await.unwrap();
+    // alice and bob reuse the same keyshares for testing
+    let _ = kv_store.kv().put(alice_reservation, v_serialized.clone()).await;
+    let _ = kv_store.kv().put(bob_reservation, v_serialized).await;
+
+    // Unsafe routes are for testing purposes only
+    // they are unsafe as they can expose vulnerabilites
+    // should they be used in production. Unsafe routes
+    // are disabled by default.
+    // To enable unsafe routes compile with --feature unsafe.
+    let mut unsafe_routes = routes![];
+    if cfg!(feature = "unsafe") || cfg!(test) {
+        unsafe_routes = routes![remove_keys, get, put, delete];
+    }
+
+    rocket::custom(config)
+        .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
+        .mount("/user", routes![store_tx, new_user])
+        .mount("/unsafe", unsafe_routes)
+        .manage(signer_state)
+        .manage(configuration)
+        .manage(kv_store)
+        .manage(signature_state)
+        .ignite()
+        .await
+        .unwrap()
+}
+
 async fn create_clients(port: i64) -> Rocket<Ignite> {
     let config = rocket::Config::figment().merge(("port", port));
 
