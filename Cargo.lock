@@ -2076,6 +2076,7 @@ name = "entropy-shared"
 version = "0.1.0"
 dependencies = [
  "frame-support",
+ "node-primitives",
  "parity-scale-codec",
  "scale-info",
  "serde",

@@ -2,12 +2,15 @@ use std::str;
 
 use entropy_shared::OCWMessage;
 use kvdb::kv_manager::KvManager;
-use parity_scale_codec::Decode;
+use parity_scale_codec::{Decode, Encode};
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use tracing::instrument;
-
+use blake2::{Blake2s256, Digest};
+use subxt::{OnlineClient};
 use crate::{
+	Configuration,
     helpers::signing::SignatureState,
+	chain_api::{entropy, get_api, EntropyConfig},
     signing_client::{
         subscribe::{Listener, Receiver},
         SignerState, SigningErr, SubscribeErr, SubscribeMessage,
@@ -21,11 +24,13 @@ const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 /// This endpoint is called by the blockchain.
 #[instrument(skip(kv))]
 #[post("/new_party", data = "<encoded_data>")]
-pub async fn new_party(encoded_data: Vec<u8>, kv: &State<KvManager>) -> Result<Status, SigningErr> {
+pub async fn new_party(encoded_data: Vec<u8>, kv: &State<KvManager>, config: &State<Configuration>) -> Result<Status, SigningErr> {
     // TODO encryption and authentication.
     let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
+	let api = get_api(&config.endpoint).await.unwrap();
+	let _ = validate_new_party(data.clone(), &api).await.unwrap();
 
-    for message in data {
+    for message in data.1 {
         let sighash = hex::encode(&message.sig_request.sig_hash);
 
         match kv.kv().reserve_key(sighash).await {
@@ -86,6 +91,29 @@ pub async fn subscribe_to_me(
 
     Ok(Listener::create_event_stream(rx, end))
 }
+
+pub async fn validate_new_party(chain_data: OCWMessage, api: &OnlineClient<EntropyConfig>) -> Result<(), SigningErr> {
+	// TODO check block number with chain to make sure it isn't too far back
+	let latest_block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number;
+	dbg!(latest_block_number.clone());
+	assert_eq!(latest_block_number, chain_data.0, "stale data");
+	let mut hasher_chain_data = Blake2s256::new();
+	hasher_chain_data.update(chain_data.encode());
+	let chain_data_hash = hasher_chain_data.finalize();
+	let mut hasher_verifying_data = Blake2s256::new();
+	let verifying_data_query = entropy::storage().relayer().messages(chain_data.0);
+	let verifying_data = api
+        .storage()
+        .fetch(&verifying_data_query, None)
+        .await.unwrap()
+        .unwrap();
+	hasher_verifying_data.update(verifying_data.encode());
+	let verifying_data_hash = hasher_verifying_data.finalize();
+	assert_eq!(verifying_data_hash, chain_data_hash, "incorrect data");
+
+	Ok(())
+}
+
 
 use rocket::response::status;
 use serde::{Deserialize, Serialize};

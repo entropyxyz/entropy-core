@@ -70,7 +70,7 @@ pub mod pallet {
 
             log::warn!("propagation::post::messages: {:?}", &messages);
             // the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
-            let req_body = messages.encode();
+            let req_body = (block_number, messages.clone()).encode();
 
             log::warn!("propagation::post::req_body: {:?}", &[req_body.clone()]);
             // We construct the request

@@ -5,15 +5,16 @@ use parity_scale_codec::Encode;
 use rocket::http::{ContentType, Status};
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
+use testing_utils::context::{test_context_stationary};
 
 use crate::{helpers::tests::setup_client, r#unsafe::api::UnsafeQuery};
 
 #[rocket::async_test]
 #[serial]
 async fn test_new_party() {
-    if cfg!(feature = "unsafe") {
         clean_tests();
         let client = setup_client().await;
+    	let cxt = test_context_stationary().await;
 
         // transaction_request comes from ethers-js serializeTransaction()
         // See frontend threshold-server tests for more context
@@ -32,7 +33,7 @@ async fn test_new_party() {
         // mock ocw posting to /signer/new_party
         let response = client
             .post("/signer/new_party")
-            .body(vec![onchain_signature_request.clone()].encode())
+            .body(vec![(0, onchain_signature_request.clone())].encode())
             .dispatch()
             .await;
         assert_eq!(response.status(), Status::Ok);
@@ -50,7 +51,6 @@ async fn test_new_party() {
         );
 
         clean_tests();
-    }
 }
 
 #[rocket::async_test]
