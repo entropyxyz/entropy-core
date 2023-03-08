@@ -1,6 +1,6 @@
 # Entropy Core
 
-This repo contains the Entropy blockchain node, the validator server (evaulates constraints, stores threshold keyshares, and coordinates threshold-signing), and misc. testing utilities for the network.
+This repo contains the Entropy blockchain node, the validator server (evaluates constraints, stores threshold keyshares, and coordinates threshold-signing), and misc. testing utilities for the network.
 
 Our blockchain node is written with Substrate, and its documentation can be found [here](https://github.com/substrate-developer-hub/substrate-node-template).
 
@@ -78,7 +78,7 @@ by appending your own. A few useful ones are as follow.
 
 - Currently our network requires 2 binaries
 - `cargo build --release` will build both
-- to run both you can reference /scripts/sdk-entropy-node.sh for the chain and /scripts/sdk-alice-tss.sh for the threshold client
+- to run both you can reference `/scripts/sdk-entropy-node.sh` for the chain and `/scripts/sdk-alice-tss.sh` for the threshold client
 
 ### changing defaults
 
@@ -89,7 +89,7 @@ by appending your own. A few useful ones are as follow.
 
 ## Threshold keys
 
-- keys for internal testnet use only, not secure, here for convience do not use them for anything real
+- keys for internal test-net use only, not secure, here for convenience do not use them for anything real
 
 Alice
 Secret phrase `alarm mutual concert decrease hurry invest culture survey diagram crash snap click` is account:
@@ -118,23 +118,23 @@ SS58 Address: 5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV
   - `cargo build --release`
   - `./scripts/alice.sh`
 
-* In terminal 2 run alice threshold client
+* In terminal 2 run Alice threshold client
 
   - `cargo build --release --features="alice unsafe"`
   - `./scripts/server.sh`
 
-* In termainl 3 run chain 2
+* In terminal 3 run chain 2
 
   - `./scripts/bob.sh`
 
-* In termainl 5run bob threshold client
+* In terminal 5run bob threshold client
   - `cargo build --release --features="bob unsafe"`
   - `./scripts/server_bob.sh`
 
 With all 4 nodes running the chain is now working, next we now have a clash where both chains by default send their OCW messages to port 3001, you need to change one of those
 
 - from this repo <https://github.com/entropyxyz/util-scripts>
-  - need to setup the repo and link the wasm first
+  - need to setup the repo and link the WASM first
   - `cd pkg`
   - `npm link`
   - `cd ..`
