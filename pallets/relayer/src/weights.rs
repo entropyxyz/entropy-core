@@ -12,8 +12,7 @@ use sp_std::marker::PhantomData;
 pub trait WeightInfo {
     fn prep_transaction(s: u32) -> Weight;
     fn register(evm_acl_len: u32, btc_acl_len: u32) -> Weight;
-    fn move_active_to_pending_failure(m: u32) -> Weight;
-    fn move_active_to_pending_no_failure(m: u32) -> Weight;
+    fn swap_keys() -> Weight;
 }
 
 /// Weights for pallet_realyer using the Substrate node and recommended hardware.
@@ -40,36 +39,13 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(Weight::from_ref_time(143_000_u64).saturating_mul(btc_acl_len as u64))
     }
 
-    // Storage: Relayer Messages (r:1 w:0)
-    // Storage: Relayer Failures (r:1 w:0)
-    // Storage: Relayer Responsibility (r:1 w:0)
-    // Storage: Relayer Unresponsive (r:1 w:1)
-    // Storage: Authorship Author (r:1 w:0)
-    // Storage: System Digest (r:1 w:0)
-    // Storage: Relayer Pending (r:0 w:1)
-    /// The range of component `m` is `[0, 10]`.
-    fn move_active_to_pending_no_failure(m: u32) -> Weight {
-        Weight::from_ref_time(42_000_000 as u64)
-			// Standard Error: 711_254
-			.saturating_add(Weight::from_ref_time(3_176_966 as u64).saturating_mul(m as u64))
-			.saturating_add(T::DbWeight::get().reads(6 as u64))
-			.saturating_add(T::DbWeight::get().writes(2 as u64))
-    }
-
-    // Storage: Relayer Messages (r:1 w:0)
-    // Storage: Relayer Failures (r:1 w:0)
-    // Storage: Relayer Responsibility (r:1 w:0)
-    // Storage: Relayer Unresponsive (r:1 w:1)
-    // Storage: Authorship Author (r:1 w:0)
-    // Storage: System Digest (r:1 w:0)
-    // Storage: Relayer Pending (r:0 w:1)
-    /// The range of component `m` is `[0, 10]`.
-    fn move_active_to_pending_failure(m: u32) -> Weight {
-        Weight::from_ref_time(43_000_000 as u64)
-			// Standard Error: 419_771
-			.saturating_add(Weight::from_ref_time(4_272_471 as u64).saturating_mul(m as u64))
-			.saturating_add(T::DbWeight::get().reads(6 as u64))
-			.saturating_add(T::DbWeight::get().writes(2 as u64))
+    // Storage: Relayer Registered (r:1 w:1)
+    // Storage: Relayer Registering (r:0 w:1)
+    fn swap_keys() -> Weight {
+        // Minimum execution time: 39_000 nanoseconds.
+        Weight::from_ref_time(39_000_000 as u64)
+            .saturating_add(T::DbWeight::get().reads(1 as u64))
+            .saturating_add(T::DbWeight::get().writes(2 as u64))
     }
 }
 
@@ -96,35 +72,12 @@ impl WeightInfo for () {
             .saturating_add(Weight::from_ref_time(531_000_u64).saturating_mul(btc_acl_len as u64))
     }
 
-    // Storage: Relayer Messages (r:1 w:0)
-    // Storage: Relayer Failures (r:1 w:0)
-    // Storage: Relayer Responsibility (r:1 w:0)
-    // Storage: Relayer Unresponsive (r:1 w:1)
-    // Storage: Authorship Author (r:1 w:0)
-    // Storage: System Digest (r:1 w:0)
-    // Storage: Relayer Pending (r:0 w:1)
-    /// The range of component `m` is `[0, 10]`.
-    fn move_active_to_pending_no_failure(m: u32) -> Weight {
-        Weight::from_ref_time(42_000_000 as u64)
-			// Standard Error: 711_254
-			.saturating_add(Weight::from_ref_time(3_176_966 as u64).saturating_mul(m as u64))
-			.saturating_add(RocksDbWeight::get().reads(6 as u64))
-			.saturating_add(RocksDbWeight::get().writes(2 as u64))
-    }
-
-    // Storage: Relayer Messages (r:1 w:0)
-    // Storage: Relayer Failures (r:1 w:0)
-    // Storage: Relayer Responsibility (r:1 w:0)
-    // Storage: Relayer Unresponsive (r:1 w:1)
-    // Storage: Authorship Author (r:1 w:0)
-    // Storage: System Digest (r:1 w:0)
-    // Storage: Relayer Pending (r:0 w:1)
-    /// The range of component `m` is `[0, 10]`.
-    fn move_active_to_pending_failure(m: u32) -> Weight {
-        Weight::from_ref_time(43_000_000 as u64)
-			// Standard Error: 419_771
-			.saturating_add(Weight::from_ref_time(4_272_471 as u64).saturating_mul(m as u64))
-			.saturating_add(RocksDbWeight::get().reads(6 as u64))
-			.saturating_add(RocksDbWeight::get().writes(2 as u64))
+    // Storage: Relayer Registered (r:1 w:1)
+    // Storage: Relayer Registering (r:0 w:1)
+    fn swap_keys() -> Weight {
+        // Minimum execution time: 39_000 nanoseconds.
+        Weight::from_ref_time(39_000_000 as u64)
+            .saturating_add(RocksDbWeight::get().reads(1 as u64))
+            .saturating_add(RocksDbWeight::get().writes(2 as u64))
     }
 }
