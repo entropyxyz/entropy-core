@@ -61,7 +61,7 @@ pub mod pallet {
             let messages =
                 pallet_relayer::Pallet::<T>::messages(block_number.saturating_sub(1u32.into()));
 
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(3_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
                 .unwrap_or_else(|| b"http://localhost:3001/signer/new_party".to_vec());
@@ -76,7 +76,16 @@ pub mod pallet {
             // We construct the request
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
-            let pending = http::Request::post(url, vec![req_body]) // scheint zu klappen
+
+            // TODO if feature test,  we send to both alice and bob threshold servers
+            let urls = vec![url, "http://localhost:3002/signer/new_party"];
+
+            let pending2 = http::Request::post(urls[1], vec![req_body.clone()]) // scheint zu klappen
+                .deadline(deadline)
+                .send()
+                .map_err(|_| http::Error::IoError)?;
+
+            let pending = http::Request::post(url, vec![req_body.clone()]) // scheint zu klappen
                 .deadline(deadline)
                 .send()
                 .map_err(|_| http::Error::IoError)?;
@@ -84,12 +93,17 @@ pub mod pallet {
             // We await response, same as in fn get()
             let response =
                 pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+            
+            let response2 = pending2.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
 
             // check response code
             if response.code != 200 {
                 log::warn!("Unexpected status code: {}", response.code);
                 return Err(http::Error::Unknown);
             }
+
+            log::warn!("OCW POST: if you don't see this every block, servers aren't getting all messages");
+
             let _res_body = response.body().collect::<Vec<u8>>();
             // ToDo: DF: handle _res_body
             Self::deposit_event(Event::MessagesPassed(messages));

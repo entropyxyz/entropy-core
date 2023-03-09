@@ -31,6 +31,7 @@ impl SignatureState {
         signatures.insert(hex::encode(key), *value);
     }
 
+    // TODO insert and get should use the same key format
     pub fn get(&self, key: &String) -> [u8; 65] {
         let signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
         let result = *signatures.get(key).unwrap();
@@ -76,6 +77,12 @@ pub async fn do_signing(
         &result,
         message.sig_request.sig_hash.as_slice().try_into().unwrap(),
         signatures,
+    );
+
+    // log signing has completed
+    log::info!(
+        "Signing completed for party_uid: {}",
+        sign_context.sign_init.party_uid
     );
     Ok(Status::Ok)
 }
