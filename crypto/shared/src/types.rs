@@ -26,4 +26,9 @@ pub struct Message {
     pub ip_addresses: codec::alloc::vec::Vec<codec::alloc::vec::Vec<u8>>,
 }
 
-pub type OCWMessage = (BlockNumber, Vec<Message>);
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+pub struct OCWMessage {
+	pub messages: Vec<Message>,
+	pub block_number: BlockNumber
+}

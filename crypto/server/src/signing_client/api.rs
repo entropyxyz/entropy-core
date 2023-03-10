@@ -16,6 +16,7 @@ use crate::{
         SignerState, SigningErr, SubscribeErr, SubscribeMessage,
     },
 };
+use node_primitives::{BlockNumber};
 
 const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 
@@ -28,9 +29,9 @@ pub async fn new_party(encoded_data: Vec<u8>, kv: &State<KvManager>, config: &St
     // TODO encryption and authentication.
     let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
 	let api = get_api(&config.endpoint).await.unwrap();
-	let _ = validate_new_party(data.clone(), &api).await.unwrap();
+	let _ = validate_new_party(data, &api).await.unwrap();
 
-    for message in data.1 {
+    for message in data.messages {
         let sighash = hex::encode(&message.sig_request.sig_hash);
 
         match kv.kv().reserve_key(sighash).await {
@@ -95,21 +96,24 @@ pub async fn subscribe_to_me(
 pub async fn validate_new_party(chain_data: OCWMessage, api: &OnlineClient<EntropyConfig>) -> Result<(), SigningErr> {
 	// TODO check block number with chain to make sure it isn't too far back
 	let latest_block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number;
-	dbg!(latest_block_number.clone());
-	assert_eq!(latest_block_number, chain_data.0, "stale data");
-	let mut hasher_chain_data = Blake2s256::new();
-	hasher_chain_data.update(chain_data.encode());
-	let chain_data_hash = hasher_chain_data.finalize();
-	let mut hasher_verifying_data = Blake2s256::new();
-	let verifying_data_query = entropy::storage().relayer().messages(chain_data.0);
-	let verifying_data = api
-        .storage()
-        .fetch(&verifying_data_query, None)
-        .await.unwrap()
-        .unwrap();
-	hasher_verifying_data.update(verifying_data.encode());
-	let verifying_data_hash = hasher_verifying_data.finalize();
-	assert_eq!(verifying_data_hash, chain_data_hash, "incorrect data");
+	// let decoded = <BlockNumber>::decode_from(&mut chain_data.0).unwrap();
+	dbg!(latest_block_number.clone().encode(), chain_data.clone());
+	assert_eq!(latest_block_number, chain_data.block_number, "stale data");
+	// let mut hasher_chain_data = Blake2s256::new();
+	// hasher_chain_data.update(chain_data.encode());
+	// let chain_data_hash = hasher_chain_data.finalize();
+	// let mut hasher_verifying_data = Blake2s256::new();
+	// let verifying_data_query = entropy::storage().relayer().messages(chain_data.0);
+	// let verifying_data = api
+    //     .storage()
+    //     .fetch(&verifying_data_query, None)
+    //     .await.unwrap()
+    //     .unwrap();
+	// hasher_verifying_data.update(verifying_data.encode());
+	// let verifying_data_hash = hasher_verifying_data.finalize();
+	// dbg!(verifying_data, chain_data);
+	// assert_eq!(chain_data, ());
+	// assert_eq!(verifying_data_hash, chain_data_hash, "incorrect data");
 
 	Ok(())
 }
