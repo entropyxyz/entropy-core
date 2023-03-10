@@ -25,7 +25,7 @@ async fn test_new_party() {
                 .unwrap();
         let sig_hash = parsed_tx.sighash();
 		let block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
-		put_tx_request_on_chain(&api, &dave, transaction_request).await;
+		put_tx_request_on_chain(&api, &dave, sig_hash.as_bytes().to_vec()).await;
 
 		let onchain_signature_request = OCWMessage {
 			messages: vec![Message {
@@ -36,10 +36,6 @@ async fn test_new_party() {
 			block_number: block_number
 		};
 
-		// let block_target = 6;
-		// run_to_block(&api, block_target).await;
-        // mock ocw posting to /signer/new_party
-		// run_to_block(&api, block_number + 1).await;
         let response = client
             .post("/signer/new_party")
             .body(onchain_signature_request.clone().encode())
@@ -84,10 +80,10 @@ async fn new_party_fail_wrong_data() {
     clean_tests();
 }
 
-pub async fn put_tx_request_on_chain(api: &OnlineClient<EntropyConfig>, sig_req_keyring: &Sr25519Keyring, tx_request: &str) {
+pub async fn put_tx_request_on_chain(api: &OnlineClient<EntropyConfig>, sig_req_keyring: &Sr25519Keyring, sig_hash: Vec<u8>) {
     let sig_req_account =
 	       PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
-	let prep_transaction_message = otherSigRequest { sig_hash: tx_request.as_bytes().to_vec() };
+	let prep_transaction_message = otherSigRequest { sig_hash };
 	let registering_tx = entropy::tx().relayer().prep_transaction(prep_transaction_message);
 
     api.tx()
