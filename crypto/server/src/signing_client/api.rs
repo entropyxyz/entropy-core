@@ -3,7 +3,6 @@ use std::str;
 use blake2::{Blake2s256, Digest};
 use entropy_shared::OCWMessage;
 use kvdb::kv_manager::KvManager;
-use node_primitives::BlockNumber;
 use parity_scale_codec::{Decode, Encode};
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use subxt::OnlineClient;

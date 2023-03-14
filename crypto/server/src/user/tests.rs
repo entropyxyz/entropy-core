@@ -519,12 +519,10 @@ async fn create_clients(port: i64) -> Rocket<Ignite> {
     let _ = kv_store.kv().put(alice_reservation, v_serialized.clone()).await;
     let _ = kv_store.kv().put(bob_reservation, v_serialized).await;
 
-    let mut unsafe_routes = routes![remove_keys, get, put, delete];
-
     rocket::custom(config)
         .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
         .mount("/user", routes![store_tx, new_user])
-        .mount("/unsafe", unsafe_routes)
+        .mount("/unsafe", routes![remove_keys, get, put, delete])
         .manage(signer_state)
         .manage(configuration)
         .manage(kv_store)

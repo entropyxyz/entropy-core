@@ -14,7 +14,6 @@
 //! ## Pieces Launched
 //! - Rocket server - Includes global state and mutex locked IPs
 //! - Sled DB KVDB
-#![allow(unused)]
 pub(crate) mod chain_api;
 mod helpers;
 pub(crate) mod message;
