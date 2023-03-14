@@ -30,16 +30,16 @@ pub async fn new_party(
     kv: &State<KvManager>,
     config: &State<Configuration>,
 ) -> Result<Status, SigningErr> {
-	let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
-	if data.messages.is_empty() {
-		return Ok(Status::NoContent)
-	}
+    let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
+    if data.messages.is_empty() {
+        return Ok(Status::NoContent);
+    }
     let api = get_api(&config.endpoint).await?;
     validate_new_party(&data, &api).await?;
     for message in data.messages {
         let sighash = hex::encode(&message.sig_request.sig_hash);
 
-        let reservation =  kv.kv().reserve_key(sighash).await?;
+        let reservation = kv.kv().reserve_key(sighash).await?;
         let value = serde_json::to_string(&message).unwrap();
         kv.kv().put(reservation, value.into()).await?;
     }
@@ -96,8 +96,8 @@ pub async fn validate_new_party(
     api: &OnlineClient<EntropyConfig>,
 ) -> Result<(), SigningErr> {
     let latest_block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number;
-	// we subtract 1 as the message info is coming from the previous block
-	if latest_block_number.saturating_sub(1) != chain_data.block_number {
+    // we subtract 1 as the message info is coming from the previous block
+    if latest_block_number.saturating_sub(1) != chain_data.block_number {
         return Err(SigningErr::StaleData);
     }
 
@@ -107,9 +107,11 @@ pub async fn validate_new_party(
     let mut hasher_verifying_data = Blake2s256::new();
 
     let verifying_data_query = entropy::storage().relayer().messages(chain_data.block_number);
-    let verifying_data = api.storage().fetch(&verifying_data_query, None).await?.ok_or_else(|| {
-		SigningErr::OptionUnwrapError("Failed to get verifying data")
-	})?;
+    let verifying_data = api
+        .storage()
+        .fetch(&verifying_data_query, None)
+        .await?
+        .ok_or_else(|| SigningErr::OptionUnwrapError("Failed to get verifying data"))?;
 
     hasher_verifying_data.update(verifying_data.encode());
 

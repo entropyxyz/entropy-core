@@ -41,7 +41,7 @@ async fn test_new_party() {
         block_number,
     };
 
-	run_to_block(&api, block_number + 1).await;
+    run_to_block(&api, block_number + 1).await;
 
     let response = client
         .post("/signer/new_party")
@@ -93,7 +93,7 @@ async fn test_new_party_fail_unverified() {
         block_number,
     };
 
-	run_to_block(&api, block_number + 1).await;
+    run_to_block(&api, block_number + 1).await;
 
     let response = client
         .post("/signer/new_party")

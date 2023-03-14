@@ -49,9 +49,9 @@ pub enum SigningErr {
     InvalidData,
     #[error("Data is stale")]
     StaleData,
-	#[error("Generic Substrate error: {0}")]
+    #[error("Generic Substrate error: {0}")]
     GenericSubstrate(#[from] subxt::error::Error),
-	#[error("Option Unwrap error: {0}")]
+    #[error("Option Unwrap error: {0}")]
     OptionUnwrapError(&'static str),
 }
 
