@@ -45,6 +45,10 @@ pub enum SigningErr {
     Broadcast(#[from] tokio::sync::broadcast::error::SendError<SigningMessage>),
     #[error("anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
+	#[error("Data is not verifiable")]
+    InvalidData,
+	#[error("Data is stale")]
+    StaleData,
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
