@@ -9227,6 +9227,7 @@ dependencies = [
  "hex-literal",
  "kvdb 0.1.0",
  "log",
+ "node-primitives",
  "parity-scale-codec",
  "project-root",
  "rand_core 0.6.4",

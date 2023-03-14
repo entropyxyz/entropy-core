@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use codec::{alloc::vec::Vec, Decode, Encode};
+use node_primitives::BlockNumber;
 use scale_info::TypeInfo;
-use node_primitives::{BlockNumber};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
@@ -29,6 +29,6 @@ pub struct Message {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct OCWMessage {
-	pub messages: Vec<Message>,
-	pub block_number: BlockNumber
+    pub messages: Vec<Message>,
+    pub block_number: BlockNumber,
 }

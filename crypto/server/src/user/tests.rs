@@ -45,16 +45,16 @@ use crate::{
     Message as SigMessage,
 };
 
-// #[rocket::async_test]
-// #[serial]
-// async fn test_get_signer_does_not_throw_err() {
-//     clean_tests();
-//     let kv_store = load_kv_store(false, false).await;
-//     let mnemonic = setup_mnemonic(&kv_store, false, false).await;
-//     assert!(mnemonic.is_ok());
-//     get_signer(&kv_store).await.unwrap();
-//     clean_tests();
-// }
+#[rocket::async_test]
+#[serial]
+async fn test_get_signer_does_not_throw_err() {
+    clean_tests();
+    let kv_store = load_kv_store(false, false).await;
+    let mnemonic = setup_mnemonic(&kv_store, false, false).await;
+    assert!(mnemonic.is_ok());
+    get_signer(&kv_store).await.unwrap();
+    clean_tests();
+}
 
 #[rocket::async_test]
 #[serial]
@@ -178,26 +178,24 @@ async fn test_unsigned_tx_endpoint() {
     .await;
 
     // if unsafe, then also validate signature deletion
-    if cfg!(feature = "unsafe") {
-        // delete all signatures from the servers
-        join_all(validator_urls.iter().map(|url| async {
-            let url = format!("{}/signer/drain", url.clone());
-            let res = mock_client.get(url).send().await;
-            assert_eq!(res.unwrap().status(), 200);
-        }))
-        .await;
+    // delete all signatures from the servers
+    join_all(validator_urls.iter().map(|url| async {
+        let url = format!("{}/signer/drain", url.clone());
+        let res = mock_client.get(url).send().await;
+        assert_eq!(res.unwrap().status(), 200);
+    }))
+    .await;
 
-        // query the signature again, should error since we just deleted them
-        join_all(get_sig_messages.iter().map(|get_sig_message| async {
-            let res = mock_client
-                .post("http://127.0.0.1:3001/signer/signature")
-                .json(get_sig_message)
-                .send()
-                .await;
-            assert_eq!(res.as_ref().unwrap().status(), 500);
-        }))
-        .await;
-    }
+    // query the signature again, should error since we just deleted them
+    join_all(get_sig_messages.iter().map(|get_sig_message| async {
+        let res = mock_client
+            .post("http://127.0.0.1:3001/signer/signature")
+            .json(get_sig_message)
+            .send()
+            .await;
+        assert_eq!(res.as_ref().unwrap().status(), 500);
+    }))
+    .await;
 
     clean_tests();
 }
@@ -318,88 +316,86 @@ async fn test_store_share() {
 #[rocket::async_test]
 #[serial]
 async fn test_update_keys() {
-    if cfg!(feature = "unsafe") {
-        clean_tests();
-        let dave = AccountKeyring::Dave;
-        let alice_stash_id: AccountId32 =
-            h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
+    clean_tests();
+    let dave = AccountKeyring::Dave;
+    let alice_stash_id: AccountId32 =
+        h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
 
-        let key: AccountId32 = dave.to_account_id();
-        let value: Vec<u8> = vec![0];
-        let new_value: Vec<u8> = vec![1];
-        let cxt = test_context_stationary().await;
-        let client = setup_client().await;
-        let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let key: AccountId32 = dave.to_account_id();
+    let value: Vec<u8> = vec![0];
+    let new_value: Vec<u8> = vec![1];
+    let cxt = test_context_stationary().await;
+    let client = setup_client().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-        let threshold_servers_query =
-            entropy::storage().staking_extension().threshold_servers(&alice_stash_id);
-        let query_result = api.storage().fetch(&threshold_servers_query, None).await.unwrap();
-        assert!(query_result.is_some());
+    let threshold_servers_query =
+        entropy::storage().staking_extension().threshold_servers(&alice_stash_id);
+    let query_result = api.storage().fetch(&threshold_servers_query, None).await.unwrap();
+    assert!(query_result.is_some());
 
-        let res = query_result.unwrap();
-        let server_public_key = PublicKey::from(res.x25519_public_key);
-        let user_input =
-            SignedMessage::new(&dave.pair(), &Bytes(new_value.clone()), &server_public_key)
-                .unwrap()
-                .to_json();
+    let res = query_result.unwrap();
+    let server_public_key = PublicKey::from(res.x25519_public_key);
+    let user_input =
+        SignedMessage::new(&dave.pair(), &Bytes(new_value.clone()), &server_public_key)
+            .unwrap()
+            .to_json();
 
-        let put_query =
-            UnsafeQuery::new(key.to_string(), serde_json::to_string(&value).unwrap()).to_json();
-        // manually add dave's key to replace it
-        let response = client
-            .post("/unsafe/put")
-            .header(ContentType::JSON)
-            .body(put_query.clone())
-            .dispatch()
-            .await;
+    let put_query =
+        UnsafeQuery::new(key.to_string(), serde_json::to_string(&value).unwrap()).to_json();
+    // manually add dave's key to replace it
+    let response = client
+        .post("/unsafe/put")
+        .header(ContentType::JSON)
+        .body(put_query.clone())
+        .dispatch()
+        .await;
 
-        assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), Status::Ok);
 
-        // fails to add not registering or swapping
-        let response_2 = client
-            .post("/user/new")
-            .header(ContentType::JSON)
-            .body(user_input.clone())
-            .dispatch()
-            .await;
+    // fails to add not registering or swapping
+    let response_2 = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(user_input.clone())
+        .dispatch()
+        .await;
 
-        assert_eq!(response_2.status(), Status::InternalServerError);
-        assert_eq!(
-            response_2.into_string().await.unwrap(),
-            "Not Registering error: Register Onchain first" /* "Generic Substrate error:
-                                                             * Metadata: Pallet Relayer Storage
-                                                             * Relayer has incompatible
-                                                             * metadata" */
-        );
+    assert_eq!(response_2.status(), Status::InternalServerError);
+    assert_eq!(
+        response_2.into_string().await.unwrap(),
+        "Not Registering error: Register Onchain first" /* "Generic Substrate error:
+                                                         * Metadata: Pallet Relayer Storage
+                                                         * Relayer has incompatible
+                                                         * metadata" */
+    );
 
-        // signal registering
-        make_swapping(&api, &dave).await;
+    // signal registering
+    make_swapping(&api, &dave).await;
 
-        let response_3 = client
-            .post("/user/new")
-            .header(ContentType::JSON)
-            .body(user_input.clone())
-            .dispatch()
-            .await;
-        assert_eq!(response_3.status(), Status::Ok);
-        assert_eq!(response_3.into_string().await, None);
-        // make sure there is now one confirmation
-        check_if_confirmation(&api, &dave).await;
+    let response_3 = client
+        .post("/user/new")
+        .header(ContentType::JSON)
+        .body(user_input.clone())
+        .dispatch()
+        .await;
+    assert_eq!(response_3.status(), Status::Ok);
+    assert_eq!(response_3.into_string().await, None);
+    // make sure there is now one confirmation
+    check_if_confirmation(&api, &dave).await;
 
-        // check dave has new key
-        let response_4 = client
-            .post("/unsafe/get")
-            .header(ContentType::JSON)
-            .body(put_query.clone())
-            .dispatch()
-            .await;
+    // check dave has new key
+    let response_4 = client
+        .post("/unsafe/get")
+        .header(ContentType::JSON)
+        .body(put_query.clone())
+        .dispatch()
+        .await;
 
-        assert_eq!(
-            response_4.into_string().await,
-            Some(std::str::from_utf8(&new_value).unwrap().to_string())
-        );
-        clean_tests();
-    }
+    assert_eq!(
+        response_4.into_string().await,
+        Some(std::str::from_utf8(&new_value).unwrap().to_string())
+    );
+    clean_tests();
 }
 
 #[rocket::async_test]
