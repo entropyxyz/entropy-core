@@ -483,13 +483,6 @@ pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &Sr25
     let _ = api.storage().fetch(&registered_query, None).await.unwrap();
 }
 
-pub async fn run_to_block(api: &OnlineClient<EntropyConfig>, block_run: u32) {
-    let mut current_block = 0;
-    while current_block <= block_run {
-        current_block = api.rpc().block(None).await.unwrap().unwrap().block.header.number;
-    }
-}
-
 async fn create_clients(port: i64) -> Rocket<Ignite> {
     let config = rocket::Config::figment().merge(("port", port));
 

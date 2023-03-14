@@ -41,6 +41,8 @@ async fn test_new_party() {
         block_number,
     };
 
+	run_to_block(&api, block_number + 1).await;
+
     let response = client
         .post("/signer/new_party")
         .body(onchain_signature_request.clone().encode())
@@ -91,6 +93,8 @@ async fn test_new_party_fail_unverified() {
         block_number,
     };
 
+	run_to_block(&api, block_number + 1).await;
+
     let response = client
         .post("/signer/new_party")
         .body(onchain_signature_request.clone().encode())
@@ -133,6 +137,13 @@ async fn new_party_fail_wrong_data() {
 
     assert_eq!(response.status(), Status::new(500));
     clean_tests();
+}
+
+pub async fn run_to_block(api: &OnlineClient<EntropyConfig>, block_run: u32) {
+    let mut current_block = 0;
+    while current_block < block_run {
+        current_block = api.rpc().block(None).await.unwrap().unwrap().block.header.number;
+    }
 }
 
 pub async fn put_tx_request_on_chain(
