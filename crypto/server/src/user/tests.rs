@@ -103,6 +103,7 @@ async fn test_unsigned_tx_endpoint() {
         .collect::<Vec<_>>();
 
     let mock_client = reqwest::Client::new();
+    // put proper data in kvdb
     join_all(place_sig_messages.iter().map(|place_sig_messages| async {
         let res = mock_client
             .post("http://127.0.0.1:3001/unsafe/put")

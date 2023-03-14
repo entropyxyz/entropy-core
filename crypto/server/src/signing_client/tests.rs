@@ -63,7 +63,6 @@ async fn test_new_party() {
     clean_tests();
 }
 
-
 #[rocket::async_test]
 #[serial]
 async fn test_new_party_fail_unverified() {
@@ -75,7 +74,8 @@ async fn test_new_party_fail_unverified() {
     // transaction_request comes from ethers-js serializeTransaction()
     // See frontend threshold-server tests for more context
     let transaction_request = r#"0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080"#;
-	let not_matching_sig_request = "0xe61e139a15f27f3d5ba043756aaca2b6fe9597a95973befa36dbe6095ee16da2";
+    let not_matching_sig_request =
+        "0xe61e139a15f27f3d5ba043756aaca2b6fe9597a95973befa36dbe6095ee16da2";
     let parsed_tx =
         <Evm as Architecture>::TransactionRequest::parse(transaction_request.to_string()).unwrap();
     let sig_hash = parsed_tx.sighash();
@@ -99,9 +99,10 @@ async fn test_new_party_fail_unverified() {
     assert_eq!(response.status(), Status::InternalServerError);
     assert_eq!(response.into_string().await.unwrap(), "Data is not verifiable");
 
-	onchain_signature_request.block_number = 100;
+    // change data to bad block number
+    onchain_signature_request.block_number = 100;
 
-	let response_2 = client
+    let response_2 = client
         .post("/signer/new_party")
         .body(onchain_signature_request.clone().encode())
         .dispatch()

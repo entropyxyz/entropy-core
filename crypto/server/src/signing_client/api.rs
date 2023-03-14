@@ -1,4 +1,4 @@
-use std::{str};
+use std::str;
 
 use blake2::{Blake2s256, Digest};
 use entropy_shared::OCWMessage;
@@ -34,7 +34,7 @@ pub async fn new_party(
     // TODO encryption and authentication.
     let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
     let api = get_api(&config.endpoint).await.unwrap();
-    let _ = validate_new_party(&data, &api).await?;
+    validate_new_party(&data, &api).await?;
 
     for message in data.messages {
         let sighash = hex::encode(&message.sig_request.sig_hash);
@@ -98,27 +98,31 @@ pub async fn subscribe_to_me(
     Ok(Listener::create_event_stream(rx, end))
 }
 
+/// Validates new party endpoint
+/// Checks the chain for validity of data and block number of data matches current block
 pub async fn validate_new_party(
     chain_data: &OCWMessage,
     api: &OnlineClient<EntropyConfig>,
 ) -> Result<(), SigningErr> {
-    // TODO check block number with chain to make sure it isn't too far back
     let latest_block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number;
-    // dbg!(latest_block_number.clone(), chain_data.clone().block_number);
-	if latest_block_number != chain_data.block_number {
-		return Err(SigningErr::StaleData);
-	}
+    if latest_block_number != chain_data.block_number {
+        return Err(SigningErr::StaleData);
+    }
+
     let mut hasher_chain_data = Blake2s256::new();
     hasher_chain_data.update(chain_data.messages.encode());
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
+
     let verifying_data_query = entropy::storage().relayer().messages(chain_data.block_number);
     let verifying_data = api.storage().fetch(&verifying_data_query, None).await.unwrap().unwrap();
     hasher_verifying_data.update(verifying_data.encode());
+
     let verifying_data_hash = hasher_verifying_data.finalize();
-	if verifying_data_hash != chain_data_hash {
-		return Err(SigningErr::InvalidData);
-	}
+
+    if verifying_data_hash != chain_data_hash {
+        return Err(SigningErr::InvalidData);
+    }
 
     Ok(())
 }
