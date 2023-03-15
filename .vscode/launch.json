@@ -86,16 +86,42 @@
 					"--no-run",
 					"--bin=server",
 					"--package=server",
-					"--features=unsafe",
-					"--",
-					"--nocapture"
+					"--features=unsafe"
 				],
 				"filter": {
 					"name": "server",
 					"kind": "bin"
 				}
 			},
-			"args": [],
+			"args": [
+				"--test",
+				"user::tests::test_unsigned_tx_endpoint",
+				"--nocapture"
+			],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug 'test_unsigned_tx_endpoint'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=server",
+					"--package=server",
+					"--features=unsafe"
+				],
+				"filter": {
+					"name": "server",
+					"kind": "bin"
+				}
+			},
+			"args": [
+				"--test",
+				"user::tests::test_unsigned_tx_endpoint",
+				"--nocapture"
+			],
 			"cwd": "${workspaceFolder}"
 		},
 		{

@@ -6,9 +6,12 @@ use subxt::OnlineClient;
 pub mod entropy {
     #[subxt::subxt(substitute_type = "entropy_shared::constraints::Constraints")]
     use ::entropy_shared::Constraints;
-    // use ::entropy_shared::Acl;
-    // use entropy_shared::H160;
-    // use entropy_shared::H256;
+    #[subxt::subxt(substitute_type = "entropy_shared::constraints::acl::Acl")]
+    use ::entropy_shared::Acl;
+    #[subxt::subxt(substitute_type = "sp_core::H160")]
+    use ::primitive_types::H160;
+    #[subxt::subxt(substitute_type = "sp_core::crypto::AccountId32")]
+    use ::sp_core::crypto::AccountId32;
 }
 
 /// Creates an api instance to talk to chain

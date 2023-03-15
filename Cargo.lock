@@ -1972,6 +1972,7 @@ dependencies = [
  "entropy-shared",
  "ethers-core",
  "hex",
+ "primitive-types 0.11.1",
  "rlp",
  "serde",
  "serde_json",
@@ -2077,9 +2078,9 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
+ "primitive-types 0.11.1",
  "scale-info",
  "serde",
- "serde_derive",
  "sp-core",
  "sp-std",
 ]
@@ -6658,6 +6659,7 @@ dependencies = [
  "impl-codec",
  "impl-rlp",
  "impl-serde 0.3.2",
+ "scale-info",
  "uint",
 ]
 

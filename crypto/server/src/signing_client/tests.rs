@@ -11,7 +11,6 @@ use crate::{helpers::tests::setup_client, r#unsafe::api::UnsafeQuery};
 #[rocket::async_test]
 #[serial]
 async fn test_new_party() {
-    if cfg!(feature = "unsafe") {
         clean_tests();
         let client = setup_client().await;
 
@@ -50,7 +49,6 @@ async fn test_new_party() {
         );
 
         clean_tests();
-    }
 }
 
 #[rocket::async_test]

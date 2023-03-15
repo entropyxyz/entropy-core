@@ -1,5 +1,5 @@
 use bip39::{Language, Mnemonic};
-use entropy_constraints::{Architecture, Evm, Parse, BasicTransaction, Evaluate};
+use entropy_constraints::{Architecture, BasicTransaction, Evm, Parse, Evaluate, GetSender, GetReceiver};
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints},
     Message, SIGNING_PARTY_SIZE,
@@ -72,7 +72,7 @@ pub async fn store_tx(
                 generic_tx_req.transaction_request.clone(),
             )?;
             let sighash = hex::encode(parsed_tx.sighash().as_bytes());
-            let api = get_api(&config.endpoint);
+            let substrate_api = get_api(&config.endpoint);
 
             // check if user submitted tx to chain already
             match kv.kv().get(&sighash).await {
@@ -83,18 +83,30 @@ pub async fn store_tx(
                     let sig_req_account = <EntropyConfig as Config>::AccountId::from(
                         <[u8; 32]>::try_from(message.account.clone()).unwrap(),
                     );
-                    let api = api.await;
-                    let constraints = get_constraints(&api?, &sig_req_account).await?.ok_or(
-                        UserErr::Parse("Constraints are unset. Please set them via the `constraints.update_constraints()` extrinsic."),
-                    )?;
+                    let substrate_api = substrate_api.await;
+                    let evm_acl = match get_constraints(&substrate_api?, &sig_req_account).await {
+                        Ok(constraints) => constraints.evm_acl.unwrap(),
+                        Err(_e) => {
+                            return Err(UserErr::Parse(
+                                "Constraints are unset. Please set them via the `constraints.update_constraints()` extrinsic.",
+                            ));
+                        },
+                    };
 
-                    let parsed_constraints = Constraints::try_from(constraints).unwrap();
-                    println!("constraints: {:?}", parsed_constraints);
+                    println!("constraints: {:?}", evm_acl);
+
                     // check the parsed transaction against the constraints
-                    
+                    // let basic_transaction = BasicTransaction::<Evm> {
+                    //     from: parsed_tx.sender().into(),
+                    //     to: parsed_tx.receiver().into(),
+                    // };
 
+                    evm_acl.eval(parsed_tx)?;
+                    
                     // kickoff signing process
                     do_signing(message, state, kv, signatures).await?;
+
+                    kv.kv().delete(&sighash).await?;
                 },
                 // If the key is already reserved, then we can assume the transaction is already
                 // stored.

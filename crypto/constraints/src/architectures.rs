@@ -10,6 +10,8 @@ use crate::Error;
 pub trait Architecture: Serialize + for<'de> Deserialize<'de> {
     /// Account type for that chain(SS58, H160, etc)
     type Address: Eq + Serialize + for<'de> Deserialize<'de>;
+    /// Account type as it is stored in the database
+    type AddressRaw: Eq + Serialize + for<'de> Deserialize<'de>;
     /// Transaction request type for unsigned transactions
     type TransactionRequest: GetSender<Self>
         + GetReceiver<Self>
@@ -42,8 +44,9 @@ pub trait GetArch {
 pub mod evm {
     use ethers_core::types::NameOrAddress;
     pub use ethers_core::types::{
-        transaction::request::TransactionRequest as EvmTransactionRequest, Address as EvmAddress,
+        transaction::request::TransactionRequest as EvmTransactionRequest,
     };
+    use primitive_types::H160;
     use rlp::Rlp;
 
     use super::*;
@@ -52,12 +55,13 @@ pub mod evm {
     pub struct Evm;
 
     impl Architecture for Evm {
-        type Address = EvmAddress;
+        type Address = H160;
+        type AddressRaw = [u8; 20];
         type TransactionRequest = EvmTransactionRequest;
     }
 
     impl GetSender<Evm> for <Evm as Architecture>::TransactionRequest {
-        fn sender(&self) -> Option<<Evm as Architecture>::Address> { self.from }
+        fn sender(&self) -> Option<<Evm as Architecture>::Address> { self.from.into() }
     }
 
     impl GetReceiver<Evm> for <Evm as Architecture>::TransactionRequest {
@@ -72,6 +76,14 @@ pub mod evm {
                 None => None,
             }
         }
+    }
+
+    pub trait FromU8Array {
+        fn from_u8_array(bytes: [u8; 20]) -> Self;
+    }
+
+    impl FromU8Array for H160 {
+        fn from_u8_array(bytes: [u8; 20]) -> Self { H160::from_slice(&bytes) }
     }
 
     impl GetArch for <Evm as Architecture>::TransactionRequest {

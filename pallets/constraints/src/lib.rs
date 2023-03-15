@@ -26,7 +26,7 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 
-    pub use entropy_shared::{Acl, AclKind, Arch, Constraints, H160, H256};
+    pub use entropy_shared::{Acl, AclKind, Arch, Constraints};
     use frame_support::pallet_prelude::{ResultQuery, *};
     use frame_system::pallet_prelude::*;
     use sp_runtime::sp_std::str;
@@ -81,7 +81,7 @@ pub mod pallet {
         _,
         Blake2_128Concat,
         T::AccountId,
-        Acl<H160>,
+        Acl<[u8; 20]>,
         ResultQuery<Error<T>::ArchitectureDisabled>,
     >;
 
@@ -92,7 +92,7 @@ pub mod pallet {
         _,
         Blake2_128Concat,
         T::AccountId,
-        Acl<H256>,
+        Acl<[u8; 32]>,
         ResultQuery<Error<T>::ArchitectureDisabled>,
     >;
 

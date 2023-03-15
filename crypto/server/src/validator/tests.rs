@@ -20,7 +20,7 @@ use crate::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::SignatureState,
-        tests::setup_client,
+        tests::{setup_client, create_clients},
         substrate::get_subgroup,
     },
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
@@ -271,42 +271,3 @@ async fn test_tell_chain_syncing_is_done() {
     tell_chain_syncing_is_done(&api, &signer_alice).await.unwrap();
 }
 
-async fn create_clients(
-    port: i64,
-    key_number: String,
-    values: Vec<Vec<u8>>,
-    keys: Vec<String>,
-    is_alice: bool,
-    is_bob: bool,
-) -> (Rocket<Ignite>, KvManager) {
-    let config = rocket::Config::figment().merge(("port", port));
-
-    let signer_state = SignerState::default();
-    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let signature_state = SignatureState::new();
-
-    let path = format!("test_db_{key_number}");
-    let _ = std::fs::remove_dir_all(path.clone());
-
-    let kv_store =
-        KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
-    let _ = setup_mnemonic(&kv_store, is_alice, is_bob).await;
-
-    for (i, value) in values.into_iter().enumerate() {
-        let reservation = kv_store.clone().kv().reserve_key(keys[i].to_string()).await.unwrap();
-        let _ = kv_store.clone().kv().put(reservation, value).await;
-    }
-
-    let result = rocket::custom(config)
-        .mount("/validator", routes![sync_kvdb])
-        .mount("/user", routes![new_user, store_tx])
-        .manage(signer_state)
-        .manage(configuration)
-        .manage(kv_store.clone())
-        .manage(signature_state)
-        .ignite()
-        .await
-        .unwrap();
-
-    (result, kv_store)
-}

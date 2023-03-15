@@ -1,10 +1,11 @@
-pub use acl::*;
 use codec::{Decode, Encode};
 use frame_support::pallet_prelude::*;
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
-pub use sp_core::{H160, H256};
 use sp_std::{fmt::Debug, vec::Vec};
+
+pub use acl::*;
+// pub use primitive_types::{H160, H256};
 
 /// Supported architectures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, Serialize, Deserialize, TypeInfo)]
@@ -17,8 +18,8 @@ pub enum Arch {
 /// Represents a user's constraints
 #[derive(Default, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub struct Constraints {
-    pub evm_acl: Option<Acl<H160>>,
-    pub btc_acl: Option<Acl<H256>>,
+    pub evm_acl: Option<Acl<[u8; 20]>>,
+    pub btc_acl: Option<Acl<[u8; 32]>>,
 }
 
 /// This includes common types and functions related to using ACL functionality.
