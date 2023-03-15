@@ -1,17 +1,21 @@
 use std::str;
 
+use blake2::{Blake2s256, Digest};
 use entropy_shared::OCWMessage;
 use kvdb::kv_manager::KvManager;
-use parity_scale_codec::Decode;
+use parity_scale_codec::{Decode, Encode};
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
+use subxt::OnlineClient;
 use tracing::instrument;
 
 use crate::{
+    chain_api::{entropy, get_api, EntropyConfig},
     helpers::signing::SignatureState,
     signing_client::{
         subscribe::{Listener, Receiver},
         SignerState, SigningErr, SubscribeErr, SubscribeMessage,
     },
+    Configuration,
 };
 
 const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
@@ -21,25 +25,23 @@ const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 /// This endpoint is called by the blockchain.
 #[instrument(skip(kv))]
 #[post("/new_party", data = "<encoded_data>")]
-pub async fn new_party(encoded_data: Vec<u8>, kv: &State<KvManager>) -> Result<Status, SigningErr> {
-    // TODO encryption and authentication.
+pub async fn new_party(
+    encoded_data: Vec<u8>,
+    kv: &State<KvManager>,
+    config: &State<Configuration>,
+) -> Result<Status, SigningErr> {
     let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
-
-    for message in data {
+    if data.messages.is_empty() {
+        return Ok(Status::NoContent);
+    }
+    let api = get_api(&config.endpoint).await?;
+    validate_new_party(&data, &api).await?;
+    for message in data.messages {
         let sighash = hex::encode(&message.sig_request.sig_hash);
 
-        match kv.kv().reserve_key(sighash).await {
-            Ok(reservation) => {
-                let value = serde_json::to_string(&message).unwrap();
-
-                kv.kv().put(reservation, value.into()).await?;
-            },
-
-            Err(_) => {
-                println!("OCW submitted a sighash that was already reserved. Weird. Skipping...");
-                return Ok(Status::Ok);
-            },
-        }
+        let reservation = kv.kv().reserve_key(sighash).await?;
+        let value = serde_json::to_string(&message).unwrap();
+        kv.kv().put(reservation, value.into()).await?;
     }
 
     Ok(Status::Ok)
@@ -85,6 +87,40 @@ pub async fn subscribe_to_me(
     };
 
     Ok(Listener::create_event_stream(rx, end))
+}
+
+/// Validates new party endpoint
+/// Checks the chain for validity of data and block number of data matches current block
+pub async fn validate_new_party(
+    chain_data: &OCWMessage,
+    api: &OnlineClient<EntropyConfig>,
+) -> Result<(), SigningErr> {
+    let latest_block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number;
+    // we subtract 1 as the message info is coming from the previous block
+    if latest_block_number.saturating_sub(1) != chain_data.block_number {
+        return Err(SigningErr::StaleData);
+    }
+
+    let mut hasher_chain_data = Blake2s256::new();
+    hasher_chain_data.update(chain_data.messages.encode());
+    let chain_data_hash = hasher_chain_data.finalize();
+    let mut hasher_verifying_data = Blake2s256::new();
+
+    let verifying_data_query = entropy::storage().relayer().messages(chain_data.block_number);
+    let verifying_data = api
+        .storage()
+        .fetch(&verifying_data_query, None)
+        .await?
+        .ok_or_else(|| SigningErr::OptionUnwrapError("Failed to get verifying data"))?;
+
+    hasher_verifying_data.update(verifying_data.encode());
+
+    let verifying_data_hash = hasher_verifying_data.finalize();
+
+    if verifying_data_hash != chain_data_hash {
+        return Err(SigningErr::InvalidData);
+    }
+    Ok(())
 }
 
 use rocket::response::status;

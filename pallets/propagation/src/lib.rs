@@ -69,14 +69,20 @@ pub mod pallet {
                 str::from_utf8(&from_local).unwrap_or("http://localhost:3001/signer/new_party");
 
             log::warn!("propagation::post::messages: {:?}", &messages);
+            let converted_block_number: u32 =
+                T::BlockNumber::try_into(block_number).unwrap_or_default();
             // the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
-            let req_body = messages.encode();
+            let req_body = entropy_shared::OCWMessage {
+                // subtract 1 from blocknumber since the request is from the last block
+                block_number: converted_block_number.saturating_sub(1),
+                messages: messages.clone(),
+            };
 
-            log::warn!("propagation::post::req_body: {:?}", &[req_body.clone()]);
+            log::warn!("propagation::post::req_body: {:?}", &[req_body.encode()]);
             // We construct the request
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
-            let pending = http::Request::post(url, vec![req_body]) // scheint zu klappen
+            let pending = http::Request::post(url, vec![req_body.encode()]) // scheint zu klappen
                 .deadline(deadline)
                 .send()
                 .map_err(|_| http::Error::IoError)?;
