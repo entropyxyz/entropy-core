@@ -123,8 +123,8 @@ fn get_test_keyshare_for_validator(index: i32) -> Vec<u8> {
     fs::read(path).unwrap()
 }
 
-/// Registers a new user on-chain and sends test threshold keys to to the server.
-/// Should leave the user in a state of "Registered"
+/// Registers a new user on-chain, sends test threshold keys to to the server, and sets their initial constraints.
+/// This leaves the user in a state of "Registered", ready to submit transaction requests.
 pub async fn register_user(
     entropy_api: &OnlineClient<EntropyConfig>,
     threshold_servers: &Vec<String>,
@@ -132,93 +132,62 @@ pub async fn register_user(
     constraint_modification_account: &Sr25519Keyring,
     initial_constraints: Constraints,
 ) {
+    // Get keys for encrypting mock client-side messages to the server
     let validator_1_stash_id: AccountId32 =
         h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into(); // alice stash
     let validator_2_stash_id: AccountId32 =
         h!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into(); // bob stash
 
-    let query_alice_validator_keys =
+    let query_validator1_keys =
         entropy::storage().staking_extension().threshold_servers(&validator_1_stash_id);
-    let query_bob_validator_keys =
+    let query_validator2_keys =
         entropy::storage().staking_extension().threshold_servers(&validator_2_stash_id);
+    let validator1_keys =
+        entropy_api.storage().fetch(&query_validator1_keys, None).await.unwrap().unwrap();
+    let validator2_keys =
+        entropy_api.storage().fetch(&query_validator2_keys, None).await.unwrap().unwrap();
 
-    let alice_validator_keys =
-        entropy_api.storage().fetch(&query_alice_validator_keys, None).await.unwrap().unwrap();
-    let bob_validator_keys =
-        entropy_api.storage().fetch(&query_bob_validator_keys, None).await.unwrap().unwrap();
+    let validator1_server_public_key = PublicKey::from(validator1_keys.x25519_public_key);
+    let validator2_server_public_key = PublicKey::from(validator2_keys.x25519_public_key);
 
-    // assert!(alice_validator_keys.is_some());
-    // assert!(bob_validator_keys.is_some());
-
-    // let alice_validator_keys = alice_validator_keys.unwrap();
-    let alice_server_public_key = PublicKey::from(alice_validator_keys.x25519_public_key);
-    let bob_server_public_key = PublicKey::from(bob_validator_keys.x25519_public_key);
-    // store empty value in server; just register
     let validator_1_threshold_keyshare: Vec<u8> = get_test_keyshare_for_validator(0);
     let validator_2_threshold_keyshare: Vec<u8> = get_test_keyshare_for_validator(1);
 
     let register_body_alice_validator = SignedMessage::new(
         &sig_req_keyring.pair(),
         &Bytes(validator_1_threshold_keyshare),
-        &alice_server_public_key,
+        &validator1_server_public_key,
     )
     .unwrap()
     .to_json();
     let register_body_bob_validator = SignedMessage::new(
         &sig_req_keyring.pair(),
         &Bytes(validator_2_threshold_keyshare),
-        &bob_server_public_key,
+        &validator2_server_public_key,
     )
     .unwrap()
     .to_json();
 
-
-
+    // call register() on-chain
     make_register(&entropy_api, &sig_req_keyring, &constraint_modification_account.to_account_id())
         .await;
 
+    // send threshold keys to server
     let bodies = vec![register_body_alice_validator, register_body_bob_validator];
-
-    // let alice_response = threshold_servers[0].post("/user/new")
-    //     .header(ContentType::JSON)
-    //     .body(bodies.get(0).unwrap())
-    //     .dispatch()
-    //     .await;
-
-    let responses = join_all(threshold_servers.iter().zip(bodies).map(|(ip_port, body)| {
+    let new_user_server_res = join_all(threshold_servers.iter().zip(bodies).map(|(ip_port, body)| {
         let client = reqwest::Client::new();
         let url = format!("http://{}/user/new", ip_port.clone());
         client.post(url).header("Content-Type", "application/json").body(body).send()
     }))
     .await;
-
-    // assert_eq!(alice_response.status(), Status::Ok);
-    responses.into_iter().for_each(|response| {
+    new_user_server_res.into_iter().for_each(|response| {
         assert_eq!(response.unwrap().status(), 200);
     });
 
-    // let response_alice_tss = client
-    //     .post("/user/new")
-    //     .header(ContentType::JSON)
-    //     .body(register_body_alice_validator.clone())
-    //     .dispatch()
-    //     .await;
-    // assert_eq!(response_alice_tss.status(), 200);
-    // assert_eq!(response_alice_tss.into_string().await, None);
-
-    // let response_bob_tss = client
-    //     .post("http://127.0.0.1:3002/user/new")
-    //     // .header(ContentType::JSON)
-    //     .body(register_body_bob_validator.clone())
-    //     .send()
-    //     .await.unwrap();
-    // assert_eq!(response_bob_tss.status(), 200);
-    // assert_eq!(response_bob_tss.into_string().await, None);
-
-    // make sure there is now one confirmation
+    // confirm that user is Registered
     check_registered_status(&entropy_api, &sig_req_keyring).await;
 
-    // update their constraints
+    // update/set their constraints
     let update_constraints_tx = entropy::tx()
         .constraints()
         .update_constraints(sig_req_keyring.to_account_id(), initial_constraints);

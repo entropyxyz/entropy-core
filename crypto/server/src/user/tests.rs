@@ -83,24 +83,24 @@ async fn test_unsigned_tx_endpoint() {
         Constraints { evm_acl: Some(evm_acl), ..Default::default() }
     };
 
+    // register the user on-chain, their test threhsold keyshares with the threshold server
     register_user(&entropy_api, &validator_ips, &test_user, &test_user_constraint, initial_constraints([1u8; 20])).await;
     register_user(&entropy_api, &validator_ips, &test_user2, &test_user2_constraint, initial_constraints([2u8; 20])).await;
 
-    // generate the mock ocw messages for simulating prep_transaction()
+    // generate the mock ocw messages for simulating prep_transaction() call
     let whitelisted_transaction_requests = vec![
         // test_user working tx
         TransactionRequest::new().to(Address::from([1u8; 20])).value(1),
         // test_user2 working tx
         TransactionRequest::new().to(Address::from([2u8; 20])).value(5),
     ];
-
     let non_whitelisted_transaction_requests = vec![
         // test_user tx should fail, non-whitelisted address
         TransactionRequest::new().to(Address::from([3u8; 20])).value(10),
         // test_user2 tx should fail non-whitelisted address
         TransactionRequest::new().to(Address::from([4u8; 20])).value(15),
     ];
-
+    let transaction_requests = vec![whitelisted_transaction_requests.clone(), non_whitelisted_transaction_requests.clone()].concat();
 
     let keyrings = vec![test_user.clone(), test_user2.clone(), test_user.clone(), test_user2.clone()];
     let ocw_to_message_req = |(tx_req, keyring): (TransactionRequest, Sr25519Keyring)| -> Message {
@@ -113,7 +113,7 @@ async fn test_unsigned_tx_endpoint() {
                 .collect::<Vec<Vec<u8>>>(),
         }
     };
-    let raw_ocw_messages = vec![whitelisted_transaction_requests.clone(), non_whitelisted_transaction_requests.clone()].concat()
+    let raw_ocw_messages = transaction_requests.clone()
         .into_iter()
         .zip(keyrings.clone())
         .map(ocw_to_message_req)
@@ -134,7 +134,7 @@ async fn test_unsigned_tx_endpoint() {
     .await;
 
     // construct json bodies for transaction requests
-    let tx_req_bodies = vec![whitelisted_transaction_requests.clone(), non_whitelisted_transaction_requests.clone()].concat()
+    let tx_req_bodies = transaction_requests
         .iter()
         .map(|tx_req| {
             serde_json::json!({
@@ -161,19 +161,19 @@ async fn test_unsigned_tx_endpoint() {
             .await
         };
 
-    // should pass
+    // test_user and test_user2 whitelisted transaction requests should succeed
     let test_user_res = submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[0].clone()).await;
     test_user_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
     let test_user2_res = submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[1].clone()).await;
     test_user2_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
 
-    // should fail because of failed constraints
+    // the other txs should fail because of failed constraints
     let test_user_failed_constraints_res = submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[2].clone()).await;
     test_user_failed_constraints_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 500));
     let test_user2_failed_constraints_res = submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[3].clone()).await;
     test_user2_failed_constraints_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 500));
 
-    // poll a validator and validate the threshold signatures
+    // poll a validator server and validate the threshold signatures
     let get_sig_messages = whitelisted_transaction_requests.clone().into_iter().zip(keyrings)
         .map(ocw_to_message_req)
         .collect::<Vec<_>>()
@@ -192,7 +192,6 @@ async fn test_unsigned_tx_endpoint() {
     }))
     .await;
 
-    // if unsafe, then also validate signature deletion
     // delete all signatures from the servers
     join_all(validator_ips.iter().map(|validator_ip| async {
         let client = reqwest::Client::new();

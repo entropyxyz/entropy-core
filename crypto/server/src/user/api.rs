@@ -99,23 +99,15 @@ pub async fn store_tx(
                         },
                     };
 
-                    println!("constraints: {:?}", evm_acl);
-
-                    // check the parsed transaction against the constraints
-                    // let basic_transaction = BasicTransaction::<Evm> {
-                    //     from: parsed_tx.sender().into(),
-                    //     to: parsed_tx.receiver().into(),
-                    // };
-
                     match evm_acl.eval(parsed_tx)? {
                         true => {
                             // kickoff signing process
-                            println!("Constraints satisfied.");
+                            println!("Constraints satisfied for {:?}", message.clone());
                             do_signing(message, state, kv, signatures).await?;
                             kv.kv().delete(&sighash).await?;
                         },
                         false => {
-                            println!("Constraints not satisfied.");
+                            println!("Constraints not satisfied for {:?}", message);
                             return Err(ConstraintsError::EvaluationError(
                                 format!("Constraints not satisfied: {:?}", evm_acl)
                             ).into());
@@ -126,7 +118,7 @@ pub async fn store_tx(
                 // If the key is already reserved, then we can assume the transaction is already
                 // stored.
                 Err(_) => {
-                    println!("client error: submit to chain first");
+                    warn!("client error: submit to chain first");
                     // 424
                     return Ok(Status::FailedDependency);
                 },
