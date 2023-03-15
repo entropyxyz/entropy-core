@@ -2,7 +2,7 @@ use std::{env, fs, path::PathBuf, sync::Arc};
 
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::{Message, OCWMessage, SigRequest, Constraints, Acl};
+use entropy_shared::{Acl, Constraints, Message, OCWMessage, SigRequest};
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future};
 use hex_literal::hex as h;
@@ -84,8 +84,22 @@ async fn test_unsigned_tx_endpoint() {
     };
 
     // register the user on-chain, their test threhsold keyshares with the threshold server
-    register_user(&entropy_api, &validator_ips, &test_user, &test_user_constraint, initial_constraints([1u8; 20])).await;
-    register_user(&entropy_api, &validator_ips, &test_user2, &test_user2_constraint, initial_constraints([2u8; 20])).await;
+    register_user(
+        &entropy_api,
+        &validator_ips,
+        &test_user,
+        &test_user_constraint,
+        initial_constraints([1u8; 20]),
+    )
+    .await;
+    register_user(
+        &entropy_api,
+        &validator_ips,
+        &test_user2,
+        &test_user2_constraint,
+        initial_constraints([2u8; 20]),
+    )
+    .await;
 
     // generate the mock ocw messages for simulating prep_transaction() call
     let whitelisted_transaction_requests = vec![
@@ -100,9 +114,14 @@ async fn test_unsigned_tx_endpoint() {
         // test_user2 tx should fail non-whitelisted address
         TransactionRequest::new().to(Address::from([4u8; 20])).value(15),
     ];
-    let transaction_requests = vec![whitelisted_transaction_requests.clone(), non_whitelisted_transaction_requests.clone()].concat();
+    let transaction_requests = vec![
+        whitelisted_transaction_requests.clone(),
+        non_whitelisted_transaction_requests.clone(),
+    ]
+    .concat();
 
-    let keyrings = vec![test_user.clone(), test_user2.clone(), test_user.clone(), test_user2.clone()];
+    let keyrings =
+        vec![test_user.clone(), test_user2.clone(), test_user.clone(), test_user2.clone()];
     let ocw_to_message_req = |(tx_req, keyring): (TransactionRequest, Sr25519Keyring)| -> Message {
         Message {
             sig_request: SigRequest { sig_hash: tx_req.sighash().as_bytes().to_vec() },
@@ -113,7 +132,8 @@ async fn test_unsigned_tx_endpoint() {
                 .collect::<Vec<Vec<u8>>>(),
         }
     };
-    let raw_ocw_messages = transaction_requests.clone()
+    let raw_ocw_messages = transaction_requests
+        .clone()
         .into_iter()
         .zip(keyrings.clone())
         .map(ocw_to_message_req)
@@ -162,19 +182,30 @@ async fn test_unsigned_tx_endpoint() {
         };
 
     // test_user and test_user2 whitelisted transaction requests should succeed
-    let test_user_res = submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[0].clone()).await;
+    let test_user_res =
+        submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[0].clone()).await;
     test_user_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
-    let test_user2_res = submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[1].clone()).await;
+    let test_user2_res =
+        submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[1].clone()).await;
     test_user2_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
 
     // the other txs should fail because of failed constraints
-    let test_user_failed_constraints_res = submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[2].clone()).await;
-    test_user_failed_constraints_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 500));
-    let test_user2_failed_constraints_res = submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[3].clone()).await;
-    test_user2_failed_constraints_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 500));
+    let test_user_failed_constraints_res =
+        submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[2].clone()).await;
+    test_user_failed_constraints_res
+        .into_iter()
+        .for_each(|res| assert_eq!(res.unwrap().status(), 500));
+    let test_user2_failed_constraints_res =
+        submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[3].clone()).await;
+    test_user2_failed_constraints_res
+        .into_iter()
+        .for_each(|res| assert_eq!(res.unwrap().status(), 500));
 
     // poll a validator server and validate the threshold signatures
-    let get_sig_messages = whitelisted_transaction_requests.clone().into_iter().zip(keyrings)
+    let get_sig_messages = whitelisted_transaction_requests
+        .clone()
+        .into_iter()
+        .zip(keyrings)
         .map(ocw_to_message_req)
         .collect::<Vec<_>>()
         .into_iter()

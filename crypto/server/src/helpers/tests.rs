@@ -123,8 +123,9 @@ fn get_test_keyshare_for_validator(index: i32) -> Vec<u8> {
     fs::read(path).unwrap()
 }
 
-/// Registers a new user on-chain, sends test threshold keys to to the server, and sets their initial constraints.
-/// This leaves the user in a state of "Registered", ready to submit transaction requests.
+/// Registers a new user on-chain, sends test threshold keys to to the server, and sets their
+/// initial constraints. This leaves the user in a state of "Registered", ready to submit
+/// transaction requests.
 pub async fn register_user(
     entropy_api: &OnlineClient<EntropyConfig>,
     threshold_servers: &Vec<String>,
@@ -174,12 +175,13 @@ pub async fn register_user(
 
     // send threshold keys to server
     let bodies = vec![register_body_alice_validator, register_body_bob_validator];
-    let new_user_server_res = join_all(threshold_servers.iter().zip(bodies).map(|(ip_port, body)| {
-        let client = reqwest::Client::new();
-        let url = format!("http://{}/user/new", ip_port.clone());
-        client.post(url).header("Content-Type", "application/json").body(body).send()
-    }))
-    .await;
+    let new_user_server_res =
+        join_all(threshold_servers.iter().zip(bodies).map(|(ip_port, body)| {
+            let client = reqwest::Client::new();
+            let url = format!("http://{}/user/new", ip_port.clone());
+            client.post(url).header("Content-Type", "application/json").body(body).send()
+        }))
+        .await;
     new_user_server_res.into_iter().for_each(|response| {
         assert_eq!(response.unwrap().status(), 200);
     });

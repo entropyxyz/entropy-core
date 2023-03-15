@@ -1,6 +1,7 @@
 use bip39::{Language, Mnemonic};
 use entropy_constraints::{
-    Architecture, BasicTransaction, Evaluate, Evm, GetReceiver, GetSender, Parse, Error as ConstraintsError
+    Architecture, BasicTransaction, Error as ConstraintsError, Evaluate, Evm, GetReceiver,
+    GetSender, Parse,
 };
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints},
@@ -108,12 +109,13 @@ pub async fn store_tx(
                         },
                         false => {
                             println!("Constraints not satisfied for {:?}", message);
-                            return Err(ConstraintsError::EvaluationError(
-                                format!("Constraints not satisfied: {:?}", evm_acl)
-                            ).into());
+                            return Err(ConstraintsError::EvaluationError(format!(
+                                "Constraints not satisfied: {:?}",
+                                evm_acl
+                            ))
+                            .into());
                         },
                     };
-
                 },
                 // If the key is already reserved, then we can assume the transaction is already
                 // stored.
