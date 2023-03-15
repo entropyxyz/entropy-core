@@ -1,5 +1,7 @@
 use bip39::{Language, Mnemonic};
-use entropy_constraints::{Architecture, BasicTransaction, Evm, Parse, Evaluate, GetSender, GetReceiver};
+use entropy_constraints::{
+    Architecture, BasicTransaction, Evaluate, Evm, GetReceiver, GetSender, Parse,
+};
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints},
     Message, SIGNING_PARTY_SIZE,
@@ -31,9 +33,12 @@ use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
-    chain_api::{entropy, get_api, EntropyConfig,
-        entropy::constraints::calls::UpdateConstraints,
-        entropy::runtime_types::entropy_shared::constraints,
+    chain_api::{
+        entropy,
+        entropy::{
+            constraints::calls::UpdateConstraints, runtime_types::entropy_shared::constraints,
+        },
+        get_api, EntropyConfig,
     },
     helpers::{
         signing::{do_signing, SignatureState},
@@ -88,7 +93,8 @@ pub async fn store_tx(
                         Ok(constraints) => constraints.evm_acl.unwrap(),
                         Err(_e) => {
                             return Err(UserErr::Parse(
-                                "Constraints are unset. Please set them via the `constraints.update_constraints()` extrinsic.",
+                                "Constraints are unset. Please set them via the \
+                                 `constraints.update_constraints()` extrinsic.",
                             ));
                         },
                     };
@@ -102,7 +108,7 @@ pub async fn store_tx(
                     // };
 
                     evm_acl.eval(parsed_tx)?;
-                    
+
                     // kickoff signing process
                     do_signing(message, state, kv, signatures).await?;
 

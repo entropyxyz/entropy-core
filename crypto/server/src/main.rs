@@ -41,8 +41,8 @@ use crate::{
     helpers::{
         launch::{init_tracing, load_kv_store, setup_mnemonic, Configuration, StartupArgs},
         signing::SignatureState,
-        validator::get_signer,
         substrate::get_subgroup,
+        validator::get_signer,
     },
     r#unsafe::api::{delete, get, put, remove_keys},
     validator::api::{

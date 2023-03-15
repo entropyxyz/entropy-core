@@ -91,6 +91,9 @@ fn return_error_if_constraints_arent_set() {
         ));
 
         // make sure acl updates
-        assert_eq!(ConstraintsPallet::evm_acl(SIG_REQ_ACCOUNT).unwrap(), Acl::<[u8; 20]>::default());
+        assert_eq!(
+            ConstraintsPallet::evm_acl(SIG_REQ_ACCOUNT).unwrap(),
+            Acl::<[u8; 20]>::default()
+        );
     });
 }

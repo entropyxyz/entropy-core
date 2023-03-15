@@ -1,23 +1,22 @@
-use entropy_shared::{SIGNING_PARTY_SIZE, Constraints};
+use entropy_shared::{Constraints, SIGNING_PARTY_SIZE};
+use sp_core::crypto::AccountId32;
+#[cfg(test)]
+use sp_keyring::Sr25519Keyring;
 use subxt::{
     ext::sp_core::sr25519,
+    storage::address::{StorageHasher, StorageMapKey},
     tx::PairSigner,
-    OnlineClient,
-    Config, storage::address::{StorageMapKey, StorageHasher},
+    Config, OnlineClient,
 };
-use sp_core::crypto::AccountId32;
 
 use crate::{
     chain_api::{
-        EntropyConfig,
         entropy,
         // entropy::runtime_types::entropy_shared::constraints::Constraints,
+        EntropyConfig,
     },
     user::UserErr,
 };
-
-#[cfg(test)]
-use sp_keyring::Sr25519Keyring;
 
 /// gets the subgroup of the working validator
 pub async fn get_subgroup(
@@ -54,13 +53,12 @@ pub async fn get_constraints(
     substrate_api: &OnlineClient<EntropyConfig>,
     sig_req_account: &<EntropyConfig as Config>::AccountId,
 ) -> Result<Constraints, UserErr> {
-    // ConstraintsPallet::ActiveArchitectures contains which ACL architectures have active ACLs, but I think this code is going to be scrapped
-    // as part of a new constraints system before we support 10+ architectures. If we ever need to use it, this link is a great starting point:
-    // https://github.com/paritytech/subxt/blob/master/examples/examples/storage_iterating.rs
+    // ConstraintsPallet::ActiveArchitectures contains which ACL architectures have active ACLs, but
+    // I think this code is going to be scrapped as part of a new constraints system before we
+    // support 10+ architectures. If we ever need to use it, this link is a great starting point: https://github.com/paritytech/subxt/blob/master/examples/examples/storage_iterating.rs
 
     let evm_acl_storage_address = entropy::storage().constraints().evm_acl(sig_req_account);
     let btc_acl_storage_address = entropy::storage().constraints().btc_acl(sig_req_account);
-
 
     let (evm_acl_result, btc_acl_result) = futures::join!(
         substrate_api.storage().fetch(&evm_acl_storage_address, None),
@@ -72,13 +70,11 @@ pub async fn get_constraints(
         return Err(UserErr::GenericSubstrate(evm_acl_result.unwrap_err()));
     }
 
-    Ok(Constraints {
-        evm_acl: evm_acl_result.unwrap(),
-        btc_acl: btc_acl_result.unwrap(),
-    })
+    Ok(Constraints { evm_acl: evm_acl_result.unwrap(), btc_acl: btc_acl_result.unwrap() })
 }
 
-/// Puts a user in the Registering state on-chain and waits for that transaction to be included in a block 
+/// Puts a user in the Registering state on-chain and waits for that transaction to be included in a
+/// block
 #[cfg(test)]
 pub async fn make_register(
     api: &OnlineClient<EntropyConfig>,
@@ -110,4 +106,4 @@ pub async fn make_register(
 
     let query_registering_status = api.storage().fetch(&registering_query, None).await;
     assert!(query_registering_status.unwrap().unwrap().is_registering);
-    }
+}

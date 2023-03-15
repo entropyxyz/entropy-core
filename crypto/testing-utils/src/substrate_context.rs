@@ -62,7 +62,6 @@ pub async fn testing_context() -> SubstrateTestingContext {
     SubstrateTestingContext { node_proc, api }
 }
 
-
 /// Construct a new testing context for when we only need one Substrate node.
 pub async fn test_context_stationary() -> SubstrateTestingContext {
     env_logger::try_init().ok();

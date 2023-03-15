@@ -10,12 +10,12 @@ use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvMan
 use parity_scale_codec::Encode;
 use rocket::{
     http::{ContentType, Status},
+    local::asynchronous::Client,
     tokio::{
         task::JoinSet,
         time::{sleep, Duration},
     },
-    Ignite, Rocket, Build, Error,
-    local::asynchronous::Client,
+    Build, Error, Ignite, Rocket,
 };
 use serial_test::serial;
 use sp_core::{sr25519, Bytes, Pair, H160};
@@ -36,7 +36,8 @@ use crate::{
         signing::SignatureState,
         substrate::make_register,
         tests::{
-            check_if_confirmation, make_swapping, register_user, setup_client, create_clients, spawn_testing_validators,
+            check_if_confirmation, create_clients, make_swapping, register_user, setup_client,
+            spawn_testing_validators,
         },
     },
     load_kv_store,
@@ -104,9 +105,12 @@ async fn test_unsigned_tx_endpoint() {
     join_all(validator_ips.iter().map(|validator_ip| async {
         let client = reqwest::Client::new();
         let url = format!("http://{}/signer/new_party", validator_ip.clone());
-        let res = client.post(url)
+        let res = client
+            .post(url)
             .header("Content-Type", "application/json")
-            .body(raw_ocw_messages.clone().encode()).send().await;
+            .body(raw_ocw_messages.clone().encode())
+            .send()
+            .await;
         assert_eq!(res.unwrap().status(), 200);
     }))
     .await;
@@ -135,7 +139,7 @@ async fn test_unsigned_tx_endpoint() {
                         let res = client.post(url).json(&tx_req_body).send().await;
                         assert_eq!(res.unwrap().status(), 200);
                     })
-                    .collect::<Vec<_>>()
+                    .collect::<Vec<_>>(),
             )
             .await;
         };
@@ -154,37 +158,30 @@ async fn test_unsigned_tx_endpoint() {
     join_all(get_sig_messages.iter().map(|get_sig_message| async {
         let client = reqwest::Client::new();
         let url = format!("http://{}/signer/signature", validator_ips[0].clone());
-        let mut res = client
-            .post(url)
-            .json(get_sig_message)
-            .send()
-            .await.unwrap();
+        let mut res = client.post(url).json(get_sig_message).send().await.unwrap();
         assert_eq!(res.status(), 202);
         assert_eq!(res.content_length().unwrap(), 88);
     }))
     .await;
 
     // if unsafe, then also validate signature deletion
-        // delete all signatures from the servers
+    // delete all signatures from the servers
     join_all(validator_ips.iter().map(|validator_ip| async {
-            let client = reqwest::Client::new();
-            let url = format!("http://{}/signer/drain", validator_ip.clone());
-            let res = client.get(url).send().await;
-            assert_eq!(res.unwrap().status(), 200);
+        let client = reqwest::Client::new();
+        let url = format!("http://{}/signer/drain", validator_ip.clone());
+        let res = client.get(url).send().await;
+        assert_eq!(res.unwrap().status(), 200);
     }))
     .await;
 
-        // query the signature again, should error since we just deleted them
+    // query the signature again, should error since we just deleted them
     join_all(get_sig_messages.iter().map(|get_sig_message| async {
         let client = reqwest::Client::new();
         let url = format!("http://{}/signer/signature", validator_ips[0].clone());
-        let mut res = client
-            .post(url)
-            .json(get_sig_message)
-            .send()
-            .await;
+        let mut res = client.post(url).json(get_sig_message).send().await;
         assert_eq!(res.unwrap().status(), 500);
-    })).await;
+    }))
+    .await;
 
     clean_tests();
 }

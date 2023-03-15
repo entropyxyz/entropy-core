@@ -92,7 +92,6 @@ pub struct StartupArgs {
     /// Whether or not to print stdout during testing
     #[arg(long = "nocapture")]
     pub nocapture: bool,
-
 }
 
 pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Result<(), KvError> {

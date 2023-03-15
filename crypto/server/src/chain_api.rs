@@ -4,10 +4,10 @@ use subxt::OnlineClient;
 
 #[subxt::subxt(runtime_metadata_path = "entropy_metadata.scale")]
 pub mod entropy {
-    #[subxt::subxt(substitute_type = "entropy_shared::constraints::Constraints")]
-    use ::entropy_shared::Constraints;
     #[subxt::subxt(substitute_type = "entropy_shared::constraints::acl::Acl")]
     use ::entropy_shared::Acl;
+    #[subxt::subxt(substitute_type = "entropy_shared::constraints::Constraints")]
+    use ::entropy_shared::Constraints;
     #[subxt::subxt(substitute_type = "sp_core::H160")]
     use ::primitive_types::H160;
     #[subxt::subxt(substitute_type = "sp_core::crypto::AccountId32")]

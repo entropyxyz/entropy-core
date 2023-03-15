@@ -1,32 +1,27 @@
 use std::{env, fs, path::PathBuf, sync::Arc};
+
+use entropy_shared::{Acl, Constraints};
+use futures::future::join_all;
+use hex_literal::hex as h;
+use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
 use rocket::{
-    local::asynchronous::Client,
     http::{ContentType, Status},
+    local::asynchronous::Client,
     tokio::{
         task::JoinSet,
         time::{sleep, Duration},
     },
-    Ignite, Rocket, Build, Error,
+    Build, Error, Ignite, Rocket,
 };
-use futures::future::join_all;
 use serial_test::serial;
-use sp_core::{sr25519, Pair, Bytes, H256, H160};
-use subxt::{
-    tx::PairSigner,
-    OnlineClient,
-    ext::sp_runtime::AccountId32,
-    Error as SubxtError,
-};
-use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
-use testing_utils::substrate_context::testing_context;
+use sp_core::{sr25519, Bytes, Pair, H160, H256};
 use sp_keyring::Sr25519Keyring;
+use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, Error as SubxtError, OnlineClient};
+use testing_utils::substrate_context::testing_context;
 use x25519_dalek::PublicKey;
-use hex_literal::hex as h;
 
 use crate::{
-    chain_api::{get_api, EntropyConfig,
-        entropy,
-    },
+    chain_api::{entropy, get_api, EntropyConfig},
     helpers::{
         launch::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
@@ -36,16 +31,17 @@ use crate::{
     },
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
     new_user,
-    signing_client::SignerState,
-     r#unsafe::api::{delete, get, put, remove_keys, UnsafeQuery},
+    r#unsafe::api::{delete, get, put, remove_keys, UnsafeQuery},
+    signing_client::{
+        api::{drain, get_signature, new_party, subscribe_to_me},
+        SignerState,
+    },
     store_tx,
     validator::api::{
-        check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info, sync_kvdb,
-        tell_chain_syncing_is_done, Keys,
+        check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info,
+        sync_kvdb, tell_chain_syncing_is_done, Keys,
     },
-    signing_client::api::{new_party, subscribe_to_me, get_signature, drain},
 };
-use entropy_shared::{Constraints, Acl};
 
 pub async fn setup_client() -> Client {
     Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
@@ -77,7 +73,7 @@ pub async fn create_clients(
         let _ = kv_store.clone().kv().put(reservation, value).await;
     }
 
-        // Unsafe routes are for testing purposes only
+    // Unsafe routes are for testing purposes only
     // they are unsafe as they can expose vulnerabilites
     // should they be used in production. Unsafe routes
     // are disabled by default.
@@ -104,11 +100,13 @@ pub async fn create_clients(
 }
 
 pub async fn spawn_testing_validators() -> Vec<String> {
-        // spawn threshold servers
+    // spawn threshold servers
     let ports = vec![3001i64, 3002];
 
-    let (alice_rocket, _) = create_clients(ports[0], "validator1".to_string(), vec![], vec![], true, false).await;
-    let (bob_rocket, _) = create_clients(ports[1], "validator2".to_string(), vec![], vec![], false, true).await;
+    let (alice_rocket, _) =
+        create_clients(ports[0], "validator1".to_string(), vec![], vec![], true, false).await;
+    let (bob_rocket, _) =
+        create_clients(ports[1], "validator2".to_string(), vec![], vec![], false, true).await;
     tokio::spawn(async move { alice_rocket.launch().await.unwrap() });
     tokio::spawn(async move { bob_rocket.launch().await.unwrap() });
     tokio::time::sleep(Duration::from_secs(1)).await;
@@ -116,14 +114,12 @@ pub async fn spawn_testing_validators() -> Vec<String> {
     ports.iter().map(|port| format!("127.0.0.1:{}", port)).collect()
 }
 
-
 // TODO move to helpers
 fn get_test_keyshare_for_validator(index: i32) -> Vec<u8> {
     let root = project_root::get_project_root().unwrap();
-    let path: PathBuf =
-        [root, "test_data".into(), "key_shares".into(), index.to_string().into()]
-            .into_iter()
-            .collect();
+    let path: PathBuf = [root, "test_data".into(), "key_shares".into(), index.to_string().into()]
+        .into_iter()
+        .collect();
     fs::read(path).unwrap()
 }
 
@@ -137,16 +133,18 @@ pub async fn register_user(
 ) {
     let validator_1_stash_id: AccountId32 =
         h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into(); // alice stash
-    let validator_2_stash_id: AccountId32 = 
+    let validator_2_stash_id: AccountId32 =
         h!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into(); // bob stash
-    
+
     let query_alice_validator_keys =
         entropy::storage().staking_extension().threshold_servers(&validator_1_stash_id);
     let query_bob_validator_keys =
         entropy::storage().staking_extension().threshold_servers(&validator_2_stash_id);
 
-    let alice_validator_keys = entropy_api.storage().fetch(&query_alice_validator_keys, None).await.unwrap().unwrap();
-    let bob_validator_keys = entropy_api.storage().fetch(&query_bob_validator_keys, None).await.unwrap().unwrap();
+    let alice_validator_keys =
+        entropy_api.storage().fetch(&query_alice_validator_keys, None).await.unwrap().unwrap();
+    let bob_validator_keys =
+        entropy_api.storage().fetch(&query_bob_validator_keys, None).await.unwrap().unwrap();
 
     // assert!(alice_validator_keys.is_some());
     // assert!(bob_validator_keys.is_some());
@@ -158,24 +156,30 @@ pub async fn register_user(
     let validator_1_threshold_keyshare: Vec<u8> = get_test_keyshare_for_validator(0);
     let validator_2_threshold_keyshare: Vec<u8> = get_test_keyshare_for_validator(1);
 
-    let register_body_alice_validator = SignedMessage::new(&sig_req_keyring.pair(), &Bytes(validator_1_threshold_keyshare), &alice_server_public_key)
-        .unwrap()
-        .to_json();
-    let register_body_bob_validator = SignedMessage::new(&sig_req_keyring.pair(), &Bytes(validator_2_threshold_keyshare), &bob_server_public_key)
-        .unwrap()
-        .to_json();
+    let register_body_alice_validator = SignedMessage::new(
+        &sig_req_keyring.pair(),
+        &Bytes(validator_1_threshold_keyshare),
+        &alice_server_public_key,
+    )
+    .unwrap()
+    .to_json();
+    let register_body_bob_validator = SignedMessage::new(
+        &sig_req_keyring.pair(),
+        &Bytes(validator_2_threshold_keyshare),
+        &bob_server_public_key,
+    )
+    .unwrap()
+    .to_json();
 
     let initial_constraints = {
         let mut evm_acl = Acl::<[u8; 20]>::default();
         evm_acl.addresses.push([1u8; 20]);
-        
-        Constraints {
-            evm_acl: Some(evm_acl),
-            ..Default::default()
-        }
+
+        Constraints { evm_acl: Some(evm_acl), ..Default::default() }
     };
 
-    make_register(&entropy_api, &sig_req_keyring, &constraint_modification_account.to_account_id()).await;
+    make_register(&entropy_api, &sig_req_keyring, &constraint_modification_account.to_account_id())
+        .await;
 
     let bodies = vec![register_body_alice_validator, register_body_bob_validator];
 
@@ -188,19 +192,15 @@ pub async fn register_user(
     let responses = join_all(threshold_servers.iter().zip(bodies).map(|(ip_port, body)| {
         let client = reqwest::Client::new();
         let url = format!("http://{}/user/new", ip_port.clone());
-        client.post(url)
-            .header("Content-Type", "application/json")
-            .body(body)
-            .send()
-    })).await;
-
-
+        client.post(url).header("Content-Type", "application/json").body(body).send()
+    }))
+    .await;
 
     // assert_eq!(alice_response.status(), Status::Ok);
     responses.into_iter().for_each(|response| {
         assert_eq!(response.unwrap().status(), 200);
     });
-    
+
     // let response_alice_tss = client
     //     .post("/user/new")
     //     .header(ContentType::JSON)
@@ -223,16 +223,20 @@ pub async fn register_user(
     check_registered_status(&entropy_api, &sig_req_keyring).await;
 
     // update their constraints
-    let update_constraints_tx = entropy::tx().constraints().update_constraints(
-        sig_req_keyring.to_account_id(),
-        initial_constraints,
+    let update_constraints_tx = entropy::tx()
+        .constraints()
+        .update_constraints(sig_req_keyring.to_account_id(), initial_constraints);
+
+    let constraint_modification_account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(
+        constraint_modification_account.pair(),
     );
 
-    let constraint_modification_account =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(constraint_modification_account.pair());
-
-    entropy_api.tx()
-        .sign_and_submit_then_watch_default(&update_constraints_tx, &constraint_modification_account)
+    entropy_api
+        .tx()
+        .sign_and_submit_then_watch_default(
+            &update_constraints_tx,
+            &constraint_modification_account,
+        )
         .await
         .unwrap()
         .wait_for_in_block()

@@ -20,8 +20,8 @@ use crate::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::SignatureState,
-        tests::{setup_client, create_clients},
         substrate::get_subgroup,
+        tests::{create_clients, setup_client},
     },
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
     new_user,
@@ -270,4 +270,3 @@ async fn test_tell_chain_syncing_is_done() {
     // expect this to fail in the proper way
     tell_chain_syncing_is_done(&api, &signer_alice).await.unwrap();
 }
-

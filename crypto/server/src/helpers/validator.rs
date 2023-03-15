@@ -5,10 +5,7 @@ use subxt::{
     tx::PairSigner,
 };
 
-use crate::{
-    chain_api::EntropyConfig,
-    user::UserErr,
-};
+use crate::{chain_api::EntropyConfig, user::UserErr};
 
 /// Returns PairSigner for this nodes threshold server.
 /// The PairSigner is stored as an encrypted mnemonic in the kvdb and
@@ -25,4 +22,3 @@ pub async fn get_signer(
         .map_err(|_| UserErr::SecretString("Secret String Error"))?;
     Ok(PairSigner::<EntropyConfig, sr25519::Pair>::new(pair.0))
 }
-
