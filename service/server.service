@@ -1,0 +1,14 @@
+Description=Entropy crypto server.
+After=network.target
+
+[Service]
+User=entropy
+Group=entropy
+ExecStart=/var/run/entropy/server
+Type=simple
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+RequiredBy=network.target
