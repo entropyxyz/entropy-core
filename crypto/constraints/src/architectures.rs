@@ -116,8 +116,7 @@ pub mod evm {
     #[cfg(test)]
     mod tests {
         use std::str::FromStr;
-
-        use ethers_core::types::H256;
+        use ethers_core::types::{Address as EvmAddress, H256};
 
         use super::*;
 
