@@ -77,7 +77,7 @@ pub async fn do_signing(
         message.sig_request.sig_hash.as_slice().try_into().unwrap(),
         signatures,
     );
-    println!("Signing completed");
+    info!("Signing completed for {:?}", hex::encode(message.sig_request.sig_hash));
 
     Ok(Status::Ok)
 }

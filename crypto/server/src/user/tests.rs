@@ -2,7 +2,7 @@ use std::{env, fs, path::PathBuf, sync::Arc};
 
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::{Message, OCWMessage, SigRequest};
+use entropy_shared::{Message, OCWMessage, SigRequest, Constraints, Acl};
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future};
 use hex_literal::hex as h;
@@ -76,29 +76,47 @@ async fn test_unsigned_tx_endpoint() {
     let test_user2_constraint = AccountKeyring::Dave;
 
     let validator_ips = spawn_testing_validators().await;
-    register_user(&entropy_api, &validator_ips, &test_user, &test_user_constraint).await;
-    register_user(&entropy_api, &validator_ips, &test_user2, &test_user2_constraint).await;
+    let initial_constraints = |address: [u8; 20]| -> Constraints {
+        let mut evm_acl = Acl::<[u8; 20]>::default();
+        evm_acl.addresses.push(address);
+
+        Constraints { evm_acl: Some(evm_acl), ..Default::default() }
+    };
+
+    register_user(&entropy_api, &validator_ips, &test_user, &test_user_constraint, initial_constraints([1u8; 20])).await;
+    register_user(&entropy_api, &validator_ips, &test_user2, &test_user2_constraint, initial_constraints([2u8; 20])).await;
 
     // generate the mock ocw messages for simulating prep_transaction()
-    let transaction_requests = vec![
-        // test_user
+    let whitelisted_transaction_requests = vec![
+        // test_user working tx
         TransactionRequest::new().to(Address::from([1u8; 20])).value(1),
-        // test_user2
+        // test_user2 working tx
         TransactionRequest::new().to(Address::from([2u8; 20])).value(5),
     ];
 
-    let keyrings = vec![test_user.clone(), test_user2.clone()];
-    let raw_ocw_messages = transaction_requests
-        .iter()
-        .zip(keyrings)
-        .map(|(tx_req, keyring)| Message {
+    let non_whitelisted_transaction_requests = vec![
+        // test_user tx should fail, non-whitelisted address
+        TransactionRequest::new().to(Address::from([3u8; 20])).value(10),
+        // test_user2 tx should fail non-whitelisted address
+        TransactionRequest::new().to(Address::from([4u8; 20])).value(15),
+    ];
+
+
+    let keyrings = vec![test_user.clone(), test_user2.clone(), test_user.clone(), test_user2.clone()];
+    let ocw_to_message_req = |(tx_req, keyring): (TransactionRequest, Sr25519Keyring)| -> Message {
+        Message {
             sig_request: SigRequest { sig_hash: tx_req.sighash().as_bytes().to_vec() },
             account: keyring.to_raw_public_vec(),
             ip_addresses: validator_ips
                 .iter()
                 .map(|url| url.clone().into_bytes())
                 .collect::<Vec<Vec<u8>>>(),
-        })
+        }
+    };
+    let raw_ocw_messages = vec![whitelisted_transaction_requests.clone(), non_whitelisted_transaction_requests.clone()].concat()
+        .into_iter()
+        .zip(keyrings.clone())
+        .map(ocw_to_message_req)
         .collect::<Vec<_>>();
 
     // send the mock ocw messages to the threshold servers
@@ -116,7 +134,7 @@ async fn test_unsigned_tx_endpoint() {
     .await;
 
     // construct json bodies for transaction requests
-    let tx_req_bodies = transaction_requests
+    let tx_req_bodies = vec![whitelisted_transaction_requests.clone(), non_whitelisted_transaction_requests.clone()].concat()
         .iter()
         .map(|tx_req| {
             serde_json::json!({
@@ -126,8 +144,8 @@ async fn test_unsigned_tx_endpoint() {
         })
         .collect::<Vec<_>>();
 
-    // mock client signature requests
-    let submit_transaction_requests =
+    // mock client signature requests to threshold server
+    let submit_tx_req_threshold_servers =
         |validator_ips: Vec<String>, tx_req_body: serde_json::Value| async move {
             let mock_client = reqwest::Client::new();
             join_all(
@@ -136,20 +154,30 @@ async fn test_unsigned_tx_endpoint() {
                     .map(|validator_ip| async {
                         let client = reqwest::Client::new();
                         let url = format!("http://{}/user/tx", validator_ip.clone());
-                        let res = client.post(url).json(&tx_req_body).send().await;
-                        assert_eq!(res.unwrap().status(), 200);
+                        client.post(url).json(&tx_req_body).send().await
                     })
                     .collect::<Vec<_>>(),
             )
-            .await;
+            .await
         };
 
-    submit_transaction_requests(validator_ips.clone(), tx_req_bodies[0].clone()).await;
-    submit_transaction_requests(validator_ips.clone(), tx_req_bodies[1].clone()).await;
+    // should pass
+    let test_user_res = submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[0].clone()).await;
+    test_user_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
+    let test_user2_res = submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[1].clone()).await;
+    test_user2_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
+
+    // should fail because of failed constraints
+    let test_user_failed_constraints_res = submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[2].clone()).await;
+    test_user_failed_constraints_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 500));
+    let test_user2_failed_constraints_res = submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[3].clone()).await;
+    test_user2_failed_constraints_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 500));
 
     // poll a validator and validate the threshold signatures
-    let get_sig_messages = raw_ocw_messages
-        .iter()
+    let get_sig_messages = whitelisted_transaction_requests.clone().into_iter().zip(keyrings)
+        .map(ocw_to_message_req)
+        .collect::<Vec<_>>()
+        .into_iter()
         .map(|raw_ocw_message| SigMessage {
             message: hex::encode(raw_ocw_message.sig_request.sig_hash.clone()),
         })

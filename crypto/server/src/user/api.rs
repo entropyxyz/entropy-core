@@ -1,6 +1,6 @@
 use bip39::{Language, Mnemonic};
 use entropy_constraints::{
-    Architecture, BasicTransaction, Evaluate, Evm, GetReceiver, GetSender, Parse,
+    Architecture, BasicTransaction, Evaluate, Evm, GetReceiver, GetSender, Parse, Error as ConstraintsError
 };
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints},
@@ -107,12 +107,21 @@ pub async fn store_tx(
                     //     to: parsed_tx.receiver().into(),
                     // };
 
-                    evm_acl.eval(parsed_tx)?;
+                    match evm_acl.eval(parsed_tx)? {
+                        true => {
+                            // kickoff signing process
+                            println!("Constraints satisfied.");
+                            do_signing(message, state, kv, signatures).await?;
+                            kv.kv().delete(&sighash).await?;
+                        },
+                        false => {
+                            println!("Constraints not satisfied.");
+                            return Err(ConstraintsError::EvaluationError(
+                                format!("Constraints not satisfied: {:?}", evm_acl)
+                            ).into());
+                        },
+                    };
 
-                    // kickoff signing process
-                    do_signing(message, state, kv, signatures).await?;
-
-                    kv.kv().delete(&sighash).await?;
                 },
                 // If the key is already reserved, then we can assume the transaction is already
                 // stored.

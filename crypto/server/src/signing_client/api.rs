@@ -24,15 +24,12 @@ const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 pub async fn new_party(encoded_data: Vec<u8>, kv: &State<KvManager>) -> Result<Status, SigningErr> {
     // TODO encryption and authentication.
     let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
-    println!("data from newparty: {:?}", data.clone());
 
     for message in data {
         let sighash = hex::encode(&message.sig_request.sig_hash);
-        println!("sighash from newparty: {:?}", sighash.clone());
 
         match kv.kv().reserve_key(sighash).await {
             Ok(reservation) => {
-                println!("reserved sighash: {:?}", reservation);
                 let value = serde_json::to_string(&message).unwrap();
 
                 kv.kv().put(reservation, value.into()).await?;

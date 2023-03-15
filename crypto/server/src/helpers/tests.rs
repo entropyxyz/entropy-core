@@ -130,6 +130,7 @@ pub async fn register_user(
     threshold_servers: &Vec<String>,
     sig_req_keyring: &Sr25519Keyring,
     constraint_modification_account: &Sr25519Keyring,
+    initial_constraints: Constraints,
 ) {
     let validator_1_stash_id: AccountId32 =
         h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into(); // alice stash
@@ -171,12 +172,7 @@ pub async fn register_user(
     .unwrap()
     .to_json();
 
-    let initial_constraints = {
-        let mut evm_acl = Acl::<[u8; 20]>::default();
-        evm_acl.addresses.push([1u8; 20]);
 
-        Constraints { evm_acl: Some(evm_acl), ..Default::default() }
-    };
 
     make_register(&entropy_api, &sig_req_keyring, &constraint_modification_account.to_account_id())
         .await;
