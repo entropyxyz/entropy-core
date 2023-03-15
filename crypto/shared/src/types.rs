@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use codec::{alloc::vec::Vec, Decode, Encode};
+use node_primitives::BlockNumber;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -25,4 +26,9 @@ pub struct Message {
     pub ip_addresses: codec::alloc::vec::Vec<codec::alloc::vec::Vec<u8>>,
 }
 
-pub type OCWMessage = Vec<Message>;
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+pub struct OCWMessage {
+    pub messages: Vec<Message>,
+    pub block_number: BlockNumber,
+}
