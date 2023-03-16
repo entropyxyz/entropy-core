@@ -1,8 +1,8 @@
 use bip39::{Language, Mnemonic};
 use entropy_shared::MIN_BALANCE;
 use hex_literal::hex;
-use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
-use rocket::{http::ContentType, Ignite, Rocket};
+use kvdb::clean_tests;
+use rocket::http::ContentType;
 use serial_test::serial;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use subxt::tx::PairSigner;
@@ -10,23 +10,17 @@ use testing_utils::substrate_context::testing_context;
 use x25519_dalek::PublicKey;
 
 use super::api::{
-    check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info, sync_kvdb,
+    check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info,
     tell_chain_syncing_is_done, Keys,
 };
 use crate::{
     chain_api::{get_api, EntropyConfig},
     helpers::{
-        launch::{
-            setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
-        },
-        signing::SignatureState,
+        launch::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
         substrate::get_subgroup,
         tests::{create_clients, setup_client},
     },
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
-    new_user,
-    signing_client::SignerState,
-    store_tx,
 };
 
 #[rocket::async_test]

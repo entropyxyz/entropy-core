@@ -1,13 +1,9 @@
 use entropy_shared::{Constraints, SIGNING_PARTY_SIZE};
+#[cfg(test)]
 use sp_core::crypto::AccountId32;
 #[cfg(test)]
 use sp_keyring::Sr25519Keyring;
-use subxt::{
-    ext::sp_core::sr25519,
-    storage::address::{StorageHasher, StorageMapKey},
-    tx::PairSigner,
-    Config, OnlineClient,
-};
+use subxt::{ext::sp_core::sr25519, tx::PairSigner, Config, OnlineClient};
 
 use crate::{
     chain_api::{

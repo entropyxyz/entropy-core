@@ -66,9 +66,9 @@ async fn test_get_signer_does_not_throw_err() {
 async fn test_unsigned_tx_endpoint() {
     clean_tests();
 
-    // register alice with initial constraints
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+
     // Alice and Bob are used as validators
     let test_user = AccountKeyring::One;
     let test_user_constraint = AccountKeyring::Charlie;
@@ -83,7 +83,8 @@ async fn test_unsigned_tx_endpoint() {
         Constraints { evm_acl: Some(evm_acl), ..Default::default() }
     };
 
-    // register the user on-chain, their test threhsold keyshares with the threshold server
+    // register the user on-chain, their test threhsold keyshares with the threshold server, and
+    // initial constraints
     register_user(
         &entropy_api,
         &validator_ips,
@@ -120,8 +121,7 @@ async fn test_unsigned_tx_endpoint() {
     ]
     .concat();
 
-    let keyrings =
-        vec![test_user.clone(), test_user2.clone(), test_user.clone(), test_user2.clone()];
+    let keyrings = vec![test_user, test_user2, test_user, test_user2];
     let ocw_to_message_req = |(tx_req, keyring): (TransactionRequest, Sr25519Keyring)| -> Message {
         Message {
             sig_request: SigRequest { sig_hash: tx_req.sighash().as_bytes().to_vec() },
@@ -167,7 +167,7 @@ async fn test_unsigned_tx_endpoint() {
     // mock client signature requests to threshold server
     let submit_tx_req_threshold_servers =
         |validator_ips: Vec<String>, tx_req_body: serde_json::Value| async move {
-            let mock_client = reqwest::Client::new();
+            let _mock_client = reqwest::Client::new();
             join_all(
                 validator_ips
                     .iter()
@@ -210,14 +210,14 @@ async fn test_unsigned_tx_endpoint() {
         .collect::<Vec<_>>()
         .into_iter()
         .map(|raw_ocw_message| SigMessage {
-            message: hex::encode(raw_ocw_message.sig_request.sig_hash.clone()),
+            message: hex::encode(raw_ocw_message.sig_request.sig_hash),
         })
         .collect::<Vec<_>>();
 
     join_all(get_sig_messages.iter().map(|get_sig_message| async {
         let client = reqwest::Client::new();
         let url = format!("http://{}/signer/signature", validator_ips[0].clone());
-        let mut res = client.post(url).json(get_sig_message).send().await.unwrap();
+        let res = client.post(url).json(get_sig_message).send().await.unwrap();
         assert_eq!(res.status(), 202);
         assert_eq!(res.content_length().unwrap(), 88);
     }))
@@ -236,7 +236,7 @@ async fn test_unsigned_tx_endpoint() {
     join_all(get_sig_messages.iter().map(|get_sig_message| async {
         let client = reqwest::Client::new();
         let url = format!("http://{}/signer/signature", validator_ips[0].clone());
-        let mut res = client.post(url).json(get_sig_message).send().await;
+        let res = client.post(url).json(get_sig_message).send().await;
         assert_eq!(res.unwrap().status(), 500);
     }))
     .await;

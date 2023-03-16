@@ -1,22 +1,17 @@
-use std::{env, fs, path::PathBuf, sync::Arc};
+// only compile when testing
+#![cfg(test)]
 
-use entropy_shared::{Acl, Constraints};
+use std::{fs, path::PathBuf};
+
+use entropy_shared::Constraints;
 use futures::future::join_all;
 use hex_literal::hex as h;
 use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
-use rocket::{
-    http::{ContentType, Status},
-    local::asynchronous::Client,
-    tokio::{
-        task::JoinSet,
-        time::{sleep, Duration},
-    },
-    Build, Error, Ignite, Rocket,
-};
+use rocket::{local::asynchronous::Client, tokio::time::Duration, Ignite, Rocket};
 use serial_test::serial;
-use sp_core::{sr25519, Bytes, Pair, H160, H256};
+use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
 use sp_keyring::Sr25519Keyring;
-use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, Error as SubxtError, OnlineClient};
+use subxt::{tx::PairSigner, OnlineClient};
 use testing_utils::substrate_context::testing_context;
 use x25519_dalek::PublicKey;
 
@@ -29,18 +24,15 @@ use crate::{
         signing::SignatureState,
         substrate::{get_subgroup, make_register},
     },
-    message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
+    message::SignedMessage,
     new_user,
-    r#unsafe::api::{delete, get, put, remove_keys, UnsafeQuery},
+    r#unsafe::api::{delete, get, put, remove_keys},
     signing_client::{
         api::{drain, get_signature, new_party, subscribe_to_me},
         SignerState,
     },
     store_tx,
-    validator::api::{
-        check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info,
-        sync_kvdb, tell_chain_syncing_is_done, Keys,
-    },
+    validator::api::sync_kvdb,
 };
 
 pub async fn setup_client() -> Client {
@@ -128,7 +120,7 @@ fn get_test_keyshare_for_validator(index: i32) -> Vec<u8> {
 /// transaction requests.
 pub async fn register_user(
     entropy_api: &OnlineClient<EntropyConfig>,
-    threshold_servers: &Vec<String>,
+    threshold_servers: &[String],
     sig_req_keyring: &Sr25519Keyring,
     constraint_modification_account: &Sr25519Keyring,
     initial_constraints: Constraints,
@@ -170,7 +162,7 @@ pub async fn register_user(
     .to_json();
 
     // call register() on-chain
-    make_register(&entropy_api, &sig_req_keyring, &constraint_modification_account.to_account_id())
+    make_register(entropy_api, sig_req_keyring, &constraint_modification_account.to_account_id())
         .await;
 
     // send threshold keys to server
@@ -187,7 +179,7 @@ pub async fn register_user(
     });
 
     // confirm that user is Registered
-    check_registered_status(&entropy_api, &sig_req_keyring).await;
+    check_registered_status(entropy_api, sig_req_keyring).await;
 
     // update/set their constraints
     let update_constraints_tx = entropy::tx()

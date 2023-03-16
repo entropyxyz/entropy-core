@@ -42,10 +42,8 @@ pub trait GetArch {
 
 /// EVM architecture
 pub mod evm {
+    pub use ethers_core::types::transaction::request::TransactionRequest as EvmTransactionRequest;
     use ethers_core::types::NameOrAddress;
-    pub use ethers_core::types::{
-        transaction::request::TransactionRequest as EvmTransactionRequest,
-    };
     use primitive_types::H160;
     use rlp::Rlp;
 
@@ -61,7 +59,7 @@ pub mod evm {
     }
 
     impl GetSender<Evm> for <Evm as Architecture>::TransactionRequest {
-        fn sender(&self) -> Option<<Evm as Architecture>::Address> { self.from.into() }
+        fn sender(&self) -> Option<<Evm as Architecture>::Address> { self.from }
     }
 
     impl GetReceiver<Evm> for <Evm as Architecture>::TransactionRequest {
@@ -116,6 +114,7 @@ pub mod evm {
     #[cfg(test)]
     mod tests {
         use std::str::FromStr;
+
         use ethers_core::types::{Address as EvmAddress, H256};
 
         use super::*;
