@@ -103,12 +103,20 @@ pub async fn store_tx(
                     match evm_acl.eval(parsed_tx)? {
                         true => {
                             // kickoff signing process
-                            info!("Constraints satisfied for account: {:?}, sighash: {:?}", hex::encode(message.account.clone()), hex::encode(message.sig_request.sig_hash.clone()));
+                            info!(
+                                "Constraints satisfied for account: {:?}, sighash: {:?}",
+                                hex::encode(message.account.clone()),
+                                hex::encode(message.sig_request.sig_hash.clone())
+                            );
                             do_signing(message, state, kv, signatures).await?;
                             kv.kv().delete(&sighash).await?;
                         },
                         false => {
-                            info!("Constraints not satisfied for account: {:?}, sighash: {:?}", hex::encode(message.account.clone()), hex::encode(message.sig_request.sig_hash.clone()));
+                            info!(
+                                "Constraints not satisfied for account: {:?}, sighash: {:?}",
+                                hex::encode(message.account.clone()),
+                                hex::encode(message.sig_request.sig_hash.clone())
+                            );
                             return Err(ConstraintsError::EvaluationError(format!(
                                 "Constraints not satisfied: {:?}",
                                 evm_acl
