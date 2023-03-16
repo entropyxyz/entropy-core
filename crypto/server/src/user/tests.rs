@@ -171,7 +171,7 @@ async fn test_unsigned_tx_endpoint() {
     }))
     .await;
 
-    let validator_urls: Arc<Vec<String>> =
+    let _validator_urls: Arc<Vec<String>> =
         Arc::new(validator_ips.iter().map(|ip| format!("http://{}", ip)).collect());
 
     // construct json bodies for transaction requests

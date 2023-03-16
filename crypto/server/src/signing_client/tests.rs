@@ -60,7 +60,7 @@ async fn test_new_party() {
         .await;
     assert_eq!(
         query_parsed_tx.into_string().await,
-        Some(serde_json::to_string(&onchain_signature_request.messages[0]).unwrap().to_string())
+        Some(serde_json::to_string(&onchain_signature_request.messages[0]).unwrap())
     );
 
     clean_tests();
