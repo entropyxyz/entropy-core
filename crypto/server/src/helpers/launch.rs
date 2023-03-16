@@ -86,11 +86,7 @@ pub struct StartupArgs {
 
     /// Whether or not to execute a specific test
     #[cfg(test)]
-    #[arg(
-        long = "test",
-        required = false,
-        default_value = "*"
-    )]
+    #[arg(long = "test", required = false, default_value = "*")]
     pub test: String,
 
     /// Whether or not to print stdout during testing
