@@ -43,8 +43,7 @@ pub trait GetArch {
 /// EVM architecture
 pub mod evm {
     pub use ethers_core::types::transaction::request::TransactionRequest as EvmTransactionRequest;
-    use ethers_core::types::NameOrAddress;
-    use primitive_types::H160;
+    use ethers_core::types::{NameOrAddress, H160};
     use rlp::Rlp;
 
     use super::*;
@@ -74,14 +73,6 @@ pub mod evm {
                 None => None,
             }
         }
-    }
-
-    pub trait FromU8Array {
-        fn from_u8_array(bytes: [u8; 20]) -> Self;
-    }
-
-    impl FromU8Array for H160 {
-        fn from_u8_array(bytes: [u8; 20]) -> Self { H160::from_slice(&bytes) }
     }
 
     impl GetArch for <Evm as Architecture>::TransactionRequest {

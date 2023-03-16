@@ -2077,10 +2077,11 @@ name = "entropy-shared"
 version = "0.1.0"
 dependencies = [
  "frame-support",
+ "node-primitives",
  "parity-scale-codec",
- "primitive-types 0.11.1",
  "scale-info",
  "serde",
+ "serde_derive",
  "sp-core",
  "sp-std",
 ]
@@ -9228,6 +9229,7 @@ dependencies = [
  "hex-literal",
  "kvdb 0.1.0",
  "log",
+ "node-primitives",
  "parity-scale-codec",
  "project-root",
  "rand_core 0.6.4",

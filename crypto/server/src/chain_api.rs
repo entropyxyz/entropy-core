@@ -8,8 +8,6 @@ pub mod entropy {
     use ::entropy_shared::Acl;
     #[subxt::subxt(substitute_type = "entropy_shared::constraints::Constraints")]
     use ::entropy_shared::Constraints;
-    #[subxt::subxt(substitute_type = "sp_core::H160")]
-    use ::primitive_types::H160;
     #[subxt::subxt(substitute_type = "sp_core::crypto::AccountId32")]
     use ::sp_core::crypto::AccountId32;
 }
