@@ -84,6 +84,15 @@ pub struct StartupArgs {
     #[arg(short = 'd', long = "dev")]
     pub dev: bool,
 
+    /// Whether or not to execute a specific test
+    #[cfg(test)]
+    #[arg(
+        long = "test",
+        required = false,
+        default_value = "*"
+    )]
+    pub test: String,
+
     /// Whether or not to print stdout during testing
     #[arg(long = "nocapture")]
     pub nocapture: bool,
