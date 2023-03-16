@@ -32,7 +32,7 @@ subxt             ={ package="subxt", git="https://github.com/entropyxyz/subxt.g
 parity-scale-codec="3.0.0"
 sp-core           ={ package="sp-core", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
 tofn              ={ git="https://github.com/entropyxyz/tofn", branch="main" }
-sp-keyring   ={ package="sp-keyring", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
+sp-keyring        ={ package="sp-keyring", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
 
 # Entropy
 entropy-shared={ path="../shared" }
