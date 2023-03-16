@@ -106,7 +106,6 @@ pub async fn spawn_testing_validators() -> Vec<String> {
     ports.iter().map(|port| format!("127.0.0.1:{}", port)).collect()
 }
 
-// TODO move to helpers
 fn get_test_keyshare_for_validator(index: i32) -> Vec<u8> {
     let root = project_root::get_project_root().unwrap();
     let path: PathBuf = [root, "test_data".into(), "key_shares".into(), index.to_string().into()]

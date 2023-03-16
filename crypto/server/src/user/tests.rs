@@ -44,7 +44,10 @@ use crate::{
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     new_party, new_user,
     r#unsafe::api::{delete, get, put, remove_keys, UnsafeQuery},
-    signing_client::{tests::put_tx_request_on_chain, SignerState},
+    signing_client::{
+        tests::{put_tx_request_on_chain, run_to_block},
+        SignerState,
+    },
     store_tx, subscribe_to_me,
     validator::api::get_random_server_info,
     Message as SigMessage,
@@ -102,22 +105,13 @@ async fn test_unsigned_tx_endpoint() {
     )
     .await;
 
-    // <<<<<<< HEAD
     // generate the mock ocw messages for simulating prep_transaction() call
     let whitelisted_transaction_requests = vec![
         // test_user working tx
-        // =======
-        //     let validator_ips: Vec<String> =
-        //         ports.iter().map(|port| format!("127.0.0.1:{}", port)).collect();
-
-        //     let transaction_requests = vec![
-        //         // alice
-// // >>>>>>> master
         TransactionRequest::new().to(Address::from([1u8; 20])).value(1),
         // test_user2 working tx
         TransactionRequest::new().to(Address::from([2u8; 20])).value(5),
     ];
-// <<<<<<< HEAD
     let non_whitelisted_transaction_requests = vec![
         // test_user tx should fail, non-whitelisted address
         TransactionRequest::new().to(Address::from([3u8; 20])).value(10),
@@ -133,14 +127,6 @@ async fn test_unsigned_tx_endpoint() {
     let keyrings = vec![test_user, test_user2, test_user, test_user2];
     let ocw_to_message_req = |(tx_req, keyring): (TransactionRequest, Sr25519Keyring)| -> Message {
         Message {
-// =======
-//     let keyrings = vec![AccountKeyring::Alice, AccountKeyring::Bob];
-
-//     let raw_ocw_messages = transaction_requests
-//         .iter()
-//         .zip(keyrings.clone())
-//         .map(|(tx_req, keyring)| Message {
-// >>>>>>> master
             sig_request: SigRequest { sig_hash: tx_req.sighash().as_bytes().to_vec() },
             account: keyring.to_raw_public_vec(),
             ip_addresses: validator_ips
@@ -155,51 +141,33 @@ async fn test_unsigned_tx_endpoint() {
         .zip(keyrings.clone())
         .map(ocw_to_message_req)
         .collect::<Vec<_>>();
-    
-    let block_number = entropy_api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
-// <<<<<<< HEAD
-    // send the mock ocw messages to the threshold servers
-    join_all(validator_ips.iter().map(|validator_ip| async {
-        let client = reqwest::Client::new();
-        let url = format!("http://{}/signer/new_party", validator_ip.clone());
-        let res = client
-            .post(url)
-            .header("Content-Type", "application/json")
-            .body(OCWMessage {
-                messages: raw_ocw_messages.clone(),
-                block_number
-            }.encode())
+
+    let place_sig_messages = raw_ocw_messages
+        .iter()
+        .map(|raw_ocw_message| UnsafeQuery {
+            key: hex::encode(raw_ocw_message.sig_request.sig_hash.clone()),
+            value: serde_json::to_string(&raw_ocw_message).unwrap(),
+        })
+        .collect::<Vec<_>>();
+
+    let mock_client = reqwest::Client::new();
+    // put proper data in kvdb
+    join_all(place_sig_messages.iter().map(|place_sig_messages| async {
+        let res = mock_client
+            .post("http://127.0.0.1:3001/unsafe/put")
+            .json(place_sig_messages)
             .send()
-            .await;
-        assert_eq!(res.unwrap().status(), 200);
-// =======
-//     let place_sig_messages = raw_ocw_messages
-//         .iter()
-//         .map(|raw_ocw_message| UnsafeQuery {
-//             key: hex::encode(raw_ocw_message.sig_request.sig_hash.clone()),
-//             value: serde_json::to_string(&raw_ocw_message).unwrap(),
-//         })
-//         .collect::<Vec<_>>();
+            .await
+            .unwrap();
+        assert_eq!(res.status(), 200);
 
-//     let mock_client = reqwest::Client::new();
-//     // put proper data in kvdb
-//     join_all(place_sig_messages.iter().map(|place_sig_messages| async {
-//         let res = mock_client
-//             .post("http://127.0.0.1:3001/unsafe/put")
-//             .json(place_sig_messages)
-//             .send()
-//             .await
-//             .unwrap();
-//         assert_eq!(res.status(), 200);
-
-//         let res_2 = mock_client
-//             .post("http://127.0.0.1:3002/unsafe/put")
-//             .json(place_sig_messages)
-//             .send()
-//             .await
-//             .unwrap();
-//         assert_eq!(res_2.status(), 200);
-// >>>>>>> master
+        let res_2 = mock_client
+            .post("http://127.0.0.1:3002/unsafe/put")
+            .json(place_sig_messages)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(res_2.status(), 200);
     }))
     .await;
 
@@ -291,7 +259,6 @@ async fn test_unsigned_tx_endpoint() {
         let url = format!("http://{}/signer/signature", validator_ips[0].clone());
         let res = client.post(url).json(get_sig_message).send().await;
         assert_eq!(res.unwrap().status(), 500);
-
     }))
     .await;
 
@@ -415,7 +382,6 @@ async fn test_store_share() {
 #[rocket::async_test]
 #[serial]
 async fn test_update_keys() {
-
     clean_tests();
     let dave = AccountKeyring::Dave;
     let alice_stash_id: AccountId32 =
@@ -427,7 +393,6 @@ async fn test_update_keys() {
     let cxt = test_context_stationary().await;
     let client = setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-
 
     let threshold_servers_query =
         entropy::storage().staking_extension().threshold_servers(&alice_stash_id);
