@@ -5,7 +5,7 @@ use ethers_core::types::TransactionRequest;
 // write a test for the eval function of the Evaluate trait
 use ethers_core::types::{NameOrAddress, H160};
 
-use crate::{Evaluate};
+use crate::Evaluate;
 
 #[test]
 fn test_acl_functions_properly() {
