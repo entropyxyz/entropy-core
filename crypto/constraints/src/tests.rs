@@ -5,7 +5,7 @@ use ethers_core::types::TransactionRequest;
 // write a test for the eval function of the Evaluate trait
 use ethers_core::types::{NameOrAddress, H160};
 
-use crate::{Evaluate, Error};
+use crate::{Error, Evaluate};
 
 #[test]
 fn test_acl_functions_properly() {
@@ -48,7 +48,6 @@ fn test_acl_functions_properly() {
 
     assert!(denylisted_acl.clone().eval(to_address_1_tx.clone()).is_err());
     assert!(allowlisted_acl.clone().eval(to_null_recipient_tx.clone()).is_err());
-
 
     let allowlisted_acl_with_null_recipient = Acl::<[u8; 20]> {
         addresses: vec![evm_address_1],

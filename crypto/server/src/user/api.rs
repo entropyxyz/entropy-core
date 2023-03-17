@@ -82,21 +82,20 @@ pub async fn store_tx(
 
             let raw_associated_ocw_message = kv.kv().get(&sighash).await?;
             let associated_ocw_message = String::from_utf8(raw_associated_ocw_message).unwrap();
-            let message: Message =
-                serde_json::from_str(&associated_ocw_message)?;
+            let message: Message = serde_json::from_str(&associated_ocw_message)?;
             let sig_req_account = <EntropyConfig as Config>::AccountId::from(
                 <[u8; 32]>::try_from(message.account.clone()).unwrap(),
             );
             let substrate_api = substrate_api.await;
-            let evm_acl = get_constraints(&substrate_api?, &sig_req_account).await?.evm_acl.ok_or(
-                UserErr::Parse("No constraints found for this account.")
-            )?;
+            let evm_acl = get_constraints(&substrate_api?, &sig_req_account)
+                .await?
+                .evm_acl
+                .ok_or(UserErr::Parse("No constraints found for this account."))?;
 
             evm_acl.eval(parsed_tx)?;
 
             do_signing(message, state, kv, signatures).await?;
             kv.kv().delete(&sighash).await?;
-
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));

@@ -16,17 +16,17 @@ impl Evaluate<Evm> for Acl<[u8; 20]> {
         if tx.to.is_none() {
             return match self.allow_null_recipient {
                 true => Ok(()),
-                false => Err(Error::Evaluation("Null recipients are not allowed."))
-            } 
+                false => Err(Error::Evaluation("Null recipients are not allowed.")),
+            };
         }
 
         let converted_addresses: Vec<NameOrAddress> =
             self.addresses.into_iter().map(|a| NameOrAddress::Address(H160::from(a))).collect();
-        
+
         return match (converted_addresses.contains(&tx.to.unwrap()), self.kind) {
             (true, AclKind::Allow) => Ok(()),
             (false, AclKind::Deny) => Ok(()),
-            _ => Err(Error::Evaluation("Transaction not allowed."))
-        }
+            _ => Err(Error::Evaluation("Transaction not allowed.")),
+        };
     }
 }
