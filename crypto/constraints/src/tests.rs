@@ -5,7 +5,7 @@ use ethers_core::types::TransactionRequest;
 // write a test for the eval function of the Evaluate trait
 use ethers_core::types::{NameOrAddress, H160};
 
-use crate::{Error, Evaluate};
+use crate::{Evaluate};
 
 #[test]
 fn test_acl_functions_properly() {
@@ -46,8 +46,8 @@ fn test_acl_functions_properly() {
     assert!(denylisted_acl.clone().eval(to_address_2_tx.clone()).is_ok());
     assert!(denylisted_acl.clone().eval(to_address_3_tx.clone()).is_ok());
 
-    assert!(denylisted_acl.clone().eval(to_address_1_tx.clone()).is_err());
-    assert!(allowlisted_acl.clone().eval(to_null_recipient_tx.clone()).is_err());
+    assert!(denylisted_acl.eval(to_address_1_tx.clone()).is_err());
+    assert!(allowlisted_acl.eval(to_null_recipient_tx.clone()).is_err());
 
     let allowlisted_acl_with_null_recipient = Acl::<[u8; 20]> {
         addresses: vec![evm_address_1],
@@ -60,7 +60,7 @@ fn test_acl_functions_properly() {
     assert!(allowlisted_acl_with_null_recipient.clone().eval(to_null_recipient_tx.clone()).is_ok());
 
     assert!(allowlisted_acl_with_null_recipient.clone().eval(to_address_2_tx.clone()).is_err());
-    assert!(allowlisted_acl_with_null_recipient.clone().eval(to_address_3_tx.clone()).is_err());
+    assert!(allowlisted_acl_with_null_recipient.eval(to_address_3_tx.clone()).is_err());
 
     let denylisted_acl_with_null_recipient = Acl::<[u8; 20]> {
         addresses: vec![evm_address_1],
@@ -73,5 +73,5 @@ fn test_acl_functions_properly() {
     assert!(denylisted_acl_with_null_recipient.clone().eval(to_address_3_tx).is_ok());
     assert!(denylisted_acl_with_null_recipient.clone().eval(to_null_recipient_tx).is_ok());
 
-    assert!(denylisted_acl_with_null_recipient.clone().eval(to_address_1_tx).is_err());
+    assert!(denylisted_acl_with_null_recipient.eval(to_address_1_tx).is_err());
 }
