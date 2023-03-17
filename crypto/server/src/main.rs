@@ -22,6 +22,7 @@ mod signing_client;
 mod r#unsafe;
 mod user;
 mod validator;
+mod proactive_refresh;
 use validator::api::get_random_server_info;
 
 #[macro_use]
@@ -36,6 +37,7 @@ use self::{
     chain_api::get_api,
     signing_client::{api::*, SignerState},
     user::api::*,
+	proactive_refresh::api::refresh
 };
 use crate::{
     helpers::{
@@ -118,6 +120,7 @@ async fn rocket() -> _ {
         .mount("/user", routes![store_tx, new_user])
         .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
         .mount("/validator", routes![sync_kvdb])
+		.mount("/refresh", routes![refresh])
         .mount("/unsafe", unsafe_routes)
         .manage(signer_state)
         .manage(signature_state)

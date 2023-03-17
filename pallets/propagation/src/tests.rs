@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use entropy_shared::SigRequest;
-use frame_support::assert_ok;
+use frame_support::{assert_ok, traits::Hooks};
 use pallet_relayer::Registered;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
@@ -41,10 +41,28 @@ fn knows_how_to_mock_several_http_calls() {
             .to_vec(),
             ..Default::default()
         });
+
+		state.expect_request(testing::PendingRequest {
+            method: "POST".into(),
+            uri: "http://localhost:3001/refresh/proactive_refresh".into(),
+            sent: true,
+            response: Some([].to_vec()),
+            body: [0].to_vec(),
+            ..Default::default()
+        });
+
+		state.expect_request(testing::PendingRequest {
+            method: "POST".into(),
+            uri: "http://localhost:3001/refresh/proactive_refresh".into(),
+            sent: true,
+            response: Some([].to_vec()),
+            body: [1, 8, 4, 20, 32, 5, 0, 0, 0, 0, 0, 0, 0, 4, 40, 32, 6, 0, 0, 0, 0, 0, 0, 0].to_vec(),
+            ..Default::default()
+        });
     });
 
     t.execute_with(|| {
-        Propagation::post(1).unwrap();
+        Propagation::post_message_requests(1).unwrap();
 
         System::set_block_number(3);
         let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
@@ -53,9 +71,23 @@ fn knows_how_to_mock_several_http_calls() {
         assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request.clone()));
         assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request));
         // full send
-        Propagation::post(4).unwrap();
+        Propagation::post_message_requests(4).unwrap();
+
+		Propagation::on_initialize(1);
+
+		// proactive refresh no data
+		Propagation::post_proactive_refresh().unwrap();
+
+
+		Propagation::on_initialize(0);
+
+		// full send
+		Propagation::post_proactive_refresh().unwrap();
+
     })
 }
+
+// TODO test on init
 
 fn offchain_worker_env(state_updater: fn(&mut testing::OffchainState)) -> TestExternalities {
     // const PHRASE: &str =

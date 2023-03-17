@@ -32,3 +32,12 @@ pub struct OCWMessage {
     pub messages: Vec<Message>,
     pub block_number: BlockNumber,
 }
+
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+pub struct RefreshMessage {
+	pub validator_ip: codec::alloc::vec::Vec<u8>,
+	pub validator_account: codec::alloc::vec::Vec<u8>
+}
+
+pub type RefreshMessages = Vec<RefreshMessage>;

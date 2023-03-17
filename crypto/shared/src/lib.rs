@@ -13,3 +13,7 @@ pub const SIGNING_PARTY_SIZE: usize = 2;
 
 // min balance 12 decimal chain = 0.1
 pub const MIN_BALANCE: u128 = 10000000000;
+
+use node_primitives::BlockNumber;
+// 1 block every 6 seconds, refresh once a week
+pub const REFRESH_BLOCKS: BlockNumber = 86400;

@@ -43,6 +43,7 @@ pallet-authorship       ={ version="4.0.0-dev", default-features=false, git='htt
 pallet-relayer          ={ version="3.0.0", default-features=false, path="../relayer" }
 pallet-constraints      ={ default-features=false, path="../constraints" }
 pallet-staking-extension={ version="3.0.0", default-features=false, path="../staking" }
+helpers = { version="0.1.0", default-features=false, path="../helpers" }
 
 scale-info={ version="2.0.1", default-features=false, features=["derive"] }
 log       ={ version="0.4.0", default-features=false }

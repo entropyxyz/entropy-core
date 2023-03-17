@@ -30,7 +30,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{Constraints, Message, SigRequest, SIGNING_PARTY_SIZE};
+    use entropy_shared::{Constraints, Message, SigRequest, SIGNING_PARTY_SIZE, RefreshMessages, RefreshMessage};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         inherent::Vec,
@@ -148,6 +148,7 @@ pub mod pallet {
         IpAddressError,
         SigningGroupError,
         NoSyncedValidators,
+		InvalidValidatorId
     }
 
     /// Allows a user to kick off signing process
@@ -165,7 +166,7 @@ pub mod pallet {
                 Self::registered(&who).ok_or(Error::<T>::NotRegistered)?,
                 Error::<T>::NotRegistered
             );
-            let (ip_addresses, i) = Self::get_ip_addresses()?;
+            let (ip_addresses, i, _) = Self::get_ip_addresses()?;
             let message = Message { sig_request, account: who.encode(), ip_addresses };
             let block_number = <frame_system::Pallet<T>>::block_number();
             Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
@@ -308,8 +309,9 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        pub fn get_ip_addresses() -> Result<(Vec<Vec<u8>>, u32), Error<T>> {
+        pub fn get_ip_addresses() -> Result<(Vec<Vec<u8>>, u32, RefreshMessages), Error<T>> {
             let mut ip_addresses: Vec<Vec<u8>> = vec![];
+			let mut refresh_messages: RefreshMessages = vec![];
             let block_number = <frame_system::Pallet<T>>::block_number();
 
             // TODO: JA simple hacky way to do this, get the first address from each signing group
@@ -321,9 +323,12 @@ pub mod pallet {
                 let ServerInfo { endpoint, .. } =
                     pallet_staking_extension::Pallet::<T>::threshold_server(&tuple.0)
                         .ok_or(Error::<T>::IpAddressError)?;
+				// let validator_account: T::AccountId = tuple.0.into();
+				// let
                 ip_addresses.push(endpoint.clone());
+				refresh_messages.push(RefreshMessage {validator_ip: endpoint, validator_account: tuple.0.encode()});
             }
-            Ok((ip_addresses, l))
+            Ok((ip_addresses, l, refresh_messages))
         }
 
         pub fn get_validator_rotation(

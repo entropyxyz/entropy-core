@@ -18,8 +18,8 @@ pub mod errors {
     macro_rules! unwrap_or_return_db_read {
         ($e:expr, $r:expr, $w:expr) => {
             match $e {
-                Some(x) => x,
-                None =>
+                Ok(x) => x,
+                Err =>
                     return {
                         log::warn!("{}", $w);
                         T::DbWeight::get().reads($r)
