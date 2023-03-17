@@ -42,9 +42,9 @@ RUST_BACKTRACE=1 ./target/release/entropy -ldebug --dev --ws-external
 
 ### Testing
 
-Testing can be done with `cargo test`, but make sure you have built `entropy` in release mode with `cargo build --release -p entropy`.
+Testing is done via `cargo test`. When testing `server`, ensure the `entropy` **release** binary exists and is up to date; run `cargo build --release -p entropy` when in doubt.
 
-Because of `clap`, running individual tests requires using the `--test` flag as a program argument in your `cargo` command. For example, to run the `test_new_party` test in `crypto/server/src/user/tests.rs`, you would run something similar to:
+Because of `clap`, running individual tests require using the `--test` flag as a program argument for the `server` binary when using `cargo test`. For example, to run the `test_new_party` test in `crypto/server/src/user/tests.rs`, you would run something similar to:
 
 ```sh
 cargo test --release -p server --features unsafe -- --test user::tests::test_unsigned_tx_endpoint --nocapture
