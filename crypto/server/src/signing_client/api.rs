@@ -98,10 +98,6 @@ pub async fn validate_new_party(
     let latest_block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number;
     // we subtract 1 as the message info is coming from the previous block
 
-    dbg!(chain_data);
-    dbg!(latest_block_number);
-    dbg!(chain_data.block_number);
-
     if latest_block_number.saturating_sub(1) != chain_data.block_number {
         return Err(SigningErr::StaleData);
     }

@@ -80,59 +80,23 @@ pub async fn store_tx(
             let sighash = hex::encode(parsed_tx.sighash().as_bytes());
             let substrate_api = get_api(&config.endpoint);
 
-            // check if user submitted tx to chain already
-            match kv.kv().get(&sighash).await {
-                Ok(message_json) => {
-                    // parse their transaction request
-                    let message: Message =
-                        serde_json::from_str(&String::from_utf8(message_json).unwrap()).unwrap();
-                    let sig_req_account = <EntropyConfig as Config>::AccountId::from(
-                        <[u8; 32]>::try_from(message.account.clone()).unwrap(),
-                    );
-                    let substrate_api = substrate_api.await;
-                    let evm_acl = match get_constraints(&substrate_api?, &sig_req_account).await {
-                        Ok(constraints) => constraints.evm_acl.unwrap(),
-                        Err(_e) => {
-                            return Err(UserErr::Parse(
-                                "Constraints are unset. Please set them via the \
-                                 `constraints.update_constraints()` extrinsic.",
-                            ));
-                        },
-                    };
+            let raw_associated_ocw_message = kv.kv().get(&sighash).await?;
+            let associated_ocw_message = String::from_utf8(raw_associated_ocw_message).unwrap();
+            let message: Message =
+                serde_json::from_str(&associated_ocw_message)?;
+            let sig_req_account = <EntropyConfig as Config>::AccountId::from(
+                <[u8; 32]>::try_from(message.account.clone()).unwrap(),
+            );
+            let substrate_api = substrate_api.await;
+            let evm_acl = get_constraints(&substrate_api?, &sig_req_account).await?.evm_acl.ok_or(
+                UserErr::Parse("No constraints found for this account.")
+            )?;
 
-                    match evm_acl.eval(parsed_tx)? {
-                        true => {
-                            // kickoff signing process
-                            info!(
-                                "Constraints satisfied for account: {:?}, sighash: {:?}",
-                                hex::encode(message.account.clone()),
-                                hex::encode(message.sig_request.sig_hash.clone())
-                            );
-                            do_signing(message, state, kv, signatures).await?;
-                            kv.kv().delete(&sighash).await?;
-                        },
-                        false => {
-                            info!(
-                                "Constraints not satisfied for account: {:?}, sighash: {:?}",
-                                hex::encode(message.account.clone()),
-                                hex::encode(message.sig_request.sig_hash.clone())
-                            );
-                            return Err(ConstraintsError::EvaluationError(format!(
-                                "Constraints not satisfied: {:?}",
-                                evm_acl
-                            ))
-                            .into());
-                        },
-                    };
-                },
-                // If the key is already reserved, then we can assume the transaction is already
-                // stored.
-                Err(_) => {
-                    warn!("client error: submit to chain first");
-                    // 424
-                    return Ok(Status::FailedDependency);
-                },
-            }
+            evm_acl.eval(parsed_tx)?;
+
+            do_signing(message, state, kv, signatures).await?;
+            kv.kv().delete(&sighash).await?;
+
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));

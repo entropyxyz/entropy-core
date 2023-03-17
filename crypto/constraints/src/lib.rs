@@ -21,5 +21,5 @@ pub enum Error {
     InvalidTransactionRequest(String),
     /// Transaction request did not meet constraint requirements.
     #[error("Constraint Evaluation error: {0}")]
-    EvaluationError(String),
+    Evaluation(&'static str),
 }

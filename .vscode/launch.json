@@ -94,8 +94,6 @@
 				}
 			},
 			"args": [
-				"--test",
-				"user::tests::test_unsigned_tx_endpoint",
 				"--nocapture"
 			],
 			"cwd": "${workspaceFolder}"

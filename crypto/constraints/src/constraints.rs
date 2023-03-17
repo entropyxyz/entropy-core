@@ -7,21 +7,26 @@ use crate::{Architecture, Error, Evm};
 
 /// Constraints must implement an evaluation trait that parses.
 pub trait Evaluate<A: Architecture> {
-    fn eval(&self, tx: A::TransactionRequest) -> Result<bool, Error>;
+    fn eval(self, tx: A::TransactionRequest) -> Result<(), Error>;
 }
 
+// TODO This can likely be made generic over any architecture with GetRecipient and GetSender traits
 impl Evaluate<Evm> for Acl<[u8; 20]> {
-    fn eval(&self, tx: <Evm as Architecture>::TransactionRequest) -> Result<bool, Error> {
+    fn eval(self, tx: <Evm as Architecture>::TransactionRequest) -> Result<(), Error> {
         if tx.to.is_none() {
-            return Ok(self.allow_null_recipient);
+            return match self.allow_null_recipient {
+                true => Ok(()),
+                false => Err(Error::Evaluation("Null recipients are not allowed."))
+            } 
         }
 
         let converted_addresses: Vec<NameOrAddress> =
-            self.addresses.iter().map(|a| NameOrAddress::Address(H160::from(*a))).collect();
-
-        match self.kind {
-            AclKind::Allow => Ok(converted_addresses.contains(&tx.to.unwrap())),
-            AclKind::Deny => Ok(!converted_addresses.contains(&tx.to.unwrap())),
+            self.addresses.into_iter().map(|a| NameOrAddress::Address(H160::from(a))).collect();
+        
+        return match (converted_addresses.contains(&tx.to.unwrap()), self.kind) {
+            (true, AclKind::Allow) => Ok(()),
+            (false, AclKind::Deny) => Ok(()),
+            _ => Err(Error::Evaluation("Transaction not allowed."))
         }
     }
 }

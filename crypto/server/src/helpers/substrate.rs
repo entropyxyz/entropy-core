@@ -66,7 +66,7 @@ pub async fn get_constraints(
         return Err(UserErr::GenericSubstrate(evm_acl_result.unwrap_err()));
     }
 
-    Ok(Constraints { evm_acl: evm_acl_result.unwrap(), btc_acl: btc_acl_result.unwrap() })
+    Ok(Constraints { evm_acl: evm_acl_result.unwrap_or_default(), btc_acl: btc_acl_result.unwrap_or_default() })
 }
 
 /// Puts a user in the Registering state on-chain and waits for that transaction to be included in a

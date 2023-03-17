@@ -5,7 +5,7 @@ use ethers_core::types::TransactionRequest;
 // write a test for the eval function of the Evaluate trait
 use ethers_core::types::{NameOrAddress, H160};
 
-use crate::Evaluate;
+use crate::{Evaluate, Error};
 
 #[test]
 fn test_acl_functions_properly() {
@@ -30,10 +30,11 @@ fn test_acl_functions_properly() {
     let allowlisted_acl = Acl::<[u8; 20]> { addresses: vec![evm_address_1], ..Default::default() };
 
     // should only let allowlisted_tx through
-    assert!(allowlisted_acl.eval(to_address_1_tx.clone()).unwrap());
-    assert!(!allowlisted_acl.eval(to_address_2_tx.clone()).unwrap());
-    assert!(!allowlisted_acl.eval(to_address_3_tx.clone()).unwrap());
-    assert!(!allowlisted_acl.eval(to_null_recipient_tx.clone()).unwrap());
+    assert!(allowlisted_acl.clone().eval(to_address_1_tx.clone()).is_ok());
+
+    assert!(allowlisted_acl.clone().eval(to_address_2_tx.clone()).is_err());
+    assert!(allowlisted_acl.clone().eval(to_address_3_tx.clone()).is_err());
+    assert!(allowlisted_acl.clone().eval(to_null_recipient_tx.clone()).is_err());
 
     let denylisted_acl = Acl::<[u8; 20]> {
         addresses: vec![evm_address_1],
@@ -42,10 +43,12 @@ fn test_acl_functions_properly() {
     };
 
     // should only block whitelisted and null recipient txs
-    assert!(!denylisted_acl.eval(to_address_1_tx.clone()).unwrap());
-    assert!(denylisted_acl.eval(to_address_2_tx.clone()).unwrap());
-    assert!(denylisted_acl.eval(to_address_3_tx.clone()).unwrap());
-    assert!(!allowlisted_acl.eval(to_null_recipient_tx.clone()).unwrap());
+    assert!(denylisted_acl.clone().eval(to_address_2_tx.clone()).is_ok());
+    assert!(denylisted_acl.clone().eval(to_address_3_tx.clone()).is_ok());
+
+    assert!(denylisted_acl.clone().eval(to_address_1_tx.clone()).is_err());
+    assert!(allowlisted_acl.clone().eval(to_null_recipient_tx.clone()).is_err());
+
 
     let allowlisted_acl_with_null_recipient = Acl::<[u8; 20]> {
         addresses: vec![evm_address_1],
@@ -53,10 +56,12 @@ fn test_acl_functions_properly() {
         ..Default::default()
     };
 
-    assert!(allowlisted_acl_with_null_recipient.eval(to_address_1_tx.clone()).unwrap());
-    assert!(!allowlisted_acl_with_null_recipient.eval(to_address_2_tx.clone()).unwrap());
-    assert!(!allowlisted_acl_with_null_recipient.eval(to_address_3_tx.clone()).unwrap());
-    assert!(allowlisted_acl_with_null_recipient.eval(to_null_recipient_tx.clone()).unwrap());
+    // should only let allowlisted_tx and null recipient txs through
+    assert!(allowlisted_acl_with_null_recipient.clone().eval(to_address_1_tx.clone()).is_ok());
+    assert!(allowlisted_acl_with_null_recipient.clone().eval(to_null_recipient_tx.clone()).is_ok());
+
+    assert!(allowlisted_acl_with_null_recipient.clone().eval(to_address_2_tx.clone()).is_err());
+    assert!(allowlisted_acl_with_null_recipient.clone().eval(to_address_3_tx.clone()).is_err());
 
     let denylisted_acl_with_null_recipient = Acl::<[u8; 20]> {
         addresses: vec![evm_address_1],
@@ -65,8 +70,9 @@ fn test_acl_functions_properly() {
     };
 
     // should only block whitelisted
-    assert!(!denylisted_acl_with_null_recipient.eval(to_address_1_tx).unwrap());
-    assert!(denylisted_acl_with_null_recipient.eval(to_address_2_tx).unwrap());
-    assert!(denylisted_acl_with_null_recipient.eval(to_address_3_tx).unwrap());
-    assert!(denylisted_acl_with_null_recipient.eval(to_null_recipient_tx).unwrap());
+    assert!(denylisted_acl_with_null_recipient.clone().eval(to_address_2_tx).is_ok());
+    assert!(denylisted_acl_with_null_recipient.clone().eval(to_address_3_tx).is_ok());
+    assert!(denylisted_acl_with_null_recipient.clone().eval(to_null_recipient_tx).is_ok());
+
+    assert!(denylisted_acl_with_null_recipient.clone().eval(to_address_1_tx).is_err());
 }
