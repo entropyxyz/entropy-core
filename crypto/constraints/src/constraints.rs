@@ -11,6 +11,7 @@ pub trait Evaluate<A: Architecture> {
 }
 
 // TODO This can likely be made generic over any architecture with GetRecipient and GetSender traits
+#[allow(clippy::needless_collect)]
 impl Evaluate<Evm> for Acl<[u8; 20]> {
     fn eval(self, tx: <Evm as Architecture>::TransactionRequest) -> Result<(), Error> {
         if tx.to.is_none() {
