@@ -1,7 +1,7 @@
 use std::str;
 
 use blake2::{Blake2s256, Digest};
-use entropy_shared::OCWMessage;
+use entropy_shared::RefreshMessages;
 use kvdb::kv_manager::KvManager;
 use parity_scale_codec::{Decode, Encode};
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
@@ -21,5 +21,16 @@ pub async fn refresh(
     kv: &State<KvManager>,
     config: &State<Configuration>,
 ) -> Result<Status, RefreshErr> {
+	let data = RefreshMessages::decode(&mut encoded_data.as_ref());
 	Ok(Status::Ok)
+}
+
+
+pub fn validate_proactive_refresh() {
+
+}
+
+
+pub fn is_node_in_request() {
+
 }
