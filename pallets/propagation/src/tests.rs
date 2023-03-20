@@ -42,7 +42,7 @@ fn knows_how_to_mock_several_http_calls() {
             ..Default::default()
         });
 
-		state.expect_request(testing::PendingRequest {
+        state.expect_request(testing::PendingRequest {
             method: "POST".into(),
             uri: "http://localhost:3001/refresh/proactive_refresh".into(),
             sent: true,
@@ -51,12 +51,13 @@ fn knows_how_to_mock_several_http_calls() {
             ..Default::default()
         });
 
-		state.expect_request(testing::PendingRequest {
+        state.expect_request(testing::PendingRequest {
             method: "POST".into(),
             uri: "http://localhost:3001/refresh/proactive_refresh".into(),
             sent: true,
             response: Some([].to_vec()),
-            body: [1, 8, 4, 20, 32, 5, 0, 0, 0, 0, 0, 0, 0, 4, 40, 32, 6, 0, 0, 0, 0, 0, 0, 0].to_vec(),
+            body: [1, 8, 4, 20, 32, 5, 0, 0, 0, 0, 0, 0, 0, 4, 40, 32, 6, 0, 0, 0, 0, 0, 0, 0]
+                .to_vec(),
             ..Default::default()
         });
     });
@@ -73,20 +74,35 @@ fn knows_how_to_mock_several_http_calls() {
         // full send
         Propagation::post_message_requests(4).unwrap();
 
-		Propagation::on_initialize(1);
+        Propagation::on_initialize(1);
 
-		// proactive refresh no data
-		Propagation::post_proactive_refresh().unwrap();
+        // proactive refresh no data
+        Propagation::post_proactive_refresh().unwrap();
 
+        Propagation::on_initialize(0);
 
-		Propagation::on_initialize(0);
-
-		// full send
-		Propagation::post_proactive_refresh().unwrap();
-
+        // full send
+        Propagation::post_proactive_refresh().unwrap();
     })
 }
 
+#[test]
+fn tests_on_init() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(Propagation::refresh_counter(), 0);
+        assert_eq!(Propagation::refresh_data(0), None);
+
+        Propagation::on_initialize(0);
+        assert_eq!(Propagation::refresh_counter(), 1);
+
+        let mock_data = Relayer::get_ip_addresses().unwrap().2;
+        assert_eq!(Propagation::refresh_data(0).unwrap(), mock_data);
+
+        Propagation::on_initialize(1);
+        assert_eq!(Propagation::refresh_counter(), 1);
+        assert_eq!(Propagation::refresh_data(1), None);
+    })
+}
 // TODO test on init
 
 fn offchain_worker_env(state_updater: fn(&mut testing::OffchainState)) -> TestExternalities {
