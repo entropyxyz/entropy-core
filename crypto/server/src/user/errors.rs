@@ -1,6 +1,6 @@
 //! Errors used in User creation
 
-use std::io::Cursor;
+use std::{io::Cursor, string::FromUtf8Error};
 
 use entropy_constraints::Error as ConstraintsError;
 use rocket::{
@@ -43,6 +43,8 @@ pub enum UserErr {
     ConstraintsError(#[from] ConstraintsError),
     #[error("Signing error: {0}")]
     SigningClientError(#[from] SigningErr),
+    #[error("Transaction request unable to be deserialized: {0}")]
+    StringConversion(#[from] FromUtf8Error),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {
