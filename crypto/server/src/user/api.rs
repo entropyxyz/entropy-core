@@ -68,21 +68,11 @@ pub async fn store_tx(
             let sighash = hex::encode(parsed_tx.sighash().as_bytes());
 
             // check if user submitted tx to chain already
-            match kv.kv().get(&sighash).await {
-                Ok(message_json) => {
-                    // parse their trasnaction request
-                    let message: Message =
-                        serde_json::from_str(&String::from_utf8(message_json).unwrap()).unwrap();
-                    // kickoff signing process
-                    do_signing(message, state, kv, signatures).await?;
-                },
-                // If the key is already reserved, then we can assume the transaction is already
-                // stored.
-                Err(_) => {
-                    println!("client error: submit to chain first");
-                    return Ok(Status::FailedDependency);
-                },
-            }
+            let message_json = kv.kv().get(&sighash).await?;
+            kv.kv().delete(&sighash).await?;
+            // parse their transaction request
+            let message: Message = serde_json::from_str(&String::from_utf8(message_json)?)?;
+            do_signing(message, state, kv, signatures).await?;
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
