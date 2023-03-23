@@ -43,7 +43,7 @@ pub enum UserErr {
     ConstraintsError(#[from] ConstraintsError),
     #[error("Signing error: {0}")]
     SigningClientError(#[from] SigningErr),
-    #[error("String Conversion Error: {0}")]
+    #[error("Transaction request unable to be deserialized: {0}")]
     StringConversion(#[from] FromUtf8Error),
 }
 

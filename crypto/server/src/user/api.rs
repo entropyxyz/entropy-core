@@ -1,5 +1,3 @@
-use std::{thread, time};
-
 use bip39::{Language, Mnemonic};
 use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{
