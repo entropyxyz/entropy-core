@@ -1,8 +1,7 @@
 #![cfg(test)]
 
 use entropy_shared::{Acl, AclKind};
-use ethers_core::types::TransactionRequest;
-use ethers_core::types::{NameOrAddress, H160};
+use ethers_core::types::{NameOrAddress, TransactionRequest, H160};
 
 use crate::Evaluate;
 
