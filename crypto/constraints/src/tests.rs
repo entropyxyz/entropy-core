@@ -2,7 +2,6 @@
 
 use entropy_shared::{Acl, AclKind};
 use ethers_core::types::TransactionRequest;
-// write a test for the eval function of the Evaluate trait
 use ethers_core::types::{NameOrAddress, H160};
 
 use crate::Evaluate;
@@ -69,9 +68,17 @@ fn test_acl_functions_properly() {
     };
 
     // should only block whitelisted
-    assert!(denylisted_acl_with_null_recipient.clone().eval(to_address_2_tx).is_ok());
-    assert!(denylisted_acl_with_null_recipient.clone().eval(to_address_3_tx).is_ok());
-    assert!(denylisted_acl_with_null_recipient.clone().eval(to_null_recipient_tx).is_ok());
+    assert!(denylisted_acl_with_null_recipient.clone().eval(to_address_2_tx.clone()).is_ok());
+    assert!(denylisted_acl_with_null_recipient.clone().eval(to_address_3_tx.clone()).is_ok());
+    assert!(denylisted_acl_with_null_recipient.clone().eval(to_null_recipient_tx.clone()).is_ok());
 
-    assert!(denylisted_acl_with_null_recipient.eval(to_address_1_tx).is_err());
+    assert!(denylisted_acl_with_null_recipient.eval(to_address_1_tx.clone()).is_err());
+
+    let empty_acl = Acl::<[u8; 20]>::default();
+
+    // should fail all txs
+    assert!(empty_acl.clone().eval(to_address_1_tx.clone()).is_err());
+    assert!(empty_acl.clone().eval(to_address_2_tx.clone()).is_err());
+    assert!(empty_acl.clone().eval(to_address_3_tx.clone()).is_err());
+    assert!(empty_acl.clone().eval(to_null_recipient_tx.clone()).is_err());
 }
