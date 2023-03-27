@@ -44,6 +44,7 @@ pub async fn new_party(
             .try_into()
             .map_err(|_| SigningErr::AddressConversionError("Invalid Length".to_string()))?;
         let user = sp_core::crypto::AccountId32::new(*address_slice);
+		// TODO: get proper ss58 number when chosen
         let address = user.to_ss58check();
 
         let tx_id = create_unique_tx_id(&address, &hex::encode(&message.sig_request.sig_hash));
