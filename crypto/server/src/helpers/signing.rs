@@ -80,3 +80,8 @@ pub async fn do_signing(
     );
     Ok(Status::Ok)
 }
+
+/// Creates a unique tx Id by concatenating the user's signing key and message digest
+pub fn create_unique_tx_id(account: &String, sig_hash: &String) -> String {
+    format!("{}&{}", account, sig_hash)
+}

@@ -37,6 +37,8 @@ pub enum SigningErr {
     ProtocolExecution(String),
     #[error("Protocol Output error: {0}")]
     ProtocolOutput(String),
+    #[error("Invalid length for converting address")]
+    AddressConversionError(String),
     #[error("Cannot make a recoverable signature")]
     SignatureError,
     #[error("reqwest error: {0}")]
@@ -53,6 +55,8 @@ pub enum SigningErr {
     GenericSubstrate(#[from] subxt::error::Error),
     #[error("Option Unwrap error: {0}")]
     OptionUnwrapError(&'static str),
+    #[error("Serde Json error: {0}")]
+    SerdeJson(#[from] serde_json::Error),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {

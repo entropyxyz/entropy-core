@@ -32,7 +32,7 @@ use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     helpers::{
-        signing::{do_signing, SignatureState},
+        signing::{create_unique_tx_id, do_signing, SignatureState},
         validator::{get_signer, get_subgroup},
     },
     message::SignedMessage,
@@ -47,6 +47,8 @@ pub struct GenericTransactionRequest {
     pub arch: String,
     /// ETH: RLP encoded transaction request
     pub transaction_request: String,
+    /// signing address of key
+    pub signing_address: String,
 }
 
 // TODO: Add block based removal for unsigned transactions in the KVDB.
@@ -65,14 +67,14 @@ pub async fn store_tx(
             let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
                 generic_tx_req.transaction_request.clone(),
             )?;
-            let sighash = hex::encode(parsed_tx.sighash().as_bytes());
-
+            let sig_hash = hex::encode(parsed_tx.sighash().as_bytes());
+            let tx_id = create_unique_tx_id(&generic_tx_req.signing_address, &sig_hash);
             // check if user submitted tx to chain already
-            let message_json = kv.kv().get(&sighash).await?;
-            kv.kv().delete(&sighash).await?;
+            let message_json = kv.kv().get(&tx_id).await?;
+            kv.kv().delete(&tx_id).await?;
             // parse their transaction request
             let message: Message = serde_json::from_str(&String::from_utf8(message_json)?)?;
-            do_signing(message, state, kv, signatures, sighash).await?;
+            do_signing(message, state, kv, signatures, tx_id).await?;
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
