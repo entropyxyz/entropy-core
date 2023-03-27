@@ -72,7 +72,7 @@ pub async fn store_tx(
             kv.kv().delete(&sighash).await?;
             // parse their transaction request
             let message: Message = serde_json::from_str(&String::from_utf8(message_json)?)?;
-            do_signing(message, state, kv, signatures).await?;
+            do_signing(message, state, kv, signatures, sighash).await?;
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));

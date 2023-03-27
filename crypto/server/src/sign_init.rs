@@ -50,7 +50,7 @@ impl SignInit {
 
     // TODO: remove when we have a real implementation
     // Generate temporary data for API testing.
-    pub(crate) fn temporary_data(message: Message) -> Self {
+    pub(crate) fn temporary_data(message: Message, key: String) -> Self {
         let digest: MessageDigest = message.sig_request.sig_hash.as_slice().try_into().unwrap();
         let raw_address = &message.account;
         let address_slice: &[u8; 32] =
@@ -62,7 +62,7 @@ impl SignInit {
             .map(|ip_address| String::from_utf8(ip_address).unwrap())
             .collect::<Vec<_>>();
         SignInit::new(
-            "test".to_string(),
+            key,
             vec!["test".to_string(), "test1".to_string()],
             vec![0, 1],
             digest,
