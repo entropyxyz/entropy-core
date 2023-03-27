@@ -49,7 +49,7 @@ pub async fn do_signing(
     state: &State<SignerState>,
     kv_manager: &State<KvManager>,
     signatures: &State<SignatureState>,
-	key: String
+    key: String,
 ) -> Result<Status, SigningErr> {
     // todo: temporary hack, replace with correct data
     let info = SignInit::temporary_data(message.clone(), key);
