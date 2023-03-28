@@ -1,7 +1,6 @@
 use bip39::{Language, Mnemonic};
 use entropy_constraints::{
-    Architecture, BasicTransaction, Error as ConstraintsError, Evaluate, Evm, GetReceiver,
-    GetSender, Parse,
+    Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints},
@@ -80,9 +79,10 @@ pub async fn store_tx(
             let sighash = hex::encode(parsed_tx.sighash().as_bytes());
             let substrate_api = get_api(&config.endpoint);
 
-            let raw_associated_ocw_message = kv.kv().get(&sighash).await?;
-            let associated_ocw_message = String::from_utf8(raw_associated_ocw_message).unwrap();
-            let message: Message = serde_json::from_str(&associated_ocw_message)?;
+            // check if user submitted tx to chain already
+            let message_json = kv.kv().get(&sighash).await?;
+            let message: Message = serde_json::from_str(&String::from_utf8(message_json)?)?;
+            kv.kv().delete(&sighash).await?;
             let sig_req_account = <EntropyConfig as Config>::AccountId::from(
                 <[u8; 32]>::try_from(message.account.clone()).unwrap(),
             );
@@ -94,8 +94,8 @@ pub async fn store_tx(
 
             evm_acl.eval(parsed_tx)?;
 
-            do_signing(message, state, kv, signatures).await?;
-            kv.kv().delete(&sighash).await?;
+            // parse their transaction request
+            do_signing(message, state, kv, signatures, sighash).await?;
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));

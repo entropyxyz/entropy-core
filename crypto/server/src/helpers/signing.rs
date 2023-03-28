@@ -49,9 +49,10 @@ pub async fn do_signing(
     state: &State<SignerState>,
     kv_manager: &State<KvManager>,
     signatures: &State<SignatureState>,
+    key: String,
 ) -> Result<Status, SigningErr> {
     // todo: temporary hack, replace with correct data
-    let info = SignInit::temporary_data(message.clone());
+    let info = SignInit::temporary_data(message.clone(), key);
     let gg20_service = Gg20Service::new(state, kv_manager);
 
     // set up context for signing protocol execution
