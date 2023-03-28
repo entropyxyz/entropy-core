@@ -10,7 +10,7 @@ use testing_utils::context::test_context_stationary;
 
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
-    helpers::tests::setup_client,
+    helpers::{signing::create_unique_tx_id, tests::setup_client},
     r#unsafe::api::UnsafeQuery,
     signing_client::tests::entropy::runtime_types::entropy_shared::types::SigRequest as otherSigRequest,
 };
@@ -49,12 +49,12 @@ async fn test_new_party() {
         .dispatch()
         .await;
     assert_eq!(response.status(), Status::Ok);
-
+    let tx_id = create_unique_tx_id(&dave.to_account_id().to_string(), &hex::encode(sig_hash));
     // check that the signature request was stored in the kvdb
     let query_parsed_tx = client
         .post("/unsafe/get")
         .header(ContentType::JSON)
-        .body(UnsafeQuery::new(hex::encode(sig_hash), String::new()).to_json())
+        .body(UnsafeQuery::new(tx_id, String::new()).to_json())
         .dispatch()
         .await;
     assert_eq!(
