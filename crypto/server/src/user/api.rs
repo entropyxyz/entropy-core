@@ -71,9 +71,9 @@ pub async fn store_tx(
             let tx_id = create_unique_tx_id(&generic_tx_req.signing_address, &sig_hash);
             // check if user submitted tx to chain already
             let message_json = kv.kv().get(&tx_id).await?;
-            kv.kv().delete(&tx_id).await?;
             // parse their transaction request
             let message: Message = serde_json::from_str(&String::from_utf8(message_json)?)?;
+            kv.kv().delete(&tx_id).await?;
             do_signing(message, state, kv, signatures, tx_id).await?;
         },
         _ => {
