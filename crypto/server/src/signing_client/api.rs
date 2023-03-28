@@ -1,16 +1,17 @@
-use std::str;
+use std::{convert::TryInto, str};
 
 use blake2::{Blake2s256, Digest};
 use entropy_shared::OCWMessage;
 use kvdb::kv_manager::KvManager;
 use parity_scale_codec::{Decode, Encode};
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
+use sp_core::crypto::Ss58Codec;
 use subxt::OnlineClient;
 use tracing::instrument;
 
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
-    helpers::signing::SignatureState,
+    helpers::signing::{create_unique_tx_id, SignatureState},
     signing_client::{
         subscribe::{Listener, Receiver},
         SignerState, SigningErr, SubscribeErr, SubscribeMessage,
@@ -37,10 +38,19 @@ pub async fn new_party(
     let api = get_api(&config.endpoint).await?;
     validate_new_party(&data, &api).await?;
     for message in data.messages {
-        let sighash = hex::encode(&message.sig_request.sig_hash);
+        let address_slice: &[u8; 32] = &message
+            .account
+            .clone()
+            .try_into()
+            .map_err(|_| SigningErr::AddressConversionError("Invalid Length".to_string()))?;
+        let user = sp_core::crypto::AccountId32::new(*address_slice);
 
-        let reservation = kv.kv().reserve_key(sighash).await?;
-        let value = serde_json::to_string(&message).unwrap();
+        // TODO: get proper ss58 number when chosen
+        let address = user.to_ss58check();
+
+        let tx_id = create_unique_tx_id(&address, &hex::encode(&message.sig_request.sig_hash));
+        let reservation = kv.kv().reserve_key(tx_id).await?;
+        let value = serde_json::to_string(&message)?;
         kv.kv().put(reservation, value.into()).await?;
     }
 
