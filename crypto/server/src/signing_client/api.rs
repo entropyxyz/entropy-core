@@ -140,6 +140,7 @@ pub async fn validate_new_party(
     Ok(())
 }
 
+/// Prunes old tx from DB
 pub async fn prune_old_tx_from_kvdb(
     api: &OnlineClient<EntropyConfig>,
     kv: &State<KvManager>,
