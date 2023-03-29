@@ -33,7 +33,7 @@ pub async fn new_party(
     let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
     let api = get_api(&config.endpoint).await?;
     if data.messages.is_empty() {
-        prune_old_tx_from_kvdb(&api, &kv, data.block_number).await?;
+        prune_old_tx_from_kvdb(&api, kv, data.block_number).await?;
         return Ok(Status::NoContent);
     }
     validate_new_party(&data, &api).await?;
@@ -53,7 +53,7 @@ pub async fn new_party(
         let value = serde_json::to_string(&message)?;
         kv.kv().put(reservation, value.into()).await?;
     }
-    prune_old_tx_from_kvdb(&api, &kv, data.block_number).await?;
+    prune_old_tx_from_kvdb(&api, kv, data.block_number).await?;
     Ok(Status::Ok)
 }
 
