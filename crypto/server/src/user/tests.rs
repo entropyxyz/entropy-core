@@ -60,18 +60,37 @@ async fn test_get_signer_does_not_throw_err() {
 #[serial]
 async fn test_unsigned_tx_endpoint() {
     clean_tests();
-
-    let ports = vec![3001i64, 3002];
+    let x25519_public_keys: Vec<[u8; 32]> = vec![
+        vec![
+            10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124, 195, 141,
+            148, 249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247, 58, 34,
+        ]
+        .try_into()
+        .unwrap(),
+        vec![
+            225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245, 89, 36, 170, 169,
+            181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136, 102, 10,
+        ]
+        .try_into()
+        .unwrap(),
+    ];
+    let ports = vec![(3001i64, x25519_public_keys[0]), (3002, x25519_public_keys[1])];
 
     // spawn threshold servers
-    join_all(ports.iter().map(|&port| async move {
-        tokio::spawn(async move { create_clients(port).await.launch().await.unwrap() })
+    join_all(ports.iter().map(|&tuple| async move {
+        tokio::spawn(async move {
+            if tuple.0 == 3001i64 {
+                create_clients(tuple.0, true, false).await.launch().await.unwrap()
+            } else {
+                create_clients(tuple.0, false, true).await.launch().await.unwrap()
+            }
+        })
     }))
     .await;
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    let validator_ips: Vec<String> =
-        ports.iter().map(|port| format!("127.0.0.1:{}", port)).collect();
+    let validator_ips: Vec<(String, [u8; 32])> =
+        ports.iter().map(|tuple| (format!("127.0.0.1:{}", tuple.0), tuple.1)).collect::<Vec<_>>();
 
     let transaction_requests = vec![
         // alice
@@ -79,6 +98,7 @@ async fn test_unsigned_tx_endpoint() {
         // bob
         TransactionRequest::new().to(Address::from([2u8; 20])).value(5),
     ];
+
     let keyrings = vec![AccountKeyring::Alice, AccountKeyring::Bob];
 
     let raw_ocw_messages = transaction_requests
@@ -89,7 +109,7 @@ async fn test_unsigned_tx_endpoint() {
             account: keyring.to_raw_public_vec(),
             ip_addresses: validator_ips
                 .iter()
-                .map(|url| url.clone().into_bytes())
+                .map(|tuple| tuple.0.clone().into_bytes())
                 .collect::<Vec<Vec<u8>>>(),
         })
         .collect::<Vec<_>>();
@@ -127,32 +147,42 @@ async fn test_unsigned_tx_endpoint() {
     }))
     .await;
 
-    let validator_urls: Arc<Vec<String>> =
-        Arc::new(validator_ips.iter().map(|ip| format!("http://{}", ip)).collect());
+    let validator_urls: Arc<Vec<(String, [u8; 32])>> = Arc::new(
+        validator_ips.iter().map(|tuple| (format!("http://{}", tuple.0), tuple.1)).collect(),
+    );
 
     // construct json bodies for transaction requests
     let tx_req_bodies = transaction_requests
         .iter()
         .zip(keyrings.clone())
         .map(|(tx_req, keyring)| {
-            serde_json::json!({
-                "arch": "evm",
-                "transaction_request": tx_req.rlp_unsigned().to_string(),
-                "signing_address": keyring.to_account_id()
-            })
+            (
+                serde_json::json!({
+                    "arch": "evm",
+                    "transaction_request": tx_req.rlp_unsigned().to_string(),
+                }),
+                keyring,
+            )
         })
         .collect::<Vec<_>>();
-
     // mock client signature requests
     let submit_transaction_requests =
-        |validator_urls: Arc<Vec<String>>, tx_req_body: serde_json::Value| async move {
+        |validator_urls: Arc<Vec<(String, [u8; 32])>>,
+         tx_req_body: (serde_json::Value, AccountKeyring)| async move {
             let mock_client = reqwest::Client::new();
             join_all(
                 validator_urls
                     .iter()
-                    .map(|url| async {
-                        let url = format!("{}/user/tx", url.clone());
-                        let res = mock_client.post(url).json(&tx_req_body).send().await;
+                    .map(|tuple| async {
+                        let server_public_key = PublicKey::from(tuple.1);
+                        let signed_message = SignedMessage::new(
+                            &tx_req_body.1.pair(),
+                            &Bytes(serde_json::to_vec(&tx_req_body.0.clone()).unwrap()),
+                            &server_public_key,
+                        )
+                        .unwrap();
+                        let url = format!("{}/user/tx", tuple.0.clone());
+                        let res = mock_client.post(url).json(&signed_message).send().await;
                         assert_eq!(res.unwrap().status(), 200);
                     })
                     .collect::<Vec<_>>(),
@@ -163,7 +193,6 @@ async fn test_unsigned_tx_endpoint() {
     // send alice's tx req, then bob's
     submit_transaction_requests(validator_urls.clone(), tx_req_bodies[0].clone()).await;
     submit_transaction_requests(validator_urls.clone(), tx_req_bodies[1].clone()).await;
-
     // poll a validator and validate the threshold signatures
     let get_sig_messages = raw_ocw_messages
         .iter()
@@ -186,8 +215,8 @@ async fn test_unsigned_tx_endpoint() {
 
     // if unsafe, then also validate signature deletion
     // delete all signatures from the servers
-    join_all(validator_urls.iter().map(|url| async {
-        let url = format!("{}/signer/drain", url.clone());
+    join_all(validator_urls.iter().map(|tuple| async {
+        let url = format!("{}/signer/drain", tuple.0.clone());
         let res = mock_client.get(url).send().await;
         assert_eq!(res.unwrap().status(), 200);
     }))
@@ -206,6 +235,8 @@ async fn test_unsigned_tx_endpoint() {
 
     clean_tests();
 }
+
+// TODO negative validation tests on user/tx
 
 #[rocket::async_test]
 #[serial]
@@ -232,7 +263,6 @@ async fn test_store_share() {
     let user_input = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
         .unwrap()
         .to_json();
-
     // fails to add not registering or swapping
     let response = client
         .post("/user/new")
@@ -489,7 +519,7 @@ pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &Sr25
     let _ = api.storage().fetch(&registered_query, None).await.unwrap();
 }
 
-async fn create_clients(port: i64) -> Rocket<Ignite> {
+async fn create_clients(port: i64, is_alice: bool, is_bob: bool) -> Rocket<Ignite> {
     let config = rocket::Config::figment().merge(("port", port));
 
     let signer_state = SignerState::default();
@@ -517,6 +547,7 @@ async fn create_clients(port: i64) -> Rocket<Ignite> {
     // alice and bob reuse the same keyshares for testing
     let _ = kv_store.kv().put(alice_reservation, v_serialized.clone()).await;
     let _ = kv_store.kv().put(bob_reservation, v_serialized).await;
+    let _ = setup_mnemonic(&kv_store, is_alice, is_bob).await;
 
     rocket::custom(config)
         .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])

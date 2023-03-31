@@ -19,7 +19,7 @@ use rocket::{
 use serde::{Deserialize, Serialize};
 use subxt::{
     ext::{
-        sp_core::{sr25519, Pair},
+        sp_core::{crypto::Ss58Codec, sr25519, Pair},
         sp_runtime::AccountId32,
     },
     tx::PairSigner,
@@ -47,28 +47,38 @@ pub struct GenericTransactionRequest {
     pub arch: String,
     /// ETH: RLP encoded transaction request
     pub transaction_request: String,
-    /// signing address of key
-    pub signing_address: String,
 }
 
 // TODO: Add block based removal for unsigned transactions in the KVDB.
 /// https://github.com/entropyxyz/entropy-core/issues/248
 /// Maps a tx hash -> unsigned transaction in the kvdb.
-#[post("/tx", format = "json", data = "<generic_tx_req>")]
+#[post("/tx", format = "json", data = "<msg>")]
 pub async fn store_tx(
-    generic_tx_req: Json<GenericTransactionRequest>,
+    msg: Json<SignedMessage>,
     state: &State<SignerState>,
     kv: &State<KvManager>,
     signatures: &State<SignatureState>,
 ) -> Result<Status, UserErr> {
     // TODO: client data needs to come in encrypted and authenticated
+    // Verifies the message contains a valid sr25519 signature from the sender.
+    let signed_msg: SignedMessage = msg.into_inner();
+    if !signed_msg.verify() {
+        return Err(UserErr::InvalidSignature("Invalid signature."));
+    }
+    let signer = get_signer(kv).await?;
+    let signing_address = signed_msg.account_id().to_ss58check();
+
+    let decrypted_message =
+        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+    let generic_tx_req: GenericTransactionRequest =
+        serde_json::from_slice(&decrypted_message).unwrap();
     match generic_tx_req.arch.as_str() {
         "evm" => {
             let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
                 generic_tx_req.transaction_request.clone(),
             )?;
             let sig_hash = hex::encode(parsed_tx.sighash().as_bytes());
-            let tx_id = create_unique_tx_id(&generic_tx_req.signing_address, &sig_hash);
+            let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
             // check if user submitted tx to chain already
             let message_json = kv.kv().get(&tx_id).await?;
             // parse their transaction request
