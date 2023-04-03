@@ -59,7 +59,6 @@ pub async fn store_tx(
     kv: &State<KvManager>,
     signatures: &State<SignatureState>,
 ) -> Result<Status, UserErr> {
-    // TODO: client data needs to come in encrypted and authenticated
     // Verifies the message contains a valid sr25519 signature from the sender.
     let signed_msg: SignedMessage = msg.into_inner();
     if !signed_msg.verify() {
@@ -70,8 +69,7 @@ pub async fn store_tx(
 
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
-    let generic_tx_req: GenericTransactionRequest =
-        serde_json::from_slice(&decrypted_message).unwrap();
+    let generic_tx_req: GenericTransactionRequest = serde_json::from_slice(&decrypted_message)?;
     match generic_tx_req.arch.as_str() {
         "evm" => {
             let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(

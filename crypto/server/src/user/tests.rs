@@ -77,20 +77,22 @@ async fn test_unsigned_tx_endpoint() {
     let ports = vec![(3001i64, x25519_public_keys[0]), (3002, x25519_public_keys[1])];
 
     // spawn threshold servers
-    join_all(ports.iter().map(|&tuple| async move {
+    join_all(ports.iter().map(|&port_tuple| async move {
         tokio::spawn(async move {
-            if tuple.0 == 3001i64 {
-                create_clients(tuple.0, true, false).await.launch().await.unwrap()
+            if port_tuple.0 == 3001i64 {
+                create_clients(port_tuple.0, true, false).await.launch().await.unwrap()
             } else {
-                create_clients(tuple.0, false, true).await.launch().await.unwrap()
+                create_clients(port_tuple.0, false, true).await.launch().await.unwrap()
             }
         })
     }))
     .await;
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    let validator_ips: Vec<(String, [u8; 32])> =
-        ports.iter().map(|tuple| (format!("127.0.0.1:{}", tuple.0), tuple.1)).collect::<Vec<_>>();
+    let validator_ips: Vec<(String, [u8; 32])> = ports
+        .iter()
+        .map(|validator_tuple| (format!("127.0.0.1:{}", validator_tuple.0), validator_tuple.1))
+        .collect::<Vec<_>>();
 
     let transaction_requests = vec![
         // alice
@@ -109,7 +111,7 @@ async fn test_unsigned_tx_endpoint() {
             account: keyring.to_raw_public_vec(),
             ip_addresses: validator_ips
                 .iter()
-                .map(|tuple| tuple.0.clone().into_bytes())
+                .map(|validator_tuple| validator_tuple.0.clone().into_bytes())
                 .collect::<Vec<Vec<u8>>>(),
         })
         .collect::<Vec<_>>();
@@ -148,7 +150,10 @@ async fn test_unsigned_tx_endpoint() {
     .await;
 
     let validator_urls: Arc<Vec<(String, [u8; 32])>> = Arc::new(
-        validator_ips.iter().map(|tuple| (format!("http://{}", tuple.0), tuple.1)).collect(),
+        validator_ips
+            .iter()
+            .map(|validator_tuple| (format!("http://{}", validator_tuple.0), validator_tuple.1))
+            .collect(),
     );
 
     // construct json bodies for transaction requests
@@ -173,15 +178,15 @@ async fn test_unsigned_tx_endpoint() {
             join_all(
                 validator_urls
                     .iter()
-                    .map(|tuple| async {
-                        let server_public_key = PublicKey::from(tuple.1);
+                    .map(|validator_tuple| async {
+                        let server_public_key = PublicKey::from(validator_tuple.1);
                         let signed_message = SignedMessage::new(
                             &tx_req_body.1.pair(),
                             &Bytes(serde_json::to_vec(&tx_req_body.0.clone()).unwrap()),
                             &server_public_key,
                         )
                         .unwrap();
-                        let url = format!("{}/user/tx", tuple.0.clone());
+                        let url = format!("{}/user/tx", validator_tuple.0.clone());
                         let res = mock_client.post(url).json(&signed_message).send().await;
                         assert_eq!(res.unwrap().status(), 200);
                     })
@@ -215,8 +220,8 @@ async fn test_unsigned_tx_endpoint() {
 
     // if unsafe, then also validate signature deletion
     // delete all signatures from the servers
-    join_all(validator_urls.iter().map(|tuple| async {
-        let url = format!("{}/signer/drain", tuple.0.clone());
+    join_all(validator_urls.iter().map(|validator_tuple| async {
+        let url = format!("{}/signer/drain", validator_tuple.0.clone());
         let res = mock_client.get(url).send().await;
         assert_eq!(res.unwrap().status(), 200);
     }))
@@ -232,6 +237,23 @@ async fn test_unsigned_tx_endpoint() {
         assert_eq!(res.as_ref().unwrap().status(), 500);
     }))
     .await;
+
+    // test fail validation decrypt
+    let server_public_key = PublicKey::from(x25519_public_keys[1]);
+    let failed_signed_message = SignedMessage::new(
+        &tx_req_bodies[0].1.pair(),
+        &Bytes(serde_json::to_vec(&tx_req_bodies[0].0.clone()).unwrap()),
+        &server_public_key,
+    )
+    .unwrap();
+    let failed_res = mock_client
+        .post("http://127.0.0.1:3001//user/tx")
+        .json(&failed_signed_message)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(failed_res.status(), 500);
+    assert_eq!(failed_res.text().await.unwrap(), "ChaCha20 decryption error: aead::Error");
 
     clean_tests();
 }
