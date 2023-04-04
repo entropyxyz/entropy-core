@@ -2,7 +2,7 @@ use std::{env, fs, path::PathBuf, sync::Arc};
 
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::{Message, OCWMessage, SigRequest};
+use entropy_shared::{Message, OCWMessage, SigRequest, ValidatorInfo};
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future};
 use hex_literal::hex as h;
@@ -109,10 +109,10 @@ async fn test_unsigned_tx_endpoint() {
         .map(|(tx_req, keyring)| Message {
             sig_request: SigRequest { sig_hash: tx_req.sighash().as_bytes().to_vec() },
             account: keyring.to_raw_public_vec(),
-            ip_addresses: validator_ips
+            validators_info: validator_ips
                 .iter()
-                .map(|validator_tuple| validator_tuple.0.clone().into_bytes())
-                .collect::<Vec<Vec<u8>>>(),
+                .map(|validator_tuple| ValidatorInfo { ip_address: validator_tuple.0.clone().into_bytes(), x25519_public_key: validator_tuple.1.clone()})
+                .collect::<Vec<ValidatorInfo>>(),
         })
         .collect::<Vec<_>>();
 

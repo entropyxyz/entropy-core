@@ -57,9 +57,9 @@ impl SignInit {
             &raw_address.clone().try_into().expect("slice with incorrect length");
         let user = sp_core::crypto::AccountId32::new(*address_slice);
         let ip_addresses = message
-            .ip_addresses
+			.validators_info
             .into_iter()
-            .map(|ip_address| String::from_utf8(ip_address).unwrap())
+            .map(|validator_info| String::from_utf8(validator_info.ip_address).unwrap())
             .collect::<Vec<_>>();
         SignInit::new(
             key,
