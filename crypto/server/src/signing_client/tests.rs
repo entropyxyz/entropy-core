@@ -1,5 +1,5 @@
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::{Message, OCWMessage, SigRequest, ValidatorInfo};
+use entropy_shared::{Message, OCWMessage, SigRequest, ValidatorInfo, PRUNE_BLOCK};
 use kvdb::clean_tests;
 use parity_scale_codec::Encode;
 use rocket::http::{ContentType, Status};
@@ -76,13 +76,32 @@ async fn test_new_party() {
     let query_parsed_tx = client
         .post("/unsafe/get")
         .header(ContentType::JSON)
-        .body(UnsafeQuery::new(tx_id, String::new()).to_json())
+        .body(UnsafeQuery::new(tx_id.clone(), String::new()).to_json())
         .dispatch()
         .await;
     assert_eq!(
         query_parsed_tx.into_string().await,
         Some(serde_json::to_string(&onchain_signature_request.messages[0]).unwrap().to_string())
     );
+
+    // check tx gets pruned
+    let onchain_signature_request_prune =
+        OCWMessage { messages: vec![], block_number: PRUNE_BLOCK + block_number };
+
+    let response_2 = client
+        .post("/signer/new_party")
+        .body(onchain_signature_request_prune.clone().encode())
+        .dispatch()
+        .await;
+    assert_eq!(response_2.status(), Status::NoContent);
+    // tx no longer in kvdb
+    let query_parsed_tx_pruned = client
+        .post("/unsafe/get")
+        .header(ContentType::JSON)
+        .body(UnsafeQuery::new(tx_id, String::new()).to_json())
+        .dispatch()
+        .await;
+    assert_eq!(query_parsed_tx_pruned.status(), Status::InternalServerError);
 
     clean_tests();
 }
