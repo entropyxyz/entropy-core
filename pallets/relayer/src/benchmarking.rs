@@ -63,8 +63,8 @@ benchmarks! {
     }
   }: _(RawOrigin::Signed(account.clone()), sig_request.clone())
   verify {
-    let ip_addresses = Pallet::<T>::get_ip_addresses().unwrap_or_default().0;
-    assert_last_event::<T>(Event::<T>::SignatureRequested(Message {account: account.encode(), sig_request, ip_addresses}).into());
+    let validators_info = Pallet::<T>::get_validator_info().unwrap_or_default().0;
+    assert_last_event::<T>(Event::<T>::SignatureRequested(Message {account: account.encode(), sig_request, validators_info}).into());
   }
 
   register {
