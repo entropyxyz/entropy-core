@@ -44,7 +44,7 @@ use crate as pallet_staking_extension;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{SIGNING_PARTY_SIZE, X25519PublicKey};
+    use entropy_shared::{X25519PublicKey, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency,
     };

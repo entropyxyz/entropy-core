@@ -1,4 +1,4 @@
-use entropy_shared::{Constraints, Message, SigRequest};
+use entropy_shared::{Constraints, Message, SigRequest, ValidatorInfo};
 use frame_support::{assert_noop, assert_ok};
 use pallet_constraints::{ActiveArchitectures, AllowedToModifyConstraints};
 
@@ -15,7 +15,10 @@ fn it_preps_transaction() {
         let message = Message {
             account: vec![1, 0, 0, 0, 0, 0, 0, 0],
             sig_request: sig_request.clone(),
-            ip_addresses,
+            validators_info: vec![
+                ValidatorInfo { ip_address: ip_addresses[0].clone(), x25519_public_key: [0; 32] },
+                ValidatorInfo { ip_address: ip_addresses[1].clone(), x25519_public_key: [0; 32] },
+            ],
         };
 
         assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request.clone()));
@@ -42,7 +45,10 @@ fn it_emits_a_signature_request_event() {
         let message = Message {
             account: vec![1, 0, 0, 0, 0, 0, 0, 0],
             sig_request: sig_request.clone(),
-            ip_addresses,
+            validators_info: vec![
+                ValidatorInfo { ip_address: ip_addresses[0].clone(), x25519_public_key: [0; 32] },
+                ValidatorInfo { ip_address: ip_addresses[1].clone(), x25519_public_key: [0; 32] },
+            ],
         };
 
         assert_ok!(Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request));

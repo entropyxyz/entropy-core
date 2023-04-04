@@ -111,7 +111,10 @@ async fn test_unsigned_tx_endpoint() {
             account: keyring.to_raw_public_vec(),
             validators_info: validator_ips
                 .iter()
-                .map(|validator_tuple| ValidatorInfo { ip_address: validator_tuple.0.clone().into_bytes(), x25519_public_key: validator_tuple.1.clone()})
+                .map(|validator_tuple| ValidatorInfo {
+                    ip_address: validator_tuple.0.clone().into_bytes(),
+                    x25519_public_key: validator_tuple.1.clone(),
+                })
                 .collect::<Vec<ValidatorInfo>>(),
         })
         .collect::<Vec<_>>();

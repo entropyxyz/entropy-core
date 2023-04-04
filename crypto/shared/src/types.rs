@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 /// common structs etc, shared among the substrate-blockchain-code and the crypto-code
 pub use crate::constraints::*;
 
-
 /// X25519 public key used by the client in non-interactive ECDH to authenticate/encrypt
 /// interactions with the threshold server (eg distributing threshold shares).
 pub type X25519PublicKey = [u8; 32];
@@ -24,8 +23,8 @@ pub struct SigRequest {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct ValidatorInfo {
-	pub x25519_public_key: X25519PublicKey,
-	pub ip_address: codec::alloc::vec::Vec<u8>
+    pub x25519_public_key: X25519PublicKey,
+    pub ip_address: codec::alloc::vec::Vec<u8>,
 }
 
 /// The message sent from pallets::propagation::post() to the signing-client.

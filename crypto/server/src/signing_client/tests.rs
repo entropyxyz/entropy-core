@@ -31,7 +31,7 @@ async fn test_new_party() {
     let sig_hash = parsed_tx.sighash();
     let block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
     put_tx_request_on_chain(&api, &dave, sig_hash.as_bytes().to_vec()).await;
-	let x25519_public_keys: Vec<[u8; 32]> = vec![
+    let x25519_public_keys: Vec<[u8; 32]> = vec![
         vec![
             10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124, 195, 141,
             148, 249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247, 58, 34,
@@ -49,7 +49,16 @@ async fn test_new_party() {
         messages: vec![Message {
             sig_request: SigRequest { sig_hash: sig_hash.as_bytes().to_vec() },
             account: dave.to_raw_public_vec(),
-			validators_info: vec![ValidatorInfo {ip_address: b"127.0.0.1:3001".to_vec(), x25519_public_key: x25519_public_keys[0]}, ValidatorInfo {ip_address: b"127.0.0.1:3002".to_vec(), x25519_public_key: x25519_public_keys[1]}]
+            validators_info: vec![
+                ValidatorInfo {
+                    ip_address: b"127.0.0.1:3001".to_vec(),
+                    x25519_public_key: x25519_public_keys[0],
+                },
+                ValidatorInfo {
+                    ip_address: b"127.0.0.1:3002".to_vec(),
+                    x25519_public_key: x25519_public_keys[1],
+                },
+            ],
         }],
         block_number,
     };
@@ -101,7 +110,16 @@ async fn test_new_party_fail_unverified() {
         messages: vec![Message {
             sig_request: SigRequest { sig_hash: not_matching_sig_request.as_bytes().to_vec() },
             account: dave.to_raw_public_vec(),
-			validators_info: vec![ValidatorInfo {ip_address: b"127.0.0.1:3001".to_vec(), x25519_public_key: [0; 32]}, ValidatorInfo {ip_address: b"127.0.0.1:3002".to_vec(), x25519_public_key: [0; 32]}]
+            validators_info: vec![
+                ValidatorInfo {
+                    ip_address: b"127.0.0.1:3001".to_vec(),
+                    x25519_public_key: [0; 32],
+                },
+                ValidatorInfo {
+                    ip_address: b"127.0.0.1:3002".to_vec(),
+                    x25519_public_key: [0; 32],
+                },
+            ],
         }],
         block_number,
     };
