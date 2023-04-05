@@ -1,10 +1,11 @@
-Description=Entropy crypto server.
+[Unit]
+Description=Entropy node.
 After=network.target
 
 [Service]
 User=entropy
 Group=entropy
-ExecStart=/var/run/entropy/server
+ExecStart=/var/run/entropy/entropy
 Type=simple
 Restart=always
 RestartSec=10
@@ -12,3 +13,4 @@ RestartSec=10
 [Install]
 WantedBy=default.target
 RequiredBy=network.target
+

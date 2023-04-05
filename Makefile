@@ -21,6 +21,7 @@ mkdir ::
 
 link :: 
 		cp target/release/entropy target/release/server /var/run/entropy/
+		cp service/* /etc/systemd/system/
 		chown entropy:entropy -R /var/run/entropy
 
 # Common targets:
