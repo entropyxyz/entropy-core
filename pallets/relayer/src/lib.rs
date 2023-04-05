@@ -30,7 +30,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{Constraints, Message, SigRequest, SIGNING_PARTY_SIZE};
+    use entropy_shared::{Constraints, Message, SigRequest, ValidatorInfo, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         inherent::Vec,
@@ -165,8 +165,8 @@ pub mod pallet {
                 Self::registered(&who).ok_or(Error::<T>::NotRegistered)?,
                 Error::<T>::NotRegistered
             );
-            let (ip_addresses, i) = Self::get_ip_addresses()?;
-            let message = Message { sig_request, account: who.encode(), ip_addresses };
+            let (validators_info, i) = Self::get_validator_info()?;
+            let message = Message { sig_request, account: who.encode(), validators_info };
             let block_number = <frame_system::Pallet<T>>::block_number();
             Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
                 request.push(message.clone());
@@ -308,8 +308,8 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        pub fn get_ip_addresses() -> Result<(Vec<Vec<u8>>, u32), Error<T>> {
-            let mut ip_addresses: Vec<Vec<u8>> = vec![];
+        pub fn get_validator_info() -> Result<(Vec<ValidatorInfo>, u32), Error<T>> {
+            let mut validators_info: Vec<ValidatorInfo> = vec![];
             let block_number = <frame_system::Pallet<T>>::block_number();
 
             // TODO: JA simple hacky way to do this, get the first address from each signing group
@@ -318,12 +318,12 @@ pub mod pallet {
             for i in 0..SIGNING_PARTY_SIZE {
                 let tuple = Self::get_validator_rotation(i as u8, block_number)?;
                 l = tuple.1;
-                let ServerInfo { endpoint, .. } =
+                let ServerInfo { endpoint, x25519_public_key, .. } =
                     pallet_staking_extension::Pallet::<T>::threshold_server(&tuple.0)
                         .ok_or(Error::<T>::IpAddressError)?;
-                ip_addresses.push(endpoint.clone());
+                validators_info.push(ValidatorInfo { ip_address: endpoint, x25519_public_key });
             }
-            Ok((ip_addresses, l))
+            Ok((validators_info, l))
         }
 
         pub fn get_validator_rotation(
