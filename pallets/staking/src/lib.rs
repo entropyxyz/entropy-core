@@ -44,7 +44,7 @@ use crate as pallet_staking_extension;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::SIGNING_PARTY_SIZE;
+    use entropy_shared::{X25519PublicKey, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency,
     };
@@ -67,9 +67,6 @@ pub mod pallet {
     /// A unique identifier of a subgroup or partition of validators that have the same set of
     /// threshold shares.
     pub type SubgroupId = u8;
-    /// X25519 public key used by the client in non-interactive ECDH to authenticate/encrypt
-    /// interactions with the threshold server (eg distributing threshold shares).
-    pub type X25519PublicKey = [u8; 32];
     /// Endpoint where a threshold server can be reached at
     pub type TssServerURL = Vec<u8>;
 
