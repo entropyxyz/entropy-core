@@ -74,12 +74,12 @@ async fn test_unsigned_tx_endpoint() {
         .try_into()
         .unwrap(),
     ];
-    let ports = vec![(3001i64, x25519_public_keys[0]), (3002, x25519_public_keys[1])];
+    let ports_and_keys = vec![(3001, x25519_public_keys[0]), (3002, x25519_public_keys[1])];
 
     // spawn threshold servers
-    join_all(ports.iter().map(|&port_tuple| async move {
+    join_all(ports_and_keys.iter().map(|&port_tuple| async move {
         tokio::spawn(async move {
-            if port_tuple.0 == 3001i64 {
+            if port_tuple.0 == 3001 {
                 create_clients(port_tuple.0, true, false).await.launch().await.unwrap()
             } else {
                 create_clients(port_tuple.0, false, true).await.launch().await.unwrap()
@@ -89,7 +89,7 @@ async fn test_unsigned_tx_endpoint() {
     .await;
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    let validator_ips: Vec<(String, [u8; 32])> = ports
+    let validator_info: Vec<(String, [u8; 32])> = ports_and_keys
         .iter()
         .map(|validator_tuple| (format!("127.0.0.1:{}", validator_tuple.0), validator_tuple.1))
         .collect::<Vec<_>>();
@@ -109,7 +109,7 @@ async fn test_unsigned_tx_endpoint() {
         .map(|(tx_req, keyring)| Message {
             sig_request: SigRequest { sig_hash: tx_req.sighash().as_bytes().to_vec() },
             account: keyring.to_raw_public_vec(),
-            validators_info: validator_ips
+            validators_info: validator_info
                 .iter()
                 .map(|validator_tuple| ValidatorInfo {
                     ip_address: validator_tuple.0.clone().into_bytes(),
@@ -152,8 +152,8 @@ async fn test_unsigned_tx_endpoint() {
     }))
     .await;
 
-    let validator_urls: Arc<Vec<(String, [u8; 32])>> = Arc::new(
-        validator_ips
+    let validator_urls_and_keys: Arc<Vec<(String, [u8; 32])>> = Arc::new(
+        validator_info
             .iter()
             .map(|validator_tuple| (format!("http://{}", validator_tuple.0), validator_tuple.1))
             .collect(),
@@ -175,11 +175,11 @@ async fn test_unsigned_tx_endpoint() {
         .collect::<Vec<_>>();
     // mock client signature requests
     let submit_transaction_requests =
-        |validator_urls: Arc<Vec<(String, [u8; 32])>>,
+        |validator_urls_and_keys: Arc<Vec<(String, [u8; 32])>>,
          tx_req_body: (serde_json::Value, AccountKeyring)| async move {
             let mock_client = reqwest::Client::new();
             join_all(
-                validator_urls
+                validator_urls_and_keys
                     .iter()
                     .map(|validator_tuple| async {
                         let server_public_key = PublicKey::from(validator_tuple.1);
@@ -199,8 +199,8 @@ async fn test_unsigned_tx_endpoint() {
         };
 
     // send alice's tx req, then bob's
-    submit_transaction_requests(validator_urls.clone(), tx_req_bodies[0].clone()).await;
-    submit_transaction_requests(validator_urls.clone(), tx_req_bodies[1].clone()).await;
+    submit_transaction_requests(validator_urls_and_keys.clone(), tx_req_bodies[0].clone()).await;
+    submit_transaction_requests(validator_urls_and_keys.clone(), tx_req_bodies[1].clone()).await;
     // poll a validator and validate the threshold signatures
     let get_sig_messages = raw_ocw_messages
         .iter()
@@ -223,7 +223,7 @@ async fn test_unsigned_tx_endpoint() {
 
     // if unsafe, then also validate signature deletion
     // delete all signatures from the servers
-    join_all(validator_urls.iter().map(|validator_tuple| async {
+    join_all(validator_urls_and_keys.iter().map(|validator_tuple| async {
         let url = format!("{}/signer/drain", validator_tuple.0.clone());
         let res = mock_client.get(url).send().await;
         assert_eq!(res.unwrap().status(), 200);
@@ -257,6 +257,29 @@ async fn test_unsigned_tx_endpoint() {
         .unwrap();
     assert_eq!(failed_res.status(), 500);
     assert_eq!(failed_res.text().await.unwrap(), "ChaCha20 decryption error: aead::Error");
+
+    let sig: [u8; 64] = [0; 64];
+    let slice: [u8; 32] = [0; 32];
+    let nonce: [u8; 12] = [0; 12];
+
+    let user_input_bad = SignedMessage::new_test(
+        Bytes(serde_json::to_vec(&tx_req_bodies[0].0.clone()).unwrap()),
+        sr25519::Signature::from_raw(sig),
+        slice,
+        slice,
+        slice,
+        nonce,
+    );
+
+    let failed_sign = mock_client
+        .post("http://127.0.0.1:3001//user/tx")
+        .json(&user_input_bad)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(failed_sign.status(), 500);
+    assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
 
     clean_tests();
 }
