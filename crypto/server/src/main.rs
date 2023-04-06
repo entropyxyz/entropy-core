@@ -24,8 +24,7 @@ mod user;
 mod validator;
 use rocket::{
     fairing::{Fairing, Info, Kind},
-    http::Header,
-    http::Status,
+    http::{Header, Status},
     Request, Response,
 };
 use validator::api::get_random_server_info;
@@ -60,9 +59,7 @@ pub struct CORS;
 
 #[rocket::async_trait]
 impl Fairing for CORS {
-    fn info(&self) -> Info {
-        Info { name: "Add CORS headers to responses", kind: Kind::Response }
-    }
+    fn info(&self) -> Info { Info { name: "Add CORS headers to responses", kind: Kind::Response } }
 
     async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
         response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
