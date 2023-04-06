@@ -28,7 +28,7 @@ impl SignatureState {
 
     pub fn insert(&self, key: [u8; 32], value: &RecoverableSignature) {
         let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
-        dbg!("inserting!: {}", hex::encode(key.clone()));
+        dbg!("inserting!: {}", hex::encode(key));
         signatures.insert(hex::encode(key), *value);
     }
 

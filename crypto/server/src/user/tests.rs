@@ -153,7 +153,7 @@ async fn test_unsigned_tx_endpoint() {
                 .iter()
                 .map(|validator_tuple| ValidatorInfo {
                     ip_address: validator_tuple.0.clone().into_bytes(),
-                    x25519_public_key: validator_tuple.1.clone(),
+                    x25519_public_key: validator_tuple.1,
                 })
                 .collect::<Vec<ValidatorInfo>>(),
         }

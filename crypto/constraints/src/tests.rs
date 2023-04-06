@@ -76,8 +76,8 @@ fn test_acl_functions_properly() {
     let empty_acl = Acl::<[u8; 20]>::default();
 
     // should fail all txs
-    assert!(empty_acl.clone().eval(to_address_1_tx.clone()).is_err());
-    assert!(empty_acl.clone().eval(to_address_2_tx.clone()).is_err());
-    assert!(empty_acl.clone().eval(to_address_3_tx.clone()).is_err());
-    assert!(empty_acl.clone().eval(to_null_recipient_tx.clone()).is_err());
+    assert!(empty_acl.clone().eval(to_address_1_tx).is_err());
+    assert!(empty_acl.clone().eval(to_address_2_tx).is_err());
+    assert!(empty_acl.clone().eval(to_address_3_tx).is_err());
+    assert!(empty_acl.eval(to_null_recipient_tx).is_err());
 }
