@@ -33,7 +33,7 @@ use crate::{
         launch::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
-        signing::{SignatureState, create_unique_tx_id},
+        signing::{create_unique_tx_id, SignatureState},
         substrate::make_register,
         tests::{
             check_if_confirmation, create_clients, make_swapping, register_user, setup_client,

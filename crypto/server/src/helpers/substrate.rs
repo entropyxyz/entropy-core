@@ -6,10 +6,7 @@ use sp_keyring::Sr25519Keyring;
 use subxt::{ext::sp_core::sr25519, tx::PairSigner, Config, OnlineClient};
 
 use crate::{
-    chain_api::{
-        entropy,
-        EntropyConfig,
-    },
+    chain_api::{entropy, EntropyConfig},
     user::UserErr,
 };
 
