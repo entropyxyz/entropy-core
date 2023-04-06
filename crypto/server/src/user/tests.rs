@@ -2,7 +2,7 @@ use std::{env, fs, path::PathBuf, sync::Arc};
 
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::{Acl, Constraints, Message, OCWMessage, SigRequest};
+use entropy_shared::{Acl, Constraints, Message, OCWMessage, SigRequest, ValidatorInfo};
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future};
 use hex_literal::hex as h;
@@ -105,9 +105,29 @@ async fn test_unsigned_tx_endpoint() {
     )
     .await;
 
-    // generate the mock ocw messages for simulating prep_transaction() call
+    let x25519_public_keys: Vec<[u8; 32]> = vec![
+        vec![
+            10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124, 195, 141,
+            148, 249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247, 58, 34,
+        ]
+        .try_into()
+        .unwrap(),
+        vec![
+            225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245, 89, 36, 170, 169,
+            181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136, 102, 10,
+        ]
+        .try_into()
+        .unwrap(),
+    ];
+    let ports_and_keys = vec![(3001, x25519_public_keys[0]), (3002, x25519_public_keys[1])];
+
+    let validator_info: Vec<(String, [u8; 32])> = ports_and_keys
+        .iter()
+        .map(|validator_tuple| (format!("127.0.0.1:{}", validator_tuple.0), validator_tuple.1))
+        .collect::<Vec<_>>();
+
     let whitelisted_transaction_requests = vec![
-        // test_user working tx
+        // alice
         TransactionRequest::new().to(Address::from([1u8; 20])).value(1),
         // test_user2 working tx
         TransactionRequest::new().to(Address::from([2u8; 20])).value(5),
@@ -129,12 +149,16 @@ async fn test_unsigned_tx_endpoint() {
         Message {
             sig_request: SigRequest { sig_hash: tx_req.sighash().as_bytes().to_vec() },
             account: keyring.to_raw_public_vec(),
-            ip_addresses: validator_ips
+            validators_info: validator_info
                 .iter()
-                .map(|url| url.clone().into_bytes())
-                .collect::<Vec<Vec<u8>>>(),
+                .map(|validator_tuple| ValidatorInfo {
+                    ip_address: validator_tuple.0.clone().into_bytes(),
+                    x25519_public_key: validator_tuple.1.clone(),
+                })
+                .collect::<Vec<ValidatorInfo>>(),
         }
     };
+
     let raw_ocw_messages = transaction_requests
         .clone()
         .into_iter()
@@ -175,33 +199,46 @@ async fn test_unsigned_tx_endpoint() {
     }))
     .await;
 
-    let _validator_urls: Arc<Vec<String>> =
-        Arc::new(validator_ips.iter().map(|ip| format!("http://{}", ip)).collect());
+    let validator_urls_and_keys: Arc<Vec<(String, [u8; 32])>> = Arc::new(
+        validator_info
+            .iter()
+            .map(|validator_tuple| (format!("http://{}", validator_tuple.0), validator_tuple.1))
+            .collect(),
+    );
 
     // construct json bodies for transaction requests
     let tx_req_bodies = transaction_requests
         .iter()
         .zip(keyrings.clone())
         .map(|(tx_req, keyring)| {
-            serde_json::json!({
-                "arch": "evm",
-                "transaction_request": tx_req.rlp_unsigned().to_string(),
-                "signing_address": keyring.to_account_id()
-            })
+            (
+                serde_json::json!({
+                    "arch": "evm",
+                    "transaction_request": tx_req.rlp_unsigned().to_string(),
+                }),
+                keyring,
+            )
         })
         .collect::<Vec<_>>();
 
-    // mock client signature requests to threshold server
-    let submit_tx_req_threshold_servers =
-        |validator_ips: Vec<String>, tx_req_body: serde_json::Value| async move {
-            let _mock_client = reqwest::Client::new();
+    // mock client signature requests
+    let submit_transaction_requests =
+        |validator_urls_and_keys: Arc<Vec<(String, [u8; 32])>>,
+         tx_req_body: (serde_json::Value, AccountKeyring)| async move {
+            let mock_client = reqwest::Client::new();
             join_all(
-                validator_ips
+                validator_urls_and_keys
                     .iter()
-                    .map(|validator_ip| async {
-                        let client = reqwest::Client::new();
-                        let url = format!("http://{}/user/tx", validator_ip.clone());
-                        client.post(url).json(&tx_req_body).send().await
+                    .map(|validator_tuple| async {
+                        let server_public_key = PublicKey::from(validator_tuple.1);
+                        let signed_message = SignedMessage::new(
+                            &tx_req_body.1.pair(),
+                            &Bytes(serde_json::to_vec(&tx_req_body.0.clone()).unwrap()),
+                            &server_public_key,
+                        )
+                        .unwrap();
+                        let url = format!("{}/user/tx", validator_tuple.0.clone());
+                        mock_client.post(url).json(&signed_message).send().await
                     })
                     .collect::<Vec<_>>(),
             )
@@ -210,20 +247,26 @@ async fn test_unsigned_tx_endpoint() {
 
     // test_user and test_user2 whitelisted transaction requests should succeed
     let test_user_res =
-        submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[0].clone()).await;
+        submit_transaction_requests(validator_urls_and_keys.clone(), tx_req_bodies[0].clone())
+            .await;
     test_user_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
+
     let test_user2_res =
-        submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[1].clone()).await;
+        submit_transaction_requests(validator_urls_and_keys.clone(), tx_req_bodies[1].clone())
+            .await;
     test_user2_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
 
     // the other txs should fail because of failed constraints
     let test_user_failed_constraints_res =
-        submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[2].clone()).await;
+        submit_transaction_requests(validator_urls_and_keys.clone(), tx_req_bodies[2].clone())
+            .await;
     test_user_failed_constraints_res
         .into_iter()
         .for_each(|res| assert_eq!(res.unwrap().status(), 500));
+
     let test_user2_failed_constraints_res =
-        submit_tx_req_threshold_servers(validator_ips.clone(), tx_req_bodies[3].clone()).await;
+        submit_transaction_requests(validator_urls_and_keys.clone(), tx_req_bodies[3].clone())
+            .await;
     test_user2_failed_constraints_res
         .into_iter()
         .for_each(|res| assert_eq!(res.unwrap().status(), 500));
@@ -251,10 +294,10 @@ async fn test_unsigned_tx_endpoint() {
     .await;
 
     // delete all signatures from the servers
-    join_all(validator_ips.iter().map(|validator_ip| async {
-        let client = reqwest::Client::new();
-        let url = format!("http://{}/signer/drain", validator_ip.clone());
-        let res = client.get(url).send().await;
+
+    join_all(validator_urls_and_keys.iter().map(|validator_tuple| async {
+        let url = format!("{}/signer/drain", validator_tuple.0.clone());
+        let res = mock_client.get(url).send().await;
         assert_eq!(res.unwrap().status(), 200);
     }))
     .await;
@@ -268,8 +311,50 @@ async fn test_unsigned_tx_endpoint() {
     }))
     .await;
 
+    // test fail validation decrypt
+    let server_public_key = PublicKey::from(x25519_public_keys[1]);
+    let failed_signed_message = SignedMessage::new(
+        &tx_req_bodies[0].1.pair(),
+        &Bytes(serde_json::to_vec(&tx_req_bodies[0].0.clone()).unwrap()),
+        &server_public_key,
+    )
+    .unwrap();
+    let failed_res = mock_client
+        .post("http://127.0.0.1:3001//user/tx")
+        .json(&failed_signed_message)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(failed_res.status(), 500);
+    assert_eq!(failed_res.text().await.unwrap(), "ChaCha20 decryption error: aead::Error");
+
+    let sig: [u8; 64] = [0; 64];
+    let slice: [u8; 32] = [0; 32];
+    let nonce: [u8; 12] = [0; 12];
+
+    let user_input_bad = SignedMessage::new_test(
+        Bytes(serde_json::to_vec(&tx_req_bodies[0].0.clone()).unwrap()),
+        sr25519::Signature::from_raw(sig),
+        slice,
+        slice,
+        slice,
+        nonce,
+    );
+
+    let failed_sign = mock_client
+        .post("http://127.0.0.1:3001//user/tx")
+        .json(&user_input_bad)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(failed_sign.status(), 500);
+    assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+
     clean_tests();
 }
+
+// TODO negative validation tests on user/tx
 
 #[rocket::async_test]
 #[serial]
@@ -297,7 +382,6 @@ async fn test_store_share() {
     let user_input = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
         .unwrap()
         .to_json();
-
     // fails to add not registering or swapping
     let response = client
         .post("/user/new")
