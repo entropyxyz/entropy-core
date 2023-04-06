@@ -1,16 +1,17 @@
-use std::str;
+use std::{convert::TryInto, str};
 
 use blake2::{Blake2s256, Digest};
-use entropy_shared::OCWMessage;
+use entropy_shared::{OCWMessage, PRUNE_BLOCK};
 use kvdb::kv_manager::KvManager;
 use parity_scale_codec::{Decode, Encode};
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
+use sp_core::crypto::Ss58Codec;
 use subxt::OnlineClient;
 use tracing::instrument;
 
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
-    helpers::signing::SignatureState,
+    helpers::signing::{create_unique_tx_id, SignatureState},
     signing_client::{
         subscribe::{Listener, Receiver},
         SignerState, SigningErr, SubscribeErr, SubscribeMessage,
@@ -19,7 +20,6 @@ use crate::{
 };
 
 const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
-
 /// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/mod.rs#L39
 /// Execute a signing protocol with a new party.
 /// This endpoint is called by the blockchain.
@@ -31,19 +31,29 @@ pub async fn new_party(
     config: &State<Configuration>,
 ) -> Result<Status, SigningErr> {
     let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
+    let api = get_api(&config.endpoint).await?;
     if data.messages.is_empty() {
+        prune_old_tx_from_kvdb(&api, kv, data.block_number).await?;
         return Ok(Status::NoContent);
     }
-    let api = get_api(&config.endpoint).await?;
     validate_new_party(&data, &api).await?;
     for message in data.messages {
-        let sighash = hex::encode(&message.sig_request.sig_hash);
+        let address_slice: &[u8; 32] = &message
+            .account
+            .clone()
+            .try_into()
+            .map_err(|_| SigningErr::AddressConversionError("Invalid Length".to_string()))?;
+        let user = sp_core::crypto::AccountId32::new(*address_slice);
 
-        let reservation = kv.kv().reserve_key(sighash).await?;
-        let value = serde_json::to_string(&message).unwrap();
+        // TODO: get proper ss58 number when chosen
+        let address = user.to_ss58check();
+
+        let tx_id = create_unique_tx_id(&address, &hex::encode(&message.sig_request.sig_hash));
+        let reservation = kv.kv().reserve_key(tx_id).await?;
+        let value = serde_json::to_string(&message)?;
         kv.kv().put(reservation, value.into()).await?;
     }
-
+    prune_old_tx_from_kvdb(&api, kv, data.block_number).await?;
     Ok(Status::Ok)
 }
 
@@ -95,7 +105,14 @@ pub async fn validate_new_party(
     chain_data: &OCWMessage,
     api: &OnlineClient<EntropyConfig>,
 ) -> Result<(), SigningErr> {
-    let latest_block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number;
+    let latest_block_number = api
+        .rpc()
+        .block(None)
+        .await?
+        .ok_or_else(|| SigningErr::OptionUnwrapError("Failed to get block number"))?
+        .block
+        .header
+        .number;
     // we subtract 1 as the message info is coming from the previous block
 
     if latest_block_number.saturating_sub(1) != chain_data.block_number {
@@ -120,6 +137,43 @@ pub async fn validate_new_party(
 
     if verifying_data_hash != chain_data_hash {
         return Err(SigningErr::InvalidData);
+    }
+    Ok(())
+}
+
+/// Prunes old tx from DB
+pub async fn prune_old_tx_from_kvdb(
+    api: &OnlineClient<EntropyConfig>,
+    kv: &State<KvManager>,
+    block_number: u32,
+) -> Result<(), SigningErr> {
+    if block_number < PRUNE_BLOCK {
+        return Ok(());
+    }
+    let chain_data_query =
+        entropy::storage().relayer().messages(block_number.saturating_sub(PRUNE_BLOCK));
+    let chain_data = api.storage().fetch(&chain_data_query, None).await?;
+
+    if chain_data.is_none() {
+        return Ok(());
+    }
+
+    for message in
+        chain_data.ok_or_else(|| SigningErr::OptionUnwrapError("Failed to get verifying data"))?
+    {
+        let address_slice: &[u8; 32] = &message
+            .account
+            .clone()
+            .try_into()
+            .map_err(|_| SigningErr::AddressConversionError("Invalid Length".to_string()))?;
+        let user = sp_core::crypto::AccountId32::new(*address_slice);
+        // TODO: get proper ss58 number when chosen
+        let address = user.to_ss58check();
+        let tx_id = create_unique_tx_id(&address, &hex::encode(&message.sig_request.sig_hash));
+        let exists_result = kv.kv().exists(&tx_id).await?;
+        if exists_result {
+            kv.kv().delete(&tx_id).await?;
+        }
     }
     Ok(())
 }

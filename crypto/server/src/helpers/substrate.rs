@@ -8,7 +8,6 @@ use subxt::{ext::sp_core::sr25519, tx::PairSigner, Config, OnlineClient};
 use crate::{
     chain_api::{
         entropy,
-        // entropy::runtime_types::entropy_shared::constraints::Constraints,
         EntropyConfig,
     },
     user::UserErr,

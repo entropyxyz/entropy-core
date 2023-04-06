@@ -18,7 +18,7 @@ use rocket::{
     Build, Error, Ignite, Rocket,
 };
 use serial_test::serial;
-use sp_core::{sr25519, Bytes, Pair};
+use sp_core::{crypto::Ss58Codec, sr25519, Bytes, Pair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
 use testing_utils::substrate_context::{test_context_stationary, SubstrateTestingContext};
@@ -33,7 +33,7 @@ use crate::{
         launch::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
-        signing::SignatureState,
+        signing::{SignatureState, create_unique_tx_id},
         substrate::make_register,
         tests::{
             check_if_confirmation, create_clients, make_swapping, register_user, setup_client,
@@ -144,8 +144,12 @@ async fn test_unsigned_tx_endpoint() {
 
     let place_sig_messages = raw_ocw_messages
         .iter()
-        .map(|raw_ocw_message| UnsafeQuery {
-            key: hex::encode(raw_ocw_message.sig_request.sig_hash.clone()),
+        .zip(keyrings.clone())
+        .map(|(raw_ocw_message, keyring)| UnsafeQuery {
+            key: create_unique_tx_id(
+                &keyring.to_account_id().to_ss58check(),
+                &hex::encode(raw_ocw_message.sig_request.sig_hash.clone()),
+            ),
             value: serde_json::to_string(&raw_ocw_message).unwrap(),
         })
         .collect::<Vec<_>>();
@@ -177,10 +181,12 @@ async fn test_unsigned_tx_endpoint() {
     // construct json bodies for transaction requests
     let tx_req_bodies = transaction_requests
         .iter()
-        .map(|tx_req| {
+        .zip(keyrings.clone())
+        .map(|(tx_req, keyring)| {
             serde_json::json!({
                 "arch": "evm",
                 "transaction_request": tx_req.rlp_unsigned().to_string(),
+                "signing_address": keyring.to_account_id()
             })
         })
         .collect::<Vec<_>>();
