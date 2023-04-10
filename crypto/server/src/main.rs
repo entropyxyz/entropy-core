@@ -63,10 +63,10 @@ impl Fairing for CORS {
 
     async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
         let origin = _request.headers().get_one("Origin").unwrap_or("*");
-        let node_tss = "http://localhost:3000";
-        let alice_tss = "http://localhost:3001";
-        let bob_tss = "http://localhost:3002";
-        let local_web_server = "http://localhost:5173";
+        let node_tss = "http://127.0.0.1:3000";
+        let alice_tss = "http://127.0.0.1:3001";
+        let bob_tss = "http://127.0.0.1:3002";
+        let local_web_server = "http://127.0.0.1:5173";
 
         if origin == node_tss
             || origin == alice_tss
