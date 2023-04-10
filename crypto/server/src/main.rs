@@ -59,9 +59,7 @@ pub struct CORS;
 
 #[rocket::async_trait]
 impl Fairing for CORS {
-    fn info(&self) -> Info {
-        Info { name: "Add CORS headers to responses", kind: Kind::Response }
-    }
+    fn info(&self) -> Info { Info { name: "Add CORS headers to responses", kind: Kind::Response } }
 
     async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
         let origin = _request.headers().get_one("Origin").unwrap_or("*");
