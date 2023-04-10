@@ -10,6 +10,8 @@ use crate::Error;
 pub trait Architecture: Serialize + for<'de> Deserialize<'de> {
     /// Account type for that chain(SS58, H160, etc)
     type Address: Eq + Serialize + for<'de> Deserialize<'de>;
+    /// Account type as it is stored in the database
+    type AddressRaw: Eq + Serialize + for<'de> Deserialize<'de>;
     /// Transaction request type for unsigned transactions
     type TransactionRequest: GetSender<Self>
         + GetReceiver<Self>
@@ -40,10 +42,8 @@ pub trait GetArch {
 
 /// EVM architecture
 pub mod evm {
-    use ethers_core::types::NameOrAddress;
-    pub use ethers_core::types::{
-        transaction::request::TransactionRequest as EvmTransactionRequest, Address as EvmAddress,
-    };
+    pub use ethers_core::types::transaction::request::TransactionRequest as EvmTransactionRequest;
+    use ethers_core::types::{NameOrAddress, H160};
     use rlp::Rlp;
 
     use super::*;
@@ -52,7 +52,8 @@ pub mod evm {
     pub struct Evm;
 
     impl Architecture for Evm {
-        type Address = EvmAddress;
+        type Address = H160;
+        type AddressRaw = [u8; 20];
         type TransactionRequest = EvmTransactionRequest;
     }
 
@@ -105,7 +106,7 @@ pub mod evm {
     mod tests {
         use std::str::FromStr;
 
-        use ethers_core::types::H256;
+        use ethers_core::types::{Address as EvmAddress, H256};
 
         use super::*;
 

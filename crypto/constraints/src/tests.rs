@@ -1,155 +1,83 @@
+#![cfg(test)]
+
 use entropy_shared::{Acl, AclKind};
+use ethers_core::types::{NameOrAddress, TransactionRequest, H160};
 
-use crate::{utils::parse_tx_request_json, Architecture, Evaluate, Evm};
-
-#[test]
-fn should_parse_json_evm_tx_request() {
-    // copied from https://ethereum.org/en/developers/docs/transactions/#whats-a-transaction
-    let evm_tx_request_json = r#"{
-        "from": "0x1923f626bb8dc025849e00f99c25fe2b2f7fb0db",
-        "gas": "0x55555",
-        "maxFeePerGas": "0x1234",
-        "maxPriorityFeePerGas": "0x1234",
-        "input": "0xabcd",
-        "nonce": "0x0",
-        "to": "0x07a565b7ed7d7a678680a4c162885bedbb695fe0",
-        "value": "0x1234"
-    }"#;
-
-    let basic_tx = parse_tx_request_json::<Evm>(evm_tx_request_json.to_string()).unwrap();
-
-    println!("Parsed tx: {basic_tx:?}");
-}
+use crate::Evaluate;
 
 #[test]
-fn should_fail_if_evm_address_not_h160() {
-    // changed length of from address
-    let evm_tx_request_json = r#"{
-        "from": "0x1923f8dc025849e00f99c25fe2b2f7fb0db",
-        "gas": "0x55555",
-        "maxFeePerGas": "0x1234",
-        "maxPriorityFeePerGas": "0x1234",
-        "input": "0xabcd",
-        "nonce": "0x0",
-        "to": "0x07a565b7ed7d7a678680a4c162885bedbb695fe0",
-        "value": "0x1234"
-    }"#;
+fn test_acl_functions_properly() {
+    let evm_address_1: [u8; 20] = [1u8; 20];
+    let evm_address_2: [u8; 20] = [2u8; 20];
+    let evm_address_3: [u8; 20] = [3u8; 20];
 
-    let basic_tx_result = parse_tx_request_json::<Evm>(evm_tx_request_json.to_string());
-
-    assert!(basic_tx_result.is_err());
-
-    println!("{basic_tx_result:?}");
-}
-
-#[test]
-fn test_allow_list() {
-    let evm_tx_request_json = r#"{
-        "from": "0x1923f626bb8dc025849e00f99c25fe2b2f7fb0db",
-        "gas": "0x55555",
-        "maxFeePerGas": "0x1234",
-        "maxPriorityFeePerGas": "0x1234",
-        "input": "0xabcd",
-        "nonce": "0x0",
-        "to": "0x07a565b7ed7d7a678680a4c162885bedbb695fe0",
-        "value": "0x1234"
-    }"#;
-
-    let tx_result = parse_tx_request_json::<Evm>(evm_tx_request_json.to_string());
-    assert!(tx_result.is_ok());
-    let tx = tx_result.unwrap();
-    let to = tx.to.unwrap();
-
-    // Assert that an allow list with no items in it does not evaluate to true.
-    let constraint = Acl::<<Evm as Architecture>::Address> {
-        kind: AclKind::Allow,
-        addresses: Vec::default(),
-        allow_null_recipient: true,
+    let to_address_1_tx = TransactionRequest {
+        to: Some(NameOrAddress::Address(H160::from(evm_address_1))),
+        ..Default::default()
     };
-    let evaluation = constraint.eval(tx.clone());
-    assert!(evaluation.is_ok());
-    assert!(!evaluation.unwrap());
-
-    // Assert that an allow list with a valid item in it evaluates to true.
-    let constraint_2 = Acl::<<Evm as Architecture>::Address> {
-        kind: AclKind::Allow,
-        addresses: vec![to],
-        allow_null_recipient: true,
+    let to_address_2_tx = TransactionRequest {
+        to: Some(NameOrAddress::Address(H160::from(evm_address_2))),
+        ..Default::default()
     };
-    let evaluation_2 = constraint_2.eval(tx);
-    assert!(evaluation_2.is_ok());
-    assert!(evaluation_2.unwrap());
-}
+    let to_address_3_tx = TransactionRequest {
+        to: Some(NameOrAddress::Address(H160::from(evm_address_3))),
+        ..Default::default()
+    };
+    let to_null_recipient_tx = TransactionRequest { to: None, ..Default::default() };
 
-#[test]
-fn test_deny_list() {
-    let evm_tx_request_json = r#"{
-        "from": "0x1923f626bb8dc025849e00f99c25fe2b2f7fb0db",
-        "gas": "0x55555",
-        "maxFeePerGas": "0x1234",
-        "maxPriorityFeePerGas": "0x1234",
-        "input": "0xabcd",
-        "nonce": "0x0",
-        "to": "0x07a565b7ed7d7a678680a4c162885bedbb695fe0",
-        "value": "0x1234"
-    }"#;
+    let allowlisted_acl = Acl::<[u8; 20]> { addresses: vec![evm_address_1], ..Default::default() };
 
-    let tx_result = parse_tx_request_json::<Evm>(evm_tx_request_json.to_string());
-    assert!(tx_result.is_ok());
-    let tx = tx_result.unwrap();
-    let to = tx.to.unwrap();
+    // should only let allowlisted_tx through
+    assert!(allowlisted_acl.clone().eval(to_address_1_tx.clone()).is_ok());
 
-    // Assert that a deny list with no items in it does evaluates to true.
-    let constraint = Acl::<<Evm as Architecture>::Address> {
+    assert!(allowlisted_acl.clone().eval(to_address_2_tx.clone()).is_err());
+    assert!(allowlisted_acl.clone().eval(to_address_3_tx.clone()).is_err());
+    assert!(allowlisted_acl.clone().eval(to_null_recipient_tx.clone()).is_err());
+
+    let denylisted_acl = Acl::<[u8; 20]> {
+        addresses: vec![evm_address_1],
         kind: AclKind::Deny,
-        addresses: Vec::default(),
-        allow_null_recipient: true,
+        ..Default::default()
     };
-    let evaluation = constraint.eval(tx.clone());
-    assert!(evaluation.is_ok());
-    assert!(evaluation.unwrap());
 
-    // Assert that a deny list with the specified recipient evalutes to false.
-    let constraint_2 = Acl::<<Evm as Architecture>::Address> {
+    // should only block whitelisted and null recipient txs
+    assert!(denylisted_acl.clone().eval(to_address_2_tx.clone()).is_ok());
+    assert!(denylisted_acl.clone().eval(to_address_3_tx.clone()).is_ok());
+
+    assert!(denylisted_acl.eval(to_address_1_tx.clone()).is_err());
+    assert!(allowlisted_acl.eval(to_null_recipient_tx.clone()).is_err());
+
+    let allowlisted_acl_with_null_recipient = Acl::<[u8; 20]> {
+        addresses: vec![evm_address_1],
+        allow_null_recipient: true,
+        ..Default::default()
+    };
+
+    // should only let allowlisted_tx and null recipient txs through
+    assert!(allowlisted_acl_with_null_recipient.clone().eval(to_address_1_tx.clone()).is_ok());
+    assert!(allowlisted_acl_with_null_recipient.clone().eval(to_null_recipient_tx.clone()).is_ok());
+
+    assert!(allowlisted_acl_with_null_recipient.clone().eval(to_address_2_tx.clone()).is_err());
+    assert!(allowlisted_acl_with_null_recipient.eval(to_address_3_tx.clone()).is_err());
+
+    let denylisted_acl_with_null_recipient = Acl::<[u8; 20]> {
+        addresses: vec![evm_address_1],
         kind: AclKind::Deny,
-        addresses: vec![to],
         allow_null_recipient: true,
     };
-    let evaluation_2 = constraint_2.eval(tx);
-    assert!(evaluation_2.is_ok());
-    assert!(!evaluation_2.unwrap());
-}
 
-#[test]
-fn test_allow_null_recip() {
-    let evm_tx_request_json = r#"{
-        "from": "0x1923f626bb8dc025849e00f99c25fe2b2f7fb0db",
-        "gas": "0x55555",
-        "maxFeePerGas": "0x1234",
-        "maxPriorityFeePerGas": "0x1234",
-        "input": "0xabcd",
-        "nonce": "0x0",
-        "value": "0x1234"
-    }"#;
+    // should only block whitelisted
+    assert!(denylisted_acl_with_null_recipient.clone().eval(to_address_2_tx.clone()).is_ok());
+    assert!(denylisted_acl_with_null_recipient.clone().eval(to_address_3_tx.clone()).is_ok());
+    assert!(denylisted_acl_with_null_recipient.clone().eval(to_null_recipient_tx.clone()).is_ok());
 
-    let tx_result = parse_tx_request_json::<Evm>(evm_tx_request_json.to_string());
-    assert!(tx_result.is_ok());
-    let tx = tx_result.unwrap();
+    assert!(denylisted_acl_with_null_recipient.eval(to_address_1_tx.clone()).is_err());
 
-    let constraint = Acl::<<Evm as Architecture>::Address> {
-        kind: AclKind::Deny,
-        addresses: Vec::default(),
-        allow_null_recipient: false,
-    };
-    let evaluation = constraint.eval(tx.clone());
-    assert!(evaluation.is_err());
+    let empty_acl = Acl::<[u8; 20]>::default();
 
-    let constraint_2 = Acl::<<Evm as Architecture>::Address> {
-        kind: AclKind::Allow,
-        addresses: Vec::default(),
-        allow_null_recipient: true,
-    };
-    let evaluation_2 = constraint_2.eval(tx);
-    assert!(evaluation_2.is_ok());
-    assert!(evaluation_2.unwrap());
+    // should fail all txs
+    assert!(empty_acl.clone().eval(to_address_1_tx).is_err());
+    assert!(empty_acl.clone().eval(to_address_2_tx).is_err());
+    assert!(empty_acl.clone().eval(to_address_3_tx).is_err());
+    assert!(empty_acl.eval(to_null_recipient_tx).is_err());
 }

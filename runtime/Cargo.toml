@@ -7,6 +7,7 @@ name      ='entropy-runtime'
 publish   =false
 repository='https://github.com/substrate-developer-hub/substrate-node-template/'
 version   ='3.0.0-monthly-2021-10'
+build     ='build.rs'
 
 [package.metadata.docs.rs]
 targets=["x86_64-unknown-linux-gnu"]
