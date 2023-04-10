@@ -28,13 +28,11 @@ impl SignatureState {
 
     pub fn insert(&self, key: [u8; 32], value: &RecoverableSignature) {
         let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
-        dbg!("inserting!: {}", hex::encode(key));
         signatures.insert(hex::encode(key), *value);
     }
 
     pub fn get(&self, key: &String) -> [u8; 65] {
         let signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
-        dbg!("getting!: {}", hex::encode(key.clone()));
         let result = *signatures.get(key).unwrap();
         result.as_ref().try_into().expect("slice with incorrect length")
     }
@@ -80,7 +78,6 @@ pub async fn do_signing(
         message.sig_request.sig_hash.as_slice().try_into().unwrap(),
         signatures,
     );
-    info!("Signing completed for {:?}", hex::encode(message.sig_request.sig_hash));
 
     Ok(Status::Ok)
 }

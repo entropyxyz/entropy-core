@@ -83,10 +83,10 @@ pub async fn store_tx(
     let generic_tx_req: GenericTransactionRequest = serde_json::from_slice(&decrypted_message)?;
     match generic_tx_req.arch.as_str() {
         "evm" => {
+            let api = get_api(&config.endpoint);
             let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
                 generic_tx_req.transaction_request.clone(),
             )?;
-            let substrate_api = get_api(&config.endpoint);
 
             let sig_hash = hex::encode(parsed_tx.sighash().as_bytes());
             let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
@@ -97,8 +97,8 @@ pub async fn store_tx(
             let sig_req_account = <EntropyConfig as Config>::AccountId::from(
                 <[u8; 32]>::try_from(message.account.clone()).unwrap(),
             );
-            let substrate_api = substrate_api.await;
-            let evm_acl = get_constraints(&substrate_api?, &sig_req_account)
+            let substrate_api = api.await?;
+            let evm_acl = get_constraints(&substrate_api, &sig_req_account)
                 .await?
                 .evm_acl
                 .ok_or(UserErr::Parse("No constraints found for this account."))?;

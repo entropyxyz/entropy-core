@@ -113,8 +113,8 @@ pub async fn validate_new_party(
         .block
         .header
         .number;
-    // we subtract 1 as the message info is coming from the previous block
 
+    // we subtract 1 as the message info is coming from the previous block
     if latest_block_number.saturating_sub(1) != chain_data.block_number {
         return Err(SigningErr::StaleData);
     }
