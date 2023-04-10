@@ -6,7 +6,7 @@ use rocket::http::{ContentType, Status};
 use serial_test::serial;
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{tx::PairSigner, OnlineClient};
-use testing_utils::context::test_context_stationary;
+use testing_utils::substrate_context::test_context_stationary;
 
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
@@ -20,6 +20,7 @@ use crate::{
 async fn test_new_party() {
     clean_tests();
     let client = setup_client().await;
+
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let dave = AccountKeyring::Dave;
@@ -81,7 +82,7 @@ async fn test_new_party() {
         .await;
     assert_eq!(
         query_parsed_tx.into_string().await,
-        Some(serde_json::to_string(&onchain_signature_request.messages[0]).unwrap().to_string())
+        Some(serde_json::to_string(&onchain_signature_request.messages[0]).unwrap())
     );
 
     // check tx gets pruned

@@ -1,26 +1,33 @@
 //! Contains the traits and implementations of each supported constraint.
 
 use entropy_shared::{Acl, AclKind};
+use ethers_core::types::{NameOrAddress, H160};
 
-use crate::{Architecture, BasicTransaction, Error};
+use crate::{Architecture, Error, Evm};
 
 /// Constraints must implement an evaluation trait that parses.
 pub trait Evaluate<A: Architecture> {
-    fn eval(&self, tx: BasicTransaction<A>) -> Result<bool, Error>;
+    fn eval(self, tx: A::TransactionRequest) -> Result<(), Error>;
 }
 
-/// Generic implementation of Access Control Lists (Allow/Deny lists).
-impl<A: Architecture> Evaluate<A> for Acl<A::Address> {
-    fn eval(&self, tx: BasicTransaction<A>) -> Result<bool, Error> {
-        if !self.allow_null_recipient && tx.to.is_none() {
-            return Err(Error::EvaluationError("Unspecified recipient in transaction".to_string()));
+// TODO This can likely be made generic over any architecture with GetRecipient and GetSender traits
+#[allow(clippy::needless_collect)]
+impl Evaluate<Evm> for Acl<[u8; 20]> {
+    fn eval(self, tx: <Evm as Architecture>::TransactionRequest) -> Result<(), Error> {
+        if tx.to.is_none() {
+            return match self.allow_null_recipient {
+                true => Ok(()),
+                false => Err(Error::Evaluation("Null recipients are not allowed.")),
+            };
         }
-        if self.allow_null_recipient && tx.to.is_none() {
-            return Ok(true);
-        }
-        match self.kind {
-            AclKind::Allow => Ok(self.addresses.contains(&tx.to.unwrap())),
-            AclKind::Deny => Ok(!self.addresses.contains(&tx.to.unwrap())),
+
+        let converted_addresses: Vec<NameOrAddress> =
+            self.addresses.into_iter().map(|a| NameOrAddress::Address(H160::from(a))).collect();
+
+        match (converted_addresses.contains(&tx.to.unwrap()), self.kind) {
+            (true, AclKind::Allow) => Ok(()),
+            (false, AclKind::Deny) => Ok(()),
+            _ => Err(Error::Evaluation("Transaction not allowed.")),
         }
     }
 }

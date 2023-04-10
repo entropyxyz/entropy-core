@@ -1,7 +1,9 @@
 use bip39::{Language, Mnemonic};
-use entropy_constraints::{Architecture, Evm, Parse};
+use entropy_constraints::{
+    Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
+};
 use entropy_shared::{
-    types::{Acl, AclKind, Arch},
+    types::{Acl, AclKind, Arch, Constraints},
     Message, SIGNING_PARTY_SIZE,
 };
 use kvdb::kv_manager::{
@@ -10,6 +12,7 @@ use kvdb::kv_manager::{
     KvManager,
 };
 use log::info;
+use parity_scale_codec::DecodeAll;
 use rocket::{
     http::Status,
     response::stream::EventStream,
@@ -23,17 +26,24 @@ use subxt::{
         sp_runtime::AccountId32,
     },
     tx::PairSigner,
-    OnlineClient,
+    Config, OnlineClient,
 };
 use tracing::instrument;
 use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
-    chain_api::{entropy, get_api, EntropyConfig},
+    chain_api::{
+        entropy,
+        entropy::{
+            constraints::calls::UpdateConstraints, runtime_types::entropy_shared::constraints,
+        },
+        get_api, EntropyConfig,
+    },
     helpers::{
         signing::{create_unique_tx_id, do_signing, SignatureState},
-        validator::{get_signer, get_subgroup},
+        substrate::{get_constraints, get_subgroup},
+        validator::get_signer,
     },
     message::SignedMessage,
     signing_client::SignerState,
@@ -58,6 +68,7 @@ pub async fn store_tx(
     state: &State<SignerState>,
     kv: &State<KvManager>,
     signatures: &State<SignatureState>,
+    config: &State<Configuration>,
 ) -> Result<Status, UserErr> {
     // Verifies the message contains a valid sr25519 signature from the sender.
     let signed_msg: SignedMessage = msg.into_inner();
@@ -72,15 +83,27 @@ pub async fn store_tx(
     let generic_tx_req: GenericTransactionRequest = serde_json::from_slice(&decrypted_message)?;
     match generic_tx_req.arch.as_str() {
         "evm" => {
+            let api = get_api(&config.endpoint);
             let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
                 generic_tx_req.transaction_request.clone(),
             )?;
+
             let sig_hash = hex::encode(parsed_tx.sighash().as_bytes());
             let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
             // check if user submitted tx to chain already
             let message_json = kv.kv().get(&tx_id).await?;
             // parse their transaction request
             let message: Message = serde_json::from_str(&String::from_utf8(message_json)?)?;
+            let sig_req_account = <EntropyConfig as Config>::AccountId::from(
+                <[u8; 32]>::try_from(message.account.clone()).unwrap(),
+            );
+            let substrate_api = api.await?;
+            let evm_acl = get_constraints(&substrate_api, &sig_req_account)
+                .await?
+                .evm_acl
+                .ok_or(UserErr::Parse("No constraints found for this account."))?;
+
+            evm_acl.eval(parsed_tx)?;
             kv.kv().delete(&tx_id).await?;
             do_signing(message, state, kv, signatures, tx_id).await?;
         },

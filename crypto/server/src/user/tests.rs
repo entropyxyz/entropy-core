@@ -2,7 +2,7 @@ use std::{env, fs, path::PathBuf, sync::Arc};
 
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::{Message, OCWMessage, SigRequest, ValidatorInfo};
+use entropy_shared::{Acl, Constraints, Message, OCWMessage, SigRequest, ValidatorInfo};
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future};
 use hex_literal::hex as h;
@@ -10,17 +10,18 @@ use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvMan
 use parity_scale_codec::Encode;
 use rocket::{
     http::{ContentType, Status},
+    local::asynchronous::Client,
     tokio::{
         task::JoinSet,
         time::{sleep, Duration},
     },
-    Ignite, Rocket,
+    Build, Error, Ignite, Rocket,
 };
 use serial_test::serial;
 use sp_core::{crypto::Ss58Codec, sr25519, Bytes, Pair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
-use testing_utils::context::{test_context, test_context_stationary, TestContext};
+use testing_utils::substrate_context::{test_context_stationary, SubstrateTestingContext};
 use tokio::task::JoinHandle;
 use x25519_dalek::{PublicKey, StaticSecret};
 
@@ -33,13 +34,20 @@ use crate::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::{create_unique_tx_id, SignatureState},
-        tests::setup_client,
+        substrate::make_register,
+        tests::{
+            check_if_confirmation, create_clients, make_swapping, register_user, setup_client,
+            spawn_testing_validators,
+        },
     },
     load_kv_store,
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     new_party, new_user,
     r#unsafe::api::{delete, get, put, remove_keys, UnsafeQuery},
-    signing_client::{tests::put_tx_request_on_chain, SignerState},
+    signing_client::{
+        tests::{put_tx_request_on_chain, run_to_block},
+        SignerState,
+    },
     store_tx, subscribe_to_me,
     validator::api::get_random_server_info,
     Message as SigMessage,
@@ -60,6 +68,43 @@ async fn test_get_signer_does_not_throw_err() {
 #[serial]
 async fn test_unsigned_tx_endpoint() {
     clean_tests();
+
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+
+    // Alice and Bob are used as validators
+    let test_user = AccountKeyring::One;
+    let test_user_constraint = AccountKeyring::Charlie;
+    let test_user2 = AccountKeyring::Two;
+    let test_user2_constraint = AccountKeyring::Dave;
+
+    let validator_ips = spawn_testing_validators().await;
+    let initial_constraints = |address: [u8; 20]| -> Constraints {
+        let mut evm_acl = Acl::<[u8; 20]>::default();
+        evm_acl.addresses.push(address);
+
+        Constraints { evm_acl: Some(evm_acl), ..Default::default() }
+    };
+
+    // register the user on-chain, their test threhsold keyshares with the threshold server, and
+    // initial constraints
+    register_user(
+        &entropy_api,
+        &validator_ips,
+        &test_user,
+        &test_user_constraint,
+        initial_constraints([1u8; 20]),
+    )
+    .await;
+    register_user(
+        &entropy_api,
+        &validator_ips,
+        &test_user2,
+        &test_user2_constraint,
+        initial_constraints([2u8; 20]),
+    )
+    .await;
+
     let x25519_public_keys: Vec<[u8; 32]> = vec![
         vec![
             10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124, 195, 141,
@@ -76,47 +121,49 @@ async fn test_unsigned_tx_endpoint() {
     ];
     let ports_and_keys = vec![(3001, x25519_public_keys[0]), (3002, x25519_public_keys[1])];
 
-    // spawn threshold servers
-    join_all(ports_and_keys.iter().map(|&port_tuple| async move {
-        tokio::spawn(async move {
-            if port_tuple.0 == 3001 {
-                create_clients(port_tuple.0, true, false).await.launch().await.unwrap()
-            } else {
-                create_clients(port_tuple.0, false, true).await.launch().await.unwrap()
-            }
-        })
-    }))
-    .await;
-    tokio::time::sleep(Duration::from_secs(1)).await;
-
     let validator_info: Vec<(String, [u8; 32])> = ports_and_keys
         .iter()
         .map(|validator_tuple| (format!("127.0.0.1:{}", validator_tuple.0), validator_tuple.1))
         .collect::<Vec<_>>();
 
-    let transaction_requests = vec![
+    let whitelisted_transaction_requests = vec![
         // alice
         TransactionRequest::new().to(Address::from([1u8; 20])).value(1),
-        // bob
+        // test_user2 working tx
         TransactionRequest::new().to(Address::from([2u8; 20])).value(5),
     ];
+    let non_whitelisted_transaction_requests = vec![
+        // test_user tx should fail, non-whitelisted address
+        TransactionRequest::new().to(Address::from([3u8; 20])).value(10),
+        // test_user2 tx should fail non-whitelisted address
+        TransactionRequest::new().to(Address::from([4u8; 20])).value(15),
+    ];
+    let transaction_requests = vec![
+        whitelisted_transaction_requests.clone(),
+        non_whitelisted_transaction_requests.clone(),
+    ]
+    .concat();
 
-    let keyrings = vec![AccountKeyring::Alice, AccountKeyring::Bob];
-
-    let raw_ocw_messages = transaction_requests
-        .iter()
-        .zip(keyrings.clone())
-        .map(|(tx_req, keyring)| Message {
+    let keyrings = vec![test_user, test_user2, test_user, test_user2];
+    let ocw_to_message_req = |(tx_req, keyring): (TransactionRequest, Sr25519Keyring)| -> Message {
+        Message {
             sig_request: SigRequest { sig_hash: tx_req.sighash().as_bytes().to_vec() },
             account: keyring.to_raw_public_vec(),
             validators_info: validator_info
                 .iter()
                 .map(|validator_tuple| ValidatorInfo {
                     ip_address: validator_tuple.0.clone().into_bytes(),
-                    x25519_public_key: validator_tuple.1.clone(),
+                    x25519_public_key: validator_tuple.1,
                 })
                 .collect::<Vec<ValidatorInfo>>(),
-        })
+        }
+    };
+
+    let raw_ocw_messages = transaction_requests
+        .clone()
+        .into_iter()
+        .zip(keyrings.clone())
+        .map(ocw_to_message_req)
         .collect::<Vec<_>>();
 
     let place_sig_messages = raw_ocw_messages
@@ -173,6 +220,7 @@ async fn test_unsigned_tx_endpoint() {
             )
         })
         .collect::<Vec<_>>();
+
     // mock client signature requests
     let submit_transaction_requests =
         |validator_urls_and_keys: Arc<Vec<(String, [u8; 32])>>,
@@ -190,39 +238,63 @@ async fn test_unsigned_tx_endpoint() {
                         )
                         .unwrap();
                         let url = format!("{}/user/tx", validator_tuple.0.clone());
-                        let res = mock_client.post(url).json(&signed_message).send().await;
-                        assert_eq!(res.unwrap().status(), 200);
+                        mock_client.post(url).json(&signed_message).send().await
                     })
                     .collect::<Vec<_>>(),
             )
             .await
         };
 
-    // send alice's tx req, then bob's
-    submit_transaction_requests(validator_urls_and_keys.clone(), tx_req_bodies[0].clone()).await;
-    submit_transaction_requests(validator_urls_and_keys.clone(), tx_req_bodies[1].clone()).await;
-    // poll a validator and validate the threshold signatures
-    let get_sig_messages = raw_ocw_messages
-        .iter()
+    // test_user and test_user2 whitelisted transaction requests should succeed
+    let test_user_res =
+        submit_transaction_requests(validator_urls_and_keys.clone(), tx_req_bodies[0].clone())
+            .await;
+    test_user_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
+
+    let test_user2_res =
+        submit_transaction_requests(validator_urls_and_keys.clone(), tx_req_bodies[1].clone())
+            .await;
+    test_user2_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
+
+    // the other txs should fail because of failed constraints
+    let test_user_failed_constraints_res =
+        submit_transaction_requests(validator_urls_and_keys.clone(), tx_req_bodies[2].clone())
+            .await;
+    test_user_failed_constraints_res
+        .into_iter()
+        .for_each(|res| assert_eq!(res.unwrap().status(), 500));
+
+    let test_user2_failed_constraints_res =
+        submit_transaction_requests(validator_urls_and_keys.clone(), tx_req_bodies[3].clone())
+            .await;
+    test_user2_failed_constraints_res
+        .into_iter()
+        .for_each(|res| assert_eq!(res.unwrap().status(), 500));
+
+    // poll a validator server and validate the threshold signatures
+    let get_sig_messages = whitelisted_transaction_requests
+        .clone()
+        .into_iter()
+        .zip(keyrings)
+        .map(ocw_to_message_req)
+        .collect::<Vec<_>>()
+        .into_iter()
         .map(|raw_ocw_message| SigMessage {
-            message: hex::encode(raw_ocw_message.sig_request.sig_hash.clone()),
+            message: hex::encode(raw_ocw_message.sig_request.sig_hash),
         })
         .collect::<Vec<_>>();
 
     join_all(get_sig_messages.iter().map(|get_sig_message| async {
-        let res = mock_client
-            .post("http://127.0.0.1:3001/signer/signature")
-            .json(get_sig_message)
-            .send()
-            .await
-            .unwrap();
+        let client = reqwest::Client::new();
+        let url = format!("http://{}/signer/signature", validator_ips[0].clone());
+        let res = client.post(url).json(get_sig_message).send().await.unwrap();
         assert_eq!(res.status(), 202);
         assert_eq!(res.content_length().unwrap(), 88);
     }))
     .await;
 
-    // if unsafe, then also validate signature deletion
     // delete all signatures from the servers
+
     join_all(validator_urls_and_keys.iter().map(|validator_tuple| async {
         let url = format!("{}/signer/drain", validator_tuple.0.clone());
         let res = mock_client.get(url).send().await;
@@ -232,12 +304,10 @@ async fn test_unsigned_tx_endpoint() {
 
     // query the signature again, should error since we just deleted them
     join_all(get_sig_messages.iter().map(|get_sig_message| async {
-        let res = mock_client
-            .post("http://127.0.0.1:3001/signer/signature")
-            .json(get_sig_message)
-            .send()
-            .await;
-        assert_eq!(res.as_ref().unwrap().status(), 500);
+        let client = reqwest::Client::new();
+        let url = format!("http://{}/signer/signature", validator_ips[0].clone());
+        let res = client.post(url).json(get_sig_message).send().await;
+        assert_eq!(res.unwrap().status(), 500);
     }))
     .await;
 
@@ -290,10 +360,11 @@ async fn test_unsigned_tx_endpoint() {
 #[serial]
 async fn test_store_share() {
     clean_tests();
+    let validator_1_stash_id: AccountId32 =
+        h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into(); // alice stash;
+
     let alice = AccountKeyring::Alice;
     let alice_constraint = AccountKeyring::Charlie;
-    let alice_stash_id: AccountId32 =
-        h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
 
     let value: Vec<u8> = vec![0];
 
@@ -302,7 +373,7 @@ async fn test_store_share() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let threshold_servers_query =
-        entropy::storage().staking_extension().threshold_servers(&alice_stash_id);
+        entropy::storage().staking_extension().threshold_servers(&validator_1_stash_id);
     let query_result = api.storage().fetch(&threshold_servers_query, None).await.unwrap();
     assert!(query_result.is_some());
 
@@ -326,7 +397,7 @@ async fn test_store_share() {
     );
 
     // signal registering
-    make_register(&api, &alice, &alice_constraint).await;
+    make_register(&api, &alice, &alice_constraint.to_account_id()).await;
 
     let response_2 = client
         .post("/user/new")
@@ -352,7 +423,7 @@ async fn test_store_share() {
 
     // fails with wrong node key
     let bob_stash_id: AccountId32 =
-        h!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into();
+        h!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into(); // subkey inspect //Bob//stash
 
     let query_bob = entropy::storage().staking_extension().threshold_servers(&bob_stash_id);
     let query_result_bob = api.storage().fetch(&query_bob, None).await.unwrap();
@@ -503,109 +574,4 @@ async fn test_store_share_fail_wrong_data() {
         .await;
     assert_eq!(response.status(), Status::UnprocessableEntity);
     clean_tests();
-}
-
-pub async fn make_register(
-    api: &OnlineClient<EntropyConfig>,
-    sig_req_keyring: &Sr25519Keyring,
-    constraint_keyring: &Sr25519Keyring,
-) {
-    clean_tests();
-    let sig_req_account =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
-    let registering_query =
-        entropy::storage().relayer().registering(sig_req_keyring.to_account_id());
-    let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();
-    assert!(is_registering_1.is_none());
-
-    let registering_tx = entropy::tx().relayer().register(constraint_keyring.to_account_id(), None);
-
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
-
-    let is_registering_2 = api.storage().fetch(&registering_query, None).await;
-    assert!(is_registering_2.unwrap().unwrap().is_registering);
-}
-
-pub async fn make_swapping(api: &OnlineClient<EntropyConfig>, key: &Sr25519Keyring) {
-    let signer = PairSigner::new(key.pair());
-    let registering_query = entropy::storage().relayer().registering(key.to_account_id());
-    let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();
-    assert!(is_registering_1.is_none());
-
-    let registering_tx = entropy::tx().relayer().swap_keys();
-
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &signer)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
-
-    let is_registering_2 = api.storage().fetch(&registering_query, None).await;
-    assert!(is_registering_2.unwrap().unwrap().is_registering);
-}
-
-pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &Sr25519Keyring) {
-    let registering_query = entropy::storage().relayer().registering(key.to_account_id());
-    let registered_query = entropy::storage().relayer().registered(key.to_account_id());
-    let is_registering = api.storage().fetch(&registering_query, None).await.unwrap();
-    // make sure there is one confirmation
-    assert_eq!(is_registering.unwrap().confirmations.len(), 1);
-    let _ = api.storage().fetch(&registered_query, None).await.unwrap();
-}
-
-async fn create_clients(port: i64, is_alice: bool, is_bob: bool) -> Rocket<Ignite> {
-    let config = rocket::Config::figment().merge(("port", port));
-
-    let signer_state = SignerState::default();
-    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let signature_state = SignatureState::new();
-
-    let path = format!("test_db_{}", port.to_string());
-    let _ = std::fs::remove_dir_all(path.clone());
-
-    let kv_store =
-        KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
-
-    // Shortcut: store the shares manually
-    let root = project_root::get_project_root().unwrap();
-    let share_id = i32::from(port != 3001);
-    let path: PathBuf =
-        [root, "test_data".into(), "key_shares".into(), share_id.to_string().into()]
-            .into_iter()
-            .collect();
-    let v_serialized = fs::read(path).unwrap();
-    let alice_key = AccountKeyring::Alice.to_account_id();
-    let bob_key = AccountKeyring::Bob.to_account_id();
-    let alice_reservation = kv_store.kv().reserve_key(alice_key.to_string()).await.unwrap();
-    let bob_reservation = kv_store.kv().reserve_key(bob_key.to_string()).await.unwrap();
-    // alice and bob reuse the same keyshares for testing
-    let _ = kv_store.kv().put(alice_reservation, v_serialized.clone()).await;
-    let _ = kv_store.kv().put(bob_reservation, v_serialized).await;
-    let _ = setup_mnemonic(&kv_store, is_alice, is_bob).await;
-
-    rocket::custom(config)
-        .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
-        .mount("/user", routes![store_tx, new_user])
-        .mount("/unsafe", routes![remove_keys, get, put, delete])
-        .manage(signer_state)
-        .manage(configuration)
-        .manage(kv_store)
-        .manage(signature_state)
-        .ignite()
-        .await
-        .unwrap()
 }
