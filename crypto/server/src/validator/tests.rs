@@ -1,32 +1,26 @@
 use bip39::{Language, Mnemonic};
 use entropy_shared::MIN_BALANCE;
 use hex_literal::hex;
-use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
-use rocket::{http::ContentType, Ignite, Rocket};
+use kvdb::clean_tests;
+use rocket::http::ContentType;
 use serial_test::serial;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use subxt::tx::PairSigner;
-use testing_utils::context::test_context;
+use testing_utils::substrate_context::testing_context;
 use x25519_dalek::PublicKey;
 
 use super::api::{
-    check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info, sync_kvdb,
+    check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info,
     tell_chain_syncing_is_done, Keys,
 };
 use crate::{
     chain_api::{get_api, EntropyConfig},
     helpers::{
-        launch::{
-            setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
-        },
-        signing::SignatureState,
-        tests::setup_client,
-        validator::get_subgroup,
+        launch::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
+        substrate::get_subgroup,
+        tests::{create_clients, setup_client},
     },
     message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
-    new_user,
-    signing_client::SignerState,
-    store_tx,
 };
 
 #[rocket::async_test]
@@ -44,7 +38,7 @@ async fn test_sync_kvdb() {
 #[rocket::async_test]
 async fn test_get_all_keys() {
     clean_tests();
-    let cxt = test_context().await;
+    let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let mut result = get_all_keys(&api, 3).await.unwrap();
@@ -74,7 +68,7 @@ async fn test_get_all_keys() {
 #[should_panic]
 async fn test_get_all_keys_fail() {
     clean_tests();
-    let cxt = test_context().await;
+    let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let _ = get_all_keys(&api, 0).await.unwrap();
     clean_tests();
@@ -175,7 +169,7 @@ async fn test_get_safe_crypto_error() {
 #[serial]
 async fn test_get_and_store_values() {
     clean_tests();
-    let cxt = test_context().await;
+    let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
@@ -220,7 +214,7 @@ async fn test_get_and_store_values() {
 #[rocket::async_test]
 async fn test_get_random_server_info() {
     clean_tests();
-    let cxt = test_context().await;
+    let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
@@ -236,7 +230,7 @@ async fn test_get_random_server_info() {
 #[should_panic = "Account does not exist, add balance"]
 async fn test_check_balance_for_fees() {
     clean_tests();
-    let cxt = test_context().await;
+    let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let alice_stash_address: AccountId32 =
         hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
@@ -262,51 +256,11 @@ async fn test_check_balance_for_fees() {
                   pallet_index: 12, error: [3, 0, 0, 0] } })))"]
 async fn test_tell_chain_syncing_is_done() {
     clean_tests();
-    let cxt = test_context().await;
+    let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string("//Alice", None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
 
     // expect this to fail in the proper way
     tell_chain_syncing_is_done(&api, &signer_alice).await.unwrap();
-}
-
-async fn create_clients(
-    port: i64,
-    key_number: String,
-    values: Vec<Vec<u8>>,
-    keys: Vec<String>,
-    is_alice: bool,
-    is_bob: bool,
-) -> (Rocket<Ignite>, KvManager) {
-    let config = rocket::Config::figment().merge(("port", port));
-
-    let signer_state = SignerState::default();
-    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let signature_state = SignatureState::new();
-
-    let path = format!("test_db_{key_number}");
-    let _ = std::fs::remove_dir_all(path.clone());
-
-    let kv_store =
-        KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
-    let _ = setup_mnemonic(&kv_store, is_alice, is_bob).await;
-
-    for (i, value) in values.into_iter().enumerate() {
-        let reservation = kv_store.clone().kv().reserve_key(keys[i].to_string()).await.unwrap();
-        let _ = kv_store.clone().kv().put(reservation, value).await;
-    }
-
-    let result = rocket::custom(config)
-        .mount("/validator", routes![sync_kvdb])
-        .mount("/user", routes![new_user, store_tx])
-        .manage(signer_state)
-        .manage(configuration)
-        .manage(kv_store.clone())
-        .manage(signature_state)
-        .ignite()
-        .await
-        .unwrap();
-
-    (result, kv_store)
 }

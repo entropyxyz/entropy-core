@@ -1042,12 +1042,12 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.0.29"
+version = "4.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d63b9e9c07271b9957ad22c173bae2a4d9a81127680962039296abcd2f8251d"
+checksum = "c3d7ae14b20b94cb02149ed21a86c423859cbe18dc7ed69845cace50e52b40a5"
 dependencies = [
  "bitflags",
- "clap_derive 4.0.21",
+ "clap_derive 4.1.8",
  "clap_lex 0.3.0",
  "is-terminal",
  "once_cell 1.16.0",
@@ -1079,9 +1079,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.0.21"
+version = "4.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0177313f9f02afc995627906bbd8967e2be069f5261954222dac78290c2b9014"
+checksum = "44bec8e5c9d09e439c4335b1af0abaab56dcf3b94999a936e1bb47b9134288f0"
 dependencies = [
  "heck 0.4.0",
  "proc-macro-error",
@@ -1890,7 +1890,7 @@ dependencies = [
 name = "entropy"
 version = "3.0.0-monthly-2021-10"
 dependencies = [
- "clap 4.0.29",
+ "clap 4.1.8",
  "clap_complete",
  "entropy-runtime",
  "frame-benchmarking",
@@ -1972,6 +1972,7 @@ dependencies = [
  "entropy-shared",
  "ethers-core",
  "hex",
+ "primitive-types 0.11.1",
  "rlp",
  "serde",
  "serde_json",
@@ -2498,7 +2499,7 @@ dependencies = [
  "Inflector",
  "array-bytes",
  "chrono",
- "clap 4.0.29",
+ "clap 4.1.8",
  "comfy-table",
  "frame-benchmarking",
  "frame-support",
@@ -2600,7 +2601,7 @@ dependencies = [
 [[package]]
 name = "frame-metadata"
 version = "15.0.0"
-source = "git+https://github.com/paritytech/frame-metadata/#1ea329920838b3f4170f421cde53ce7e6a15ccee"
+source = "git+https://github.com/paritytech/frame-metadata/#02a063bc5e6170f6e7e1d9295da4dec887e86bc4"
 dependencies = [
  "cfg-if",
  "parity-scale-codec",
@@ -4849,7 +4850,7 @@ name = "node-inspect"
 version = "0.9.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.31#7a4e5163091384c4c10b6d76f5cb80dac0834f38"
 dependencies = [
- "clap 4.0.29",
+ "clap 4.1.8",
  "parity-scale-codec",
  "sc-cli",
  "sc-client-api",
@@ -6659,6 +6660,7 @@ dependencies = [
  "impl-codec",
  "impl-rlp",
  "impl-serde 0.3.2",
+ "scale-info",
  "uint",
 ]
 
@@ -7836,7 +7838,7 @@ source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.31#7a
 dependencies = [
  "array-bytes",
  "chrono",
- "clap 4.0.29",
+ "clap 4.1.8",
  "fdlimit",
  "futures",
  "libp2p",
@@ -9217,7 +9219,7 @@ dependencies = [
  "blake2",
  "bytes",
  "chacha20poly1305 0.10.1",
- "clap 4.0.29",
+ "clap 4.1.8",
  "entropy-constraints",
  "entropy-shared",
  "ethers-core",
@@ -10420,7 +10422,7 @@ name = "substrate-frame-cli"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.31#7a4e5163091384c4c10b6d76f5cb80dac0834f38"
 dependencies = [
- "clap 4.0.29",
+ "clap 4.1.8",
  "frame-support",
  "frame-system",
  "sc-cli",
@@ -10931,7 +10933,7 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 [[package]]
 name = "tofn"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/tofn?branch=main#7006f0e7bbfb96b1923225e18ce15f5f5e80e9df"
+source = "git+https://github.com/entropyxyz/tofn?branch=main#3b58546dd3f02dc24ecaedde5df7fb45b169b315"
 dependencies = [
  "anyhow",
  "bincode",
@@ -11254,7 +11256,7 @@ name = "try-runtime-cli"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.31#7a4e5163091384c4c10b6d76f5cb80dac0834f38"
 dependencies = [
- "clap 4.0.29",
+ "clap 4.1.8",
  "frame-try-runtime",
  "log",
  "parity-scale-codec",

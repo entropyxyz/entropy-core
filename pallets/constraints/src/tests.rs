@@ -1,5 +1,4 @@
 use frame_support::{assert_noop, assert_ok};
-use sp_core::{H160, H256};
 
 use crate::{mock::*, Acl, AllowedToModifyConstraints, Constraints, Error};
 
@@ -14,8 +13,8 @@ fn assert_permissions_are_restricted_properly() {
         // In practice, we should use `None` instead of `Some(Acl::default())`,
         // but this is fine to test permission
         let valid_constraints = Constraints {
-            evm_acl: Some(Acl::<H160>::default()),
-            btc_acl: Some(Acl::<H256>::default()),
+            evm_acl: Some(Acl::<[u8; 20]>::default()),
+            btc_acl: Some(Acl::<[u8; 32]>::default()),
         };
 
         // make sure noone can add a constraint without explicit permissions
@@ -74,8 +73,8 @@ fn return_error_if_constraints_arent_set() {
         // In practice, we should use `None` instead of `Some(Acl::default())`,
         // but this is fine to test permission
         let valid_constraints = Constraints {
-            evm_acl: Some(Acl::<H160>::default()),
-            btc_acl: Some(Acl::<H256>::default()),
+            evm_acl: Some(Acl::<[u8; 20]>::default()),
+            btc_acl: Some(Acl::<[u8; 32]>::default()),
         };
 
         // give permission to modify constraints
@@ -92,6 +91,9 @@ fn return_error_if_constraints_arent_set() {
         ));
 
         // make sure acl updates
-        assert_eq!(ConstraintsPallet::evm_acl(SIG_REQ_ACCOUNT).unwrap(), Acl::<H160>::default());
+        assert_eq!(
+            ConstraintsPallet::evm_acl(SIG_REQ_ACCOUNT).unwrap(),
+            Acl::<[u8; 20]>::default()
+        );
     });
 }

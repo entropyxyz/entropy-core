@@ -7,7 +7,7 @@ use frame_system::{EventRecord, RawOrigin};
 use sp_std::vec::Vec;
 
 use super::*;
-use crate::pallet::{Acl, Constraints, H160, H256};
+use crate::pallet::{Acl, Constraints};
 #[allow(unused)]
 use crate::Pallet as ConstraintsPallet;
 
@@ -24,11 +24,11 @@ pub fn generate_benchmarking_constraints<T: Config>(
     evm_acl_len: u32,
     btc_acl_len: u32,
 ) -> Constraints {
-    let mut evm_acl = Acl::<H160>::default();
-    let mut btc_acl = Acl::<H256>::default();
+    let mut evm_acl = Acl::<[u8; 20]>::default();
+    let mut btc_acl = Acl::<[u8; 32]>::default();
 
-    evm_acl.addresses = (0..evm_acl_len).map(|_| H160::default()).collect::<Vec<_>>();
-    btc_acl.addresses = (0..btc_acl_len).map(|_| H256::default()).collect::<Vec<_>>();
+    evm_acl.addresses = (0..evm_acl_len).map(|_| <[u8; 20]>::default()).collect::<Vec<_>>();
+    btc_acl.addresses = (0..btc_acl_len).map(|_| <[u8; 32]>::default()).collect::<Vec<_>>();
 
     Constraints { evm_acl: Some(evm_acl), btc_acl: Some(btc_acl) }
 }

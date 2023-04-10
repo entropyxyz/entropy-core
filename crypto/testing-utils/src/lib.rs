@@ -1,5 +1,5 @@
 mod chain_api;
-pub mod context;
 mod node_proc;
-pub use context::*;
+pub mod substrate_context;
 pub use node_proc::TestNodeProcess;
+pub use substrate_context::*;

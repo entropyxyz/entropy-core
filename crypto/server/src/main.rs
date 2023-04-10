@@ -46,7 +46,8 @@ use crate::{
     helpers::{
         launch::{init_tracing, load_kv_store, setup_mnemonic, Configuration, StartupArgs},
         signing::SignatureState,
-        validator::{get_signer, get_subgroup},
+        substrate::get_subgroup,
+        validator::get_signer,
     },
     r#unsafe::api::{delete, get, put, remove_keys},
     validator::api::{
@@ -88,7 +89,9 @@ impl Fairing for CORS {
 #[launch]
 async fn rocket() -> _ {
     init_tracing();
+
     let args = StartupArgs::parse();
+
     let signer_state = SignerState::default();
     let configuration = Configuration::new(args.chain_endpoint);
     let kv_store = load_kv_store(args.bob, args.alice).await;

@@ -40,6 +40,16 @@ Optionally, you can also run it with detailed logging:
 RUST_BACKTRACE=1 ./target/release/entropy -ldebug --dev --ws-external
 ```
 
+### Testing
+
+Testing is done via `cargo test`. When testing `server`, ensure the `entropy` **release** binary exists and is up to date; run `cargo build --release -p entropy` when in doubt.
+
+Because of `clap`, running individual tests require using the `--test` flag as a program argument for the `server` binary when using `cargo test`. For example, to run the `test_new_party` test in `crypto/server/src/user/tests.rs`, you would run something similar to:
+
+```sh
+cargo test --release -p server --features unsafe -- --test user::tests::test_unsigned_tx_endpoint --nocapture
+```
+
 ### Connect with Polkadot-JS Apps Front-end
 
 Once the node template is running locally, you can connect it with **Polkadot-JS Apps** front-end
