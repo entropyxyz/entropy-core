@@ -63,26 +63,12 @@ impl Fairing for CORS {
     fn info(&self) -> Info { Info { name: "Add CORS headers to responses", kind: Kind::Response } }
 
     async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
-        let origin = _request.headers().get_one("Origin").unwrap_or("*");
-        let node_tss = "http://127.0.0.1:3000";
-        let alice_tss = "http://127.0.0.1:3001";
-        let bob_tss = "http://127.0.0.1:3002";
-        let local_web_server = "http://127.0.0.1:5173";
-
-        if origin == node_tss
-            || origin == alice_tss
-            || origin == bob_tss
-            || origin == local_web_server
-        {
-            response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
-            response.set_header(Header::new(
-                "Access-Control-Allow-Methods",
-                "POST, GET, PATCH, OPTIONS",
-            ));
-            response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
-            response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
-            response.set_status(Status::Ok);
-        }
+        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+        response
+            .set_header(Header::new("Access-Control-Allow-Methods", "POST, GET, PATCH, OPTIONS"));
+        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
+        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+        response.set_status(Status::Ok);
     }
 }
 
