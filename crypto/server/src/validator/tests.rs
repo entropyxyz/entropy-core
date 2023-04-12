@@ -1,12 +1,14 @@
 use bip39::{Language, Mnemonic};
 use entropy_shared::MIN_BALANCE;
-use hex_literal::hex;
 use kvdb::clean_tests;
 use rocket::http::ContentType;
 use serial_test::serial;
-use sp_core::{crypto::AccountId32, sr25519, Pair};
+use sp_core::{sr25519, Pair};
 use subxt::tx::PairSigner;
-use testing_utils::substrate_context::testing_context;
+use testing_utils::{
+    constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
+    substrate_context::testing_context,
+};
 use x25519_dalek::PublicKey;
 
 use super::api::{
@@ -232,20 +234,17 @@ async fn test_check_balance_for_fees() {
     clean_tests();
     let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let alice_stash_address: AccountId32 =
-        hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
-    let result = check_balance_for_fees(&api, &alice_stash_address, MIN_BALANCE).await.unwrap();
+
+    let result = check_balance_for_fees(&api, &ALICE_STASH_ADDRESS, MIN_BALANCE).await.unwrap();
 
     assert!(result);
 
-    let result_2 = check_balance_for_fees(&api, &alice_stash_address, 10000000000000000000000u128)
+    let result_2 = check_balance_for_fees(&api, &ALICE_STASH_ADDRESS, 10000000000000000000000u128)
         .await
         .unwrap();
     assert!(!result_2);
 
-    let random_account: AccountId32 =
-        hex!["8676839ca1e196624106d17c56b1efbb90508a86d8053f7d4fcd21127a9f7565"].into();
-    let _ = check_balance_for_fees(&api, &random_account, MIN_BALANCE).await.unwrap();
+    let _ = check_balance_for_fees(&api, &RANDOM_ACCOUNT, MIN_BALANCE).await.unwrap();
     clean_tests();
 }
 
