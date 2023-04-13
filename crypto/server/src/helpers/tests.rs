@@ -5,14 +5,13 @@ use std::{fs, path::PathBuf};
 
 use entropy_shared::Constraints;
 use futures::future::join_all;
-use hex_literal::hex as h;
 use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
 use rocket::{local::asynchronous::Client, tokio::time::Duration, Ignite, Rocket};
 use serial_test::serial;
-use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
+use sp_core::{sr25519, Bytes, Pair};
 use sp_keyring::Sr25519Keyring;
 use subxt::{tx::PairSigner, OnlineClient};
-use testing_utils::substrate_context::testing_context;
+use testing_utils::{constants::X25519_PUBLIC_KEYS, substrate_context::testing_context};
 use x25519_dalek::PublicKey;
 
 use crate::{
@@ -53,7 +52,7 @@ pub async fn create_clients(
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let signature_state = SignatureState::new();
 
-    let path = format!("test_db_{key_number}");
+    let path = format!(".entropy/testing/test_db_{key_number}");
     let _ = std::fs::remove_dir_all(path.clone());
 
     let kv_store =
@@ -124,23 +123,8 @@ pub async fn register_user(
     constraint_modification_account: &Sr25519Keyring,
     initial_constraints: Constraints,
 ) {
-    // Get keys for encrypting mock client-side messages to the server
-    let validator_1_stash_id: AccountId32 =
-        h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into(); // alice stash
-    let validator_2_stash_id: AccountId32 =
-        h!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into(); // bob stash
-
-    let query_validator1_keys =
-        entropy::storage().staking_extension().threshold_servers(&validator_1_stash_id);
-    let query_validator2_keys =
-        entropy::storage().staking_extension().threshold_servers(&validator_2_stash_id);
-    let validator1_keys =
-        entropy_api.storage().fetch(&query_validator1_keys, None).await.unwrap().unwrap();
-    let validator2_keys =
-        entropy_api.storage().fetch(&query_validator2_keys, None).await.unwrap().unwrap();
-
-    let validator1_server_public_key = PublicKey::from(validator1_keys.x25519_public_key);
-    let validator2_server_public_key = PublicKey::from(validator2_keys.x25519_public_key);
+    let validator1_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
+    let validator2_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
 
     let validator_1_threshold_keyshare: Vec<u8> = get_test_keyshare_for_validator(0);
     let validator_2_threshold_keyshare: Vec<u8> = get_test_keyshare_for_validator(1);

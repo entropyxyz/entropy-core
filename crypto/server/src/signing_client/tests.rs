@@ -6,7 +6,7 @@ use rocket::http::{ContentType, Status};
 use serial_test::serial;
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{tx::PairSigner, OnlineClient};
-use testing_utils::substrate_context::test_context_stationary;
+use testing_utils::{constants::X25519_PUBLIC_KEYS, substrate_context::test_context_stationary};
 
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
@@ -32,20 +32,6 @@ async fn test_new_party() {
     let sig_hash = parsed_tx.sighash();
     let block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
     put_tx_request_on_chain(&api, &dave, sig_hash.as_bytes().to_vec()).await;
-    let x25519_public_keys: Vec<[u8; 32]> = vec![
-        vec![
-            10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124, 195, 141,
-            148, 249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247, 58, 34,
-        ]
-        .try_into()
-        .unwrap(),
-        vec![
-            225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245, 89, 36, 170, 169,
-            181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136, 102, 10,
-        ]
-        .try_into()
-        .unwrap(),
-    ];
     let onchain_signature_request = OCWMessage {
         messages: vec![Message {
             sig_request: SigRequest { sig_hash: sig_hash.as_bytes().to_vec() },
@@ -53,11 +39,11 @@ async fn test_new_party() {
             validators_info: vec![
                 ValidatorInfo {
                     ip_address: b"127.0.0.1:3001".to_vec(),
-                    x25519_public_key: x25519_public_keys[0],
+                    x25519_public_key: X25519_PUBLIC_KEYS[0],
                 },
                 ValidatorInfo {
                     ip_address: b"127.0.0.1:3002".to_vec(),
-                    x25519_public_key: x25519_public_keys[1],
+                    x25519_public_key: X25519_PUBLIC_KEYS[1],
                 },
             ],
         }],
