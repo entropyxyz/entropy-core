@@ -21,7 +21,10 @@ use serial_test::serial;
 use sp_core::{crypto::Ss58Codec, sr25519, Bytes, Pair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
-use testing_utils::substrate_context::{test_context_stationary, SubstrateTestingContext};
+use testing_utils::{
+    constants::X25519_PUBLIC_KEYS,
+    substrate_context::{test_context_stationary, SubstrateTestingContext},
+};
 use tokio::task::JoinHandle;
 use x25519_dalek::{PublicKey, StaticSecret};
 
@@ -105,21 +108,7 @@ async fn test_unsigned_tx_endpoint() {
     )
     .await;
 
-    let x25519_public_keys: Vec<[u8; 32]> = vec![
-        vec![
-            10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124, 195, 141,
-            148, 249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247, 58, 34,
-        ]
-        .try_into()
-        .unwrap(),
-        vec![
-            225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245, 89, 36, 170, 169,
-            181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136, 102, 10,
-        ]
-        .try_into()
-        .unwrap(),
-    ];
-    let ports_and_keys = vec![(3001, x25519_public_keys[0]), (3002, x25519_public_keys[1])];
+    let ports_and_keys = vec![(3001, X25519_PUBLIC_KEYS[0]), (3002, X25519_PUBLIC_KEYS[1])];
 
     let validator_info: Vec<(String, [u8; 32])> = ports_and_keys
         .iter()
@@ -312,7 +301,7 @@ async fn test_unsigned_tx_endpoint() {
     .await;
 
     // test fail validation decrypt
-    let server_public_key = PublicKey::from(x25519_public_keys[1]);
+    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
     let failed_signed_message = SignedMessage::new(
         &tx_req_bodies[0].1.pair(),
         &Bytes(serde_json::to_vec(&tx_req_bodies[0].0.clone()).unwrap()),
@@ -360,9 +349,6 @@ async fn test_unsigned_tx_endpoint() {
 #[serial]
 async fn test_store_share() {
     clean_tests();
-    let validator_1_stash_id: AccountId32 =
-        h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into(); // alice stash;
-
     let alice = AccountKeyring::Alice;
     let alice_constraint = AccountKeyring::Charlie;
 
@@ -372,13 +358,7 @@ async fn test_store_share() {
     let client = setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-    let threshold_servers_query =
-        entropy::storage().staking_extension().threshold_servers(&validator_1_stash_id);
-    let query_result = api.storage().fetch(&threshold_servers_query, None).await.unwrap();
-    assert!(query_result.is_some());
-
-    let res = query_result.unwrap();
-    let server_public_key = PublicKey::from(res.x25519_public_key);
+    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let user_input = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
         .unwrap()
         .to_json();
@@ -422,13 +402,7 @@ async fn test_store_share() {
     assert_eq!(response_3.into_string().await.unwrap(), "Kv error: Recv Error: channel closed");
 
     // fails with wrong node key
-    let bob_stash_id: AccountId32 =
-        h!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into(); // subkey inspect //Bob//stash
-
-    let query_bob = entropy::storage().staking_extension().threshold_servers(&bob_stash_id);
-    let query_result_bob = api.storage().fetch(&query_bob, None).await.unwrap();
-    let res_bob = query_result_bob.unwrap();
-    let server_public_key_bob = PublicKey::from(res_bob.x25519_public_key);
+    let server_public_key_bob = PublicKey::from(X25519_PUBLIC_KEYS[1]);
     let user_input_bob =
         SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key_bob)
             .unwrap()
@@ -474,8 +448,6 @@ async fn test_store_share() {
 async fn test_update_keys() {
     clean_tests();
     let dave = AccountKeyring::Dave;
-    let alice_stash_id: AccountId32 =
-        h!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
 
     let key: AccountId32 = dave.to_account_id();
     let value: Vec<u8> = vec![0];
@@ -484,13 +456,7 @@ async fn test_update_keys() {
     let client = setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-    let threshold_servers_query =
-        entropy::storage().staking_extension().threshold_servers(&alice_stash_id);
-    let query_result = api.storage().fetch(&threshold_servers_query, None).await.unwrap();
-    assert!(query_result.is_some());
-
-    let res = query_result.unwrap();
-    let server_public_key = PublicKey::from(res.x25519_public_key);
+    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let user_input =
         SignedMessage::new(&dave.pair(), &Bytes(new_value.clone()), &server_public_key)
             .unwrap()

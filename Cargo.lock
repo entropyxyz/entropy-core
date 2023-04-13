@@ -10771,6 +10771,8 @@ name = "testing-utils"
 version = "0.1.0"
 dependencies = [
  "env_logger",
+ "hex-literal",
+ "lazy_static",
  "log",
  "parity-scale-codec",
  "project-root",
