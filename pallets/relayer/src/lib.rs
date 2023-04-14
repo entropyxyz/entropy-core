@@ -265,7 +265,7 @@ pub mod pallet {
 
             let mut registering_info =
                 Self::registering(&sig_req_account).ok_or(Error::<T>::NotRegistering)?;
-			let confirmation_length = registering_info.confirmations.len() as u32;
+            let confirmation_length = registering_info.confirmations.len() as u32;
             ensure!(
                 !registering_info.confirmations.contains(&signing_subgroup),
                 Error::<T>::AlreadyConfirmed
@@ -280,10 +280,11 @@ pub mod pallet {
             );
 
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
-				let mut weight;
+                let mut weight;
                 Registered::<T>::insert(&sig_req_account, true);
                 Registering::<T>::remove(&sig_req_account);
-				weight = <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
+                weight =
+                    <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
                 if !registering_info.is_swapping {
                     AllowedToModifyConstraints::<T>::insert(
                         &registering_info.constraint_account,
@@ -297,16 +298,20 @@ pub mod pallet {
                             constraints,
                         );
                     }
-					weight = <T as Config>::WeightInfo::confirm_register_swapping(confirmation_length);
+                    weight =
+                        <T as Config>::WeightInfo::confirm_register_swapping(confirmation_length);
                 }
 
                 Self::deposit_event(Event::AccountRegistered(sig_req_account));
-				Ok(Some(weight).into())
+                Ok(Some(weight).into())
             } else {
                 registering_info.confirmations.push(signing_subgroup);
                 Registering::<T>::insert(&sig_req_account, registering_info);
                 Self::deposit_event(Event::AccountRegistering(sig_req_account, signing_subgroup));
-				Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(confirmation_length)).into())
+                Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(
+                    confirmation_length,
+                ))
+                .into())
             }
         }
     }

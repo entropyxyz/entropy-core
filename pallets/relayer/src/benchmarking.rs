@@ -2,7 +2,9 @@
 
 use codec::Encode;
 use entropy_shared::{Message, SigRequest, SIGNING_PARTY_SIZE as SIG_PARTIES};
-use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec};
+use frame_benchmarking::{
+    account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec,
+};
 use frame_support::traits::Get;
 use frame_system::{EventRecord, RawOrigin};
 #[cfg(feature = "runtime-benchmarks")]
@@ -113,7 +115,7 @@ benchmarks! {
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
   verify {
-	assert_last_event::<T>(Event::<T>::AccountRegistering(sig_req_account, 0).into());
+    assert_last_event::<T>(Event::<T>::AccountRegistering(sig_req_account, 0).into());
 
   }
 
@@ -127,8 +129,8 @@ confirm_register_registered {
         let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
     }
-	let adjusted_sig_size = SIG_PARTIES - 1;
-	let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
+    let adjusted_sig_size = SIG_PARTIES - 1;
+    let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         is_registering: true,
         constraint_account: sig_req_account.clone(),
@@ -138,7 +140,7 @@ confirm_register_registered {
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
   verify {
-	assert_last_event::<T>(Event::<T>::AccountRegistered(sig_req_account).into());
+    assert_last_event::<T>(Event::<T>::AccountRegistered(sig_req_account).into());
   }
 
   confirm_register_swapping {
@@ -151,8 +153,8 @@ confirm_register_registered {
         let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
     }
-	let adjusted_sig_size = SIG_PARTIES - 1;
-	let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
+    let adjusted_sig_size = SIG_PARTIES - 1;
+    let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         is_registering: true,
         constraint_account: sig_req_account.clone(),
@@ -162,7 +164,7 @@ confirm_register_registered {
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
   verify {
-	assert_last_event::<T>(Event::<T>::AccountRegistered(sig_req_account).into());
+    assert_last_event::<T>(Event::<T>::AccountRegistered(sig_req_account).into());
   }
 }
 
