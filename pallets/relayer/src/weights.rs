@@ -13,6 +13,9 @@ pub trait WeightInfo {
     fn prep_transaction(s: u32) -> Weight;
     fn register(evm_acl_len: u32, btc_acl_len: u32) -> Weight;
     fn swap_keys() -> Weight;
+    fn confirm_register_swapping(c: u32) -> Weight;
+    fn confirm_register_registered(c: u32) -> Weight;
+    fn confirm_register_registering(c: u32) -> Weight;
 }
 
 /// Weights for pallet_realyer using the Substrate node and recommended hardware.
@@ -47,6 +50,46 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(1 as u64))
             .saturating_add(T::DbWeight::get().writes(2 as u64))
     }
+
+    // Storage: StakingExtension ThresholdToStash (r:1 w:0)
+    // Storage: Relayer Registering (r:1 w:1)
+    // Storage: StakingExtension SigningGroups (r:1 w:0)
+    /// The range of component `c` is `[0, 2]`.
+    fn confirm_register_registering(c: u32) -> Weight {
+        // Minimum execution time: 67_000 nanoseconds.
+        Weight::from_ref_time(93_500_000 as u64)
+			// Standard Error: 12_512_493
+			.saturating_add(Weight::from_ref_time(2_500_000 as u64).saturating_mul(c as u64))
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
+    }
+
+    // Storage: StakingExtension ThresholdToStash (r:1 w:0)
+    // Storage: Relayer Registering (r:1 w:1)
+    // Storage: StakingExtension SigningGroups (r:1 w:0)
+    // Storage: Relayer Registered (r:0 w:1)
+    // Storage: Constraints AllowedToModifyConstraints (r:0 w:1)
+    /// The range of component `c` is `[0, 2]`.
+    fn confirm_register_registered(_c: u32) -> Weight {
+        // Minimum execution time: 93_000 nanoseconds.
+        Weight::from_ref_time(121_083_333 as u64)
+            .saturating_add(T::DbWeight::get().reads(3 as u64))
+            .saturating_add(T::DbWeight::get().writes(3 as u64))
+    }
+
+    // Storage: StakingExtension ThresholdToStash (r:1 w:0)
+    // Storage: Relayer Registering (r:1 w:1)
+    // Storage: StakingExtension SigningGroups (r:1 w:0)
+    // Storage: Relayer Registered (r:0 w:1)
+    /// The range of component `c` is `[0, 2]`.
+    fn confirm_register_swapping(c: u32) -> Weight {
+        // Minimum execution time: 78_000 nanoseconds.
+        Weight::from_ref_time(105_833_333 as u64)
+			// Standard Error: 7_290_118
+			.saturating_add(Weight::from_ref_time(6_500_000 as u64).saturating_mul(c as u64))
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
+    }
 }
 
 // For backwards compatibility and tests
@@ -79,5 +122,45 @@ impl WeightInfo for () {
         Weight::from_ref_time(39_000_000 as u64)
             .saturating_add(RocksDbWeight::get().reads(1 as u64))
             .saturating_add(RocksDbWeight::get().writes(2 as u64))
+    }
+
+    // Storage: StakingExtension ThresholdToStash (r:1 w:0)
+    // Storage: Relayer Registering (r:1 w:1)
+    // Storage: StakingExtension SigningGroups (r:1 w:0)
+    /// The range of component `c` is `[0, 2]`.
+    fn confirm_register_registering(c: u32) -> Weight {
+        // Minimum execution time: 67_000 nanoseconds.
+        Weight::from_ref_time(93_500_000 as u64)
+			// Standard Error: 12_512_493
+			.saturating_add(Weight::from_ref_time(2_500_000 as u64).saturating_mul(c as u64))
+			.saturating_add(RocksDbWeight::get().reads(3 as u64))
+			.saturating_add(RocksDbWeight::get().writes(1 as u64))
+    }
+
+    // Storage: StakingExtension ThresholdToStash (r:1 w:0)
+    // Storage: Relayer Registering (r:1 w:1)
+    // Storage: StakingExtension SigningGroups (r:1 w:0)
+    // Storage: Relayer Registered (r:0 w:1)
+    // Storage: Constraints AllowedToModifyConstraints (r:0 w:1)
+    /// The range of component `c` is `[0, 2]`.
+    fn confirm_register_registered(_c: u32) -> Weight {
+        // Minimum execution time: 93_000 nanoseconds.
+        Weight::from_ref_time(121_083_333 as u64)
+            .saturating_add(RocksDbWeight::get().reads(3 as u64))
+            .saturating_add(RocksDbWeight::get().writes(3 as u64))
+    }
+
+    // Storage: StakingExtension ThresholdToStash (r:1 w:0)
+    // Storage: Relayer Registering (r:1 w:1)
+    // Storage: StakingExtension SigningGroups (r:1 w:0)
+    // Storage: Relayer Registered (r:0 w:1)
+    /// The range of component `c` is `[0, 2]`.
+    fn confirm_register_swapping(c: u32) -> Weight {
+        // Minimum execution time: 78_000 nanoseconds.
+        Weight::from_ref_time(105_833_333 as u64)
+			// Standard Error: 7_290_118
+			.saturating_add(Weight::from_ref_time(6_500_000 as u64).saturating_mul(c as u64))
+			.saturating_add(RocksDbWeight::get().reads(3 as u64))
+			.saturating_add(RocksDbWeight::get().writes(2 as u64))
     }
 }

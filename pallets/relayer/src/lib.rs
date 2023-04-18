@@ -249,16 +249,15 @@ pub mod pallet {
             Ok(())
         }
 
-        // TODO add benchmarks
         /// Used by validators to confirm they have received a key-share from a user that is
         /// registering. After a validator from each partition confirms they have a
         /// keyshare, this should get the user to a `Registered` state
-        #[pallet::weight(T::DbWeight::get().writes(1))]
+        #[pallet::weight(<T as Config>::WeightInfo::confirm_register_swapping(SIGNING_PARTY_SIZE as u32))]
         pub fn confirm_register(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
             signing_subgroup: u8,
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let ts_server_account = ensure_signed(origin)?;
             let validator_stash =
                 pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
@@ -266,6 +265,7 @@ pub mod pallet {
 
             let mut registering_info =
                 Self::registering(&sig_req_account).ok_or(Error::<T>::NotRegistering)?;
+            let confirmation_length = registering_info.confirmations.len() as u32;
             ensure!(
                 !registering_info.confirmations.contains(&signing_subgroup),
                 Error::<T>::AlreadyConfirmed
@@ -280,8 +280,11 @@ pub mod pallet {
             );
 
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
+                let mut weight;
                 Registered::<T>::insert(&sig_req_account, true);
                 Registering::<T>::remove(&sig_req_account);
+                weight =
+                    <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
                 if !registering_info.is_swapping {
                     AllowedToModifyConstraints::<T>::insert(
                         &registering_info.constraint_account,
@@ -295,15 +298,21 @@ pub mod pallet {
                             constraints,
                         );
                     }
+                    weight =
+                        <T as Config>::WeightInfo::confirm_register_swapping(confirmation_length);
                 }
 
                 Self::deposit_event(Event::AccountRegistered(sig_req_account));
+                Ok(Some(weight).into())
             } else {
                 registering_info.confirmations.push(signing_subgroup);
                 Registering::<T>::insert(&sig_req_account, registering_info);
                 Self::deposit_event(Event::AccountRegistering(sig_req_account, signing_subgroup));
+                Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(
+                    confirmation_length,
+                ))
+                .into())
             }
-            Ok(())
         }
     }
 
