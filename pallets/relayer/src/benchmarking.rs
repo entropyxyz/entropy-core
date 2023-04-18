@@ -2,13 +2,16 @@
 
 use codec::Encode;
 use entropy_shared::{Message, SigRequest, SIGNING_PARTY_SIZE as SIG_PARTIES};
-use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
+use frame_benchmarking::{
+    account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec,
+};
 use frame_support::traits::Get;
 use frame_system::{EventRecord, RawOrigin};
 #[cfg(feature = "runtime-benchmarks")]
 use pallet_constraints::benchmarking::generate_benchmarking_constraints;
 use pallet_staking_extension::{
-    benchmarking::create_validators, IsValidatorSynced, ServerInfo, SigningGroups, ThresholdServers,
+    benchmarking::create_validators, IsValidatorSynced, ServerInfo, SigningGroups,
+    ThresholdServers, ThresholdToStash,
 };
 
 use super::*;
@@ -33,7 +36,7 @@ pub fn add_non_syncing_validators<T: Config>(
     sig_party_size: u32,
     syncing_validators: u32,
     sig_party_number: u8,
-) {
+) -> Vec<<T as pallet_session::Config>::ValidatorId> {
     let validators = create_validators::<T>(sig_party_size, SEED);
     let account = account::<T::AccountId>("ts_account", 1, SEED);
     let server_info =
@@ -49,6 +52,7 @@ pub fn add_non_syncing_validators<T: Config>(
     if syncing_validators == sig_party_size {
         <IsValidatorSynced<T>>::insert(&validators[0], true);
     }
+    validators
 }
 
 benchmarks! {
@@ -59,7 +63,7 @@ benchmarks! {
     <Registered<T>>::insert(account.clone(), true);
     let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
     for i in 0..SIG_PARTIES {
-        add_non_syncing_validators::<T>(sig_party_size, s, i as u8);
+        let _ = add_non_syncing_validators::<T>(sig_party_size, s, i as u8);
     }
   }: _(RawOrigin::Signed(account.clone()), sig_request.clone())
   verify {
@@ -90,6 +94,76 @@ benchmarks! {
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
     assert!(Registering::<T>::contains_key(sig_req_account));
+  }
+
+  confirm_register_registering {
+    let c in 0 .. SIG_PARTIES as u32;
+    let sig_req_account: T::AccountId = whitelisted_caller();
+    let validator_account: T::AccountId = whitelisted_caller();
+    let threshold_account: T::AccountId = whitelisted_caller();
+    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
+    for i in 0..SIG_PARTIES {
+        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
+        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
+    }
+    <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
+        is_registering: true,
+        constraint_account: sig_req_account.clone(),
+        is_swapping: false,
+        confirmations: vec![],
+        constraints: None,
+    });
+  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
+  verify {
+    assert_last_event::<T>(Event::<T>::AccountRegistering(sig_req_account, 0).into());
+  }
+
+confirm_register_registered {
+    let c in 0 .. SIG_PARTIES as u32;
+    let sig_req_account: T::AccountId = whitelisted_caller();
+    let validator_account: T::AccountId = whitelisted_caller();
+    let threshold_account: T::AccountId = whitelisted_caller();
+    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
+    for i in 0..SIG_PARTIES {
+        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
+        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
+    }
+    let adjusted_sig_size = SIG_PARTIES - 1;
+    let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
+    <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
+        is_registering: true,
+        constraint_account: sig_req_account.clone(),
+        is_swapping: false,
+        confirmations: confirmation,
+        constraints: None,
+    });
+  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
+  verify {
+    assert_last_event::<T>(Event::<T>::AccountRegistered(sig_req_account).into());
+  }
+
+  confirm_register_swapping {
+    let c in 0 .. SIG_PARTIES as u32;
+    let sig_req_account: T::AccountId = whitelisted_caller();
+    let validator_account: T::AccountId = whitelisted_caller();
+    let threshold_account: T::AccountId = whitelisted_caller();
+    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
+    for i in 0..SIG_PARTIES {
+        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
+        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
+    }
+    let adjusted_sig_size = SIG_PARTIES - 1;
+    let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
+    <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
+        is_registering: true,
+        constraint_account: sig_req_account.clone(),
+        is_swapping: true,
+        confirmations: confirmation,
+        constraints: None,
+    });
+  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
+  verify {
+    assert_last_event::<T>(Event::<T>::AccountRegistered(sig_req_account).into());
   }
 }
 
