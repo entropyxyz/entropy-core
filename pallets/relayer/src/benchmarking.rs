@@ -116,7 +116,6 @@ benchmarks! {
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
   verify {
     assert_last_event::<T>(Event::<T>::AccountRegistering(sig_req_account, 0).into());
-
   }
 
 confirm_register_registered {
