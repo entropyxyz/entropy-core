@@ -1981,6 +1981,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "entropy-constraints-core"
+version = "0.1.0"
+source = "git+https://github.com/entropyxyz/constraints?branch=refactor#390b29a57c77bf3d438cac17c084811f9c0a2682"
+dependencies = [
+ "frame-support",
+ "node-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "serde_derive",
+ "sp-core",
+ "sp-std",
+]
+
+[[package]]
 name = "entropy-runtime"
 version = "3.0.0-monthly-2021-10"
 dependencies = [
@@ -2076,6 +2091,7 @@ dependencies = [
 name = "entropy-shared"
 version = "0.1.0"
 dependencies = [
+ "entropy-constraints-core",
  "frame-support",
  "node-primitives",
  "parity-scale-codec",

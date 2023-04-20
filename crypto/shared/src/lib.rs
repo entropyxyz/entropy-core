@@ -4,9 +4,12 @@
 //!
 //! This helps ensures those structs are synced among clients and nodes.
 pub use constraints::*;
+pub mod constraints {
+    pub use ec_core::constraints::*;
+}
+
 pub use types::*;
 
-pub mod constraints;
 pub mod types;
 
 pub const SIGNING_PARTY_SIZE: usize = 2;
