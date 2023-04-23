@@ -27,7 +27,10 @@ pub mod weights;
 pub mod pallet {
 
     pub use entropy_shared::{Acl, AclKind, Arch, Constraints};
-    use frame_support::pallet_prelude::{ResultQuery, *};
+    use frame_support::{
+        inherent::Vec,
+        pallet_prelude::{ResultQuery, *},
+    };
     use frame_system::pallet_prelude::*;
     use sp_runtime::sp_std::str;
 
@@ -96,11 +99,19 @@ pub mod pallet {
         ResultQuery<Error<T>::ArchitectureDisabled>,
     >;
 
+    /// Stores V2 storage blob
+    #[pallet::storage]
+    #[pallet::getter(fn v2_storage)]
+    pub type V2Storage<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, OptionQuery>;
+
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// All new constraints. [constraint_account, constraints]
         ConstraintsUpdated(T::AccountId, Constraints),
+        /// All new V2 constraints. [constraint_account, constraints]
+        ConstraintsV2Updated(T::AccountId, Vec<u8>),
     }
 
     #[pallet::error]
@@ -139,10 +150,31 @@ pub mod pallet {
             );
 
             Self::validate_constraints(&new_constraints)?;
-            Self::set_constraints_unchecked(sig_req_account.clone(), new_constraints.clone());
+            Self::set_constraints_unchecked(&sig_req_account, &new_constraints);
 
             Self::deposit_event(Event::ConstraintsUpdated(sig_req_account, new_constraints));
 
+            Ok(())
+        }
+
+        #[pallet::weight({<T as Config>::WeightInfo::update_v2_constraints()})]
+        pub fn update_v2_constraints(
+            origin: OriginFor<T>,
+            sig_req_account: T::AccountId,
+            new_constraints: Vec<u8>,
+        ) -> DispatchResult {
+            let constraint_account = ensure_signed(origin)?;
+
+            ensure!(
+                AllowedToModifyConstraints::<T>::contains_key(
+                    &constraint_account,
+                    &sig_req_account
+                ),
+                Error::<T>::NotAuthorized
+            );
+            // TODO add validation
+            V2Storage::<T>::insert(&sig_req_account, &new_constraints);
+            Self::deposit_event(Event::ConstraintsV2Updated(sig_req_account, new_constraints));
             Ok(())
         }
     }
@@ -150,7 +182,10 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Sets the constraints for a given signature-request account without validating the
         /// constraints (eg ACL length checks, etc.)
-        pub fn set_constraints_unchecked(sig_req_account: T::AccountId, constraints: Constraints) {
+        pub fn set_constraints_unchecked(
+            sig_req_account: &T::AccountId,
+            constraints: &Constraints,
+        ) {
             let Constraints { evm_acl, btc_acl } = constraints;
 
             match evm_acl {

@@ -294,8 +294,8 @@ pub mod pallet {
 
                     if let Some(constraints) = registering_info.constraints {
                         ConstraintsPallet::<T>::set_constraints_unchecked(
-                            sig_req_account.clone(),
-                            constraints,
+                            &sig_req_account,
+                            &constraints,
                         );
                     }
                     weight =

@@ -17,7 +17,7 @@ fn assert_permissions_are_restricted_properly() {
             btc_acl: Some(Acl::<[u8; 32]>::default()),
         };
 
-        // make sure noone can add a constraint without explicit permissions
+        // make sure no one can add a constraint without explicit permissions
         assert_noop!(
             ConstraintsPallet::update_constraints(
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
@@ -95,5 +95,32 @@ fn return_error_if_constraints_arent_set() {
             ConstraintsPallet::evm_acl(SIG_REQ_ACCOUNT).unwrap(),
             Acl::<[u8; 20]>::default()
         );
+    });
+}
+
+#[test]
+fn set_v2_constraints() {
+    new_test_ext().execute_with(|| {
+        let v2_constraint = vec![10u8];
+
+        // make sure no one can add a constraint without explicit permissions
+        assert_noop!(
+            ConstraintsPallet::update_v2_constraints(
+                RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
+                SIG_REQ_ACCOUNT,
+                v2_constraint.clone(),
+            ),
+            Error::<Test>::NotAuthorized
+        );
+
+        AllowedToModifyConstraints::<Test>::insert(&CONSTRAINT_ACCOUNT, &SIG_REQ_ACCOUNT, ());
+
+        assert_ok!(ConstraintsPallet::update_v2_constraints(
+            RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
+            SIG_REQ_ACCOUNT,
+            v2_constraint.clone()
+        ));
+
+        assert_eq!(ConstraintsPallet::v2_storage(SIG_REQ_ACCOUNT).unwrap(), v2_constraint.clone());
     });
 }
