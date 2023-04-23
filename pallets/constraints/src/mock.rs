@@ -57,10 +57,12 @@ impl system::Config for Test {
 
 parameter_types! {
   pub const MaxAclLength: u32 = 25;
+  pub const MaxV2Constraint: u32 = 3;
 }
 
 impl pallet_constraints::Config for Test {
     type MaxAclLength = MaxAclLength;
+    type MaxV2Constraint = MaxV2Constraint;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }

@@ -38,19 +38,19 @@ impl<T: frame_system::Config> pallet_constraints::WeightInfo for WeightInfo<T> {
 	// Storage: Constraints ActiveArchitectures (r:0 w:2)
 	/// The range of component `a` is `[0, 25]`.
 	/// The range of component `b` is `[0, 25]`.
-	fn update_constraints(a: u32, _b: u32, ) -> Weight {
-		// Minimum execution time: 61_000 nanoseconds.
-		Weight::from_ref_time(70_230_332 as u64)
-			// Standard Error: 264_168
-			.saturating_add(Weight::from_ref_time(20_411 as u64).saturating_mul(a as u64))
+	fn update_constraints(_a: u32, b: u32, ) -> Weight {
+		// Minimum execution time: 76_000 nanoseconds.
+		Weight::from_ref_time(101_369_704 as u64)
+			// Standard Error: 415_100
+			.saturating_add(Weight::from_ref_time(67_532 as u64).saturating_mul(b as u64))
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
 	// Storage: Constraints AllowedToModifyConstraints (r:1 w:0)
 	// Storage: Constraints V2Storage (r:0 w:1)
 	fn update_v2_constraints() -> Weight {
-		// Minimum execution time: 46_000 nanoseconds.
-		Weight::from_ref_time(54_000_000 as u64)
+		// Minimum execution time: 58_000 nanoseconds.
+		Weight::from_ref_time(68_000_000 as u64)
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}

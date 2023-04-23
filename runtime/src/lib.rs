@@ -1266,10 +1266,13 @@ impl pallet_relayer::Config for Runtime {
 
 parameter_types! {
   pub const MaxAclLength: u32 = 25;
+  // 1mb max
+  pub const MaxV2Constraint: u32 = 1_000_000;
 }
 
 impl pallet_constraints::Config for Runtime {
     type MaxAclLength = MaxAclLength;
+    type MaxV2Constraint = MaxV2Constraint;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_constraints::WeightInfo<Runtime>;
 }

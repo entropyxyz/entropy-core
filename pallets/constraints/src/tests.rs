@@ -102,7 +102,7 @@ fn return_error_if_constraints_arent_set() {
 fn set_v2_constraints() {
     new_test_ext().execute_with(|| {
         let v2_constraint = vec![10u8];
-
+        let v2_too_long = vec![1u8, 2u8, 3u8, 4u8, 5u8];
         // make sure no one can add a constraint without explicit permissions
         assert_noop!(
             ConstraintsPallet::update_v2_constraints(
@@ -122,5 +122,14 @@ fn set_v2_constraints() {
         ));
 
         assert_eq!(ConstraintsPallet::v2_storage(SIG_REQ_ACCOUNT).unwrap(), v2_constraint.clone());
+
+        assert_noop!(
+            ConstraintsPallet::update_v2_constraints(
+                RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
+                SIG_REQ_ACCOUNT,
+                v2_too_long.clone(),
+            ),
+            Error::<Test>::V2ConstraintLengthExceeded
+        );
     });
 }

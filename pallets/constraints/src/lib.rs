@@ -41,6 +41,7 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type WeightInfo: WeightInfo;
         type MaxAclLength: Get<u32>;
+        type MaxV2Constraint: Get<u32>;
     }
 
     #[pallet::pallet]
@@ -122,6 +123,8 @@ pub mod pallet {
         ArchitectureDisabled,
         /// ACL is too long, make it smaller
         AclLengthExceeded,
+        /// V2 constraint length is too long
+        V2ConstraintLengthExceeded,
     }
 
     #[pallet::call]
@@ -166,13 +169,19 @@ pub mod pallet {
             let constraint_account = ensure_signed(origin)?;
 
             ensure!(
+                new_constraints.len() as u32 <= T::MaxV2Constraint::get(),
+                Error::<T>::V2ConstraintLengthExceeded
+            );
+
+            ensure!(
                 AllowedToModifyConstraints::<T>::contains_key(
                     &constraint_account,
                     &sig_req_account
                 ),
                 Error::<T>::NotAuthorized
             );
-            // TODO add validation
+            // TODO: 1 milicent per byte charge
+
             V2Storage::<T>::insert(&sig_req_account, &new_constraints);
             Self::deposit_event(Event::ConstraintsV2Updated(sig_req_account, new_constraints));
             Ok(())
