@@ -12,7 +12,7 @@ use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     helpers::{signing::create_unique_tx_id, tests::setup_client},
     r#unsafe::api::UnsafeQuery,
-    signing_client::tests::entropy::runtime_types::entropy_shared::SigRequest as otherSigRequest,
+    signing_client::tests::entropy::runtime_types::entropy_shared::types::SigRequest as otherSigRequest,
 };
 
 #[rocket::async_test]
