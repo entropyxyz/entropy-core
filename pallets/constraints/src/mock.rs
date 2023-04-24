@@ -20,6 +20,7 @@ frame_support::construct_runtime!(
   {
     System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
     ConstraintsPallet: pallet_constraints::{Pallet, Call, Storage, Event<T>},
+    Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
   }
 );
 
@@ -29,7 +30,7 @@ parameter_types! {
 }
 
 impl system::Config for Test {
-    type AccountData = ();
+    type AccountData = pallet_balances::AccountData<u64>;
     type AccountId = u64;
     type BaseCallFilter = frame_support::traits::Everything;
     type BlockHashCount = BlockHashCount;
@@ -61,7 +62,24 @@ parameter_types! {
   pub const V2ConstraintsDepositPerByte: u32 = 5;
 }
 
+parameter_types! {
+    pub const ExistentialDeposit: u64 = 5;
+}
+
+impl pallet_balances::Config for Test {
+    type AccountStore = System;
+    type Balance = u64;
+    type DustRemoval = ();
+    type ExistentialDeposit = ExistentialDeposit;
+    type MaxLocks = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
+}
+
 impl pallet_constraints::Config for Test {
+    type Currency = Balances;
     type MaxAclLength = MaxAclLength;
     type MaxV2Constraint = MaxV2Constraint;
     type RuntimeEvent = RuntimeEvent;

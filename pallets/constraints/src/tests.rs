@@ -1,4 +1,5 @@
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, traits::Currency};
+use pallet_balances::Error as BalancesError;
 
 use crate::{mock::*, Acl, AllowedToModifyConstraints, Constraints, Error};
 
@@ -101,8 +102,9 @@ fn return_error_if_constraints_arent_set() {
 #[test]
 fn set_v2_constraints() {
     new_test_ext().execute_with(|| {
-        let v2_constraint = vec![10u8];
+        let v2_constraint = vec![10u8, 11u8];
         let v2_too_long = vec![1u8, 2u8, 3u8, 4u8, 5u8];
+
         // make sure no one can add a constraint without explicit permissions
         assert_noop!(
             ConstraintsPallet::update_v2_constraints(
@@ -115,6 +117,18 @@ fn set_v2_constraints() {
 
         AllowedToModifyConstraints::<Test>::insert(&CONSTRAINT_ACCOUNT, &SIG_REQ_ACCOUNT, ());
 
+        // can't pay deposit
+        assert_noop!(
+            ConstraintsPallet::update_v2_constraints(
+                RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
+                SIG_REQ_ACCOUNT,
+                v2_constraint.clone(),
+            ),
+            BalancesError::<Test>::InsufficientBalance
+        );
+
+        Balances::make_free_balance_be(&CONSTRAINT_ACCOUNT, 100);
+
         assert_ok!(ConstraintsPallet::update_v2_constraints(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
@@ -122,6 +136,23 @@ fn set_v2_constraints() {
         ));
 
         assert_eq!(ConstraintsPallet::v2_storage(SIG_REQ_ACCOUNT).unwrap(), v2_constraint.clone());
+        assert_eq!(Balances::free_balance(&CONSTRAINT_ACCOUNT), 90);
+
+        // deposit refunded partial
+        assert_ok!(ConstraintsPallet::update_v2_constraints(
+            RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
+            SIG_REQ_ACCOUNT,
+            vec![10u8]
+        ));
+        assert_eq!(Balances::free_balance(&CONSTRAINT_ACCOUNT), 95);
+
+        // deposit refunded full
+        assert_ok!(ConstraintsPallet::update_v2_constraints(
+            RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
+            SIG_REQ_ACCOUNT,
+            vec![]
+        ));
+        assert_eq!(Balances::free_balance(&CONSTRAINT_ACCOUNT), 100);
 
         assert_noop!(
             ConstraintsPallet::update_v2_constraints(
