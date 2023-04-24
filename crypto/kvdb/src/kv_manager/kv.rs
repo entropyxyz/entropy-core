@@ -39,7 +39,7 @@ where V: Debug + Send + Sync + Serialize + DeserializeOwned
 
     /// Creates a kvstore at `full_db_name` and spawns a new kv_manager. Returns [InitErr] on
     /// failure. `full_db_name` is the name of the path of the kvstrore + its name
-    /// Example: ~/tofnd/kvstore/database_1
+    /// Example: ~/entropy/kvstore/database_1
     pub fn with_db_name(full_db_name: String, password: Password) -> KvResult<Self> {
         let (sender, rx) = mpsc::unbounded_channel();
 

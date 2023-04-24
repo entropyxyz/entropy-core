@@ -1,15 +1,15 @@
 //! [sled_bindings] tests
 
 use serial_test::serial;
+
 // testdir creates a test directory at $TMPDIR.
 // Mac: /var/folders/v4/x_j3jj7d6ql4gjdf7b7jvjhm0000gn/T/testdir-of-$(USER)
 // Linux: /tmp
 // Windows: /data/local/tmp
 // https://doc.rust-lang.org/std/env/fn.temp_dir.html#unix
-use tofn::sdk::api::deserialize;
-
 use super::{
     error::InnerKvError::LogicalErr,
+    helpers::deserialize,
     sled_bindings::{handle_exists, handle_get, handle_put, handle_reserve},
     types::{KeyReservation, DEFAULT_RESERVE},
 };

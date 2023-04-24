@@ -46,7 +46,7 @@ impl PasswordMethod {
         Ok(match self {
             Self::NoPassword => Password(UNSAFE_PASSWORD.to_string()),
             Self::Prompt => {
-                println!("Please type your tofnd password:");
+                println!("Please type your password:");
                 Password(read_password()?)
             },
         })
