@@ -1804,6 +1804,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f94fa09c2aeea5b8839e414b7b841bf429fd25b9c522116ac97ee87856d88b2"
 
 [[package]]
+name = "ec-core"
+version = "0.1.0"
+source = "git+https://github.com/entropyxyz/constraints#64e10bf3a464755d28d80762d72ebef62cddf955"
+dependencies = [
+ "frame-support",
+ "node-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "serde_derive",
+ "sp-core",
+ "sp-std",
+]
+
+[[package]]
 name = "ecdsa"
 version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1981,21 +1996,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "entropy-constraints-core"
-version = "0.1.0"
-source = "git+https://github.com/entropyxyz/constraints#7816f833688ac81333b6773dbf27d4365f582ca4"
-dependencies = [
- "frame-support",
- "node-primitives",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "serde_derive",
- "sp-core",
- "sp-std",
-]
-
-[[package]]
 name = "entropy-runtime"
 version = "3.0.0-monthly-2021-10"
 dependencies = [
@@ -2091,7 +2091,7 @@ dependencies = [
 name = "entropy-shared"
 version = "0.1.0"
 dependencies = [
- "entropy-constraints-core",
+ "ec-core",
  "frame-support",
  "node-primitives",
  "parity-scale-codec",
@@ -4358,6 +4358,7 @@ version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62ebf1391f6acad60e5c8b43706dde4582df75c06698ab44511d15016bc2442c"
 dependencies = [
+ "owning_ref",
  "scopeguard 0.3.3",
 ]
 
@@ -5137,6 +5138,15 @@ name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
+
+[[package]]
+name = "owning_ref"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ff55baddef9e4ad00f88b6c743a2a8062d4c6ade126c2a528644b8e444d52ce"
+dependencies = [
+ "stable_deref_trait",
+]
 
 [[package]]
 name = "packed_simd_2"
@@ -11167,7 +11177,7 @@ dependencies = [
  "chrono",
  "lazy_static",
  "matchers 0.0.1",
- "parking_lot 0.11.2",
+ "parking_lot 0.7.1",
  "regex",
  "serde",
  "serde_json",
@@ -11310,7 +11320,7 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "digest 0.10.6",
- "rand 0.8.5",
+ "rand 0.6.5",
  "static_assertions",
 ]
 
