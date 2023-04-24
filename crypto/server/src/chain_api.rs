@@ -10,6 +10,8 @@ pub mod entropy {
     use ::entropy_shared::Constraints;
     #[subxt::subxt(substitute_type = "sp_core::crypto::AccountId32")]
     use ::sp_core::crypto::AccountId32;
+    #[subxt::subxt(substitute_type = "entropy::shared")]
+    use ::entropy_shared;
 }
 
 /// Creates an api instance to talk to chain
