@@ -190,7 +190,7 @@ pub mod pallet {
             );
             let old_constraints_length =
                 Self::v2_storage(&sig_req_account).unwrap_or_default().len();
-            // TODO: 1 milicent per byte charge
+
             Self::charge_constraint_v2_fee(
                 constraint_account,
                 old_constraints_length as u32,
