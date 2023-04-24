@@ -30,10 +30,11 @@ pub mod pallet {
     use frame_support::{
         inherent::Vec,
         pallet_prelude::{ResultQuery, *},
-        traits::ReservableCurrency,
+        traits::{Currency, ReservableCurrency},
     };
-    use frame_system::pallet_prelude::*;
-    use sp_runtime::sp_std::str;
+    use frame_system::{pallet_prelude::*, Config as SystemConfig};
+    use sp_runtime::{sp_std::str, Saturating};
+    use sp_std::vec;
 
     pub use crate::weights::WeightInfo;
 
@@ -43,10 +44,13 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
         type MaxAclLength: Get<u32>;
         type MaxV2Constraint: Get<u32>;
-        type V2ConstraintsDepositPerByte: Get<u32>;
+        type V2ConstraintsDepositPerByte: Get<BalanceOf<Self>>;
         /// The currency mechanism.
         type Currency: ReservableCurrency<Self::AccountId>;
     }
+
+    type BalanceOf<T> =
+        <<T as Config>::Currency as Currency<<T as SystemConfig>::AccountId>>::Balance;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -275,12 +279,12 @@ pub mod pallet {
         ) -> DispatchResult {
             if old_constraints_length > new_constraints_length {
                 let charge = T::V2ConstraintsDepositPerByte::get()
-                    .saturating_mul(old_constraints_length - new_constraints_length);
+                    .saturating_mul((old_constraints_length - new_constraints_length).into());
                 T::Currency::unreserve(&from, charge.into());
             }
             if new_constraints_length > old_constraints_length {
                 let charge = T::V2ConstraintsDepositPerByte::get()
-                    .saturating_mul(new_constraints_length - old_constraints_length);
+                    .saturating_mul((new_constraints_length - old_constraints_length).into());
                 T::Currency::reserve(&from, charge.into())?;
             }
             Ok(())

@@ -65,7 +65,7 @@ impl pallet_constraints::Config for Test {
     type MaxAclLength = MaxAclLength;
     type MaxV2Constraint = MaxV2Constraint;
     type RuntimeEvent = RuntimeEvent;
-	type V2ConstraintsDepositPerByte = V2ConstraintsDepositPerByte;
+    type V2ConstraintsDepositPerByte = V2ConstraintsDepositPerByte;
     type WeightInfo = ();
 }
 
