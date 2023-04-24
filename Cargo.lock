@@ -1983,7 +1983,7 @@ dependencies = [
 [[package]]
 name = "entropy-constraints-core"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/constraints?branch=refactor#7816f833688ac81333b6773dbf27d4365f582ca4"
+source = "git+https://github.com/entropyxyz/constraints#7816f833688ac81333b6773dbf27d4365f582ca4"
 dependencies = [
  "frame-support",
  "node-primitives",
