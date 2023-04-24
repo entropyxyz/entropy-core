@@ -188,7 +188,7 @@ pub mod pallet {
                 ),
                 Error::<T>::NotAuthorized
             );
-            let old_constraints_length = Self::v2_storage(&sig_req_account).unwrap_or(vec![]).len();
+            let old_constraints_length = Self::v2_storage(&sig_req_account).unwrap_or_default().len();
             // TODO: 1 milicent per byte charge
             Self::charge_constraint_v2_fee(
                 constraint_account,
@@ -280,12 +280,12 @@ pub mod pallet {
             if old_constraints_length > new_constraints_length {
                 let charge = T::V2ConstraintsDepositPerByte::get()
                     .saturating_mul((old_constraints_length - new_constraints_length).into());
-                T::Currency::unreserve(&from, charge.into());
+                T::Currency::unreserve(&from, charge);
             }
             if new_constraints_length > old_constraints_length {
                 let charge = T::V2ConstraintsDepositPerByte::get()
                     .saturating_mul((new_constraints_length - old_constraints_length).into());
-                T::Currency::reserve(&from, charge.into())?;
+                T::Currency::reserve(&from, charge)?;
             }
             Ok(())
         }
