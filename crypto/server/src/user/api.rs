@@ -1,5 +1,5 @@
 use bip39::{Language, Mnemonic};
-use entropy_constraints::{
+use ec_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
 use entropy_shared::{Acl, AclKind, Arch, Constraints, Message, SIGNING_PARTY_SIZE};

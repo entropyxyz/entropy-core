@@ -2,7 +2,7 @@
 
 use std::{io::Cursor, string::FromUtf8Error};
 
-use entropy_constraints::Error as ConstraintsError;
+use ec_constraints::Error as ConstraintsError;
 use rocket::{
     http::Status,
     response::{Responder, Response},
