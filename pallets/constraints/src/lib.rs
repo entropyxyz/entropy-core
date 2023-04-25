@@ -43,7 +43,7 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type WeightInfo: WeightInfo;
         type MaxAclLength: Get<u32>;
-        type MaxV2Constraint: Get<u32>;
+        type MaxV2BytecodeLength: Get<u32>;
         type V2ConstraintsDepositPerByte: Get<BalanceOf<Self>>;
         /// The currency mechanism.
         type Currency: ReservableCurrency<Self::AccountId>;
@@ -110,8 +110,8 @@ pub mod pallet {
 
     /// Stores V2 storage blob
     #[pallet::storage]
-    #[pallet::getter(fn v2_storage)]
-    pub type V2Storage<T: Config> =
+    #[pallet::getter(fn v2_bytecode)]
+    pub type V2Bytecode<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, OptionQuery>;
 
     #[pallet::event]
@@ -177,7 +177,7 @@ pub mod pallet {
             let constraint_account = ensure_signed(origin)?;
             let new_constraints_length = new_constraints.len();
             ensure!(
-                new_constraints_length as u32 <= T::MaxV2Constraint::get(),
+                new_constraints_length as u32 <= T::MaxV2BytecodeLength::get(),
                 Error::<T>::V2ConstraintLengthExceeded
             );
 
@@ -189,7 +189,7 @@ pub mod pallet {
                 Error::<T>::NotAuthorized
             );
             let old_constraints_length =
-                Self::v2_storage(&sig_req_account).unwrap_or_default().len();
+                Self::v2_bytecode(&sig_req_account).unwrap_or_default().len();
 
             Self::charge_constraint_v2_fee(
                 constraint_account,
@@ -197,7 +197,7 @@ pub mod pallet {
                 new_constraints_length as u32,
             )?;
 
-            V2Storage::<T>::insert(&sig_req_account, &new_constraints);
+            V2Bytecode::<T>::insert(&sig_req_account, &new_constraints);
             Self::deposit_event(Event::ConstraintsV2Updated(sig_req_account, new_constraints));
             Ok(())
         }

@@ -1267,14 +1267,14 @@ impl pallet_relayer::Config for Runtime {
 parameter_types! {
   pub const MaxAclLength: u32 = 25;
   // 1mb max
-  pub const MaxV2Constraint: u32 = 1_000_000;
+  pub const MaxV2BytecodeLength: u32 = 1_000_000;
   pub const V2ConstraintsDepositPerByte: Balance = MILLICENTS;
 }
 
 impl pallet_constraints::Config for Runtime {
     type Currency = Balances;
     type MaxAclLength = MaxAclLength;
-    type MaxV2Constraint = MaxV2Constraint;
+    type MaxV2BytecodeLength = MaxV2BytecodeLength;
     type RuntimeEvent = RuntimeEvent;
     type V2ConstraintsDepositPerByte = V2ConstraintsDepositPerByte;
     type WeightInfo = weights::pallet_constraints::WeightInfo<Runtime>;

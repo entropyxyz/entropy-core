@@ -135,7 +135,7 @@ fn set_v2_constraints() {
             v2_constraint.clone()
         ));
 
-        assert_eq!(ConstraintsPallet::v2_storage(SIG_REQ_ACCOUNT).unwrap(), v2_constraint.clone());
+        assert_eq!(ConstraintsPallet::v2_bytecode(SIG_REQ_ACCOUNT).unwrap(), v2_constraint.clone());
         assert_eq!(Balances::free_balance(&CONSTRAINT_ACCOUNT), 90);
 
         // deposit refunded partial
