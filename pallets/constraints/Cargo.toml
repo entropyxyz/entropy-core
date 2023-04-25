@@ -53,7 +53,9 @@ sp-io         ={ version="6.0.0", default-features=false, git="https://github.co
 sp-runtime    ={ version="6.0.0", default-features=false, git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
 sp-std        ={ package="sp-std", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31", default-features=false }
 entropy-shared={ path="../../crypto/shared", default-features=false }
-# pallet-relayer  ={ path="../../pallets/relayer", default-features=false }
+
+[dev-dependencies]
+pallet-balances={ version="4.0.0-dev", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
 
 [features]
 default=['std']
@@ -67,6 +69,5 @@ std=[
   'frame-benchmarking/std',
   "sp-io/std",
   "sp-runtime/std",
-  # "pallet-relayer/std",
 ]
 try-runtime=['frame-support/try-runtime']

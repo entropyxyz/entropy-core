@@ -27,9 +27,14 @@ pub mod weights;
 pub mod pallet {
 
     pub use entropy_shared::{Acl, AclKind, Arch, Constraints};
-    use frame_support::pallet_prelude::{ResultQuery, *};
-    use frame_system::pallet_prelude::*;
-    use sp_runtime::sp_std::str;
+    use frame_support::{
+        inherent::Vec,
+        pallet_prelude::{ResultQuery, *},
+        traits::{Currency, ReservableCurrency},
+    };
+    use frame_system::{pallet_prelude::*, Config as SystemConfig};
+    use sp_runtime::{sp_std::str, Saturating};
+    use sp_std::vec;
 
     pub use crate::weights::WeightInfo;
 
@@ -38,7 +43,14 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type WeightInfo: WeightInfo;
         type MaxAclLength: Get<u32>;
+        type MaxV2BytecodeLength: Get<u32>;
+        type V2ConstraintsDepositPerByte: Get<BalanceOf<Self>>;
+        /// The currency mechanism.
+        type Currency: ReservableCurrency<Self::AccountId>;
     }
+
+    type BalanceOf<T> =
+        <<T as Config>::Currency as Currency<<T as SystemConfig>::AccountId>>::Balance;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -96,11 +108,19 @@ pub mod pallet {
         ResultQuery<Error<T>::ArchitectureDisabled>,
     >;
 
+    /// Stores V2 storage blob
+    #[pallet::storage]
+    #[pallet::getter(fn v2_bytecode)]
+    pub type V2Bytecode<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, OptionQuery>;
+
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// All new constraints. [constraint_account, constraints]
         ConstraintsUpdated(T::AccountId, Constraints),
+        /// All new V2 constraints. [constraint_account, constraints]
+        ConstraintsV2Updated(T::AccountId, Vec<u8>),
     }
 
     #[pallet::error]
@@ -111,6 +131,8 @@ pub mod pallet {
         ArchitectureDisabled,
         /// ACL is too long, make it smaller
         AclLengthExceeded,
+        /// V2 constraint length is too long
+        V2ConstraintLengthExceeded,
     }
 
     #[pallet::call]
@@ -139,10 +161,44 @@ pub mod pallet {
             );
 
             Self::validate_constraints(&new_constraints)?;
-            Self::set_constraints_unchecked(sig_req_account.clone(), new_constraints.clone());
+            Self::set_constraints_unchecked(&sig_req_account, &new_constraints);
 
             Self::deposit_event(Event::ConstraintsUpdated(sig_req_account, new_constraints));
 
+            Ok(())
+        }
+
+        #[pallet::weight({<T as Config>::WeightInfo::update_v2_constraints()})]
+        pub fn update_v2_constraints(
+            origin: OriginFor<T>,
+            sig_req_account: T::AccountId,
+            new_constraints: Vec<u8>,
+        ) -> DispatchResult {
+            let constraint_account = ensure_signed(origin)?;
+            let new_constraints_length = new_constraints.len();
+            ensure!(
+                new_constraints_length as u32 <= T::MaxV2BytecodeLength::get(),
+                Error::<T>::V2ConstraintLengthExceeded
+            );
+
+            ensure!(
+                AllowedToModifyConstraints::<T>::contains_key(
+                    &constraint_account,
+                    &sig_req_account
+                ),
+                Error::<T>::NotAuthorized
+            );
+            let old_constraints_length =
+                Self::v2_bytecode(&sig_req_account).unwrap_or_default().len();
+
+            Self::charge_constraint_v2_fee(
+                constraint_account,
+                old_constraints_length as u32,
+                new_constraints_length as u32,
+            )?;
+
+            V2Bytecode::<T>::insert(&sig_req_account, &new_constraints);
+            Self::deposit_event(Event::ConstraintsV2Updated(sig_req_account, new_constraints));
             Ok(())
         }
     }
@@ -150,7 +206,10 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Sets the constraints for a given signature-request account without validating the
         /// constraints (eg ACL length checks, etc.)
-        pub fn set_constraints_unchecked(sig_req_account: T::AccountId, constraints: Constraints) {
+        pub fn set_constraints_unchecked(
+            sig_req_account: &T::AccountId,
+            constraints: &Constraints,
+        ) {
             let Constraints { evm_acl, btc_acl } = constraints;
 
             match evm_acl {
@@ -212,6 +271,24 @@ pub mod pallet {
             }
 
             (evm_acl_len, btc_acl_len)
+        }
+
+        pub fn charge_constraint_v2_fee(
+            from: T::AccountId,
+            old_constraints_length: u32,
+            new_constraints_length: u32,
+        ) -> DispatchResult {
+            if old_constraints_length > new_constraints_length {
+                let charge = T::V2ConstraintsDepositPerByte::get()
+                    .saturating_mul((old_constraints_length - new_constraints_length).into());
+                T::Currency::unreserve(&from, charge);
+            }
+            if new_constraints_length > old_constraints_length {
+                let charge = T::V2ConstraintsDepositPerByte::get()
+                    .saturating_mul((new_constraints_length - old_constraints_length).into());
+                T::Currency::reserve(&from, charge)?;
+            }
+            Ok(())
         }
     }
 }
