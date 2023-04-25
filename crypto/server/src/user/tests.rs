@@ -1,7 +1,7 @@
 use std::{env, fs, path::PathBuf, sync::Arc};
 
 use bip39::{Language, Mnemonic, MnemonicType};
-use entropy_constraints::{Architecture, Evm, Parse};
+use ec_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{Acl, Constraints, Message, OCWMessage, SigRequest, ValidatorInfo};
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future};

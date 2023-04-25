@@ -1,11 +1,8 @@
 use bip39::{Language, Mnemonic};
-use entropy_constraints::{
+use ec_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
-use entropy_shared::{
-    types::{Acl, AclKind, Arch, Constraints},
-    Message, SIGNING_PARTY_SIZE,
-};
+use entropy_shared::{Acl, AclKind, Arch, Constraints, Message, SIGNING_PARTY_SIZE};
 use kvdb::kv_manager::{
     error::{InnerKvError, KvError},
     value::PartyInfo,
