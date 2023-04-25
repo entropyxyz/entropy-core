@@ -1,10 +1,8 @@
 //! Benchmarking setup for pallet-propgation
 
-use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec};
 use frame_support::traits::Get;
 use frame_system::{EventRecord, RawOrigin};
-#[allow(unused)]
-use sp_std::vec::Vec;
 
 use super::*;
 use crate::pallet::{Acl, Constraints};
@@ -50,6 +48,16 @@ benchmarks! {
     assert_last_event::<T>(Event::<T>::ConstraintsUpdated(constraint_account, constraints).into());
   }
 
+  update_v2_constraints {
+    let v2_constraint = vec![10];
+    let constraint_account: T::AccountId = whitelisted_caller();
+    let sig_req_account: T::AccountId = whitelisted_caller();
+
+    <AllowedToModifyConstraints<T>>::insert(constraint_account.clone(), sig_req_account.clone(), ());
+  }: _(RawOrigin::Signed(constraint_account.clone()), sig_req_account.clone(), v2_constraint.clone())
+  verify {
+    assert_last_event::<T>(Event::<T>::ConstraintsV2Updated(constraint_account, v2_constraint).into());
+  }
 }
 
 impl_benchmark_test_suite!(ConstraintsPallet, crate::mock::new_test_ext(), crate::mock::Test);

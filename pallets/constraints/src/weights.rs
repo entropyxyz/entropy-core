@@ -11,6 +11,7 @@ use sp_std::marker::PhantomData;
 // The weight info trait for `pallet_constraints`.
 pub trait WeightInfo {
     fn update_constraints(a: u32, b: u32) -> Weight;
+    fn update_v2_constraints() -> Weight;
 }
 
 /// Weights for pallet_constraints using the Substrate node and recommended hardware.
@@ -24,6 +25,15 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
     }
+
+    // Storage: Constraints AllowedToModifyConstraints (r:1 w:0)
+    // Storage: Constraints V2Storage (r:0 w:1)
+    fn update_v2_constraints() -> Weight {
+        // Minimum execution time: 46_000 nanoseconds.
+        Weight::from_ref_time(54_000_000 as u64)
+            .saturating_add(T::DbWeight::get().reads(1 as u64))
+            .saturating_add(T::DbWeight::get().writes(1 as u64))
+    }
 }
 
 // For backwards compatibility and tests
@@ -35,5 +45,14 @@ impl WeightInfo for () {
 			+ Weight::from_ref_time(278_000_u64.saturating_mul(a as u64 + b as u64))
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
+    }
+
+    // Storage: Constraints AllowedToModifyConstraints (r:1 w:0)
+    // Storage: Constraints V2Storage (r:0 w:1)
+    fn update_v2_constraints() -> Weight {
+        // Minimum execution time: 46_000 nanoseconds.
+        Weight::from_ref_time(54_000_000 as u64)
+            .saturating_add(RocksDbWeight::get().reads(1 as u64))
+            .saturating_add(RocksDbWeight::get().writes(1 as u64))
     }
 }
