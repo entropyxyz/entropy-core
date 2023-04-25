@@ -39,8 +39,8 @@ entropy-shared={ path="../shared" }
 kvdb          ={ path="../kvdb", default-features=false }
 
 # Constraints
-entropy-constraints={ path="../constraints" }
-ethers-core        ="0.13.0"
+ec-constraints={ git="https://github.com/entropyxyz/constraints", default-features=false }
+ethers-core   ="0.13.0"
 
 # Logging
 log               ="0.4.17"                                          # todo: remove, overlaps tracing
