@@ -3,12 +3,12 @@
 use chacha20poly1305::XNonce;
 use serde::{Deserialize, Serialize};
 use sled::IVec;
-use tofn::sdk::api::{deserialize, serialize};
 
 use super::result::{
     EncryptedDbError::{Deserialization, Serialization},
     EncryptedDbResult,
 };
+use crate::kv_manager::helpers::{deserialize, serialize};
 
 /// The value of [super::Db].
 #[derive(Serialize, Deserialize, Debug)]

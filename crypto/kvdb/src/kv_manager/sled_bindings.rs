@@ -3,10 +3,10 @@
 use std::fmt::Debug;
 
 use serde::{de::DeserializeOwned, Serialize};
-use tofn::sdk::api::{deserialize, serialize};
 
 use super::{
     error::{InnerKvError::*, InnerKvResult},
+    helpers::{deserialize, serialize},
     types::{KeyReservation, DEFAULT_RESERVE},
 };
 use crate::encrypted_sled;

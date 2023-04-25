@@ -1,15 +1,13 @@
 use std::{convert::TryFrom, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
-use tofn::{
-    gg20::keygen::{GroupPublicInfo, SecretKeyShare, ShareSecretInfo},
-    sdk::api::{deserialize, serialize},
-};
+use tofn::gg20::keygen::{GroupPublicInfo, SecretKeyShare, ShareSecretInfo};
 use tracing::{info, span, Level, Span};
 use zeroize::Zeroize;
 
 use super::{
     error::{InnerKvError, KvResult},
+    helpers::{deserialize, serialize},
     kv::Kv,
 };
 use crate::encrypted_sled::Password;
