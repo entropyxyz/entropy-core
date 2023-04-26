@@ -10,7 +10,7 @@ pub const SIG_HASH: &[u8; 64] = b"d188f0d99145e7ddbd0f1e46e7fd406db927441584571c
 fn it_preps_transaction() {
     new_test_ext().execute_with(|| {
         Registered::<Test>::insert(1, true);
-        let ip_addresses: Vec<Vec<u8>> = vec![vec![10], vec![11]];
+        let ip_addresses: Vec<Vec<u8>> = vec![vec![20], vec![50]];
         let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
         let message = Message {
             account: vec![1, 0, 0, 0, 0, 0, 0, 0],
@@ -26,8 +26,12 @@ fn it_preps_transaction() {
         assert_eq!(Relayer::messages(0), vec![message]);
 
         // handle gracefully if all validators in a subgroup in syncing state
-        pallet_staking_extension::IsValidatorSynced::<Test>::insert(1, false);
+        pallet_staking_extension::IsValidatorSynced::<Test>::insert(7, false);
         pallet_staking_extension::IsValidatorSynced::<Test>::insert(5, false);
+        pallet_staking_extension::IsValidatorSynced::<Test>::insert(1, false);
+        pallet_staking_extension::IsValidatorSynced::<Test>::insert(6, false);
+        pallet_staking_extension::IsValidatorSynced::<Test>::insert(2, false);
+
         assert_noop!(
             Relayer::prep_transaction(RuntimeOrigin::signed(1), sig_request),
             Error::<Test>::NoSyncedValidators
@@ -40,7 +44,7 @@ fn it_emits_a_signature_request_event() {
     new_test_ext().execute_with(|| {
         System::set_block_number(2);
         Registered::<Test>::insert(1, true);
-        let ip_addresses: Vec<Vec<u8>> = vec![vec![10], vec![50]];
+        let ip_addresses: Vec<Vec<u8>> = vec![vec![20], vec![50]];
         let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
         let message = Message {
             account: vec![1, 0, 0, 0, 0, 0, 0, 0],
@@ -60,34 +64,21 @@ fn it_emits_a_signature_request_event() {
 #[test]
 fn it_tests_get_validator_rotation() {
     new_test_ext().execute_with(|| {
-        let result_1 = Relayer::get_validator_rotation(0, 0).unwrap();
-        let result_2 = Relayer::get_validator_rotation(1, 0).unwrap();
+        let result_1 = Relayer::get_validator_rotation(&mut vec![1u64, 2u64], 0).unwrap();
         assert_eq!(result_1.0, 1);
-        assert_eq!(result_2.0, 2);
+        // properly handles not enough members in group
+        let result_2 = Relayer::get_validator_rotation(&mut vec![1u64, 5u64], 2).unwrap();
+        assert_eq!(result_2.0, 5);
 
-        let result_3 = Relayer::get_validator_rotation(0, 1).unwrap();
-        let result_4 = Relayer::get_validator_rotation(1, 1).unwrap();
-        assert_eq!(result_3.0, 5);
-        assert_eq!(result_4.0, 6);
+        // properly handles not syncing
+        pallet_staking_extension::IsValidatorSynced::<Test>::insert(1, false);
+        let result_3 = Relayer::get_validator_rotation(&mut vec![1u64, 2u64], 0).unwrap();
+        assert_eq!(result_3.0, 2);
 
-        let result_5 = Relayer::get_validator_rotation(0, 100).unwrap();
-        let result_6 = Relayer::get_validator_rotation(1, 100).unwrap();
-        assert_eq!(result_5.0, 1);
-        assert_eq!(result_6.0, 6);
-
-        let result_7 = Relayer::get_validator_rotation(0, 101).unwrap();
-        let result_8 = Relayer::get_validator_rotation(1, 101).unwrap();
-        assert_eq!(result_7.0, 5);
-        assert_eq!(result_8.0, 7);
-
-        pallet_staking_extension::IsValidatorSynced::<Test>::insert(7, false);
-
-        let result_9 = Relayer::get_validator_rotation(1, 101).unwrap();
-        assert_eq!(result_9.0, 6);
-
-        // really big number does not crash
-        let result_10 = Relayer::get_validator_rotation(0, 1000000000000000000).unwrap();
-        assert_eq!(result_10.0, 1);
+        // properly handles not staking and not enough members in groups
+        pallet_staking_extension::IsValidatorSynced::<Test>::insert(5, false);
+        let result_4 = Relayer::get_validator_rotation(&mut vec![2u64, 5u64], 2).unwrap();
+        assert_eq!(result_4.0, 2);
     });
 }
 

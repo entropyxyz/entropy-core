@@ -148,6 +148,8 @@ pub mod pallet {
         IpAddressError,
         SigningGroupError,
         NoSyncedValidators,
+        InvalidValidatorId,
+        AuthorshipError,
     }
 
     /// Allows a user to kick off signing process
@@ -165,7 +167,7 @@ pub mod pallet {
                 Self::registered(&who).ok_or(Error::<T>::NotRegistered)?,
                 Error::<T>::NotRegistered
             );
-            let (validators_info, i) = Self::get_validator_info()?;
+            let (validators_info, l, i) = Self::get_validator_info()?;
             let message = Message { sig_request, account: who.encode(), validators_info };
             let block_number = <frame_system::Pallet<T>>::block_number();
             Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
@@ -317,46 +319,71 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        pub fn get_validator_info() -> Result<(Vec<ValidatorInfo>, u32), Error<T>> {
+        pub fn get_validator_info() -> Result<(Vec<ValidatorInfo>, u32, u32), Error<T>> {
             let mut validators_info: Vec<ValidatorInfo> = vec![];
-            let block_number = <frame_system::Pallet<T>>::block_number();
-
-            // TODO: JA simple hacky way to do this, get the first address from each signing group
-            // need good algorithim for this
-            let mut l: u32 = 0;
+            let block_author =
+                <pallet_authorship::Pallet<T>>::author().ok_or(Error::<T>::AuthorshipError)?;
+            let converted_block_author =
+                <T as pallet_session::Config>::ValidatorId::try_from(block_author)
+                    .or(Err(Error::<T>::InvalidValidatorId))?;
+            let threshold_account =
+                pallet_staking_extension::Pallet::<T>::threshold_server(&converted_block_author)
+                    .ok_or(Error::<T>::SigningGroupError)?
+                    .tss_account;
+            let converted_threshold_account =
+                <T as pallet_session::Config>::ValidatorId::try_from(threshold_account)
+                    .or(Err(Error::<T>::InvalidValidatorId))?;
+            let mut subgroup_index = 0;
+            let mut l: u32 = SIGNING_PARTY_SIZE as u32;
             for i in 0..SIGNING_PARTY_SIZE {
-                let tuple = Self::get_validator_rotation(i as u8, block_number)?;
-                l = tuple.1;
+                let addresses = pallet_staking_extension::Pallet::<T>::signing_groups(i as u8)
+                    .ok_or(Error::<T>::SigningGroupError)?;
+                let validator_position = addresses
+                    .iter()
+                    .position(|validator| validator == &converted_threshold_account);
+                if validator_position.is_some() {
+                    subgroup_index = validator_position.ok_or(Error::<T>::SigningGroupError)?;
+                    l = i as u32;
+                    break;
+                }
+            }
+			let mut loop_rotations = 0;
+            for i in 0..SIGNING_PARTY_SIZE {
+                let signing_group =
+                    &mut pallet_staking_extension::Pallet::<T>::signing_groups(i as u8)
+                        .ok_or(Error::<T>::SigningGroupError)?;
+
+                let address = Self::get_validator_rotation(signing_group, subgroup_index)?;
                 let ServerInfo { endpoint, x25519_public_key, .. } =
-                    pallet_staking_extension::Pallet::<T>::threshold_server(&tuple.0)
+                    pallet_staking_extension::Pallet::<T>::threshold_server(address.0)
                         .ok_or(Error::<T>::IpAddressError)?;
                 validators_info.push(ValidatorInfo { ip_address: endpoint, x25519_public_key });
+				loop_rotations += address.1
             }
-            Ok((validators_info, l))
+            Ok((validators_info, l, loop_rotations))
         }
 
         pub fn get_validator_rotation(
-            signing_group: u8,
-            block_number: T::BlockNumber,
+            signing_group: &mut Vec<<T as pallet_session::Config>::ValidatorId>,
+            subgroup_index: usize,
         ) -> Result<(<T as pallet_session::Config>::ValidatorId, u32), Error<T>> {
+            let mut selection_index = subgroup_index;
+            if signing_group.len() <= subgroup_index {
+                selection_index = signing_group.len().saturating_sub(1);
+            }
             let mut i: u32 = 0;
-            let mut addresses =
-                pallet_staking_extension::Pallet::<T>::signing_groups(signing_group)
-                    .ok_or(Error::<T>::SigningGroupError)?;
-            let converted_block_number: u32 =
-                T::BlockNumber::try_into(block_number).unwrap_or_default();
             let address = loop {
-                ensure!(!addresses.is_empty(), Error::<T>::NoSyncedValidators);
-                let selection: u32 = converted_block_number % addresses.len() as u32;
-                let address = &addresses[selection as usize];
-                let address_state =
-                    pallet_staking_extension::Pallet::<T>::is_validator_synced(address);
-                if !address_state {
-                    addresses.remove(selection as usize);
+                ensure!(!signing_group.is_empty(), Error::<T>::NoSyncedValidators);
+                let signer = &signing_group[selection_index];
+                let signer_state =
+                    pallet_staking_extension::Pallet::<T>::is_validator_synced(signer);
+                if !signer_state {
+                    signing_group.remove(selection_index as usize);
+                    selection_index = selection_index.saturating_sub(1);
                     i += 1;
                 } else {
                     i += 1;
-                    break address;
+                    break signer;
                 }
             };
             Ok((address.clone(), i))
