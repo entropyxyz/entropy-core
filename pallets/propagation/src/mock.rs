@@ -269,18 +269,18 @@ parameter_types! {
 }
 
 /// Author of block is always 11
-pub struct Author11;
-impl FindAuthor<u64> for Author11 {
+pub struct Author5;
+impl FindAuthor<u64> for Author5 {
     fn find_author<'a, I>(_digests: I) -> Option<u64>
     where I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])> {
-        Some(11)
+        Some(5)
     }
 }
 
 impl pallet_authorship::Config for Test {
     type EventHandler = ();
     type FilterUncle = ();
-    type FindAuthor = Author11;
+    type FindAuthor = Author5;
     type UncleGenerations = UncleGenerations;
 }
 

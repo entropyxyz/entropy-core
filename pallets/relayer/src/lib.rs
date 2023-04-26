@@ -347,7 +347,7 @@ pub mod pallet {
                     break;
                 }
             }
-			let mut loop_rotations = 0;
+            let mut loop_rotations = 0;
             for i in 0..SIGNING_PARTY_SIZE {
                 let signing_group =
                     &mut pallet_staking_extension::Pallet::<T>::signing_groups(i as u8)
@@ -358,7 +358,7 @@ pub mod pallet {
                     pallet_staking_extension::Pallet::<T>::threshold_server(address.0)
                         .ok_or(Error::<T>::IpAddressError)?;
                 validators_info.push(ValidatorInfo { ip_address: endpoint, x25519_public_key });
-				loop_rotations += address.1
+                loop_rotations += address.1
             }
             Ok((validators_info, l, loop_rotations))
         }
