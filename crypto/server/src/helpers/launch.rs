@@ -1,6 +1,6 @@
 //! Utilities for starting and running the server.
 
-use std::{fs, path::PathBuf, str::from_utf8};
+use std::{fs, path::PathBuf};
 
 use bip39::{Language, Mnemonic, MnemonicType};
 use clap::Parser;
@@ -135,14 +135,12 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Res
             .await
             .expect("failed to update dh");
         println!("dh_public_key={dh_public:?}");
-        fs::write("public_key", from_utf8(&dh_public).expect("invalid utf-8 sequence"))
-            .expect("Failed to write public key file");
+        fs::write(".entropy/public_key",  format!("{dh_public:?}")).expect("Failed to write public key file");
         let p = <sr25519::Pair as Pair>::from_phrase(phrase, None)
             .expect("Issue getting pair from mnemonic");
         let id = AccountId32::new(p.0.public().0);
         println!("account_id={id}");
-        fs::write("account_id", from_utf8(&id).expect("invalid utf-8 sequence"))
-            .expect("Failed to write account_id file");
+        fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
 
         // Update the value in the kvdb
         let reservation =
