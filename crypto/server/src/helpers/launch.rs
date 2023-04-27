@@ -137,7 +137,7 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Res
             .expect("failed to update dh");
         println!("dh_public_key={dh_public:?}");
 
-        let formatted_dh_public = format!("{converted_dh_public:?}").replace("\"", "");
+        let formatted_dh_public = format!("{converted_dh_public:?}").replace('"', "");
         fs::write(".entropy/public_key", formatted_dh_public)
             .expect("Failed to write public key file");
 
