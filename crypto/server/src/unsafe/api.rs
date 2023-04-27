@@ -32,7 +32,7 @@ pub async fn get(key: Json<UnsafeQuery>, state: &State<KvManager>) -> Vec<u8> {
 }
 
 #[post("/put", format = "json", data = "<key>")]
-/// Updates a value in the encrypted kvdb 
+/// Updates a value in the encrypted kvdb
 /// NOTE: for development purposes only.
 pub async fn put(key: Json<UnsafeQuery>, state: &State<KvManager>) -> Status {
     match state.kv().exists(&key.key.to_owned()).await {

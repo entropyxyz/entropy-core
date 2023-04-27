@@ -56,7 +56,6 @@ pub struct GenericTransactionRequest {
     pub transaction_request: String,
 }
 
-
 /// Submits a new transaction to the KVDB for inclusion in a threshold
 /// signing scheme at a later block.
 /// TODO: Add block based removal for unsigned transactions in the KVDB.
@@ -114,7 +113,7 @@ pub async fn store_tx(
     Ok(Status::Ok)
 }
 
-/// Add a new Keyshare to this node's set of known Keyshares. 
+/// Add a new Keyshare to this node's set of known Keyshares.
 /// Store in kvdb.
 #[post("/new", format = "json", data = "<msg>")]
 pub async fn new_user(
