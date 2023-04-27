@@ -56,7 +56,10 @@ pub struct GenericTransactionRequest {
     pub transaction_request: String,
 }
 
-// TODO: Add block based removal for unsigned transactions in the KVDB.
+
+/// Submits a new transaction to the KVDB for inclusion in a threshold
+/// signing scheme at a later block.
+/// TODO: Add block based removal for unsigned transactions in the KVDB.
 /// https://github.com/entropyxyz/entropy-core/issues/248
 /// Maps a tx hash -> unsigned transaction in the kvdb.
 #[post("/tx", format = "json", data = "<msg>")]
@@ -111,7 +114,8 @@ pub async fn store_tx(
     Ok(Status::Ok)
 }
 
-/// Add a new Keyshare to this node's set of known Keyshares. Store in kvdb.
+/// Add a new Keyshare to this node's set of known Keyshares. 
+/// Store in kvdb.
 #[post("/new", format = "json", data = "<msg>")]
 pub async fn new_user(
     msg: Json<SignedMessage>,
@@ -124,7 +128,6 @@ pub async fn new_user(
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
-
     let signer = get_signer(kv).await?;
     // Checks if the user has registered onchain first.
     let key = signed_msg.account_id();
@@ -163,6 +166,7 @@ pub async fn register_info(
     Ok(register_info.is_swapping)
 }
 
+/// Confirms that a address has finished registering on chain.
 pub async fn confirm_registered(
     api: &OnlineClient<EntropyConfig>,
     who: AccountId32,
