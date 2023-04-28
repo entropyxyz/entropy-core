@@ -55,10 +55,10 @@ pub async fn load_kv_store(is_bob: bool, is_alice: bool, no_password: bool) -> K
     if is_alice {
         return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     };
-	// TODO remove and force password
-	if no_password {
-		return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
-	}
+    // TODO remove and force password
+    if no_password {
+        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+    }
     let password = PasswordMethod::Prompt.execute().unwrap();
     // this step takes a long time due to password-based decryption
     KvManager::new(root, password).unwrap()
@@ -97,7 +97,7 @@ pub struct StartupArgs {
     #[arg(long = "nocapture")]
     pub nocapture: bool,
 
-	/// TODO remove and force password
+    /// TODO remove and force password
     #[arg(long = "nopassword")]
     pub no_password: bool,
 }
