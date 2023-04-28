@@ -39,7 +39,7 @@ impl Configuration {
     pub(crate) fn new(endpoint: String) -> Configuration { Configuration { endpoint } }
 }
 
-pub async fn load_kv_store(is_bob: bool, is_alice: bool) -> KvManager {
+pub async fn load_kv_store(is_bob: bool, is_alice: bool, no_password: bool) -> KvManager {
     let mut root: PathBuf = PathBuf::from(kvdb::get_db_path(false));
     if cfg!(test) {
         return KvManager::new(
@@ -55,6 +55,10 @@ pub async fn load_kv_store(is_bob: bool, is_alice: bool) -> KvManager {
     if is_alice {
         return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     };
+	// TODO remove and force password
+	if no_password {
+		return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+	}
     let password = PasswordMethod::Prompt.execute().unwrap();
     // this step takes a long time due to password-based decryption
     KvManager::new(root, password).unwrap()
@@ -92,6 +96,10 @@ pub struct StartupArgs {
     /// Whether or not to print stdout during testing
     #[arg(long = "nocapture")]
     pub nocapture: bool,
+
+	/// TODO remove and force password
+    #[arg(long = "nopassword")]
+    pub no_password: bool,
 }
 
 pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Result<(), KvError> {
