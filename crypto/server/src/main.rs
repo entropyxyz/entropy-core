@@ -79,7 +79,7 @@ async fn rocket() -> _ {
 
     let signer_state = SignerState::default();
     let configuration = Configuration::new(args.chain_endpoint);
-    let kv_store = load_kv_store(args.bob, args.alice).await;
+    let kv_store = load_kv_store(args.bob, args.alice, args.no_password).await;
     let signature_state = SignatureState::new();
 
     setup_mnemonic(&kv_store, args.alice, args.bob).await.expect("Issue creating Mnemonic");
