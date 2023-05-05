@@ -10,10 +10,12 @@ The major actors in this repo are:
 
 The utility crates in this repo are:
 
-- `kvdb` - An encrypted key-value datastore
-- `entropy-shared` - Common no-std types, which Substrate requires
-- `testing-utils` - testing utility methods shared across the workspace
-- `constraints` - A `whitelist` feature. On Thor's chopping block, to be integrated into `server`
+- [`centralized-keygen`](https://github.com/entropyxyz/entropy-core/tree/master/crypto/centralized-keygen) -A convenience wrapper around methods from the thresho
+- [`kvdb`](https://github.com/entropyxyz/entropy-core/tree/master/crypto/kvdb) - An encrypted key-value datastore
+- [`entropy-shared`](https://github.com/entropyxyz/entropy-core/tree/master/crypto/shared) - Common no-std types, which Substrate requires
+- [`testing-utils`](https://github.com/entropyxyz/entropy-core/tree/master/crypto/testing-utils) - testing utility methods shared across the workspace
+
+Constraints have now moved to [entropyxyz/constraints](https://github.com/entropyxyz/constraints).
 
 ## Documentation of major APIs
 
