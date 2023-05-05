@@ -7,7 +7,8 @@
 //!
 //! ## Routes
 //!
-//! - /new_user/create - Post - Takes in a key and value for user
+//! - `/user/new` - POST - Takes in a key and value for user
+//! - `/user/tx` - POST - Submit a transaction to be signed
 #![allow(dead_code)]
 #![allow(unused_imports)]
 pub mod api;
