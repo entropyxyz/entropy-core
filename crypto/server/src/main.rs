@@ -136,7 +136,7 @@ async fn rocket() -> _ {
     }
 
     rocket::build()
-        .mount("/user", routes![store_tx, new_user])
+        .mount("/user", routes![store_tx, new_user, sign_tx])
         .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
         .mount("/validator", routes![sync_kvdb])
         .mount("/", routes![healthz])

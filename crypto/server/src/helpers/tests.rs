@@ -31,6 +31,7 @@ use crate::{
     message::SignedMessage,
     new_user,
     r#unsafe::api::{delete, get, put, remove_keys},
+    sign_tx,
     signing_client::{
         api::{drain, get_signature, new_party, subscribe_to_me},
         SignerState,
@@ -82,7 +83,7 @@ pub async fn create_clients(
     let result = rocket::custom(config)
         .mount("/validator", routes![sync_kvdb])
         .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
-        .mount("/user", routes![store_tx, new_user])
+        .mount("/user", routes![store_tx, new_user, sign_tx])
         .mount("/unsafe", unsafe_routes)
         .manage(signer_state)
         .manage(configuration)

@@ -52,6 +52,7 @@ use crate::{
         SignerState,
     },
     store_tx, subscribe_to_me,
+    user::api::UserTransactionRequest,
     validator::api::get_random_server_info,
     Message as SigMessage,
 };
@@ -64,6 +65,94 @@ async fn test_get_signer_does_not_throw_err() {
     let mnemonic = setup_mnemonic(&kv_store, false, false).await;
     assert!(mnemonic.is_ok());
     get_signer(&kv_store).await.unwrap();
+    clean_tests();
+}
+#[rocket::async_test]
+#[serial]
+async fn test_sign_tx_no_chain() {
+    clean_tests();
+    let one = AccountKeyring::One;
+    let test_user_constraint = AccountKeyring::Charlie;
+
+    let validator_ips = spawn_testing_validators().await;
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let initial_constraints = |address: [u8; 20]| -> Constraints {
+        let mut evm_acl = Acl::<[u8; 20]>::default();
+        evm_acl.addresses.push(address);
+
+        Constraints { evm_acl: Some(evm_acl), ..Default::default() }
+    };
+
+    register_user(
+        &entropy_api,
+        &validator_ips,
+        &one,
+        &test_user_constraint,
+        initial_constraints([1u8; 20]),
+    )
+    .await;
+    let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(1);
+    // let parsed_tx =
+    //     <Evm as Architecture>::TransactionRequest::parse(transaction_request).unwrap();
+    let sig_hash = transaction_request.sighash();
+    let message_request = Message {
+        sig_request: SigRequest { sig_hash: sig_hash.as_bytes().to_vec() },
+        account: one.to_raw_public_vec(),
+        validators_info: vec![
+            ValidatorInfo { ip_address: b"127.0.0.1:3001".to_vec(), x25519_public_key: [0; 32] },
+            ValidatorInfo { ip_address: b"127.0.0.1:3002".to_vec(), x25519_public_key: [0; 32] },
+        ],
+    };
+    let converted_transaction_request: String = hex::encode(&transaction_request.rlp().to_vec());
+    let generic_msg = UserTransactionRequest {
+        arch: "evm".to_string(),
+        transaction_request: converted_transaction_request,
+        message: message_request,
+        validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
+    };
+
+    let mock_client = reqwest::Client::new();
+
+    let submit_transaction_requests =
+        |validator_urls_and_keys: Vec<(String, [u8; 32])>, generic_msg: UserTransactionRequest| async move {
+            let mock_client = reqwest::Client::new();
+            join_all(
+                validator_urls_and_keys
+                    .iter()
+                    .map(|validator_tuple| async {
+                        let server_public_key = PublicKey::from(validator_tuple.1);
+                        let signed_message = SignedMessage::new(
+                            &one.pair(),
+                            &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+                            &server_public_key,
+                        )
+                        .unwrap();
+                        let url = format!("http://{}/user/sign_tx", validator_tuple.0.clone());
+                        mock_client.post(url).json(&signed_message).send().await
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .await
+        };
+    let validator_urls_and_keys = vec![
+        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
+        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
+    ];
+    let test_user_res =
+        submit_transaction_requests(validator_urls_and_keys.clone(), generic_msg).await;
+    test_user_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
+
+    let sig_request = SigMessage { message: hex::encode(sig_hash) };
+
+    join_all(validator_ips.iter().map(|validator_ip| async {
+        let url = format!("http://{}/signer/signature", validator_ip.clone());
+        let res = mock_client.post(url).json(&sig_request).send().await.unwrap();
+        assert_eq!(res.status(), 202);
+        assert_eq!(res.content_length().unwrap(), 88);
+    }))
+    .await;
+    // TODO negative signing tests
     clean_tests();
 }
 
@@ -342,7 +431,6 @@ async fn test_unsigned_tx_endpoint() {
 
     assert_eq!(failed_sign.status(), 500);
     assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
-
     clean_tests();
 }
 

@@ -1,3 +1,5 @@
+use std::net::Ipv4Addr;
+
 use bip39::{Language, Mnemonic};
 use ec_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
@@ -49,6 +51,16 @@ use crate::{
 
 /// Represents an unparsed, transaction request coming from the client.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct UserTransactionRequest {
+    /// 'eth', etc.
+    pub arch: String,
+    /// ETH: RLP encoded transaction request
+    pub transaction_request: String,
+    pub validator_ips: Vec<parity_scale_codec::alloc::vec::Vec<u8>>,
+    pub message: Message,
+}
+/// Represents an unparsed, transaction request coming from the client.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct GenericTransactionRequest {
     /// 'eth', etc.
     pub arch: String,
@@ -56,6 +68,57 @@ pub struct GenericTransactionRequest {
     pub transaction_request: String,
 }
 
+#[post("/sign_tx", format = "json", data = "<msg>")]
+pub async fn sign_tx(
+    // TODO make new type with only info needed
+    msg: Json<SignedMessage>,
+    state: &State<SignerState>,
+    signatures: &State<SignatureState>,
+    kv: &State<KvManager>,
+    config: &State<Configuration>,
+) -> Result<Status, UserErr> {
+    // TODO validate proper signer based on algorithim (using tx hash to chose subgroup)
+    // TODO: check if user is registered
+    let signed_msg: SignedMessage = msg.into_inner();
+    if !signed_msg.verify() {
+        return Err(UserErr::InvalidSignature("Invalid signature."));
+    }
+
+    let signer = get_signer(kv).await?;
+    let signing_address = signed_msg.account_id().to_ss58check();
+
+    let decrypted_message =
+        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+
+    let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
+    let parsed_tx =
+        <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
+
+    let sig_hash = hex::encode(parsed_tx.sighash().as_bytes());
+    let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
+    match user_tx_req.arch.as_str() {
+        "evm" => {
+            let api = get_api(&config.endpoint);
+
+            let message = user_tx_req.message;
+            let sig_req_account = <EntropyConfig as Config>::AccountId::from(
+                <[u8; 32]>::try_from(message.account.clone()).unwrap(),
+            );
+            let substrate_api = api.await?;
+            let evm_acl = get_constraints(&substrate_api, &sig_req_account)
+                .await?
+                .evm_acl
+                .ok_or(UserErr::Parse("No constraints found for this account."))?;
+
+            evm_acl.eval(parsed_tx)?;
+            do_signing(message.clone(), state, kv, signatures, tx_id).await?;
+        },
+        _ => {
+            return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
+        },
+    }
+    Ok(Status::Ok)
+}
 /// Submits a new transaction to the KVDB for inclusion in a threshold
 /// signing scheme at a later block.
 /// Maps a tx hash -> unsigned transaction in the kvdb.
