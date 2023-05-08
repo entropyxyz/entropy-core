@@ -70,8 +70,8 @@ pub async fn subscribe_to_me(
     info!("got subscribe, with message: {msg:?}");
 
     if !state.contains_listener(&msg.party_id) {
-        // Chain node hasn't yet informed this node of the party. Wait for a timeout and procede (or fail
-        // below)
+        // Chain node hasn't yet informed this node of the party. Wait for a timeout and procede (or
+        // fail below)
         tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
     };
 

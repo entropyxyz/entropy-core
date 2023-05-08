@@ -57,13 +57,9 @@ impl SignContext {
         Ok(sign_parties)
     }
 
-    pub fn group(&self) -> &GroupPublicInfo {
-        &self.party_info.common
-    }
+    pub fn group(&self) -> &GroupPublicInfo { &self.party_info.common }
 
-    pub fn msg_to_sign(&self) -> &MessageDigest {
-        &self.sign_init.msg
-    }
+    pub fn msg_to_sign(&self) -> &MessageDigest { &self.sign_init.msg }
 
     // TODO(TK):  unclear whether this method is correctly implemented. The upstream version takes
     // the intersection of self.party_info.tofnd.party_uids and self.sign_init.participant_uids.
