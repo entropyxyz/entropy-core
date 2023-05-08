@@ -1,4 +1,4 @@
-//! Message sent by the Communication Manager to Signing Clients on protocol initiation.
+//! Message sent to Signing Client on protocol initiation.
 use entropy_shared::Message;
 use serde::{Deserialize, Serialize};
 
@@ -8,13 +8,15 @@ pub type MessageDigest = tofn::gg20::sign::MessageDigest;
 // execution where this node could hold a multiple secret key shares.
 // https://github.com/axelarnetwork/tofnd/blob/cb311ac39e505bdc451d33dcb0228902a80caffe/src/gg20/sign/init.rs#L80
 //
-/// https://github.com/axelarnetwork/grpc-protobuf/blob/21698133e2f025d706f1dffec19637216d968692/grpc.proto#L120
-/// Information passed from the CommunicationManager to all nodes.
+// https://github.com/axelarnetwork/grpc-protobuf/blob/21698133e2f025d706f1dffec19637216d968692/grpc.proto#L120
+/// Information passed to the Signing Client, to initiate the signing process.
+/// Most of this information comes from a `Message` struct which gets propagated when a user's
+/// signature request transaction is included in a finalized block.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SignInit {
     /// Unique id of this signature (may be repeated if this party fails)
     pub sig_uid: String,
-    /// identifiers of the participating parties
+    /// Identifiers of the participating parties
     // TK: @JA: What to use for this? IP addresses? Substrate addresses? Substrate keys?
     // may overlap with ip_addresses below.
     pub signer_uids: Vec<String>,

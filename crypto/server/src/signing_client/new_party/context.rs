@@ -14,7 +14,7 @@ use crate::{sign_init::SignInit, signing_client::SigningErr};
 /// Context for Signing Protocol execution.
 #[derive(Debug, Clone)]
 pub struct SignContext {
-    /// Party context from the Communication Manager
+    /// Party context from block proposer
     pub sign_init: SignInit,
     /// Info stored in the kvdb
     pub party_info: PartyInfo,
