@@ -43,7 +43,7 @@ impl<'a> Gg20Service<'a> {
     }
 
     /// The Sign Context contains all relevant information for protocol execution, and is mostly
-    /// stored in the kvdb, and is otherwise provided by the CM (`SignInit`).
+    /// stored in the kvdb, and is otherwise provided by the blockchain (`SignInit`).
     #[instrument]
     pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, SigningErr> {
         info!("check_sign_init: {sign_init:?}");

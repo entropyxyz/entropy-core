@@ -3,13 +3,9 @@
 //! ## Overview
 //!
 //! Consists of three core routes:
-//! - "/user/new" - add a user to the system
-//! (I'd rename cm/handle_signing to cm/new_party)
-//! - "/cm/handle_signing" - endpoint for the CM to be informed to start a signing protocol
-//! - "/signer/new_party" - endpoint for the CM to start a signing protocol
-//!
-//! CM also has a route "/cm/provide_share", but this is in the process of being swapped out for
-//! on-chain public storage of the knowledge of which nodes hold which shares.
+//! - "/user/new" - Add a user to the system
+//! - "/user/tx" - The user submits a transaction to be signed using the signing protocol
+//! - "/signer/new_party" - The blockchain submits a batch of signature requests
 //!
 //! ## Pieces Launched
 //! - Rocket server - Includes global state and mutex locked IPs
