@@ -73,6 +73,7 @@ async fn test_sign_tx_no_chain() {
     clean_tests();
     let one = AccountKeyring::One;
     let test_user_constraint = AccountKeyring::Charlie;
+    let two = AccountKeyring::Two;
 
     let validator_ips = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
@@ -115,7 +116,9 @@ async fn test_sign_tx_no_chain() {
     let mock_client = reqwest::Client::new();
 
     let submit_transaction_requests =
-        |validator_urls_and_keys: Vec<(String, [u8; 32])>, generic_msg: UserTransactionRequest| async move {
+        |validator_urls_and_keys: Vec<(String, [u8; 32])>,
+         generic_msg: UserTransactionRequest,
+         keyring: Sr25519Keyring| async move {
             let mock_client = reqwest::Client::new();
             join_all(
                 validator_urls_and_keys
@@ -123,7 +126,7 @@ async fn test_sign_tx_no_chain() {
                     .map(|validator_tuple| async {
                         let server_public_key = PublicKey::from(validator_tuple.1);
                         let signed_message = SignedMessage::new(
-                            &one.pair(),
+                            &keyring.pair(),
                             &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
                             &server_public_key,
                         )
@@ -140,8 +143,19 @@ async fn test_sign_tx_no_chain() {
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
     let test_user_res =
-        submit_transaction_requests(validator_urls_and_keys.clone(), generic_msg).await;
+        submit_transaction_requests(validator_urls_and_keys.clone(), generic_msg.clone(), one)
+            .await;
     test_user_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
+
+    let test_user_res_not_registered =
+        submit_transaction_requests(validator_urls_and_keys.clone(), generic_msg, two).await;
+
+    for res in test_user_res_not_registered {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "Not Registering error: Register Onchain first"
+        );
+    }
 
     let sig_request = SigMessage { message: hex::encode(sig_hash) };
 

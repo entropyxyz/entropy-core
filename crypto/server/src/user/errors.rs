@@ -45,6 +45,8 @@ pub enum UserErr {
     SigningClientError(#[from] SigningErr),
     #[error("Transaction request unable to be deserialized: {0}")]
     StringConversion(#[from] FromUtf8Error),
+    #[error("Account unable to be deserialized: {0}")]
+    StringError(&'static str),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {

@@ -1,4 +1,4 @@
-use std::net::Ipv4Addr;
+use std::{net::Ipv4Addr, str::FromStr};
 
 use bip39::{Language, Mnemonic};
 use ec_constraints::{
@@ -41,7 +41,7 @@ use crate::{
     },
     helpers::{
         signing::{create_unique_tx_id, do_signing, SignatureState},
-        substrate::{get_constraints, get_subgroup},
+        substrate::{get_constraints, get_subgroup, is_registered},
         validator::get_signer,
     },
     message::SignedMessage,
@@ -87,6 +87,12 @@ pub async fn sign_tx(
     let signer = get_signer(kv).await?;
     let signing_address = signed_msg.account_id().to_ss58check();
 
+    let api = get_api(&config.endpoint).await?;
+
+    let signing_address_converted =
+        AccountId32::from_str(&signing_address).map_err(|e| UserErr::StringError(e))?;
+    is_registered(&api, &signing_address_converted).await?;
+
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
@@ -98,14 +104,11 @@ pub async fn sign_tx(
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
     match user_tx_req.arch.as_str() {
         "evm" => {
-            let api = get_api(&config.endpoint);
-
             let message = user_tx_req.message;
             let sig_req_account = <EntropyConfig as Config>::AccountId::from(
                 <[u8; 32]>::try_from(message.account.clone()).unwrap(),
             );
-            let substrate_api = api.await?;
-            let evm_acl = get_constraints(&substrate_api, &sig_req_account)
+            let evm_acl = get_constraints(&api, &sig_req_account)
                 .await?
                 .evm_acl
                 .ok_or(UserErr::Parse("No constraints found for this account."))?;
