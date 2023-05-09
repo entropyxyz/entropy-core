@@ -102,7 +102,6 @@ pub async fn make_register(
     assert!(query_registering_status.unwrap().unwrap().is_registering);
 }
 
-
 /// Returns wether an account is registered
 pub async fn is_registered(
     api: &OnlineClient<EntropyConfig>,

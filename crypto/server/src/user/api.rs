@@ -11,6 +11,7 @@ use kvdb::kv_manager::{
     KvManager,
 };
 use log::info;
+use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::DecodeAll;
 use rocket::{
     http::Status,
@@ -101,6 +102,8 @@ pub async fn sign_tx(
         <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
 
     let sig_hash = hex::encode(parsed_tx.sighash().as_bytes());
+    let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
+    check_signing_group(subgroup_signers, signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
     match user_tx_req.arch.as_str() {
         "evm" => {
@@ -249,5 +252,36 @@ pub async fn confirm_registered(
         .await?
         .wait_for_success()
         .await?;
+    Ok(())
+}
+
+pub async fn get_current_subgroup_signers(
+    api: &OnlineClient<EntropyConfig>,
+    sig_hash: &String,
+) -> Result<Vec<AccountId32>, UserErr> {
+    let mut subgroup_signers = vec![];
+    let number = BigInt::from_str_radix(sig_hash, 16).unwrap();
+    let index_of_signer_big = number % SIGNING_PARTY_SIZE;
+    let index_of_signer = index_of_signer_big.to_usize().unwrap();
+    for i in 0..SIGNING_PARTY_SIZE {
+        let subgroup_info_query = entropy::storage().staking_extension().signing_groups(i as u8);
+        let subgroup_info = api
+            .storage()
+            .fetch(&subgroup_info_query, None)
+            .await?
+            .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
+        subgroup_signers.push(subgroup_info[index_of_signer].clone());
+    }
+    Ok(subgroup_signers)
+}
+
+pub fn check_signing_group(
+    subgroup_signers: Vec<AccountId32>,
+    validator_address: &AccountId32,
+) -> Result<(), UserErr> {
+    let is_proper_signer = subgroup_signers.contains(validator_address);
+    if !is_proper_signer {
+        return Err(UserErr::NotRegistering("Register Onchain first"));
+    }
     Ok(())
 }
