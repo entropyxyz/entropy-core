@@ -269,8 +269,17 @@ pub async fn get_current_subgroup_signers(
             .storage()
             .fetch(&subgroup_info_query, None)
             .await?
-            .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
-        subgroup_signers.push(subgroup_info[index_of_signer].clone());
+            .ok_or_else(|| UserErr::NotRegistering("one"))?;
+        let threshold_address_query = entropy::storage()
+            .staking_extension()
+            .threshold_servers(subgroup_info[index_of_signer].clone());
+        let threshold_address = api
+            .storage()
+            .fetch(&threshold_address_query, None)
+            .await?
+            .ok_or_else(|| UserErr::SubgroupError("Stash Fetch Error"))?
+            .tss_account;
+        subgroup_signers.push(threshold_address);
     }
     Ok(subgroup_signers)
 }
@@ -281,7 +290,7 @@ pub fn check_signing_group(
 ) -> Result<(), UserErr> {
     let is_proper_signer = subgroup_signers.contains(validator_address);
     if !is_proper_signer {
-        return Err(UserErr::NotRegistering("Register Onchain first"));
+        return Err(UserErr::NotRegistering("two"));
     }
     Ok(())
 }
