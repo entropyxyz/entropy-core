@@ -20,7 +20,6 @@ use crate::{
 };
 
 const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
-/// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/mod.rs#L39
 /// Execute a signing protocol with a new party.
 /// This endpoint is called by the blockchain.
 #[instrument(skip(kv))]
@@ -195,9 +194,12 @@ pub struct Message {
 pub async fn get_signature(
     msg: Json<Message>,
     signatures: &State<SignatureState>,
-) -> status::Accepted<String> {
-    let sig = signatures.get(&msg.message);
-    status::Accepted(Some(base64::encode(sig.as_ref())))
+) -> Option<status::Accepted<String>> {
+    let sig = match signatures.get(&hex::decode(&msg.message).unwrap()) {
+        Some(sig) => sig,
+        None => return None,
+    };
+    Some(status::Accepted(Some(base64::encode(sig.to_rsv_bytes()))))
 }
 
 /// Drains all signatures from the state

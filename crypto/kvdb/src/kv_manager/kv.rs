@@ -139,8 +139,6 @@ async fn kv_cmd_handler<V: 'static>(
 ) where
     V: Debug + Serialize + DeserializeOwned,
 {
-    // if resp.send() fails then log a warning and continue
-    // see discussion https://github.com/axelarnetwork/tofnd/pull/15#discussion_r595426775
     while let Some(cmd) = rx.recv().await {
         match cmd {
             ReserveKey { key, resp } => {

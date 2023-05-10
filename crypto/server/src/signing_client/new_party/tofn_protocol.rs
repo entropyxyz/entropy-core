@@ -1,12 +1,12 @@
-//! A wrapper to the `tofn` to handle sending and receiving messages.
-#![allow(clippy::uninlined_format_args)]
-use anyhow::anyhow;
-use futures::StreamExt;
-use tofn::{
-    collections::TypedUsize,
-    sdk::api::{Protocol, ProtocolOutput, Round},
+//! A wrapper for the threshold signing library to handle sending and receiving messages.
+use cggmp21::{
+    sessions::{make_interactive_signing_session, PrehashedMessage, ToSend},
+    KeyShare, Signature, TestSchemeParams,
 };
-use tracing::{error, instrument};
+use futures::StreamExt;
+use kvdb::kv_manager::PartyId;
+use rand_core::OsRng;
+use tracing::instrument;
 
 use crate::signing_client::{SigningErr, SigningMessage};
 
@@ -16,152 +16,53 @@ pub type ChannelOut = crate::signing_client::subscribe::Broadcaster;
 /// Thin wrapper broadcasting channel out and messages from other nodes in
 pub struct Channels(pub ChannelOut, pub ChannelIn);
 
-/// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/protocol.rs#L20
 /// execute gg20 protocol.
-#[instrument(skip(party, chans))]
-pub(super) async fn execute_protocol<F, K, P, const MAX_MSG_IN_LEN: usize>(
-    mut party: Protocol<F, K, P, MAX_MSG_IN_LEN>,
+#[instrument(skip(chans))]
+pub(super) async fn execute_protocol(
     mut chans: Channels,
-    party_uids: &[String],
-    party_share_counts: &[usize],
-    index: usize,
-) -> Result<ProtocolOutput<F, P>, SigningErr>
-where
-    K: Clone,
-{
-    info!("entering protocol execution");
-    let mut round_count = 0;
+    key_share: &KeyShare<PartyId, TestSchemeParams>,
+    prehashed_message: &PrehashedMessage,
+) -> Result<Signature, SigningErr> {
+    let my_id = key_share.party();
 
-    // We can receive messages from the nodes that have already completed this round
-    // and started the next one; those will be stored here until we're in the next round too.
-    let mut message_cache = Vec::<SigningMessage>::new();
+    let tx = &chans.0;
+    let rx = &mut chans.1;
 
-    while let Protocol::NotDone(mut round) = party {
-        round_count += 1;
+    let mut session = make_interactive_signing_session(&mut OsRng, key_share, prehashed_message)
+        .map_err(SigningErr::ProtocolExecution)?;
 
-        for message in message_cache.drain(..) {
-            let from = party_uids
-                .iter()
-                .position(|uid| uid == &message.from_party_uid)
-                .ok_or_else(|| anyhow!("from uid does not exist in party uids"))?;
+    while !session.is_final_stage() {
+        let to_send = session.get_messages(&mut OsRng).map_err(SigningErr::ProtocolExecution)?;
 
-            if round.msg_in(TypedUsize::from_usize(from), &message.payload).is_err() {
-                return Err(SigningErr::ProtocolOutput(format!(
-                    "error calling tofn::msg_in with [from: {from}]"
-                )));
-            }
-        }
-
-        // handle outgoing traffic
-        handle_outgoing(&chans.0, &round, party_uids, round_count, index)?;
-
-        // collect incoming traffic
-        handle_incoming(
-            &mut chans.1,
-            &mut round,
-            &mut message_cache,
-            party_uids,
-            round_count,
-            index,
-        )
-        .await?;
-
-        // check if everything was ok this round (note tofn-fatal)
-        party =
-            round.execute_next_round().map_err(|_| anyhow!("Error in tofn::execute_next_round"))?;
-    }
-
-    match party {
-        Protocol::NotDone(_) => Err(SigningErr::ProtocolOutput("not done".into())),
-        Protocol::Done(result) => Ok(result),
-    }
-}
-
-fn as_str(v: &[u8]) -> String { format!("{:?}", &v[8..16]) }
-
-fn handle_outgoing<F, K, P, const MAX_MSG_IN_LEN: usize>(
-    channel_out: &ChannelOut,
-    round: &Round<F, K, P, MAX_MSG_IN_LEN>,
-    party_uids: &[String],
-    round_count: usize,
-    index: usize,
-) -> Result<(), SigningErr> {
-    // send outgoing bcasts
-    if let Some(bcast) = round.bcast_out() {
-        // send message to gRPC client
-        channel_out.send(SigningMessage::new_bcast(round_count, bcast, index, party_uids))?;
-    }
-
-    // send outgoing p2ps
-    if let Some(p2ps_out) = round.p2ps_out() {
-        for (i, p2p) in p2ps_out.iter() {
-            // get tofnd index from tofn
-            let _ = round
-                .info()
-                .party_share_counts()
-                .share_to_party_id(i)
-                .map_err(|_| anyhow!("Unable to get tofnd index for party {}", i))?;
-
-            // send message to gRPC client
-            channel_out.send(SigningMessage::new_p2p(round_count, p2p, index, party_uids))?;
-        }
-    }
-    Ok(())
-}
-
-async fn handle_incoming<F, K, P, const MAX_MSG_IN_LEN: usize>(
-    channel_in: &mut ChannelIn,
-    round: &mut Round<F, K, P, MAX_MSG_IN_LEN>,
-    message_cache: &mut Vec<SigningMessage>,
-    party_uids: &[String],
-    round_count: usize,
-    _index: usize, // span: Span,
-) -> Result<(), SigningErr> {
-    // loop until no more messages are needed for this round
-    while round.expecting_more_msgs_this_round() {
-        // get internal message from broadcaster
-        let traffic = channel_in
-            .next()
-            .await
-            .ok_or(format!("{round_count}: stream closed by client before protocol has completed"));
-
-        // unpeel TrafficIn
-        let traffic = match traffic {
-            Ok(traffic_opt) => traffic_opt,
-            Err(_) => {
-                // if channel is closed, stop
-                error!("internal channel closed prematurely");
-                break;
+        match to_send {
+            ToSend::Broadcast { message, .. } => {
+                tx.send(SigningMessage::new_bcast(&my_id, &message))?;
             },
+            ToSend::Direct(msgs) =>
+                for (id_to, message) in msgs.into_iter() {
+                    tx.send(SigningMessage::new_p2p(&my_id, &id_to, &message))?;
+                },
         };
 
-        // We have to spawn a new span it in each loop because `async` calls don't work well with
-        // tracing See details on how we need to make spans curve around `.await`s here:
-        // https://docs.rs/tracing/0.1.25/tracing/span/index.html#entering-a-span
-        // let recv_span = span!(parent: &span, Level::DEBUG, "incoming", round = round_count);
-        // let _start = recv_span.enter();
-
-        // A message from another node that has already started the next round; stash it.
-        if traffic.round == round_count + 1 {
-            message_cache.push(traffic);
-            continue;
-        } else if traffic.round != round_count {
-            let msg = format!("Received a message from an unexpected round {}", traffic.round);
-            return Err(SigningErr::ProtocolOutput(msg));
+        while session.has_cached_messages() {
+            session.receive_cached_message().unwrap();
         }
 
-        // get sender's party index
-        let from = party_uids
-            .iter()
-            .position(|uid| uid == &traffic.from_party_uid)
-            .ok_or_else(|| anyhow!("from uid does not exist in party uids"))?;
-
-        // try to set a message
-        if round.msg_in(TypedUsize::from_usize(from), &traffic.payload).is_err() {
-            return Err(SigningErr::ProtocolOutput(format!(
-                "error calling tofn::msg_in with [from: {from}]"
-            )));
+        while !session.is_finished_receiving().unwrap() {
+            let signing_message = rx.next().await.ok_or_else(|| {
+                SigningErr::IncomingStream(format!("{}", session.current_stage_num()))
+            })?;
+            // TODO: we shouldn't send broadcasts to ourselves in the first place.
+            if signing_message.from == my_id {
+                continue;
+            }
+            session
+                .receive(&signing_message.from, &signing_message.payload)
+                .map_err(SigningErr::ProtocolExecution)?;
         }
+
+        session.finalize_stage(&mut OsRng).map_err(SigningErr::ProtocolExecution)?;
     }
-    Ok(())
+
+    session.result().map_err(SigningErr::ProtocolOutput)
 }

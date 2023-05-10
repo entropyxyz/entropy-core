@@ -1,6 +1,7 @@
 // use rocket::http::hyper::body::Bytes;
 use std::str;
 
+use kvdb::kv_manager::PartyId;
 use serde::{Deserialize, Serialize};
 
 use crate::signing_client::errors::SigningMessageError;
@@ -11,10 +12,10 @@ use crate::signing_client::errors::SigningMessageError;
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(crate = "rocket::serde")]
 pub struct SigningMessage {
-    pub from_party_uid: String,
+    pub from: PartyId,
+    // If `None`, it's a broadcast message
+    pub to: Option<PartyId>,
     pub payload: Vec<u8>,
-    pub is_broadcast: bool,
-    pub round: usize,
 }
 
 impl TryFrom<&String> for SigningMessage {
@@ -26,22 +27,12 @@ impl TryFrom<&String> for SigningMessage {
     }
 }
 
-// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/proto_helpers.rs#L23
 impl SigningMessage {
-    pub(super) fn new_bcast(
-        round: usize,
-        bcast: &[u8],
-        index: usize,
-        party_uids: &[String],
-    ) -> Self {
-        Self::new_traffic(round, &party_uids[index], bcast, true)
+    pub(super) fn new_bcast(from: &PartyId, payload: &[u8]) -> Self {
+        Self { from: from.clone(), to: None, payload: payload.to_vec() }
     }
 
-    pub(super) fn new_p2p(round: usize, p2p: &[u8], index: usize, party_uids: &[String]) -> Self {
-        Self::new_traffic(round, &party_uids[index], p2p, false)
-    }
-
-    pub(super) fn new_traffic(round: usize, from_id: &str, msg: &[u8], is_broadcast: bool) -> Self {
-        Self { from_party_uid: from_id.to_string(), payload: msg.to_vec(), is_broadcast, round }
+    pub(super) fn new_p2p(from: &PartyId, to: &PartyId, payload: &[u8]) -> Self {
+        Self { from: from.clone(), to: Some(to.clone()), payload: payload.to_vec() }
     }
 }

@@ -13,7 +13,6 @@ use super::SigningMessage;
 // #[derive(Responder, Debug, Error)]
 // #[response(status = 418, content_type = "json")]
 /// Errors for the `new_party` API
-// note: TofnFatal doesn't implement Error, so we have to use map_err for those.
 #[derive(Debug, Error)]
 pub enum SigningErr {
     // #[error("Init error: {0}")]
@@ -28,19 +27,21 @@ pub enum SigningErr {
     TryFrom(#[from] std::array::TryFromSliceError),
     #[error("Decoding Error: {0}")]
     Bincode(#[from] Box<bincode::ErrorKind>),
+    #[error("Deserialization Error: {0}")]
+    Deserialization(String),
     // Validation(&'static str),
     #[error("Oneshot timeout error: {0}")]
     OneshotTimeout(#[from] RecvError),
-    #[error("Tofn fatal")]
+    #[error("Subscribe API error: {0}")]
     Subscribe(#[from] SubscribeErr),
     #[error("Protocol Execution error: {0}")]
-    ProtocolExecution(String),
+    ProtocolExecution(cggmp21::sessions::Error),
+    #[error("Incoming message stream error: {0}")]
+    IncomingStream(String),
     #[error("Protocol Output error: {0}")]
-    ProtocolOutput(String),
+    ProtocolOutput(cggmp21::sessions::Error),
     #[error("Invalid length for converting address")]
     AddressConversionError(String),
-    #[error("Cannot make a recoverable signature")]
-    SignatureError,
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("Broadcast error: {0}")]
