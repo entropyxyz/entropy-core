@@ -252,7 +252,8 @@ pub async fn confirm_registered(
         .await?;
     Ok(())
 }
-
+/// Gets the current signing committee
+/// Takes user sighash converts it to a number and module by the sig group size
 pub async fn get_current_subgroup_signers(
     api: &OnlineClient<EntropyConfig>,
     sig_hash: &String,
@@ -284,7 +285,7 @@ pub async fn get_current_subgroup_signers(
     }
     Ok(subgroup_signers)
 }
-
+/// Checks if a validator is in the current selected signing committee
 pub fn check_signing_group(
     subgroup_signers: Vec<AccountId32>,
     validator_address: &AccountId32,
