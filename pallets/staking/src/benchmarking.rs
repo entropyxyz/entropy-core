@@ -55,7 +55,7 @@ fn prep_bond_and_validate<T: Config>(
     let reward_destination = RewardDestination::Account(caller.clone());
     let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
     <T as Config>::Currency::make_free_balance_be(
-        &bonder.clone(),
+        &bonder,
         <T as Config>::Currency::minimum_balance() * 10u32.into(),
     );
     assert_ok!(<FrameStaking<T>>::bond(
@@ -67,7 +67,7 @@ fn prep_bond_and_validate<T: Config>(
 
     if validate_also {
         assert_ok!(<Staking<T>>::validate(
-            RawOrigin::Signed(caller.clone()).into(),
+            RawOrigin::Signed(caller).into(),
             ValidatorPrefs::default(),
             vec![20, 20],
             threshold,
@@ -82,7 +82,7 @@ benchmarks! {
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
     let x25519_public_key = NULL_ARR;
-    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
+    prep_bond_and_validate::<T>(true, caller.clone(), bonder, threshold, NULL_ARR);
 
 
   }:  _(RawOrigin::Signed(caller.clone()), vec![30])
@@ -97,7 +97,7 @@ benchmarks! {
     let bonder: T::ValidatorId = validator_id_res.expect("Issue converting account id into validator id");
     let threshold: T::AccountId = account("threshold", 0, SEED);
     let x25519_public_key: [u8; 32] = NULL_ARR;
-    prep_bond_and_validate::<T>(true, caller.clone(), _bonder.clone(), threshold.clone(), NULL_ARR);
+    prep_bond_and_validate::<T>(true, caller.clone(), _bonder.clone(), threshold, NULL_ARR);
 
 
   }:  _(RawOrigin::Signed(caller.clone()), _bonder.clone(), NULL_ARR)
@@ -107,7 +107,7 @@ benchmarks! {
       tss_account: _bonder.clone(),
       x25519_public_key: NULL_ARR,
     };
-    assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder.clone(), server_info).into());
+    assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder, server_info).into());
   }
 
 
@@ -116,7 +116,7 @@ benchmarks! {
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
 
-    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
+    prep_bond_and_validate::<T>(true, caller.clone(), bonder, threshold, NULL_ARR);
     let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
 
     // assume fully unbonded as slightly more weight, but not enough to handle partial unbond
@@ -139,7 +139,7 @@ benchmarks! {
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
     let x25519_public_key: [u8; 32] = NULL_ARR;
-    prep_bond_and_validate::<T>(false, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
+    prep_bond_and_validate::<T>(false, caller.clone(), bonder, threshold.clone(), NULL_ARR);
 
     let validator_preferance = ValidatorPrefs::default();
 
@@ -171,7 +171,7 @@ benchmarks! {
 } verify {
     let one_current_validator = &SigningGroups::<T>::get(0).unwrap();
     if n == 0 {
-        if one_current_validator.len() != 0 {
+        if !one_current_validator.is_empty() {
             assert!(!new_validators.contains(&one_current_validator[0]));
         }
     } else {
