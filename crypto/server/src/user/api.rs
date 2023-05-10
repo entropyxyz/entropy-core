@@ -89,7 +89,7 @@ pub async fn sign_tx(
     let api = get_api(&config.endpoint).await?;
 
     let signing_address_converted =
-        AccountId32::from_str(&signing_address).map_err(|e| UserErr::StringError(e))?;
+        AccountId32::from_str(&signing_address).map_err(UserErr::StringError)?;
     is_registered(&api, &signing_address_converted).await?;
 
     let decrypted_message =
@@ -107,7 +107,7 @@ pub async fn sign_tx(
         "evm" => {
             let message = user_tx_req.message;
             let sig_req_account = <EntropyConfig as Config>::AccountId::from(
-                <[u8; 32]>::try_from(message.account.clone()).map_err(|e| UserErr::TryFrom(e))?,
+                <[u8; 32]>::try_from(message.account.clone()).map_err(UserErr::TryFrom)?,
             );
             let evm_acl = get_constraints(&api, &sig_req_account)
                 .await?
@@ -159,7 +159,7 @@ pub async fn store_tx(
             // parse their transaction request
             let message: Message = serde_json::from_str(&String::from_utf8(message_json)?)?;
             let sig_req_account = <EntropyConfig as Config>::AccountId::from(
-                <[u8; 32]>::try_from(message.account.clone()).map_err(|e| UserErr::TryFrom(e))?,
+                <[u8; 32]>::try_from(message.account.clone()).map_err(UserErr::TryFrom)?,
             );
             let substrate_api = api.await?;
             let evm_acl = get_constraints(&substrate_api, &sig_req_account)
@@ -256,7 +256,7 @@ pub async fn confirm_registered(
 /// Takes user sighash converts it to a number and module by the sig group size
 pub async fn get_current_subgroup_signers(
     api: &OnlineClient<EntropyConfig>,
-    sig_hash: &String,
+    sig_hash: &str,
 ) -> Result<Vec<AccountId32>, UserErr> {
     let mut subgroup_signers = vec![];
     let number = BigInt::from_str_radix(sig_hash, 16)?;
