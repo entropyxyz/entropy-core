@@ -78,8 +78,6 @@ pub async fn sign_tx(
     kv: &State<KvManager>,
     config: &State<Configuration>,
 ) -> Result<Status, UserErr> {
-    // TODO validate proper signer based on algorithim (using tx hash to chose subgroup)
-    // TODO: check if user is registered
     let signed_msg: SignedMessage = msg.into_inner();
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
@@ -109,7 +107,7 @@ pub async fn sign_tx(
         "evm" => {
             let message = user_tx_req.message;
             let sig_req_account = <EntropyConfig as Config>::AccountId::from(
-                <[u8; 32]>::try_from(message.account.clone()).unwrap(),
+                <[u8; 32]>::try_from(message.account.clone()).map_err(|e| UserErr::TryFrom(e))?,
             );
             let evm_acl = get_constraints(&api, &sig_req_account)
                 .await?
@@ -161,7 +159,7 @@ pub async fn store_tx(
             // parse their transaction request
             let message: Message = serde_json::from_str(&String::from_utf8(message_json)?)?;
             let sig_req_account = <EntropyConfig as Config>::AccountId::from(
-                <[u8; 32]>::try_from(message.account.clone()).unwrap(),
+                <[u8; 32]>::try_from(message.account.clone()).map_err(|e| UserErr::TryFrom(e))?,
             );
             let substrate_api = api.await?;
             let evm_acl = get_constraints(&substrate_api, &sig_req_account)
@@ -260,16 +258,19 @@ pub async fn get_current_subgroup_signers(
     sig_hash: &String,
 ) -> Result<Vec<AccountId32>, UserErr> {
     let mut subgroup_signers = vec![];
-    let number = BigInt::from_str_radix(sig_hash, 16).unwrap();
-    let index_of_signer_big = number % SIGNING_PARTY_SIZE;
-    let index_of_signer = index_of_signer_big.to_usize().unwrap();
+    let number = BigInt::from_str_radix(sig_hash, 16)?;
     for i in 0..SIGNING_PARTY_SIZE {
         let subgroup_info_query = entropy::storage().staking_extension().signing_groups(i as u8);
         let subgroup_info = api
             .storage()
             .fetch(&subgroup_info_query, None)
             .await?
-            .ok_or_else(|| UserErr::NotRegistering("one"))?;
+            .ok_or_else(|| UserErr::SubgroupError("Subgroup Fetch Error"))?;
+
+        let index_of_signer_big = &number % subgroup_info.len();
+        let index_of_signer =
+            index_of_signer_big.to_usize().ok_or_else(|| UserErr::Usize("Usize error"))?;
+
         let threshold_address_query = entropy::storage()
             .staking_extension()
             .threshold_servers(subgroup_info[index_of_signer].clone());
@@ -290,7 +291,7 @@ pub fn check_signing_group(
 ) -> Result<(), UserErr> {
     let is_proper_signer = subgroup_signers.contains(validator_address);
     if !is_proper_signer {
-        return Err(UserErr::NotRegistering("two"));
+        return Err(UserErr::InvalidSigner("Invalid Signer"));
     }
     Ok(())
 }

@@ -47,6 +47,14 @@ pub enum UserErr {
     StringConversion(#[from] FromUtf8Error),
     #[error("Account unable to be deserialized: {0}")]
     StringError(&'static str),
+    #[error("Invalid Signer: {0}")]
+    InvalidSigner(&'static str),
+    #[error("ParseBigIntError: {0:?}")]
+    ParseBigIntError(#[from] num::bigint::ParseBigIntError),
+    #[error("Usize error: {0}")]
+    Usize(&'static str),
+    #[error("Try From error: {0:?}")]
+    TryFrom(Vec<u8>),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {

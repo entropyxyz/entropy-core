@@ -94,6 +94,8 @@ async fn test_sign_tx_no_chain() {
     )
     .await;
     let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(1);
+    let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
+
     // let parsed_tx =
     //     <Evm as Architecture>::TransactionRequest::parse(transaction_request).unwrap();
     let sig_hash = transaction_request.sighash();
@@ -106,7 +108,7 @@ async fn test_sign_tx_no_chain() {
         ],
     };
     let converted_transaction_request: String = hex::encode(&transaction_request.rlp().to_vec());
-    let generic_msg = UserTransactionRequest {
+    let mut generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),
         transaction_request: converted_transaction_request,
         message: message_request,
@@ -148,7 +150,8 @@ async fn test_sign_tx_no_chain() {
     test_user_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
 
     let test_user_res_not_registered =
-        submit_transaction_requests(validator_urls_and_keys.clone(), generic_msg, two).await;
+        submit_transaction_requests(validator_urls_and_keys.clone(), generic_msg.clone(), two)
+            .await;
 
     for res in test_user_res_not_registered {
         assert_eq!(
@@ -157,6 +160,32 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
+    let converted_transaction_request_failed: String =
+        hex::encode(&transaction_request_fail.rlp().to_vec());
+    generic_msg.transaction_request = converted_transaction_request_failed;
+
+    let test_user_failed_constraints_res =
+        submit_transaction_requests(validator_urls_and_keys.clone(), generic_msg.clone(), one)
+            .await;
+
+    for res in test_user_failed_constraints_res {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "Constraints error: Constraint Evaluation error: Transaction not allowed."
+        );
+    }
+
+    generic_msg.arch = "btc".to_string();
+    let test_user_failed_arch_res =
+        submit_transaction_requests(validator_urls_and_keys.clone(), generic_msg.clone(), one)
+            .await;
+
+    for res in test_user_failed_arch_res {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "Parse error: Unknown \"arch\". Must be one of: [\"evm\"]"
+        );
+    }
     let sig_request = SigMessage { message: hex::encode(sig_hash) };
 
     join_all(validator_ips.iter().map(|validator_ip| async {
@@ -166,7 +195,46 @@ async fn test_sign_tx_no_chain() {
         assert_eq!(res.content_length().unwrap(), 88);
     }))
     .await;
-    // TODO negative signing tests
+    // fails verification tests
+    // wrong key for wrong validator
+    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
+    let failed_signed_message = SignedMessage::new(
+        &one.pair(),
+        &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+        &server_public_key,
+    )
+    .unwrap();
+    let failed_res = mock_client
+        .post("http://127.0.0.1:3001//user/sign_tx")
+        .json(&failed_signed_message)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(failed_res.status(), 500);
+    assert_eq!(failed_res.text().await.unwrap(), "ChaCha20 decryption error: aead::Error");
+
+    let sig: [u8; 64] = [0; 64];
+    let slice: [u8; 32] = [0; 32];
+    let nonce: [u8; 12] = [0; 12];
+
+    let user_input_bad = SignedMessage::new_test(
+        Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+        sr25519::Signature::from_raw(sig),
+        slice,
+        slice,
+        slice,
+        nonce,
+    );
+
+    let failed_sign = mock_client
+        .post("http://127.0.0.1:3001//user/sign_tx")
+        .json(&user_input_bad)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(failed_sign.status(), 500);
+    assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
     clean_tests();
 }
 
