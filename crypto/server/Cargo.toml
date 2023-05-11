@@ -19,7 +19,7 @@ hex                ="*"
 reqwest-eventsource="0.4"
 serde_derive       ="1.0.147"
 
-cggmp21={ git="ssh://git@github.com/entropyxyz/cggmp21.git", branch="master" }
+cggmp21={ git="ssh://git@github.com/entropyxyz/cggmp21.git", tag="v0.0.1" }
 
 # Async
 futures="0.3"
