@@ -67,10 +67,10 @@ pub async fn do_signing(
     state: &State<SignerState>,
     kv_manager: &State<KvManager>,
     signatures: &State<SignatureState>,
-    key: String,
+    tx_id: String,
 ) -> Result<Status, SigningErr> {
     // todo: temporary hack, replace with correct data
-    let info = SignInit::temporary_data(message.clone(), key);
+    let info = SignInit::new(message.clone(), tx_id);
     let signing_service = ThresholdSigningService::new(state, kv_manager);
 
     // set up context for signing protocol execution
@@ -82,7 +82,8 @@ pub async fn do_signing(
         .listeners
         .lock()
         .expect("lock shared data")
-        .insert(sign_context.sign_init.party_uid.to_string(), listener);
+        // TODO: using signature ID as session ID. Correct?
+        .insert(sign_context.sign_init.sig_uid.clone(), listener);
     let channels = {
         let stream_in = subscribe_to_them(&sign_context).await?;
         let broadcast_out = rx_ready.await??;

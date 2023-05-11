@@ -24,7 +24,7 @@ pub struct SignerState {
 
 impl SignerState {
     /// Create a new `SignerState`
-    pub fn contains_listener(&self, key: &str) -> bool {
-        self.listeners.lock().unwrap().contains_key(key)
+    pub fn contains_listener(&self, session_id: &String) -> bool {
+        self.listeners.lock().unwrap().contains_key(session_id)
     }
 }

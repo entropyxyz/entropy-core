@@ -80,6 +80,8 @@ pub enum SubscribeErr {
     NoListener(&'static str),
     // #[error("Validation error: {0}")]
     // Validation(&'static str),
+    #[error("invalid party ID: {0}")]
+    InvalidPartyId(String),
 }
 
 // todo: delete

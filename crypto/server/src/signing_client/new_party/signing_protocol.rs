@@ -36,11 +36,11 @@ pub(super) async fn execute_protocol(
 
         match to_send {
             ToSend::Broadcast { message, .. } => {
-                tx.send(SigningMessage::new_bcast(&my_id, &message))?;
+                tx.send(SigningMessage::new_bcast(my_id, &message))?;
             },
             ToSend::Direct(msgs) =>
                 for (id_to, message) in msgs.into_iter() {
-                    tx.send(SigningMessage::new_p2p(&my_id, &id_to, &message))?;
+                    tx.send(SigningMessage::new_p2p(my_id, id_to, &message))?;
                 },
         };
 

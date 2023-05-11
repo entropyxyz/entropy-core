@@ -17,8 +17,22 @@ use crate::encrypted_sled::Password;
 #[zeroize(drop)]
 pub struct Entropy(pub Vec<u8>);
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PartyId(pub [u8; 32]);
+
+impl From<PartyId> for String {
+    fn from(party_id: PartyId) -> Self { hex::encode(party_id.0) }
+}
+
+impl TryFrom<String> for PartyId {
+    type Error = String;
+
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        let bytes = hex::decode(s).map_err(|err| format!("{}", err))?;
+        let arr: [u8; 32] = bytes.try_into().map_err(|err| format!("Invalid length: {:?}", err))?;
+        Ok(Self(arr))
+    }
+}
 
 impl fmt::Display for PartyId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {

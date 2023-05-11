@@ -68,7 +68,9 @@ pub async fn subscribe_to_me(
     msg.validate_registration()?;
     info!("got subscribe, with message: {msg:?}");
 
-    if !state.contains_listener(&msg.party_id) {
+    let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
+
+    if !state.contains_listener(&msg.session_id) {
         // Chain node hasn't yet informed this node of the party. Wait for a timeout and procede (or
         // fail below)
         tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
@@ -77,8 +79,8 @@ pub async fn subscribe_to_me(
     let rx = {
         let mut listeners = state.listeners.lock().expect("lock shared data");
         let listener =
-            listeners.get_mut(&msg.party_id).ok_or(SubscribeErr::NoListener("no listener"))?;
-        let rx_outcome = listener.subscribe(&msg)?;
+            listeners.get_mut(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
+        let rx_outcome = listener.subscribe(party_id)?;
 
         // If this is the last subscriber, remove the listener from state
         match rx_outcome {
@@ -86,7 +88,7 @@ pub async fn subscribe_to_me(
             Receiver::FinalReceiver(rx) => {
                 // all subscribed, wake up the waiting listener in new_party
                 let listener = listeners
-                    .remove(&msg.party_id)
+                    .remove(&msg.session_id)
                     .ok_or(SubscribeErr::NoListener("listener remove"))?;
                 let (tx, broadcaster) = listener.into_broadcaster();
                 let _ = tx.send(Ok(broadcaster));
