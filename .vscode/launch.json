@@ -4,25 +4,6 @@
 		{
 			"type": "lldb",
 			"request": "launch",
-			"name": "Debug unit tests in library 'centralized-keygen'",
-			"cargo": {
-				"args": [
-					"test",
-					"--no-run",
-					"--lib",
-					"--package=centralized-keygen"
-				],
-				"filter": {
-					"name": "centralized-keygen",
-					"kind": "lib"
-				}
-			},
-			"args": [],
-			"cwd": "${workspaceFolder}"
-		},
-		{
-			"type": "lldb",
-			"request": "launch",
 			"name": "Debug unit tests in library 'constraints'",
 			"cargo": {
 				"args": [

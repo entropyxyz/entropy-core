@@ -81,7 +81,8 @@ async fn test_unsigned_tx_endpoint() {
     let test_user2 = AccountKeyring::Two;
     let test_user2_constraint = AccountKeyring::Dave;
 
-    let validator_ips = spawn_testing_validators().await;
+    let (validator_ips, validator_ids) = spawn_testing_validators().await;
+
     let initial_constraints = |address: [u8; 20]| -> Constraints {
         let mut evm_acl = Acl::<[u8; 20]>::default();
         evm_acl.addresses.push(address);
@@ -97,6 +98,7 @@ async fn test_unsigned_tx_endpoint() {
         &test_user,
         &test_user_constraint,
         initial_constraints([1u8; 20]),
+        &validator_ids,
     )
     .await;
     register_user(
@@ -105,6 +107,7 @@ async fn test_unsigned_tx_endpoint() {
         &test_user2,
         &test_user2_constraint,
         initial_constraints([2u8; 20]),
+        &validator_ids,
     )
     .await;
 
@@ -296,7 +299,7 @@ async fn test_unsigned_tx_endpoint() {
         let client = reqwest::Client::new();
         let url = format!("http://{}/signer/signature", validator_ips[0].clone());
         let res = client.post(url).json(get_sig_message).send().await;
-        assert_eq!(res.unwrap().status(), 500);
+        assert_eq!(res.unwrap().status(), 404);
     }))
     .await;
 

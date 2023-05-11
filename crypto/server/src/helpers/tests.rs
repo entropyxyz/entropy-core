@@ -1,11 +1,15 @@
 // only compile when testing
 #![cfg(test)]
 
-use std::{fs, path::PathBuf};
-
+use cggmp21::{make_key_shares, TestSchemeParams};
 use entropy_shared::Constraints;
 use futures::future::join_all;
-use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
+use kvdb::{
+    clean_tests,
+    encrypted_sled::PasswordMethod,
+    kv_manager::{KvManager, PartyId},
+};
+use rand_core::OsRng;
 use rocket::{local::asynchronous::Client, tokio::time::Duration, Ignite, Rocket};
 use serial_test::serial;
 use sp_core::{sr25519, Bytes, Pair};
@@ -16,6 +20,7 @@ use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
+    get_signer,
     helpers::{
         launch::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
@@ -90,27 +95,25 @@ pub async fn create_clients(
     (result, kv_store)
 }
 
-pub async fn spawn_testing_validators() -> Vec<String> {
+pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
     // spawn threshold servers
     let ports = vec![3001i64, 3002];
 
-    let (alice_rocket, _) =
+    let (alice_rocket, alice_kv) =
         create_clients(ports[0], "validator1".to_string(), vec![], vec![], true, false).await;
-    let (bob_rocket, _) =
+    let alice_id = PartyId(get_signer(&alice_kv).await.unwrap().account_id().clone().into());
+
+    let (bob_rocket, bob_kv) =
         create_clients(ports[1], "validator2".to_string(), vec![], vec![], false, true).await;
+    let bob_id = PartyId(get_signer(&bob_kv).await.unwrap().account_id().clone().into());
+
     tokio::spawn(async move { alice_rocket.launch().await.unwrap() });
     tokio::spawn(async move { bob_rocket.launch().await.unwrap() });
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    ports.iter().map(|port| format!("127.0.0.1:{}", port)).collect()
-}
-
-fn get_test_keyshare_for_validator(index: i32) -> Vec<u8> {
-    let root = project_root::get_project_root().unwrap();
-    let path: PathBuf = [root, "test_data".into(), "key_shares".into(), index.to_string().into()]
-        .into_iter()
-        .collect();
-    fs::read(path).unwrap()
+    let ips = ports.iter().map(|port| format!("127.0.0.1:{}", port)).collect();
+    let ids = vec![alice_id, bob_id];
+    (ips, ids)
 }
 
 /// Registers a new user on-chain, sends test threshold keys to to the server, and sets their
@@ -122,12 +125,16 @@ pub async fn register_user(
     sig_req_keyring: &Sr25519Keyring,
     constraint_modification_account: &Sr25519Keyring,
     initial_constraints: Constraints,
+    party_ids: &[PartyId],
 ) {
     let validator1_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let validator2_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
 
-    let validator_1_threshold_keyshare: Vec<u8> = get_test_keyshare_for_validator(0);
-    let validator_2_threshold_keyshare: Vec<u8> = get_test_keyshare_for_validator(1);
+    let shares = make_key_shares::<PartyId, TestSchemeParams>(&mut OsRng, party_ids);
+    let validator_1_threshold_keyshare: Vec<u8> =
+        kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
+    let validator_2_threshold_keyshare: Vec<u8> =
+        kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
 
     let register_body_alice_validator = SignedMessage::new(
         &sig_req_keyring.pair(),

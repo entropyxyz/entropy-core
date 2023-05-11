@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use kvdb::kv_manager::PartyId;
 use rocket::{
     response::stream::{Event, EventStream},
     Shutdown,
@@ -12,7 +13,7 @@ use tokio::{
     },
 };
 
-use super::{Broadcaster, SubscribeMessage};
+use super::Broadcaster;
 use crate::{
     signing_client::{SigningMessage, SubscribeErr},
     SIGNING_PARTY_SIZE,
@@ -45,7 +46,7 @@ impl Listener {
         }
     }
 
-    pub(crate) fn subscribe(&mut self, _msg: &SubscribeMessage) -> Result<Receiver, SubscribeErr> {
+    pub(crate) fn subscribe(&mut self, _id: PartyId) -> Result<Receiver, SubscribeErr> {
         self.subscriber_count += 1;
         let rx = self.tx.subscribe();
         if self.subscriber_count == SIGNING_PARTY_SIZE {

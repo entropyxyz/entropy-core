@@ -20,7 +20,6 @@ use crate::{
 };
 
 const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
-/// https://github.com/axelarnetwork/tofnd/blob/117a35b808663ceebfdd6e6582a3f0a037151198/src/gg20/sign/mod.rs#L39
 /// Execute a signing protocol with a new party.
 /// This endpoint is called by the blockchain.
 #[instrument(skip(kv))]
@@ -69,7 +68,9 @@ pub async fn subscribe_to_me(
     msg.validate_registration()?;
     info!("got subscribe, with message: {msg:?}");
 
-    if !state.contains_listener(&msg.party_id) {
+    let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
+
+    if !state.contains_listener(&msg.session_id) {
         // Chain node hasn't yet informed this node of the party. Wait for a timeout and procede (or
         // fail below)
         tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
@@ -78,8 +79,8 @@ pub async fn subscribe_to_me(
     let rx = {
         let mut listeners = state.listeners.lock().expect("lock shared data");
         let listener =
-            listeners.get_mut(&msg.party_id).ok_or(SubscribeErr::NoListener("no listener"))?;
-        let rx_outcome = listener.subscribe(&msg)?;
+            listeners.get_mut(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
+        let rx_outcome = listener.subscribe(party_id)?;
 
         // If this is the last subscriber, remove the listener from state
         match rx_outcome {
@@ -87,7 +88,7 @@ pub async fn subscribe_to_me(
             Receiver::FinalReceiver(rx) => {
                 // all subscribed, wake up the waiting listener in new_party
                 let listener = listeners
-                    .remove(&msg.party_id)
+                    .remove(&msg.session_id)
                     .ok_or(SubscribeErr::NoListener("listener remove"))?;
                 let (tx, broadcaster) = listener.into_broadcaster();
                 let _ = tx.send(Ok(broadcaster));
@@ -195,9 +196,12 @@ pub struct Message {
 pub async fn get_signature(
     msg: Json<Message>,
     signatures: &State<SignatureState>,
-) -> status::Accepted<String> {
-    let sig = signatures.get(&msg.message);
-    status::Accepted(Some(base64::encode(sig.as_ref())))
+) -> Option<status::Accepted<String>> {
+    let sig = match signatures.get(&hex::decode(&msg.message).unwrap()) {
+        Some(sig) => sig,
+        None => return None,
+    };
+    Some(status::Accepted(Some(base64::encode(sig.to_rsv_bytes()))))
 }
 
 /// Drains all signatures from the state

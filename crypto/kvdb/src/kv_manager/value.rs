@@ -1,7 +1,7 @@
-use std::{convert::TryFrom, path::PathBuf};
+use std::{convert::TryFrom, fmt, path::PathBuf};
 
+use cggmp21::{KeyShare, TestSchemeParams};
 use serde::{Deserialize, Serialize};
-use tofn::gg20::keygen::{GroupPublicInfo, SecretKeyShare, ShareSecretInfo};
 use tracing::{info, span, Level, Span};
 use zeroize::Zeroize;
 
@@ -17,22 +17,37 @@ use crate::encrypted_sled::Password;
 #[zeroize(drop)]
 pub struct Entropy(pub Vec<u8>);
 
-/// Struct to hold `tonfd` info. This consists of information we need to
-/// store in the KV store that is not relevant to `tofn`
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TofndInfo {
-    pub party_uids: Vec<String>,
-    pub share_counts: Vec<usize>,
-    pub index: usize,
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub struct PartyId(pub [u8; 32]);
+
+impl From<PartyId> for String {
+    fn from(party_id: PartyId) -> Self { hex::encode(party_id.0) }
 }
+
+impl TryFrom<String> for PartyId {
+    type Error = String;
+
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        let bytes = hex::decode(s).map_err(|err| format!("{}", err))?;
+        let arr: [u8; 32] = bytes.try_into().map_err(|err| format!("Invalid length: {:?}", err))?;
+        Ok(Self(arr))
+    }
+}
+
+impl fmt::Display for PartyId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "PartyId({})", hex::encode(&self.0[0..4]))
+    }
+}
+
+impl cggmp21::sessions::PartyId for PartyId {}
 
 /// `KeyShareKv` record
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PartyInfo {
-    pub common: GroupPublicInfo,
-    pub shares: Vec<ShareSecretInfo>,
-    pub tofnd: TofndInfo,
+    pub share: KeyShare<PartyId, TestSchemeParams>,
 }
+
 /// Kv manager for grpc services
 #[derive(Clone)]
 pub struct KvManager {
@@ -87,39 +102,22 @@ impl TryFrom<Entropy> for KvValue {
 }
 
 impl PartyInfo {
-    /// Get GroupPublicInfo and ShareSecretInfo from tofn to create PartyInfo
-    /// Also needed in recovery
-    pub fn get_party_info(
-        secret_key_shares: Vec<SecretKeyShare>,
-        uids: Vec<String>,
-        share_counts: Vec<usize>,
-        tofnd_index: usize,
-    ) -> Self {
-        // grap the first share to acquire common data
-        let common = secret_key_shares[0].group().clone();
-
-        // aggregate share data into a vector
-        let shares = secret_key_shares.into_iter().map(|share| share.share().clone()).collect();
-
-        // add tofnd data
-        let tofnd = TofndInfo { party_uids: uids, share_counts, index: tofnd_index };
-
-        PartyInfo { common, shares, tofnd }
-    }
+    pub fn get_party_info(share: KeyShare<PartyId, TestSchemeParams>) -> Self { Self { share } }
 
     /// log PartyInfo state
     pub fn log_info(&self, session_id: &str, sign_span: Span) {
         let init_span = span!(parent: &sign_span, Level::INFO, "init");
         let _enter = init_span.enter();
 
+        let parties = self.share.parties();
+        let parties_str = parties.iter().map(|id| format!("{}", id)).collect::<Vec<_>>().join(", ");
+
         info!(
-            "[uid:{}, shares:{}] starting Sign with [key: {}, (t,n)=({},{}), participants:{:?}",
-            self.tofnd.party_uids[self.tofnd.index],
-            self.tofnd.share_counts[self.tofnd.index],
+            "[uid:{}] starting Sign with [session ID: {}, n={}, participants:{}",
+            self.share.party(),
             session_id,
-            self.common.threshold(),
-            self.tofnd.share_counts.iter().sum::<usize>(),
-            self.tofnd.party_uids,
+            parties.len(),
+            parties_str,
         );
     }
 }

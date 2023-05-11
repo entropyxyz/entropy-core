@@ -43,10 +43,10 @@ pub fn add_non_syncing_validators<T: Config>(
         ServerInfo { tss_account: account, x25519_public_key: NULL_ARR, endpoint: vec![20] };
     <SigningGroups<T>>::remove(sig_party_number);
     <SigningGroups<T>>::insert(sig_party_number, validators.clone());
-    for c in 0..validators.len() {
-        <ThresholdServers<T>>::insert(&validators[c], server_info.clone());
+    for (c, validator) in validators.iter().enumerate() {
+        <ThresholdServers<T>>::insert(validator, server_info.clone());
         if c >= syncing_validators.try_into().unwrap() {
-            <IsValidatorSynced<T>>::insert(&validators[c], true);
+            <IsValidatorSynced<T>>::insert(validator, true);
         }
     }
     if syncing_validators == sig_party_size {
@@ -75,7 +75,7 @@ benchmarks! {
     // number of addresses in the ACL
     let a in 0 .. <T as pallet_constraints::Config>::MaxAclLength::get();
     let b in 0 .. <T as pallet_constraints::Config>::MaxAclLength::get();
-    let constraints = generate_benchmarking_constraints::<T>(a, b);
+    let constraints = generate_benchmarking_constraints(a, b);
 
     let constraint_account: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();

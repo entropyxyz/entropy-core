@@ -29,7 +29,7 @@ fn assert_permissions_are_restricted_properly() {
         );
 
         // give permission to modify constraints and make sure the acl can be updated
-        AllowedToModifyConstraints::<Test>::insert(&CONSTRAINT_ACCOUNT, &SIG_REQ_ACCOUNT, ());
+        AllowedToModifyConstraints::<Test>::insert(CONSTRAINT_ACCOUNT, SIG_REQ_ACCOUNT, ());
         assert_ok!(ConstraintsPallet::update_constraints(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
@@ -56,7 +56,7 @@ fn assert_permissions_are_restricted_properly() {
         );
 
         // removing permissions should prevent modification
-        AllowedToModifyConstraints::<Test>::remove(&CONSTRAINT_ACCOUNT, &SIG_REQ_ACCOUNT);
+        AllowedToModifyConstraints::<Test>::remove(CONSTRAINT_ACCOUNT, SIG_REQ_ACCOUNT);
         assert_noop!(
             ConstraintsPallet::update_constraints(
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
@@ -79,7 +79,7 @@ fn return_error_if_constraints_arent_set() {
         };
 
         // give permission to modify constraints
-        AllowedToModifyConstraints::<Test>::insert(&CONSTRAINT_ACCOUNT, &SIG_REQ_ACCOUNT, ());
+        AllowedToModifyConstraints::<Test>::insert(CONSTRAINT_ACCOUNT, SIG_REQ_ACCOUNT, ());
 
         // make sure acl is empty
         assert!(ConstraintsPallet::evm_acl(SIG_REQ_ACCOUNT).is_err());
@@ -115,7 +115,7 @@ fn set_v2_constraints() {
             Error::<Test>::NotAuthorized
         );
 
-        AllowedToModifyConstraints::<Test>::insert(&CONSTRAINT_ACCOUNT, &SIG_REQ_ACCOUNT, ());
+        AllowedToModifyConstraints::<Test>::insert(CONSTRAINT_ACCOUNT, SIG_REQ_ACCOUNT, ());
 
         // can't pay deposit
         assert_noop!(
@@ -135,8 +135,8 @@ fn set_v2_constraints() {
             v2_constraint.clone()
         ));
 
-        assert_eq!(ConstraintsPallet::v2_bytecode(SIG_REQ_ACCOUNT).unwrap(), v2_constraint.clone());
-        assert_eq!(Balances::free_balance(&CONSTRAINT_ACCOUNT), 90);
+        assert_eq!(ConstraintsPallet::v2_bytecode(SIG_REQ_ACCOUNT).unwrap(), v2_constraint);
+        assert_eq!(Balances::free_balance(CONSTRAINT_ACCOUNT), 90);
 
         // deposit refunded partial
         assert_ok!(ConstraintsPallet::update_v2_constraints(
@@ -144,7 +144,7 @@ fn set_v2_constraints() {
             SIG_REQ_ACCOUNT,
             vec![10u8]
         ));
-        assert_eq!(Balances::free_balance(&CONSTRAINT_ACCOUNT), 95);
+        assert_eq!(Balances::free_balance(CONSTRAINT_ACCOUNT), 95);
 
         // deposit refunded full
         assert_ok!(ConstraintsPallet::update_v2_constraints(
@@ -152,13 +152,13 @@ fn set_v2_constraints() {
             SIG_REQ_ACCOUNT,
             vec![]
         ));
-        assert_eq!(Balances::free_balance(&CONSTRAINT_ACCOUNT), 100);
+        assert_eq!(Balances::free_balance(CONSTRAINT_ACCOUNT), 100);
 
         assert_noop!(
             ConstraintsPallet::update_v2_constraints(
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                v2_too_long.clone(),
+                v2_too_long,
             ),
             Error::<Test>::V2ConstraintLengthExceeded
         );

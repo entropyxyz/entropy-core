@@ -19,6 +19,8 @@ hex                ="*"
 reqwest-eventsource="0.4"
 serde_derive       ="1.0.147"
 
+cggmp21={ git="ssh://git@github.com/entropyxyz/cggmp21.git", tag="v0.0.1" }
+
 # Async
 futures="0.3"
 tokio  ={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util"] }
@@ -31,7 +33,6 @@ reqwest={ version="0.11", features=["json", "stream"] }
 subxt             ={ package="subxt", git="https://github.com/entropyxyz/subxt.git", branch="polkadot-v0.9.31" }
 parity-scale-codec="3.0.0"
 sp-core           ={ package="sp-core", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
-tofn              ={ git="https://github.com/entropyxyz/tofn", branch="main" }
 sp-keyring        ={ package="sp-keyring", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
 
 # Entropy
