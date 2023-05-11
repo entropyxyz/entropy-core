@@ -2,12 +2,12 @@
 #![allow(dead_code)]
 mod context;
 mod signing_message;
-mod tofn_protocol;
+mod signing_protocol;
 use cggmp21::{KeyShare, TestSchemeParams};
 use kvdb::kv_manager::{value::PartyId, KvManager};
 use tracing::{info, instrument};
 
-pub use self::{context::SignContext, signing_message::SigningMessage, tofn_protocol::Channels};
+pub use self::{context::SignContext, signing_message::SigningMessage, signing_protocol::Channels};
 use crate::{
     helpers::signing::{RecoverableSignature, SignatureState},
     sign_init::SignInit,
@@ -55,8 +55,8 @@ impl<'a> ThresholdSigningService<'a> {
         channels: Channels,
     ) -> Result<RecoverableSignature, SigningErr> {
         info!("execute_sign: {ctx:?}");
-        let rsig =
-            tofn_protocol::execute_protocol(channels, &ctx.key_share, &ctx.sign_init.msg).await?;
+        let rsig = signing_protocol::execute_protocol(channels, &ctx.key_share, &ctx.sign_init.msg)
+            .await?;
 
         let (signature, recovery_id) = rsig.to_backend();
         Ok(RecoverableSignature { signature, recovery_id })
