@@ -14,10 +14,13 @@ fn get_path() -> String {
 
 pub type NodeRuntimeSignedExtra = SubstrateExtrinsicParams<EntropyConfig>;
 
-pub async fn test_node_process_with(key: AccountKeyring) -> TestNodeProcess<EntropyConfig> {
+pub async fn test_node_process_with(
+    key: AccountKeyring,
+    chain_type: String,
+) -> TestNodeProcess<EntropyConfig> {
     let path = get_path();
 
-    let proc = TestNodeProcess::<EntropyConfig>::build(path.as_str())
+    let proc = TestNodeProcess::<EntropyConfig>::build(path.as_str(), chain_type)
         .with_authority(key)
         .scan_for_open_ports()
         .spawn::<EntropyConfig>()
@@ -25,10 +28,10 @@ pub async fn test_node_process_with(key: AccountKeyring) -> TestNodeProcess<Entr
     proc.unwrap()
 }
 
-pub async fn test_node(key: AccountKeyring) -> TestNodeProcess<EntropyConfig> {
+pub async fn test_node(key: AccountKeyring, chain_type: String) -> TestNodeProcess<EntropyConfig> {
     let path = get_path();
 
-    let proc = TestNodeProcess::<EntropyConfig>::build(path.as_str())
+    let proc = TestNodeProcess::<EntropyConfig>::build(path.as_str(), chain_type)
         .with_authority(key)
         .spawn::<EntropyConfig>()
         .await;
@@ -36,11 +39,15 @@ pub async fn test_node(key: AccountKeyring) -> TestNodeProcess<EntropyConfig> {
 }
 
 pub async fn test_node_process() -> TestNodeProcess<EntropyConfig> {
-    test_node_process_with(AccountKeyring::Alice).await
+    test_node_process_with(AccountKeyring::Alice, "--dev".to_string()).await
 }
 
 pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
-    test_node(AccountKeyring::Alice).await
+    test_node(AccountKeyring::Alice, "--dev".to_string()).await
+}
+
+pub async fn test_node_process_testing_state() -> TestNodeProcess<EntropyConfig> {
+    test_node(AccountKeyring::Alice, "--chain=test".to_string()).await
 }
 
 /// Spins up Substrate node and a connected `subxt` client.

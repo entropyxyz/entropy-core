@@ -8,7 +8,7 @@ use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::UncheckedInto, sr25519};
 
 use crate::chain_spec::{
-    authority_keys_from_seed, devnet_genesis, get_account_id_from_seed, testnet_genesis,
+    authority_keys_from_seed, devnet_genesis, get_account_id_from_seed, testing, testnet_genesis,
 };
 
 pub fn devnet_config_genesis() -> GenesisConfig {
@@ -219,6 +219,14 @@ pub fn staging_testnet_config_genesis() -> GenesisConfig {
 
 pub fn development_config_genesis() -> GenesisConfig {
     testnet_genesis(
+        vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
+        vec![],
+        get_account_id_from_seed::<sr25519::Public>("Alice"),
+    )
+}
+
+pub fn testing_config_genesis() -> GenesisConfig {
+    testing(
         vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
         vec![],
         get_account_id_from_seed::<sr25519::Public>("Alice"),

@@ -26,9 +26,9 @@ impl<R> TestNodeProcess<R>
 where R: Config
 {
     /// Construct a builder for spawning a test node process.
-    pub fn build<S>(program: S) -> TestNodeProcessBuilder
+    pub fn build<S>(program: S, chain_type: String) -> TestNodeProcessBuilder
     where S: AsRef<OsStr> + Clone {
-        TestNodeProcessBuilder::new(program)
+        TestNodeProcessBuilder::new(program, chain_type)
     }
 
     /// Attempt to kill the running substrate process.
@@ -51,12 +51,18 @@ pub struct TestNodeProcessBuilder {
     node_path: OsString,
     authority: Option<AccountKeyring>,
     scan_port_range: bool,
+    chain_type: String,
 }
 
 impl TestNodeProcessBuilder {
-    pub fn new<P>(node_path: P) -> TestNodeProcessBuilder
+    pub fn new<P>(node_path: P, chain_type: String) -> TestNodeProcessBuilder
     where P: AsRef<OsStr> {
-        Self { node_path: node_path.as_ref().into(), authority: None, scan_port_range: false }
+        Self {
+            node_path: node_path.as_ref().into(),
+            authority: None,
+            scan_port_range: false,
+            chain_type,
+        }
     }
 
     /// Set the authority dev account for a node in validator mode e.g. --alice.
@@ -77,7 +83,7 @@ impl TestNodeProcessBuilder {
     pub async fn spawn<R>(&self) -> Result<TestNodeProcess<R>, String>
     where R: Config {
         let mut cmd = process::Command::new(&self.node_path);
-        cmd.env("RUST_LOG", "error").arg("--dev").arg("--tmp");
+        cmd.env("RUST_LOG", "error").arg(&self.chain_type).arg("--tmp");
 
         if let Some(authority) = self.authority {
             let authority = format!("{authority:?}");
