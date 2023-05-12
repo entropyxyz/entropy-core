@@ -11,6 +11,7 @@
 //! - Rocket server - Includes global state and mutex locked IPs
 //! - Sled DB KVDB
 pub(crate) mod chain_api;
+pub(crate) mod health;
 mod helpers;
 pub(crate) mod message;
 pub(crate) mod sign_init;
@@ -39,6 +40,7 @@ use self::{
     user::api::*,
 };
 use crate::{
+    health::api::healthz,
     helpers::{
         launch::{init_tracing, load_kv_store, setup_mnemonic, Configuration, StartupArgs},
         signing::SignatureState,
@@ -137,6 +139,7 @@ async fn rocket() -> _ {
         .mount("/user", routes![store_tx, new_user])
         .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
         .mount("/validator", routes![sync_kvdb])
+        .mount("/", routes![healthz])
         .mount("/unsafe", unsafe_routes)
         .manage(signer_state)
         .manage(signature_state)
