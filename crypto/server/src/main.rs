@@ -139,7 +139,7 @@ async fn rocket() -> _ {
         .mount("/user", routes![store_tx, new_user])
         .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
         .mount("/validator", routes![sync_kvdb])
-        .mount("/health", routes![live])
+        .mount("/healthz", routes![live])
         .mount("/unsafe", unsafe_routes)
         .manage(signer_state)
         .manage(signature_state)

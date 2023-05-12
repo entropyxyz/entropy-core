@@ -8,7 +8,7 @@ use crate::helpers::tests::setup_client;
 async fn health() {
     clean_tests();
     let client = setup_client().await;
-    let response = client.get("/health/live").dispatch().await;
+    let response = client.get("/healthz/live").dispatch().await;
     assert_eq!(response.status(), Status::Ok);
     clean_tests();
 }
