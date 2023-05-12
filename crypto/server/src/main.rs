@@ -40,7 +40,7 @@ use self::{
     user::api::*,
 };
 use crate::{
-    health::api::live,
+    health::api::healthz,
     helpers::{
         launch::{init_tracing, load_kv_store, setup_mnemonic, Configuration, StartupArgs},
         signing::SignatureState,
@@ -139,7 +139,7 @@ async fn rocket() -> _ {
         .mount("/user", routes![store_tx, new_user])
         .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
         .mount("/validator", routes![sync_kvdb])
-        .mount("/healthz", routes![live])
+        .mount("/", routes![healthz])
         .mount("/unsafe", unsafe_routes)
         .manage(signer_state)
         .manage(signature_state)

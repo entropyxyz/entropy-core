@@ -1,4 +1,4 @@
 use rocket::http::Status;
 
-#[get("/live")]
-pub fn live() -> Status { Status::Ok }
+#[get("/healthz")]
+pub fn healthz() -> Status { Status::Ok }
