@@ -106,10 +106,7 @@ pub async fn sign_tx(
     match user_tx_req.arch.as_str() {
         "evm" => {
             let message = user_tx_req.message;
-            let sig_req_account = <EntropyConfig as Config>::AccountId::from(
-                <[u8; 32]>::try_from(message.account.clone()).map_err(UserErr::TryFrom)?,
-            );
-            let evm_acl = get_constraints(&api, &sig_req_account)
+            let evm_acl = get_constraints(&api, &signing_address_converted)
                 .await?
                 .evm_acl
                 .ok_or(UserErr::Parse("No constraints found for this account."))?;
@@ -158,11 +155,11 @@ pub async fn store_tx(
             let message_json = kv.kv().get(&tx_id).await?;
             // parse their transaction request
             let message: Message = serde_json::from_str(&String::from_utf8(message_json)?)?;
-            let sig_req_account = <EntropyConfig as Config>::AccountId::from(
-                <[u8; 32]>::try_from(message.account.clone()).map_err(UserErr::TryFrom)?,
-            );
+            let signing_address_converted =
+                AccountId32::from_str(&signing_address).map_err(UserErr::StringError)?;
+
             let substrate_api = api.await?;
-            let evm_acl = get_constraints(&substrate_api, &sig_req_account)
+            let evm_acl = get_constraints(&substrate_api, &signing_address_converted)
                 .await?
                 .evm_acl
                 .ok_or(UserErr::Parse("No constraints found for this account."))?;
