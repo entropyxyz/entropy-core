@@ -11,8 +11,9 @@ use synedrion::{
 use tracing::instrument;
 use blake2::{Blake2s256, Digest};
 use subxt::ext::sp_core::{sr25519, Pair};
-use crate::{signing_client::{SigningErr, SigningMessage}, message::mnemonic_to_pair};
+use crate::{signing_client::{SigningErr, SigningMessage}};
 use parity_scale_codec::Encode;
+
 pub type ChannelIn = futures::stream::BoxStream<'static, super::SigningMessage>;
 pub type ChannelOut = crate::signing_client::subscribe::Broadcaster;
 
