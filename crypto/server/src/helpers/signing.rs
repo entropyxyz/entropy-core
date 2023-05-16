@@ -3,6 +3,7 @@ use std::{collections::HashMap, sync::Mutex};
 use kvdb::kv_manager::{KvManager, PartyId};
 use rocket::{http::Status, State};
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
+use subxt::ext::sp_core::{sr25519, Pair};
 
 use crate::{
     get_signer,
@@ -12,7 +13,9 @@ use crate::{
         subscribe::{subscribe_to_them, Listener},
         SignerState, SigningErr,
     },
+	message::mnemonic_to_pair
 };
+use bip39::{Language, Mnemonic};
 
 #[derive(Clone, Debug)]
 pub struct RecoverableSignature {
@@ -92,7 +95,12 @@ pub async fn do_signing(
         Channels(broadcast_out, stream_in)
     };
 
-    let result = signing_service.execute_sign(&sign_context, channels).await.unwrap();
+	let raw = kv_manager.kv().get("MNEMONIC").await.unwrap();
+	let secret = core::str::from_utf8(&raw).unwrap();
+	let mnemonic = Mnemonic::from_phrase(secret, Language::English).unwrap();
+	let threshold_signer = mnemonic_to_pair(&mnemonic);
+
+    let result = signing_service.execute_sign(&sign_context, channels, &threshold_signer).await.unwrap();
 
     signing_service.handle_result(&result, message.sig_request.sig_hash.as_slice(), signatures);
 

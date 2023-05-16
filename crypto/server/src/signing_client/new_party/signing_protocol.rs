@@ -9,9 +9,10 @@ use synedrion::{
     PartyIdx, Signature,
 };
 use tracing::instrument;
-
-use crate::signing_client::{SigningErr, SigningMessage};
-
+use blake2::{Blake2s256, Digest};
+use subxt::ext::sp_core::{sr25519, Pair};
+use crate::{signing_client::{SigningErr, SigningMessage}, message::mnemonic_to_pair};
+use parity_scale_codec::Encode;
 pub type ChannelIn = futures::stream::BoxStream<'static, super::SigningMessage>;
 pub type ChannelOut = crate::signing_client::subscribe::Broadcaster;
 
@@ -19,11 +20,12 @@ pub type ChannelOut = crate::signing_client::subscribe::Broadcaster;
 pub struct Channels(pub ChannelOut, pub ChannelIn);
 
 /// execute gg20 protocol.
-#[instrument(skip(chans))]
+#[instrument(skip(chans, threshold_signer))]
 pub(super) async fn execute_protocol(
     mut chans: Channels,
     party_info: &PartyInfo,
     prehashed_message: &PrehashedMessage,
+	threshold_signer: &sr25519::Pair
 ) -> Result<Signature, SigningErr> {
     let my_idx = party_info.share.party_index();
     let my_id = &party_info.party_ids[my_idx.as_usize()];
@@ -47,14 +49,16 @@ pub(super) async fn execute_protocol(
 
         match to_send {
             ToSend::Broadcast(message) => {
-                tx.send(SigningMessage::new_bcast(my_id, &message))?;
+				let signed_message = create_signed_message(message, threshold_signer);
+                tx.send(SigningMessage::new_bcast(my_id, &signed_message))?;
             },
             ToSend::Direct(msgs) =>
                 for (id_to, message) in msgs.into_iter() {
+					let signed_message = create_signed_message(message, threshold_signer);
                     tx.send(SigningMessage::new_p2p(
                         my_id,
                         &party_info.party_ids[id_to.as_usize()],
-                        &message,
+                        &signed_message,
                     ))?;
                 },
         };
@@ -81,4 +85,15 @@ pub(super) async fn execute_protocol(
     }
 
     session.result().map_err(SigningErr::ProtocolOutput)
+}
+
+
+pub fn create_signed_message(message: Box<[u8]>, pair: &sr25519::Pair) -> Vec<u8> {
+	let mut hasher = Blake2s256::new();
+    hasher.update(&message);
+	let hash = hasher.finalize().to_vec();
+	let mut combined: Vec<u8> = Vec::new();
+	combined.extend_from_slice(&pair.sign(&hash).encode());
+	combined.extend_from_slice(&message);
+	combined
 }
