@@ -12,7 +12,6 @@ use tracing::instrument;
 use blake2::{Blake2s256, Digest};
 use subxt::ext::sp_core::{sr25519, Pair};
 use crate::{signing_client::{SigningErr, SigningMessage}};
-use parity_scale_codec::Encode;
 
 pub type ChannelIn = futures::stream::BoxStream<'static, super::SigningMessage>;
 pub type ChannelOut = crate::signing_client::subscribe::Broadcaster;
@@ -51,7 +50,7 @@ pub(super) async fn execute_protocol(
         match to_send {
             ToSend::Broadcast(message) => {
 				let signed_message = create_signed_message(&message, threshold_signer);
-                tx.send(SigningMessage::new_bcast(my_id, &message, signed_message))?;
+                tx.send(SigningMessage::new_bcast(my_id, &message, signed_message, threshold_signer.public()))?;
             },
             ToSend::Direct(msgs) =>
                 for (id_to, message) in msgs.into_iter() {
@@ -61,6 +60,7 @@ pub(super) async fn execute_protocol(
                         &party_info.party_ids[id_to.as_usize()],
 						&message,
                         signed_message,
+						threshold_signer.public()
                     ))?;
 			},
         };
@@ -73,7 +73,7 @@ pub(super) async fn execute_protocol(
             let signing_message = rx.next().await.ok_or_else(|| {
                 SigningErr::IncomingStream(format!("{}", session.current_stage_num()))
             })?;
-			validate_signed_message(&signing_message.payload, signing_message.signature);
+			let _ = validate_signed_message(&signing_message.payload, signing_message.signature, signing_message.sender_pk);
             // TODO: we shouldn't send broadcasts to ourselves in the first place.
             if &signing_message.from == my_id {
                 continue;
@@ -99,5 +99,15 @@ pub fn create_signed_message(message: &Box<[u8]>, pair: &sr25519::Pair) -> sr255
 }
 
 
-pub fn validate_signed_message(message: &Vec<u8>, signature: sr25519::Signature) -> () {
+pub fn validate_signed_message(message: &Vec<u8>, signature: sr25519::Signature, sender_pk:  sr25519::Public) -> Result<(), ()> {
+	let mut hasher = Blake2s256::new();
+    hasher.update(&message);
+	let hash = hasher.finalize().to_vec();
+	// check to make sure Pk is in signing comittee
+	let signature = <sr25519::Pair as Pair>::verify(&signature, hash, &sender_pk);
+	if !signature {
+		// fail gracefully
+		panic!();
+	}
+	Ok(())
 }
