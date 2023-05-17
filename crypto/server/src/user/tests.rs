@@ -118,8 +118,6 @@ async fn test_sign_tx_no_chain() {
         validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
     };
 
-    let mock_client = reqwest::Client::new();
-
     let submit_transaction_requests =
         |validator_urls_and_keys: Vec<(String, [u8; 32])>,
          generic_msg: UserTransactionRequest,
@@ -143,18 +141,17 @@ async fn test_sign_tx_no_chain() {
             )
             .await
         };
-    let validator_urls_and_keys = vec![
+    let validator_ips_and_keys = vec![
         (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
+
     let test_user_res =
-        submit_transaction_requests(validator_urls_and_keys.clone(), generic_msg.clone(), one)
-            .await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
     test_user_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
 
     let test_user_res_not_registered =
-        submit_transaction_requests(validator_urls_and_keys.clone(), generic_msg.clone(), two)
-            .await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
 
     for res in test_user_res_not_registered {
         assert_eq!(
@@ -163,13 +160,10 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    let converted_transaction_request_failed: String =
-        hex::encode(&transaction_request_fail.rlp().to_vec());
-    generic_msg.transaction_request = converted_transaction_request_failed;
+    generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec());
 
     let test_user_failed_constraints_res =
-        submit_transaction_requests(validator_urls_and_keys.clone(), generic_msg.clone(), one)
-            .await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
     for res in test_user_failed_constraints_res {
         assert_eq!(
@@ -180,8 +174,7 @@ async fn test_sign_tx_no_chain() {
 
     generic_msg.arch = "btc".to_string();
     let test_user_failed_arch_res =
-        submit_transaction_requests(validator_urls_and_keys.clone(), generic_msg.clone(), one)
-            .await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
     for res in test_user_failed_arch_res {
         assert_eq!(
@@ -190,6 +183,7 @@ async fn test_sign_tx_no_chain() {
         );
     }
     let sig_request = SigMessage { message: hex::encode(sig_hash) };
+    let mock_client = reqwest::Client::new();
 
     join_all(validator_ips.iter().map(|validator_ip| async {
         let url = format!("http://{}/signer/signature", validator_ip.clone());
@@ -259,11 +253,10 @@ async fn test_fail_signing_group() {
             ValidatorInfo { ip_address: b"127.0.0.1:3002".to_vec(), x25519_public_key: [0; 32] },
         ],
     };
-    let converted_transaction_request: String = hex::encode(&transaction_request.rlp().to_vec());
 
     let generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),
-        transaction_request: converted_transaction_request,
+        transaction_request: hex::encode(&transaction_request.rlp().to_vec()),
         message: message_request,
         validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
     };
@@ -278,7 +271,10 @@ async fn test_fail_signing_group() {
     let mock_client = reqwest::Client::new();
     let response =
         mock_client.post("http://127.0.0.1:3001//user/sign_tx").json(&signed_message).send().await;
-    assert_eq!(response.unwrap().text().await.unwrap(), "Invalid Signer: Invalid Signer");
+    assert_eq!(
+        response.unwrap().text().await.unwrap(),
+        "Invalid Signer: Invalid Signer in Signing group"
+    );
     clean_tests();
 }
 

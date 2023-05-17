@@ -1,4 +1,4 @@
-use std::{net::Ipv4Addr, str::FromStr};
+use std::str::FromStr;
 
 use bip39::{Language, Mnemonic};
 use ec_constraints::{
@@ -250,7 +250,8 @@ pub async fn confirm_registered(
     Ok(())
 }
 /// Gets the current signing committee
-/// Takes user sighash converts it to a number and module by the sig group size
+/// The signing committee is composed as the validators at the index into each subgroup
+/// Where the index is computed as the user's sighash as an integer modulo the number of subgroups
 pub async fn get_current_subgroup_signers(
     api: &OnlineClient<EntropyConfig>,
     sig_hash: &str,
@@ -289,7 +290,7 @@ pub fn check_signing_group(
 ) -> Result<(), UserErr> {
     let is_proper_signer = subgroup_signers.contains(validator_address);
     if !is_proper_signer {
-        return Err(UserErr::InvalidSigner("Invalid Signer"));
+        return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
     }
     Ok(())
 }

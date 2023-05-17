@@ -108,13 +108,10 @@ pub async fn is_registered(
     who: &AccountId32,
 ) -> Result<(), UserErr> {
     let registered_info_query = entropy::storage().relayer().registered(who);
-    let is_registered = api
+    let _ = api
         .storage()
         .fetch(&registered_info_query, None)
         .await?
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
-    if !is_registered {
-        return Err(UserErr::NotRegistering("Register Onchain first"));
-    }
     Ok(())
 }
