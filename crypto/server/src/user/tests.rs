@@ -99,8 +99,6 @@ async fn test_sign_tx_no_chain() {
     let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(1);
     let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
 
-    // let parsed_tx =
-    //     <Evm as Architecture>::TransactionRequest::parse(transaction_request).unwrap();
     let sig_hash = transaction_request.sighash();
     let message_request = Message {
         sig_request: SigRequest { sig_hash: sig_hash.as_bytes().to_vec() },
