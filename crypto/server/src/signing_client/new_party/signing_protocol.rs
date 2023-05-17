@@ -50,18 +50,19 @@ pub(super) async fn execute_protocol(
 
         match to_send {
             ToSend::Broadcast(message) => {
-				let signed_message = create_signed_message(message, threshold_signer);
-                tx.send(SigningMessage::new_bcast(my_id, &signed_message))?;
+				let signed_message = create_signed_message(&message, threshold_signer);
+                tx.send(SigningMessage::new_bcast(my_id, &message, signed_message))?;
             },
             ToSend::Direct(msgs) =>
                 for (id_to, message) in msgs.into_iter() {
-					let signed_message = create_signed_message(message, threshold_signer);
-                    tx.send(SigningMessage::new_p2p(
+					let signed_message = create_signed_message(&message, threshold_signer);
+					tx.send(SigningMessage::new_p2p(
                         my_id,
                         &party_info.party_ids[id_to.as_usize()],
-                        &signed_message,
+						&message,
+                        signed_message,
                     ))?;
-                },
+			},
         };
 
         while session.has_cached_messages() {
@@ -72,6 +73,7 @@ pub(super) async fn execute_protocol(
             let signing_message = rx.next().await.ok_or_else(|| {
                 SigningErr::IncomingStream(format!("{}", session.current_stage_num()))
             })?;
+			validate_signed_message(&signing_message.payload, signing_message.signature);
             // TODO: we shouldn't send broadcasts to ourselves in the first place.
             if &signing_message.from == my_id {
                 continue;
@@ -89,12 +91,13 @@ pub(super) async fn execute_protocol(
 }
 
 
-pub fn create_signed_message(message: Box<[u8]>, pair: &sr25519::Pair) -> Vec<u8> {
+pub fn create_signed_message(message: &Box<[u8]>, pair: &sr25519::Pair) -> sr25519::Signature {
 	let mut hasher = Blake2s256::new();
     hasher.update(&message);
 	let hash = hasher.finalize().to_vec();
-	let mut combined: Vec<u8> = Vec::new();
-	combined.extend_from_slice(&pair.sign(&hash).encode());
-	combined.extend_from_slice(&message);
-	combined
+	pair.sign(&hash)
+}
+
+
+pub fn validate_signed_message(message: &Vec<u8>, signature: sr25519::Signature) -> () {
 }
