@@ -99,15 +99,14 @@ pub fn create_signed_message(message: &Box<[u8]>, pair: &sr25519::Pair) -> sr255
 }
 
 
-pub fn validate_signed_message(message: &Vec<u8>, signature: sr25519::Signature, sender_pk:  sr25519::Public) -> Result<(), ()> {
+pub fn validate_signed_message(message: &Vec<u8>, signature: sr25519::Signature, sender_pk:  sr25519::Public) -> Result<(), SigningErr> {
 	let mut hasher = Blake2s256::new();
     hasher.update(&message);
 	let hash = hasher.finalize().to_vec();
 	// check to make sure Pk is in signing comittee
 	let signature = <sr25519::Pair as Pair>::verify(&signature, hash, &sender_pk);
 	if !signature {
-		// fail gracefully
-		panic!();
+		return Err(SigningErr::MessageValidation("Unable to verify origins of message"));
 	}
 	Ok(())
 }
