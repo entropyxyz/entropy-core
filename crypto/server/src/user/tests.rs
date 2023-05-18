@@ -23,7 +23,9 @@ use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
 use testing_utils::{
     constants::X25519_PUBLIC_KEYS,
-    substrate_context::{test_context_stationary, SubstrateTestingContext},
+    substrate_context::{
+        test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
+    },
 };
 use tokio::task::JoinHandle;
 use x25519_dalek::{PublicKey, StaticSecret};
@@ -52,6 +54,7 @@ use crate::{
         SignerState,
     },
     store_tx, subscribe_to_me,
+    user::api::UserTransactionRequest,
     validator::api::get_random_server_info,
     Message as SigMessage,
 };
@@ -64,6 +67,213 @@ async fn test_get_signer_does_not_throw_err() {
     let mnemonic = setup_mnemonic(&kv_store, false, false).await;
     assert!(mnemonic.is_ok());
     get_signer(&kv_store).await.unwrap();
+    clean_tests();
+}
+#[rocket::async_test]
+#[serial]
+async fn test_sign_tx_no_chain() {
+    clean_tests();
+    let one = AccountKeyring::One;
+    let test_user_constraint = AccountKeyring::Charlie;
+    let two = AccountKeyring::Two;
+
+    let (validator_ips, validator_ids) = spawn_testing_validators().await;
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let initial_constraints = |address: [u8; 20]| -> Constraints {
+        let mut evm_acl = Acl::<[u8; 20]>::default();
+        evm_acl.addresses.push(address);
+
+        Constraints { evm_acl: Some(evm_acl), ..Default::default() }
+    };
+
+    register_user(
+        &entropy_api,
+        &validator_ips,
+        &one,
+        &test_user_constraint,
+        initial_constraints([1u8; 20]),
+        &validator_ids,
+    )
+    .await;
+    let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(1);
+    let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
+
+    let sig_hash = transaction_request.sighash();
+    let message_request = Message {
+        sig_request: SigRequest { sig_hash: sig_hash.as_bytes().to_vec() },
+        account: one.to_raw_public_vec(),
+        validators_info: vec![
+            ValidatorInfo { ip_address: b"127.0.0.1:3001".to_vec(), x25519_public_key: [0; 32] },
+            ValidatorInfo { ip_address: b"127.0.0.1:3002".to_vec(), x25519_public_key: [0; 32] },
+        ],
+    };
+    let converted_transaction_request: String = hex::encode(&transaction_request.rlp().to_vec());
+    let mut generic_msg = UserTransactionRequest {
+        arch: "evm".to_string(),
+        transaction_request: converted_transaction_request,
+        message: message_request,
+        validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
+    };
+
+    let submit_transaction_requests =
+        |validator_urls_and_keys: Vec<(String, [u8; 32])>,
+         generic_msg: UserTransactionRequest,
+         keyring: Sr25519Keyring| async move {
+            let mock_client = reqwest::Client::new();
+            join_all(
+                validator_urls_and_keys
+                    .iter()
+                    .map(|validator_tuple| async {
+                        let server_public_key = PublicKey::from(validator_tuple.1);
+                        let signed_message = SignedMessage::new(
+                            &keyring.pair(),
+                            &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+                            &server_public_key,
+                        )
+                        .unwrap();
+                        let url = format!("http://{}/user/sign_tx", validator_tuple.0.clone());
+                        mock_client.post(url).json(&signed_message).send().await
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .await
+        };
+    let validator_ips_and_keys = vec![
+        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
+        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
+    ];
+
+    let test_user_res =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+    test_user_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
+
+    // test failing cases
+    let test_user_res_not_registered =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
+
+    for res in test_user_res_not_registered {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "Not Registering error: Register Onchain first"
+        );
+    }
+
+    generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec());
+
+    let test_user_failed_constraints_res =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    for res in test_user_failed_constraints_res {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "Constraints error: Constraint Evaluation error: Transaction not allowed."
+        );
+    }
+
+    generic_msg.arch = "btc".to_string();
+    let test_user_failed_arch_res =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    for res in test_user_failed_arch_res {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "Parse error: Unknown \"arch\". Must be one of: [\"evm\"]"
+        );
+    }
+    let sig_request = SigMessage { message: hex::encode(sig_hash) };
+    let mock_client = reqwest::Client::new();
+
+    join_all(validator_ips.iter().map(|validator_ip| async {
+        let url = format!("http://{}/signer/signature", validator_ip.clone());
+        let res = mock_client.post(url).json(&sig_request).send().await.unwrap();
+        assert_eq!(res.status(), 202);
+        assert_eq!(res.content_length().unwrap(), 88);
+    }))
+    .await;
+    // fails verification tests
+    // wrong key for wrong validator
+    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
+    let failed_signed_message = SignedMessage::new(
+        &one.pair(),
+        &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+        &server_public_key,
+    )
+    .unwrap();
+    let failed_res = mock_client
+        .post("http://127.0.0.1:3001//user/sign_tx")
+        .json(&failed_signed_message)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(failed_res.status(), 500);
+    assert_eq!(failed_res.text().await.unwrap(), "ChaCha20 decryption error: aead::Error");
+
+    let sig: [u8; 64] = [0; 64];
+    let slice: [u8; 32] = [0; 32];
+    let nonce: [u8; 12] = [0; 12];
+
+    let user_input_bad = SignedMessage::new_test(
+        Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+        sr25519::Signature::from_raw(sig),
+        slice,
+        slice,
+        slice,
+        nonce,
+    );
+
+    let failed_sign = mock_client
+        .post("http://127.0.0.1:3001//user/sign_tx")
+        .json(&user_input_bad)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(failed_sign.status(), 500);
+    assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+    clean_tests();
+}
+
+#[rocket::async_test]
+#[serial]
+async fn test_fail_signing_group() {
+    clean_tests();
+    let dave = AccountKeyring::Dave;
+    let _ = spawn_testing_validators().await;
+
+    let _substrate_context = test_node_process_testing_state().await;
+    let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(3);
+    let sig_hash = transaction_request.sighash();
+    let message_request = Message {
+        sig_request: SigRequest { sig_hash: sig_hash.as_bytes().to_vec() },
+        account: dave.to_raw_public_vec(),
+        validators_info: vec![
+            ValidatorInfo { ip_address: b"127.0.0.1:3001".to_vec(), x25519_public_key: [0; 32] },
+            ValidatorInfo { ip_address: b"127.0.0.1:3002".to_vec(), x25519_public_key: [0; 32] },
+        ],
+    };
+
+    let generic_msg = UserTransactionRequest {
+        arch: "evm".to_string(),
+        transaction_request: hex::encode(&transaction_request.rlp().to_vec()),
+        message: message_request,
+        validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
+    };
+    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
+    let signed_message = SignedMessage::new(
+        &dave.pair(),
+        &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+        &server_public_key,
+    )
+    .unwrap();
+
+    let mock_client = reqwest::Client::new();
+    let response =
+        mock_client.post("http://127.0.0.1:3001//user/sign_tx").json(&signed_message).send().await;
+    assert_eq!(
+        response.unwrap().text().await.unwrap(),
+        "Invalid Signer: Invalid Signer in Signing group"
+    );
     clean_tests();
 }
 
@@ -342,7 +552,6 @@ async fn test_unsigned_tx_endpoint() {
 
     assert_eq!(failed_sign.status(), 500);
     assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
-
     clean_tests();
 }
 

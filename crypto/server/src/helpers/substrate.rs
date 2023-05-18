@@ -1,5 +1,4 @@
 use entropy_shared::{Constraints, SIGNING_PARTY_SIZE};
-#[cfg(test)]
 use sp_core::crypto::AccountId32;
 #[cfg(test)]
 use sp_keyring::Sr25519Keyring;
@@ -101,4 +100,18 @@ pub async fn make_register(
 
     let query_registering_status = api.storage().fetch(&registering_query, None).await;
     assert!(query_registering_status.unwrap().unwrap().is_registering);
+}
+
+/// Returns wether an account is registered
+pub async fn is_registered(
+    api: &OnlineClient<EntropyConfig>,
+    who: &AccountId32,
+) -> Result<(), UserErr> {
+    let registered_info_query = entropy::storage().relayer().registered(who);
+    let _ = api
+        .storage()
+        .fetch(&registered_info_query, None)
+        .await?
+        .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
+    Ok(())
 }
