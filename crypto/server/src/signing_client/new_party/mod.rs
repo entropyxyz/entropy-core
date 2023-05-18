@@ -3,8 +3,8 @@
 mod context;
 mod signing_message;
 mod signing_protocol;
-use cggmp21::{KeyShare, TestSchemeParams};
-use kvdb::kv_manager::{value::PartyId, KvManager};
+
+use kvdb::kv_manager::{KvManager, PartyInfo};
 use tracing::{info, instrument};
 
 pub use self::{context::SignContext, signing_message::SigningMessage, signing_protocol::Channels};
@@ -41,10 +41,9 @@ impl<'a> ThresholdSigningService<'a> {
     pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, SigningErr> {
         info!("check_sign_init: {sign_init:?}");
         let party_vec = self.kv_manager.kv().get(&sign_init.substrate_key).await?;
-        let key_share: KeyShare<PartyId, TestSchemeParams> =
-            kvdb::kv_manager::helpers::deserialize(&party_vec)
-                .ok_or_else(|| SigningErr::Deserialization("Failed to load KeyShare".into()))?;
-        Ok(SignContext::new(sign_init, key_share))
+        let party_info: PartyInfo = kvdb::kv_manager::helpers::deserialize(&party_vec)
+            .ok_or_else(|| SigningErr::Deserialization("Failed to load KeyShare".into()))?;
+        Ok(SignContext::new(sign_init, party_info))
     }
 
     /// handle signing protocol execution.
@@ -55,8 +54,9 @@ impl<'a> ThresholdSigningService<'a> {
         channels: Channels,
     ) -> Result<RecoverableSignature, SigningErr> {
         info!("execute_sign: {ctx:?}");
-        let rsig = signing_protocol::execute_protocol(channels, &ctx.key_share, &ctx.sign_init.msg)
-            .await?;
+        let rsig =
+            signing_protocol::execute_protocol(channels, &ctx.party_info, &ctx.sign_init.msg)
+                .await?;
 
         let (signature, recovery_id) = rsig.to_backend();
         Ok(RecoverableSignature { signature, recovery_id })

@@ -35,11 +35,11 @@ pub enum SigningErr {
     #[error("Subscribe API error: {0}")]
     Subscribe(#[from] SubscribeErr),
     #[error("Protocol Execution error: {0}")]
-    ProtocolExecution(cggmp21::sessions::Error),
+    ProtocolExecution(synedrion::sessions::Error),
     #[error("Incoming message stream error: {0}")]
     IncomingStream(String),
     #[error("Protocol Output error: {0}")]
-    ProtocolOutput(cggmp21::sessions::Error),
+    ProtocolOutput(synedrion::sessions::Error),
     #[error("Invalid length for converting address")]
     AddressConversionError(String),
     #[error("reqwest error: {0}")]

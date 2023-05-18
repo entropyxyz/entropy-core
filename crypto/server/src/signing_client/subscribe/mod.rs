@@ -3,6 +3,7 @@ mod listener;
 mod message;
 
 use futures::{future, stream, stream::BoxStream, StreamExt};
+use kvdb::kv_manager::PartyId;
 pub(super) use listener::Receiver;
 use reqwest_eventsource::{Error, Event, RequestBuilderExt};
 
@@ -13,12 +14,13 @@ use super::{new_party::SignContext, SigningErr, SigningMessage};
 /// into a single stream.
 pub async fn subscribe_to_them(
     ctx: &SignContext,
+    my_id: &PartyId,
 ) -> Result<BoxStream<'static, SigningMessage>, SigningErr> {
     let event_sources_init = ctx.sign_init.ip_addresses.iter().map(|ip| async move {
         // TODO: handle errors
         let mut es = reqwest::Client::new()
             .post(format!("http://{ip}/signer/subscribe_to_me"))
-            .json(&SubscribeMessage::new(&ctx.sign_init.sig_uid, ctx.key_share.party()))
+            .json(&SubscribeMessage::new(&ctx.sign_init.sig_uid, *my_id))
             .eventsource()
             .unwrap();
 

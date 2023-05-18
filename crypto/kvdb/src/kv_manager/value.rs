@@ -1,7 +1,7 @@
 use std::{convert::TryFrom, fmt, path::PathBuf};
 
-use cggmp21::{KeyShare, TestSchemeParams};
 use serde::{Deserialize, Serialize};
+use synedrion::{KeyShare, TestSchemeParams};
 use tracing::{info, span, Level, Span};
 use zeroize::Zeroize;
 
@@ -17,7 +17,9 @@ use crate::encrypted_sled::Password;
 #[zeroize(drop)]
 pub struct Entropy(pub Vec<u8>);
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+// TODO: this is really sp_core::crypto::AccoundId32,
+// but I didn't want to bring the `sp_core` dependency here. Should we do it?
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct PartyId(pub [u8; 32]);
 
 impl From<PartyId> for String {
@@ -40,12 +42,13 @@ impl fmt::Display for PartyId {
     }
 }
 
-impl cggmp21::sessions::PartyId for PartyId {}
-
-/// `KeyShareKv` record
+/// This records encapsulates the additional information that's only available
+/// after the share is created: the correspondence of shares to party IDs they were distributed to.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PartyInfo {
-    pub share: KeyShare<PartyId, TestSchemeParams>,
+    // TODO: in the future this will probably be a mapping {party_id: [share_id, share_id, ...]}
+    pub party_ids: Vec<PartyId>,
+    pub share: KeyShare<TestSchemeParams>,
 }
 
 /// Kv manager for grpc services
@@ -102,22 +105,14 @@ impl TryFrom<Entropy> for KvValue {
 }
 
 impl PartyInfo {
-    pub fn get_party_info(share: KeyShare<PartyId, TestSchemeParams>) -> Self { Self { share } }
-
     /// log PartyInfo state
     pub fn log_info(&self, session_id: &str, sign_span: Span) {
         let init_span = span!(parent: &sign_span, Level::INFO, "init");
         let _enter = init_span.enter();
-
-        let parties = self.share.parties();
-        let parties_str = parties.iter().map(|id| format!("{}", id)).collect::<Vec<_>>().join(", ");
-
         info!(
-            "[uid:{}] starting Sign with [session ID: {}, n={}, participants:{}",
-            self.share.party(),
+            "[uid:{:?}] starting Sign with [session ID: {}]",
+            self.share.party_index(),
             session_id,
-            parties.len(),
-            parties_str,
         );
     }
 }

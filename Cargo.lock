@@ -899,24 +899,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
 
 [[package]]
-name = "cggmp21"
-version = "0.0.1"
-source = "git+ssh://git@github.com/entropyxyz/cggmp21.git?tag=v0.0.1#192abf1926a1a97243b1c59b50a5bb8910f1e4a3"
-dependencies = [
- "crypto-bigint 0.5.2",
- "crypto-primes",
- "digest 0.10.6",
- "hex",
- "k256 0.13.1",
- "rand_core 0.6.4",
- "rmp-serde",
- "serde",
- "serdect",
- "sha2 0.10.6",
- "sha3 0.10.6",
-]
-
-[[package]]
 name = "chacha20"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3883,7 +3865,6 @@ name = "kvdb"
 version = "0.1.0"
 dependencies = [
  "bincode",
- "cggmp21",
  "chacha20poly1305 0.9.1",
  "hex",
  "rand 0.8.5",
@@ -3892,6 +3873,7 @@ dependencies = [
  "serde",
  "serial_test 0.6.0",
  "sled",
+ "synedrion",
  "thiserror",
  "tokio",
  "tracing",
@@ -9380,7 +9362,6 @@ dependencies = [
  "bip39",
  "blake2",
  "bytes",
- "cggmp21",
  "chacha20poly1305 0.10.1",
  "clap 4.1.8",
  "ec-constraints",
@@ -9407,6 +9388,7 @@ dependencies = [
  "sp-core",
  "sp-keyring",
  "subxt",
+ "synedrion",
  "testing-utils",
  "thiserror",
  "tokio",
@@ -10853,6 +10835,24 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "synedrion"
+version = "0.0.2"
+source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=v0.0.2#920abaf3b481d77fa15281db00fd2f5bffa56405"
+dependencies = [
+ "crypto-bigint 0.5.2",
+ "crypto-primes",
+ "digest 0.10.6",
+ "hex",
+ "k256 0.13.1",
+ "rand_core 0.6.4",
+ "rmp-serde",
+ "serde",
+ "serdect",
+ "sha2 0.10.6",
+ "sha3 0.10.6",
 ]
 
 [[package]]

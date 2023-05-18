@@ -1,10 +1,11 @@
 use std::{collections::HashMap, sync::Mutex};
 
-use cggmp21::k256::ecdsa::{RecoveryId, Signature};
-use kvdb::kv_manager::KvManager;
+use kvdb::kv_manager::{KvManager, PartyId};
 use rocket::{http::Status, State};
+use synedrion::k256::ecdsa::{RecoveryId, Signature};
 
 use crate::{
+    get_signer,
     sign_init::SignInit,
     signing_client::{
         new_party::{Channels, ThresholdSigningService},
@@ -69,9 +70,10 @@ pub async fn do_signing(
     signatures: &State<SignatureState>,
     tx_id: String,
 ) -> Result<Status, SigningErr> {
-    // todo: temporary hack, replace with correct data
     let info = SignInit::new(message.clone(), tx_id);
     let signing_service = ThresholdSigningService::new(state, kv_manager);
+
+    let my_id = PartyId(get_signer(kv_manager).await.unwrap().account_id().clone().into());
 
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
@@ -85,7 +87,7 @@ pub async fn do_signing(
         // TODO: using signature ID as session ID. Correct?
         .insert(sign_context.sign_init.sig_uid.clone(), listener);
     let channels = {
-        let stream_in = subscribe_to_them(&sign_context).await?;
+        let stream_in = subscribe_to_them(&sign_context, &my_id).await?;
         let broadcast_out = rx_ready.await??;
         Channels(broadcast_out, stream_in)
     };
