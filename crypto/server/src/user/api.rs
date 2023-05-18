@@ -1,10 +1,11 @@
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
 
 use bip39::{Language, Mnemonic};
 use ec_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
 use entropy_shared::{Acl, AclKind, Arch, Constraints, Message, SIGNING_PARTY_SIZE};
+use futures::future::{join_all, FutureExt};
 use kvdb::kv_manager::{
     error::{InnerKvError, KvError},
     value::PartyInfo,
@@ -257,29 +258,40 @@ pub async fn get_current_subgroup_signers(
     sig_hash: &str,
 ) -> Result<Vec<AccountId32>, UserErr> {
     let mut subgroup_signers = vec![];
-    let number = BigInt::from_str_radix(sig_hash, 16)?;
-    for i in 0..SIGNING_PARTY_SIZE {
-        let subgroup_info_query = entropy::storage().staking_extension().signing_groups(i as u8);
-        let subgroup_info = api
-            .storage()
-            .fetch(&subgroup_info_query, None)
-            .await?
-            .ok_or_else(|| UserErr::SubgroupError("Subgroup Fetch Error"))?;
+    let number = Arc::new(BigInt::from_str_radix(sig_hash, 16)?);
+    let futures = (0..SIGNING_PARTY_SIZE)
+        .map(|i| {
+            let owned_number = Arc::clone(&number);
+            async move {
+                let subgroup_info_query =
+                    entropy::storage().staking_extension().signing_groups(i as u8);
+                let subgroup_info = api
+                    .storage()
+                    .fetch(&subgroup_info_query, None)
+                    .await?
+                    .ok_or(UserErr::SubgroupError("Subgroup Fetch Error"))?;
 
-        let index_of_signer_big = &number % subgroup_info.len();
-        let index_of_signer =
-            index_of_signer_big.to_usize().ok_or_else(|| UserErr::Usize("Usize error"))?;
+                let index_of_signer_big = &*owned_number % subgroup_info.len();
+                let index_of_signer =
+                    index_of_signer_big.to_usize().ok_or(UserErr::Usize("Usize error"))?;
 
-        let threshold_address_query = entropy::storage()
-            .staking_extension()
-            .threshold_servers(subgroup_info[index_of_signer].clone());
-        let threshold_address = api
-            .storage()
-            .fetch(&threshold_address_query, None)
-            .await?
-            .ok_or_else(|| UserErr::SubgroupError("Stash Fetch Error"))?
-            .tss_account;
-        subgroup_signers.push(threshold_address);
+                let threshold_address_query = entropy::storage()
+                    .staking_extension()
+                    .threshold_servers(subgroup_info[index_of_signer].clone());
+                let threshold_address = api
+                    .storage()
+                    .fetch(&threshold_address_query, None)
+                    .await?
+                    .ok_or(UserErr::SubgroupError("Stash Fetch Error"))?
+                    .tss_account;
+
+                Ok::<_, UserErr>(threshold_address)
+            }
+        })
+        .collect::<Vec<_>>();
+    let results = join_all(futures).await;
+    for result in results.into_iter() {
+        subgroup_signers.push(result?);
     }
     Ok(subgroup_signers)
 }
