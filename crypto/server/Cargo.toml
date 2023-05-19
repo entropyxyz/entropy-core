@@ -40,7 +40,7 @@ entropy-shared={ path="../shared" }
 kvdb          ={ path="../kvdb", default-features=false }
 
 # Constraints
-ec-constraints={ git="https://github.com/entropyxyz/constraints", default-features=false }
+ec-constraints={ git="https://github.com/entropyxyz/constraints", branch="v0.1", default-features=false }
 ethers-core   ="0.13.0"
 
 # Logging
