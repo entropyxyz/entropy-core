@@ -1845,7 +1845,7 @@ checksum = "4f94fa09c2aeea5b8839e414b7b841bf429fd25b9c522116ac97ee87856d88b2"
 [[package]]
 name = "ec-constraints"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/constraints#4a9d51dca746fe0d4c6122965d6d39c1f0c9471f"
+source = "git+https://github.com/entropyxyz/constraints?branch=v0.1#e7e7f8d6b4911c7303577b2e0a29763f33998dff"
 dependencies = [
  "ec-core",
  "ethers-core",
@@ -1861,7 +1861,7 @@ dependencies = [
 [[package]]
 name = "ec-core"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/constraints#4a9d51dca746fe0d4c6122965d6d39c1f0c9471f"
+source = "git+https://github.com/entropyxyz/constraints?branch=v0.1#e7e7f8d6b4911c7303577b2e0a29763f33998dff"
 dependencies = [
  "frame-support",
  "node-primitives",
