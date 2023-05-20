@@ -1,6 +1,7 @@
 use std::{convert::TryFrom, fmt, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
+use sp_core::crypto::AccountId32;
 use synedrion::{KeyShare, TestSchemeParams};
 use tracing::{info, span, Level, Span};
 use zeroize::Zeroize;
@@ -17,13 +18,18 @@ use crate::encrypted_sled::Password;
 #[zeroize(drop)]
 pub struct Entropy(pub Vec<u8>);
 
-// TODO: this is really sp_core::crypto::AccoundId32,
-// but I didn't want to bring the `sp_core` dependency here. Should we do it?
-#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub struct PartyId(pub [u8; 32]);
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub struct PartyId(AccountId32);
+
+impl PartyId {
+    pub fn new(acc: AccountId32) -> Self { Self(acc) }
+}
 
 impl From<PartyId> for String {
-    fn from(party_id: PartyId) -> Self { hex::encode(party_id.0) }
+    fn from(party_id: PartyId) -> Self {
+        let bytes: &[u8] = party_id.0.as_ref();
+        hex::encode(bytes)
+    }
 }
 
 impl TryFrom<String> for PartyId {
@@ -31,14 +37,16 @@ impl TryFrom<String> for PartyId {
 
     fn try_from(s: String) -> Result<Self, Self::Error> {
         let bytes = hex::decode(s).map_err(|err| format!("{}", err))?;
-        let arr: [u8; 32] = bytes.try_into().map_err(|err| format!("Invalid length: {:?}", err))?;
-        Ok(Self(arr))
+        let acc = AccountId32::try_from(bytes.as_ref())
+            .map_err(|_err| format!("Invalid party ID length: {}", bytes.len()))?;
+        Ok(Self(acc))
     }
 }
 
 impl fmt::Display for PartyId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "PartyId({})", hex::encode(&self.0[0..4]))
+        let bytes: &[u8] = self.0.as_ref();
+        write!(f, "PartyId({})", hex::encode(&bytes[0..4]))
     }
 }
 

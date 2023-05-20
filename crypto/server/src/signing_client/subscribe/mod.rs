@@ -20,7 +20,7 @@ pub async fn subscribe_to_them(
         // TODO: handle errors
         let mut es = reqwest::Client::new()
             .post(format!("http://{ip}/signer/subscribe_to_me"))
-            .json(&SubscribeMessage::new(&ctx.sign_init.sig_uid, *my_id))
+            .json(&SubscribeMessage::new(&ctx.sign_init.sig_uid, my_id.clone()))
             .eventsource()
             .unwrap();
 

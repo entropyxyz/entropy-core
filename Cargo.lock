@@ -3873,6 +3873,7 @@ dependencies = [
  "serde",
  "serial_test 0.6.0",
  "sled",
+ "sp-core",
  "synedrion",
  "thiserror",
  "tokio",
@@ -10839,8 +10840,8 @@ dependencies = [
 
 [[package]]
 name = "synedrion"
-version = "0.0.2"
-source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=v0.0.2#920abaf3b481d77fa15281db00fd2f5bffa56405"
+version = "0.0.3"
+source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=v0.0.3#7dbba9e15a0f6e55accd9841db908ff54ac5bb85"
 dependencies = [
  "crypto-bigint 0.5.2",
  "crypto-primes",

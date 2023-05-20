@@ -26,7 +26,7 @@ pub(super) async fn execute_protocol(
     prehashed_message: &PrehashedMessage,
 ) -> Result<Signature, SigningErr> {
     let my_idx = party_info.share.party_index();
-    let my_id = party_info.party_ids[my_idx.as_usize()];
+    let my_id = &party_info.party_ids[my_idx.as_usize()];
 
     let id_to_index = party_info
         .party_ids
@@ -53,7 +53,7 @@ pub(super) async fn execute_protocol(
                 for (id_to, message) in msgs.into_iter() {
                     tx.send(SigningMessage::new_p2p(
                         my_id,
-                        party_info.party_ids[id_to.as_usize()],
+                        &party_info.party_ids[id_to.as_usize()],
                         &message,
                     ))?;
                 },
@@ -68,7 +68,7 @@ pub(super) async fn execute_protocol(
                 SigningErr::IncomingStream(format!("{}", session.current_stage_num()))
             })?;
             // TODO: we shouldn't send broadcasts to ourselves in the first place.
-            if signing_message.from == my_id {
+            if &signing_message.from == my_id {
                 continue;
             }
             let from_idx = id_to_index[&signing_message.from];

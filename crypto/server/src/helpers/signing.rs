@@ -73,7 +73,7 @@ pub async fn do_signing(
     let info = SignInit::new(message.clone(), tx_id);
     let signing_service = ThresholdSigningService::new(state, kv_manager);
 
-    let my_id = PartyId(get_signer(kv_manager).await.unwrap().account_id().clone().into());
+    let my_id = PartyId::new(get_signer(kv_manager).await.unwrap().account_id().clone());
 
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;

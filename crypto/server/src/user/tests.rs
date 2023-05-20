@@ -255,7 +255,7 @@ async fn test_fail_signing_group() {
 
     let generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),
-        transaction_request: hex::encode(&transaction_request.rlp().to_vec()),
+        transaction_request: hex::encode(&transaction_request.rlp()),
         message: message_request,
         validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
     };
