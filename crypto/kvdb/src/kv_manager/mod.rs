@@ -16,7 +16,7 @@ mod types;
 /// wrapers for values stored by services
 pub mod value;
 pub use types::KeyReservation;
-pub use value::{KvManager, PartyId};
+pub use value::{KvManager, PartyId, PartyInfo};
 
 // tests for low-level operations
 #[cfg(test)]

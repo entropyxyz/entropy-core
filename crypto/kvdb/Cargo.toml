@@ -12,12 +12,15 @@ serde    ={ version="1.0", features=["derive"] }
 thiserror="1.0.31"
 hex      ="0.4"
 
+# Substrate
+sp-core={ package="sp-core", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
+
 # Crypto
 zeroize         ={ version="1.4", features=["zeroize_derive"], default-features=false }
 rpassword       ={ version="5.0", default-features=false }
 scrypt          ={ version="0.8", default-features=false, features=["std"] }
 chacha20poly1305={ version="0.9", features=["alloc"], default-features=false }
-cggmp21         ={ git="ssh://git@github.com/entropyxyz/cggmp21.git", tag="v0.0.1" }
+synedrion       ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="v0.0.3" }
 
 # Async
 tokio  ={ version="1.16", features=["macros", "sync", "fs", "rt-multi-thread", "io-util"] }

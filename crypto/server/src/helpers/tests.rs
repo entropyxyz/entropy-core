@@ -1,13 +1,12 @@
 // only compile when testing
 #![cfg(test)]
 
-use cggmp21::{make_key_shares, TestSchemeParams};
 use entropy_shared::Constraints;
 use futures::future::join_all;
 use kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
-    kv_manager::{KvManager, PartyId},
+    kv_manager::{KvManager, PartyId, PartyInfo},
 };
 use rand_core::OsRng;
 use rocket::{local::asynchronous::Client, tokio::time::Duration, Ignite, Rocket};
@@ -15,6 +14,7 @@ use serial_test::serial;
 use sp_core::{sr25519, Bytes, Pair};
 use sp_keyring::Sr25519Keyring;
 use subxt::{tx::PairSigner, OnlineClient};
+use synedrion::{make_key_shares, TestSchemeParams};
 use testing_utils::{constants::X25519_PUBLIC_KEYS, substrate_context::testing_context};
 use x25519_dalek::PublicKey;
 
@@ -102,11 +102,11 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
 
     let (alice_rocket, alice_kv) =
         create_clients(ports[0], "validator1".to_string(), vec![], vec![], true, false).await;
-    let alice_id = PartyId(get_signer(&alice_kv).await.unwrap().account_id().clone().into());
+    let alice_id = PartyId::new(get_signer(&alice_kv).await.unwrap().account_id().clone());
 
     let (bob_rocket, bob_kv) =
         create_clients(ports[1], "validator2".to_string(), vec![], vec![], false, true).await;
-    let bob_id = PartyId(get_signer(&bob_kv).await.unwrap().account_id().clone().into());
+    let bob_id = PartyId::new(get_signer(&bob_kv).await.unwrap().account_id().clone());
 
     tokio::spawn(async move { alice_rocket.launch().await.unwrap() });
     tokio::spawn(async move { bob_rocket.launch().await.unwrap() });
@@ -131,11 +131,19 @@ pub async fn register_user(
     let validator1_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let validator2_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
 
-    let shares = make_key_shares::<PartyId, TestSchemeParams>(&mut OsRng, party_ids);
+    let shares = make_key_shares::<TestSchemeParams>(&mut OsRng, 2, None);
     let validator_1_threshold_keyshare: Vec<u8> =
-        kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
+        kvdb::kv_manager::helpers::serialize(&PartyInfo {
+            party_ids: party_ids.to_vec(),
+            share: shares[0].clone(),
+        })
+        .unwrap();
     let validator_2_threshold_keyshare: Vec<u8> =
-        kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
+        kvdb::kv_manager::helpers::serialize(&PartyInfo {
+            party_ids: party_ids.to_vec(),
+            share: shares[1].clone(),
+        })
+        .unwrap();
 
     let register_body_alice_validator = SignedMessage::new(
         &sig_req_keyring.pair(),

@@ -1,4 +1,4 @@
-# This is needed to fetch private dependencies (e.g. `cggmp21`).
+# This is needed to fetch private dependencies (e.g. `synedrion`).
 # This will make Cargo use the locally installed Git,
 # and whatever SSH config you have to access Github.
 [net]

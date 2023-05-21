@@ -1,7 +1,7 @@
 //! Message sent to Signing Client on protocol initiation.
-use cggmp21::sessions::PrehashedMessage;
 use entropy_shared::Message;
 use serde::{Deserialize, Serialize};
+use synedrion::sessions::PrehashedMessage;
 
 /// Information passed to the Signing Client, to initiate the signing process.
 /// Most of this information comes from a `Message` struct which gets propagated when a user's
