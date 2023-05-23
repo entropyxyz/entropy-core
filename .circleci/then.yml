@@ -59,9 +59,9 @@ commands:
     build:
         steps:
             - run: cargo build --release
-    build-node-release:
+    build-node-server-release:
         steps:
-            - run: cargo build --release -p entropy
+            - run: cargo build --release -p entropy -p server
     test-server-release:
         steps:
             - run: cargo test --release -p server
@@ -150,7 +150,7 @@ jobs:
         steps:
             - increase-swap
             - install-dependencies-and-checkout
-            - build-node-release
+            - build-node-server-release
             - test-server-release
     test-peripheral-crates:
         machine:
