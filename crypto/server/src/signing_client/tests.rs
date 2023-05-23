@@ -1,18 +1,31 @@
 use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{Message, OCWMessage, SigRequest, ValidatorInfo, PRUNE_BLOCK};
+use hex_literal::hex;
 use kvdb::clean_tests;
 use parity_scale_codec::Encode;
 use rocket::http::{ContentType, Status};
 use serial_test::serial;
+use sp_core::{
+    crypto::AccountId32,
+    sr25519::{Pair, Public, Signature},
+    Pair as PairTrait,
+};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{tx::PairSigner, OnlineClient};
-use testing_utils::{constants::{X25519_PUBLIC_KEYS, TSS_ACCOUNTS}, substrate_context::test_context_stationary};
+use testing_utils::{
+    constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
+    substrate_context::test_context_stationary,
+};
 
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     helpers::{signing::create_unique_tx_id, tests::setup_client},
     r#unsafe::api::UnsafeQuery,
-    signing_client::tests::entropy::runtime_types::entropy_shared::types::SigRequest as otherSigRequest,
+    signing_client::{
+        new_party::signing_protocol::{create_signed_message, validate_signed_message},
+        tests::entropy::runtime_types::entropy_shared::types::SigRequest as otherSigRequest,
+        SigningErr,
+    },
 };
 
 #[rocket::async_test]
@@ -40,12 +53,12 @@ async fn test_new_party() {
                 ValidatorInfo {
                     ip_address: b"127.0.0.1:3001".to_vec(),
                     x25519_public_key: X25519_PUBLIC_KEYS[0],
-					tss_account: TSS_ACCOUNTS[0].encode()
+                    tss_account: TSS_ACCOUNTS[0].encode(),
                 },
                 ValidatorInfo {
                     ip_address: b"127.0.0.1:3002".to_vec(),
                     x25519_public_key: X25519_PUBLIC_KEYS[1],
-					tss_account: TSS_ACCOUNTS[1].encode()
+                    tss_account: TSS_ACCOUNTS[1].encode(),
                 },
             ],
         }],
@@ -59,7 +72,7 @@ async fn test_new_party() {
         .body(onchain_signature_request.clone().encode())
         .dispatch()
         .await;
-	assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), Status::Ok);
     let tx_id = create_unique_tx_id(&dave.to_account_id().to_string(), &hex::encode(sig_hash));
     // check that the signature request was stored in the kvdb
     let query_parsed_tx = client
@@ -122,12 +135,12 @@ async fn test_new_party_fail_unverified() {
                 ValidatorInfo {
                     ip_address: b"127.0.0.1:3001".to_vec(),
                     x25519_public_key: [0; 32],
-					tss_account: TSS_ACCOUNTS[0].encode()
+                    tss_account: TSS_ACCOUNTS[0].encode(),
                 },
                 ValidatorInfo {
                     ip_address: b"127.0.0.1:3002".to_vec(),
                     x25519_public_key: [0; 32],
-					tss_account: TSS_ACCOUNTS[1].encode()
+                    tss_account: TSS_ACCOUNTS[1].encode(),
                 },
             ],
         }],
@@ -158,6 +171,49 @@ async fn test_new_party_fail_unverified() {
     clean_tests();
 }
 
+#[rocket::async_test]
+async fn create_verify_signed_message() {
+    let message: Box<[u8]> = Box::new([10]);
+    let bad_message: Box<[u8]> = Box::new([11]);
+
+    let seed: [u8; 32] = hex!("29b55504652cedded9ce0ee1f5a25b328ae6c6e97827f84eee6315d0f44816d8");
+    let pair = sp_core::sr25519::Pair::from_seed(&seed);
+
+    let signed_message = create_signed_message(&message, &pair);
+    assert_eq!(hex::encode(signed_message.clone()).len(), 128);
+
+    let _ = validate_signed_message(
+        &message.to_vec(),
+        signed_message.clone(),
+        pair.public(),
+        &vec![AccountId32::new(pair.public().0)],
+    )
+    .unwrap();
+
+    // failing validation
+
+    let failed_in_threshold_group = validate_signed_message(
+        &message.to_vec(),
+        signed_message.clone(),
+        pair.public(),
+        &vec![AccountId32::new(seed)],
+    );
+    assert!(matches!(
+        failed_in_threshold_group,
+        Err(SigningErr::MessageValidation("Unable to verify sender of message"))
+    ));
+
+    let failed_message_decrypt = validate_signed_message(
+        &bad_message.to_vec(),
+        signed_message,
+        pair.public(),
+        &vec![AccountId32::new(pair.public().0)],
+    );
+    assert!(matches!(
+        failed_message_decrypt,
+        Err(SigningErr::MessageValidation("Unable to verify origins of message"))
+    ));
+}
 #[rocket::async_test]
 #[serial]
 async fn new_party_fail_wrong_data() {

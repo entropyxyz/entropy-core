@@ -31,11 +31,28 @@ impl TryFrom<&String> for SigningMessage {
 }
 
 impl SigningMessage {
-    pub(super) fn new_bcast(from: &PartyId, payload: &[u8], signature: Signature, sender_pk: Public) -> Self {
-        Self { from: from.clone(), to: None, payload: payload.to_vec(), signature: signature, sender_pk }
+    pub(super) fn new_bcast(
+        from: &PartyId,
+        payload: &[u8],
+        signature: Signature,
+        sender_pk: Public,
+    ) -> Self {
+        Self { from: from.clone(), to: None, payload: payload.to_vec(), signature, sender_pk }
     }
 
-    pub(super) fn new_p2p(from: &PartyId, to: &PartyId, payload: &[u8], signature: Signature, sender_pk: Public) -> Self {
-        Self { from: from.clone(), to: Some(to.clone()), payload: payload.to_vec(), signature: signature, sender_pk }
+    pub(super) fn new_p2p(
+        from: &PartyId,
+        to: &PartyId,
+        payload: &[u8],
+        signature: Signature,
+        sender_pk: Public,
+    ) -> Self {
+        Self {
+            from: from.clone(),
+            to: Some(to.clone()),
+            payload: payload.to_vec(),
+            signature,
+            sender_pk,
+        }
     }
 }

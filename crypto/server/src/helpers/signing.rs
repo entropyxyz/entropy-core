@@ -1,10 +1,10 @@
 use std::{collections::HashMap, sync::Mutex};
 
-use kvdb::kv_manager::{KvManager, PartyId};
 use bip39::{Language, Mnemonic};
+use kvdb::kv_manager::{KvManager, PartyId};
 use rocket::{http::Status, State};
-use synedrion::k256::ecdsa::{RecoveryId, Signature};
 use subxt::ext::sp_core::{sr25519, Pair};
+use synedrion::k256::ecdsa::{RecoveryId, Signature};
 
 use crate::{
     get_signer,
@@ -111,8 +111,10 @@ pub async fn do_signing(
             sp_core::crypto::AccountId32::new(*address_slice)
         })
         .collect::<Vec<_>>();
-    let result =
-        signing_service.execute_sign(&sign_context, channels, &threshold_signer, tss_accounts).await.unwrap();
+    let result = signing_service
+        .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
+        .await
+        .unwrap();
 
     signing_service.handle_result(&result, message.sig_request.sig_hash.as_slice(), signatures);
 
