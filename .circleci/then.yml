@@ -59,6 +59,18 @@ commands:
     build:
         steps:
             - run: cargo build --release
+    build-node-release:
+        steps:
+            - run: cargo build --release -p entropy
+    test-server-release:
+        steps:
+            - run: cargo test --release -p server
+    test-node-release:
+        steps:
+            - run: cargo test --release -p entropy
+    test-peripheral-crates:
+        steps:
+            - run: cargo test --workspace --exclude entropy --exclude server
     release:
         steps:
             - run: |
@@ -109,13 +121,6 @@ commands:
                 }'"
       
 jobs:
-    crypto-server:
-        machine:
-            image: ubuntu-2204:2022.10.2
-            resource_class: xlarge
-        steps:
-            - install-dependencies-and-checkout
-            - run: cd crypto/server && cargo test --release
     fmt-lint-all:
         machine:
             image: ubuntu-2204:2022.10.2
@@ -130,17 +135,32 @@ jobs:
         steps:
             - install-dependencies-and-checkout
             - run: pushd node && cargo check --features=runtime-benchmarks
-    node-test:
+    test-node:
         machine:
             image: ubuntu-2204:2022.10.2
             resource_class: xlarge
         steps:
             - increase-swap
             - install-dependencies-and-checkout
-            - run:
-                command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
-                no_output_timeout: 45m
-            - sign-and-upload-pr
+            - test-node-release
+    test-server:
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: xlarge
+        steps:
+            - increase-swap
+            - install-dependencies-and-checkout
+            - build-node-release
+            - test-server-release
+    test-peripheral-crates:
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: medium
+        steps:
+            - increase-swap
+            - install-dependencies-and-checkout
+            - test-peripheral-crates
+
     build-and-release:  
         machine:
             image: ubuntu-2204:2022.10.2
@@ -180,7 +200,9 @@ workflows:
             - node-benchmark
     build:
         jobs:
-            - node-test
+            - test-node
+            - test-server
+            - test-peripheral-crates
         when:
             or:
                 - << pipeline.parameters.node >>
