@@ -6,7 +6,7 @@ use rocket::http::{ContentType, Status};
 use serial_test::serial;
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{tx::PairSigner, OnlineClient};
-use testing_utils::{constants::X25519_PUBLIC_KEYS, substrate_context::test_context_stationary};
+use testing_utils::{constants::{X25519_PUBLIC_KEYS, TSS_ACCOUNTS}, substrate_context::test_context_stationary};
 
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
@@ -40,10 +40,12 @@ async fn test_new_party() {
                 ValidatorInfo {
                     ip_address: b"127.0.0.1:3001".to_vec(),
                     x25519_public_key: X25519_PUBLIC_KEYS[0],
+					tss_account: TSS_ACCOUNTS[0].encode()
                 },
                 ValidatorInfo {
                     ip_address: b"127.0.0.1:3002".to_vec(),
                     x25519_public_key: X25519_PUBLIC_KEYS[1],
+					tss_account: TSS_ACCOUNTS[1].encode()
                 },
             ],
         }],
@@ -57,7 +59,7 @@ async fn test_new_party() {
         .body(onchain_signature_request.clone().encode())
         .dispatch()
         .await;
-    assert_eq!(response.status(), Status::Ok);
+	assert_eq!(response.status(), Status::Ok);
     let tx_id = create_unique_tx_id(&dave.to_account_id().to_string(), &hex::encode(sig_hash));
     // check that the signature request was stored in the kvdb
     let query_parsed_tx = client
@@ -120,10 +122,12 @@ async fn test_new_party_fail_unverified() {
                 ValidatorInfo {
                     ip_address: b"127.0.0.1:3001".to_vec(),
                     x25519_public_key: [0; 32],
+					tss_account: TSS_ACCOUNTS[0].encode()
                 },
                 ValidatorInfo {
                     ip_address: b"127.0.0.1:3002".to_vec(),
                     x25519_public_key: [0; 32],
+					tss_account: TSS_ACCOUNTS[1].encode()
                 },
             ],
         }],

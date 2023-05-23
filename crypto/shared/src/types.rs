@@ -25,6 +25,7 @@ pub struct SigRequest {
 pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
     pub ip_address: codec::alloc::vec::Vec<u8>,
+    pub tss_account: codec::alloc::vec::Vec<u8>,
 }
 
 /// The message sent from pallets::propagation::post() to the signing-client.

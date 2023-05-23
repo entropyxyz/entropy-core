@@ -135,7 +135,6 @@ pub async fn validate_new_party(
     hasher_verifying_data.update(verifying_data.encode());
 
     let verifying_data_hash = hasher_verifying_data.finalize();
-
     if verifying_data_hash != chain_data_hash {
         return Err(SigningErr::InvalidData);
     }

@@ -5,8 +5,9 @@ mod signing_message;
 mod signing_protocol;
 
 use kvdb::kv_manager::{KvManager, PartyInfo};
+use subxt::ext::sp_core::sr25519;
 use tracing::{info, instrument};
-use subxt::ext::sp_core::{sr25519};
+use sp_core::crypto::AccountId32;
 
 pub use self::{context::SignContext, signing_message::SigningMessage, signing_protocol::Channels};
 use crate::{
@@ -53,11 +54,18 @@ impl<'a> ThresholdSigningService<'a> {
         &self,
         ctx: &SignContext,
         channels: Channels,
-		threshold_signer: &sr25519::Pair,
+        threshold_signer: &sr25519::Pair,
+		threshold_accounts: Vec<AccountId32>
     ) -> Result<RecoverableSignature, SigningErr> {
         info!("execute_sign: {ctx:?}");
-        let rsig = signing_protocol::execute_protocol(channels, &ctx.party_info, &ctx.sign_init.msg, threshold_signer)
-            .await?;
+        let rsig = signing_protocol::execute_protocol(
+            channels,
+            &ctx.party_info,
+            &ctx.sign_init.msg,
+            threshold_signer,
+			threshold_accounts
+        )
+        .await?;
 
         let (signature, recovery_id) = rsig.to_backend();
         Ok(RecoverableSignature { signature, recovery_id })

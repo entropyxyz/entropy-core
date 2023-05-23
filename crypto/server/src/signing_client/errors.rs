@@ -58,7 +58,7 @@ pub enum SigningErr {
     OptionUnwrapError(&'static str),
     #[error("Serde Json error: {0}")]
     SerdeJson(#[from] serde_json::Error),
-	#[error("Message validation Error: {0}")]
+    #[error("Message validation Error: {0}")]
     MessageValidation(&'static str),
 }
 

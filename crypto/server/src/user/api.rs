@@ -40,7 +40,7 @@ use crate::{
     chain_api::{
         entropy,
         entropy::{
-            constraints::calls::UpdateConstraints, runtime_types::entropy_shared::constraints,
+            constraints::calls::UpdateConstraints
         },
         get_api, EntropyConfig,
     },
