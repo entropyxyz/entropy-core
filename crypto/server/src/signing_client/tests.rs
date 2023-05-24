@@ -194,10 +194,9 @@ async fn create_verify_signed_message() {
         pair.public(),
         &vec![AccountId32::new(seed)],
     );
-    assert!(matches!(
-        failed_in_threshold_group,
-        Err(SigningErr::MessageValidation("Unable to verify sender of message"))
-    ));
+
+    let _err = Box::new(SigningErr::MessageValidation("Unable to verify sender of message"));
+    assert!(matches!(failed_in_threshold_group, Err(_err)));
 
     let failed_message_decrypt = validate_signed_message(
         &bad_message.to_vec(),
@@ -205,10 +204,9 @@ async fn create_verify_signed_message() {
         pair.public(),
         &vec![AccountId32::new(pair.public().0)],
     );
-    assert!(matches!(
-        failed_message_decrypt,
-        Err(SigningErr::MessageValidation("Unable to verify origins of message"))
-    ));
+
+    let _err_2 = Box::new(SigningErr::MessageValidation("Unable to verify origins of message"));
+    assert!(matches!(failed_message_decrypt, Err(_err_2)));
 }
 #[rocket::async_test]
 #[serial]
