@@ -16,3 +16,4 @@ which             ="4.0.2"
 parity-scale-codec="3.0.0"
 lazy_static       ="1.4.0"
 hex-literal       ="0.3.4"
+entropy-shared    ={ path="../shared" }

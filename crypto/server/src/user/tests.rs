@@ -22,7 +22,7 @@ use sp_core::{crypto::Ss58Codec, sr25519, Bytes, Pair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
 use testing_utils::{
-    constants::X25519_PUBLIC_KEYS,
+    constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
     },
@@ -104,8 +104,16 @@ async fn test_sign_tx_no_chain() {
         sig_request: SigRequest { sig_hash: sig_hash.as_bytes().to_vec() },
         account: one.to_raw_public_vec(),
         validators_info: vec![
-            ValidatorInfo { ip_address: b"127.0.0.1:3001".to_vec(), x25519_public_key: [0; 32] },
-            ValidatorInfo { ip_address: b"127.0.0.1:3002".to_vec(), x25519_public_key: [0; 32] },
+            ValidatorInfo {
+                ip_address: b"127.0.0.1:3001".to_vec(),
+                x25519_public_key: [0; 32],
+                tss_account: TSS_ACCOUNTS[0].encode(),
+            },
+            ValidatorInfo {
+                ip_address: b"127.0.0.1:3002".to_vec(),
+                x25519_public_key: [0; 32],
+                tss_account: TSS_ACCOUNTS[1].encode(),
+            },
         ],
     };
     let converted_transaction_request: String = hex::encode(&transaction_request.rlp().to_vec());
@@ -248,8 +256,16 @@ async fn test_fail_signing_group() {
         sig_request: SigRequest { sig_hash: sig_hash.as_bytes().to_vec() },
         account: dave.to_raw_public_vec(),
         validators_info: vec![
-            ValidatorInfo { ip_address: b"127.0.0.1:3001".to_vec(), x25519_public_key: [0; 32] },
-            ValidatorInfo { ip_address: b"127.0.0.1:3002".to_vec(), x25519_public_key: [0; 32] },
+            ValidatorInfo {
+                ip_address: b"127.0.0.1:3001".to_vec(),
+                x25519_public_key: [0; 32],
+                tss_account: TSS_ACCOUNTS[0].encode(),
+            },
+            ValidatorInfo {
+                ip_address: b"127.0.0.1:3002".to_vec(),
+                x25519_public_key: [0; 32],
+                tss_account: TSS_ACCOUNTS[1].encode(),
+            },
         ],
     };
 
@@ -321,11 +337,20 @@ async fn test_unsigned_tx_endpoint() {
     )
     .await;
 
-    let ports_and_keys = vec![(3001, X25519_PUBLIC_KEYS[0]), (3002, X25519_PUBLIC_KEYS[1])];
+    let ports_and_keys = vec![
+        (3001, X25519_PUBLIC_KEYS[0], TSS_ACCOUNTS[0].clone()),
+        (3002, X25519_PUBLIC_KEYS[1], TSS_ACCOUNTS[1].clone()),
+    ];
 
-    let validator_info: Vec<(String, [u8; 32])> = ports_and_keys
+    let validator_info: Vec<(String, [u8; 32], AccountId32)> = ports_and_keys
         .iter()
-        .map(|validator_tuple| (format!("127.0.0.1:{}", validator_tuple.0), validator_tuple.1))
+        .map(|validator_tuple| {
+            (
+                format!("127.0.0.1:{}", validator_tuple.0),
+                validator_tuple.1,
+                validator_tuple.2.clone(),
+            )
+        })
         .collect::<Vec<_>>();
 
     let whitelisted_transaction_requests = vec![
@@ -356,6 +381,7 @@ async fn test_unsigned_tx_endpoint() {
                 .map(|validator_tuple| ValidatorInfo {
                     ip_address: validator_tuple.0.clone().into_bytes(),
                     x25519_public_key: validator_tuple.1,
+                    tss_account: validator_tuple.2.encode(),
                 })
                 .collect::<Vec<ValidatorInfo>>(),
         }

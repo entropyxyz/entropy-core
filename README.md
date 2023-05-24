@@ -158,3 +158,8 @@ next register
 now you can sign
 
 - `ts-node sign.ts`
+
+
+## Pulling Metadata
+
+Everytime a change to the chain's interface happens, metadata needs to be pulled, run a dev chain and run ./script/pull_entropy_metadata. Subxt needs to be installed first ```cargo install subxt-cli```

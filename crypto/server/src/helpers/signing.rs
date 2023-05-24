@@ -1,11 +1,13 @@
 use std::{collections::HashMap, sync::Mutex};
 
+use bip39::{Language, Mnemonic};
 use kvdb::kv_manager::{KvManager, PartyId};
 use rocket::{http::Status, State};
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 
 use crate::{
     get_signer,
+    message::mnemonic_to_pair,
     sign_init::SignInit,
     signing_client::{
         new_party::{Channels, ThresholdSigningService},
@@ -92,7 +94,26 @@ pub async fn do_signing(
         Channels(broadcast_out, stream_in)
     };
 
-    let result = signing_service.execute_sign(&sign_context, channels).await.unwrap();
+    let raw = kv_manager.kv().get("MNEMONIC").await.unwrap();
+    let secret = core::str::from_utf8(&raw).unwrap();
+    let mnemonic = Mnemonic::from_phrase(secret, Language::English).unwrap();
+    let threshold_signer = mnemonic_to_pair(&mnemonic);
+    let tss_accounts = message
+        .validators_info
+        .iter()
+        .map(|validator_info| {
+            let address_slice: &[u8; 32] = &validator_info
+                .tss_account
+                .clone()
+                .try_into()
+                .expect("slice with incorrect length");
+            sp_core::crypto::AccountId32::new(*address_slice)
+        })
+        .collect::<Vec<_>>();
+    let result = signing_service
+        .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
+        .await
+        .unwrap();
 
     signing_service.handle_result(&result, message.sig_request.sig_hash.as_slice(), signatures);
 

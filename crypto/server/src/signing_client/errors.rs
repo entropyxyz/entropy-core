@@ -45,7 +45,7 @@ pub enum SigningErr {
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("Broadcast error: {0}")]
-    Broadcast(#[from] tokio::sync::broadcast::error::SendError<SigningMessage>),
+    Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<SigningMessage>>),
     #[error("anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
     #[error("Data is not verifiable")]
@@ -58,6 +58,8 @@ pub enum SigningErr {
     OptionUnwrapError(&'static str),
     #[error("Serde Json error: {0}")]
     SerdeJson(#[from] serde_json::Error),
+    #[error("Message validation Error: {0}")]
+    MessageValidation(&'static str),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {

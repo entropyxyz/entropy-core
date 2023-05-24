@@ -37,13 +37,7 @@ use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
-    chain_api::{
-        entropy,
-        entropy::{
-            constraints::calls::UpdateConstraints, runtime_types::entropy_shared::constraints,
-        },
-        get_api, EntropyConfig,
-    },
+    chain_api::{entropy, entropy::constraints::calls::UpdateConstraints, get_api, EntropyConfig},
     helpers::{
         signing::{create_unique_tx_id, do_signing, SignatureState},
         substrate::{get_constraints, get_subgroup, is_registered},

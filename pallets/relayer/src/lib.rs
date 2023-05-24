@@ -327,10 +327,14 @@ pub mod pallet {
             for i in 0..SIGNING_PARTY_SIZE {
                 let tuple = Self::get_validator_rotation(i as u8, block_number)?;
                 l = tuple.1;
-                let ServerInfo { endpoint, x25519_public_key, .. } =
+                let ServerInfo { endpoint, x25519_public_key, tss_account } =
                     pallet_staking_extension::Pallet::<T>::threshold_server(&tuple.0)
                         .ok_or(Error::<T>::IpAddressError)?;
-                validators_info.push(ValidatorInfo { ip_address: endpoint, x25519_public_key });
+                validators_info.push(ValidatorInfo {
+                    ip_address: endpoint,
+                    x25519_public_key,
+                    tss_account: tss_account.encode(),
+                });
             }
             Ok((validators_info, l))
         }

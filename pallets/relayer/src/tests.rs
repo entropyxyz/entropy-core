@@ -16,8 +16,16 @@ fn it_preps_transaction() {
             account: vec![1, 0, 0, 0, 0, 0, 0, 0],
             sig_request: sig_request.clone(),
             validators_info: vec![
-                ValidatorInfo { ip_address: ip_addresses[0].clone(), x25519_public_key: [0; 32] },
-                ValidatorInfo { ip_address: ip_addresses[1].clone(), x25519_public_key: [0; 32] },
+                ValidatorInfo {
+                    ip_address: ip_addresses[0].clone(),
+                    x25519_public_key: [0; 32],
+                    tss_account: vec![3, 0, 0, 0, 0, 0, 0, 0],
+                },
+                ValidatorInfo {
+                    ip_address: ip_addresses[1].clone(),
+                    x25519_public_key: [0; 32],
+                    tss_account: vec![4, 0, 0, 0, 0, 0, 0, 0],
+                },
             ],
         };
 
@@ -46,8 +54,16 @@ fn it_emits_a_signature_request_event() {
             account: vec![1, 0, 0, 0, 0, 0, 0, 0],
             sig_request: sig_request.clone(),
             validators_info: vec![
-                ValidatorInfo { ip_address: ip_addresses[0].clone(), x25519_public_key: [0; 32] },
-                ValidatorInfo { ip_address: ip_addresses[1].clone(), x25519_public_key: [0; 32] },
+                ValidatorInfo {
+                    ip_address: ip_addresses[0].clone(),
+                    x25519_public_key: [0; 32],
+                    tss_account: vec![3, 0, 0, 0, 0, 0, 0, 0],
+                },
+                ValidatorInfo {
+                    ip_address: ip_addresses[1].clone(),
+                    x25519_public_key: [0; 32],
+                    tss_account: vec![4, 0, 0, 0, 0, 0, 0, 0],
+                },
             ],
         };
 
