@@ -5,11 +5,7 @@ use kvdb::clean_tests;
 use parity_scale_codec::Encode;
 use rocket::http::{ContentType, Status};
 use serial_test::serial;
-use sp_core::{
-    crypto::AccountId32,
-    sr25519::{Pair, Public, Signature},
-    Pair as PairTrait,
-};
+use sp_core::{crypto::AccountId32, Pair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{tx::PairSigner, OnlineClient};
 use testing_utils::{

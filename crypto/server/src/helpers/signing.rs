@@ -3,7 +3,6 @@ use std::{collections::HashMap, sync::Mutex};
 use bip39::{Language, Mnemonic};
 use kvdb::kv_manager::{KvManager, PartyId};
 use rocket::{http::Status, State};
-use subxt::ext::sp_core::{sr25519, Pair};
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 
 use crate::{

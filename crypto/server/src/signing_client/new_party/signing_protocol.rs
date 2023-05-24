@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use blake2::{Blake2s256, Digest};
 use futures::StreamExt;
-use kvdb::kv_manager::{PartyId, PartyInfo};
+use kvdb::kv_manager::PartyInfo;
 use rand_core::OsRng;
 use sp_core::crypto::{AccountId32, Pair};
 use subxt::ext::sp_core::sr25519;
@@ -103,9 +103,9 @@ pub(super) async fn execute_protocol(
     session.result().map_err(SigningErr::ProtocolOutput)
 }
 
-pub fn create_signed_message(message: &Box<[u8]>, pair: &sr25519::Pair) -> sr25519::Signature {
+pub fn create_signed_message(message: &[u8], pair: &sr25519::Pair) -> sr25519::Signature {
     let mut hasher = Blake2s256::new();
-    hasher.update(&message);
+    hasher.update(message);
     let hash = hasher.finalize().to_vec();
     pair.sign(&hash)
 }
@@ -114,10 +114,10 @@ pub fn validate_signed_message(
     message: &Vec<u8>,
     signature: sr25519::Signature,
     sender_pk: sr25519::Public,
-    threshold_accounts: &Vec<AccountId32>,
+    threshold_accounts: &[AccountId32],
 ) -> Result<(), SigningErr> {
     let mut hasher = Blake2s256::new();
-    hasher.update(&message);
+    hasher.update(message);
     let part_of_signers = threshold_accounts.contains(&AccountId32::new(sender_pk.0));
     if !part_of_signers {
         return Err(SigningErr::MessageValidation("Unable to verify sender of message"));
