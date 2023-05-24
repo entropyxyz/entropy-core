@@ -45,7 +45,7 @@ pub enum SigningErr {
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("Broadcast error: {0}")]
-    Broadcast(#[from] tokio::sync::broadcast::error::SendError<SigningMessage>),
+    Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<SigningMessage>>),
     #[error("anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
     #[error("Data is not verifiable")]

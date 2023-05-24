@@ -115,17 +115,17 @@ pub fn validate_signed_message(
     signature: sr25519::Signature,
     sender_pk: sr25519::Public,
     threshold_accounts: &[AccountId32],
-) -> Result<(), SigningErr> {
+) -> Result<(), Box<SigningErr>> {
     let mut hasher = Blake2s256::new();
     hasher.update(message);
     let part_of_signers = threshold_accounts.contains(&AccountId32::new(sender_pk.0));
     if !part_of_signers {
-        return Err(SigningErr::MessageValidation("Unable to verify sender of message"));
+        return Err(Box::new(SigningErr::MessageValidation("Unable to verify sender of message")));
     }
     let hash = hasher.finalize().to_vec();
     let signature = <sr25519::Pair as Pair>::verify(&signature, hash, &sender_pk);
     if !signature {
-        return Err(SigningErr::MessageValidation("Unable to verify origins of message"));
+        return Err(Box::new(SigningErr::MessageValidation("Unable to verify origins of message")));
     }
 
     Ok(())

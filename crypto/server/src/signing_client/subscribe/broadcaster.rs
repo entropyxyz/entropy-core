@@ -8,7 +8,7 @@ use crate::signing_client::SigningMessage;
 pub struct Broadcaster(pub broadcast::Sender<SigningMessage>);
 
 impl Broadcaster {
-    pub fn send(&self, msg: SigningMessage) -> Result<usize, SendError<SigningMessage>> {
-        self.0.send(msg)
+    pub fn send(&self, msg: SigningMessage) -> Result<usize, Box<SendError<SigningMessage>>> {
+        Ok(self.0.send(msg)?)
     }
 }
