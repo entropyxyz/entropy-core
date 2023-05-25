@@ -70,7 +70,7 @@ pub async fn subscribe_to_me(
 
     let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
 
-    if !state.contains_listener(&msg.session_id) {
+    if !state.contains_listener(&msg.session_id)? {
         // Chain node hasn't yet informed this node of the party. Wait for a timeout and procede (or
         // fail below)
         tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
