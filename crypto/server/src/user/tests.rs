@@ -2,7 +2,7 @@ use std::{env, fs, path::PathBuf, sync::Arc};
 
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::{Acl, Constraints, Message, OCWMessage, SigRequest, ValidatorInfo};
+use entropy_shared::{Acl, Constraints, Message, OCWMessage, SigRequest, ValidatorInfo, UserTransactionRequest};
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future};
 use hex_literal::hex as h;
@@ -54,7 +54,6 @@ use crate::{
         SignerState,
     },
     store_tx, subscribe_to_me,
-    user::api::UserTransactionRequest,
     validator::api::get_random_server_info,
     Message as SigMessage,
 };
@@ -118,8 +117,8 @@ async fn test_sign_tx_no_chain() {
     };
     let converted_transaction_request: String = hex::encode(&transaction_request.rlp().to_vec());
     let mut generic_msg = UserTransactionRequest {
-        arch: "evm".to_string(),
-        transaction_request: converted_transaction_request,
+        arch: "evm".to_string().as_bytes().to_vec(),
+        transaction_request: converted_transaction_request.as_bytes().to_vec(),
         message: message_request,
         validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
     };
@@ -167,7 +166,7 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec());
+    generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec()).into();
 
     let test_user_failed_constraints_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -179,7 +178,7 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    generic_msg.arch = "btc".to_string();
+    generic_msg.arch = b"btc".to_vec();
     let test_user_failed_arch_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
@@ -270,8 +269,8 @@ async fn test_fail_signing_group() {
     };
 
     let generic_msg = UserTransactionRequest {
-        arch: "evm".to_string(),
-        transaction_request: hex::encode(&transaction_request.rlp()),
+        arch: b"evm".to_vec(),
+        transaction_request: hex::encode(&transaction_request.rlp()).into(),
         message: message_request,
         validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
     };
