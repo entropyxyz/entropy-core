@@ -25,6 +25,10 @@ pub struct SignerState {
 impl SignerState {
     /// Create a new `SignerState`
     pub fn contains_listener(&self, session_id: &String) -> Result<bool, SubscribeErr> {
-        Ok(self.listeners.lock().map_err(|e| SubscribeErr::LockError(e.to_string()))?.contains_key(session_id))
+        Ok(self
+            .listeners
+            .lock()
+            .map_err(|e| SubscribeErr::LockError(e.to_string()))?
+            .contains_key(session_id))
     }
 }

@@ -44,7 +44,7 @@ pub enum SigningErr {
     AddressConversionError(String),
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
-	#[error("reqwest event error: {0}")]
+    #[error("reqwest event error: {0}")]
     ReqwestEvent(#[from] reqwest_eventsource::Error),
     #[error("Broadcast error: {0}")]
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<SigningMessage>>),
@@ -61,11 +61,13 @@ pub enum SigningErr {
     #[error("Serde Json error: {0}")]
     SerdeJson(#[from] serde_json::Error),
     #[error("Message validation Error: {0}")]
-    MessageValidation(&'static str),
-	#[error("Cannont clone request: {0}")]
+    MessageValidation(String),
+    #[error("Cannont clone request: {0}")]
     CannotCloneRequest(String),
-	#[error("Unexpected event: {0}")]
+    #[error("Unexpected event: {0}")]
     UnexpectedEvent(String),
+    #[error("Session Error: {0}")]
+    SessionError(String),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
@@ -90,7 +92,7 @@ pub enum SubscribeErr {
     // Validation(&'static str),
     #[error("invalid party ID: {0}")]
     InvalidPartyId(String),
-	#[error("Lock Error: {0}")]
+    #[error("Lock Error: {0}")]
     LockError(String),
 }
 
