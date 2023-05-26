@@ -4,6 +4,7 @@ use node_primitives::BlockNumber;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use sp_core::crypto::AccountId32;
 
 /// common structs etc, shared among the substrate-blockchain-code and the crypto-code
 pub use crate::constraints::*;
@@ -42,4 +43,26 @@ pub struct Message {
 pub struct OCWMessage {
     pub messages: Vec<Message>,
     pub block_number: BlockNumber,
+}
+
+/// Represents an unparsed, transaction request coming from the client.
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq, Encode, Decode, TypeInfo)]
+pub struct UserTransactionRequest {
+    /// 'eth', etc.
+    pub arch: codec::alloc::vec::Vec<u8>,
+    /// ETH: RLP encoded transaction request
+    pub transaction_request: codec::alloc::vec::Vec<u8>,
+    pub validator_ips: Vec<codec::alloc::vec::Vec<u8>>,
+    pub message: Message,
+}
+
+/// A keyshare submitted by the user, together with party IDs
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq, Encode, Decode, TypeInfo)]
+pub struct UserKeyShare {
+    /// The set of party IDs (account IDs of Threshold Servers)
+    pub party_ids: Vec<AccountId32>,
+    /// A bincode serialized keyshare created with synedrion
+    pub key_share: codec::alloc::vec::Vec<u8>,
 }

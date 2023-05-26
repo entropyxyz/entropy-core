@@ -6,7 +6,7 @@ use entropy_constraints::{
 };
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints},
-    Message, SIGNING_PARTY_SIZE,
+    Message, SIGNING_PARTY_SIZE, UserTransactionRequest,
 };
 use futures::future::{join_all, FutureExt};
 use kvdb::kv_manager::{
@@ -50,16 +50,6 @@ use crate::{
 
 /// Represents an unparsed, transaction request coming from the client.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
-pub struct UserTransactionRequest {
-    /// 'eth', etc.
-    pub arch: String,
-    /// ETH: RLP encoded transaction request
-    pub transaction_request: String,
-    pub validator_ips: Vec<parity_scale_codec::alloc::vec::Vec<u8>>,
-    pub message: Message,
-}
-/// Represents an unparsed, transaction request coming from the client.
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct GenericTransactionRequest {
     /// 'eth', etc.
     pub arch: String,
@@ -95,13 +85,13 @@ pub async fn sign_tx(
 
     let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
     let parsed_tx =
-        <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
+        <Evm as Architecture>::TransactionRequest::parse(std::str::from_utf8(&user_tx_req.transaction_request)?.to_string())?;
 
     let sig_hash = hex::encode(parsed_tx.sighash().as_bytes());
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
     check_signing_group(subgroup_signers, signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
-    match user_tx_req.arch.as_str() {
+    match std::str::from_utf8(&user_tx_req.arch)? {
         "evm" => {
             let message = user_tx_req.message;
             let evm_acl = get_constraints(&api, &signing_address_converted)
