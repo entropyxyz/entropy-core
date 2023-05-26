@@ -117,8 +117,8 @@ async fn test_sign_tx_no_chain() {
     };
     let converted_transaction_request: String = hex::encode(&transaction_request.rlp().to_vec());
     let mut generic_msg = UserTransactionRequest {
-        arch: "evm".to_string().as_bytes().to_vec(),
-        transaction_request: converted_transaction_request.as_bytes().to_vec(),
+        arch: "evm".to_string(),
+        transaction_request: converted_transaction_request,
         message: message_request,
         validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
     };
@@ -166,7 +166,7 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec()).into();
+    generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec());
 
     let test_user_failed_constraints_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -178,7 +178,7 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    generic_msg.arch = b"btc".to_vec();
+    generic_msg.arch = "btc".to_string();
     let test_user_failed_arch_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
@@ -269,8 +269,8 @@ async fn test_fail_signing_group() {
     };
 
     let generic_msg = UserTransactionRequest {
-        arch: b"evm".to_vec(),
-        transaction_request: hex::encode(&transaction_request.rlp()).into(),
+        arch: "evm".to_string(),
+        transaction_request: hex::encode(&transaction_request.rlp()),
         message: message_request,
         validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
     };

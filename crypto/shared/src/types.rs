@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use codec::{alloc::vec::Vec, Decode, Encode};
 use node_primitives::BlockNumber;
-use scale_info::TypeInfo;
+use scale_info::{prelude::string::String, TypeInfo};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::AccountId32;
@@ -47,12 +47,12 @@ pub struct OCWMessage {
 
 /// Represents an unparsed, transaction request coming from the client.
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, PartialEq, Encode, Decode, TypeInfo)]
+#[derive(Debug, Clone, PartialEq, TypeInfo)]
 pub struct UserTransactionRequest {
     /// 'eth', etc.
-    pub arch: codec::alloc::vec::Vec<u8>,
+    pub arch: String,
     /// ETH: RLP encoded transaction request
-    pub transaction_request: codec::alloc::vec::Vec<u8>,
+    pub transaction_request: String,
     pub validator_ips: Vec<codec::alloc::vec::Vec<u8>>,
     pub message: Message,
 }

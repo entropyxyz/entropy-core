@@ -85,13 +85,13 @@ pub async fn sign_tx(
 
     let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
     let parsed_tx =
-        <Evm as Architecture>::TransactionRequest::parse(std::str::from_utf8(&user_tx_req.transaction_request)?.to_string())?;
+        <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
 
     let sig_hash = hex::encode(parsed_tx.sighash().as_bytes());
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
     check_signing_group(subgroup_signers, signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
-    match std::str::from_utf8(&user_tx_req.arch)? {
+    match user_tx_req.arch.as_str() {
         "evm" => {
             let message = user_tx_req.message;
             let evm_acl = get_constraints(&api, &signing_address_converted)
@@ -184,6 +184,10 @@ pub async fn new_user(
 
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+
+	// TODO deserialize from JSON to a UserKeyShare
+	// then convert to a PartyInfo
+
     // store new user data in kvdb or deletes and replaces it if swapping
     let subgroup = get_subgroup(&api, &signer)
         .await?
