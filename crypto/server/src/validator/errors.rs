@@ -24,6 +24,12 @@ pub enum ValidatorErr {
     Kv(#[from] kvdb::kv_manager::error::KvError),
     #[error("Sync error: {0}")]
     SafeCryptoError(&'static str),
+    #[error("User Error: {0}")]
+    UserErr(#[from] crate::user::UserErr),
+    #[error("ChaCha20 decryption error: {0}")]
+    Decryption(String),
+    #[error("ChaCha20 Encryption error: {0}")]
+    Encryption(String),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for ValidatorErr {

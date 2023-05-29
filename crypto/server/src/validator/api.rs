@@ -38,7 +38,7 @@ pub async fn sync_kvdb(
 ) -> Result<Json<Values>, ValidatorErr> {
     // TODO(JS): validate on chain that this user in your subgroup
     let sender = PublicKey::from(keys.sender);
-    let signer = get_signer(state).await.unwrap();
+    let signer = get_signer(state).await?;
     let recip_secret_key = signer.signer();
     let mut values: Vec<SignedMessage> = vec![];
     for encrypted_key in keys.enckeys.clone() {
@@ -49,12 +49,13 @@ pub async fn sync_kvdb(
         if dmsg.is_err() {
             return Err(ValidatorErr::SafeCryptoError("Decryption failed."));
         }
-        let key = dmsg.unwrap();
+        let key = dmsg.map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
         // encrypt message and send to other validator
         let skey = String::from_utf8_lossy(&key).to_string();
-        let result = state.kv().get(skey.as_str()).await.unwrap();
-        let reencrypted_key_result = SignedMessage::new(recip_secret_key, &Bytes(result), &sender);
-        values.push(reencrypted_key_result.unwrap())
+        let result = state.kv().get(skey.as_str()).await?;
+        let reencrypted_key_result = SignedMessage::new(recip_secret_key, &Bytes(result), &sender)
+            .map_err(|e| ValidatorErr::Encryption(e.to_string()))?;
+        values.push(reencrypted_key_result)
     }
     Ok(Json(Values { values }))
 }
@@ -138,7 +139,7 @@ pub async fn get_random_server_info(
             .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
         server_to_query += 1;
     }
-    Ok(server_info.unwrap())
+    Ok(server_info.ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?)
 }
 
 /// from keys of registered account get their corresponding entropy threshold keys
@@ -156,14 +157,14 @@ pub async fn get_and_store_values(
         if keys_to_send_slice > all_keys.len() {
             keys_to_send_slice = all_keys.len();
         }
-        let signer = get_signer(kv).await.unwrap();
+        let signer = get_signer(kv).await?;
         let remaining_keys = all_keys[keys_stored..(keys_to_send_slice)].to_vec();
         let mut enckeys: Vec<SignedMessage> = vec![];
         let mut sender: [u8; 32] = [0; 32];
         for _key in &remaining_keys {
             let new_msg =
                 SignedMessage::new(signer.signer(), &Bytes(_key.clone().into_bytes()), recip)
-                    .unwrap();
+                    .map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
             sender = new_msg.sender().to_bytes();
             enckeys.push(new_msg);
         }
@@ -188,7 +189,9 @@ pub async fn get_and_store_values(
         }
         for (i, encrypted_key) in returned_values.values.iter().enumerate() {
             let reservation = kv.kv().reserve_key(remaining_keys[i].clone()).await?;
-            let key = encrypted_key.decrypt(signer.signer()).unwrap();
+            let key = encrypted_key
+                .decrypt(signer.signer())
+                .map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
             kv.kv().put(reservation, key).await?;
             keys_stored += 1
         }
