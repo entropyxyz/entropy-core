@@ -1,21 +1,4 @@
 commands:
-    dl-and-install:
-        steps:
-            # - run: |
-            #     echo $BKEY>privatekey
-            #     wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst
-            #     wget https://testing.entropy.family/releases/bi/linux-amd64.tar.zst.sha256sum
-            #     export CHECKSUM_BI=$(sha256sum linux-amd64.tar.zst|cut -c -64)
-            #     export TARBALL="entropy-$(git tag|tail -n 1)-$(git rev-parse --short HEAD).tar.zst"
-            #     if [ "$CHECKSUM_BI" != "68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1" ]; then echo -e "bad checksum \n\twanted 68b54972fb9e78167923b7ba66f8fc34642744c9bacdcfc809f3ae41f9cb82b1\n\tgot $CHECKSUM_BI\n && exit 0"; fi
-            #     tar xvf linux-amd64.tar.zst && sudo mv linux-amd64/bi /bin
-            #     cat privatekey| tr -d '\n'|bi pub|tr -d '\n'>publickey
-            #     echo "signing with publickey: $(cat publickey)"
-            #     echo "key id: $(cat privatekey|sha256sum|cut -c -64)"
-            #     bi sign privatekey publickey >publickey.sig
-            #     echo "test signing public key:"
-            #     bi verify publickey.sig publickey publickey
-            #     bi -tor=false send publickey.sig publickey publickey https://testing.entropy.family/u
     fmt-lint:
         steps:
             - run: curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
@@ -59,37 +42,6 @@ commands:
     build:
         steps:
             - run: cargo build --release
-    # release:
-    #     steps:
-    #         - run: |
-    #             OUTDIR="entropy"
-    #             VERSION="$(git tag|tail -n 1)-$(git rev-parse --short HEAD)"
-    #             TARBALL="$OUTDIR.tar.zst"
-    #             mkdir -p $OUTDIR
-    #             echo $TARBALL > $OUTDIR/VERSION
-    #             cat LICENSE > $OUTDIR/LICENSE
-    #             cp target/release/entropy target/release/server $OUTDIR
-    #             tar acvf $TARBALL $OUTDIR
-    #             bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
-    #             bi -tor=false send $TARBALL.sig $TARBALL publickey https://testing.entropy.family/u ci-latest > artifact-url
-
-    sign-and-upload-pr:
-        steps:
-            # - run: |
-            #     OUTDIR="entropy-$(git tag|tail -n 1|sed 's/\./-/g')-$(git rev-parse --short HEAD)"
-            #     echo -e "## $(git tag|tail -n 1)-$(git rev-parse --short HEAD)\n" > pr-comment
-            #     echo -e "\nnice work, looks like everything passed."
-            #     TARBALL="$OUTDIR.tar.zst"
-            #     mkdir -p $OUTDIR
-            #     echo $TARBALL >$OUTDIR/version
-            #     cp target/release/entropy target/release/server $OUTDIR
-            #     tar acvf $TARBALL $OUTDIR
-            #     bi -tor=false sign privatekey $TARBALL > $TARBALL.sig
-            #     bi -tor=false send $TARBALL.sig $TARBALL publickey https://testing.entropy.family/u ci-latest > artifact-url
-            #     echo -e "\nyour build artifacts are available [here](cat artifact-url).\n" >> pr-comment
-            # - store_artifacts:
-            #     path: artifact-url
-            #     destination: artifact-url
     comment-on-pr:
         steps:
             - run: |
@@ -166,12 +118,6 @@ parameters:
         type: boolean
 version: 2.1
 workflows:
-    # release:
-    #     when:
-    #         and:
-    #         - equal: [ master, << pipeline.git.branch >> ]
-    #     jobs:
-    #         -  build-and-release
     lint:
         jobs:
             - fmt-lint-all
