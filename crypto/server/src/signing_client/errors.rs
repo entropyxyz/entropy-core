@@ -74,6 +74,10 @@ pub enum SigningErr {
     StringConversion(#[from] FromUtf8Error),
     #[error("Secret String failure: {0:?}")]
     SecretString(&'static str),
+    #[error("User Error: {0}")]
+    UserError(&'static str),
+    #[error("mnemonic failure: {0:?}")]
+    Mnemonic(String),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
