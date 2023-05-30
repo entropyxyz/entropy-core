@@ -5,17 +5,24 @@
 //! ## Overview
 //!
 //! This exposes a HTTP API.
-//! All POST enpoints take a [SignedMessage](crate::message::SignedMessage) which
+//! Most, but not all, endpoints take a [SignedMessage](crate::message::SignedMessage) which
 //! is an encrypted, signed message.
 //!
-//! Consists of three core routes:
-//! - [`/user/new`](crate::user::api::new_user) - POST - Called by a user when registering to submit a key-share.
-//! - [`/user/sign_tx`](crate::user::api::sign_tx) - POST - The user submits a
-//! - [`/user/tx`](crate::user::api::store_tx) - POST - Called by a user  when signing to submit a transaction to
+//! The HTTP routes:
+//! - [`/user/new`](crate::user::api::new_user()) - POST - Called by a user when registering to submit a key-share.
+//! - [`/user/sign_tx`](crate::user::api::sign_tx()) - POST - Called by a user to submit a transaction to sign.
+//! (The new way of doing signing).
+//! - [`/user/tx`](crate::user::api::store_tx()) - POST - Called by a user when signing to submit a transaction to
 //! be signed using the signing protocol (the original way of doing signing).
-//! - [`/signer/new_party`](crate::signing_client::api::new_party) - POST - Called by the blockchain to submit a batch of signature requests
+//! - [`/signer/new_party`](crate::signing_client::api::new_party()) - POST - Called by the blockchain to submit a batch of signature requests. (For the original way of doing signing)
+//! - [`/signer/subscribe_to_me`](crate::signing_client::api::subscribe_to_me()) - POST - Called by
+//! other threshold servers when the signing procotol is initiated.
+//! - [`/signer/get_signature`](crate::signing_client::api::get_signature()) - POST - Get a signature,
+//! given a message hash. If a message was successfully signed, this returns the signature.
+//! - [`/validator/sync_kvdb`](crate::validator::api::sync_kvdb()) - POST - Called by another
+//! threshold server when joining to get the key-shares from a member of their sub-group.
 //!
-//! [Unsafe](crate::unsafe::api) Has routes which are for testing and development purposes only and
+//! [Unsafe](crate::unsafe::api) Also has routes which are for testing and development purposes only and
 //! will not be used in production.
 //!
 //! ## Pieces Launched
