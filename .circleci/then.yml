@@ -91,7 +91,6 @@ jobs:
             - run:
                 command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
                 no_output_timeout: 45m
-            - sign-and-upload-pr
     build-and-release:
         machine:
             image: ubuntu-2204:2022.10.2
