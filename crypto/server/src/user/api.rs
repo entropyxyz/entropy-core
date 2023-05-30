@@ -67,6 +67,10 @@ pub struct GenericTransactionRequest {
     pub transaction_request: String,
 }
 
+
+/// Called by a user to initiate the signing process for a message
+///
+/// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
 #[post("/sign_tx", format = "json", data = "<msg>")]
 pub async fn sign_tx(
     // TODO make new type with only info needed
@@ -118,8 +122,10 @@ pub async fn sign_tx(
     }
     Ok(Status::Ok)
 }
+
 /// Submits a new transaction to the KVDB for inclusion in a threshold
 /// signing scheme at a later block.
+///
 /// Maps a tx hash -> unsigned transaction in the kvdb.
 #[post("/tx", format = "json", data = "<msg>")]
 pub async fn store_tx(
@@ -173,8 +179,12 @@ pub async fn store_tx(
     Ok(Status::Ok)
 }
 
-/// Add a new Keyshare to this node's set of known Keyshares.
-/// Store in kvdb.
+/// HTTP POST endoint called by the user when registering.
+///
+/// This adds a new Keyshare to this node's set of known Keyshares and stores the it in the [kvdb].
+///
+/// The http request takes a [SignedMessage] containing a bincode-encoded
+/// [PartyInfo](kvdb::kv_manager::value::PartyInfo).
 #[post("/new", format = "json", data = "<msg>")]
 pub async fn new_user(
     msg: Json<SignedMessage>,
