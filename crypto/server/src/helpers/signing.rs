@@ -72,7 +72,7 @@ pub async fn do_signing(
     signatures: &State<SignatureState>,
     tx_id: String,
 ) -> Result<Status, SigningErr> {
-    let info = SignInit::new(message.clone(), tx_id);
+    let info = SignInit::new(message.clone(), tx_id)?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
 
     let my_id = PartyId::new(get_signer(kv_manager).await.unwrap().account_id().clone());

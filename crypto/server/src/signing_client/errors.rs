@@ -1,5 +1,5 @@
 //! Errors for everyone ✅
-use std::io::Cursor;
+use std::{io::Cursor, string::FromUtf8Error};
 
 use kvdb::kv_manager::error::InnerKvError;
 use rocket::{
@@ -44,6 +44,8 @@ pub enum SigningErr {
     AddressConversionError(String),
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
+    #[error("Utf8Error: {0:?}")]
+    Utf8(#[from] std::str::Utf8Error),
     #[error("reqwest event error: {0}")]
     ReqwestEvent(#[from] reqwest_eventsource::Error),
     #[error("Broadcast error: {0}")]
@@ -68,6 +70,8 @@ pub enum SigningErr {
     UnexpectedEvent(String),
     #[error("Session Error: {0}")]
     SessionError(String),
+    #[error("String Conversion Error: {0}")]
+    StringConversion(#[from] FromUtf8Error),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
