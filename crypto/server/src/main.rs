@@ -1,15 +1,28 @@
 //! # Server
 //!
+//! The Threshold Server which stores key shares and participates in the signing protocol.
+//!
 //! ## Overview
 //!
+//! This exposes a HTTP API.
+//! All POST enpoints take a [SignedMessage](crate::message::SignedMessage) which
+//! is an encrypted, signed message.
+//!
 //! Consists of three core routes:
-//! - "/user/new" - Add a user to the system
-//! - "/user/tx" - The user submits a transaction to be signed using the signing protocol
-//! - "/signer/new_party" - The blockchain submits a batch of signature requests
+//! - [`/user/new`](crate::user::api::new_user) - POST - Called by a user when registering to submit a key-share.
+//! - [`/user/sign_tx`](crate::user::api::sign_tx) - POST - The user submits a
+//! - [`/user/tx`](crate::user::api::store_tx) - POST - Called by a user  when signing to submit a transaction to
+//! be signed using the signing protocol (the original way of doing signing).
+//! - [`/signer/new_party`](crate::signing_client::api::new_party) - POST - Called by the blockchain to submit a batch of signature requests
+//!
+//! [Unsafe](crate::unsafe::api) Has routes which are for testing and development purposes only and
+//! will not be used in production.
 //!
 //! ## Pieces Launched
+//!
 //! - Rocket server - Includes global state and mutex locked IPs
-//! - Sled DB KVDB
+//! - [kvdb](kvdb) - Encrypted key-value database for storing key-shares and other data, build using
+//! [sled](https://docs.rs/sled)
 pub(crate) mod chain_api;
 pub(crate) mod health;
 mod helpers;
