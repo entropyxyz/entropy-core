@@ -8,6 +8,9 @@
 //!
 //! ## The HTTP endpoints
 //!
+//! Some endpoints are designed to be called by the user, some by the entropy chain node,
+//! and some by other instances of `server`:
+//!
 //! ### For the user
 //!
 //! Most user-facing endpoints take a [SignedMessage](crate::message::SignedMessage) which
@@ -42,6 +45,7 @@
 //! - Rocket server - Includes global state and mutex locked IPs
 //! - [kvdb](kvdb) - Encrypted key-value database for storing key-shares and other data, build using
 //! [sled](https://docs.rs/sled)
+#![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
 pub(crate) mod chain_api;
 pub(crate) mod health;
 mod helpers;
