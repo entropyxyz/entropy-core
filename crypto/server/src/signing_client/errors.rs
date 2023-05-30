@@ -72,6 +72,8 @@ pub enum SigningErr {
     SessionError(String),
     #[error("String Conversion Error: {0}")]
     StringConversion(#[from] FromUtf8Error),
+    #[error("Secret String failure: {0:?}")]
+    SecretString(&'static str),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {

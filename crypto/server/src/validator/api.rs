@@ -14,7 +14,7 @@ use crate::{
         EntropyConfig,
     },
     get_signer,
-    message::SignedMessage,
+    validation::SignedMessage,
     validator::errors::ValidatorErr,
 };
 

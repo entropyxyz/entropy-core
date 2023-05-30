@@ -45,9 +45,7 @@ use crate::{
             spawn_testing_validators,
         },
     },
-    load_kv_store,
-    message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
-    new_party, new_user,
+    load_kv_store, new_party, new_user,
     r#unsafe::api::{delete, get, put, remove_keys, UnsafeQuery},
     signing_client::{
         tests::{put_tx_request_on_chain, run_to_block},
@@ -55,6 +53,7 @@ use crate::{
     },
     store_tx, subscribe_to_me,
     user::api::UserTransactionRequest,
+    validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
     Message as SigMessage,
 };
@@ -215,7 +214,10 @@ async fn test_sign_tx_no_chain() {
         .await
         .unwrap();
     assert_eq!(failed_res.status(), 500);
-    assert_eq!(failed_res.text().await.unwrap(), "ChaCha20 decryption error: aead::Error");
+    assert_eq!(
+        failed_res.text().await.unwrap(),
+        "ChaCha20 decryption error: ChaCha20 decryption error: aead::Error"
+    );
 
     let sig: [u8; 64] = [0; 64];
     let slice: [u8; 32] = [0; 32];
@@ -554,7 +556,10 @@ async fn test_unsigned_tx_endpoint() {
         .await
         .unwrap();
     assert_eq!(failed_res.status(), 500);
-    assert_eq!(failed_res.text().await.unwrap(), "ChaCha20 decryption error: aead::Error");
+    assert_eq!(
+        failed_res.text().await.unwrap(),
+        "ChaCha20 decryption error: ChaCha20 decryption error: aead::Error"
+    );
 
     let sig: [u8; 64] = [0; 64];
     let slice: [u8; 32] = [0; 32];
@@ -654,7 +659,7 @@ async fn test_store_share() {
         .await;
 
     assert_eq!(response_4.status(), Status::InternalServerError);
-    let expected_err = "ChaCha20 decryption error: aead::Error";
+    let expected_err = "ChaCha20 decryption error: ChaCha20 decryption error: aead::Error";
     assert_eq!(response_4.into_string().await.unwrap(), expected_err);
     let sig: [u8; 64] = [0; 64];
     let slice: [u8; 32] = [0; 32];

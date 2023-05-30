@@ -11,7 +11,7 @@ use kvdb::{
 use serde::Deserialize;
 use subxt::ext::sp_core::{crypto::AccountId32, sr25519, Pair};
 
-use crate::message::{derive_static_secret, mnemonic_to_pair};
+use crate::validation::{derive_static_secret, mnemonic_to_pair};
 
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
@@ -124,7 +124,7 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Res
 
         let phrase = mnemonic.phrase();
         println!("[server-config]");
-        let pair = mnemonic_to_pair(&mnemonic);
+        let pair = mnemonic_to_pair(&mnemonic).expect("Issue deriving Mnemonic");
         let static_secret = derive_static_secret(&pair);
         let dh_public = x25519_dalek::PublicKey::from(&static_secret);
 

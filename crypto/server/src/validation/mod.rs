@@ -1,7 +1,7 @@
 use bip39::Mnemonic;
 use blake2::{Blake2s256, Digest};
 use chacha20poly1305::{
-    aead::{Aead, AeadCore, Error, KeyInit},
+    aead::{Aead, AeadCore, KeyInit},
     ChaCha20Poly1305,
 };
 use rand_core::OsRng;
@@ -11,7 +11,9 @@ use serde::{Deserialize, Serialize};
 use subxt::ext::sp_core::{crypto::AccountId32, sr25519, sr25519::Signature, Bytes, Pair};
 use x25519_dalek::{PublicKey, StaticSecret};
 use zeroize::Zeroize;
+pub mod errors;
 
+use errors::ValidationErr;
 /// Used for signing, encrypting and often sending arbitrary Bytes.
 /// sr25519 is the signature scheme.
 /// Use SignedMessage::new(secret_key, message) to construct
@@ -42,14 +44,17 @@ impl SignedMessage {
         sk: &sr25519::Pair,
         msg: &Bytes,
         recip: &x25519_dalek::PublicKey,
-    ) -> Result<SignedMessage, Error> {
+    ) -> Result<SignedMessage, ValidationErr> {
         let mut s = derive_static_secret(sk);
         let a = x25519_dalek::PublicKey::from(&s);
         let shared_secret = s.diffie_hellman(recip);
         s.zeroize();
         let msg_nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng); // 96-bits; unique per message
-        let cipher = ChaCha20Poly1305::new_from_slice(shared_secret.as_bytes()).unwrap();
-        let ciphertext = cipher.encrypt(&msg_nonce, msg.0.as_slice())?;
+        let cipher = ChaCha20Poly1305::new_from_slice(shared_secret.as_bytes())
+            .map_err(|e| ValidationErr::Conversion(e.to_string()))?;
+        let ciphertext = cipher
+            .encrypt(&msg_nonce, msg.0.as_slice())
+            .map_err(|e| ValidationErr::Encryption(e.to_string()))?;
         let mut static_nonce: [u8; 12] = [0; 12];
         static_nonce.copy_from_slice(&msg_nonce);
 
@@ -80,12 +85,15 @@ impl SignedMessage {
     }
 
     /// Decrypts the message and returns the plaintext.
-    pub fn decrypt(&self, sk: &sr25519::Pair) -> Result<Vec<u8>, Error> {
+    pub fn decrypt(&self, sk: &sr25519::Pair) -> Result<Vec<u8>, ValidationErr> {
         let mut static_secret = derive_static_secret(sk);
         let shared_secret = static_secret.diffie_hellman(&PublicKey::from(self.a));
         static_secret.zeroize();
-        let cipher = ChaCha20Poly1305::new_from_slice(shared_secret.as_bytes()).unwrap();
-        cipher.decrypt(&generic_array::GenericArray::from(self.nonce), self.msg.0.as_slice())
+        let cipher = ChaCha20Poly1305::new_from_slice(shared_secret.as_bytes())
+            .map_err(|e| ValidationErr::Conversion(e.to_string()))?;
+        Ok(cipher
+            .decrypt(&generic_array::GenericArray::from(self.nonce), self.msg.0.as_slice())
+            .map_err(|e| ValidationErr::Decryption(e.to_string()))?)
     }
 
     /// Returns the AccountId32 of the message signer.
@@ -122,8 +130,10 @@ pub fn derive_static_secret(sk: &sr25519::Pair) -> x25519_dalek::StaticSecret {
 }
 
 /// Derives a sr25519::Pair from a Mnemonic
-pub fn mnemonic_to_pair(m: &Mnemonic) -> sr25519::Pair {
-    <sr25519::Pair as Pair>::from_phrase(m.phrase(), None).unwrap().0
+pub fn mnemonic_to_pair(m: &Mnemonic) -> Result<sr25519::Pair, ValidationErr> {
+    Ok(<sr25519::Pair as Pair>::from_phrase(m.phrase(), None)
+        .map_err(|_| ValidationErr::SecretString("Secret String Error"))?
+        .0)
 }
 #[cfg(test)]
 /// Creates a new random Mnemonic.
@@ -142,11 +152,11 @@ mod tests {
     fn test_bad_signatures_fails() {
         let plaintext = Bytes(vec![69, 42, 0]);
 
-        let alice = mnemonic_to_pair(&new_mnemonic());
+        let alice = mnemonic_to_pair(&new_mnemonic()).unwrap();
         let alice_secret = derive_static_secret(&alice);
         let alice_public_key = PublicKey::from(&alice_secret);
 
-        let bob = mnemonic_to_pair(&new_mnemonic());
+        let bob = mnemonic_to_pair(&new_mnemonic()).unwrap();
         let bob_secret = derive_static_secret(&bob);
         let bob_public_key = PublicKey::from(&bob_secret);
 
@@ -166,9 +176,9 @@ mod tests {
     fn test_sign_and_encrypt() {
         let plaintext = Bytes(vec![69, 42, 0]);
 
-        let alice = mnemonic_to_pair(&new_mnemonic());
+        let alice = mnemonic_to_pair(&new_mnemonic()).unwrap();
 
-        let bob = mnemonic_to_pair(&new_mnemonic());
+        let bob = mnemonic_to_pair(&new_mnemonic()).unwrap();
         let bob_secret = derive_static_secret(&bob);
         let bob_public_key = PublicKey::from(&bob_secret);
 
