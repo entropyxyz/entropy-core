@@ -34,7 +34,6 @@ commands:
             - install-dependencies
             - checkout
             - install-dependencies
-            - dl-and-install
             - install-rust
     new-cmd:
         steps:
