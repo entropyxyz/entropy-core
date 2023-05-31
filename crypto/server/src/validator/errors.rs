@@ -26,9 +26,9 @@ pub enum ValidatorErr {
     SafeCryptoError(&'static str),
     #[error("User Error: {0}")]
     UserErr(#[from] crate::user::UserErr),
-    #[error("ChaCha20 decryption error: {0}")]
+    #[error("Validation Error: {0}")]
     Decryption(String),
-    #[error("ChaCha20 Encryption error: {0}")]
+    #[error("Validation Error: {0}")]
     Encryption(String),
 }
 

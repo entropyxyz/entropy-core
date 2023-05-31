@@ -216,7 +216,7 @@ async fn test_sign_tx_no_chain() {
     assert_eq!(failed_res.status(), 500);
     assert_eq!(
         failed_res.text().await.unwrap(),
-        "ChaCha20 decryption error: ChaCha20 decryption error: aead::Error"
+        "Validation error: ChaCha20 decryption error: aead::Error"
     );
 
     let sig: [u8; 64] = [0; 64];
@@ -558,7 +558,7 @@ async fn test_unsigned_tx_endpoint() {
     assert_eq!(failed_res.status(), 500);
     assert_eq!(
         failed_res.text().await.unwrap(),
-        "ChaCha20 decryption error: ChaCha20 decryption error: aead::Error"
+        "Validation error: ChaCha20 decryption error: aead::Error"
     );
 
     let sig: [u8; 64] = [0; 64];
@@ -659,7 +659,7 @@ async fn test_store_share() {
         .await;
 
     assert_eq!(response_4.status(), Status::InternalServerError);
-    let expected_err = "ChaCha20 decryption error: ChaCha20 decryption error: aead::Error";
+    let expected_err = "Validation error: ChaCha20 decryption error: aead::Error";
     assert_eq!(response_4.into_string().await.unwrap(), expected_err);
     let sig: [u8; 64] = [0; 64];
     let slice: [u8; 32] = [0; 32];
