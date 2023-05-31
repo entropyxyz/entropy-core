@@ -28,7 +28,8 @@
 //!
 //! ### For the blockchain node
 //!
-//! - [`/signer/new_party`](crate::signing_client::api::new_party()) - POST - Called by the blockchain to submit a batch of signature requests. (For the original way of doing signing)
+//! - [`/signer/new_party`](crate::signing_client::api::new_party()) - POST - Called by the blockchain to
+//! submit a batch of signature requests. (For the original way of doing signing)
 //!
 //! ### For other instances of the threshold server
 //!
@@ -39,8 +40,14 @@
 //!
 //! ### For testing / development
 //!
-//! [Unsafe](crate::unsafe::api) has routes which are for testing and development purposes only and
-//! will not be used in production.
+//! [Unsafe](crate::unsafe::api) has additional routes which are for testing and development purposes
+//! only and will not be used in production. These routes are only available if this crate is compiled
+//! with the `unsafe` feature enabled.
+//!
+//! - [`unsafe/get`](crate::unsafe::api::get()) - POST - get a value from the key-value store, given its key.
+//! - [`unsafe/put`](crate::unsafe::api::put()) - POST - update an existing value in the key-value store.
+//! - [`unsafe/delete`](crate::unsafe::api::delete()) - POST - remove a value from the key-value store, given its key.
+//! - [`unsafe/remove_keys`](crate::unsafe::api::remove_keys()) - GET - remove everything from the key-value store.
 //!
 //! ## Pieces Launched
 //!
