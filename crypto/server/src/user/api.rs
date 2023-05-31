@@ -11,6 +11,7 @@ use entropy_shared::{
 use futures::future::{join_all, FutureExt};
 use kvdb::kv_manager::{
     error::{InnerKvError, KvError},
+    helpers::serialize,
     value::PartyInfo,
     KvManager,
 };
@@ -35,7 +36,7 @@ use subxt::{
 use tracing::instrument;
 use zeroize::Zeroize;
 
-use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
+use super::{UserErr, UserInputPartyInfo};
 use crate::{
     chain_api::{entropy, entropy::constraints::calls::UpdateConstraints, get_api, EntropyConfig},
     helpers::{
@@ -194,6 +195,14 @@ pub async fn new_user(
 
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+
+    let user_input_party_info: UserInputPartyInfo = serde_json::from_slice(&decrypted_message)?;
+
+    let party_info: PartyInfo = user_input_party_info.try_into()?;
+
+    let party_info_serialized: Vec<u8> =
+        serialize(&party_info).map_err(|_| UserErr::Parse("Cannot serialize to PartyInfo"))?;
+
     // store new user data in kvdb or deletes and replaces it if swapping
     let subgroup = get_subgroup(&api, &signer)
         .await?
@@ -202,7 +211,7 @@ pub async fn new_user(
         kv.kv().delete(&key.to_string()).await?;
     }
     let reservation = kv.kv().reserve_key(key.to_string()).await?;
-    kv.kv().put(reservation, decrypted_message).await?;
+    kv.kv().put(reservation, party_info_serialized).await?;
     // TODO: Error handling really complex needs to be thought about.
     confirm_registered(&api, key, subgroup, &signer).await?;
     Ok(Status::Ok)
