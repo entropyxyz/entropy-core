@@ -21,8 +21,10 @@
 //! (The new way of doing signing).
 //! - [`/user/tx`](crate::user::api::store_tx()) - POST - Called by a user when signing to submit a transaction to
 //! be signed using the signing protocol (the original way of doing signing).
-//! - [`/signer/get_signature`](crate::signing_client::api::get_signature()) - POST - Get a signature,
+//! - [`/signer/signature`](crate::signing_client::api::get_signature()) - POST - Get a signature,
 //! given a message hash. If a message was successfully signed, this returns the signature.
+//! - [`/signer/drain`](crate::signing_client::api::drain()) - GET - Remove signatures from state.
+//! This should be called after `get_signature`.
 //!
 //! ### For the blockchain node
 //!
