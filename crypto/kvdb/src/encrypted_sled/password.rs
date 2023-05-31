@@ -34,7 +34,7 @@ impl TryFrom<IVec> for PasswordSalt {
 
 use rpassword::read_password;
 
-/// Specifies how [password] will be retrieved
+/// Specifies how [Password] will be retrieved
 #[derive(Clone, Debug)]
 pub enum PasswordMethod {
     NoPassword,
