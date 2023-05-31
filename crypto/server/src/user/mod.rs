@@ -19,49 +19,37 @@ use std::{
     io::{BufWriter, Write},
 };
 
-use kvdb::kv_manager::value::{KvValue, PartyInfo};
+use kvdb::kv_manager::{
+    helpers::deserialize,
+    value::{KvValue, PartyInfo},
+    PartyId,
+};
 use rocket::{http::Status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use subxt::ext::sp_runtime::AccountId32;
+use synedrion::{KeyShare, TestSchemeParams};
 
 pub use self::errors::*;
 
 #[cfg(test)]
 mod tests;
 
-/// User input, contains key (substrate key) and value (entropy shard)
+/// A key-share submitted by the user when registering
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct UserInputPartyInfo {
-    /// User's substrate key
-    pub key: AccountId32,
-    // An encoded SecretKeyShare for this node
-    pub value: KvValue,
+    /// Bincode encoded Synedrion KeyShare
+    pub key_share: Vec<u8>,
+    /// Party IDs
+    pub party_ids: Vec<AccountId32>,
 }
 
-impl TryInto<ParsedUserInputPartyInfo> for UserInputPartyInfo {
-    type Error = UserErr;
-
-    fn try_into(self) -> Result<ParsedUserInputPartyInfo, Self::Error> {
-        let parsed_input = ParsedUserInputPartyInfo { key: self.key, value: self.value };
-        Ok(parsed_input)
-    }
-}
-
-/// Parsed user input
-#[derive(Debug, Deserialize, Clone, Serialize)]
-pub struct ParsedUserInputPartyInfo {
-    /// User's substrate key
-    pub key: AccountId32,
-    // An encoded SecretKeyShare for this node
-    pub value: KvValue, // TODO(TK): write this type
-}
-
-// TODO(TK)
-impl TryInto<PartyInfo> for ParsedUserInputPartyInfo {
+impl TryInto<PartyInfo> for UserInputPartyInfo {
     type Error = UserErr;
 
     fn try_into(self) -> Result<PartyInfo, Self::Error> {
-        // todo!()
-        Err(UserErr::InputValidation("error"))
+        let share: KeyShare<TestSchemeParams> = deserialize(&self.key_share)
+            .ok_or(UserErr::InputValidation("Cannot deserialize key-share"))?;
+        let party_ids: Vec<PartyId> = self.party_ids.into_iter().map(PartyId::new).collect();
+        Ok(PartyInfo { share, party_ids })
     }
 }
