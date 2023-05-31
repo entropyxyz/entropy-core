@@ -28,7 +28,6 @@ use crate::{
         signing::SignatureState,
         substrate::{get_subgroup, make_register},
     },
-    message::SignedMessage,
     new_user,
     r#unsafe::api::{delete, get, put, remove_keys},
     sign_tx,
@@ -37,6 +36,7 @@ use crate::{
         SignerState,
     },
     store_tx,
+    validation::SignedMessage,
     validator::api::sync_kvdb,
 };
 

@@ -43,8 +43,8 @@ use crate::{
         substrate::{get_constraints, get_subgroup, is_registered},
         validator::get_signer,
     },
-    message::SignedMessage,
     signing_client::SignerState,
+    validation::SignedMessage,
     Configuration,
 };
 

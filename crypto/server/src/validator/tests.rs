@@ -22,7 +22,7 @@ use crate::{
         substrate::get_subgroup,
         tests::{create_clients, setup_client},
     },
-    message::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
+    validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
 };
 
 #[rocket::async_test]
@@ -87,12 +87,13 @@ async fn test_get_no_safe_crypto_error() {
         "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
     ];
 
-    let a_usr_sk = mnemonic_to_pair(&new_mnemonic());
+    let a_usr_sk = mnemonic_to_pair(&new_mnemonic()).unwrap();
     let a_usr_ss = derive_static_secret(&a_usr_sk);
     let sender = PublicKey::from(&a_usr_ss).to_bytes();
 
     let b_usr_sk =
-        mnemonic_to_pair(&Mnemonic::from_phrase(DEFAULT_BOB_MNEMONIC, Language::English).unwrap());
+        mnemonic_to_pair(&Mnemonic::from_phrase(DEFAULT_BOB_MNEMONIC, Language::English).unwrap())
+            .unwrap();
     let b_usr_ss = derive_static_secret(&b_usr_sk);
     let recip = PublicKey::from(&b_usr_ss);
     let values = vec![vec![10], vec![11], vec![12]];
@@ -133,11 +134,11 @@ async fn test_get_safe_crypto_error() {
         "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".as_bytes(),
     ];
 
-    let a_usr_sk = mnemonic_to_pair(&new_mnemonic());
+    let a_usr_sk = mnemonic_to_pair(&new_mnemonic()).unwrap();
     let a_usr_ss = derive_static_secret(&a_usr_sk);
     let sender = PublicKey::from(&a_usr_ss).to_bytes();
 
-    let b_usr_sk = mnemonic_to_pair(&new_mnemonic());
+    let b_usr_sk = mnemonic_to_pair(&new_mnemonic()).unwrap();
     let b_usr_ss = derive_static_secret(&b_usr_sk);
     let recip = PublicKey::from(&b_usr_ss);
 

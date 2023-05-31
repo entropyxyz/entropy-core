@@ -24,7 +24,11 @@ impl Evaluate<Evm> for Acl<[u8; 20]> {
         let converted_addresses: Vec<NameOrAddress> =
             self.addresses.into_iter().map(|a| NameOrAddress::Address(H160::from(a))).collect();
 
-        match (converted_addresses.contains(&tx.to.unwrap()), self.kind) {
+        match (
+            converted_addresses
+                .contains(&tx.to.ok_or(Error::Evaluation("Error Parsing to address"))?),
+            self.kind,
+        ) {
             (true, AclKind::Allow) => Ok(()),
             (false, AclKind::Deny) => Ok(()),
             _ => Err(Error::Evaluation("Transaction not allowed.")),

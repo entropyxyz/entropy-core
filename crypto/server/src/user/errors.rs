@@ -25,7 +25,7 @@ pub enum UserErr {
     GenericSubstrate(#[from] subxt::error::Error),
     #[error("Serde Json error: {0}")]
     SerdeJson(#[from] serde_json::Error),
-    #[error("ChaCha20 decryption error: {0}")]
+    #[error("Validation error: {0}")]
     Decryption(String),
     #[error("mnemonic failure: {0:?}")]
     Mnemonic(String),
