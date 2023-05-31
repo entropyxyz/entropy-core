@@ -20,8 +20,7 @@ pub struct SignInit {
 }
 
 impl SignInit {
-    // TODO(TK): option to make msg Bytes, and have `new` do input validation
-    // todo: placeholder for actual logic
+    /// Creates new signing object based on passed in data
     #[allow(dead_code)]
     pub fn new(message: Message, tx_id: String) -> Result<Self, SigningErr> {
         let digest: PrehashedMessage = message.sig_request.sig_hash.as_slice().try_into()?;

@@ -21,7 +21,6 @@ pub async fn subscribe_to_them(
         .ip_addresses
         .iter()
         .map(|ip| async move {
-            // TODO: handle errors
             let mut es = reqwest::Client::new()
                 .post(format!("http://{ip}/signer/subscribe_to_me"))
                 .json(&SubscribeMessage::new(&ctx.sign_init.sig_uid, my_id.clone()))
