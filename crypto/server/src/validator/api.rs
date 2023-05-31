@@ -139,7 +139,9 @@ pub async fn get_random_server_info(
             .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
         server_to_query += 1;
     }
-    Ok(server_info.ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?)
+    let server_info_result =
+        server_info.ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
+    Ok(server_info_result)
 }
 
 /// from keys of registered account get their corresponding entropy threshold keys

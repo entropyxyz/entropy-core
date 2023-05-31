@@ -90,10 +90,10 @@ impl SignedMessage {
         let shared_secret = static_secret.diffie_hellman(&PublicKey::from(self.a));
         static_secret.zeroize();
         let cipher = ChaCha20Poly1305::new_from_slice(shared_secret.as_bytes())
-            .map_err(|e| ValidationErr::Conversion(e.to_string()))?;
-        Ok(cipher
+            .map_err(|e| ValidationErr::Conversion(e.to_string()))?
             .decrypt(&generic_array::GenericArray::from(self.nonce), self.msg.0.as_slice())
-            .map_err(|e| ValidationErr::Decryption(e.to_string()))?)
+            .map_err(|e| ValidationErr::Decryption(e.to_string()))?;
+        Ok(cipher)
     }
 
     /// Returns the AccountId32 of the message signer.

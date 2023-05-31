@@ -74,19 +74,15 @@ pub(super) async fn execute_protocol(
         };
 
         while session.has_cached_messages() {
-            session
-                .receive_cached_message()
-                .map_err(|e| SigningErr::SessionError(e.to_string()))?;
+            session.receive_cached_message().map_err(SigningErr::SessionError)?;
         }
 
-        while !session
-            .is_finished_receiving()
-            .map_err(|e| SigningErr::SessionError(e.to_string()))?
-        {
+        while !session.is_finished_receiving().map_err(SigningErr::SessionError)? {
             let signing_message = rx.next().await.ok_or_else(|| {
                 SigningErr::IncomingStream(format!("{}", session.current_stage_num()))
             })?;
-            let _ = validate_signed_message(
+
+            validate_signed_message(
                 &signing_message.payload,
                 signing_message.signature,
                 signing_message.sender_pk,
