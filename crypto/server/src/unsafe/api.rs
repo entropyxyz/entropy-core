@@ -7,7 +7,7 @@ use rocket::{http::Status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-/// [UNSAFE - DO NOT USE IN PRODUCTION]
+/// \[UNSAFE - DO NOT USE IN PRODUCTION\]
 /// UnsafeQuery's are used to modify
 /// the state of the KVDB, for development
 /// purposes only.
@@ -58,14 +58,14 @@ pub async fn put(key: Json<UnsafeQuery>, state: &State<KvManager>) -> Status {
     }
 }
 
-/// [UNSAFE] Deletes any key from the KVDB.
+/// \[UNSAFE\] Deletes any key from the KVDB.
 #[post("/delete", format = "json", data = "<key>")]
 pub async fn delete(key: Json<UnsafeQuery>, state: &State<KvManager>) -> Status {
     state.kv().delete(&key.key.to_owned()).await.unwrap();
     Status::Ok
 }
 
-/// [UNSAFE] Removes all keys from the KVDB.
+/// \[UNSAFE\] Removes all keys from the KVDB.
 #[get("/remove_keys")]
 pub async fn remove_keys(state: &State<KvManager>) -> Status {
     state.kv().delete("DH_PUBLIC").await.unwrap();
