@@ -10,7 +10,7 @@ Our blockchain node is written with Substrate, and its documentation can be foun
 
 ### Rust Setup
 
-First, complete the [basic Rust setup instructions](./doc/rust-setup.md).
+First, [install rust](https://www.rust-lang.org/tools/install).
 
 ### Build
 
