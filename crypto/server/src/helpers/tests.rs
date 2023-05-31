@@ -6,12 +6,12 @@ use futures::future::join_all;
 use kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
-    kv_manager::{KvManager, PartyId, PartyInfo},
+    kv_manager::{KvManager, PartyId},
 };
 use rand_core::OsRng;
 use rocket::{local::asynchronous::Client, tokio::time::Duration, Ignite, Rocket};
 use serial_test::serial;
-use sp_core::{sr25519, Bytes, Pair};
+use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
 use sp_keyring::Sr25519Keyring;
 use subxt::{tx::PairSigner, OnlineClient};
 use synedrion::{make_key_shares, TestSchemeParams};
@@ -37,6 +37,7 @@ use crate::{
         SignerState,
     },
     store_tx,
+    user::UserInputPartyInfo,
     validator::api::sync_kvdb,
 };
 
@@ -132,18 +133,31 @@ pub async fn register_user(
     let validator2_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
 
     let shares = make_key_shares::<TestSchemeParams>(&mut OsRng, 2, None);
+
+    let party_ids: Vec<AccountId32> = party_ids
+        .into_iter()
+        .map(|party_id| {
+            let p: [u8; 32] =
+                hex::decode(String::from(party_id.clone())).unwrap().try_into().unwrap();
+            p.into()
+        })
+        .collect();
+
+    let validator_1_user_input_party_info = UserInputPartyInfo {
+        key_share: kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap(),
+        party_ids: party_ids.clone(),
+    };
+
     let validator_1_threshold_keyshare: Vec<u8> =
-        kvdb::kv_manager::helpers::serialize(&PartyInfo {
-            party_ids: party_ids.to_vec(),
-            share: shares[0].clone(),
-        })
-        .unwrap();
+        serde_json::to_string(&validator_1_user_input_party_info).unwrap().into_bytes();
+
+    let validator_2_user_input_party_info = UserInputPartyInfo {
+        key_share: kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap(),
+        party_ids: party_ids.clone(),
+    };
+
     let validator_2_threshold_keyshare: Vec<u8> =
-        kvdb::kv_manager::helpers::serialize(&PartyInfo {
-            party_ids: party_ids.to_vec(),
-            share: shares[1].clone(),
-        })
-        .unwrap();
+        serde_json::to_string(&validator_2_user_input_party_info).unwrap().into_bytes();
 
     let register_body_alice_validator = SignedMessage::new(
         &sig_req_keyring.pair(),
@@ -267,4 +281,16 @@ async fn test_get_signing_group() {
     assert!(result_charlie.is_err());
 
     clean_tests();
+}
+
+pub fn create_user_input_party_info() -> UserInputPartyInfo {
+    let shares = make_key_shares::<TestSchemeParams>(&mut OsRng, 2, None);
+    let key_share: Vec<u8> = kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
+    let party_ids: Vec<AccountId32> = vec![
+        hex_literal::hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"]
+            .into(),
+        hex_literal::hex!["8676839ca1e196624106d17c56b1efbb90508a86d8053f7d4fcd21127a9f7565"]
+            .into(),
+    ];
+    UserInputPartyInfo { key_share, party_ids }
 }
