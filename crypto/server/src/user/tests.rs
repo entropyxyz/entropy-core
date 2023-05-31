@@ -41,8 +41,8 @@ use crate::{
         signing::{create_unique_tx_id, SignatureState},
         substrate::make_register,
         tests::{
-            check_if_confirmation, create_clients, make_swapping, register_user, setup_client,
-            spawn_testing_validators,
+            check_if_confirmation, create_clients, create_user_input_party_info, make_swapping,
+            register_user, setup_client, spawn_testing_validators,
         },
     },
     load_kv_store,
@@ -590,16 +590,22 @@ async fn test_store_share() {
     let alice = AccountKeyring::Alice;
     let alice_constraint = AccountKeyring::Charlie;
 
-    let value: Vec<u8> = vec![0];
+    let user_input_party_info = create_user_input_party_info();
+    let user_input_party_info_serialized =
+        serde_json::to_string(&user_input_party_info).unwrap().into_bytes();
 
     let cxt = test_context_stationary().await;
     let client = setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
-    let user_input = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
-        .unwrap()
-        .to_json();
+    let user_input = SignedMessage::new(
+        &alice.pair(),
+        &Bytes(user_input_party_info_serialized.clone()),
+        &server_public_key,
+    )
+    .unwrap()
+    .to_json();
     // fails to add not registering or swapping
     let response = client
         .post("/user/new")
@@ -641,10 +647,13 @@ async fn test_store_share() {
 
     // fails with wrong node key
     let server_public_key_bob = PublicKey::from(X25519_PUBLIC_KEYS[1]);
-    let user_input_bob =
-        SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key_bob)
-            .unwrap()
-            .to_json();
+    let user_input_bob = SignedMessage::new(
+        &alice.pair(),
+        &Bytes(user_input_party_info_serialized.clone()),
+        &server_public_key_bob,
+    )
+    .unwrap()
+    .to_json();
 
     let response_4 = client
         .post("/user/new")
@@ -660,7 +669,7 @@ async fn test_store_share() {
     let slice: [u8; 32] = [0; 32];
     let nonce: [u8; 12] = [0; 12];
     let user_input_bad = SignedMessage::new_test(
-        Bytes(value),
+        Bytes(user_input_party_info_serialized),
         sr25519::Signature::from_raw(sig),
         slice,
         slice,
