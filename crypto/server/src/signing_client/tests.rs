@@ -79,7 +79,7 @@ async fn test_new_party() {
         .await;
     assert_eq!(
         query_parsed_tx.into_string().await,
-        Some(serde_json::to_string(&onchain_signature_request.messages[0]).unwrap())
+        Some(hex::encode(serde_json::to_string(&onchain_signature_request.messages[0]).unwrap()))
     );
 
     // check tx gets pruned
