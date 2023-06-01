@@ -3,17 +3,18 @@ use std::{collections::HashMap, sync::Mutex};
 use bip39::{Language, Mnemonic};
 use kvdb::kv_manager::{KvManager, PartyId};
 use rocket::{http::Status, State};
+use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 
 use crate::{
     get_signer,
-    message::mnemonic_to_pair,
     sign_init::SignInit,
     signing_client::{
         new_party::{Channels, ThresholdSigningService},
         subscribe::{subscribe_to_them, Listener},
         SignerState, SigningErr,
     },
+    validation::mnemonic_to_pair,
 };
 
 #[derive(Clone, Debug)]
@@ -72,10 +73,16 @@ pub async fn do_signing(
     signatures: &State<SignatureState>,
     tx_id: String,
 ) -> Result<Status, SigningErr> {
-    let info = SignInit::new(message.clone(), tx_id);
+    let info = SignInit::new(message.clone(), tx_id)?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
 
-    let my_id = PartyId::new(get_signer(kv_manager).await.unwrap().account_id().clone());
+    let my_id = PartyId::new(
+        get_signer(kv_manager)
+            .await
+            .map_err(|_| SigningErr::UserError("Error getting Signer"))?
+            .account_id()
+            .clone(),
+    );
 
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
@@ -85,7 +92,7 @@ pub async fn do_signing(
     state
         .listeners
         .lock()
-        .expect("lock shared data")
+		.map_err(|_| SigningErr::SessionError("Error getting lock".to_string()))?
         // TODO: using signature ID as session ID. Correct?
         .insert(sign_context.sign_init.sig_uid.clone(), listener);
     let channels = {
@@ -94,26 +101,29 @@ pub async fn do_signing(
         Channels(broadcast_out, stream_in)
     };
 
-    let raw = kv_manager.kv().get("MNEMONIC").await.unwrap();
-    let secret = core::str::from_utf8(&raw).unwrap();
-    let mnemonic = Mnemonic::from_phrase(secret, Language::English).unwrap();
-    let threshold_signer = mnemonic_to_pair(&mnemonic);
-    let tss_accounts = message
+    let raw = kv_manager.kv().get("MNEMONIC").await?;
+    let secret = core::str::from_utf8(&raw)?;
+    let mnemonic = Mnemonic::from_phrase(secret, Language::English)
+        .map_err(|e| SigningErr::Mnemonic(e.to_string()))?;
+    let threshold_signer =
+        mnemonic_to_pair(&mnemonic).map_err(|_| SigningErr::SecretString("Secret String Error"))?;
+    let tss_accounts_results: Result<Vec<AccountId32>, SigningErr> = message
         .validators_info
         .iter()
         .map(|validator_info| {
-            let address_slice: &[u8; 32] = &validator_info
-                .tss_account
-                .clone()
-                .try_into()
-                .expect("slice with incorrect length");
-            sp_core::crypto::AccountId32::new(*address_slice)
+            let address_slice: &[u8; 32] =
+                &validator_info.tss_account.clone().try_into().map_err(|_| {
+                    SigningErr::AddressConversionError("Invalid Length".to_string())
+                })?;
+            Ok(sp_core::crypto::AccountId32::new(*address_slice))
         })
-        .collect::<Vec<_>>();
+        .collect();
+
+    let tss_accounts = tss_accounts_results.map_err(SigningErr::from)?;
+
     let result = signing_service
         .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
-        .await
-        .unwrap();
+        .await?;
 
     signing_service.handle_result(&result, message.sig_request.sig_hash.as_slice(), signatures);
 

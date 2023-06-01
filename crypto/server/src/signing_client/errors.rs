@@ -1,5 +1,5 @@
 //! Errors for everyone ✅
-use std::io::Cursor;
+use std::{io::Cursor, string::FromUtf8Error};
 
 use kvdb::kv_manager::error::InnerKvError;
 use rocket::{
@@ -44,6 +44,10 @@ pub enum SigningErr {
     AddressConversionError(String),
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
+    #[error("Utf8Error: {0:?}")]
+    Utf8(#[from] std::str::Utf8Error),
+    #[error("reqwest event error: {0}")]
+    ReqwestEvent(#[from] reqwest_eventsource::Error),
     #[error("Broadcast error: {0}")]
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<SigningMessage>>),
     #[error("anyhow error: {0}")]
@@ -59,7 +63,21 @@ pub enum SigningErr {
     #[error("Serde Json error: {0}")]
     SerdeJson(#[from] serde_json::Error),
     #[error("Message validation Error: {0}")]
-    MessageValidation(&'static str),
+    MessageValidation(String),
+    #[error("Cannont clone request: {0}")]
+    CannotCloneRequest(String),
+    #[error("Unexpected event: {0}")]
+    UnexpectedEvent(String),
+    #[error("Session Error: {0}")]
+    SessionError(String),
+    #[error("String Conversion Error: {0}")]
+    StringConversion(#[from] FromUtf8Error),
+    #[error("Secret String failure: {0:?}")]
+    SecretString(&'static str),
+    #[error("User Error: {0}")]
+    UserError(&'static str),
+    #[error("mnemonic failure: {0:?}")]
+    Mnemonic(String),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
@@ -84,6 +102,8 @@ pub enum SubscribeErr {
     // Validation(&'static str),
     #[error("invalid party ID: {0}")]
     InvalidPartyId(String),
+    #[error("Lock Error: {0}")]
+    LockError(String),
 }
 
 // todo: delete

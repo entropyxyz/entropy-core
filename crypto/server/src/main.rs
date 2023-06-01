@@ -13,11 +13,11 @@
 pub(crate) mod chain_api;
 pub(crate) mod health;
 mod helpers;
-pub(crate) mod message;
 pub(crate) mod sign_init;
 mod signing_client;
 mod r#unsafe;
 mod user;
+pub(crate) mod validation;
 mod validator;
 use rocket::{
     fairing::{Fairing, Info, Kind},

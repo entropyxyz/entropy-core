@@ -74,19 +74,21 @@ pub(super) async fn execute_protocol(
         };
 
         while session.has_cached_messages() {
-            session.receive_cached_message().unwrap();
+            session.receive_cached_message().map_err(SigningErr::SessionError)?;
         }
 
-        while !session.is_finished_receiving().unwrap() {
+        while !session.is_finished_receiving().map_err(SigningErr::SessionError)? {
             let signing_message = rx.next().await.ok_or_else(|| {
                 SigningErr::IncomingStream(format!("{}", session.current_stage_num()))
             })?;
-            let _ = validate_signed_message(
+
+            validate_signed_message(
                 &signing_message.payload,
                 signing_message.signature,
                 signing_message.sender_pk,
                 &threshold_accounts,
-            );
+            )
+            .map_err(|e| SigningErr::MessageValidation(e.to_string()))?;
             // TODO: we shouldn't send broadcasts to ourselves in the first place.
             if &signing_message.from == my_id {
                 continue;
@@ -120,12 +122,16 @@ pub fn validate_signed_message(
     hasher.update(message);
     let part_of_signers = threshold_accounts.contains(&AccountId32::new(sender_pk.0));
     if !part_of_signers {
-        return Err(Box::new(SigningErr::MessageValidation("Unable to verify sender of message")));
+        return Err(Box::new(SigningErr::MessageValidation(
+            "Unable to verify sender of message".to_string(),
+        )));
     }
     let hash = hasher.finalize().to_vec();
     let signature = <sr25519::Pair as Pair>::verify(&signature, hash, &sender_pk);
     if !signature {
-        return Err(Box::new(SigningErr::MessageValidation("Unable to verify origins of message")));
+        return Err(Box::new(SigningErr::MessageValidation(
+            "Unable to verify origins of message".to_string(),
+        )));
     }
 
     Ok(())
