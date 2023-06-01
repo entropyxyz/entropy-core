@@ -39,7 +39,7 @@ async fn test_unsafe_get_endpoint() {
 
     assert_eq!(get_response.status(), Status::Ok);
     let updated_response_mnemonic = get_response.into_string().await.unwrap();
-    assert_eq!(updated_response_mnemonic, "foo".to_string());
+    assert_eq!(updated_response_mnemonic, hex::encode("foo"));
 
     clean_tests();
 }
