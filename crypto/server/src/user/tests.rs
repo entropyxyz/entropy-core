@@ -105,12 +105,12 @@ async fn test_sign_tx_no_chain() {
         validators_info: vec![
             ValidatorInfo {
                 ip_address: b"127.0.0.1:3001".to_vec(),
-                x25519_public_key: [0; 32],
+                x25519_public_key: X25519_PUBLIC_KEYS[0],
                 tss_account: TSS_ACCOUNTS[0].encode(),
             },
             ValidatorInfo {
                 ip_address: b"127.0.0.1:3002".to_vec(),
-                x25519_public_key: [0; 32],
+                x25519_public_key: X25519_PUBLIC_KEYS[1],
                 tss_account: TSS_ACCOUNTS[1].encode(),
             },
         ],
@@ -153,6 +153,7 @@ async fn test_sign_tx_no_chain() {
 
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
     test_user_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
 
     // test failing cases

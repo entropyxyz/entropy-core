@@ -6,24 +6,42 @@ use futures::{future, stream, stream::BoxStream, StreamExt};
 use kvdb::kv_manager::PartyId;
 pub(super) use listener::Receiver;
 use reqwest_eventsource::{Error, Event, RequestBuilderExt};
+use sp_core::Bytes;
+use subxt::{ext::sp_core::sr25519, tx::PairSigner};
+use x25519_dalek::PublicKey;
 
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
 use super::{new_party::SignContext, SigningErr, SigningMessage};
+use crate::{chain_api::EntropyConfig, validation::SignedMessage};
 
 /// Call `subscribe` on every other node with a reqwest client. Merge the streamed responses
 /// into a single stream.
 pub async fn subscribe_to_them(
     ctx: &SignContext,
     my_id: &PartyId,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
 ) -> Result<BoxStream<'static, SigningMessage>, SigningErr> {
     let event_sources_init = ctx
         .sign_init
-        .ip_addresses
+        .validator_send_info
         .iter()
-        .map(|ip| async move {
+        .map(|validator_send_info| async move {
+            let server_public_key = PublicKey::from(validator_send_info.x25519_public_key);
+            let signed_message = SignedMessage::new(
+                &signer.signer(),
+                &Bytes(
+                    serde_json::to_vec(&SubscribeMessage::new(
+                        &ctx.sign_init.sig_uid,
+                        my_id.clone(),
+                    ))
+                    .unwrap(),
+                ),
+                &server_public_key,
+            )
+            .unwrap();
             let mut es = reqwest::Client::new()
-                .post(format!("http://{ip}/signer/subscribe_to_me"))
-                .json(&SubscribeMessage::new(&ctx.sign_init.sig_uid, my_id.clone()))
+                .post(format!("http://{}/signer/subscribe_to_me", validator_send_info.ip_address))
+                .json(&signed_message)
                 .eventsource()
                 .map_err(|e| SigningErr::CannotCloneRequest(e.to_string()))?;
 
