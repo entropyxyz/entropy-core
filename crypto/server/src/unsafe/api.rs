@@ -27,8 +27,8 @@ impl UnsafeQuery {
 #[post("/get", format = "json", data = "<key>")]
 /// Gets a value from the encrypted KVDB.
 /// NOTE: for development purposes only.
-pub async fn get(key: Json<UnsafeQuery>, state: &State<KvManager>) -> Vec<u8> {
-    state.kv().get(&key.key.to_owned()).await.unwrap()
+pub async fn get(key: Json<UnsafeQuery>, state: &State<KvManager>) -> String {
+    hex::encode(state.kv().get(&key.key.to_owned()).await.unwrap())
 }
 
 #[post("/put", format = "json", data = "<key>")]
