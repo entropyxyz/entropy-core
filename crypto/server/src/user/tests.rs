@@ -6,7 +6,14 @@ use entropy_shared::{Acl, Constraints, Message, OCWMessage, SigRequest, Validato
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future};
 use hex_literal::hex as h;
-use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
+use kvdb::{
+    clean_tests,
+    encrypted_sled::PasswordMethod,
+    kv_manager::{
+        helpers::serialize,
+        value::{KvManager, PartyInfo},
+    },
+};
 use parity_scale_codec::Encode;
 use rocket::{
     http::{ContentType, Status},
@@ -698,7 +705,11 @@ async fn test_update_keys() {
 
     let key: AccountId32 = dave.to_account_id();
     let value: Vec<u8> = vec![0];
-    let new_value: Vec<u8> = vec![1];
+
+    let user_input_party_info = create_user_input_party_info();
+
+    let new_value = serde_json::to_string(&user_input_party_info).unwrap().into_bytes();
+
     let cxt = test_context_stationary().await;
     let client = setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
@@ -760,10 +771,11 @@ async fn test_update_keys() {
         .dispatch()
         .await;
 
-    assert_eq!(
-        response_4.into_string().await,
-        Some(std::str::from_utf8(&new_value).unwrap().to_string())
-    );
+    let party_info: PartyInfo = user_input_party_info.try_into().unwrap();
+
+    let party_info_serialized: Vec<u8> = serialize(&party_info).unwrap();
+
+    assert_eq!(response_4.into_string().await, Some(hex::encode(party_info_serialized)));
     clean_tests();
 }
 
