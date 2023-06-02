@@ -22,7 +22,4 @@ impl SubscribeMessage {
     }
 
     pub fn party_id(&self) -> Result<PartyId, String> { self.party_id.clone().try_into() }
-
-    // todo: unclear what validation should occur
-    pub(crate) fn validate_registration(&self) -> Result<(), SubscribeErr> { Ok(()) }
 }

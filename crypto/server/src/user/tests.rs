@@ -167,6 +167,18 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
+    generic_msg.message.validators_info[0].x25519_public_key = [0; 32];
+
+    let test_user_failed_x25519_pub_key =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    for res in test_user_failed_x25519_pub_key {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "Signing error: reqwest event error: Invalid status code: 500 Internal Server Error"
+        );
+    }
+
     generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec());
 
     let test_user_failed_constraints_res =
@@ -261,12 +273,12 @@ async fn test_fail_signing_group() {
         validators_info: vec![
             ValidatorInfo {
                 ip_address: b"127.0.0.1:3001".to_vec(),
-                x25519_public_key: [0; 32],
+                x25519_public_key: X25519_PUBLIC_KEYS[0],
                 tss_account: TSS_ACCOUNTS[0].encode(),
             },
             ValidatorInfo {
                 ip_address: b"127.0.0.1:3002".to_vec(),
-                x25519_public_key: [0; 32],
+                x25519_public_key: X25519_PUBLIC_KEYS[1],
                 tss_account: TSS_ACCOUNTS[1].encode(),
             },
         ],

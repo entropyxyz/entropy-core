@@ -72,12 +72,13 @@ pub async fn subscribe_to_me(
         return Err(SubscribeErr::InvalidSignature("Invalid signature."));
     }
     let signer = get_signer(kv).await.map_err(|e| SubscribeErr::UserError(e.to_string()))?;
-    let signing_address = signed_msg.account_id().to_ss58check();
+    // TODO: handle ss58 check when number chosen
+    let _signing_address = signed_msg.account_id().to_ss58check();
     // TODO: validate signing address against current message signers
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| SubscribeErr::Decryption(e.to_string()))?;
     let msg: SubscribeMessage = serde_json::from_slice(&decrypted_message)?;
-    // msg.validate_registration()?;
+
     info!("got subscribe, with message: {msg:?}");
 
     let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
