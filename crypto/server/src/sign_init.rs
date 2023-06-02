@@ -5,6 +5,7 @@ use synedrion::sessions::PrehashedMessage;
 
 use crate::signing_client::SigningErr;
 
+/// Information that is needed for talking to a validator
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ValidatorSendInfo {
     /// Participating nodes' IP addresses.
