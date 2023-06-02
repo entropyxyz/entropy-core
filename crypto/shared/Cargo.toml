@@ -12,10 +12,10 @@ sp-core        ={ package="sp-core", git="https://github.com/paritytech/substrat
 sp-std         ={ package="sp-std", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31", default-features=false }
 frame-support  ={ package="frame-support", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31", default-features=false }
 node-primitives={ version="2.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.31" }
+schemars       ="0.8.12"
 
 # Entropy Constraints packages
 ec-core={ git="https://github.com/entropyxyz/constraints", branch="v0.1", default-features=false }
-schemars = "0.8.12"
 
 [features]
 default=["std"]
