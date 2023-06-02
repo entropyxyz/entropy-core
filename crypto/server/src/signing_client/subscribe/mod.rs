@@ -28,7 +28,7 @@ pub async fn subscribe_to_them(
         .map(|validator_send_info| async move {
             let server_public_key = PublicKey::from(validator_send_info.x25519_public_key);
             let signed_message = SignedMessage::new(
-                &signer.signer(),
+                signer.signer(),
                 &Bytes(
                     serde_json::to_vec(&SubscribeMessage::new(
                         &ctx.sign_init.sig_uid,

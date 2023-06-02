@@ -1,8 +1,6 @@
 use kvdb::kv_manager::PartyId;
 use serde::{Deserialize, Serialize};
 
-use crate::signing_client::SubscribeErr;
-
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
 #[serde(crate = "rocket::serde")]
