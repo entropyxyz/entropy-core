@@ -43,6 +43,7 @@ use crate::{
     health::api::healthz,
     helpers::{
         launch::{init_tracing, load_kv_store, setup_mnemonic, Configuration, StartupArgs},
+        schemas::generate_json_schemas,
         signing::SignatureState,
         substrate::get_subgroup,
         validator::get_signer,
@@ -74,6 +75,11 @@ async fn rocket() -> _ {
     init_tracing();
 
     let args = StartupArgs::parse();
+
+    if args.generate_json_schema {
+        generate_json_schemas();
+        std::process::exit(0);
+    }
 
     let signer_state = SignerState::default();
     let configuration = Configuration::new(args.chain_endpoint);

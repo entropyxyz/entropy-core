@@ -100,6 +100,10 @@ pub struct StartupArgs {
     /// TODO remove and force password
     #[arg(long = "nopassword")]
     pub no_password: bool,
+
+    /// Generate JSON schema for common types and finish (don't run server)
+    #[arg(long = "generate-json-schema")]
+    pub generate_json_schema: bool,
 }
 
 pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Result<(), KvError> {
