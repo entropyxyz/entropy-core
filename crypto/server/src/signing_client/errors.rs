@@ -78,6 +78,8 @@ pub enum SigningErr {
     UserError(&'static str),
     #[error("mnemonic failure: {0:?}")]
     Mnemonic(String),
+    #[error("Validation Error: {0}")]
+    ValidationErr(#[from] crate::validation::errors::ValidationErr),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {

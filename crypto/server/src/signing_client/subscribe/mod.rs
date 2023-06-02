@@ -29,16 +29,12 @@ pub async fn subscribe_to_them(
             let server_public_key = PublicKey::from(validator_send_info.x25519_public_key);
             let signed_message = SignedMessage::new(
                 signer.signer(),
-                &Bytes(
-                    serde_json::to_vec(&SubscribeMessage::new(
-                        &ctx.sign_init.sig_uid,
-                        my_id.clone(),
-                    ))
-                    .unwrap(),
-                ),
+                &Bytes(serde_json::to_vec(&SubscribeMessage::new(
+                    &ctx.sign_init.sig_uid,
+                    my_id.clone(),
+                ))?),
                 &server_public_key,
-            )
-            .unwrap();
+            )?;
             let mut es = reqwest::Client::new()
                 .post(format!("http://{}/signer/subscribe_to_me", validator_send_info.ip_address))
                 .json(&signed_message)
