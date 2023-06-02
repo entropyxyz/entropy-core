@@ -23,6 +23,7 @@ use rocket::{
     serde::json::{to_string, Json},
     Shutdown, State,
 };
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use subxt::{
     ext::{
@@ -49,7 +50,7 @@ use crate::{
 };
 
 /// Represents an unparsed, transaction request coming from the client.
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
 pub struct UserTransactionRequest {
     /// 'eth', etc.
     pub arch: String,
@@ -59,7 +60,7 @@ pub struct UserTransactionRequest {
     pub message: Message,
 }
 /// Represents an unparsed, transaction request coming from the client.
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
 pub struct GenericTransactionRequest {
     /// 'eth', etc.
     pub arch: String,
