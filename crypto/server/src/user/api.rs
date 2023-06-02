@@ -67,7 +67,6 @@ pub struct GenericTransactionRequest {
     pub transaction_request: String,
 }
 
-
 /// Called by a user to initiate the signing process for a message
 ///
 /// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
