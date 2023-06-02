@@ -36,7 +36,7 @@ sp-core           ={ package="sp-core", git="https://github.com/paritytech/subst
 sp-keyring        ={ package="sp-keyring", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
 
 # Entropy
-entropy-shared={ path="../shared" }
+entropy-shared={ path="../shared", features=["schema"] }
 kvdb          ={ path="../kvdb", default-features=false }
 
 # Constraints
