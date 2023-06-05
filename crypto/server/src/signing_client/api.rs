@@ -2,7 +2,7 @@ use std::{convert::TryInto, str};
 
 use blake2::{Blake2s256, Digest};
 use entropy_shared::{OCWMessage, PRUNE_BLOCK};
-use kvdb::kv_manager::KvManager;
+use kvdb::kv_manager::{KvManager, PartyId};
 use parity_scale_codec::{Decode, Encode};
 use rocket::{http::Status, response::stream::EventStream, serde::json::Json, Shutdown, State};
 use sp_core::crypto::Ss58Codec;
@@ -72,9 +72,7 @@ pub async fn subscribe_to_me(
         return Err(SubscribeErr::InvalidSignature("Invalid signature."));
     }
     let signer = get_signer(kv).await.map_err(|e| SubscribeErr::UserError(e.to_string()))?;
-    // TODO: handle ss58 check when number chosen
-    let _signing_address = signed_msg.account_id().to_ss58check();
-    // TODO: validate signing address against current message signers
+
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| SubscribeErr::Decryption(e.to_string()))?;
     let msg: SubscribeMessage = serde_json::from_slice(&decrypted_message)?;
@@ -82,6 +80,13 @@ pub async fn subscribe_to_me(
     info!("got subscribe, with message: {msg:?}");
 
     let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
+
+    let signing_address = signed_msg.account_id();
+
+    // TODO: should we also check if party_id is in signing group
+    if PartyId::new(signing_address) != party_id {
+        return Err(SubscribeErr::InvalidSignature("Signature does not match party id."));
+    }
 
     if !state.contains_listener(&msg.session_id)? {
         // Chain node hasn't yet informed this node of the party. Wait for a timeout and procede (or
