@@ -1,8 +1,6 @@
 use kvdb::kv_manager::PartyId;
 use serde::{Deserialize, Serialize};
 
-use crate::signing_client::SubscribeErr;
-
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
 #[serde(crate = "rocket::serde")]
@@ -22,7 +20,4 @@ impl SubscribeMessage {
     }
 
     pub fn party_id(&self) -> Result<PartyId, String> { self.party_id.clone().try_into() }
-
-    // todo: unclear what validation should occur
-    pub(crate) fn validate_registration(&self) -> Result<(), SubscribeErr> { Ok(()) }
 }

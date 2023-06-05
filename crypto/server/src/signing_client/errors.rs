@@ -78,6 +78,8 @@ pub enum SigningErr {
     UserError(&'static str),
     #[error("mnemonic failure: {0:?}")]
     Mnemonic(String),
+    #[error("Validation Error: {0}")]
+    ValidationErr(#[from] crate::validation::errors::ValidationErr),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
@@ -91,8 +93,7 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
 }
 
 /// Errors for the `subscribe` API
-#[derive(Responder, Debug, Error)]
-#[response(status = 418, content_type = "json")]
+#[derive(Debug, Error)]
 pub enum SubscribeErr {
     // #[error("Timeout error: {0}")]
     // Timeout(&'static str),
@@ -104,6 +105,24 @@ pub enum SubscribeErr {
     InvalidPartyId(String),
     #[error("Lock Error: {0}")]
     LockError(String),
+    #[error("Invalid Signature: {0}")]
+    InvalidSignature(&'static str),
+    #[error("Validation error: {0}")]
+    Decryption(String),
+    #[error("Serde Json error: {0}")]
+    SerdeJson(#[from] serde_json::Error),
+    #[error("User Error: {0}")]
+    UserError(String),
+}
+
+impl<'r, 'o: 'r> Responder<'r, 'o> for SubscribeErr {
+    fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
+        let body = format!("{self}").into_bytes();
+        Response::build()
+            .sized_body(body.len(), Cursor::new(body))
+            .status(Status::InternalServerError)
+            .ok()
+    }
 }
 
 // todo: delete

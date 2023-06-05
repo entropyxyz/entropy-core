@@ -11,11 +11,13 @@ use tracing::instrument;
 
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
+    get_signer,
     helpers::signing::{create_unique_tx_id, SignatureState},
     signing_client::{
         subscribe::{Listener, Receiver},
         SignerState, SigningErr, SubscribeErr, SubscribeMessage,
     },
+    validation::SignedMessage,
     Configuration,
 };
 
@@ -60,12 +62,23 @@ pub async fn new_party(
 /// The SigningProtocol begins when all nodes in the party have called this method on this node.
 #[post("/subscribe_to_me", data = "<msg>")]
 pub async fn subscribe_to_me(
-    msg: Json<SubscribeMessage>,
+    msg: Json<SignedMessage>,
     end: Shutdown,
     state: &State<SignerState>,
+    kv: &State<KvManager>,
 ) -> Result<EventStream![], SubscribeErr> {
-    let msg = msg.into_inner();
-    msg.validate_registration()?;
+    let signed_msg: SignedMessage = msg.into_inner();
+    if !signed_msg.verify() {
+        return Err(SubscribeErr::InvalidSignature("Invalid signature."));
+    }
+    let signer = get_signer(kv).await.map_err(|e| SubscribeErr::UserError(e.to_string()))?;
+    // TODO: handle ss58 check when number chosen
+    let _signing_address = signed_msg.account_id().to_ss58check();
+    // TODO: validate signing address against current message signers
+    let decrypted_message =
+        signed_msg.decrypt(signer.signer()).map_err(|e| SubscribeErr::Decryption(e.to_string()))?;
+    let msg: SubscribeMessage = serde_json::from_slice(&decrypted_message)?;
+
     info!("got subscribe, with message: {msg:?}");
 
     let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;

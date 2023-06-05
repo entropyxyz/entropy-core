@@ -75,14 +75,9 @@ pub async fn do_signing(
 ) -> Result<Status, SigningErr> {
     let info = SignInit::new(message.clone(), tx_id)?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
-
-    let my_id = PartyId::new(
-        get_signer(kv_manager)
-            .await
-            .map_err(|_| SigningErr::UserError("Error getting Signer"))?
-            .account_id()
-            .clone(),
-    );
+    let signer =
+        get_signer(kv_manager).await.map_err(|_| SigningErr::UserError("Error getting Signer"))?;
+    let my_id = PartyId::new(signer.account_id().clone());
 
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
@@ -96,7 +91,7 @@ pub async fn do_signing(
         // TODO: using signature ID as session ID. Correct?
         .insert(sign_context.sign_init.sig_uid.clone(), listener);
     let channels = {
-        let stream_in = subscribe_to_them(&sign_context, &my_id).await?;
+        let stream_in = subscribe_to_them(&sign_context, &my_id, &signer).await?;
         let broadcast_out = rx_ready.await??;
         Channels(broadcast_out, stream_in)
     };
