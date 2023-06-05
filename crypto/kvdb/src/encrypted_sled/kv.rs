@@ -1,7 +1,7 @@
 //! Wrap [sled] with [chacha20poly1305] encryption. An [XChaCha20Entropy] is
-//! used as [XChaCha20Poly1305] cipher key to create an [EncryptedDb].
-//! A new random [XChaCha20Nonce] is created every time a new value needs to be
-//! inserted, forming a [EncryptedRecord]:<encrypted value, nonce>. The nonce is later
+//! used as [XChaCha20Poly1305](chacha20poly1305::XChaCha20Poly1305) cipher key to create an
+//! [EncryptedDb]. A new random [chacha20poly1305::XNonce] is created every time a new value needs
+//! to be inserted, forming a [EncryptedRecord]:<encrypted value, nonce>. The nonce is later
 //! used to decrypt and retrieve the originally inserted value.
 
 use std::convert::TryInto;
@@ -32,7 +32,7 @@ impl EncryptedDb {
     /// create a new [EncryptedDb] that wraps sled::open(db_name).
     /// Retrieves [XChaCha20Entropy] from a password-based-key-derivation-function and
     /// verifies that the password is valid.
-    /// See [crate::password] for more info on pdkdf.
+    /// See [super::Password] for more info on pdkdf.
     pub fn open<P>(db_name: P, password: Password) -> EncryptedDbResult<Self>
     where P: AsRef<std::path::Path> {
         let kv = sled::open(db_name).map_err(CorruptedKv)?;
@@ -55,7 +55,7 @@ impl EncryptedDb {
 
         let encrypted_db = EncryptedDb { kv, cipher };
 
-        // verify that [password] is correct
+        // verify that [super::Password] is correct
         if encrypted_db.kv.was_recovered() {
             // existing kv: can we decrypt the verification value?
             encrypted_db.get(PASSWORD_VERIFICATION_KEY).map_err(|_| WrongPassword)?;

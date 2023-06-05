@@ -1,4 +1,5 @@
-//! Substrate Node Template CLI library.
+//! Entropy Node CLI library.
+#![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
 #![warn(missing_docs)]
 
 mod chain_spec;

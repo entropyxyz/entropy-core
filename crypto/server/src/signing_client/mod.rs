@@ -1,3 +1,4 @@
+//! Communicate with other threshold servers and carry out the signing protocol
 pub mod api;
 mod errors;
 pub(crate) mod new_party;

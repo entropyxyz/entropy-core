@@ -1,15 +1,68 @@
 //! # Server
 //!
+//! The Threshold Server which stores key shares and participates in the signing protocol.
+//!
 //! ## Overview
 //!
-//! Consists of three core routes:
-//! - "/user/new" - Add a user to the system
-//! - "/user/tx" - The user submits a transaction to be signed using the signing protocol
-//! - "/signer/new_party" - The blockchain submits a batch of signature requests
+//! This exposes a HTTP API.
+//!
+//! ## The HTTP endpoints
+//!
+//! Some endpoints are designed to be called by the user, some by the entropy chain node,
+//! and some by other instances of `server`:
+//!
+//! ### For the user
+//!
+//! Most user-facing endpoints take a [SignedMessage](crate::message::SignedMessage) which
+//! is an encrypted, signed message.
+//!
+//! - [`/user/new`](crate::user::api::new_user()) - POST - Called by a user when registering to
+//!   submit a key-share.
+//! - [`/user/sign_tx`](crate::user::api::sign_tx()) - POST - Called by a user to submit a
+//!   transaction to sign.
+//! (The new way of doing signing).
+//! - [`/user/tx`](crate::user::api::store_tx()) - POST - Called by a user when signing to submit a
+//!   transaction to
+//! be signed using the signing protocol (the original way of doing signing).
+//! - [`/signer/signature`](crate::signing_client::api::get_signature()) - POST - Get a signature,
+//! given a message hash. If a message was successfully signed, this returns the signature.
+//! - [`/signer/drain`](crate::signing_client::api::drain()) - GET - Remove signatures from state.
+//! This should be called after `get_signature`.
+//!
+//! ### For the blockchain node
+//!
+//! - [`/signer/new_party`](crate::signing_client::api::new_party()) - POST - Called by the
+//!   blockchain to
+//! submit a batch of signature requests. (For the original way of doing signing)
+//!
+//! ### For other instances of the threshold server
+//!
+//! - [`/signer/subscribe_to_me`](crate::signing_client::api::subscribe_to_me()) - POST - Called by
+//! other threshold servers when the signing procotol is initiated.
+//! - [`/validator/sync_kvdb`](crate::validator::api::sync_kvdb()) - POST - Called by another
+//! threshold server when joining to get the key-shares from a member of their sub-group.
+//!
+//! ### For testing / development
+//!
+//! [Unsafe](crate::unsafe::api) has additional routes which are for testing and development
+//! purposes only and will not be used in production. These routes are only available if this crate
+//! is compiled with the `unsafe` feature enabled.
+//!
+//! - [`unsafe/get`](crate::unsafe::api::get()) - POST - get a value from the key-value store, given
+//!   its key.
+//! - [`unsafe/put`](crate::unsafe::api::put()) - POST - update an existing value in the key-value
+//!   store.
+//! - [`unsafe/delete`](crate::unsafe::api::delete()) - POST - remove a value from the key-value
+//!   store, given its key.
+//! - [`unsafe/remove_keys`](crate::unsafe::api::remove_keys()) - GET - remove everything from the
+//!   key-value store.
 //!
 //! ## Pieces Launched
+//!
 //! - Rocket server - Includes global state and mutex locked IPs
-//! - Sled DB KVDB
+//! - [kvdb](kvdb) - Encrypted key-value database for storing key-shares and other data, build using
+//! [sled](https://docs.rs/sled)
+#![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
 pub(crate) mod chain_api;
 pub(crate) mod health;
 mod helpers;
