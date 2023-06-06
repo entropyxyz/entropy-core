@@ -6,7 +6,7 @@ use futures::future::join_all;
 use kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
-    kv_manager::{KvManager, PartyId, PartyInfo},
+    kv_manager::{KvManager, PartyId},
 };
 use rand_core::OsRng;
 use rocket::{local::asynchronous::Client, tokio::time::Duration, Ignite, Rocket};
@@ -126,24 +126,15 @@ pub async fn register_user(
     sig_req_keyring: &Sr25519Keyring,
     constraint_modification_account: &Sr25519Keyring,
     initial_constraints: Constraints,
-    party_ids: &[PartyId],
 ) {
     let validator1_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let validator2_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
 
     let shares = make_key_shares::<TestSchemeParams>(&mut OsRng, 2, None);
     let validator_1_threshold_keyshare: Vec<u8> =
-        kvdb::kv_manager::helpers::serialize(&PartyInfo {
-            party_ids: party_ids.to_vec(),
-            share: shares[0].clone(),
-        })
-        .unwrap();
+        kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
     let validator_2_threshold_keyshare: Vec<u8> =
-        kvdb::kv_manager::helpers::serialize(&PartyInfo {
-            party_ids: party_ids.to_vec(),
-            share: shares[1].clone(),
-        })
-        .unwrap();
+        kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
 
     let register_body_alice_validator = SignedMessage::new(
         &sig_req_keyring.pair(),
