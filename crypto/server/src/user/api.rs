@@ -183,7 +183,7 @@ pub async fn store_tx(
 /// This adds a new Keyshare to this node's set of known Keyshares and stores the it in the [kvdb].
 ///
 /// The http request takes a [SignedMessage] containing a bincode-encoded
-/// [PartyInfo](kvdb::kv_manager::value::PartyInfo).
+/// [KeyShare](synedrion::KeyShare).
 #[post("/new", format = "json", data = "<msg>")]
 pub async fn new_user(
     msg: Json<SignedMessage>,
