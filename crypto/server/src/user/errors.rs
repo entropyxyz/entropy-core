@@ -3,12 +3,16 @@
 use std::{io::Cursor, string::FromUtf8Error};
 
 use entropy_constraints::Error as ConstraintsError;
-use rocket::{
-    http::Status,
-    response::{Responder, Response},
-};
+// use rocket::{
+//     http::Status,
+//     response::{Responder, Response},
+// };
 use thiserror::Error;
-
+use axum::{
+	body,
+    response::{IntoResponse, Response},
+	http::StatusCode,
+};
 use crate::{chain_api::entropy, signing_client::SigningErr};
 
 #[derive(Debug, Error)]
@@ -57,12 +61,20 @@ pub enum UserErr {
     TryFrom(Vec<u8>),
 }
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {
-    fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
-        let body = format!("{self}").into_bytes();
-        Response::build()
-            .sized_body(body.len(), Cursor::new(body))
-            .status(Status::InternalServerError)
-            .ok()
+
+impl IntoResponse for UserErr {
+    fn into_response(self) -> Response {
+        // its often easiest to implement `IntoResponse` by calling other implementations
+        (StatusCode::INTERNAL_SERVER_ERROR, self).into_response()
     }
 }
+
+// impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {
+//     fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
+//         let body = format!("{self}").into_bytes();
+//         Response::build()
+//             .sized_body(body.len(), Cursor::new(body))
+//             .status(Status::InternalServerError)
+//             .ok()
+//     }
+// }

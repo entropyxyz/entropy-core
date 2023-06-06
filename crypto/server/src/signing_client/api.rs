@@ -25,7 +25,6 @@ const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 /// Execute a signing protocol with a new party.
 /// This endpoint is called by the blockchain.
 #[instrument(skip(kv))]
-#[post("/new_party", data = "<encoded_data>")]
 pub async fn new_party(
     encoded_data: Vec<u8>,
     kv: &State<KvManager>,
@@ -60,7 +59,6 @@ pub async fn new_party(
 
 /// Other nodes in the party call this method to subscribe to this node's broadcasts.
 /// The SigningProtocol begins when all nodes in the party have called this method on this node.
-#[post("/subscribe_to_me", data = "<msg>")]
 pub async fn subscribe_to_me(
     msg: Json<SignedMessage>,
     end: Shutdown,
@@ -77,7 +75,7 @@ pub async fn subscribe_to_me(
         signed_msg.decrypt(signer.signer()).map_err(|e| SubscribeErr::Decryption(e.to_string()))?;
     let msg: SubscribeMessage = serde_json::from_slice(&decrypted_message)?;
 
-    info!("got subscribe, with message: {msg:?}");
+    tracing::info!("got subscribe, with message: {msg:?}");
 
     let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
 
@@ -209,7 +207,6 @@ pub struct Message {
 /// Returns the signature of the requested sighash
 ///
 /// This will be removed when after client participates in signing
-#[post("/signature", data = "<msg>")]
 pub async fn get_signature(
     msg: Json<Message>,
     signatures: &State<SignatureState>,
@@ -225,7 +222,6 @@ pub async fn get_signature(
 /// Client calls this after they receive the signature at `/signature`
 ///
 /// This will be removed when after client participates in signing
-#[get("/drain")]
 pub async fn drain(signatures: &State<SignatureState>) -> Result<Status, ()> {
     signatures.drain();
     Ok(Status::Ok)

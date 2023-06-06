@@ -4,6 +4,13 @@ use bip39::{Language, Mnemonic};
 use entropy_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
+use axum::{
+    routing::{get, post},
+    http::StatusCode,
+    response::IntoResponse,
+    Json, Router,
+	extract::State,
+};
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints},
     Message, SIGNING_PARTY_SIZE,
@@ -17,12 +24,11 @@ use kvdb::kv_manager::{
 use log::info;
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::DecodeAll;
-use rocket::{
-    http::Status,
-    response::stream::EventStream,
-    serde::json::{to_string, Json},
-    Shutdown, State,
-};
+// use rocket::{
+//     response::stream::EventStream,
+//     serde::json::{to_string, Json},
+//     Shutdown,
+// };
 use serde::{Deserialize, Serialize};
 use subxt::{
     ext::{
@@ -45,7 +51,7 @@ use crate::{
     },
     signing_client::SignerState,
     validation::SignedMessage,
-    Configuration,
+    Configuration, AppState
 };
 
 /// Represents an unparsed, transaction request coming from the client.
@@ -70,76 +76,71 @@ pub struct GenericTransactionRequest {
 /// Called by a user to initiate the signing process for a message
 ///
 /// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
-#[post("/sign_tx", format = "json", data = "<msg>")]
-pub async fn sign_tx(
-    // TODO make new type with only info needed
-    msg: Json<SignedMessage>,
-    state: &State<SignerState>,
-    signatures: &State<SignatureState>,
-    kv: &State<KvManager>,
-    config: &State<Configuration>,
-) -> Result<Status, UserErr> {
-    let signed_msg: SignedMessage = msg.into_inner();
-    if !signed_msg.verify() {
-        return Err(UserErr::InvalidSignature("Invalid signature."));
-    }
+// pub async fn sign_tx(
+//     // TODO make new type with only info needed
+//     msg: Json<SignedMessage>,
+//     state: &State<SignerState>,
+//     signatures: &State<SignatureState>,
+//     kv: &State<KvManager>,
+//     config: &State<Configuration>,
+// ) -> Result<Status, UserErr> {
+//     let signed_msg: SignedMessage = msg.into_inner();
+//     if !signed_msg.verify() {
+//         return Err(UserErr::InvalidSignature("Invalid signature."));
+//     }
 
-    let signer = get_signer(kv).await?;
-    let signing_address = signed_msg.account_id().to_ss58check();
+//     let signer = get_signer(kv).await?;
+//     let signing_address = signed_msg.account_id().to_ss58check();
 
-    let api = get_api(&config.endpoint).await?;
+//     let api = get_api(&config.endpoint).await?;
 
-    let signing_address_converted =
-        AccountId32::from_str(&signing_address).map_err(UserErr::StringError)?;
-    is_registered(&api, &signing_address_converted).await?;
+//     let signing_address_converted =
+//         AccountId32::from_str(&signing_address).map_err(UserErr::StringError)?;
+//     is_registered(&api, &signing_address_converted).await?;
 
-    let decrypted_message =
-        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+//     let decrypted_message =
+//         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
-    let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
-    let parsed_tx =
-        <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
+//     let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
+//     let parsed_tx =
+//         <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
 
-    let sig_hash = hex::encode(parsed_tx.sighash().as_bytes());
-    let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
-    check_signing_group(subgroup_signers, signer.account_id())?;
-    let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
-    match user_tx_req.arch.as_str() {
-        "evm" => {
-            let message = user_tx_req.message;
-            let evm_acl = get_constraints(&api, &signing_address_converted)
-                .await?
-                .evm_acl
-                .ok_or(UserErr::Parse("No constraints found for this account."))?;
+//     let sig_hash = hex::encode(parsed_tx.sighash().as_bytes());
+//     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
+//     check_signing_group(subgroup_signers, signer.account_id())?;
+//     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
+//     match user_tx_req.arch.as_str() {
+//         "evm" => {
+//             let message = user_tx_req.message;
+//             let evm_acl = get_constraints(&api, &signing_address_converted)
+//                 .await?
+//                 .evm_acl
+//                 .ok_or(UserErr::Parse("No constraints found for this account."))?;
 
-            evm_acl.eval(parsed_tx)?;
-            do_signing(message.clone(), state, kv, signatures, tx_id).await?;
-        },
-        _ => {
-            return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
-        },
-    }
-    Ok(Status::Ok)
-}
+//             evm_acl.eval(parsed_tx)?;
+//             do_signing(message.clone(), state, kv, signatures, tx_id).await?;
+//         },
+//         _ => {
+//             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
+//         },
+//     }
+//     Ok(Status::Ok)
+// }
 
 /// Submits a new transaction to the KVDB for inclusion in a threshold
 /// signing scheme at a later block.
 ///
 /// Maps a tx hash -> unsigned transaction in the kvdb.
-#[post("/tx", format = "json", data = "<msg>")]
+#[axum_macros::debug_handler]
 pub async fn store_tx(
-    msg: Json<SignedMessage>,
-    state: &State<SignerState>,
-    kv: &State<KvManager>,
-    signatures: &State<SignatureState>,
-    config: &State<Configuration>,
-) -> Result<Status, UserErr> {
+	State(app_state): State<AppState>,
+	Json(signed_msg): Json<SignedMessage>,
+) -> Result<StatusCode, UserErr> {
     // Verifies the message contains a valid sr25519 signature from the sender.
-    let signed_msg: SignedMessage = msg.into_inner();
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
-    let signer = get_signer(kv).await?;
+    let signer = get_signer(&app_state.kv_store).await?;
     let signing_address = signed_msg.account_id().to_ss58check();
 
     let decrypted_message =
@@ -147,7 +148,7 @@ pub async fn store_tx(
     let generic_tx_req: GenericTransactionRequest = serde_json::from_slice(&decrypted_message)?;
     match generic_tx_req.arch.as_str() {
         "evm" => {
-            let api = get_api(&config.endpoint);
+            let api = get_api(&app_state.configuration.endpoint);
             let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
                 generic_tx_req.transaction_request.clone(),
             )?;
@@ -155,7 +156,7 @@ pub async fn store_tx(
             let sig_hash = hex::encode(parsed_tx.sighash().as_bytes());
             let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
             // check if user submitted tx to chain already
-            let message_json = kv.kv().get(&tx_id).await?;
+            let message_json = app_state.kv_store.kv().get(&tx_id).await?;
             // parse their transaction request
             let message: Message = serde_json::from_str(&String::from_utf8(message_json)?)?;
             let signing_address_converted =
@@ -168,14 +169,14 @@ pub async fn store_tx(
                 .ok_or(UserErr::Parse("No constraints found for this account."))?;
 
             evm_acl.eval(parsed_tx)?;
-            kv.kv().delete(&tx_id).await?;
-            do_signing(message, state, kv, signatures, tx_id).await?;
+            app_state.kv_store.kv().delete(&tx_id).await?;
+            do_signing(message, &app_state.signer_state, &app_state.kv_store, &app_state.signature_state, tx_id).await?;
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
         },
     }
-    Ok(Status::Ok)
+    Ok(StatusCode::OK)
 }
 
 /// HTTP POST endoint called by the user when registering.
@@ -184,55 +185,54 @@ pub async fn store_tx(
 ///
 /// The http request takes a [SignedMessage] containing a bincode-encoded
 /// [KeyShare](synedrion::KeyShare).
-#[post("/new", format = "json", data = "<msg>")]
-pub async fn new_user(
-    msg: Json<SignedMessage>,
-    kv: &State<KvManager>,
-    config: &State<Configuration>,
-) -> Result<Status, UserErr> {
-    let api = get_api(&config.endpoint).await?;
-    // Verifies the message contains a valid sr25519 signature from the sender.
-    let signed_msg: SignedMessage = msg.into_inner();
-    if !signed_msg.verify() {
-        return Err(UserErr::InvalidSignature("Invalid signature."));
-    }
-    let signer = get_signer(kv).await?;
-    // Checks if the user has registered onchain first.
-    let key = signed_msg.account_id();
-    let is_swapping = register_info(&api, &key).await?;
+// pub async fn new_user(
+//     msg: Json<SignedMessage>,
+//     kv: &State<KvManager>,
+//     config: &State<Configuration>,
+// ) -> Result<Status, UserErr> {
+//     let api = get_api(&config.endpoint).await?;
+//     // Verifies the message contains a valid sr25519 signature from the sender.
+//     let signed_msg: SignedMessage = msg.into_inner();
+//     if !signed_msg.verify() {
+//         return Err(UserErr::InvalidSignature("Invalid signature."));
+//     }
+//     let signer = get_signer(kv).await?;
+//     // Checks if the user has registered onchain first.
+//     let key = signed_msg.account_id();
+//     let is_swapping = register_info(&api, &key).await?;
 
-    let decrypted_message =
-        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
-    // store new user data in kvdb or deletes and replaces it if swapping
-    let subgroup = get_subgroup(&api, &signer)
-        .await?
-        .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    if is_swapping {
-        kv.kv().delete(&key.to_string()).await?;
-    }
-    let reservation = kv.kv().reserve_key(key.to_string()).await?;
-    kv.kv().put(reservation, decrypted_message).await?;
-    // TODO: Error handling really complex needs to be thought about.
-    confirm_registered(&api, key, subgroup, &signer).await?;
-    Ok(Status::Ok)
-}
-/// Returns wether an account is registering or swapping. If it is not, it returns error
-pub async fn register_info(
-    api: &OnlineClient<EntropyConfig>,
-    who: &AccountId32,
-) -> Result<bool, UserErr> {
-    let registering_info_query = entropy::storage().relayer().registering(who);
-    let register_info = api
-        .storage()
-        .fetch(&registering_info_query, None)
-        .await?
-        .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
-    if !register_info.is_swapping && !register_info.is_registering {
-        return Err(UserErr::NotRegistering("Declare swap Onchain first"));
-    }
+//     let decrypted_message =
+//         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+//     // store new user data in kvdb or deletes and replaces it if swapping
+//     let subgroup = get_subgroup(&api, &signer)
+//         .await?
+//         .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+//     if is_swapping {
+//         kv.kv().delete(&key.to_string()).await?;
+//     }
+//     let reservation = kv.kv().reserve_key(key.to_string()).await?;
+//     kv.kv().put(reservation, decrypted_message).await?;
+//     // TODO: Error handling really complex needs to be thought about.
+//     confirm_registered(&api, key, subgroup, &signer).await?;
+//     Ok(Status::Ok)
+// }
+// /// Returns wether an account is registering or swapping. If it is not, it returns error
+// pub async fn register_info(
+//     api: &OnlineClient<EntropyConfig>,
+//     who: &AccountId32,
+// ) -> Result<bool, UserErr> {
+//     let registering_info_query = entropy::storage().relayer().registering(who);
+//     let register_info = api
+//         .storage()
+//         .fetch(&registering_info_query, None)
+//         .await?
+//         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
+//     if !register_info.is_swapping && !register_info.is_registering {
+//         return Err(UserErr::NotRegistering("Declare swap Onchain first"));
+//     }
 
-    Ok(register_info.is_swapping)
-}
+//     Ok(register_info.is_swapping)
+// }
 
 /// Confirms that a address has finished registering on chain.
 pub async fn confirm_registered(

@@ -31,7 +31,6 @@ pub struct Values {
 }
 
 /// Endpoint to allow a new node to sync their kvdb with a member of their subgroup
-#[post("/sync_kvdb", format = "json", data = "<keys>")]
 pub async fn sync_kvdb(
     keys: Json<Keys>,
     state: &State<KvManager>,

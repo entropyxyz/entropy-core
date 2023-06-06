@@ -79,13 +79,20 @@ use rocket::{
 };
 use validator::api::get_random_server_info;
 
-#[macro_use]
-extern crate rocket;
 use std::{string::String, thread, time::Duration};
 
 use clap::Parser;
 use entropy_shared::{MIN_BALANCE, SIGNING_PARTY_SIZE};
-use rocket::routes;
+use kvdb::kv_manager::KvManager;
+
+use axum::{
+    routing::{get, post},
+    http::StatusCode,
+    response::IntoResponse,
+    Json, Router,
+	extract::State,
+};
+use std::net::SocketAddr;
 
 use self::{
     chain_api::get_api,
@@ -100,7 +107,7 @@ use crate::{
         substrate::get_subgroup,
         validator::get_signer,
     },
-    r#unsafe::api::{delete, get, put, remove_keys},
+    r#unsafe::api::{delete, get as unsafe_get, put, remove_keys},
     validator::api::{
         check_balance_for_fees, get_all_keys, get_and_store_values, sync_kvdb,
         tell_chain_syncing_is_done,
@@ -122,8 +129,16 @@ impl Fairing for CORS {
     }
 }
 
-#[launch]
-async fn rocket() -> _ {
+#[derive(Clone)]
+pub struct AppState {
+	pub signer_state: SignerState,
+	pub configuration: Configuration,
+	pub kv_store: KvManager,
+	pub signature_state: SignatureState
+}
+
+#[tokio::main]
+async fn main() {
     init_tracing();
 
     let args = StartupArgs::parse();
@@ -132,6 +147,13 @@ async fn rocket() -> _ {
     let configuration = Configuration::new(args.chain_endpoint);
     let kv_store = load_kv_store(args.bob, args.alice, args.no_password).await;
     let signature_state = SignatureState::new();
+
+	let app_state = AppState {
+		signer_state,
+		configuration: configuration.clone(),
+		kv_store: kv_store.clone(),
+		signature_state
+	};
 
     setup_mnemonic(&kv_store, args.alice, args.bob).await.expect("Issue creating Mnemonic");
     // Below deals with syncing the kvdb
@@ -183,20 +205,31 @@ async fn rocket() -> _ {
     // should they be used in production. Unsafe routes
     // are disabled by default.
     // To enable unsafe routes compile with --feature unsafe.
-    let mut unsafe_routes = routes![];
-    if cfg!(feature = "unsafe") || cfg!(test) {
-        unsafe_routes = routes![remove_keys, get, put, delete];
-    }
+    // let mut unsafe_routes = routes![];
+    // if cfg!(feature = "unsafe") || cfg!(test) {
+    //     unsafe_routes = routes![remove_keys, get, put, delete];
+    // }
 
-    rocket::build()
-        .mount("/user", routes![store_tx, new_user, sign_tx])
-        .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
-        .mount("/validator", routes![sync_kvdb])
-        .mount("/", routes![healthz])
-        .mount("/unsafe", unsafe_routes)
-        .manage(signer_state)
-        .manage(signature_state)
-        .manage(configuration)
-        .manage(kv_store)
-        .attach(CORS)
+	let app = Router::new()
+		.route("/user", post(store_tx))
+		.route("/", get(healthz))
+		.with_state(app_state);
+	// TODO: add tracing
+	let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+	tracing::debug!("listening on {}", addr);
+	axum::Server::bind(&addr)
+		.serve(app.into_make_service())
+		.await
+		.unwrap();
+    // rocket::build()
+    //     .mount("/user", routes![store_tx, new_user, sign_tx])
+    //     .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
+    //     .mount("/validator", routes![sync_kvdb])
+    //     .mount("/", routes![healthz])
+    //     .mount("/unsafe", unsafe_routes)
+    //     .manage(signer_state)
+    //     .manage(signature_state)
+    //     .manage(configuration)
+    //     .manage(kv_store)
+    //     .attach(CORS)
 }
