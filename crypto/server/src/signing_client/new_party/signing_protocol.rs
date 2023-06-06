@@ -3,13 +3,13 @@ use std::collections::HashMap;
 
 use blake2::{Blake2s256, Digest};
 use futures::StreamExt;
-use kvdb::kv_manager::PartyInfo;
+use kvdb::kv_manager::PartyId;
 use rand_core::OsRng;
 use sp_core::crypto::{AccountId32, Pair};
 use subxt::ext::sp_core::sr25519;
 use synedrion::{
     sessions::{make_interactive_signing_session, PrehashedMessage, ToSend},
-    PartyIdx, Signature,
+    KeyShare, PartyIdx, Signature, TestSchemeParams,
 };
 use tracing::instrument;
 
@@ -21,20 +21,21 @@ pub type ChannelOut = crate::signing_client::subscribe::Broadcaster;
 /// Thin wrapper broadcasting channel out and messages from other nodes in
 pub struct Channels(pub ChannelOut, pub ChannelIn);
 
-/// execute gg20 protocol.
+/// execute threshold signing protocol.
 #[instrument(skip(chans, threshold_signer))]
 pub(super) async fn execute_protocol(
     mut chans: Channels,
-    party_info: &PartyInfo,
+    key_share: &KeyShare<TestSchemeParams>,
     prehashed_message: &PrehashedMessage,
     threshold_signer: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
 ) -> Result<Signature, SigningErr> {
-    let my_idx = party_info.share.party_index();
-    let my_id = &party_info.party_ids[my_idx.as_usize()];
+    let party_ids: Vec<PartyId> =
+        threshold_accounts.clone().into_iter().map(PartyId::new).collect();
+    let my_idx = key_share.party_index();
+    let my_id = &party_ids[my_idx.as_usize()];
 
-    let id_to_index = party_info
-        .party_ids
+    let id_to_index = party_ids
         .iter()
         .enumerate()
         .map(|(idx, id)| (id, PartyIdx::from_usize(idx)))
@@ -43,9 +44,8 @@ pub(super) async fn execute_protocol(
     let tx = &chans.0;
     let rx = &mut chans.1;
 
-    let mut session =
-        make_interactive_signing_session(&mut OsRng, &party_info.share, prehashed_message)
-            .map_err(SigningErr::ProtocolExecution)?;
+    let mut session = make_interactive_signing_session(&mut OsRng, &key_share, prehashed_message)
+        .map_err(SigningErr::ProtocolExecution)?;
 
     while !session.is_final_stage() {
         let to_send = session.get_messages(&mut OsRng).map_err(SigningErr::ProtocolExecution)?;
@@ -65,7 +65,7 @@ pub(super) async fn execute_protocol(
                     let signed_message = create_signed_message(&message, threshold_signer);
                     tx.send(SigningMessage::new_p2p(
                         my_id,
-                        &party_info.party_ids[id_to.as_usize()],
+                        &party_ids[id_to.as_usize()],
                         &message,
                         signed_message,
                         threshold_signer.public(),

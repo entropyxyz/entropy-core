@@ -4,9 +4,10 @@ mod context;
 mod signing_message;
 pub mod signing_protocol;
 
-use kvdb::kv_manager::{KvManager, PartyInfo};
+use kvdb::kv_manager::KvManager;
 use sp_core::crypto::AccountId32;
 use subxt::ext::sp_core::sr25519;
+use synedrion::{KeyShare, TestSchemeParams};
 use tracing::{info, instrument};
 
 pub use self::{context::SignContext, signing_message::SigningMessage, signing_protocol::Channels};
@@ -42,10 +43,11 @@ impl<'a> ThresholdSigningService<'a> {
     #[instrument]
     pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, SigningErr> {
         info!("check_sign_init: {sign_init:?}");
-        let party_vec = self.kv_manager.kv().get(&sign_init.substrate_key).await?;
-        let party_info: PartyInfo = kvdb::kv_manager::helpers::deserialize(&party_vec)
-            .ok_or_else(|| SigningErr::Deserialization("Failed to load KeyShare".into()))?;
-        Ok(SignContext::new(sign_init, party_info))
+        let key_share_vec = self.kv_manager.kv().get(&sign_init.substrate_key).await?;
+        let key_share: KeyShare<TestSchemeParams> =
+            kvdb::kv_manager::helpers::deserialize(&key_share_vec)
+                .ok_or_else(|| SigningErr::Deserialization("Failed to load KeyShare".into()))?;
+        Ok(SignContext::new(sign_init, key_share))
     }
 
     /// handle signing protocol execution.
@@ -60,7 +62,7 @@ impl<'a> ThresholdSigningService<'a> {
         info!("execute_sign: {ctx:?}");
         let rsig = signing_protocol::execute_protocol(
             channels,
-            &ctx.party_info,
+            &ctx.key_share,
             &ctx.sign_init.msg,
             threshold_signer,
             threshold_accounts,
