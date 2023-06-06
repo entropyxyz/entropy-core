@@ -44,7 +44,7 @@ pub(super) async fn execute_protocol(
     let tx = &chans.0;
     let rx = &mut chans.1;
 
-    let mut session = make_interactive_signing_session(&mut OsRng, &key_share, prehashed_message)
+    let mut session = make_interactive_signing_session(&mut OsRng, key_share, prehashed_message)
         .map_err(SigningErr::ProtocolExecution)?;
 
     while !session.is_final_stage() {
