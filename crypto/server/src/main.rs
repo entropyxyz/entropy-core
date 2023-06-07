@@ -212,6 +212,7 @@ async fn main() {
 		.route("/user/store_tx", post(store_tx))
 		.route("/user/sign_tx", post(sign_tx))
 		.route("/user/new_user", post(new_user))
+		.route("/validator/sync_kvdb", post(sync_kvdb))
 		.route("/", get(healthz))
 		.with_state(app_state);
 

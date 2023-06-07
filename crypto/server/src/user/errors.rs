@@ -64,17 +64,6 @@ pub enum UserErr {
 
 impl IntoResponse for UserErr {
     fn into_response(self) -> Response {
-        // its often easiest to implement `IntoResponse` by calling other implementations
         (StatusCode::INTERNAL_SERVER_ERROR, self).into_response()
     }
 }
-
-// impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {
-//     fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
-//         let body = format!("{self}").into_bytes();
-//         Response::build()
-//             .sized_body(body.len(), Cursor::new(body))
-//             .status(Status::InternalServerError)
-//             .ok()
-//     }
-// }

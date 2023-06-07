@@ -2,11 +2,17 @@ use std::str::FromStr;
 
 use kvdb::kv_manager::KvManager;
 use reqwest;
-use rocket::{serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Bytes};
 use subxt::{tx::PairSigner, OnlineClient};
 use x25519_dalek::PublicKey;
+use axum::{
+    routing::{get, post},
+    http::StatusCode,
+    response::IntoResponse,
+    Json, Router,
+	extract::State,
+};
 
 use crate::{
     chain_api::{
@@ -16,6 +22,7 @@ use crate::{
     get_signer,
     validation::SignedMessage,
     validator::errors::ValidatorErr,
+	AppState
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -32,12 +39,12 @@ pub struct Values {
 
 /// Endpoint to allow a new node to sync their kvdb with a member of their subgroup
 pub async fn sync_kvdb(
-    keys: Json<Keys>,
-    state: &State<KvManager>,
+	State(app_state): State<AppState>,
+	Json(keys): Json<Keys>,
 ) -> Result<Json<Values>, ValidatorErr> {
     // TODO(JS): validate on chain that this user in your subgroup
     let sender = PublicKey::from(keys.sender);
-    let signer = get_signer(state).await?;
+    let signer = get_signer(&app_state.kv_store).await?;
     let recip_secret_key = signer.signer();
     let mut values: Vec<SignedMessage> = vec![];
     for encrypted_key in keys.enckeys.clone() {
@@ -51,7 +58,7 @@ pub async fn sync_kvdb(
         let key = dmsg.map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
         // encrypt message and send to other validator
         let skey = String::from_utf8_lossy(&key).to_string();
-        let result = state.kv().get(skey.as_str()).await?;
+        let result = app_state.kv_store.kv().get(skey.as_str()).await?;
         let reencrypted_key_result = SignedMessage::new(recip_secret_key, &Bytes(result), &sender)
             .map_err(|e| ValidatorErr::Encryption(e.to_string()))?;
         values.push(reencrypted_key_result)

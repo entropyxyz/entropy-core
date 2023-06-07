@@ -1,8 +1,9 @@
 use std::{io::Cursor, string::FromUtf8Error};
 
-use rocket::{
-    http::Status,
-    response::{Responder, Response},
+use axum::{
+	body,
+    response::{IntoResponse, Response},
+	http::StatusCode,
 };
 use thiserror::Error;
 
@@ -32,12 +33,8 @@ pub enum ValidatorErr {
     Encryption(String),
 }
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for ValidatorErr {
-    fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
-        let body = format!("{self}").into_bytes();
-        Response::build()
-            .sized_body(body.len(), Cursor::new(body))
-            .status(Status::InternalServerError)
-            .ok()
+impl IntoResponse for ValidatorErr {
+    fn into_response(self) -> Response {
+        (StatusCode::INTERNAL_SERVER_ERROR, self).into_response()
     }
 }
