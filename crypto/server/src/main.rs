@@ -206,16 +206,23 @@ async fn main() {
     // are disabled by default.
     // To enable unsafe routes compile with --feature unsafe.
     // let mut unsafe_routes = routes![];
-    // if cfg!(feature = "unsafe") || cfg!(test) {
-    //     unsafe_routes = routes![remove_keys, get, put, delete];
-    // }
+
 
 	let app = Router::new()
-		.route("/user", post(store_tx))
+		.route("/user/store_tx", post(store_tx))
+		.route("/user/sign_tx", post(sign_tx))
+		.route("/user/new_user", post(new_user))
 		.route("/", get(healthz))
 		.with_state(app_state);
+
+	// if cfg!(feature = "unsafe") || cfg!(test) {
+	// 	app
+	// 	.route("unsafe/remove_keys", post())
+    //     routes![remove_keys, get, put, delete];
+    // }
 	// TODO: add tracing
-	let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+	// TODO: unhardcode endpoint
+	let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
 	tracing::debug!("listening on {}", addr);
 	axum::Server::bind(&addr)
 		.serve(app.into_make_service())
