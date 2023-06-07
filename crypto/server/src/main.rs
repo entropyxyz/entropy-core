@@ -212,8 +212,12 @@ async fn main() {
 		.route("/user/store_tx", post(store_tx))
 		.route("/user/sign_tx", post(sign_tx))
 		.route("/user/new_user", post(new_user))
+		.route("/signer/new_party", post(new_party))
+		// .route("/signer/subscribe_to_me", post(subscribe_to_me))
+		.route("/signer/get_signature", post(get_signature))
+		.route("/signer/drain", get(drain))
 		.route("/validator/sync_kvdb", post(sync_kvdb))
-		.route("/", get(healthz))
+		.route("/healthz", get(healthz))
 		.with_state(app_state);
 
 	// if cfg!(feature = "unsafe") || cfg!(test) {

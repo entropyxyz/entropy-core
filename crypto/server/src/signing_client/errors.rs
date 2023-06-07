@@ -2,13 +2,13 @@
 use std::{io::Cursor, string::FromUtf8Error};
 
 use kvdb::kv_manager::error::InnerKvError;
-use rocket::{
-    http::Status,
-    response::{Responder, Response},
-};
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
-
+use axum::{
+	body,
+    response::{IntoResponse, Response},
+	http::StatusCode,
+};
 use super::SigningMessage;
 // #[derive(Responder, Debug, Error)]
 // #[response(status = 418, content_type = "json")]
@@ -82,13 +82,9 @@ pub enum SigningErr {
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
 }
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
-    fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
-        let body = format!("{self}").into_bytes();
-        Response::build()
-            .sized_body(body.len(), Cursor::new(body))
-            .status(Status::InternalServerError)
-            .ok()
+impl IntoResponse for SigningErr {
+    fn into_response(self) -> Response {
+        (StatusCode::INTERNAL_SERVER_ERROR, self).into_response()
     }
 }
 
@@ -115,13 +111,9 @@ pub enum SubscribeErr {
     UserError(String),
 }
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for SubscribeErr {
-    fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
-        let body = format!("{self}").into_bytes();
-        Response::build()
-            .sized_body(body.len(), Cursor::new(body))
-            .status(Status::InternalServerError)
-            .ok()
+impl IntoResponse for SubscribeErr {
+    fn into_response(self) -> Response {
+        (StatusCode::INTERNAL_SERVER_ERROR, self).into_response()
     }
 }
 
