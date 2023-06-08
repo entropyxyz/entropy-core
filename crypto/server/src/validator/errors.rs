@@ -1,9 +1,9 @@
 use std::{io::Cursor, string::FromUtf8Error};
 
 use axum::{
-	body,
+    body,
+    http::StatusCode,
     response::{IntoResponse, Response},
-	http::StatusCode,
 };
 use thiserror::Error;
 
@@ -34,7 +34,5 @@ pub enum ValidatorErr {
 }
 
 impl IntoResponse for ValidatorErr {
-    fn into_response(self) -> Response {
-        (StatusCode::INTERNAL_SERVER_ERROR, self).into_response()
-    }
+    fn into_response(self) -> Response { (StatusCode::INTERNAL_SERVER_ERROR, self).into_response() }
 }

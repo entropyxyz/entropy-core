@@ -2,17 +2,18 @@
 
 use std::{io::Cursor, string::FromUtf8Error};
 
+use axum::{
+    body,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use entropy_constraints::Error as ConstraintsError;
 // use rocket::{
 //     http::Status,
 //     response::{Responder, Response},
 // };
 use thiserror::Error;
-use axum::{
-	body,
-    response::{IntoResponse, Response},
-	http::StatusCode,
-};
+
 use crate::{chain_api::entropy, signing_client::SigningErr};
 
 #[derive(Debug, Error)]
@@ -61,9 +62,6 @@ pub enum UserErr {
     TryFrom(Vec<u8>),
 }
 
-
 impl IntoResponse for UserErr {
-    fn into_response(self) -> Response {
-        (StatusCode::INTERNAL_SERVER_ERROR, self).into_response()
-    }
+    fn into_response(self) -> Response { (StatusCode::INTERNAL_SERVER_ERROR, self).into_response() }
 }

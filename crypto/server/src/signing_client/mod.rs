@@ -4,7 +4,10 @@ mod errors;
 pub(crate) mod new_party;
 pub(crate) mod subscribe;
 
-use std::{collections::HashMap, sync::{Mutex, Arc}};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 #[cfg(test)]
 pub mod tests;

@@ -1,18 +1,18 @@
 use std::str::FromStr;
 
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
 use kvdb::kv_manager::KvManager;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Bytes};
 use subxt::{tx::PairSigner, OnlineClient};
 use x25519_dalek::PublicKey;
-use axum::{
-    routing::{get, post},
-    http::StatusCode,
-    response::IntoResponse,
-    Json, Router,
-	extract::State,
-};
 
 use crate::{
     chain_api::{
@@ -22,7 +22,7 @@ use crate::{
     get_signer,
     validation::SignedMessage,
     validator::errors::ValidatorErr,
-	AppState
+    AppState,
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -39,8 +39,8 @@ pub struct Values {
 
 /// Endpoint to allow a new node to sync their kvdb with a member of their subgroup
 pub async fn sync_kvdb(
-	State(app_state): State<AppState>,
-	Json(keys): Json<Keys>,
+    State(app_state): State<AppState>,
+    Json(keys): Json<Keys>,
 ) -> Result<Json<Values>, ValidatorErr> {
     // TODO(JS): validate on chain that this user in your subgroup
     let sender = PublicKey::from(keys.sender);

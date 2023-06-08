@@ -1,14 +1,15 @@
 //! Errors for everyone ✅
 use std::{io::Cursor, string::FromUtf8Error};
 
+use axum::{
+    body,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use kvdb::kv_manager::error::InnerKvError;
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
-use axum::{
-	body,
-    response::{IntoResponse, Response},
-	http::StatusCode,
-};
+
 use super::SigningMessage;
 // #[derive(Responder, Debug, Error)]
 // #[response(status = 418, content_type = "json")]
@@ -83,9 +84,7 @@ pub enum SigningErr {
 }
 
 impl IntoResponse for SigningErr {
-    fn into_response(self) -> Response {
-        (StatusCode::INTERNAL_SERVER_ERROR, self).into_response()
-    }
+    fn into_response(self) -> Response { (StatusCode::INTERNAL_SERVER_ERROR, self).into_response() }
 }
 
 /// Errors for the `subscribe` API
@@ -112,9 +111,7 @@ pub enum SubscribeErr {
 }
 
 impl IntoResponse for SubscribeErr {
-    fn into_response(self) -> Response {
-        (StatusCode::INTERNAL_SERVER_ERROR, self).into_response()
-    }
+    fn into_response(self) -> Response { (StatusCode::INTERNAL_SERVER_ERROR, self).into_response() }
 }
 
 // todo: delete

@@ -1,15 +1,15 @@
 use std::{str::FromStr, sync::Arc};
 
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
 use bip39::{Language, Mnemonic};
 use entropy_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
-};
-use axum::{
-    routing::{get, post},
-    http::StatusCode,
-    response::IntoResponse,
-    Json, Router,
-	extract::State,
 };
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints},
@@ -51,7 +51,7 @@ use crate::{
     },
     signing_client::SignerState,
     validation::SignedMessage,
-    Configuration, AppState
+    AppState, Configuration,
 };
 
 /// Represents an unparsed, transaction request coming from the client.
@@ -77,9 +77,9 @@ pub struct GenericTransactionRequest {
 ///
 /// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
 pub async fn sign_tx(
-	State(app_state): State<AppState>,
+    State(app_state): State<AppState>,
     // TODO make new type with only info needed
-	Json(signed_msg): Json<SignedMessage>,
+    Json(signed_msg): Json<SignedMessage>,
 ) -> Result<StatusCode, UserErr> {
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
@@ -115,7 +115,14 @@ pub async fn sign_tx(
 
             evm_acl.eval(parsed_tx)?;
 
-            do_signing(message.clone(), &app_state.signer_state, &app_state.kv_store, &app_state.signature_state, tx_id).await?;
+            do_signing(
+                message.clone(),
+                &app_state.signer_state,
+                &app_state.kv_store,
+                &app_state.signature_state,
+                tx_id,
+            )
+            .await?;
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
@@ -130,8 +137,8 @@ pub async fn sign_tx(
 /// Maps a tx hash -> unsigned transaction in the kvdb.
 #[axum_macros::debug_handler]
 pub async fn store_tx(
-	State(app_state): State<AppState>,
-	Json(signed_msg): Json<SignedMessage>,
+    State(app_state): State<AppState>,
+    Json(signed_msg): Json<SignedMessage>,
 ) -> Result<StatusCode, UserErr> {
     // Verifies the message contains a valid sr25519 signature from the sender.
     if !signed_msg.verify() {
@@ -167,7 +174,14 @@ pub async fn store_tx(
 
             evm_acl.eval(parsed_tx)?;
             app_state.kv_store.kv().delete(&tx_id).await?;
-            do_signing(message, &app_state.signer_state, &app_state.kv_store, &app_state.signature_state, tx_id).await?;
+            do_signing(
+                message,
+                &app_state.signer_state,
+                &app_state.kv_store,
+                &app_state.signature_state,
+                tx_id,
+            )
+            .await?;
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
@@ -184,7 +198,7 @@ pub async fn store_tx(
 /// [KeyShare](synedrion::KeyShare).
 pub async fn new_user(
     State(app_state): State<AppState>,
-	Json(signed_msg): Json<SignedMessage>,
+    Json(signed_msg): Json<SignedMessage>,
 ) -> Result<StatusCode, UserErr> {
     let api = get_api(&app_state.configuration.endpoint).await?;
     // Verifies the message contains a valid sr25519 signature from the sender.

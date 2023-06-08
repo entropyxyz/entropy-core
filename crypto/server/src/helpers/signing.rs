@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::{Mutex, Arc}};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use bip39::{Language, Mnemonic};
 use kvdb::kv_manager::{KvManager, PartyId};

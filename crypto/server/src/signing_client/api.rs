@@ -1,5 +1,13 @@
 use std::{convert::TryInto, str};
 
+use axum::{
+    body::Bytes,
+    extract::State,
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
 use blake2::{Blake2s256, Digest};
 use entropy_shared::{OCWMessage, PRUNE_BLOCK};
 use kvdb::kv_manager::{KvManager, PartyId};
@@ -8,14 +16,7 @@ use rocket::{response::stream::EventStream, Shutdown};
 use sp_core::crypto::Ss58Codec;
 use subxt::OnlineClient;
 use tracing::instrument;
-use axum::{
-    routing::{get, post},
-    http::StatusCode,
-    response::IntoResponse,
-    Json, Router,
-	extract::{State},
-	body::Bytes
-};
+
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     get_signer,
@@ -25,7 +26,7 @@ use crate::{
         SignerState, SigningErr, SubscribeErr, SubscribeMessage,
     },
     validation::SignedMessage,
-    Configuration, AppState
+    AppState, Configuration,
 };
 
 const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
@@ -34,8 +35,8 @@ const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 #[instrument(skip(app_state))]
 #[axum_macros::debug_handler]
 pub async fn new_party(
-	State(app_state): State<AppState>,
-	encoded_data: Bytes,
+    State(app_state): State<AppState>,
+    encoded_data: Bytes,
 ) -> Result<StatusCode, SigningErr> {
     let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
     let api = get_api(&app_state.configuration.endpoint).await?;
@@ -75,11 +76,13 @@ pub async fn new_party(
 //     if !signed_msg.verify() {
 //         return Err(SubscribeErr::InvalidSignature("Invalid signature."));
 //     }
-//     let signer = get_signer(&app_state.kv_store).await.map_err(|e| SubscribeErr::UserError(e.to_string()))?;
+//     let signer = get_signer(&app_state.kv_store).await.map_err(|e|
+// SubscribeErr::UserError(e.to_string()))?;
 
 //     let decrypted_message =
-//         signed_msg.decrypt(signer.signer()).map_err(|e| SubscribeErr::Decryption(e.to_string()))?;
-//     let msg: SubscribeMessage = serde_json::from_slice(&decrypted_message)?;
+//         signed_msg.decrypt(signer.signer()).map_err(|e|
+// SubscribeErr::Decryption(e.to_string()))?;     let msg: SubscribeMessage =
+// serde_json::from_slice(&decrypted_message)?;
 
 //     tracing::info!("got subscribe, with message: {msg:?}");
 
@@ -87,14 +90,14 @@ pub async fn new_party(
 
 //     let signing_address = signed_msg.account_id();
 
-//     // TODO: should we also check if party_id is in signing group -> limited spots in steam so yes
-//     if PartyId::new(signing_address) != party_id {
+//     // TODO: should we also check if party_id is in signing group -> limited spots in steam so
+// yes     if PartyId::new(signing_address) != party_id {
 //         return Err(SubscribeErr::InvalidSignature("Signature does not match party id."));
 //     }
 
 //     if !app_state.signer_state.contains_listener(&msg.session_id)? {
-//         // Chain node hasn't yet informed this node of the party. Wait for a timeout and procede (or
-//         // fail below)
+//         // Chain node hasn't yet informed this node of the party. Wait for a timeout and procede
+// (or         // fail below)
 //         tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
 //     };
 
@@ -214,8 +217,8 @@ pub struct Message {
 ///
 /// This will be removed when after client participates in signing
 pub async fn get_signature(
-	State(app_state): State<AppState>,
-	Json(msg): Json<Message>,
+    State(app_state): State<AppState>,
+    Json(msg): Json<Message>,
 ) -> (StatusCode, String) {
     let sig = match app_state.signature_state.get(&hex::decode(&msg.message).unwrap()) {
         Some(sig) => sig,

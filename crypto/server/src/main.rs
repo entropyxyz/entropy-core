@@ -72,27 +72,24 @@ mod r#unsafe;
 mod user;
 pub(crate) mod validation;
 mod validator;
+use std::{net::SocketAddr, string::String, thread, time::Duration};
+
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
+use clap::Parser;
+use entropy_shared::{MIN_BALANCE, SIGNING_PARTY_SIZE};
+use kvdb::kv_manager::KvManager;
 use rocket::{
     fairing::{Fairing, Info, Kind},
     http::Header,
     Request, Response,
 };
 use validator::api::get_random_server_info;
-
-use std::{string::String, thread, time::Duration};
-
-use clap::Parser;
-use entropy_shared::{MIN_BALANCE, SIGNING_PARTY_SIZE};
-use kvdb::kv_manager::KvManager;
-
-use axum::{
-    routing::{get, post},
-    http::StatusCode,
-    response::IntoResponse,
-    Json, Router,
-	extract::State,
-};
-use std::net::SocketAddr;
 
 use self::{
     chain_api::get_api,
@@ -107,7 +104,7 @@ use crate::{
         substrate::get_subgroup,
         validator::get_signer,
     },
-    r#unsafe::api::{delete, get as unsafe_get, put, remove_keys},
+    r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     validator::api::{
         check_balance_for_fees, get_all_keys, get_and_store_values, sync_kvdb,
         tell_chain_syncing_is_done,
@@ -131,10 +128,10 @@ impl Fairing for CORS {
 
 #[derive(Clone)]
 pub struct AppState {
-	pub signer_state: SignerState,
-	pub configuration: Configuration,
-	pub kv_store: KvManager,
-	pub signature_state: SignatureState
+    pub signer_state: SignerState,
+    pub configuration: Configuration,
+    pub kv_store: KvManager,
+    pub signature_state: SignatureState,
 }
 
 #[tokio::main]
@@ -148,12 +145,12 @@ async fn main() {
     let kv_store = load_kv_store(args.bob, args.alice, args.no_password).await;
     let signature_state = SignatureState::new();
 
-	let app_state = AppState {
-		signer_state,
-		configuration: configuration.clone(),
-		kv_store: kv_store.clone(),
-		signature_state
-	};
+    let app_state = AppState {
+        signer_state,
+        configuration: configuration.clone(),
+        kv_store: kv_store.clone(),
+        signature_state,
+    };
 
     setup_mnemonic(&kv_store, args.alice, args.bob).await.expect("Issue creating Mnemonic");
     // Below deals with syncing the kvdb
@@ -207,8 +204,7 @@ async fn main() {
     // To enable unsafe routes compile with --feature unsafe.
     // let mut unsafe_routes = routes![];
 
-
-	let app = Router::new()
+    let mut routes = Router::new()
 		.route("/user/store_tx", post(store_tx))
 		.route("/user/sign_tx", post(sign_tx))
 		.route("/user/new_user", post(new_user))
@@ -217,22 +213,21 @@ async fn main() {
 		.route("/signer/get_signature", post(get_signature))
 		.route("/signer/drain", get(drain))
 		.route("/validator/sync_kvdb", post(sync_kvdb))
-		.route("/healthz", get(healthz))
-		.with_state(app_state);
+		.route("/healthz", get(healthz));
 
-	// if cfg!(feature = "unsafe") || cfg!(test) {
-	// 	app
-	// 	.route("unsafe/remove_keys", post())
-    //     routes![remove_keys, get, put, delete];
-    // }
-	// TODO: add tracing
-	// TODO: unhardcode endpoint
-	let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
-	tracing::debug!("listening on {}", addr);
-	axum::Server::bind(&addr)
-		.serve(app.into_make_service())
-		.await
-		.unwrap();
+    if cfg!(feature = "unsafe") || cfg!(test) {
+        routes = routes
+            .route("unsafe/put", post(put))
+            .route("unsafe/get", post(unsafe_get))
+            .route("unsafe/delete", post(delete))
+            .route("unsafe/remove_keys", get(remove_keys));
+    }
+    let app = routes.with_state(app_state);
+    // TODO: add tracing
+    // TODO: unhardcode endpoint
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
+    tracing::debug!("listening on {}", addr);
+    axum::Server::bind(&addr).serve(app.into_make_service()).await.unwrap();
     // rocket::build()
     //     .mount("/user", routes![store_tx, new_user, sign_tx])
     //     .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
