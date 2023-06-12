@@ -4,6 +4,7 @@ use node_primitives::BlockNumber;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "typeshare")]
 use typeshare::typeshare;
 
 /// common structs etc, shared among the substrate-blockchain-code and the crypto-code
@@ -11,11 +12,11 @@ pub use crate::constraints::*;
 
 /// X25519 public key used by the client in non-interactive ECDH to authenticate/encrypt
 /// interactions with the threshold server (eg distributing threshold shares).
-#[typeshare]
+#[cfg_attr(feature = "typeshare", typeshare)]
 pub type X25519PublicKey = [u8; 32];
 
 /// body of a signature generation request by the user to the entropy network
-#[typeshare]
+#[cfg_attr(feature = "typeshare", typeshare)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct SigRequest {
@@ -23,7 +24,7 @@ pub struct SigRequest {
     pub sig_hash: codec::alloc::vec::Vec<u8>,
 }
 
-#[typeshare]
+#[cfg_attr(feature = "typeshare", typeshare)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct ValidatorInfo {
@@ -33,7 +34,7 @@ pub struct ValidatorInfo {
 }
 
 /// The message sent from pallets::propagation::post() to the signing-client.
-#[typeshare]
+#[cfg_attr(feature = "typeshare", typeshare)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct Message {

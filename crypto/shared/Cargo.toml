@@ -12,11 +12,12 @@ sp-core        ={ package="sp-core", git="https://github.com/paritytech/substrat
 sp-std         ={ package="sp-std", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31", default-features=false }
 frame-support  ={ package="frame-support", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31", default-features=false }
 node-primitives={ version="2.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.31" }
+typeshare      ={ version="1.0.1", optional=true }
 
 # Entropy Constraints packages
-ec-core  ={ git="https://github.com/entropyxyz/constraints", branch="v0.1", default-features=false }
-typeshare="1.0.1"
+ec-core={ git="https://github.com/entropyxyz/constraints", branch="v0.1", default-features=false }
 
 [features]
-default=["std"]
-std    =["codec/std", "scale-info/std", "serde/std", "sp-core/std", "frame-support/std", "sp-std/std"]
+default  =["std"]
+std      =["codec/std", "scale-info/std", "serde/std", "sp-core/std", "frame-support/std", "sp-std/std"]
+typeshare=["dep:typeshare"]
