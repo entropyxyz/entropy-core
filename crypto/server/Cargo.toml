@@ -56,6 +56,7 @@ base64         ="0.13.0"
 clap           ={ version="4.0.29", features=["derive"] }
 node-primitives={ version="2.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.31" }
 num            ="0.4.0"
+typeshare = "1.0.1"
 
 [dev-dependencies]
 testing-utils={ path="../testing-utils" }

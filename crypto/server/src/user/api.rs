@@ -33,6 +33,7 @@ use subxt::{
     Config, OnlineClient,
 };
 use tracing::instrument;
+use typeshare::typeshare;
 use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
@@ -49,6 +50,7 @@ use crate::{
 };
 
 /// Represents an unparsed, transaction request coming from the client.
+#[typeshare]
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct UserTransactionRequest {
     /// 'eth', etc.
@@ -59,6 +61,7 @@ pub struct UserTransactionRequest {
     pub message: Message,
 }
 /// Represents an unparsed, transaction request coming from the client.
+#[typeshare]
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct GenericTransactionRequest {
     /// 'eth', etc.
