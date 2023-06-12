@@ -1,15 +1,24 @@
-use std::{convert::TryInto, str};
+use std::{
+    convert::{Infallible, TryInto},
+    pin::Pin,
+    str,
+    task::{Context, Poll},
+};
 
 use axum::{
     body::Bytes,
     extract::State,
     http::StatusCode,
-    response::IntoResponse,
+    response::{
+        sse::{Event, Sse},
+        IntoResponse, Response,
+    },
     routing::{get, post},
     Json, Router,
 };
 use blake2::{Blake2s256, Digest};
 use entropy_shared::{OCWMessage, PRUNE_BLOCK};
+use futures::stream::{self, Stream};
 use kvdb::kv_manager::{KvManager, PartyId};
 use parity_scale_codec::{Decode, Encode};
 use rocket::{response::stream::EventStream, Shutdown};
@@ -67,63 +76,62 @@ pub async fn new_party(
 
 // /// Other nodes in the party call this method to subscribe to this node's broadcasts.
 // /// The SigningProtocol begins when all nodes in the party have called this method on this node.
-// #[axum_macros::debug_handler]
-// pub async fn subscribe_to_me(
-// 	State(app_state): State<AppState>,
-//     end: Shutdown,
-//     signed_msg: Json<SignedMessage>,
-// ) -> Result<EventStream![], SubscribeErr> {
-//     if !signed_msg.verify() {
-//         return Err(SubscribeErr::InvalidSignature("Invalid signature."));
-//     }
-//     let signer = get_signer(&app_state.kv_store).await.map_err(|e|
-// SubscribeErr::UserError(e.to_string()))?;
+#[axum_macros::debug_handler]
+pub async fn subscribe_to_me(
+    State(app_state): State<AppState>,
+    signed_msg: Json<SignedMessage>,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, SubscribeErr> {
+    if !signed_msg.verify() {
+        return Err(SubscribeErr::InvalidSignature("Invalid signature."));
+    }
+    let signer = get_signer(&app_state.kv_store)
+        .await
+        .map_err(|e| SubscribeErr::UserError(e.to_string()))?;
 
-//     let decrypted_message =
-//         signed_msg.decrypt(signer.signer()).map_err(|e|
-// SubscribeErr::Decryption(e.to_string()))?;     let msg: SubscribeMessage =
-// serde_json::from_slice(&decrypted_message)?;
+    let decrypted_message =
+        signed_msg.decrypt(signer.signer()).map_err(|e| SubscribeErr::Decryption(e.to_string()))?;
+    let msg: SubscribeMessage = serde_json::from_slice(&decrypted_message)?;
 
-//     tracing::info!("got subscribe, with message: {msg:?}");
+    tracing::info!("got subscribe, with message: {msg:?}");
 
-//     let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
+    let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
 
-//     let signing_address = signed_msg.account_id();
+    let signing_address = signed_msg.account_id();
 
-//     // TODO: should we also check if party_id is in signing group -> limited spots in steam so
-// yes     if PartyId::new(signing_address) != party_id {
-//         return Err(SubscribeErr::InvalidSignature("Signature does not match party id."));
-//     }
+    // TODO: should we also check if party_id is in signing group -> limited spots in steam so yes
+    if PartyId::new(signing_address) != party_id {
+        return Err(SubscribeErr::InvalidSignature("Signature does not match party id."));
+    }
 
-//     if !app_state.signer_state.contains_listener(&msg.session_id)? {
-//         // Chain node hasn't yet informed this node of the party. Wait for a timeout and procede
-// (or         // fail below)
-//         tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
-//     };
+    if !app_state.signer_state.contains_listener(&msg.session_id)? {
+        // Chain node hasn't yet informed this node of the party. Wait for a timeout and proceed
+        // or fail below
+        tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
+    };
 
-//     let rx = {
-//         let mut listeners = app_state.signer_state.listeners.lock().expect("lock shared data");
-//         let listener =
-//             listeners.get_mut(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
-//         let rx_outcome = listener.subscribe(party_id)?;
+    let rx = {
+        let mut listeners = app_state.signer_state.listeners.lock().expect("lock shared data");
+        let listener =
+            listeners.get_mut(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
+        let rx_outcome = listener.subscribe(party_id)?;
 
-//         // If this is the last subscriber, remove the listener from state
-//         match rx_outcome {
-//             Receiver::Receiver(rx) => rx,
-//             Receiver::FinalReceiver(rx) => {
-//                 // all subscribed, wake up the waiting listener in new_party
-//                 let listener = listeners
-//                     .remove(&msg.session_id)
-//                     .ok_or(SubscribeErr::NoListener("listener remove"))?;
-//                 let (tx, broadcaster) = listener.into_broadcaster();
-//                 let _ = tx.send(Ok(broadcaster));
-//                 rx
-//             },
-//         }
-//     };
+        // If this is the last subscriber, remove the listener from state
+        match rx_outcome {
+            Receiver::Receiver(rx) => rx,
+            Receiver::FinalReceiver(rx) => {
+                // all subscribed, wake up the waiting listener in new_party
+                let listener = listeners
+                    .remove(&msg.session_id)
+                    .ok_or(SubscribeErr::NoListener("listener remove"))?;
+                let (tx, broadcaster) = listener.into_broadcaster();
+                let _ = tx.send(Ok(broadcaster));
+                rx
+            },
+        }
+    };
 
-//     Ok(Listener::create_event_stream(rx, end))
-// }
+    Ok(Listener::create_event_stream(rx))
+}
 
 /// Validates new party endpoint
 /// Checks the chain for validity of data and block number of data matches current block
