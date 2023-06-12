@@ -23,12 +23,7 @@ pub const DEFAULT_ALICE_MNEMONIC: &str =
 #[cfg(test)]
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
-pub fn init_tracing() {
-    let filter = tracing_subscriber::filter::LevelFilter::INFO.into();
-    tracing_subscriber::filter::EnvFilter::builder()
-        .with_default_directive(filter)
-        .from_env_lossy();
-}
+pub fn init_tracing() { tracing_subscriber::fmt().with_target(false).json().init(); }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Configuration {

@@ -89,6 +89,8 @@ use rocket::{
     http::Header,
     Request, Response,
 };
+use tower_http::trace::{self, TraceLayer};
+use tracing::Level;
 use validator::api::get_random_server_info;
 
 use self::{
@@ -222,11 +224,16 @@ async fn main() {
             .route("unsafe/delete", post(delete))
             .route("unsafe/remove_keys", get(remove_keys));
     }
-    let app = routes.with_state(app_state);
+
+    let app = routes.with_state(app_state).layer(
+        TraceLayer::new_for_http()
+            .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+            .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+    );
     // TODO: add tracing
     // TODO: unhardcode endpoint
     let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
-    tracing::debug!("listening on {}", addr);
+    tracing::info!("listening on {}", addr);
     axum::Server::bind(&addr).serve(app.into_make_service()).await.unwrap();
     // rocket::build()
     //     .mount("/user", routes![store_tx, new_user, sign_tx])
