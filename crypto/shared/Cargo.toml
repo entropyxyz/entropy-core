@@ -14,7 +14,8 @@ frame-support  ={ package="frame-support", git="https://github.com/paritytech/su
 node-primitives={ version="2.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.31" }
 
 # Entropy Constraints packages
-ec-core={ git="https://github.com/entropyxyz/constraints", branch="v0.1", default-features=false }
+ec-core  ={ git="https://github.com/entropyxyz/constraints", branch="v0.1", default-features=false }
+typeshare="1.0.1"
 
 [features]
 default=["std"]
