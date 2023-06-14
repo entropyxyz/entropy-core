@@ -46,7 +46,7 @@ use crate::{
         },
     },
     load_kv_store, new_party, new_user,
-    r#unsafe::api::{delete, get, put, remove_keys, UnsafeQuery},
+    r#unsafe::api::{UnsafeQuery},
     signing_client::{
         tests::{put_tx_request_on_chain, run_to_block},
         SignerState,

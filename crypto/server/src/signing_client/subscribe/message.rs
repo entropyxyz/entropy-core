@@ -2,7 +2,7 @@ use kvdb::kv_manager::PartyId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(crate = "rocket::serde")]
 pub struct SubscribeMessage {
     /// Signing session

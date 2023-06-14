@@ -199,13 +199,13 @@ async fn main() {
         tell_chain_syncing_is_done(&api, &signer).await.expect("failed to finish chain sync.");
     }
 
-    // Unsafe routes are for testing purposes only
-    // they are unsafe as they can expose vulnerabilites
-    // should they be used in production. Unsafe routes
-    // are disabled by default.
-    // To enable unsafe routes compile with --feature unsafe.
-    // let mut unsafe_routes = routes![];
+    // TODO: unhardcode endpoint
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
+    tracing::info!("listening on {}", addr);
+    axum::Server::bind(&addr).serve(app(app_state).into_make_service()).await.unwrap();
+}
 
+pub fn app(app_state: AppState) -> Router {
     let mut routes = Router::new()
         .route("/user/store_tx", post(store_tx))
         .route("/user/sign_tx", post(sign_tx))
@@ -217,33 +217,22 @@ async fn main() {
         .route("/validator/sync_kvdb", post(sync_kvdb))
         .route("/healthz", get(healthz));
 
+    // Unsafe routes are for testing purposes only
+    // they are unsafe as they can expose vulnerabilites
+    // should they be used in production. Unsafe routes
+    // are disabled by default.
+    // To enable unsafe routes compile with --feature unsafe.
     if cfg!(feature = "unsafe") || cfg!(test) {
         routes = routes
-            .route("unsafe/put", post(put))
-            .route("unsafe/get", post(unsafe_get))
-            .route("unsafe/delete", post(delete))
-            .route("unsafe/remove_keys", get(remove_keys));
+            .route("/unsafe/put", post(put))
+            .route("/unsafe/get", post(unsafe_get))
+            .route("/unsafe/delete", post(delete))
+            .route("/unsafe/remove_keys", get(remove_keys));
     }
 
-    let app = routes.with_state(app_state).layer(
+    routes.with_state(app_state).layer(
         TraceLayer::new_for_http()
             .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
             .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
-    );
-    // TODO: add tracing
-    // TODO: unhardcode endpoint
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
-    tracing::info!("listening on {}", addr);
-    axum::Server::bind(&addr).serve(app.into_make_service()).await.unwrap();
-    // rocket::build()
-    //     .mount("/user", routes![store_tx, new_user, sign_tx])
-    //     .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
-    //     .mount("/validator", routes![sync_kvdb])
-    //     .mount("/", routes![healthz])
-    //     .mount("/unsafe", unsafe_routes)
-    //     .manage(signer_state)
-    //     .manage(signature_state)
-    //     .manage(configuration)
-    //     .manage(kv_store)
-    //     .attach(CORS)
+    )
 }

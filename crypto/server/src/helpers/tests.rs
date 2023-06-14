@@ -1,6 +1,9 @@
 // only compile when testing
 #![cfg(test)]
 
+use std::net::{SocketAddr, TcpListener};
+
+use axum::{http, routing::IntoMakeService, Router};
 use entropy_shared::Constraints;
 use futures::future::join_all;
 use kvdb::{
@@ -19,6 +22,7 @@ use testing_utils::{constants::X25519_PUBLIC_KEYS, substrate_context::testing_co
 use x25519_dalek::PublicKey;
 
 use crate::{
+    app,
     chain_api::{entropy, get_api, EntropyConfig},
     get_signer,
     helpers::{
@@ -28,9 +32,7 @@ use crate::{
         signing::SignatureState,
         substrate::{get_subgroup, make_register},
     },
-    new_user,
-    r#unsafe::api::{delete, get, put, remove_keys},
-    sign_tx,
+    new_user, sign_tx,
     signing_client::{
         api::{drain, get_signature, new_party, subscribe_to_me},
         SignerState,
@@ -38,10 +40,25 @@ use crate::{
     store_tx,
     validation::SignedMessage,
     validator::api::sync_kvdb,
+    AppState,
 };
 
-pub async fn setup_client() -> Client {
-    Client::tracked(crate::rocket().await).await.expect("valid `Rocket`")
+pub async fn setup_client() {
+    let path = format!(".entropy/testing/test_db");
+    let kv_store =
+        KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+    let _ = setup_mnemonic(&kv_store, true, false).await;
+
+    let signer_state = SignerState::default();
+    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
+    let signature_state = SignatureState::new();
+    let app_state = AppState { signer_state, configuration, kv_store, signature_state };
+    let mut app = app(app_state).into_make_service();
+    let listener = TcpListener::bind("0.0.0.0:3001").unwrap();
+
+    tokio::spawn(async move {
+        axum::Server::from_tcp(listener).unwrap().serve(app).await.unwrap();
+    });
 }
 
 pub async fn create_clients(
@@ -51,7 +68,7 @@ pub async fn create_clients(
     keys: Vec<String>,
     is_alice: bool,
     is_bob: bool,
-) -> (Rocket<Ignite>, KvManager) {
+) -> (IntoMakeService<Router>, KvManager) {
     let config = rocket::Config::figment().merge(("port", port));
 
     let signer_state = SignerState::default();
@@ -70,30 +87,12 @@ pub async fn create_clients(
         let _ = kv_store.clone().kv().put(reservation, value).await;
     }
 
-    // Unsafe routes are for testing purposes only
-    // they are unsafe as they can expose vulnerabilites
-    // should they be used in production. Unsafe routes
-    // are disabled by default.
-    // To enable unsafe routes compile with --feature unsafe.
-    let mut unsafe_routes = routes![];
-    if cfg!(feature = "unsafe") || cfg!(test) {
-        unsafe_routes = routes![remove_keys, get, put, delete];
-    }
+    let app_state =
+        AppState { signer_state, configuration, kv_store: kv_store.clone(), signature_state };
 
-    let result = rocket::custom(config)
-        .mount("/validator", routes![sync_kvdb])
-        .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
-        .mount("/user", routes![store_tx, new_user, sign_tx])
-        .mount("/unsafe", unsafe_routes)
-        .manage(signer_state)
-        .manage(configuration)
-        .manage(kv_store.clone())
-        .manage(signature_state)
-        .ignite()
-        .await
-        .unwrap();
+    let mut app = app(app_state).into_make_service();
 
-    (result, kv_store)
+    (app, kv_store)
 }
 
 pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
@@ -107,9 +106,17 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
     let (bob_rocket, bob_kv) =
         create_clients(ports[1], "validator2".to_string(), vec![], vec![], false, true).await;
     let bob_id = PartyId::new(get_signer(&bob_kv).await.unwrap().account_id().clone());
+    let listener_alice = TcpListener::bind(format!("0.0.0.0:{}", ports[0])).unwrap();
+    let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", ports[1])).unwrap();
 
-    tokio::spawn(async move { alice_rocket.launch().await.unwrap() });
-    tokio::spawn(async move { bob_rocket.launch().await.unwrap() });
+    tokio::spawn(async move {
+        axum::Server::from_tcp(listener_alice).unwrap().serve(alice_rocket).await.unwrap();
+    });
+
+    tokio::spawn(async move {
+        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_rocket).await.unwrap();
+    });
+
     tokio::time::sleep(Duration::from_secs(1)).await;
 
     let ips = ports.iter().map(|port| format!("127.0.0.1:{}", port)).collect();
