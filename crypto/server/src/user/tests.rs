@@ -52,7 +52,7 @@ use crate::{
         SignerState,
     },
     store_tx, subscribe_to_me,
-    user::api::UserTransactionRequest,
+    user::api::{UserTransactionRequest, UserValidatorInfo},
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
     Message as SigMessage,
@@ -98,28 +98,22 @@ async fn test_sign_tx_no_chain() {
     let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
 
     let sig_hash = transaction_request.sighash();
-    let message_request = Message {
-        sig_request: SigRequest { sig_hash: sig_hash.as_bytes().to_vec() },
-        account: one.to_raw_public_vec(),
-        validators_info: vec![
-            ValidatorInfo {
-                ip_address: b"127.0.0.1:3001".to_vec(),
-                x25519_public_key: X25519_PUBLIC_KEYS[0],
-                tss_account: TSS_ACCOUNTS[0].encode(),
-            },
-            ValidatorInfo {
-                ip_address: b"127.0.0.1:3002".to_vec(),
-                x25519_public_key: X25519_PUBLIC_KEYS[1],
-                tss_account: TSS_ACCOUNTS[1].encode(),
-            },
-        ],
-    };
     let converted_transaction_request: String = hex::encode(&transaction_request.rlp().to_vec());
     let mut generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),
         transaction_request: converted_transaction_request,
-        message: message_request,
-        validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
+        validators_info: vec![
+            UserValidatorInfo {
+                x25519_public_key: hex::encode(X25519_PUBLIC_KEYS[0]),
+                endpoint: "127.0.0.1:3001".to_string(),
+                tss_account: TSS_ACCOUNTS[0].to_ss58check(),
+            },
+            UserValidatorInfo {
+                x25519_public_key: hex::encode(X25519_PUBLIC_KEYS[1]),
+                endpoint: "127.0.0.1:3002".to_string(),
+                tss_account: TSS_ACCOUNTS[1].to_ss58check(),
+            },
+        ],
     };
 
     let submit_transaction_requests =
@@ -166,7 +160,7 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    generic_msg.message.validators_info[0].x25519_public_key = [0; 32];
+    generic_msg.validators_info[0].x25519_public_key = hex::encode([0; 32]);
 
     let test_user_failed_x25519_pub_key =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -265,30 +259,24 @@ async fn test_fail_signing_group() {
 
     let _substrate_context = test_node_process_testing_state().await;
     let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(3);
-    let sig_hash = transaction_request.sighash();
-    let message_request = Message {
-        sig_request: SigRequest { sig_hash: sig_hash.as_bytes().to_vec() },
-        account: dave.to_raw_public_vec(),
-        validators_info: vec![
-            ValidatorInfo {
-                ip_address: b"127.0.0.1:3001".to_vec(),
-                x25519_public_key: X25519_PUBLIC_KEYS[0],
-                tss_account: TSS_ACCOUNTS[0].encode(),
-            },
-            ValidatorInfo {
-                ip_address: b"127.0.0.1:3002".to_vec(),
-                x25519_public_key: X25519_PUBLIC_KEYS[1],
-                tss_account: TSS_ACCOUNTS[1].encode(),
-            },
-        ],
-    };
 
     let generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),
         transaction_request: hex::encode(&transaction_request.rlp()),
-        message: message_request,
-        validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
+        validators_info: vec![
+            UserValidatorInfo {
+                x25519_public_key: hex::encode(X25519_PUBLIC_KEYS[0]),
+                endpoint: "127.0.0.1:3001".to_string(),
+                tss_account: TSS_ACCOUNTS[0].to_ss58check(),
+            },
+            UserValidatorInfo {
+                x25519_public_key: hex::encode(X25519_PUBLIC_KEYS[1]),
+                endpoint: "127.0.0.1:3002".to_string(),
+                tss_account: TSS_ACCOUNTS[1].to_ss58check(),
+            },
+        ],
     };
+
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let signed_message = SignedMessage::new(
         &dave.pair(),

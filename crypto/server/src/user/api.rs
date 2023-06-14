@@ -6,7 +6,7 @@ use entropy_constraints::{
 };
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints},
-    Message, SIGNING_PARTY_SIZE,
+    Message, SigRequest, ValidatorInfo, SIGNING_PARTY_SIZE,
 };
 use futures::future::{join_all, FutureExt};
 use kvdb::kv_manager::{
@@ -55,9 +55,21 @@ pub struct UserTransactionRequest {
     pub arch: String,
     /// ETH: RLP encoded transaction request
     pub transaction_request: String,
-    pub validator_ips: Vec<parity_scale_codec::alloc::vec::Vec<u8>>,
-    pub message: Message,
+    pub validators_info: Vec<UserValidatorInfo>,
 }
+
+/// Information about a threshold server in the format it comes from the user
+/// this will be converted to ValidatorInfo
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct UserValidatorInfo {
+    /// X25519PublicKey encoded as hex (with Ox prefix)
+    pub x25519_public_key: String,
+    /// Socket address of the threshold server
+    pub endpoint: String,
+    /// SS58 Encoded account ID
+    pub tss_account: String,
+}
+
 /// Represents an unparsed, transaction request coming from the client.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct GenericTransactionRequest {
@@ -104,9 +116,38 @@ pub async fn sign_tx(
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
     check_signing_group(subgroup_signers, signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
+
     match user_tx_req.arch.as_str() {
         "evm" => {
-            let message = user_tx_req.message;
+            let sig_request = SigRequest { sig_hash: parsed_tx.sighash().as_bytes().to_vec() };
+            let account_arr: [u8; 32] = signing_address_converted.clone().into();
+            let message = Message {
+                sig_request,
+                account: account_arr.to_vec(),
+                validators_info: user_tx_req
+                    .validators_info
+                    .iter()
+                    .filter_map(|i| {
+                        // let socket_address: std::net::SocketAddr = i.endpoint.parse().unwrap();
+                        // let ip_bytes = socket_address.to_string().as_bytes().to_vec();
+                        // let ip_bytes = match socket_address.ip() {
+                        // 	std::net::IpAddr::V4(ip) => ip.octets().to_vec(),
+                        // 	std::net::IpAddr::V6(ip) => ip.octets().to_vec(),
+                        // };
+                        let tss_account: [u8; 32] =
+                            AccountId32::from_ss58check(&i.tss_account).unwrap().into();
+                        Some(ValidatorInfo {
+                            x25519_public_key: hex::decode(&i.x25519_public_key)
+                                .unwrap()
+                                .try_into()
+                                .unwrap(),
+                            tss_account: tss_account.to_vec(),
+                            ip_address: i.endpoint.as_bytes().to_vec(),
+                        })
+                    })
+                    .collect(),
+            };
+
             let evm_acl = get_constraints(&api, &signing_address_converted)
                 .await?
                 .evm_acl
