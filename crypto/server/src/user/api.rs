@@ -55,7 +55,7 @@ pub struct UserTransactionRequest {
     pub arch: String,
     /// ETH: RLP encoded transaction request
     pub transaction_request: String,
-	/// Information about validators
+    /// Information about validators
     pub validators_info: Vec<UserValidatorInfo>,
 }
 
@@ -128,19 +128,25 @@ pub async fn sign_tx(
                 validators_info: user_tx_req
                     .validators_info
                     .iter()
-                    .map(|i| {
-                        let tss_account = AccountId32::from_ss58check(&i.tss_account).unwrap();
-                        ValidatorInfo {
-                            x25519_public_key: hex::decode(&i.x25519_public_key)
-                                .unwrap()
+                    .map(|u| {
+                        let tss_account = AccountId32::from_ss58check(&u.tss_account)
+                            .map_err(|_| UserErr::Parse("Could not parse validator info"))?;
+                        Ok(ValidatorInfo {
+                            x25519_public_key: hex::decode(&u.x25519_public_key)
+                                .map_err(|_| UserErr::Parse("Could not parse validator info"))?
                                 .try_into()
-                                .unwrap(),
+                                .map_err(|_| UserErr::Parse("Could not parse validator info"))?,
                             tss_account: tss_account.encode(),
-                            ip_address: i.endpoint.as_bytes().to_vec(),
-                        }
+                            ip_address: u.endpoint.as_bytes().to_vec(),
+                        })
                     })
+                    .filter_map(|res: Result<ValidatorInfo, UserErr>| res.ok())
                     .collect(),
             };
+
+            if message.validators_info.len() != user_tx_req.validators_info.len() {
+                return Err(UserErr::Parse("Could not parse validator info"));
+            }
 
             let evm_acl = get_constraints(&api, &signing_address_converted)
                 .await?
