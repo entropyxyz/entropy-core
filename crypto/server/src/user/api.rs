@@ -132,7 +132,7 @@ pub async fn sign_tx(
                         let tss_account = AccountId32::from_ss58check(&u.tss_account)
                             .map_err(|_| UserErr::Parse("Could not parse validator info"))?;
                         Ok(ValidatorInfo {
-                            x25519_public_key: hex::decode(&u.x25519_public_key.replace("0x", ""))
+                            x25519_public_key: hex::decode(u.x25519_public_key.replace("0x", ""))
                                 .map_err(|_| UserErr::Parse("Could not parse validator info"))?
                                 .try_into()
                                 .map_err(|_| UserErr::Parse("Could not parse validator info"))?,
