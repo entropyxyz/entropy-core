@@ -94,11 +94,33 @@ async fn test_sign_tx_no_chain() {
         initial_constraints([1u8; 20]),
     )
     .await;
-    let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(1);
-    let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
+    let transaction_request = TransactionRequest::new()
+        .to(Address::from([1u8; 20]))
+        .value(1)
+        .gas(0)
+        .gas_price(0)
+        .nonce(0)
+        .chain_id(0);
+    let transaction_request_fail = TransactionRequest::new()
+        .to(Address::from([3u8; 20]))
+        .value(10)
+        .gas(0)
+        .gas_price(0)
+        .nonce(0)
+        .chain_id(0);
 
     let sig_hash = transaction_request.sighash();
     let converted_transaction_request: String = hex::encode(&transaction_request.rlp().to_vec());
+
+    // Check that we get the same sighash after serlializing and deserializing again
+    {
+        let bytes = transaction_request.rlp().to_vec();
+        let rlp = ethers_core::utils::rlp::Rlp::new(&bytes);
+        let parsed_tx_other = TransactionRequest::decode_unsigned_rlp(&rlp).unwrap();
+        assert_eq!(transaction_request, parsed_tx_other);
+        assert_eq!(sig_hash, parsed_tx_other.sighash());
+    }
+
     let mut generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),
         transaction_request: converted_transaction_request,
@@ -258,7 +280,13 @@ async fn test_fail_signing_group() {
     let _ = spawn_testing_validators().await;
 
     let _substrate_context = test_node_process_testing_state().await;
-    let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(3);
+    let transaction_request = TransactionRequest::new()
+        .to(Address::from([1u8; 20]))
+        .value(3)
+        .gas(0)
+        .gas_price(0)
+        .nonce(0)
+        .chain_id(0);
 
     let generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),

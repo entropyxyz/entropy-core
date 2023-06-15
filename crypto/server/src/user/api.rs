@@ -16,7 +16,7 @@ use kvdb::kv_manager::{
 };
 use log::info;
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
-use parity_scale_codec::DecodeAll;
+use parity_scale_codec::{DecodeAll, Encode};
 use rocket::{
     http::Status,
     response::stream::EventStream,
@@ -55,6 +55,7 @@ pub struct UserTransactionRequest {
     pub arch: String,
     /// ETH: RLP encoded transaction request
     pub transaction_request: String,
+	/// Information about validators
     pub validators_info: Vec<UserValidatorInfo>,
 }
 
@@ -120,30 +121,23 @@ pub async fn sign_tx(
     match user_tx_req.arch.as_str() {
         "evm" => {
             let sig_request = SigRequest { sig_hash: parsed_tx.sighash().as_bytes().to_vec() };
-            let account_arr: [u8; 32] = signing_address_converted.clone().into();
+            let account_arr: [u8; 32] = signed_msg.account_id().into();
             let message = Message {
                 sig_request,
                 account: account_arr.to_vec(),
                 validators_info: user_tx_req
                     .validators_info
                     .iter()
-                    .filter_map(|i| {
-                        // let socket_address: std::net::SocketAddr = i.endpoint.parse().unwrap();
-                        // let ip_bytes = socket_address.to_string().as_bytes().to_vec();
-                        // let ip_bytes = match socket_address.ip() {
-                        // 	std::net::IpAddr::V4(ip) => ip.octets().to_vec(),
-                        // 	std::net::IpAddr::V6(ip) => ip.octets().to_vec(),
-                        // };
-                        let tss_account: [u8; 32] =
-                            AccountId32::from_ss58check(&i.tss_account).unwrap().into();
-                        Some(ValidatorInfo {
+                    .map(|i| {
+                        let tss_account = AccountId32::from_ss58check(&i.tss_account).unwrap();
+                        ValidatorInfo {
                             x25519_public_key: hex::decode(&i.x25519_public_key)
                                 .unwrap()
                                 .try_into()
                                 .unwrap(),
-                            tss_account: tss_account.to_vec(),
+                            tss_account: tss_account.encode(),
                             ip_address: i.endpoint.as_bytes().to_vec(),
-                        })
+                        }
                     })
                     .collect(),
             };
