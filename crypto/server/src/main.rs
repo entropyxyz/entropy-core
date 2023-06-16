@@ -207,12 +207,12 @@ async fn main() {
 
 pub fn app(app_state: AppState) -> Router {
     let mut routes = Router::new()
-        .route("/user/store_tx", post(store_tx))
+        .route("/user/tx", post(store_tx))
         .route("/user/sign_tx", post(sign_tx))
-        .route("/user/new_user", post(new_user))
+        .route("/user/new", post(new_user))
         .route("/signer/new_party", post(new_party))
         .route("/signer/subscribe_to_me", post(subscribe_to_me))
-        .route("/signer/get_signature", post(get_signature))
+        .route("/signer/signature", post(get_signature))
         .route("/signer/drain", get(drain))
         .route("/validator/sync_kvdb", post(sync_kvdb))
         .route("/healthz", get(healthz));
