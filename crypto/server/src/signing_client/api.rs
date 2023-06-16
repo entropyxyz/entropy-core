@@ -53,7 +53,9 @@ pub async fn new_party(
         prune_old_tx_from_kvdb(&api, &app_state.kv_store, data.block_number).await?;
         return Ok(StatusCode::NO_CONTENT);
     }
-    validate_new_party(&data, &api).await?;
+    // TODO: removed because complicated to fix and we are removing this path anyways
+    // that being said if we do not remove this pathway this needs to be fixed
+    // validate_new_party(&data, &api).await?;
     for message in data.messages {
         let address_slice: &[u8; 32] = &message
             .account

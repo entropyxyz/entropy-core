@@ -9,6 +9,7 @@ use futures::future::join_all;
 use kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
+    get_db_path,
     kv_manager::{KvManager, PartyId},
 };
 use rand_core::OsRng;
@@ -44,9 +45,9 @@ use crate::{
 };
 
 pub async fn setup_client() {
-    let path = format!(".entropy/testing/test_db");
     let kv_store =
-        KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+        KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
+            .unwrap();
     let _ = setup_mnemonic(&kv_store, true, false).await;
 
     let signer_state = SignerState::default();

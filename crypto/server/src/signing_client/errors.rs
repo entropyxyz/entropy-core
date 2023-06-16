@@ -84,7 +84,10 @@ pub enum SigningErr {
 }
 
 impl IntoResponse for SigningErr {
-    fn into_response(self) -> Response { (StatusCode::INTERNAL_SERVER_ERROR, self).into_response() }
+    fn into_response(self) -> Response {
+        let body = format!("{self}").into_bytes();
+        (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
+    }
 }
 
 /// Errors for the `subscribe` API
@@ -111,7 +114,10 @@ pub enum SubscribeErr {
 }
 
 impl IntoResponse for SubscribeErr {
-    fn into_response(self) -> Response { (StatusCode::INTERNAL_SERVER_ERROR, self).into_response() }
+    fn into_response(self) -> Response {
+        let body = format!("{self}").into_bytes();
+        (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
+    }
 }
 
 // todo: delete
