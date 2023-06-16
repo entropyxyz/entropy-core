@@ -16,18 +16,82 @@
 //! Most user-facing endpoints take a [SignedMessage](crate::message::SignedMessage) which
 //! is an encrypted, signed message.
 //!
-//! - [`/user/new`](crate::user::api::new_user()) - POST - Called by a user when registering to
-//!   submit a key-share.
-//! - [`/user/sign_tx`](crate::user::api::sign_tx()) - POST - Called by a user to submit a
-//!   transaction to sign.
-//! (The new way of doing signing).
-//! - [`/user/tx`](crate::user::api::store_tx()) - POST - Called by a user when signing to submit a
-//!   transaction to
-//! be signed using the signing protocol (the original way of doing signing).
-//! - [`/signer/signature`](crate::signing_client::api::get_signature()) - POST - Get a signature,
-//! given a message hash. If a message was successfully signed, this returns the signature.
-//! - [`/signer/drain`](crate::signing_client::api::drain()) - GET - Remove signatures from state.
+//! #### `/user/new` - POST
+//!
+//! [crate::user::api::new_user()]
+//!
+//! Called by a user when registering to submit a key-share. Takes a Synedrion keyshare
+//! encrypted in a `SignedMessage`.
+//!
+//! Curl example for `user/new`:
+//! ```text
+//! curl -X POST -H "Content-Type: application/json" \
+//!   -d '{"msg" "0x174...hex encoded signedmessage...","sig":"821754409744cbb878b44bd1e3dc575a4ea721e12d781b074fcdb808fc79fd33dd1928b1a281c0b6261a30536a7c0106a102f27dad1bc3ef475b626f0e57c983","pk":[172,133,159,138,33,110,235,27,50,11,76,118,209,24,218,61,116,7,250,82,52,132,208,169,128,18,109,59,77,13,34,10],"recip":[10,192,41,240,184,83,178,59,237,101,45,109,13,230,155,124,195,141,148,249,55,50,238,252,133,181,134,30,144,247,58,34],"a":[169,94,23,7,19,184,134,70,233,117,2,84,242,135,246,95,159,14,218,125,209,191,175,89,41,196,182,96,117,5,159,98],"nonce":[114,93,158,35,209,188,96,248,85,131,95,237]}' \
+//!   -H "Accept: application/json" \
+//!   http://127.0.0.1:3001/user/new
+//! ```
+//!
+//! #### `/user/sign_tx` - POST
+//!
+//! [crate::user::api::sign_tx()]
+//!
+//! Called by a user to submit a transaction to sign (the new way of doing signing). Takes a
+//! [`UserTransactionRequest`](crate::user::api::UserTransactionRequest) encryted in a `SignedMessage`.
+//!
+//! Curl example for `user/sign_tx`:
+//! ```text
+//! curl -X POST -H "Content-Type: application/json" \
+//!   -d '{"msg" "0x174...hex encoded signedmessage...","sig":"821754409744cbb878b44bd1e3dc575a4ea721e12d781b074fcdb808fc79fd33dd1928b1a281c0b6261a30536a7c0106a102f27dad1bc3ef475b626f0e57c983","pk":[172,133,159,138,33,110,235,27,50,11,76,118,209,24,218,61,116,7,250,82,52,132,208,169,128,18,109,59,77,13,34,10],"recip":[10,192,41,240,184,83,178,59,237,101,45,109,13,230,155,124,195,141,148,249,55,50,238,252,133,181,134,30,144,247,58,34],"a":[169,94,23,7,19,184,134,70,233,117,2,84,242,135,246,95,159,14,218,125,209,191,175,89,41,196,182,96,117,5,159,98],"nonce":[114,93,158,35,209,188,96,248,85,131,95,237]}' \
+//!   -H "Accept: application/json" \
+//!   http://127.0.0.1:3001/user/sign_tx
+//! ```
+//!
+//! #### `/user/tx` - POST
+//!
+//! [crate::user::api::store_tx()]
+//!
+//! Called by a user when signing to submit a transaction to be signed using the signing
+//! protocol (the original way of doing signing).
+//!
+//! Curl example for `user/tx`:
+//! ```text
+//! curl -X POST -H "Content-Type: application/json" \
+//!   -d '{"msg" "0x174...hex encoded signedmessage...","sig":"821754409744cbb878b44bd1e3dc575a4ea721e12d781b074fcdb808fc79fd33dd1928b1a281c0b6261a30536a7c0106a102f27dad1bc3ef475b626f0e57c983","pk":[172,133,159,138,33,110,235,27,50,11,76,118,209,24,218,61,116,7,250,82,52,132,208,169,128,18,109,59,77,13,34,10],"recip":[10,192,41,240,184,83,178,59,237,101,45,109,13,230,155,124,195,141,148,249,55,50,238,252,133,181,134,30,144,247,58,34],"a":[169,94,23,7,19,184,134,70,233,117,2,84,242,135,246,95,159,14,218,125,209,191,175,89,41,196,182,96,117,5,159,98],"nonce":[114,93,158,35,209,188,96,248,85,131,95,237]}' \
+//!   -H "Accept: application/json" \
+//!   http://127.0.0.1:3001/user/tx
+//! ```
+//!
+//! #### `/signer/signature` - POST
+//!
+//! [crate::signing_client::api::get_signature()]
+//!
+//! Get a signature, given a message hash. If a message was successfully signed, this
+//! returns the signature.
+//!
+//! This takes a [`Message`](crate::signing_client::api::Message) containing a hex encoded message
+//! hash. For evm transactions this should be an ethers
+//! [`TransactionRequest`](ethers_core::types::transaction::request::TransactionRequest) sighash.
+//!
+//! Curl example for `/signer/signature`:
+//! ```text
+//! curl -X POST -H "Content-Type: application/json" \
+//!   -d '{"message" "0x174...hex encoded sighash..."}' \
+//!   -H "Accept: application/json" \
+//!   http://127.0.0.1:3001/signer/signature
+//! ```
+//!
+//! #### `/signer/drain` - GET
+//!
+//! [crate::signing_client::api::drain()]
+//!
+//! Remove signatures from state.
 //! This should be called after `get_signature`.
+//!
+//! Curl example for `user/drain`:
+//! ```text
+//! curl -X GET -H "Accept: application/json" \
+//!   http://127.0.0.1:3001/user/drain
+//! ```
 //!
 //! ### For the blockchain node
 //!
