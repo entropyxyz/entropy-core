@@ -36,7 +36,8 @@
 //! [crate::user::api::sign_tx()]
 //!
 //! Called by a user to submit a transaction to sign (the new way of doing signing). Takes a
-//! [`UserTransactionRequest`](crate::user::api::UserTransactionRequest) encryted in a `SignedMessage`.
+//! [`UserTransactionRequest`](crate::user::api::UserTransactionRequest) encryted in a
+//! `SignedMessage`.
 //!
 //! Curl example for `user/sign_tx`:
 //! ```text
