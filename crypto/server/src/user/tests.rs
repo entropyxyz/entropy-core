@@ -58,7 +58,7 @@ use crate::{
     Message as SigMessage,
 };
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_get_signer_does_not_throw_err() {
     clean_tests();
@@ -68,7 +68,7 @@ async fn test_get_signer_does_not_throw_err() {
     get_signer(&kv_store).await.unwrap();
     clean_tests();
 }
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_sign_tx_no_chain() {
     clean_tests();
@@ -256,7 +256,7 @@ async fn test_sign_tx_no_chain() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_fail_signing_group() {
     clean_tests();
@@ -307,7 +307,7 @@ async fn test_fail_signing_group() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_unsigned_tx_endpoint() {
     clean_tests();
@@ -598,7 +598,7 @@ async fn test_unsigned_tx_endpoint() {
 
 // TODO negative validation tests on user/tx
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_store_share() {
     clean_tests();
@@ -696,7 +696,7 @@ async fn test_store_share() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_update_keys() {
     clean_tests();
@@ -773,7 +773,7 @@ async fn test_update_keys() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_store_share_fail_wrong_data() {
     clean_tests();

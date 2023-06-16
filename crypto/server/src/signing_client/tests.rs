@@ -24,7 +24,7 @@ use crate::{
     },
 };
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_new_party() {
     clean_tests();
@@ -104,7 +104,7 @@ async fn test_new_party() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_new_party_fail_unverified() {
     clean_tests();
@@ -167,7 +167,7 @@ async fn test_new_party_fail_unverified() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn create_verify_signed_message() {
     let message: Box<[u8]> = Box::new([10]);
     let bad_message: Box<[u8]> = Box::new([11]);
@@ -210,7 +210,7 @@ async fn create_verify_signed_message() {
         Box::new(SigningErr::MessageValidation("Unable to verify origins of message".to_string()));
     assert!(matches!(failed_message_decrypt, Err(_err_2)));
 }
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn new_party_fail_wrong_data() {
     // Construct a client to use for dispatching requests.

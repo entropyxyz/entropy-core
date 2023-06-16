@@ -6,7 +6,7 @@ use serial_test::serial;
 use super::api::UnsafeQuery;
 use crate::helpers::tests::setup_client;
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_unsafe_get_endpoint() {
     setup_client().await;

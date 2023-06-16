@@ -242,7 +242,7 @@ pub async fn check_registered_status(api: &OnlineClient<EntropyConfig>, key: &Sr
     api.storage().fetch(&registered_query, None).await.unwrap();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_get_signing_group() {
     clean_tests();

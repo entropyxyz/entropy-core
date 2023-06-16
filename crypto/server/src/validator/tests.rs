@@ -1,3 +1,6 @@
+use std::net::{SocketAddr, TcpListener};
+
+use axum::{http, routing::IntoMakeService, Router};
 use bip39::{Language, Mnemonic};
 use entropy_shared::MIN_BALANCE;
 use kvdb::clean_tests;
@@ -25,19 +28,25 @@ use crate::{
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
 };
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_sync_kvdb() {
     clean_tests();
-    let client = setup_client().await;
+    setup_client().await;
+    let client = reqwest::Client::new();
 
-    let response = client.post("/validator/sync_kvdb").header(ContentType::JSON).dispatch().await;
+    let response = client
+        .post("http://localhost:3001/validator/sync_kvdb")
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .unwrap();
 
     dbg!(response);
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_get_all_keys() {
     clean_tests();
     let cxt = testing_context().await;
@@ -66,7 +75,7 @@ async fn test_get_all_keys() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[should_panic]
 async fn test_get_all_keys_fail() {
     clean_tests();
@@ -76,7 +85,7 @@ async fn test_get_all_keys_fail() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_get_no_safe_crypto_error() {
     clean_tests();
@@ -104,9 +113,13 @@ async fn test_get_no_safe_crypto_error() {
 
     let keys = Keys { enckeys, sender };
     let port = 3001;
-    let client1 = create_clients(port, "bob".to_string(), values, addrs, false, true).await;
-    tokio::spawn(async move { client1.0.launch().await.unwrap() });
+    let (bob_rocket, bob_kv) =
+        create_clients(port, "bob".to_string(), values, addrs, false, true).await;
+    let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", port)).unwrap();
 
+    tokio::spawn(async move {
+        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_rocket).await.unwrap();
+    });
     let client = reqwest::Client::new();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
     let result = client
@@ -123,11 +136,10 @@ async fn test_get_no_safe_crypto_error() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_get_safe_crypto_error() {
     clean_tests();
-
     let addrs: Vec<&[u8]> = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".as_bytes(),
         "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".as_bytes(),
@@ -149,8 +161,14 @@ async fn test_get_safe_crypto_error() {
 
     let keys = Keys { enckeys, sender };
     let port = 3001;
-    let client1 = create_clients(port, "bob".to_string(), vec![], vec![], false, true).await;
-    tokio::spawn(async move { client1.0.launch().await.unwrap() });
+
+    let (bob_rocket, bob_kv) =
+        create_clients(port, "bob".to_string(), vec![], vec![], false, true).await;
+    let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", port)).unwrap();
+
+    tokio::spawn(async move {
+        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_rocket).await.unwrap();
+    });
 
     let client = reqwest::Client::new();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
@@ -168,7 +186,7 @@ async fn test_get_safe_crypto_error() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_get_and_store_values() {
     clean_tests();
@@ -188,17 +206,26 @@ async fn test_get_and_store_values() {
     let port_1 = 3003;
     let values = vec![vec![10], vec![11], vec![12]];
     // Construct a client to use for dispatching requests.
-    let client0 =
+    let (alice_rocket, alice_kv) =
         create_clients(port_0, "alice".to_string(), values.clone(), keys.clone(), true, false)
             .await;
-    let client1 =
-        create_clients(port_1, "bob".to_string(), vec![], keys.clone(), false, true).await;
 
-    tokio::spawn(async move { client0.0.launch().await.unwrap() });
-    tokio::spawn(async move { client1.0.launch().await.unwrap() });
+    let (bob_rocket, bob_kv) =
+        create_clients(port_1, "bob".to_string(), vec![], vec![], false, true).await;
+    let listener_alice = TcpListener::bind(format!("0.0.0.0:{}", port_0)).unwrap();
+    let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", port_1)).unwrap();
+
+    tokio::spawn(async move {
+        axum::Server::from_tcp(listener_alice).unwrap().serve(alice_rocket).await.unwrap();
+    });
+    tokio::spawn(async move {
+        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_rocket).await.unwrap();
+    });
+    let client = reqwest::Client::new();
+
     let _result = get_and_store_values(
         keys.clone(),
-        &client1.1,
+        &bob_kv,
         "127.0.0.1:3002".to_string(),
         9,
         false,
@@ -207,14 +234,14 @@ async fn test_get_and_store_values() {
     .await;
     for (i, key) in keys.iter().enumerate() {
         println!("!! -> -> RECEIVED KEY at IDX {} of value {:?}", i, key);
-        let val = client1.1.kv().get(key).await;
+        let val = bob_kv.kv().get(key).await;
         assert!(val.is_ok());
         assert_eq!(val.unwrap(), values[i]);
     }
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 async fn test_get_random_server_info() {
     clean_tests();
     let cxt = testing_context().await;
@@ -229,7 +256,7 @@ async fn test_get_random_server_info() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[should_panic = "Account does not exist, add balance"]
 async fn test_check_balance_for_fees() {
     clean_tests();
@@ -249,7 +276,7 @@ async fn test_check_balance_for_fees() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[should_panic = "called `Result::unwrap()` on an `Err` value: \
                   GenericSubstrate(Runtime(Module(ModuleError { pallet: \"StakingExtension\", \
                   error: \"NoThresholdKey\", description: [], error_data: ModuleErrorData { \
@@ -263,4 +290,5 @@ async fn test_tell_chain_syncing_is_done() {
 
     // expect this to fail in the proper way
     tell_chain_syncing_is_done(&api, &signer_alice).await.unwrap();
+    clean_tests();
 }

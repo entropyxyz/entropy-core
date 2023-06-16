@@ -1,5 +1,5 @@
 pub mod api;
 pub mod errors;
 
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;

@@ -3,7 +3,7 @@ use kvdb::clean_tests;
 use serial_test::serial;
 
 use crate::helpers::tests::setup_client;
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn health() {
     clean_tests();

@@ -34,5 +34,8 @@ pub enum ValidatorErr {
 }
 
 impl IntoResponse for ValidatorErr {
-    fn into_response(self) -> Response { (StatusCode::INTERNAL_SERVER_ERROR, self).into_response() }
+    fn into_response(self) -> Response {
+        let body = format!("{self}").into_bytes();
+        (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
+    }
 }
