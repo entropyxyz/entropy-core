@@ -1,6 +1,5 @@
 use axum::http::StatusCode;
 use kvdb::clean_tests;
-use rocket::http::{ContentType, Status};
 use serial_test::serial;
 
 use super::api::UnsafeQuery;

@@ -1,10 +1,8 @@
-use std::net::{SocketAddr, TcpListener};
+use std::net::TcpListener;
 
-use axum::{http, routing::IntoMakeService, Router};
 use bip39::{Language, Mnemonic};
 use entropy_shared::MIN_BALANCE;
 use kvdb::clean_tests;
-use rocket::http::ContentType;
 use serial_test::serial;
 use sp_core::{sr25519, Pair};
 use subxt::tx::PairSigner;
@@ -113,8 +111,7 @@ async fn test_get_no_safe_crypto_error() {
 
     let keys = Keys { enckeys, sender };
     let port = 3001;
-    let (bob_rocket, bob_kv) =
-        create_clients(port, "bob".to_string(), values, addrs, false, true).await;
+    let (bob_rocket, _) = create_clients("bob".to_string(), values, addrs, false, true).await;
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", port)).unwrap();
 
     tokio::spawn(async move {
@@ -162,8 +159,7 @@ async fn test_get_safe_crypto_error() {
     let keys = Keys { enckeys, sender };
     let port = 3001;
 
-    let (bob_rocket, bob_kv) =
-        create_clients(port, "bob".to_string(), vec![], vec![], false, true).await;
+    let (bob_rocket, _) = create_clients("bob".to_string(), vec![], vec![], false, true).await;
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", port)).unwrap();
 
     tokio::spawn(async move {
@@ -206,12 +202,10 @@ async fn test_get_and_store_values() {
     let port_1 = 3003;
     let values = vec![vec![10], vec![11], vec![12]];
     // Construct a client to use for dispatching requests.
-    let (alice_rocket, alice_kv) =
-        create_clients(port_0, "alice".to_string(), values.clone(), keys.clone(), true, false)
-            .await;
+    let (alice_rocket, _) =
+        create_clients("alice".to_string(), values.clone(), keys.clone(), true, false).await;
 
-    let (bob_rocket, bob_kv) =
-        create_clients(port_1, "bob".to_string(), vec![], vec![], false, true).await;
+    let (bob_rocket, bob_kv) = create_clients("bob".to_string(), vec![], vec![], false, true).await;
     let listener_alice = TcpListener::bind(format!("0.0.0.0:{}", port_0)).unwrap();
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", port_1)).unwrap();
 
@@ -221,7 +215,6 @@ async fn test_get_and_store_values() {
     tokio::spawn(async move {
         axum::Server::from_tcp(listener_bob).unwrap().serve(bob_rocket).await.unwrap();
     });
-    let client = reqwest::Client::new();
 
     let _result = get_and_store_values(
         keys.clone(),

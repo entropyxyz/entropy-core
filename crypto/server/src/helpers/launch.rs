@@ -78,14 +78,9 @@ pub struct StartupArgs {
         default_value = "ws://localhost:9944"
     )]
     pub chain_endpoint: String,
-	/// Url to host threshold (axum) server on.
-	#[arg(
-        short = 'u',
-        long = "threshold-url",
-        required = false,
-        default_value = "127.0.0.1:3001"
-    )]
-	pub threshold_url: String,
+    /// Url to host threshold (axum) server on.
+    #[arg(short = 'u', long = "threshold-url", required = false, default_value = "127.0.0.1:3001")]
+    pub threshold_url: String,
 
     /// Wether to allow a validator key to be null.
     #[arg(short = 'd', long = "dev")]

@@ -75,7 +75,7 @@ mod validator;
 use std::{net::SocketAddr, str::FromStr, string::String, thread, time::Duration};
 
 use axum::{
-    http::{Method},
+    http::Method,
     routing::{get, post},
     Router,
 };
@@ -183,7 +183,10 @@ async fn main() {
     // TODO: unhardcode endpoint
     let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
     tracing::info!("listening on {}", addr);
-    axum::Server::bind(&addr).serve(app(app_state).into_make_service()).await.expect("failed to launch axum server.");
+    axum::Server::bind(&addr)
+        .serve(app(app_state).into_make_service())
+        .await
+        .expect("failed to launch axum server.");
 }
 
 pub fn app(app_state: AppState) -> Router {
@@ -204,7 +207,7 @@ pub fn app(app_state: AppState) -> Router {
     // are disabled by default.
     // To enable unsafe routes compile with --feature unsafe.
     if cfg!(feature = "unsafe") || cfg!(test) {
-		tracing::warn!("Server started in unsafe mode do not use in production!!!!!!!");
+        tracing::warn!("Server started in unsafe mode do not use in production!!!!!!!");
         routes = routes
             .route("/unsafe/put", post(put))
             .route("/unsafe/get", post(unsafe_get))

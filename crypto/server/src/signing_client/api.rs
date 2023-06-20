@@ -7,15 +7,13 @@ use axum::{
     body::Bytes,
     extract::State,
     http::StatusCode,
-    response::{
-        sse::{Event, Sse},
-    },
+    response::sse::{Event, Sse},
     Json,
 };
 use entropy_shared::{OCWMessage, PRUNE_BLOCK};
-use futures::stream::{Stream};
+use futures::stream::Stream;
 use kvdb::kv_manager::{KvManager, PartyId};
-use parity_scale_codec::{Decode};
+use parity_scale_codec::Decode;
 use sp_core::crypto::Ss58Codec;
 use subxt::OnlineClient;
 use tracing::instrument;
@@ -23,7 +21,7 @@ use tracing::instrument;
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     get_signer,
-    helpers::signing::{create_unique_tx_id},
+    helpers::signing::create_unique_tx_id,
     signing_client::{
         subscribe::{Listener, Receiver},
         SigningErr, SubscribeErr, SubscribeMessage,

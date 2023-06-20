@@ -1,9 +1,6 @@
 use std::str::FromStr;
 
-use axum::{
-    extract::State,
-    Json,
-};
+use axum::{extract::State, Json};
 use kvdb::kv_manager::KvManager;
 use reqwest;
 use serde::{Deserialize, Serialize};

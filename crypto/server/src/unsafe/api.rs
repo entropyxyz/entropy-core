@@ -1,13 +1,9 @@
 use std::str;
 
-use axum::{
-    extract::State,
-    http::StatusCode,
-    Json,
-};
+use axum::{extract::State, http::StatusCode, Json};
+use serde::{Deserialize, Serialize};
 #[cfg(test)]
 use serde_json::to_string;
-use serde::{Deserialize, Serialize};
 
 use crate::AppState;
 

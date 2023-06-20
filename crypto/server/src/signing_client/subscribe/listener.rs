@@ -4,7 +4,7 @@ use std::convert::Infallible;
 
 use async_stream::try_stream;
 use axum::response::sse::{Event, Sse};
-use futures::stream::{Stream};
+use futures::stream::Stream;
 use kvdb::kv_manager::PartyId;
 use tokio::{
     select,

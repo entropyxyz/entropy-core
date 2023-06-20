@@ -1,9 +1,9 @@
 // only compile when testing
 #![cfg(test)]
 
-use std::net::{SocketAddr, TcpListener};
+use std::{net::TcpListener, time::Duration};
 
-use axum::{http, routing::IntoMakeService, Router};
+use axum::{routing::IntoMakeService, Router};
 use entropy_shared::Constraints;
 use futures::future::join_all;
 use kvdb::{
@@ -13,7 +13,6 @@ use kvdb::{
     kv_manager::{KvManager, PartyId},
 };
 use rand_core::OsRng;
-use rocket::{local::asynchronous::Client, tokio::time::Duration, Ignite, Rocket};
 use serial_test::serial;
 use sp_core::{sr25519, Bytes, Pair};
 use sp_keyring::Sr25519Keyring;
@@ -33,14 +32,8 @@ use crate::{
         signing::SignatureState,
         substrate::{get_subgroup, make_register},
     },
-    new_user, sign_tx,
-    signing_client::{
-        api::{drain, get_signature, new_party, subscribe_to_me},
-        SignerState,
-    },
-    store_tx,
+    signing_client::SignerState,
     validation::SignedMessage,
-    validator::api::sync_kvdb,
     AppState,
 };
 
@@ -54,7 +47,7 @@ pub async fn setup_client() {
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let signature_state = SignatureState::new();
     let app_state = AppState { signer_state, configuration, kv_store, signature_state };
-    let mut app = app(app_state).into_make_service();
+    let app = app(app_state).into_make_service();
     let listener = TcpListener::bind("0.0.0.0:3001").unwrap();
 
     tokio::spawn(async move {
@@ -63,15 +56,12 @@ pub async fn setup_client() {
 }
 
 pub async fn create_clients(
-    port: i64,
     key_number: String,
     values: Vec<Vec<u8>>,
     keys: Vec<String>,
     is_alice: bool,
     is_bob: bool,
 ) -> (IntoMakeService<Router>, KvManager) {
-    let config = rocket::Config::figment().merge(("port", port));
-
     let signer_state = SignerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let signature_state = SignatureState::new();
@@ -91,7 +81,7 @@ pub async fn create_clients(
     let app_state =
         AppState { signer_state, configuration, kv_store: kv_store.clone(), signature_state };
 
-    let mut app = app(app_state).into_make_service();
+    let app = app(app_state).into_make_service();
 
     (app, kv_store)
 }
@@ -101,11 +91,11 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
     let ports = vec![3001i64, 3002];
 
     let (alice_rocket, alice_kv) =
-        create_clients(ports[0], "validator1".to_string(), vec![], vec![], true, false).await;
+        create_clients("validator1".to_string(), vec![], vec![], true, false).await;
     let alice_id = PartyId::new(get_signer(&alice_kv).await.unwrap().account_id().clone());
 
     let (bob_rocket, bob_kv) =
-        create_clients(ports[1], "validator2".to_string(), vec![], vec![], false, true).await;
+        create_clients("validator2".to_string(), vec![], vec![], false, true).await;
     let bob_id = PartyId::new(get_signer(&bob_kv).await.unwrap().account_id().clone());
     let listener_alice = TcpListener::bind(format!("0.0.0.0:{}", ports[0])).unwrap();
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", ports[1])).unwrap();
