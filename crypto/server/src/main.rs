@@ -76,7 +76,7 @@ use std::{net::SocketAddr, string::String, thread, time::Duration};
 
 use axum::{
     extract::State,
-    http::StatusCode,
+    http::{Method, StatusCode},
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
@@ -89,7 +89,10 @@ use rocket::{
     http::Header,
     Request, Response,
 };
-use tower_http::trace::{self, TraceLayer};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::{self, TraceLayer},
+};
 use tracing::Level;
 use validator::api::get_random_server_info;
 
@@ -112,21 +115,6 @@ use crate::{
         tell_chain_syncing_is_done,
     },
 };
-
-pub struct CORS;
-
-#[rocket::async_trait]
-impl Fairing for CORS {
-    fn info(&self) -> Info { Info { name: "Add CORS headers to responses", kind: Kind::Response } }
-
-    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
-        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
-        response
-            .set_header(Header::new("Access-Control-Allow-Methods", "POST, GET, PATCH, OPTIONS"));
-        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
-        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
-    }
-}
 
 #[derive(Clone)]
 pub struct AppState {
@@ -230,9 +218,12 @@ pub fn app(app_state: AppState) -> Router {
             .route("/unsafe/remove_keys", get(remove_keys));
     }
 
-    routes.with_state(app_state).layer(
-        TraceLayer::new_for_http()
-            .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
-            .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
-    )
+    routes
+        .with_state(app_state)
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+        )
+        .layer(CorsLayer::new().allow_origin(Any).allow_methods([Method::GET, Method::POST]))
 }
