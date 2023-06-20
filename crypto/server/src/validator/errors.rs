@@ -1,7 +1,6 @@
-use std::{io::Cursor, string::FromUtf8Error};
+use std::{string::FromUtf8Error};
 
 use axum::{
-    body,
     http::StatusCode,
     response::{IntoResponse, Response},
 };

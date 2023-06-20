@@ -75,20 +75,13 @@ mod validator;
 use std::{net::SocketAddr, str::FromStr, string::String, thread, time::Duration};
 
 use axum::{
-    extract::State,
-    http::{Method, StatusCode},
-    response::IntoResponse,
+    http::{Method},
     routing::{get, post},
-    Json, Router,
+    Router,
 };
 use clap::Parser;
 use entropy_shared::{MIN_BALANCE, SIGNING_PARTY_SIZE};
 use kvdb::kv_manager::KvManager;
-use rocket::{
-    fairing::{Fairing, Info, Kind},
-    http::Header,
-    Request, Response,
-};
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::{self, TraceLayer},

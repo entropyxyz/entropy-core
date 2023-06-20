@@ -2,10 +2,7 @@ use std::str::FromStr;
 
 use axum::{
     extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
+    Json,
 };
 use kvdb::kv_manager::KvManager;
 use reqwest;

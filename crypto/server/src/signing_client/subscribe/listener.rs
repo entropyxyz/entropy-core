@@ -4,16 +4,14 @@ use std::convert::Infallible;
 
 use async_stream::try_stream;
 use axum::response::sse::{Event, Sse};
-use futures::stream::{self, Stream};
+use futures::stream::{Stream};
 use kvdb::kv_manager::PartyId;
-use rocket::{response::stream::EventStream, Shutdown};
 use tokio::{
     select,
     sync::{
         broadcast::{self, error::RecvError},
         oneshot,
     },
-    time::{self, Duration, Instant},
 };
 
 use super::Broadcaster;

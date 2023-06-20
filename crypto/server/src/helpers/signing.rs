@@ -5,7 +5,7 @@ use std::{
 
 use bip39::{Language, Mnemonic};
 use kvdb::kv_manager::{KvManager, PartyId};
-use rocket::{http::Status, State};
+use axum::http::StatusCode;
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 
@@ -75,7 +75,7 @@ pub async fn do_signing(
     kv_manager: &KvManager,
     signatures: &SignatureState,
     tx_id: String,
-) -> Result<Status, SigningErr> {
+) -> Result<StatusCode, SigningErr> {
     let info = SignInit::new(message.clone(), tx_id)?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let signer =
@@ -125,7 +125,7 @@ pub async fn do_signing(
 
     signing_service.handle_result(&result, message.sig_request.sig_hash.as_slice(), signatures);
 
-    Ok(Status::Ok)
+    Ok(StatusCode::OK)
 }
 
 /// Creates a unique tx Id by concatenating the user's signing key and message digest

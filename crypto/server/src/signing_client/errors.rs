@@ -1,8 +1,7 @@
 //! Errors for everyone ✅
-use std::{io::Cursor, string::FromUtf8Error};
+use std::{string::FromUtf8Error};
 
 use axum::{
-    body,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -11,13 +10,10 @@ use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
 use super::SigningMessage;
-// #[derive(Responder, Debug, Error)]
-// #[response(status = 418, content_type = "json")]
+
 /// Errors for the `new_party` API
 #[derive(Debug, Error)]
 pub enum SigningErr {
-    // #[error("Init error: {0}")]
-    // Init(&'static str),
     #[error("Kv error: {0}")]
     Kv(#[from] kvdb::kv_manager::error::KvError),
     #[error("Inner Kv error: {0}")]
@@ -53,10 +49,6 @@ pub enum SigningErr {
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<SigningMessage>>),
     #[error("anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
-    #[error("Data is not verifiable")]
-    InvalidData,
-    #[error("Data is stale")]
-    StaleData,
     #[error("Generic Substrate error: {0}")]
     GenericSubstrate(#[from] subxt::error::Error),
     #[error("Option Unwrap error: {0}")]

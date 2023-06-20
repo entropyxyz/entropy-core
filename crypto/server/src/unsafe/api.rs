@@ -3,13 +3,10 @@ use std::str;
 use axum::{
     extract::State,
     http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
+    Json,
 };
-use kvdb::kv_manager::KvManager;
 #[cfg(test)]
-use rocket::serde::json::to_string;
+use serde_json::to_string;
 use serde::{Deserialize, Serialize};
 
 use crate::AppState;
