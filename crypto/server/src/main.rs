@@ -211,6 +211,7 @@ pub fn app(app_state: AppState) -> Router {
     // are disabled by default.
     // To enable unsafe routes compile with --feature unsafe.
     if cfg!(feature = "unsafe") || cfg!(test) {
+		tracing::warn!("Server started in unsafe mode do not use in production!!!!!!!");
         routes = routes
             .route("/unsafe/put", post(put))
             .route("/unsafe/get", post(unsafe_get))
