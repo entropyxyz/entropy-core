@@ -72,7 +72,7 @@ mod r#unsafe;
 mod user;
 pub(crate) mod validation;
 mod validator;
-use std::{net::SocketAddr, string::String, thread, time::Duration};
+use std::{net::SocketAddr, str::FromStr, string::String, thread, time::Duration};
 
 use axum::{
     extract::State,
@@ -188,9 +188,9 @@ async fn main() {
     }
 
     // TODO: unhardcode endpoint
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
+    let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
     tracing::info!("listening on {}", addr);
-    axum::Server::bind(&addr).serve(app(app_state).into_make_service()).await.unwrap();
+    axum::Server::bind(&addr).serve(app(app_state).into_make_service()).await.expect("failed to launch axum server.");
 }
 
 pub fn app(app_state: AppState) -> Router {
