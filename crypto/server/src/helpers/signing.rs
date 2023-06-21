@@ -68,6 +68,10 @@ impl SignatureState {
     }
 }
 
+impl Default for SignatureState {
+    fn default() -> Self { Self::new() }
+}
+
 /// Start the signing protocol for a given message
 pub async fn do_signing(
     message: entropy_shared::Message,

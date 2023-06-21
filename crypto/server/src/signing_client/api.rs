@@ -221,7 +221,7 @@ pub async fn get_signature(
     State(app_state): State<AppState>,
     Json(msg): Json<Message>,
 ) -> (StatusCode, String) {
-    let sig = match app_state.signature_state.get(&hex::decode(&msg.message).unwrap()) {
+    let sig = match app_state.signature_state.get(&hex::decode(msg.message).unwrap()) {
         Some(sig) => sig,
         None => return (StatusCode::NOT_FOUND, "".to_string()),
     };
