@@ -1,1 +1,1 @@
-ROCKET_PORT=3002 ./target/release/signing-client
+./target/release/server --threshold-url="http://127.0.0.1:3002

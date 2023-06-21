@@ -9,15 +9,6 @@ use futures::{future::join_all, join, Future};
 use hex_literal::hex as h;
 use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
 use parity_scale_codec::Encode;
-use rocket::{
-    http::{ContentType, Status},
-    local::asynchronous::Client,
-    tokio::{
-        task::JoinSet,
-        time::{sleep, Duration},
-    },
-    Build, Error, Ignite, Rocket,
-};
 use serial_test::serial;
 use sp_core::{crypto::Ss58Codec, sr25519, Bytes, Pair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};

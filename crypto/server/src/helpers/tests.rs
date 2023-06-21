@@ -90,22 +90,22 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
     // spawn threshold servers
     let ports = vec![3001i64, 3002];
 
-    let (alice_rocket, alice_kv) =
+    let (alice_axum, alice_kv) =
         create_clients("validator1".to_string(), vec![], vec![], true, false).await;
     let alice_id = PartyId::new(get_signer(&alice_kv).await.unwrap().account_id().clone());
 
-    let (bob_rocket, bob_kv) =
+    let (bob_axum, bob_kv) =
         create_clients("validator2".to_string(), vec![], vec![], false, true).await;
     let bob_id = PartyId::new(get_signer(&bob_kv).await.unwrap().account_id().clone());
     let listener_alice = TcpListener::bind(format!("0.0.0.0:{}", ports[0])).unwrap();
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", ports[1])).unwrap();
 
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_alice).unwrap().serve(alice_rocket).await.unwrap();
+        axum::Server::from_tcp(listener_alice).unwrap().serve(alice_axum).await.unwrap();
     });
 
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_rocket).await.unwrap();
+        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
     });
 
     tokio::time::sleep(Duration::from_secs(1)).await;

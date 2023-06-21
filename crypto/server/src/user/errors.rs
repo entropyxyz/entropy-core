@@ -8,10 +8,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use entropy_constraints::Error as ConstraintsError;
-// use rocket::{
-//     http::Status,
-//     response::{Responder, Response},
-// };
 use thiserror::Error;
 
 use crate::{chain_api::entropy, signing_client::SigningErr};

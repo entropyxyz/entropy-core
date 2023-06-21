@@ -59,7 +59,7 @@
 //!
 //! ## Pieces Launched
 //!
-//! - Rocket server - Includes global state and mutex locked IPs
+//! - Axum server - Includes global state and mutex locked IPs
 //! - [kvdb](kvdb) - Encrypted key-value database for storing key-shares and other data, build using
 //! [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]

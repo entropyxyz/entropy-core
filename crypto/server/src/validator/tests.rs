@@ -111,11 +111,11 @@ async fn test_get_no_safe_crypto_error() {
 
     let keys = Keys { enckeys, sender };
     let port = 3001;
-    let (bob_rocket, _) = create_clients("bob".to_string(), values, addrs, false, true).await;
+    let (bob_axum, _) = create_clients("bob".to_string(), values, addrs, false, true).await;
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", port)).unwrap();
 
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_rocket).await.unwrap();
+        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
     });
     let client = reqwest::Client::new();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
@@ -159,11 +159,11 @@ async fn test_get_safe_crypto_error() {
     let keys = Keys { enckeys, sender };
     let port = 3001;
 
-    let (bob_rocket, _) = create_clients("bob".to_string(), vec![], vec![], false, true).await;
+    let (bob_axum, _) = create_clients("bob".to_string(), vec![], vec![], false, true).await;
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", port)).unwrap();
 
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_rocket).await.unwrap();
+        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
     });
 
     let client = reqwest::Client::new();
@@ -202,18 +202,18 @@ async fn test_get_and_store_values() {
     let port_1 = 3003;
     let values = vec![vec![10], vec![11], vec![12]];
     // Construct a client to use for dispatching requests.
-    let (alice_rocket, _) =
+    let (alice_axum, _) =
         create_clients("alice".to_string(), values.clone(), keys.clone(), true, false).await;
 
-    let (bob_rocket, bob_kv) = create_clients("bob".to_string(), vec![], vec![], false, true).await;
+    let (bob_axum, bob_kv) = create_clients("bob".to_string(), vec![], vec![], false, true).await;
     let listener_alice = TcpListener::bind(format!("0.0.0.0:{}", port_0)).unwrap();
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", port_1)).unwrap();
 
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_alice).unwrap().serve(alice_rocket).await.unwrap();
+        axum::Server::from_tcp(listener_alice).unwrap().serve(alice_axum).await.unwrap();
     });
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_rocket).await.unwrap();
+        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
     });
 
     let _result = get_and_store_values(

@@ -24,11 +24,6 @@ use kvdb::kv_manager::{
 use log::info;
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::DecodeAll;
-// use rocket::{
-//     response::stream::EventStream,
-//     serde::json::{to_string, Json},
-//     Shutdown,
-// };
 use serde::{Deserialize, Serialize};
 use subxt::{
     ext::{

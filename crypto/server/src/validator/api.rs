@@ -26,7 +26,6 @@ pub struct Keys {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(crate = "rocket::serde")]
 pub struct Values {
     pub values: Vec<SignedMessage>,
 }
