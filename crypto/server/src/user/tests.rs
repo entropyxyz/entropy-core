@@ -1,5 +1,6 @@
 use std::{env, fs, path::PathBuf, sync::Arc};
 
+use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{Acl, Constraints, Message, OCWMessage, SigRequest, ValidatorInfo};
@@ -8,15 +9,6 @@ use futures::{future::join_all, join, Future};
 use hex_literal::hex as h;
 use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
 use parity_scale_codec::Encode;
-use rocket::{
-    http::{ContentType, Status},
-    local::asynchronous::Client,
-    tokio::{
-        task::JoinSet,
-        time::{sleep, Duration},
-    },
-    Build, Error, Ignite, Rocket,
-};
 use serial_test::serial;
 use sp_core::{crypto::Ss58Codec, sr25519, Bytes, Pair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
@@ -46,7 +38,7 @@ use crate::{
         },
     },
     load_kv_store, new_party, new_user,
-    r#unsafe::api::{delete, get, put, remove_keys, UnsafeQuery},
+    r#unsafe::api::UnsafeQuery,
     signing_client::{
         tests::{put_tx_request_on_chain, run_to_block},
         SignerState,
@@ -58,7 +50,7 @@ use crate::{
     Message as SigMessage,
 };
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_get_signer_does_not_throw_err() {
     clean_tests();
@@ -68,7 +60,7 @@ async fn test_get_signer_does_not_throw_err() {
     get_signer(&kv_store).await.unwrap();
     clean_tests();
 }
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_sign_tx_no_chain() {
     clean_tests();
@@ -139,7 +131,12 @@ async fn test_sign_tx_no_chain() {
                         )
                         .unwrap();
                         let url = format!("http://{}/user/sign_tx", validator_tuple.0.clone());
-                        mock_client.post(url).json(&signed_message).send().await
+                        mock_client
+                            .post(url)
+                            .header("Content-Type", "application/json")
+                            .body(serde_json::to_string(&signed_message).unwrap())
+                            .send()
+                            .await
                     })
                     .collect::<Vec<_>>(),
             )
@@ -220,8 +217,9 @@ async fn test_sign_tx_no_chain() {
     )
     .unwrap();
     let failed_res = mock_client
-        .post("http://127.0.0.1:3001//user/sign_tx")
-        .json(&failed_signed_message)
+        .post("http://127.0.0.1:3001/user/sign_tx")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&failed_signed_message).unwrap())
         .send()
         .await
         .unwrap();
@@ -245,8 +243,9 @@ async fn test_sign_tx_no_chain() {
     );
 
     let failed_sign = mock_client
-        .post("http://127.0.0.1:3001//user/sign_tx")
-        .json(&user_input_bad)
+        .post("http://127.0.0.1:3001/user/sign_tx")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&user_input_bad).unwrap())
         .send()
         .await
         .unwrap();
@@ -256,7 +255,7 @@ async fn test_sign_tx_no_chain() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_fail_signing_group() {
     clean_tests();
@@ -298,8 +297,12 @@ async fn test_fail_signing_group() {
     .unwrap();
 
     let mock_client = reqwest::Client::new();
-    let response =
-        mock_client.post("http://127.0.0.1:3001//user/sign_tx").json(&signed_message).send().await;
+    let response = mock_client
+        .post("http://127.0.0.1:3001/user/sign_tx")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&signed_message).unwrap())
+        .send()
+        .await;
     assert_eq!(
         response.unwrap().text().await.unwrap(),
         "Invalid Signer: Invalid Signer in Signing group"
@@ -307,7 +310,7 @@ async fn test_fail_signing_group() {
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_unsigned_tx_endpoint() {
     clean_tests();
@@ -478,7 +481,12 @@ async fn test_unsigned_tx_endpoint() {
                         )
                         .unwrap();
                         let url = format!("{}/user/tx", validator_tuple.0.clone());
-                        mock_client.post(url).json(&signed_message).send().await
+                        mock_client
+                            .post(url)
+                            .header("Content-Type", "application/json")
+                            .body(serde_json::to_string(&signed_message).unwrap())
+                            .send()
+                            .await
                     })
                     .collect::<Vec<_>>(),
             )
@@ -560,8 +568,9 @@ async fn test_unsigned_tx_endpoint() {
     )
     .unwrap();
     let failed_res = mock_client
-        .post("http://127.0.0.1:3001//user/tx")
-        .json(&failed_signed_message)
+        .post("http://127.0.0.1:3001/user/tx")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&failed_signed_message).unwrap())
         .send()
         .await
         .unwrap();
@@ -585,8 +594,9 @@ async fn test_unsigned_tx_endpoint() {
     );
 
     let failed_sign = mock_client
-        .post("http://127.0.0.1:3001//user/tx")
-        .json(&user_input_bad)
+        .post("http://127.0.0.1:3001/user/tx")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&user_input_bad).unwrap())
         .send()
         .await
         .unwrap();
@@ -598,7 +608,7 @@ async fn test_unsigned_tx_endpoint() {
 
 // TODO negative validation tests on user/tx
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_store_share() {
     clean_tests();
@@ -608,51 +618,53 @@ async fn test_store_share() {
     let value: Vec<u8> = vec![0];
 
     let cxt = test_context_stationary().await;
-    let client = setup_client().await;
+    setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let user_input = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
         .unwrap()
         .to_json();
+    let client = reqwest::Client::new();
+
     // fails to add not registering or swapping
     let response = client
-        .post("/user/new")
-        .header(ContentType::JSON)
+        .post("http://127.0.0.1:3001/user/new")
+        .header("Content-Type", "application/json")
         .body(user_input.clone())
-        .dispatch()
-        .await;
+        .send()
+        .await
+        .unwrap();
 
-    assert_eq!(response.status(), Status::InternalServerError);
-    assert_eq!(
-        response.into_string().await.unwrap(),
-        "Not Registering error: Register Onchain first"
-    );
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response.text().await.unwrap(), "Not Registering error: Register Onchain first");
 
     // signal registering
     make_register(&api, &alice, &alice_constraint.to_account_id()).await;
 
     let response_2 = client
-        .post("/user/new")
-        .header(ContentType::JSON)
+        .post("http://127.0.0.1:3001/user/new")
+        .header("Content-Type", "application/json")
         .body(user_input.clone())
-        .dispatch()
-        .await;
-    assert_eq!(response_2.status(), Status::Ok);
-    assert_eq!(response_2.into_string().await, None);
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response_2.status(), StatusCode::OK);
+    assert_eq!(response_2.text().await.unwrap(), "");
     // make sure there is now one confirmation
     check_if_confirmation(&api, &alice).await;
 
     // fails to add already added share
     let response_3 = client
-        .post("/user/new")
-        .header(ContentType::JSON)
+        .post("http://127.0.0.1:3001/user/new")
+        .header("Content-Type", "application/json")
         .body(user_input.clone())
-        .dispatch()
-        .await;
+        .send()
+        .await
+        .unwrap();
 
-    assert_eq!(response_3.status(), Status::InternalServerError);
-    assert_eq!(response_3.into_string().await.unwrap(), "Kv error: Recv Error: channel closed");
+    assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_3.text().await.unwrap(), "Kv error: Recv Error: channel closed");
 
     // fails with wrong node key
     let server_public_key_bob = PublicKey::from(X25519_PUBLIC_KEYS[1]);
@@ -662,15 +674,16 @@ async fn test_store_share() {
             .to_json();
 
     let response_4 = client
-        .post("/user/new")
-        .header(ContentType::JSON)
+        .post("http://127.0.0.1:3001/user/new")
+        .header("Content-Type", "application/json")
         .body(user_input_bob.clone())
-        .dispatch()
-        .await;
+        .send()
+        .await
+        .unwrap();
 
-    assert_eq!(response_4.status(), Status::InternalServerError);
+    assert_eq!(response_4.status(), StatusCode::INTERNAL_SERVER_ERROR);
     let expected_err = "Validation error: ChaCha20 decryption error: aead::Error";
-    assert_eq!(response_4.into_string().await.unwrap(), expected_err);
+    assert_eq!(response_4.text().await.unwrap(), expected_err);
     let sig: [u8; 64] = [0; 64];
     let slice: [u8; 32] = [0; 32];
     let nonce: [u8; 12] = [0; 12];
@@ -685,18 +698,19 @@ async fn test_store_share() {
     .to_json();
 
     let response_5 = client
-        .post("/user/new")
-        .header(ContentType::JSON)
+        .post("http://127.0.0.1:3001/user/new")
+        .header("Content-Type", "application/json")
         .body(user_input_bad.clone())
-        .dispatch()
-        .await;
+        .send()
+        .await
+        .unwrap();
 
-    assert_eq!(response_5.status(), Status::InternalServerError);
-    assert_eq!(response_5.into_string().await.unwrap(), "Invalid Signature: Invalid signature.");
+    assert_eq!(response_5.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_5.text().await.unwrap(), "Invalid Signature: Invalid signature.");
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_update_keys() {
     clean_tests();
@@ -706,7 +720,7 @@ async fn test_update_keys() {
     let value: Vec<u8> = vec![0];
     let new_value: Vec<u8> = vec![1];
     let cxt = test_context_stationary().await;
-    let client = setup_client().await;
+    setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
@@ -717,27 +731,30 @@ async fn test_update_keys() {
 
     let put_query =
         UnsafeQuery::new(key.to_string(), serde_json::to_string(&value).unwrap()).to_json();
+    let client = reqwest::Client::new();
     // manually add dave's key to replace it
     let response = client
-        .post("/unsafe/put")
-        .header(ContentType::JSON)
+        .post("http://127.0.0.1:3001/unsafe/put")
+        .header("Content-Type", "application/json")
         .body(put_query.clone())
-        .dispatch()
-        .await;
+        .send()
+        .await
+        .unwrap();
 
-    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.status(), StatusCode::OK);
 
     // fails to add not registering or swapping
     let response_2 = client
-        .post("/user/new")
-        .header(ContentType::JSON)
+        .post("http://127.0.0.1:3001/user/new")
+        .header("Content-Type", "application/json")
         .body(user_input.clone())
-        .dispatch()
-        .await;
+        .send()
+        .await
+        .unwrap();
 
-    assert_eq!(response_2.status(), Status::InternalServerError);
+    assert_eq!(response_2.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(
-        response_2.into_string().await.unwrap(),
+        response_2.text().await.unwrap(),
         "Not Registering error: Register Onchain first" /* "Generic Substrate error:
                                                          * Metadata: Pallet Relayer Storage
                                                          * Relayer has incompatible
@@ -748,40 +765,43 @@ async fn test_update_keys() {
     make_swapping(&api, &dave).await;
 
     let response_3 = client
-        .post("/user/new")
-        .header(ContentType::JSON)
+        .post("http://127.0.0.1:3001/user/new")
+        .header("Content-Type", "application/json")
         .body(user_input.clone())
-        .dispatch()
-        .await;
-    assert_eq!(response_3.status(), Status::Ok);
-    assert_eq!(response_3.into_string().await, None);
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response_3.status(), StatusCode::OK);
+    assert_eq!(response_3.text().await.unwrap(), "");
     // make sure there is now one confirmation
     check_if_confirmation(&api, &dave).await;
 
     // check dave has new key
     let response_4 = client
-        .post("/unsafe/get")
-        .header(ContentType::JSON)
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
         .body(put_query.clone())
-        .dispatch()
-        .await;
+        .send()
+        .await
+        .unwrap();
 
     assert_eq!(
-        response_4.into_string().await,
-        Some(std::str::from_utf8(&new_value).unwrap().to_string())
+        response_4.text().await.unwrap(),
+        std::str::from_utf8(&new_value).unwrap().to_string()
     );
     clean_tests();
 }
 
-#[rocket::async_test]
+#[tokio::test]
 #[serial]
 async fn test_store_share_fail_wrong_data() {
     clean_tests();
     // Construct a client to use for dispatching requests.
-    let client = setup_client().await;
+    setup_client().await;
+    let client = reqwest::Client::new();
     let response = client
-        .post("/user/new")
-        .header(ContentType::JSON)
+        .post("http://127.0.0.1:3001/user/new")
+        .header("Content-Type", "application/json")
         .body(
             r##"{
 		"name": "John Doe",
@@ -789,8 +809,9 @@ async fn test_store_share_fail_wrong_data() {
 		"password": "123456"
 	}"##,
         )
-        .dispatch()
-        .await;
-    assert_eq!(response.status(), Status::UnprocessableEntity);
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     clean_tests();
 }

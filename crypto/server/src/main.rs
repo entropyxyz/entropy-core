@@ -124,7 +124,7 @@
 //!
 //! ## Pieces Launched
 //!
-//! - Rocket server - Includes global state and mutex locked IPs
+//! - Axum server - Includes global state and mutex locked IPs
 //! - [kvdb](kvdb) - Encrypted key-value database for storing key-shares and other data, build using
 //! [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
@@ -137,20 +137,22 @@ mod r#unsafe;
 mod user;
 pub(crate) mod validation;
 mod validator;
-use rocket::{
-    fairing::{Fairing, Info, Kind},
-    http::Header,
-    Request, Response,
+use std::{net::SocketAddr, str::FromStr, string::String, thread, time::Duration};
+
+use axum::{
+    http::Method,
+    routing::{get, post},
+    Router,
 };
-use validator::api::get_random_server_info;
-
-#[macro_use]
-extern crate rocket;
-use std::{string::String, thread, time::Duration};
-
 use clap::Parser;
 use entropy_shared::{MIN_BALANCE, SIGNING_PARTY_SIZE};
-use rocket::routes;
+use kvdb::kv_manager::KvManager;
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::{self, TraceLayer},
+};
+use tracing::Level;
+use validator::api::get_random_server_info;
 
 use self::{
     chain_api::get_api,
@@ -165,30 +167,23 @@ use crate::{
         substrate::get_subgroup,
         validator::get_signer,
     },
-    r#unsafe::api::{delete, get, put, remove_keys},
+    r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     validator::api::{
         check_balance_for_fees, get_all_keys, get_and_store_values, sync_kvdb,
         tell_chain_syncing_is_done,
     },
 };
 
-pub struct CORS;
-
-#[rocket::async_trait]
-impl Fairing for CORS {
-    fn info(&self) -> Info { Info { name: "Add CORS headers to responses", kind: Kind::Response } }
-
-    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
-        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
-        response
-            .set_header(Header::new("Access-Control-Allow-Methods", "POST, GET, PATCH, OPTIONS"));
-        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
-        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
-    }
+#[derive(Clone)]
+pub struct AppState {
+    pub signer_state: SignerState,
+    pub configuration: Configuration,
+    pub kv_store: KvManager,
+    pub signature_state: SignatureState,
 }
 
-#[launch]
-async fn rocket() -> _ {
+#[tokio::main]
+async fn main() {
     init_tracing();
 
     let args = StartupArgs::parse();
@@ -197,6 +192,13 @@ async fn rocket() -> _ {
     let configuration = Configuration::new(args.chain_endpoint);
     let kv_store = load_kv_store(args.bob, args.alice, args.no_password).await;
     let signature_state = SignatureState::new();
+
+    let app_state = AppState {
+        signer_state,
+        configuration: configuration.clone(),
+        kv_store: kv_store.clone(),
+        signature_state,
+    };
 
     setup_mnemonic(&kv_store, args.alice, args.bob).await.expect("Issue creating Mnemonic");
     // Below deals with syncing the kvdb
@@ -243,25 +245,47 @@ async fn rocket() -> _ {
         tell_chain_syncing_is_done(&api, &signer).await.expect("failed to finish chain sync.");
     }
 
+    // TODO: unhardcode endpoint
+    let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
+    tracing::info!("listening on {}", addr);
+    axum::Server::bind(&addr)
+        .serve(app(app_state).into_make_service())
+        .await
+        .expect("failed to launch axum server.");
+}
+
+pub fn app(app_state: AppState) -> Router {
+    let mut routes = Router::new()
+        .route("/user/tx", post(store_tx))
+        .route("/user/sign_tx", post(sign_tx))
+        .route("/user/new", post(new_user))
+        .route("/signer/new_party", post(new_party))
+        .route("/signer/subscribe_to_me", post(subscribe_to_me))
+        .route("/signer/signature", post(get_signature))
+        .route("/signer/drain", get(drain))
+        .route("/validator/sync_kvdb", post(sync_kvdb))
+        .route("/healthz", get(healthz));
+
     // Unsafe routes are for testing purposes only
     // they are unsafe as they can expose vulnerabilites
     // should they be used in production. Unsafe routes
     // are disabled by default.
     // To enable unsafe routes compile with --feature unsafe.
-    let mut unsafe_routes = routes![];
     if cfg!(feature = "unsafe") || cfg!(test) {
-        unsafe_routes = routes![remove_keys, get, put, delete];
+        tracing::warn!("Server started in unsafe mode do not use in production!!!!!!!");
+        routes = routes
+            .route("/unsafe/put", post(put))
+            .route("/unsafe/get", post(unsafe_get))
+            .route("/unsafe/delete", post(delete))
+            .route("/unsafe/remove_keys", get(remove_keys));
     }
 
-    rocket::build()
-        .mount("/user", routes![store_tx, new_user, sign_tx])
-        .mount("/signer", routes![new_party, subscribe_to_me, get_signature, drain])
-        .mount("/validator", routes![sync_kvdb])
-        .mount("/", routes![healthz])
-        .mount("/unsafe", unsafe_routes)
-        .manage(signer_state)
-        .manage(signature_state)
-        .manage(configuration)
-        .manage(kv_store)
-        .attach(CORS)
+    routes
+        .with_state(app_state)
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+        )
+        .layer(CorsLayer::new().allow_origin(Any).allow_methods([Method::GET, Method::POST]))
 }

@@ -1,22 +1,19 @@
 //! Errors for everyone ✅
-use std::{io::Cursor, string::FromUtf8Error};
+use std::string::FromUtf8Error;
 
-use kvdb::kv_manager::error::InnerKvError;
-use rocket::{
-    http::Status,
-    response::{Responder, Response},
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
 };
+use kvdb::kv_manager::error::InnerKvError;
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
 use super::SigningMessage;
-// #[derive(Responder, Debug, Error)]
-// #[response(status = 418, content_type = "json")]
+
 /// Errors for the `new_party` API
 #[derive(Debug, Error)]
 pub enum SigningErr {
-    // #[error("Init error: {0}")]
-    // Init(&'static str),
     #[error("Kv error: {0}")]
     Kv(#[from] kvdb::kv_manager::error::KvError),
     #[error("Inner Kv error: {0}")]
@@ -52,10 +49,6 @@ pub enum SigningErr {
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<SigningMessage>>),
     #[error("anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
-    #[error("Data is not verifiable")]
-    InvalidData,
-    #[error("Data is stale")]
-    StaleData,
     #[error("Generic Substrate error: {0}")]
     GenericSubstrate(#[from] subxt::error::Error),
     #[error("Option Unwrap error: {0}")]
@@ -82,13 +75,10 @@ pub enum SigningErr {
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
 }
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for SigningErr {
-    fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
+impl IntoResponse for SigningErr {
+    fn into_response(self) -> Response {
         let body = format!("{self}").into_bytes();
-        Response::build()
-            .sized_body(body.len(), Cursor::new(body))
-            .status(Status::InternalServerError)
-            .ok()
+        (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
     }
 }
 
@@ -115,13 +105,10 @@ pub enum SubscribeErr {
     UserError(String),
 }
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for SubscribeErr {
-    fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
+impl IntoResponse for SubscribeErr {
+    fn into_response(self) -> Response {
         let body = format!("{self}").into_bytes();
-        Response::build()
-            .sized_body(body.len(), Cursor::new(body))
-            .status(Status::InternalServerError)
-            .ok()
+        (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
     }
 }
 

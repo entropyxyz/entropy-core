@@ -2,13 +2,12 @@ use kvdb::kv_manager::PartyId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
-#[serde(crate = "rocket::serde")]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct SubscribeMessage {
     /// Signing session
     pub session_id: String,
     // TODO: Ideally this should be PartyId,
-    // but this requires implementing some Rocket traits for it in `kvdb`
+    // but this requires implementing some Axum traits for it in `kvdb`
     /// Subscribing party
     pub party_id: String,
 }

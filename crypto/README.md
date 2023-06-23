@@ -50,7 +50,7 @@ Constraints have now moved to [entropyxyz/constraints](https://github.com/entrop
 <!--   - eventually: after implementing Partitions, the communication manager will already have this information from on-chain. -->
 <!-- 3. CM chooses a signing party (`communication_manager::handle_signing`) -->
 <!-- 4. CM broadcasts the party information, calling `new_party` on each selected signer -->
-5. Each signer calls `subscribe_to_me` on each other signer, subscribing to all party-related messages, creating a `rocket::EventStream` of signing-related messages
+5. Each signer calls `subscribe_to_me` on each other signer, subscribing to all party-related messages, creating a an axum SSE of signing-related messages
 6. After each signer has received subscription from each other signer, the nodes proceed to pass signing-protocol related messages until the protocol completes.
 7. If the signing protocol fails, the nodes broadcast information about the faulty signer, to be included in the next block. A subsequent block will designate a replacement signer (TODO: substrate).
 

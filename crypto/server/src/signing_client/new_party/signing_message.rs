@@ -1,4 +1,3 @@
-// use rocket::http::hyper::body::Bytes;
 use std::str;
 
 use kvdb::kv_manager::PartyId;
@@ -9,9 +8,7 @@ use crate::signing_client::errors::SigningMessageError;
 /// A Message related to the signing protocol.
 // https://github.com/axelarnetwork/grpc-protobuf/blob/ad810e5e865ce6d3a41cf70ce32e719fff5926ad/grpc.proto#L94
 #[derive(Debug, Clone, Serialize, Deserialize)]
-// #[cfg_attr(test, derive(PartialEq, Eq, UriDisplayQuery))]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[serde(crate = "rocket::serde")]
 pub struct SigningMessage {
     pub from: PartyId,
     // If `None`, it's a broadcast message

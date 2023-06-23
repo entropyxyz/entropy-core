@@ -4,11 +4,13 @@ mod errors;
 pub(crate) mod new_party;
 pub(crate) mod subscribe;
 
-use std::{collections::HashMap, sync::Mutex};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 #[cfg(test)]
 pub mod tests;
-
 pub use self::{
     errors::*,
     new_party::SigningMessage,
@@ -16,11 +18,11 @@ pub use self::{
 };
 
 /// The state used by this node to create signatures
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct SignerState {
     /// Mapping of PartyIds to `SubscriberManager`s, one entry per active party.
     // TODO(TK): SubscriberManager to be replaced with None when subscribing phase ends.
-    pub listeners: Mutex<HashMap<String, Listener>>,
+    pub listeners: Arc<Mutex<HashMap<String, Listener>>>,
 }
 
 impl SignerState {

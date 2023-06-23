@@ -1,10 +1,9 @@
 #![allow(dead_code)]
 
+use async_stream::try_stream;
+use axum::response::sse::{Event, Sse};
+use futures::stream::Stream;
 use kvdb::kv_manager::PartyId;
-use rocket::{
-    response::stream::{Event, EventStream},
-    Shutdown,
-};
 use tokio::{
     select,
     sync::{
@@ -59,22 +58,20 @@ impl Listener {
     /// Yield messages as events in a stream as they arrive. Helper for `subscribe`.
     pub(crate) fn create_event_stream(
         mut rx: broadcast::Receiver<SigningMessage>,
-        mut end: Shutdown,
-    ) -> EventStream![] {
-        EventStream! {
+    ) -> Sse<impl Stream<Item = Result<Event, SubscribeErr>>> {
+        Sse::new(try_stream! {
           loop {
             let msg = select! {
               msg = rx.recv() => match msg {
                 Ok(msg) => msg,
                 Err(RecvError::Closed) => break,
                 Err(RecvError::Lagged(_)) => continue,
-              },
-              _ = &mut end => break,
+              }
             };
-
-            yield Event::json(&msg);
+            let event = Event::default().json_data(msg)?;
+            yield event;
           }
-        }
+        })
     }
 
     pub(crate) fn into_broadcaster(self) -> (oneshot::Sender<ListenerResult>, Broadcaster) {

@@ -2,11 +2,12 @@
 
 use std::{io::Cursor, string::FromUtf8Error};
 
-use entropy_constraints::Error as ConstraintsError;
-use rocket::{
-    http::Status,
-    response::{Responder, Response},
+use axum::{
+    body,
+    http::StatusCode,
+    response::{IntoResponse, Response},
 };
+use entropy_constraints::Error as ConstraintsError;
 use thiserror::Error;
 
 use crate::{chain_api::entropy, signing_client::SigningErr};
@@ -57,12 +58,9 @@ pub enum UserErr {
     TryFrom(Vec<u8>),
 }
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for UserErr {
-    fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
+impl IntoResponse for UserErr {
+    fn into_response(self) -> Response {
         let body = format!("{self}").into_bytes();
-        Response::build()
-            .sized_body(body.len(), Cursor::new(body))
-            .status(Status::InternalServerError)
-            .ok()
+        (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
     }
 }

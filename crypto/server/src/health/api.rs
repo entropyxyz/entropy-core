@@ -1,4 +1,3 @@
-use rocket::http::Status;
+use axum::http::StatusCode;
 
-#[get("/healthz")]
-pub fn healthz() -> Status { Status::Ok }
+pub async fn healthz() -> StatusCode { StatusCode::OK }

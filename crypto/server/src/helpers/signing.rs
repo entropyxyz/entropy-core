@@ -1,8 +1,11 @@
-use std::{collections::HashMap, sync::Mutex};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
+use axum::http::StatusCode;
 use bip39::{Language, Mnemonic};
 use kvdb::kv_manager::{KvManager, PartyId};
-use rocket::{http::Status, State};
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 
@@ -38,14 +41,14 @@ impl RecoverableSignature {
 
 // TODO: JA Remove all below, temporary
 /// The state used to temporarily store completed signatures
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SignatureState {
-    pub signatures: Mutex<HashMap<Box<[u8]>, RecoverableSignature>>,
+    pub signatures: Arc<Mutex<HashMap<Box<[u8]>, RecoverableSignature>>>,
 }
 
 impl SignatureState {
     pub fn new() -> SignatureState {
-        let signatures = Mutex::new(HashMap::new());
+        let signatures = Arc::new(Mutex::new(HashMap::new()));
         SignatureState { signatures }
     }
 
@@ -65,14 +68,18 @@ impl SignatureState {
     }
 }
 
+impl Default for SignatureState {
+    fn default() -> Self { Self::new() }
+}
+
 /// Start the signing protocol for a given message
 pub async fn do_signing(
     message: entropy_shared::Message,
-    state: &State<SignerState>,
-    kv_manager: &State<KvManager>,
-    signatures: &State<SignatureState>,
+    state: &SignerState,
+    kv_manager: &KvManager,
+    signatures: &SignatureState,
     tx_id: String,
-) -> Result<Status, SigningErr> {
+) -> Result<StatusCode, SigningErr> {
     let info = SignInit::new(message.clone(), tx_id)?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let signer =
@@ -122,7 +129,7 @@ pub async fn do_signing(
 
     signing_service.handle_result(&result, message.sig_request.sig_hash.as_slice(), signatures);
 
-    Ok(Status::Ok)
+    Ok(StatusCode::OK)
 }
 
 /// Creates a unique tx Id by concatenating the user's signing key and message digest

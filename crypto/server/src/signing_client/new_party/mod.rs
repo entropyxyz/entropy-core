@@ -80,7 +80,7 @@ impl<'a> ThresholdSigningService<'a> {
         &self,
         signature: &RecoverableSignature,
         prehashed_message: &[u8],
-        signatures: &rocket::State<SignatureState>,
+        signatures: &SignatureState,
     ) {
         signatures.insert(prehashed_message, signature);
     }

@@ -5,9 +5,9 @@ use chacha20poly1305::{
     ChaCha20Poly1305,
 };
 use rand_core::OsRng;
-#[cfg(test)]
-use rocket::serde::json::to_string;
 use serde::{Deserialize, Serialize};
+#[cfg(test)]
+use serde_json::to_string;
 use subxt::ext::sp_core::{crypto::AccountId32, sr25519, sr25519::Signature, Bytes, Pair};
 use x25519_dalek::{PublicKey, StaticSecret};
 use zeroize::Zeroize;
