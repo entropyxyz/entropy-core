@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-use std::convert::Infallible;
-
 use async_stream::try_stream;
 use axum::response::sse::{Event, Sse};
 use futures::stream::Stream;
@@ -60,7 +58,7 @@ impl Listener {
     /// Yield messages as events in a stream as they arrive. Helper for `subscribe`.
     pub(crate) fn create_event_stream(
         mut rx: broadcast::Receiver<SigningMessage>,
-    ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    ) -> Sse<impl Stream<Item = Result<Event, SubscribeErr>>> {
         Sse::new(try_stream! {
           loop {
             let msg = select! {
@@ -70,7 +68,7 @@ impl Listener {
                 Err(RecvError::Lagged(_)) => continue,
               }
             };
-            let event = Event::default().json_data(msg).unwrap();
+            let event = Event::default().json_data(msg)?;
             yield event;
           }
         })

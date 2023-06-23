@@ -1,7 +1,4 @@
-use std::{
-    convert::{Infallible, TryInto},
-    str,
-};
+use std::{convert::TryInto, str};
 
 use axum::{
     body::Bytes,
@@ -74,7 +71,7 @@ pub async fn new_party(
 pub async fn subscribe_to_me(
     State(app_state): State<AppState>,
     signed_msg: Json<SignedMessage>,
-) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, SubscribeErr> {
+) -> Result<Sse<impl Stream<Item = Result<Event, SubscribeErr>>>, SubscribeErr> {
     if !signed_msg.verify() {
         return Err(SubscribeErr::InvalidSignature("Invalid signature."));
     }
@@ -104,7 +101,11 @@ pub async fn subscribe_to_me(
     };
 
     let rx = {
-        let mut listeners = app_state.signer_state.listeners.lock().expect("lock shared data");
+        let mut listeners = app_state
+            .signer_state
+            .listeners
+            .lock()
+            .map_err(|e| SubscribeErr::LockError(e.to_string()))?;
         let listener =
             listeners.get_mut(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
         let rx_outcome = listener.subscribe(party_id)?;
