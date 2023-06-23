@@ -1,1 +1,1 @@
-./target/release/server --threshold-url="http://127.0.0.1:3002
+./target/release/server --threshold-url="127.0.0.1:3002"
