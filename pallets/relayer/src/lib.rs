@@ -154,30 +154,6 @@ pub mod pallet {
     /// `sig_request`: signature request for user
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::weight(<T as Config>::WeightInfo::prep_transaction(MaxValidators::<T>::get() / SIGNING_PARTY_SIZE as u32))]
-        pub fn prep_transaction(
-            origin: OriginFor<T>,
-            sig_request: SigRequest,
-        ) -> DispatchResultWithPostInfo {
-            log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
-            let who = ensure_signed(origin)?;
-            ensure!(
-                Self::registered(&who).ok_or(Error::<T>::NotRegistered)?,
-                Error::<T>::NotRegistered
-            );
-            let (validators_info, i) = Self::get_validator_info()?;
-            let message = Message { sig_request, account: who.encode(), validators_info };
-            let block_number = <frame_system::Pallet<T>>::block_number();
-            Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
-                request.push(message.clone());
-                Ok(())
-            })?;
-
-            Self::deposit_event(Event::SignatureRequested(message));
-
-            Ok(Some(<T as Config>::WeightInfo::prep_transaction(i)).into())
-        }
-
         /// Signals that a user wants to register an account with Entropy.
         ///
         /// This should be called by the signature-request account, and specify the initial

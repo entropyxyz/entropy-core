@@ -126,65 +126,6 @@ pub async fn sign_tx(
     Ok(StatusCode::OK)
 }
 
-/// Submits a new transaction to the KVDB for inclusion in a threshold
-/// signing scheme at a later block.
-///
-/// Maps a tx hash -> unsigned transaction in the kvdb.
-#[axum_macros::debug_handler]
-pub async fn store_tx(
-    State(app_state): State<AppState>,
-    Json(signed_msg): Json<SignedMessage>,
-) -> Result<StatusCode, UserErr> {
-    // Verifies the message contains a valid sr25519 signature from the sender.
-    if !signed_msg.verify() {
-        return Err(UserErr::InvalidSignature("Invalid signature."));
-    }
-    let signer = get_signer(&app_state.kv_store).await?;
-    let signing_address = signed_msg.account_id().to_ss58check();
-
-    let decrypted_message =
-        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
-    let generic_tx_req: GenericTransactionRequest = serde_json::from_slice(&decrypted_message)?;
-    match generic_tx_req.arch.as_str() {
-        "evm" => {
-            let api = get_api(&app_state.configuration.endpoint);
-            let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
-                generic_tx_req.transaction_request.clone(),
-            )?;
-
-            let sig_hash = hex::encode(parsed_tx.sighash().as_bytes());
-            let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
-            // check if user submitted tx to chain already
-            let message_json = app_state.kv_store.kv().get(&tx_id).await?;
-            // parse their transaction request
-            let message: Message = serde_json::from_str(&String::from_utf8(message_json)?)?;
-            let signing_address_converted =
-                AccountId32::from_str(&signing_address).map_err(UserErr::StringError)?;
-
-            let substrate_api = api.await?;
-            let evm_acl = get_constraints(&substrate_api, &signing_address_converted)
-                .await?
-                .evm_acl
-                .ok_or(UserErr::Parse("No constraints found for this account."))?;
-
-            evm_acl.eval(parsed_tx)?;
-            app_state.kv_store.kv().delete(&tx_id).await?;
-            do_signing(
-                message,
-                &app_state.signer_state,
-                &app_state.kv_store,
-                &app_state.signature_state,
-                tx_id,
-            )
-            .await?;
-        },
-        _ => {
-            return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
-        },
-    }
-    Ok(StatusCode::OK)
-}
-
 /// HTTP POST endoint called by the user when registering.
 ///
 /// This adds a new Keyshare to this node's set of known Keyshares and stores the it in the [kvdb].

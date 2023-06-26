@@ -56,21 +56,6 @@ pub fn add_non_syncing_validators<T: Config>(
 }
 
 benchmarks! {
-  prep_transaction {
-    let s in 0 .. MaxValidators::<T>::get() / SIG_PARTIES as u32;
-    let account: T::AccountId = whitelisted_caller();
-    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
-    <Registered<T>>::insert(account.clone(), true);
-    let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
-    for i in 0..SIG_PARTIES {
-        let _ = add_non_syncing_validators::<T>(sig_party_size, s, i as u8);
-    }
-  }: _(RawOrigin::Signed(account.clone()), sig_request.clone())
-  verify {
-    let validators_info = Pallet::<T>::get_validator_info().unwrap_or_default().0;
-    assert_last_event::<T>(Event::<T>::SignatureRequested(Message {account: account.encode(), sig_request, validators_info}).into());
-  }
-
   register {
     // number of addresses in the ACL
     let a in 0 .. <T as pallet_constraints::Config>::MaxAclLength::get();
