@@ -30,7 +30,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{Constraints, Message, SigRequest, ValidatorInfo, SIGNING_PARTY_SIZE};
+    use entropy_shared::{Constraints, SIGNING_PARTY_SIZE, X25519PublicKey};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         inherent::Vec,
@@ -72,6 +72,14 @@ pub mod pallet {
         pub constraints: Option<Constraints>,
     }
 
+	#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[scale_info(skip_type_params(T))]
+	pub struct ValidatorInfo<T: Config> {
+		pub x25519_public_key: X25519PublicKey,
+		pub ip_address: Vec<u8>,
+		pub tss_account: T::AccountId,
+	}
+
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
@@ -99,16 +107,6 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::storage]
-    #[pallet::getter(fn messages)]
-    pub type Messages<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn failures)]
-    pub type Failures<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<u32>, OptionQuery>;
-
-    #[pallet::storage]
     #[pallet::getter(fn registering)]
     pub type Registering<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails<T>, OptionQuery>;
@@ -123,8 +121,6 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// A transaction has been propagated to the network. [who]
-        SignatureRequested(Message),
         /// An account has signaled to be registered. [signature request account]
         SignalRegister(T::AccountId),
         /// An account has been registered. [who, signing_group]
@@ -293,8 +289,8 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        pub fn get_validator_info() -> Result<(Vec<ValidatorInfo>, u32), Error<T>> {
-            let mut validators_info: Vec<ValidatorInfo> = vec![];
+        pub fn get_validator_info() -> Result<(Vec<ValidatorInfo<T>>, u32), Error<T>> {
+            let mut validators_info: Vec<ValidatorInfo<T>> = vec![];
             let block_number = <frame_system::Pallet<T>>::block_number();
 
             // TODO: JA simple hacky way to do this, get the first address from each signing group
@@ -309,7 +305,7 @@ pub mod pallet {
                 validators_info.push(ValidatorInfo {
                     ip_address: endpoint,
                     x25519_public_key,
-                    tss_account: tss_account.encode(),
+                    tss_account: tss_account,
                 });
             }
             Ok((validators_info, l))

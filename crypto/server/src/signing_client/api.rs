@@ -7,7 +7,7 @@ use axum::{
     response::sse::{Event, Sse},
     Json,
 };
-use entropy_shared::{OCWMessage, PRUNE_BLOCK};
+use entropy_shared::{PRUNE_BLOCK};
 use futures::stream::Stream;
 use kvdb::kv_manager::{KvManager, PartyId};
 use parity_scale_codec::Decode;

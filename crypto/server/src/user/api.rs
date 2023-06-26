@@ -11,9 +11,10 @@ use bip39::{Language, Mnemonic};
 use entropy_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
+use std::net::Ipv4Addr;
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints},
-    Message, SIGNING_PARTY_SIZE,
+    SIGNING_PARTY_SIZE, X25519PublicKey
 };
 use futures::future::{join_all, FutureExt};
 use kvdb::kv_manager::{
@@ -49,23 +50,26 @@ use crate::{
     AppState, Configuration,
 };
 
+/// Information from the validators in signing party
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ValidatorInfo {
+    pub x25519_public_key: X25519PublicKey,
+    pub ip_address: Ipv4Addr,
+    pub tss_account: AccountId32,
+}
+
+
 /// Represents an unparsed, transaction request coming from the client.
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq)]
 pub struct UserTransactionRequest {
     /// 'eth', etc.
     pub arch: String,
     /// ETH: RLP encoded transaction request
     pub transaction_request: String,
-    pub validator_ips: Vec<parity_scale_codec::alloc::vec::Vec<u8>>,
-    pub message: Message,
-}
-/// Represents an unparsed, transaction request coming from the client.
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
-pub struct GenericTransactionRequest {
-    /// 'eth', etc.
-    pub arch: String,
-    /// ETH: RLP encoded transaction request
-    pub transaction_request: String,
+	/// Information from the validators in signing party
+    pub validators_info: Vec<ValidatorInfo>,
 }
 
 /// Called by a user to initiate the signing process for a message
@@ -102,7 +106,6 @@ pub async fn sign_tx(
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
     match user_tx_req.arch.as_str() {
         "evm" => {
-            let message = user_tx_req.message;
             let evm_acl = get_constraints(&api, &signing_address_converted)
                 .await?
                 .evm_acl
@@ -111,11 +114,12 @@ pub async fn sign_tx(
             evm_acl.eval(parsed_tx)?;
 
             do_signing(
-                message.clone(),
+                user_tx_req,
                 &app_state.signer_state,
                 &app_state.kv_store,
                 &app_state.signature_state,
                 tx_id,
+				signing_address_converted
             )
             .await?;
         },

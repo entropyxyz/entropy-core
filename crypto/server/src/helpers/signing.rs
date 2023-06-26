@@ -18,6 +18,7 @@ use crate::{
         SignerState, SigningErr,
     },
     validation::mnemonic_to_pair,
+	user::api::UserTransactionRequest
 };
 
 #[derive(Clone, Debug)]
@@ -74,13 +75,14 @@ impl Default for SignatureState {
 
 /// Start the signing protocol for a given message
 pub async fn do_signing(
-    message: entropy_shared::Message,
+    message: UserTransactionRequest,
     state: &SignerState,
     kv_manager: &KvManager,
     signatures: &SignatureState,
     tx_id: String,
+	user_address: AccountId32
 ) -> Result<StatusCode, SigningErr> {
-    let info = SignInit::new(message.clone(), tx_id)?;
+    let info = SignInit::new(message.clone(), tx_id, user_address)?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let signer =
         get_signer(kv_manager).await.map_err(|_| SigningErr::UserError("Error getting Signer"))?;
@@ -127,7 +129,7 @@ pub async fn do_signing(
         .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
         .await?;
 
-    signing_service.handle_result(&result, message.sig_request.sig_hash.as_slice(), signatures);
+    signing_service.handle_result(&result, message.transaction_request.as_bytes(), signatures);
 
     Ok(StatusCode::OK)
 }
