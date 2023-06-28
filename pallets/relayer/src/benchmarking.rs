@@ -16,8 +16,6 @@ use super::*;
 #[allow(unused)]
 use crate::Pallet as Relayer;
 
-const SIG_HASH: &[u8; 64] = b"d188f0d99145e7ddbd0f1e46e7fd406db927441584571c623aff1d1652e14b06";
-
 type MaxValidators<T> =  <<T as pallet_staking::Config>::BenchmarkingConfig as pallet_staking::BenchmarkingConfig>::MaxValidators;
 const SEED: u32 = 0;
 const NULL_ARR: [u8; 32] = [0; 32];
