@@ -1,10 +1,8 @@
-use entropy_shared::{Constraints, Message, SigRequest, ValidatorInfo};
+use entropy_shared::{Constraints};
 use frame_support::{assert_noop, assert_ok};
 use pallet_constraints::{ActiveArchitectures, AllowedToModifyConstraints};
 
-use crate::{mock::*, Error, Registered, RegisteringDetails};
-
-pub const SIG_HASH: &[u8; 64] = b"d188f0d99145e7ddbd0f1e46e7fd406db927441584571c623aff1d1652e14b06";
+use crate::{mock::*, Error, RegisteringDetails};
 
 #[test]
 fn it_tests_get_validator_rotation() {
