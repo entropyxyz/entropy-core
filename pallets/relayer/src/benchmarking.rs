@@ -1,7 +1,5 @@
 //! Benchmarking setup for pallet-propgation
-
-use codec::Encode;
-use entropy_shared::{Message, SigRequest, SIGNING_PARTY_SIZE as SIG_PARTIES};
+use entropy_shared::SIGNING_PARTY_SIZE as SIG_PARTIES;
 use frame_benchmarking::{
     account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec,
 };
