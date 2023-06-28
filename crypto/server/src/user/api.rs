@@ -97,7 +97,7 @@ pub async fn sign_tx(
     let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
     let parsed_tx =
         <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
-    let sig_hash = hex::encode(&parsed_tx.sighash());
+    let sig_hash = hex::encode(parsed_tx.sighash());
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
     check_signing_group(subgroup_signers, signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
