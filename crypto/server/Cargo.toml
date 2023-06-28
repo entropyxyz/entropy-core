@@ -49,13 +49,13 @@ tracing-subscriber={ version="0.3.16", features=["env-filter", "json"] }
 tower-http        ={ version="0.3.4", features=["trace", "cors"] }
 
 # Misc
-bip39          ={ git="https://github.com/infincia/bip39-rs.git", tag="v0.6.0-beta.1" }
-bincode        ="1.3.3"
-bytes          ={ version="1.0", default-features=false, features=["serde"] }
-base64         ="0.13.0"
-clap           ={ version="4.0.29", features=["derive"] }
-num            ="0.4.0"
-async-stream   ="0.3.5"
+bip39       ={ git="https://github.com/infincia/bip39-rs.git", tag="v0.6.0-beta.1" }
+bincode     ="1.3.3"
+bytes       ={ version="1.0", default-features=false, features=["serde"] }
+base64      ="0.13.0"
+clap        ={ version="4.0.29", features=["derive"] }
+num         ="0.4.0"
+async-stream="0.3.5"
 
 [dev-dependencies]
 testing-utils={ path="../testing-utils" }
