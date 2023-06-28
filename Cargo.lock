@@ -9052,6 +9052,7 @@ dependencies = [
  "serde_json",
  "serial_test 0.8.0",
  "sp-core",
+ "sp-keyring",
  "subxt",
  "synedrion",
  "testing-utils",
