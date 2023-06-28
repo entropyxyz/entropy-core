@@ -122,7 +122,7 @@ pub async fn do_signing(
         .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
         .await?;
 
-    signing_service.handle_result(&result, &hex::decode(sig_hash.clone()).unwrap(), signatures);
+    signing_service.handle_result(&result, &hex::decode(sig_hash.clone())?, signatures);
 
     Ok(StatusCode::OK)
 }
