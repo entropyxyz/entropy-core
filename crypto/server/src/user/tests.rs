@@ -1,4 +1,4 @@
-use std::{env, fs, path::PathBuf, sync::Arc, net::SocketAddrV4, str::FromStr};
+use std::{env, fs, net::SocketAddrV4, path::PathBuf, str::FromStr, sync::Arc};
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
@@ -90,25 +90,25 @@ async fn test_sign_tx_no_chain() {
     let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
 
     let sig_hash = transaction_request.sighash();
-    let validators_info =
-        vec![
-            ValidatorInfo {
-                ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
-                x25519_public_key: X25519_PUBLIC_KEYS[0],
-                tss_account: TSS_ACCOUNTS[0].clone(),
-            },
-            ValidatorInfo {
-                ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
-                x25519_public_key: X25519_PUBLIC_KEYS[1],
-                tss_account: TSS_ACCOUNTS[1].clone(),
-            },
-        ];
-    let converted_transaction_request: String = hex::encode(&transaction_request.rlp_unsigned().to_vec());
+    let validators_info = vec![
+        ValidatorInfo {
+            ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone(),
+        },
+        ValidatorInfo {
+            ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone(),
+        },
+    ];
+    let converted_transaction_request: String =
+        hex::encode(&transaction_request.rlp_unsigned().to_vec());
 
     let mut generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),
         transaction_request: converted_transaction_request.clone(),
-		validators_info
+        validators_info,
     };
 
     let submit_transaction_requests =
@@ -199,7 +199,13 @@ async fn test_sign_tx_no_chain() {
 
     join_all(validator_ips.iter().map(|validator_ip| async {
         let url = format!("http://{}/signer/signature", validator_ip.clone());
-        let res = mock_client.post(url).header("Content-Type", "application/json").body(serde_json::to_string(&sig_request).unwrap()).send().await.unwrap();
+        let res = mock_client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&sig_request).unwrap())
+            .send()
+            .await
+            .unwrap();
         assert_eq!(res.status(), 202);
         assert_eq!(res.content_length().unwrap(), 88);
     }))
@@ -262,24 +268,23 @@ async fn test_fail_signing_group() {
     let _substrate_context = test_node_process_testing_state().await;
     let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(3);
     let sig_hash = transaction_request.sighash();
-    let validators_info =
-        vec![
-            ValidatorInfo {
-                ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
-                x25519_public_key: X25519_PUBLIC_KEYS[0],
-                tss_account: TSS_ACCOUNTS[0].clone(),
-            },
-            ValidatorInfo {
-                ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
-                x25519_public_key: X25519_PUBLIC_KEYS[1],
-                tss_account: TSS_ACCOUNTS[1].clone(),
-            },
-        ];
+    let validators_info = vec![
+        ValidatorInfo {
+            ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone(),
+        },
+        ValidatorInfo {
+            ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone(),
+        },
+    ];
 
     let generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),
         transaction_request: hex::encode(&transaction_request.rlp()),
-		validators_info
+        validators_info,
     };
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let signed_message = SignedMessage::new(

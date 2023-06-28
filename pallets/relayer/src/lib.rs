@@ -30,7 +30,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{Constraints, SIGNING_PARTY_SIZE, X25519PublicKey};
+    use entropy_shared::{Constraints, X25519PublicKey, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         inherent::Vec,
@@ -72,13 +72,13 @@ pub mod pallet {
         pub constraints: Option<Constraints>,
     }
 
-	#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
-	pub struct ValidatorInfo<T: Config> {
-		pub x25519_public_key: X25519PublicKey,
-		pub ip_address: Vec<u8>,
-		pub tss_account: T::AccountId,
-	}
+    pub struct ValidatorInfo<T: Config> {
+        pub x25519_public_key: X25519PublicKey,
+        pub ip_address: Vec<u8>,
+        pub tss_account: T::AccountId,
+    }
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
@@ -305,7 +305,7 @@ pub mod pallet {
                 validators_info.push(ValidatorInfo {
                     ip_address: endpoint,
                     x25519_public_key,
-                    tss_account: tss_account,
+                    tss_account,
                 });
             }
             Ok((validators_info, l))

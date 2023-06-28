@@ -1,9 +1,13 @@
 //! Message sent to Signing Client on protocol initiation.
-use entropy_shared::{X25519PublicKey};
+use entropy_shared::X25519PublicKey;
 use serde::{Deserialize, Serialize};
-use synedrion::sessions::PrehashedMessage;
 use sp_core::crypto::AccountId32;
-use crate::{signing_client::SigningErr, user::api::{UserTransactionRequest, ValidatorInfo}};
+use synedrion::sessions::PrehashedMessage;
+
+use crate::{
+    signing_client::SigningErr,
+    user::api::{UserTransactionRequest, ValidatorInfo},
+};
 
 /// Information passed to the Signing Client, to initiate the signing process.
 /// Most of this information comes from a `Message` struct which gets propagated when a user's
@@ -23,8 +27,15 @@ pub struct SignInit {
 impl SignInit {
     /// Creates new signing object based on passed in data
     #[allow(dead_code)]
-    pub fn new(message: UserTransactionRequest, sig_hash: String, tx_id: String, user: AccountId32) -> Result<Self, SigningErr> {
-		let digest: PrehashedMessage = hex::decode(sig_hash)?.try_into().map_err(|_| SigningErr::Conversion("Digest Conversion"))?;;
+    pub fn new(
+        message: UserTransactionRequest,
+        sig_hash: String,
+        tx_id: String,
+        user: AccountId32,
+    ) -> Result<Self, SigningErr> {
+        let digest: PrehashedMessage = hex::decode(sig_hash)?
+            .try_into()
+            .map_err(|_| SigningErr::Conversion("Digest Conversion"))?;
 
         Ok(Self {
             sig_uid: tx_id,

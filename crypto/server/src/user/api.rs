@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::Arc, net::SocketAddrV4};
+use std::{net::SocketAddrV4, str::FromStr, sync::Arc};
 
 use axum::{
     extract::State,
@@ -13,7 +13,7 @@ use entropy_constraints::{
 };
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints},
-    SIGNING_PARTY_SIZE, X25519PublicKey
+    X25519PublicKey, SIGNING_PARTY_SIZE,
 };
 use futures::future::{join_all, FutureExt};
 use kvdb::kv_manager::{
@@ -58,7 +58,6 @@ pub struct ValidatorInfo {
     pub tss_account: AccountId32,
 }
 
-
 /// Represents an unparsed, transaction request coming from the client.
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
@@ -67,7 +66,7 @@ pub struct UserTransactionRequest {
     pub arch: String,
     /// ETH: RLP encoded transaction request
     pub transaction_request: String,
-	/// Information from the validators in signing party
+    /// Information from the validators in signing party
     pub validators_info: Vec<ValidatorInfo>,
 }
 
@@ -112,12 +111,12 @@ pub async fn sign_tx(
             evm_acl.eval(parsed_tx)?;
             do_signing(
                 user_tx_req,
-				sig_hash,
+                sig_hash,
                 &app_state.signer_state,
                 &app_state.kv_store,
                 &app_state.signature_state,
                 tx_id,
-				signing_address_converted
+                signing_address_converted,
             )
             .await?;
         },

@@ -5,10 +5,11 @@ use std::{
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic};
+use entropy_constraints::EvmTransactionRequest;
 use kvdb::kv_manager::{KvManager, PartyId};
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
-use entropy_constraints::EvmTransactionRequest;
+
 use crate::{
     get_signer,
     sign_init::SignInit,
@@ -17,8 +18,8 @@ use crate::{
         subscribe::{subscribe_to_them, Listener},
         SignerState, SigningErr,
     },
+    user::api::UserTransactionRequest,
     validation::mnemonic_to_pair,
-	user::api::UserTransactionRequest
 };
 
 #[derive(Clone, Debug)]
@@ -76,12 +77,12 @@ impl Default for SignatureState {
 /// Start the signing protocol for a given message
 pub async fn do_signing(
     message: UserTransactionRequest,
-	sig_hash: String,
+    sig_hash: String,
     state: &SignerState,
     kv_manager: &KvManager,
     signatures: &SignatureState,
     tx_id: String,
-	user_address: AccountId32
+    user_address: AccountId32,
 ) -> Result<StatusCode, SigningErr> {
     let info = SignInit::new(message.clone(), sig_hash.clone(), tx_id.clone(), user_address)?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
@@ -115,16 +116,14 @@ pub async fn do_signing(
     let tss_accounts: Vec<AccountId32> = message
         .validators_info
         .iter()
-        .map(|validator_info| {
-			validator_info.tss_account.clone()
-        })
+        .map(|validator_info| validator_info.tss_account.clone())
         .collect();
 
     let result = signing_service
         .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
         .await?;
 
-	signing_service.handle_result(&result, &hex::decode(sig_hash.clone()).unwrap(), signatures);
+    signing_service.handle_result(&result, &hex::decode(sig_hash.clone()).unwrap(), signatures);
 
     Ok(StatusCode::OK)
 }

@@ -1235,7 +1235,6 @@ impl pallet_nomination_pools::Config for Runtime {
     type WeightInfo = ();
 }
 
-
 parameter_types! {
   pub const MinValidators: u32 = 10;
 }
