@@ -1,27 +1,19 @@
-use std::{convert::TryInto, str};
+use std::str;
 
 use axum::{
-    body::Bytes,
     extract::State,
     http::StatusCode,
     response::sse::{Event, Sse},
     Json,
 };
-use entropy_shared::PRUNE_BLOCK;
 use futures::stream::Stream;
-use kvdb::kv_manager::{KvManager, PartyId};
-use parity_scale_codec::Decode;
-use sp_core::crypto::Ss58Codec;
-use subxt::OnlineClient;
-use tracing::instrument;
+use kvdb::kv_manager::PartyId;
 
 use crate::{
-    chain_api::{entropy, get_api, EntropyConfig},
     get_signer,
-    helpers::signing::create_unique_tx_id,
     signing_client::{
         subscribe::{Listener, Receiver},
-        SigningErr, SubscribeErr, SubscribeMessage,
+        SubscribeErr, SubscribeMessage,
     },
     validation::SignedMessage,
     AppState,

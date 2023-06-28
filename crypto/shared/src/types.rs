@@ -1,10 +1,5 @@
 #![allow(dead_code)]
-use codec::{alloc::vec::Vec, Decode, Encode};
-use node_primitives::BlockNumber;
-use scale_info::TypeInfo;
 #[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
-
 /// common structs etc, shared among the substrate-blockchain-code and the crypto-code
 pub use crate::constraints::*;
 

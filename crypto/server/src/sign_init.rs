@@ -1,5 +1,4 @@
 //! Message sent to Signing Client on protocol initiation.
-use entropy_shared::X25519PublicKey;
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::AccountId32;
 use synedrion::sessions::PrehashedMessage;

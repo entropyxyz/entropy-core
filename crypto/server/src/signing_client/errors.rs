@@ -37,8 +37,6 @@ pub enum SigningErr {
     IncomingStream(String),
     #[error("Protocol Output error: {0}")]
     ProtocolOutput(synedrion::sessions::Error),
-    #[error("Invalid length for converting address")]
-    AddressConversionError(String),
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("Utf8Error: {0:?}")]

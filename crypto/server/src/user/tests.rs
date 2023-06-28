@@ -267,7 +267,6 @@ async fn test_fail_signing_group() {
 
     let _substrate_context = test_node_process_testing_state().await;
     let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(3);
-    let sig_hash = transaction_request.sighash();
     let validators_info = vec![
         ValidatorInfo {
             ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),

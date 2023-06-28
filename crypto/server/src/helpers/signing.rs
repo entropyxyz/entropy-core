@@ -5,7 +5,6 @@ use std::{
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic};
-use entropy_constraints::EvmTransactionRequest;
 use kvdb::kv_manager::{KvManager, PartyId};
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
