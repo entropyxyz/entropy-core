@@ -23,8 +23,8 @@ pub struct SignInit {
 impl SignInit {
     /// Creates new signing object based on passed in data
     #[allow(dead_code)]
-    pub fn new(message: UserTransactionRequest, tx_id: String, user: AccountId32) -> Result<Self, SigningErr> {
-        let digest: PrehashedMessage = message.transaction_request.as_bytes().try_into()?;
+    pub fn new(message: UserTransactionRequest, sig_hash: String, tx_id: String, user: AccountId32) -> Result<Self, SigningErr> {
+		let digest: PrehashedMessage = hex::decode(sig_hash)?.try_into().map_err(|_| SigningErr::Conversion("Digest Conversion"))?;;
 
         Ok(Self {
             sig_uid: tx_id,

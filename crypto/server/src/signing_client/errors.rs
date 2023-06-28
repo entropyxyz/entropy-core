@@ -73,6 +73,11 @@ pub enum SigningErr {
     Mnemonic(String),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
+	#[error("From Hex Error: {0}")]
+    FromHex(#[from] hex::FromHexError),
+	#[error("Vec<u8> Conversion Error: {0}")]
+    Conversion(&'static str),
+
 }
 
 impl IntoResponse for SigningErr {

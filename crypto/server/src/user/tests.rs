@@ -1,9 +1,9 @@
-use std::{env, fs, path::PathBuf, sync::Arc};
+use std::{env, fs, path::PathBuf, sync::Arc, net::SocketAddrV4, str::FromStr};
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::{Acl, Constraints, Message, OCWMessage, SigRequest, ValidatorInfo};
+use entropy_shared::{Acl, Constraints};
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future};
 use hex_literal::hex as h;
@@ -44,7 +44,7 @@ use crate::{
         SignerState,
     },
     subscribe_to_me,
-    user::api::UserTransactionRequest,
+    user::api::{UserTransactionRequest, ValidatorInfo},
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
     Message as SigMessage,
@@ -90,28 +90,25 @@ async fn test_sign_tx_no_chain() {
     let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
 
     let sig_hash = transaction_request.sighash();
-    let message_request = Message {
-        sig_request: SigRequest { sig_hash: sig_hash.as_bytes().to_vec() },
-        account: one.to_raw_public_vec(),
-        validators_info: vec![
+    let validators_info =
+        vec![
             ValidatorInfo {
-                ip_address: b"127.0.0.1:3001".to_vec(),
+                ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
                 x25519_public_key: X25519_PUBLIC_KEYS[0],
-                tss_account: TSS_ACCOUNTS[0].encode(),
+                tss_account: TSS_ACCOUNTS[0].clone(),
             },
             ValidatorInfo {
-                ip_address: b"127.0.0.1:3002".to_vec(),
+                ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
                 x25519_public_key: X25519_PUBLIC_KEYS[1],
-                tss_account: TSS_ACCOUNTS[1].encode(),
+                tss_account: TSS_ACCOUNTS[1].clone(),
             },
-        ],
-    };
-    let converted_transaction_request: String = hex::encode(&transaction_request.rlp().to_vec());
+        ];
+    let converted_transaction_request: String = hex::encode(&transaction_request.rlp_unsigned().to_vec());
+
     let mut generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),
-        transaction_request: converted_transaction_request,
-        message: message_request,
-        validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
+        transaction_request: converted_transaction_request.clone(),
+		validators_info
     };
 
     let submit_transaction_requests =
@@ -163,7 +160,7 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    generic_msg.message.validators_info[0].x25519_public_key = [0; 32];
+    generic_msg.validators_info[0].x25519_public_key = [0; 32];
 
     let test_user_failed_x25519_pub_key =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -197,12 +194,12 @@ async fn test_sign_tx_no_chain() {
             "Parse error: Unknown \"arch\". Must be one of: [\"evm\"]"
         );
     }
-    let sig_request = SigMessage { message: hex::encode(sig_hash) };
+    let sig_request = SigMessage { message: hex::encode(sig_hash.clone()) };
     let mock_client = reqwest::Client::new();
 
     join_all(validator_ips.iter().map(|validator_ip| async {
         let url = format!("http://{}/signer/signature", validator_ip.clone());
-        let res = mock_client.post(url).json(&sig_request).send().await.unwrap();
+        let res = mock_client.post(url).header("Content-Type", "application/json").body(serde_json::to_string(&sig_request).unwrap()).send().await.unwrap();
         assert_eq!(res.status(), 202);
         assert_eq!(res.content_length().unwrap(), 88);
     }))
@@ -265,28 +262,24 @@ async fn test_fail_signing_group() {
     let _substrate_context = test_node_process_testing_state().await;
     let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(3);
     let sig_hash = transaction_request.sighash();
-    let message_request = Message {
-        sig_request: SigRequest { sig_hash: sig_hash.as_bytes().to_vec() },
-        account: dave.to_raw_public_vec(),
-        validators_info: vec![
+    let validators_info =
+        vec![
             ValidatorInfo {
-                ip_address: b"127.0.0.1:3001".to_vec(),
+                ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
                 x25519_public_key: X25519_PUBLIC_KEYS[0],
-                tss_account: TSS_ACCOUNTS[0].encode(),
+                tss_account: TSS_ACCOUNTS[0].clone(),
             },
             ValidatorInfo {
-                ip_address: b"127.0.0.1:3002".to_vec(),
+                ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
                 x25519_public_key: X25519_PUBLIC_KEYS[1],
-                tss_account: TSS_ACCOUNTS[1].encode(),
+                tss_account: TSS_ACCOUNTS[1].clone(),
             },
-        ],
-    };
+        ];
 
     let generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),
         transaction_request: hex::encode(&transaction_request.rlp()),
-        message: message_request,
-        validator_ips: vec![b"127.0.0.1:3001".to_vec(), b"127.0.0.1:3002".to_vec()],
+		validators_info
     };
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let signed_message = SignedMessage::new(

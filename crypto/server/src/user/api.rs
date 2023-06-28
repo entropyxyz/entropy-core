@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::Arc};
+use std::{str::FromStr, sync::Arc, net::SocketAddrV4};
 
 use axum::{
     extract::State,
@@ -11,7 +11,6 @@ use bip39::{Language, Mnemonic};
 use entropy_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
-use std::net::Ipv4Addr;
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints},
     SIGNING_PARTY_SIZE, X25519PublicKey
@@ -55,7 +54,7 @@ use crate::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
-    pub ip_address: Ipv4Addr,
+    pub ip_address: SocketAddrV4,
     pub tss_account: AccountId32,
 }
 
@@ -99,8 +98,7 @@ pub async fn sign_tx(
     let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
     let parsed_tx =
         <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
-
-    let sig_hash = hex::encode(parsed_tx.sighash().as_bytes());
+    let sig_hash = hex::encode(&parsed_tx.sighash());
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
     check_signing_group(subgroup_signers, signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
@@ -112,9 +110,9 @@ pub async fn sign_tx(
                 .ok_or(UserErr::Parse("No constraints found for this account."))?;
 
             evm_acl.eval(parsed_tx)?;
-
             do_signing(
                 user_tx_req,
+				sig_hash,
                 &app_state.signer_state,
                 &app_state.kv_store,
                 &app_state.signature_state,

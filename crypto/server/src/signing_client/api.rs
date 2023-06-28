@@ -110,7 +110,7 @@ pub async fn get_signature(
 ) -> (StatusCode, String) {
     let sig = match app_state.signature_state.get(&hex::decode(msg.message).unwrap()) {
         Some(sig) => sig,
-        None => return (StatusCode::NOT_FOUND, "".to_string()),
+        None => return (StatusCode::NO_CONTENT, "".to_string()),
     };
     (StatusCode::ACCEPTED, base64::encode(sig.to_rsv_bytes()))
 }

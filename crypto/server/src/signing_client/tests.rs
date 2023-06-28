@@ -1,6 +1,5 @@
 use axum::http::StatusCode;
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::{Message, OCWMessage, SigRequest, ValidatorInfo, PRUNE_BLOCK};
 use hex_literal::hex;
 use kvdb::clean_tests;
 use parity_scale_codec::Encode;
