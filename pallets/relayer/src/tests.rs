@@ -1,4 +1,4 @@
-use entropy_shared::{Constraints};
+use entropy_shared::Constraints;
 use frame_support::{assert_noop, assert_ok};
 use pallet_constraints::{ActiveArchitectures, AllowedToModifyConstraints};
 
