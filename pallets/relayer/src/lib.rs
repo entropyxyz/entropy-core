@@ -60,8 +60,6 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
 
-    type MaxValidators<T> =  <<T as pallet_staking::Config>::BenchmarkingConfig as pallet_staking::BenchmarkingConfig>::MaxValidators;
-
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
