@@ -2,17 +2,45 @@ mod broadcaster;
 mod listener;
 mod message;
 
-use futures::{future, stream, stream::BoxStream, StreamExt};
 use kvdb::kv_manager::PartyId;
-pub(super) use listener::Receiver;
-use reqwest_eventsource::{Error, Event, RequestBuilderExt};
+pub(super) use listener::WsChannels;
 use sp_core::Bytes;
 use subxt::{ext::sp_core::sr25519, tx::PairSigner};
 use x25519_dalek::PublicKey;
+use tokio_tungstenite::{connect_async, tungstenite::Message};
+use futures::SinkExt;
 
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
-use super::{new_party::SignContext, SigningErr, SigningMessage};
-use crate::{chain_api::EntropyConfig, validation::SignedMessage};
+use super::{new_party::SignContext, SigningErr};
+use crate::{chain_api::EntropyConfig, validation::SignedMessage, SignerState, signing_client::SubscribeErr};
+
+
+// pub async fn handle_ws_connection(ws: Box<dyn Stream<Item = SigningMessage> + Sink<Item = SigningMessage>>,  ws_channels: WsChannels) {
+	// let msg = SigningMessage::try_from(&message.data).ok()?;
+// }
+// 	// loop {
+// 	// tokio::select! {
+// 	// 	 Some(msg) = socket.recv() => {
+// 	// 		 if let Ok(msg) = msg {
+// 	// 			// deserialize i
+// 	// 			// wrap it together with sender info
+// 	// 			// send it on the tx channel
+// 	// 			tx.send(msg)
+// 	// 		 } else {
+// 	// 			 // client disconnected
+// 	// 			 return;
+// 	// 		 };
+// 	// 	 }
+// 	// 	 Some(msg) rx_from_sign_protocol_to_ws.recv() => {
+// 	// 		 if socket.send(msg).await.is_err() {
+// 	// 			 // client disconnected
+// 	// 			 return;
+// 	// 		 }
+// 	// 	 }
+// 	// }
+// 	// }
+// }
+
 
 /// Call `subscribe` on every other node with a reqwest client. Merge the streamed responses
 /// into a single stream.
@@ -20,64 +48,63 @@ pub async fn subscribe_to_them(
     ctx: &SignContext,
     my_id: &PartyId,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) -> Result<BoxStream<'static, SigningMessage>, SigningErr> {
-    let event_sources_init = ctx
+	state: &SignerState,
+) -> Result<(), SigningErr> {
+	let sig_uid = ctx.sign_init.sig_uid.clone();
+    let validators_to_connect_to = ctx
         .sign_init
         .validator_send_info
         .iter()
-        .map(|validator_send_info| async move {
-            let server_public_key = PublicKey::from(validator_send_info.x25519_public_key);
-            let signed_message = SignedMessage::new(
-                signer.signer(),
-                &Bytes(serde_json::to_vec(&SubscribeMessage::new(
-                    &ctx.sign_init.sig_uid,
-                    my_id.clone(),
-                ))?),
-                &server_public_key,
-            )?;
-            let mut es = reqwest::Client::new()
-                .post(format!("http://{}/signer/subscribe_to_me", validator_send_info.ip_address))
-                .json(&signed_message)
-                .eventsource()
-                .map_err(|e| SigningErr::CannotCloneRequest(e.to_string()))?;
+		.filter(|validator_send_info| {
+			// compare send into, decide if to connect
+			true
+		});
 
-            // We need to call this to cause the actual request to be sent,
-            // otherwise we're stuck in a deadlock while servers wait for each other to subscribe.
-            // The first event we receive is an empty one, so we're not losing any info.
-            let first_event = es
-                .next()
-                .await
-                .ok_or_else(|| SigningErr::OptionUnwrapError("Problem with first event"))?;
+	for validator_send_info in validators_to_connect_to {
+		let ws_endpoint = format!("ws://{}/ws", validator_send_info.ip_address);
+		let (mut ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
-            let first_event = first_event?;
+		let server_public_key = PublicKey::from(validator_send_info.x25519_public_key);
+		let signed_message = SignedMessage::new(
+			signer.signer(),
+			&Bytes(serde_json::to_vec(&SubscribeMessage::new(
+						&ctx.sign_init.sig_uid,
+						my_id.clone(),
+			))?),
+			&server_public_key,
+		)?;
 
-            if !matches!(first_event, Event::Open) {
-                return Err(SigningErr::UnexpectedEvent("Unexpected first event".to_string()));
-            }
+		let message_string = serde_json::to_string(&signed_message).unwrap();
+		ws_stream.send(Message::Text(message_string)).await.unwrap();
+		let ws_channels = {
+				let mut listeners = state
+					.listeners
+					.lock()
+					.unwrap();
+					// .map_err(|e| SubscribeErr::LockError(e.to_string()))?;
+				let listener =
+					listeners.get_mut(&sig_uid).ok_or(SubscribeErr::NoListener("no listener"))?;
+				let ws_channels = listener.subscribe();
 
-            Ok::<_, SigningErr>(es)
-        })
-        .collect::<Vec<_>>();
+				if ws_channels.is_final {
+					// all subscribed, wake up the waiting listener in new_party
+					let listener = listeners
+						.remove(&sig_uid)
+						.ok_or(SubscribeErr::NoListener("listener remove"))?;
+					let (tx, broadcaster) = listener.into_broadcaster();
+					let _ = tx.send(Ok(broadcaster));
+				};
+				ws_channels
+		};
 
-    let event_sources = future::try_join_all(event_sources_init).await?;
+		if ws_channels.is_final {
+			// convert listener to broadcaster
+		}
+		// spawn a task
+		// call handle_ws_connection(sender, recv, ws_channels)
+	};
 
-    // Filter the streams, map them to messages
-    let deserialized_events = stream::select_all(event_sources).filter_map(
-        |maybe_event: Result<Event, Error>| async move {
-            if matches!(maybe_event, Err(Error::StreamEnded)) {
-                return None;
-            }
 
-            match maybe_event.ok()? {
-                Event::Open => None, // Shouldn't really happen; raise an error?
-                Event::Message(message) => {
-                    let msg = SigningMessage::try_from(&message.data).ok()?;
-                    Some(msg)
-                },
-            }
-        },
-    );
 
-    // Merge the streams, pin-box them to handle the opaque types
-    Ok(Box::pin(deserialized_events))
+    Ok(())
 }

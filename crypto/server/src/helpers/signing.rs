@@ -90,17 +90,19 @@ pub async fn do_signing(
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
-    let (rx_ready, listener) = Listener::new();
+	// TODO this should get if existing, or create
+    let (rx_ready, rx_from_others, listener) = Listener::new();
     state
         .listeners
         .lock()
 		.map_err(|_| SigningErr::SessionError("Error getting lock".to_string()))?
         // TODO: using signature ID as session ID. Correct?
         .insert(sign_context.sign_init.sig_uid.clone(), listener);
+
+	subscribe_to_them(&sign_context, &my_id, &signer, state).await?;
     let channels = {
-        let stream_in = subscribe_to_them(&sign_context, &my_id, &signer).await?;
         let broadcast_out = rx_ready.await??;
-        Channels(broadcast_out, stream_in)
+        Channels(broadcast_out, rx_from_others)
     };
 
     let raw = kv_manager.kv().get("MNEMONIC").await?;

@@ -2,13 +2,12 @@ use std::{convert::TryInto, str};
 
 use axum::{
     body::Bytes,
-    extract::State,
+    extract::{State, ws::{self, WebSocket, WebSocketUpgrade}},
     http::StatusCode,
-    response::sse::{Event, Sse},
+    response::IntoResponse,
     Json,
 };
 use entropy_shared::{OCWMessage, PRUNE_BLOCK};
-use futures::stream::Stream;
 use kvdb::kv_manager::{KvManager, PartyId};
 use parity_scale_codec::Decode;
 use sp_core::crypto::Ss58Codec;
@@ -20,7 +19,7 @@ use crate::{
     get_signer,
     helpers::signing::create_unique_tx_id,
     signing_client::{
-        subscribe::{Listener, Receiver},
+		SigningMessage,
         SigningErr, SubscribeErr, SubscribeMessage,
     },
     validation::SignedMessage,
@@ -65,67 +64,105 @@ pub async fn new_party(
     Ok(StatusCode::OK)
 }
 
-// /// Other nodes in the party call this method to subscribe to this node's broadcasts.
-// /// The SigningProtocol begins when all nodes in the party have called this method on this node.
-#[axum_macros::debug_handler]
-pub async fn subscribe_to_me(
+pub async fn ws_handler(
     State(app_state): State<AppState>,
-    signed_msg: Json<SignedMessage>,
-) -> Result<Sse<impl Stream<Item = Result<Event, SubscribeErr>>>, SubscribeErr> {
-    if !signed_msg.verify() {
-        return Err(SubscribeErr::InvalidSignature("Invalid signature."));
-    }
-    let signer = get_signer(&app_state.kv_store)
-        .await
-        .map_err(|e| SubscribeErr::UserError(e.to_string()))?;
+    ws: WebSocketUpgrade,
+) -> impl IntoResponse {
+    ws.on_upgrade(move |socket| handle_socket(socket, app_state))
+}
 
-    let decrypted_message =
-        signed_msg.decrypt(signer.signer()).map_err(|e| SubscribeErr::Decryption(e.to_string()))?;
-    let msg: SubscribeMessage = serde_json::from_slice(&decrypted_message)?;
+async fn handle_socket(mut socket: WebSocket, app_state: AppState) {
+	if let Some(Ok(ws::Message::Text(serialized_signed_message))) = socket.recv().await {
+		match handle_initial_incoming_ws_message(serialized_signed_message, app_state).await {
+			Ok(mut ws_channels) => {
+				loop {
+					tokio::select! {
+						Some(msg) = socket.recv() => {
+							if let Ok(msg) = msg {
+								match msg {
+									ws::Message::Text(serialized_signed_message) => {
+										// deserialize it
+										let msg = SigningMessage::try_from(&serialized_signed_message).ok().unwrap();
+										ws_channels.tx.send(msg);
+									}
+									_ => {
+										// log that we got unexpected message type
+									}
+								}
+							} else {
+								// client disconnected
+								break;
+							};
+						}
+						Ok(msg) = ws_channels.broadcast.recv() => {
+							let message_string = serde_json::to_string(&msg).unwrap();
+							if socket.send(ws::Message::Text(message_string)).await.is_err() {
+								// client disconnected
+								break;
+							}
+						}
+					}
+				}
+			}
+			Err(_) => {
+				// log the error and drop the connection
+			}
+		}
+	};
+}
 
-    tracing::info!("got subscribe, with message: {msg:?}");
+async fn handle_initial_incoming_ws_message(serialized_signed_message: String, app_state: AppState) -> Result<WsChannels, SubscribeErr> {
+	let signed_msg: SignedMessage = serde_json::from_str(&serialized_signed_message)?;
+			if !signed_msg.verify() {
+				return Err(SubscribeErr::InvalidSignature("Invalid signature."));
+			}
+			let signer = get_signer(&app_state.kv_store)
+				.await
+				.map_err(|e| SubscribeErr::UserError(e.to_string()))?;
 
-    let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
+			let decrypted_message =
+				signed_msg.decrypt(signer.signer()).map_err(|e| SubscribeErr::Decryption(e.to_string()))?;
+			let msg: SubscribeMessage = serde_json::from_slice(&decrypted_message)?;
 
-    let signing_address = signed_msg.account_id();
+			tracing::info!("got ws connection, with message: {msg:?}");
 
-    // TODO: should we also check if party_id is in signing group -> limited spots in steam so yes
-    if PartyId::new(signing_address) != party_id {
-        return Err(SubscribeErr::InvalidSignature("Signature does not match party id."));
-    }
+			let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
 
-    if !app_state.signer_state.contains_listener(&msg.session_id)? {
-        // Chain node hasn't yet informed this node of the party. Wait for a timeout and proceed
-        // or fail below
-        tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
-    };
+			let signing_address = signed_msg.account_id();
 
-    let rx = {
-        let mut listeners = app_state
-            .signer_state
-            .listeners
-            .lock()
-            .map_err(|e| SubscribeErr::LockError(e.to_string()))?;
-        let listener =
-            listeners.get_mut(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
-        let rx_outcome = listener.subscribe(party_id)?;
+			// TODO: should we also check if party_id is in signing group -> limited spots in steam so yes
+			if PartyId::new(signing_address) != party_id {
+				return Err(SubscribeErr::InvalidSignature("Signature does not match party id."));
+			}
 
-        // If this is the last subscriber, remove the listener from state
-        match rx_outcome {
-            Receiver::Receiver(rx) => rx,
-            Receiver::FinalReceiver(rx) => {
-                // all subscribed, wake up the waiting listener in new_party
-                let listener = listeners
-                    .remove(&msg.session_id)
-                    .ok_or(SubscribeErr::NoListener("listener remove"))?;
-                let (tx, broadcaster) = listener.into_broadcaster();
-                let _ = tx.send(Ok(broadcaster));
-                rx
-            },
-        }
-    };
+			if !app_state.signer_state.contains_listener(&msg.session_id)? {
+				// Chain node hasn't yet informed this node of the party. Wait for a timeout and proceed
+				// or fail below
+				tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
+			};
 
-    Ok(Listener::create_event_stream(rx))
+			let ws_channels = {
+				let mut listeners = app_state
+					.signer_state
+					.listeners
+					.lock()
+					.map_err(|e| SubscribeErr::LockError(e.to_string()))?;
+				let listener =
+					listeners.get_mut(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
+				let ws_channels = listener.subscribe();
+
+				if ws_channels.is_final {
+					// all subscribed, wake up the waiting listener in new_party
+					let listener = listeners
+						.remove(&msg.session_id)
+						.ok_or(SubscribeErr::NoListener("listener remove"))?;
+					let (tx, broadcaster) = listener.into_broadcaster();
+					let _ = tx.send(Ok(broadcaster));
+				};
+				ws_channels
+			};
+
+			Ok(ws_channels)
 }
 
 // /// Validates new party endpoint
@@ -207,6 +244,8 @@ pub async fn prune_old_tx_from_kvdb(
 }
 
 use serde::{Deserialize, Serialize};
+
+use super::subscribe::WsChannels;
 
 // TODO: JA remove all below temporary
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Debug))]

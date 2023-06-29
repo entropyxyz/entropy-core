@@ -2,7 +2,6 @@
 use std::collections::HashMap;
 
 use blake2::{Blake2s256, Digest};
-use futures::StreamExt;
 use kvdb::kv_manager::PartyId;
 use rand_core::OsRng;
 use sp_core::crypto::{AccountId32, Pair};
@@ -12,10 +11,11 @@ use synedrion::{
     KeyShare, PartyIdx, Signature, TestSchemeParams,
 };
 use tracing::instrument;
+use tokio::sync::mpsc;
 
 use crate::signing_client::{SigningErr, SigningMessage};
 
-pub type ChannelIn = futures::stream::BoxStream<'static, super::SigningMessage>;
+pub type ChannelIn = mpsc::Receiver<super::SigningMessage>;
 pub type ChannelOut = crate::signing_client::subscribe::Broadcaster;
 
 /// Thin wrapper broadcasting channel out and messages from other nodes in
@@ -78,7 +78,7 @@ pub(super) async fn execute_protocol(
         }
 
         while !session.is_finished_receiving().map_err(SigningErr::SessionError)? {
-            let signing_message = rx.next().await.ok_or_else(|| {
+            let signing_message = rx.recv().await.ok_or_else(|| {
                 SigningErr::IncomingStream(format!("{}", session.current_stage_num()))
             })?;
 
