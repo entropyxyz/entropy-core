@@ -1,15 +1,9 @@
 use hex_literal::hex;
 use sp_core::{crypto::AccountId32, Pair};
-use sp_keyring::Sr25519Keyring;
-use subxt::{tx::PairSigner, OnlineClient};
 
-use crate::{
-    chain_api::{entropy, EntropyConfig},
-    signing_client::{
-        new_party::signing_protocol::{create_signed_message, validate_signed_message},
-        tests::entropy::runtime_types::entropy_shared::types::SigRequest as otherSigRequest,
-        SigningErr,
-    },
+use crate::signing_client::{
+    new_party::signing_protocol::{create_signed_message, validate_signed_message},
+    SigningErr,
 };
 
 #[tokio::test]
@@ -54,33 +48,4 @@ async fn create_verify_signed_message() {
     let _err_2 =
         Box::new(SigningErr::MessageValidation("Unable to verify origins of message".to_string()));
     assert!(matches!(failed_message_decrypt, Err(_err_2)));
-}
-
-pub async fn run_to_block(api: &OnlineClient<EntropyConfig>, block_run: u32) {
-    let mut current_block = 0;
-    while current_block < block_run {
-        current_block = api.rpc().block(None).await.unwrap().unwrap().block.header.number;
-    }
-}
-
-pub async fn put_tx_request_on_chain(
-    api: &OnlineClient<EntropyConfig>,
-    sig_req_keyring: &Sr25519Keyring,
-    sig_hash: Vec<u8>,
-) {
-    let sig_req_account =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
-    let prep_transaction_message = otherSigRequest { sig_hash };
-    let registering_tx = entropy::tx().relayer().prep_transaction(prep_transaction_message);
-
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
 }

@@ -39,10 +39,7 @@ use crate::{
     },
     load_kv_store, new_user,
     r#unsafe::api::UnsafeQuery,
-    signing_client::{
-        tests::{put_tx_request_on_chain, run_to_block},
-        SignerState,
-    },
+    signing_client::SignerState,
     subscribe_to_me,
     user::api::{UserTransactionRequest, ValidatorInfo},
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},

@@ -30,7 +30,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{Constraints, X25519PublicKey, SIGNING_PARTY_SIZE};
+    use entropy_shared::{Constraints, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         inherent::Vec,
@@ -68,14 +68,6 @@ pub mod pallet {
         pub is_swapping: bool,
         pub confirmations: Vec<u8>,
         pub constraints: Option<Constraints>,
-    }
-
-    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
-    #[scale_info(skip_type_params(T))]
-    pub struct ValidatorInfo<T: Config> {
-        pub x25519_public_key: X25519PublicKey,
-        pub ip_address: Vec<u8>,
-        pub tss_account: T::AccountId,
     }
 
     #[pallet::genesis_config]
@@ -287,8 +279,8 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        pub fn get_validator_info() -> Result<(Vec<ValidatorInfo<T>>, u32), Error<T>> {
-            let mut validators_info: Vec<ValidatorInfo<T>> = vec![];
+        pub fn get_validator_info() -> Result<(Vec<ServerInfo<T::AccountId>>, u32), Error<T>> {
+            let mut validators_info: Vec<ServerInfo<T::AccountId>> = vec![];
             let block_number = <frame_system::Pallet<T>>::block_number();
 
             // TODO: JA simple hacky way to do this, get the first address from each signing group
@@ -297,14 +289,10 @@ pub mod pallet {
             for i in 0..SIGNING_PARTY_SIZE {
                 let tuple = Self::get_validator_rotation(i as u8, block_number)?;
                 l = tuple.1;
-                let ServerInfo { endpoint, x25519_public_key, tss_account } =
+                let validator_info =
                     pallet_staking_extension::Pallet::<T>::threshold_server(&tuple.0)
                         .ok_or(Error::<T>::IpAddressError)?;
-                validators_info.push(ValidatorInfo {
-                    ip_address: endpoint,
-                    x25519_public_key,
-                    tss_account,
-                });
+                validators_info.push(validator_info);
             }
             Ok((validators_info, l))
         }
