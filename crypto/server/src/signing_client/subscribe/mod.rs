@@ -23,10 +23,10 @@ pub async fn subscribe_to_them(
 ) -> Result<BoxStream<'static, SigningMessage>, SigningErr> {
     let event_sources_init = ctx
         .sign_init
-        .validator_send_info
+        .validators_info
         .iter()
-        .map(|validator_send_info| async move {
-            let server_public_key = PublicKey::from(validator_send_info.x25519_public_key);
+        .map(|validators_info| async move {
+            let server_public_key = PublicKey::from(validators_info.x25519_public_key);
             let signed_message = SignedMessage::new(
                 signer.signer(),
                 &Bytes(serde_json::to_vec(&SubscribeMessage::new(
@@ -36,7 +36,7 @@ pub async fn subscribe_to_them(
                 &server_public_key,
             )?;
             let mut es = reqwest::Client::new()
-                .post(format!("http://{}/signer/subscribe_to_me", validator_send_info.ip_address))
+                .post(format!("http://{}/signer/subscribe_to_me", validators_info.ip_address))
                 .json(&signed_message)
                 .eventsource()
                 .map_err(|e| SigningErr::CannotCloneRequest(e.to_string()))?;

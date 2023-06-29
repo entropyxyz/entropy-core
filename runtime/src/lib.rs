@@ -1235,10 +1235,6 @@ impl pallet_nomination_pools::Config for Runtime {
     type WeightInfo = ();
 }
 
-impl pallet_propagation::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-}
-
 parameter_types! {
   pub const MinValidators: u32 = 10;
 }
@@ -1350,12 +1346,11 @@ construct_runtime!(
     NominationPools: pallet_nomination_pools = 50,
 
     // custom pallets
-    Propagation: pallet_propagation = 51,
-    Relayer: pallet_relayer = 52,
-    Slashing: pallet_slashing = 53,
-    Constraints: pallet_constraints = 54,
-    TransactionPause: pallet_transaction_pause = 55,
-    FreeTx: pallet_free_tx = 56,
+    Relayer: pallet_relayer = 51,
+    Slashing: pallet_slashing = 52,
+    Constraints: pallet_constraints = 53,
+    TransactionPause: pallet_transaction_pause = 54,
+    FreeTx: pallet_free_tx = 55,
 
 
   }

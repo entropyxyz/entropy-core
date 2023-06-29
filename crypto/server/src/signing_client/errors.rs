@@ -37,8 +37,6 @@ pub enum SigningErr {
     IncomingStream(String),
     #[error("Protocol Output error: {0}")]
     ProtocolOutput(synedrion::sessions::Error),
-    #[error("Invalid length for converting address")]
-    AddressConversionError(String),
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("Utf8Error: {0:?}")]
@@ -73,6 +71,10 @@ pub enum SigningErr {
     Mnemonic(String),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
+    #[error("From Hex Error: {0}")]
+    FromHex(#[from] hex::FromHexError),
+    #[error("Vec<u8> Conversion Error: {0}")]
+    Conversion(&'static str),
 }
 
 impl IntoResponse for SigningErr {
