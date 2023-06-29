@@ -10,8 +10,8 @@ use synedrion::{
     sessions::{make_interactive_signing_session, PrehashedMessage, ToSend},
     KeyShare, PartyIdx, Signature, TestSchemeParams,
 };
-use tracing::instrument;
 use tokio::sync::mpsc;
+use tracing::instrument;
 
 use crate::signing_client::{SigningErr, SigningMessage};
 

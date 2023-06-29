@@ -109,7 +109,6 @@ pub async fn sign_tx(
                 .ok_or(UserErr::Parse("No constraints found for this account."))?;
 
             evm_acl.eval(parsed_tx)?;
-
             do_signing(
                 message.clone(),
                 &app_state.signer_state,

@@ -1,9 +1,6 @@
 #![allow(dead_code)]
 
-use tokio::sync::{
-    broadcast::{self, error::RecvError},
-    mpsc, oneshot,
-};
+use tokio::sync::{broadcast, mpsc, oneshot};
 
 use super::Broadcaster;
 use crate::{
@@ -47,7 +44,7 @@ impl Listener {
         self.subscriber_count += 1;
         let broadcast = self.tx.subscribe();
         let tx = self.tx_to_others.clone();
-        WsChannels { broadcast, tx, is_final: self.subscriber_count == SIGNING_PARTY_SIZE }
+        WsChannels { broadcast, tx, is_final: self.subscriber_count == SIGNING_PARTY_SIZE - 1 }
     }
 
     pub(crate) fn into_broadcaster(self) -> (oneshot::Sender<ListenerResult>, Broadcaster) {

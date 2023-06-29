@@ -144,7 +144,6 @@ use axum::{
     routing::{get, post},
     Router,
 };
-
 use clap::Parser;
 use entropy_shared::{MIN_BALANCE, SIGNING_PARTY_SIZE};
 use kvdb::kv_manager::KvManager;
@@ -265,7 +264,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/signer/drain", get(drain))
         .route("/validator/sync_kvdb", post(sync_kvdb))
         .route("/healthz", get(healthz))
-		.route("/ws", get(ws_handler));
+        .route("/ws", get(ws_handler));
 
     // Unsafe routes are for testing purposes only
     // they are unsafe as they can expose vulnerabilites

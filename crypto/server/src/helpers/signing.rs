@@ -5,6 +5,7 @@ use std::{
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic};
+use entropy_shared::X25519PublicKey;
 use kvdb::kv_manager::{KvManager, PartyId};
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
@@ -90,7 +91,7 @@ pub async fn do_signing(
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
-	// TODO this should get if existing, or create
+    // TODO this should get if existing, or create
     let (rx_ready, rx_from_others, listener) = Listener::new();
     state
         .listeners
@@ -99,7 +100,10 @@ pub async fn do_signing(
         // TODO: using signature ID as session ID. Correct?
         .insert(sign_context.sign_init.sig_uid.clone(), listener);
 
-	subscribe_to_them(&sign_context, &my_id, &signer, state).await?;
+    let pk = kv_manager.kv().get("DH_PUBLIC").await?;
+    let x25519_public_key: X25519PublicKey = pk.try_into().unwrap(); // TODO
+
+    subscribe_to_them(&sign_context, &my_id, &signer, state, x25519_public_key).await?;
     let channels = {
         let broadcast_out = rx_ready.await??;
         Channels(broadcast_out, rx_from_others)

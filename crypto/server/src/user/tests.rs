@@ -43,7 +43,7 @@ use crate::{
         tests::{put_tx_request_on_chain, run_to_block},
         SignerState,
     },
-    store_tx, subscribe_to_me,
+    store_tx,
     user::api::UserTransactionRequest,
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
