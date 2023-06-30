@@ -92,9 +92,16 @@ pub async fn do_signing(
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
 
+    let tss_accounts: Vec<AccountId32> = message
+        .validators_info
+        .iter()
+        .map(|validator_info| validator_info.tss_account.clone())
+        .collect();
+
     // subscribe to all other participating parties. Listener waits for other subscribers.
     // TODO this should get if existing, or create
-    let (rx_ready, rx_from_others, listener) = Listener::new();
+    let (rx_ready, rx_from_others, listener) =
+        Listener::new(tss_accounts.clone(), signer.account_id());
     state
         .listeners
         .lock()
@@ -119,12 +126,6 @@ pub async fn do_signing(
     let threshold_signer =
         mnemonic_to_pair(&mnemonic).map_err(|_| SigningErr::SecretString("Secret String Error"))?;
 
-    let tss_accounts: Vec<AccountId32> = message
-        .validators_info
-        .iter()
-        .map(|validator_info| validator_info.tss_account.clone())
-        .collect();
-
     let result = signing_service
         .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
         .await?;
@@ -136,5 +137,5 @@ pub async fn do_signing(
 
 /// Creates a unique tx Id by concatenating the user's signing key and message digest
 pub fn create_unique_tx_id(account: &String, sig_hash: &String) -> String {
-    format!("{}_{}", account, sig_hash)
+    format!("{account}_{sig_hash}")
 }

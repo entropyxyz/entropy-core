@@ -4,10 +4,10 @@ mod message;
 
 use axum::extract::ws::{self, WebSocket};
 use entropy_shared::X25519PublicKey;
-use futures::{SinkExt, StreamExt};
+use futures::{future, SinkExt, StreamExt};
 use kvdb::kv_manager::PartyId;
 pub(super) use listener::WsChannels;
-use sp_core::Bytes;
+use sp_core::{crypto::AccountId32, Bytes};
 use subxt::{ext::sp_core::sr25519, tx::PairSigner};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use x25519_dalek::PublicKey;
@@ -33,19 +33,16 @@ pub async fn subscribe_to_them(
     x25519_public_key: X25519PublicKey,
 ) -> Result<(), SigningErr> {
     let sig_uid = &ctx.sign_init.sig_uid;
-    let validators_to_connect_to = ctx.sign_init.validators_info.iter().filter(|validators_info| {
+    let connect_to_validators = ctx.sign_init.validators_info.iter().filter(|validators_info| {
         // Decide whether to initiate a connection by comparing public keys
         validators_info.x25519_public_key < x25519_public_key
-    });
-
-    // TODO we should be doing this concurrently
-    for validators_info in validators_to_connect_to {
+    }).map(|validator_info| async move {
         // Open a ws connection
-        let ws_endpoint = format!("ws://{}/ws", validators_info.ip_address);
+        let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
         let (mut ws_stream, _response) = connect_async(ws_endpoint).await?;
 
         // Send a SubscribeMessage
-        let server_public_key = PublicKey::from(validators_info.x25519_public_key);
+        let server_public_key = PublicKey::from(validator_info.x25519_public_key);
         let signed_message = SignedMessage::new(
             signer.signer(),
             &Bytes(serde_json::to_vec(&SubscribeMessage::new(sig_uid, my_id.clone()))?),
@@ -63,8 +60,7 @@ pub async fn subscribe_to_them(
                 }
             } else {
                 return Err(SigningErr::UnexpectedEvent(format!(
-                    "Unexpected response message {:?}",
-                    response_message
+                    "Unexpected response message {response_message:?}"
                 )));
             }
         } else {
@@ -72,7 +68,9 @@ pub async fn subscribe_to_them(
         }
 
         // Setup channels
-        let mut ws_channels = get_ws_channels(state, sig_uid)?;
+        let mut ws_channels = get_ws_channels(state, sig_uid, &validator_info.tss_account)?;
+
+		let remote_party_id = PartyId::new(validator_info.tss_account.clone());
 
         // Handling incoming / outgoing messages
         tokio::spawn(async move {
@@ -80,29 +78,32 @@ pub async fn subscribe_to_them(
                 tokio::select! {
                     Some(msg) = ws_stream.next() => {
                         if let Ok(msg) = msg {
-                            match msg {
-                                Message::Text(serialized_signed_message) => {
-                                    // deserialize it
-                                    if let Ok(msg) = SigningMessage::try_from(&serialized_signed_message) {
-                                        if let Err(_err) = ws_channels.tx.send(msg).await {
-                                            // log err
-                                            break;
-                                        };
-                                    } else {
-                                        // log that we couldnt deserialize the
-                                        // message
-                                    };
-                                }
-                                _ => {
-                                    // log that we got unexpected message type
-                                }
-                            }
-                        } else {
+							if let Message::Text(serialized_signed_message) = msg {
+								// deserialize it
+								if let Ok(msg) = SigningMessage::try_from(&serialized_signed_message) {
+									if let Err(_err) = ws_channels.tx.send(msg).await {
+										// log err
+										break;
+									};
+								} else {
+									// log that we couldnt deserialize the
+									// message
+								};
+							}
+							else {
+								// log that we got unexpected message type
+							}
+						} else {
                             // client disconnected
                             break;
                         };
                     }
                     Ok(msg) = ws_channels.broadcast.recv() => {
+						if let Some(party_id) = &msg.to {
+							if party_id != &remote_party_id {
+								continue;
+							}
+						}
                         let message_string = serde_json::to_string(&msg).unwrap();
                         if ws_stream.send(Message::Text(message_string)).await.is_err() {
                             // client disconnected
@@ -112,7 +113,12 @@ pub async fn subscribe_to_them(
                 }
             }
         });
-    }
+		Ok::<_, SigningErr>(())
+	})
+	.collect::<Vec<_>>();
+
+    future::try_join_all(connect_to_validators).await?;
+
     Ok(())
 }
 
@@ -123,8 +129,8 @@ pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) -> Result
     if let Some(Ok(ws::Message::Text(serialized_signed_message))) = socket.recv().await {
         let (subscribe_response, ws_channels_option) =
             match handle_initial_incoming_ws_message(serialized_signed_message, app_state).await {
-                Ok(ws_channels) => (Ok(()), Some(ws_channels)),
-                Err(err) => (Err(format!("{:?}", err)), None),
+                Ok((ws_channels, party_id)) => (Ok(()), Some((ws_channels, party_id))),
+                Err(err) => (Err(format!("{err:?}")), None),
             };
 
         // Send them a response as to whether we are happy with their subscribe message
@@ -133,7 +139,7 @@ pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) -> Result
         socket.send(ws::Message::Text(subscribe_response_json)).await?;
 
         // If it was successful, proceed with relaying signing protocol messages
-        if let Some(mut ws_channels) = ws_channels_option {
+        if let Some((mut ws_channels, remote_party_id)) = ws_channels_option {
             loop {
                 tokio::select! {
                     Some(msg) = socket.recv() => {
@@ -155,6 +161,11 @@ pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) -> Result
                         };
                     }
                     Ok(msg) = ws_channels.broadcast.recv() => {
+                        if let Some(party_id) = &msg.to {
+                            if party_id != &remote_party_id {
+                                continue;
+                            }
+                        }
                         let message_string = serde_json::to_string(&msg).unwrap();
                         socket.send(ws::Message::Text(message_string)).await?
                     }
@@ -169,7 +180,7 @@ pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) -> Result
 async fn handle_initial_incoming_ws_message(
     serialized_signed_message: String,
     app_state: AppState,
-) -> Result<WsChannels, SubscribeErr> {
+) -> Result<(WsChannels, PartyId), SubscribeErr> {
     let signed_msg: SignedMessage = serde_json::from_str(&serialized_signed_message)?;
     if !signed_msg.verify() {
         return Err(SubscribeErr::InvalidSignature("Invalid signature."));
@@ -202,17 +213,22 @@ async fn handle_initial_incoming_ws_message(
         // add a pending entry
     };
 
-    let ws_channels = get_ws_channels(&app_state.signer_state, &msg.session_id)?;
+    let ws_channels =
+        get_ws_channels(&app_state.signer_state, &msg.session_id, &signed_msg.account_id())?;
 
-    Ok(ws_channels)
+    Ok((ws_channels, party_id))
 }
 
 /// Subscribe to get channels
-fn get_ws_channels(state: &SignerState, sig_uid: &str) -> Result<WsChannels, SubscribeErr> {
+fn get_ws_channels(
+    state: &SignerState,
+    sig_uid: &str,
+    tss_account: &AccountId32,
+) -> Result<WsChannels, SubscribeErr> {
     let mut listeners =
         state.listeners.lock().map_err(|e| SubscribeErr::LockError(e.to_string()))?;
     let listener = listeners.get_mut(sig_uid).ok_or(SubscribeErr::NoListener("no listener"))?;
-    let ws_channels = listener.subscribe();
+    let ws_channels = listener.subscribe(tss_account)?;
 
     if ws_channels.is_final {
         // all subscribed, wake up the waiting listener in new_party

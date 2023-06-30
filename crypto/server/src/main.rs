@@ -141,7 +141,7 @@ use axum::{
     Router,
 };
 use clap::Parser;
-use entropy_shared::{MIN_BALANCE, SIGNING_PARTY_SIZE};
+use entropy_shared::MIN_BALANCE;
 use kvdb::kv_manager::KvManager;
 use tower_http::{
     cors::{Any, CorsLayer},
