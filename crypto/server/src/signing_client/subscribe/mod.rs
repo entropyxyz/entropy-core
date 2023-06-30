@@ -40,67 +40,26 @@ pub async fn subscribe_to_them(
 
     // TODO we should be doing this concurrently
     for validators_info in validators_to_connect_to {
+        // Open a ws connection
         let ws_endpoint = format!("ws://{}/ws", validators_info.ip_address);
         let (mut ws_stream, _response) = connect_async(ws_endpoint).await?;
 
+        // Send a SubscribeMessage
         let server_public_key = PublicKey::from(validators_info.x25519_public_key);
         let signed_message = SignedMessage::new(
             signer.signer(),
             &Bytes(serde_json::to_vec(&SubscribeMessage::new(sig_uid, my_id.clone()))?),
             &server_public_key,
         )?;
-
         let message_string = serde_json::to_string(&signed_message)?;
         ws_stream.send(Message::Text(message_string)).await?;
 
+        // Check the response
         if let Some(response_message) = ws_stream.next().await {
             if let Ok(Message::Text(res)) = response_message {
                 let subscribe_response: Result<(), String> = serde_json::from_str(&res)?;
-                match subscribe_response {
-                    Ok(()) => {
-                        let mut ws_channels = get_ws_channels(state, sig_uid)?;
-
-                        tokio::spawn(async move {
-                            loop {
-                                tokio::select! {
-                                    Some(msg) = ws_stream.next() => {
-                                        if let Ok(msg) = msg {
-                                            match msg {
-                                                Message::Text(serialized_signed_message) => {
-                                                    // deserialize it
-                                                    if let Ok(msg) = SigningMessage::try_from(&serialized_signed_message) {
-                                                        if let Err(_err) = ws_channels.tx.send(msg).await {
-                                                            // log err
-                                                            break;
-                                                        };
-                                                    } else {
-                                                        // log that we couldnt deserialize the
-                                                        // message
-                                                    };
-                                                }
-                                                _ => {
-                                                    // log that we got unexpected message type
-                                                }
-                                            }
-                                        } else {
-                                            // client disconnected
-                                            break;
-                                        };
-                                    }
-                                    Ok(msg) = ws_channels.broadcast.recv() => {
-                                        let message_string = serde_json::to_string(&msg).unwrap();
-                                        if ws_stream.send(Message::Text(message_string)).await.is_err() {
-                                            // client disconnected
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                    },
-                    Err(error_message) => {
-                        return Err(SigningErr::BadSubscribeMessage(error_message));
-                    },
+                if let Err(error_message) = subscribe_response {
+                    return Err(SigningErr::BadSubscribeMessage(error_message));
                 }
             } else {
                 return Err(SigningErr::UnexpectedEvent(format!(
@@ -111,6 +70,48 @@ pub async fn subscribe_to_them(
         } else {
             return Err(SigningErr::ConnectionClosed);
         }
+
+        // Setup channels
+        let mut ws_channels = get_ws_channels(state, sig_uid)?;
+
+        // Handling incoming / outgoing messages
+        tokio::spawn(async move {
+            loop {
+                tokio::select! {
+                    Some(msg) = ws_stream.next() => {
+                        if let Ok(msg) = msg {
+                            match msg {
+                                Message::Text(serialized_signed_message) => {
+                                    // deserialize it
+                                    if let Ok(msg) = SigningMessage::try_from(&serialized_signed_message) {
+                                        if let Err(_err) = ws_channels.tx.send(msg).await {
+                                            // log err
+                                            break;
+                                        };
+                                    } else {
+                                        // log that we couldnt deserialize the
+                                        // message
+                                    };
+                                }
+                                _ => {
+                                    // log that we got unexpected message type
+                                }
+                            }
+                        } else {
+                            // client disconnected
+                            break;
+                        };
+                    }
+                    Ok(msg) = ws_channels.broadcast.recv() => {
+                        let message_string = serde_json::to_string(&msg).unwrap();
+                        if ws_stream.send(Message::Text(message_string)).await.is_err() {
+                            // client disconnected
+                            break;
+                        }
+                    }
+                }
+            }
+        });
     }
     Ok(())
 }
@@ -192,10 +193,13 @@ async fn handle_initial_incoming_ws_message(
         return Err(SubscribeErr::InvalidSignature("Signature does not match party id."));
     }
 
+    // TODO fix this by having a pending state
     if !app_state.signer_state.contains_listener(&msg.session_id)? {
         // Chain node hasn't yet informed this node of the party. Wait for a timeout and proceed
         // or fail below
         tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
+
+        // add a pending entry
     };
 
     let ws_channels = get_ws_channels(&app_state.signer_state, &msg.session_id)?;

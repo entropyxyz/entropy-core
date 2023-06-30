@@ -103,7 +103,8 @@ pub async fn do_signing(
         .insert(sign_context.sign_init.sig_uid.clone(), listener);
 
     let pk = kv_manager.kv().get("DH_PUBLIC").await?;
-    let x25519_public_key: X25519PublicKey = pk.try_into().unwrap(); // TODO
+    let x25519_public_key: X25519PublicKey =
+        pk.try_into().map_err(|_| SigningErr::Conversion("Cannot parse public key"))?;
 
     subscribe_to_them(&sign_context, &my_id, &signer, state, x25519_public_key).await?;
     let channels = {
