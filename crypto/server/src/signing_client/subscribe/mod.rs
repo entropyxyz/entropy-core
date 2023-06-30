@@ -17,10 +17,12 @@ use super::{new_party::SignContext, SigningErr};
 use crate::{
     chain_api::EntropyConfig,
     get_signer,
-    signing_client::{SigningMessage, SubscribeErr},
+    signing_client::{SigningMessage, SubscribeErr, WsError},
     validation::SignedMessage,
     AppState, SignerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
+
+// type BoxSink<'a, T> = Pin<std::boxed::Box<dyn Sink<T, Error=SubscribeErr> + Send + 'a>>;
 
 /// Set up websocket connections to other members of the signing committee
 pub async fn subscribe_to_them(
@@ -30,53 +32,33 @@ pub async fn subscribe_to_them(
     state: &SignerState,
     x25519_public_key: X25519PublicKey,
 ) -> Result<(), SigningErr> {
-    let sig_uid = ctx.sign_init.sig_uid.clone();
-    let validators_to_connect_to =
-        ctx.sign_init.validators_info.iter().filter(|validators_info| {
-            // Decide whether to initiate a connection by comparing public keys
-            validators_info.x25519_public_key < x25519_public_key
-        });
+    let sig_uid = &ctx.sign_init.sig_uid;
+    let validators_to_connect_to = ctx.sign_init.validators_info.iter().filter(|validators_info| {
+        // Decide whether to initiate a connection by comparing public keys
+        validators_info.x25519_public_key < x25519_public_key
+    });
 
+    // TODO we should be doing this concurrently
     for validators_info in validators_to_connect_to {
         let ws_endpoint = format!("ws://{}/ws", validators_info.ip_address);
-        let (mut ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
+        let (mut ws_stream, _response) = connect_async(ws_endpoint).await?;
 
         let server_public_key = PublicKey::from(validators_info.x25519_public_key);
         let signed_message = SignedMessage::new(
             signer.signer(),
-            &Bytes(serde_json::to_vec(&SubscribeMessage::new(
-                &ctx.sign_init.sig_uid,
-                my_id.clone(),
-            ))?),
+            &Bytes(serde_json::to_vec(&SubscribeMessage::new(sig_uid, my_id.clone()))?),
             &server_public_key,
         )?;
 
         let message_string = serde_json::to_string(&signed_message)?;
-        ws_stream.send(Message::Text(message_string)).await.unwrap();
+        ws_stream.send(Message::Text(message_string)).await?;
 
         if let Some(response_message) = ws_stream.next().await {
             if let Ok(Message::Text(res)) = response_message {
-                let subscribe_response: Result<(), String> = serde_json::from_str(&res).unwrap();
+                let subscribe_response: Result<(), String> = serde_json::from_str(&res)?;
                 match subscribe_response {
                     Ok(()) => {
-                        let mut ws_channels = {
-                            let mut listeners = state.listeners.lock().unwrap();
-                            // .map_err(|e| SubscribeErr::LockError(e.to_string()))?;
-                            let listener = listeners
-                                .get_mut(&sig_uid)
-                                .ok_or(SubscribeErr::NoListener("no listener"))?;
-                            let ws_channels = listener.subscribe();
-
-                            if ws_channels.is_final {
-                                // all subscribed, wake up the waiting listener in new_party
-                                let listener = listeners
-                                    .remove(&sig_uid)
-                                    .ok_or(SubscribeErr::NoListener("listener remove"))?;
-                                let (tx, broadcaster) = listener.into_broadcaster();
-                                let _ = tx.send(Ok(broadcaster));
-                            };
-                            ws_channels
-                        };
+                        let mut ws_channels = get_ws_channels(state, sig_uid)?;
 
                         tokio::spawn(async move {
                             loop {
@@ -86,10 +68,14 @@ pub async fn subscribe_to_them(
                                             match msg {
                                                 Message::Text(serialized_signed_message) => {
                                                     // deserialize it
-                                                    let msg = SigningMessage::try_from(&serialized_signed_message).ok().unwrap();
-                                                    if let Err(_err) = ws_channels.tx.send(msg).await {
-                                                        // log err
-                                                        break;
+                                                    if let Ok(msg) = SigningMessage::try_from(&serialized_signed_message) {
+                                                        if let Err(_err) = ws_channels.tx.send(msg).await {
+                                                            // log err
+                                                            break;
+                                                        };
+                                                    } else {
+                                                        // log that we couldnt deserialize the
+                                                        // message
                                                     };
                                                 }
                                                 _ => {
@@ -130,7 +116,8 @@ pub async fn subscribe_to_them(
 }
 
 /// Handle an incoming websocket connection
-pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) {
+/// This is opened in a separate task for each connection
+pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
     // Get the first message which we expect to be a SubscribeMessage
     if let Some(Ok(ws::Message::Text(serialized_signed_message))) = socket.recv().await {
         let (subscribe_response, ws_channels_option) =
@@ -140,11 +127,9 @@ pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) {
             };
 
         // Send them a response as to whether we are happy with their subscribe message
-        let subscribe_response_json = serde_json::to_string(&subscribe_response).unwrap();
-        if socket.send(ws::Message::Text(subscribe_response_json)).await.is_err() {
-            // Cannot send response message as they have closed connection
-            return;
-        };
+        let subscribe_response_json =
+            serde_json::to_string(&subscribe_response).map_err(|_| WsError::ConnectionClosed)?;
+        socket.send(ws::Message::Text(subscribe_response_json)).await?;
 
         // If it was successful, proceed with relaying signing protocol messages
         if let Some(mut ws_channels) = ws_channels_option {
@@ -152,18 +137,16 @@ pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) {
                 tokio::select! {
                     Some(msg) = socket.recv() => {
                         if let Ok(msg) = msg {
-                            match msg {
-                                ws::Message::Text(serialized_signed_message) => {
-                                    // deserialize it
-                                    let msg = SigningMessage::try_from(&serialized_signed_message).ok().unwrap();
-                                    if let Err(_err) = ws_channels.tx.send(msg).await {
-                                        // log the error
-                                        break;
-                                    };
-                                }
-                                _ => {
-                                    // log that we got unexpected message type
-                                }
+                            if let ws::Message::Text(serialized_signed_message) = msg {
+                                // deserialize it
+                                let msg = SigningMessage::try_from(&serialized_signed_message).ok().unwrap();
+                                if let Err(_err) = ws_channels.tx.send(msg).await {
+                                    // TODO here we could send the remote peer an error message
+                                    // to tell them the signing protocol has finished already
+                                    break;
+                                };
+                            } else {
+                                // log that we got unexpected message type
                             }
                         } else {
                             // client disconnected
@@ -172,17 +155,16 @@ pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) {
                     }
                     Ok(msg) = ws_channels.broadcast.recv() => {
                         let message_string = serde_json::to_string(&msg).unwrap();
-                        if socket.send(ws::Message::Text(message_string)).await.is_err() {
-                            // client disconnected
-                            break;
-                        }
+                        socket.send(ws::Message::Text(message_string)).await?
                     }
                 }
             }
         };
     };
+    Ok(())
 }
 
+/// Handle a subscribe message
 async fn handle_initial_incoming_ws_message(
     serialized_signed_message: String,
     app_state: AppState,
@@ -199,7 +181,7 @@ async fn handle_initial_incoming_ws_message(
         signed_msg.decrypt(signer.signer()).map_err(|e| SubscribeErr::Decryption(e.to_string()))?;
     let msg: SubscribeMessage = serde_json::from_slice(&decrypted_message)?;
 
-    tracing::info!("got ws connection, with message: {msg:?}");
+    tracing::info!("Got ws connection, with message: {msg:?}");
 
     let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
 
@@ -216,26 +198,24 @@ async fn handle_initial_incoming_ws_message(
         tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
     };
 
-    let ws_channels = {
-        let mut listeners = app_state
-            .signer_state
-            .listeners
-            .lock()
-            .map_err(|e| SubscribeErr::LockError(e.to_string()))?;
+    let ws_channels = get_ws_channels(&app_state.signer_state, &msg.session_id)?;
+
+    Ok(ws_channels)
+}
+
+/// Subscribe to get channels
+fn get_ws_channels(state: &SignerState, sig_uid: &str) -> Result<WsChannels, SubscribeErr> {
+    let mut listeners =
+        state.listeners.lock().map_err(|e| SubscribeErr::LockError(e.to_string()))?;
+    let listener = listeners.get_mut(sig_uid).ok_or(SubscribeErr::NoListener("no listener"))?;
+    let ws_channels = listener.subscribe();
+
+    if ws_channels.is_final {
+        // all subscribed, wake up the waiting listener in new_party
         let listener =
-            listeners.get_mut(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
-        let ws_channels = listener.subscribe();
-
-        if ws_channels.is_final {
-            // all subscribed, wake up the waiting listener in new_party
-            let listener = listeners
-                .remove(&msg.session_id)
-                .ok_or(SubscribeErr::NoListener("listener remove"))?;
-            let (tx, broadcaster) = listener.into_broadcaster();
-            let _ = tx.send(Ok(broadcaster));
-        };
-        ws_channels
+            listeners.remove(sig_uid).ok_or(SubscribeErr::NoListener("listener remove"))?;
+        let (tx, broadcaster) = listener.into_broadcaster();
+        let _ = tx.send(Ok(broadcaster));
     };
-
     Ok(ws_channels)
 }

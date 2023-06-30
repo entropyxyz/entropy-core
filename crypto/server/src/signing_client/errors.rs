@@ -75,6 +75,8 @@ pub enum SigningErr {
     FromHex(#[from] hex::FromHexError),
     #[error("Vec<u8> Conversion Error: {0}")]
     Conversion(&'static str),
+    #[error("Could not open ws connection: {0}")]
+    ConnectionError(#[from] tokio_tungstenite::tungstenite::Error),
 }
 
 impl IntoResponse for SigningErr {
@@ -121,4 +123,12 @@ pub enum SigningMessageError {
     Utf8(#[from] std::str::Utf8Error),
     #[error("Deserialization Error: {0:?}")]
     Deserialization(#[from] serde_json::Error),
+}
+
+#[derive(Debug, Error)]
+pub enum WsError {
+    #[error("Ws Connection closed unexpectedly")]
+    ConnectionClosed,
+    #[error("Connection error: {0}")]
+    ConnectionError(#[from] axum::Error),
 }

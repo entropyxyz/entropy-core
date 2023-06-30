@@ -1,16 +1,16 @@
 use std::str;
 
 use axum::{
-    extract::{ws::WebSocketUpgrade, State},
+    extract::{
+        ws::{WebSocket, WebSocketUpgrade},
+        State,
+    },
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
 
-use crate::{
-    signing_client::subscribe::handle_socket,
-    AppState,
-};
+use crate::{signing_client::subscribe::handle_socket, AppState};
 
 pub const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 
@@ -18,7 +18,13 @@ pub async fn ws_handler(
     State(app_state): State<AppState>,
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, app_state))
+    ws.on_upgrade(move |socket| handle_socket_result(socket, app_state))
+}
+
+pub async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
+    if let Err(_err) = handle_socket(socket, app_state).await {
+        // Log that the connection was dropped unexpectedly
+    };
 }
 
 use serde::{Deserialize, Serialize};
