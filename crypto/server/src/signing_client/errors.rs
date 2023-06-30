@@ -73,6 +73,10 @@ pub enum SigningErr {
     Mnemonic(String),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
+    #[error("Connection closed unexpectedly")]
+    ConnectionClosed,
+    #[error("Subscribe message rejected: {0}")]
+    BadSubscribeMessage(String),
 }
 
 impl IntoResponse for SigningErr {

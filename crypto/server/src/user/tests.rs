@@ -171,7 +171,8 @@ async fn test_sign_tx_no_chain() {
     for res in test_user_failed_x25519_pub_key {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Signing error: reqwest event error: Invalid status code: 500 Internal Server Error"
+            "Signing error: Subscribe message rejected: Decryption(\"ChaCha20 decryption error: \
+             aead::Error\")"
         );
     }
 
