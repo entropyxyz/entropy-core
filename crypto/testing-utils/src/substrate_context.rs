@@ -1,6 +1,5 @@
 use sp_keyring::AccountKeyring;
-use subxt::{tx::SubstrateExtrinsicParams, OnlineClient};
-
+use subxt::{config::substrate::SubstrateExtrinsicParams, OnlineClient};
 use super::node_proc::TestNodeProcess;
 use crate::chain_api::*;
 
