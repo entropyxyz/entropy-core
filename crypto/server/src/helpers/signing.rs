@@ -18,6 +18,7 @@ use crate::{
         subscribe::{subscribe_to_them, Listener},
         SignerState, SigningErr,
     },
+    user::api::UserTransactionRequest,
     validation::mnemonic_to_pair,
 };
 
@@ -75,18 +76,19 @@ impl Default for SignatureState {
 
 /// Start the signing protocol for a given message
 pub async fn do_signing(
-    message: entropy_shared::Message,
+    message: UserTransactionRequest,
+    sig_hash: String,
     state: &SignerState,
     kv_manager: &KvManager,
     signatures: &SignatureState,
     tx_id: String,
+    user_address: AccountId32,
 ) -> Result<StatusCode, SigningErr> {
-    let info = SignInit::new(message.clone(), tx_id)?;
+    let info = SignInit::new(message.clone(), sig_hash.clone(), tx_id.clone(), user_address)?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let signer =
         get_signer(kv_manager).await.map_err(|_| SigningErr::UserError("Error getting Signer"))?;
     let my_id = PartyId::new(signer.account_id().clone());
-
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
 
@@ -115,25 +117,18 @@ pub async fn do_signing(
         .map_err(|e| SigningErr::Mnemonic(e.to_string()))?;
     let threshold_signer =
         mnemonic_to_pair(&mnemonic).map_err(|_| SigningErr::SecretString("Secret String Error"))?;
-    let tss_accounts_results: Result<Vec<AccountId32>, SigningErr> = message
+
+    let tss_accounts: Vec<AccountId32> = message
         .validators_info
         .iter()
-        .map(|validator_info| {
-            let address_slice: &[u8; 32] =
-                &validator_info.tss_account.clone().try_into().map_err(|_| {
-                    SigningErr::AddressConversionError("Invalid Length".to_string())
-                })?;
-            Ok(sp_core::crypto::AccountId32::new(*address_slice))
-        })
+        .map(|validator_info| validator_info.tss_account.clone())
         .collect();
-
-    let tss_accounts = tss_accounts_results.map_err(SigningErr::from)?;
 
     let result = signing_service
         .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
         .await?;
 
-    signing_service.handle_result(&result, message.sig_request.sig_hash.as_slice(), signatures);
+    signing_service.handle_result(&result, &hex::decode(sig_hash.clone())?, signatures);
 
     Ok(StatusCode::OK)
 }

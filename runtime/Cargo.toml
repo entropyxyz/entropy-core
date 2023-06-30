@@ -102,7 +102,6 @@ pallet-nomination-pools-benchmarking={ version="1.0.0", default-features=false, 
 pallet-nomination-pools-runtime-api={ version="1.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.31" }
 pallet-vesting={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.31" }
 
-pallet-propagation      ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/propagation' }
 pallet-relayer          ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/relayer' }
 pallet-slashing         ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/slashing' }
 pallet-constraints      ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/constraints' }
@@ -141,7 +140,6 @@ std=[
   "pallet-im-online/std",
   "pallet-indices/std",
   "sp-inherents/std",
-  "pallet-propagation/std",
   "pallet-relayer/std",
   "pallet-lottery/std",
   "pallet-membership/std",

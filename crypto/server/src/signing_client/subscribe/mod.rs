@@ -32,16 +32,16 @@ pub async fn subscribe_to_them(
 ) -> Result<(), SigningErr> {
     let sig_uid = ctx.sign_init.sig_uid.clone();
     let validators_to_connect_to =
-        ctx.sign_init.validator_send_info.iter().filter(|validator_send_info| {
+        ctx.sign_init.validators_info.iter().filter(|validators_info| {
             // Decide whether to initiate a connection by comparing public keys
-            validator_send_info.x25519_public_key < x25519_public_key
+            validators_info.x25519_public_key < x25519_public_key
         });
 
-    for validator_send_info in validators_to_connect_to {
-        let ws_endpoint = format!("ws://{}/ws", validator_send_info.ip_address);
+    for validators_info in validators_to_connect_to {
+        let ws_endpoint = format!("ws://{}/ws", validators_info.ip_address);
         let (mut ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
-        let server_public_key = PublicKey::from(validator_send_info.x25519_public_key);
+        let server_public_key = PublicKey::from(validators_info.x25519_public_key);
         let signed_message = SignedMessage::new(
             signer.signer(),
             &Bytes(serde_json::to_vec(&SubscribeMessage::new(

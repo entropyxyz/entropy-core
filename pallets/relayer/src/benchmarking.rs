@@ -1,7 +1,5 @@
 //! Benchmarking setup for pallet-propgation
-
-use codec::Encode;
-use entropy_shared::{Message, SigRequest, SIGNING_PARTY_SIZE as SIG_PARTIES};
+use entropy_shared::SIGNING_PARTY_SIZE as SIG_PARTIES;
 use frame_benchmarking::{
     account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec,
 };
@@ -17,8 +15,6 @@ use pallet_staking_extension::{
 use super::*;
 #[allow(unused)]
 use crate::Pallet as Relayer;
-
-const SIG_HASH: &[u8; 64] = b"d188f0d99145e7ddbd0f1e46e7fd406db927441584571c623aff1d1652e14b06";
 
 type MaxValidators<T> =  <<T as pallet_staking::Config>::BenchmarkingConfig as pallet_staking::BenchmarkingConfig>::MaxValidators;
 const SEED: u32 = 0;
@@ -56,21 +52,6 @@ pub fn add_non_syncing_validators<T: Config>(
 }
 
 benchmarks! {
-  prep_transaction {
-    let s in 0 .. MaxValidators::<T>::get() / SIG_PARTIES as u32;
-    let account: T::AccountId = whitelisted_caller();
-    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
-    <Registered<T>>::insert(account.clone(), true);
-    let sig_request = SigRequest { sig_hash: SIG_HASH.to_vec() };
-    for i in 0..SIG_PARTIES {
-        let _ = add_non_syncing_validators::<T>(sig_party_size, s, i as u8);
-    }
-  }: _(RawOrigin::Signed(account.clone()), sig_request.clone())
-  verify {
-    let validators_info = Pallet::<T>::get_validator_info().unwrap_or_default().0;
-    assert_last_event::<T>(Event::<T>::SignatureRequested(Message {account: account.encode(), sig_request, validators_info}).into());
-  }
-
   register {
     // number of addresses in the ACL
     let a in 0 .. <T as pallet_constraints::Config>::MaxAclLength::get();

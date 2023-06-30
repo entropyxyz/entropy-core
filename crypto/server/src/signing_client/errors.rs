@@ -37,8 +37,6 @@ pub enum SigningErr {
     IncomingStream(String),
     #[error("Protocol Output error: {0}")]
     ProtocolOutput(synedrion::sessions::Error),
-    #[error("Invalid length for converting address")]
-    AddressConversionError(String),
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("Utf8Error: {0:?}")]
@@ -51,14 +49,10 @@ pub enum SigningErr {
     Anyhow(#[from] anyhow::Error),
     #[error("Generic Substrate error: {0}")]
     GenericSubstrate(#[from] subxt::error::Error),
-    #[error("Option Unwrap error: {0}")]
-    OptionUnwrapError(&'static str),
     #[error("Serde Json error: {0}")]
     SerdeJson(#[from] serde_json::Error),
     #[error("Message validation Error: {0}")]
     MessageValidation(String),
-    #[error("Cannont clone request: {0}")]
-    CannotCloneRequest(String),
     #[error("Unexpected event: {0}")]
     UnexpectedEvent(String),
     #[error("Session Error: {0}")]
@@ -77,6 +71,10 @@ pub enum SigningErr {
     ConnectionClosed,
     #[error("Subscribe message rejected: {0}")]
     BadSubscribeMessage(String),
+    #[error("From Hex Error: {0}")]
+    FromHex(#[from] hex::FromHexError),
+    #[error("Vec<u8> Conversion Error: {0}")]
+    Conversion(&'static str),
 }
 
 impl IntoResponse for SigningErr {

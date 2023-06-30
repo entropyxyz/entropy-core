@@ -30,7 +30,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{Constraints, Message, SigRequest, ValidatorInfo, SIGNING_PARTY_SIZE};
+    use entropy_shared::{Constraints, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         inherent::Vec,
@@ -59,8 +59,6 @@ pub mod pallet {
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
-
-    type MaxValidators<T> =  <<T as pallet_staking::Config>::BenchmarkingConfig as pallet_staking::BenchmarkingConfig>::MaxValidators;
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
@@ -99,16 +97,6 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::storage]
-    #[pallet::getter(fn messages)]
-    pub type Messages<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Message>, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn failures)]
-    pub type Failures<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<u32>, OptionQuery>;
-
-    #[pallet::storage]
     #[pallet::getter(fn registering)]
     pub type Registering<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails<T>, OptionQuery>;
@@ -123,8 +111,6 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// A transaction has been propagated to the network. [who]
-        SignatureRequested(Message),
         /// An account has signaled to be registered. [signature request account]
         SignalRegister(T::AccountId),
         /// An account has been registered. [who, signing_group]
@@ -154,30 +140,6 @@ pub mod pallet {
     /// `sig_request`: signature request for user
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::weight(<T as Config>::WeightInfo::prep_transaction(MaxValidators::<T>::get() / SIGNING_PARTY_SIZE as u32))]
-        pub fn prep_transaction(
-            origin: OriginFor<T>,
-            sig_request: SigRequest,
-        ) -> DispatchResultWithPostInfo {
-            log::warn!("relayer::prep_transaction::sig_request: {:?}", sig_request);
-            let who = ensure_signed(origin)?;
-            ensure!(
-                Self::registered(&who).ok_or(Error::<T>::NotRegistered)?,
-                Error::<T>::NotRegistered
-            );
-            let (validators_info, i) = Self::get_validator_info()?;
-            let message = Message { sig_request, account: who.encode(), validators_info };
-            let block_number = <frame_system::Pallet<T>>::block_number();
-            Messages::<T>::try_mutate(block_number, |request| -> Result<_, DispatchError> {
-                request.push(message.clone());
-                Ok(())
-            })?;
-
-            Self::deposit_event(Event::SignatureRequested(message));
-
-            Ok(Some(<T as Config>::WeightInfo::prep_transaction(i)).into())
-        }
-
         /// Signals that a user wants to register an account with Entropy.
         ///
         /// This should be called by the signature-request account, and specify the initial
@@ -317,8 +279,9 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        pub fn get_validator_info() -> Result<(Vec<ValidatorInfo>, u32), Error<T>> {
-            let mut validators_info: Vec<ValidatorInfo> = vec![];
+        #[allow(clippy::type_complexity)]
+        pub fn get_validator_info() -> Result<(Vec<ServerInfo<T::AccountId>>, u32), Error<T>> {
+            let mut validators_info: Vec<ServerInfo<T::AccountId>> = vec![];
             let block_number = <frame_system::Pallet<T>>::block_number();
 
             // TODO: JA simple hacky way to do this, get the first address from each signing group
@@ -327,14 +290,10 @@ pub mod pallet {
             for i in 0..SIGNING_PARTY_SIZE {
                 let tuple = Self::get_validator_rotation(i as u8, block_number)?;
                 l = tuple.1;
-                let ServerInfo { endpoint, x25519_public_key, tss_account } =
+                let validator_info =
                     pallet_staking_extension::Pallet::<T>::threshold_server(&tuple.0)
                         .ok_or(Error::<T>::IpAddressError)?;
-                validators_info.push(ValidatorInfo {
-                    ip_address: endpoint,
-                    x25519_public_key,
-                    tss_account: tss_account.encode(),
-                });
+                validators_info.push(validator_info);
             }
             Ok((validators_info, l))
         }

@@ -79,9 +79,9 @@ impl<'a> ThresholdSigningService<'a> {
     pub fn handle_result(
         &self,
         signature: &RecoverableSignature,
-        prehashed_message: &[u8],
+        sig_hash: &[u8],
         signatures: &SignatureState,
     ) {
-        signatures.insert(prehashed_message, signature);
+        signatures.insert(sig_hash, signature);
     }
 }

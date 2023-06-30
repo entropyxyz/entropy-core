@@ -96,10 +96,6 @@
 //!
 //! ### For the blockchain node
 //!
-//! - [`/signer/new_party`](crate::signing_client::api::new_party()) - POST - Called by the
-//!   blockchain to
-//! submit a batch of signature requests. (For the original way of doing signing)
-//!
 //! ### For other instances of the threshold server
 //!
 //! - [`/signer/subscribe_to_me`](crate::signing_client::api::subscribe_to_me()) - POST - Called by
@@ -256,10 +252,8 @@ async fn main() {
 
 pub fn app(app_state: AppState) -> Router {
     let mut routes = Router::new()
-        .route("/user/tx", post(store_tx))
         .route("/user/sign_tx", post(sign_tx))
         .route("/user/new", post(new_user))
-        .route("/signer/new_party", post(new_party))
         .route("/signer/signature", post(get_signature))
         .route("/signer/drain", get(drain))
         .route("/validator/sync_kvdb", post(sync_kvdb))
