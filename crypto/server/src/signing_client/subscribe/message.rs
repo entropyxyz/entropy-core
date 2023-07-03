@@ -20,9 +20,3 @@ impl SubscribeMessage {
 
     pub fn party_id(&self) -> Result<PartyId, String> { self.party_id.clone().try_into() }
 }
-
-// #[derive(Debug, Clone, Serialize, Deserialize)]
-// pub enum SubscribeResponse {
-//     Success,
-//     Error(String),
-// }

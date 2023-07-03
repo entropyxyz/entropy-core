@@ -15,7 +15,7 @@ use crate::{
     sign_init::SignInit,
     signing_client::{
         new_party::{Channels, ThresholdSigningService},
-        subscribe::{subscribe_to_them, Listener},
+        subscribe::{open_protocol_connections, Listener},
         SignerState, SigningErr,
     },
     user::api::UserTransactionRequest,
@@ -99,7 +99,6 @@ pub async fn do_signing(
         .collect();
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
-    // TODO this should get if existing, or create
     let (rx_ready, rx_from_others, listener) =
         Listener::new(tss_accounts.clone(), signer.account_id());
     state
@@ -113,7 +112,7 @@ pub async fn do_signing(
     let x25519_public_key: X25519PublicKey =
         pk.try_into().map_err(|_| SigningErr::Conversion("Cannot parse public key"))?;
 
-    subscribe_to_them(&sign_context, &my_id, &signer, state, x25519_public_key).await?;
+    open_protocol_connections(&sign_context, &my_id, &signer, state, x25519_public_key).await?;
     let channels = {
         let broadcast_out = rx_ready.await??;
         Channels(broadcast_out, rx_from_others)

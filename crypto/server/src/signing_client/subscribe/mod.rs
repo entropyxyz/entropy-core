@@ -23,7 +23,7 @@ use crate::{
 };
 
 /// Set up websocket connections to other members of the signing committee
-pub async fn subscribe_to_them(
+pub async fn open_protocol_connections(
     ctx: &SignContext,
     my_id: &PartyId,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
