@@ -131,4 +131,6 @@ pub enum WsError {
     ConnectionClosed,
     #[error("Connection error: {0}")]
     ConnectionError(#[from] axum::Error),
+    #[error("Message received after signing protocol has finished")]
+    MessageAfterProtocolFinish,
 }

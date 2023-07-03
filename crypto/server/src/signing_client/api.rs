@@ -14,6 +14,7 @@ use crate::{signing_client::subscribe::handle_socket, AppState};
 
 pub const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 
+/// Handle an incoming websocket connection
 pub async fn ws_handler(
     State(app_state): State<AppState>,
     ws: WebSocketUpgrade,
@@ -21,9 +22,9 @@ pub async fn ws_handler(
     ws.on_upgrade(move |socket| handle_socket_result(socket, app_state))
 }
 
-pub async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
-    if let Err(_err) = handle_socket(socket, app_state).await {
-        // Log that the connection was dropped unexpectedly
+async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
+    if let Err(err) = handle_socket(socket, app_state).await {
+        tracing::warn!("Websocket connection closed unexpectedly {:?}", err);
     };
 }
 

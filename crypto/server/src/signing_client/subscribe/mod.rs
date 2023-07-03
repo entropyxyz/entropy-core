@@ -9,7 +9,7 @@ use kvdb::kv_manager::PartyId;
 pub(super) use listener::WsChannels;
 use sp_core::{crypto::AccountId32, Bytes};
 use subxt::{ext::sp_core::sr25519, tx::PairSigner};
-use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 use x25519_dalek::PublicKey;
 
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
@@ -22,8 +22,6 @@ use crate::{
     AppState, SignerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
 
-// type BoxSink<'a, T> = Pin<std::boxed::Box<dyn Sink<T, Error=SubscribeErr> + Send + 'a>>;
-
 /// Set up websocket connections to other members of the signing committee
 pub async fn subscribe_to_them(
     ctx: &SignContext,
@@ -33,26 +31,33 @@ pub async fn subscribe_to_them(
     x25519_public_key: X25519PublicKey,
 ) -> Result<(), SigningErr> {
     let sig_uid = &ctx.sign_init.sig_uid;
-    let connect_to_validators = ctx.sign_init.validators_info.iter().filter(|validators_info| {
-        // Decide whether to initiate a connection by comparing public keys
-        validators_info.x25519_public_key < x25519_public_key
-    }).map(|validator_info| async move {
-        // Open a ws connection
-        let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
-        let (mut ws_stream, _response) = connect_async(ws_endpoint).await?;
 
-        // Send a SubscribeMessage
-        let server_public_key = PublicKey::from(validator_info.x25519_public_key);
-        let signed_message = SignedMessage::new(
-            signer.signer(),
-            &Bytes(serde_json::to_vec(&SubscribeMessage::new(sig_uid, my_id.clone()))?),
-            &server_public_key,
-        )?;
-        let message_string = serde_json::to_string(&signed_message)?;
-        ws_stream.send(Message::Text(message_string)).await?;
+    let connect_to_validators = ctx
+        .sign_init
+        .validators_info
+        .iter()
+        .filter(|validators_info| {
+            // Decide whether to initiate a connection by comparing public keys
+            // otherwise, we wait for them to connect to us
+            validators_info.x25519_public_key < x25519_public_key
+        })
+        .map(|validator_info| async move {
+            // Open a ws connection
+            let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
+            let (mut ws_stream, _response) = connect_async(ws_endpoint).await?;
 
-        // Check the response
-        if let Some(response_message) = ws_stream.next().await {
+            // Send a SubscribeMessage
+            let server_public_key = PublicKey::from(validator_info.x25519_public_key);
+            let signed_message = SignedMessage::new(
+                signer.signer(),
+                &Bytes(serde_json::to_vec(&SubscribeMessage::new(sig_uid, my_id.clone()))?),
+                &server_public_key,
+            )?;
+            let message_string = serde_json::to_string(&signed_message)?;
+            ws_stream.send(Message::Text(message_string)).await?;
+
+            // Check the response
+            let response_message = ws_stream.next().await.ok_or(SigningErr::ConnectionClosed)?;
             if let Ok(Message::Text(res)) = response_message {
                 let subscribe_response: Result<(), String> = serde_json::from_str(&res)?;
                 if let Err(error_message) = subscribe_response {
@@ -63,59 +68,25 @@ pub async fn subscribe_to_them(
                     "Unexpected response message {response_message:?}"
                 )));
             }
-        } else {
-            return Err(SigningErr::ConnectionClosed);
-        }
 
-        // Setup channels
-        let mut ws_channels = get_ws_channels(state, sig_uid, &validator_info.tss_account)?;
+            // Setup channels
+            let ws_channels = get_ws_channels(state, sig_uid, &validator_info.tss_account)?;
 
-		let remote_party_id = PartyId::new(validator_info.tss_account.clone());
+            let remote_party_id = PartyId::new(validator_info.tss_account.clone());
 
-        // Handling incoming / outgoing messages
-        tokio::spawn(async move {
-            loop {
-                tokio::select! {
-                    Some(msg) = ws_stream.next() => {
-                        if let Ok(msg) = msg {
-							if let Message::Text(serialized_signed_message) = msg {
-								// deserialize it
-								if let Ok(msg) = SigningMessage::try_from(&serialized_signed_message) {
-									if let Err(_err) = ws_channels.tx.send(msg).await {
-										// log err
-										break;
-									};
-								} else {
-									// log that we couldnt deserialize the
-									// message
-								};
-							}
-							else {
-								// log that we got unexpected message type
-							}
-						} else {
-                            // client disconnected
-                            break;
-                        };
-                    }
-                    Ok(msg) = ws_channels.broadcast.recv() => {
-						if let Some(party_id) = &msg.to {
-							if party_id != &remote_party_id {
-								continue;
-							}
-						}
-                        let message_string = serde_json::to_string(&msg).unwrap();
-                        if ws_stream.send(Message::Text(message_string)).await.is_err() {
-                            // client disconnected
-                            break;
-                        }
-                    }
-                }
-            }
-        });
-		Ok::<_, SigningErr>(())
-	})
-	.collect::<Vec<_>>();
+            // Handling protocol messages
+            tokio::spawn(async move {
+                if let Err(err) =
+                    ws_to_channels(WsConnection::WsStream(ws_stream), ws_channels, remote_party_id)
+                        .await
+                {
+                    tracing::warn!("{:?}", err);
+                };
+            });
+
+            Ok::<_, SigningErr>(())
+        })
+        .collect::<Vec<_>>();
 
     future::try_join_all(connect_to_validators).await?;
 
@@ -123,7 +94,6 @@ pub async fn subscribe_to_them(
 }
 
 /// Handle an incoming websocket connection
-/// This is opened in a separate task for each connection
 pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
     // Get the first message which we expect to be a SubscribeMessage
     if let Some(Ok(ws::Message::Text(serialized_signed_message))) = socket.recv().await {
@@ -139,38 +109,8 @@ pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) -> Result
         socket.send(ws::Message::Text(subscribe_response_json)).await?;
 
         // If it was successful, proceed with relaying signing protocol messages
-        if let Some((mut ws_channels, remote_party_id)) = ws_channels_option {
-            loop {
-                tokio::select! {
-                    Some(msg) = socket.recv() => {
-                        if let Ok(msg) = msg {
-                            if let ws::Message::Text(serialized_signed_message) = msg {
-                                // deserialize it
-                                let msg = SigningMessage::try_from(&serialized_signed_message).ok().unwrap();
-                                if let Err(_err) = ws_channels.tx.send(msg).await {
-                                    // TODO here we could send the remote peer an error message
-                                    // to tell them the signing protocol has finished already
-                                    break;
-                                };
-                            } else {
-                                // log that we got unexpected message type
-                            }
-                        } else {
-                            // client disconnected
-                            break;
-                        };
-                    }
-                    Ok(msg) = ws_channels.broadcast.recv() => {
-                        if let Some(party_id) = &msg.to {
-                            if party_id != &remote_party_id {
-                                continue;
-                            }
-                        }
-                        let message_string = serde_json::to_string(&msg).unwrap();
-                        socket.send(ws::Message::Text(message_string)).await?
-                    }
-                }
-            }
+        if let Some((ws_channels, remote_party_id)) = ws_channels_option {
+            ws_to_channels(WsConnection::AxumWs(socket), ws_channels, remote_party_id).await?;
         };
     };
     Ok(())
@@ -199,18 +139,14 @@ async fn handle_initial_incoming_ws_message(
 
     let signing_address = signed_msg.account_id();
 
-    // TODO: should we also check if party_id is in signing group -> limited spots in steam so yes
     if PartyId::new(signing_address) != party_id {
         return Err(SubscribeErr::InvalidSignature("Signature does not match party id."));
     }
 
-    // TODO fix this by having a pending state
     if !app_state.signer_state.contains_listener(&msg.session_id)? {
         // Chain node hasn't yet informed this node of the party. Wait for a timeout and proceed
         // or fail below
         tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
-
-        // add a pending entry
     };
 
     let ws_channels =
@@ -238,4 +174,73 @@ fn get_ws_channels(
         let _ = tx.send(Ok(broadcaster));
     };
     Ok(ws_channels)
+}
+
+/// Send singing protocol messages over websocket, and websocket messages to signing protocol
+async fn ws_to_channels(
+    mut connection: WsConnection,
+    mut ws_channels: WsChannels,
+    remote_party_id: PartyId,
+) -> Result<(), WsError> {
+    loop {
+        tokio::select! {
+            // Incoming message from remote peer
+            Some(serialized_signing_message) = connection.recv() => {
+                if let Ok(msg) = SigningMessage::try_from(&serialized_signing_message) {
+                    ws_channels.tx.send(msg).await.map_err(|_| WsError::MessageAfterProtocolFinish)?;
+                } else {
+                    tracing::warn!("Could not deserialize signing protocol message - ignoring");
+                    // close connection?
+                };
+            }
+            // Outgoing message (from signing protocol to remote peer)
+            Ok(msg) = ws_channels.broadcast.recv() => {
+                // Check that the message is for this peer
+                if let Some(party_id) = &msg.to {
+                    if party_id != &remote_party_id {
+                        continue;
+                    }
+                }
+                if let Ok(message_string) = serde_json::to_string(&msg) {
+                    connection.send(message_string).await?;
+                };
+            }
+        }
+    }
+}
+
+// A wrapper around incoming and outgoing Websocket types
+enum WsConnection {
+    WsStream(WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>),
+    AxumWs(WebSocket),
+}
+
+impl WsConnection {
+    pub async fn recv(&mut self) -> Option<String> {
+        match self {
+            WsConnection::WsStream(ref mut ws_stream) => {
+                if let Some(Ok(Message::Text(msg))) = ws_stream.next().await {
+                    Some(msg)
+                } else {
+                    None
+                }
+            },
+            WsConnection::AxumWs(ref mut axum_ws) => {
+                if let Some(Ok(ws::Message::Text(msg))) = axum_ws.recv().await {
+                    Some(msg)
+                } else {
+                    None
+                }
+            },
+        }
+    }
+
+    pub async fn send(&mut self, msg: String) -> Result<(), WsError> {
+        match self {
+            WsConnection::WsStream(ref mut ws_stream) =>
+                ws_stream.send(Message::Text(msg)).await.map_err(|_| WsError::ConnectionClosed),
+            WsConnection::AxumWs(ref mut axum_ws) =>
+                axum_ws.send(ws::Message::Text(msg)).await.map_err(|_| WsError::ConnectionClosed),
+        }
+    }
 }

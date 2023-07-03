@@ -98,8 +98,8 @@
 //!
 //! ### For other instances of the threshold server
 //!
-//! - [`/signer/subscribe_to_me`](crate::signing_client::api::subscribe_to_me()) - POST - Called by
-//! other threshold servers when the signing procotol is initiated.
+//! - [`/ws`](crate::signing_client::api::ws_handler()) - Websocket server for signing protocol
+//! messages. This is opened by other threshold servers when the signing procotol is initiated.
 //! - [`/validator/sync_kvdb`](crate::validator::api::sync_kvdb()) - POST - Called by another
 //! threshold server when joining to get the key-shares from a member of their sub-group.
 //!
