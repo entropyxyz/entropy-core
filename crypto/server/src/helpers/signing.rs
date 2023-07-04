@@ -3,7 +3,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use axum::http::StatusCode;
 use bip39::{Language, Mnemonic};
 use kvdb::kv_manager::{KvManager, PartyId};
 use sp_core::crypto::AccountId32;
@@ -82,7 +81,7 @@ pub async fn do_signing(
     signatures: &SignatureState,
     tx_id: String,
     user_address: AccountId32,
-) -> Result<StatusCode, SigningErr> {
+) -> Result<RecoverableSignature, SigningErr> {
     let info = SignInit::new(message.clone(), sig_hash.clone(), tx_id.clone(), user_address)?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let signer =
@@ -124,7 +123,7 @@ pub async fn do_signing(
 
     signing_service.handle_result(&result, &hex::decode(sig_hash.clone())?, signatures);
 
-    Ok(StatusCode::OK)
+    Ok(result)
 }
 
 /// Creates a unique tx Id by concatenating the user's signing key and message digest

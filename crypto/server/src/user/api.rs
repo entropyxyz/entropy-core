@@ -77,7 +77,7 @@ pub async fn sign_tx(
     State(app_state): State<AppState>,
     // TODO make new type with only info needed
     Json(signed_msg): Json<SignedMessage>,
-) -> Result<StatusCode, UserErr> {
+) -> Result<(StatusCode, String), UserErr> {
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
@@ -101,7 +101,7 @@ pub async fn sign_tx(
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
     check_signing_group(subgroup_signers, signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
-    match user_tx_req.arch.as_str() {
+    let signature = match user_tx_req.arch.as_str() {
         "evm" => {
             let evm_acl = get_constraints(&api, &signing_address_converted)
                 .await?
@@ -118,13 +118,13 @@ pub async fn sign_tx(
                 tx_id,
                 signing_address_converted,
             )
-            .await?;
+            .await?
         },
         _ => {
             return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
         },
-    }
-    Ok(StatusCode::OK)
+    };
+    Ok((StatusCode::OK, base64::encode(signature.to_rsv_bytes())))
 }
 
 /// HTTP POST endoint called by the user when registering.

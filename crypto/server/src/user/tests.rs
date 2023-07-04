@@ -144,7 +144,11 @@ async fn test_sign_tx_no_chain() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    test_user_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
+    test_user_res.into_iter().for_each(|res| {
+        let res = res.unwrap();
+        assert_eq!(res.status(), 200);
+        assert_eq!(res.content_length().unwrap(), 88);
+    });
 
     // test failing cases
     let test_user_res_not_registered =
