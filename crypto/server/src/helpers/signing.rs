@@ -87,7 +87,7 @@ pub async fn do_signing(
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let signer =
         get_signer(kv_manager).await.map_err(|_| SigningErr::UserError("Error getting Signer"))?;
-    let my_id = PartyId::new(signer.account_id().clone());
+    let my_id = PartyId::new(AccountId32::new(*signer.account_id().clone().as_ref()));
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
 
@@ -115,7 +115,7 @@ pub async fn do_signing(
     let tss_accounts: Vec<AccountId32> = message
         .validators_info
         .iter()
-        .map(|validator_info| validator_info.tss_account.clone())
+        .map(|validator_info| AccountId32::new(*validator_info.tss_account.clone().as_ref()))
         .collect();
 
     let result = signing_service

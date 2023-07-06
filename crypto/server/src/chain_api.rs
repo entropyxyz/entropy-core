@@ -2,10 +2,13 @@
 pub use subxt::config::PolkadotConfig as EntropyConfig;
 use subxt::OnlineClient;
 
-#[subxt::subxt(runtime_metadata_path = "entropy_metadata.scale")]
-pub mod entropy {
-
-}
+#[subxt::subxt(runtime_metadata_path = "entropy_metadata.scale",
+     substitute_type(
+		path = "entropy_shared::constraints::acl::Acl<Address>",
+		with = "::subxt::utils::Static<::entropy_shared::Acl<Address>>",
+	 ),
+)]
+pub mod entropy {}
 
 /// Creates an api instance to talk to chain
 /// Chain endpoint set on launch

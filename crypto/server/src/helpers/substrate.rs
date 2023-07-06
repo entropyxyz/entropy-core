@@ -1,5 +1,4 @@
 use entropy_shared::{Constraints, SIGNING_PARTY_SIZE};
-use sp_core::crypto::AccountId32;
 #[cfg(test)]
 use sp_keyring::Sr25519Keyring;
 use subxt::{ext::sp_core::sr25519, tx::PairSigner, Config, OnlineClient};
@@ -20,7 +19,9 @@ pub async fn get_subgroup(
         entropy::storage().staking_extension().threshold_to_stash(threshold_address);
     let stash_address = api
         .storage()
-        .fetch(&stash_address_query, None)
+		.at_latest()
+		.await?
+        .fetch(&stash_address_query)
         .await?
         .ok_or_else(|| UserErr::SubgroupError("Stash Fetch Error"))?;
     for i in 0..SIGNING_PARTY_SIZE {
@@ -28,7 +29,9 @@ pub async fn get_subgroup(
             entropy::storage().staking_extension().signing_groups(i as u8);
         let signing_group_addresses = api
             .storage()
-            .fetch(&signing_group_addresses_query, None)
+			.at_latest()
+			.await?
+            .fetch(&signing_group_addresses_query)
             .await?
             .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
         if signing_group_addresses.contains(&stash_address) {
@@ -52,8 +55,10 @@ pub async fn get_constraints(
     let btc_acl_storage_address = entropy::storage().constraints().btc_acl(sig_req_account);
 
     let (evm_acl_result, btc_acl_result) = futures::join!(
-        substrate_api.storage().fetch(&evm_acl_storage_address, None),
-        substrate_api.storage().fetch(&btc_acl_storage_address, None)
+        substrate_api.storage().at_latest()
+		.await?.fetch(&evm_acl_storage_address),
+        substrate_api.storage().at_latest()
+		.await?.fetch(&btc_acl_storage_address)
     );
 
     // if both are errors, the user has no constraints set, and we should error
@@ -62,8 +67,8 @@ pub async fn get_constraints(
     }
 
     Ok(Constraints {
-        evm_acl: evm_acl_result.unwrap_or_default(),
-        btc_acl: btc_acl_result.unwrap_or_default(),
+        evm_acl: Some(evm_acl_result.unwrap_or_default().unwrap().0),
+        btc_acl: Some(btc_acl_result.unwrap_or_default().unwrap().0),
     })
 }
 
@@ -105,12 +110,14 @@ pub async fn make_register(
 /// Returns wether an account is registered
 pub async fn is_registered(
     api: &OnlineClient<EntropyConfig>,
-    who: &AccountId32,
+    who: &<EntropyConfig as Config>::AccountId,
 ) -> Result<(), UserErr> {
     let registered_info_query = entropy::storage().relayer().registered(who);
     let _ = api
         .storage()
-        .fetch(&registered_info_query, None)
+		.at_latest()
+		.await?
+        .fetch(&registered_info_query)
         .await?
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
     Ok(())

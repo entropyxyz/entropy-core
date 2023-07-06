@@ -8,6 +8,7 @@ use axum::{
 };
 use futures::stream::Stream;
 use kvdb::kv_manager::PartyId;
+use sp_core::crypto::AccountId32;
 
 use crate::{
     get_signer,
@@ -43,7 +44,7 @@ pub async fn subscribe_to_me(
 
     let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
 
-    let signing_address = signed_msg.account_id();
+    let signing_address = AccountId32::new(signed_msg.account_id().into());
 
     // TODO: should we also check if party_id is in signing group -> limited spots in steam so yes
     if PartyId::new(signing_address) != party_id {
