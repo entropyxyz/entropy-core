@@ -1,5 +1,6 @@
 use entropy_runtime::{Block, EXISTENTIAL_DEPOSIT};
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
+use node_executor::ExecutorDispatch;
 use sc_cli::{ChainSpec, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
 use sp_keyring::Sr25519Keyring;
@@ -90,7 +91,7 @@ pub fn run() -> sc_cli::Result<()> {
                 let PartialComponents { client, task_manager, backend, .. } =
                     service::new_partial(&config)?;
                 let aux_revert = Box::new(|client, _, blocks| {
-                    sc_finality_grandpa::revert(client, blocks)?;
+                    grandpa::revert(client, blocks)?;
                     Ok(())
                 });
                 Ok((cmd.run(client, backend, Some(aux_revert)), task_manager))
@@ -111,7 +112,7 @@ pub fn run() -> sc_cli::Result<()> {
                                 .into());
                         }
 
-                        cmd.run::<Block, service::ExecutorDispatch>(config)
+                        cmd.run::<Block, ExecutorDispatch>(config)
                     },
                     BenchmarkCmd::Block(cmd) => {
                         let PartialComponents { client, .. } = service::new_partial(&config)?;
@@ -171,7 +172,7 @@ pub fn run() -> sc_cli::Result<()> {
                 let task_manager =
                     sc_service::TaskManager::new(config.tokio_handle.clone(), registry)
                         .map_err(|e| sc_cli::Error::Service(sc_service::Error::Prometheus(e)))?;
-                Ok((cmd.run::<Block, service::ExecutorDispatch>(config), task_manager))
+                Ok((cmd.run::<Block, ExecutorDispatch>(config), task_manager))
             })
         },
         #[cfg(not(feature = "try-runtime"))]
@@ -185,8 +186,7 @@ pub fn run() -> sc_cli::Result<()> {
         None => {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {
-                service::new_full(config, cli.no_hardware_benchmarks)
-                    .map_err(sc_cli::Error::Service)
+                service::new_full(config, cli).map_err(sc_cli::Error::Service)
             })
         },
     }

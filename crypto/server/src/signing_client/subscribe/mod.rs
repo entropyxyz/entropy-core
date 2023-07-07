@@ -6,7 +6,10 @@ use futures::{future, stream, stream::BoxStream, StreamExt};
 use kvdb::kv_manager::PartyId;
 pub(super) use listener::Receiver;
 use reqwest_eventsource::{Error, Event, RequestBuilderExt};
-use subxt::{ext::sp_core::{sr25519, Bytes}, tx::PairSigner};
+use subxt::{
+    ext::sp_core::{sr25519, Bytes},
+    tx::PairSigner,
+};
 use x25519_dalek::PublicKey;
 
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};

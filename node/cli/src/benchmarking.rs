@@ -1,28 +1,10 @@
-// This file is part of Substrate.
-
-// Copyright (C) 2022 Parity Technologies (UK) Ltd.
-// SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
-
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 //! Setup code for [`super::command`] which would otherwise bloat that module.
 //!
 //! Should only be used for benchmarking as it may break in other contexts.
-#![allow(clippy::uninlined_format_args)]
+
 use std::{sync::Arc, time::Duration};
 
-use entropy_runtime::{BalancesCall, SystemCall};
+use kitchensink_runtime::{BalancesCall, SystemCall};
 use node_primitives::{AccountId, Balance};
 use sc_cli::Result;
 use sp_inherents::{InherentData, InherentDataProvider};
@@ -88,7 +70,10 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
         let extrinsic: OpaqueExtrinsic = create_extrinsic(
             self.client.as_ref(),
             acc,
-            BalancesCall::transfer_keep_alive { dest: self.dest.clone().into(), value: self.value },
+            BalancesCall::transfer_keep_alive {
+                dest: self.dest.clone().into(),
+                value: self.value.into(),
+            },
             Some(nonce),
         )
         .into();
@@ -103,8 +88,7 @@ pub fn inherent_benchmark_data() -> Result<InherentData> {
     let d = Duration::from_millis(0);
     let timestamp = sp_timestamp::InherentDataProvider::new(d.into());
 
-    timestamp
-        .provide_inherent_data(&mut inherent_data)
-        .map_err(|e| format!("creating inherent data: {e:?}"))?;
+    futures::executor::block_on(timestamp.provide_inherent_data(&mut inherent_data))
+        .map_err(|e| format!("creating inherent data: {:?}", e))?;
     Ok(inherent_data)
 }

@@ -109,7 +109,7 @@ pallet-free-tx          ={ version='3.0.0-monthly-2021-10', default-features=fal
 entropy-shared          ={ path="../crypto/shared", default-features=false }
 
 [build-dependencies]
-substrate-wasm-builder={ version="5.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.43", optional = true }
+substrate-wasm-builder={ version="5.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.43", optional=true }
 
 [features]
 default=["std"]
@@ -183,12 +183,12 @@ std=[
   "pallet-society/std",
   "pallet-recovery/std",
   "pallet-vesting/std",
-   "pallet-insecure-randomness-collective-flip/std",
+  "pallet-insecure-randomness-collective-flip/std",
   "log/std",
   "frame-try-runtime/std",
   "sp-npos-elections/std",
   "sp-io/std",
-   "substrate-wasm-builder",
+  "substrate-wasm-builder",
 ]
 runtime-benchmarks=[
   "frame-benchmarking/runtime-benchmarks",
@@ -277,4 +277,3 @@ try-runtime=[
   "pallet-recovery/try-runtime",
   "pallet-vesting/try-runtime",
 ]
-

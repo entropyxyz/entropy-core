@@ -4,8 +4,8 @@ use axum::{extract::State, Json};
 use kvdb::kv_manager::KvManager;
 use reqwest;
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::AccountId32};
-use subxt::{tx::PairSigner, OnlineClient, ext::sp_core::Bytes};
+use sp_core::crypto::AccountId32;
+use subxt::{ext::sp_core::Bytes, tx::PairSigner, OnlineClient};
 use x25519_dalek::PublicKey;
 
 use crate::{
@@ -73,7 +73,8 @@ pub async fn get_all_keys(
         result_length = 0;
         // query the registered mapping in the relayer pallet
         let storage_address = subxt::dynamic::storage_root("Relayer", "Registered");
-        let mut iter = api.storage().at_latest().await?.iter(storage_address, batch_size as u32).await?;
+        let mut iter =
+            api.storage().at_latest().await?.iter(storage_address, batch_size as u32).await?;
         while let Some((key, _account)) = iter.next().await? {
             let new_key = hex::encode(key);
             let len = new_key.len();
@@ -105,8 +106,8 @@ pub async fn get_random_server_info(
         entropy::storage().staking_extension().signing_groups(my_subgroup);
     let signing_group_addresses = api
         .storage()
-		.at_latest()
-		.await?
+        .at_latest()
+        .await?
         .fetch(&signing_group_addresses_query)
         .await?
         .ok_or_else(|| ValidatorErr::OptionUnwrapError("Querying Signing Groups Error"))?;
@@ -126,8 +127,8 @@ pub async fn get_random_server_info(
             .threshold_servers(&signing_group_addresses[server_to_query]);
         server_info = Some(
             api.storage()
-				.at_latest()
-				.await?
+                .at_latest()
+                .await?
                 .fetch(&server_info_query)
                 .await?
                 .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server Info Fetch Error"))?,
@@ -137,8 +138,8 @@ pub async fn get_random_server_info(
             .is_validator_synced(&signing_group_addresses[server_to_query]);
         server_sync_state = api
             .storage()
-			.at_latest()
-			.await?
+            .at_latest()
+            .await?
             .fetch(&server_state_query)
             .await?
             .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;

@@ -21,17 +21,15 @@ use kvdb::kv_manager::{
     value::PartyInfo,
     KvManager,
 };
-use sp_core::crypto::AccountId32;
 use log::info;
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::DecodeAll;
 use serde::{Deserialize, Serialize};
+use sp_core::crypto::AccountId32;
 use subxt::{
-    ext::{
-        sp_core::{crypto::Ss58Codec, sr25519, Pair},
-    },
-	utils::AccountId32 as SecondAccountId32,
+    ext::sp_core::{crypto::Ss58Codec, sr25519, Pair},
     tx::PairSigner,
+    utils::AccountId32 as SecondAccountId32,
     Config, OnlineClient,
 };
 use tracing::instrument;
@@ -90,8 +88,8 @@ pub async fn sign_tx(
 
     let signing_address_converted =
         AccountId32::from_str(&signing_address).map_err(UserErr::StringError)?;
-		// TODO go back over to simplify accountID type
-	let second_signing_address_conversion = SecondAccountId32::from_str(&signing_address).unwrap();
+    // TODO go back over to simplify accountID type
+    let second_signing_address_conversion = SecondAccountId32::from_str(&signing_address).unwrap();
     is_registered(&api, &second_signing_address_conversion).await?;
 
     let decrypted_message =
@@ -148,7 +146,7 @@ pub async fn new_user(
     let signer = get_signer(&app_state.kv_store).await?;
     // Checks if the user has registered onchain first.
     let key = signed_msg.account_id();
-	let signing_address_conversion = SecondAccountId32::from_str(&key.to_ss58check()).unwrap();
+    let signing_address_conversion = SecondAccountId32::from_str(&key.to_ss58check()).unwrap();
 
     let is_swapping = register_info(&api, &signing_address_conversion).await?;
 
@@ -175,8 +173,8 @@ pub async fn register_info(
     let registering_info_query = entropy::storage().relayer().registering(who);
     let register_info = api
         .storage()
-		.at_latest()
-		.await?
+        .at_latest()
+        .await?
         .fetch(&registering_info_query)
         .await?
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
@@ -226,8 +224,8 @@ pub async fn get_current_subgroup_signers(
                     entropy::storage().staking_extension().signing_groups(i as u8);
                 let subgroup_info = api
                     .storage()
-					.at_latest()
-					.await?
+                    .at_latest()
+                    .await?
                     .fetch(&subgroup_info_query)
                     .await?
                     .ok_or(UserErr::SubgroupError("Subgroup Fetch Error"))?;
@@ -241,14 +239,14 @@ pub async fn get_current_subgroup_signers(
                     .threshold_servers(subgroup_info[index_of_signer].clone());
                 let threshold_address = api
                     .storage()
-					.at_latest()
-					.await?
+                    .at_latest()
+                    .await?
                     .fetch(&threshold_address_query)
                     .await?
                     .ok_or(UserErr::SubgroupError("Stash Fetch Error"))?
                     .tss_account;
 
-					Ok::<_, UserErr>(threshold_address)
+                Ok::<_, UserErr>(threshold_address)
             }
         })
         .collect::<Vec<_>>();

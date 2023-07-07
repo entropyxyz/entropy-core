@@ -19,8 +19,8 @@ pub async fn get_subgroup(
         entropy::storage().staking_extension().threshold_to_stash(threshold_address);
     let stash_address = api
         .storage()
-		.at_latest()
-		.await?
+        .at_latest()
+        .await?
         .fetch(&stash_address_query)
         .await?
         .ok_or_else(|| UserErr::SubgroupError("Stash Fetch Error"))?;
@@ -29,8 +29,8 @@ pub async fn get_subgroup(
             entropy::storage().staking_extension().signing_groups(i as u8);
         let signing_group_addresses = api
             .storage()
-			.at_latest()
-			.await?
+            .at_latest()
+            .await?
             .fetch(&signing_group_addresses_query)
             .await?
             .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
@@ -55,10 +55,8 @@ pub async fn get_constraints(
     let btc_acl_storage_address = entropy::storage().constraints().btc_acl(sig_req_account);
 
     let (evm_acl_result, btc_acl_result) = futures::join!(
-        substrate_api.storage().at_latest()
-		.await?.fetch(&evm_acl_storage_address),
-        substrate_api.storage().at_latest()
-		.await?.fetch(&btc_acl_storage_address)
+        substrate_api.storage().at_latest().await?.fetch(&evm_acl_storage_address),
+        substrate_api.storage().at_latest().await?.fetch(&btc_acl_storage_address)
     );
 
     // if both are errors, the user has no constraints set, and we should error
@@ -115,8 +113,8 @@ pub async fn is_registered(
     let registered_info_query = entropy::storage().relayer().registered(who);
     let _ = api
         .storage()
-		.at_latest()
-		.await?
+        .at_latest()
+        .await?
         .fetch(&registered_info_query)
         .await?
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;

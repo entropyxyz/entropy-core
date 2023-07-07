@@ -18,6 +18,10 @@ pub struct Cli {
     /// telemetry, if telemetry is enabled.
     #[clap(long)]
     pub no_hardware_benchmarks: bool,
+
+    #[allow(missing_docs)]
+    #[clap(flatten)]
+    pub storage_monitor: sc_storage_monitor::StorageMonitorParams,
 }
 
 #[derive(Debug, clap::Subcommand)]

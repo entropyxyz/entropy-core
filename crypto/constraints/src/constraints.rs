@@ -21,8 +21,12 @@ impl Evaluate<Evm> for Acl<[u8; 20]> {
             };
         }
 
-        let converted_addresses: Vec<NameOrAddress> =
-            self.clone().addresses.into_iter().map(|a| NameOrAddress::Address(H160::from(a))).collect();
+        let converted_addresses: Vec<NameOrAddress> = self
+            .clone()
+            .addresses
+            .into_iter()
+            .map(|a| NameOrAddress::Address(H160::from(a)))
+            .collect();
 
         match (
             converted_addresses

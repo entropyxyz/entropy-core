@@ -4,7 +4,7 @@ version="3.0.0-monthly-2021-10"
 edition="2021"
 
 [dependencies]
-codec             ={ package="parity-scale-codec", version="3.0.0", default-features=false }
+codec             ={ package="parity-scale-codec", version="3.6.3", default-features=false }
 scale-info        ={ version="2.1", default-features=false, features=["derive"] }
 sp-runtime        ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43", default-features=false }
 frame-benchmarking={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43", optional=true, default-features=false }
