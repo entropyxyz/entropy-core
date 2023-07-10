@@ -28,7 +28,6 @@ pub async fn open_protocol_connections(
     my_id: &PartyId,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     state: &SignerState,
-    x25519_public_key: X25519PublicKey,
 ) -> Result<(), SigningErr> {
     let sig_uid = &ctx.sign_init.sig_uid;
 
@@ -37,9 +36,9 @@ pub async fn open_protocol_connections(
         .validators_info
         .iter()
         .filter(|validators_info| {
-            // Decide whether to initiate a connection by comparing public keys
+            // Decide whether to initiate a connection by comparing accound ids
             // otherwise, we wait for them to connect to us
-            validators_info.x25519_public_key < x25519_public_key
+            signer.account_id() > &validators_info.tss_account
         })
         .map(|validator_info| async move {
             // Open a ws connection
@@ -56,7 +55,7 @@ pub async fn open_protocol_connections(
             let message_string = serde_json::to_string(&signed_message)?;
             ws_stream.send(Message::Text(message_string)).await?;
 
-            // Check the response
+            // Check the response from the remote party
             let response_message = ws_stream.next().await.ok_or(SigningErr::ConnectionClosed)?;
             if let Ok(Message::Text(res)) = response_message {
                 let subscribe_response: Result<(), String> = serde_json::from_str(&res)?;
@@ -74,7 +73,7 @@ pub async fn open_protocol_connections(
 
             let remote_party_id = PartyId::new(validator_info.tss_account.clone());
 
-            // Handling protocol messages
+            // Handle protocol messages
             tokio::spawn(async move {
                 if let Err(err) =
                     ws_to_channels(WsConnection::WsStream(ws_stream), ws_channels, remote_party_id)
@@ -149,6 +148,29 @@ async fn handle_initial_incoming_ws_message(
         tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
     };
 
+    {
+        // Check that the given public key matches the public key we got in the
+        // UserTransactionRequest
+        let mut listeners = app_state
+            .signer_state
+            .listeners
+            .lock()
+            .map_err(|e| SubscribeErr::LockError(e.to_string()))?;
+        let listener =
+            listeners.get(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
+
+        let validators_info = &listener.user_transaction_request.validators_info;
+        if !validators_info.iter().any(|validator_info| {
+            &validator_info.x25519_public_key == signed_msg.sender().as_bytes()
+        }) {
+            // Make the signing process fail, since one of the commitee has misbehaved
+            listeners.remove(&msg.session_id);
+            return Err(SubscribeErr::Decryption(
+                "Public key does not match that given in UserTransactionRequest".to_string(),
+            ));
+        }
+    }
+
     let ws_channels =
         get_ws_channels(&app_state.signer_state, &msg.session_id, &signed_msg.account_id())?;
 
@@ -202,6 +224,8 @@ async fn ws_to_channels(
                     }
                 }
                 if let Ok(message_string) = serde_json::to_string(&msg) {
+                    // TODO if this fails, the ws connection has been dropped during the protocol
+                    // we should inform the chain of this.
                     connection.send(message_string).await?;
                 };
             }

@@ -75,7 +75,6 @@ pub struct UserTransactionRequest {
 /// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
 pub async fn sign_tx(
     State(app_state): State<AppState>,
-    // TODO make new type with only info needed
     Json(signed_msg): Json<SignedMessage>,
 ) -> Result<StatusCode, UserErr> {
     if !signed_msg.verify() {
@@ -100,6 +99,7 @@ pub async fn sign_tx(
     let sig_hash = hex::encode(parsed_tx.sighash());
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
     check_signing_group(subgroup_signers, signer.account_id())?;
+
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
     match user_tx_req.arch.as_str() {
         "evm" => {
@@ -252,6 +252,7 @@ pub fn check_signing_group(
     subgroup_signers: Vec<AccountId32>,
     validator_address: &AccountId32,
 ) -> Result<(), UserErr> {
+    // TODO Check that subgroup_signers matches UserTransactionRequest.validators_info
     let is_proper_signer = subgroup_signers.contains(validator_address);
     if !is_proper_signer {
         return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));

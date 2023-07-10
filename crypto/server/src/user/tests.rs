@@ -161,13 +161,17 @@ async fn test_sign_tx_no_chain() {
     let test_user_failed_x25519_pub_key =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    for res in test_user_failed_x25519_pub_key {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "Signing error: Subscribe message rejected: Decryption(\"ChaCha20 decryption error: \
-             aead::Error\")"
-        );
-    }
+    let mut responses = test_user_failed_x25519_pub_key.into_iter();
+    assert_eq!(
+        responses.next().unwrap().unwrap().text().await.unwrap(),
+        "Signing error: Subscribe message rejected: Decryption(\"Public key does not match that \
+         given in UserTransactionRequest\")"
+    );
+
+    assert_eq!(
+        responses.next().unwrap().unwrap().text().await.unwrap(),
+        "Signing error: Oneshot timeout error: channel closed"
+    );
 
     generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec());
 
