@@ -3,7 +3,6 @@ mod listener;
 mod message;
 
 use axum::extract::ws::{self, WebSocket};
-use entropy_shared::X25519PublicKey;
 use futures::{future, SinkExt, StreamExt};
 use kvdb::kv_manager::PartyId;
 pub(super) use listener::WsChannels;
