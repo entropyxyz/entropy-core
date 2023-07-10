@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use axum::http::StatusCode;
@@ -8,6 +9,7 @@ use bip39::{Language, Mnemonic};
 use kvdb::kv_manager::{KvManager, PartyId};
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
+use tokio::time::timeout;
 
 use crate::{
     get_signer,
@@ -20,6 +22,8 @@ use crate::{
     user::api::UserTransactionRequest,
     validation::mnemonic_to_pair,
 };
+
+const SETUP_TIMEOUT_SECONDS: u64 = 20;
 
 #[derive(Clone, Debug)]
 pub struct RecoverableSignature {
@@ -108,7 +112,8 @@ pub async fn do_signing(
 
     open_protocol_connections(&sign_context, &my_id, &signer, state).await?;
     let channels = {
-        let broadcast_out = rx_ready.await??;
+        let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
+        let broadcast_out = ready??;
         Channels(broadcast_out, rx_from_others)
     };
 

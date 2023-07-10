@@ -77,6 +77,8 @@ pub enum SigningErr {
     Conversion(&'static str),
     #[error("Could not open ws connection: {0}")]
     ConnectionError(#[from] tokio_tungstenite::tungstenite::Error),
+    #[error("Timed out waiting for remote party")]
+    Timeout(#[from] tokio::time::error::Elapsed),
 }
 
 impl IntoResponse for SigningErr {
@@ -89,12 +91,8 @@ impl IntoResponse for SigningErr {
 /// Errors for the `subscribe` API
 #[derive(Debug, Error)]
 pub enum SubscribeErr {
-    // #[error("Timeout error: {0}")]
-    // Timeout(&'static str),
     #[error("no listener: {0}")]
     NoListener(&'static str),
-    // #[error("Validation error: {0}")]
-    // Validation(&'static str),
     #[error("invalid party ID: {0}")]
     InvalidPartyId(String),
     #[error("Lock Error: {0}")]
