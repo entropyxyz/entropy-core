@@ -13,6 +13,7 @@ use crate::{
 
 pub type ListenerResult = Result<Broadcaster, SubscribeErr>;
 
+/// Tracks which validators we are connected to and sets up channels for exchaning protocol messages
 #[derive(Debug)]
 pub struct Listener {
     /// Endpoint to create subscriptions
@@ -27,9 +28,12 @@ pub struct Listener {
     pub user_transaction_request: UserTransactionRequest,
 }
 
+/// Channels between a remote party and the signing protocol
 pub struct WsChannels {
     pub broadcast: broadcast::Receiver<SigningMessage>,
     pub tx: mpsc::Sender<SigningMessage>,
+    /// A flag to show that this is the last connection to be set up, and we can proceed with the
+    /// protocol
     pub is_final: bool,
 }
 
@@ -59,6 +63,8 @@ impl Listener {
         }
     }
 
+    /// Check that the given account is in the signing group, and if so return channels to the
+    /// protocol
     pub(crate) fn subscribe(
         &mut self,
         account_id: &AccountId32,
@@ -74,8 +80,7 @@ impl Listener {
         }
     }
 
-    pub(crate) fn fail(&mut self) {}
-
+    /// When all connections are set up, convert to a broadcaster and proceed with the protocol
     pub(crate) fn into_broadcaster(self) -> (oneshot::Sender<ListenerResult>, Broadcaster) {
         (self.tx_ready, Broadcaster(self.tx))
     }

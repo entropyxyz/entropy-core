@@ -16,7 +16,7 @@ use tracing::instrument;
 use crate::signing_client::{SigningErr, SigningMessage};
 
 pub type ChannelIn = mpsc::Receiver<super::SigningMessage>;
-pub type ChannelOut = crate::signing_client::subscribe::Broadcaster;
+pub type ChannelOut = crate::signing_client::protocol_transport::Broadcaster;
 
 /// Thin wrapper broadcasting channel out and messages from other nodes in
 pub struct Channels(pub ChannelOut, pub ChannelIn);

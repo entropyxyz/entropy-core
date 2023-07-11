@@ -1,3 +1,4 @@
+//! Connect to other threshold servers over websocket for exchanging protocol messages
 mod broadcaster;
 mod listener;
 mod message;

@@ -10,7 +10,7 @@ use axum::{
     Json,
 };
 
-use crate::{signing_client::subscribe::handle_socket, AppState};
+use crate::{signing_client::protocol_transport::handle_socket, AppState};
 
 pub const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 
