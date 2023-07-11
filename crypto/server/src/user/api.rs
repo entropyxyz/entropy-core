@@ -105,7 +105,7 @@ pub async fn sign_tx(
         <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
     let sig_hash = hex::encode(parsed_tx.sighash());
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
-    check_signing_group(subgroup_signers, signer.account_id())?;
+    check_signing_group(subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
     match user_tx_req.arch.as_str() {
         "evm" => {
@@ -269,11 +269,20 @@ pub async fn get_current_subgroup_signers(
 /// Checks if a validator is in the current selected signing committee
 pub fn check_signing_group(
     subgroup_signers: Vec<AccountId32>,
-    validator_address: &AccountId32,
+    validators_info: &Vec<ValidatorInfo>,
+    my_id: &AccountId32,
 ) -> Result<(), UserErr> {
-    let is_proper_signer = subgroup_signers.contains(validator_address);
-    if !is_proper_signer {
-        return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
+    // Check that validators given by the user match those from get_current_subgroup_signers
+    for validator in validators_info {
+        if !subgroup_signers.contains(&validator.tss_account) {
+            return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
+        }
+    }
+    // Finally, check that we ourselves are in the signing group
+    if !subgroup_signers.contains(my_id) {
+        return Err(UserErr::InvalidSigner(
+            "Signing group is valid, but this threshold server is not in the group",
+        ));
     }
     Ok(())
 }
