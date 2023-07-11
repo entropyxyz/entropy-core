@@ -39,6 +39,20 @@
 //! [`UserTransactionRequest`](crate::user::api::UserTransactionRequest) encryted in a
 //! `SignedMessage`.
 //!
+//! The response is chunked response stream. If the `UserTransactionRequest` could be processed, a
+//! success response header is sent.  Then the signing protocol runs. When the it finishes, a single
+//! message will be sent on the response stream with the result.
+//!
+//! If everything went well, the message will be a JSON object with a signle property "Ok"
+//! containing a base64 encoded signature, for example:
+//!
+//! `{"Ok":"BnJRjRUw9+trW36bK7S2KglY+TG5rGn1e3FKQlJYvx+jai7wG5Z0BWPFGYPxAwB5yROUOnucuzXoG7TrI7QNIAE="}`
+//!
+//! Otherwise, the message will be a JSON object with a signle property "Err" containing an error
+//! message, for example:
+//!
+//! `{"Err":"reqwest event error: Invalid status code: 500 Internal Server Error"}`
+//!
 //! Curl example for `user/sign_tx`:
 //! ```text
 //! curl -X POST -H "Content-Type: application/json" \
