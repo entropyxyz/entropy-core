@@ -1,5 +1,6 @@
 use hex_literal::hex;
-use sp_core::{crypto::AccountId32, Pair};
+use sp_core::crypto::AccountId32;
+use subxt::ext::sp_core::Pair;
 
 use crate::signing_client::{
     new_party::signing_protocol::{create_signed_message, validate_signed_message},
@@ -12,7 +13,7 @@ async fn create_verify_signed_message() {
     let bad_message: Box<[u8]> = Box::new([11]);
 
     let seed: [u8; 32] = hex!("29b55504652cedded9ce0ee1f5a25b328ae6c6e97827f84eee6315d0f44816d8");
-    let pair = sp_core::sr25519::Pair::from_seed(&seed);
+    let pair = Pair::from_seed(&seed);
 
     let signed_message = create_signed_message(&message, &pair);
     assert_eq!(hex::encode(signed_message.clone()).len(), 128);

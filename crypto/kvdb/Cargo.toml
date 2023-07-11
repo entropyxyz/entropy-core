@@ -13,7 +13,7 @@ thiserror="1.0.40"
 hex      ="0.4"
 
 # Substrate
-sp-core={ package="sp-core", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43" }
+sp-core={ version="21.0.0", default-features=false }
 
 # Crypto
 zeroize         ={ version="1.4", features=["zeroize_derive"], default-features=false }

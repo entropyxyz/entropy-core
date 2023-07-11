@@ -2218,7 +2218,7 @@ dependencies = [
  "sp-consensus-grandpa",
  "sp-core 7.0.0",
  "sp-inherents",
- "sp-keyring",
+ "sp-keyring 7.0.0",
  "sp-keystore 0.13.0",
  "sp-runtime 7.0.0",
  "sp-statement-store",
@@ -2324,7 +2324,7 @@ dependencies = [
  "sp-core 7.0.0",
  "sp-inherents",
  "sp-io 7.0.0",
- "sp-keyring",
+ "sp-keyring 7.0.0",
  "sp-npos-elections",
  "sp-offchain",
  "sp-runtime 7.0.0",
@@ -4245,7 +4245,7 @@ dependencies = [
  "serde",
  "serial_test 0.6.0",
  "sled",
- "sp-core 7.0.0",
+ "sp-core 21.0.0",
  "synedrion",
  "thiserror",
  "tokio",
@@ -6386,7 +6386,7 @@ dependencies = [
  "scale-info",
  "sp-core 7.0.0",
  "sp-io 7.0.0",
- "sp-keyring",
+ "sp-keyring 7.0.0",
  "sp-runtime 7.0.0",
  "sp-std 5.0.0",
 ]
@@ -8862,7 +8862,7 @@ dependencies = [
  "serde_json",
  "sp-blockchain",
  "sp-core 7.0.0",
- "sp-keyring",
+ "sp-keyring 7.0.0",
  "sp-keystore 0.13.0",
  "sp-panic-handler 5.0.0",
  "sp-runtime 7.0.0",
@@ -10363,8 +10363,8 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serial_test 0.8.0",
- "sp-core 7.0.0",
- "sp-keyring",
+ "sp-core 21.0.0",
+ "sp-keyring 24.0.0",
  "subxt",
  "synedrion",
  "testing-utils",
@@ -11110,6 +11110,18 @@ dependencies = [
  "lazy_static",
  "sp-core 7.0.0",
  "sp-runtime 7.0.0",
+ "strum",
+]
+
+[[package]]
+name = "sp-keyring"
+version = "24.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4673405248580504a8bc4e09615ab25ccb182dfaccd27e000fda9dcb2ca1dab1"
+dependencies = [
+ "lazy_static",
+ "sp-core 21.0.0",
+ "sp-runtime 24.0.0",
  "strum",
 ]
 
@@ -11956,7 +11968,7 @@ dependencies = [
  "sp-blockchain",
  "sp-consensus",
  "sp-core 7.0.0",
- "sp-keyring",
+ "sp-keyring 7.0.0",
  "sp-keystore 0.13.0",
  "sp-runtime 7.0.0",
  "sp-state-machine 0.13.0",
@@ -11996,7 +12008,7 @@ dependencies = [
  "sp-externalities 0.13.0",
  "sp-inherents",
  "sp-io 7.0.0",
- "sp-keyring",
+ "sp-keyring 7.0.0",
  "sp-offchain",
  "sp-runtime 7.0.0",
  "sp-runtime-interface 7.0.0",
@@ -12274,8 +12286,8 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "project-root",
- "sp-core 7.0.0",
- "sp-keyring",
+ "sp-core 21.0.0",
+ "sp-keyring 24.0.0",
  "subxt",
  "which",
 ]

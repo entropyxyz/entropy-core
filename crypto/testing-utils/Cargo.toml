@@ -7,9 +7,9 @@ edition="2021"
 
 [dependencies]
 subxt             ={ package="subxt", git="https://github.com/paritytech/subxt.git", tag="v0.29.0" }
-sp-keyring        ={ package="sp-keyring", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43" }
+sp-keyring        ="24.0.0"
 project-root      ="0.2.2"
-sp-core           ={ package="sp-core", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43" }
+sp-core           ={ version="21.0.0", default-features=false }
 env_logger        ="0.9.0"
 log               ="0.4.14"
 which             ="4.0.2"

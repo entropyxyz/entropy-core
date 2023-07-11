@@ -32,7 +32,7 @@ axum-macros="0.3.7"
 # Substrate
 subxt             ={ package="subxt", git="https://github.com/paritytech/subxt.git", tag="v0.29.0" }
 parity-scale-codec="3.4.0"
-sp-core           ={ package="sp-core", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43" }
+sp-core           ={ version="21.0.0", default-features=false }
 
 # Entropy
 entropy-shared={ path="../shared" }
@@ -62,7 +62,7 @@ testing-utils={ path="../testing-utils" }
 serial_test  ="0.8.0"
 hex-literal  ="0.3.4"
 project-root ="0.2.2"
-sp-keyring   ={ package="sp-keyring", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43" }
+sp-keyring   ="24.0.0"
 
 [features]
 default=['std']

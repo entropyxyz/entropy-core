@@ -100,7 +100,7 @@ pub async fn sign_tx(
         <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
     let sig_hash = hex::encode(parsed_tx.sighash());
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
-    check_signing_group(subgroup_signers, &second_signing_address_conversion)?;
+    check_signing_group(subgroup_signers, &signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
     match user_tx_req.arch.as_str() {
         "evm" => {

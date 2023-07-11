@@ -1,7 +1,12 @@
-use entropy_shared::{Constraints, SIGNING_PARTY_SIZE};
+use entropy_shared::{Acl, Constraints, SIGNING_PARTY_SIZE};
 #[cfg(test)]
 use sp_keyring::Sr25519Keyring;
-use subxt::{ext::sp_core::sr25519, tx::PairSigner, Config, OnlineClient};
+use subxt::{
+    ext::sp_core::{sr25519, Pair},
+    tx::PairSigner,
+    utils::{AccountId32, Static},
+    Config, OnlineClient,
+};
 
 use crate::{
     chain_api::{entropy, EntropyConfig},
@@ -65,8 +70,18 @@ pub async fn get_constraints(
     }
 
     Ok(Constraints {
-        evm_acl: Some(evm_acl_result.unwrap_or_default().unwrap().0),
-        btc_acl: Some(btc_acl_result.unwrap_or_default().unwrap().0),
+        evm_acl: Some(
+            evm_acl_result
+                .unwrap_or_default()
+                .unwrap_or_else(|| Static(Acl::<[u8; 20]>::default()))
+                .0,
+        ),
+        btc_acl: Some(
+            btc_acl_result
+                .unwrap_or_default()
+                .unwrap_or_else(|| Static(Acl::<[u8; 32]>::default()))
+                .0,
+        ),
     })
 }
 
@@ -75,15 +90,14 @@ pub async fn get_constraints(
 #[cfg(test)]
 pub async fn make_register(
     api: &OnlineClient<EntropyConfig>,
-    sig_req_keyring: &Sr25519Keyring,
+    sig_req_keyring: sr25519::Pair,
     constraint_account: &AccountId32,
 ) {
-    let sig_req_account =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
+    let sig_req_account = PairSigner::<EntropyConfig, sr25519::Pair>::new(sig_req_keyring);
 
-    let registering_query =
-        entropy::storage().relayer().registering(sig_req_keyring.to_account_id());
-    let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();
+    let registering_query = entropy::storage().relayer().registering(sig_req_account.account_id());
+    let is_registering_1 =
+        api.storage().at_latest().await.unwrap().fetch(&registering_query).await.unwrap();
     println!("is_registering_1: {:?}", is_registering_1);
     assert!(is_registering_1.is_none());
 
@@ -101,7 +115,8 @@ pub async fn make_register(
         .await
         .unwrap();
 
-    let query_registering_status = api.storage().fetch(&registering_query, None).await;
+    let query_registering_status =
+        api.storage().at_latest().await.unwrap().fetch(&registering_query).await;
     assert!(query_registering_status.unwrap().unwrap().is_registering);
 }
 

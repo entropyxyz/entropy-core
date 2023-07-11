@@ -3,16 +3,27 @@ use std::{env, fs, net::SocketAddrV4, path::PathBuf, str::FromStr, sync::Arc};
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::{Acl, Constraints};
+use entropy_shared::Acl;
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future};
 use hex_literal::hex as h;
 use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
 use parity_scale_codec::Encode;
 use serial_test::serial;
-use sp_core::{crypto::Ss58Codec, sr25519, Bytes, Pair, H160};
+use sp_core::{crypto::Ss58Codec, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use subxt::{ext::sp_runtime::AccountId32, tx::PairSigner, OnlineClient};
+use subxt::{
+    ext::{
+        sp_core::{
+            sr25519::{self, Pair},
+            Bytes,
+        },
+        sp_runtime::AccountId32,
+    },
+    tx::PairSigner,
+    utils::{AccountId32 as subxtAccountId32, Static},
+    OnlineClient,
+};
 use testing_utils::{
     constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     substrate_context::{
@@ -41,7 +52,10 @@ use crate::{
     r#unsafe::api::UnsafeQuery,
     signing_client::SignerState,
     subscribe_to_me,
-    user::api::{UserTransactionRequest, ValidatorInfo},
+    user::{
+        api::{UserTransactionRequest, ValidatorInfo},
+        tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
+    },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
     Message as SigMessage,
@@ -72,14 +86,14 @@ async fn test_sign_tx_no_chain() {
         let mut evm_acl = Acl::<[u8; 20]>::default();
         evm_acl.addresses.push(address);
 
-        Constraints { evm_acl: Some(evm_acl), ..Default::default() }
+        Constraints { evm_acl: Some(Static(evm_acl)), btc_acl: None }
     };
 
     register_user(
         &entropy_api,
         &validator_ips,
-        &one,
-        &test_user_constraint,
+        &one.pair(),
+        &test_user_constraint.pair(),
         initial_constraints([1u8; 20]),
     )
     .await;
@@ -263,7 +277,7 @@ async fn test_fail_signing_group() {
     let _ = spawn_testing_validators().await;
 
     let _substrate_context = test_node_process_testing_state().await;
-    let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(3);
+    let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(4);
     let validators_info = vec![
         ValidatorInfo {
             ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
@@ -338,7 +352,12 @@ async fn test_store_share() {
     assert_eq!(response.text().await.unwrap(), "Not Registering error: Register Onchain first");
 
     // signal registering
-    make_register(&api, &alice, &alice_constraint.to_account_id()).await;
+    make_register(
+        &api,
+        alice.pair(),
+        &subxtAccountId32::from_str(&alice_constraint.to_account_id().to_ss58check()).unwrap(),
+    )
+    .await;
 
     let response_2 = client
         .post("http://127.0.0.1:3001/user/new")
@@ -350,7 +369,7 @@ async fn test_store_share() {
     assert_eq!(response_2.status(), StatusCode::OK);
     assert_eq!(response_2.text().await.unwrap(), "");
     // make sure there is now one confirmation
-    check_if_confirmation(&api, &alice).await;
+    check_if_confirmation(&api, &alice.pair()).await;
 
     // fails to add already added share
     let response_3 = client
@@ -460,7 +479,7 @@ async fn test_update_keys() {
     );
 
     // signal registering
-    make_swapping(&api, &dave).await;
+    make_swapping(&api, &dave.pair()).await;
 
     let response_3 = client
         .post("http://127.0.0.1:3001/user/new")
@@ -472,7 +491,7 @@ async fn test_update_keys() {
     assert_eq!(response_3.status(), StatusCode::OK);
     assert_eq!(response_3.text().await.unwrap(), "");
     // make sure there is now one confirmation
-    check_if_confirmation(&api, &dave).await;
+    check_if_confirmation(&api, &dave.pair()).await;
 
     // check dave has new key
     let response_4 = client

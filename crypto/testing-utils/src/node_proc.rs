@@ -96,8 +96,7 @@ impl TestNodeProcessBuilder {
                 .ok_or_else(|| "No available ports in the given port range".to_owned())?;
 
             cmd.arg(format!("--port={p2p_port}"));
-            cmd.arg(format!("--rpc-port={http_port}"));
-            cmd.arg(format!("--ws-port={ws_port}"));
+            cmd.arg(format!("--rpc-port={ws_port}"));
             println!("ws port: {ws_port}");
             ws_port
         } else {

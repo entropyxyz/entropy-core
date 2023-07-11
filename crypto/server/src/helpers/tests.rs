@@ -4,7 +4,7 @@
 use std::{net::TcpListener, time::Duration};
 
 use axum::{routing::IntoMakeService, Router};
-use entropy_shared::Constraints;
+use entropy_constraints::constraints;
 use futures::future::join_all;
 use kvdb::{
     clean_tests,
@@ -14,9 +14,17 @@ use kvdb::{
 };
 use rand_core::OsRng;
 use serial_test::serial;
-use sp_core::{sr25519, Bytes, Pair};
-use sp_keyring::Sr25519Keyring;
-use subxt::{tx::PairSigner, OnlineClient};
+use sp_core::crypto::AccountId32;
+use sp_keyring::{AccountKeyring, Sr25519Keyring};
+use subxt::{
+    ext::sp_core::{
+        sr25519::{self, Pair as sr25519Pair},
+        Bytes, Pair,
+    },
+    tx::PairSigner,
+    utils::AccountId32 as subxtAccountId32,
+    OnlineClient,
+};
 use synedrion::{make_key_shares, TestSchemeParams};
 use testing_utils::{constants::X25519_PUBLIC_KEYS, substrate_context::testing_context};
 use x25519_dalek::PublicKey;
@@ -31,6 +39,7 @@ use crate::{
         },
         signing::SignatureState,
         substrate::{get_subgroup, make_register},
+        tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
     },
     signing_client::SignerState,
     validation::SignedMessage,
@@ -92,11 +101,15 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
 
     let (alice_axum, alice_kv) =
         create_clients("validator1".to_string(), vec![], vec![], true, false).await;
-    let alice_id = PartyId::new(get_signer(&alice_kv).await.unwrap().account_id().clone());
+    let alice_id = PartyId::new(AccountId32::new(
+        *get_signer(&alice_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
 
     let (bob_axum, bob_kv) =
         create_clients("validator2".to_string(), vec![], vec![], false, true).await;
-    let bob_id = PartyId::new(get_signer(&bob_kv).await.unwrap().account_id().clone());
+    let bob_id = PartyId::new(AccountId32::new(
+        *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
     let listener_alice = TcpListener::bind(format!("0.0.0.0:{}", ports[0])).unwrap();
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", ports[1])).unwrap();
 
@@ -121,8 +134,8 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
 pub async fn register_user(
     entropy_api: &OnlineClient<EntropyConfig>,
     threshold_servers: &[String],
-    sig_req_keyring: &Sr25519Keyring,
-    constraint_modification_account: &Sr25519Keyring,
+    sig_req_keyring: &sr25519::Pair,
+    constraint_modification_account: &sr25519::Pair,
     initial_constraints: Constraints,
 ) {
     let validator1_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
@@ -135,14 +148,14 @@ pub async fn register_user(
         kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
 
     let register_body_alice_validator = SignedMessage::new(
-        &sig_req_keyring.pair(),
+        &sig_req_keyring,
         &Bytes(validator_1_threshold_keyshare),
         &validator1_server_public_key,
     )
     .unwrap()
     .to_json();
     let register_body_bob_validator = SignedMessage::new(
-        &sig_req_keyring.pair(),
+        &sig_req_keyring,
         &Bytes(validator_2_threshold_keyshare),
         &validator2_server_public_key,
     )
@@ -150,8 +163,12 @@ pub async fn register_user(
     .to_json();
 
     // call register() on-chain
-    make_register(entropy_api, sig_req_keyring, &constraint_modification_account.to_account_id())
-        .await;
+    make_register(
+        entropy_api,
+        sig_req_keyring.clone(),
+        &subxtAccountId32::from(constraint_modification_account.public()),
+    )
+    .await;
 
     // send threshold keys to server
     let bodies = vec![register_body_alice_validator, register_body_bob_validator];
@@ -167,16 +184,15 @@ pub async fn register_user(
     });
 
     // confirm that user is Registered
-    check_registered_status(entropy_api, sig_req_keyring).await;
+    check_registered_status(entropy_api, &subxtAccountId32::from(sig_req_keyring.public())).await;
 
     // update/set their constraints
     let update_constraints_tx = entropy::tx()
         .constraints()
-        .update_constraints(sig_req_keyring.to_account_id(), initial_constraints);
+        .update_constraints(subxtAccountId32::from(sig_req_keyring.public()), initial_constraints);
 
-    let constraint_modification_account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(
-        constraint_modification_account.pair(),
-    );
+    let constraint_modification_account =
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(constraint_modification_account.clone());
 
     entropy_api
         .tx()
@@ -194,10 +210,11 @@ pub async fn register_user(
         .unwrap();
 }
 
-pub async fn make_swapping(api: &OnlineClient<EntropyConfig>, key: &Sr25519Keyring) {
-    let signer = PairSigner::new(key.pair());
-    let registering_query = entropy::storage().relayer().registering(key.to_account_id());
-    let is_registering_1 = api.storage().fetch(&registering_query, None).await.unwrap();
+pub async fn make_swapping(api: &OnlineClient<EntropyConfig>, key: &sr25519::Pair) {
+    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
+    let registering_query = entropy::storage().relayer().registering(signer.account_id());
+    let is_registering_1 =
+        api.storage().at_latest().await.unwrap().fetch(&registering_query).await.unwrap();
     assert!(is_registering_1.is_none());
 
     let registering_tx = entropy::tx().relayer().swap_keys();
@@ -213,24 +230,26 @@ pub async fn make_swapping(api: &OnlineClient<EntropyConfig>, key: &Sr25519Keyri
         .await
         .unwrap();
 
-    let is_registering_2 = api.storage().fetch(&registering_query, None).await;
+    let is_registering_2 = api.storage().at_latest().await.unwrap().fetch(&registering_query).await;
     assert!(is_registering_2.unwrap().unwrap().is_registering);
 }
 
 /// Verify that a Registering account has 1 confirmation, and that it is not already Registered.
-pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &Sr25519Keyring) {
-    let registering_query = entropy::storage().relayer().registering(key.to_account_id());
-    let registered_query = entropy::storage().relayer().registered(key.to_account_id());
-    let is_registering = api.storage().fetch(&registering_query, None).await.unwrap();
+pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &sr25519::Pair) {
+    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
+    let registering_query = entropy::storage().relayer().registering(signer.account_id());
+    let registered_query = entropy::storage().relayer().registered(signer.account_id());
+    let is_registering =
+        api.storage().at_latest().await.unwrap().fetch(&registering_query).await.unwrap();
     // make sure there is one confirmation
     assert_eq!(is_registering.unwrap().confirmations.len(), 1);
-    let _ = api.storage().fetch(&registered_query, None).await.unwrap();
+    let _ = api.storage().at_latest().await.unwrap().fetch(&registered_query).await.unwrap();
 }
 
 /// Verify that a Registered account exists.
-pub async fn check_registered_status(api: &OnlineClient<EntropyConfig>, key: &Sr25519Keyring) {
-    let registered_query = entropy::storage().relayer().registered(key.to_account_id());
-    api.storage().fetch(&registered_query, None).await.unwrap();
+pub async fn check_registered_status(api: &OnlineClient<EntropyConfig>, key: &subxtAccountId32) {
+    let registered_query = entropy::storage().relayer().registered(key);
+    api.storage().at_latest().await.unwrap().fetch(&registered_query).await.unwrap();
 }
 
 #[tokio::test]
