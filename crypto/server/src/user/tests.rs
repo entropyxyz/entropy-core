@@ -144,7 +144,13 @@ async fn test_sign_tx_no_chain() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    test_user_res.into_iter().for_each(|res| assert_eq!(res.unwrap().status(), 200));
+    for res in test_user_res {
+        let mut res = res.unwrap();
+        assert_eq!(res.status(), 200);
+        let chunk = res.chunk().await.unwrap().unwrap();
+        let signing_result: Result<String, String> = serde_json::from_slice(&chunk).unwrap();
+        assert!(matches!(signing_result, Ok(sig) if sig.len() == 88));
+    }
 
     // test failing cases
     let test_user_res_not_registered =
@@ -163,9 +169,13 @@ async fn test_sign_tx_no_chain() {
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
     for res in test_user_failed_x25519_pub_key {
+        let mut res = res.unwrap();
+        assert_eq!(res.status(), 200);
+        let chunk = res.chunk().await.unwrap().unwrap();
+        let signing_result: Result<String, String> = serde_json::from_slice(&chunk).unwrap();
         assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "Signing error: reqwest event error: Invalid status code: 500 Internal Server Error"
+            Err("reqwest event error: Invalid status code: 500 Internal Server Error".to_string()),
+            signing_result
         );
     }
 

@@ -1,6 +1,7 @@
 use std::{net::SocketAddrV4, str::FromStr, sync::Arc};
 
 use axum::{
+    body::StreamBody,
     extract::State,
     http::StatusCode,
     response::IntoResponse,
@@ -15,7 +16,11 @@ use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints},
     X25519PublicKey, SIGNING_PARTY_SIZE,
 };
-use futures::future::{join_all, FutureExt};
+use futures::{
+    channel::mpsc,
+    future::{join_all, FutureExt},
+    Stream,
+};
 use kvdb::kv_manager::{
     error::{InnerKvError, KvError},
     value::PartyInfo,
@@ -44,7 +49,7 @@ use crate::{
         substrate::{get_constraints, get_subgroup, is_registered},
         validator::get_signer,
     },
-    signing_client::SignerState,
+    signing_client::{SignerState, SigningErr},
     validation::SignedMessage,
     AppState, Configuration,
 };
@@ -77,7 +82,8 @@ pub async fn sign_tx(
     State(app_state): State<AppState>,
     // TODO make new type with only info needed
     Json(signed_msg): Json<SignedMessage>,
-) -> Result<StatusCode, UserErr> {
+) -> Result<(StatusCode, StreamBody<impl Stream<Item = Result<String, serde_json::Error>>>), UserErr>
+{
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
@@ -109,22 +115,35 @@ pub async fn sign_tx(
                 .ok_or(UserErr::Parse("No constraints found for this account."))?;
 
             evm_acl.eval(parsed_tx)?;
-            do_signing(
-                user_tx_req,
-                sig_hash,
-                &app_state.signer_state,
-                &app_state.kv_store,
-                &app_state.signature_state,
-                tx_id,
-                signing_address_converted,
-            )
-            .await?;
+
+            let (mut response_tx, response_rx) = mpsc::channel(1);
+
+            // Do the signing protocol in another task, so we can already respond
+            tokio::spawn(async move {
+                let signing_protocol_output = do_signing(
+                    user_tx_req,
+                    sig_hash,
+                    &app_state.signer_state,
+                    &app_state.kv_store,
+                    &app_state.signature_state,
+                    tx_id,
+                    signing_address_converted,
+                )
+                .await
+                .map(|signature| base64::encode(signature.to_rsv_bytes()))
+                .map_err(|error| error.to_string());
+
+                // This response chunk is sent later with the result of the signing protocol
+                if response_tx.try_send(serde_json::to_string(&signing_protocol_output)).is_err() {
+                    tracing::warn!("Cannot send signing protocol output - connection is closed")
+                };
+            });
+
+            // This indicates that the signing protocol is starting successfully
+            Ok((StatusCode::OK, StreamBody::new(response_rx)))
         },
-        _ => {
-            return Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]"));
-        },
+        _ => Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]")),
     }
-    Ok(StatusCode::OK)
 }
 
 /// HTTP POST endoint called by the user when registering.
