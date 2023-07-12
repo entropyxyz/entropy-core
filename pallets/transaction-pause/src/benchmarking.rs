@@ -16,7 +16,7 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 
 benchmarks! {
   pause_transaction {
-    let origin = T::UpdateOrigin::successful_origin();
+    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
 
   }: {
     assert_ok!(
@@ -28,7 +28,7 @@ benchmarks! {
   }
 
   unpause_transaction {
-    let origin = T::UpdateOrigin::successful_origin();
+    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
     <TransactionPause<T>>::pause_transaction(origin.clone(), b"Balances".to_vec(), b"transfer".to_vec())?;
   }: {
     assert_ok!(
