@@ -53,8 +53,6 @@ pub enum SigningErr {
     SerdeJson(#[from] serde_json::Error),
     #[error("Message validation Error: {0}")]
     MessageValidation(String),
-    #[error("Unexpected event: {0}")]
-    UnexpectedEvent(String),
     #[error("Session Error: {0}")]
     SessionError(String),
     #[error("String Conversion Error: {0}")]

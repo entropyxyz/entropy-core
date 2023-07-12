@@ -4,6 +4,7 @@ mod listener;
 mod message;
 
 use axum::extract::ws::{self, WebSocket};
+use entropy_shared::X25519PublicKey;
 use futures::{future, SinkExt, StreamExt};
 use kvdb::kv_manager::PartyId;
 pub(super) use listener::WsChannels;
@@ -23,7 +24,11 @@ use crate::{
     AppState, SignerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
 
-const NOISE_PARAMS: &str = "Noise_KX_25519_ChaChaPoly_BLAKE2s";
+/// The handshake pattern and other parameters
+const NOISE_PARAMS: &str = "Noise_XK_25519_ChaChaPoly_BLAKE2s";
+
+/// This is used in the handshake as context
+const NOISE_PROLOGUE: &[u8; 24] = b"Entropy signing protocol";
 
 /// Set up websocket connections to other members of the signing committee
 pub async fn open_protocol_connections(
@@ -46,47 +51,49 @@ pub async fn open_protocol_connections(
         .map(|validator_info| async move {
             // Open a ws connection
             let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
-            let (mut ws_stream, _response) = connect_async(ws_endpoint).await?;
+            let (ws_stream, _response) = connect_async(ws_endpoint).await?;
+            let mut ws_stream = WsConnection::WsStream(ws_stream);
 
             let params: NoiseParams = NOISE_PARAMS.parse().unwrap();
             let builder: Builder<'_> = Builder::new(params);
             let mut noise = builder
                 .local_private_key(&derive_static_secret(signer.signer()).to_bytes())
                 .remote_public_key(&validator_info.x25519_public_key)
-                .build_responder()
+                .prologue(NOISE_PROLOGUE)
+                .build_initiator()
                 .unwrap();
 
             let mut buf = vec![0u8; 65535];
 
-            noise.read_message(&recv_ws_stream(&mut ws_stream).await.unwrap(), &mut buf).unwrap();
-
             let len = noise.write_message(&[], &mut buf).unwrap();
-            ws_stream.send(Message::Binary(buf[..len].to_vec())).await?;
+            ws_stream.send(buf[..len].to_vec()).await.map_err(|_| SigningErr::ConnectionClosed)?;
 
-            // Transition the state machine into transport mode now that the handshake is complete.
-            let noise = noise.into_transport_mode().unwrap();
+            let _len = noise.read_message(&ws_stream.recv().await.unwrap(), &mut buf).unwrap();
+            // TODO here we could receive a signature and validate it
 
-            // Send a SubscribeMessage
+            // Send a SubscribeMessage in the payload of the final handshake message
             let server_public_key = PublicKey::from(validator_info.x25519_public_key);
             let signed_message = SignedMessage::new(
                 signer.signer(),
                 &Bytes(serde_json::to_vec(&SubscribeMessage::new(sig_uid, my_id.clone()))?),
                 &server_public_key,
             )?;
-            let message_string = serde_json::to_string(&signed_message)?;
-            ws_stream.send(Message::Text(message_string)).await?;
+            let subscribe_message_vec = serde_json::to_vec(&signed_message)?;
 
-            // Check the response from the remote party
-            let response_message = ws_stream.next().await.ok_or(SigningErr::ConnectionClosed)?;
-            if let Ok(Message::Text(res)) = response_message {
-                let subscribe_response: Result<(), String> = serde_json::from_str(&res)?;
-                if let Err(error_message) = subscribe_response {
-                    return Err(SigningErr::BadSubscribeMessage(error_message));
-                }
-            } else {
-                return Err(SigningErr::UnexpectedEvent(format!(
-                    "Unexpected response message {response_message:?}"
-                )));
+            let len = noise.write_message(&subscribe_message_vec, &mut buf).unwrap();
+            ws_stream.send(buf[..len].to_vec()).await.map_err(|_| SigningErr::ConnectionClosed)?;
+
+            // Transition the state machine into transport mode now that the handshake is complete.
+            let mut encrypted_connection =
+                EncryptedWsConnection::new(ws_stream, noise.into_transport_mode().unwrap());
+
+            // Check the response as to whether they accepted our SubscribeMessage
+            // TODO this error is not handled correctly
+            let response_message =
+                encrypted_connection.recv().await.map_err(|_| SigningErr::ConnectionClosed)?;
+            let subscribe_response: Result<(), String> = serde_json::from_str(&response_message)?;
+            if let Err(error_message) = subscribe_response {
+                return Err(SigningErr::BadSubscribeMessage(error_message));
             }
 
             // Setup channels
@@ -94,8 +101,6 @@ pub async fn open_protocol_connections(
 
             let remote_party_id = PartyId::new(validator_info.tss_account.clone());
 
-            let encrypted_connection =
-                EncryptedWsConnection::new(WsConnection::WsStream(ws_stream), noise);
             // Handle protocol messages
             tokio::spawn(async move {
                 if let Err(err) =
@@ -115,53 +120,67 @@ pub async fn open_protocol_connections(
 }
 
 /// Handle an incoming websocket connection
-pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
+pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
+    let mut ws_stream = WsConnection::AxumWs(socket);
     let params: NoiseParams = NOISE_PARAMS.parse().unwrap();
     let builder: Builder<'_> = Builder::new(params);
 
     let signer = get_signer(&app_state.kv_store).await?;
 
+    // Setup a noise HandShakeState
     let mut noise = builder
         .local_private_key(&derive_static_secret(signer.signer()).to_bytes())
-        .build_initiator()
+        .prologue(NOISE_PROLOGUE)
+        .build_responder()
         .unwrap();
 
+    // Used for handshake messages
     let mut buf = vec![0u8; 65535];
 
-    let len = noise.write_message(&[0u8; 0], &mut buf).unwrap();
-    socket.send(ws::Message::Binary(buf[..len].to_vec())).await?;
+    // We are the responded, so the other party speaks first
+    noise.read_message(&ws_stream.recv().await.unwrap(), &mut buf).unwrap();
 
-    noise.read_message(&recv(&mut socket).await.unwrap(), &mut buf).unwrap();
+    // TODO we could add a signature here to double-authenticate ourself
+    let len = noise.write_message(&[], &mut buf).unwrap();
+    ws_stream.send(buf[..len].to_vec()).await?;
+
+    let len = noise.read_message(&ws_stream.recv().await.unwrap(), &mut buf).unwrap();
+    let serialized_signed_message = String::from_utf8(buf[..len].to_vec())?;
+
+    let remote_public_key: X25519PublicKey = noise.get_remote_static().unwrap().try_into().unwrap();
+
+    let (subscribe_response, ws_channels_option) = match handle_initial_incoming_ws_message(
+        serialized_signed_message,
+        remote_public_key,
+        app_state,
+    )
+    .await
+    {
+        Ok((ws_channels, party_id)) => (Ok(()), Some((ws_channels, party_id))),
+        Err(err) => (Err(format!("{err:?}")), None),
+    };
 
     // Transition the state machine into transport mode now that the handshake is complete.
-    let noise = noise.into_transport_mode().unwrap();
+    let mut encrypted_connection =
+        EncryptedWsConnection::new(ws_stream, noise.into_transport_mode().unwrap());
 
-    // Get the first message which we expect to be a SubscribeMessage
-    if let Some(Ok(ws::Message::Text(serialized_signed_message))) = socket.recv().await {
-        let (subscribe_response, ws_channels_option) =
-            match handle_initial_incoming_ws_message(serialized_signed_message, app_state).await {
-                Ok((ws_channels, party_id)) => (Ok(()), Some((ws_channels, party_id))),
-                Err(err) => (Err(format!("{err:?}")), None),
-            };
+    // Send them a response as to whether we are happy with their subscribe message
+    let subscribe_response_json =
+        serde_json::to_string(&subscribe_response).map_err(|_| WsError::ConnectionClosed)?;
+    encrypted_connection.send(subscribe_response_json).await?;
 
-        // Send them a response as to whether we are happy with their subscribe message
-        let subscribe_response_json =
-            serde_json::to_string(&subscribe_response).map_err(|_| WsError::ConnectionClosed)?;
-        socket.send(ws::Message::Text(subscribe_response_json)).await?;
-
-        // If it was successful, proceed with relaying signing protocol messages
-        if let Some((ws_channels, remote_party_id)) = ws_channels_option {
-            let encrypted_connection =
-                EncryptedWsConnection::new(WsConnection::AxumWs(socket), noise);
-            ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await?;
-        };
+    // If it was successful, proceed with relaying signing protocol messages
+    if let Some((ws_channels, remote_party_id)) = ws_channels_option {
+        ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await?;
     };
+
     Ok(())
 }
 
 /// Handle a subscribe message
 async fn handle_initial_incoming_ws_message(
     serialized_signed_message: String,
+    remote_public_key: X25519PublicKey,
     app_state: AppState,
 ) -> Result<(WsChannels, PartyId), SubscribeErr> {
     let signed_msg: SignedMessage = serde_json::from_str(&serialized_signed_message)?;
@@ -204,9 +223,10 @@ async fn handle_initial_incoming_ws_message(
             listeners.get(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
 
         let validators_info = &listener.user_transaction_request.validators_info;
-        if !validators_info.iter().any(|validator_info| {
-            &validator_info.x25519_public_key == signed_msg.sender().as_bytes()
-        }) {
+        if !validators_info
+            .iter()
+            .any(|validator_info| validator_info.x25519_public_key == remote_public_key)
+        {
             // Make the signing process fail, since one of the commitee has misbehaved
             listeners.remove(&msg.session_id);
             return Err(SubscribeErr::Decryption(
@@ -278,6 +298,7 @@ async fn ws_to_channels(
     }
 }
 
+/// Wrapper around ws connection to encrypt and decrypt messages
 pub struct EncryptedWsConnection {
     ws_connection: WsConnection,
     noise_transport: snow::TransportState,
@@ -289,7 +310,6 @@ impl EncryptedWsConnection {
         Self { ws_connection, noise_transport, buf: vec![0u8; 65535] }
     }
 
-    // TODO should return error
     async fn recv(&mut self) -> Result<String, WsError> {
         let ciphertext = self.ws_connection.recv().await.unwrap();
         let len = self.noise_transport.read_message(&ciphertext, &mut self.buf).unwrap();
@@ -309,6 +329,7 @@ enum WsConnection {
 }
 
 impl WsConnection {
+    // TODO should return Result, not option
     pub async fn recv(&mut self) -> Option<Vec<u8>> {
         match self {
             WsConnection::WsStream(ref mut ws_stream) => {
@@ -335,24 +356,5 @@ impl WsConnection {
             WsConnection::AxumWs(ref mut axum_ws) =>
                 axum_ws.send(ws::Message::Binary(msg)).await.map_err(|_| WsError::ConnectionClosed),
         }
-    }
-}
-
-// TODO put these in a struct
-async fn recv(socket: &mut WebSocket) -> Option<Vec<u8>> {
-	if let Some(Ok(ws::Message::Binary(msg))) = socket.recv().await {
-        Some(msg)
-    } else {
-        None
-    }
-}
-
-async fn recv_ws_stream(
-    socket: &mut WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>,
-) -> Option<Vec<u8>> {
-    if let Some(Ok(Message::Binary(msg))) = socket.next().await {
-        Some(msg)
-    } else {
-        None
     }
 }
