@@ -2,33 +2,28 @@
 mod broadcaster;
 mod listener;
 mod message;
+mod noise;
 
 use axum::extract::ws::{self, WebSocket};
 use entropy_shared::X25519PublicKey;
 use futures::{future, SinkExt, StreamExt};
 use kvdb::kv_manager::PartyId;
 pub(super) use listener::WsChannels;
-use snow::{params::NoiseParams, Builder};
 use sp_core::{crypto::AccountId32, Bytes};
 use subxt::{ext::sp_core::sr25519, tx::PairSigner};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 use x25519_dalek::PublicKey;
 
+use self::noise::{noise_handshake_initiator, noise_handshake_responder};
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
 use super::{new_party::SignContext, SigningErr};
 use crate::{
     chain_api::EntropyConfig,
     get_signer,
     signing_client::{SigningMessage, SubscribeErr, WsError},
-    validation::{derive_static_secret, SignedMessage},
+    validation::SignedMessage,
     AppState, SignerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
-
-/// The handshake pattern and other parameters
-const NOISE_PARAMS: &str = "Noise_XK_25519_ChaChaPoly_BLAKE2s";
-
-/// This is used in the handshake as context
-const NOISE_PROLOGUE: &[u8; 24] = b"Entropy signing protocol";
 
 /// Set up websocket connections to other members of the signing committee
 pub async fn open_protocol_connections(
@@ -203,79 +198,6 @@ async fn handle_initial_incoming_ws_message(
     Ok((ws_channels, party_id))
 }
 
-async fn noise_handshake_initiator(
-    ws_stream: WsConnection,
-    local_private_key: &sr25519::Pair,
-    remote_public_key: X25519PublicKey,
-    final_message_payload: Vec<u8>,
-) -> Result<EncryptedWsConnection, SigningErr> {
-    let (encrypted_connection, _) = noise_handshake(
-        ws_stream,
-        local_private_key,
-        Some(remote_public_key),
-        Some(final_message_payload),
-    )
-    .await?;
-    Ok(encrypted_connection)
-}
-
-async fn noise_handshake_responder(
-    ws_stream: WsConnection,
-    local_private_key: &sr25519::Pair,
-) -> Result<(EncryptedWsConnection, String), SigningErr> {
-    let (encrypted_connection, output_option) =
-        noise_handshake(ws_stream, local_private_key, None, None).await?;
-    Ok((encrypted_connection, output_option.unwrap()))
-}
-
-async fn noise_handshake(
-    mut ws_stream: WsConnection,
-    local_private_key: &sr25519::Pair,
-    remote_public_key_option: Option<X25519PublicKey>,
-    final_message_payload: Option<Vec<u8>>,
-) -> Result<(EncryptedWsConnection, Option<String>), SigningErr> {
-    let final_message_payload = final_message_payload.unwrap_or_default();
-    let private_key = derive_static_secret(local_private_key).to_bytes();
-
-    let is_initiator = remote_public_key_option.is_some();
-    let params: NoiseParams = NOISE_PARAMS.parse().unwrap();
-    let builder: Builder<'_> =
-        Builder::new(params).local_private_key(&private_key).prologue(NOISE_PROLOGUE);
-
-    let mut noise = if let Some(remote_public_key) = remote_public_key_option {
-        builder.remote_public_key(&remote_public_key).build_initiator().unwrap()
-    } else {
-        builder.build_responder().unwrap()
-    };
-
-    // Used to hold handshake messages
-    let mut buf = vec![0u8; 65535];
-
-    let response = if is_initiator {
-        // Initiator sends first message
-        let len = noise.write_message(&[], &mut buf).unwrap();
-        ws_stream.send(buf[..len].to_vec()).await.map_err(|_| SigningErr::ConnectionClosed)?;
-
-        noise.read_message(&ws_stream.recv().await.unwrap(), &mut buf).unwrap();
-
-        let len = noise.write_message(&final_message_payload, &mut buf).unwrap();
-        ws_stream.send(buf[..len].to_vec()).await.map_err(|_| SigningErr::ConnectionClosed)?;
-        None
-    } else {
-        // Responder reads first message
-        noise.read_message(&ws_stream.recv().await.unwrap(), &mut buf).unwrap();
-
-        let len = noise.write_message(&[], &mut buf).unwrap();
-        ws_stream.send(buf[..len].to_vec()).await.unwrap();
-
-        let len = noise.read_message(&ws_stream.recv().await.unwrap(), &mut buf).unwrap();
-        Some(String::from_utf8(buf[..len].to_vec())?)
-    };
-
-    // Transition the state machine into transport mode now that the handshake is complete.
-    Ok((EncryptedWsConnection::new(ws_stream, noise.into_transport_mode().unwrap()), response))
-}
-
 /// Subscribe to get channels
 fn get_ws_channels(
     state: &SignerState,
@@ -362,7 +284,7 @@ impl EncryptedWsConnection {
 }
 
 // A wrapper around incoming and outgoing Websocket types
-enum WsConnection {
+pub enum WsConnection {
     WsStream(WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>),
     AxumWs(WebSocket),
 }
