@@ -3,8 +3,11 @@ use entropy_shared::X25519PublicKey;
 use snow::{params::NoiseParams, Builder};
 use subxt::ext::sp_core::sr25519;
 
-use super::{EncryptedWsConnection, WsConnection};
-use crate::{signing_client::SigningErr, validation::derive_static_secret};
+use super::WsConnection;
+use crate::{
+    signing_client::{SigningErr, WsError},
+    validation::derive_static_secret,
+};
 
 /// The handshake pattern and other parameters
 const NOISE_PARAMS: &str = "Noise_XK_25519_ChaChaPoly_BLAKE2s";
@@ -85,4 +88,32 @@ async fn noise_handshake(
 
     // Transition the state machine into transport mode now that the handshake is complete.
     Ok((EncryptedWsConnection::new(ws_stream, noise.into_transport_mode().unwrap()), response))
+}
+
+/// Wrapper around ws connection to encrypt and decrypt messages
+pub struct EncryptedWsConnection {
+    ws_connection: WsConnection,
+    noise_transport: snow::TransportState,
+    buf: Vec<u8>,
+}
+
+impl EncryptedWsConnection {
+    fn new(ws_connection: WsConnection, noise_transport: snow::TransportState) -> Self {
+        Self { ws_connection, noise_transport, buf: vec![0u8; 65535] }
+    }
+
+    pub async fn recv(&mut self) -> Result<String, WsError> {
+        let ciphertext = self.ws_connection.recv().await.unwrap();
+        let len = self.noise_transport.read_message(&ciphertext, &mut self.buf).unwrap();
+        Ok(String::from_utf8(self.buf[..len].to_vec())?)
+    }
+
+    pub async fn send(&mut self, msg: String) -> Result<(), WsError> {
+        let len = self.noise_transport.write_message(msg.as_bytes(), &mut self.buf).unwrap();
+        self.ws_connection.send(self.buf[..len].to_vec()).await
+    }
+
+    pub fn remote_public_key(&self) -> X25519PublicKey {
+        self.noise_transport.get_remote_static().unwrap().try_into().unwrap()
+    }
 }

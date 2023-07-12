@@ -14,7 +14,7 @@ use subxt::{ext::sp_core::sr25519, tx::PairSigner};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 use x25519_dalek::PublicKey;
 
-use self::noise::{noise_handshake_initiator, noise_handshake_responder};
+use self::noise::{noise_handshake_initiator, noise_handshake_responder, EncryptedWsConnection};
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
 use super::{new_party::SignContext, SigningErr};
 use crate::{
@@ -252,34 +252,6 @@ async fn ws_to_channels(
                 };
             }
         }
-    }
-}
-
-/// Wrapper around ws connection to encrypt and decrypt messages
-pub struct EncryptedWsConnection {
-    ws_connection: WsConnection,
-    noise_transport: snow::TransportState,
-    buf: Vec<u8>,
-}
-
-impl EncryptedWsConnection {
-    fn new(ws_connection: WsConnection, noise_transport: snow::TransportState) -> Self {
-        Self { ws_connection, noise_transport, buf: vec![0u8; 65535] }
-    }
-
-    async fn recv(&mut self) -> Result<String, WsError> {
-        let ciphertext = self.ws_connection.recv().await.unwrap();
-        let len = self.noise_transport.read_message(&ciphertext, &mut self.buf).unwrap();
-        Ok(String::from_utf8(self.buf[..len].to_vec())?)
-    }
-
-    async fn send(&mut self, msg: String) -> Result<(), WsError> {
-        let len = self.noise_transport.write_message(msg.as_bytes(), &mut self.buf).unwrap();
-        self.ws_connection.send(self.buf[..len].to_vec()).await
-    }
-
-    fn remote_public_key(&self) -> X25519PublicKey {
-        self.noise_transport.get_remote_static().unwrap().try_into().unwrap()
     }
 }
 
