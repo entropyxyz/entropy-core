@@ -2223,6 +2223,7 @@ dependencies = [
  "sp-runtime 7.0.0",
  "sp-statement-store",
  "sp-timestamp",
+ "sp-tracing 6.0.0",
  "sp-transaction-storage-proof",
  "structopt",
  "substrate-build-script-utils",
@@ -6295,6 +6296,7 @@ dependencies = [
  "sp-runtime 7.0.0",
  "sp-staking",
  "sp-std 5.0.0",
+ "sp-tracing 6.0.0",
 ]
 
 [[package]]

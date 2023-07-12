@@ -184,8 +184,11 @@ impl pallet_bags_list::Config for Test {
 pub struct OnChainSeqPhragmen;
 impl onchain::Config for OnChainSeqPhragmen {
     type DataProvider = Staking;
+    type MaxWinners = ConstU32<100>;
     type Solver = SequentialPhragmen<AccountId, Perbill>;
     type System = Test;
+    type TargetsBound = ConstU32<{ u32::MAX }>;
+    type VotersBound = ConstU32<{ u32::MAX }>;
     type WeightInfo = ();
 }
 
@@ -196,12 +199,13 @@ impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
 }
 
 impl pallet_staking::Config for Test {
+    type AdminOrigin = frame_system::EnsureRoot<Self::AccountId>;
     type BenchmarkingConfig = StakingBenchmarkingConfig;
     type BondingDuration = BondingDuration;
     type Currency = Balances;
     type CurrencyBalance = Balance;
     type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
-    type ElectionProvider = onchain::UnboundedExecution<OnChainSeqPhragmen>;
+    type ElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
     type GenesisElectionProvider = Self::ElectionProvider;
     type HistoryDepth = ConstU32<84>;
@@ -217,7 +221,6 @@ impl pallet_staking::Config for Test {
     type SessionInterface = Self;
     type SessionsPerEra = SessionsPerEra;
     type Slash = ();
-    type SlashCancelOrigin = frame_system::EnsureRoot<Self::AccountId>;
     type SlashDeferDuration = SlashDeferDuration;
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = pallet_timestamp::Pallet<Test>;
@@ -234,6 +237,10 @@ impl pallet_balances::Config for Test {
     type Balance = Balance;
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
+    type FreezeIdentifier = ();
+    type HoldIdentifier = ();
+    type MaxFreezes = ();
+    type MaxHolds = ();
     type MaxLocks = ();
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];

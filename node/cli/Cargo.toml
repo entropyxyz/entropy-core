@@ -83,6 +83,7 @@ sc-service-test={ version="2.0.0", git='https://github.com/paritytech/substrate.
 [dev-dependencies]
 sc-service-test={ version="2.0.0", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.43" }
 tempfile       ="3.1.0"
+sp-tracing     ={ version="6.0.0", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.43" }
 
 [dependencies.entropy-runtime]
 path   ='../../runtime'
