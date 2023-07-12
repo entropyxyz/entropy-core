@@ -128,17 +128,11 @@ pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) -> Result
 
     let mut buf = vec![0u8; 65535];
 
-    println!("server writing msg 1");
     let len = noise.write_message(&[0u8; 0], &mut buf).unwrap();
     socket.send(ws::Message::Binary(buf[..len].to_vec())).await?;
 
-    println!("server reading msg 1");
     noise.read_message(&recv(&mut socket).await.unwrap(), &mut buf).unwrap();
 
-    // println!("server writing msg 2");
-    // noise.read_message(&recv(&mut socket).await.unwrap(), &mut buf).unwrap();
-
-    println!("server done");
     // Transition the state machine into transport mode now that the handshake is complete.
     let noise = noise.into_transport_mode().unwrap();
 
@@ -344,11 +338,9 @@ impl WsConnection {
     }
 }
 
+// TODO put these in a struct
 async fn recv(socket: &mut WebSocket) -> Option<Vec<u8>> {
-    let next_message = socket.recv().await;
-    println!("next: {:?}", next_message);
-    if let Some(Ok(ws::Message::Binary(msg))) = next_message {
-        // if let Some(Ok(ws::Message::Binary(msg))) = socket.recv().await {
+	if let Some(Ok(ws::Message::Binary(msg))) = socket.recv().await {
         Some(msg)
     } else {
         None
@@ -358,9 +350,7 @@ async fn recv(socket: &mut WebSocket) -> Option<Vec<u8>> {
 async fn recv_ws_stream(
     socket: &mut WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>,
 ) -> Option<Vec<u8>> {
-    let next_message = socket.next().await;
-    // if let Some(Ok(Message::Binary(msg))) = socket.next().await {
-    if let Some(Ok(Message::Binary(msg))) = next_message {
+    if let Some(Ok(Message::Binary(msg))) = socket.next().await {
         Some(msg)
     } else {
         None
