@@ -7,6 +7,7 @@ use axum::extract::ws::{self, WebSocket};
 use futures::{future, SinkExt, StreamExt};
 use kvdb::kv_manager::PartyId;
 pub(super) use listener::WsChannels;
+use snow::{params::NoiseParams, Builder};
 use sp_core::{crypto::AccountId32, Bytes};
 use subxt::{ext::sp_core::sr25519, tx::PairSigner};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
@@ -18,9 +19,11 @@ use crate::{
     chain_api::EntropyConfig,
     get_signer,
     signing_client::{SigningMessage, SubscribeErr, WsError},
-    validation::SignedMessage,
+    validation::{derive_static_secret, SignedMessage},
     AppState, SignerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
+
+const NOISE_PARAMS: &str = "Noise_KX_25519_ChaChaPoly_BLAKE2s";
 
 /// Set up websocket connections to other members of the signing committee
 pub async fn open_protocol_connections(
@@ -44,6 +47,24 @@ pub async fn open_protocol_connections(
             // Open a ws connection
             let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
             let (mut ws_stream, _response) = connect_async(ws_endpoint).await?;
+
+            let params: NoiseParams = NOISE_PARAMS.parse().unwrap();
+            let builder: Builder<'_> = Builder::new(params);
+            let mut noise = builder
+                .local_private_key(&derive_static_secret(signer.signer()).to_bytes())
+                .remote_public_key(&validator_info.x25519_public_key)
+                .build_responder()
+                .unwrap();
+
+            let mut buf = vec![0u8; 65535];
+
+            noise.read_message(&recv_ws_stream(&mut ws_stream).await.unwrap(), &mut buf).unwrap();
+
+            let len = noise.write_message(&[], &mut buf).unwrap();
+            ws_stream.send(Message::Binary(buf[..len].to_vec())).await?;
+
+            // Transition the state machine into transport mode now that the handshake is complete.
+            let noise = noise.into_transport_mode().unwrap();
 
             // Send a SubscribeMessage
             let server_public_key = PublicKey::from(validator_info.x25519_public_key);
@@ -73,11 +94,12 @@ pub async fn open_protocol_connections(
 
             let remote_party_id = PartyId::new(validator_info.tss_account.clone());
 
+            let encrypted_connection =
+                EncryptedWsConnection::new(WsConnection::WsStream(ws_stream), noise);
             // Handle protocol messages
             tokio::spawn(async move {
                 if let Err(err) =
-                    ws_to_channels(WsConnection::WsStream(ws_stream), ws_channels, remote_party_id)
-                        .await
+                    ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await
                 {
                     tracing::warn!("{:?}", err);
                 };
@@ -94,6 +116,32 @@ pub async fn open_protocol_connections(
 
 /// Handle an incoming websocket connection
 pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
+    let params: NoiseParams = NOISE_PARAMS.parse().unwrap();
+    let builder: Builder<'_> = Builder::new(params);
+
+    let signer = get_signer(&app_state.kv_store).await?;
+
+    let mut noise = builder
+        .local_private_key(&derive_static_secret(signer.signer()).to_bytes())
+        .build_initiator()
+        .unwrap();
+
+    let mut buf = vec![0u8; 65535];
+
+    println!("server writing msg 1");
+    let len = noise.write_message(&[0u8; 0], &mut buf).unwrap();
+    socket.send(ws::Message::Binary(buf[..len].to_vec())).await?;
+
+    println!("server reading msg 1");
+    noise.read_message(&recv(&mut socket).await.unwrap(), &mut buf).unwrap();
+
+    // println!("server writing msg 2");
+    // noise.read_message(&recv(&mut socket).await.unwrap(), &mut buf).unwrap();
+
+    println!("server done");
+    // Transition the state machine into transport mode now that the handshake is complete.
+    let noise = noise.into_transport_mode().unwrap();
+
     // Get the first message which we expect to be a SubscribeMessage
     if let Some(Ok(ws::Message::Text(serialized_signed_message))) = socket.recv().await {
         let (subscribe_response, ws_channels_option) =
@@ -109,7 +157,9 @@ pub async fn handle_socket(mut socket: WebSocket, app_state: AppState) -> Result
 
         // If it was successful, proceed with relaying signing protocol messages
         if let Some((ws_channels, remote_party_id)) = ws_channels_option {
-            ws_to_channels(WsConnection::AxumWs(socket), ws_channels, remote_party_id).await?;
+            let encrypted_connection =
+                EncryptedWsConnection::new(WsConnection::AxumWs(socket), noise);
+            ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await?;
         };
     };
     Ok(())
@@ -200,14 +250,15 @@ fn get_ws_channels(
 
 /// Send singing protocol messages over websocket, and websocket messages to signing protocol
 async fn ws_to_channels(
-    mut connection: WsConnection,
+    mut connection: EncryptedWsConnection,
     mut ws_channels: WsChannels,
     remote_party_id: PartyId,
 ) -> Result<(), WsError> {
     loop {
         tokio::select! {
             // Incoming message from remote peer
-            Some(serialized_signing_message) = connection.recv() => {
+            // TODO handle Err() case
+            Ok(serialized_signing_message) = connection.recv() => {
                 if let Ok(msg) = SigningMessage::try_from(&serialized_signing_message) {
                     ws_channels.tx.send(msg).await.map_err(|_| WsError::MessageAfterProtocolFinish)?;
                 } else {
@@ -233,6 +284,30 @@ async fn ws_to_channels(
     }
 }
 
+pub struct EncryptedWsConnection {
+    ws_connection: WsConnection,
+    noise_transport: snow::TransportState,
+    buf: Vec<u8>,
+}
+
+impl EncryptedWsConnection {
+    fn new(ws_connection: WsConnection, noise_transport: snow::TransportState) -> Self {
+        Self { ws_connection, noise_transport, buf: vec![0u8; 65535] }
+    }
+
+    // TODO should return error
+    async fn recv(&mut self) -> Result<String, WsError> {
+        let ciphertext = self.ws_connection.recv().await.unwrap();
+        let len = self.noise_transport.read_message(&ciphertext, &mut self.buf).unwrap();
+        Ok(String::from_utf8(self.buf[..len].to_vec())?)
+    }
+
+    async fn send(&mut self, msg: String) -> Result<(), WsError> {
+        let len = self.noise_transport.write_message(msg.as_bytes(), &mut self.buf).unwrap();
+        self.ws_connection.send(self.buf[..len].to_vec()).await
+    }
+}
+
 // A wrapper around incoming and outgoing Websocket types
 enum WsConnection {
     WsStream(WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>),
@@ -240,17 +315,17 @@ enum WsConnection {
 }
 
 impl WsConnection {
-    pub async fn recv(&mut self) -> Option<String> {
+    pub async fn recv(&mut self) -> Option<Vec<u8>> {
         match self {
             WsConnection::WsStream(ref mut ws_stream) => {
-                if let Some(Ok(Message::Text(msg))) = ws_stream.next().await {
+                if let Some(Ok(Message::Binary(msg))) = ws_stream.next().await {
                     Some(msg)
                 } else {
                     None
                 }
             },
             WsConnection::AxumWs(ref mut axum_ws) => {
-                if let Some(Ok(ws::Message::Text(msg))) = axum_ws.recv().await {
+                if let Some(Ok(ws::Message::Binary(msg))) = axum_ws.recv().await {
                     Some(msg)
                 } else {
                     None
@@ -259,12 +334,35 @@ impl WsConnection {
         }
     }
 
-    pub async fn send(&mut self, msg: String) -> Result<(), WsError> {
+    pub async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError> {
         match self {
             WsConnection::WsStream(ref mut ws_stream) =>
-                ws_stream.send(Message::Text(msg)).await.map_err(|_| WsError::ConnectionClosed),
+                ws_stream.send(Message::Binary(msg)).await.map_err(|_| WsError::ConnectionClosed),
             WsConnection::AxumWs(ref mut axum_ws) =>
-                axum_ws.send(ws::Message::Text(msg)).await.map_err(|_| WsError::ConnectionClosed),
+                axum_ws.send(ws::Message::Binary(msg)).await.map_err(|_| WsError::ConnectionClosed),
         }
+    }
+}
+
+async fn recv(socket: &mut WebSocket) -> Option<Vec<u8>> {
+    let next_message = socket.recv().await;
+    println!("next: {:?}", next_message);
+    if let Some(Ok(ws::Message::Binary(msg))) = next_message {
+        // if let Some(Ok(ws::Message::Binary(msg))) = socket.recv().await {
+        Some(msg)
+    } else {
+        None
+    }
+}
+
+async fn recv_ws_stream(
+    socket: &mut WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>,
+) -> Option<Vec<u8>> {
+    let next_message = socket.next().await;
+    // if let Some(Ok(Message::Binary(msg))) = socket.next().await {
+    if let Some(Ok(Message::Binary(msg))) = next_message {
+        Some(msg)
+    } else {
+        None
     }
 }

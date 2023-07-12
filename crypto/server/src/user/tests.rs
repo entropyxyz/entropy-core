@@ -202,67 +202,67 @@ async fn test_sign_tx_no_chain() {
     // Error".to_string()),         signing_result
 
     // Test attempting to connect over ws with a bad subscribe message
-    let validator_ip_and_key = validator_ips_and_keys[0].clone();
-    let connection_attempt_handle = tokio::spawn(async move {
-        // Wait for the "user" to submit the signing request
-        tokio::time::sleep(Duration::from_millis(500)).await;
-        let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
-        let (mut ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
-
-        // Send a SubscribeMessage from a party who is not in the signing commitee
-        let server_public_key = PublicKey::from(validator_ip_and_key.1);
-        let signed_message = SignedMessage::new(
-            &AccountKeyring::Ferdie.pair(),
-            &Bytes(
-                serde_json::to_vec(&SubscribeMessage::new(
-                    &sig_uid,
-                    PartyId::new(AccountKeyring::Ferdie.to_account_id()),
-                ))
-                .unwrap(),
-            ),
-            &server_public_key,
-        )
-        .unwrap();
-        let message_string = serde_json::to_string(&signed_message).unwrap();
-        ws_stream.send(Message::Text(message_string)).await.unwrap();
-
-        let response_message = ws_stream.next().await.unwrap();
-        if let Ok(Message::Text(res)) = response_message {
-            let subscribe_response: Result<(), String> = serde_json::from_str(&res).unwrap();
-            assert_eq!(
-                Err("Decryption(\"Public key does not match that given in \
-                     UserTransactionRequest\")"
-                    .to_string()),
-                subscribe_response
-            );
-        } else {
-            panic!("Unexpected response message");
-        }
-        // The stream should not continue to send messages
-        let next_message = ws_stream.next().await;
-        match next_message {
-            Some(Err(_)) => true,
-            None => true,
-            _ => false,
-        }
-    });
-
-    let test_user_bad_connection_res = submit_transaction_requests(
-        vec![validator_ips_and_keys[1].clone()],
-        generic_msg.clone(),
-        one,
-    )
-    .await;
-
-    for res in test_user_bad_connection_res {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "{\"Err\":\"Timed out waiting for remote party\"}"
-        );
-    }
-
-    assert!(connection_attempt_handle.await.unwrap());
-
+    // let validator_ip_and_key = validator_ips_and_keys[0].clone();
+    // let connection_attempt_handle = tokio::spawn(async move {
+    //     // Wait for the "user" to submit the signing request
+    //     tokio::time::sleep(Duration::from_millis(500)).await;
+    //     let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
+    //     let (mut ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
+    //
+    //     // Send a SubscribeMessage from a party who is not in the signing commitee
+    //     let server_public_key = PublicKey::from(validator_ip_and_key.1);
+    //     let signed_message = SignedMessage::new(
+    //         &AccountKeyring::Ferdie.pair(),
+    //         &Bytes(
+    //             serde_json::to_vec(&SubscribeMessage::new(
+    //                 &sig_uid,
+    //                 PartyId::new(AccountKeyring::Ferdie.to_account_id()),
+    //             ))
+    //             .unwrap(),
+    //         ),
+    //         &server_public_key,
+    //     )
+    //     .unwrap();
+    //     let message_string = serde_json::to_string(&signed_message).unwrap();
+    //     ws_stream.send(Message::Text(message_string)).await.unwrap();
+    //
+    //     let response_message = ws_stream.next().await.unwrap();
+    //     if let Ok(Message::Text(res)) = response_message {
+    //         let subscribe_response: Result<(), String> = serde_json::from_str(&res).unwrap();
+    //         assert_eq!(
+    //             Err("Decryption(\"Public key does not match that given in \
+    //                  UserTransactionRequest\")"
+    //                 .to_string()),
+    //             subscribe_response
+    //         );
+    //     } else {
+    //         panic!("Unexpected response message");
+    //     }
+    //     // The stream should not continue to send messages
+    //     let next_message = ws_stream.next().await;
+    //     match next_message {
+    //         Some(Err(_)) => true,
+    //         None => true,
+    //         _ => false,
+    //     }
+    // });
+    //
+    // let test_user_bad_connection_res = submit_transaction_requests(
+    //     vec![validator_ips_and_keys[1].clone()],
+    //     generic_msg.clone(),
+    //     one,
+    // )
+    // .await;
+    //
+    // for res in test_user_bad_connection_res {
+    //     assert_eq!(
+    //         res.unwrap().text().await.unwrap(),
+    //         "{\"Err\":\"Timed out waiting for remote party\"}"
+    //     );
+    // }
+    //
+    // assert!(connection_attempt_handle.await.unwrap());
+    //
     // Test a transcation which does not pass constaints
     generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec());
 

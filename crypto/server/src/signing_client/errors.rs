@@ -131,4 +131,8 @@ pub enum WsError {
     ConnectionError(#[from] axum::Error),
     #[error("Message received after signing protocol has finished")]
     MessageAfterProtocolFinish,
+    #[error("UTF8 parse error {0}")]
+    UTF8Parse(#[from] FromUtf8Error),
+    #[error("Cannot get signer from app state")]
+    AppState(#[from] crate::user::UserErr),
 }
