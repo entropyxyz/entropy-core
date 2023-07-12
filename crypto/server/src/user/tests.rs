@@ -192,15 +192,6 @@ async fn test_sign_tx_no_chain() {
         "{\"Err\":\"Oneshot timeout error: channel closed\"}"
     );
 
-    // for res in test_user_failed_x25519_pub_key {
-    //     let mut res = res.unwrap();
-    //     assert_eq!(res.status(), 200);
-    //     let chunk = res.chunk().await.unwrap().unwrap();
-    //     let signing_result: Result<String, String> = serde_json::from_slice(&chunk).unwrap();
-    //     assert_eq!(
-    //         Err("reqwest event error: Invalid status code: 500 Internal Server
-    // Error".to_string()),         signing_result
-
     // Test attempting to connect over ws with a bad subscribe message
     // let validator_ip_and_key = validator_ips_and_keys[0].clone();
     // let connection_attempt_handle = tokio::spawn(async move {
