@@ -52,24 +52,7 @@ pub async fn open_protocol_connections(
             // Open a ws connection
             let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
             let (ws_stream, _response) = connect_async(ws_endpoint).await?;
-            let mut ws_stream = WsConnection::WsStream(ws_stream);
-
-            let params: NoiseParams = NOISE_PARAMS.parse().unwrap();
-            let builder: Builder<'_> = Builder::new(params);
-            let mut noise = builder
-                .local_private_key(&derive_static_secret(signer.signer()).to_bytes())
-                .remote_public_key(&validator_info.x25519_public_key)
-                .prologue(NOISE_PROLOGUE)
-                .build_initiator()
-                .unwrap();
-
-            let mut buf = vec![0u8; 65535];
-
-            let len = noise.write_message(&[], &mut buf).unwrap();
-            ws_stream.send(buf[..len].to_vec()).await.map_err(|_| SigningErr::ConnectionClosed)?;
-
-            let _len = noise.read_message(&ws_stream.recv().await.unwrap(), &mut buf).unwrap();
-            // TODO here we could receive a signature and validate it
+            let ws_stream = WsConnection::WsStream(ws_stream);
 
             // Send a SubscribeMessage in the payload of the final handshake message
             let server_public_key = PublicKey::from(validator_info.x25519_public_key);
@@ -80,12 +63,14 @@ pub async fn open_protocol_connections(
             )?;
             let subscribe_message_vec = serde_json::to_vec(&signed_message)?;
 
-            let len = noise.write_message(&subscribe_message_vec, &mut buf).unwrap();
-            ws_stream.send(buf[..len].to_vec()).await.map_err(|_| SigningErr::ConnectionClosed)?;
-
-            // Transition the state machine into transport mode now that the handshake is complete.
-            let mut encrypted_connection =
-                EncryptedWsConnection::new(ws_stream, noise.into_transport_mode().unwrap());
+            let mut encrypted_connection = noise_handshake_initiator(
+                ws_stream,
+                signer.signer(),
+                validator_info.x25519_public_key,
+                subscribe_message_vec,
+            )
+            .await
+            .unwrap();
 
             // Check the response as to whether they accepted our SubscribeMessage
             // TODO this error is not handled correctly
@@ -121,33 +106,14 @@ pub async fn open_protocol_connections(
 
 /// Handle an incoming websocket connection
 pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
-    let mut ws_stream = WsConnection::AxumWs(socket);
-    let params: NoiseParams = NOISE_PARAMS.parse().unwrap();
-    let builder: Builder<'_> = Builder::new(params);
+    let ws_stream = WsConnection::AxumWs(socket);
 
     let signer = get_signer(&app_state.kv_store).await?;
 
-    // Setup a noise HandShakeState
-    let mut noise = builder
-        .local_private_key(&derive_static_secret(signer.signer()).to_bytes())
-        .prologue(NOISE_PROLOGUE)
-        .build_responder()
-        .unwrap();
+    let (mut encrypted_connection, serialized_signed_message) =
+        noise_handshake_responder(ws_stream, signer.signer()).await.unwrap();
 
-    // Used for handshake messages
-    let mut buf = vec![0u8; 65535];
-
-    // We are the responded, so the other party speaks first
-    noise.read_message(&ws_stream.recv().await.unwrap(), &mut buf).unwrap();
-
-    // TODO we could add a signature here to double-authenticate ourself
-    let len = noise.write_message(&[], &mut buf).unwrap();
-    ws_stream.send(buf[..len].to_vec()).await?;
-
-    let len = noise.read_message(&ws_stream.recv().await.unwrap(), &mut buf).unwrap();
-    let serialized_signed_message = String::from_utf8(buf[..len].to_vec())?;
-
-    let remote_public_key: X25519PublicKey = noise.get_remote_static().unwrap().try_into().unwrap();
+    let remote_public_key = encrypted_connection.remote_public_key();
 
     let (subscribe_response, ws_channels_option) = match handle_initial_incoming_ws_message(
         serialized_signed_message,
@@ -159,10 +125,6 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(),
         Ok((ws_channels, party_id)) => (Ok(()), Some((ws_channels, party_id))),
         Err(err) => (Err(format!("{err:?}")), None),
     };
-
-    // Transition the state machine into transport mode now that the handshake is complete.
-    let mut encrypted_connection =
-        EncryptedWsConnection::new(ws_stream, noise.into_transport_mode().unwrap());
 
     // Send them a response as to whether we are happy with their subscribe message
     let subscribe_response_json =
@@ -239,6 +201,79 @@ async fn handle_initial_incoming_ws_message(
         get_ws_channels(&app_state.signer_state, &msg.session_id, &signed_msg.account_id())?;
 
     Ok((ws_channels, party_id))
+}
+
+async fn noise_handshake_initiator(
+    ws_stream: WsConnection,
+    local_private_key: &sr25519::Pair,
+    remote_public_key: X25519PublicKey,
+    final_message_payload: Vec<u8>,
+) -> Result<EncryptedWsConnection, SigningErr> {
+    let (encrypted_connection, _) = noise_handshake(
+        ws_stream,
+        local_private_key,
+        Some(remote_public_key),
+        Some(final_message_payload),
+    )
+    .await?;
+    Ok(encrypted_connection)
+}
+
+async fn noise_handshake_responder(
+    ws_stream: WsConnection,
+    local_private_key: &sr25519::Pair,
+) -> Result<(EncryptedWsConnection, String), SigningErr> {
+    let (encrypted_connection, output_option) =
+        noise_handshake(ws_stream, local_private_key, None, None).await?;
+    Ok((encrypted_connection, output_option.unwrap()))
+}
+
+async fn noise_handshake(
+    mut ws_stream: WsConnection,
+    local_private_key: &sr25519::Pair,
+    remote_public_key_option: Option<X25519PublicKey>,
+    final_message_payload: Option<Vec<u8>>,
+) -> Result<(EncryptedWsConnection, Option<String>), SigningErr> {
+    let final_message_payload = final_message_payload.unwrap_or_default();
+    let private_key = derive_static_secret(local_private_key).to_bytes();
+
+    let is_initiator = remote_public_key_option.is_some();
+    let params: NoiseParams = NOISE_PARAMS.parse().unwrap();
+    let builder: Builder<'_> =
+        Builder::new(params).local_private_key(&private_key).prologue(NOISE_PROLOGUE);
+
+    let mut noise = if let Some(remote_public_key) = remote_public_key_option {
+        builder.remote_public_key(&remote_public_key).build_initiator().unwrap()
+    } else {
+        builder.build_responder().unwrap()
+    };
+
+    // Used to hold handshake messages
+    let mut buf = vec![0u8; 65535];
+
+    let response = if is_initiator {
+        // Initiator sends first message
+        let len = noise.write_message(&[], &mut buf).unwrap();
+        ws_stream.send(buf[..len].to_vec()).await.map_err(|_| SigningErr::ConnectionClosed)?;
+
+        noise.read_message(&ws_stream.recv().await.unwrap(), &mut buf).unwrap();
+
+        let len = noise.write_message(&final_message_payload, &mut buf).unwrap();
+        ws_stream.send(buf[..len].to_vec()).await.map_err(|_| SigningErr::ConnectionClosed)?;
+        None
+    } else {
+        // Responder reads first message
+        noise.read_message(&ws_stream.recv().await.unwrap(), &mut buf).unwrap();
+
+        let len = noise.write_message(&[], &mut buf).unwrap();
+        ws_stream.send(buf[..len].to_vec()).await.unwrap();
+
+        let len = noise.read_message(&ws_stream.recv().await.unwrap(), &mut buf).unwrap();
+        Some(String::from_utf8(buf[..len].to_vec())?)
+    };
+
+    // Transition the state machine into transport mode now that the handshake is complete.
+    Ok((EncryptedWsConnection::new(ws_stream, noise.into_transport_mode().unwrap()), response))
 }
 
 /// Subscribe to get channels
@@ -319,6 +354,10 @@ impl EncryptedWsConnection {
     async fn send(&mut self, msg: String) -> Result<(), WsError> {
         let len = self.noise_transport.write_message(msg.as_bytes(), &mut self.buf).unwrap();
         self.ws_connection.send(self.buf[..len].to_vec()).await
+    }
+
+    fn remote_public_key(&self) -> X25519PublicKey {
+        self.noise_transport.get_remote_static().unwrap().try_into().unwrap()
     }
 }
 
