@@ -53,7 +53,6 @@ pub mod pallet {
         <<T as Config>::Currency as Currency<<T as SystemConfig>::AccountId>>::Balance;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -141,6 +140,7 @@ pub mod pallet {
         /// If the members of `new_constraints` are `None`, those constraints will be removed.
         /// Must be sent from a constraint-modification account.
         /// TODO update weights
+        #[pallet::call_index(0)]
         #[pallet::weight({
             let (evm_acl_len, btc_acl_len) = Pallet::<T>::constraint_weight_values(new_constraints);
             <T as Config>::WeightInfo::update_constraints(evm_acl_len, btc_acl_len)
@@ -168,6 +168,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[pallet::call_index(1)]
         #[pallet::weight({<T as Config>::WeightInfo::update_v2_constraints()})]
         pub fn update_v2_constraints(
             origin: OriginFor<T>,
