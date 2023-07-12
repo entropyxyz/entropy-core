@@ -1,13 +1,17 @@
-use std::{env, fs, net::SocketAddrV4, path::PathBuf, str::FromStr, sync::Arc};
+use std::{env, fs, net::SocketAddrV4, path::PathBuf, str::FromStr, sync::Arc, time::Duration};
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{Acl, Constraints};
 use ethers_core::types::{Address, TransactionRequest};
-use futures::{future::join_all, join, Future};
+use futures::{future::join_all, join, Future, SinkExt, StreamExt};
 use hex_literal::hex as h;
-use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
+use kvdb::{
+    clean_tests,
+    encrypted_sled::PasswordMethod,
+    kv_manager::{value::KvManager, PartyId},
+};
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::{crypto::Ss58Codec, sr25519, Bytes, Pair, H160};
@@ -20,6 +24,7 @@ use testing_utils::{
     },
 };
 use tokio::task::JoinHandle;
+use tokio_tungstenite::{connect_async, tungstenite::Message};
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::UserInputPartyInfo;
@@ -39,8 +44,7 @@ use crate::{
     },
     load_kv_store, new_user,
     r#unsafe::api::UnsafeQuery,
-    signing_client::SignerState,
-    subscribe_to_me,
+    signing_client::{SignerState, SubscribeMessage},
     user::api::{UserTransactionRequest, ValidatorInfo},
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
@@ -101,6 +105,9 @@ async fn test_sign_tx_no_chain() {
     ];
     let converted_transaction_request: String =
         hex::encode(&transaction_request.rlp_unsigned().to_vec());
+
+    let signing_address = one.clone().to_account_id().to_ss58check();
+    let sig_uid = create_unique_tx_id(&signing_address, &hex::encode(&sig_hash));
 
     let mut generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),
@@ -163,22 +170,100 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    generic_msg.validators_info[0].x25519_public_key = [0; 32];
+    let mut generic_msg_bad_validators = generic_msg.clone();
+    generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
 
-    let test_user_failed_x25519_pub_key =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+    let test_user_failed_x25519_pub_key = submit_transaction_requests(
+        validator_ips_and_keys.clone(),
+        generic_msg_bad_validators,
+        one,
+    )
+    .await;
 
-    for res in test_user_failed_x25519_pub_key {
-        let mut res = res.unwrap();
-        assert_eq!(res.status(), 200);
-        let chunk = res.chunk().await.unwrap().unwrap();
-        let signing_result: Result<String, String> = serde_json::from_slice(&chunk).unwrap();
+    let mut responses = test_user_failed_x25519_pub_key.into_iter();
+    assert_eq!(
+        responses.next().unwrap().unwrap().text().await.unwrap(),
+        "{\"Err\":\"Subscribe message rejected: Decryption(\\\"Public key does not match that \
+         given in UserTransactionRequest\\\")\"}"
+    );
+
+    assert_eq!(
+        responses.next().unwrap().unwrap().text().await.unwrap(),
+        "{\"Err\":\"Oneshot timeout error: channel closed\"}"
+    );
+
+    // for res in test_user_failed_x25519_pub_key {
+    //     let mut res = res.unwrap();
+    //     assert_eq!(res.status(), 200);
+    //     let chunk = res.chunk().await.unwrap().unwrap();
+    //     let signing_result: Result<String, String> = serde_json::from_slice(&chunk).unwrap();
+    //     assert_eq!(
+    //         Err("reqwest event error: Invalid status code: 500 Internal Server
+    // Error".to_string()),         signing_result
+
+    // Test attempting to connect over ws with a bad subscribe message
+    let validator_ip_and_key = validator_ips_and_keys[0].clone();
+    let connection_attempt_handle = tokio::spawn(async move {
+        // Wait for the "user" to submit the signing request
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
+        let (mut ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
+
+        // Send a SubscribeMessage from a party who is not in the signing commitee
+        let server_public_key = PublicKey::from(validator_ip_and_key.1);
+        let signed_message = SignedMessage::new(
+            &AccountKeyring::Ferdie.pair(),
+            &Bytes(
+                serde_json::to_vec(&SubscribeMessage::new(
+                    &sig_uid,
+                    PartyId::new(AccountKeyring::Ferdie.to_account_id()),
+                ))
+                .unwrap(),
+            ),
+            &server_public_key,
+        )
+        .unwrap();
+        let message_string = serde_json::to_string(&signed_message).unwrap();
+        ws_stream.send(Message::Text(message_string)).await.unwrap();
+
+        let response_message = ws_stream.next().await.unwrap();
+        if let Ok(Message::Text(res)) = response_message {
+            let subscribe_response: Result<(), String> = serde_json::from_str(&res).unwrap();
+            assert_eq!(
+                Err("Decryption(\"Public key does not match that given in \
+                     UserTransactionRequest\")"
+                    .to_string()),
+                subscribe_response
+            );
+        } else {
+            panic!("Unexpected response message");
+        }
+        // The stream should not continue to send messages
+        let next_message = ws_stream.next().await;
+        match next_message {
+            Some(Err(_)) => true,
+            None => true,
+            _ => false,
+        }
+    });
+
+    let test_user_bad_connection_res = submit_transaction_requests(
+        vec![validator_ips_and_keys[1].clone()],
+        generic_msg.clone(),
+        one,
+    )
+    .await;
+
+    for res in test_user_bad_connection_res {
         assert_eq!(
-            Err("reqwest event error: Invalid status code: 500 Internal Server Error".to_string()),
-            signing_result
+            res.unwrap().text().await.unwrap(),
+            "{\"Err\":\"Timed out waiting for remote party\"}"
         );
     }
 
+    assert!(connection_attempt_handle.await.unwrap());
+
+    // Test a transcation which does not pass constaints
     generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec());
 
     let test_user_failed_constraints_res =
@@ -191,6 +276,7 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
+    // Test unsupported transaction type
     generic_msg.arch = "btc".to_string();
     let test_user_failed_arch_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -201,6 +287,7 @@ async fn test_sign_tx_no_chain() {
             "Parse error: Unknown \"arch\". Must be one of: [\"evm\"]"
         );
     }
+
     let sig_request = SigMessage { message: hex::encode(sig_hash.clone()) };
     let mock_client = reqwest::Client::new();
 
