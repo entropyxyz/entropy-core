@@ -94,7 +94,8 @@ pub async fn sign_tx(
     let signing_address_converted =
         AccountId32::from_str(&signing_address).map_err(UserErr::StringError)?;
     // TODO go back over to simplify accountID type
-    let second_signing_address_conversion = SubxtAccountId32::from_str(&signing_address).map_err(|_| UserErr::StringError("Account Conversion"))?;
+    let second_signing_address_conversion = SubxtAccountId32::from_str(&signing_address)
+        .map_err(|_| UserErr::StringError("Account Conversion"))?;
     is_registered(&api, &second_signing_address_conversion).await?;
 
     let decrypted_message =
@@ -164,7 +165,8 @@ pub async fn new_user(
     let signer = get_signer(&app_state.kv_store).await?;
     // Checks if the user has registered onchain first.
     let key = signed_msg.account_id();
-    let signing_address_conversion = SubxtAccountId32::from_str(&key.to_ss58check()).map_err(|_| UserErr::StringError("Account Conversion"))?;
+    let signing_address_conversion = SubxtAccountId32::from_str(&key.to_ss58check())
+        .map_err(|_| UserErr::StringError("Account Conversion"))?;
 
     let is_swapping = register_info(&api, &signing_address_conversion).await?;
 

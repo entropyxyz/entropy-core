@@ -111,7 +111,7 @@ mod multiplier_tests {
         let test_set = vec![
             (Weight::zero(), fm),
             (Weight::from_parts(100, 0), fm),
-			(Weight::from_parts(1000, 0), fm),
+            (Weight::from_parts(1000, 0), fm),
             (target(), fm),
             (max_normal() / 2, fm),
             (max_normal(), fm),
