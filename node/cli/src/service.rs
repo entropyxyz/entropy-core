@@ -195,7 +195,7 @@ pub fn new_partial(
 
     let (grandpa_block_import, grandpa_link) = grandpa::block_import(
         client.clone(),
-        &(client.clone() as Arc<_>),
+        &(client as Arc<_>),
         select_chain.clone(),
         telemetry.as_ref().map(|x| x.handle()),
     )?;
@@ -573,7 +573,7 @@ pub fn new_full_base(
     let statement_handler = statement_handler_proto.build(
         network.clone(),
         sync_service.clone(),
-        statement_store.clone(),
+        statement_store,
         prometheus_registry.as_ref(),
         statement_protocol_executor,
     )?;
