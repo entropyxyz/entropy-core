@@ -139,4 +139,8 @@ pub enum WsError {
     Tungstenite(#[from] tokio_tungstenite::tungstenite::Error),
     #[error("Encrypted connection error {0}")]
     EncryptedConnection(String),
+    #[error("Error parsing Signing Message")]
+    SigningMessage(#[from] SigningMessageError),
+    #[error("Serialization Error: {0:?}")]
+    Serialization(#[from] serde_json::Error),
 }

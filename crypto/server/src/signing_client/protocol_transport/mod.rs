@@ -236,14 +236,10 @@ async fn ws_to_channels(
     loop {
         tokio::select! {
             // Incoming message from remote peer
-            // TODO handle Err() case
-            Ok(serialized_signing_message) = connection.recv() => {
-                if let Ok(msg) = SigningMessage::try_from(&serialized_signing_message) {
-                    ws_channels.tx.send(msg).await.map_err(|_| WsError::MessageAfterProtocolFinish)?;
-                } else {
-                    tracing::warn!("Could not deserialize signing protocol message - ignoring");
-                    // close connection?
-                };
+            signing_message_result = connection.recv() => {
+                let serialized_signing_message = signing_message_result.map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
+                let msg = SigningMessage::try_from(&serialized_signing_message)?;
+                ws_channels.tx.send(msg).await.map_err(|_| WsError::MessageAfterProtocolFinish)?;
             }
             // Outgoing message (from signing protocol to remote peer)
             Ok(msg) = ws_channels.broadcast.recv() => {
@@ -253,11 +249,10 @@ async fn ws_to_channels(
                         continue;
                     }
                 }
-                if let Ok(message_string) = serde_json::to_string(&msg) {
-                    // TODO if this fails, the ws connection has been dropped during the protocol
-                    // we should inform the chain of this.
-                    connection.send(message_string).await.map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
-                };
+                let message_string = serde_json::to_string(&msg)?;
+                // TODO if this fails, the ws connection has been dropped during the protocol
+                // we should inform the chain of this.
+                connection.send(message_string).await.map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
             }
         }
     }
