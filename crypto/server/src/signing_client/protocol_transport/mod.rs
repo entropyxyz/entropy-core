@@ -2,7 +2,7 @@
 mod broadcaster;
 mod listener;
 mod message;
-mod noise;
+pub mod noise;
 
 use axum::extract::ws::{self, WebSocket};
 use entropy_shared::X25519PublicKey;
@@ -64,13 +64,11 @@ pub async fn open_protocol_connections(
                 validator_info.x25519_public_key,
                 subscribe_message_vec,
             )
-            .await
-            .unwrap();
+            .await.map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
 
             // Check the response as to whether they accepted our SubscribeMessage
-            // TODO this error is not handled correctly
             let response_message =
-                encrypted_connection.recv().await.map_err(|_| SigningErr::ConnectionClosed)?;
+                encrypted_connection.recv().await.map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
             let subscribe_response: Result<(), String> = serde_json::from_str(&response_message)?;
             if let Err(error_message) = subscribe_response {
                 return Err(SigningErr::BadSubscribeMessage(error_message));
@@ -106,9 +104,12 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(),
     let signer = get_signer(&app_state.kv_store).await?;
 
     let (mut encrypted_connection, serialized_signed_message) =
-        noise_handshake_responder(ws_stream, signer.signer()).await.unwrap();
+        noise_handshake_responder(ws_stream, signer.signer()).await
+        .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
 
-    let remote_public_key = encrypted_connection.remote_public_key();
+    let remote_public_key = encrypted_connection
+        .remote_public_key()
+        .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
 
     let (subscribe_response, ws_channels_option) = match handle_initial_incoming_ws_message(
         serialized_signed_message,
@@ -124,7 +125,10 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(),
     // Send them a response as to whether we are happy with their subscribe message
     let subscribe_response_json =
         serde_json::to_string(&subscribe_response).map_err(|_| WsError::ConnectionClosed)?;
-    encrypted_connection.send(subscribe_response_json).await?;
+    encrypted_connection
+        .send(subscribe_response_json)
+        .await
+        .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
 
     // If it was successful, proceed with relaying signing protocol messages
     if let Some((ws_channels, remote_party_id)) = ws_channels_option {
@@ -248,7 +252,7 @@ async fn ws_to_channels(
                 if let Ok(message_string) = serde_json::to_string(&msg) {
                     // TODO if this fails, the ws connection has been dropped during the protocol
                     // we should inform the chain of this.
-                    connection.send(message_string).await?;
+                    connection.send(message_string).await.map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
                 };
             }
         }
@@ -262,21 +266,24 @@ pub enum WsConnection {
 }
 
 impl WsConnection {
-    // TODO should return Result, not option
-    pub async fn recv(&mut self) -> Option<Vec<u8>> {
+    pub async fn recv(&mut self) -> Result<Vec<u8>, WsError> {
         match self {
             WsConnection::WsStream(ref mut ws_stream) => {
-                if let Some(Ok(Message::Binary(msg))) = ws_stream.next().await {
-                    Some(msg)
+                if let Message::Binary(msg) =
+                    ws_stream.next().await.ok_or(WsError::ConnectionClosed)??
+                {
+                    Ok(msg)
                 } else {
-                    None
+                    Err(WsError::UnexpectedMessageType)
                 }
             },
             WsConnection::AxumWs(ref mut axum_ws) => {
-                if let Some(Ok(ws::Message::Binary(msg))) = axum_ws.recv().await {
-                    Some(msg)
+                if let ws::Message::Binary(msg) =
+                    axum_ws.recv().await.ok_or(WsError::ConnectionClosed)??
+                {
+                    Ok(msg)
                 } else {
-                    None
+                    Err(WsError::UnexpectedMessageType)
                 }
             },
         }

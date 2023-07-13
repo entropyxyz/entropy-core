@@ -65,8 +65,6 @@ pub enum SigningErr {
     Mnemonic(String),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
-    #[error("Connection closed unexpectedly")]
-    ConnectionClosed,
     #[error("Subscribe message rejected: {0}")]
     BadSubscribeMessage(String),
     #[error("From Hex Error: {0}")]
@@ -77,6 +75,8 @@ pub enum SigningErr {
     ConnectionError(#[from] tokio_tungstenite::tungstenite::Error),
     #[error("Timed out waiting for remote party")]
     Timeout(#[from] tokio::time::error::Elapsed),
+    #[error("Encrypted connection error {0}")]
+    EncryptedConnection(String),
 }
 
 impl IntoResponse for SigningErr {
@@ -133,4 +133,10 @@ pub enum WsError {
     UTF8Parse(#[from] FromUtf8Error),
     #[error("Cannot get signer from app state")]
     AppState(#[from] crate::user::UserErr),
+    #[error("Unexpected message type")]
+    UnexpectedMessageType,
+    #[error("Client connection error: {0}")]
+    Tungstenite(#[from] tokio_tungstenite::tungstenite::Error),
+    #[error("Encrypted connection error {0}")]
+    EncryptedConnection(String),
 }
