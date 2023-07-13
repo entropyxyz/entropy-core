@@ -115,12 +115,12 @@ impl EncryptedWsConnection {
 
     /// Get the remote party's public encryption key
     pub fn remote_public_key(&self) -> Result<X25519PublicKey, EncryptedConnectionError> {
-        Ok(self
+        self
             .noise_transport
             .get_remote_static()
             .ok_or(EncryptedConnectionError::RemotePublicKey)?
             .try_into()
-            .map_err(|_| EncryptedConnectionError::RemotePublicKey)?)
+            .map_err(|_| EncryptedConnectionError::RemotePublicKey)
     }
 }
 
