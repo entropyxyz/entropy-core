@@ -99,21 +99,21 @@ pub struct EncryptedWsConnection {
 }
 
 impl EncryptedWsConnection {
-	/// Receive and decrypt the next message
+    /// Receive and decrypt the next message
     pub async fn recv(&mut self) -> Result<String, EncryptedConnectionError> {
         let ciphertext = self.ws_connection.recv().await?;
         let len = self.noise_transport.read_message(&ciphertext, &mut self.buf)?;
         Ok(String::from_utf8(self.buf[..len].to_vec())?)
     }
 
-	/// Encrypt and send a message
+    /// Encrypt and send a message
     pub async fn send(&mut self, msg: String) -> Result<(), EncryptedConnectionError> {
         let len = self.noise_transport.write_message(msg.as_bytes(), &mut self.buf)?;
         self.ws_connection.send(self.buf[..len].to_vec()).await?;
         Ok(())
     }
 
-	/// Get the remote party's public encryption key
+    /// Get the remote party's public encryption key
     pub fn remote_public_key(&self) -> Result<X25519PublicKey, EncryptedConnectionError> {
         Ok(self
             .noise_transport

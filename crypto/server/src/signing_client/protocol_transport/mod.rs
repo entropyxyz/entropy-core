@@ -64,11 +64,14 @@ pub async fn open_protocol_connections(
                 validator_info.x25519_public_key,
                 subscribe_message_vec,
             )
-            .await.map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
+            .await
+            .map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
 
             // Check the response as to whether they accepted our SubscribeMessage
-            let response_message =
-                encrypted_connection.recv().await.map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
+            let response_message = encrypted_connection
+                .recv()
+                .await
+                .map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
             let subscribe_response: Result<(), String> = serde_json::from_str(&response_message)?;
             if let Err(error_message) = subscribe_response {
                 return Err(SigningErr::BadSubscribeMessage(error_message));
@@ -104,8 +107,9 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(),
     let signer = get_signer(&app_state.kv_store).await?;
 
     let (mut encrypted_connection, serialized_signed_message) =
-        noise_handshake_responder(ws_stream, signer.signer()).await
-        .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
+        noise_handshake_responder(ws_stream, signer.signer())
+            .await
+            .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
 
     let remote_public_key = encrypted_connection
         .remote_public_key()
