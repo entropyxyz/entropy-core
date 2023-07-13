@@ -179,6 +179,24 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
+    // Bad Account ID - an account ID is given which is not in the signing group
+    let mut generic_msg_bad_account_id = generic_msg.clone();
+    generic_msg_bad_account_id.validators_info[0].tss_account =
+        AccountKeyring::Dave.to_account_id();
+
+    let test_user_failed_tss_account = submit_transaction_requests(
+        validator_ips_and_keys.clone(),
+        generic_msg_bad_account_id,
+        one,
+    )
+    .await;
+
+    for res in test_user_failed_tss_account {
+        let res = res.unwrap();
+        assert_eq!(res.status(), 500);
+        assert_eq!(res.text().await.unwrap(), "Invalid Signer: Invalid Signer in Signing group");
+    }
+
     generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec());
 
     let test_user_failed_constraints_res =
