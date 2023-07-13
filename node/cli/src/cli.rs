@@ -24,6 +24,7 @@ pub struct Cli {
     pub storage_monitor: sc_storage_monitor::StorageMonitorParams,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
     /// Key management cli utilities

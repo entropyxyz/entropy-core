@@ -106,7 +106,7 @@ pub async fn sign_tx(
         <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
     let sig_hash = hex::encode(parsed_tx.sighash());
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
-    check_signing_group(subgroup_signers, &signer.account_id())?;
+    check_signing_group(subgroup_signers, signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
     match user_tx_req.arch.as_str() {
         "evm" => {
@@ -216,7 +216,7 @@ pub async fn confirm_registered(
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
-    let registration_tx = entropy::tx().relayer().confirm_register(who.into(), subgroup);
+    let registration_tx = entropy::tx().relayer().confirm_register(who, subgroup);
     let _ = api
         .tx()
         .sign_and_submit_then_watch_default(&registration_tx, signer)

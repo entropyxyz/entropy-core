@@ -130,6 +130,7 @@ pub fn create_extrinsic(
 }
 
 /// Creates a new partial node.
+#[allow(clippy::type_complexity)]
 pub fn new_partial(
     config: &Configuration,
 ) -> Result<
@@ -167,7 +168,7 @@ pub fn new_partial(
         })
         .transpose()?;
 
-    let executor = sc_service::new_native_or_wasm_executor(&config);
+    let executor = sc_service::new_native_or_wasm_executor(config);
 
     let (client, backend, keystore_container, task_manager) =
         sc_service::new_full_parts::<Block, RuntimeApi, _>(
@@ -327,7 +328,7 @@ pub fn new_full_base(
 ) -> Result<NewFullBase, ServiceError> {
     let hwbench = (!disable_hardware_benchmarks)
         .then_some(config.database.path().map(|database_path| {
-            let _ = std::fs::create_dir_all(&database_path);
+            let _ = std::fs::create_dir_all(database_path);
             sc_sysinfo::gather_hwbench(Some(database_path))
         }))
         .flatten();
@@ -356,7 +357,7 @@ pub fn new_full_base(
     ));
 
     let statement_handler_proto = sc_network_statement::StatementHandlerPrototype::new(
-        client.block_hash(0u32.into()).ok().flatten().expect("Genesis block exists; qed"),
+        client.block_hash(0u32).ok().flatten().expect("Genesis block exists; qed"),
         config.chain_spec.fork_id(),
     );
     net_config.add_notification_protocol(statement_handler_proto.set_config());
