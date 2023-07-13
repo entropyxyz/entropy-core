@@ -1,88 +1,32 @@
 use std::str;
 
 use axum::{
-    extract::State,
+    extract::{
+        ws::{WebSocket, WebSocketUpgrade},
+        State,
+    },
     http::StatusCode,
-    response::sse::{Event, Sse},
+    response::IntoResponse,
     Json,
 };
-use futures::stream::Stream;
-use kvdb::kv_manager::PartyId;
-use sp_core::crypto::AccountId32;
 
-use crate::{
-    get_signer,
-    signing_client::{
-        subscribe::{Listener, Receiver},
-        SubscribeErr, SubscribeMessage,
-    },
-    validation::SignedMessage,
-    AppState,
-};
+use crate::{signing_client::protocol_transport::handle_socket, AppState};
 
-const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
+pub const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 
-// /// Other nodes in the party call this method to subscribe to this node's broadcasts.
-// /// The SigningProtocol begins when all nodes in the party have called this method on this node.
-#[axum_macros::debug_handler]
-pub async fn subscribe_to_me(
+/// Handle an incoming websocket connection
+pub async fn ws_handler(
     State(app_state): State<AppState>,
-    signed_msg: Json<SignedMessage>,
-) -> Result<Sse<impl Stream<Item = Result<Event, SubscribeErr>>>, SubscribeErr> {
-    if !signed_msg.verify() {
-        return Err(SubscribeErr::InvalidSignature("Invalid signature."));
-    }
-    let signer = get_signer(&app_state.kv_store)
-        .await
-        .map_err(|e| SubscribeErr::UserError(e.to_string()))?;
+    ws: WebSocketUpgrade,
+) -> impl IntoResponse {
+    ws.on_upgrade(move |socket| handle_socket_result(socket, app_state))
+}
 
-    let decrypted_message =
-        signed_msg.decrypt(signer.signer()).map_err(|e| SubscribeErr::Decryption(e.to_string()))?;
-    let msg: SubscribeMessage = serde_json::from_slice(&decrypted_message)?;
-
-    tracing::info!("got subscribe, with message: {msg:?}");
-
-    let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
-
-    let signing_address = AccountId32::new(signed_msg.account_id().into());
-
-    // TODO: should we also check if party_id is in signing group -> limited spots in steam so yes
-    if PartyId::new(signing_address) != party_id {
-        return Err(SubscribeErr::InvalidSignature("Signature does not match party id."));
-    }
-
-    if !app_state.signer_state.contains_listener(&msg.session_id)? {
-        // Chain node hasn't yet informed this node of the party. Wait for a timeout and proceed
-        // or fail below
-        tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
+async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
+    if let Err(err) = handle_socket(socket, app_state).await {
+        tracing::warn!("Websocket connection closed unexpectedly {:?}", err);
+        // TODO here we should inform the chain that signing failed
     };
-
-    let rx = {
-        let mut listeners = app_state
-            .signer_state
-            .listeners
-            .lock()
-            .map_err(|e| SubscribeErr::LockError(e.to_string()))?;
-        let listener =
-            listeners.get_mut(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
-        let rx_outcome = listener.subscribe(party_id)?;
-
-        // If this is the last subscriber, remove the listener from state
-        match rx_outcome {
-            Receiver::Receiver(rx) => rx,
-            Receiver::FinalReceiver(rx) => {
-                // all subscribed, wake up the waiting listener in new_party
-                let listener = listeners
-                    .remove(&msg.session_id)
-                    .ok_or(SubscribeErr::NoListener("listener remove"))?;
-                let (tx, broadcaster) = listener.into_broadcaster();
-                let _ = tx.send(Ok(broadcaster));
-                rx
-            },
-        }
-    };
-
-    Ok(Listener::create_event_stream(rx))
 }
 
 use serde::{Deserialize, Serialize};

@@ -39,6 +39,20 @@
 //! [`UserTransactionRequest`](crate::user::api::UserTransactionRequest) encryted in a
 //! `SignedMessage`.
 //!
+//! The response is chunked response stream. If the `UserTransactionRequest` could be processed, a
+//! success response header is sent.  Then the signing protocol runs. When the it finishes, a single
+//! message will be sent on the response stream with the result.
+//!
+//! If everything went well, the message will be a JSON object with a signle property "Ok"
+//! containing a base64 encoded signature, for example:
+//!
+//! `{"Ok":"BnJRjRUw9+trW36bK7S2KglY+TG5rGn1e3FKQlJYvx+jai7wG5Z0BWPFGYPxAwB5yROUOnucuzXoG7TrI7QNIAE="}`
+//!
+//! Otherwise, the message will be a JSON object with a signle property "Err" containing an error
+//! message, for example:
+//!
+//! `{"Err":"reqwest event error: Invalid status code: 500 Internal Server Error"}`
+//!
 //! Curl example for `user/sign_tx`:
 //! ```text
 //! curl -X POST -H "Content-Type: application/json" \
@@ -98,8 +112,8 @@
 //!
 //! ### For other instances of the threshold server
 //!
-//! - [`/signer/subscribe_to_me`](crate::signing_client::api::subscribe_to_me()) - POST - Called by
-//! other threshold servers when the signing procotol is initiated.
+//! - [`/ws`](crate::signing_client::api::ws_handler()) - Websocket server for signing protocol
+//! messages. This is opened by other threshold servers when the signing procotol is initiated.
 //! - [`/validator/sync_kvdb`](crate::validator::api::sync_kvdb()) - POST - Called by another
 //! threshold server when joining to get the key-shares from a member of their sub-group.
 //!
@@ -141,7 +155,7 @@ use axum::{
     Router,
 };
 use clap::Parser;
-use entropy_shared::{MIN_BALANCE, SIGNING_PARTY_SIZE};
+use entropy_shared::MIN_BALANCE;
 use kvdb::kv_manager::KvManager;
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -254,11 +268,11 @@ pub fn app(app_state: AppState) -> Router {
     let mut routes = Router::new()
         .route("/user/sign_tx", post(sign_tx))
         .route("/user/new", post(new_user))
-        .route("/signer/subscribe_to_me", post(subscribe_to_me))
         .route("/signer/signature", post(get_signature))
         .route("/signer/drain", get(drain))
         .route("/validator/sync_kvdb", post(sync_kvdb))
-        .route("/healthz", get(healthz));
+        .route("/healthz", get(healthz))
+        .route("/ws", get(ws_handler));
 
     // Unsafe routes are for testing purposes only
     // they are unsafe as they can expose vulnerabilites

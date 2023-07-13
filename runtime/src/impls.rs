@@ -353,7 +353,7 @@ mod multiplier_tests {
 
         // Some values that are all above the target and will cause an increase.
         let t = target();
-        vec![t + Weight::from_ref_time(100), t * 2, t * 4].into_iter().for_each(|i| {
+        vec![t + Weight::from_parts(100, 0), t * 2, t * 4].into_iter().for_each(|i| {
             run_with_system_weight(i, || {
                 let fm = runtime_multiplier_update(max_fm);
                 // won't grow. The convert saturates everything.

@@ -1,25 +1,28 @@
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
-use axum::http::StatusCode;
 use bip39::{Language, Mnemonic};
 use kvdb::kv_manager::{KvManager, PartyId};
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
+use tokio::time::timeout;
 
 use crate::{
     get_signer,
     sign_init::SignInit,
     signing_client::{
         new_party::{Channels, ThresholdSigningService},
-        subscribe::{subscribe_to_them, Listener},
+        protocol_transport::{open_protocol_connections, Listener},
         SignerState, SigningErr,
     },
     user::api::UserTransactionRequest,
     validation::mnemonic_to_pair,
 };
+
+const SETUP_TIMEOUT_SECONDS: u64 = 20;
 
 #[derive(Clone, Debug)]
 pub struct RecoverableSignature {
@@ -82,27 +85,36 @@ pub async fn do_signing(
     signatures: &SignatureState,
     tx_id: String,
     user_address: AccountId32,
-) -> Result<StatusCode, SigningErr> {
+) -> Result<RecoverableSignature, SigningErr> {
     let info = SignInit::new(message.clone(), sig_hash.clone(), tx_id.clone(), user_address)?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let signer =
         get_signer(kv_manager).await.map_err(|_| SigningErr::UserError("Error getting Signer"))?;
-    let my_id = PartyId::new(AccountId32::new(*signer.account_id().clone().as_ref()));
+	let account_sp_core = AccountId32::new(*signer.account_id().clone().as_ref());
+    let my_id = PartyId::new(account_sp_core.clone());
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
 
+	let tss_accounts: Vec<AccountId32> = message
+		.validators_info
+		.iter()
+		.map(|validator_info| AccountId32::new(*validator_info.tss_account.clone().as_ref()))
+		.collect();
+
     // subscribe to all other participating parties. Listener waits for other subscribers.
-    let (rx_ready, listener) = Listener::new();
+    let (rx_ready, rx_from_others, listener) = Listener::new(message, &account_sp_core);
     state
         .listeners
         .lock()
 		.map_err(|_| SigningErr::SessionError("Error getting lock".to_string()))?
         // TODO: using signature ID as session ID. Correct?
         .insert(sign_context.sign_init.sig_uid.clone(), listener);
+
+    open_protocol_connections(&sign_context, &my_id, &signer, state).await?;
     let channels = {
-        let stream_in = subscribe_to_them(&sign_context, &my_id, &signer).await?;
-        let broadcast_out = rx_ready.await??;
-        Channels(broadcast_out, stream_in)
+        let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
+        let broadcast_out = ready??;
+        Channels(broadcast_out, rx_from_others)
     };
 
     let raw = kv_manager.kv().get("MNEMONIC").await?;
@@ -112,22 +124,16 @@ pub async fn do_signing(
     let threshold_signer =
         mnemonic_to_pair(&mnemonic).map_err(|_| SigningErr::SecretString("Secret String Error"))?;
 
-    let tss_accounts: Vec<AccountId32> = message
-        .validators_info
-        .iter()
-        .map(|validator_info| AccountId32::new(*validator_info.tss_account.clone().as_ref()))
-        .collect();
-
     let result = signing_service
         .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
         .await?;
 
     signing_service.handle_result(&result, &hex::decode(sig_hash.clone())?, signatures);
 
-    Ok(StatusCode::OK)
+    Ok(result)
 }
 
 /// Creates a unique tx Id by concatenating the user's signing key and message digest
 pub fn create_unique_tx_id(account: &String, sig_hash: &String) -> String {
-    format!("{}_{}", account, sig_hash)
+    format!("{account}_{sig_hash}")
 }
