@@ -4,7 +4,6 @@
 use std::{net::TcpListener, time::Duration};
 
 use axum::{routing::IntoMakeService, Router};
-use entropy_constraints::constraints;
 use futures::future::join_all;
 use kvdb::{
     clean_tests,
@@ -15,10 +14,9 @@ use kvdb::{
 use rand_core::OsRng;
 use serial_test::serial;
 use sp_core::crypto::AccountId32;
-use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{
     ext::sp_core::{
-        sr25519::{self, Pair as sr25519Pair},
+        sr25519::{self},
         Bytes, Pair,
     },
     tx::PairSigner,

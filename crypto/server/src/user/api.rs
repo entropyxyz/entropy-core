@@ -29,7 +29,7 @@ use sp_core::crypto::AccountId32;
 use subxt::{
     ext::sp_core::{crypto::Ss58Codec, sr25519, Pair},
     tx::PairSigner,
-    utils::AccountId32 as SecondAccountId32,
+    utils::AccountId32 as SubxtAccountId32,
     Config, OnlineClient,
 };
 use tracing::instrument;
@@ -89,7 +89,7 @@ pub async fn sign_tx(
     let signing_address_converted =
         AccountId32::from_str(&signing_address).map_err(UserErr::StringError)?;
     // TODO go back over to simplify accountID type
-    let second_signing_address_conversion = SecondAccountId32::from_str(&signing_address).unwrap();
+    let second_signing_address_conversion = SubxtAccountId32::from_str(&signing_address).map_err(|_| UserErr::StringError("Account Conversion"))?;
     is_registered(&api, &second_signing_address_conversion).await?;
 
     let decrypted_message =
@@ -146,7 +146,7 @@ pub async fn new_user(
     let signer = get_signer(&app_state.kv_store).await?;
     // Checks if the user has registered onchain first.
     let key = signed_msg.account_id();
-    let signing_address_conversion = SecondAccountId32::from_str(&key.to_ss58check()).unwrap();
+    let signing_address_conversion = SubxtAccountId32::from_str(&key.to_ss58check()).map_err(|_| UserErr::StringError("Account Conversion"))?;
 
     let is_swapping = register_info(&api, &signing_address_conversion).await?;
 
@@ -188,7 +188,7 @@ pub async fn register_info(
 /// Confirms that a address has finished registering on chain.
 pub async fn confirm_registered(
     api: &OnlineClient<EntropyConfig>,
-    who: SecondAccountId32,
+    who: SubxtAccountId32,
     subgroup: u8,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
 ) -> Result<(), subxt::error::Error> {
@@ -213,7 +213,7 @@ pub async fn confirm_registered(
 pub async fn get_current_subgroup_signers(
     api: &OnlineClient<EntropyConfig>,
     sig_hash: &str,
-) -> Result<Vec<SecondAccountId32>, UserErr> {
+) -> Result<Vec<SubxtAccountId32>, UserErr> {
     let mut subgroup_signers = vec![];
     let number = Arc::new(BigInt::from_str_radix(sig_hash, 16)?);
     let futures = (0..SIGNING_PARTY_SIZE)
@@ -258,7 +258,7 @@ pub async fn get_current_subgroup_signers(
 }
 /// Checks if a validator is in the current selected signing committee
 pub fn check_signing_group(
-    subgroup_signers: Vec<SecondAccountId32>,
+    subgroup_signers: Vec<SubxtAccountId32>,
     validator_address: &<EntropyConfig as Config>::AccountId,
 ) -> Result<(), UserErr> {
     let is_proper_signer = subgroup_signers.contains(validator_address);
