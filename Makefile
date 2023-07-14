@@ -31,7 +31,7 @@ vercel-api-docs ::
 		curl --silent --location \
 			https://github.com/protocolbuffers/protobuf/releases/download/v23.4/protoc-23.4-linux-x86_64.zip \
 			> /tmp/protoc.zip
-		sudo unzip -od /usr /tmp/protoc.zip bin/protoc
+		unzip -od /usr /tmp/protoc.zip bin/protoc
 		git config --global \
 			url."https://vercel:${GITHUB_SYNEDRION_RO_TOKEN}@github.com/entropyxyz/synedrion.git".insteadOf \
 			ssh://git@github.com/entropyxyz/synedrion.git
