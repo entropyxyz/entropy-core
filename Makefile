@@ -67,4 +67,3 @@ vercel-api-docs :: vercel-rustup rust
 		git config --global \
 			url."https://vercel:${GITHUB_SYNEDRION_RO_TOKEN}@github.com/entropyxyz/synedrion.git".insteadOf \
 			ssh://git@github.com/entropyxyz/synedrion.git
-
