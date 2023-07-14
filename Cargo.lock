@@ -2239,7 +2239,6 @@ dependencies = [
  "rlp",
  "serde",
  "serde_json",
- "sp-core 7.0.0",
  "thiserror",
 ]
 
@@ -2341,7 +2340,6 @@ dependencies = [
  "scale-info",
  "serde",
  "serde_derive",
- "sp-core 7.0.0",
  "sp-std 5.0.0",
 ]
 

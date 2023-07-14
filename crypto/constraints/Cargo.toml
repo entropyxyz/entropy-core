@@ -13,7 +13,6 @@ thiserror="1.0.40"
 serde         ={ version="1.0.147", default-features=false, features=["derive"] }
 serde_json    ={ version="1.0", default-features=false, features=["alloc"] }
 entropy-shared={ path="../shared", default-features=false }
-sp-core       ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43", default-features=false }
 
 # EVM
 ethers-core={ version="2.0.7", default-features=false }
@@ -30,7 +29,6 @@ std=[
   "serde/std",
   "serde_json/std",
   "entropy-shared/std",
-  "sp-core/std",
   "rlp/std",
   "primitive-types/std",
 ]
