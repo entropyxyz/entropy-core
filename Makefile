@@ -28,21 +28,32 @@ link ::
 		cp service/* /etc/systemd/system/
 		chown entropy:entropy -R /var/run/entropy
 
-# Install the Rust we need via `rustup`.
-.PHONY: rust
-rust:
+# Vercel sets the `HOME` env var weirdly, so we define a few extra
+# things to make sure it installs okay.
+.PHONY: vercel-rustup
+vercel-rustup:
 		curl --proto '=https' --tlsv1.2 \
 			--silent --show-error --fail https://sh.rustup.rs \
-			| sh -s -- --no-modify-path -y
-		source ~/.cargo/env
-		rustup default stable
-		rustup update nightly
-		rustup update stable
-		rustup target add wasm32-unknown-unknown --toolchain nightly
+			| RUSTUP_HOME=/vercel/.rustup HOME=/root sh -s -- -y
+		cp -R /root/.cargo /vercel/.cargo
+
+# Installs `rustup` in a typical case.
+.PHONY: rustup
+rustup:
+		curl --proto '=https' --tlsv1.2 \
+			--silent --show-error --fail https://sh.rustup.rs \
+			| sh -s -- -y
+
+.PHONY: rust
+rust:
+		export PATH="${PATH}:${HOME}/.cargo/bin" rustup default stable \
+		&& rustup update nightly \
+		&& rustup update stable \
+		&& rustup target add wasm32-unknown-unknown --toolchain nightly
 
 # This target is specifically for generating API documentation from
 # within a Vercel.com Project.
-vercel-api-docs :: rust
+vercel-api-docs :: vercel-rustup rust
 		# Install build dependencies required for Amazon Linux 2, the
 		# base of the Vercel build image. See:
 		# https://vercel.com/docs/concepts/deployments/build-image
