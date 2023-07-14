@@ -24,6 +24,18 @@ link ::
 		cp service/* /etc/systemd/system/
 		chown entropy:entropy -R /var/run/entropy
 
+# This target is specifically for generating API documentation from
+# within a Vercel.com Project.
+vercel-api-docs ::
+		amazon-linux-extras install rust1
+		curl --silent --location \
+			https://github.com/protocolbuffers/protobuf/releases/download/v23.4/protoc-23.4-linux-x86_64.zip \
+			> /tmp/protoc.zip
+		sudo unzip -od /usr /tmp/protoc.zip bin/protoc
+		git config --global \
+			url."https://vercel:${GITHUB_SYNEDRION_RO_TOKEN}@github.com/entropyxyz/synedrion.git".insteadOf \
+			ssh://git@github.com/entropyxyz/synedrion.git
+
 # Common targets:
 #	make build (compile latest release)
 #	make init (to init the systemd service on linux)
