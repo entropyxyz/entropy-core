@@ -25,10 +25,4 @@ primitive-types={ version="0.11.1", default-features=false, features=[
 
 [features]
 default=["std"]
-std=[
-  "serde/std",
-  "serde_json/std",
-  "entropy-shared/std",
-  "rlp/std",
-  "primitive-types/std",
-]
+std    =["serde/std", "serde_json/std", "entropy-shared/std", "rlp/std", "primitive-types/std"]
