@@ -33,7 +33,7 @@ link ::
 rust:
 		curl --proto '=https' --tlsv1.2 \
 			--silent --show-error --fail https://sh.rustup.rs \
-			| sh -s -- -y
+			| sh -s -- --no-modify-path -y
 		source ~/.cargo/env
 		rustup default stable
 		rustup update nightly
