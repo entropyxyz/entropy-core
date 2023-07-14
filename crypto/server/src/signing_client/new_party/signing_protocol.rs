@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use blake2::{Blake2s256, Digest};
 use kvdb::kv_manager::PartyId;
 use rand_core::OsRng;
-use sp_core::crypto::{AccountId32, Pair};
-use subxt::ext::sp_core::sr25519;
+use sp_core::crypto::AccountId32;
+use subxt::ext::sp_core::{sr25519, Pair};
 use synedrion::{
     sessions::{make_interactive_signing_session, PrehashedMessage, ToSend},
     KeyShare, PartyIdx, Signature, TestSchemeParams,

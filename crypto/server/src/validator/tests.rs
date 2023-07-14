@@ -270,10 +270,6 @@ async fn test_check_balance_for_fees() {
 }
 
 #[tokio::test]
-#[should_panic = "called `Result::unwrap()` on an `Err` value: \
-                  GenericSubstrate(Runtime(Module(ModuleError { pallet: \"StakingExtension\", \
-                  error: \"NoThresholdKey\", description: [], error_data: ModuleErrorData { \
-                  pallet_index: 12, error: [3, 0, 0, 0] } })))"]
 async fn test_tell_chain_syncing_is_done() {
     clean_tests();
     let cxt = testing_context().await;
@@ -282,6 +278,7 @@ async fn test_tell_chain_syncing_is_done() {
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
 
     // expect this to fail in the proper way
-    tell_chain_syncing_is_done(&api, &signer_alice).await.unwrap();
+    let result = tell_chain_syncing_is_done(&api, &signer_alice).await;
+    assert_eq!(result.is_err(), true);
     clean_tests();
 }

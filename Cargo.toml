@@ -2,4 +2,5 @@
 panic='unwind'
 
 [workspace]
-members=['crypto/*', 'node/*', 'pallets/*', 'runtime']
+resolver="2"
+members =['crypto/*', 'node/*', 'pallets/*', 'runtime']

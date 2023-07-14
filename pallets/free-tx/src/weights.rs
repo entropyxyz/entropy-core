@@ -42,58 +42,111 @@ pub trait WeightInfo {
 /// Weight functions for `pallet_free_tx`.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	// Storage: FreeTx FreeCallsLeft (r:1 w:1)
+	/// Storage: FreeTx MaxUserElectricityUsagePerEra (r:1 w:0)
+	/// Proof: FreeTx MaxUserElectricityUsagePerEra (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
+	/// Storage: FreeTx ElectricalAccount (r:1 w:1)
+	/// Proof: FreeTx ElectricalAccount (max_values: None, max_size: Some(64), added: 2539, mode: MaxEncodedLen)
+	/// Storage: Staking CurrentEra (r:1 w:0)
+	/// Proof: Staking CurrentEra (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
 	fn call_using_electricity() -> Weight {
-		Weight::from_ref_time(14_000_000_u64)
-			.saturating_add(T::DbWeight::get().reads(1_u64))
-			.saturating_add(T::DbWeight::get().writes(1_u64))
+		// Proof Size summary in bytes:
+		//  Measured:  `715`
+		//  Estimated: `3529`
+		// Minimum execution time: 43_000_000 picoseconds.
+		Weight::from_parts(43_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3529))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(1))
 	}
-
+	/// Storage: FreeTx MaxUserElectricityUsagePerEra (r:0 w:1)
+	/// Proof: FreeTx MaxUserElectricityUsagePerEra (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
 	fn set_individual_electricity_era_limit() -> Weight {
-		Weight::from_ref_time(14_000_000_u64)
-			.saturating_add(T::DbWeight::get().reads(1_u64))
-			.saturating_add(T::DbWeight::get().writes(1_u64))
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 6_000_000 picoseconds.
+		Weight::from_parts(7_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			.saturating_add(T::DbWeight::get().writes(1))
 	}
-
+	/// Storage: FreeTx ElectricalAccount (r:1 w:1)
+	/// Proof: FreeTx ElectricalAccount (max_values: None, max_size: Some(64), added: 2539, mode: MaxEncodedLen)
 	fn set_battery_count() -> Weight {
-		Weight::from_ref_time(14_000_000_u64)
-			.saturating_add(T::DbWeight::get().reads(1_u64))
-			.saturating_add(T::DbWeight::get().writes(1_u64))
+		// Proof Size summary in bytes:
+		//  Measured:  `109`
+		//  Estimated: `3529`
+		// Minimum execution time: 12_000_000 picoseconds.
+		Weight::from_parts(13_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3529))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
 	}
-
+	/// Storage: FreeTx ElectricalAccount (r:1 w:1)
+	/// Proof: FreeTx ElectricalAccount (max_values: None, max_size: Some(64), added: 2539, mode: MaxEncodedLen)
 	fn give_zaps() -> Weight {
-		Weight::from_ref_time(14_000_000_u64)
-			.saturating_add(T::DbWeight::get().reads(1_u64))
-			.saturating_add(T::DbWeight::get().writes(1_u64))
+		// Proof Size summary in bytes:
+		//  Measured:  `109`
+		//  Estimated: `3529`
+		// Minimum execution time: 11_000_000 picoseconds.
+		Weight::from_parts(12_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3529))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
 	}
-
 }
 
 // For backwards compatibility and tests
 
 impl WeightInfo for () {
-	// Storage: FreeTx FreeCallsLeft (r:1 w:1)
+	/// Storage: FreeTx MaxUserElectricityUsagePerEra (r:1 w:0)
+	/// Proof: FreeTx MaxUserElectricityUsagePerEra (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
+	/// Storage: FreeTx ElectricalAccount (r:1 w:1)
+	/// Proof: FreeTx ElectricalAccount (max_values: None, max_size: Some(64), added: 2539, mode: MaxEncodedLen)
+	/// Storage: Staking CurrentEra (r:1 w:0)
+	/// Proof: Staking CurrentEra (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
 	fn call_using_electricity() -> Weight {
-		Weight::from_ref_time(14_000_000_u64)
-			.saturating_add(RocksDbWeight::get().reads(1_u64))
-			.saturating_add(RocksDbWeight::get().writes(1_u64))
+		// Proof Size summary in bytes:
+		//  Measured:  `715`
+		//  Estimated: `3529`
+		// Minimum execution time: 43_000_000 picoseconds.
+		Weight::from_parts(43_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3529))
+			.saturating_add(RocksDbWeight::get().reads(3))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
-
+	/// Storage: FreeTx MaxUserElectricityUsagePerEra (r:0 w:1)
+	/// Proof: FreeTx MaxUserElectricityUsagePerEra (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
 	fn set_individual_electricity_era_limit() -> Weight {
-		Weight::from_ref_time(14_000_000_u64)
-			.saturating_add(RocksDbWeight::get().reads(1_u64))
-			.saturating_add(RocksDbWeight::get().writes(1_u64))
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 6_000_000 picoseconds.
+		Weight::from_parts(7_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
-
+	/// Storage: FreeTx ElectricalAccount (r:1 w:1)
+	/// Proof: FreeTx ElectricalAccount (max_values: None, max_size: Some(64), added: 2539, mode: MaxEncodedLen)
 	fn set_battery_count() -> Weight {
-		Weight::from_ref_time(14_000_000_u64)
-			.saturating_add(RocksDbWeight::get().reads(1_u64))
-			.saturating_add(RocksDbWeight::get().writes(1_u64))
+		// Proof Size summary in bytes:
+		//  Measured:  `109`
+		//  Estimated: `3529`
+		// Minimum execution time: 12_000_000 picoseconds.
+		Weight::from_parts(13_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3529))
+			.saturating_add(RocksDbWeight::get().reads(1))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
-
+	/// Storage: FreeTx ElectricalAccount (r:1 w:1)
+	/// Proof: FreeTx ElectricalAccount (max_values: None, max_size: Some(64), added: 2539, mode: MaxEncodedLen)
 	fn give_zaps() -> Weight {
-		Weight::from_ref_time(14_000_000_u64)
-			.saturating_add(RocksDbWeight::get().reads(1_u64))
-			.saturating_add(RocksDbWeight::get().writes(1_u64))
+		// Proof Size summary in bytes:
+		//  Measured:  `109`
+		//  Estimated: `3529`
+		// Minimum execution time: 11_000_000 picoseconds.
+		Weight::from_parts(12_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3529))
+			.saturating_add(RocksDbWeight::get().reads(1))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 }

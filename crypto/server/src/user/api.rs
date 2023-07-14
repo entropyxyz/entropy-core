@@ -30,12 +30,11 @@ use log::info;
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::DecodeAll;
 use serde::{Deserialize, Serialize};
+use sp_core::crypto::AccountId32;
 use subxt::{
-    ext::{
-        sp_core::{crypto::Ss58Codec, sr25519, Pair},
-        sp_runtime::AccountId32,
-    },
+    ext::sp_core::{crypto::Ss58Codec, sr25519, Pair},
     tx::PairSigner,
+    utils::AccountId32 as SubxtAccountId32,
     Config, OnlineClient,
 };
 use tracing::instrument;
@@ -43,7 +42,7 @@ use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
-    chain_api::{entropy, entropy::constraints::calls::UpdateConstraints, get_api, EntropyConfig},
+    chain_api::{entropy, get_api, EntropyConfig},
     helpers::{
         signing::{create_unique_tx_id, do_signing, SignatureState},
         substrate::{get_constraints, get_subgroup, is_registered},
@@ -94,7 +93,10 @@ pub async fn sign_tx(
 
     let signing_address_converted =
         AccountId32::from_str(&signing_address).map_err(UserErr::StringError)?;
-    is_registered(&api, &signing_address_converted).await?;
+    // TODO go back over to simplify accountID type
+    let second_signing_address_conversion = SubxtAccountId32::from_str(&signing_address)
+        .map_err(|_| UserErr::StringError("Account Conversion"))?;
+    is_registered(&api, &second_signing_address_conversion).await?;
 
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
@@ -105,11 +107,10 @@ pub async fn sign_tx(
     let sig_hash = hex::encode(parsed_tx.sighash());
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
     check_signing_group(subgroup_signers, signer.account_id())?;
-
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
     match user_tx_req.arch.as_str() {
         "evm" => {
-            let evm_acl = get_constraints(&api, &signing_address_converted)
+            let evm_acl = get_constraints(&api, &second_signing_address_conversion)
                 .await?
                 .evm_acl
                 .ok_or(UserErr::Parse("No constraints found for this account."))?;
@@ -164,7 +165,10 @@ pub async fn new_user(
     let signer = get_signer(&app_state.kv_store).await?;
     // Checks if the user has registered onchain first.
     let key = signed_msg.account_id();
-    let is_swapping = register_info(&api, &key).await?;
+    let signing_address_conversion = SubxtAccountId32::from_str(&key.to_ss58check())
+        .map_err(|_| UserErr::StringError("Account Conversion"))?;
+
+    let is_swapping = register_info(&api, &signing_address_conversion).await?;
 
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
@@ -178,18 +182,20 @@ pub async fn new_user(
     let reservation = app_state.kv_store.kv().reserve_key(key.to_string()).await?;
     app_state.kv_store.kv().put(reservation, decrypted_message).await?;
     // TODO: Error handling really complex needs to be thought about.
-    confirm_registered(&api, key, subgroup, &signer).await?;
+    confirm_registered(&api, key.into(), subgroup, &signer).await?;
     Ok(StatusCode::OK)
 }
 /// Returns wether an account is registering or swapping. If it is not, it returns error
 pub async fn register_info(
     api: &OnlineClient<EntropyConfig>,
-    who: &AccountId32,
+    who: &<EntropyConfig as Config>::AccountId,
 ) -> Result<bool, UserErr> {
     let registering_info_query = entropy::storage().relayer().registering(who);
     let register_info = api
         .storage()
-        .fetch(&registering_info_query, None)
+        .at_latest()
+        .await?
+        .fetch(&registering_info_query)
         .await?
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
     if !register_info.is_swapping && !register_info.is_registering {
@@ -202,7 +208,7 @@ pub async fn register_info(
 /// Confirms that a address has finished registering on chain.
 pub async fn confirm_registered(
     api: &OnlineClient<EntropyConfig>,
-    who: AccountId32,
+    who: SubxtAccountId32,
     subgroup: u8,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
 ) -> Result<(), subxt::error::Error> {
@@ -227,7 +233,7 @@ pub async fn confirm_registered(
 pub async fn get_current_subgroup_signers(
     api: &OnlineClient<EntropyConfig>,
     sig_hash: &str,
-) -> Result<Vec<AccountId32>, UserErr> {
+) -> Result<Vec<SubxtAccountId32>, UserErr> {
     let mut subgroup_signers = vec![];
     let number = Arc::new(BigInt::from_str_radix(sig_hash, 16)?);
     let futures = (0..SIGNING_PARTY_SIZE)
@@ -238,7 +244,9 @@ pub async fn get_current_subgroup_signers(
                     entropy::storage().staking_extension().signing_groups(i as u8);
                 let subgroup_info = api
                     .storage()
-                    .fetch(&subgroup_info_query, None)
+                    .at_latest()
+                    .await?
+                    .fetch(&subgroup_info_query)
                     .await?
                     .ok_or(UserErr::SubgroupError("Subgroup Fetch Error"))?;
 
@@ -251,7 +259,9 @@ pub async fn get_current_subgroup_signers(
                     .threshold_servers(subgroup_info[index_of_signer].clone());
                 let threshold_address = api
                     .storage()
-                    .fetch(&threshold_address_query, None)
+                    .at_latest()
+                    .await?
+                    .fetch(&threshold_address_query)
                     .await?
                     .ok_or(UserErr::SubgroupError("Stash Fetch Error"))?
                     .tss_account;
@@ -268,8 +278,8 @@ pub async fn get_current_subgroup_signers(
 }
 /// Checks if a validator is in the current selected signing committee
 pub fn check_signing_group(
-    subgroup_signers: Vec<AccountId32>,
-    validator_address: &AccountId32,
+    subgroup_signers: Vec<SubxtAccountId32>,
+    validator_address: &<EntropyConfig as Config>::AccountId,
 ) -> Result<(), UserErr> {
     // TODO Check that subgroup_signers matches UserTransactionRequest.validators_info
     let is_proper_signer = subgroup_signers.contains(validator_address);

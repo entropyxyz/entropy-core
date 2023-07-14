@@ -8,7 +8,7 @@ edition="2021"
 serde              ={ version="1.0", default-features=false, features=["derive"] }
 serde_json         ="1.0"
 anyhow             ="1.0.53"
-thiserror          ="1.0.31"
+thiserror          ="1.0.40"
 blake2             ="0.10.4"
 x25519-dalek       ="2.0.0-pre.1"
 chacha20poly1305   ="0.10.1"
@@ -30,9 +30,9 @@ reqwest    ={ version="0.11", features=["json", "stream"] }
 axum       ={ version="0.6.18", features=["ws"] }
 axum-macros="0.3.7"
 # Substrate
-subxt             ={ package="subxt", git="https://github.com/entropyxyz/subxt.git", branch="polkadot-v0.9.31" }
-parity-scale-codec="3.0.0"
-sp-core           ={ package="sp-core", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
+subxt             ={ package="subxt", git="https://github.com/paritytech/subxt.git", tag="v0.29.0" }
+parity-scale-codec="3.4.0"
+sp-core           ={ version="21.0.0", default-features=false }
 
 # Entropy
 entropy-shared={ path="../shared" }
@@ -40,12 +40,12 @@ kvdb          ={ path="../kvdb", default-features=false }
 
 # Constraints
 entropy-constraints={ path="../constraints" }
-ethers-core        ="0.13.0"
+ethers-core        ="2.0.7"
 
 # Logging
 log               ="0.4.17"                                              # todo: remove, overlaps tracing
 tracing           ="0.1.37"
-tracing-subscriber={ version="0.3.16", features=["env-filter", "json"] }
+tracing-subscriber={ version="0.3.17", features=["env-filter", "json"] }
 tower-http        ={ version="0.3.4", features=["trace", "cors"] }
 
 # Misc
@@ -63,7 +63,7 @@ testing-utils={ path="../testing-utils" }
 serial_test  ="0.8.0"
 hex-literal  ="0.3.4"
 project-root ="0.2.2"
-sp-keyring   ={ package="sp-keyring", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
+sp-keyring   ="24.0.0"
 
 [features]
 default=['std']

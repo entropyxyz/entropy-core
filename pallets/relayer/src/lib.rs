@@ -92,7 +92,6 @@ pub mod pallet {
     }
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -144,6 +143,7 @@ pub mod pallet {
         ///
         /// This should be called by the signature-request account, and specify the initial
         /// constraint-modification `AccountId` that can set constraints.
+        #[pallet::call_index(0)]
         #[pallet::weight({
             let (mut evm_acl_len, mut btc_acl_len) = (0, 0);
             if let Some(constraints) = &initial_constraints {
@@ -186,6 +186,7 @@ pub mod pallet {
         }
 
         /// Signals that a user wants to swap our their keys
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::swap_keys())]
         pub fn swap_keys(origin: OriginFor<T>) -> DispatchResult {
             let sig_req_account = ensure_signed(origin)?;
@@ -214,6 +215,7 @@ pub mod pallet {
         /// Used by validators to confirm they have received a key-share from a user that is
         /// registering. After a validator from each partition confirms they have a
         /// keyshare, this should get the user to a `Registered` state
+        #[pallet::call_index(2)]
         #[pallet::weight(<T as Config>::WeightInfo::confirm_register_swapping(SIGNING_PARTY_SIZE as u32))]
         pub fn confirm_register(
             origin: OriginFor<T>,

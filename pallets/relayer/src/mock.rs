@@ -33,7 +33,7 @@ frame_support::construct_runtime!(
   {
     System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
     Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-    Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
+    Authorship: pallet_authorship::{Pallet, Storage},
     Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     Relayer: pallet_relayer::{Pallet, Call, Storage, Event<T>},
     Staking: pallet_staking_extension::{Pallet, Call, Storage, Event<T>, Config<T>},
@@ -97,6 +97,10 @@ impl pallet_balances::Config for Test {
     type Balance = Balance;
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
+    type FreezeIdentifier = ();
+    type HoldIdentifier = ();
+    type MaxFreezes = ();
+    type MaxHolds = ();
     type MaxLocks = MaxLocks;
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
@@ -143,8 +147,11 @@ sp_runtime::impl_opaque_keys! {
 pub struct OnChainSeqPhragmen;
 impl onchain::Config for OnChainSeqPhragmen {
     type DataProvider = FrameStaking;
+    type MaxWinners = ConstU32<100>;
     type Solver = SequentialPhragmen<AccountId, Perbill>;
     type System = Test;
+    type TargetsBound = ConstU32<{ u32::MAX }>;
+    type VotersBound = ConstU32<{ u32::MAX }>;
     type WeightInfo = ();
 }
 
@@ -206,12 +213,13 @@ impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
 }
 
 impl pallet_staking::Config for Test {
+    type AdminOrigin = frame_system::EnsureRoot<Self::AccountId>;
     type BenchmarkingConfig = StakingBenchmarkingConfig;
     type BondingDuration = BondingDuration;
     type Currency = Balances;
     type CurrencyBalance = Balance;
     type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
-    type ElectionProvider = onchain::UnboundedExecution<OnChainSeqPhragmen>;
+    type ElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
     type GenesisElectionProvider = Self::ElectionProvider;
     type HistoryDepth = ConstU32<84>;
@@ -227,7 +235,6 @@ impl pallet_staking::Config for Test {
     type SessionInterface = Self;
     type SessionsPerEra = SessionsPerEra;
     type Slash = ();
-    type SlashCancelOrigin = frame_system::EnsureRoot<Self::AccountId>;
     type SlashDeferDuration = SlashDeferDuration;
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = pallet_timestamp::Pallet<Test>;
@@ -277,9 +284,7 @@ impl FindAuthor<u64> for Author11 {
 
 impl pallet_authorship::Config for Test {
     type EventHandler = ();
-    type FilterUncle = ();
     type FindAuthor = Author11;
-    type UncleGenerations = UncleGenerations;
 }
 
 parameter_types! {

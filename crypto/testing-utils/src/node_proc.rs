@@ -92,12 +92,11 @@ impl TestNodeProcessBuilder {
         }
 
         let ws_port = if self.scan_port_range {
-            let (p2p_port, http_port, ws_port) = next_open_port()
+            let (p2p_port, _http_port, ws_port) = next_open_port()
                 .ok_or_else(|| "No available ports in the given port range".to_owned())?;
 
             cmd.arg(format!("--port={p2p_port}"));
-            cmd.arg(format!("--rpc-port={http_port}"));
-            cmd.arg(format!("--ws-port={ws_port}"));
+            cmd.arg(format!("--rpc-port={ws_port}"));
             println!("ws port: {ws_port}");
             ws_port
         } else {

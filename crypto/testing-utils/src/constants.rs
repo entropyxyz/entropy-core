@@ -1,6 +1,6 @@
 use hex_literal::hex;
-use sp_core::crypto::AccountId32;
-
+use sp_core::crypto;
+use subxt::utils::AccountId32;
 lazy_static! {
     pub static ref ALICE_STASH_ADDRESS: AccountId32 = hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
     pub static ref RANDOM_ACCOUNT: AccountId32 = hex!["8676839ca1e196624106d17c56b1efbb90508a86d8053f7d4fcd21127a9f7565"].into();
@@ -8,7 +8,7 @@ lazy_static! {
         hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into(); // alice stash;
     pub static ref BOB_STASH_ADDRESS: AccountId32 =
         hex!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into(); // subkey inspect //Bob//stash
-    pub static ref TSS_ACCOUNTS: Vec<AccountId32> = vec![
+    pub static ref TSS_ACCOUNTS: Vec<crypto::AccountId32> = vec![
         hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"].into(),
         hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"].into()
     ];

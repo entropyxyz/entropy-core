@@ -4,8 +4,8 @@ use axum::{extract::State, Json};
 use kvdb::kv_manager::KvManager;
 use reqwest;
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::AccountId32, sr25519, Bytes};
-use subxt::{tx::PairSigner, OnlineClient};
+use sp_core::crypto::AccountId32;
+use subxt::{ext::sp_core::Bytes, tx::PairSigner, OnlineClient};
 use x25519_dalek::PublicKey;
 
 use crate::{
@@ -73,7 +73,8 @@ pub async fn get_all_keys(
         result_length = 0;
         // query the registered mapping in the relayer pallet
         let storage_address = subxt::dynamic::storage_root("Relayer", "Registered");
-        let mut iter = api.storage().iter(storage_address, batch_size as u32, None).await?;
+        let mut iter =
+            api.storage().at_latest().await?.iter(storage_address, batch_size as u32).await?;
         while let Some((key, _account)) = iter.next().await? {
             let new_key = hex::encode(key);
             let len = new_key.len();
@@ -100,12 +101,14 @@ pub async fn get_all_keys(
 pub async fn get_random_server_info(
     api: &OnlineClient<EntropyConfig>,
     my_subgroup: u8,
-) -> Result<ServerInfo<AccountId32>, ValidatorErr> {
+) -> Result<ServerInfo<subxt::utils::AccountId32>, ValidatorErr> {
     let signing_group_addresses_query =
         entropy::storage().staking_extension().signing_groups(my_subgroup);
     let signing_group_addresses = api
         .storage()
-        .fetch(&signing_group_addresses_query, None)
+        .at_latest()
+        .await?
+        .fetch(&signing_group_addresses_query)
         .await?
         .ok_or_else(|| ValidatorErr::OptionUnwrapError("Querying Signing Groups Error"))?;
 
@@ -115,7 +118,7 @@ pub async fn get_random_server_info(
     let mut server_to_query = 0;
     let mut server_info: Option<
         entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo<
-            sp_core::crypto::AccountId32,
+            subxt::utils::AccountId32,
         >,
     > = None;
     while !server_sync_state {
@@ -124,7 +127,9 @@ pub async fn get_random_server_info(
             .threshold_servers(&signing_group_addresses[server_to_query]);
         server_info = Some(
             api.storage()
-                .fetch(&server_info_query, None)
+                .at_latest()
+                .await?
+                .fetch(&server_info_query)
                 .await?
                 .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server Info Fetch Error"))?,
         );
@@ -133,7 +138,9 @@ pub async fn get_random_server_info(
             .is_validator_synced(&signing_group_addresses[server_to_query]);
         server_sync_state = api
             .storage()
-            .fetch(&server_state_query, None)
+            .at_latest()
+            .await?
+            .fetch(&server_state_query)
             .await?
             .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
         server_to_query += 1;
@@ -202,7 +209,7 @@ pub async fn get_and_store_values(
 /// Sends a transaction telling the chain it is fully synced
 pub async fn tell_chain_syncing_is_done(
     api: &OnlineClient<EntropyConfig>,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signer: &PairSigner<EntropyConfig, subxt::ext::sp_core::sr25519::Pair>,
 ) -> Result<(), ValidatorErr> {
     let synced_tx = entropy::tx().staking_extension().declare_synced(true);
     let _ = api
@@ -219,12 +226,12 @@ pub async fn tell_chain_syncing_is_done(
 /// Validation for if an account can cover tx fees for a tx
 pub async fn check_balance_for_fees(
     api: &OnlineClient<EntropyConfig>,
-    address: &AccountId32,
+    address: &subxt::utils::AccountId32,
     min_balance: u128,
 ) -> Result<bool, ValidatorErr> {
     let balance_query = entropy::storage().system().account(address);
     let account_info =
-        api.storage().fetch(&balance_query, None).await?.ok_or_else(|| {
+        api.storage().at_latest().await?.fetch(&balance_query).await?.ok_or_else(|| {
             ValidatorErr::OptionUnwrapError("Account does not exist, add balance")
         })?;
     let balance = account_info.data.free;

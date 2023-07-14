@@ -90,18 +90,19 @@ pub async fn do_signing(
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let signer =
         get_signer(kv_manager).await.map_err(|_| SigningErr::UserError("Error getting Signer"))?;
-    let my_id = PartyId::new(signer.account_id().clone());
+    let account_sp_core = AccountId32::new(*signer.account_id().clone().as_ref());
+    let my_id = PartyId::new(account_sp_core.clone());
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
 
     let tss_accounts: Vec<AccountId32> = message
         .validators_info
         .iter()
-        .map(|validator_info| validator_info.tss_account.clone())
+        .map(|validator_info| AccountId32::new(*validator_info.tss_account.clone().as_ref()))
         .collect();
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
-    let (rx_ready, rx_from_others, listener) = Listener::new(message, signer.account_id());
+    let (rx_ready, rx_from_others, listener) = Listener::new(message, &account_sp_core);
     state
         .listeners
         .lock()
