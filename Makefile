@@ -31,7 +31,7 @@ vercel-api-docs ::
 		# base of the Vercel build image. See:
 		# https://vercel.com/docs/concepts/deployments/build-image
 		amazon-linux-extras install rust1
-		yum install clang-libs
+		yum install clang-libs clang-devel
 		# Manually install Protobuf Compiler `protoc`.
 		curl --silent --location \
 			https://github.com/protocolbuffers/protobuf/releases/download/v23.4/protoc-23.4-linux-x86_64.zip \
