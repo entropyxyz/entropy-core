@@ -54,9 +54,13 @@ rust:
 # This target is specifically for generating API documentation from
 # within a Vercel.com Project.
 vercel-api-docs :: vercel-rustup rust
+		rm -f /vercel/.cargo/bin/rust-analyzer \
+			/vercel/.cargo/bin/rustfmt \
+			/vercel/.cargo/bin/cargo-fmt \
 		# Let's make things even smaller by making it possible to build
 		# the `libstd` stuff ourselves.
-		export PATH="${PATH}:${HOME}/.cargo/bin" rustup toolchain install nightly \
+		export PATH="${PATH}:${HOME}/.cargo/bin" rustup update \
+			&& rustup toolchain install nightly \
 			&& rustup component add rust-src --toolchain nightly
 		# Install build dependencies required for Amazon Linux 2, the
 		# base of the Vercel build image. See:
