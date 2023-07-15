@@ -52,8 +52,8 @@ rust:
 		&& rustup target add wasm32-unknown-unknown --toolchain nightly
 
 # This target is specifically for generating API documentation from
-# within a Vercel.com Project.
-vercel-api-docs :: vercel-rustup rust
+# within a Vercel.com Project. It is used as the Projects `installCommand`.
+vercel-install-api-docs :: vercel-rustup rust
 		rm -f /vercel/.cargo/bin/rust-analyzer \
 			/vercel/.cargo/bin/rustfmt \
 			/vercel/.cargo/bin/cargo-fmt \
@@ -75,3 +75,15 @@ vercel-api-docs :: vercel-rustup rust
 		git config --global \
 			url."https://vercel:${GITHUB_SYNEDRION_RO_TOKEN}@github.com/entropyxyz/synedrion.git".insteadOf \
 			ssh://git@github.com/entropyxyz/synedrion.git
+
+# The Vercel project's `buildCommand` is defined here.
+vercel-build-api-docs ::
+		export PATH="${PATH}:${HOME}/.cargo/bin" \
+			&& rustup target add wasm32-unknown-unknown \
+				--toolchain nightly-2023-02-09-x86_64-unknown-linux-gnu \
+			&& cargo +nightly-2023-02-09-x86_64-unknown-linux-gnu doc \
+				--profile vercel --no-deps \
+				--target x86_64-unknown-linux-gnu \
+				-Z build-std=std,panic_abort \
+				-Z build-std-features=panic_immediate_abort \
+			&& mv /vercel/path0/target/doc/index.html /vercel/path0/target/x86_64-unknown-linux-gnu/doc/
