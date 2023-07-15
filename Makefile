@@ -60,8 +60,8 @@ vercel-api-docs :: vercel-rustup rust
 		# Let's make things even smaller by making it possible to build
 		# the `libstd` stuff ourselves.
 		export PATH="${PATH}:${HOME}/.cargo/bin" rustup update \
-			&& rustup toolchain install nightly \
-			&& rustup component add rust-src --toolchain nightly
+			&& rustup toolchain install nightly-2023-02-09-x86_64-unknown-linux-gnu \
+			&& rustup component add rust-src --toolchain nightly-2023-02-09-x86_64-unknown-linux-gnu
 		# Install build dependencies required for Amazon Linux 2, the
 		# base of the Vercel build image. See:
 		# https://vercel.com/docs/concepts/deployments/build-image
