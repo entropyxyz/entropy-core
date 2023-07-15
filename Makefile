@@ -54,6 +54,10 @@ rust:
 # This target is specifically for generating API documentation from
 # within a Vercel.com Project.
 vercel-api-docs :: vercel-rustup rust
+		# Let's make things even smaller by making it possible to build
+		# the `libstd` stuff ourselves.
+		export PATH="${PATH}:${HOME}/.cargo/bin" rustup toolchain install nightly \
+			&& rustup component add rust-src --toolchain nightly
 		# Install build dependencies required for Amazon Linux 2, the
 		# base of the Vercel build image. See:
 		# https://vercel.com/docs/concepts/deployments/build-image
@@ -62,7 +66,7 @@ vercel-api-docs :: vercel-rustup rust
 		curl --silent --location \
 			https://github.com/protocolbuffers/protobuf/releases/download/v23.4/protoc-23.4-linux-x86_64.zip \
 			> /tmp/protoc.zip
-		unzip -od /usr /tmp/protoc.zip bin/protoc
+		unzip -od /usr /tmp/protoc.zip bin/protoc && rm -f /tmp/protoc.zip
 		# Ensure the private repository we depend on can be `git clone`d.
 		git config --global \
 			url."https://vercel:${GITHUB_SYNEDRION_RO_TOKEN}@github.com/entropyxyz/synedrion.git".insteadOf \
