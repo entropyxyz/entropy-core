@@ -34,7 +34,7 @@ pub mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         inherent::Vec,
-        pallet_prelude::*,
+        pallet_prelude::*
     };
     use frame_system::pallet_prelude::*;
     use pallet_constraints::{AllowedToModifyConstraints, Pallet as ConstraintsPallet};
@@ -60,6 +60,13 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
 
+	/// Supported architectures.
+	#[derive(Copy, Clone, PartialEq, Eq, RuntimeDebug, Encode, Decode, TypeInfo, MaxEncodedLen)]
+	pub enum KeyVisibility {
+		Public,
+		Permissioned,
+		Private
+	}
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
@@ -68,12 +75,13 @@ pub mod pallet {
         pub is_swapping: bool,
         pub confirmations: Vec<u8>,
         pub constraints: Option<Constraints>,
+		pub key_visibility: KeyVisibility
     }
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub registered_accounts: Vec<(T::AccountId, bool)>,
+        pub registered_accounts: Vec<T::AccountId>,
     }
 
     #[cfg(feature = "std")]
@@ -84,8 +92,8 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
-            for (account, registered) in &self.registered_accounts {
-                Registered::<T>::insert(account, registered);
+            for account in &self.registered_accounts {
+                Registered::<T>::insert(account, KeyVisibility::Public);
                 AllowedToModifyConstraints::<T>::insert(account, account, ());
             }
         }
@@ -103,7 +111,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn registered)]
     pub type Registered<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, bool, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, KeyVisibility, OptionQuery>;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -154,6 +162,7 @@ pub mod pallet {
         pub fn register(
             origin: OriginFor<T>,
             constraint_account: T::AccountId,
+			key_visibility: KeyVisibility,
             initial_constraints: Option<Constraints>,
         ) -> DispatchResult {
             let sig_req_account = ensure_signed(origin)?;
@@ -177,6 +186,7 @@ pub mod pallet {
                     is_swapping: false,
                     confirmations: vec![],
                     constraints: initial_constraints,
+					key_visibility
                 },
             );
 
@@ -190,10 +200,8 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::swap_keys())]
         pub fn swap_keys(origin: OriginFor<T>) -> DispatchResult {
             let sig_req_account = ensure_signed(origin)?;
-            ensure!(
-                Self::registered(&sig_req_account).ok_or(Error::<T>::NotRegistered)?,
-                Error::<T>::NotRegistered
-            );
+			let key_visibility = Self::registered(&sig_req_account).ok_or(Error::<T>::NotRegistered)?;
+
 
             let registering_info = RegisteringDetails::<T> {
                 is_registering: true,
@@ -203,6 +211,7 @@ pub mod pallet {
                 confirmations: vec![],
                 // This value doesn't get used in confirm_done() when is_swapping is true
                 constraints: None,
+				key_visibility
             };
 
             Registered::<T>::remove(&sig_req_account);
@@ -245,7 +254,7 @@ pub mod pallet {
 
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 let mut weight;
-                Registered::<T>::insert(&sig_req_account, true);
+                Registered::<T>::insert(&sig_req_account, registering_info.key_visibility);
                 Registering::<T>::remove(&sig_req_account);
                 weight =
                     <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
