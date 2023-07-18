@@ -1,5 +1,5 @@
 //! Benchmarking setup for pallet-propgation
-use entropy_shared::{SIGNING_PARTY_SIZE as SIG_PARTIES, KeyVisibility};
+use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE as SIG_PARTIES};
 use frame_benchmarking::{
     account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec,
 };
@@ -93,7 +93,7 @@ benchmarks! {
         is_swapping: false,
         confirmations: vec![],
         constraints: None,
-		key_visibility: KeyVisibility::Public,
+        key_visibility: KeyVisibility::Public,
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
   verify {
@@ -118,7 +118,7 @@ confirm_register_registered {
         is_swapping: false,
         confirmations: confirmation,
         constraints: None,
-		key_visibility: KeyVisibility::Public,
+        key_visibility: KeyVisibility::Public,
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
   verify {
@@ -143,7 +143,7 @@ confirm_register_registered {
         is_swapping: true,
         confirmations: confirmation,
         constraints: None,
-		key_visibility: KeyVisibility::Public,
+        key_visibility: KeyVisibility::Public,
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
   verify {
