@@ -4,6 +4,7 @@
 use std::{net::TcpListener, time::Duration};
 
 use axum::{routing::IntoMakeService, Router};
+use entropy_shared::KeyVisibility;
 use futures::future::join_all;
 use kvdb::{
     clean_tests,
@@ -165,6 +166,7 @@ pub async fn register_user(
         entropy_api,
         sig_req_keyring.clone(),
         &subxtAccountId32::from(constraint_modification_account.public()),
+        KeyVisibility::Private,
     )
     .await;
 

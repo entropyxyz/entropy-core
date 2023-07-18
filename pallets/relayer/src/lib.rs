@@ -30,11 +30,11 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{Constraints, SIGNING_PARTY_SIZE};
+    use entropy_shared::{Constraints, KeyVisibility, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         inherent::Vec,
-        pallet_prelude::*
+        pallet_prelude::*,
     };
     use frame_system::pallet_prelude::*;
     use pallet_constraints::{AllowedToModifyConstraints, Pallet as ConstraintsPallet};
@@ -60,13 +60,6 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
 
-	/// Supported architectures.
-	#[derive(Copy, Clone, PartialEq, Eq, RuntimeDebug, Encode, Decode, TypeInfo, MaxEncodedLen)]
-	pub enum KeyVisibility {
-		Public,
-		Permissioned,
-		Private
-	}
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
@@ -75,7 +68,7 @@ pub mod pallet {
         pub is_swapping: bool,
         pub confirmations: Vec<u8>,
         pub constraints: Option<Constraints>,
-		pub key_visibility: KeyVisibility
+        pub key_visibility: KeyVisibility,
     }
 
     #[pallet::genesis_config]
@@ -162,7 +155,7 @@ pub mod pallet {
         pub fn register(
             origin: OriginFor<T>,
             constraint_account: T::AccountId,
-			key_visibility: KeyVisibility,
+            key_visibility: KeyVisibility,
             initial_constraints: Option<Constraints>,
         ) -> DispatchResult {
             let sig_req_account = ensure_signed(origin)?;
@@ -186,7 +179,7 @@ pub mod pallet {
                     is_swapping: false,
                     confirmations: vec![],
                     constraints: initial_constraints,
-					key_visibility
+                    key_visibility,
                 },
             );
 
@@ -200,8 +193,8 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::swap_keys())]
         pub fn swap_keys(origin: OriginFor<T>) -> DispatchResult {
             let sig_req_account = ensure_signed(origin)?;
-			let key_visibility = Self::registered(&sig_req_account).ok_or(Error::<T>::NotRegistered)?;
-
+            let key_visibility =
+                Self::registered(&sig_req_account).ok_or(Error::<T>::NotRegistered)?;
 
             let registering_info = RegisteringDetails::<T> {
                 is_registering: true,
@@ -211,7 +204,7 @@ pub mod pallet {
                 confirmations: vec![],
                 // This value doesn't get used in confirm_done() when is_swapping is true
                 constraints: None,
-				key_visibility
+                key_visibility,
             };
 
             Registered::<T>::remove(&sig_req_account);
