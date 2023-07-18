@@ -94,10 +94,8 @@ pub async fn sign_tx(
     let api = get_api(&app_state.configuration.endpoint).await?;
     let key_visibility = get_key_visibility(&api, &second_signing_address_conversion).await?;
 
-    if key_visibility != KeyVisibility::Public {
-        if !signed_msg.verify() {
-            return Err(UserErr::InvalidSignature("Invalid signature."));
-        }
+    if key_visibility != KeyVisibility::Public && !signed_msg.verify() {
+        return Err(UserErr::InvalidSignature("Invalid signature."));
     }
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
