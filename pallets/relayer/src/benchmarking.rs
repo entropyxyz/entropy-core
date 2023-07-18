@@ -1,5 +1,5 @@
 //! Benchmarking setup for pallet-propgation
-use entropy_shared::SIGNING_PARTY_SIZE as SIG_PARTIES;
+use entropy_shared::{SIGNING_PARTY_SIZE as SIG_PARTIES, KeyVisibility};
 use frame_benchmarking::{
     account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec,
 };
@@ -61,7 +61,7 @@ benchmarks! {
     let constraint_account: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();
 
-  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account, Some(constraints))
+  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account, KeyVisibility::Public, Some(constraints))
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
     assert!(Registering::<T>::contains_key(sig_req_account));
@@ -69,7 +69,7 @@ benchmarks! {
 
   swap_keys {
     let sig_req_account: T::AccountId = whitelisted_caller();
-    <Registered<T>>::insert(sig_req_account.clone(), true);
+    <Registered<T>>::insert(sig_req_account.clone(), KeyVisibility::Public);
 
   }:  _(RawOrigin::Signed(sig_req_account.clone()))
   verify {
@@ -93,6 +93,7 @@ benchmarks! {
         is_swapping: false,
         confirmations: vec![],
         constraints: None,
+		key_visibility: KeyVisibility::Public,
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
   verify {
@@ -117,6 +118,7 @@ confirm_register_registered {
         is_swapping: false,
         confirmations: confirmation,
         constraints: None,
+		key_visibility: KeyVisibility::Public,
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
   verify {
@@ -141,6 +143,7 @@ confirm_register_registered {
         is_swapping: true,
         confirmations: confirmation,
         constraints: None,
+		key_visibility: KeyVisibility::Public,
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
   verify {
