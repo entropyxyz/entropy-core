@@ -254,9 +254,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.71"
+version = "1.0.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c7d0618f0e0b7e8ff11427422b64564d5fb0be1940354bfe2e0529b18a9d9b8"
+checksum = "3b13c32d80ecc7ab747b80c3784bce54ee8a7a0cc4fbda9bf4cda2cf6fe90854"
 
 [[package]]
 name = "approx"
@@ -1562,12 +1562,11 @@ dependencies = [
 
 [[package]]
 name = "crypto-primes"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12ed48f423f3e849fdb85420fae0d6e0d176a9a622a3a9ee2d6b1fa617a3be13"
+checksum = "4e414aa05795bc74f0e6c7e8ec0a653909a194ffc47f6b0a5fcb2e085a616a6c"
 dependencies = [
  "crypto-bigint 0.5.2",
- "getrandom 0.2.10",
  "rand_core 0.6.4",
 ]
 
@@ -2037,6 +2036,7 @@ dependencies = [
  "digest 0.10.7",
  "elliptic-curve 0.13.5",
  "rfc6979 0.4.0",
+ "serdect",
  "signature 2.1.0",
  "spki 0.7.2",
 ]
@@ -2120,7 +2120,8 @@ dependencies = [
  "group 0.13.0",
  "pkcs8 0.10.2",
  "rand_core 0.6.4",
- "sec1 0.7.2",
+ "sec1 0.7.3",
+ "serdect",
  "subtle 2.4.1",
  "zeroize",
 ]
@@ -4106,6 +4107,7 @@ dependencies = [
  "ecdsa 0.16.7",
  "elliptic-curve 0.13.5",
  "once_cell 1.18.0",
+ "serdect",
  "sha2 0.10.7",
 ]
 
@@ -10106,14 +10108,15 @@ dependencies = [
 
 [[package]]
 name = "sec1"
-version = "0.7.2"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0aec48e813d6b90b15f0b8948af3c63483992dee44c03e9930b3eebdabe046e"
+checksum = "d3e97a565f76233a6003f9f5c54be1d9c5bdfa3eccfb189469f11ec4901c47dc"
 dependencies = [
  "base16ct 0.2.0",
  "der 0.7.7",
  "generic-array 0.14.7",
  "pkcs8 0.10.2",
+ "serdect",
  "subtle 2.4.1",
  "zeroize",
 ]
@@ -12180,9 +12183,10 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 
 [[package]]
 name = "synedrion"
-version = "0.0.3"
-source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=v0.0.3#7dbba9e15a0f6e55accd9841db908ff54ac5bb85"
+version = "0.0.6"
+source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=v0.0.6#bfc23e6d60aad2920734c4e32d0f16c6318474ad"
 dependencies = [
+ "base64 0.21.2",
  "crypto-bigint 0.5.2",
  "crypto-primes",
  "digest 0.10.7",
@@ -12191,9 +12195,9 @@ dependencies = [
  "rand_core 0.6.4",
  "rmp-serde",
  "serde",
- "serdect",
  "sha2 0.10.7",
  "sha3",
+ "signature 2.1.0",
 ]
 
 [[package]]
