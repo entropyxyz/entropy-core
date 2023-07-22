@@ -85,7 +85,6 @@ pub mod pallet {
     }
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -208,6 +207,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Allows a validator to change their endpoint so signers can find them when they are coms
         /// manager `endpoint`: nodes's endpoint
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as Config>::WeightInfo::change_endpoint())]
         pub fn change_endpoint(origin: OriginFor<T>, endpoint: Vec<u8>) -> DispatchResult {
             let who = ensure_signed(origin)?;
@@ -235,6 +235,7 @@ pub mod pallet {
 
         /// Allows a validator to change their threshold key so can confirm done when coms manager
         /// `new_account`: nodes's threshold account
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::change_threshold_accounts())]
         pub fn change_threshold_accounts(
             origin: OriginFor<T>,
@@ -262,6 +263,7 @@ pub mod pallet {
         }
 
         /// Wraps's substrate withdraw unbonded but clears extra state if fully unbonded
+        #[pallet::call_index(2)]
         #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
         pub fn withdraw_unbonded(
             origin: OriginFor<T>,
@@ -287,6 +289,7 @@ pub mod pallet {
         /// Wraps's substrate validate but forces threshold key and endpoint
         /// `endpoint`: nodes's endpoint
         /// `threshold_account`: nodes's threshold account
+        #[pallet::call_index(3)]
         #[pallet::weight(<T as Config>::WeightInfo::validate())]
         pub fn validate(
             origin: OriginFor<T>,
@@ -321,6 +324,7 @@ pub mod pallet {
 
         /// Let a validator declare if their kvdb is synced or not synced
         /// `synced`: State of validator's kvdb
+        #[pallet::call_index(4)]
         #[pallet::weight(<T as Config>::WeightInfo::declare_synced())]
         pub fn declare_synced(origin: OriginFor<T>, synced: bool) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;

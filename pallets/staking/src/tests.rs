@@ -29,8 +29,7 @@ fn basic_setup_works() {
 fn it_takes_in_an_endpoint() {
     new_test_ext().execute_with(|| {
         assert_ok!(FrameStaking::bond(
-            RuntimeOrigin::signed(2),
-            1,
+            RuntimeOrigin::signed(1),
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
@@ -41,10 +40,10 @@ fn it_takes_in_an_endpoint() {
             3,
             NULL_ARR
         ));
-        let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
+        let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(1).unwrap();
         assert_eq!(endpoint, vec![20]);
         assert_eq!(tss_account, 3);
-        assert_eq!(Staking::threshold_to_stash(3).unwrap(), 2);
+        assert_eq!(Staking::threshold_to_stash(3).unwrap(), 1);
         assert_noop!(
             Staking::validate(
                 RuntimeOrigin::signed(4),
@@ -72,8 +71,7 @@ fn it_takes_in_an_endpoint() {
 fn it_changes_endpoint() {
     new_test_ext().execute_with(|| {
         assert_ok!(FrameStaking::bond(
-            RuntimeOrigin::signed(2),
-            1,
+            RuntimeOrigin::signed(1),
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
@@ -86,7 +84,7 @@ fn it_changes_endpoint() {
         ));
 
         assert_ok!(Staking::change_endpoint(RuntimeOrigin::signed(1), vec![30]));
-        assert_eq!(Staking::threshold_server(2).unwrap().endpoint, vec![30]);
+        assert_eq!(Staking::threshold_server(1).unwrap().endpoint, vec![30]);
 
         assert_noop!(
             Staking::change_endpoint(RuntimeOrigin::signed(3), vec![30]),
@@ -99,8 +97,7 @@ fn it_changes_endpoint() {
 fn it_changes_threshold_account() {
     new_test_ext().execute_with(|| {
         assert_ok!(FrameStaking::bond(
-            RuntimeOrigin::signed(2),
-            1,
+            RuntimeOrigin::signed(1),
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
@@ -113,8 +110,8 @@ fn it_changes_threshold_account() {
         ));
 
         assert_ok!(Staking::change_threshold_accounts(RuntimeOrigin::signed(1), 4, NULL_ARR));
-        assert_eq!(Staking::threshold_server(2).unwrap().tss_account, 4);
-        assert_eq!(Staking::threshold_to_stash(4).unwrap(), 2);
+        assert_eq!(Staking::threshold_server(1).unwrap().tss_account, 4);
+        assert_eq!(Staking::threshold_to_stash(4).unwrap(), 1);
 
         assert_noop!(
             Staking::change_threshold_accounts(RuntimeOrigin::signed(4), 5, NULL_ARR),
@@ -129,12 +126,11 @@ fn it_deletes_when_no_bond_left() {
         start_active_era(1);
         assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(2),
-            1,
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
         assert_ok!(Staking::validate(
-            RuntimeOrigin::signed(1),
+            RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
             vec![20],
             3,
@@ -150,7 +146,7 @@ fn it_deletes_when_no_bond_left() {
         assert_eq!(lock[0].amount, 100);
         assert_eq!(lock.len(), 1);
 
-        assert_ok!(FrameStaking::unbond(RuntimeOrigin::signed(1), 50u64,));
+        assert_ok!(FrameStaking::unbond(RuntimeOrigin::signed(2), 50u64,));
 
         lock = Balances::locks(2);
         assert_eq!(lock[0].amount, 100);
@@ -158,7 +154,7 @@ fn it_deletes_when_no_bond_left() {
         println!(":{:?}", FrameStaking::ledger(1));
         MockSessionManager::new_session(0);
 
-        assert_ok!(Staking::withdraw_unbonded(RuntimeOrigin::signed(1), 0,));
+        assert_ok!(Staking::withdraw_unbonded(RuntimeOrigin::signed(2), 0,));
 
         lock = Balances::locks(2);
         assert_eq!(lock[0].amount, 50);
@@ -169,9 +165,9 @@ fn it_deletes_when_no_bond_left() {
         assert_eq!(tss_account, 3);
         assert_eq!(Staking::threshold_to_stash(3).unwrap(), 2);
 
-        assert_ok!(FrameStaking::unbond(RuntimeOrigin::signed(1), 50u64,));
+        assert_ok!(FrameStaking::unbond(RuntimeOrigin::signed(2), 50u64,));
 
-        assert_ok!(Staking::withdraw_unbonded(RuntimeOrigin::signed(1), 0,));
+        assert_ok!(Staking::withdraw_unbonded(RuntimeOrigin::signed(2), 0,));
         lock = Balances::locks(2);
         assert_eq!(lock.len(), 0);
         assert_eq!(Staking::threshold_server(2), None);

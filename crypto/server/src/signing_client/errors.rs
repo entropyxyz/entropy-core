@@ -31,12 +31,12 @@ pub enum SigningErr {
     OneshotTimeout(#[from] RecvError),
     #[error("Subscribe API error: {0}")]
     Subscribe(#[from] SubscribeErr),
+    #[error("Session Creation Error: {0}")]
+    SessionCreationError(synedrion::sessions::InitError),
     #[error("Protocol Execution error: {0}")]
     ProtocolExecution(synedrion::sessions::Error),
     #[error("Incoming message stream error: {0}")]
     IncomingStream(String),
-    #[error("Protocol Output error: {0}")]
-    ProtocolOutput(synedrion::sessions::Error),
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("Utf8Error: {0:?}")]
@@ -53,6 +53,8 @@ pub enum SigningErr {
     SerdeJson(#[from] serde_json::Error),
     #[error("Message validation Error: {0}")]
     MessageValidation(String),
+    #[error("Unexpected event: {0}")]
+    UnexpectedEvent(String),
     #[error("Session Error: {0}")]
     SessionError(String),
     #[error("String Conversion Error: {0}")]

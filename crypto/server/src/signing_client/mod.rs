@@ -9,8 +9,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-#[cfg(test)]
-pub mod tests;
 pub use self::{
     errors::*,
     new_party::SigningMessage,

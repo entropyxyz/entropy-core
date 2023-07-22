@@ -9,18 +9,18 @@ edition="2021"
 # Common
 rand     ={ version="0.8", default-features=false }
 serde    ={ version="1.0", features=["derive"] }
-thiserror="1.0.31"
+thiserror="1.0.40"
 hex      ="0.4"
 
 # Substrate
-sp-core={ package="sp-core", git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.31" }
+sp-core={ version="21.0.0", default-features=false }
 
 # Crypto
 zeroize         ={ version="1.4", features=["zeroize_derive"], default-features=false }
 rpassword       ={ version="5.0", default-features=false }
-scrypt          ={ version="0.8", default-features=false, features=["std"] }
+scrypt          ={ version="0.11.0", default-features=false, features=["std"] }
 chacha20poly1305={ version="0.9", features=["alloc"], default-features=false }
-synedrion       ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="v0.0.3" }
+synedrion       ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="v0.0.6" }
 
 # Async
 tokio  ={ version="1.16", features=["macros", "sync", "fs", "rt-multi-thread", "io-util"] }

@@ -75,7 +75,6 @@ pub mod pallet {
     }
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
     /// Maximum number of cells a user can use per era.
@@ -126,6 +125,7 @@ pub mod pallet {
         ///
         /// If electricity is available, a cell is used and the account will pay zero tx fees,
         /// regardless of the call's result.
+        #[pallet::call_index(0)]
         #[pallet::weight({
             let dispatch_info = call.get_dispatch_info();
             (<T as Config>::WeightInfo::call_using_electricity().saturating_add(dispatch_info.weight), dispatch_info.class, Pays::No)
@@ -152,6 +152,7 @@ pub mod pallet {
 
         /// Put a cap on the number of cells individual accounts can use per era.
         /// To disable electricity temporary, set this to `0`.
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as crate::Config>::WeightInfo::set_individual_electricity_era_limit())]
         pub fn set_individual_electricity_era_limit(
             origin: OriginFor<T>,
@@ -169,6 +170,7 @@ pub mod pallet {
 
         /// Set the number of batteries an account has. Since they are rechargable, setting (vs
         /// giving) makes more sense in this context.
+        #[pallet::call_index(2)]
         #[pallet::weight(<T as crate::Config>::WeightInfo::set_battery_count())]
         pub fn set_battery_count(
             origin: OriginFor<T>,
@@ -195,6 +197,7 @@ pub mod pallet {
         }
 
         /// Give the recipient some zaps
+        #[pallet::call_index(3)]
         #[pallet::weight(<T as crate::Config>::WeightInfo::give_zaps())]
         pub fn give_zaps(
             origin: OriginFor<T>,

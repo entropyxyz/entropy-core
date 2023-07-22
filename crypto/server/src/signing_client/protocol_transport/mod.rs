@@ -41,7 +41,7 @@ pub async fn open_protocol_connections(
         .filter(|validators_info| {
             // Decide whether to initiate a connection by comparing accound ids
             // otherwise, we wait for them to connect to us
-            signer.account_id() > &validators_info.tss_account
+            signer.account_id() > &validators_info.tss_account.clone().into()
         })
         .map(|validator_info| async move {
             // Open a ws connection

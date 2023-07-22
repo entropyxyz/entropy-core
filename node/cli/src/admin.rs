@@ -110,7 +110,7 @@ pub fn devnet_config_genesis() -> GenesisConfig {
 	];
 
     let root_key: AccountId =
-        hex!["4e5c769d0007d4da9603f7be2afff9abdc944fec97d7da7c19efc8b7150b524b"].into();
+        hex!["6a16ded05ff7a50716e1ca943f0467c60b4b71c2a7fd7f75b6333b8af80b6e6f"].into();
 
     devnet_genesis(initial_authorities, vec![], root_key)
 }
