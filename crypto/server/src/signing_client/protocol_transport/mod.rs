@@ -187,10 +187,10 @@ async fn handle_initial_incoming_ws_message(
             listeners.get(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
 
         let validators_info = &listener.user_transaction_request.validators_info;
-        if !validators_info
-            .iter()
-            .any(|validator_info| validator_info.x25519_public_key == remote_public_key)
-        {
+        if !validators_info.iter().any(|validator_info| {
+            validator_info.x25519_public_key == remote_public_key
+                && validator_info.tss_account == signed_msg.account_id()
+        }) {
             // Make the signing process fail, since one of the commitee has misbehaved
             listeners.remove(&msg.session_id);
             return Err(SubscribeErr::Decryption(
