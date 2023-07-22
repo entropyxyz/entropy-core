@@ -143,6 +143,8 @@ pub enum WsError {
     SigningMessage(#[from] SigningMessageError),
     #[error("Serialization Error: {0:?}")]
     Serialization(#[from] serde_json::Error),
+    #[error("Received bad subscribe message")]
+    BadSubscribeMessage,
 }
 
 /// Errors relating to encrypted WS connections / noise handshaking

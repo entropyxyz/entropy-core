@@ -135,9 +135,8 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(),
         .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
 
     // If it was successful, proceed with relaying signing protocol messages
-    if let Some((ws_channels, remote_party_id)) = ws_channels_option {
-        ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await?;
-    };
+    let (ws_channels, remote_party_id) = ws_channels_option.ok_or(WsError::BadSubscribeMessage)?;
+    ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await?;
 
     Ok(())
 }
