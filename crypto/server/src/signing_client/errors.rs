@@ -144,3 +144,18 @@ pub enum WsError {
     #[error("Serialization Error: {0:?}")]
     Serialization(#[from] serde_json::Error),
 }
+
+/// Errors relating to encrypted WS connections / noise handshaking
+#[derive(Debug, Error)]
+pub enum EncryptedConnectionError {
+    #[error("Noise error: {0}")]
+    Noise(#[from] snow::error::Error),
+    #[error("Utf8Error: {0:?}")]
+    Utf8(#[from] std::str::Utf8Error),
+    #[error("Utf8Error: {0:?}")]
+    FromUtf8(#[from] FromUtf8Error),
+    #[error("Websocket error: {0}")]
+    WebSocket(#[from] WsError),
+    #[error("Could not get remote public key")]
+    RemotePublicKey,
+}

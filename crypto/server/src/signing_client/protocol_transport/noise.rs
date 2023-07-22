@@ -6,15 +6,12 @@
 //! handshake starts)
 //!
 //! See: https://noiseexplorer.com/patterns/XK
-use std::string::FromUtf8Error;
-
 use entropy_shared::X25519PublicKey;
 use snow::{params::NoiseParams, Builder, HandshakeState};
 use subxt::ext::sp_core::sr25519;
-use thiserror::Error;
 
-use super::WsConnection;
-use crate::{signing_client::WsError, validation::derive_static_secret};
+use super::{super::errors::EncryptedConnectionError, WsConnection};
+use crate::validation::derive_static_secret;
 
 /// The handshake pattern and other parameters
 const NOISE_PARAMS: &str = "Noise_XK_25519_ChaChaPoly_BLAKE2s";
@@ -121,19 +118,4 @@ impl EncryptedWsConnection {
             .try_into()
             .map_err(|_| EncryptedConnectionError::RemotePublicKey)
     }
-}
-
-/// Errors relating to encrypted WS connections / noise handshaking
-#[derive(Debug, Error)]
-pub enum EncryptedConnectionError {
-    #[error("Noise error: {0}")]
-    Noise(#[from] snow::error::Error),
-    #[error("Utf8Error: {0:?}")]
-    Utf8(#[from] std::str::Utf8Error),
-    #[error("Utf8Error: {0:?}")]
-    FromUtf8(#[from] FromUtf8Error),
-    #[error("Websocket error: {0}")]
-    WebSocket(#[from] WsError),
-    #[error("Could not get remote public key")]
-    RemotePublicKey,
 }
