@@ -71,10 +71,13 @@ vercel-install-api-docs :: vercel-rustup rust
 			https://github.com/protocolbuffers/protobuf/releases/download/v23.4/protoc-23.4-linux-x86_64.zip \
 			> /tmp/protoc.zip
 		unzip -od /usr /tmp/protoc.zip bin/protoc && rm -f /tmp/protoc.zip
-		# Ensure the private repository we depend on can be `git clone`d.
-		git config --global \
-			url."https://vercel:${GITHUB_SYNEDRION_RO_TOKEN}@github.com/entropyxyz/synedrion.git".insteadOf \
-			ssh://git@github.com/entropyxyz/synedrion.git
+		# Write out SSH deploy key to prepare cloning the repository.
+		mkdir -p /root/.ssh
+		echo "Host github.com" > /root/.ssh/config
+		echo "	StrictHostKeyChecking no" >> /root/.ssh/config
+		echo "	IdentityFile /root/.ssh/id_ed25519" >> /root/.ssh/config
+		printenv github_ssh_deploy_key > /root/.ssh/id_ed25519
+		chmod 600 /root/.ssh/id_ed25519
 
 # The Vercel project's `buildCommand` is defined here.
 vercel-build-api-docs ::
