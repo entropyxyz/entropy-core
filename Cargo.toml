@@ -1,6 +1,14 @@
 [profile.release]
 panic='unwind'
 
+[profile.vercel]
+inherits     ='release'
+panic        ='abort'
+strip        =true
+opt-level    ='z'
+lto          =true
+codegen-units=1
+
 [workspace]
 resolver="2"
 members =['crypto/*', 'node/*', 'pallets/*', 'runtime']
