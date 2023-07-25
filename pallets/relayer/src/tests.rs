@@ -1,4 +1,4 @@
-use entropy_shared::Constraints;
+use entropy_shared::{Constraints, KeyVisibility};
 use frame_support::{assert_noop, assert_ok};
 use pallet_constraints::{ActiveArchitectures, AllowedToModifyConstraints};
 
@@ -44,6 +44,7 @@ fn it_registers_a_user() {
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
+            KeyVisibility::Public,
             None
         ));
 
@@ -69,6 +70,7 @@ fn it_confirms_registers_a_user_then_swap() {
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
+            KeyVisibility::Private,
             Some(Constraints::default()),
         ));
 
@@ -99,6 +101,7 @@ fn it_confirms_registers_a_user_then_swap() {
             is_swapping: false,
             confirmations: vec![0],
             constraints: Some(Constraints::default()),
+            key_visibility: KeyVisibility::Private,
         };
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
@@ -106,7 +109,7 @@ fn it_confirms_registers_a_user_then_swap() {
         assert_ok!(Relayer::confirm_register(RuntimeOrigin::signed(2), 1, 1));
 
         assert_eq!(Relayer::registering(1), None);
-        assert!(Relayer::registered(1).unwrap());
+        assert_eq!(Relayer::registered(1).unwrap(), KeyVisibility::Private);
 
         // make sure constraint and sig req keys are set
         assert!(AllowedToModifyConstraints::<Test>::contains_key(2, 1));
@@ -121,6 +124,7 @@ fn it_confirms_registers_a_user_then_swap() {
             is_swapping: true,
             confirmations: vec![],
             constraints: None,
+            key_visibility: KeyVisibility::Private,
         };
         assert_ok!(Relayer::swap_keys(RuntimeOrigin::signed(1)));
 
@@ -132,11 +136,16 @@ fn it_confirms_registers_a_user_then_swap() {
 fn it_doesnt_allow_double_registering() {
     new_test_ext().execute_with(|| {
         // register a user
-        assert_ok!(Relayer::register(RuntimeOrigin::signed(1), 2, None));
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(1),
+            2,
+            KeyVisibility::Permissioned,
+            None
+        ));
 
         // error if they try to submit another request, even with a different constraint key
         assert_noop!(
-            Relayer::register(RuntimeOrigin::signed(1), 2, None),
+            Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Permissioned, None),
             Error::<Test>::AlreadySubmitted
         );
     });

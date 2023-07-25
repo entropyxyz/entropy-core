@@ -13,7 +13,7 @@ use entropy_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
 use entropy_shared::{
-    types::{Acl, AclKind, Arch, Constraints},
+    types::{Acl, AclKind, Arch, Constraints, KeyVisibility},
     X25519PublicKey, SIGNING_PARTY_SIZE,
 };
 use futures::{
@@ -45,7 +45,7 @@ use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     helpers::{
         signing::{create_unique_tx_id, do_signing, SignatureState},
-        substrate::{get_constraints, get_subgroup, is_registered},
+        substrate::{get_constraints, get_key_visibility, get_subgroup},
         validator::get_signer,
     },
     signing_client::{SignerState, SigningErr},
@@ -82,22 +82,21 @@ pub async fn sign_tx(
     Json(signed_msg): Json<SignedMessage>,
 ) -> Result<(StatusCode, StreamBody<impl Stream<Item = Result<String, serde_json::Error>>>), UserErr>
 {
-    if !signed_msg.verify() {
-        return Err(UserErr::InvalidSignature("Invalid signature."));
-    }
-
     let signer = get_signer(&app_state.kv_store).await?;
     let signing_address = signed_msg.account_id().to_ss58check();
-
-    let api = get_api(&app_state.configuration.endpoint).await?;
 
     let signing_address_converted =
         AccountId32::from_str(&signing_address).map_err(UserErr::StringError)?;
     // TODO go back over to simplify accountID type
     let second_signing_address_conversion = SubxtAccountId32::from_str(&signing_address)
         .map_err(|_| UserErr::StringError("Account Conversion"))?;
-    is_registered(&api, &second_signing_address_conversion).await?;
 
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let key_visibility = get_key_visibility(&api, &second_signing_address_conversion).await?;
+
+    if key_visibility != KeyVisibility::Public && !signed_msg.verify() {
+        return Err(UserErr::InvalidSignature("Invalid signature."));
+    }
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 

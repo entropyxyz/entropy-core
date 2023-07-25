@@ -1,4 +1,4 @@
-use entropy_shared::{Acl, Constraints, SIGNING_PARTY_SIZE};
+use entropy_shared::{Acl, Constraints, KeyVisibility, SIGNING_PARTY_SIZE};
 #[cfg(test)]
 use subxt::utils::AccountId32;
 use subxt::{ext::sp_core::sr25519, tx::PairSigner, utils::Static, Config, OnlineClient};
@@ -87,6 +87,7 @@ pub async fn make_register(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: sr25519::Pair,
     constraint_account: &AccountId32,
+    key_visibility: KeyVisibility,
 ) {
     let sig_req_account = PairSigner::<EntropyConfig, sr25519::Pair>::new(sig_req_keyring);
 
@@ -97,7 +98,8 @@ pub async fn make_register(
     assert!(is_registering_1.is_none());
 
     // register the user
-    let registering_tx = entropy::tx().relayer().register(constraint_account.clone(), None);
+    let registering_tx =
+        entropy::tx().relayer().register(constraint_account.clone(), Static(key_visibility), None);
 
     api.tx()
         .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
@@ -116,17 +118,17 @@ pub async fn make_register(
 }
 
 /// Returns wether an account is registered
-pub async fn is_registered(
+pub async fn get_key_visibility(
     api: &OnlineClient<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
-) -> Result<(), UserErr> {
+) -> Result<KeyVisibility, UserErr> {
     let registered_info_query = entropy::storage().relayer().registered(who);
-    let _ = api
+    let result = api
         .storage()
         .at_latest()
         .await?
         .fetch(&registered_info_query)
         .await?
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
-    Ok(())
+    Ok(result.0)
 }

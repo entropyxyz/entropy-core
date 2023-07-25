@@ -3,7 +3,7 @@ use std::{env, fs, net::SocketAddrV4, path::PathBuf, str::FromStr, sync::Arc, ti
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::Acl;
+use entropy_shared::{Acl, KeyVisibility};
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future, SinkExt, StreamExt};
 use hex_literal::hex as h;
@@ -14,7 +14,7 @@ use kvdb::{
 };
 use parity_scale_codec::Encode;
 use serial_test::serial;
-use sp_core::{crypto::Ss58Codec, H160};
+use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{
     ext::{
@@ -347,7 +347,7 @@ async fn test_sign_tx_no_chain() {
     let user_input_bad = SignedMessage::new_test(
         Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
         sr25519::Signature::from_raw(sig),
-        slice,
+        one.pair().public().into(),
         slice,
         slice,
         nonce,
@@ -363,6 +363,29 @@ async fn test_sign_tx_no_chain() {
 
     assert_eq!(failed_sign.status(), 500);
     assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+
+    // checks that sig not needed with public key visibility
+    let user_input_bad = SignedMessage::new_test(
+        Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+        sr25519::Signature::from_raw(sig),
+        AccountKeyring::Dave.pair().public().into(),
+        slice,
+        slice,
+        nonce,
+    );
+
+    let failed_sign = mock_client
+        .post("http://127.0.0.1:3001/user/sign_tx")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&user_input_bad).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(failed_sign.status(), 500);
+    // fails lower down in stack because no sig needed on pub account
+    // fails when tries to decode the nonsense message
+    assert_ne!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
     clean_tests();
 }
 
@@ -453,6 +476,7 @@ async fn test_store_share() {
         &api,
         alice.pair(),
         &subxtAccountId32::from_str(&alice_constraint.to_account_id().to_ss58check()).unwrap(),
+        KeyVisibility::Permissioned,
     )
     .await;
 

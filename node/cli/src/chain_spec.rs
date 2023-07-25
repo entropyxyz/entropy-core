@@ -280,9 +280,9 @@ pub fn testnet_genesis(
         },
         relayer: RelayerConfig {
             registered_accounts: vec![
-                (get_account_id_from_seed::<sr25519::Public>("Dave"), true),
-                (get_account_id_from_seed::<sr25519::Public>("Eve"), true),
-                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), true),
+                get_account_id_from_seed::<sr25519::Public>("Dave"),
+                get_account_id_from_seed::<sr25519::Public>("Eve"),
+                get_account_id_from_seed::<sr25519::Public>("Ferdie"),
             ],
         },
         vesting: Default::default(),
@@ -596,9 +596,9 @@ pub fn testing(
         },
         relayer: RelayerConfig {
             registered_accounts: vec![
-                (get_account_id_from_seed::<sr25519::Public>("Dave"), true),
-                (get_account_id_from_seed::<sr25519::Public>("Eve"), true),
-                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), true),
+                get_account_id_from_seed::<sr25519::Public>("Dave"),
+                get_account_id_from_seed::<sr25519::Public>("Eve"),
+                get_account_id_from_seed::<sr25519::Public>("Ferdie"),
             ],
         },
         vesting: Default::default(),
