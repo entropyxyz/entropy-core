@@ -2,19 +2,17 @@
 pub mod api;
 mod errors;
 pub(crate) mod new_party;
-pub(crate) mod subscribe;
+pub(crate) mod protocol_transport;
 
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
 };
 
-#[cfg(test)]
-pub mod tests;
 pub use self::{
     errors::*,
     new_party::SigningMessage,
-    subscribe::{Listener, SubscribeMessage},
+    protocol_transport::{Listener, SubscribeMessage},
 };
 
 /// The state used by this node to create signatures

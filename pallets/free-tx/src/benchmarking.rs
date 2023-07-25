@@ -31,7 +31,7 @@ benchmarks! {
     assert!(<ElectricalAccount<T>>::get(caller).unwrap().used.count == 1);
   }
   set_individual_electricity_era_limit {
-    let origin = T::UpdateOrigin::successful_origin();
+    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
     let cells = 5 as Cells;
   }: {
     assert_ok!(
@@ -42,7 +42,7 @@ benchmarks! {
     assert_eq!(MaxUserElectricityUsagePerEra::<T>::get().unwrap(), cells as Cells);
   }
   set_battery_count {
-    let origin = T::UpdateOrigin::successful_origin();
+    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
     let whitelisted_caller: T::AccountId = whitelisted_caller();
     let cells = 5 as Cells;
   }: {
@@ -54,7 +54,7 @@ benchmarks! {
     assert_eq!(ElectricalAccount::<T>::get(whitelisted_caller).unwrap().batteries, cells as Cells);
   }
   give_zaps{
-    let origin = T::UpdateOrigin::successful_origin();
+    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
     let whitelisted_caller: T::AccountId = whitelisted_caller();
     let cells = 5 as Cells;
   }: {

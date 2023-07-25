@@ -59,15 +59,14 @@ fn prep_bond_and_validate<T: Config>(
         <T as Config>::Currency::minimum_balance() * 10u32.into(),
     );
     assert_ok!(<FrameStaking<T>>::bond(
-        RawOrigin::Signed(bonder).into(),
-        T::Lookup::unlookup(caller.clone()),
+        RawOrigin::Signed(bonder.clone()).into(),
         bond,
         reward_destination,
     ));
 
     if validate_also {
         assert_ok!(<Staking<T>>::validate(
-            RawOrigin::Signed(caller).into(),
+            RawOrigin::Signed(bonder).into(),
             ValidatorPrefs::default(),
             vec![20, 20],
             threshold,
@@ -82,12 +81,12 @@ benchmarks! {
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
     let x25519_public_key = NULL_ARR;
-    prep_bond_and_validate::<T>(true, caller.clone(), bonder, threshold, NULL_ARR);
+    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
 
 
-  }:  _(RawOrigin::Signed(caller.clone()), vec![30])
+  }:  _(RawOrigin::Signed(bonder.clone()), vec![30])
   verify {
-    assert_last_event::<T>(Event::<T>::EndpointChanged(caller, vec![30]).into());
+    assert_last_event::<T>(Event::<T>::EndpointChanged(bonder, vec![30]).into());
   }
 
   change_threshold_accounts {
@@ -100,7 +99,7 @@ benchmarks! {
     prep_bond_and_validate::<T>(true, caller.clone(), _bonder.clone(), threshold, NULL_ARR);
 
 
-  }:  _(RawOrigin::Signed(caller.clone()), _bonder.clone(), NULL_ARR)
+  }:  _(RawOrigin::Signed(_bonder.clone()), _bonder.clone(), NULL_ARR)
   verify {
     let server_info = ServerInfo {
       endpoint: vec![20, 20],
@@ -116,17 +115,17 @@ benchmarks! {
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
 
-    prep_bond_and_validate::<T>(true, caller.clone(), bonder, threshold, NULL_ARR);
+    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
     let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
 
     // assume fully unbonded as slightly more weight, but not enough to handle partial unbond
     assert_ok!(<FrameStaking<T>>::unbond(
-      RawOrigin::Signed(caller.clone()).into(),
+      RawOrigin::Signed(bonder.clone()).into(),
       bond,
     ));
 
 
-  }:  _(RawOrigin::Signed(caller.clone()), 0u32)
+  }:  _(RawOrigin::Signed(bonder.clone()), 0u32)
   verify {
     // TODO: JA fix, pretty much benching this pathway requiers moving the session forward
     // This is diffcult, from the test we were able to mock it but benchamrks use runtime configs
@@ -139,14 +138,14 @@ benchmarks! {
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
     let x25519_public_key: [u8; 32] = NULL_ARR;
-    prep_bond_and_validate::<T>(false, caller.clone(), bonder, threshold.clone(), NULL_ARR);
+    prep_bond_and_validate::<T>(false, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
 
     let validator_preferance = ValidatorPrefs::default();
 
 
-  }:  _(RawOrigin::Signed(caller.clone()), validator_preferance, vec![20], threshold.clone(), NULL_ARR)
+  }:  _(RawOrigin::Signed(bonder.clone()), validator_preferance, vec![20], threshold.clone(), NULL_ARR)
   verify {
-    assert_last_event::<T>(Event::<T>::NodeInfoChanged(caller,  vec![20], threshold).into());
+    assert_last_event::<T>(Event::<T>::NodeInfoChanged(bonder,  vec![20], threshold).into());
   }
 
   declare_synced {
