@@ -51,8 +51,6 @@ pub enum SigningErr {
     GenericSubstrate(#[from] subxt::error::Error),
     #[error("Serde Json error: {0}")]
     SerdeJson(#[from] serde_json::Error),
-    #[error("Unexpected event: {0}")]
-    UnexpectedEvent(String),
     #[error("Session Error: {0}")]
     SessionError(String),
     #[error("String Conversion Error: {0}")]
@@ -65,8 +63,6 @@ pub enum SigningErr {
     Mnemonic(String),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
-    #[error("Connection closed unexpectedly")]
-    ConnectionClosed,
     #[error("Subscribe message rejected: {0}")]
     BadSubscribeMessage(String),
     #[error("From Hex Error: {0}")]
@@ -77,6 +73,8 @@ pub enum SigningErr {
     ConnectionError(#[from] tokio_tungstenite::tungstenite::Error),
     #[error("Timed out waiting for remote party")]
     Timeout(#[from] tokio::time::error::Elapsed),
+    #[error("Encrypted connection error {0}")]
+    EncryptedConnection(String),
 }
 
 impl IntoResponse for SigningErr {
@@ -129,4 +127,35 @@ pub enum WsError {
     ConnectionError(#[from] axum::Error),
     #[error("Message received after signing protocol has finished")]
     MessageAfterProtocolFinish,
+    #[error("UTF8 parse error {0}")]
+    UTF8Parse(#[from] FromUtf8Error),
+    #[error("Cannot get signer from app state")]
+    AppState(#[from] crate::user::UserErr),
+    #[error("Unexpected message type")]
+    UnexpectedMessageType,
+    #[error("Client connection error: {0}")]
+    Tungstenite(#[from] tokio_tungstenite::tungstenite::Error),
+    #[error("Encrypted connection error {0}")]
+    EncryptedConnection(String),
+    #[error("Error parsing Signing Message")]
+    SigningMessage(#[from] SigningMessageError),
+    #[error("Serialization Error: {0:?}")]
+    Serialization(#[from] serde_json::Error),
+    #[error("Received bad subscribe message")]
+    BadSubscribeMessage,
+}
+
+/// Errors relating to encrypted WS connections / noise handshaking
+#[derive(Debug, Error)]
+pub enum EncryptedConnectionError {
+    #[error("Noise error: {0}")]
+    Noise(#[from] snow::error::Error),
+    #[error("Utf8Error: {0:?}")]
+    Utf8(#[from] std::str::Utf8Error),
+    #[error("Utf8Error: {0:?}")]
+    FromUtf8(#[from] FromUtf8Error),
+    #[error("Websocket error: {0}")]
+    WebSocket(#[from] WsError),
+    #[error("Could not get remote public key")]
+    RemotePublicKey,
 }

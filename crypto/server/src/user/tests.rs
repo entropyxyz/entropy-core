@@ -55,7 +55,10 @@ use crate::{
     },
     load_kv_store, new_user,
     r#unsafe::api::UnsafeQuery,
-    signing_client::{SignerState, SubscribeMessage},
+    signing_client::{
+        protocol_transport::{noise::noise_handshake_initiator, WsConnection},
+        SignerState, SubscribeMessage,
+    },
     user::{
         api::{UserTransactionRequest, ValidatorInfo},
         tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
@@ -206,24 +209,15 @@ async fn test_sign_tx_no_chain() {
         "{\"Err\":\"Oneshot timeout error: channel closed\"}"
     );
 
-    // for res in test_user_failed_x25519_pub_key {
-    //     let mut res = res.unwrap();
-    //     assert_eq!(res.status(), 200);
-    //     let chunk = res.chunk().await.unwrap().unwrap();
-    //     let signing_result: Result<String, String> = serde_json::from_slice(&chunk).unwrap();
-    //     assert_eq!(
-    //         Err("reqwest event error: Invalid status code: 500 Internal Server
-    // Error".to_string()),         signing_result
-
-    // Test attempting to connect over ws with a bad subscribe message
+    // Test attempting to connect over ws by someone who is not in the signing group
     let validator_ip_and_key = validator_ips_and_keys[0].clone();
     let connection_attempt_handle = tokio::spawn(async move {
         // Wait for the "user" to submit the signing request
         tokio::time::sleep(Duration::from_millis(500)).await;
         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
-        let (mut ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
+        let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
-        // Send a SubscribeMessage from a party who is not in the signing commitee
+        // create a SubscribeMessage from a party who is not in the signing commitee
         let server_public_key = PublicKey::from(validator_ip_and_key.1);
         let signed_message = SignedMessage::new(
             &AccountKeyring::Ferdie.pair(),
@@ -237,28 +231,31 @@ async fn test_sign_tx_no_chain() {
             &server_public_key,
         )
         .unwrap();
-        let message_string = serde_json::to_string(&signed_message).unwrap();
-        ws_stream.send(Message::Text(message_string)).await.unwrap();
+        let subscribe_message_vec = serde_json::to_vec(&signed_message).unwrap();
 
-        let response_message = ws_stream.next().await.unwrap();
-        if let Ok(Message::Text(res)) = response_message {
-            let subscribe_response: Result<(), String> = serde_json::from_str(&res).unwrap();
-            assert_eq!(
-                Err("Decryption(\"Public key does not match that given in \
-                     UserTransactionRequest\")"
-                    .to_string()),
-                subscribe_response
-            );
-        } else {
-            panic!("Unexpected response message");
-        }
+        // Attempt a noise handshake including the subscribe message in the payload
+        let mut encrypted_connection = noise_handshake_initiator(
+            WsConnection::WsStream(ws_stream),
+            &AccountKeyring::Ferdie.pair(),
+            validator_ip_and_key.1,
+            subscribe_message_vec,
+        )
+        .await
+        .unwrap();
+
+        // Check the response as to whether they accepted our SubscribeMessage
+        let response_message = encrypted_connection.recv().await.unwrap();
+        let subscribe_response: Result<(), String> =
+            serde_json::from_str(&response_message).unwrap();
+
+        assert_eq!(
+            Err("Decryption(\"Public key does not match that given in UserTransactionRequest\")"
+                .to_string()),
+            subscribe_response
+        );
         // The stream should not continue to send messages
-        let next_message = ws_stream.next().await;
-        match next_message {
-            Some(Err(_)) => true,
-            None => true,
-            _ => false,
-        }
+        // returns true if this part of the test passes
+        encrypted_connection.recv().await.is_err()
     });
 
     let test_user_bad_connection_res = submit_transaction_requests(
