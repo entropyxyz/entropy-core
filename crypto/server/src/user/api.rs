@@ -77,6 +77,14 @@ pub struct UserTransactionRequest {
 /// Called by a user to initiate the signing process for a message
 ///
 /// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
+#[utoipa::path(
+	post,
+	path = "user/sign_tx",
+	request_body = SignedMessage,
+	responses(
+		(status = 200, description = "Signature request submitted successfully"),
+	)
+)]
 pub async fn sign_tx(
     State(app_state): State<AppState>,
     Json(signed_msg): Json<SignedMessage>,
@@ -152,6 +160,14 @@ pub async fn sign_tx(
 ///
 /// The http request takes a [SignedMessage] containing a bincode-encoded
 /// [KeyShare](synedrion::KeyShare).
+#[utoipa::path(
+	post,
+	path = "user/new_user",
+	request_body = SignedMessage,
+	responses(
+		(status = 200, description = "Registered successfully"),
+	)
+)]
 pub async fn new_user(
     State(app_state): State<AppState>,
     Json(signed_msg): Json<SignedMessage>,

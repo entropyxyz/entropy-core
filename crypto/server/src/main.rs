@@ -162,6 +162,11 @@ use tower_http::{
     trace::{self, TraceLayer},
 };
 use tracing::Level;
+use utoipa::{
+    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
+    Modify, OpenApi,
+};
+use utoipa_swagger_ui::SwaggerUi;
 use validator::api::get_random_server_info;
 
 use self::{
@@ -178,6 +183,7 @@ use crate::{
         validator::get_signer,
     },
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
+    validation::SignedMessage,
     validator::api::{
         check_balance_for_fees, get_all_keys, get_and_store_values, sync_kvdb,
         tell_chain_syncing_is_done,
@@ -265,7 +271,23 @@ async fn main() {
 }
 
 pub fn app(app_state: AppState) -> Router {
+    #[derive(OpenApi)]
+    #[openapi(
+		paths(
+			sign_tx,
+			new_user,
+		),
+		components(
+			schemas(SignedMessage)
+		),
+		tags(
+			(name = "entropy-server", description = "Entropy Threshold Server API")
+		)
+	)]
+    struct ApiDoc;
+
     let mut routes = Router::new()
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/user/sign_tx", post(sign_tx))
         .route("/user/new", post(new_user))
         .route("/signer/signature", post(get_signature))

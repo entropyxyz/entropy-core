@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(test)]
 use serde_json::to_string;
 use subxt::ext::sp_core::{crypto::AccountId32, sr25519, sr25519::Signature, Bytes, Pair};
+use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 use zeroize::Zeroize;
 pub mod errors;
@@ -18,7 +19,7 @@ use errors::ValidationErr;
 /// sr25519 is the signature scheme.
 /// Use SignedMessage::new(secret_key, message) to construct
 /// a new signed message.
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
 pub struct SignedMessage {
     /// The encrypted message.
     pub msg: Bytes,
