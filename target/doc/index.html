@@ -23,6 +23,21 @@ h1 {
 h2 {
      text-align: center;
 }
+ul {
+    margin: 0 auto;
+    width: 70%;
+    list-style-type: none;
+    font-size: xx-large;
+}
+li {
+    display: inline;
+}
+li::after {
+    content: " | "
+}
+li:last-child::after {
+     content: "";
+}
     </style>
 </head>
 <body>
@@ -33,6 +48,11 @@ h2 {
             </a>
         </h1>
         <h2>Entropy API documentation</h2>
+        <ul>
+            <li><a href="entropy/" title="Entropy Core API documentation">Entropy Core</a></li>
+            <li><a href="https://docs-api-synedrion.vercel.app/synedrion/" title="Synedrion API documentation">Synedrion</a></li>
+            <li><a href="https://docs-api-constraints.vercel.app/ec_constraints/" title="Constraints API documentation">Constraints</a></li>
+        </ul>
     </main>
 </body>
 </html>

@@ -10415,6 +10415,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serial_test 0.8.0",
+ "snow",
  "sp-core 21.0.0",
  "sp-keyring 24.0.0",
  "subxt",
