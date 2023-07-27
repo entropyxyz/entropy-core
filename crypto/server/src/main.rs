@@ -162,10 +162,7 @@ use tower_http::{
     trace::{self, TraceLayer},
 };
 use tracing::Level;
-use utoipa::{
-    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
-    Modify, OpenApi,
-};
+use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 use validator::api::get_random_server_info;
 
