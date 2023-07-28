@@ -123,9 +123,10 @@ pub async fn sign_tx(
                 let signing_protocol_output = do_signing(
                     user_tx_req,
                     sig_hash,
-                    &app_state.signer_state,
-                    &app_state.kv_store,
-                    &app_state.signature_state,
+                    &app_state,
+                    // &app_state.signer_state,
+                    // &app_state.kv_store,
+                    // &app_state.signature_state,
                     tx_id,
                     signing_address_converted,
                     key_visibility,

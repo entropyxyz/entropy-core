@@ -6,7 +6,7 @@ use std::{
 
 use bip39::{Language, Mnemonic};
 use entropy_shared::KeyVisibility;
-use kvdb::kv_manager::{KvManager, PartyId};
+use kvdb::kv_manager::PartyId;
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 use tokio::time::timeout;
@@ -17,10 +17,11 @@ use crate::{
     signing_client::{
         new_party::{Channels, ThresholdSigningService},
         protocol_transport::{open_protocol_connections, Listener},
-        SignerState, SigningErr,
+        SigningErr,
     },
     user::api::UserTransactionRequest,
     validation::mnemonic_to_pair,
+    AppState,
 };
 
 const SETUP_TIMEOUT_SECONDS: u64 = 20;
@@ -81,13 +82,14 @@ impl Default for SignatureState {
 pub async fn do_signing(
     message: UserTransactionRequest,
     sig_hash: String,
-    state: &SignerState,
-    kv_manager: &KvManager,
-    signatures: &SignatureState,
+    app_state: &AppState,
     tx_id: String,
     user_address: AccountId32,
     key_visibility: KeyVisibility,
 ) -> Result<RecoverableSignature, SigningErr> {
+    let state = &app_state.signer_state;
+    let kv_manager = &app_state.kv_store;
+
     let info =
         SignInit::new(message.clone(), sig_hash.clone(), tx_id.clone(), user_address.clone())?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
@@ -104,7 +106,7 @@ pub async fn do_signing(
         .map(|validator_info| AccountId32::new(*validator_info.tss_account.clone().as_ref()))
         .collect();
 
-	// If key key visibility is private, pass the user's ID to the listener
+    // If key key visibility is private, pass the user's ID to the listener
     let user_id_option =
         if key_visibility == KeyVisibility::Private { Some(user_address) } else { None };
 
@@ -136,7 +138,11 @@ pub async fn do_signing(
         .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
         .await?;
 
-    signing_service.handle_result(&result, &hex::decode(sig_hash.clone())?, signatures);
+    signing_service.handle_result(
+        &result,
+        &hex::decode(sig_hash.clone())?,
+        &app_state.signature_state,
+    );
 
     Ok(result)
 }
