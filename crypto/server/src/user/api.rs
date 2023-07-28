@@ -128,6 +128,7 @@ pub async fn sign_tx(
                     &app_state.signature_state,
                     tx_id,
                     signing_address_converted,
+                    key_visibility,
                 )
                 .await
                 .map(|signature| base64::encode(signature.to_rsv_bytes()))

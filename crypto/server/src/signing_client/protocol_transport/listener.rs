@@ -41,18 +41,24 @@ impl Listener {
     pub(crate) fn new(
         user_transaction_request: UserTransactionRequest,
         my_id: &AccountId32,
+        user_participates: Option<AccountId32>,
     ) -> (oneshot::Receiver<ListenerResult>, mpsc::Receiver<SigningMessage>, Self) {
         let (tx_ready, rx_ready) = oneshot::channel();
         let (tx, _rx) = broadcast::channel(1000);
         let (tx_to_others, rx_to_others) = mpsc::channel(1000);
 
         // Create our set of validators we want to connect to - excluding ourself
-        let validators = user_transaction_request
+        let mut validators: HashSet<AccountId32> = user_transaction_request
             .validators_info
             .iter()
             .map(|validator_info| validator_info.tss_account.clone())
             .filter(|id| id != my_id)
             .collect();
+
+        // If visibility is private, also expect the user to connect
+        if let Some(user_id) = user_participates {
+            validators.insert(user_id);
+        }
 
         {
             (

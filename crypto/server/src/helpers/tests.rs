@@ -166,7 +166,7 @@ pub async fn register_user(
         entropy_api,
         sig_req_keyring.clone(),
         &subxtAccountId32::from(constraint_modification_account.public()),
-        KeyVisibility::Private,
+        KeyVisibility::Permissioned,
     )
     .await;
 

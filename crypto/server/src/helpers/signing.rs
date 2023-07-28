@@ -5,6 +5,7 @@ use std::{
 };
 
 use bip39::{Language, Mnemonic};
+use entropy_shared::KeyVisibility;
 use kvdb::kv_manager::{KvManager, PartyId};
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
@@ -85,8 +86,10 @@ pub async fn do_signing(
     signatures: &SignatureState,
     tx_id: String,
     user_address: AccountId32,
+    key_visibility: KeyVisibility,
 ) -> Result<RecoverableSignature, SigningErr> {
-    let info = SignInit::new(message.clone(), sig_hash.clone(), tx_id.clone(), user_address)?;
+    let info =
+        SignInit::new(message.clone(), sig_hash.clone(), tx_id.clone(), user_address.clone())?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let signer =
         get_signer(kv_manager).await.map_err(|_| SigningErr::UserError("Error getting Signer"))?;
@@ -101,8 +104,13 @@ pub async fn do_signing(
         .map(|validator_info| AccountId32::new(*validator_info.tss_account.clone().as_ref()))
         .collect();
 
+	// If key key visibility is private, pass the user's ID to the listener
+    let user_id_option =
+        if key_visibility == KeyVisibility::Private { Some(user_address) } else { None };
+
     // subscribe to all other participating parties. Listener waits for other subscribers.
-    let (rx_ready, rx_from_others, listener) = Listener::new(message, &account_sp_core);
+    let (rx_ready, rx_from_others, listener) =
+        Listener::new(message, &account_sp_core, user_id_option);
     state
         .listeners
         .lock()
