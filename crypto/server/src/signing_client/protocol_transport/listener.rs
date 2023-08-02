@@ -13,7 +13,8 @@ use crate::{
 
 pub type ListenerResult = Result<Broadcaster, SubscribeErr>;
 
-/// Tracks which validators we are connected to and sets up channels for exchaning protocol messages
+/// Tracks which validators we are connected to for a particular protocol execution
+/// and sets up channels for exchaning protocol messages
 #[derive(Debug)]
 pub struct Listener {
     /// Endpoint to create subscriptions

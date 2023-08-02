@@ -1,6 +1,6 @@
 //! Connect to other threshold servers over websocket for exchanging protocol messages
 mod broadcaster;
-mod listener;
+pub mod listener;
 mod message;
 pub mod noise;
 
@@ -205,8 +205,9 @@ async fn handle_initial_incoming_ws_message(
     Ok((ws_channels, party_id))
 }
 
-/// Subscribe to get channels
-fn get_ws_channels(
+/// Inform the listener we have made a ws connection to another signing party, and get channels to
+/// the signing protocol
+pub fn get_ws_channels(
     state: &SignerState,
     sig_uid: &str,
     tss_account: &AccountId32,
@@ -227,7 +228,7 @@ fn get_ws_channels(
 }
 
 /// Send singing protocol messages over websocket, and websocket messages to signing protocol
-async fn ws_to_channels(
+pub async fn ws_to_channels(
     mut connection: EncryptedWsConnection,
     mut ws_channels: WsChannels,
     remote_party_id: PartyId,
