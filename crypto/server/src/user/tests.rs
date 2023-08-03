@@ -5,7 +5,7 @@ use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{Acl, KeyVisibility};
 use ethers_core::types::{Address, TransactionRequest};
-use futures::{future::join_all, join, Future, SinkExt, StreamExt};
+use futures::{future::{join_all, self}, join, Future, SinkExt, StreamExt};
 use hex_literal::hex as h;
 use kvdb::{
     clean_tests,
@@ -50,7 +50,7 @@ use crate::{
         substrate::make_register,
         tests::{
             check_if_confirmation, create_clients, make_swapping, register_user, setup_client,
-            spawn_testing_validators,
+            spawn_testing_validators, user_connects_to_validators,
         },
     },
     load_kv_store, new_user,
@@ -724,7 +724,7 @@ async fn test_sign_tx_user_participates() {
     let mut generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),
         transaction_request: converted_transaction_request.clone(),
-        validators_info,
+        validators_info: validators_info.clone(),
     };
 
     let submit_transaction_requests =
@@ -760,11 +760,16 @@ async fn test_sign_tx_user_participates() {
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
 
-    let test_user_res =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-
-    // TODO here: Connect and participate in signing
-    // using users_keyshare
+	// Submit transaction requests, and connect and participate in signing
+    let (test_user_res, sig_result) = future::join(
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
+		user_connects_to_validators(
+			&users_keyshare,
+			&sig_uid,
+			validators_info.clone(),
+			&one.pair(),
+		),
+	).await;
 
     for res in test_user_res {
         let mut res = res.unwrap();

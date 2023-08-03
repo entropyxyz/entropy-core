@@ -151,7 +151,7 @@ pub async fn register_user(
     constraint_modification_account: &sr25519::Pair,
     initial_constraints: Constraints,
     key_visibility: KeyVisibility,
-) -> Option<Vec<u8>> {
+) -> Option<KeyShare<TestSchemeParams>> {
     let validator1_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let validator2_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
 
@@ -163,11 +163,8 @@ pub async fn register_user(
     let validator_2_threshold_keyshare: Vec<u8> =
         kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
 
-    let user_owned_keyshare = if key_visibility == KeyVisibility::Private {
-        Some(kvdb::kv_manager::helpers::serialize(&shares[2]).unwrap())
-    } else {
-        None
-    };
+    let user_owned_keyshare =
+        if key_visibility == KeyVisibility::Private { Some(shares[2].clone()) } else { None };
 
     let register_body_alice_validator = SignedMessage::new(
         &sig_req_keyring,
@@ -309,7 +306,6 @@ pub async fn user_connects_to_validators(
     sig_uid: &str,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
-    user_account_id: &AccountId32,
 ) -> Result<RecoverableSignature, SigningErr> {
     // Set up channels for communication between signing protocol and other signing parties
     let (tx, _rx) = broadcast::channel(1000);
@@ -332,7 +328,7 @@ pub async fn user_connects_to_validators(
                 user_signing_keypair,
                 &Bytes(serde_json::to_vec(&SubscribeMessage::new(
                     sig_uid,
-                    PartyId::new(user_account_id.clone()),
+                    PartyId::new(user_signing_keypair.public().into()),
                 ))?),
                 &server_public_key,
             )?;
@@ -378,7 +374,7 @@ pub async fn user_connects_to_validators(
         .collect::<Vec<_>>();
 
     // Connect to validators
-	future::try_join_all(connect_to_validators).await?;
+    future::try_join_all(connect_to_validators).await?;
 
     // Set up the signing protocol
     let channels = Channels(Broadcaster(tx_ref.clone()), rx_to_others);
@@ -397,7 +393,7 @@ pub async fn user_connects_to_validators(
     )
     .await?;
 
-	// Return a signature if everything went well
+    // Return a signature if everything went well
     let (signature, recovery_id) = rsig.to_backend();
     Ok(RecoverableSignature { signature, recovery_id })
 }
