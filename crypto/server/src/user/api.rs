@@ -178,6 +178,7 @@ pub async fn new_user(
     if is_swapping {
         app_state.kv_store.kv().delete(&key.to_string()).await?;
     }
+    // TODO: add dkg here
     let reservation = app_state.kv_store.kv().reserve_key(key.to_string()).await?;
     app_state.kv_store.kv().put(reservation, decrypted_message).await?;
     // TODO: Error handling really complex needs to be thought about.

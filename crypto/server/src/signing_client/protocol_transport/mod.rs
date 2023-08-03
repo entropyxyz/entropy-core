@@ -25,6 +25,7 @@ use crate::{
     AppState, SignerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
 
+// TODO remove ctx and pass only needed info
 /// Set up websocket connections to other members of the signing committee
 pub async fn open_protocol_connections(
     ctx: &SignContext,
