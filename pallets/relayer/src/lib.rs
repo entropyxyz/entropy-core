@@ -102,6 +102,11 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails<T>, OptionQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn dkg)]
+    pub type DKG<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Vec<u8>>, ValueQuery>;
+
+    #[pallet::storage]
     #[pallet::getter(fn registered)]
     pub type Registered<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, KeyVisibility, OptionQuery>;
@@ -169,7 +174,12 @@ pub mod pallet {
             if let Some(constraints) = &initial_constraints {
                 ConstraintsPallet::<T>::validate_constraints(constraints)?;
             }
+            let block_number = <frame_system::Pallet<T>>::block_number();
 
+            DKG::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
+                messages.push(sig_req_account.clone().encode());
+                Ok(())
+            })?;
             // put account into a registering state
             Registering::<T>::insert(
                 &sig_req_account,
@@ -182,6 +192,9 @@ pub mod pallet {
                     key_visibility,
                 },
             );
+
+            // TODO add dkg creators for dkg and prep offchain worker for dkg
+            // also maybe need a second storage slot to delete after worker message has been sent
 
             Self::deposit_event(Event::SignalRegister(sig_req_account));
 

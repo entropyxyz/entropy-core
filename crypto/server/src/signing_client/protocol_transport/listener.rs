@@ -38,6 +38,7 @@ pub struct WsChannels {
 }
 
 impl Listener {
+    // TODO only pass validaitor info to reuse
     pub(crate) fn new(
         user_transaction_request: UserTransactionRequest,
         my_id: &AccountId32,

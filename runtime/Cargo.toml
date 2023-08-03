@@ -106,7 +106,9 @@ pallet-constraints      ={ version='3.0.0-monthly-2021-10', default-features=fal
 pallet-staking-extension={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/staking' }
 pallet-transaction-pause={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/transaction-pause' }
 pallet-free-tx          ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/free-tx' }
-entropy-shared          ={ path="../crypto/shared", default-features=false }
+pallet-propagation      ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/propagation' }
+
+entropy-shared={ path="../crypto/shared", default-features=false }
 
 [build-dependencies]
 substrate-wasm-builder={ version="5.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.43", optional=true }
@@ -142,6 +144,7 @@ std=[
   "pallet-membership/std",
   "pallet-multisig/std",
   "pallet-identity/std",
+  "pallet-propagation/std",
   "pallet-scheduler/std",
   "pallet-preimage/std",
   "pallet-referenda/std",
@@ -263,6 +266,7 @@ try-runtime=[
   "pallet-offences/try-runtime",
   "pallet-preimage/try-runtime",
   "pallet-proxy/try-runtime",
+  "pallet-propagation/try-runtime",
   "pallet-referenda/try-runtime",
   "pallet-session/try-runtime",
   "pallet-staking/try-runtime",

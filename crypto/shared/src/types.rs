@@ -1,7 +1,10 @@
 #![allow(dead_code)]
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{alloc::vec::Vec, Decode, Encode, MaxEncodedLen};
 use frame_support::RuntimeDebug;
+use node_primitives::BlockNumber;
 use scale_info::TypeInfo;
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "std")]
 /// common structs etc, shared among the substrate-blockchain-code and the crypto-code
@@ -19,4 +22,11 @@ pub enum KeyVisibility {
     Public,
     Permissioned,
     Private,
+}
+
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+pub struct OCWMessage {
+    pub block_number: BlockNumber,
+    pub sig_request_accounts: Vec<codec::alloc::vec::Vec<u8>>,
 }

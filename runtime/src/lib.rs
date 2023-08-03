@@ -1316,6 +1316,10 @@ impl pallet_free_tx::Config for Runtime {
     type WeightInfo = weights::pallet_free_tx::WeightInfo<Runtime>;
 }
 
+impl pallet_propagation::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+}
+
 construct_runtime!(
   pub enum Runtime where
     Block = Block,
@@ -1372,6 +1376,7 @@ construct_runtime!(
     Constraints: pallet_constraints = 53,
     TransactionPause: pallet_transaction_pause = 54,
     FreeTx: pallet_free_tx = 55,
+    Propagation: pallet_propagation = 56,
 
 
   }
