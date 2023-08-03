@@ -364,7 +364,7 @@ pub async fn user_connects_to_validators(
 
             let remote_party_id = PartyId::new(validator_info.tss_account.clone());
 
-            // Handle protocol messages
+            // Handle protocol messages in another task
             tokio::spawn(async move {
                 if let Err(err) =
                     ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await
@@ -377,15 +377,15 @@ pub async fn user_connects_to_validators(
         })
         .collect::<Vec<_>>();
 
+    // Connect to validators
+	future::try_join_all(connect_to_validators).await?;
+
     // Set up the signing protocol
     let channels = Channels(Broadcaster(tx_ref.clone()), rx_to_others);
     let tss_accounts = validators_info.iter().map(|v| v.tss_account.clone()).collect();
     let digest: PrehashedMessage = hex::decode(sig_uid)?
         .try_into()
         .map_err(|_| SigningErr::Conversion("Digest Conversion"))?;
-
-    // TODO spawn this in another task
-    future::try_join_all(connect_to_validators).await?;
 
     // Execute the signing protocol
     let rsig = signing_protocol::execute_protocol(
@@ -397,6 +397,7 @@ pub async fn user_connects_to_validators(
     )
     .await?;
 
+	// Return a signature if everything went well
     let (signature, recovery_id) = rsig.to_backend();
     Ok(RecoverableSignature { signature, recovery_id })
 }
