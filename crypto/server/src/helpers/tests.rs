@@ -305,17 +305,19 @@ async fn test_get_signing_group() {
 /// Called when KeyVisibility is private - the user connects to relevant validators
 /// and participates in the signing protocol
 pub async fn user_connects_to_validators(
-    msg: PrehashedMessage,
     key_share: &KeyShare<TestSchemeParams>,
     sig_uid: &str,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
     user_account_id: &AccountId32,
 ) -> Result<RecoverableSignature, SigningErr> {
+    // Set up channels for communication between signing protocol and other signing parties
     let (tx, _rx) = broadcast::channel(1000);
     let (tx_to_others, rx_to_others) = mpsc::channel(1000);
-	let tx_ref = &tx;
-	let tx_to_others_ref = &tx_to_others;
+    let tx_ref = &tx;
+    let tx_to_others_ref = &tx_to_others;
+
+    // Create a vec of futures which connect to the other parties over ws
     let connect_to_validators = validators_info
         .iter()
         .map(|validator_info| async move {
@@ -328,7 +330,10 @@ pub async fn user_connects_to_validators(
             let server_public_key = PublicKey::from(validator_info.x25519_public_key);
             let signed_message = SignedMessage::new(
                 user_signing_keypair,
-                &Bytes(serde_json::to_vec(&SubscribeMessage::new(sig_uid, PartyId::new(user_account_id.clone())))?),
+                &Bytes(serde_json::to_vec(&SubscribeMessage::new(
+                    sig_uid,
+                    PartyId::new(user_account_id.clone()),
+                ))?),
                 &server_public_key,
             )?;
             let subscribe_message_vec = serde_json::to_vec(&signed_message)?;
@@ -351,8 +356,11 @@ pub async fn user_connects_to_validators(
             }
 
             // Setup channels
-            let ws_channels =
-                WsChannels { broadcast: tx_ref.subscribe(), tx: tx_to_others_ref.clone(), is_final: false };
+            let ws_channels = WsChannels {
+                broadcast: tx_ref.subscribe(),
+                tx: tx_to_others_ref.clone(),
+                is_final: false,
+            };
 
             let remote_party_id = PartyId::new(validator_info.tss_account.clone());
 
@@ -369,32 +377,23 @@ pub async fn user_connects_to_validators(
         })
         .collect::<Vec<_>>();
 
-    // In another task, set up the signing protocol
+    // Set up the signing protocol
     let channels = Channels(Broadcaster(tx_ref.clone()), rx_to_others);
-
     let tss_accounts = validators_info.iter().map(|v| v.tss_account.clone()).collect();
+    let digest: PrehashedMessage = hex::decode(sig_uid)?
+        .try_into()
+        .map_err(|_| SigningErr::Conversion("Digest Conversion"))?;
 
-    let result =
-        execute_sign(&msg, key_share, channels, user_signing_keypair, tss_accounts).await?;
-
+    // TODO spawn this in another task
     future::try_join_all(connect_to_validators).await?;
 
-    Ok(result)
-}
-
-async fn execute_sign(
-    msg: &PrehashedMessage,
-    key_share: &KeyShare<TestSchemeParams>,
-    channels: Channels,
-    threshold_signer: &sr25519::Pair,
-    threshold_accounts: Vec<AccountId32>,
-) -> Result<RecoverableSignature, SigningErr> {
+    // Execute the signing protocol
     let rsig = signing_protocol::execute_protocol(
         channels,
         key_share,
-        msg,
-        threshold_signer,
-        threshold_accounts,
+        &digest,
+        user_signing_keypair,
+        tss_accounts,
     )
     .await?;
 
