@@ -774,7 +774,8 @@ async fn test_sign_tx_user_participates() {
         ),
     )
     .await;
-	// let test_user_res = submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+    // let test_user_res = submit_transaction_requests(validator_ips_and_keys.clone(),
+    // generic_msg.clone(), one).await;
 
     for res in test_user_res {
         let mut res = res.unwrap();
