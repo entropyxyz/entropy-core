@@ -24,7 +24,7 @@ pub struct Listener {
     /// Endpoint to notify protocol execution ready-for-signing
     tx_ready: oneshot::Sender<ListenerResult>,
     /// Remaining validators we want to connect to
-    validators: HashSet<AccountId32>,
+    pub validators: HashSet<AccountId32>,
     /// The request message associated with this listener
     pub user_transaction_request: UserTransactionRequest,
 }
