@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use entropy_shared::KeyVisibility;
-use frame_support::assert_ok;
+use frame_support::{assert_ok, traits::OnInitialize};
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
 use sp_keystore::{testing::MemoryKeystore, KeystoreExt};
@@ -38,6 +38,10 @@ fn knows_how_to_mock_several_http_calls() {
         assert_ok!(Relayer::register(RuntimeOrigin::signed(2), 3, KeyVisibility::Public, None));
         // full send
         Propagation::post(4).unwrap();
+        // test pruning
+        assert_eq!(Relayer::dkg(3).len(), 2);
+        Propagation::on_initialize(5);
+        assert_eq!(Relayer::dkg(3).len(), 0);
     })
 }
 

@@ -39,7 +39,10 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn offchain_worker(block_number: T::BlockNumber) { let _ = Self::post(block_number); }
 
-        // TODO add on init to prune old messages
+        fn on_initialize(block_number: T::BlockNumber) -> Weight {
+            pallet_relayer::DKG::<T>::remove(block_number.saturating_sub(2u32.into()));
+            T::DbWeight::get().writes(1)
+        }
     }
 
     #[pallet::event]
