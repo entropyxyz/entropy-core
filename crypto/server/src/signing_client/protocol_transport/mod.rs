@@ -21,6 +21,7 @@ use crate::{
     chain_api::EntropyConfig,
     get_signer,
     signing_client::{SigningMessage, SubscribeErr, WsError},
+    user::api::ValidatorInfo,
     validation::SignedMessage,
     AppState, SignerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
@@ -28,16 +29,13 @@ use crate::{
 // TODO remove ctx and pass only needed info
 /// Set up websocket connections to other members of the signing committee
 pub async fn open_protocol_connections(
-    ctx: &SignContext,
+    validators_info: &Vec<ValidatorInfo>,
+    session_uid: &str,
     my_id: &PartyId,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     state: &SignerState,
 ) -> Result<(), SigningErr> {
-    let sig_uid = &ctx.sign_init.sig_uid;
-
-    let connect_to_validators = ctx
-        .sign_init
-        .validators_info
+    let connect_to_validators = validators_info
         .iter()
         .filter(|validators_info| {
             // Decide whether to initiate a connection by comparing accound ids
@@ -54,7 +52,7 @@ pub async fn open_protocol_connections(
             let server_public_key = PublicKey::from(validator_info.x25519_public_key);
             let signed_message = SignedMessage::new(
                 signer.signer(),
-                &Bytes(serde_json::to_vec(&SubscribeMessage::new(sig_uid, my_id.clone()))?),
+                &Bytes(serde_json::to_vec(&SubscribeMessage::new(session_uid, my_id.clone()))?),
                 &server_public_key,
             )?;
             let subscribe_message_vec = serde_json::to_vec(&signed_message)?;
@@ -79,7 +77,7 @@ pub async fn open_protocol_connections(
             }
 
             // Setup channels
-            let ws_channels = get_ws_channels(state, sig_uid, &validator_info.tss_account)?;
+            let ws_channels = get_ws_channels(state, session_uid, &validator_info.tss_account)?;
 
             let remote_party_id = PartyId::new(validator_info.tss_account.clone());
 
@@ -187,7 +185,7 @@ async fn handle_initial_incoming_ws_message(
         let listener =
             listeners.get(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
 
-        let validators_info = &listener.user_transaction_request.validators_info;
+        let validators_info = &listener.validators_info;
         if !validators_info.iter().any(|validator_info| {
             validator_info.x25519_public_key == remote_public_key
                 && validator_info.tss_account == signed_msg.account_id()
