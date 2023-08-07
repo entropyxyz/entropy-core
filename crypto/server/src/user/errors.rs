@@ -56,6 +56,8 @@ pub enum UserErr {
     Usize(&'static str),
     #[error("Try From error: {0:?}")]
     TryFrom(Vec<u8>),
+    #[error("Session Error: {0}")]
+    SessionError(String),
 }
 
 impl IntoResponse for UserErr {
