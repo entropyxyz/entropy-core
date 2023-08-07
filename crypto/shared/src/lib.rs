@@ -17,3 +17,6 @@ pub const MIN_BALANCE: u128 = 10000000000;
 // 6 seconds a block this is one day
 /// The amount of blocks before a tx request is pruned from the kvdb
 pub const PRUNE_BLOCK: u32 = 14400;
+
+/// Timeout for validators to wait for other validators to join protocol committees
+pub const SETUP_TIMEOUT_SECONDS: u64 = 20;
