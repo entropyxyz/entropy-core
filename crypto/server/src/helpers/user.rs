@@ -1,13 +1,18 @@
+use std::time::Duration;
+
+use entropy_shared::SETUP_TIMEOUT_SECONDS;
 use kvdb::kv_manager::{KvManager, PartyId};
 use sp_core::crypto::AccountId32;
 use subxt::{
     ext::sp_core::{sr25519, Pair},
     tx::PairSigner,
 };
+use tokio::time::timeout;
 
 use crate::{
     chain_api::EntropyConfig,
     signing_client::{
+        new_party::Channels,
         protocol_transport::{open_protocol_connections, Listener},
         SignerState,
     },
@@ -22,7 +27,8 @@ pub async fn do_dkg(
 ) -> Result<(), UserErr> {
     let account_sp_core = AccountId32::new(*signer.account_id().clone().as_ref());
     // subscribe to all other participating parties. Listener waits for other subscribers.
-    let (rx_ready, rx_from_others, listener) = Listener::new(validators_info.clone(), &account_sp_core);
+    let (rx_ready, rx_from_others, listener) =
+        Listener::new(validators_info.clone(), &account_sp_core);
     state
 	.listeners
 	.lock()
@@ -33,6 +39,12 @@ pub async fn do_dkg(
     let my_id = PartyId::new(account_sp_core.clone());
 
     open_protocol_connections(&validators_info, &session_uid, &my_id, &signer, state).await?;
+
+    let channels = {
+        let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
+        let broadcast_out = ready??;
+        Channels(broadcast_out, rx_from_others)
+    };
 
     Ok(())
 }

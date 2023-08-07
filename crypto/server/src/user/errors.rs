@@ -9,8 +9,12 @@ use axum::{
 };
 use entropy_constraints::Error as ConstraintsError;
 use thiserror::Error;
+use tokio::sync::oneshot::error::RecvError;
 
-use crate::{chain_api::entropy, signing_client::SigningErr};
+use crate::{
+    chain_api::entropy,
+    signing_client::{SigningErr, SubscribeErr},
+};
 
 #[derive(Debug, Error)]
 pub enum UserErr {
@@ -58,6 +62,12 @@ pub enum UserErr {
     TryFrom(Vec<u8>),
     #[error("Session Error: {0}")]
     SessionError(String),
+    #[error("Timed out waiting for remote party")]
+    Timeout(#[from] tokio::time::error::Elapsed),
+    #[error("Oneshot timeout error: {0}")]
+    OneshotTimeout(#[from] RecvError),
+    #[error("Subscribe API error: {0}")]
+    Subscribe(#[from] SubscribeErr),
 }
 
 impl IntoResponse for UserErr {

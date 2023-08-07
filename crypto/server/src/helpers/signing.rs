@@ -5,6 +5,7 @@ use std::{
 };
 
 use bip39::{Language, Mnemonic};
+use entropy_shared::SETUP_TIMEOUT_SECONDS;
 use kvdb::kv_manager::{KvManager, PartyId};
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
@@ -21,8 +22,6 @@ use crate::{
     user::api::UserTransactionRequest,
     validation::mnemonic_to_pair,
 };
-
-const SETUP_TIMEOUT_SECONDS: u64 = 20;
 
 #[derive(Clone, Debug)]
 pub struct RecoverableSignature {
