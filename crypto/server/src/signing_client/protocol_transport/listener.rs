@@ -8,7 +8,7 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 use super::Broadcaster;
 use crate::{
     signing_client::{SigningMessage, SubscribeErr},
-    user::api::UserTransactionRequest,
+    user::api::{UserTransactionRequest, ValidatorInfo},
 };
 
 pub type ListenerResult = Result<Broadcaster, SubscribeErr>;
@@ -24,8 +24,8 @@ pub struct Listener {
     tx_ready: oneshot::Sender<ListenerResult>,
     /// Remaining validators we want to connect to
     validators: HashSet<AccountId32>,
-    /// The request message associated with this listener
-    pub user_transaction_request: UserTransactionRequest,
+    /// The Validator Info associated with this listener
+    pub validators_info: Vec<ValidatorInfo>,
 }
 
 /// Channels between a remote party and the signing protocol
@@ -40,7 +40,7 @@ pub struct WsChannels {
 impl Listener {
     // TODO only pass validaitor info to reuse
     pub(crate) fn new(
-        user_transaction_request: UserTransactionRequest,
+        validators_info: Vec<ValidatorInfo>,
         my_id: &AccountId32,
     ) -> (oneshot::Receiver<ListenerResult>, mpsc::Receiver<SigningMessage>, Self) {
         let (tx_ready, rx_ready) = oneshot::channel();
@@ -48,8 +48,7 @@ impl Listener {
         let (tx_to_others, rx_to_others) = mpsc::channel(1000);
 
         // Create our set of validators we want to connect to - excluding ourself
-        let validators = user_transaction_request
-            .validators_info
+        let validators = validators_info
             .iter()
             .map(|validator_info| validator_info.tss_account.clone())
             .filter(|id| id != my_id)
@@ -59,7 +58,7 @@ impl Listener {
             (
                 rx_ready,
                 rx_to_others,
-                Self { tx, tx_to_others, tx_ready, validators, user_transaction_request },
+                Self { tx, tx_to_others, tx_ready, validators, validators_info },
             )
         }
     }

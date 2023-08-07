@@ -12,7 +12,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 pub mod api;
-mod errors;
+pub mod errors;
 
 use std::{
     fs::File,

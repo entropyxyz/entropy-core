@@ -102,7 +102,8 @@ pub async fn do_signing(
         .collect();
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
-    let (rx_ready, rx_from_others, listener) = Listener::new(message, &account_sp_core);
+    let (rx_ready, rx_from_others, listener) =
+        Listener::new(message.validators_info, &account_sp_core);
     state
         .listeners
         .lock()
@@ -110,7 +111,14 @@ pub async fn do_signing(
         // TODO: using signature ID as session ID. Correct?
         .insert(sign_context.sign_init.sig_uid.clone(), listener);
 
-    open_protocol_connections(&sign_context, &my_id, &signer, state).await?;
+    open_protocol_connections(
+        &sign_context.sign_init.validators_info,
+        &sign_context.sign_init.sig_uid,
+        &my_id,
+        &signer,
+        state,
+    )
+    .await?;
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
         let broadcast_out = ready??;
