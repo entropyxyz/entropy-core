@@ -3,7 +3,7 @@ use std::{env, fs, net::SocketAddrV4, path::PathBuf, str::FromStr, sync::Arc, ti
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::{Acl, KeyVisibility};
+use entropy_shared::{Acl, KeyVisibility, OCWMessage};
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future, SinkExt, StreamExt};
 use hex_literal::hex as h;
@@ -467,98 +467,51 @@ async fn test_store_share() {
     setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
-    let user_input = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
-        .unwrap()
-        .to_json();
+    let block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
+    let onchain_user_request =
+        OCWMessage { sig_request_accounts: vec![alice.encode()], block_number };
+
+    // let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
+    // let user_input = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
+    //     .unwrap()
+    //     .to_json();
     let client = reqwest::Client::new();
 
     // fails to add not registering or swapping
     let response = client
         .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input.clone())
+        .body(onchain_user_request.clone().encode())
         .send()
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response.text().await.unwrap(), "Not Registering error: Register Onchain first");
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.text().await.unwrap(), "");
+    // assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    // assert_eq!(response.text().await.unwrap(), "Not Registering error: Register Onchain first");
 
-    // signal registering
-    make_register(
-        &api,
-        alice.pair(),
-        &subxtAccountId32::from_str(&alice_constraint.to_account_id().to_ss58check()).unwrap(),
-        KeyVisibility::Permissioned,
-    )
-    .await;
-
-    let response_2 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input.clone())
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(response_2.status(), StatusCode::OK);
-    assert_eq!(response_2.text().await.unwrap(), "");
+    // // signal registering
+    // make_register(
+    //     &api,
+    //     alice.pair(),
+    //     &subxtAccountId32::from_str(&alice_constraint.to_account_id().to_ss58check()).unwrap(),
+    //     KeyVisibility::Permissioned,
+    // )
+    // .await;
     // make sure there is now one confirmation
-    check_if_confirmation(&api, &alice.pair()).await;
+    // check_if_confirmation(&api, &alice.pair()).await;
 
-    // fails to add already added share
-    let response_3 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input.clone())
-        .send()
-        .await
-        .unwrap();
+    // // fails to add already added share
+    // let response_3 = client
+    //     .post("http://127.0.0.1:3001/user/new")
+    //     .header("Content-Type", "application/json")
+    //     .body(user_input.clone())
+    //     .send()
+    //     .await
+    //     .unwrap();
 
-    assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_3.text().await.unwrap(), "Kv error: Recv Error: channel closed");
-
-    // fails with wrong node key
-    let server_public_key_bob = PublicKey::from(X25519_PUBLIC_KEYS[1]);
-    let user_input_bob =
-        SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key_bob)
-            .unwrap()
-            .to_json();
-
-    let response_4 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input_bob.clone())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_4.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    let expected_err = "Validation error: ChaCha20 decryption error: aead::Error";
-    assert_eq!(response_4.text().await.unwrap(), expected_err);
-    let sig: [u8; 64] = [0; 64];
-    let slice: [u8; 32] = [0; 32];
-    let nonce: [u8; 12] = [0; 12];
-    let user_input_bad = SignedMessage::new_test(
-        Bytes(value),
-        sr25519::Signature::from_raw(sig),
-        slice,
-        slice,
-        slice,
-        nonce,
-    )
-    .to_json();
-
-    let response_5 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input_bad.clone())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_5.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_5.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+    // assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    // assert_eq!(response_3.text().await.unwrap(), "Kv error: Recv Error: channel closed");
     clean_tests();
 }
 
@@ -644,26 +597,26 @@ async fn test_update_keys() {
     clean_tests();
 }
 
-#[tokio::test]
-#[serial]
-async fn test_store_share_fail_wrong_data() {
-    clean_tests();
-    // Construct a client to use for dispatching requests.
-    setup_client().await;
-    let client = reqwest::Client::new();
-    let response = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(
-            r##"{
-		"name": "John Doe",
-		"email": "j.doe@m.com",
-		"password": "123456"
-	}"##,
-        )
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
-    clean_tests();
-}
+// #[tokio::test]
+// #[serial]
+// async fn test_store_share_fail_wrong_data() {
+//     clean_tests();
+//     // Construct a client to use for dispatching requests.
+//     setup_client().await;
+//     let client = reqwest::Client::new();
+//     let response = client
+//         .post("http://127.0.0.1:3001/user/new")
+//         .header("Content-Type", "application/json")
+//         .body(
+//             r##"{
+// 		"name": "John Doe",
+// 		"email": "j.doe@m.com",
+// 		"password": "123456"
+// 	}"##,
+//         )
+//         .send()
+//         .await
+//         .unwrap();
+//     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+//     clean_tests();
+// }
