@@ -477,6 +477,10 @@ async fn test_store_share() {
     //     .to_json();
     let client = reqwest::Client::new();
 
+    put_register_request_on_chain(&api, &alice, alice_constraint.to_account_id().into()).await;
+
+    run_to_block(&api, block_number + 1).await;
+
     // fails to add not registering or swapping
     let response = client
         .post("http://127.0.0.1:3001/user/new")
@@ -620,3 +624,32 @@ async fn test_update_keys() {
 //     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 //     clean_tests();
 // }
+
+pub async fn put_register_request_on_chain(
+    api: &OnlineClient<EntropyConfig>,
+    sig_req_keyring: &Sr25519Keyring,
+    constraint_account: subxtAccountId32,
+) {
+    let sig_req_account =
+        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
+    let registering_tx =
+        entropy::tx().relayer().register(constraint_account, Static(KeyVisibility::Public), None);
+
+    api.tx()
+        .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
+        .await
+        .unwrap()
+        .wait_for_in_block()
+        .await
+        .unwrap()
+        .wait_for_success()
+        .await
+        .unwrap();
+}
+
+pub async fn run_to_block(api: &OnlineClient<EntropyConfig>, block_run: u32) {
+    let mut current_block = 0;
+    while current_block < block_run {
+        current_block = api.rpc().block(None).await.unwrap().unwrap().block.header.number;
+    }
+}
