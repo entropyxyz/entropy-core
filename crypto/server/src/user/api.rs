@@ -9,6 +9,7 @@ use axum::{
     Json, Router,
 };
 use bip39::{Language, Mnemonic};
+use blake2::{Blake2s256, Digest};
 use entropy_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
@@ -28,7 +29,7 @@ use kvdb::kv_manager::{
 };
 use log::info;
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
-use parity_scale_codec::{Decode, DecodeAll};
+use parity_scale_codec::{Decode, DecodeAll, Encode};
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::AccountId32;
 use subxt::{
@@ -170,6 +171,7 @@ pub async fn new_user(
     //     .map_err(|_| UserErr::StringError("Account Conversion"))?;
 
     // let is_swapping = register_info(&api, &signing_address_conversion).await?;
+    validate_new_party(&data, &api).await?;
 
     // let decrypted_message =
     //     signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
@@ -300,6 +302,49 @@ pub fn check_signing_group(
         return Err(UserErr::InvalidSigner(
             "Signing group is valid, but this threshold server is not in the group",
         ));
+    }
+    Ok(())
+}
+
+/// Validates new party endpoint
+/// Checks the chain for validity of data and block number of data matches current block
+pub async fn validate_new_party(
+    chain_data: &OCWMessage,
+    api: &OnlineClient<EntropyConfig>,
+) -> Result<(), UserErr> {
+    let latest_block_number = api
+        .rpc()
+        .block(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number"))?
+        .block
+        .header
+        .number;
+
+    // we subtract 1 as the message info is coming from the previous block
+    if latest_block_number.saturating_sub(1) != chain_data.block_number {
+        return Err(UserErr::StaleData);
+    }
+
+    let mut hasher_chain_data = Blake2s256::new();
+    hasher_chain_data.update(chain_data.sig_request_accounts.encode());
+    let chain_data_hash = hasher_chain_data.finalize();
+    let mut hasher_verifying_data = Blake2s256::new();
+
+    let verifying_data_query = entropy::storage().relayer().dkg(chain_data.block_number);
+    let verifying_data = api
+        .storage()
+        .at_latest()
+        .await?
+        .fetch(&verifying_data_query)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get verifying data"))?;
+
+    hasher_verifying_data.update(verifying_data.encode());
+
+    let verifying_data_hash = hasher_verifying_data.finalize();
+    if verifying_data_hash != chain_data_hash {
+        return Err(UserErr::InvalidData);
     }
     Ok(())
 }
