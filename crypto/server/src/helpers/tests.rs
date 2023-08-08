@@ -4,6 +4,7 @@
 use std::{net::TcpListener, time::Duration};
 
 use axum::{routing::IntoMakeService, Router};
+use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::KeyVisibility;
 use futures::future::{self, join_all};
 use kvdb::{
@@ -158,6 +159,7 @@ pub async fn register_user(
     let number_of_shares = if key_visibility == KeyVisibility::Private { 3 } else { 2 };
 
     let shares = make_key_shares::<TestSchemeParams>(&mut OsRng, number_of_shares, None);
+
     let validator_1_threshold_keyshare: Vec<u8> =
         kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
     let validator_2_threshold_keyshare: Vec<u8> =
@@ -306,6 +308,7 @@ pub async fn user_connects_to_validators(
     sig_uid: &str,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
+    converted_transaction_request: &str,
 ) -> Result<RecoverableSignature, SigningErr> {
     // Set up channels for communication between signing protocol and other signing parties
     let (tx, _rx) = broadcast::channel(1000);
@@ -378,8 +381,18 @@ pub async fn user_connects_to_validators(
 
     // Set up the signing protocol
     let channels = Channels(Broadcaster(tx_ref.clone()), rx_to_others);
-    let tss_accounts = validators_info.iter().map(|v| v.tss_account.clone()).collect();
-    let digest: PrehashedMessage = hex::decode(sig_uid)?
+    let mut tss_accounts: Vec<AccountId32> =
+        validators_info.iter().map(|v| v.tss_account.clone()).collect();
+    tss_accounts.push(user_signing_keypair.public().into());
+
+    // TODO the trait `From<entropy_constraints::Error>` is not implemented for
+    // `signing_client::errors::SigningErr`
+    let parsed_tx =
+        <Evm as Architecture>::TransactionRequest::parse(converted_transaction_request.to_string())
+            .unwrap();
+    let sig_hash = hex::encode(parsed_tx.sighash());
+
+    let digest: PrehashedMessage = hex::decode(sig_hash)?
         .try_into()
         .map_err(|_| SigningErr::Conversion("Digest Conversion"))?;
 

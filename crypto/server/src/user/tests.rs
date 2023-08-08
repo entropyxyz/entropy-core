@@ -771,6 +771,7 @@ async fn test_sign_tx_user_participates() {
             &sig_uid,
             validators_info.clone(),
             &one.pair(),
+            &converted_transaction_request,
         ),
     )
     .await;
@@ -784,6 +785,8 @@ async fn test_sign_tx_user_participates() {
         let signing_result: Result<String, String> = serde_json::from_slice(&chunk).unwrap();
         assert!(matches!(signing_result, Ok(sig) if sig.len() == 88));
     }
+
+    assert!(sig_result.is_ok());
 
     // test failing cases
     let test_user_res_not_registered =
