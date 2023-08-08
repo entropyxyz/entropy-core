@@ -100,11 +100,15 @@ pub async fn do_signing(
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
 
-    let tss_accounts: Vec<AccountId32> = message
+    let mut tss_accounts: Vec<AccountId32> = message
         .validators_info
         .iter()
         .map(|validator_info| AccountId32::new(*validator_info.tss_account.clone().as_ref()))
         .collect();
+
+    if key_visibility == KeyVisibility::Private {
+        tss_accounts.push(user_address.clone());
+    }
 
     // If key key visibility is private, pass the user's ID to the listener
     let user_id_option =
