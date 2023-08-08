@@ -1,7 +1,7 @@
 use std::{net::SocketAddrV4, str::FromStr, sync::Arc};
 
 use axum::{
-    body::StreamBody,
+    body::{Bytes, StreamBody},
     extract::State,
     http::StatusCode,
     response::IntoResponse,
@@ -14,7 +14,7 @@ use entropy_constraints::{
 };
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints, KeyVisibility},
-    X25519PublicKey, SIGNING_PARTY_SIZE,
+    OCWMessage, X25519PublicKey, SIGNING_PARTY_SIZE,
 };
 use futures::{
     channel::mpsc,
@@ -28,7 +28,7 @@ use kvdb::kv_manager::{
 };
 use log::info;
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
-use parity_scale_codec::DecodeAll;
+use parity_scale_codec::{Decode, DecodeAll};
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::AccountId32;
 use subxt::{
@@ -154,36 +154,41 @@ pub async fn sign_tx(
 /// [KeyShare](synedrion::KeyShare).
 pub async fn new_user(
     State(app_state): State<AppState>,
-    Json(signed_msg): Json<SignedMessage>,
+    encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
+    let data = OCWMessage::decode(&mut encoded_data.as_ref()).unwrap();
     let api = get_api(&app_state.configuration.endpoint).await?;
-    // Verifies the message contains a valid sr25519 signature from the sender.
-    if !signed_msg.verify() {
-        return Err(UserErr::InvalidSignature("Invalid signature."));
-    }
+    // TODO validate message
+    // // Verifies the message contains a valid sr25519 signature from the sender.
+    // if !signed_msg.verify() {
+    //     return Err(UserErr::InvalidSignature("Invalid signature."));
+    // }
     let signer = get_signer(&app_state.kv_store).await?;
-    // Checks if the user has registered onchain first.
-    let key = signed_msg.account_id();
-    let signing_address_conversion = SubxtAccountId32::from_str(&key.to_ss58check())
-        .map_err(|_| UserErr::StringError("Account Conversion"))?;
+    // // Checks if the user has registered onchain first.
+    // let key = signed_msg.account_id();
+    // let signing_address_conversion = SubxtAccountId32::from_str(&key.to_ss58check())
+    //     .map_err(|_| UserErr::StringError("Account Conversion"))?;
 
-    let is_swapping = register_info(&api, &signing_address_conversion).await?;
+    // let is_swapping = register_info(&api, &signing_address_conversion).await?;
 
-    let decrypted_message =
-        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+    // let decrypted_message =
+    //     signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
     // store new user data in kvdb or deletes and replaces it if swapping
     let subgroup = get_subgroup(&api, &signer)
         .await?
         .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    if is_swapping {
-        app_state.kv_store.kv().delete(&key.to_string()).await?;
+    for sig_req_account in data.sig_request_accounts {
+        // if is_swapping {
+        //     app_state.kv_store.kv().delete(&key.to_string()).await?;
+        // }
+        // let key_share = do_dkg();
+        // TODO: add dkg here
+        // let reservation = app_state.kv_store.kv().reserve_key(key.to_string()).await?;
+        // app_state.kv_store.kv().put(reservation, decrypted_message).await?;
+        // TODO: send keys to other validators in subgroup
+        // TODO: Error handling really complex needs to be thought about.
+        // confirm_registered(&api, key.into(), subgroup, &signer).await?;
     }
-    // let key_share = do_dkg();
-    // TODO: add dkg here
-    let reservation = app_state.kv_store.kv().reserve_key(key.to_string()).await?;
-    app_state.kv_store.kv().put(reservation, decrypted_message).await?;
-    // TODO: Error handling really complex needs to be thought about.
-    confirm_registered(&api, key.into(), subgroup, &signer).await?;
     Ok(StatusCode::OK)
 }
 /// Returns wether an account is registering or swapping. If it is not, it returns error
