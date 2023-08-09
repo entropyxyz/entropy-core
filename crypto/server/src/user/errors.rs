@@ -74,6 +74,8 @@ pub enum UserErr {
     StaleData,
     #[error("Data is not verifiable")]
     InvalidData,
+    #[error("Data is repeated")]
+    RepeatedData,
 }
 
 impl IntoResponse for UserErr {

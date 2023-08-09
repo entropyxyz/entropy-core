@@ -467,21 +467,17 @@ async fn test_store_share() {
     setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-    let block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
-    let onchain_user_request =
+    let mut block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
+    let mut onchain_user_request =
         OCWMessage { sig_request_accounts: vec![alice.encode()], block_number };
 
-    // let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
-    // let user_input = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
-    //     .unwrap()
-    //     .to_json();
     let client = reqwest::Client::new();
 
     put_register_request_on_chain(&api, &alice, alice_constraint.to_account_id().into()).await;
 
     run_to_block(&api, block_number + 1).await;
 
-    // fails to add not registering or swapping
+    // succeeds
     let response = client
         .post("http://127.0.0.1:3001/user/new")
         .body(onchain_user_request.clone().encode())
@@ -491,18 +487,50 @@ async fn test_store_share() {
 
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
-    // assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    // assert_eq!(response.text().await.unwrap(), "Not Registering error: Register Onchain first");
 
-    // // signal registering
-    // make_register(
-    //     &api,
-    //     alice.pair(),
-    //     &subxtAccountId32::from_str(&alice_constraint.to_account_id().to_ss58check()).unwrap(),
-    //     KeyVisibility::Permissioned,
-    // )
-    // .await;
-    // make sure there is now one confirmation
+    // fails repeated data
+    let response_3 = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_3.text().await.unwrap(), "Data is repeated");
+
+    run_to_block(&api, block_number + 3).await;
+    onchain_user_request.block_number = block_number + 1;
+    // fails stale data
+    let response_4 = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_4.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_4.text().await.unwrap(), "Data is stale");
+
+    // TODO add failed verification
+    block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
+    put_register_request_on_chain(&api, &alice_constraint, alice_constraint.to_account_id().into())
+        .await;
+    onchain_user_request.block_number = block_number;
+    run_to_block(&api, block_number + 1).await;
+
+    // fails not verified data
+    let response_2 = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_2.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_2.text().await.unwrap(), "Data is not verifiable");
+
+    // TODO add back in
     // check_if_confirmation(&api, &alice.pair()).await;
 
     // // fails to add already added share

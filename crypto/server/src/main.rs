@@ -157,7 +157,10 @@ use self::{
 use crate::{
     health::api::healthz,
     helpers::{
-        launch::{init_tracing, load_kv_store, setup_mnemonic, Configuration, StartupArgs},
+        launch::{
+            init_tracing, load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration,
+            StartupArgs,
+        },
         signing::SignatureState,
         substrate::get_subgroup,
         validator::get_signer,
@@ -196,6 +199,7 @@ async fn main() {
     };
 
     setup_mnemonic(&kv_store, args.alice, args.bob).await.expect("Issue creating Mnemonic");
+    setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
     // Below deals with syncing the kvdb
     if args.sync {
         let api = get_api(&configuration.endpoint).await.expect("Issue acquiring chain API");

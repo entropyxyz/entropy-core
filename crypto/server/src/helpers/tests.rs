@@ -34,7 +34,8 @@ use crate::{
     get_signer,
     helpers::{
         launch::{
-            setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            setup_latest_block_number, setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC,
+            DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::SignatureState,
         substrate::{get_subgroup, make_register},
@@ -50,7 +51,7 @@ pub async fn setup_client() {
         KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap();
     let _ = setup_mnemonic(&kv_store, true, false).await;
-
+    let _ = setup_latest_block_number(&kv_store).await;
     let signer_state = SignerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let signature_state = SignatureState::new();
@@ -80,6 +81,7 @@ pub async fn create_clients(
     let kv_store =
         KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     let _ = setup_mnemonic(&kv_store, is_alice, is_bob).await;
+    let _ = setup_latest_block_number(&kv_store).await;
 
     for (i, value) in values.into_iter().enumerate() {
         let reservation = kv_store.clone().kv().reserve_key(keys[i].to_string()).await.unwrap();
