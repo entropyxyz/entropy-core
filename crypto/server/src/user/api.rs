@@ -171,7 +171,7 @@ pub async fn new_user(
     //     .map_err(|_| UserErr::StringError("Account Conversion"))?;
 
     // let is_swapping = register_info(&api, &signing_address_conversion).await?;
-    validate_new_party(&data, &api).await?;
+    validate_new_party(&data, &api, &app_state.kv_store).await?;
 
     // let decrypted_message =
     //     signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
@@ -183,13 +183,14 @@ pub async fn new_user(
         // if is_swapping {
         //     app_state.kv_store.kv().delete(&key.to_string()).await?;
         // }
-        // let key_share = do_dkg();
+        // TODO: don't do dkg if a key already exists maybe hold last block number in memory or
+        // check here let key_share = do_dkg();
         // TODO: add dkg here
         // let reservation = app_state.kv_store.kv().reserve_key(key.to_string()).await?;
         // app_state.kv_store.kv().put(reservation, decrypted_message).await?;
         // TODO: send keys to other validators in subgroup
         // TODO: Error handling really complex needs to be thought about.
-        // confirm_registered(&api, key.into(), subgroup, &signer).await?;
+        // confirm_registered(&api, sig_req_account.into(), subgroup, &signer).await?;
     }
     Ok(StatusCode::OK)
 }
@@ -311,7 +312,14 @@ pub fn check_signing_group(
 pub async fn validate_new_party(
     chain_data: &OCWMessage,
     api: &OnlineClient<EntropyConfig>,
+    kv_manager: &KvManager,
 ) -> Result<(), UserErr> {
+    let last_block_number_recorded = kv_manager.kv().get("LATEST_BLOCK_NUMBER").await?;
+    if u32::from_be_bytes(last_block_number_recorded.try_into().unwrap()) >= chain_data.block_number
+    {
+        // change error
+        return Err(UserErr::RepeatedData);
+    }
     let latest_block_number = api
         .rpc()
         .block(None)
@@ -346,5 +354,8 @@ pub async fn validate_new_party(
     if verifying_data_hash != chain_data_hash {
         return Err(UserErr::InvalidData);
     }
+    kv_manager.kv().delete("LATEST_BLOCK_NUMBER").await?;
+    let reservation = kv_manager.kv().reserve_key("LATEST_BLOCK_NUMBER".to_string()).await?;
+    kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
     Ok(())
 }
