@@ -6,17 +6,22 @@ use sp_core::crypto::AccountId32;
 use subxt::{
     ext::sp_core::{sr25519, Pair},
     tx::PairSigner,
+    utils::AccountId32 as subxtAccountId32,
+    OnlineClient,
 };
 use tokio::time::timeout;
 
 use crate::{
-    chain_api::EntropyConfig,
+    chain_api::{entropy, EntropyConfig},
     signing_client::{
         new_party::Channels,
         protocol_transport::{open_protocol_connections, Listener},
         SignerState,
     },
-    user::{api::ValidatorInfo, errors::UserErr},
+    user::{
+        api::{UserRegistrationInfo, ValidatorInfo},
+        errors::UserErr,
+    },
 };
 /// complete the dkg process for a new user
 pub async fn do_dkg(
@@ -46,5 +51,35 @@ pub async fn do_dkg(
         Channels(broadcast_out, rx_from_others)
     };
 
+    Ok(())
+}
+
+pub async fn send_key(
+    api: &OnlineClient<EntropyConfig>,
+    subgroup: u8,
+    addresses_in_subgroup: &Vec<subxtAccountId32>,
+    user_registration_info: UserRegistrationInfo,
+) -> Result<(), UserErr> {
+    for validator in addresses_in_subgroup {
+        let server_info_query = entropy::storage().staking_extension().threshold_servers(validator);
+        let server_info = api
+            .storage()
+            .at_latest()
+            .await?
+            .fetch(&server_info_query)
+            .await?
+            .ok_or_else(|| UserErr::OptionUnwrapError("Server Info Fetch Error"))?;
+
+        // encrypt and sign info
+        let url = format!("http://{}/user/receive_key", String::from_utf8(server_info.endpoint)?);
+        let client = reqwest::Client::new();
+
+        let result = client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&user_registration_info)?)
+            .send()
+            .await?;
+    }
     Ok(())
 }

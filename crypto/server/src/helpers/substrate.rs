@@ -1,6 +1,10 @@
 use entropy_shared::{Acl, Constraints, KeyVisibility, SIGNING_PARTY_SIZE};
-use subxt::utils::AccountId32;
-use subxt::{ext::sp_core::sr25519, tx::PairSigner, utils::Static, Config, OnlineClient};
+use subxt::{
+    ext::sp_core::sr25519,
+    tx::PairSigner,
+    utils::{AccountId32, Static},
+    Config, OnlineClient,
+};
 
 use crate::{
     chain_api::{entropy, EntropyConfig},
@@ -42,16 +46,18 @@ pub async fn get_subgroup(
 }
 
 /// Returns all the addresses of a specific subgroup
-pub async fn return_all_addresses_of_subgroup(api: &OnlineClient<EntropyConfig>, subgroup: u8) -> Result<Vec<AccountId32>, UserErr> {
-	let subgroup_addresses_query =
-            entropy::storage().staking_extension().signing_groups(subgroup);
-        let subgroup_addresses = api
-            .storage()
-            .at_latest()
-            .await?
-            .fetch(&subgroup_addresses_query)
-            .await?
-            .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+pub async fn return_all_addresses_of_subgroup(
+    api: &OnlineClient<EntropyConfig>,
+    subgroup: u8,
+) -> Result<Vec<AccountId32>, UserErr> {
+    let subgroup_addresses_query = entropy::storage().staking_extension().signing_groups(subgroup);
+    let subgroup_addresses = api
+        .storage()
+        .at_latest()
+        .await?
+        .fetch(&subgroup_addresses_query)
+        .await?
+        .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     Ok(subgroup_addresses)
 }
 

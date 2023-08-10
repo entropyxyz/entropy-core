@@ -76,10 +76,14 @@ pub enum UserErr {
     InvalidData,
     #[error("Data is repeated")]
     RepeatedData,
-	#[error("User already registered")]
+    #[error("User already registered")]
     AlreadyRegistered,
-	#[error("Validator not in subgroup")]
+    #[error("Validator not in subgroup")]
     NotInSubgroup,
+    #[error("reqwest error: {0}")]
+    Reqwest(#[from] reqwest::Error),
+    #[error("Invalid length for converting address")]
+    AddressConversionError(String),
 }
 
 impl IntoResponse for UserErr {

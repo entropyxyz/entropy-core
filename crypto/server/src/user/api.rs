@@ -46,7 +46,10 @@ use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     helpers::{
         signing::{create_unique_tx_id, do_signing, SignatureState},
-        substrate::{get_constraints, get_key_visibility, get_subgroup, return_all_addresses_of_subgroup},
+        substrate::{
+            get_constraints, get_key_visibility, get_subgroup, return_all_addresses_of_subgroup,
+        },
+        user::send_key,
         validator::get_signer,
     },
     signing_client::{SignerState, SigningErr},
@@ -78,8 +81,8 @@ pub struct UserTransactionRequest {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserRegistrationInfo {
-	pub key: String,
-	pub value: Vec<u8>
+    pub key: String,
+    pub value: Vec<u8>,
 }
 /// Called by a user to initiate the signing process for a message
 ///
@@ -185,7 +188,17 @@ pub async fn new_user(
     let subgroup = get_subgroup(&api, &signer)
         .await?
         .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+    let my_subgroup = get_subgroup(&api, &signer)
+        .await?
+        .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+    let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
+
     for sig_req_account in data.sig_request_accounts {
+        let address_slice: &[u8; 32] = &sig_req_account
+            .clone()
+            .try_into()
+            .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
+        let sig_request_address = AccountId32::new(*address_slice);
         // if is_swapping {
         //     app_state.kv_store.kv().delete(&key.to_string()).await?;
         // }
@@ -194,10 +207,13 @@ pub async fn new_user(
         // TODO: add dkg here
         // let reservation = app_state.kv_store.kv().reserve_key(key.to_string()).await?;
         // app_state.kv_store.kv().put(reservation, decrypted_message).await?;
-        // TODO: send keys to other validators in subgroup
-			// get personal subgroup ()
-			// get all members of subgroup
-			// loop through and send all of them keys
+
+        let user_registration_info = UserRegistrationInfo {
+            key: sig_request_address.to_string(),
+            // replace with actual key
+            value: vec![10],
+        };
+        send_key(&api, my_subgroup, &addresses_in_subgroup, user_registration_info).await?;
         // TODO: Error handling really complex needs to be thought about.
         // confirm_registered(&api, sig_req_account.into(), subgroup, &signer).await?;
     }
@@ -208,24 +224,27 @@ pub async fn receive_key(
     State(app_state): State<AppState>,
     Json(user_registration_info): Json<UserRegistrationInfo>,
 ) -> Result<StatusCode, UserErr> {
-	// TODO add validation
-	// confirm message is from someone in group
-	let api = get_api(&app_state.configuration.endpoint).await?;
-	let signer = get_signer(&app_state.kv_store).await?;
-	let my_subgroup = get_subgroup(&api, &signer).await?.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-	let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
-	if !addresses_in_subgroup.contains(signer.account_id()) {
-		return Err(UserErr::NotInSubgroup);
-	}
+    // TODO add validation
+    // confirm message is from someone in group
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let signer = get_signer(&app_state.kv_store).await?;
+    let my_subgroup = get_subgroup(&api, &signer)
+        .await?
+        .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+    let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
+    if !addresses_in_subgroup.contains(signer.account_id()) {
+        return Err(UserErr::NotInSubgroup);
+    }
 
-	let exists_result = app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await.unwrap();
-	if exists_result {
-		return Err(UserErr::AlreadyRegistered);
-	}
-	let reservation = app_state.kv_store.kv().reserve_key(user_registration_info.key.to_string()).await?;
+    let exists_result =
+        app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await.unwrap();
+    if exists_result {
+        return Err(UserErr::AlreadyRegistered);
+    }
+    let reservation =
+        app_state.kv_store.kv().reserve_key(user_registration_info.key.to_string()).await?;
     app_state.kv_store.kv().put(reservation, user_registration_info.value).await?;
-	Ok(StatusCode::OK)
-
+    Ok(StatusCode::OK)
 }
 /// Returns wether an account is registering or swapping. If it is not, it returns error
 pub async fn register_info(
