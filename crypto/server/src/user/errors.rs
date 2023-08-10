@@ -76,6 +76,10 @@ pub enum UserErr {
     InvalidData,
     #[error("Data is repeated")]
     RepeatedData,
+	#[error("User already registered")]
+    AlreadyRegistered,
+	#[error("Validator not in subgroup")]
+    NotInSubgroup,
 }
 
 impl IntoResponse for UserErr {
