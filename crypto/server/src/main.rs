@@ -257,7 +257,7 @@ pub fn app(app_state: AppState) -> Router {
     let mut routes = Router::new()
         .route("/user/sign_tx", post(sign_tx))
         .route("/user/new", post(new_user))
-		.route("/user/receive_key", post(receive_key))
+        .route("/user/receive_key", post(receive_key))
         .route("/signer/signature", post(get_signature))
         .route("/signer/drain", get(drain))
         .route("/validator/sync_kvdb", post(sync_kvdb))
