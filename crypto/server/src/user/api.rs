@@ -185,9 +185,6 @@ pub async fn new_user(
     // let decrypted_message =
     //     signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
     // store new user data in kvdb or deletes and replaces it if swapping
-    let subgroup = get_subgroup(&api, &signer)
-        .await?
-        .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let my_subgroup = get_subgroup(&api, &signer)
         .await?
         .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
@@ -232,9 +229,10 @@ pub async fn receive_key(
         .await?
         .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
-    if !addresses_in_subgroup.contains(signer.account_id()) {
-        return Err(UserErr::NotInSubgroup);
-    }
+    // check message is from the person sending the message (get stash key from threshold key)
+    // if !addresses_in_subgroup.contains() {
+    //     return Err(UserErr::NotInSubgroup);
+    // }
 
     let exists_result =
         app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await.unwrap();

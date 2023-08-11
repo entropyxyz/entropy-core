@@ -29,7 +29,7 @@ use subxt::{
     OnlineClient,
 };
 use testing_utils::{
-    constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
+    constants::{ALICE_STASH_ADDRESS, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
     },
@@ -47,7 +47,7 @@ use crate::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::{create_unique_tx_id, SignatureState},
-        substrate::make_register,
+        substrate::{make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, make_swapping, register_user, setup_client,
             spawn_testing_validators,
@@ -60,7 +60,7 @@ use crate::{
         SignerState, SubscribeMessage,
     },
     user::{
-        api::{UserTransactionRequest, ValidatorInfo},
+        api::{UserRegistrationInfo, UserTransactionRequest, ValidatorInfo},
         tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
@@ -629,6 +629,74 @@ async fn test_update_keys() {
     clean_tests();
 }
 
+#[tokio::test]
+async fn test_return_addresses_of_subgroup() {
+    let cxt = test_context_stationary().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let result = return_all_addresses_of_subgroup(&api, 0u8).await.unwrap();
+    assert_eq!(result.len(), 1);
+}
+
+#[tokio::test]
+#[serial]
+async fn test_send_and_receive_keys() {
+    clean_tests();
+    let alice = AccountKeyring::Alice;
+    let alice_constraint = AccountKeyring::Charlie;
+
+    let value: Vec<u8> = vec![0];
+
+    let cxt = test_context_stationary().await;
+    setup_client().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+
+    let user_registration_info =
+        UserRegistrationInfo { key: alice.to_account_id().to_string(), value: vec![10] };
+
+    let client = reqwest::Client::new();
+
+    // succeeds
+    let response = client
+        .post("http://127.0.0.1:3001/user/receive_key")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&user_registration_info.clone()).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.text().await.unwrap(), "");
+
+    let get_query = UnsafeQuery::new(user_registration_info.key.clone(), "".to_string()).to_json();
+
+    // check dave has new key
+    let response_2 = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        response_2.text().await.unwrap(),
+        std::str::from_utf8(&user_registration_info.value.clone()).unwrap().to_string()
+    );
+
+    // fails key already stored
+    let response_3 = client
+        .post("http://127.0.0.1:3001/user/receive_key")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&user_registration_info.clone()).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_3.text().await.unwrap(), "User already registered");
+
+    clean_tests();
+}
 // #[tokio::test]
 // #[serial]
 // async fn test_store_share_fail_wrong_data() {
