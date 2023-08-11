@@ -57,9 +57,13 @@ pub async fn do_dkg(
 pub async fn send_key(
     api: &OnlineClient<EntropyConfig>,
     subgroup: u8,
-    addresses_in_subgroup: &Vec<subxtAccountId32>,
+    stash_address: &subxtAccountId32,
+    addresses_in_subgroup: &mut Vec<subxtAccountId32>,
     user_registration_info: UserRegistrationInfo,
 ) -> Result<(), UserErr> {
+    addresses_in_subgroup.remove(
+        addresses_in_subgroup.iter().position(|address| *address == *stash_address).unwrap(),
+    );
     for validator in addresses_in_subgroup {
         let server_info_query = entropy::storage().staking_extension().threshold_servers(validator);
         let server_info = api

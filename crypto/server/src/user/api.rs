@@ -185,10 +185,9 @@ pub async fn new_user(
     // let decrypted_message =
     //     signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
     // store new user data in kvdb or deletes and replaces it if swapping
-    let my_subgroup = get_subgroup(&api, &signer)
-        .await?
-        .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
+    let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
+    let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
 
     for sig_req_account in data.sig_request_accounts {
         let address_slice: &[u8; 32] = &sig_req_account
@@ -210,7 +209,14 @@ pub async fn new_user(
             // replace with actual key
             value: vec![10],
         };
-        send_key(&api, my_subgroup, &addresses_in_subgroup, user_registration_info).await?;
+        send_key(
+            &api,
+            my_subgroup,
+            &stash_address,
+            &mut addresses_in_subgroup,
+            user_registration_info,
+        )
+        .await?;
         // TODO: Error handling really complex needs to be thought about.
         // confirm_registered(&api, sig_req_account.into(), subgroup, &signer).await?;
     }
@@ -227,6 +233,7 @@ pub async fn receive_key(
     let signer = get_signer(&app_state.kv_store).await?;
     let my_subgroup = get_subgroup(&api, &signer)
         .await?
+        .0
         .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
     // check message is from the person sending the message (get stash key from threshold key)

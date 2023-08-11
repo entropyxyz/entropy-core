@@ -190,7 +190,7 @@ async fn test_get_and_store_values() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().unwrap();
+    let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().0.unwrap();
     let server_info = get_random_server_info(&api, my_subgroup).await.unwrap();
     let recip_key = x25519_dalek::PublicKey::from(server_info.x25519_public_key);
     let keys = vec![
@@ -241,7 +241,7 @@ async fn test_get_random_server_info() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().unwrap();
+    let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().0.unwrap();
 
     let result = get_random_server_info(&api, my_subgroup).await.unwrap();
 

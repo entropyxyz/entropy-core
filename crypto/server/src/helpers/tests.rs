@@ -263,12 +263,12 @@ async fn test_get_signing_group() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let result_alice = get_subgroup(&api, &signer_alice).await.unwrap();
+    let result_alice = get_subgroup(&api, &signer_alice).await.unwrap().0;
     assert_eq!(result_alice, Some(0));
 
     let p_bob = <sr25519::Pair as Pair>::from_string(DEFAULT_BOB_MNEMONIC, None).unwrap();
     let signer_bob = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_bob);
-    let result_bob = get_subgroup(&api, &signer_bob).await.unwrap();
+    let result_bob = get_subgroup(&api, &signer_bob).await.unwrap().0;
     assert_eq!(result_bob, Some(1));
 
     let p_charlie = <sr25519::Pair as Pair>::from_string("//Charlie//stash", None).unwrap();
