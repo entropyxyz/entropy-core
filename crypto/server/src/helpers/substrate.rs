@@ -15,7 +15,7 @@ use crate::{
 pub async fn get_subgroup(
     api: &OnlineClient<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) -> Result<Option<u8>, UserErr> {
+) -> Result<(Option<u8>, AccountId32), UserErr> {
     let mut subgroup: Option<u8> = None;
     let threshold_address = signer.account_id();
     let stash_address_query =
@@ -42,7 +42,7 @@ pub async fn get_subgroup(
             break;
         }
     }
-    Ok(subgroup)
+    Ok((subgroup, stash_address))
 }
 
 /// Returns all the addresses of a specific subgroup

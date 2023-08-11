@@ -6,7 +6,7 @@ use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{Acl, KeyVisibility, OCWMessage};
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future, SinkExt, StreamExt};
-use hex_literal::hex as h;
+use hex_literal::hex;
 use kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
@@ -52,6 +52,7 @@ use crate::{
             check_if_confirmation, create_clients, make_swapping, register_user, setup_client,
             spawn_testing_validators,
         },
+        user::send_key,
     },
     load_kv_store, new_user,
     r#unsafe::api::UnsafeQuery,
@@ -654,22 +655,20 @@ async fn test_send_and_receive_keys() {
         UserRegistrationInfo { key: alice.to_account_id().to_string(), value: vec![10] };
 
     let client = reqwest::Client::new();
-
-    // succeeds
-    let response = client
-        .post("http://127.0.0.1:3001/user/receive_key")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&user_registration_info.clone()).unwrap())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(response.text().await.unwrap(), "");
+    // sends key to alice validator, while filtering out own key
+    let _ = send_key(
+        &api,
+        0u8,
+        &alice.to_account_id().into(),
+        &mut vec![ALICE_STASH_ADDRESS.clone(), alice.to_account_id().into()],
+        user_registration_info.clone(),
+    )
+    .await
+    .unwrap();
 
     let get_query = UnsafeQuery::new(user_registration_info.key.clone(), "".to_string()).to_json();
 
-    // check dave has new key
+    // check alice has new key
     let response_2 = client
         .post("http://127.0.0.1:3001/unsafe/get")
         .header("Content-Type", "application/json")

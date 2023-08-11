@@ -230,7 +230,8 @@ async fn main() {
             thread::sleep(sleep_time);
             my_subgroup = Ok(get_subgroup(&api, &signer).await.expect("Failed to get subgroup."));
         }
-        let sbgrp = my_subgroup.expect("Failed to get subgroup.").expect("failed to get subgroup");
+        let sbgrp =
+            my_subgroup.expect("Failed to get subgroup.").0.expect("failed to get subgroup");
         let key_server_info = get_random_server_info(&api, sbgrp)
             .await
             .expect("Issue getting registered keys from chain.");
