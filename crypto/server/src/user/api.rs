@@ -215,6 +215,7 @@ pub async fn new_user(
             &stash_address,
             &mut addresses_in_subgroup,
             user_registration_info,
+			&signer
         )
         .await?;
         // TODO: Error handling really complex needs to be thought about.
@@ -225,21 +226,41 @@ pub async fn new_user(
 
 pub async fn receive_key(
     State(app_state): State<AppState>,
-    Json(user_registration_info): Json<UserRegistrationInfo>,
+    Json(signed_msg): Json<SignedMessage>,
 ) -> Result<StatusCode, UserErr> {
     // TODO add validation
     // confirm message is from someone in group
+	let signing_address = signed_msg.account_id();
+	if !signed_msg.verify() {
+        return Err(UserErr::InvalidSignature("Invalid signature."));
+    }
+	let signer = get_signer(&app_state.kv_store).await?;
+	let decrypted_message =
+        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+
+    let user_registration_info: UserRegistrationInfo = serde_json::from_slice(&decrypted_message)?;
     let api = get_api(&app_state.configuration.endpoint).await?;
-    let signer = get_signer(&app_state.kv_store).await?;
     let my_subgroup = get_subgroup(&api, &signer)
         .await?
         .0
         .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
+
+	let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check()).map_err(|_| UserErr::StringError("Account Conversion"))?;
+
     // check message is from the person sending the message (get stash key from threshold key)
-    // if !addresses_in_subgroup.contains() {
-    //     return Err(UserErr::NotInSubgroup);
-    // }
+	let stash_address_query =
+        entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
+    let stash_address = api
+        .storage()
+        .at_latest()
+        .await?
+        .fetch(&stash_address_query)
+        .await?
+        .ok_or_else(|| UserErr::SubgroupError("Stash Fetch Error"))?;
+    if !addresses_in_subgroup.contains(&stash_address) {
+        return Err(UserErr::NotInSubgroup);
+    }
 
     let exists_result =
         app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await.unwrap();

@@ -4,12 +4,13 @@ use entropy_shared::SETUP_TIMEOUT_SECONDS;
 use kvdb::kv_manager::{KvManager, PartyId};
 use sp_core::crypto::AccountId32;
 use subxt::{
-    ext::sp_core::{sr25519, Pair},
+    ext::sp_core::{sr25519, Pair, Bytes},
     tx::PairSigner,
     utils::AccountId32 as subxtAccountId32,
     OnlineClient,
 };
 use tokio::time::timeout;
+use x25519_dalek::{PublicKey};
 
 use crate::{
     chain_api::{entropy, EntropyConfig},
@@ -22,6 +23,7 @@ use crate::{
         api::{UserRegistrationInfo, ValidatorInfo},
         errors::UserErr,
     },
+	validation::SignedMessage
 };
 /// complete the dkg process for a new user
 pub async fn do_dkg(
@@ -60,6 +62,7 @@ pub async fn send_key(
     stash_address: &subxtAccountId32,
     addresses_in_subgroup: &mut Vec<subxtAccountId32>,
     user_registration_info: UserRegistrationInfo,
+	signer: &PairSigner<EntropyConfig, sr25519::Pair>,
 ) -> Result<(), UserErr> {
     addresses_in_subgroup.remove(
         addresses_in_subgroup.iter().position(|address| *address == *stash_address).unwrap(),
@@ -73,7 +76,11 @@ pub async fn send_key(
             .fetch(&server_info_query)
             .await?
             .ok_or_else(|| UserErr::OptionUnwrapError("Server Info Fetch Error"))?;
-
+		let signed_message = SignedMessage::new(
+				signer.signer(),
+				&Bytes(serde_json::to_vec(&user_registration_info.clone()).unwrap()),
+				&PublicKey::from(server_info.x25519_public_key),
+			).unwrap();
         // encrypt and sign info
         let url = format!("http://{}/user/receive_key", String::from_utf8(server_info.endpoint)?);
         let client = reqwest::Client::new();
@@ -81,7 +88,7 @@ pub async fn send_key(
         let result = client
             .post(url)
             .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&user_registration_info)?)
+            .body(serde_json::to_string(&signed_message).unwrap())
             .send()
             .await?;
     }

@@ -19,7 +19,7 @@ use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{
     ext::{
         sp_core::{
-            sr25519::{self, Pair},
+            sr25519, Pair,
             Bytes,
         },
         sp_runtime::AccountId32,
@@ -654,6 +654,8 @@ async fn test_send_and_receive_keys() {
     let user_registration_info =
         UserRegistrationInfo { key: alice.to_account_id().to_string(), value: vec![10] };
 
+	let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
+	let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
     let client = reqwest::Client::new();
     // sends key to alice validator, while filtering out own key
     let _ = send_key(
@@ -662,6 +664,7 @@ async fn test_send_and_receive_keys() {
         &alice.to_account_id().into(),
         &mut vec![ALICE_STASH_ADDRESS.clone(), alice.to_account_id().into()],
         user_registration_info.clone(),
+		&signer_alice
     )
     .await
     .unwrap();
@@ -681,18 +684,27 @@ async fn test_send_and_receive_keys() {
         response_2.text().await.unwrap(),
         std::str::from_utf8(&user_registration_info.value.clone()).unwrap().to_string()
     );
+    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
+
+	let signed_message = SignedMessage::new(
+		&signer_alice.signer(),
+		&Bytes(serde_json::to_vec(&user_registration_info.clone()).unwrap()),
+		&PublicKey::from(server_public_key),
+	).unwrap().to_json();
 
     // fails key already stored
     let response_3 = client
         .post("http://127.0.0.1:3001/user/receive_key")
         .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&user_registration_info.clone()).unwrap())
+        .body(signed_message.clone())
         .send()
         .await
         .unwrap();
 
     assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(response_3.text().await.unwrap(), "User already registered");
+
+	// TODO negative validation tests
 
     clean_tests();
 }
