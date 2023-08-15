@@ -199,7 +199,7 @@ pub async fn new_user(
         //     app_state.kv_store.kv().delete(&key.to_string()).await?;
         // }
         // TODO: don't do dkg if a key already exists maybe hold last block number in memory or
-        // check here let key_share = do_dkg();
+        // let key_share = do_dkg(validators_info, ).await?;
         // TODO: add dkg here
         // let reservation = app_state.kv_store.kv().reserve_key(key.to_string()).await?;
         // app_state.kv_store.kv().put(reservation, decrypted_message).await?;
@@ -215,7 +215,7 @@ pub async fn new_user(
             &stash_address,
             &mut addresses_in_subgroup,
             user_registration_info,
-			&signer
+            &signer,
         )
         .await?;
         // TODO: Error handling really complex needs to be thought about.
@@ -230,12 +230,12 @@ pub async fn receive_key(
 ) -> Result<StatusCode, UserErr> {
     // TODO add validation
     // confirm message is from someone in group
-	let signing_address = signed_msg.account_id();
-	if !signed_msg.verify() {
+    let signing_address = signed_msg.account_id();
+    if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
-	let signer = get_signer(&app_state.kv_store).await?;
-	let decrypted_message =
+    let signer = get_signer(&app_state.kv_store).await?;
+    let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
     let user_registration_info: UserRegistrationInfo = serde_json::from_slice(&decrypted_message)?;
@@ -246,10 +246,11 @@ pub async fn receive_key(
         .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
 
-	let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check()).map_err(|_| UserErr::StringError("Account Conversion"))?;
+    let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
+        .map_err(|_| UserErr::StringError("Account Conversion"))?;
 
     // check message is from the person sending the message (get stash key from threshold key)
-	let stash_address_query =
+    let stash_address_query =
         entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
     let stash_address = api
         .storage()

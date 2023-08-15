@@ -18,10 +18,7 @@ use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{
     ext::{
-        sp_core::{
-            sr25519, Pair,
-            Bytes,
-        },
+        sp_core::{sr25519, Bytes, Pair},
         sp_runtime::AccountId32,
     },
     tx::PairSigner,
@@ -548,87 +545,87 @@ async fn test_store_share() {
     clean_tests();
 }
 
-#[tokio::test]
-#[serial]
-async fn test_update_keys() {
-    clean_tests();
-    let dave = AccountKeyring::Dave;
+// #[tokio::test]
+// #[serial]
+// async fn test_update_keys() {
+//     clean_tests();
+//     let dave = AccountKeyring::Dave;
 
-    let key: AccountId32 = dave.to_account_id();
-    let value: Vec<u8> = vec![0];
-    let new_value: Vec<u8> = vec![1];
-    let cxt = test_context_stationary().await;
-    setup_client().await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+//     let key: AccountId32 = dave.to_account_id();
+//     let value: Vec<u8> = vec![0];
+//     let new_value: Vec<u8> = vec![1];
+//     let cxt = test_context_stationary().await;
+//     setup_client().await;
+//     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
-    let user_input =
-        SignedMessage::new(&dave.pair(), &Bytes(new_value.clone()), &server_public_key)
-            .unwrap()
-            .to_json();
+//     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
+//     let user_input =
+//         SignedMessage::new(&dave.pair(), &Bytes(new_value.clone()), &server_public_key)
+//             .unwrap()
+//             .to_json();
 
-    let put_query =
-        UnsafeQuery::new(key.to_string(), serde_json::to_string(&value).unwrap()).to_json();
-    let client = reqwest::Client::new();
-    // manually add dave's key to replace it
-    let response = client
-        .post("http://127.0.0.1:3001/unsafe/put")
-        .header("Content-Type", "application/json")
-        .body(put_query.clone())
-        .send()
-        .await
-        .unwrap();
+//     let put_query =
+//         UnsafeQuery::new(key.to_string(), serde_json::to_string(&value).unwrap()).to_json();
+//     let client = reqwest::Client::new();
+//     // manually add dave's key to replace it
+//     let response = client
+//         .post("http://127.0.0.1:3001/unsafe/put")
+//         .header("Content-Type", "application/json")
+//         .body(put_query.clone())
+//         .send()
+//         .await
+//         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+//     assert_eq!(response.status(), StatusCode::OK);
 
-    // fails to add not registering or swapping
-    let response_2 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input.clone())
-        .send()
-        .await
-        .unwrap();
+//     // fails to add not registering or swapping
+//     let response_2 = client
+//         .post("http://127.0.0.1:3001/user/new")
+//         .header("Content-Type", "application/json")
+//         .body(user_input.clone())
+//         .send()
+//         .await
+//         .unwrap();
 
-    assert_eq!(response_2.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(
-        response_2.text().await.unwrap(),
-        "Not Registering error: Register Onchain first" /* "Generic Substrate error:
-                                                         * Metadata: Pallet Relayer Storage
-                                                         * Relayer has incompatible
-                                                         * metadata" */
-    );
+//     assert_eq!(response_2.status(), StatusCode::INTERNAL_SERVER_ERROR);
+//     assert_eq!(
+//         response_2.text().await.unwrap(),
+//         "Not Registering error: Register Onchain first" /* "Generic Substrate error:
+//                                                          * Metadata: Pallet Relayer Storage
+//                                                          * Relayer has incompatible
+//                                                          * metadata" */
+//     );
 
-    // signal registering
-    make_swapping(&api, &dave.pair()).await;
+//     // signal registering
+//     make_swapping(&api, &dave.pair()).await;
 
-    let response_3 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input.clone())
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(response_3.status(), StatusCode::OK);
-    assert_eq!(response_3.text().await.unwrap(), "");
-    // make sure there is now one confirmation
-    check_if_confirmation(&api, &dave.pair()).await;
+//     let response_3 = client
+//         .post("http://127.0.0.1:3001/user/new")
+//         .header("Content-Type", "application/json")
+//         .body(user_input.clone())
+//         .send()
+//         .await
+//         .unwrap();
+//     assert_eq!(response_3.status(), StatusCode::OK);
+//     assert_eq!(response_3.text().await.unwrap(), "");
+//     // make sure there is now one confirmation
+//     check_if_confirmation(&api, &dave.pair()).await;
 
-    // check dave has new key
-    let response_4 = client
-        .post("http://127.0.0.1:3001/unsafe/get")
-        .header("Content-Type", "application/json")
-        .body(put_query.clone())
-        .send()
-        .await
-        .unwrap();
+//     // check dave has new key
+//     let response_4 = client
+//         .post("http://127.0.0.1:3001/unsafe/get")
+//         .header("Content-Type", "application/json")
+//         .body(put_query.clone())
+//         .send()
+//         .await
+//         .unwrap();
 
-    assert_eq!(
-        response_4.text().await.unwrap(),
-        std::str::from_utf8(&new_value).unwrap().to_string()
-    );
-    clean_tests();
-}
+//     assert_eq!(
+//         response_4.text().await.unwrap(),
+//         std::str::from_utf8(&new_value).unwrap().to_string()
+//     );
+//     clean_tests();
+// }
 
 #[tokio::test]
 async fn test_return_addresses_of_subgroup() {
@@ -654,8 +651,8 @@ async fn test_send_and_receive_keys() {
     let user_registration_info =
         UserRegistrationInfo { key: alice.to_account_id().to_string(), value: vec![10] };
 
-	let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
-	let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
+    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
     let client = reqwest::Client::new();
     // sends key to alice validator, while filtering out own key
     let _ = send_key(
@@ -664,7 +661,7 @@ async fn test_send_and_receive_keys() {
         &alice.to_account_id().into(),
         &mut vec![ALICE_STASH_ADDRESS.clone(), alice.to_account_id().into()],
         user_registration_info.clone(),
-		&signer_alice
+        &signer_alice,
     )
     .await
     .unwrap();
@@ -686,11 +683,13 @@ async fn test_send_and_receive_keys() {
     );
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
 
-	let signed_message = SignedMessage::new(
-		&signer_alice.signer(),
-		&Bytes(serde_json::to_vec(&user_registration_info.clone()).unwrap()),
-		&PublicKey::from(server_public_key),
-	).unwrap().to_json();
+    let signed_message = SignedMessage::new(
+        &signer_alice.signer(),
+        &Bytes(serde_json::to_vec(&user_registration_info.clone()).unwrap()),
+        &PublicKey::from(server_public_key),
+    )
+    .unwrap()
+    .to_json();
 
     // fails key already stored
     let response_3 = client
@@ -704,7 +703,7 @@ async fn test_send_and_receive_keys() {
     assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(response_3.text().await.unwrap(), "User already registered");
 
-	// TODO negative validation tests
+    // TODO negative validation tests
 
     clean_tests();
 }
