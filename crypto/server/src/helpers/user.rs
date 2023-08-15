@@ -4,18 +4,19 @@ use entropy_shared::SETUP_TIMEOUT_SECONDS;
 use kvdb::kv_manager::{KvManager, PartyId};
 use sp_core::crypto::AccountId32;
 use subxt::{
-    ext::sp_core::{sr25519, Pair, Bytes},
+    ext::sp_core::{sr25519, Bytes, Pair},
     tx::PairSigner,
     utils::AccountId32 as subxtAccountId32,
     OnlineClient,
 };
+use synedrion::{KeyShare, TestSchemeParams};
 use tokio::time::timeout;
-use x25519_dalek::{PublicKey};
+use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{entropy, EntropyConfig},
     signing_client::{
-        new_party::Channels,
+        new_party::{signing_protocol::execute_dkg, Channels},
         protocol_transport::{open_protocol_connections, Listener},
         SignerState,
     },
@@ -23,7 +24,7 @@ use crate::{
         api::{UserRegistrationInfo, ValidatorInfo},
         errors::UserErr,
     },
-	validation::SignedMessage
+    validation::SignedMessage,
 };
 /// complete the dkg process for a new user
 pub async fn do_dkg(
@@ -31,7 +32,8 @@ pub async fn do_dkg(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     state: &SignerState,
     session_uid: String,
-) -> Result<(), UserErr> {
+    my_subgroup: &u8,
+) -> Result<KeyShare<TestSchemeParams>, UserErr> {
     let account_sp_core = AccountId32::new(*signer.account_id().clone().as_ref());
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
@@ -52,8 +54,13 @@ pub async fn do_dkg(
         let broadcast_out = ready??;
         Channels(broadcast_out, rx_from_others)
     };
+    let tss_accounts: Vec<AccountId32> = validators_info
+        .iter()
+        .map(|validator_info| AccountId32::new(*validator_info.tss_account.clone().as_ref()))
+        .collect();
 
-    Ok(())
+    let result = execute_dkg(channels, signer.signer(), tss_accounts, my_subgroup).await.unwrap();
+    Ok(result)
 }
 
 pub async fn send_key(
@@ -62,7 +69,7 @@ pub async fn send_key(
     stash_address: &subxtAccountId32,
     addresses_in_subgroup: &mut Vec<subxtAccountId32>,
     user_registration_info: UserRegistrationInfo,
-	signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
 ) -> Result<(), UserErr> {
     addresses_in_subgroup.remove(
         addresses_in_subgroup.iter().position(|address| *address == *stash_address).unwrap(),
@@ -76,11 +83,12 @@ pub async fn send_key(
             .fetch(&server_info_query)
             .await?
             .ok_or_else(|| UserErr::OptionUnwrapError("Server Info Fetch Error"))?;
-		let signed_message = SignedMessage::new(
-				signer.signer(),
-				&Bytes(serde_json::to_vec(&user_registration_info.clone()).unwrap()),
-				&PublicKey::from(server_info.x25519_public_key),
-			).unwrap();
+        let signed_message = SignedMessage::new(
+            signer.signer(),
+            &Bytes(serde_json::to_vec(&user_registration_info.clone()).unwrap()),
+            &PublicKey::from(server_info.x25519_public_key),
+        )
+        .unwrap();
         // encrypt and sign info
         let url = format!("http://{}/user/receive_key", String::from_utf8(server_info.endpoint)?);
         let client = reqwest::Client::new();
