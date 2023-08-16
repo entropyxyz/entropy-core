@@ -189,8 +189,9 @@ pub async fn new_user(
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
 
-    for sig_req_account in data.sig_request_accounts {
-        let address_slice: &[u8; 32] = &sig_req_account
+    for dkg_info in data.dkg_info {
+        let address_slice: &[u8; 32] = &dkg_info
+            .0
             .clone()
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
@@ -414,7 +415,7 @@ pub async fn validate_new_party(
     }
 
     let mut hasher_chain_data = Blake2s256::new();
-    hasher_chain_data.update(chain_data.sig_request_accounts.encode());
+    hasher_chain_data.update(chain_data.dkg_info.encode());
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
 
