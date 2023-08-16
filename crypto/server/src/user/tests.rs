@@ -466,8 +466,20 @@ async fn test_store_share() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let mut block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
+	let validators_info = vec![
+        entropy_shared::ValidatorInfo {
+            ip_address: "127.0.0.1:3001".encode(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone().encode(),
+        },
+        entropy_shared::ValidatorInfo {
+            ip_address: "127.0.0.1:3002".encode(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone().encode(),
+        },
+    ];
     let mut onchain_user_request =
-        OCWMessage { sig_request_accounts: vec![alice.encode()], block_number };
+        OCWMessage { sig_request_accounts: vec![alice.encode()], block_number, validators_info };
 
     let client = reqwest::Client::new();
 
