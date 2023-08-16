@@ -30,7 +30,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{Constraints, KeyVisibility, SIGNING_PARTY_SIZE};
+    use entropy_shared::{Constraints, KeyVisibility, ValidatorInfo, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         inherent::Vec,
@@ -103,8 +103,13 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn dkg)]
-    pub type DKG<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Vec<u8>>, ValueQuery>;
+    pub type DKG<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::BlockNumber,
+        Vec<(Vec<u8>, Vec<ValidatorInfo>)>,
+        ValueQuery,
+    >;
 
     #[pallet::storage]
     #[pallet::getter(fn registered)]
@@ -175,9 +180,17 @@ pub mod pallet {
                 ConstraintsPallet::<T>::validate_constraints(constraints)?;
             }
             let block_number = <frame_system::Pallet<T>>::block_number();
-
+            let (servers_info, i) = Self::get_validator_info()?;
+            let validators_info = servers_info
+                .iter()
+                .map(|server_info| ValidatorInfo {
+                    x25519_public_key: server_info.x25519_public_key,
+                    ip_address: server_info.endpoint.clone(),
+                    tss_account: server_info.tss_account.encode(),
+                })
+                .collect::<Vec<_>>();
             DKG::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-                messages.push(sig_req_account.clone().encode());
+                messages.push((sig_req_account.clone().encode(), validators_info));
                 Ok(())
             })?;
             // put account into a registering state
@@ -201,31 +214,31 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Signals that a user wants to swap our their keys
-        #[pallet::call_index(1)]
-        #[pallet::weight(<T as Config>::WeightInfo::swap_keys())]
-        pub fn swap_keys(origin: OriginFor<T>) -> DispatchResult {
-            let sig_req_account = ensure_signed(origin)?;
-            let key_visibility =
-                Self::registered(&sig_req_account).ok_or(Error::<T>::NotRegistered)?;
+        // /// Signals that a user wants to swap our their keys
+        // #[pallet::call_index(1)]
+        // #[pallet::weight(<T as Config>::WeightInfo::swap_keys())]
+        // pub fn swap_keys(origin: OriginFor<T>) -> DispatchResult {
+        //     let sig_req_account = ensure_signed(origin)?;
+        //     let key_visibility =
+        //         Self::registered(&sig_req_account).ok_or(Error::<T>::NotRegistered)?;
 
-            let registering_info = RegisteringDetails::<T> {
-                is_registering: true,
-                // This value doesn't get used in confirm_done() when is_swapping is true
-                constraint_account: sig_req_account.clone(),
-                is_swapping: true,
-                confirmations: vec![],
-                // This value doesn't get used in confirm_done() when is_swapping is true
-                constraints: None,
-                key_visibility,
-            };
+        //     let registering_info = RegisteringDetails::<T> {
+        //         is_registering: true,
+        //         // This value doesn't get used in confirm_done() when is_swapping is true
+        //         constraint_account: sig_req_account.clone(),
+        //         is_swapping: true,
+        //         confirmations: vec![],
+        //         // This value doesn't get used in confirm_done() when is_swapping is true
+        //         constraints: None,
+        //         key_visibility,
+        //     };
 
-            Registered::<T>::remove(&sig_req_account);
-            Registering::<T>::insert(&sig_req_account, registering_info);
+        //     Registered::<T>::remove(&sig_req_account);
+        //     Registering::<T>::insert(&sig_req_account, registering_info);
 
-            Self::deposit_event(Event::SignalRegister(sig_req_account));
-            Ok(())
-        }
+        //     Self::deposit_event(Event::SignalRegister(sig_req_account));
+        //     Ok(())
+        // }
 
         /// Used by validators to confirm they have received a key-share from a user that is
         /// registering. After a validator from each partition confirms they have a

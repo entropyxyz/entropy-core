@@ -24,9 +24,18 @@ pub enum KeyVisibility {
     Private,
 }
 
+/// Information from the validators in signing party
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+pub struct ValidatorInfo {
+    pub x25519_public_key: X25519PublicKey,
+    pub ip_address: codec::alloc::vec::Vec<u8>,
+    pub tss_account: codec::alloc::vec::Vec<u8>,
+}
+
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct OCWMessage {
     pub block_number: BlockNumber,
-    pub sig_request_accounts: Vec<codec::alloc::vec::Vec<u8>>,
+    pub dkg_info: Vec<(codec::alloc::vec::Vec<u8>, Vec<ValidatorInfo>)>,
 }

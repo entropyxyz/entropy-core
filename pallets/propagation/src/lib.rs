@@ -74,7 +74,7 @@ pub mod pallet {
             let req_body = OCWMessage {
                 // subtract 1 from blocknumber since the request is from the last block
                 block_number: converted_block_number.saturating_sub(1),
-                sig_request_accounts: messages.clone(),
+                dkg_info: messages.clone(),
             };
 
             log::warn!("propagation::post::req_body: {:?}", &[req_body.encode()]);
