@@ -37,5 +37,6 @@ pub struct ValidatorInfo {
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct OCWMessage {
     pub block_number: BlockNumber,
-    pub dkg_info: Vec<(codec::alloc::vec::Vec<u8>, Vec<ValidatorInfo>)>,
+    pub sig_request_accounts: Vec<codec::alloc::vec::Vec<u8>>,
+    pub validators_info: Vec<ValidatorInfo>,
 }

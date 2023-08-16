@@ -103,13 +103,8 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn dkg)]
-    pub type DKG<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        T::BlockNumber,
-        Vec<(Vec<u8>, Vec<ValidatorInfo>)>,
-        ValueQuery,
-    >;
+    pub type DKG<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Vec<u8>>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn registered)]
@@ -180,17 +175,8 @@ pub mod pallet {
                 ConstraintsPallet::<T>::validate_constraints(constraints)?;
             }
             let block_number = <frame_system::Pallet<T>>::block_number();
-            let (servers_info, i) = Self::get_validator_info()?;
-            let validators_info = servers_info
-                .iter()
-                .map(|server_info| ValidatorInfo {
-                    x25519_public_key: server_info.x25519_public_key,
-                    ip_address: server_info.endpoint.clone(),
-                    tss_account: server_info.tss_account.encode(),
-                })
-                .collect::<Vec<_>>();
             DKG::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-                messages.push((sig_req_account.clone().encode(), validators_info));
+                messages.push(sig_req_account.clone().encode());
                 Ok(())
             })?;
             // put account into a registering state

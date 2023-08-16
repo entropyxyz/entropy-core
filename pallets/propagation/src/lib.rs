@@ -15,7 +15,7 @@ mod tests;
 #[frame_support::pallet]
 pub mod pallet {
     use codec::Encode;
-    use entropy_shared::OCWMessage;
+    use entropy_shared::{OCWMessage, ValidatorInfo};
     use frame_support::{inherent::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
     use frame_system::pallet_prelude::*;
     use scale_info::prelude::vec;
@@ -70,11 +70,21 @@ pub mod pallet {
             log::warn!("propagation::post::messages: {:?}", &messages);
             let converted_block_number: u32 =
                 T::BlockNumber::try_into(block_number).unwrap_or_default();
+            let (servers_info, _i) = pallet_relayer::Pallet::<T>::get_validator_info().unwrap();
+            let validators_info = servers_info
+                .iter()
+                .map(|server_info| ValidatorInfo {
+                    x25519_public_key: server_info.x25519_public_key,
+                    ip_address: server_info.endpoint.clone(),
+                    tss_account: server_info.tss_account.encode(),
+                })
+                .collect::<Vec<_>>();
             // the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
             let req_body = OCWMessage {
                 // subtract 1 from blocknumber since the request is from the last block
                 block_number: converted_block_number.saturating_sub(1),
-                dkg_info: messages.clone(),
+                sig_request_accounts: messages.clone(),
+                validators_info,
             };
 
             log::warn!("propagation::post::req_body: {:?}", &[req_body.encode()]);
