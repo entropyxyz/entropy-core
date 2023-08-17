@@ -344,10 +344,13 @@ pub async fn user_connects_to_validators(
                 subscribe_message_vec,
             )
             .await
-            .unwrap();
+            .map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
 
             // Check the response as to whether they accepted our SubscribeMessage
-            let response_message = encrypted_connection.recv().await.unwrap();
+            let response_message = encrypted_connection
+                .recv()
+                .await
+                .map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
 
             let subscribe_response: Result<(), String> = serde_json::from_str(&response_message)?;
             if let Err(error_message) = subscribe_response {
