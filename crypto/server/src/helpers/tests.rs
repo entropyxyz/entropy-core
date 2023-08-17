@@ -385,11 +385,10 @@ pub async fn user_connects_to_validators(
         validators_info.iter().map(|v| v.tss_account.clone()).collect();
     tss_accounts.push(user_signing_keypair.public().into());
 
-    // TODO the trait `From<entropy_constraints::Error>` is not implemented for
-    // `signing_client::errors::SigningErr`
-    let parsed_tx =
-        <Evm as Architecture>::TransactionRequest::parse(converted_transaction_request.to_string())
-            .unwrap();
+    let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
+        converted_transaction_request.to_string(),
+    )?;
+
     let sig_hash = hex::encode(parsed_tx.sighash());
 
     let digest: PrehashedMessage = hex::decode(sig_hash)?

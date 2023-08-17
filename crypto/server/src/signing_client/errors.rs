@@ -75,6 +75,8 @@ pub enum SigningErr {
     Timeout(#[from] tokio::time::error::Elapsed),
     #[error("Encrypted connection error {0}")]
     EncryptedConnection(String),
+    #[error("Program error: {0}")]
+    ProgramError(#[from] entropy_constraints::Error),
 }
 
 impl IntoResponse for SigningErr {
