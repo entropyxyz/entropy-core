@@ -112,7 +112,7 @@ pub async fn do_signing(
     }
 
     // If key key visibility is private, pass the user's ID to the listener
-    let user_id_option = if key_visibility == KeyVisibility::Private {
+    let user_details_option = if key_visibility == KeyVisibility::Private {
         Some((user_address, *user_x25519_public_key))
     } else {
         None
@@ -120,7 +120,7 @@ pub async fn do_signing(
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(message.validators_info, &account_sp_core, user_id_option);
+        Listener::new(message.validators_info, &account_sp_core, user_details_option);
     state
         .listeners
         .lock()
