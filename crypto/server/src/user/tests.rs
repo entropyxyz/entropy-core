@@ -775,18 +775,17 @@ async fn test_sign_tx_user_participates() {
         ),
     )
     .await;
-    // let test_user_res = submit_transaction_requests(validator_ips_and_keys.clone(),
-    // generic_msg.clone(), one).await;
+
+    let signature_base64 = base64::encode(sig_result.unwrap().to_rsv_bytes());
+    assert_eq!(signature_base64.len(), 88);
 
     for res in test_user_res {
         let mut res = res.unwrap();
         assert_eq!(res.status(), 200);
         let chunk = res.chunk().await.unwrap().unwrap();
         let signing_result: Result<String, String> = serde_json::from_slice(&chunk).unwrap();
-        assert!(matches!(signing_result, Ok(sig) if sig.len() == 88));
+        assert_eq!(signature_base64, signing_result.unwrap());
     }
-
-    assert!(sig_result.is_ok());
 
     // test failing cases
     let test_user_res_not_registered =
