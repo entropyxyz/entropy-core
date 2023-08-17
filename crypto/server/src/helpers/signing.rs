@@ -5,7 +5,7 @@ use std::{
 };
 
 use bip39::{Language, Mnemonic};
-use entropy_shared::KeyVisibility;
+use entropy_shared::{KeyVisibility, X25519PublicKey};
 use kvdb::kv_manager::PartyId;
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
@@ -85,6 +85,7 @@ pub async fn do_signing(
     app_state: &AppState,
     tx_id: String,
     user_address: AccountId32,
+    user_x25519_public_key: &X25519PublicKey,
     key_visibility: KeyVisibility,
 ) -> Result<RecoverableSignature, SigningErr> {
     let state = &app_state.signer_state;
@@ -111,8 +112,11 @@ pub async fn do_signing(
     }
 
     // If key key visibility is private, pass the user's ID to the listener
-    let user_id_option =
-        if key_visibility == KeyVisibility::Private { Some(user_address) } else { None };
+    let user_id_option = if key_visibility == KeyVisibility::Private {
+        Some((user_address, user_x25519_public_key.clone()))
+    } else {
+        None
+    };
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =

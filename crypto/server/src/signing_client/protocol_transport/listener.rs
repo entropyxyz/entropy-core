@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 
+use entropy_shared::X25519PublicKey;
 use sp_core::crypto::AccountId32;
 use tokio::sync::{broadcast, mpsc, oneshot};
 
@@ -24,7 +25,7 @@ pub struct Listener {
     /// Endpoint to notify protocol execution ready-for-signing
     tx_ready: oneshot::Sender<ListenerResult>,
     /// Remaining validators we want to connect to
-    pub validators: HashSet<AccountId32>,
+    pub validators: HashMap<AccountId32, X25519PublicKey>,
     /// The request message associated with this listener
     pub user_transaction_request: UserTransactionRequest,
 }
@@ -42,23 +43,24 @@ impl Listener {
     pub(crate) fn new(
         user_transaction_request: UserTransactionRequest,
         my_id: &AccountId32,
-        user_participates: Option<AccountId32>,
+        user_participates: Option<(AccountId32, X25519PublicKey)>,
     ) -> (oneshot::Receiver<ListenerResult>, mpsc::Receiver<SigningMessage>, Self) {
         let (tx_ready, rx_ready) = oneshot::channel();
         let (tx, _rx) = broadcast::channel(1000);
         let (tx_to_others, rx_to_others) = mpsc::channel(1000);
 
-        // Create our set of validators we want to connect to - excluding ourself
-        let mut validators: HashSet<AccountId32> = user_transaction_request
-            .validators_info
-            .iter()
-            .map(|validator_info| validator_info.tss_account.clone())
-            .filter(|id| id != my_id)
-            .collect();
+        // Create our set of validators we want too connect to - excluding ourself
+        let mut validators = HashMap::new();
+
+        for validator in user_transaction_request.validators_info.clone() {
+            if &validator.tss_account != my_id {
+                validators.insert(validator.tss_account, validator.x25519_public_key);
+            }
+        }
 
         // If visibility is private, also expect the user to connect
-        if let Some(user_id) = user_participates {
-            validators.insert(user_id);
+        if let Some((user_id, user_x25519_pk)) = user_participates {
+            validators.insert(user_id, user_x25519_pk);
         }
 
         {
@@ -76,7 +78,7 @@ impl Listener {
         &mut self,
         account_id: &AccountId32,
     ) -> Result<WsChannels, SubscribeErr> {
-        if self.validators.remove(account_id) {
+        if self.validators.remove(account_id).is_some() {
             let broadcast = self.tx.subscribe();
             let tx = self.tx_to_others.clone();
             Ok(WsChannels { broadcast, tx, is_final: self.validators.is_empty() })
