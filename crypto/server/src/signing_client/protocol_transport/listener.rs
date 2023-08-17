@@ -26,8 +26,6 @@ pub struct Listener {
     tx_ready: oneshot::Sender<ListenerResult>,
     /// Remaining validators we want to connect to
     pub validators: HashMap<AccountId32, X25519PublicKey>,
-    /// The request message associated with this listener
-    validators_info: Vec<ValidatorInfo>,
 }
 
 /// Channels between a remote party and the signing protocol
@@ -52,7 +50,7 @@ impl Listener {
         // Create our set of validators we want too connect to - excluding ourself
         let mut validators = HashMap::new();
 
-        for validator in validators_info.clone() {
+        for validator in validators_info {
             if &validator.tss_account != my_id {
                 validators.insert(validator.tss_account, validator.x25519_public_key);
             }
@@ -64,11 +62,7 @@ impl Listener {
         }
 
         {
-            (
-                rx_ready,
-                rx_to_others,
-                Self { tx, tx_to_others, tx_ready, validators, validators_info },
-            )
+            (rx_ready, rx_to_others, Self { tx, tx_to_others, tx_ready, validators })
         }
     }
 
