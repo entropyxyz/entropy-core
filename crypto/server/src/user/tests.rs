@@ -458,29 +458,30 @@ async fn test_store_share() {
     clean_tests();
     let alice = AccountKeyring::Alice;
     let alice_constraint = AccountKeyring::Charlie;
+    let bob = AccountKeyring::Bob;
 
     let value: Vec<u8> = vec![0];
 
     let cxt = test_context_stationary().await;
-    setup_client().await;
+    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
+    dbg!(validator_ips.clone());
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let mut block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
-	let validators_info = vec![
+    let validators_info = vec![
         entropy_shared::ValidatorInfo {
-            ip_address: "127.0.0.1:3001".encode(),
+            ip_address: b"127.0.0.1:3001".to_vec(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             tss_account: TSS_ACCOUNTS[0].clone().encode(),
         },
         entropy_shared::ValidatorInfo {
-            ip_address: "127.0.0.1:3002".encode(),
+            ip_address: b"127.0.0.1:3002".to_vec(),
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone().encode(),
         },
     ];
     let mut onchain_user_request =
         OCWMessage { sig_request_accounts: vec![alice.encode()], block_number, validators_info };
-
     let client = reqwest::Client::new();
 
     put_register_request_on_chain(&api, &alice, alice_constraint.to_account_id().into()).await;
@@ -489,7 +490,7 @@ async fn test_store_share() {
 
     // succeeds
     let response = client
-        .post("http://127.0.0.1:3001/user/new")
+        .post("http://127.0.0.1:3002/user/new")
         .body(onchain_user_request.clone().encode())
         .send()
         .await
@@ -542,7 +543,7 @@ async fn test_store_share() {
 
     // TODO add back in
     // check_if_confirmation(&api, &alice.pair()).await;
-
+	// TODO check if key is in other subgroup member
     // // fails to add already added share
     // let response_3 = client
     //     .post("http://127.0.0.1:3001/user/new")
@@ -719,29 +720,6 @@ async fn test_send_and_receive_keys() {
 
     clean_tests();
 }
-// #[tokio::test]
-// #[serial]
-// async fn test_store_share_fail_wrong_data() {
-//     clean_tests();
-//     // Construct a client to use for dispatching requests.
-//     setup_client().await;
-//     let client = reqwest::Client::new();
-//     let response = client
-//         .post("http://127.0.0.1:3001/user/new")
-//         .header("Content-Type", "application/json")
-//         .body(
-//             r##"{
-// 		"name": "John Doe",
-// 		"email": "j.doe@m.com",
-// 		"password": "123456"
-// 	}"##,
-//         )
-//         .send()
-//         .await
-//         .unwrap();
-//     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
-//     clean_tests();
-// }
 
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,

@@ -24,6 +24,7 @@ use futures::{
 };
 use kvdb::kv_manager::{
     error::{InnerKvError, KvError},
+    helpers::serialize as key_serialize,
     value::PartyInfo,
     KvManager,
 };
@@ -49,7 +50,7 @@ use crate::{
         substrate::{
             get_constraints, get_key_visibility, get_subgroup, return_all_addresses_of_subgroup,
         },
-        user::send_key,
+        user::{do_dkg, send_key},
         validator::get_signer,
     },
     signing_client::{SignerState, SigningErr},
@@ -167,24 +168,21 @@ pub async fn new_user(
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
     let data = OCWMessage::decode(&mut encoded_data.as_ref()).unwrap();
+    if data.sig_request_accounts.is_empty() {
+        return Ok(StatusCode::NO_CONTENT);
+    }
+
     let api = get_api(&app_state.configuration.endpoint).await?;
-    // TODO validate message
     // // Verifies the message contains a valid sr25519 signature from the sender.
     // if !signed_msg.verify() {
     //     return Err(UserErr::InvalidSignature("Invalid signature."));
     // }
     let signer = get_signer(&app_state.kv_store).await?;
-    // // Checks if the user has registered onchain first.
-    // let key = signed_msg.account_id();
-    // let signing_address_conversion = SubxtAccountId32::from_str(&key.to_ss58check())
-    //     .map_err(|_| UserErr::StringError("Account Conversion"))?;
+    // TODO check if in validator selection if not end function
 
     // let is_swapping = register_info(&api, &signing_address_conversion).await?;
     validate_new_party(&data, &api, &app_state.kv_store).await?;
 
-    // let decrypted_message =
-    //     signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
-    // store new user data in kvdb or deletes and replaces it if swapping
     let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
@@ -199,15 +197,23 @@ pub async fn new_user(
         //     app_state.kv_store.kv().delete(&key.to_string()).await?;
         // }
         // TODO: don't do dkg if a key already exists maybe hold last block number in memory or
-        // let key_share = do_dkg(validators_info, ).await?;
-        // TODO: add dkg here
-        // let reservation = app_state.kv_store.kv().reserve_key(key.to_string()).await?;
-        // app_state.kv_store.kv().put(reservation, decrypted_message).await?;
+        let key_share = do_dkg(
+            &data.validators_info,
+            &signer,
+            &app_state.signer_state,
+            sig_request_address.to_string(),
+            &my_subgroup,
+        )
+        .await?;
+        let serialized_key_share = key_serialize(&key_share).unwrap();
+
+        let reservation =
+            app_state.kv_store.kv().reserve_key(sig_request_address.to_string()).await?;
+        app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
 
         let user_registration_info = UserRegistrationInfo {
             key: sig_request_address.to_string(),
-            // replace with actual key
-            value: vec![10],
+            value: serialized_key_share,
         };
         send_key(
             &api,
