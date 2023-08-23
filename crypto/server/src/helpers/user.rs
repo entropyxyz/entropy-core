@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{net::SocketAddrV4, str::FromStr, time::Duration};
 
 use entropy_shared::SETUP_TIMEOUT_SECONDS;
 use kvdb::kv_manager::{KvManager, PartyId};
@@ -28,38 +28,54 @@ use crate::{
 };
 /// complete the dkg process for a new user
 pub async fn do_dkg(
-    validators_info: Vec<ValidatorInfo>,
+    validators_info: &Vec<entropy_shared::ValidatorInfo>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     state: &SignerState,
     session_uid: String,
     my_subgroup: &u8,
 ) -> Result<KeyShare<TestSchemeParams>, UserErr> {
     let account_sp_core = AccountId32::new(*signer.account_id().clone().as_ref());
+    let converted_validator_info: Vec<ValidatorInfo> = validators_info
+        .iter()
+        .map(|validator_info| {
+            let address_slice: &[u8; 32] = &validator_info.tss_account.clone().try_into().unwrap();
+            ValidatorInfo {
+                x25519_public_key: validator_info.x25519_public_key,
+                ip_address: SocketAddrV4::from_str(
+                    std::str::from_utf8(&validator_info.ip_address).unwrap(),
+                )
+                .unwrap(),
+                tss_account: AccountId32::new(*address_slice),
+            }
+        })
+        .collect();
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(validators_info.clone(), &account_sp_core);
+        Listener::new(converted_validator_info.clone(), &account_sp_core);
     state
 	.listeners
 	.lock()
-	.map_err(|_| UserErr::SessionError("Error getting lock".to_string()))?
+	.map_err(|_| UserErr::SessionError("Error getting lock".to_string())).unwrap()
 	// TODO: using signature ID as session ID. Correct?
 	.insert(session_uid.clone(), listener);
-
     let my_id = PartyId::new(account_sp_core.clone());
 
-    open_protocol_connections(&validators_info, &session_uid, &my_id, &signer, state).await?;
-
+    open_protocol_connections(&converted_validator_info, &session_uid, &my_id, &signer, state)
+        .await?;
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
-        let broadcast_out = ready??;
+        let broadcast_out = ready.unwrap().unwrap();
         Channels(broadcast_out, rx_from_others)
     };
     let tss_accounts: Vec<AccountId32> = validators_info
         .iter()
-        .map(|validator_info| AccountId32::new(*validator_info.tss_account.clone().as_ref()))
+        .map(|validator_info| {
+            let address_slice: &[u8; 32] = &validator_info.tss_account.clone().try_into().unwrap();
+            AccountId32::new(*address_slice)
+        })
         .collect();
-
     let result = execute_dkg(channels, signer.signer(), tss_accounts, my_subgroup).await.unwrap();
+    dbg!(result.clone());
     Ok(result)
 }
 
