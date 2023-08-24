@@ -541,7 +541,7 @@ async fn test_store_share() {
     assert_eq!(response_2.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(response_2.text().await.unwrap(), "Data is not verifiable");
 
-	// // fails to add already added share
+    // // fails to add already added share
     // let response_3 = client
     //     .post("http://127.0.0.1:3001/user/new")
     //     .header("Content-Type", "application/json")
@@ -553,9 +553,9 @@ async fn test_store_share() {
     // assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
     // assert_eq!(response_3.text().await.unwrap(), "Kv error: Recv Error: channel closed");
 
-	onchain_user_request.validators_info[0].tss_account = TSS_ACCOUNTS[1].clone().encode();
-	// fails not in validator group data
-	let response_4 = client
+    onchain_user_request.validators_info[0].tss_account = TSS_ACCOUNTS[1].clone().encode();
+    // fails not in validator group data
+    let response_4 = client
         .post("http://127.0.0.1:3001/user/new")
         .body(onchain_user_request.clone().encode())
         .send()
@@ -566,7 +566,7 @@ async fn test_store_share() {
     assert_eq!(response_4.text().await.unwrap(), "Invalid Signer: Invalid Signer in Signing group");
 
     check_if_confirmation(&api, &alice.pair()).await;
-	// TODO check if key is in other subgroup member
+    // TODO check if key is in other subgroup member
     clean_tests();
 }
 

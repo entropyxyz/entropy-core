@@ -21,7 +21,7 @@ use subxt::{
         Bytes, Pair,
     },
     tx::PairSigner,
-    utils::AccountId32 as subxtAccountId32,
+    utils::{AccountId32 as subxtAccountId32, Static},
     OnlineClient,
 };
 use synedrion::{make_key_shares, TestSchemeParams};
@@ -236,16 +236,17 @@ pub async fn make_swapping(api: &OnlineClient<EntropyConfig>, key: &sr25519::Pai
     assert!(is_registering_2.unwrap().unwrap().is_registering);
 }
 
-/// Verify that a Registering account has 1 confirmation, and that it is not already Registered.
+/// Verify that a Registering account has all confirmation, and that it is registered.
 pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &sr25519::Pair) {
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
     let registering_query = entropy::storage().relayer().registering(signer.account_id());
     let registered_query = entropy::storage().relayer().registered(signer.account_id());
-    let is_registering =
-        api.storage().at_latest().await.unwrap().fetch(&registering_query).await.unwrap();
-    // make sure there is one confirmation
-    assert_eq!(is_registering.unwrap().confirmations.len(), 1);
-    let _ = api.storage().at_latest().await.unwrap().fetch(&registered_query).await.unwrap();
+    let is_registering = api.storage().at_latest().await.unwrap().fetch(&registering_query).await;
+    // cleared from is_registering state
+    assert!(is_registering.unwrap().is_none());
+    let is_registered =
+        api.storage().at_latest().await.unwrap().fetch(&registered_query).await.unwrap();
+    assert_eq!(is_registered.unwrap(), Static(KeyVisibility::Public));
 }
 
 /// Verify that a Registered account exists.
