@@ -181,15 +181,15 @@ pub async fn new_user(
     // TODO check if in validator selection if not end function
 
     // let is_swapping = register_info(&api, &signing_address_conversion).await?;
-	check_in_registration_group(&data.validators_info, signer.account_id())?;
+    check_in_registration_group(&data.validators_info, signer.account_id())?;
     validate_new_party(&data, &api, &app_state.kv_store).await?;
 
     let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
 
-    for sig_request_accounts in data.sig_request_accounts {
-        let address_slice: &[u8; 32] = &sig_request_accounts
+    for sig_request_account in data.sig_request_accounts {
+        let address_slice: &[u8; 32] = &sig_request_account
             .clone()
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
@@ -226,7 +226,7 @@ pub async fn new_user(
         )
         .await?;
         // TODO: Error handling really complex needs to be thought about.
-        // confirm_registered(&api, sig_req_account.into(), subgroup, &signer).await?;
+        confirm_registered(&api, sig_request_address.into(), my_subgroup, &signer).await?;
     }
     Ok(StatusCode::OK)
 }
@@ -446,13 +446,14 @@ pub async fn validate_new_party(
     Ok(())
 }
 
-
 /// Checks if a validator is in the current selected registration committee
 pub fn check_in_registration_group(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
     validator_address: &SubxtAccountId32,
 ) -> Result<(), UserErr> {
-    let is_proper_signer = validators_info.iter().any(|validator_info| validator_info.tss_account == validator_address.encode());
+    let is_proper_signer = validators_info
+        .iter()
+        .any(|validator_info| validator_info.tss_account == validator_address.encode());
     if !is_proper_signer {
         return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
     }
