@@ -157,7 +157,6 @@ async fn handle_initial_incoming_ws_message(
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| SubscribeErr::Decryption(e.to_string()))?;
     let msg: SubscribeMessage = serde_json::from_slice(&decrypted_message)?;
-    dbg!(msg.clone());
     tracing::info!("Got ws connection, with message: {msg:?}");
 
     let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;

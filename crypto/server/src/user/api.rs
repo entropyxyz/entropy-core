@@ -181,6 +181,7 @@ pub async fn new_user(
     // TODO check if in validator selection if not end function
 
     // let is_swapping = register_info(&api, &signing_address_conversion).await?;
+	check_in_registration_group(&data.validators_info, signer.account_id())?;
     validate_new_party(&data, &api, &app_state.kv_store).await?;
 
     let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
@@ -442,5 +443,18 @@ pub async fn validate_new_party(
     kv_manager.kv().delete("LATEST_BLOCK_NUMBER").await?;
     let reservation = kv_manager.kv().reserve_key("LATEST_BLOCK_NUMBER".to_string()).await?;
     kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
+    Ok(())
+}
+
+
+/// Checks if a validator is in the current selected registration committee
+pub fn check_in_registration_group(
+    validators_info: &Vec<entropy_shared::ValidatorInfo>,
+    validator_address: &SubxtAccountId32,
+) -> Result<(), UserErr> {
+    let is_proper_signer = validators_info.iter().any(|validator_info| validator_info.tss_account == validator_address.encode());
+    if !is_proper_signer {
+        return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
+    }
     Ok(())
 }
