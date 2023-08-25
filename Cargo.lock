@@ -5193,6 +5193,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "more-asserts"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fafa6961cabd9c63bcd77a45d7e3b7f3b552b70417831fb0f56db717e72407e"
+
+[[package]]
 name = "multiaddr"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10429,6 +10435,7 @@ dependencies = [
  "hex-literal",
  "kvdb 0.1.0",
  "log",
+ "more-asserts",
  "num",
  "parity-scale-codec",
  "project-root",

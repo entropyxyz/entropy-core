@@ -236,8 +236,6 @@ pub async fn receive_key(
     State(app_state): State<AppState>,
     Json(signed_msg): Json<SignedMessage>,
 ) -> Result<StatusCode, UserErr> {
-    // TODO add validation
-    // confirm message is from someone in group
     let signing_address = signed_msg.account_id();
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
@@ -281,6 +279,7 @@ pub async fn receive_key(
     app_state.kv_store.kv().put(reservation, user_registration_info.value).await?;
     Ok(StatusCode::OK)
 }
+
 /// Returns wether an account is registering or swapping. If it is not, it returns error
 pub async fn register_info(
     api: &OnlineClient<EntropyConfig>,
