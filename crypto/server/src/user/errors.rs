@@ -84,6 +84,16 @@ pub enum UserErr {
     Reqwest(#[from] reqwest::Error),
     #[error("Invalid length for converting address")]
     AddressConversionError(String),
+    #[error("Vec<u8> Conversion Error: {0}")]
+    Conversion(&'static str),
+    #[error("Codec decoding error: {0}")]
+    CodecError(#[from] parity_scale_codec::Error),
+    #[error("Kv Fatal error")]
+    KvSerialize(String),
+    #[error("Ip Address Error: {0}")]
+    AddrParseError(#[from] std::net::AddrParseError),
+    #[error("Validation Error: {0}")]
+    ValidationErr(#[from] crate::validation::errors::ValidationErr),
 }
 
 impl IntoResponse for UserErr {
