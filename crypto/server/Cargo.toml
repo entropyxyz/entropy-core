@@ -65,6 +65,7 @@ serial_test  ="0.8.0"
 hex-literal  ="0.3.4"
 project-root ="0.2.2"
 sp-keyring   ="24.0.0"
+more-asserts ="0.3.1"
 
 [features]
 default=['std']

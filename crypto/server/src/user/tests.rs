@@ -12,6 +12,7 @@ use kvdb::{
     encrypted_sled::PasswordMethod,
     kv_manager::{value::KvManager, PartyId},
 };
+use more_asserts as ma;
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
@@ -498,6 +499,19 @@ async fn test_store_share() {
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
 
+    let get_query = UnsafeQuery::new(alice.to_account_id().to_string(), "".to_string()).to_json();
+
+    // check alice has new key
+    let response_2 = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query.clone())
+        .send()
+        .await
+        .unwrap();
+
+    ma::assert_gt!(response_2.text().await.unwrap().len(), 1000);
+
     // fails repeated data
     let response_3 = client
         .post("http://127.0.0.1:3001/user/new")
@@ -522,7 +536,6 @@ async fn test_store_share() {
     assert_eq!(response_4.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(response_4.text().await.unwrap(), "Data is stale");
 
-    // TODO add failed verification
     block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
     put_register_request_on_chain(&api, &alice_constraint, alice_constraint.to_account_id().into())
         .await;
@@ -530,39 +543,27 @@ async fn test_store_share() {
     run_to_block(&api, block_number + 1).await;
 
     // fails not verified data
-    let response_2 = client
+    let response_5 = client
         .post("http://127.0.0.1:3001/user/new")
         .body(onchain_user_request.clone().encode())
         .send()
         .await
         .unwrap();
 
-    assert_eq!(response_2.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_2.text().await.unwrap(), "Data is not verifiable");
-
-    // // fails to add already added share
-    // let response_3 = client
-    //     .post("http://127.0.0.1:3001/user/new")
-    //     .header("Content-Type", "application/json")
-    //     .body(onchain_user_request.clone())
-    //     .send()
-    //     .await
-    //     .unwrap();
-
-    // assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    // assert_eq!(response_3.text().await.unwrap(), "Kv error: Recv Error: channel closed");
+    assert_eq!(response_5.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_5.text().await.unwrap(), "Data is not verifiable");
 
     onchain_user_request.validators_info[0].tss_account = TSS_ACCOUNTS[1].clone().encode();
     // fails not in validator group data
-    let response_4 = client
+    let response_6 = client
         .post("http://127.0.0.1:3001/user/new")
         .body(onchain_user_request.clone().encode())
         .send()
         .await
         .unwrap();
 
-    assert_eq!(response_4.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_4.text().await.unwrap(), "Invalid Signer: Invalid Signer in Signing group");
+    assert_eq!(response_6.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_6.text().await.unwrap(), "Invalid Signer: Invalid Signer in Signing group");
 
     check_if_confirmation(&api, &alice.pair()).await;
     // TODO check if key is in other subgroup member
