@@ -182,7 +182,7 @@ async fn handle_initial_incoming_ws_message(
             .lock()
             .map_err(|e| SubscribeErr::LockError(e.to_string()))?;
         let listener =
-            listeners.get(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener 1"))?;
+            listeners.get(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
 
         let validators_info = &listener.validators_info;
         if !validators_info.iter().any(|validator_info| {

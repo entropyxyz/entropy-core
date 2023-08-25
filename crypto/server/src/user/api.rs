@@ -167,7 +167,7 @@ pub async fn new_user(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
-    let data = OCWMessage::decode(&mut encoded_data.as_ref()).unwrap();
+    let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
@@ -206,7 +206,8 @@ pub async fn new_user(
             &my_subgroup,
         )
         .await?;
-        let serialized_key_share = key_serialize(&key_share).unwrap();
+        let serialized_key_share = key_serialize(&key_share)
+            .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
         let reservation =
             app_state.kv_store.kv().reserve_key(sig_request_address.to_string()).await?;
@@ -271,7 +272,7 @@ pub async fn receive_key(
     }
 
     let exists_result =
-        app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await.unwrap();
+        app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
     if exists_result {
         return Err(UserErr::AlreadyRegistered);
     }
@@ -401,7 +402,11 @@ pub async fn validate_new_party(
     kv_manager: &KvManager,
 ) -> Result<(), UserErr> {
     let last_block_number_recorded = kv_manager.kv().get("LATEST_BLOCK_NUMBER").await?;
-    if u32::from_be_bytes(last_block_number_recorded.try_into().unwrap()) >= chain_data.block_number
+    if u32::from_be_bytes(
+        last_block_number_recorded
+            .try_into()
+            .map_err(|_| UserErr::Conversion("Account Conversion"))?,
+    ) >= chain_data.block_number
     {
         // change error
         return Err(UserErr::RepeatedData);
