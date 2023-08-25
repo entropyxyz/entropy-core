@@ -16,7 +16,7 @@ use x25519_dalek::PublicKey;
 
 use self::noise::{noise_handshake_initiator, noise_handshake_responder, EncryptedWsConnection};
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
-use super::{new_party::SignContext, SigningErr};
+use super::SigningErr;
 use crate::{
     chain_api::EntropyConfig,
     get_signer,

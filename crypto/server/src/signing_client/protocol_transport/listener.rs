@@ -8,7 +8,7 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 use super::Broadcaster;
 use crate::{
     signing_client::{SigningMessage, SubscribeErr},
-    user::api::{UserTransactionRequest, ValidatorInfo},
+    user::api::ValidatorInfo,
 };
 
 pub type ListenerResult = Result<Broadcaster, SubscribeErr>;

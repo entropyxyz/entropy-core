@@ -459,12 +459,9 @@ async fn test_store_share() {
     clean_tests();
     let alice = AccountKeyring::Alice;
     let alice_constraint = AccountKeyring::Charlie;
-    let bob = AccountKeyring::Bob;
-
-    let value: Vec<u8> = vec![0];
 
     let cxt = test_context_stationary().await;
-    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let mut block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
@@ -665,9 +662,6 @@ async fn test_return_addresses_of_subgroup() {
 async fn test_send_and_receive_keys() {
     clean_tests();
     let alice = AccountKeyring::Alice;
-    let alice_constraint = AccountKeyring::Charlie;
-
-    let value: Vec<u8> = vec![0];
 
     let cxt = test_context_stationary().await;
     setup_client().await;
@@ -682,7 +676,6 @@ async fn test_send_and_receive_keys() {
     // sends key to alice validator, while filtering out own key
     let _ = send_key(
         &api,
-        0u8,
         &alice.to_account_id().into(),
         &mut vec![ALICE_STASH_ADDRESS.clone(), alice.to_account_id().into()],
         user_registration_info.clone(),

@@ -1,10 +1,10 @@
 use std::{net::SocketAddrV4, str::FromStr, time::Duration};
 
 use entropy_shared::SETUP_TIMEOUT_SECONDS;
-use kvdb::kv_manager::{KvManager, PartyId};
+use kvdb::kv_manager::PartyId;
 use sp_core::crypto::AccountId32;
 use subxt::{
-    ext::sp_core::{sr25519, Bytes, Pair},
+    ext::sp_core::{sr25519, Bytes},
     tx::PairSigner,
     utils::AccountId32 as subxtAccountId32,
     OnlineClient,
@@ -77,7 +77,6 @@ pub async fn do_dkg(
 
 pub async fn send_key(
     api: &OnlineClient<EntropyConfig>,
-    subgroup: u8,
     stash_address: &subxtAccountId32,
     addresses_in_subgroup: &mut Vec<subxtAccountId32>,
     user_registration_info: UserRegistrationInfo,
@@ -107,7 +106,7 @@ pub async fn send_key(
         let url = format!("http://{}/user/receive_key", String::from_utf8(server_info.endpoint)?);
         let client = reqwest::Client::new();
 
-        let result = client
+        let _ = client
             .post(url)
             .header("Content-Type", "application/json")
             .body(serde_json::to_string(&signed_message)?)

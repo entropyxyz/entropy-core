@@ -217,15 +217,8 @@ pub async fn new_user(
             key: sig_request_address.to_string(),
             value: serialized_key_share,
         };
-        send_key(
-            &api,
-            my_subgroup,
-            &stash_address,
-            &mut addresses_in_subgroup,
-            user_registration_info,
-            &signer,
-        )
-        .await?;
+        send_key(&api, &stash_address, &mut addresses_in_subgroup, user_registration_info, &signer)
+            .await?;
         // TODO: Error handling really complex needs to be thought about.
         confirm_registered(&api, sig_request_address.into(), my_subgroup, &signer).await?;
     }
