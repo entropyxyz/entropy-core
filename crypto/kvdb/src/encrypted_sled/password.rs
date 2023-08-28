@@ -1,4 +1,5 @@
-//! Handles the generation of an [Entropy] from user's password using [scrypt] pbkdf.
+//! Handles the generation of a key for the stream cipher from the user's password using [scrypt]
+//! pbkdf.
 use std::convert::{TryFrom, TryInto};
 
 use sled::IVec;
