@@ -439,7 +439,7 @@ pub async fn validate_new_party(
 
 /// Checks if a validator is in the current selected registration committee
 pub fn check_in_registration_group(
-    validators_info: &Vec<entropy_shared::ValidatorInfo>,
+    validators_info: &[entropy_shared::ValidatorInfo],
     validator_address: &SubxtAccountId32,
 ) -> Result<(), UserErr> {
     let is_proper_signer = validators_info

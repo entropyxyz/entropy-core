@@ -63,7 +63,7 @@ pub async fn do_dkg(
 	.insert(session_uid.clone(), listener);
     let my_id = PartyId::new(account_sp_core.clone());
 
-    open_protocol_connections(&converted_validator_info, &session_uid, &my_id, &signer, state)
+    open_protocol_connections(&converted_validator_info, &session_uid, &my_id, signer, state)
         .await?;
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;

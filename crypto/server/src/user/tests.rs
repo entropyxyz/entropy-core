@@ -82,7 +82,6 @@ async fn test_get_signer_does_not_throw_err() {
 async fn test_sign_tx_no_chain() {
     clean_tests();
     let one = AccountKeyring::Dave;
-    let test_user_constraint = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
     let signing_address = one.clone().to_account_id().to_ss58check();
