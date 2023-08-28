@@ -197,7 +197,7 @@ pub mod pallet {
             <T as pallet_session::Config>::ValidatorId,
             ServerInfo<T::AccountId>,
         ),
-        /// Node Info has been removed [who]
+        /// Node Info has been removed \[who\]
         NodeInfoRemoved(T::AccountId),
         /// Validator sync status changed [who, sync_status]
         ValidatorSyncStatus(<T as pallet_session::Config>::ValidatorId, bool),

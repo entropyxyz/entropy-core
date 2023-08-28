@@ -115,7 +115,7 @@ pub mod pallet {
         SignalRegister(T::AccountId),
         /// An account has been registered. [who, signing_group]
         AccountRegistering(T::AccountId, u8),
-        /// An account has been registered. [who]
+        /// An account has been registered. \[who\]
         AccountRegistered(T::AccountId),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, T::BlockNumber, Vec<u32>),
