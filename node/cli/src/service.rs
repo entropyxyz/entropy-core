@@ -240,7 +240,7 @@ pub fn new_partial(
         config.prometheus_registry(),
         &task_manager.spawn_handle(),
     )
-    .map_err(|e| ServiceError::Other(format!("Statement store error: {:?}", e)))?;
+    .map_err(|e| ServiceError::Other(format!("Statement store error: {e:?}")))?;
 
     let (rpc_extensions_builder, rpc_setup) = {
         let (_, grandpa_link, _) = &import_setup;
@@ -639,7 +639,6 @@ mod tests {
         traits::{Block as BlockT, Header as HeaderT, IdentifyAccount, Verify},
         RuntimeAppPublic,
     };
-    use sp_timestamp;
 
     use crate::service::{new_full_base, NewFullBase};
 
@@ -805,7 +804,7 @@ mod tests {
                 let signer = charlie.clone();
 
                 let function = RuntimeCall::Balances(BalancesCall::transfer_allow_death {
-                    dest: to.into(),
+                    dest: to,
                     value: amount,
                 });
 
@@ -835,8 +834,7 @@ mod tests {
                 let signature = raw_payload.using_encoded(|payload| signer.sign(payload));
                 let (function, extra, _) = raw_payload.deconstruct();
                 index += 1;
-                UncheckedExtrinsic::new_signed(function, from.into(), signature.into(), extra)
-                    .into()
+                UncheckedExtrinsic::new_signed(function, from, signature.into(), extra).into()
             },
         );
     }
