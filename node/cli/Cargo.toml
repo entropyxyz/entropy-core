@@ -67,6 +67,7 @@ sc-network-statement              ={ version="0.10.0-dev", git='https://github.c
 sc-storage-monitor                ={ version="0.1.0", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.43" }
 pallet-asset-tx-payment           ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.43" }
 sp-statement-store                ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.43" }
+entropy-shared          ={ path="../../crypto/shared", default-features=false }
 
 [build-dependencies]
 clap                        ={ version="4.2.5", optional=true }
