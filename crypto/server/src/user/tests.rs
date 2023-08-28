@@ -48,7 +48,7 @@ use crate::{
         substrate::{make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, make_swapping, register_user, setup_client,
-            spawn_testing_validators,
+            spawn_testing_validators, update_constraints,
         },
         user::send_key,
     },
@@ -81,11 +81,12 @@ async fn test_get_signer_does_not_throw_err() {
 #[serial]
 async fn test_sign_tx_no_chain() {
     clean_tests();
-    let one = AccountKeyring::One;
-    let test_user_constraint = AccountKeyring::Charlie;
+    let one = AccountKeyring::Dave;
+    let test_user_constraint = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let signing_address = one.clone().to_account_id().to_ss58check();
+    let (validator_ips, _validator_ids) = spawn_testing_validators(signing_address.clone()).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let initial_constraints = |address: [u8; 20]| -> Constraints {
@@ -95,14 +96,8 @@ async fn test_sign_tx_no_chain() {
         Constraints { evm_acl: Some(Static(evm_acl)), btc_acl: None }
     };
 
-    register_user(
-        &entropy_api,
-        &validator_ips,
-        &one.pair(),
-        &test_user_constraint.pair(),
-        initial_constraints([1u8; 20]),
-    )
-    .await;
+    update_constraints(&entropy_api, &one.pair(), &one.pair(), initial_constraints([1u8; 20]))
+        .await;
     let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(1);
     let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
 
@@ -360,7 +355,7 @@ async fn test_sign_tx_no_chain() {
     let user_input_bad = SignedMessage::new_test(
         Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
         sr25519::Signature::from_raw(sig),
-        one.pair().public().into(),
+        AccountKeyring::Eve.pair().public().into(),
         slice,
         slice,
         nonce,
@@ -407,7 +402,7 @@ async fn test_sign_tx_no_chain() {
 async fn test_fail_signing_group() {
     clean_tests();
     let dave = AccountKeyring::Dave;
-    let _ = spawn_testing_validators().await;
+    let _ = spawn_testing_validators("null".to_string()).await;
 
     let _substrate_context = test_node_process_testing_state().await;
     let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(4);
@@ -461,7 +456,7 @@ async fn test_store_share() {
     let alice_constraint = AccountKeyring::Charlie;
 
     let cxt = test_context_stationary().await;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators("null".to_string()).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let mut block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;

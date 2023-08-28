@@ -30,7 +30,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{Constraints, KeyVisibility, ValidatorInfo, SIGNING_PARTY_SIZE};
+    use entropy_shared::{Constraints, KeyVisibility, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         inherent::Vec,
@@ -74,7 +74,7 @@ pub mod pallet {
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub registered_accounts: Vec<T::AccountId>,
+        pub registered_accounts: Vec<(T::AccountId, KeyVisibility)>,
     }
 
     #[cfg(feature = "std")]
@@ -85,9 +85,13 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
-            for account in &self.registered_accounts {
-                Registered::<T>::insert(account, KeyVisibility::Public);
-                AllowedToModifyConstraints::<T>::insert(account, account, ());
+            for account_info in &self.registered_accounts {
+                Registered::<T>::insert(account_info.0.clone(), account_info.1.clone());
+                AllowedToModifyConstraints::<T>::insert(
+                    account_info.0.clone(),
+                    account_info.0.clone(),
+                    (),
+                );
             }
         }
     }

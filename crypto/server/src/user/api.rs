@@ -173,12 +173,7 @@ pub async fn new_user(
     }
 
     let api = get_api(&app_state.configuration.endpoint).await?;
-    // // Verifies the message contains a valid sr25519 signature from the sender.
-    // if !signed_msg.verify() {
-    //     return Err(UserErr::InvalidSignature("Invalid signature."));
-    // }
     let signer = get_signer(&app_state.kv_store).await?;
-    // TODO check if in validator selection if not end function
 
     // let is_swapping = register_info(&api, &signing_address_conversion).await?;
     check_in_registration_group(&data.validators_info, signer.account_id())?;
@@ -197,7 +192,6 @@ pub async fn new_user(
         // if is_swapping {
         //     app_state.kv_store.kv().delete(&key.to_string()).await?;
         // }
-        // TODO: don't do dkg if a key already exists maybe hold last block number in memory or
         let key_share = do_dkg(
             &data.validators_info,
             &signer,
