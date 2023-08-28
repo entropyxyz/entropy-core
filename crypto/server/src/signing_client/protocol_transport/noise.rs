@@ -5,7 +5,7 @@
 //! That is, we already know the public key of the remote party we are connecting to before the
 //! handshake starts)
 //!
-//! See: https://noiseexplorer.com/patterns/XK
+//! See: <https://noiseexplorer.com/patterns/XK>
 use entropy_shared::X25519PublicKey;
 use snow::{params::NoiseParams, Builder, HandshakeState};
 use subxt::ext::sp_core::sr25519;
