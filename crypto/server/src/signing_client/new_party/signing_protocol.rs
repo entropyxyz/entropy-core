@@ -213,7 +213,7 @@ pub async fn execute_dkg(
             })?;
 
             // TODO: we shouldn't send broadcasts to ourselves in the first place.
-            if &signing_message.from == &my_id {
+            if signing_message.from == my_id {
                 continue;
             }
             let from_idx = id_to_index[&signing_message.from];

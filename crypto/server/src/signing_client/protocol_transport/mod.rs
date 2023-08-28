@@ -29,7 +29,7 @@ use crate::{
 // TODO remove ctx and pass only needed info
 /// Set up websocket connections to other members of the signing committee
 pub async fn open_protocol_connections(
-    validators_info: &Vec<ValidatorInfo>,
+    validators_info: &[ValidatorInfo],
     session_uid: &str,
     my_id: &PartyId,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,

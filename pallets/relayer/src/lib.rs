@@ -86,7 +86,7 @@ pub mod pallet {
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
             for account_info in &self.registered_accounts {
-                Registered::<T>::insert(account_info.0.clone(), account_info.1.clone());
+                Registered::<T>::insert(account_info.0.clone(), account_info.1);
                 AllowedToModifyConstraints::<T>::insert(
                     account_info.0.clone(),
                     account_info.0.clone(),
