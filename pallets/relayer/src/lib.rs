@@ -74,7 +74,7 @@ pub mod pallet {
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub registered_accounts: Vec<(T::AccountId, KeyVisibility)>,
+        pub registered_accounts: Vec<(T::AccountId, u8)>,
     }
 
     #[cfg(feature = "std")]
@@ -86,7 +86,13 @@ pub mod pallet {
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
             for account_info in &self.registered_accounts {
-                Registered::<T>::insert(account_info.0.clone(), account_info.1);
+                let key_visibility;
+                match account_info.1 {
+                    1 => key_visibility = KeyVisibility::Private,
+                    2 => key_visibility = KeyVisibility::Permissioned,
+                    _ => key_visibility = KeyVisibility::Public,
+                };
+                Registered::<T>::insert(account_info.0.clone(), key_visibility);
                 AllowedToModifyConstraints::<T>::insert(
                     account_info.0.clone(),
                     account_info.0.clone(),

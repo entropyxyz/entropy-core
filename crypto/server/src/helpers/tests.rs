@@ -96,15 +96,11 @@ pub async fn create_clients(
     (app, kv_store)
 }
 
-pub async fn spawn_testing_validators(sig_req_keyring: String) -> (Vec<String>, Vec<PartyId>) {
+pub async fn spawn_testing_validators(
+    sig_req_keyring: Option<String>,
+) -> (Vec<String>, Vec<PartyId>) {
     // spawn threshold servers
     let ports = vec![3001i64, 3002];
-
-    let shares = make_key_shares::<TestSchemeParams>(&mut OsRng, 2, None);
-    let validator_1_threshold_keyshare: Vec<u8> =
-        kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
-    let validator_2_threshold_keyshare: Vec<u8> =
-        kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
 
     let (alice_axum, alice_kv) =
         create_clients("validator1".to_string(), vec![], vec![], true, false).await;
@@ -118,15 +114,24 @@ pub async fn spawn_testing_validators(sig_req_keyring: String) -> (Vec<String>, 
         *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
     ));
 
-    // add key share to kvdbs
-    let alice_reservation = alice_kv.kv().reserve_key(sig_req_keyring.clone()).await.unwrap();
-    alice_kv.kv().put(alice_reservation, validator_1_threshold_keyshare).await.unwrap();
+    if sig_req_keyring.is_some() {
+        let shares = make_key_shares::<TestSchemeParams>(&mut OsRng, 2, None);
+        let validator_1_threshold_keyshare: Vec<u8> =
+            kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
+        let validator_2_threshold_keyshare: Vec<u8> =
+            kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
+        // add key share to kvdbs
+        let alice_reservation =
+            alice_kv.kv().reserve_key(sig_req_keyring.clone().unwrap()).await.unwrap();
+        alice_kv.kv().put(alice_reservation, validator_1_threshold_keyshare).await.unwrap();
 
-    let bob_reservation = bob_kv.kv().reserve_key(sig_req_keyring.clone()).await.unwrap();
-    bob_kv.kv().put(bob_reservation, validator_2_threshold_keyshare).await.unwrap();
+        let bob_reservation =
+            bob_kv.kv().reserve_key(sig_req_keyring.clone().unwrap()).await.unwrap();
+        bob_kv.kv().put(bob_reservation, validator_2_threshold_keyshare).await.unwrap();
+    }
+
     let listener_alice = TcpListener::bind(format!("0.0.0.0:{}", ports[0])).unwrap();
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", ports[1])).unwrap();
-
     tokio::spawn(async move {
         axum::Server::from_tcp(listener_alice).unwrap().serve(alice_axum).await.unwrap();
     });
