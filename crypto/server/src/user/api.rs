@@ -48,7 +48,7 @@ use crate::{
     helpers::{
         signing::{create_unique_tx_id, do_signing, SignatureState},
         substrate::{
-            get_constraints, get_key_visibility, get_subgroup, return_all_addresses_of_subgroup,
+            get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
         user::{do_dkg, send_key},
         validator::get_signer,
@@ -57,6 +57,8 @@ use crate::{
     validation::SignedMessage,
     AppState, Configuration,
 };
+
+use ec_runtime::{InitialState, Runtime};
 
 /// Information from the validators in signing party
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -112,49 +114,45 @@ pub async fn sign_tx(
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
     let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
-    let parsed_tx =
+    let parsed_tx: entropy_constraints::EvmTransactionRequest =
         <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
     let sig_hash = hex::encode(parsed_tx.sighash());
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
     check_signing_group(subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
-    match user_tx_req.arch.as_str() {
-        "evm" => {
-            let evm_acl = get_constraints(&api, &second_signing_address_conversion)
-                .await?
-                .evm_acl
-                .ok_or(UserErr::Parse("No constraints found for this account."))?;
 
-            evm_acl.eval(parsed_tx)?;
+    let program = get_program(&api, &second_signing_address_conversion).await?;
 
-            let (mut response_tx, response_rx) = mpsc::channel(1);
+    let mut runtime = Runtime::new();
+    let initial_state = InitialState { data: user_tx_req.transaction_request.clone().into_bytes() };
 
-            // Do the signing protocol in another task, so we can already respond
-            tokio::spawn(async move {
-                let signing_protocol_output = do_signing(
-                    user_tx_req,
-                    sig_hash,
-                    &app_state.signer_state,
-                    &app_state.kv_store,
-                    &app_state.signature_state,
-                    tx_id,
-                    signing_address_converted,
-                )
-                .await
-                .map(|signature| base64::encode(signature.to_rsv_bytes()))
-                .map_err(|error| error.to_string());
+    let _ = runtime.evaluate(&program, &initial_state)?;
 
-                // This response chunk is sent later with the result of the signing protocol
-                if response_tx.try_send(serde_json::to_string(&signing_protocol_output)).is_err() {
-                    tracing::warn!("Cannot send signing protocol output - connection is closed")
-                };
-            });
+    let (mut response_tx, response_rx) = mpsc::channel(1);
 
-            // This indicates that the signing protocol is starting successfully
-            Ok((StatusCode::OK, StreamBody::new(response_rx)))
-        },
-        _ => Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]")),
-    }
+    // Do the signing protocol in another task, so we can already respond
+    tokio::spawn(async move {
+        let signing_protocol_output = do_signing(
+            user_tx_req,
+            sig_hash,
+            &app_state.signer_state,
+            &app_state.kv_store,
+            &app_state.signature_state,
+            tx_id,
+            signing_address_converted,
+        )
+        .await
+        .map(|signature| base64::encode(signature.to_rsv_bytes()))
+        .map_err(|error| error.to_string());
+
+        // This response chunk is sent later with the result of the signing protocol
+        if response_tx.try_send(serde_json::to_string(&signing_protocol_output)).is_err() {
+            tracing::warn!("Cannot send signing protocol output - connection is closed")
+        };
+    });
+
+    // This indicates that the signing protocol is starting successfully
+    Ok((StatusCode::OK, StreamBody::new(response_rx)))
 }
 
 /// HTTP POST endoint called by the user when registering.

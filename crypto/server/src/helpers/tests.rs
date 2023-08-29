@@ -155,7 +155,7 @@ pub async fn register_user(
     threshold_servers: &[String],
     sig_req_keyring: &sr25519::Pair,
     constraint_modification_account: &sr25519::Pair,
-    initial_constraints: Constraints,
+    initial_program: Option<Vec<u8>>,
 ) {
     let validator1_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let validator2_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
@@ -207,27 +207,30 @@ pub async fn register_user(
     check_registered_status(entropy_api, &subxtAccountId32::from(sig_req_keyring.public())).await;
 
     // update/set their constraints
-    let update_constraints_tx = entropy::tx()
-        .constraints()
-        .update_constraints(subxtAccountId32::from(sig_req_keyring.public()), initial_constraints);
+    if let Some(program) = initial_program {
+        let update_program_tx = entropy::tx()
+            .constraints()
+            .update_v2_constraints(subxtAccountId32::from(sig_req_keyring.public()), initial_program);
 
-    let constraint_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(constraint_modification_account.clone());
+        let constraint_modification_account =
+            PairSigner::<EntropyConfig, sr25519::Pair>::new(constraint_modification_account.clone());
 
-    entropy_api
-        .tx()
-        .sign_and_submit_then_watch_default(
-            &update_constraints_tx,
-            &constraint_modification_account,
-        )
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
+        entropy_api
+            .tx()
+            .sign_and_submit_then_watch_default(
+                &update_program_tx,
+                &constraint_modification_account,
+            )
+            .await
+            .unwrap()
+            .wait_for_in_block()
+            .await
+            .unwrap()
+            .wait_for_success()
+            .await
+            .unwrap();
+
+    }
 }
 
 pub async fn update_constraints(
