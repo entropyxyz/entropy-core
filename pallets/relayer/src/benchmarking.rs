@@ -67,16 +67,6 @@ benchmarks! {
     assert!(Registering::<T>::contains_key(sig_req_account));
   }
 
-  swap_keys {
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    <Registered<T>>::insert(sig_req_account.clone(), KeyVisibility::Public);
-
-  }:  _(RawOrigin::Signed(sig_req_account.clone()))
-  verify {
-    assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
-    assert!(Registering::<T>::contains_key(sig_req_account));
-  }
-
   confirm_register_registering {
     let c in 0 .. SIG_PARTIES as u32;
     let sig_req_account: T::AccountId = whitelisted_caller();

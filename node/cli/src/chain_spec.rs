@@ -27,7 +27,6 @@ use entropy_runtime::{
     SocietyConfig, StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeConfig,
 };
-use entropy_shared::KeyVisibility;
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 pub use node_primitives::{AccountId, Balance, Signature};
@@ -281,12 +280,9 @@ pub fn testnet_genesis(
         },
         relayer: RelayerConfig {
             registered_accounts: vec![
-                (get_account_id_from_seed::<sr25519::Public>("Dave"), KeyVisibility::Public),
-                (get_account_id_from_seed::<sr25519::Public>("Eve"), KeyVisibility::Private),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    KeyVisibility::Permissioned,
-                ),
+                (get_account_id_from_seed::<sr25519::Public>("Dave"), 0),
+                (get_account_id_from_seed::<sr25519::Public>("Eve"), 1),
+                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 2),
             ],
         },
         vesting: Default::default(),
@@ -600,12 +596,9 @@ pub fn testing(
         },
         relayer: RelayerConfig {
             registered_accounts: vec![
-                (get_account_id_from_seed::<sr25519::Public>("Dave"), KeyVisibility::Public),
-                (get_account_id_from_seed::<sr25519::Public>("Eve"), KeyVisibility::Private),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    KeyVisibility::Permissioned,
-                ),
+                (get_account_id_from_seed::<sr25519::Public>("Dave"), 0),
+                (get_account_id_from_seed::<sr25519::Public>("Eve"), 1),
+                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 2),
             ],
         },
         vesting: Default::default(),
