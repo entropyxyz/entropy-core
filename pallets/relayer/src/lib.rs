@@ -86,11 +86,10 @@ pub mod pallet {
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
             for account_info in &self.registered_accounts {
-                let key_visibility;
-                match account_info.1 {
-                    1 => key_visibility = KeyVisibility::Private,
-                    2 => key_visibility = KeyVisibility::Permissioned,
-                    _ => key_visibility = KeyVisibility::Public,
+                let key_visibility = match account_info.1 {
+                    1 => KeyVisibility::Private,
+                    2 => KeyVisibility::Permissioned,
+                    _ => KeyVisibility::Public,
                 };
                 Registered::<T>::insert(account_info.0.clone(), key_visibility);
                 AllowedToModifyConstraints::<T>::insert(
