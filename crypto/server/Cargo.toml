@@ -19,7 +19,7 @@ hex                ="*"
 reqwest-eventsource="0.4"
 serde_derive       ="1.0.147"
 
-synedrion={ git="ssh://git@github.com/entropyxyz/synedrion.git", branch="master" }
+synedrion={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="v0.0.9" }
 
 # Async
 futures="0.3"

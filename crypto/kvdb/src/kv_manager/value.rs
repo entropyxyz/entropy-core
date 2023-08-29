@@ -2,7 +2,7 @@ use std::{convert::TryFrom, fmt, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::AccountId32;
-use synedrion::{KeyShare, TestSchemeParams};
+use synedrion::KeyShare;
 use tracing::{info, span, Level, Span};
 use zeroize::Zeroize;
 
@@ -50,13 +50,23 @@ impl fmt::Display for PartyId {
     }
 }
 
+#[cfg(not(test))]
+use synedrion::ProductionParams;
+#[cfg(not(test))]
+pub type KeyParams = ProductionParams;
+
+#[cfg(test)]
+use synedrion::TestParams;
+#[cfg(test)]
+pub type KeyParams = TestParams;
+
 /// This records encapsulates the additional information that's only available
 /// after the share is created: the correspondence of shares to party IDs they were distributed to.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PartyInfo {
     // TODO: in the future this will probably be a mapping {party_id: [share_id, share_id, ...]}
     pub party_ids: Vec<PartyId>,
-    pub share: KeyShare<TestSchemeParams>,
+    pub share: KeyShare<KeyParams>,
 }
 
 /// Kv manager for grpc services

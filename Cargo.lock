@@ -1562,9 +1562,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-primes"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e414aa05795bc74f0e6c7e8ec0a653909a194ffc47f6b0a5fcb2e085a616a6c"
+checksum = "97a4eeb0a8686cfc94242c8860628627206a2b24148d6ab8f5d41c708438582f"
 dependencies = [
  "crypto-bigint 0.5.2",
  "rand_core 0.6.4",
@@ -12270,8 +12270,8 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 
 [[package]]
 name = "synedrion"
-version = "0.0.6"
-source = "git+ssh://git@github.com/entropyxyz/synedrion.git?branch=master#4a173f672cb7b38cd3a692d78dda5922485cd235"
+version = "0.0.9"
+source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=v0.0.9#febe12002fab393222f156bd3bdf17900f412b4f"
 dependencies = [
  "base64 0.21.2",
  "crypto-bigint 0.5.2",
@@ -12279,6 +12279,7 @@ dependencies = [
  "digest 0.10.7",
  "hex",
  "k256",
+ "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "rmp-serde",
  "serde",

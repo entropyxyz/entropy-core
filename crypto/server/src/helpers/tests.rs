@@ -4,13 +4,12 @@
 use std::{net::TcpListener, time::Duration};
 
 use axum::{routing::IntoMakeService, Router};
-use entropy_shared::KeyVisibility;
 use futures::future::join_all;
 use kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
     get_db_path,
-    kv_manager::{KvManager, PartyId},
+    kv_manager::{KeyParams, KvManager, PartyId},
 };
 use rand_core::OsRng;
 use serial_test::serial;
@@ -24,7 +23,7 @@ use subxt::{
     utils::{AccountId32 as subxtAccountId32, Static},
     OnlineClient,
 };
-use synedrion::{make_key_shares, TestSchemeParams};
+use synedrion::make_key_shares;
 use testing_utils::{constants::X25519_PUBLIC_KEYS, substrate_context::testing_context};
 use x25519_dalek::PublicKey;
 
@@ -115,7 +114,7 @@ pub async fn spawn_testing_validators(
     ));
 
     if sig_req_keyring.is_some() {
-        let shares = make_key_shares::<TestSchemeParams>(&mut OsRng, 2, None);
+        let shares = make_key_shares::<KeyParams>(&mut OsRng, 2, None);
         let validator_1_threshold_keyshare: Vec<u8> =
             kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
         let validator_2_threshold_keyshare: Vec<u8> =
@@ -160,7 +159,7 @@ pub async fn register_user(
     let validator1_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let validator2_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
 
-    let shares = make_key_shares::<TestSchemeParams>(&mut OsRng, 2, None);
+    let shares = make_key_shares::<KeyParams>(&mut OsRng, 2, None);
     let validator_1_threshold_keyshare: Vec<u8> =
         kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
     let validator_2_threshold_keyshare: Vec<u8> =

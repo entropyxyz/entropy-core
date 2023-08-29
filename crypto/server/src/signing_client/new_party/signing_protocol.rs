@@ -1,7 +1,7 @@
 //! A wrapper for the threshold signing library to handle sending and receiving messages.
 use std::collections::HashMap;
 
-use kvdb::kv_manager::PartyId;
+use kvdb::kv_manager::{KeyParams, PartyId};
 use rand_core::{CryptoRngCore, OsRng};
 use sp_core::crypto::AccountId32;
 use subxt::ext::sp_core::{sr25519, Pair};
@@ -14,7 +14,7 @@ use synedrion::{
         self,
         hazmat::{PrehashVerifier, RandomizedPrehashSigner},
     },
-    KeyShare, PartyIdx, RecoverableSignature, TestSchemeParams,
+    KeyShare, PartyIdx, RecoverableSignature,
 };
 use tokio::sync::mpsc;
 use tracing::instrument;
@@ -61,7 +61,7 @@ impl PrehashVerifier<sr25519::Signature> for VerifierWrapper {
 #[instrument(skip(chans, threshold_signer))]
 pub(super) async fn execute_protocol(
     mut chans: Channels,
-    key_share: &KeyShare<TestSchemeParams>,
+    key_share: &KeyShare<KeyParams>,
     prehashed_message: &PrehashedMessage,
     threshold_signer: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
@@ -150,7 +150,7 @@ pub async fn execute_dkg(
     threshold_signer: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
     my_idx: &u8,
-) -> Result<KeyShare<TestSchemeParams>, SigningErr> {
+) -> Result<KeyShare<KeyParams>, SigningErr> {
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());

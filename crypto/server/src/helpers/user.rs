@@ -1,7 +1,7 @@
 use std::{net::SocketAddrV4, str::FromStr, time::Duration};
 
 use entropy_shared::SETUP_TIMEOUT_SECONDS;
-use kvdb::kv_manager::PartyId;
+use kvdb::kv_manager::{KeyParams, PartyId};
 use sp_core::crypto::AccountId32;
 use subxt::{
     ext::sp_core::{sr25519, Bytes},
@@ -9,7 +9,7 @@ use subxt::{
     utils::AccountId32 as subxtAccountId32,
     OnlineClient,
 };
-use synedrion::{KeyShare, TestSchemeParams};
+use synedrion::KeyShare;
 use tokio::time::timeout;
 use x25519_dalek::PublicKey;
 
@@ -33,7 +33,7 @@ pub async fn do_dkg(
     state: &SignerState,
     session_uid: String,
     my_subgroup: &u8,
-) -> Result<KeyShare<TestSchemeParams>, UserErr> {
+) -> Result<KeyShare<KeyParams>, UserErr> {
     let account_sp_core = AccountId32::new(*signer.account_id().clone().as_ref());
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
