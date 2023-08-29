@@ -71,7 +71,6 @@ pub async fn do_dkg(
         Channels(broadcast_out, rx_from_others)
     };
     let result = execute_dkg(channels, signer.signer(), tss_accounts, my_subgroup).await?;
-    dbg!(result.clone());
     Ok(result)
 }
 
