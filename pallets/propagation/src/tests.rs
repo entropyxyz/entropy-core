@@ -59,18 +59,9 @@ fn knows_how_to_mock_several_http_calls() {
 }
 
 fn offchain_worker_env(state_updater: fn(&mut testing::OffchainState)) -> TestExternalities {
-    // const PHRASE: &str =
-    // 	"news slush supreme milk chapter athlete soap sausage put clutch what kitten";
-
     let (offchain, offchain_state) = testing::TestOffchainExt::new();
     let (pool, _pool_state) = testing::TestTransactionPoolExt::new();
     let keystore = MemoryKeystore::new();
-    // SyncCryptoStore::sr25519_generate_new(
-    // 	&keystore,
-    // 	sp_application_crypto::key_types::BABE,
-    // 	Some(&format!("{}/hunter1", PHRASE)),
-    // )
-    // .unwrap();
 
     let mut t = new_test_ext();
     t.register_extension(OffchainDbExt::new(offchain.clone()));

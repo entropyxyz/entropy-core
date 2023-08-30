@@ -15,7 +15,7 @@ use entropy_constraints::{
 };
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints, KeyVisibility},
-    OCWMessage, X25519PublicKey, SIGNING_PARTY_SIZE,
+    OcwMessage, X25519PublicKey, SIGNING_PARTY_SIZE,
 };
 use futures::{
     channel::mpsc,
@@ -161,13 +161,13 @@ pub async fn sign_tx(
 }
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.
-/// The http request takes a parity scale encoded [OCWMessage] which tells us which validators are
+/// The http request takes a parity scale encoded [OcwMessage] which tells us which validators are
 /// in the registration group and will perform a DKG.
 pub async fn new_user(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
-    let data = OCWMessage::decode(&mut encoded_data.as_ref())?;
+    let data = OcwMessage::decode(&mut encoded_data.as_ref())?;
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
@@ -175,9 +175,8 @@ pub async fn new_user(
     let api = get_api(&app_state.configuration.endpoint).await?;
     let signer = get_signer(&app_state.kv_store).await?;
 
-    // let is_swapping = register_info(&api, &signing_address_conversion).await?;
     check_in_registration_group(&data.validators_info, signer.account_id())?;
-    validate_new_party(&data, &api, &app_state.kv_store).await?;
+    validate_new_user(&data, &api, &app_state.kv_store).await?;
 
     let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
@@ -189,9 +188,7 @@ pub async fn new_user(
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = AccountId32::new(*address_slice);
-        // if is_swapping {
-        //     app_state.kv_store.kv().delete(&key.to_string()).await?;
-        // }
+
         let key_share = do_dkg(
             &data.validators_info,
             &signer,
@@ -380,10 +377,10 @@ pub fn check_signing_group(
     Ok(())
 }
 
-/// Validates new party endpoint
+/// Validates new user endpoint
 /// Checks the chain for validity of data and block number of data matches current block
-pub async fn validate_new_party(
-    chain_data: &OCWMessage,
+pub async fn validate_new_user(
+    chain_data: &OcwMessage,
     api: &OnlineClient<EntropyConfig>,
     kv_manager: &KvManager,
 ) -> Result<(), UserErr> {

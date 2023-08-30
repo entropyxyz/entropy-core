@@ -36,7 +36,7 @@ pub struct ValidatorInfo {
 
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
-pub struct OCWMessage {
+pub struct OcwMessage {
     pub block_number: BlockNumber,
     pub sig_request_accounts: Vec<codec::alloc::vec::Vec<u8>>,
     pub validators_info: Vec<ValidatorInfo>,

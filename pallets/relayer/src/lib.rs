@@ -112,7 +112,7 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn dkg)]
-    pub type DKG<T: Config> =
+    pub type Dkg<T: Config> =
         StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Vec<u8>>, ValueQuery>;
 
     #[pallet::storage]
@@ -184,7 +184,7 @@ pub mod pallet {
                 ConstraintsPallet::<T>::validate_constraints(constraints)?;
             }
             let block_number = <frame_system::Pallet<T>>::block_number();
-            DKG::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
+            Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(sig_req_account.clone().encode());
                 Ok(())
             })?;
@@ -208,32 +208,6 @@ pub mod pallet {
 
             Ok(())
         }
-
-        // /// Signals that a user wants to swap our their keys
-        // #[pallet::call_index(1)]
-        // #[pallet::weight(<T as Config>::WeightInfo::swap_keys())]
-        // pub fn swap_keys(origin: OriginFor<T>) -> DispatchResult {
-        //     let sig_req_account = ensure_signed(origin)?;
-        //     let key_visibility =
-        //         Self::registered(&sig_req_account).ok_or(Error::<T>::NotRegistered)?;
-
-        //     let registering_info = RegisteringDetails::<T> {
-        //         is_registering: true,
-        //         // This value doesn't get used in confirm_done() when is_swapping is true
-        //         constraint_account: sig_req_account.clone(),
-        //         is_swapping: true,
-        //         confirmations: vec![],
-        //         // This value doesn't get used in confirm_done() when is_swapping is true
-        //         constraints: None,
-        //         key_visibility,
-        //     };
-
-        //     Registered::<T>::remove(&sig_req_account);
-        //     Registering::<T>::insert(&sig_req_account, registering_info);
-
-        //     Self::deposit_event(Event::SignalRegister(sig_req_account));
-        //     Ok(())
-        // }
 
         /// Used by validators to confirm they have received a key-share from a user that is
         /// registering. After a validator from each partition confirms they have a
