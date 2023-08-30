@@ -74,6 +74,7 @@ pub async fn do_dkg(
     Ok(result)
 }
 
+/// Send's user key share to other members of signing subgroup
 pub async fn send_key(
     api: &OnlineClient<EntropyConfig>,
     stash_address: &subxtAccountId32,

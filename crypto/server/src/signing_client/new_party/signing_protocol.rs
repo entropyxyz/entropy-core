@@ -143,7 +143,7 @@ pub(super) async fn execute_protocol(
     }
 }
 
-/// execute threshold signing protocol.
+/// Execute dkg.
 #[instrument(skip(chans, threshold_signer))]
 pub async fn execute_dkg(
     mut chans: Channels,

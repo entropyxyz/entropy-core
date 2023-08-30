@@ -79,10 +79,13 @@ pub struct UserTransactionRequest {
     pub validators_info: Vec<ValidatorInfo>,
 }
 
+/// Type for validators to send user key's back and forth
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserRegistrationInfo {
+    /// Signing request key (also kvdb key)
     pub key: String,
+    /// User threshold signing key
     pub value: Vec<u8>,
 }
 /// Called by a user to initiate the signing process for a message
@@ -157,12 +160,9 @@ pub async fn sign_tx(
     }
 }
 
-/// HTTP POST endoint called by the user when registering.
-///
-/// This adds a new Keyshare to this node's set of known Keyshares and stores the it in the [kvdb].
-///
-/// The http request takes a [SignedMessage] containing a bincode-encoded
-/// [KeyShare](synedrion::KeyShare).
+/// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.
+/// The http request takes a parity scale encoded [OCWMessage] which tells us which validators are
+/// in the registration group and will perform a DKG.
 pub async fn new_user(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
