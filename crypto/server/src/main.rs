@@ -13,15 +13,15 @@
 //!
 //! ### For the user
 //!
-//! Most user-facing endpoints take a [SignedMessage](crate::message::SignedMessage) which
+//! Most user-facing endpoints take a [SignedMessage](crate::validation::SignedMessage) which
 //! is an encrypted, signed message.
 //!
 //! #### `/user/new` - POST
 //!
 //! [crate::user::api::new_user()]
 //!
-//! Called by a user when registering to submit a key-share. Takes a Synedrion keyshare
-//! encrypted in a `SignedMessage`.
+//! Called by a user when registering to submit a key-share. Takes a [Synedrion
+//! keyshare](synedrion::KeyShare) encrypted in a `SignedMessage`.
 //!
 //! Curl example for `user/new`:
 //! ```text
@@ -59,21 +59,6 @@
 //!   -d '{"msg" "0x174...hex encoded signedmessage...","sig":"821754409744cbb878b44bd1e3dc575a4ea721e12d781b074fcdb808fc79fd33dd1928b1a281c0b6261a30536a7c0106a102f27dad1bc3ef475b626f0e57c983","pk":[172,133,159,138,33,110,235,27,50,11,76,118,209,24,218,61,116,7,250,82,52,132,208,169,128,18,109,59,77,13,34,10],"recip":[10,192,41,240,184,83,178,59,237,101,45,109,13,230,155,124,195,141,148,249,55,50,238,252,133,181,134,30,144,247,58,34],"a":[169,94,23,7,19,184,134,70,233,117,2,84,242,135,246,95,159,14,218,125,209,191,175,89,41,196,182,96,117,5,159,98],"nonce":[114,93,158,35,209,188,96,248,85,131,95,237]}' \
 //!   -H "Accept: application/json" \
 //!   http://127.0.0.1:3001/user/sign_tx
-//! ```
-//!
-//! #### `/user/tx` - POST
-//!
-//! [crate::user::api::store_tx()]
-//!
-//! Called by a user when signing to submit a transaction to be signed using the signing
-//! protocol (the original way of doing signing).
-//!
-//! Curl example for `user/tx`:
-//! ```text
-//! curl -X POST -H "Content-Type: application/json" \
-//!   -d '{"msg" "0x174...hex encoded signedmessage...","sig":"821754409744cbb878b44bd1e3dc575a4ea721e12d781b074fcdb808fc79fd33dd1928b1a281c0b6261a30536a7c0106a102f27dad1bc3ef475b626f0e57c983","pk":[172,133,159,138,33,110,235,27,50,11,76,118,209,24,218,61,116,7,250,82,52,132,208,169,128,18,109,59,77,13,34,10],"recip":[10,192,41,240,184,83,178,59,237,101,45,109,13,230,155,124,195,141,148,249,55,50,238,252,133,181,134,30,144,247,58,34],"a":[169,94,23,7,19,184,134,70,233,117,2,84,242,135,246,95,159,14,218,125,209,191,175,89,41,196,182,96,117,5,159,98],"nonce":[114,93,158,35,209,188,96,248,85,131,95,237]}' \
-//!   -H "Accept: application/json" \
-//!   http://127.0.0.1:3001/user/tx
 //! ```
 //!
 //! #### `/signer/signature` - POST
@@ -123,8 +108,8 @@
 //! purposes only and will not be used in production. These routes are only available if this crate
 //! is compiled with the `unsafe` feature enabled.
 //!
-//! - [`unsafe/get`](crate::unsafe::api::get()) - POST - get a value from the key-value store, given
-//!   its key.
+//! - [`unsafe/get`](crate::unsafe::api::unsafe_get()) - POST - get a value from the key-value
+//!   store, given its key.
 //! - [`unsafe/put`](crate::unsafe::api::put()) - POST - update an existing value in the key-value
 //!   store.
 //! - [`unsafe/delete`](crate::unsafe::api::delete()) - POST - remove a value from the key-value

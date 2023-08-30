@@ -1,4 +1,4 @@
-//! Custom error types for [kv_manager].
+//! Custom error types for [crate::kv_manager].
 
 use crate::encrypted_sled;
 

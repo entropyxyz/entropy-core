@@ -1,5 +1,5 @@
 //! Public API for kvstore operations
-//! Errors are mapped to [super::error::KvError]
+//! Errors are mapped to [crate::kv_manager::error::KvError]
 
 use std::{fmt::Debug, path::PathBuf};
 
