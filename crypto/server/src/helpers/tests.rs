@@ -260,30 +260,6 @@ pub async fn update_constraints(
         .unwrap();
 }
 
-pub async fn make_swapping(api: &OnlineClient<EntropyConfig>, key: &sr25519::Pair) {
-    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
-    let registering_query = entropy::storage().relayer().registering(signer.account_id());
-    let is_registering_1 =
-        api.storage().at_latest().await.unwrap().fetch(&registering_query).await.unwrap();
-    assert!(is_registering_1.is_none());
-
-    let registering_tx = entropy::tx().relayer().swap_keys();
-
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &signer)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
-
-    let is_registering_2 = api.storage().at_latest().await.unwrap().fetch(&registering_query).await;
-    assert!(is_registering_2.unwrap().unwrap().is_registering);
-}
-
 /// Verify that a Registering account has all confirmation, and that it is registered.
 pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &sr25519::Pair) {
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
