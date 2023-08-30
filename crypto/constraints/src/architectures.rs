@@ -84,7 +84,7 @@ pub mod evm {
             hex_rlp_raw_tx: String,
         ) -> Result<<Evm as Architecture>::TransactionRequest, Error> {
             let bytes = hex::decode(hex_rlp_raw_tx.replace("0x", "")).map_err(|e| {
-                Error::InvalidTransactionRequest(format!("Unable to parse to RLP: {}", e))
+                Error::InvalidTransactionRequest(format!("Unable to parse to RLP: {e}"))
             })?;
             let rlp = Rlp::new(&bytes);
             match Self::decode_unsigned_rlp(&rlp) {
@@ -97,7 +97,7 @@ pub mod evm {
                     _ => Ok(tx),
                 },
                 Err(e) =>
-                    Err(Error::InvalidTransactionRequest(format!("Unable to decode string: {}", e))),
+                    Err(Error::InvalidTransactionRequest(format!("Unable to decode string: {e}"))),
             }
         }
     }

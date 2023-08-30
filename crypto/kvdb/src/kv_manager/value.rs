@@ -36,7 +36,7 @@ impl TryFrom<String> for PartyId {
     type Error = String;
 
     fn try_from(s: String) -> Result<Self, Self::Error> {
-        let bytes = hex::decode(s).map_err(|err| format!("{}", err))?;
+        let bytes = hex::decode(s).map_err(|err| format!("{err}"))?;
         let acc = AccountId32::try_from(bytes.as_ref())
             .map_err(|_err| format!("Invalid party ID length: {}", bytes.len()))?;
         Ok(Self(acc))

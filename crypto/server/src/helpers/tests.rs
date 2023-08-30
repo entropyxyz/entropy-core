@@ -122,7 +122,7 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
 
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    let ips = ports.iter().map(|port| format!("127.0.0.1:{}", port)).collect();
+    let ips = ports.iter().map(|port| format!("127.0.0.1:{port}")).collect();
     let ids = vec![alice_id, bob_id];
     (ips, ids)
 }
@@ -147,14 +147,14 @@ pub async fn register_user(
         kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
 
     let register_body_alice_validator = SignedMessage::new(
-        &sig_req_keyring,
+        sig_req_keyring,
         &Bytes(validator_1_threshold_keyshare),
         &validator1_server_public_key,
     )
     .unwrap()
     .to_json();
     let register_body_bob_validator = SignedMessage::new(
-        &sig_req_keyring,
+        sig_req_keyring,
         &Bytes(validator_2_threshold_keyshare),
         &validator2_server_public_key,
     )
@@ -257,7 +257,7 @@ pub async fn check_registered_status(api: &OnlineClient<EntropyConfig>, key: &su
 async fn test_get_signing_group() {
     clean_tests();
     let cxt = testing_context().await;
-    let _ = setup_client().await;
+    setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);

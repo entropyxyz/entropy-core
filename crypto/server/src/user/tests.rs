@@ -120,11 +120,10 @@ async fn test_sign_tx_no_chain() {
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
     ];
-    let converted_transaction_request: String =
-        hex::encode(&transaction_request.rlp_unsigned().to_vec());
+    let converted_transaction_request: String = hex::encode(&transaction_request.rlp_unsigned());
 
-    let signing_address = one.clone().to_account_id().to_ss58check();
-    let sig_uid = create_unique_tx_id(&signing_address, &hex::encode(&sig_hash));
+    let signing_address = one.to_account_id().to_ss58check();
+    let sig_uid = create_unique_tx_id(&signing_address, &hex::encode(sig_hash));
 
     let mut generic_msg = UserTransactionRequest {
         arch: "evm".to_string(),
@@ -293,7 +292,7 @@ async fn test_sign_tx_no_chain() {
     }
 
     // Test a transcation which does not pass constaints
-    generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec());
+    generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp());
 
     let test_user_failed_constraints_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -317,7 +316,7 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    let sig_request = SigMessage { message: hex::encode(sig_hash.clone()) };
+    let sig_request = SigMessage { message: hex::encode(sig_hash) };
     let mock_client = reqwest::Client::new();
 
     join_all(validator_ips.iter().map(|validator_ip| async {
