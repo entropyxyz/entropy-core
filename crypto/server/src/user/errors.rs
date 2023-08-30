@@ -9,8 +9,12 @@ use axum::{
 };
 use entropy_constraints::Error as ConstraintsError;
 use thiserror::Error;
+use tokio::sync::oneshot::error::RecvError;
 
-use crate::{chain_api::entropy, signing_client::SigningErr};
+use crate::{
+    chain_api::entropy,
+    signing_client::{SigningErr, SubscribeErr},
+};
 
 #[derive(Debug, Error)]
 pub enum UserErr {
@@ -56,6 +60,40 @@ pub enum UserErr {
     Usize(&'static str),
     #[error("Try From error: {0:?}")]
     TryFrom(Vec<u8>),
+    #[error("Session Error: {0}")]
+    SessionError(String),
+    #[error("Timed out waiting for remote party")]
+    Timeout(#[from] tokio::time::error::Elapsed),
+    #[error("Oneshot timeout error: {0}")]
+    OneshotTimeout(#[from] RecvError),
+    #[error("Subscribe API error: {0}")]
+    Subscribe(#[from] SubscribeErr),
+    #[error("Option Unwrap error: {0}")]
+    OptionUnwrapError(&'static str),
+    #[error("Data is stale")]
+    StaleData,
+    #[error("Data is not verifiable")]
+    InvalidData,
+    #[error("Data is repeated")]
+    RepeatedData,
+    #[error("User already registered")]
+    AlreadyRegistered,
+    #[error("Validator not in subgroup")]
+    NotInSubgroup,
+    #[error("reqwest error: {0}")]
+    Reqwest(#[from] reqwest::Error),
+    #[error("Invalid length for converting address")]
+    AddressConversionError(String),
+    #[error("Vec<u8> Conversion Error: {0}")]
+    Conversion(&'static str),
+    #[error("Codec decoding error: {0}")]
+    CodecError(#[from] parity_scale_codec::Error),
+    #[error("Kv Fatal error")]
+    KvSerialize(String),
+    #[error("Ip Address Error: {0}")]
+    AddrParseError(#[from] std::net::AddrParseError),
+    #[error("Validation Error: {0}")]
+    ValidationErr(#[from] crate::validation::errors::ValidationErr),
 }
 
 impl IntoResponse for UserErr {

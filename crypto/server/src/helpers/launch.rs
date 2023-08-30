@@ -163,3 +163,19 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Res
     }
     Ok(())
 }
+
+pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
+    let exists_result = kv.kv().exists("LATEST_BLOCK_NUMBER").await.expect("issue querying DB");
+    if !exists_result {
+        let reservation = kv
+            .kv()
+            .reserve_key("LATEST_BLOCK_NUMBER".to_string())
+            .await
+            .expect("Issue reserving mnemonic");
+        kv.kv()
+            .put(reservation, 0u32.to_be_bytes().to_vec())
+            .await
+            .expect("failed to update mnemonic");
+    }
+    Ok(())
+}

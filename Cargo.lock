@@ -1562,9 +1562,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-primes"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e414aa05795bc74f0e6c7e8ec0a653909a194ffc47f6b0a5fcb2e085a616a6c"
+checksum = "97a4eeb0a8686cfc94242c8860628627206a2b24148d6ab8f5d41c708438582f"
 dependencies = [
  "crypto-bigint 0.5.2",
  "rand_core 0.6.4",
@@ -2288,6 +2288,7 @@ dependencies = [
  "pallet-offences",
  "pallet-offences-benchmarking",
  "pallet-preimage",
+ "pallet-propagation",
  "pallet-proxy",
  "pallet-recovery",
  "pallet-referenda",
@@ -2337,6 +2338,7 @@ name = "entropy-shared"
 version = "0.1.0"
 dependencies = [
  "frame-support",
+ "node-primitives",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -2770,7 +2772,7 @@ dependencies = [
  "linregress",
  "log",
  "parity-scale-codec",
- "paste",
+ "paste 1.0.13",
  "scale-info",
  "serde",
  "sp-api",
@@ -2938,7 +2940,7 @@ dependencies = [
  "log",
  "once_cell 1.18.0",
  "parity-scale-codec",
- "paste",
+ "paste 1.0.13",
  "scale-info",
  "serde",
  "smallvec 1.11.0",
@@ -4872,6 +4874,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09fc20d2ca12cb9f044c93e3bd6d32d523e6e2ec3db4f7b2939cd99026ecd3f0"
 
 [[package]]
+name = "lite-json"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0460d985423a026b4d9b828a7c6eed1bcf606f476322f3f9b507529686a61715"
+dependencies = [
+ "lite-parser",
+]
+
+[[package]]
+name = "lite-parser"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c50092e40e0ccd1bf2015a10333fde0502ff95b832b0895dc1ca0d7ac6c52f6"
+dependencies = [
+ "paste 0.1.18",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5173,6 +5193,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "more-asserts"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fafa6961cabd9c63bcd77a45d7e3b7f3b552b70417831fb0f56db717e72407e"
+
+[[package]]
 name = "multiaddr"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5354,7 +5380,7 @@ checksum = "0ede8a08c71ad5a95cdd0e4e52facd37190977039a4704eb82a283f713747d34"
 dependencies = [
  "anyhow",
  "byteorder",
- "paste",
+ "paste 1.0.13",
  "thiserror",
 ]
 
@@ -6653,6 +6679,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-propagation"
+version = "3.0.0-monthly-2021-10"
+dependencies = [
+ "entropy-shared",
+ "frame-benchmarking",
+ "frame-election-provider-support",
+ "frame-support",
+ "frame-system",
+ "lite-json",
+ "log",
+ "pallet-authorship",
+ "pallet-babe",
+ "pallet-bags-list",
+ "pallet-balances",
+ "pallet-constraints",
+ "pallet-relayer",
+ "pallet-session",
+ "pallet-staking",
+ "pallet-staking-extension",
+ "pallet-staking-reward-curve",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "parking_lot 0.11.2",
+ "scale-info",
+ "sp-application-crypto 7.0.0",
+ "sp-core 7.0.0",
+ "sp-io 7.0.0",
+ "sp-keystore 0.13.0",
+ "sp-npos-elections",
+ "sp-runtime 7.0.0",
+ "sp-staking",
+]
+
+[[package]]
 name = "pallet-proxy"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.43#5e49f6e44820affccaf517fd22af564f4b495d40"
@@ -7364,9 +7424,28 @@ dependencies = [
 
 [[package]]
 name = "paste"
+version = "0.1.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45ca20c77d80be666aef2b45486da86238fabe33e38306bd3118fe4af33fa880"
+dependencies = [
+ "paste-impl",
+ "proc-macro-hack",
+]
+
+[[package]]
+name = "paste"
 version = "1.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4b27ab7be369122c218afc2079489cdcb4b517c0a3fc386ff11e1fedfcc2b35"
+
+[[package]]
+name = "paste-impl"
+version = "0.1.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d95a7db200b97ef370c8e6de0088252f7e0dfff7d047a28528e47456c0fc98b6"
+dependencies = [
+ "proc-macro-hack",
+]
 
 [[package]]
 name = "pbkdf2"
@@ -7751,6 +7830,12 @@ dependencies = [
  "quote",
  "version_check",
 ]
+
+[[package]]
+name = "proc-macro-hack"
+version = "0.5.20+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc375e1527247fe1a97d8b7156678dfe7c1af2fc075c9a4db3690ecd2a148068"
 
 [[package]]
 name = "proc-macro-warning"
@@ -8434,7 +8519,7 @@ checksum = "44519172358fd6d58656c86ab8e7fbc9e1490c3e8f14d35ed78ca0dd07403c9f"
 dependencies = [
  "byteorder",
  "num-traits",
- "paste",
+ "paste 1.0.13",
 ]
 
 [[package]]
@@ -10350,6 +10435,7 @@ dependencies = [
  "hex-literal",
  "kvdb 0.1.0",
  "log",
+ "more-asserts",
  "num",
  "parity-scale-codec",
  "project-root",
@@ -10499,7 +10585,7 @@ dependencies = [
  "approx",
  "num-complex",
  "num-traits",
- "paste",
+ "paste 1.0.13",
  "wide",
 ]
 
@@ -10873,7 +10959,7 @@ dependencies = [
  "merlin",
  "parity-scale-codec",
  "parking_lot 0.12.1",
- "paste",
+ "paste 1.0.13",
  "primitive-types 0.12.1",
  "rand 0.8.5",
  "regex",
@@ -10918,7 +11004,7 @@ dependencies = [
  "merlin",
  "parity-scale-codec",
  "parking_lot 0.12.1",
- "paste",
+ "paste 1.0.13",
  "primitive-types 0.12.1",
  "rand 0.8.5",
  "regex",
@@ -11255,7 +11341,7 @@ dependencies = [
  "impl-trait-for-tuples",
  "log",
  "parity-scale-codec",
- "paste",
+ "paste 1.0.13",
  "rand 0.8.5",
  "scale-info",
  "serde",
@@ -11278,7 +11364,7 @@ dependencies = [
  "impl-trait-for-tuples",
  "log",
  "parity-scale-codec",
- "paste",
+ "paste 1.0.13",
  "rand 0.8.5",
  "scale-info",
  "serde",
@@ -12184,8 +12270,8 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 
 [[package]]
 name = "synedrion"
-version = "0.0.6"
-source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=v0.0.6#bfc23e6d60aad2920734c4e32d0f16c6318474ad"
+version = "0.0.9"
+source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=v0.0.9#febe12002fab393222f156bd3bdf17900f412b4f"
 dependencies = [
  "base64 0.21.2",
  "crypto-bigint 0.5.2",
@@ -12193,6 +12279,7 @@ dependencies = [
  "digest 0.10.7",
  "hex",
  "k256",
+ "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "rmp-serde",
  "serde",
@@ -13397,7 +13484,7 @@ dependencies = [
  "downcast-rs",
  "libm 0.2.7",
  "num-traits",
- "paste",
+ "paste 1.0.13",
 ]
 
 [[package]]
@@ -13433,7 +13520,7 @@ dependencies = [
  "log",
  "object 0.30.4",
  "once_cell 1.18.0",
- "paste",
+ "paste 1.0.13",
  "psm",
  "rayon",
  "serde",
@@ -13593,7 +13680,7 @@ dependencies = [
  "mach",
  "memfd",
  "memoffset 0.8.0",
- "paste",
+ "paste 1.0.13",
  "rand 0.8.5",
  "rustix 0.36.15",
  "wasmtime-asm-macros",

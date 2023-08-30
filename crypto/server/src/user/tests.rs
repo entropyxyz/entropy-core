@@ -3,25 +3,23 @@ use std::{env, fs, net::SocketAddrV4, path::PathBuf, str::FromStr, sync::Arc, ti
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::{Acl, KeyVisibility};
+use entropy_shared::{Acl, KeyVisibility, OcwMessage};
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{future::join_all, join, Future, SinkExt, StreamExt};
-use hex_literal::hex as h;
+use hex_literal::hex;
 use kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
     kv_manager::{value::KvManager, PartyId},
 };
+use more_asserts as ma;
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{
     ext::{
-        sp_core::{
-            sr25519::{self, Pair},
-            Bytes,
-        },
+        sp_core::{sr25519, Bytes, Pair},
         sp_runtime::AccountId32,
     },
     tx::PairSigner,
@@ -29,7 +27,7 @@ use subxt::{
     OnlineClient,
 };
 use testing_utils::{
-    constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
+    constants::{ALICE_STASH_ADDRESS, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
     },
@@ -47,11 +45,12 @@ use crate::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::{create_unique_tx_id, SignatureState},
-        substrate::make_register,
+        substrate::{make_register, return_all_addresses_of_subgroup},
         tests::{
-            check_if_confirmation, create_clients, make_swapping, register_user, setup_client,
-            spawn_testing_validators,
+            check_if_confirmation, create_clients, register_user, setup_client,
+            spawn_testing_validators, update_constraints,
         },
+        user::send_key,
     },
     load_kv_store, new_user,
     r#unsafe::api::UnsafeQuery,
@@ -60,7 +59,7 @@ use crate::{
         SignerState, SubscribeMessage,
     },
     user::{
-        api::{UserTransactionRequest, ValidatorInfo},
+        api::{UserRegistrationInfo, UserTransactionRequest, ValidatorInfo},
         tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
@@ -82,11 +81,12 @@ async fn test_get_signer_does_not_throw_err() {
 #[serial]
 async fn test_sign_tx_no_chain() {
     clean_tests();
-    let one = AccountKeyring::One;
-    let test_user_constraint = AccountKeyring::Charlie;
+    let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let signing_address = one.clone().to_account_id().to_ss58check();
+    let (validator_ips, _validator_ids) =
+        spawn_testing_validators(Some(signing_address.clone())).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let initial_constraints = |address: [u8; 20]| -> Constraints {
@@ -96,14 +96,8 @@ async fn test_sign_tx_no_chain() {
         Constraints { evm_acl: Some(Static(evm_acl)), btc_acl: None }
     };
 
-    register_user(
-        &entropy_api,
-        &validator_ips,
-        &one.pair(),
-        &test_user_constraint.pair(),
-        initial_constraints([1u8; 20]),
-    )
-    .await;
+    update_constraints(&entropy_api, &one.pair(), &one.pair(), initial_constraints([1u8; 20]))
+        .await;
     let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(1);
     let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
 
@@ -361,7 +355,7 @@ async fn test_sign_tx_no_chain() {
     let user_input_bad = SignedMessage::new_test(
         Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
         sr25519::Signature::from_raw(sig),
-        one.pair().public().into(),
+        AccountKeyring::Eve.pair().public().into(),
         slice,
         slice,
         nonce,
@@ -408,7 +402,7 @@ async fn test_sign_tx_no_chain() {
 async fn test_fail_signing_group() {
     clean_tests();
     let dave = AccountKeyring::Dave;
-    let _ = spawn_testing_validators().await;
+    let _ = spawn_testing_validators(None).await;
 
     let _substrate_context = test_node_process_testing_state().await;
     let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(4);
@@ -461,209 +455,215 @@ async fn test_store_share() {
     let alice = AccountKeyring::Alice;
     let alice_constraint = AccountKeyring::Charlie;
 
-    let value: Vec<u8> = vec![0];
-
     let cxt = test_context_stationary().await;
-    setup_client().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(None).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
-    let user_input = SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key)
-        .unwrap()
-        .to_json();
+    let mut block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
+    let validators_info = vec![
+        entropy_shared::ValidatorInfo {
+            ip_address: b"127.0.0.1:3001".to_vec(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone().encode(),
+        },
+        entropy_shared::ValidatorInfo {
+            ip_address: b"127.0.0.1:3002".to_vec(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone().encode(),
+        },
+    ];
+    let mut onchain_user_request =
+        OcwMessage { sig_request_accounts: vec![alice.encode()], block_number, validators_info };
     let client = reqwest::Client::new();
 
-    // fails to add not registering or swapping
+    put_register_request_on_chain(&api, &alice, alice_constraint.to_account_id().into()).await;
+
+    run_to_block(&api, block_number + 1).await;
+
+    // succeeds
     let response = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input.clone())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response.text().await.unwrap(), "Not Registering error: Register Onchain first");
-
-    // signal registering
-    make_register(
-        &api,
-        alice.pair(),
-        &subxtAccountId32::from_str(&alice_constraint.to_account_id().to_ss58check()).unwrap(),
-        KeyVisibility::Permissioned,
-    )
-    .await;
-
-    let response_2 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input.clone())
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(response_2.status(), StatusCode::OK);
-    assert_eq!(response_2.text().await.unwrap(), "");
-    // make sure there is now one confirmation
-    check_if_confirmation(&api, &alice.pair()).await;
-
-    // fails to add already added share
-    let response_3 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input.clone())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_3.text().await.unwrap(), "Kv error: Recv Error: channel closed");
-
-    // fails with wrong node key
-    let server_public_key_bob = PublicKey::from(X25519_PUBLIC_KEYS[1]);
-    let user_input_bob =
-        SignedMessage::new(&alice.pair(), &Bytes(value.clone()), &server_public_key_bob)
-            .unwrap()
-            .to_json();
-
-    let response_4 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input_bob.clone())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_4.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    let expected_err = "Validation error: ChaCha20 decryption error: aead::Error";
-    assert_eq!(response_4.text().await.unwrap(), expected_err);
-    let sig: [u8; 64] = [0; 64];
-    let slice: [u8; 32] = [0; 32];
-    let nonce: [u8; 12] = [0; 12];
-    let user_input_bad = SignedMessage::new_test(
-        Bytes(value),
-        sr25519::Signature::from_raw(sig),
-        slice,
-        slice,
-        slice,
-        nonce,
-    )
-    .to_json();
-
-    let response_5 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input_bad.clone())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_5.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_5.text().await.unwrap(), "Invalid Signature: Invalid signature.");
-    clean_tests();
-}
-
-#[tokio::test]
-#[serial]
-async fn test_update_keys() {
-    clean_tests();
-    let dave = AccountKeyring::Dave;
-
-    let key: AccountId32 = dave.to_account_id();
-    let value: Vec<u8> = vec![0];
-    let new_value: Vec<u8> = vec![1];
-    let cxt = test_context_stationary().await;
-    setup_client().await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-
-    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
-    let user_input =
-        SignedMessage::new(&dave.pair(), &Bytes(new_value.clone()), &server_public_key)
-            .unwrap()
-            .to_json();
-
-    let put_query =
-        UnsafeQuery::new(key.to_string(), serde_json::to_string(&value).unwrap()).to_json();
-    let client = reqwest::Client::new();
-    // manually add dave's key to replace it
-    let response = client
-        .post("http://127.0.0.1:3001/unsafe/put")
-        .header("Content-Type", "application/json")
-        .body(put_query.clone())
+        .post("http://127.0.0.1:3002/user/new")
+        .body(onchain_user_request.clone().encode())
         .send()
         .await
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.text().await.unwrap(), "");
 
-    // fails to add not registering or swapping
+    let get_query = UnsafeQuery::new(alice.to_account_id().to_string(), "".to_string()).to_json();
+
+    // check alice has new key
     let response_2 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input.clone())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_2.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(
-        response_2.text().await.unwrap(),
-        "Not Registering error: Register Onchain first" /* "Generic Substrate error:
-                                                         * Metadata: Pallet Relayer Storage
-                                                         * Relayer has incompatible
-                                                         * metadata" */
-    );
-
-    // signal registering
-    make_swapping(&api, &dave.pair()).await;
-
-    let response_3 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .header("Content-Type", "application/json")
-        .body(user_input.clone())
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(response_3.status(), StatusCode::OK);
-    assert_eq!(response_3.text().await.unwrap(), "");
-    // make sure there is now one confirmation
-    check_if_confirmation(&api, &dave.pair()).await;
-
-    // check dave has new key
-    let response_4 = client
         .post("http://127.0.0.1:3001/unsafe/get")
         .header("Content-Type", "application/json")
-        .body(put_query.clone())
+        .body(get_query.clone())
         .send()
         .await
         .unwrap();
 
-    assert_eq!(
-        response_4.text().await.unwrap(),
-        std::str::from_utf8(&new_value).unwrap().to_string()
-    );
+    ma::assert_gt!(response_2.text().await.unwrap().len(), 1000);
+
+    // fails repeated data
+    let response_3 = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_3.text().await.unwrap(), "Data is repeated");
+
+    run_to_block(&api, block_number + 3).await;
+    onchain_user_request.block_number = block_number + 1;
+    // fails stale data
+    let response_4 = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_4.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_4.text().await.unwrap(), "Data is stale");
+
+    block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
+    put_register_request_on_chain(&api, &alice_constraint, alice_constraint.to_account_id().into())
+        .await;
+    onchain_user_request.block_number = block_number;
+    run_to_block(&api, block_number + 1).await;
+
+    // fails not verified data
+    let response_5 = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_5.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_5.text().await.unwrap(), "Data is not verifiable");
+
+    onchain_user_request.validators_info[0].tss_account = TSS_ACCOUNTS[1].clone().encode();
+    // fails not in validator group data
+    let response_6 = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_6.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_6.text().await.unwrap(), "Invalid Signer: Invalid Signer in Signing group");
+
+    check_if_confirmation(&api, &alice.pair()).await;
+    // TODO check if key is in other subgroup member
     clean_tests();
 }
 
 #[tokio::test]
+async fn test_return_addresses_of_subgroup() {
+    let cxt = test_context_stationary().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let result = return_all_addresses_of_subgroup(&api, 0u8).await.unwrap();
+    assert_eq!(result.len(), 1);
+}
+
+#[tokio::test]
 #[serial]
-async fn test_store_share_fail_wrong_data() {
+async fn test_send_and_receive_keys() {
     clean_tests();
-    // Construct a client to use for dispatching requests.
+    let alice = AccountKeyring::Alice;
+
+    let cxt = test_context_stationary().await;
     setup_client().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+
+    let user_registration_info =
+        UserRegistrationInfo { key: alice.to_account_id().to_string(), value: vec![10] };
+
+    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
+    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
     let client = reqwest::Client::new();
-    let response = client
-        .post("http://127.0.0.1:3001/user/new")
+    // sends key to alice validator, while filtering out own key
+    let _ = send_key(
+        &api,
+        &alice.to_account_id().into(),
+        &mut vec![ALICE_STASH_ADDRESS.clone(), alice.to_account_id().into()],
+        user_registration_info.clone(),
+        &signer_alice,
+    )
+    .await
+    .unwrap();
+
+    let get_query = UnsafeQuery::new(user_registration_info.key.clone(), "".to_string()).to_json();
+
+    // check alice has new key
+    let response_2 = client
+        .post("http://127.0.0.1:3001/unsafe/get")
         .header("Content-Type", "application/json")
-        .body(
-            r##"{
-		"name": "John Doe",
-		"email": "j.doe@m.com",
-		"password": "123456"
-	}"##,
-        )
+        .body(get_query.clone())
         .send()
         .await
         .unwrap();
-    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    assert_eq!(
+        response_2.text().await.unwrap(),
+        std::str::from_utf8(&user_registration_info.value.clone()).unwrap().to_string()
+    );
+    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
+
+    let signed_message = SignedMessage::new(
+        &signer_alice.signer(),
+        &Bytes(serde_json::to_vec(&user_registration_info.clone()).unwrap()),
+        &PublicKey::from(server_public_key),
+    )
+    .unwrap()
+    .to_json();
+
+    // fails key already stored
+    let response_3 = client
+        .post("http://127.0.0.1:3001/user/receive_key")
+        .header("Content-Type", "application/json")
+        .body(signed_message.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_3.text().await.unwrap(), "User already registered");
+
+    // TODO negative validation tests
+
     clean_tests();
+}
+
+pub async fn put_register_request_on_chain(
+    api: &OnlineClient<EntropyConfig>,
+    sig_req_keyring: &Sr25519Keyring,
+    constraint_account: subxtAccountId32,
+) {
+    let sig_req_account =
+        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
+    let registering_tx =
+        entropy::tx().relayer().register(constraint_account, Static(KeyVisibility::Public), None);
+
+    api.tx()
+        .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
+        .await
+        .unwrap()
+        .wait_for_in_block()
+        .await
+        .unwrap()
+        .wait_for_success()
+        .await
+        .unwrap();
+}
+
+pub async fn run_to_block(api: &OnlineClient<EntropyConfig>, block_run: u32) {
+    let mut current_block = 0;
+    while current_block < block_run {
+        current_block = api.rpc().block(None).await.unwrap().unwrap().block.header.number;
+    }
 }

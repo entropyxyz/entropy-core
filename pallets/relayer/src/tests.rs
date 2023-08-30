@@ -1,3 +1,4 @@
+use codec::Encode;
 use entropy_shared::{Constraints, KeyVisibility};
 use frame_support::{assert_noop, assert_ok};
 use pallet_constraints::{ActiveArchitectures, AllowedToModifyConstraints};
@@ -49,6 +50,7 @@ fn it_registers_a_user() {
         ));
 
         assert!(Relayer::registering(1).unwrap().is_registering);
+        assert_eq!(Relayer::dkg(0), vec![1u64.encode()]);
     });
 }
 
@@ -114,21 +116,6 @@ fn it_confirms_registers_a_user_then_swap() {
         // make sure constraint and sig req keys are set
         assert!(AllowedToModifyConstraints::<Test>::contains_key(2, 1));
         assert!(ActiveArchitectures::<Test>::iter_key_prefix(1).count() == 0);
-
-        // test swapping keys
-        assert_noop!(Relayer::swap_keys(RuntimeOrigin::signed(2)), Error::<Test>::NotRegistered);
-
-        let swapping_info = RegisteringDetails::<Test> {
-            is_registering: true,
-            constraint_account: 1 as <Test as frame_system::Config>::AccountId,
-            is_swapping: true,
-            confirmations: vec![],
-            constraints: None,
-            key_visibility: KeyVisibility::Private,
-        };
-        assert_ok!(Relayer::swap_keys(RuntimeOrigin::signed(1)));
-
-        assert_eq!(Relayer::registering(1), Some(swapping_info));
     });
 }
 

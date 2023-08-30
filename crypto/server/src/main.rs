@@ -157,7 +157,10 @@ use self::{
 use crate::{
     health::api::healthz,
     helpers::{
-        launch::{init_tracing, load_kv_store, setup_mnemonic, Configuration, StartupArgs},
+        launch::{
+            init_tracing, load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration,
+            StartupArgs,
+        },
         signing::SignatureState,
         substrate::get_subgroup,
         validator::get_signer,
@@ -196,6 +199,7 @@ async fn main() {
     };
 
     setup_mnemonic(&kv_store, args.alice, args.bob).await.expect("Issue creating Mnemonic");
+    setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
     // Below deals with syncing the kvdb
     if args.sync {
         let api = get_api(&configuration.endpoint).await.expect("Issue acquiring chain API");
@@ -226,7 +230,8 @@ async fn main() {
             thread::sleep(sleep_time);
             my_subgroup = Ok(get_subgroup(&api, &signer).await.expect("Failed to get subgroup."));
         }
-        let sbgrp = my_subgroup.expect("Failed to get subgroup.").expect("failed to get subgroup");
+        let sbgrp =
+            my_subgroup.expect("Failed to get subgroup.").0.expect("failed to get subgroup");
         let key_server_info = get_random_server_info(&api, sbgrp)
             .await
             .expect("Issue getting registered keys from chain.");
@@ -253,6 +258,7 @@ pub fn app(app_state: AppState) -> Router {
     let mut routes = Router::new()
         .route("/user/sign_tx", post(sign_tx))
         .route("/user/new", post(new_user))
+        .route("/user/receive_key", post(receive_key))
         .route("/signer/signature", post(get_signature))
         .route("/signer/drain", get(drain))
         .route("/validator/sync_kvdb", post(sync_kvdb))

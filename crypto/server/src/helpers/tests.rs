@@ -10,7 +10,7 @@ use kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
     get_db_path,
-    kv_manager::{KvManager, PartyId},
+    kv_manager::{KeyParams, KvManager, PartyId},
 };
 use rand_core::OsRng;
 use serial_test::serial;
@@ -21,10 +21,10 @@ use subxt::{
         Bytes, Pair,
     },
     tx::PairSigner,
-    utils::AccountId32 as subxtAccountId32,
+    utils::{AccountId32 as subxtAccountId32, Static},
     OnlineClient,
 };
-use synedrion::{make_key_shares, TestSchemeParams};
+use synedrion::KeyShare;
 use testing_utils::{constants::X25519_PUBLIC_KEYS, substrate_context::testing_context};
 use x25519_dalek::PublicKey;
 
@@ -34,7 +34,8 @@ use crate::{
     get_signer,
     helpers::{
         launch::{
-            setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            setup_latest_block_number, setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC,
+            DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::SignatureState,
         substrate::{get_subgroup, make_register},
@@ -50,7 +51,7 @@ pub async fn setup_client() {
         KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap();
     let _ = setup_mnemonic(&kv_store, true, false).await;
-
+    let _ = setup_latest_block_number(&kv_store).await;
     let signer_state = SignerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let signature_state = SignatureState::new();
@@ -80,6 +81,7 @@ pub async fn create_clients(
     let kv_store =
         KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     let _ = setup_mnemonic(&kv_store, is_alice, is_bob).await;
+    let _ = setup_latest_block_number(&kv_store).await;
 
     for (i, value) in values.into_iter().enumerate() {
         let reservation = kv_store.clone().kv().reserve_key(keys[i].to_string()).await.unwrap();
@@ -94,7 +96,9 @@ pub async fn create_clients(
     (app, kv_store)
 }
 
-pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
+pub async fn spawn_testing_validators(
+    sig_req_keyring: Option<String>,
+) -> (Vec<String>, Vec<PartyId>) {
     // spawn threshold servers
     let ports = vec![3001i64, 3002];
 
@@ -109,9 +113,25 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
     let bob_id = PartyId::new(AccountId32::new(
         *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
     ));
+
+    if sig_req_keyring.is_some() {
+        let shares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, 2, None);
+        let validator_1_threshold_keyshare: Vec<u8> =
+            kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
+        let validator_2_threshold_keyshare: Vec<u8> =
+            kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
+        // add key share to kvdbs
+        let alice_reservation =
+            alice_kv.kv().reserve_key(sig_req_keyring.clone().unwrap()).await.unwrap();
+        alice_kv.kv().put(alice_reservation, validator_1_threshold_keyshare).await.unwrap();
+
+        let bob_reservation =
+            bob_kv.kv().reserve_key(sig_req_keyring.clone().unwrap()).await.unwrap();
+        bob_kv.kv().put(bob_reservation, validator_2_threshold_keyshare).await.unwrap();
+    }
+
     let listener_alice = TcpListener::bind(format!("0.0.0.0:{}", ports[0])).unwrap();
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", ports[1])).unwrap();
-
     tokio::spawn(async move {
         axum::Server::from_tcp(listener_alice).unwrap().serve(alice_axum).await.unwrap();
     });
@@ -140,7 +160,7 @@ pub async fn register_user(
     let validator1_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let validator2_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
 
-    let shares = make_key_shares::<TestSchemeParams>(&mut OsRng, 2, None);
+    let shares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, 2, None);
     let validator_1_threshold_keyshare: Vec<u8> =
         kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
     let validator_2_threshold_keyshare: Vec<u8> =
@@ -210,17 +230,26 @@ pub async fn register_user(
         .unwrap();
 }
 
-pub async fn make_swapping(api: &OnlineClient<EntropyConfig>, key: &sr25519::Pair) {
-    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
-    let registering_query = entropy::storage().relayer().registering(signer.account_id());
-    let is_registering_1 =
-        api.storage().at_latest().await.unwrap().fetch(&registering_query).await.unwrap();
-    assert!(is_registering_1.is_none());
+pub async fn update_constraints(
+    entropy_api: &OnlineClient<EntropyConfig>,
+    sig_req_keyring: &sr25519::Pair,
+    constraint_modification_account: &sr25519::Pair,
+    initial_constraints: Constraints,
+) {
+    // update/set their constraints
+    let update_constraints_tx = entropy::tx()
+        .constraints()
+        .update_constraints(subxtAccountId32::from(sig_req_keyring.public()), initial_constraints);
 
-    let registering_tx = entropy::tx().relayer().swap_keys();
+    let constraint_modification_account =
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(constraint_modification_account.clone());
 
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &signer)
+    entropy_api
+        .tx()
+        .sign_and_submit_then_watch_default(
+            &update_constraints_tx,
+            &constraint_modification_account,
+        )
         .await
         .unwrap()
         .wait_for_in_block()
@@ -229,21 +258,19 @@ pub async fn make_swapping(api: &OnlineClient<EntropyConfig>, key: &sr25519::Pai
         .wait_for_success()
         .await
         .unwrap();
-
-    let is_registering_2 = api.storage().at_latest().await.unwrap().fetch(&registering_query).await;
-    assert!(is_registering_2.unwrap().unwrap().is_registering);
 }
 
-/// Verify that a Registering account has 1 confirmation, and that it is not already Registered.
+/// Verify that a Registering account has all confirmation, and that it is registered.
 pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &sr25519::Pair) {
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
     let registering_query = entropy::storage().relayer().registering(signer.account_id());
     let registered_query = entropy::storage().relayer().registered(signer.account_id());
-    let is_registering =
-        api.storage().at_latest().await.unwrap().fetch(&registering_query).await.unwrap();
-    // make sure there is one confirmation
-    assert_eq!(is_registering.unwrap().confirmations.len(), 1);
-    let _ = api.storage().at_latest().await.unwrap().fetch(&registered_query).await.unwrap();
+    let is_registering = api.storage().at_latest().await.unwrap().fetch(&registering_query).await;
+    // cleared from is_registering state
+    assert!(is_registering.unwrap().is_none());
+    let is_registered =
+        api.storage().at_latest().await.unwrap().fetch(&registered_query).await.unwrap();
+    assert_eq!(is_registered.unwrap(), Static(KeyVisibility::Public));
 }
 
 /// Verify that a Registered account exists.
@@ -261,12 +288,12 @@ async fn test_get_signing_group() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let result_alice = get_subgroup(&api, &signer_alice).await.unwrap();
+    let result_alice = get_subgroup(&api, &signer_alice).await.unwrap().0;
     assert_eq!(result_alice, Some(0));
 
     let p_bob = <sr25519::Pair as Pair>::from_string(DEFAULT_BOB_MNEMONIC, None).unwrap();
     let signer_bob = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_bob);
-    let result_bob = get_subgroup(&api, &signer_bob).await.unwrap();
+    let result_bob = get_subgroup(&api, &signer_bob).await.unwrap().0;
     assert_eq!(result_bob, Some(1));
 
     let p_charlie = <sr25519::Pair as Pair>::from_string("//Charlie//stash", None).unwrap();
