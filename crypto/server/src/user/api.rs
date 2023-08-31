@@ -53,7 +53,7 @@ use crate::{
         user::{do_dkg, send_key},
         validator::get_signer,
     },
-    signing_client::{SignerState, SigningErr},
+    signing_client::{ProtocolErr, SignerState},
     validation::SignedMessage,
     AppState, Configuration,
 };

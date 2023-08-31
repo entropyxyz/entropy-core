@@ -16,11 +16,11 @@ use x25519_dalek::PublicKey;
 
 use self::noise::{noise_handshake_initiator, noise_handshake_responder, EncryptedWsConnection};
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
-use super::SigningErr;
+use super::ProtocolErr;
 use crate::{
     chain_api::EntropyConfig,
     get_signer,
-    signing_client::{SigningMessage, SubscribeErr, WsError},
+    signing_client::{ProtocolMessage, SubscribeErr, WsError},
     user::api::ValidatorInfo,
     validation::SignedMessage,
     AppState, SignerState, SUBSCRIBE_TIMEOUT_SECONDS,
@@ -33,7 +33,7 @@ pub async fn open_protocol_connections(
     my_id: &PartyId,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     state: &SignerState,
-) -> Result<(), SigningErr> {
+) -> Result<(), ProtocolErr> {
     let connect_to_validators = validators_info
         .iter()
         .filter(|validators_info| {
@@ -63,16 +63,16 @@ pub async fn open_protocol_connections(
                 subscribe_message_vec,
             )
             .await
-            .map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
+            .map_err(|e| ProtocolErr::EncryptedConnection(e.to_string()))?;
 
             // Check the response as to whether they accepted our SubscribeMessage
             let response_message = encrypted_connection
                 .recv()
                 .await
-                .map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
+                .map_err(|e| ProtocolErr::EncryptedConnection(e.to_string()))?;
             let subscribe_response: Result<(), String> = serde_json::from_str(&response_message)?;
             if let Err(error_message) = subscribe_response {
-                return Err(SigningErr::BadSubscribeMessage(error_message));
+                return Err(ProtocolErr::BadSubscribeMessage(error_message));
             }
 
             // Setup channels
@@ -89,7 +89,7 @@ pub async fn open_protocol_connections(
                 };
             });
 
-            Ok::<_, SigningErr>(())
+            Ok::<_, ProtocolErr>(())
         })
         .collect::<Vec<_>>();
 
@@ -234,7 +234,7 @@ async fn ws_to_channels(
             // Incoming message from remote peer
             signing_message_result = connection.recv() => {
                 let serialized_signing_message = signing_message_result.map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
-                let msg = SigningMessage::try_from(&serialized_signing_message)?;
+                let msg = ProtocolMessage::try_from(&serialized_signing_message)?;
                 ws_channels.tx.send(msg).await.map_err(|_| WsError::MessageAfterProtocolFinish)?;
             }
             // Outgoing message (from signing protocol to remote peer)
