@@ -68,7 +68,7 @@ hex-literal  ="0.3.4"
 project-root ="0.2.2"
 sp-keyring   ="24.0.0"
 more-asserts ="0.3.1"
-template-barebones = { git="https://github.com/entropyxyz/constraints" }
+template-barebones = { git="ssh://git@github.com/entropyxyz/constraints.git" }
 
 [features]
 default=['std']
