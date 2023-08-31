@@ -1,9 +1,18 @@
 use codec::Encode;
 use entropy_shared::{Constraints, KeyVisibility};
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{
+    assert_noop, assert_ok,
+    dispatch::{GetDispatchInfo, Pays},
+};
 use pallet_constraints::{ActiveArchitectures, AllowedToModifyConstraints};
+use pallet_relayer::Call as RelayerCall;
+use sp_runtime::{
+    traits::SignedExtension,
+    transaction_validity::{TransactionValidity, ValidTransaction},
+};
 
-use crate::{mock::*, Error, RegisteringDetails};
+use crate as pallet_relayer;
+use crate::{mock::*, Error, RegisteringDetails, ValidateConfirmRegistered};
 
 #[test]
 fn it_tests_get_validator_rotation() {
@@ -135,5 +144,127 @@ fn it_doesnt_allow_double_registering() {
             Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Permissioned, None),
             Error::<Test>::AlreadySubmitted
         );
+    });
+}
+
+#[test]
+fn it_provides_free_txs_confirm_done() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(5),
+            2 as <Test as frame_system::Config>::AccountId,
+            KeyVisibility::Public,
+            None
+        ));
+        let p = ValidateConfirmRegistered::<Test>::new();
+        let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
+            sig_req_account: 5,
+            signing_subgroup: 0,
+        });
+        let di = c.get_dispatch_info();
+        assert_eq!(di.pays_fee, Pays::No);
+        let r = p.validate(&7, &c, &di, 20);
+        assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
+    });
+}
+
+#[test]
+#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(1)"]
+fn it_provides_free_txs_confirm_done_fails_1() {
+    new_test_ext().execute_with(|| {
+        let p = ValidateConfirmRegistered::<Test>::new();
+        let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
+            sig_req_account: 5,
+            signing_subgroup: 0,
+        });
+        let di = c.get_dispatch_info();
+        assert_eq!(di.pays_fee, Pays::No);
+        let r = p.validate(&2, &c, &di, 20);
+        assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
+    });
+}
+
+#[test]
+#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(2)"]
+fn it_provides_free_txs_confirm_done_fails_2() {
+    new_test_ext().execute_with(|| {
+        let p = ValidateConfirmRegistered::<Test>::new();
+        let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
+            sig_req_account: 5,
+            signing_subgroup: 0,
+        });
+        let di = c.get_dispatch_info();
+        assert_eq!(di.pays_fee, Pays::No);
+        let r = p.validate(&7, &c, &di, 20);
+        assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
+    });
+}
+
+// TODO fails 3
+#[test]
+#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(3)"]
+fn it_provides_free_txs_confirm_done_fails_3() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(5),
+            2 as <Test as frame_system::Config>::AccountId,
+            KeyVisibility::Public,
+            None
+        ));
+
+        assert_ok!(Relayer::confirm_register(RuntimeOrigin::signed(7), 5, 0));
+        let p = ValidateConfirmRegistered::<Test>::new();
+        let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
+            sig_req_account: 5,
+            signing_subgroup: 0,
+        });
+        let di = c.get_dispatch_info();
+        assert_eq!(di.pays_fee, Pays::No);
+        let r = p.validate(&7, &c, &di, 20);
+        assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
+    });
+}
+
+#[test]
+#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(4)"]
+fn it_provides_free_txs_confirm_done_fails_4() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(5),
+            2 as <Test as frame_system::Config>::AccountId,
+            KeyVisibility::Public,
+            None
+        ));
+        let p = ValidateConfirmRegistered::<Test>::new();
+        let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
+            sig_req_account: 5,
+            signing_subgroup: 5,
+        });
+        let di = c.get_dispatch_info();
+        assert_eq!(di.pays_fee, Pays::No);
+        let r = p.validate(&7, &c, &di, 20);
+        assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
+    });
+}
+
+#[test]
+#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(5)"]
+fn it_provides_free_txs_confirm_done_fails_5() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(5),
+            2 as <Test as frame_system::Config>::AccountId,
+            KeyVisibility::Public,
+            None
+        ));
+        let p = ValidateConfirmRegistered::<Test>::new();
+        let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
+            sig_req_account: 5,
+            signing_subgroup: 0,
+        });
+        let di = c.get_dispatch_info();
+        assert_eq!(di.pays_fee, Pays::No);
+        let r = p.validate(&4, &c, &di, 20);
+        assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
     });
 }
