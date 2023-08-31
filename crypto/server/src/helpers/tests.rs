@@ -155,7 +155,7 @@ pub async fn register_user(
     threshold_servers: &[String],
     sig_req_keyring: &sr25519::Pair,
     constraint_modification_account: &sr25519::Pair,
-    initial_constraints: Constraints,
+    initial_program: Option<Vec<u8>>,
 ) {
     let validator1_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let validator2_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
@@ -206,40 +206,28 @@ pub async fn register_user(
     // confirm that user is Registered
     check_registered_status(entropy_api, &subxtAccountId32::from(sig_req_keyring.public())).await;
 
-    // update/set their constraints
-    let update_constraints_tx = entropy::tx()
-        .constraints()
-        .update_constraints(subxtAccountId32::from(sig_req_keyring.public()), initial_constraints);
-
-    let constraint_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(constraint_modification_account.clone());
-
-    entropy_api
-        .tx()
-        .sign_and_submit_then_watch_default(
-            &update_constraints_tx,
-            &constraint_modification_account,
+    // update/set a program if included
+    if let Some(program) = initial_program {
+        update_programs(
+            entropy_api,
+            sig_req_keyring,
+            constraint_modification_account,
+            program,
         )
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
+        .await;
+    }
 }
 
-pub async fn update_constraints(
+pub async fn update_programs(
     entropy_api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: &sr25519::Pair,
     constraint_modification_account: &sr25519::Pair,
-    initial_constraints: Constraints,
+    initial_program: Vec<u8>,
 ) {
     // update/set their constraints
-    let update_constraints_tx = entropy::tx()
+    let update_program_tx = entropy::tx()
         .constraints()
-        .update_constraints(subxtAccountId32::from(sig_req_keyring.public()), initial_constraints);
+        .update_v2_constraints(subxtAccountId32::from(sig_req_keyring.public()), initial_program);
 
     let constraint_modification_account =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(constraint_modification_account.clone());
@@ -247,7 +235,7 @@ pub async fn update_constraints(
     entropy_api
         .tx()
         .sign_and_submit_then_watch_default(
-            &update_constraints_tx,
+            &update_program_tx,
             &constraint_modification_account,
         )
         .await

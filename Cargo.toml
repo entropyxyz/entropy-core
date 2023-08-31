@@ -1,5 +1,4 @@
 [profile.release]
-panic='unwind'
 
 [profile.vercel]
 inherits     ='release'
