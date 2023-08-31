@@ -32,15 +32,17 @@ pub mod weights;
 pub mod pallet {
     use entropy_shared::{Constraints, KeyVisibility, SIGNING_PARTY_SIZE};
     use frame_support::{
-        dispatch::{DispatchResult, DispatchResultWithPostInfo},
+        dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays},
         inherent::Vec,
         pallet_prelude::*,
+        traits::IsSubType,
     };
     use frame_system::pallet_prelude::*;
     use pallet_constraints::{AllowedToModifyConstraints, Pallet as ConstraintsPallet};
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
-    use sp_std::vec;
+    use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
+    use sp_std::{fmt::Debug, vec};
 
     pub use crate::weights::WeightInfo;
     /// Configure the pallet by specifying the parameters and types on which it depends.
@@ -213,7 +215,7 @@ pub mod pallet {
         /// registering. After a validator from each partition confirms they have a
         /// keyshare, this should get the user to a `Registered` state
         #[pallet::call_index(2)]
-        #[pallet::weight(<T as Config>::WeightInfo::confirm_register_swapping(SIGNING_PARTY_SIZE as u32))]
+        #[pallet::weight((<T as Config>::WeightInfo::confirm_register_swapping(SIGNING_PARTY_SIZE as u32), Pays::No))]
         pub fn confirm_register(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
@@ -322,6 +324,87 @@ pub mod pallet {
                 }
             };
             Ok((address.clone(), i))
+        }
+    }
+
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
+    #[scale_info(skip_type_params(T))]
+    pub struct ValidateConfirmRegistered<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
+    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
+
+    impl<T: Config + Send + Sync> Debug for ValidateConfirmRegistered<T>
+    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    {
+        #[cfg(feature = "std")]
+        fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+            write!(f, "ValidateConfirmRegistered")
+        }
+
+        #[cfg(not(feature = "std"))]
+        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
+    }
+
+    impl<T: Config + Send + Sync> ValidateConfirmRegistered<T>
+    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    {
+        #[allow(clippy::new_without_default)]
+        pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
+    }
+
+    impl<T: Config + Send + Sync> SignedExtension for ValidateConfirmRegistered<T>
+    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    {
+        type AccountId = T::AccountId;
+        type AdditionalSigned = ();
+        type Call = <T as frame_system::Config>::RuntimeCall;
+        type Pre = ();
+
+        const IDENTIFIER: &'static str = "ValidateConfirmRegistered";
+
+        fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
+            Ok(())
+        }
+
+        fn pre_dispatch(
+            self,
+            who: &Self::AccountId,
+            call: &Self::Call,
+            info: &DispatchInfoOf<Self::Call>,
+            len: usize,
+        ) -> Result<Self::Pre, TransactionValidityError> {
+            self.validate(who, call, info, len).map(|_| ())
+        }
+
+        fn validate(
+            &self,
+            who: &Self::AccountId,
+            call: &Self::Call,
+            _info: &DispatchInfoOf<Self::Call>,
+            _len: usize,
+        ) -> TransactionValidity {
+            if let Some(local_call) = call.is_sub_type() {
+                if let Call::confirm_register { sig_req_account, signing_subgroup } = local_call {
+                    let validator_stash =
+                        pallet_staking_extension::Pallet::<T>::threshold_to_stash(&who)
+                            .ok_or(InvalidTransaction::Custom(1))?;
+
+                    let registering_info = Registering::<T>::get(&sig_req_account)
+                        .ok_or(InvalidTransaction::Custom(2))?;
+                    ensure!(
+                        !registering_info.confirmations.contains(&signing_subgroup),
+                        InvalidTransaction::Custom(3)
+                    );
+                    let signing_subgroup_addresses =
+                        pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
+                            .ok_or(InvalidTransaction::Custom(4))?;
+                    ensure!(
+                        signing_subgroup_addresses.contains(&validator_stash),
+                        InvalidTransaction::Custom(5)
+                    );
+                }
+            }
+            Ok(ValidTransaction::default())
         }
     }
 }
