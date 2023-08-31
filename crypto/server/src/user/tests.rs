@@ -26,7 +26,10 @@ use subxt::{
     OnlineClient,
 };
 use testing_utils::{
-    constants::{ALICE_STASH_ADDRESS, TSS_ACCOUNTS, X25519_PUBLIC_KEYS, BAREBONES_PROGRAM_WASM_BYTECODE, MESSAGE_SHOULD_FAIL, MESSAGE_SHOULD_SUCCEED},
+    constants::{
+        ALICE_STASH_ADDRESS, BAREBONES_PROGRAM_WASM_BYTECODE, MESSAGE_SHOULD_FAIL,
+        MESSAGE_SHOULD_SUCCEED, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+    },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
     },
@@ -43,7 +46,7 @@ use crate::{
         launch::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
-        signing::{create_unique_tx_id, SignatureState, Hasher},
+        signing::{create_unique_tx_id, Hasher, SignatureState},
         substrate::{make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, register_user, setup_client,
@@ -89,8 +92,13 @@ async fn test_sign_tx_no_chain() {
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    update_programs(&entropy_api, &one.pair(), &one.pair(), BAREBONES_PROGRAM_WASM_BYTECODE.to_owned())
-        .await;
+    update_programs(
+        &entropy_api,
+        &one.pair(),
+        &one.pair(),
+        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+    )
+    .await;
 
     let message_should_succeed_hash = Hasher::keccak(MESSAGE_SHOULD_SUCCEED);
 

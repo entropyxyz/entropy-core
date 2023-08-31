@@ -208,13 +208,8 @@ pub async fn register_user(
 
     // update/set a program if included
     if let Some(program) = initial_program {
-        update_programs(
-            entropy_api,
-            sig_req_keyring,
-            constraint_modification_account,
-            program,
-        )
-        .await;
+        update_programs(entropy_api, sig_req_keyring, constraint_modification_account, program)
+            .await;
     }
 }
 
@@ -234,10 +229,7 @@ pub async fn update_programs(
 
     entropy_api
         .tx()
-        .sign_and_submit_then_watch_default(
-            &update_program_tx,
-            &constraint_modification_account,
-        )
+        .sign_and_submit_then_watch_default(&update_program_tx, &constraint_modification_account)
         .await
         .unwrap()
         .wait_for_in_block()

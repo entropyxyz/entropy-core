@@ -150,8 +150,9 @@ pub struct Hasher;
 
 impl Hasher {
     /// Produces the Keccak256 hash on a given message.
-    /// 
-    /// In practice, if `data` is an RLP-serialized Ethereum transaction, this should produce the corrosponding .
+    ///
+    /// In practice, if `data` is an RLP-serialized Ethereum transaction, this should produce the
+    /// corrosponding .
     pub fn keccak(data: &[u8]) -> [u8; 32] {
         use sha3::{Digest, Keccak256};
 

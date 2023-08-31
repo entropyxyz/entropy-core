@@ -10,6 +10,7 @@ use axum::{
 };
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
+use ec_runtime::{InitialState, Runtime};
 use entropy_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
@@ -46,7 +47,7 @@ use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     helpers::{
-        signing::{create_unique_tx_id, do_signing, SignatureState, Hasher},
+        signing::{create_unique_tx_id, do_signing, Hasher, SignatureState},
         substrate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
@@ -57,7 +58,6 @@ use crate::{
     validation::SignedMessage,
     AppState, Configuration,
 };
-use ec_runtime::{InitialState, Runtime};
 
 /// Information from the validators in signing party
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -115,7 +115,7 @@ pub async fn sign_tx(
     }
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
-    
+
     let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
     let raw_message = hex::decode(user_tx_req.transaction_request.clone()).unwrap();
     let sig_hash = hex::encode(Hasher::keccak(&raw_message));
@@ -308,7 +308,8 @@ pub async fn confirm_registered(
 /// Gets the current signing committee
 /// The signing committee is composed as the validators at the index into each subgroup
 /// Where the index is computed as the user's sighash as an integer modulo the number of subgroups
-/// TODO using the sighash is not secure since the user can intentionally generate sighashs to overwhelm a specific subgroup
+/// TODO using the sighash is not secure since the user can intentionally generate sighashs to
+/// overwhelm a specific subgroup
 pub async fn get_current_subgroup_signers(
     api: &OnlineClient<EntropyConfig>,
     sig_hash: &str,

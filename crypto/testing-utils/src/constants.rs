@@ -28,7 +28,6 @@ lazy_static! {
     ];
 }
 
-
 pub const BAREBONES_PROGRAM_WASM_BYTECODE: &[u8] = include_bytes!("../template_barebones.wasm");
 pub const MESSAGE_SHOULD_SUCCEED: &[u8] = "asdfasdfasdfasdf".as_bytes();
 pub const MESSAGE_SHOULD_FAIL: &[u8] = "asdf".as_bytes();
