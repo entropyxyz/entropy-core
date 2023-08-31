@@ -54,20 +54,7 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	/// Storage: Relayer Registered (r:1 w:1)
-	/// Proof Skipped: Relayer Registered (max_values: None, max_size: None, mode: Measured)
-	/// Storage: Relayer Registering (r:0 w:1)
-	/// Proof Skipped: Relayer Registering (max_values: None, max_size: None, mode: Measured)
-	fn swap_keys() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `187`
-		//  Estimated: `3652`
-		// Minimum execution time: 36_000_000 picoseconds.
-		Weight::from_parts(40_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 3652))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(2))
-	}
+
 	/// Storage: StakingExtension ThresholdToStash (r:1 w:0)
 	/// Proof Skipped: StakingExtension ThresholdToStash (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Relayer Registering (r:1 w:1)

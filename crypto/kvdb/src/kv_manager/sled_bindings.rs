@@ -1,4 +1,5 @@
-//! Bindings for [sled::Db] operations. Errors are mapped to [super::error::InnerKvError].
+//! Bindings for [sled::Db] operations. Errors are mapped to
+//! [crate::kv_manager::error::InnerKvError].
 
 use std::fmt::Debug;
 

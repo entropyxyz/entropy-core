@@ -1,7 +1,7 @@
 use std::{net::SocketAddrV4, str::FromStr, sync::Arc};
 
 use axum::{
-    body::StreamBody,
+    body::{Bytes, StreamBody},
     extract::State,
     http::StatusCode,
     response::IntoResponse,
@@ -9,12 +9,13 @@ use axum::{
     Json, Router,
 };
 use bip39::{Language, Mnemonic};
+use blake2::{Blake2s256, Digest};
 use entropy_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints, KeyVisibility},
-    X25519PublicKey, SIGNING_PARTY_SIZE,
+    OcwMessage, X25519PublicKey, SIGNING_PARTY_SIZE,
 };
 use futures::{
     channel::mpsc,
@@ -23,12 +24,13 @@ use futures::{
 };
 use kvdb::kv_manager::{
     error::{InnerKvError, KvError},
+    helpers::serialize as key_serialize,
     value::PartyInfo,
     KvManager,
 };
 use log::info;
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
-use parity_scale_codec::DecodeAll;
+use parity_scale_codec::{Decode, DecodeAll, Encode};
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::AccountId32;
 use subxt::{
@@ -45,7 +47,10 @@ use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     helpers::{
         signing::{create_unique_tx_id, do_signing, SignatureState},
-        substrate::{get_constraints, get_key_visibility, get_subgroup},
+        substrate::{
+            get_constraints, get_key_visibility, get_subgroup, return_all_addresses_of_subgroup,
+        },
+        user::{do_dkg, send_key},
         validator::get_signer,
     },
     signing_client::{SignerState, SigningErr},
@@ -74,6 +79,15 @@ pub struct UserTransactionRequest {
     pub validators_info: Vec<ValidatorInfo>,
 }
 
+/// Type for validators to send user key's back and forth
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq)]
+pub struct UserRegistrationInfo {
+    /// Signing request key (also kvdb key)
+    pub key: String,
+    /// User threshold signing key
+    pub value: Vec<u8>,
+}
 /// Called by a user to initiate the signing process for a message
 ///
 /// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
@@ -148,44 +162,110 @@ pub async fn sign_tx(
     }
 }
 
-/// HTTP POST endoint called by the user when registering.
-///
-/// This adds a new Keyshare to this node's set of known Keyshares and stores the it in the [kvdb].
-///
-/// The http request takes a [SignedMessage] containing a bincode-encoded
-/// [KeyShare](synedrion::KeyShare).
+/// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.
+/// The http request takes a parity scale encoded [OcwMessage] which tells us which validators are
+/// in the registration group and will perform a DKG.
 pub async fn new_user(
+    State(app_state): State<AppState>,
+    encoded_data: Bytes,
+) -> Result<StatusCode, UserErr> {
+    let data = OcwMessage::decode(&mut encoded_data.as_ref())?;
+    if data.sig_request_accounts.is_empty() {
+        return Ok(StatusCode::NO_CONTENT);
+    }
+
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let signer = get_signer(&app_state.kv_store).await?;
+
+    check_in_registration_group(&data.validators_info, signer.account_id())?;
+    validate_new_user(&data, &api, &app_state.kv_store).await?;
+
+    let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
+    let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
+
+    for sig_request_account in data.sig_request_accounts {
+        let address_slice: &[u8; 32] = &sig_request_account
+            .clone()
+            .try_into()
+            .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
+        let sig_request_address = AccountId32::new(*address_slice);
+
+        let key_share = do_dkg(
+            &data.validators_info,
+            &signer,
+            &app_state.signer_state,
+            sig_request_address.to_string(),
+            &my_subgroup,
+        )
+        .await?;
+        let serialized_key_share = key_serialize(&key_share)
+            .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
+
+        let reservation =
+            app_state.kv_store.kv().reserve_key(sig_request_address.to_string()).await?;
+        app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
+
+        let user_registration_info = UserRegistrationInfo {
+            key: sig_request_address.to_string(),
+            value: serialized_key_share,
+        };
+        send_key(&api, &stash_address, &mut addresses_in_subgroup, user_registration_info, &signer)
+            .await?;
+        // TODO: Error handling really complex needs to be thought about.
+        confirm_registered(&api, sig_request_address.into(), my_subgroup, &signer).await?;
+    }
+    Ok(StatusCode::OK)
+}
+
+pub async fn receive_key(
     State(app_state): State<AppState>,
     Json(signed_msg): Json<SignedMessage>,
 ) -> Result<StatusCode, UserErr> {
-    let api = get_api(&app_state.configuration.endpoint).await?;
-    // Verifies the message contains a valid sr25519 signature from the sender.
+    let signing_address = signed_msg.account_id();
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
     let signer = get_signer(&app_state.kv_store).await?;
-    // Checks if the user has registered onchain first.
-    let key = signed_msg.account_id();
-    let signing_address_conversion = SubxtAccountId32::from_str(&key.to_ss58check())
-        .map_err(|_| UserErr::StringError("Account Conversion"))?;
-
-    let is_swapping = register_info(&api, &signing_address_conversion).await?;
-
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
-    // store new user data in kvdb or deletes and replaces it if swapping
-    let subgroup = get_subgroup(&api, &signer)
+
+    let user_registration_info: UserRegistrationInfo = serde_json::from_slice(&decrypted_message)?;
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let my_subgroup = get_subgroup(&api, &signer)
         .await?
+        .0
         .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    if is_swapping {
-        app_state.kv_store.kv().delete(&key.to_string()).await?;
+    let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
+
+    let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
+        .map_err(|_| UserErr::StringError("Account Conversion"))?;
+
+    // check message is from the person sending the message (get stash key from threshold key)
+    let stash_address_query =
+        entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
+    let stash_address = api
+        .storage()
+        .at_latest()
+        .await?
+        .fetch(&stash_address_query)
+        .await?
+        .ok_or_else(|| UserErr::SubgroupError("Stash Fetch Error"))?;
+    if !addresses_in_subgroup.contains(&stash_address) {
+        return Err(UserErr::NotInSubgroup);
     }
-    let reservation = app_state.kv_store.kv().reserve_key(key.to_string()).await?;
-    app_state.kv_store.kv().put(reservation, decrypted_message).await?;
-    // TODO: Error handling really complex needs to be thought about.
-    confirm_registered(&api, key.into(), subgroup, &signer).await?;
+
+    let exists_result =
+        app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
+    if exists_result {
+        return Err(UserErr::AlreadyRegistered);
+    }
+    let reservation =
+        app_state.kv_store.kv().reserve_key(user_registration_info.key.to_string()).await?;
+    app_state.kv_store.kv().put(reservation, user_registration_info.value).await?;
     Ok(StatusCode::OK)
 }
+
 /// Returns wether an account is registering or swapping. If it is not, it returns error
 pub async fn register_info(
     api: &OnlineClient<EntropyConfig>,
@@ -295,6 +375,77 @@ pub fn check_signing_group(
         return Err(UserErr::InvalidSigner(
             "Signing group is valid, but this threshold server is not in the group",
         ));
+    }
+    Ok(())
+}
+
+/// Validates new user endpoint
+/// Checks the chain for validity of data and block number of data matches current block
+pub async fn validate_new_user(
+    chain_data: &OcwMessage,
+    api: &OnlineClient<EntropyConfig>,
+    kv_manager: &KvManager,
+) -> Result<(), UserErr> {
+    let last_block_number_recorded = kv_manager.kv().get("LATEST_BLOCK_NUMBER").await?;
+    if u32::from_be_bytes(
+        last_block_number_recorded
+            .try_into()
+            .map_err(|_| UserErr::Conversion("Account Conversion"))?,
+    ) >= chain_data.block_number
+    {
+        // change error
+        return Err(UserErr::RepeatedData);
+    }
+    let latest_block_number = api
+        .rpc()
+        .block(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number"))?
+        .block
+        .header
+        .number;
+
+    // we subtract 1 as the message info is coming from the previous block
+    if latest_block_number.saturating_sub(1) != chain_data.block_number {
+        return Err(UserErr::StaleData);
+    }
+
+    let mut hasher_chain_data = Blake2s256::new();
+    hasher_chain_data.update(chain_data.sig_request_accounts.encode());
+    let chain_data_hash = hasher_chain_data.finalize();
+    let mut hasher_verifying_data = Blake2s256::new();
+
+    let verifying_data_query = entropy::storage().relayer().dkg(chain_data.block_number);
+    let verifying_data = api
+        .storage()
+        .at_latest()
+        .await?
+        .fetch(&verifying_data_query)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get verifying data"))?;
+
+    hasher_verifying_data.update(verifying_data.encode());
+
+    let verifying_data_hash = hasher_verifying_data.finalize();
+    if verifying_data_hash != chain_data_hash {
+        return Err(UserErr::InvalidData);
+    }
+    kv_manager.kv().delete("LATEST_BLOCK_NUMBER").await?;
+    let reservation = kv_manager.kv().reserve_key("LATEST_BLOCK_NUMBER".to_string()).await?;
+    kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
+    Ok(())
+}
+
+/// Checks if a validator is in the current selected registration committee
+pub fn check_in_registration_group(
+    validators_info: &[entropy_shared::ValidatorInfo],
+    validator_address: &SubxtAccountId32,
+) -> Result<(), UserErr> {
+    let is_proper_signer = validators_info
+        .iter()
+        .any(|validator_info| validator_info.tss_account == validator_address.encode());
+    if !is_proper_signer {
+        return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
     }
     Ok(())
 }

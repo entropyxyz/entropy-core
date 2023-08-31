@@ -2,7 +2,7 @@ use std::{convert::TryFrom, fmt, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::AccountId32;
-use synedrion::{KeyShare, TestSchemeParams};
+use synedrion::KeyShare;
 use tracing::{info, span, Level, Span};
 use zeroize::Zeroize;
 
@@ -36,7 +36,7 @@ impl TryFrom<String> for PartyId {
     type Error = String;
 
     fn try_from(s: String) -> Result<Self, Self::Error> {
-        let bytes = hex::decode(s).map_err(|err| format!("{}", err))?;
+        let bytes = hex::decode(s).map_err(|err| format!("{err}"))?;
         let acc = AccountId32::try_from(bytes.as_ref())
             .map_err(|_err| format!("Invalid party ID length: {}", bytes.len()))?;
         Ok(Self(acc))
@@ -50,13 +50,23 @@ impl fmt::Display for PartyId {
     }
 }
 
+#[cfg(not(test))]
+use synedrion::ProductionParams;
+#[cfg(not(test))]
+pub type KeyParams = ProductionParams;
+
+#[cfg(test)]
+use synedrion::TestParams;
+#[cfg(test)]
+pub type KeyParams = TestParams;
+
 /// This records encapsulates the additional information that's only available
 /// after the share is created: the correspondence of shares to party IDs they were distributed to.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PartyInfo {
     // TODO: in the future this will probably be a mapping {party_id: [share_id, share_id, ...]}
     pub party_ids: Vec<PartyId>,
-    pub share: KeyShare<TestSchemeParams>,
+    pub share: KeyShare<KeyParams>,
 }
 
 /// Kv manager for grpc services

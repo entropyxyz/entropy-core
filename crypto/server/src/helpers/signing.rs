@@ -5,8 +5,8 @@ use std::{
 };
 
 use bip39::{Language, Mnemonic};
-use entropy_shared::{KeyVisibility, X25519PublicKey};
-use kvdb::kv_manager::PartyId;
+use entropy_shared::{KeyVisibility, X25519PublicKey, SETUP_TIMEOUT_SECONDS};
+use kvdb::kv_manager::{KvManager, PartyId};
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 use tokio::time::timeout;
@@ -23,8 +23,6 @@ use crate::{
     validation::mnemonic_to_pair,
     AppState,
 };
-
-const SETUP_TIMEOUT_SECONDS: u64 = 20;
 
 #[derive(Clone, Debug)]
 pub struct RecoverableSignature {
@@ -121,6 +119,7 @@ pub async fn do_signing(
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
         Listener::new(message.validators_info, &account_sp_core, user_details_option);
+
     state
         .listeners
         .lock()
@@ -128,7 +127,14 @@ pub async fn do_signing(
         // TODO: using signature ID as session ID. Correct?
         .insert(sign_context.sign_init.sig_uid.clone(), listener);
 
-    open_protocol_connections(&sign_context, &my_id, &signer, state).await?;
+    open_protocol_connections(
+        &sign_context.sign_init.validators_info,
+        &sign_context.sign_init.sig_uid,
+        &my_id,
+        &signer,
+        state,
+    )
+    .await?;
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
         let broadcast_out = ready??;

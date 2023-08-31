@@ -16,27 +16,25 @@ use x25519_dalek::PublicKey;
 
 use self::noise::{noise_handshake_initiator, noise_handshake_responder, EncryptedWsConnection};
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
-use super::{new_party::SignContext, SigningErr};
+use super::SigningErr;
 use crate::{
     chain_api::EntropyConfig,
     get_signer,
     signing_client::{SigningMessage, SubscribeErr, WsError},
+    user::api::ValidatorInfo,
     validation::SignedMessage,
     AppState, SignerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
 
 /// Set up websocket connections to other members of the signing committee
 pub async fn open_protocol_connections(
-    ctx: &SignContext,
+    validators_info: &[ValidatorInfo],
+    session_uid: &str,
     my_id: &PartyId,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     state: &SignerState,
 ) -> Result<(), SigningErr> {
-    let sig_uid = &ctx.sign_init.sig_uid;
-
-    let connect_to_validators = ctx
-        .sign_init
-        .validators_info
+    let connect_to_validators = validators_info
         .iter()
         .filter(|validators_info| {
             // Decide whether to initiate a connection by comparing accound ids
@@ -53,7 +51,7 @@ pub async fn open_protocol_connections(
             let server_public_key = PublicKey::from(validator_info.x25519_public_key);
             let signed_message = SignedMessage::new(
                 signer.signer(),
-                &Bytes(serde_json::to_vec(&SubscribeMessage::new(sig_uid, my_id.clone()))?),
+                &Bytes(serde_json::to_vec(&SubscribeMessage::new(session_uid, my_id.clone()))?),
                 &server_public_key,
             )?;
             let subscribe_message_vec = serde_json::to_vec(&signed_message)?;
@@ -78,7 +76,7 @@ pub async fn open_protocol_connections(
             }
 
             // Setup channels
-            let ws_channels = get_ws_channels(state, sig_uid, &validator_info.tss_account)?;
+            let ws_channels = get_ws_channels(state, session_uid, &validator_info.tss_account)?;
 
             let remote_party_id = PartyId::new(validator_info.tss_account.clone());
 
@@ -158,7 +156,6 @@ async fn handle_initial_incoming_ws_message(
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| SubscribeErr::Decryption(e.to_string()))?;
     let msg: SubscribeMessage = serde_json::from_slice(&decrypted_message)?;
-
     tracing::info!("Got ws connection, with message: {msg:?}");
 
     let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
@@ -189,7 +186,7 @@ async fn handle_initial_incoming_ws_message(
 
         if !listener.validators.iter().any(|(validator_account_id, validator_x25519_pk)| {
             validator_account_id == &signed_msg.account_id()
-                && validator_x25519_pk == &remote_public_key
+                && validator_x25519_pk == &remote_public_key        
         }) {
             // Make the signing process fail, since one of the commitee has misbehaved
             listeners.remove(&msg.session_id);

@@ -32,7 +32,7 @@ pub enum SigningErr {
     #[error("Subscribe API error: {0}")]
     Subscribe(#[from] SubscribeErr),
     #[error("Session Creation Error: {0}")]
-    SessionCreationError(synedrion::sessions::InitError),
+    SessionCreationError(synedrion::InitError),
     #[error("Protocol Execution error: {0}")]
     ProtocolExecution(synedrion::sessions::Error),
     #[error("Incoming message stream error: {0}")]

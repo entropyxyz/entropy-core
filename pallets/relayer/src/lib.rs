@@ -74,7 +74,7 @@ pub mod pallet {
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub registered_accounts: Vec<T::AccountId>,
+        pub registered_accounts: Vec<(T::AccountId, u8)>,
     }
 
     #[cfg(feature = "std")]
@@ -85,9 +85,18 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
-            for account in &self.registered_accounts {
-                Registered::<T>::insert(account, KeyVisibility::Public);
-                AllowedToModifyConstraints::<T>::insert(account, account, ());
+            for account_info in &self.registered_accounts {
+                let key_visibility = match account_info.1 {
+                    1 => KeyVisibility::Private,
+                    2 => KeyVisibility::Permissioned,
+                    _ => KeyVisibility::Public,
+                };
+                Registered::<T>::insert(account_info.0.clone(), key_visibility);
+                AllowedToModifyConstraints::<T>::insert(
+                    account_info.0.clone(),
+                    account_info.0.clone(),
+                    (),
+                );
             }
         }
     }
@@ -100,6 +109,11 @@ pub mod pallet {
     #[pallet::getter(fn registering)]
     pub type Registering<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails<T>, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn dkg)]
+    pub type Dkg<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Vec<u8>>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn registered)]
@@ -115,7 +129,7 @@ pub mod pallet {
         SignalRegister(T::AccountId),
         /// An account has been registered. [who, signing_group]
         AccountRegistering(T::AccountId, u8),
-        /// An account has been registered. [who]
+        /// An account has been registered. \[who\]
         AccountRegistered(T::AccountId),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, T::BlockNumber, Vec<u32>),
@@ -169,7 +183,11 @@ pub mod pallet {
             if let Some(constraints) = &initial_constraints {
                 ConstraintsPallet::<T>::validate_constraints(constraints)?;
             }
-
+            let block_number = <frame_system::Pallet<T>>::block_number();
+            Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
+                messages.push(sig_req_account.clone().encode());
+                Ok(())
+            })?;
             // put account into a registering state
             Registering::<T>::insert(
                 &sig_req_account,
@@ -183,34 +201,11 @@ pub mod pallet {
                 },
             );
 
-            Self::deposit_event(Event::SignalRegister(sig_req_account));
-
-            Ok(())
-        }
-
-        /// Signals that a user wants to swap our their keys
-        #[pallet::call_index(1)]
-        #[pallet::weight(<T as Config>::WeightInfo::swap_keys())]
-        pub fn swap_keys(origin: OriginFor<T>) -> DispatchResult {
-            let sig_req_account = ensure_signed(origin)?;
-            let key_visibility =
-                Self::registered(&sig_req_account).ok_or(Error::<T>::NotRegistered)?;
-
-            let registering_info = RegisteringDetails::<T> {
-                is_registering: true,
-                // This value doesn't get used in confirm_done() when is_swapping is true
-                constraint_account: sig_req_account.clone(),
-                is_swapping: true,
-                confirmations: vec![],
-                // This value doesn't get used in confirm_done() when is_swapping is true
-                constraints: None,
-                key_visibility,
-            };
-
-            Registered::<T>::remove(&sig_req_account);
-            Registering::<T>::insert(&sig_req_account, registering_info);
+            // TODO add dkg creators for dkg and prep offchain worker for dkg
+            // also maybe need a second storage slot to delete after worker message has been sent
 
             Self::deposit_event(Event::SignalRegister(sig_req_account));
+
             Ok(())
         }
 

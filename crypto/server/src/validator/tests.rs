@@ -112,7 +112,7 @@ async fn test_get_no_safe_crypto_error() {
     let keys = Keys { enckeys, sender };
     let port = 3001;
     let (bob_axum, _) = create_clients("bob".to_string(), values, addrs, false, true).await;
-    let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", port)).unwrap();
+    let listener_bob = TcpListener::bind(format!("0.0.0.0:{port}")).unwrap();
 
     tokio::spawn(async move {
         axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
@@ -160,7 +160,7 @@ async fn test_get_safe_crypto_error() {
     let port = 3001;
 
     let (bob_axum, _) = create_clients("bob".to_string(), vec![], vec![], false, true).await;
-    let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", port)).unwrap();
+    let listener_bob = TcpListener::bind(format!("0.0.0.0:{port}")).unwrap();
 
     tokio::spawn(async move {
         axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
@@ -190,7 +190,7 @@ async fn test_get_and_store_values() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().unwrap();
+    let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().0.unwrap();
     let server_info = get_random_server_info(&api, my_subgroup).await.unwrap();
     let recip_key = x25519_dalek::PublicKey::from(server_info.x25519_public_key);
     let keys = vec![
@@ -206,8 +206,8 @@ async fn test_get_and_store_values() {
         create_clients("alice".to_string(), values.clone(), keys.clone(), true, false).await;
 
     let (bob_axum, bob_kv) = create_clients("bob".to_string(), vec![], vec![], false, true).await;
-    let listener_alice = TcpListener::bind(format!("0.0.0.0:{}", port_0)).unwrap();
-    let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", port_1)).unwrap();
+    let listener_alice = TcpListener::bind(format!("0.0.0.0:{port_0}")).unwrap();
+    let listener_bob = TcpListener::bind(format!("0.0.0.0:{port_1}")).unwrap();
 
     tokio::spawn(async move {
         axum::Server::from_tcp(listener_alice).unwrap().serve(alice_axum).await.unwrap();
@@ -226,7 +226,7 @@ async fn test_get_and_store_values() {
     )
     .await;
     for (i, key) in keys.iter().enumerate() {
-        println!("!! -> -> RECEIVED KEY at IDX {} of value {:?}", i, key);
+        println!("!! -> -> RECEIVED KEY at IDX {i} of value {key:?}");
         let val = bob_kv.kv().get(key).await;
         assert!(val.is_ok());
         assert_eq!(val.unwrap(), values[i]);
@@ -241,7 +241,7 @@ async fn test_get_random_server_info() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().unwrap();
+    let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().0.unwrap();
 
     let result = get_random_server_info(&api, my_subgroup).await.unwrap();
 
@@ -279,6 +279,6 @@ async fn test_tell_chain_syncing_is_done() {
 
     // expect this to fail in the proper way
     let result = tell_chain_syncing_is_done(&api, &signer_alice).await;
-    assert_eq!(result.is_err(), true);
+    assert!(result.is_err());
     clean_tests();
 }

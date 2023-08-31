@@ -1,10 +1,10 @@
-//! Key-Value Store service. We use [sled] for the underlying db implementation.
+//! Key-Value Store service. We use [sled][sled] for the underlying db implementation.
 //! For every kvstore initialized, a daemon is spawned that serves basic
-//! database functionality using the "actor" pattern ([kv::Kv] is the "handle"): <https://ryhl.io/blog/actors-with-tokio/>
+//! database functionality using the "actor" pattern (`kv::Kv` is the "handle"): <https://ryhl.io/blog/actors-with-tokio/>
 //! See <https://tokio.rs/tokio/tutorial/channels> for tokio channels
-//! See [kv] module for the public API.
+//! See `kv` module for the public API.
 
-/// Custom error types for [kv] and [sled_bindings]
+/// Custom error types for `kv` and `sled_bindings`
 pub mod error;
 pub mod helpers;
 /// public API of kv manager
@@ -16,7 +16,7 @@ mod types;
 /// wrapers for values stored by services
 pub mod value;
 pub use types::KeyReservation;
-pub use value::{KvManager, PartyId, PartyInfo};
+pub use value::{KeyParams, KvManager, PartyId, PartyInfo};
 
 // tests for low-level operations
 #[cfg(test)]
