@@ -40,7 +40,7 @@ kvdb          ={ path="../kvdb", default-features=false }
 
 # Constraints
 entropy-constraints={ path="../constraints" }
-ec-runtime         ={ git="ssh://git@github.com/entropyxyz/constraints.git" }
+ec-runtime         ={ git="ssh://git@github.com/entropyxyz/constraints.git", branch="master" }
 
 # Logging
 log               ="0.4.17"                                              # todo: remove, overlaps tracing
@@ -67,7 +67,7 @@ hex-literal       ="0.3.4"
 project-root      ="0.2.2"
 sp-keyring        ="24.0.0"
 more-asserts      ="0.3.1"
-template-barebones={ git="ssh://git@github.com/entropyxyz/constraints.git" }
+template-barebones={ git="ssh://git@github.com/entropyxyz/constraints.git", branch="master" }
 
 [features]
 default=['std']

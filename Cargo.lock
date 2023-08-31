@@ -2162,7 +2162,7 @@ checksum = "68b0cf012f1230e43cd00ebb729c6bb58707ecfa8ad08b52ef3a4ccd2697fc30"
 [[package]]
 name = "ec-core"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git#c6555b809ef6dcabee3f43bc6cc4ff375e11c3f0"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?branch=master#c6555b809ef6dcabee3f43bc6cc4ff375e11c3f0"
 dependencies = [
  "getrandom 0.2.10",
  "serde",
@@ -2173,7 +2173,7 @@ dependencies = [
 [[package]]
 name = "ec-runtime"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git#c6555b809ef6dcabee3f43bc6cc4ff375e11c3f0"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?branch=master#c6555b809ef6dcabee3f43bc6cc4ff375e11c3f0"
 dependencies = [
  "ec-core",
  "thiserror",
@@ -12668,7 +12668,7 @@ dependencies = [
 [[package]]
 name = "template-barebones"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git#c6555b809ef6dcabee3f43bc6cc4ff375e11c3f0"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?branch=master#c6555b809ef6dcabee3f43bc6cc4ff375e11c3f0"
 dependencies = [
  "ec-core",
 ]
