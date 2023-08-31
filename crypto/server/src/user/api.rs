@@ -129,7 +129,7 @@ pub async fn sign_tx(
     let mut runtime = Runtime::new();
     let initial_state = InitialState { data: raw_message };
 
-    let _ = runtime.evaluate(&program, &initial_state)?;
+    runtime.evaluate(&program, &initial_state)?;
     dbg!("GOT PAST RUNTIME ");
 
     let (mut response_tx, response_rx) = mpsc::channel(1);

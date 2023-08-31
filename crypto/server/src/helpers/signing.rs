@@ -157,7 +157,7 @@ impl Hasher {
         use sha3::{Digest, Keccak256};
 
         let mut keccak = Keccak256::new();
-        keccak.update(data.to_owned());
+        keccak.update(data);
         keccak.finalize().into()
     }
 }
