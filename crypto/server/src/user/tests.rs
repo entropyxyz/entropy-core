@@ -679,7 +679,7 @@ async fn test_sign_tx_user_participates() {
     let test_user_constraint = AccountKeyring::Charlie;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (validator_ips, _validator_ids) = spawn_testing_validators(None).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let initial_constraints = |address: [u8; 20]| -> Constraints {

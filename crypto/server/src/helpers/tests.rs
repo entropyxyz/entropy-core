@@ -25,7 +25,7 @@ use subxt::{
     utils::{AccountId32 as subxtAccountId32, Static},
     OnlineClient,
 };
-use synedrion::{make_key_shares, sessions::PrehashedMessage, KeyShare, TestSchemeParams};
+use synedrion::{sessions::PrehashedMessage, KeyShare};
 use testing_utils::{constants::X25519_PUBLIC_KEYS, substrate_context::testing_context};
 use tokio::sync::{broadcast, mpsc};
 use tokio_tungstenite::connect_async;
@@ -172,7 +172,7 @@ pub async fn register_user(
     constraint_modification_account: &sr25519::Pair,
     initial_constraints: Constraints,
     key_visibility: KeyVisibility,
-) -> Option<KeyShare<TestSchemeParams>> {
+) -> Option<KeyShare<KeyParams>> {
     let validator1_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let validator2_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
 
@@ -331,7 +331,7 @@ async fn test_get_signing_group() {
 /// Called when KeyVisibility is private - the user connects to relevant validators
 /// and participates in the signing protocol
 pub async fn user_connects_to_validators(
-    key_share: &KeyShare<TestSchemeParams>,
+    key_share: &KeyShare<KeyParams>,
     sig_uid: &str,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
