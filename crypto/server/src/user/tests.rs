@@ -88,8 +88,8 @@ async fn test_sign_tx_no_chain() {
     let two = AccountKeyring::Two;
 
     let signing_address = one.clone().to_account_id().to_ss58check();
-    let (validator_ips, _validator_ids) =
-        spawn_testing_validators(Some(signing_address.clone())).await;
+    let (validator_ips, _validator_ids, _) =
+        spawn_testing_validators(Some(signing_address.clone()), false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let initial_constraints = |address: [u8; 20]| -> Constraints {
@@ -405,7 +405,7 @@ async fn test_sign_tx_no_chain() {
 async fn test_fail_signing_group() {
     clean_tests();
     let dave = AccountKeyring::Dave;
-    let _ = spawn_testing_validators(None).await;
+    let _ = spawn_testing_validators(None, false).await;
 
     let _substrate_context = test_node_process_testing_state().await;
     let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(4);
@@ -459,7 +459,7 @@ async fn test_store_share() {
     let alice_constraint = AccountKeyring::Charlie;
 
     let cxt = test_context_stationary().await;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(None).await;
+    let (_validator_ips, _validator_ids, _) = spawn_testing_validators(None, false).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
     let mut block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
@@ -675,11 +675,12 @@ pub async fn run_to_block(api: &OnlineClient<EntropyConfig>, block_run: u32) {
 #[serial]
 async fn test_sign_tx_user_participates() {
     clean_tests();
-    let one = AccountKeyring::One;
-    let test_user_constraint = AccountKeyring::Charlie;
+    let one = AccountKeyring::Eve;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids) = spawn_testing_validators(None).await;
+    let signing_address = one.clone().to_account_id().to_ss58check();
+    let (validator_ips, _validator_ids, users_keyshare_option) =
+        spawn_testing_validators(Some(signing_address.clone()), true).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let initial_constraints = |address: [u8; 20]| -> Constraints {
@@ -689,16 +690,8 @@ async fn test_sign_tx_user_participates() {
         Constraints { evm_acl: Some(Static(evm_acl)), btc_acl: None }
     };
 
-    let users_keyshare = register_user(
-        &entropy_api,
-        &validator_ips,
-        &one.pair(),
-        &test_user_constraint.pair(),
-        initial_constraints([1u8; 20]),
-        KeyVisibility::Private,
-    )
-    .await
-    .unwrap();
+    update_constraints(&entropy_api, &one.pair(), &one.pair(), initial_constraints([1u8; 20]))
+        .await;
 
     let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(1);
     let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
@@ -765,7 +758,7 @@ async fn test_sign_tx_user_participates() {
     let (test_user_res, sig_result) = future::join(
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
         user_connects_to_validators(
-            &users_keyshare,
+            &users_keyshare_option.unwrap(),
             &sig_uid,
             validators_info.clone(),
             &one.pair(),
