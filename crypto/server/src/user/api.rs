@@ -72,6 +72,7 @@ pub struct ValidatorInfo {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserTransactionRequest {
+    // TODO remove Arch now
     /// 'eth', etc.
     pub arch: String,
     /// ETH: RLP encoded transaction request
@@ -97,7 +98,6 @@ pub async fn sign_tx(
     Json(signed_msg): Json<SignedMessage>,
 ) -> Result<(StatusCode, StreamBody<impl Stream<Item = Result<String, serde_json::Error>>>), UserErr>
 {
-    dbg!("GOT TO SIGN TX");
     let signer = get_signer(&app_state.kv_store).await?;
     let signing_address = signed_msg.account_id().to_ss58check();
 
@@ -125,12 +125,10 @@ pub async fn sign_tx(
 
     let program = get_program(&api, &second_signing_address_conversion).await?;
 
-    dbg!("GOT TO RUNTIME ");
     let mut runtime = Runtime::new();
     let initial_state = InitialState { data: raw_message };
 
     runtime.evaluate(&program, &initial_state)?;
-    dbg!("GOT PAST RUNTIME ");
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 
