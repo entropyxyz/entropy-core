@@ -383,26 +383,26 @@ pub mod pallet {
             _info: &DispatchInfoOf<Self::Call>,
             _len: usize,
         ) -> TransactionValidity {
-            if let Some(local_call) = call.is_sub_type() {
-                if let Call::confirm_register { sig_req_account, signing_subgroup } = local_call {
-                    let validator_stash =
-                        pallet_staking_extension::Pallet::<T>::threshold_to_stash(&who)
-                            .ok_or(InvalidTransaction::Custom(1))?;
+            if let Some(Call::confirm_register { sig_req_account, signing_subgroup }) =
+                call.is_sub_type()
+            {
+                let validator_stash =
+                    pallet_staking_extension::Pallet::<T>::threshold_to_stash(who)
+                        .ok_or(InvalidTransaction::Custom(1))?;
 
-                    let registering_info = Registering::<T>::get(&sig_req_account)
-                        .ok_or(InvalidTransaction::Custom(2))?;
-                    ensure!(
-                        !registering_info.confirmations.contains(&signing_subgroup),
-                        InvalidTransaction::Custom(3)
-                    );
-                    let signing_subgroup_addresses =
-                        pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
-                            .ok_or(InvalidTransaction::Custom(4))?;
-                    ensure!(
-                        signing_subgroup_addresses.contains(&validator_stash),
-                        InvalidTransaction::Custom(5)
-                    );
-                }
+                let registering_info =
+                    Registering::<T>::get(sig_req_account).ok_or(InvalidTransaction::Custom(2))?;
+                ensure!(
+                    !registering_info.confirmations.contains(signing_subgroup),
+                    InvalidTransaction::Custom(3)
+                );
+                let signing_subgroup_addresses =
+                    pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
+                        .ok_or(InvalidTransaction::Custom(4))?;
+                ensure!(
+                    signing_subgroup_addresses.contains(&validator_stash),
+                    InvalidTransaction::Custom(5)
+                );
             }
             Ok(ValidTransaction::default())
         }
