@@ -25,7 +25,6 @@ use subxt::{
     utils::{AccountId32 as subxtAccountId32, Static},
     OnlineClient,
 };
-
 use synedrion::{make_key_shares, sessions::PrehashedMessage, KeyShare, TestSchemeParams};
 use testing_utils::{constants::X25519_PUBLIC_KEYS, substrate_context::testing_context};
 use tokio::sync::{broadcast, mpsc};

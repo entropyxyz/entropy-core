@@ -186,7 +186,7 @@ async fn handle_initial_incoming_ws_message(
 
         if !listener.validators.iter().any(|(validator_account_id, validator_x25519_pk)| {
             validator_account_id == &signed_msg.account_id()
-                && validator_x25519_pk == &remote_public_key        
+                && validator_x25519_pk == &remote_public_key
         }) {
             // Make the signing process fail, since one of the commitee has misbehaved
             listeners.remove(&msg.session_id);
