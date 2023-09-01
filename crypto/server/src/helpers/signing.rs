@@ -15,7 +15,7 @@ use crate::{
     get_signer,
     sign_init::SignInit,
     signing_client::{
-        new_party::{Channels, ThresholdSigningService},
+        protocol_execution::{Channels, ThresholdSigningService},
         protocol_transport::{open_protocol_connections, Listener},
         ListenerState, ProtocolErr,
     },

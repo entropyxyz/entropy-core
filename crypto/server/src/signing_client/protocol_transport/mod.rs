@@ -214,7 +214,7 @@ fn get_ws_channels(
     let ws_channels = listener.subscribe(tss_account)?;
 
     if ws_channels.is_final {
-        // all subscribed, wake up the waiting listener in new_party
+        // all subscribed, wake up the waiting listener to execute the protocol
         let listener =
             listeners.remove(sig_uid).ok_or(SubscribeErr::NoListener("listener remove"))?;
         let (tx, broadcaster) = listener.into_broadcaster();

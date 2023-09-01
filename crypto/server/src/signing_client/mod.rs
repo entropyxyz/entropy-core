@@ -1,7 +1,7 @@
 //! Communicate with other threshold servers and carry out the signing and DKG protocols
 pub mod api;
 mod errors;
-pub(crate) mod new_party;
+pub(crate) mod protocol_execution;
 pub(crate) mod protocol_transport;
 
 use std::{
@@ -11,7 +11,7 @@ use std::{
 
 pub use self::{
     errors::*,
-    new_party::ProtocolMessage,
+    protocol_execution::ProtocolMessage,
     protocol_transport::{Listener, SubscribeMessage},
 };
 

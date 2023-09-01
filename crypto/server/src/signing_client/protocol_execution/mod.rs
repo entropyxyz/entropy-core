@@ -1,4 +1,4 @@
-//! protocol runner for the `new_party` api
+//! Handle execution of the signing and DKG protocols
 #![allow(dead_code)]
 mod context;
 pub mod execute_protocol;

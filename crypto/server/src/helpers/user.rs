@@ -16,7 +16,7 @@ use x25519_dalek::PublicKey;
 use crate::{
     chain_api::{entropy, EntropyConfig},
     signing_client::{
-        new_party::{execute_protocol::execute_dkg, Channels},
+        protocol_execution::{execute_protocol::execute_dkg, Channels},
         protocol_transport::{open_protocol_connections, Listener},
         ListenerState,
     },

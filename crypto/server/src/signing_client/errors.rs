@@ -11,7 +11,7 @@ use tokio::sync::oneshot::error::RecvError;
 
 use super::ProtocolMessage;
 
-/// Errors for the `new_party` API
+/// Errors for protocol execution
 #[derive(Debug, Error)]
 pub enum ProtocolErr {
     #[error("Kv error: {0}")]
