@@ -32,6 +32,7 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
 use serde::{Deserialize, Serialize};
 
 // TODO: JA remove all below temporary
+/// Hex encoded message hash used to retrieve a signature for a particular message
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Debug))]
 #[derive(Clone)]
 pub struct Message {

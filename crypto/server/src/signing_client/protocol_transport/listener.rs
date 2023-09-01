@@ -28,7 +28,7 @@ pub struct Listener {
     pub validators_info: Vec<ValidatorInfo>,
 }
 
-/// Channels between a remote party and the signing protocol
+/// Channels between a remote party and the signing or DKG protocol
 pub struct WsChannels {
     pub broadcast: broadcast::Receiver<ProtocolMessage>,
     pub tx: mpsc::Sender<ProtocolMessage>,
@@ -38,7 +38,6 @@ pub struct WsChannels {
 }
 
 impl Listener {
-    // TODO only pass validaitor info to reuse
     pub(crate) fn new(
         validators_info: Vec<ValidatorInfo>,
         my_id: &AccountId32,

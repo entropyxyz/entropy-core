@@ -23,7 +23,7 @@ use crate::{
     signing_client::{ProtocolMessage, SubscribeErr, WsError},
     user::api::ValidatorInfo,
     validation::SignedMessage,
-    AppState, SignerState, SUBSCRIBE_TIMEOUT_SECONDS,
+    AppState, ListenerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
 
 /// Set up websocket connections to other members of the signing committee
@@ -32,7 +32,7 @@ pub async fn open_protocol_connections(
     session_uid: &str,
     my_id: &PartyId,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-    state: &SignerState,
+    state: &ListenerState,
 ) -> Result<(), ProtocolErr> {
     let connect_to_validators = validators_info
         .iter()
@@ -166,7 +166,7 @@ async fn handle_initial_incoming_ws_message(
         return Err(SubscribeErr::InvalidSignature("Signature does not match party id."));
     }
 
-    if !app_state.signer_state.contains_listener(&msg.session_id)? {
+    if !app_state.listener_state.contains_listener(&msg.session_id)? {
         // Chain node hasn't yet informed this node of the party. Wait for a timeout and proceed
         // or fail below
         tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
@@ -176,7 +176,7 @@ async fn handle_initial_incoming_ws_message(
         // Check that the given public key matches the public key we got in the
         // UserTransactionRequest
         let mut listeners = app_state
-            .signer_state
+            .listener_state
             .listeners
             .lock()
             .map_err(|e| SubscribeErr::LockError(e.to_string()))?;
@@ -197,14 +197,14 @@ async fn handle_initial_incoming_ws_message(
     }
 
     let ws_channels =
-        get_ws_channels(&app_state.signer_state, &msg.session_id, &signed_msg.account_id())?;
+        get_ws_channels(&app_state.listener_state, &msg.session_id, &signed_msg.account_id())?;
 
     Ok((ws_channels, party_id))
 }
 
 /// Subscribe to get channels
 fn get_ws_channels(
-    state: &SignerState,
+    state: &ListenerState,
     sig_uid: &str,
     tss_account: &AccountId32,
 ) -> Result<WsChannels, SubscribeErr> {

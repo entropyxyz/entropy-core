@@ -17,7 +17,7 @@ use crate::{
     signing_client::{
         new_party::{Channels, ThresholdSigningService},
         protocol_transport::{open_protocol_connections, Listener},
-        ProtocolErr, SignerState,
+        ListenerState, ProtocolErr,
     },
     user::api::UserTransactionRequest,
     validation::mnemonic_to_pair,
@@ -79,7 +79,7 @@ impl Default for SignatureState {
 pub async fn do_signing(
     message: UserTransactionRequest,
     sig_hash: String,
-    state: &SignerState,
+    state: &ListenerState,
     kv_manager: &KvManager,
     signatures: &SignatureState,
     tx_id: String,

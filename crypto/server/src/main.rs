@@ -151,7 +151,7 @@ use validator::api::get_random_server_info;
 
 use self::{
     chain_api::get_api,
-    signing_client::{api::*, SignerState},
+    signing_client::{api::*, ListenerState},
     user::api::*,
 };
 use crate::{
@@ -174,7 +174,7 @@ use crate::{
 
 #[derive(Clone)]
 pub struct AppState {
-    pub signer_state: SignerState,
+    pub listener_state: ListenerState,
     pub configuration: Configuration,
     pub kv_store: KvManager,
     pub signature_state: SignatureState,
@@ -186,13 +186,13 @@ async fn main() {
 
     let args = StartupArgs::parse();
 
-    let signer_state = SignerState::default();
+    let listener_state = ListenerState::default();
     let configuration = Configuration::new(args.chain_endpoint);
     let kv_store = load_kv_store(args.bob, args.alice, args.no_password).await;
     let signature_state = SignatureState::new();
 
     let app_state = AppState {
-        signer_state,
+        listener_state,
         configuration: configuration.clone(),
         kv_store: kv_store.clone(),
         signature_state,

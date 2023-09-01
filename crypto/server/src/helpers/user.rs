@@ -18,7 +18,7 @@ use crate::{
     signing_client::{
         new_party::{execute_protocol::execute_dkg, Channels},
         protocol_transport::{open_protocol_connections, Listener},
-        SignerState,
+        ListenerState,
     },
     user::{
         api::{UserRegistrationInfo, ValidatorInfo},
@@ -30,7 +30,7 @@ use crate::{
 pub async fn do_dkg(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-    state: &SignerState,
+    state: &ListenerState,
     session_uid: String,
     my_subgroup: &u8,
 ) -> Result<KeyShare<KeyParams>, UserErr> {

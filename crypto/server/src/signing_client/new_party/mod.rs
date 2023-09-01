@@ -16,13 +16,13 @@ pub use self::{
 use crate::{
     helpers::signing::{RecoverableSignature, SignatureState},
     sign_init::SignInit,
-    signing_client::{ProtocolErr, SignerState},
+    signing_client::{ListenerState, ProtocolErr},
 };
 
-/// Thin wrapper around `SignerState`, manages execution of a signing party.
+/// Thin wrapper around [ListenerState], manages execution of a signing party.
 #[derive(Clone)]
 pub struct ThresholdSigningService<'a> {
-    pub state: &'a SignerState,
+    pub state: &'a ListenerState,
     pub kv_manager: &'a KvManager,
 }
 
@@ -34,7 +34,7 @@ impl std::fmt::Debug for ThresholdSigningService<'_> {
 }
 
 impl<'a> ThresholdSigningService<'a> {
-    pub fn new(state: &'a SignerState, kv_manager: &'a KvManager) -> Self {
+    pub fn new(state: &'a ListenerState, kv_manager: &'a KvManager) -> Self {
         {
             Self { state, kv_manager }
         }

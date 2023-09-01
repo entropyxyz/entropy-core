@@ -53,7 +53,7 @@ use crate::{
         user::{do_dkg, send_key},
         validator::get_signer,
     },
-    signing_client::{ProtocolErr, SignerState},
+    signing_client::{ListenerState, ProtocolErr},
     validation::SignedMessage,
     AppState, Configuration,
 };
@@ -137,7 +137,7 @@ pub async fn sign_tx(
                 let signing_protocol_output = do_signing(
                     user_tx_req,
                     sig_hash,
-                    &app_state.signer_state,
+                    &app_state.listener_state,
                     &app_state.kv_store,
                     &app_state.signature_state,
                     tx_id,
@@ -192,7 +192,7 @@ pub async fn new_user(
         let key_share = do_dkg(
             &data.validators_info,
             &signer,
-            &app_state.signer_state,
+            &app_state.listener_state,
             sig_request_address.to_string(),
             &my_subgroup,
         )
