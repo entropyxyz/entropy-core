@@ -88,6 +88,7 @@ pub struct UserRegistrationInfo {
     /// User threshold signing key
     pub value: Vec<u8>,
 }
+
 /// Called by a user to initiate the signing process for a message
 ///
 /// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
@@ -216,6 +217,8 @@ pub async fn new_user(
     Ok(StatusCode::OK)
 }
 
+/// HTTP POST endpoint to recieve a keyshare from another threshold server in the same
+/// signing subgroup. Takes a [UserRegistrationInfo] wrapped in a [SignedMessage].
 pub async fn receive_key(
     State(app_state): State<AppState>,
     Json(signed_msg): Json<SignedMessage>,
