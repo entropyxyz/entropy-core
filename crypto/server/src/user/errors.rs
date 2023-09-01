@@ -13,7 +13,7 @@ use tokio::sync::oneshot::error::RecvError;
 
 use crate::{
     chain_api::entropy,
-    signing_client::{SigningErr, SubscribeErr},
+    signing_client::{ProtocolErr, SubscribeErr},
 };
 
 #[derive(Debug, Error)]
@@ -46,8 +46,8 @@ pub enum UserErr {
     InvalidSignature(&'static str),
     #[error("Constraints error: {0}")]
     ConstraintsError(#[from] ConstraintsError),
-    #[error("Signing error: {0}")]
-    SigningClientError(#[from] SigningErr),
+    #[error("Signing/DKG protocol error: {0}")]
+    SigningClientError(#[from] ProtocolErr),
     #[error("Transaction request unable to be deserialized: {0}")]
     StringConversion(#[from] FromUtf8Error),
     #[error("Account unable to be deserialized: {0}")]

@@ -41,7 +41,7 @@ use crate::{
         substrate::{get_subgroup, make_register},
         tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
     },
-    signing_client::SignerState,
+    signing_client::ListenerState,
     validation::SignedMessage,
     AppState,
 };
@@ -52,10 +52,10 @@ pub async fn setup_client() {
             .unwrap();
     let _ = setup_mnemonic(&kv_store, true, false).await;
     let _ = setup_latest_block_number(&kv_store).await;
-    let signer_state = SignerState::default();
+    let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let signature_state = SignatureState::new();
-    let app_state = AppState { signer_state, configuration, kv_store, signature_state };
+    let app_state = AppState { listener_state, configuration, kv_store, signature_state };
     let app = app(app_state).into_make_service();
     let listener = TcpListener::bind("0.0.0.0:3001").unwrap();
 
@@ -71,7 +71,7 @@ pub async fn create_clients(
     is_alice: bool,
     is_bob: bool,
 ) -> (IntoMakeService<Router>, KvManager) {
-    let signer_state = SignerState::default();
+    let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let signature_state = SignatureState::new();
 
@@ -89,7 +89,7 @@ pub async fn create_clients(
     }
 
     let app_state =
-        AppState { signer_state, configuration, kv_store: kv_store.clone(), signature_state };
+        AppState { listener_state, configuration, kv_store: kv_store.clone(), signature_state };
 
     let app = app(app_state).into_make_service();
 

@@ -56,7 +56,7 @@ use crate::{
     r#unsafe::api::UnsafeQuery,
     signing_client::{
         protocol_transport::{noise::noise_handshake_initiator, WsConnection},
-        SignerState, SubscribeMessage,
+        ListenerState, SubscribeMessage,
     },
     user::{
         api::{UserRegistrationInfo, UserTransactionRequest, ValidatorInfo},

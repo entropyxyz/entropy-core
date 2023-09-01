@@ -15,9 +15,9 @@ use crate::{
     get_signer,
     sign_init::SignInit,
     signing_client::{
-        new_party::{Channels, ThresholdSigningService},
+        protocol_execution::{Channels, ThresholdSigningService},
         protocol_transport::{open_protocol_connections, Listener},
-        SignerState, SigningErr,
+        ListenerState, ProtocolErr,
     },
     user::api::UserTransactionRequest,
     validation::mnemonic_to_pair,
@@ -79,16 +79,16 @@ impl Default for SignatureState {
 pub async fn do_signing(
     message: UserTransactionRequest,
     sig_hash: String,
-    state: &SignerState,
+    state: &ListenerState,
     kv_manager: &KvManager,
     signatures: &SignatureState,
     tx_id: String,
     user_address: AccountId32,
-) -> Result<RecoverableSignature, SigningErr> {
+) -> Result<RecoverableSignature, ProtocolErr> {
     let info = SignInit::new(message.clone(), sig_hash.clone(), tx_id.clone(), user_address)?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let signer =
-        get_signer(kv_manager).await.map_err(|_| SigningErr::UserError("Error getting Signer"))?;
+        get_signer(kv_manager).await.map_err(|_| ProtocolErr::UserError("Error getting Signer"))?;
     let account_sp_core = AccountId32::new(*signer.account_id().clone().as_ref());
     let my_id = PartyId::new(account_sp_core.clone());
     // set up context for signing protocol execution
@@ -106,7 +106,7 @@ pub async fn do_signing(
     state
         .listeners
         .lock()
-		.map_err(|_| SigningErr::SessionError("Error getting lock".to_string()))?
+		.map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
         // TODO: using signature ID as session ID. Correct?
         .insert(sign_context.sign_init.sig_uid.clone(), listener);
 
@@ -127,9 +127,9 @@ pub async fn do_signing(
     let raw = kv_manager.kv().get("MNEMONIC").await?;
     let secret = core::str::from_utf8(&raw)?;
     let mnemonic = Mnemonic::from_phrase(secret, Language::English)
-        .map_err(|e| SigningErr::Mnemonic(e.to_string()))?;
-    let threshold_signer =
-        mnemonic_to_pair(&mnemonic).map_err(|_| SigningErr::SecretString("Secret String Error"))?;
+        .map_err(|e| ProtocolErr::Mnemonic(e.to_string()))?;
+    let threshold_signer = mnemonic_to_pair(&mnemonic)
+        .map_err(|_| ProtocolErr::SecretString("Secret String Error"))?;
 
     let result = signing_service
         .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)

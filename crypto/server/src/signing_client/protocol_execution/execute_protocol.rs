@@ -19,9 +19,9 @@ use synedrion::{
 use tokio::sync::mpsc;
 use tracing::instrument;
 
-use crate::signing_client::{SigningErr, SigningMessage};
+use crate::signing_client::{ProtocolErr, ProtocolMessage};
 
-pub type ChannelIn = mpsc::Receiver<super::SigningMessage>;
+pub type ChannelIn = mpsc::Receiver<super::ProtocolMessage>;
 pub type ChannelOut = crate::signing_client::protocol_transport::Broadcaster;
 
 /// Thin wrapper broadcasting channel out and messages from other nodes in
@@ -59,13 +59,13 @@ impl PrehashVerifier<sr25519::Signature> for VerifierWrapper {
 
 /// execute threshold signing protocol.
 #[instrument(skip(chans, threshold_signer))]
-pub(super) async fn execute_protocol(
+pub(super) async fn execute_signing_protocol(
     mut chans: Channels,
     key_share: &KeyShare<KeyParams>,
     prehashed_message: &PrehashedMessage,
     threshold_signer: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
-) -> Result<RecoverableSignature, SigningErr> {
+) -> Result<RecoverableSignature, ProtocolErr> {
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_idx = key_share.party_index();
@@ -101,29 +101,33 @@ pub(super) async fn execute_protocol(
         key_share,
         prehashed_message,
     )
-    .map_err(SigningErr::SessionCreationError)?;
+    .map_err(ProtocolErr::SessionCreationError)?;
 
     loop {
         let (mut receiving, to_send) =
-            sending.start_receiving(&mut OsRng).map_err(SigningErr::ProtocolExecution)?;
+            sending.start_receiving(&mut OsRng).map_err(ProtocolErr::ProtocolExecution)?;
 
         match to_send {
             ToSend::Broadcast(message) => {
-                tx.send(SigningMessage::new_bcast(my_id, message))?;
+                tx.send(ProtocolMessage::new_bcast(my_id, message))?;
             },
             ToSend::Direct(msgs) =>
                 for (id_to, message) in msgs.into_iter() {
-                    tx.send(SigningMessage::new_p2p(my_id, &party_ids[id_to.as_usize()], message))?;
+                    tx.send(ProtocolMessage::new_p2p(
+                        my_id,
+                        &party_ids[id_to.as_usize()],
+                        message,
+                    ))?;
                 },
         };
 
         while receiving.has_cached_messages() {
-            receiving.receive_cached_message().map_err(SigningErr::ProtocolExecution)?;
+            receiving.receive_cached_message().map_err(ProtocolErr::ProtocolExecution)?;
         }
 
         while !receiving.can_finalize() {
             let signing_message = rx.recv().await.ok_or_else(|| {
-                SigningErr::IncomingStream(format!("{:?}", receiving.current_stage()))
+                ProtocolErr::IncomingStream(format!("{:?}", receiving.current_stage()))
             })?;
 
             // TODO: we shouldn't send broadcasts to ourselves in the first place.
@@ -133,10 +137,10 @@ pub(super) async fn execute_protocol(
             let from_idx = id_to_index[&signing_message.from];
             receiving
                 .receive(from_idx, signing_message.payload)
-                .map_err(SigningErr::ProtocolExecution)?;
+                .map_err(ProtocolErr::ProtocolExecution)?;
         }
 
-        match receiving.finalize(&mut OsRng).map_err(SigningErr::ProtocolExecution)? {
+        match receiving.finalize(&mut OsRng).map_err(ProtocolErr::ProtocolExecution)? {
             FinalizeOutcome::Result(res) => break Ok(res),
             FinalizeOutcome::AnotherRound(new_sending) => sending = new_sending,
         }
@@ -150,7 +154,7 @@ pub async fn execute_dkg(
     threshold_signer: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
     my_idx: &u8,
-) -> Result<KeyShare<KeyParams>, SigningErr> {
+) -> Result<KeyShare<KeyParams>, ProtocolErr> {
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());
@@ -183,19 +187,19 @@ pub async fn execute_dkg(
         &verifiers,
         PartyIdx::from_usize(*my_idx as usize),
     )
-    .map_err(SigningErr::SessionCreationError)?;
+    .map_err(ProtocolErr::SessionCreationError)?;
 
     loop {
         let (mut receiving, to_send) =
-            sending.start_receiving(&mut OsRng).map_err(SigningErr::ProtocolExecution)?;
+            sending.start_receiving(&mut OsRng).map_err(ProtocolErr::ProtocolExecution)?;
 
         match to_send {
             ToSend::Broadcast(message) => {
-                tx.send(SigningMessage::new_bcast(&my_id, message))?;
+                tx.send(ProtocolMessage::new_bcast(&my_id, message))?;
             },
             ToSend::Direct(msgs) =>
                 for (id_to, message) in msgs.into_iter() {
-                    tx.send(SigningMessage::new_p2p(
+                    tx.send(ProtocolMessage::new_p2p(
                         &my_id,
                         &party_ids[id_to.as_usize()],
                         message,
@@ -204,12 +208,12 @@ pub async fn execute_dkg(
         };
 
         while receiving.has_cached_messages() {
-            receiving.receive_cached_message().map_err(SigningErr::ProtocolExecution)?;
+            receiving.receive_cached_message().map_err(ProtocolErr::ProtocolExecution)?;
         }
 
         while !receiving.can_finalize() {
             let signing_message = rx.recv().await.ok_or_else(|| {
-                SigningErr::IncomingStream(format!("{:?}", receiving.current_stage()))
+                ProtocolErr::IncomingStream(format!("{:?}", receiving.current_stage()))
             })?;
 
             // TODO: we shouldn't send broadcasts to ourselves in the first place.
@@ -219,10 +223,10 @@ pub async fn execute_dkg(
             let from_idx = id_to_index[&signing_message.from];
             receiving
                 .receive(from_idx, signing_message.payload)
-                .map_err(SigningErr::ProtocolExecution)?;
+                .map_err(ProtocolErr::ProtocolExecution)?;
         }
 
-        match receiving.finalize(&mut OsRng).map_err(SigningErr::ProtocolExecution)? {
+        match receiving.finalize(&mut OsRng).map_err(ProtocolErr::ProtocolExecution)? {
             FinalizeOutcome::Result(res) => break Ok(res),
             FinalizeOutcome::AnotherRound(new_sending) => sending = new_sending,
         }
