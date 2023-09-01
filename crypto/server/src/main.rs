@@ -16,20 +16,6 @@
 //! Most user-facing endpoints take a [SignedMessage](crate::validation::SignedMessage) which
 //! is an encrypted, signed message.
 //!
-//! #### `/user/new` - POST
-//!
-//! [crate::user::api::new_user()]
-//!
-//! Called by a user when registering to submit a key-share. Takes a [Synedrion
-//! keyshare](synedrion::KeyShare) encrypted in a `SignedMessage`.
-//!
-//! Curl example for `user/new`:
-//! ```text
-//! curl -X POST -H "Content-Type: application/json" \
-//!   -d '{"msg" "0x174...hex encoded signedmessage...","sig":"821754409744cbb878b44bd1e3dc575a4ea721e12d781b074fcdb808fc79fd33dd1928b1a281c0b6261a30536a7c0106a102f27dad1bc3ef475b626f0e57c983","pk":[172,133,159,138,33,110,235,27,50,11,76,118,209,24,218,61,116,7,250,82,52,132,208,169,128,18,109,59,77,13,34,10],"recip":[10,192,41,240,184,83,178,59,237,101,45,109,13,230,155,124,195,141,148,249,55,50,238,252,133,181,134,30,144,247,58,34],"a":[169,94,23,7,19,184,134,70,233,117,2,84,242,135,246,95,159,14,218,125,209,191,175,89,41,196,182,96,117,5,159,98],"nonce":[114,93,158,35,209,188,96,248,85,131,95,237]}' \
-//!   -H "Accept: application/json" \
-//!   http://127.0.0.1:3001/user/new
-//! ```
 //!
 //! #### `/user/sign_tx` - POST
 //!
@@ -95,8 +81,19 @@
 //!
 //! ### For the blockchain node
 //!
+//! #### `/user/new` - POST
+//!
+//! [crate::user::api::new_user()]
+//!
+//! Called by the off-chain worker (propagation pallet) during user registration.
+//! This takes a parity scale encoded [entropy_shared::types::OcwMessage] which tells us which
+//! validators are in the registration group and will perform a DKG.
+//!
 //! ### For other instances of the threshold server
 //!
+//! - [`/user/receive_key`](receive_key) - recieve a keyshare from another threshold server in the
+//!   same signing subgroup. Takes a [UserRegistrationInfo] wrapped in a
+//!   [crate::validation::SignedMessage].
 //! - [`/ws`](crate::signing_client::api::ws_handler()) - Websocket server for signing protocol
 //! messages. This is opened by other threshold servers when the signing procotol is initiated.
 //! - [`/validator/sync_kvdb`](crate::validator::api::sync_kvdb()) - POST - Called by another
