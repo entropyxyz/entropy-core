@@ -53,7 +53,7 @@ use crate::{
         user::{do_dkg, send_key},
         validator::get_signer,
     },
-    signing_client::{SignerState, SigningErr},
+    signing_client::{ListenerState, ProtocolErr},
     validation::SignedMessage,
     AppState, Configuration,
 };
@@ -88,6 +88,7 @@ pub struct UserRegistrationInfo {
     /// User threshold signing key
     pub value: Vec<u8>,
 }
+
 /// Called by a user to initiate the signing process for a message
 ///
 /// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
@@ -194,7 +195,7 @@ pub async fn new_user(
         let key_share = do_dkg(
             &data.validators_info,
             &signer,
-            &app_state.signer_state,
+            &app_state.listener_state,
             sig_request_address.to_string(),
             &my_subgroup,
         )
@@ -218,6 +219,8 @@ pub async fn new_user(
     Ok(StatusCode::OK)
 }
 
+/// HTTP POST endpoint to recieve a keyshare from another threshold server in the same
+/// signing subgroup. Takes a [UserRegistrationInfo] wrapped in a [SignedMessage].
 pub async fn receive_key(
     State(app_state): State<AppState>,
     Json(signed_msg): Json<SignedMessage>,

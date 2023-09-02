@@ -16,14 +16,14 @@ use x25519_dalek::PublicKey;
 
 use self::noise::{noise_handshake_initiator, noise_handshake_responder, EncryptedWsConnection};
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
-use super::SigningErr;
+use super::ProtocolErr;
 use crate::{
     chain_api::EntropyConfig,
     get_signer,
-    signing_client::{SigningMessage, SubscribeErr, WsError},
+    signing_client::{ProtocolMessage, SubscribeErr, WsError},
     user::api::ValidatorInfo,
     validation::SignedMessage,
-    AppState, SignerState, SUBSCRIBE_TIMEOUT_SECONDS,
+    AppState, ListenerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
 
 /// Set up websocket connections to other members of the signing committee
@@ -32,8 +32,8 @@ pub async fn open_protocol_connections(
     session_uid: &str,
     my_id: &PartyId,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-    state: &SignerState,
-) -> Result<(), SigningErr> {
+    state: &ListenerState,
+) -> Result<(), ProtocolErr> {
     let connect_to_validators = validators_info
         .iter()
         .filter(|validators_info| {
@@ -63,16 +63,16 @@ pub async fn open_protocol_connections(
                 subscribe_message_vec,
             )
             .await
-            .map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
+            .map_err(|e| ProtocolErr::EncryptedConnection(e.to_string()))?;
 
             // Check the response as to whether they accepted our SubscribeMessage
             let response_message = encrypted_connection
                 .recv()
                 .await
-                .map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
+                .map_err(|e| ProtocolErr::EncryptedConnection(e.to_string()))?;
             let subscribe_response: Result<(), String> = serde_json::from_str(&response_message)?;
             if let Err(error_message) = subscribe_response {
-                return Err(SigningErr::BadSubscribeMessage(error_message));
+                return Err(ProtocolErr::BadSubscribeMessage(error_message));
             }
 
             // Setup channels
@@ -89,7 +89,7 @@ pub async fn open_protocol_connections(
                 };
             });
 
-            Ok::<_, SigningErr>(())
+            Ok::<_, ProtocolErr>(())
         })
         .collect::<Vec<_>>();
 
@@ -166,7 +166,7 @@ async fn handle_initial_incoming_ws_message(
         return Err(SubscribeErr::InvalidSignature("Signature does not match party id."));
     }
 
-    if !app_state.signer_state.contains_listener(&msg.session_id)? {
+    if !app_state.listener_state.contains_listener(&msg.session_id)? {
         // Chain node hasn't yet informed this node of the party. Wait for a timeout and proceed
         // or fail below
         tracing::warn!("Cannot find associated listener - waiting");
@@ -177,7 +177,7 @@ async fn handle_initial_incoming_ws_message(
         // Check that the given public key matches the public key we got in the
         // UserTransactionRequest
         let mut listeners = app_state
-            .signer_state
+            .listener_state
             .listeners
             .lock()
             .map_err(|e| SubscribeErr::LockError(e.to_string()))?;
@@ -196,15 +196,15 @@ async fn handle_initial_incoming_ws_message(
         }
     }
     let ws_channels =
-        get_ws_channels(&app_state.signer_state, &msg.session_id, &signed_msg.account_id())?;
+        get_ws_channels(&app_state.listener_state, &msg.session_id, &signed_msg.account_id())?;
 
     Ok((ws_channels, party_id))
 }
 
 /// Inform the listener we have made a ws connection to another signing party, and get channels to
 /// the signing protocol
-pub fn get_ws_channels(
-    state: &SignerState,
+fn get_ws_channels(
+    state: &ListenerState,
     sig_uid: &str,
     tss_account: &AccountId32,
 ) -> Result<WsChannels, SubscribeErr> {
@@ -214,7 +214,7 @@ pub fn get_ws_channels(
     let ws_channels = listener.subscribe(tss_account)?;
 
     if ws_channels.is_final {
-        // all subscribed, wake up the waiting listener in new_party
+        // all subscribed, wake up the waiting listener to execute the protocol
         let listener =
             listeners.remove(sig_uid).ok_or(SubscribeErr::NoListener("listener remove"))?;
         let (tx, broadcaster) = listener.into_broadcaster();
@@ -234,7 +234,7 @@ pub async fn ws_to_channels(
             // Incoming message from remote peer
             signing_message_result = connection.recv() => {
                 let serialized_signing_message = signing_message_result.map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
-                let msg = SigningMessage::try_from(&serialized_signing_message)?;
+                let msg = ProtocolMessage::try_from(&serialized_signing_message)?;
                 ws_channels.tx.send(msg).await.map_err(|_| WsError::MessageAfterProtocolFinish)?;
             }
             // Outgoing message (from signing protocol to remote peer)

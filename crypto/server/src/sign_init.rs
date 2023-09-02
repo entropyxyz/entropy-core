@@ -4,7 +4,7 @@ use sp_core::crypto::AccountId32;
 use synedrion::sessions::PrehashedMessage;
 
 use crate::{
-    signing_client::SigningErr,
+    signing_client::ProtocolErr,
     user::api::{UserTransactionRequest, ValidatorInfo},
 };
 
@@ -31,10 +31,10 @@ impl SignInit {
         sig_hash: String,
         tx_id: String,
         user: AccountId32,
-    ) -> Result<Self, SigningErr> {
+    ) -> Result<Self, ProtocolErr> {
         let digest: PrehashedMessage = hex::decode(sig_hash)?
             .try_into()
-            .map_err(|_| SigningErr::Conversion("Digest Conversion"))?;
+            .map_err(|_| ProtocolErr::Conversion("Digest Conversion"))?;
 
         Ok(Self {
             sig_uid: tx_id,

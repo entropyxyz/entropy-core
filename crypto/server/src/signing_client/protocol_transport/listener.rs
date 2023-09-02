@@ -8,7 +8,7 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 
 use super::Broadcaster;
 use crate::{
-    signing_client::{SigningMessage, SubscribeErr},
+    signing_client::{ProtocolMessage, SubscribeErr},
     user::api::ValidatorInfo,
 };
 
@@ -19,31 +19,30 @@ pub type ListenerResult = Result<Broadcaster, SubscribeErr>;
 #[derive(Debug)]
 pub struct Listener {
     /// Endpoint to create subscriptions
-    tx: broadcast::Sender<SigningMessage>,
+    tx: broadcast::Sender<ProtocolMessage>,
     /// Messages
-    tx_to_others: mpsc::Sender<SigningMessage>,
+    tx_to_others: mpsc::Sender<ProtocolMessage>,
     /// Endpoint to notify protocol execution ready-for-signing
     tx_ready: oneshot::Sender<ListenerResult>,
     /// Remaining validators we want to connect to
     pub validators: HashMap<AccountId32, X25519PublicKey>,
 }
 
-/// Channels between a remote party and the signing protocol
+/// Channels between a remote party and the signing or DKG protocol
 pub struct WsChannels {
-    pub broadcast: broadcast::Receiver<SigningMessage>,
-    pub tx: mpsc::Sender<SigningMessage>,
+    pub broadcast: broadcast::Receiver<ProtocolMessage>,
+    pub tx: mpsc::Sender<ProtocolMessage>,
     /// A flag to show that this is the last connection to be set up, and we can proceed with the
     /// protocol
     pub is_final: bool,
 }
 
 impl Listener {
-    // TODO only pass validaitor info to reuse
     pub(crate) fn new(
         validators_info: Vec<ValidatorInfo>,
         my_id: &AccountId32,
         user_participates: Option<(AccountId32, X25519PublicKey)>,
-    ) -> (oneshot::Receiver<ListenerResult>, mpsc::Receiver<SigningMessage>, Self) {
+    ) -> (oneshot::Receiver<ListenerResult>, mpsc::Receiver<ProtocolMessage>, Self) {
         let (tx_ready, rx_ready) = oneshot::channel();
         let (tx, _rx) = broadcast::channel(1000);
         let (tx_to_others, rx_to_others) = mpsc::channel(1000);

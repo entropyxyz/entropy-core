@@ -46,12 +46,12 @@ use crate::{
         tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
     },
     signing_client::{
-        new_party::{signing_protocol, Channels},
+        protocol_execution::{execute_protocol, Channels},
         protocol_transport::{
             listener::WsChannels, noise::noise_handshake_initiator, ws_to_channels, Broadcaster,
             WsConnection,
         },
-        SignerState, SigningErr, SubscribeMessage,
+        ListenerState, ProtocolErr, SubscribeMessage,
     },
     user::api::ValidatorInfo,
     validation::SignedMessage,
@@ -64,10 +64,10 @@ pub async fn setup_client() {
             .unwrap();
     let _ = setup_mnemonic(&kv_store, true, false).await;
     let _ = setup_latest_block_number(&kv_store).await;
-    let signer_state = SignerState::default();
+    let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let signature_state = SignatureState::new();
-    let app_state = AppState { signer_state, configuration, kv_store, signature_state };
+    let app_state = AppState { listener_state, configuration, kv_store, signature_state };
     let app = app(app_state).into_make_service();
     let listener = TcpListener::bind("0.0.0.0:3001").unwrap();
 
@@ -83,7 +83,7 @@ pub async fn create_clients(
     is_alice: bool,
     is_bob: bool,
 ) -> (IntoMakeService<Router>, KvManager) {
-    let signer_state = SignerState::default();
+    let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let signature_state = SignatureState::new();
 
@@ -101,7 +101,7 @@ pub async fn create_clients(
     }
 
     let app_state =
-        AppState { signer_state, configuration, kv_store: kv_store.clone(), signature_state };
+        AppState { listener_state, configuration, kv_store: kv_store.clone(), signature_state };
 
     let app = app(app_state).into_make_service();
 
@@ -347,7 +347,7 @@ pub async fn user_connects_to_validators(
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
     converted_transaction_request: &str,
-) -> Result<RecoverableSignature, SigningErr> {
+) -> Result<RecoverableSignature, ProtocolErr> {
     // Set up channels for communication between signing protocol and other signing parties
     let (tx, _rx) = broadcast::channel(1000);
     let (tx_to_others, rx_to_others) = mpsc::channel(1000);
@@ -382,17 +382,17 @@ pub async fn user_connects_to_validators(
                 subscribe_message_vec,
             )
             .await
-            .map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
+            .map_err(|e| ProtocolErr::EncryptedConnection(e.to_string()))?;
 
             // Check the response as to whether they accepted our SubscribeMessage
             let response_message = encrypted_connection
                 .recv()
                 .await
-                .map_err(|e| SigningErr::EncryptedConnection(e.to_string()))?;
+                .map_err(|e| ProtocolErr::EncryptedConnection(e.to_string()))?;
 
             let subscribe_response: Result<(), String> = serde_json::from_str(&response_message)?;
             if let Err(error_message) = subscribe_response {
-                return Err(SigningErr::BadSubscribeMessage(error_message));
+                return Err(ProtocolErr::BadSubscribeMessage(error_message));
             }
 
             // Setup channels
@@ -413,7 +413,7 @@ pub async fn user_connects_to_validators(
                 };
             });
 
-            Ok::<_, SigningErr>(())
+            Ok::<_, ProtocolErr>(())
         })
         .collect::<Vec<_>>();
 
@@ -434,10 +434,10 @@ pub async fn user_connects_to_validators(
 
     let digest: PrehashedMessage = hex::decode(sig_hash)?
         .try_into()
-        .map_err(|_| SigningErr::Conversion("Digest Conversion"))?;
+        .map_err(|_| ProtocolErr::Conversion("Digest Conversion"))?;
 
     // Execute the signing protocol
-    let rsig = signing_protocol::execute_protocol(
+    let rsig = execute_protocol::execute_signing_protocol(
         channels,
         key_share,
         &digest,
