@@ -50,8 +50,8 @@ use crate::{
         signing::{create_unique_tx_id, SignatureState},
         substrate::{make_register, return_all_addresses_of_subgroup},
         tests::{
-            check_if_confirmation, create_clients, register_user, setup_client,
-            spawn_testing_validators, update_constraints, user_connects_to_validators,
+            check_if_confirmation, create_clients, setup_client, spawn_testing_validators,
+            update_constraints, user_connects_to_validators,
         },
         user::send_key,
     },

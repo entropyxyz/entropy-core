@@ -6,7 +6,7 @@ use std::{net::TcpListener, time::Duration};
 use axum::{routing::IntoMakeService, Router};
 use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::KeyVisibility;
-use futures::future::{self, join_all};
+use futures::future;
 use kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
@@ -17,16 +17,13 @@ use rand_core::OsRng;
 use serial_test::serial;
 use sp_core::crypto::AccountId32;
 use subxt::{
-    ext::sp_core::{
-        sr25519::{self},
-        Bytes, Pair,
-    },
+    ext::sp_core::{sr25519, Bytes, Pair},
     tx::PairSigner,
     utils::{AccountId32 as subxtAccountId32, Static},
     OnlineClient,
 };
 use synedrion::{sessions::PrehashedMessage, KeyShare};
-use testing_utils::{constants::X25519_PUBLIC_KEYS, substrate_context::testing_context};
+use testing_utils::substrate_context::testing_context;
 use tokio::sync::{broadcast, mpsc};
 use tokio_tungstenite::connect_async;
 use x25519_dalek::PublicKey;
@@ -42,7 +39,7 @@ use crate::{
             DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::SignatureState,
-        substrate::{get_subgroup, make_register},
+        substrate::get_subgroup,
         tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
     },
     signing_client::{
@@ -170,101 +167,6 @@ pub async fn spawn_testing_validators(
     (ips, ids, user_keyshare_option)
 }
 
-/// Registers a new user on-chain, sends test threshold keys to to the server, and sets their
-/// initial constraints. This leaves the user in a state of "Registered", ready to submit
-/// transaction requests.
-///
-/// If key visibility is private, this will return the user's key share to be used when testing
-/// the user participating in the signing protocol.
-pub async fn register_user(
-    entropy_api: &OnlineClient<EntropyConfig>,
-    threshold_servers: &[String],
-    sig_req_keyring: &sr25519::Pair,
-    constraint_modification_account: &sr25519::Pair,
-    initial_constraints: Constraints,
-    key_visibility: KeyVisibility,
-) -> Option<KeyShare<KeyParams>> {
-    let validator1_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
-    let validator2_server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
-
-    let number_of_shares = if key_visibility == KeyVisibility::Private { 3 } else { 2 };
-
-    let shares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, number_of_shares, None);
-
-    let validator_1_threshold_keyshare: Vec<u8> =
-        kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
-    let validator_2_threshold_keyshare: Vec<u8> =
-        kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
-
-    let user_owned_keyshare =
-        if key_visibility == KeyVisibility::Private { Some(shares[2].clone()) } else { None };
-
-    let register_body_alice_validator = SignedMessage::new(
-        sig_req_keyring,
-        &Bytes(validator_1_threshold_keyshare),
-        &validator1_server_public_key,
-    )
-    .unwrap()
-    .to_json();
-    let register_body_bob_validator = SignedMessage::new(
-        sig_req_keyring,
-        &Bytes(validator_2_threshold_keyshare),
-        &validator2_server_public_key,
-    )
-    .unwrap()
-    .to_json();
-
-    // call register() on-chain
-    make_register(
-        entropy_api,
-        sig_req_keyring.clone(),
-        &subxtAccountId32::from(constraint_modification_account.public()),
-        key_visibility,
-    )
-    .await;
-
-    // send threshold keys to server
-    let bodies = vec![register_body_alice_validator, register_body_bob_validator];
-    let new_user_server_res =
-        join_all(threshold_servers.iter().zip(bodies).map(|(ip_port, body)| {
-            let client = reqwest::Client::new();
-            let url = format!("http://{}/user/new", ip_port.clone());
-            client.post(url).header("Content-Type", "application/json").body(body).send()
-        }))
-        .await;
-    new_user_server_res.into_iter().for_each(|response| {
-        assert_eq!(response.unwrap().status(), 200);
-    });
-
-    // confirm that user is Registered
-    check_registered_status(entropy_api, &subxtAccountId32::from(sig_req_keyring.public())).await;
-
-    // update/set their constraints
-    let update_constraints_tx = entropy::tx()
-        .constraints()
-        .update_constraints(subxtAccountId32::from(sig_req_keyring.public()), initial_constraints);
-
-    let constraint_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(constraint_modification_account.clone());
-
-    entropy_api
-        .tx()
-        .sign_and_submit_then_watch_default(
-            &update_constraints_tx,
-            &constraint_modification_account,
-        )
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
-
-    user_owned_keyshare
-}
-
 pub async fn update_constraints(
     entropy_api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: &sr25519::Pair,
@@ -306,12 +208,6 @@ pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &sr25
     let is_registered =
         api.storage().at_latest().await.unwrap().fetch(&registered_query).await.unwrap();
     assert_eq!(is_registered.unwrap(), Static(KeyVisibility::Public));
-}
-
-/// Verify that a Registered account exists.
-pub async fn check_registered_status(api: &OnlineClient<EntropyConfig>, key: &subxtAccountId32) {
-    let registered_query = entropy::storage().relayer().registered(key);
-    api.storage().at_latest().await.unwrap().fetch(&registered_query).await.unwrap();
 }
 
 #[tokio::test]
