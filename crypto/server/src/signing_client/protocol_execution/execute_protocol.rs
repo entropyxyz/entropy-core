@@ -59,7 +59,7 @@ impl PrehashVerifier<sr25519::Signature> for VerifierWrapper {
 
 /// execute threshold signing protocol.
 #[instrument(skip(chans, threshold_signer))]
-pub(super) async fn execute_signing_protocol(
+pub async fn execute_signing_protocol(
     mut chans: Channels,
     key_share: &KeyShare<KeyParams>,
     prehashed_message: &PrehashedMessage,

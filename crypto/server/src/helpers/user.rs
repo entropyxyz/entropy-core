@@ -54,7 +54,7 @@ pub async fn do_dkg(
     }
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(converted_validator_info.clone(), &account_sp_core);
+        Listener::new(converted_validator_info.clone(), &account_sp_core, None);
     state
 	.listeners
 	.lock()

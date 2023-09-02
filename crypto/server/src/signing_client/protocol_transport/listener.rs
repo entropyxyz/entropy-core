@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 
+use entropy_shared::X25519PublicKey;
 use sp_core::crypto::AccountId32;
 use tokio::sync::{broadcast, mpsc, oneshot};
 
@@ -13,7 +14,8 @@ use crate::{
 
 pub type ListenerResult = Result<Broadcaster, SubscribeErr>;
 
-/// Tracks which validators we are connected to and sets up channels for exchaning protocol messages
+/// Tracks which validators we are connected to for a particular protocol execution
+/// and sets up channels for exchaning protocol messages
 #[derive(Debug)]
 pub struct Listener {
     /// Endpoint to create subscriptions
@@ -23,9 +25,7 @@ pub struct Listener {
     /// Endpoint to notify protocol execution ready-for-signing
     tx_ready: oneshot::Sender<ListenerResult>,
     /// Remaining validators we want to connect to
-    validators: HashSet<AccountId32>,
-    /// The Validator Info associated with this listener
-    pub validators_info: Vec<ValidatorInfo>,
+    pub validators: HashMap<AccountId32, X25519PublicKey>,
 }
 
 /// Channels between a remote party and the signing or DKG protocol
@@ -41,24 +41,28 @@ impl Listener {
     pub(crate) fn new(
         validators_info: Vec<ValidatorInfo>,
         my_id: &AccountId32,
+        user_participates: Option<(AccountId32, X25519PublicKey)>,
     ) -> (oneshot::Receiver<ListenerResult>, mpsc::Receiver<ProtocolMessage>, Self) {
         let (tx_ready, rx_ready) = oneshot::channel();
         let (tx, _rx) = broadcast::channel(1000);
         let (tx_to_others, rx_to_others) = mpsc::channel(1000);
 
-        // Create our set of validators we want to connect to - excluding ourself
-        let validators = validators_info
-            .iter()
-            .map(|validator_info| validator_info.tss_account.clone())
-            .filter(|id| id != my_id)
-            .collect();
+        // Create our set of validators we want too connect to - excluding ourself
+        let mut validators = HashMap::new();
+
+        for validator in validators_info {
+            if &validator.tss_account != my_id {
+                validators.insert(validator.tss_account, validator.x25519_public_key);
+            }
+        }
+
+        // If visibility is private, also expect the user to connect
+        if let Some((user_id, user_x25519_pk)) = user_participates {
+            validators.insert(user_id, user_x25519_pk);
+        }
 
         {
-            (
-                rx_ready,
-                rx_to_others,
-                Self { tx, tx_to_others, tx_ready, validators, validators_info },
-            )
+            (rx_ready, rx_to_others, Self { tx, tx_to_others, tx_ready, validators })
         }
     }
 
@@ -68,7 +72,7 @@ impl Listener {
         &mut self,
         account_id: &AccountId32,
     ) -> Result<WsChannels, SubscribeErr> {
-        if self.validators.remove(account_id) {
+        if self.validators.remove(account_id).is_some() {
             let broadcast = self.tx.subscribe();
             let tx = self.tx_to_others.clone();
             Ok(WsChannels { broadcast, tx, is_final: self.validators.is_empty() })

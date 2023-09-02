@@ -1,6 +1,6 @@
 //! Connect to other threshold servers over websocket for exchanging protocol messages
 mod broadcaster;
-mod listener;
+pub mod listener;
 mod message;
 pub mod noise;
 
@@ -169,6 +169,7 @@ async fn handle_initial_incoming_ws_message(
     if !app_state.listener_state.contains_listener(&msg.session_id)? {
         // Chain node hasn't yet informed this node of the party. Wait for a timeout and proceed
         // or fail below
+        tracing::warn!("Cannot find associated listener - waiting");
         tokio::time::sleep(std::time::Duration::from_secs(SUBSCRIBE_TIMEOUT_SECONDS)).await;
     };
 
@@ -183,10 +184,9 @@ async fn handle_initial_incoming_ws_message(
         let listener =
             listeners.get(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
 
-        let validators_info = &listener.validators_info;
-        if !validators_info.iter().any(|validator_info| {
-            validator_info.x25519_public_key == remote_public_key
-                && validator_info.tss_account == signed_msg.account_id()
+        if !listener.validators.iter().any(|(validator_account_id, validator_x25519_pk)| {
+            validator_account_id == &signed_msg.account_id()
+                && validator_x25519_pk == &remote_public_key
         }) {
             // Make the signing process fail, since one of the commitee has misbehaved
             listeners.remove(&msg.session_id);
@@ -195,14 +195,14 @@ async fn handle_initial_incoming_ws_message(
             ));
         }
     }
-
     let ws_channels =
         get_ws_channels(&app_state.listener_state, &msg.session_id, &signed_msg.account_id())?;
 
     Ok((ws_channels, party_id))
 }
 
-/// Subscribe to get channels
+/// Inform the listener we have made a ws connection to another signing party, and get channels to
+/// the signing protocol
 fn get_ws_channels(
     state: &ListenerState,
     sig_uid: &str,
@@ -224,7 +224,7 @@ fn get_ws_channels(
 }
 
 /// Send singing protocol messages over websocket, and websocket messages to signing protocol
-async fn ws_to_channels(
+pub async fn ws_to_channels(
     mut connection: EncryptedWsConnection,
     mut ws_channels: WsChannels,
     remote_party_id: PartyId,
