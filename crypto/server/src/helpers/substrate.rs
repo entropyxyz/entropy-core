@@ -1,5 +1,10 @@
 use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
-use subxt::{ext::sp_core::sr25519, tx::PairSigner, utils::{ AccountId32, Static }, Config, OnlineClient};
+use subxt::{
+    ext::sp_core::sr25519,
+    tx::PairSigner,
+    utils::{AccountId32, Static},
+    Config, OnlineClient,
+};
 
 use crate::{
     chain_api::{entropy, EntropyConfig},
