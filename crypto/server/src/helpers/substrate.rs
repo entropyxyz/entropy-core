@@ -2,7 +2,7 @@ use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 use subxt::{
     ext::sp_core::sr25519,
     tx::PairSigner,
-    utils::{AccountId32, Static},
+    utils::{AccountId32},
     Config, OnlineClient,
 };
 
