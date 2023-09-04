@@ -2,13 +2,13 @@
 
 use tokio::sync::broadcast::{self, error::SendError};
 
-use crate::signing_client::SigningMessage;
+use crate::signing_client::ProtocolMessage;
 
 #[derive(Debug)]
-pub struct Broadcaster(pub broadcast::Sender<SigningMessage>);
+pub struct Broadcaster(pub broadcast::Sender<ProtocolMessage>);
 
 impl Broadcaster {
-    pub fn send(&self, msg: SigningMessage) -> Result<usize, Box<SendError<SigningMessage>>> {
+    pub fn send(&self, msg: ProtocolMessage) -> Result<usize, Box<SendError<ProtocolMessage>>> {
         Ok(self.0.send(msg)?)
     }
 }

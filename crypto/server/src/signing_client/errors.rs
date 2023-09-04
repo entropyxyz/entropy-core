@@ -9,11 +9,11 @@ use kvdb::kv_manager::error::InnerKvError;
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
-use super::SigningMessage;
+use super::ProtocolMessage;
 
-/// Errors for the `new_party` API
+/// Errors for protocol execution
 #[derive(Debug, Error)]
-pub enum SigningErr {
+pub enum ProtocolErr {
     #[error("Kv error: {0}")]
     Kv(#[from] kvdb::kv_manager::error::KvError),
     #[error("Inner Kv error: {0}")]
@@ -44,7 +44,7 @@ pub enum SigningErr {
     #[error("reqwest event error: {0}")]
     ReqwestEvent(#[from] reqwest_eventsource::Error),
     #[error("Broadcast error: {0}")]
-    Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<SigningMessage>>),
+    Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
     #[error("anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
     #[error("Generic Substrate error: {0}")]
@@ -75,9 +75,11 @@ pub enum SigningErr {
     Timeout(#[from] tokio::time::error::Elapsed),
     #[error("Encrypted connection error {0}")]
     EncryptedConnection(String),
+    #[error("Program error: {0}")]
+    ProgramError(#[from] entropy_constraints::Error),
 }
 
-impl IntoResponse for SigningErr {
+impl IntoResponse for ProtocolErr {
     fn into_response(self) -> Response {
         let body = format!("{self}").into_bytes();
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
@@ -112,7 +114,7 @@ impl IntoResponse for SubscribeErr {
 
 // todo: delete
 #[derive(Debug, Error)]
-pub enum SigningMessageError {
+pub enum ProtocolMessageErr {
     #[error("Utf8Error: {0:?}")]
     Utf8(#[from] std::str::Utf8Error),
     #[error("Deserialization Error: {0:?}")]
@@ -138,7 +140,7 @@ pub enum WsError {
     #[error("Encrypted connection error {0}")]
     EncryptedConnection(String),
     #[error("Error parsing Signing Message")]
-    SigningMessage(#[from] SigningMessageError),
+    ProtocolMessage(#[from] ProtocolMessageErr),
     #[error("Serialization Error: {0:?}")]
     Serialization(#[from] serde_json::Error),
     #[error("Received bad subscribe message")]

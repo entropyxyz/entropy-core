@@ -5,8 +5,8 @@ use std::{
 };
 
 use bip39::{Language, Mnemonic};
-use entropy_shared::SETUP_TIMEOUT_SECONDS;
-use kvdb::kv_manager::{KvManager, PartyId};
+use entropy_shared::{KeyVisibility, X25519PublicKey, SETUP_TIMEOUT_SECONDS};
+use kvdb::kv_manager::PartyId;
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 use tokio::time::timeout;
@@ -15,12 +15,13 @@ use crate::{
     get_signer,
     sign_init::SignInit,
     signing_client::{
-        new_party::{Channels, ThresholdSigningService},
+        protocol_execution::{Channels, ThresholdSigningService},
         protocol_transport::{open_protocol_connections, Listener},
-        SignerState, SigningErr,
+        ProtocolErr,
     },
     user::api::UserTransactionRequest,
     validation::mnemonic_to_pair,
+    AppState,
 };
 
 #[derive(Clone, Debug)]
@@ -79,34 +80,50 @@ impl Default for SignatureState {
 pub async fn do_signing(
     message: UserTransactionRequest,
     sig_hash: String,
-    state: &SignerState,
-    kv_manager: &KvManager,
-    signatures: &SignatureState,
+    app_state: &AppState,
     tx_id: String,
     user_address: AccountId32,
-) -> Result<RecoverableSignature, SigningErr> {
-    let info = SignInit::new(message.clone(), sig_hash.clone(), tx_id.clone(), user_address)?;
+    user_x25519_public_key: &X25519PublicKey,
+    key_visibility: KeyVisibility,
+) -> Result<RecoverableSignature, ProtocolErr> {
+    let state = &app_state.listener_state;
+    let kv_manager = &app_state.kv_store;
+
+    let info =
+        SignInit::new(message.clone(), sig_hash.clone(), tx_id.clone(), user_address.clone())?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let signer =
-        get_signer(kv_manager).await.map_err(|_| SigningErr::UserError("Error getting Signer"))?;
+        get_signer(kv_manager).await.map_err(|_| ProtocolErr::UserError("Error getting Signer"))?;
     let account_sp_core = AccountId32::new(*signer.account_id().clone().as_ref());
     let my_id = PartyId::new(account_sp_core.clone());
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
 
-    let tss_accounts: Vec<AccountId32> = message
+    let mut tss_accounts: Vec<AccountId32> = message
         .validators_info
         .iter()
         .map(|validator_info| AccountId32::new(*validator_info.tss_account.clone().as_ref()))
         .collect();
 
+    if key_visibility == KeyVisibility::Private {
+        tss_accounts.push(user_address.clone());
+    }
+
+    // If key key visibility is private, pass the user's ID to the listener
+    let user_details_option = if key_visibility == KeyVisibility::Private {
+        Some((user_address, *user_x25519_public_key))
+    } else {
+        None
+    };
+
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(message.validators_info, &account_sp_core);
+        Listener::new(message.validators_info, &account_sp_core, user_details_option);
+
     state
         .listeners
         .lock()
-		.map_err(|_| SigningErr::SessionError("Error getting lock".to_string()))?
+		.map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
         // TODO: using signature ID as session ID. Correct?
         .insert(sign_context.sign_init.sig_uid.clone(), listener);
 
@@ -127,15 +144,19 @@ pub async fn do_signing(
     let raw = kv_manager.kv().get("MNEMONIC").await?;
     let secret = core::str::from_utf8(&raw)?;
     let mnemonic = Mnemonic::from_phrase(secret, Language::English)
-        .map_err(|e| SigningErr::Mnemonic(e.to_string()))?;
-    let threshold_signer =
-        mnemonic_to_pair(&mnemonic).map_err(|_| SigningErr::SecretString("Secret String Error"))?;
+        .map_err(|e| ProtocolErr::Mnemonic(e.to_string()))?;
+    let threshold_signer = mnemonic_to_pair(&mnemonic)
+        .map_err(|_| ProtocolErr::SecretString("Secret String Error"))?;
 
     let result = signing_service
         .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
         .await?;
 
-    signing_service.handle_result(&result, &hex::decode(sig_hash.clone())?, signatures);
+    signing_service.handle_result(
+        &result,
+        &hex::decode(sig_hash.clone())?,
+        &app_state.signature_state,
+    );
 
     Ok(result)
 }
