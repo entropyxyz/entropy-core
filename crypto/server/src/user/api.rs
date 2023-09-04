@@ -72,10 +72,7 @@ pub struct ValidatorInfo {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserTransactionRequest {
-    // TODO remove Arch now
-    /// 'eth', etc.
-    pub arch: String,
-    /// ETH: RLP encoded transaction request
+    /// Hex-encoded raw data to be signed (eg. RLP-serialized Ethereum transaction)
     pub transaction_request: String,
     /// Information from the validators in signing party
     pub validators_info: Vec<ValidatorInfo>,
@@ -117,7 +114,7 @@ pub async fn sign_tx(
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
     let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
-    let raw_message = hex::decode(user_tx_req.transaction_request.clone()).unwrap();
+    let raw_message = hex::decode(user_tx_req.transaction_request.clone())?;
     let sig_hash = hex::encode(Hasher::keccak(&raw_message));
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
     check_signing_group(subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
@@ -306,8 +303,6 @@ pub async fn confirm_registered(
 /// Gets the current signing committee
 /// The signing committee is composed as the validators at the index into each subgroup
 /// Where the index is computed as the user's sighash as an integer modulo the number of subgroups
-/// TODO using the sighash is not secure since the user can intentionally generate sighashs to
-/// overwhelm a specific subgroup
 pub async fn get_current_subgroup_signers(
     api: &OnlineClient<EntropyConfig>,
     sig_hash: &str,

@@ -99,6 +99,8 @@ pub enum UserErr {
     NoProgramDefined,
     #[error("Runtime error: {0:?}")]
     RuntimeError(#[from] ProgramRuntimeError),
+    #[error("Parse transaction_request error")]
+    ParsingError(#[from] hex::FromHexError),
 }
 
 impl IntoResponse for UserErr {

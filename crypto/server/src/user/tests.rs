@@ -122,7 +122,6 @@ async fn test_sign_tx_no_chain() {
     let sig_uid = create_unique_tx_id(&signing_address, &hash_as_string);
 
     let mut generic_msg = UserTransactionRequest {
-        arch: "evm".to_string(),
         transaction_request: converted_transaction_request.clone(),
         validators_info,
     };
@@ -411,7 +410,6 @@ async fn test_fail_signing_group() {
     ];
 
     let generic_msg = UserTransactionRequest {
-        arch: "evm".to_string(),
         transaction_request: hex::encode(message_raw),
         validators_info,
     };
