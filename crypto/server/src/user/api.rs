@@ -469,11 +469,11 @@ pub async fn recover_key(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     signing_address: String,
 ) -> Result<(), UserErr> {
-    let my_subgroup = get_subgroup(&api, &signer)
-        .await?
-        .0
-        .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    let key_server_info = get_random_server_info(&api, my_subgroup).await.unwrap();
+    let (my_subgroup, stash_address) = get_subgroup(&api, &signer)
+        .await?;
+
+	let unwrapped_subgroup = my_subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+    let key_server_info = get_random_server_info(&api, unwrapped_subgroup, stash_address).await.unwrap();
     let ip_address = String::from_utf8(key_server_info.endpoint).unwrap();
     let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
     let _ = get_and_store_values(vec![signing_address], kv_store, ip_address, 1, false, &recip_key)
