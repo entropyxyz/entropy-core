@@ -45,7 +45,6 @@ use crate::{
         protocol_execution::{execute_protocol, Channels},
         protocol_transport::{
             listener::WsChannels, noise::noise_handshake_initiator, ws_to_channels, Broadcaster,
-            WsConnection,
         },
         ListenerState, ProtocolErr, SubscribeMessage,
     },
@@ -253,7 +252,6 @@ pub async fn user_connects_to_validators(
             // Open a ws connection
             let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
             let (ws_stream, _response) = connect_async(ws_endpoint).await?;
-            let ws_stream = WsConnection::WsStream(ws_stream);
 
             // Send a SubscribeMessage in the payload of the final handshake message
             let server_public_key = PublicKey::from(validator_info.x25519_public_key);

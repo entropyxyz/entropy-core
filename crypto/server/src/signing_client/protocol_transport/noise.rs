@@ -20,12 +20,12 @@ const NOISE_PARAMS: &str = "Noise_XK_25519_ChaChaPoly_BLAKE2s";
 const NOISE_PROLOGUE: &[u8; 24] = b"Entropy signing protocol";
 
 /// Handshake as an initiator
-pub async fn noise_handshake_initiator(
-    mut ws_connection: WsConnection,
+pub async fn noise_handshake_initiator<T: WsConnection>(
+    mut ws_connection: T,
     local_private_key: &sr25519::Pair,
     remote_public_key: X25519PublicKey,
     final_message_payload: Vec<u8>,
-) -> Result<EncryptedWsConnection, EncryptedConnectionError> {
+) -> Result<EncryptedWsConnection<T>, EncryptedConnectionError> {
     let mut noise = setup_noise(local_private_key, Some(remote_public_key)).await?;
 
     // Used to hold handshake messages
@@ -45,10 +45,10 @@ pub async fn noise_handshake_initiator(
 }
 
 /// Handshake as a responder
-pub async fn noise_handshake_responder(
-    mut ws_connection: WsConnection,
+pub async fn noise_handshake_responder<T: WsConnection>(
+    mut ws_connection: T,
     local_private_key: &sr25519::Pair,
-) -> Result<(EncryptedWsConnection, String), EncryptedConnectionError> {
+) -> Result<(EncryptedWsConnection<T>, String), EncryptedConnectionError> {
     let mut noise = setup_noise(local_private_key, None).await?;
 
     // Used to hold handshake messages
@@ -89,13 +89,13 @@ async fn setup_noise(
 }
 
 /// Wrapper around ws connection to encrypt and decrypt messages
-pub struct EncryptedWsConnection {
-    ws_connection: WsConnection,
+pub struct EncryptedWsConnection<T: WsConnection> {
+    ws_connection: T,
     noise_transport: snow::TransportState,
     buf: Vec<u8>,
 }
 
-impl EncryptedWsConnection {
+impl<T: WsConnection> EncryptedWsConnection<T> {
     /// Receive and decrypt the next message
     pub async fn recv(&mut self) -> Result<String, EncryptedConnectionError> {
         let ciphertext = self.ws_connection.recv().await?;
