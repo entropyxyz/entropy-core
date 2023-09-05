@@ -4,6 +4,7 @@ pub mod listener;
 mod message;
 pub mod noise;
 
+use async_trait::async_trait;
 use axum::extract::ws::{self, WebSocket};
 use entropy_shared::X25519PublicKey;
 use futures::{future, SinkExt, StreamExt};
@@ -45,7 +46,6 @@ pub async fn open_protocol_connections(
             // Open a ws connection
             let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
             let (ws_stream, _response) = connect_async(ws_endpoint).await?;
-            let ws_stream = WsConnection::WsStream(ws_stream);
 
             // Send a SubscribeMessage in the payload of the final handshake message
             let server_public_key = PublicKey::from(validator_info.x25519_public_key);
@@ -100,12 +100,10 @@ pub async fn open_protocol_connections(
 
 /// Handle an incoming websocket connection
 pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
-    let ws_stream = WsConnection::AxumWs(socket);
-
     let signer = get_signer(&app_state.kv_store).await?;
 
     let (mut encrypted_connection, serialized_signed_message) =
-        noise_handshake_responder(ws_stream, signer.signer())
+        noise_handshake_responder(socket, signer.signer())
             .await
             .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
 
@@ -224,8 +222,8 @@ fn get_ws_channels(
 }
 
 /// Send singing protocol messages over websocket, and websocket messages to signing protocol
-pub async fn ws_to_channels(
-    mut connection: EncryptedWsConnection,
+pub async fn ws_to_channels<T: WsConnection>(
+    mut connection: EncryptedWsConnection<T>,
     mut ws_channels: WsChannels,
     remote_party_id: PartyId,
 ) -> Result<(), WsError> {
@@ -254,42 +252,40 @@ pub async fn ws_to_channels(
     }
 }
 
-// A wrapper around incoming and outgoing Websocket types
-pub enum WsConnection {
-    WsStream(WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>),
-    AxumWs(WebSocket),
+/// Represents the functionality of a Websocket connection with binary messages
+/// allowing us to generalize over different websocket implementations
+#[async_trait]
+pub trait WsConnection {
+    async fn recv(&mut self) -> Result<Vec<u8>, WsError>;
+    async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError>;
 }
 
-impl WsConnection {
-    pub async fn recv(&mut self) -> Result<Vec<u8>, WsError> {
-        match self {
-            WsConnection::WsStream(ref mut ws_stream) => {
-                if let Message::Binary(msg) =
-                    ws_stream.next().await.ok_or(WsError::ConnectionClosed)??
-                {
-                    Ok(msg)
-                } else {
-                    Err(WsError::UnexpectedMessageType)
-                }
-            },
-            WsConnection::AxumWs(ref mut axum_ws) => {
-                if let ws::Message::Binary(msg) =
-                    axum_ws.recv().await.ok_or(WsError::ConnectionClosed)??
-                {
-                    Ok(msg)
-                } else {
-                    Err(WsError::UnexpectedMessageType)
-                }
-            },
+#[async_trait]
+impl WsConnection for WebSocket {
+    async fn recv(&mut self) -> Result<Vec<u8>, WsError> {
+        if let ws::Message::Binary(msg) = self.recv().await.ok_or(WsError::ConnectionClosed)?? {
+            Ok(msg)
+        } else {
+            Err(WsError::UnexpectedMessageType)
         }
     }
 
-    pub async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError> {
-        match self {
-            WsConnection::WsStream(ref mut ws_stream) =>
-                ws_stream.send(Message::Binary(msg)).await.map_err(|_| WsError::ConnectionClosed),
-            WsConnection::AxumWs(ref mut axum_ws) =>
-                axum_ws.send(ws::Message::Binary(msg)).await.map_err(|_| WsError::ConnectionClosed),
+    async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError> {
+        self.send(ws::Message::Binary(msg)).await.map_err(|_| WsError::ConnectionClosed)
+    }
+}
+
+#[async_trait]
+impl WsConnection for WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>> {
+    async fn recv(&mut self) -> Result<Vec<u8>, WsError> {
+        if let Message::Binary(msg) = self.next().await.ok_or(WsError::ConnectionClosed)?? {
+            Ok(msg)
+        } else {
+            Err(WsError::UnexpectedMessageType)
         }
+    }
+
+    async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError> {
+        SinkExt::send(&mut self, Message::Binary(msg)).await.map_err(|_| WsError::ConnectionClosed)
     }
 }

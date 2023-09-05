@@ -231,7 +231,7 @@ async fn test_sign_tx_no_chain() {
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
-            WsConnection::WsStream(ws_stream),
+            ws_stream,
             &AccountKeyring::Ferdie.pair(),
             validator_ip_and_key.1,
             subscribe_message_vec,
@@ -837,7 +837,7 @@ async fn test_sign_tx_user_participates() {
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
-            WsConnection::WsStream(ws_stream),
+            ws_stream,
             &AccountKeyring::Ferdie.pair(),
             validator_ip_and_key.1,
             subscribe_message_vec,
