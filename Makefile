@@ -73,12 +73,12 @@ vercel-install-api-docs :: vercel-rustup rust
 		unzip -od /usr /tmp/protoc.zip bin/protoc && rm -f /tmp/protoc.zip
 		# Write out SSH deploy keys to prepare cloning private repositories.
 		mkdir -p /root/.ssh
+		printenv github_ssh_deploy_key_constraints >> /root/.ssh/github_constraints
+		printenv github_ssh_deploy_key_synedrion >> /root/.ssh/github_synedrion
 		echo "Host github.com" > /root/.ssh/config
 		echo "	StrictHostKeyChecking no" >> /root/.ssh/config
-		echo "	IdentityFile /root/.ssh/github_synedrion" >> /root/.ssh/config
-		printenv github_ssh_deploy_key_synedrion >> /root/.ssh/github_synedrion
 		echo "	IdentityFile /root/.ssh/github_constraints" >> /root/.ssh/config
-		printenv github_ssh_deploy_key_constraints >> /root/.ssh/github_constraints
+		echo "	IdentityFile /root/.ssh/github_synedrion" >> /root/.ssh/config
 		chmod 600 \
 			/root/.ssh/github_synedrion \
 			/root/.ssh/github_constraints
