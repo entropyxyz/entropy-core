@@ -1,0 +1,12 @@
+[package]
+name       ="entropy-user-protocol"
+description="TODO"
+version    ="0.0.1"
+edition    ="2021"
+license    ="AGPL-3.0-or-later"
+
+[dependencies]
+entropy-protocol={ path="../protocol" }
+futures         ="0.3"
+gloo-net        ="0.4.0"
+hex             ="*"
