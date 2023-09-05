@@ -2,15 +2,16 @@ use serde::{Deserialize, Serialize};
 use sp_core::Pair;
 use subxt::ext::sp_core::{crypto::AccountId32, sr25519, sr25519::Signature};
 
-/// A message sent by subscribing node. Holder struct for subscription-related methods.
+/// A message sent by a party when initiating a websocket connection to participate
+/// in the signing or DKG protcol
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct SubscribeMessage {
-    /// Signing session
+    /// Protocol session identifier
     pub session_id: String,
-    /// Subscribing party
+    /// Public key of connecting party
     pub public_key: sr25519::Public,
-    /// Signature to prove signing party
+    /// Signature to authenticate connecting party
     pub signature: Signature,
 }
 
