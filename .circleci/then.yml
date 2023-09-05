@@ -16,6 +16,7 @@ commands:
     install-dependencies:
         steps:
             - run: sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
+            - run: ssh-add -L
             - run: sudo apt-get update
             - run: sudo apt install -y libssl-dev clang libclang-dev tor && sudo systemctl start tor && sudo systemctl enable tor
     install-rust:
