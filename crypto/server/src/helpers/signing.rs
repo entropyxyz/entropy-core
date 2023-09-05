@@ -6,7 +6,6 @@ use std::{
 
 use bip39::{Language, Mnemonic};
 use entropy_shared::{KeyVisibility, X25519PublicKey, SETUP_TIMEOUT_SECONDS};
-use kvdb::kv_manager::PartyId;
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 use tokio::time::timeout;

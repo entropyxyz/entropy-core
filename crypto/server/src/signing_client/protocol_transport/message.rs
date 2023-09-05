@@ -17,7 +17,7 @@ pub struct SubscribeMessage {
 
 impl SubscribeMessage {
     pub fn new(session_id: &str, sk: &sr25519::Pair) -> Self {
-        let signature = sk.sign(&session_id.as_bytes());
+        let signature = sk.sign(session_id.as_bytes());
         Self { session_id: session_id.to_owned(), public_key: sk.public(), signature }
     }
 

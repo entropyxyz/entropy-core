@@ -1,7 +1,7 @@
 use std::{net::SocketAddrV4, str::FromStr, time::Duration};
 
 use entropy_shared::SETUP_TIMEOUT_SECONDS;
-use kvdb::kv_manager::{KeyParams, PartyId};
+use kvdb::kv_manager::KeyParams;
 use sp_core::crypto::AccountId32;
 use subxt::{
     ext::sp_core::{sr25519, Bytes},
