@@ -9,10 +9,9 @@ use entropy_shared::X25519PublicKey;
 use futures::{future, SinkExt, StreamExt};
 use kvdb::kv_manager::PartyId;
 pub(super) use listener::WsChannels;
-use sp_core::{crypto::AccountId32, Bytes};
+use sp_core::crypto::AccountId32;
 use subxt::{ext::sp_core::sr25519, tx::PairSigner};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
-use x25519_dalek::PublicKey;
 
 use self::noise::{noise_handshake_initiator, noise_handshake_responder, EncryptedWsConnection};
 pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
@@ -22,7 +21,6 @@ use crate::{
     get_signer,
     signing_client::{ProtocolMessage, SubscribeErr, WsError},
     user::api::ValidatorInfo,
-    validation::SignedMessage,
     AppState, ListenerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
 
@@ -30,7 +28,6 @@ use crate::{
 pub async fn open_protocol_connections(
     validators_info: &[ValidatorInfo],
     session_uid: &str,
-    my_id: &PartyId,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     state: &ListenerState,
 ) -> Result<(), ProtocolErr> {
@@ -48,13 +45,8 @@ pub async fn open_protocol_connections(
             let ws_stream = WsConnection::WsStream(ws_stream);
 
             // Send a SubscribeMessage in the payload of the final handshake message
-            let server_public_key = PublicKey::from(validator_info.x25519_public_key);
-            let signed_message = SignedMessage::new(
-                signer.signer(),
-                &Bytes(serde_json::to_vec(&SubscribeMessage::new(session_uid, my_id.clone()))?),
-                &server_public_key,
-            )?;
-            let subscribe_message_vec = serde_json::to_vec(&signed_message)?;
+            let subscribe_message_vec =
+                serde_json::to_vec(&SubscribeMessage::new(session_uid, signer.signer()))?;
 
             let mut encrypted_connection = noise_handshake_initiator(
                 ws_stream,
@@ -141,29 +133,15 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(),
 
 /// Handle a subscribe message
 async fn handle_initial_incoming_ws_message(
-    serialized_signed_message: String,
+    serialized_subscribe_message: String,
     remote_public_key: X25519PublicKey,
     app_state: AppState,
 ) -> Result<(WsChannels, PartyId), SubscribeErr> {
-    let signed_msg: SignedMessage = serde_json::from_str(&serialized_signed_message)?;
-    if !signed_msg.verify() {
-        return Err(SubscribeErr::InvalidSignature("Invalid signature."));
-    }
-    let signer = get_signer(&app_state.kv_store)
-        .await
-        .map_err(|e| SubscribeErr::UserError(e.to_string()))?;
-
-    let decrypted_message =
-        signed_msg.decrypt(signer.signer()).map_err(|e| SubscribeErr::Decryption(e.to_string()))?;
-    let msg: SubscribeMessage = serde_json::from_slice(&decrypted_message)?;
+    let msg: SubscribeMessage = serde_json::from_str(&serialized_subscribe_message)?;
     tracing::info!("Got ws connection, with message: {msg:?}");
 
-    let party_id = msg.party_id().map_err(SubscribeErr::InvalidPartyId)?;
-
-    let signing_address = signed_msg.account_id();
-
-    if PartyId::new(signing_address) != party_id {
-        return Err(SubscribeErr::InvalidSignature("Signature does not match party id."));
+    if !msg.verify() {
+        return Err(SubscribeErr::InvalidSignature("Invalid signature."));
     }
 
     if !app_state.listener_state.contains_listener(&msg.session_id)? {
@@ -185,8 +163,7 @@ async fn handle_initial_incoming_ws_message(
             listeners.get(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
 
         if !listener.validators.iter().any(|(validator_account_id, validator_x25519_pk)| {
-            validator_account_id == &signed_msg.account_id()
-                && validator_x25519_pk == &remote_public_key
+            validator_account_id == &msg.account_id() && validator_x25519_pk == &remote_public_key
         }) {
             // Make the signing process fail, since one of the commitee has misbehaved
             listeners.remove(&msg.session_id);
@@ -196,9 +173,9 @@ async fn handle_initial_incoming_ws_message(
         }
     }
     let ws_channels =
-        get_ws_channels(&app_state.listener_state, &msg.session_id, &signed_msg.account_id())?;
+        get_ws_channels(&app_state.listener_state, &msg.session_id, &msg.account_id())?;
 
-    Ok((ws_channels, party_id))
+    Ok((ws_channels, PartyId::new(msg.account_id())))
 }
 
 /// Inform the listener we have made a ws connection to another signing party, and get channels to
