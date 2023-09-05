@@ -86,10 +86,10 @@ vercel-install-api-docs :: vercel-rustup rust
 			/root/.ssh/github_synedrion \
 			/root/.ssh/github_constraints
 		git config --global \
-			'url."ssh://git@github.com_constraints/entropyxyz/constraints.git".insteadOf' \
+			'url.ssh://git@github.com_constraints/entropyxyz/constraints.git.insteadOf' \
 			ssh://git@github.com/entropyxyz/constraints.git
 		git config --global \
-			'url."ssh://git@github.com_synedrion/entropyxyz/synedrion.git".insteadOf' \
+			'url.ssh://git@github.com_synedrion/entropyxyz/synedrion.git.insteadOf' \
 			ssh://git@github.com/entropyxyz/synedrion.git
 
 # The Vercel project's `buildCommand` is defined here.
