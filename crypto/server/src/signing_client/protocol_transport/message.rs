@@ -1,22 +1,28 @@
-use kvdb::kv_manager::PartyId;
 use serde::{Deserialize, Serialize};
+use sp_core::Pair;
+use subxt::ext::sp_core::{crypto::AccountId32, sr25519, sr25519::Signature};
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// A message sent by subscribing node. Holder struct for subscription-related methods.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct SubscribeMessage {
     /// Signing session
     pub session_id: String,
-    // TODO: Ideally this should be PartyId,
-    // but this requires implementing some Axum traits for it in `kvdb`
     /// Subscribing party
-    pub party_id: String,
+    pub public_key: sr25519::Public,
+    /// Signature to prove signing party
+    pub signature: Signature,
 }
 
-/// A message sent by subscribing node. Holder struct for subscription-related methods.
 impl SubscribeMessage {
-    pub fn new(session_id: &str, party_id: PartyId) -> Self {
-        Self { session_id: session_id.to_owned(), party_id: party_id.into() }
+    pub fn new(session_id: &str, sk: &sr25519::Pair) -> Self {
+        let signature = sk.sign(&session_id.as_bytes());
+        Self { session_id: session_id.to_owned(), public_key: sk.public(), signature }
     }
 
-    pub fn party_id(&self) -> Result<PartyId, String> { self.party_id.clone().try_into() }
+    pub fn account_id(&self) -> AccountId32 { self.public_key.into() }
+
+    pub fn verify(&self) -> bool {
+        sr25519::Pair::verify(&self.signature, self.session_id.as_bytes(), &self.public_key)
+    }
 }
