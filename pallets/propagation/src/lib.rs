@@ -84,7 +84,7 @@ pub mod pallet {
             let req_body = OcwMessage {
                 // subtract 1 from blocknumber since the request is from the last block
                 block_number: converted_block_number.saturating_sub(1),
-                sig_request_accounts: messages,
+                registering_users: messages,
                 validators_info,
             };
 

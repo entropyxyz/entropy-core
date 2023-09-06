@@ -30,7 +30,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{Constraints, KeyVisibility, SIGNING_PARTY_SIZE};
+    use entropy_shared::{Constraints, KeyVisibility, RegisteringUser, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays},
         inherent::Vec,
@@ -115,7 +115,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn dkg)]
     pub type Dkg<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Vec<u8>>, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<RegisteringUser>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn registered)]
@@ -186,8 +186,12 @@ pub mod pallet {
                 ConstraintsPallet::<T>::validate_constraints(constraints)?;
             }
             let block_number = <frame_system::Pallet<T>>::block_number();
+            let registering_user = RegisteringUser {
+                sig_request_account: sig_req_account.clone().encode(),
+                key_visibility,
+            };
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-                messages.push(sig_req_account.clone().encode());
+                messages.push(registering_user);
                 Ok(())
             })?;
             // put account into a registering state
