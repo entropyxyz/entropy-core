@@ -36,8 +36,15 @@ pub struct ValidatorInfo {
 
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+pub struct RegisteringUser {
+    pub sig_request_account: codec::alloc::vec::Vec<u8>,
+    pub key_visibility: KeyVisibility,
+}
+
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct OcwMessage {
     pub block_number: BlockNumber,
-    pub sig_request_accounts: Vec<codec::alloc::vec::Vec<u8>>,
+    pub registering_users: Vec<RegisteringUser>,
     pub validators_info: Vec<ValidatorInfo>,
 }
