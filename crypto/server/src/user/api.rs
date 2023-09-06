@@ -171,7 +171,7 @@ pub async fn new_user(
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
     let data = OcwMessage::decode(&mut encoded_data.as_ref())?;
-    if data.sig_request_accounts.is_empty() {
+    if data.registering_users.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
 
@@ -185,8 +185,9 @@ pub async fn new_user(
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
 
-    for sig_request_account in data.sig_request_accounts {
-        let address_slice: &[u8; 32] = &sig_request_account
+    for registering_user in data.registering_users {
+        let address_slice: &[u8; 32] = &registering_user
+            .sig_request_account
             .clone()
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
@@ -414,7 +415,7 @@ pub async fn validate_new_user(
     }
 
     let mut hasher_chain_data = Blake2s256::new();
-    hasher_chain_data.update(chain_data.sig_request_accounts.encode());
+    hasher_chain_data.update(chain_data.registering_users.encode());
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
 
