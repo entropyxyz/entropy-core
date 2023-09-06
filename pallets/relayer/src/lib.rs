@@ -186,10 +186,8 @@ pub mod pallet {
                 ConstraintsPallet::<T>::validate_constraints(constraints)?;
             }
             let block_number = <frame_system::Pallet<T>>::block_number();
-            let registering_user = RegisteringUser {
-                sig_request_account: sig_req_account.clone().encode(),
-                key_visibility,
-            };
+            let registering_user =
+                RegisteringUser { sig_request_account: sig_req_account.encode(), key_visibility };
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(registering_user);
                 Ok(())
