@@ -3,7 +3,7 @@ use std::{env, fs, net::SocketAddrV4, path::PathBuf, str::FromStr, sync::Arc, ti
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
-use entropy_shared::{Acl, KeyVisibility, OcwMessage};
+use entropy_shared::{Acl, KeyVisibility, OcwMessage, RegisteringUser};
 use ethers_core::types::{Address, TransactionRequest};
 use futures::{
     future::{self, join_all},
@@ -475,8 +475,14 @@ async fn test_store_share() {
             tss_account: TSS_ACCOUNTS[1].clone().encode(),
         },
     ];
-    let mut onchain_user_request =
-        OcwMessage { sig_request_accounts: vec![alice.encode()], block_number, validators_info };
+    let mut onchain_user_request = OcwMessage {
+        registering_users: vec![RegisteringUser {
+            sig_request_account: alice.encode(),
+            key_visibility: KeyVisibility::Permissioned,
+        }],
+        block_number,
+        validators_info,
+    };
     let client = reqwest::Client::new();
 
     put_register_request_on_chain(&api, &alice, alice_constraint.to_account_id().into()).await;
