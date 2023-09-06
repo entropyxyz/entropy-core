@@ -4,7 +4,6 @@
 use std::{net::TcpListener, time::Duration};
 
 use axum::{routing::IntoMakeService, Router};
-use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::KeyVisibility;
 use futures::future;
 use kvdb::{
@@ -22,7 +21,7 @@ use subxt::{
     utils::{AccountId32 as subxtAccountId32, Static},
     OnlineClient,
 };
-use synedrion::{sessions::PrehashedMessage, KeyShare};
+use synedrion::KeyShare;
 use testing_utils::substrate_context::testing_context;
 use tokio::sync::{broadcast, mpsc};
 use tokio_tungstenite::connect_async;
