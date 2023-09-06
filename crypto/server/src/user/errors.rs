@@ -94,6 +94,8 @@ pub enum UserErr {
     AddrParseError(#[from] std::net::AddrParseError),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
+    #[error("Validator Error: {0}")]
+    ValidatorError(&'static str),
 }
 
 impl IntoResponse for UserErr {
