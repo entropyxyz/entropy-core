@@ -214,20 +214,9 @@ async fn test_sign_tx_no_chain() {
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         // create a SubscribeMessage from a party who is not in the signing commitee
-        let server_public_key = PublicKey::from(validator_ip_and_key.1);
-        let signed_message = SignedMessage::new(
-            &AccountKeyring::Ferdie.pair(),
-            &Bytes(
-                serde_json::to_vec(&SubscribeMessage::new(
-                    &sig_uid,
-                    PartyId::new(AccountKeyring::Ferdie.to_account_id()),
-                ))
-                .unwrap(),
-            ),
-            &server_public_key,
-        )
-        .unwrap();
-        let subscribe_message_vec = serde_json::to_vec(&signed_message).unwrap();
+        let subscribe_message_vec =
+            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &AccountKeyring::Ferdie.pair()))
+                .unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
@@ -820,20 +809,9 @@ async fn test_sign_tx_user_participates() {
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         // create a SubscribeMessage from a party who is not in the signing commitee
-        let server_public_key = PublicKey::from(validator_ip_and_key.1);
-        let signed_message = SignedMessage::new(
-            &AccountKeyring::Ferdie.pair(),
-            &Bytes(
-                serde_json::to_vec(&SubscribeMessage::new(
-                    &sig_uid,
-                    PartyId::new(AccountKeyring::Ferdie.to_account_id()),
-                ))
-                .unwrap(),
-            ),
-            &server_public_key,
-        )
-        .unwrap();
-        let subscribe_message_vec = serde_json::to_vec(&signed_message).unwrap();
+        let subscribe_message_vec =
+            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &AccountKeyring::Ferdie.pair()))
+                .unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
