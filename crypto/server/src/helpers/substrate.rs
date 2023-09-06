@@ -1,10 +1,5 @@
 use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
-use subxt::{
-    ext::sp_core::sr25519,
-    tx::PairSigner,
-    utils::{AccountId32, Static},
-    Config, OnlineClient,
-};
+use subxt::{ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32, Config, OnlineClient};
 
 use crate::{
     chain_api::{entropy, EntropyConfig},
@@ -86,6 +81,8 @@ pub async fn make_register(
     constraint_account: &AccountId32,
     key_visibility: KeyVisibility,
 ) {
+    use subxt::utils::Static;
+
     let sig_req_account = PairSigner::<EntropyConfig, sr25519::Pair>::new(sig_req_keyring);
 
     let registering_query = entropy::storage().relayer().registering(sig_req_account.account_id());
