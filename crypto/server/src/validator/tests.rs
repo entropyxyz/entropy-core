@@ -191,7 +191,8 @@ async fn test_get_and_store_values() {
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
     let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().0.unwrap();
-    let server_info = get_random_server_info(&api, my_subgroup, signer_alice.account_id().clone()).await.unwrap();
+    let server_info =
+        get_random_server_info(&api, my_subgroup, signer_alice.account_id().clone()).await.unwrap();
     let recip_key = x25519_dalek::PublicKey::from(server_info.x25519_public_key);
     let keys = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
@@ -244,10 +245,13 @@ async fn test_get_random_server_info() {
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
     let (my_subgroup, validator_address) = get_subgroup(&api, &signer_alice).await.unwrap();
 
-    let result = get_random_server_info(&api, my_subgroup.unwrap(), signer_alice.account_id().clone()).await.unwrap();
+    let result =
+        get_random_server_info(&api, my_subgroup.unwrap(), signer_alice.account_id().clone())
+            .await
+            .unwrap();
     assert_eq!("127.0.0.1:3001".as_bytes().to_vec(), result.endpoint);
-	// panics here because no other validators in subgroup
-	get_random_server_info(&api, my_subgroup.unwrap(), validator_address).await.unwrap();
+    // panics here because no other validators in subgroup
+    get_random_server_info(&api, my_subgroup.unwrap(), validator_address).await.unwrap();
     clean_tests();
 }
 

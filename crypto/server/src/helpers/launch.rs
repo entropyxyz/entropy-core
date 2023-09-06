@@ -19,6 +19,9 @@ pub const DEFAULT_BOB_MNEMONIC: &str =
     "where sight patient orphan general short empower hope party hurt month voice";
 pub const DEFAULT_ALICE_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
+#[cfg(test)]
+pub const DEFAULT_CHARLIE_MNEMONIC: &str =
+    "lake carry still awful point mention bike category tornado plate brass lock";
 
 #[cfg(test)]
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
