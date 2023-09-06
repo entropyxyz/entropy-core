@@ -1,5 +1,5 @@
 use codec::Encode;
-use entropy_shared::{Constraints, KeyVisibility};
+use entropy_shared::{Constraints, KeyVisibility, RegisteringUser};
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
@@ -59,7 +59,13 @@ fn it_registers_a_user() {
         ));
 
         assert!(Relayer::registering(1).unwrap().is_registering);
-        assert_eq!(Relayer::dkg(0), vec![1u64.encode()]);
+        assert_eq!(
+            Relayer::dkg(0),
+            vec![RegisteringUser {
+                sig_request_account: 1u64.encode(),
+                key_visibility: KeyVisibility::Public
+            }]
+        );
     });
 }
 
