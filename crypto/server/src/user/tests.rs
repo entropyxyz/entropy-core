@@ -403,7 +403,8 @@ async fn test_fail_signing_group() {
         ValidatorInfo {
             ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
-            tss_account: TSS_ACCOUNTS[0].clone(),
+            tss_account: hex!["a664add5dfaca1dd560b949b5699b5f0c3c1df3a2ea77ceb0eeb4f77cc3ade04"]
+                .into(),
         },
         ValidatorInfo {
             ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
