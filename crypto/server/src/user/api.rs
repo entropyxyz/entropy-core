@@ -45,6 +45,7 @@ use zeroize::Zeroize;
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
+    get_and_store_values, get_random_server_info,
     helpers::{
         signing::{create_unique_tx_id, do_signing, SignatureState},
         substrate::{
@@ -124,6 +125,10 @@ pub async fn sign_tx(
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
     check_signing_group(subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
+    let has_key = check_for_key(&signing_address, &app_state.kv_store).await?;
+    if !has_key {
+        recover_key(&api, &app_state.kv_store, &signer, signing_address).await?
+    }
     match user_tx_req.arch.as_str() {
         "evm" => {
             let evm_acl = get_constraints(&api, &second_signing_address_conversion)
@@ -450,5 +455,29 @@ pub fn check_in_registration_group(
     if !is_proper_signer {
         return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
     }
+    Ok(())
+}
+
+pub async fn check_for_key(account: &str, kv: &KvManager) -> Result<bool, UserErr> {
+    let exists_result = kv.kv().exists(account).await?;
+    Ok(exists_result)
+}
+
+pub async fn recover_key(
+    api: &OnlineClient<EntropyConfig>,
+    kv_store: &KvManager,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signing_address: String,
+) -> Result<(), UserErr> {
+    let (my_subgroup, stash_address) = get_subgroup(api, signer).await?;
+    let unwrapped_subgroup = my_subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+    let key_server_info = get_random_server_info(api, unwrapped_subgroup, stash_address)
+        .await
+        .map_err(|_| UserErr::ValidatorError("Error getting server"))?;
+    let ip_address = String::from_utf8(key_server_info.endpoint)?;
+    let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
+    get_and_store_values(vec![signing_address], kv_store, ip_address, 1, false, &recip_key)
+        .await
+        .map_err(|_| UserErr::ValidatorError("Error getting server"))?;
     Ok(())
 }

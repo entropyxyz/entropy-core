@@ -45,10 +45,11 @@ use crate::{
     drain, get_signature, get_signer,
     helpers::{
         launch::{
-            setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
+            DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::{create_unique_tx_id, SignatureState},
-        substrate::{make_register, return_all_addresses_of_subgroup},
+        substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, setup_client, spawn_testing_validators,
             update_constraints, user_connects_to_validators,
@@ -62,7 +63,7 @@ use crate::{
         ListenerState, SubscribeMessage,
     },
     user::{
-        api::{UserRegistrationInfo, UserTransactionRequest, ValidatorInfo},
+        api::{recover_key, UserRegistrationInfo, UserTransactionRequest, ValidatorInfo},
         tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
@@ -628,6 +629,34 @@ async fn test_send_and_receive_keys() {
 
     // TODO negative validation tests
 
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_recover_key() {
+    clean_tests();
+    let cxt = test_node_process_testing_state().await;
+    setup_client().await;
+    let (_, bob_kv) = create_clients("validator2".to_string(), vec![], vec![], false, true).await;
+
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let unsafe_query = UnsafeQuery::new("key".to_string(), "value".to_string());
+    let client = reqwest::Client::new();
+
+    let _ = client
+        .post("http://127.0.0.1:3001/unsafe/put")
+        .header("Content-Type", "application/json")
+        .body(unsafe_query.clone().to_json())
+        .send()
+        .await
+        .unwrap();
+    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_CHARLIE_MNEMONIC, None).unwrap();
+    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+    let _ = recover_key(&api, &bob_kv, &signer_alice, unsafe_query.key.clone()).await.unwrap();
+
+    let value = bob_kv.kv().get(&unsafe_query.key).await.unwrap();
+    assert_eq!(value, unsafe_query.value.into_bytes());
     clean_tests();
 }
 
