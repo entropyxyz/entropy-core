@@ -4,25 +4,25 @@ use axum::{extract::State, Json};
 use kvdb::kv_manager::KvManager;
 use reqwest;
 use serde::{Deserialize, Serialize};
-use sp_core::crypto::AccountId32;
-use subxt::{ext::sp_core::Bytes, tx::PairSigner, OnlineClient};
+use sp_core::crypto::{AccountId32, Ss58Codec};
+use subxt::{ext::sp_core::{Bytes, sr25519}, tx::PairSigner, OnlineClient, utils::AccountId32 as SubxtAccountId32};
 use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{
         entropy::{self, runtime_types::pallet_staking_extension::pallet::ServerInfo},
-        EntropyConfig,
+        EntropyConfig, get_api
     },
     get_signer,
     validation::SignedMessage,
     validator::errors::ValidatorErr,
     AppState,
+	helpers::{launch::FORBIDDEN_KEYS, substrate::{get_subgroup, return_all_addresses_of_subgroup}, }
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Keys {
-    pub enckeys: Vec<SignedMessage>,
-    pub sender: [u8; 32],
+    pub keys: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -33,26 +33,26 @@ pub struct Values {
 /// Endpoint to allow a new node to sync their kvdb with a member of their subgroup
 pub async fn sync_kvdb(
     State(app_state): State<AppState>,
-    Json(keys): Json<Keys>,
+    Json(signed_msg): Json<SignedMessage>,
 ) -> Result<Json<Values>, ValidatorErr> {
-    // TODO(JS): validate on chain that this user in your subgroup
-    let sender = PublicKey::from(keys.sender);
-    let signer = get_signer(&app_state.kv_store).await?;
-    let recip_secret_key = signer.signer();
+	let api = get_api(&app_state.configuration.endpoint).await?;
+	let signing_address = signed_msg.account_id();
+	if !signed_msg.verify() {
+		return Err(ValidatorErr::InvalidSignature("Invalid signature."));
+    }
+    let sender = PublicKey::from(signed_msg.sender().to_bytes());
+	let signer = get_signer(&app_state.kv_store).await?;
+	let decrypted_message =
+	signed_msg.decrypt(signer.signer()).unwrap();
+	check_in_subgroup(&api, &signer, signing_address).await?;
+	let keys: Keys = serde_json::from_slice(&decrypted_message)?;
+
+
     let mut values: Vec<SignedMessage> = vec![];
-    for encrypted_key in keys.enckeys.clone() {
-        if !encrypted_key.verify() {
-            return Err(ValidatorErr::SafeCryptoError("Invalid signature."));
-        }
-        let dmsg = encrypted_key.decrypt(recip_secret_key);
-        if dmsg.is_err() {
-            return Err(ValidatorErr::SafeCryptoError("Decryption failed."));
-        }
-        let key = dmsg.map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
-        // encrypt message and send to other validator
-        let skey = String::from_utf8_lossy(&key).to_string();
-        let result = app_state.kv_store.kv().get(skey.as_str()).await?;
-        let reencrypted_key_result = SignedMessage::new(recip_secret_key, &Bytes(result), &sender)
+    for key in keys.keys {
+		check_forbidden_key(&key)?;
+        let result = app_state.kv_store.kv().get(&key).await?;
+        let reencrypted_key_result = SignedMessage::new(signer.signer(), &Bytes(result), &sender)
             .map_err(|e| ValidatorErr::Encryption(e.to_string()))?;
         values.push(reencrypted_key_result)
     }
@@ -171,22 +171,16 @@ pub async fn get_and_store_values(
         }
         let signer = get_signer(kv).await?;
         let remaining_keys = all_keys[keys_stored..(keys_to_send_slice)].to_vec();
-        let mut enckeys: Vec<SignedMessage> = vec![];
-        let mut sender: [u8; 32] = [0; 32];
-        for _key in &remaining_keys {
-            let new_msg =
-                SignedMessage::new(signer.signer(), &Bytes(_key.clone().into_bytes()), recip)
+		let keys_to_send = Keys {keys: remaining_keys.clone()};
+		let enc_keys =
+                SignedMessage::new(signer.signer(), &Bytes(serde_json::to_vec(&keys_to_send).unwrap()), recip)
                     .map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
-            sender = new_msg.sender().to_bytes();
-            enckeys.push(new_msg);
-        }
-        let keys_to_send = Keys { enckeys, sender };
         let client = reqwest::Client::new();
         let formatted_url = format!("http://{url}/validator/sync_kvdb");
         let result = client
             .post(formatted_url)
             .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&keys_to_send)?)
+            .body(serde_json::to_string(&enc_keys)?)
             .send()
             .await?;
 
@@ -244,4 +238,35 @@ pub async fn check_balance_for_fees(
         is_min_balance = true
     };
     Ok(is_min_balance)
+}
+
+pub fn check_forbidden_key(key: &str) -> Result<(), ValidatorErr> {
+	let forbidden = FORBIDDEN_KEYS.contains(&key);
+	if forbidden {
+		return Err(ValidatorErr::ForbiddenKey)
+	}
+	Ok(())
+}
+
+pub async fn check_in_subgroup(api: &OnlineClient<EntropyConfig>, signer: &PairSigner<EntropyConfig, sr25519::Pair>, signing_address: AccountId32) -> Result<(), ValidatorErr> {
+	let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
+    let my_subgroup = subgroup.ok_or_else(|| ValidatorErr::SubgroupError("Subgroup Error"))?;
+    let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
+	let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
+		.map_err(|_| ValidatorErr::StringError("Account Conversion"))?;
+	let stash_address_query =
+		entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
+	let stash_address = api
+		.storage()
+		.at_latest()
+		.await?
+		.fetch(&stash_address_query)
+		.await?
+		.ok_or_else(|| ValidatorErr::OptionUnwrapError("Stash Fetch Error"))?;
+
+	let in_subgroup = addresses_in_subgroup.contains(&stash_address);
+	if !in_subgroup {
+		return Err(ValidatorErr::NotInSubgroup);
+	}
+	Ok(())
 }

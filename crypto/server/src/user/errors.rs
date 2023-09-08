@@ -95,7 +95,7 @@ pub enum UserErr {
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
     #[error("Validator Error: {0}")]
-    ValidatorError(&'static str),
+    ValidatorError(String),
 }
 
 impl IntoResponse for UserErr {
