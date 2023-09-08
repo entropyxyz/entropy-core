@@ -234,13 +234,46 @@ async fn test_get_signing_group() {
 
 /// Called when KeyVisibility is private - the user connects to relevant validators
 /// and participates in the signing protocol
-pub async fn user_connects_to_validators(
+pub async fn user_participates_in_signing_protocol(
     key_share: &KeyShare<KeyParams>,
     sig_uid: &str,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
     converted_transaction_request: &str,
 ) -> Result<RecoverableSignature, ProtocolErr> {
+    let (channels, tss_accounts) =
+        user_connects_to_validators(sig_uid, validators_info, user_signing_keypair).await?;
+
+    let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
+        converted_transaction_request.to_string(),
+    )?;
+
+    let sig_hash = hex::encode(parsed_tx.sighash());
+
+    let digest: PrehashedMessage = hex::decode(sig_hash)?
+        .try_into()
+        .map_err(|_| ProtocolErr::Conversion("Digest Conversion"))?;
+
+    // Execute the signing protocol
+    let rsig = execute_protocol::execute_signing_protocol(
+        channels,
+        key_share,
+        &digest,
+        user_signing_keypair,
+        tss_accounts,
+    )
+    .await?;
+
+    // Return a signature if everything went well
+    let (signature, recovery_id) = rsig.to_backend();
+    Ok(RecoverableSignature { signature, recovery_id })
+}
+
+async fn user_connects_to_validators(
+    session_id: &str,
+    validators_info: Vec<ValidatorInfo>,
+    user_signing_keypair: &sr25519::Pair,
+) -> Result<(Channels, Vec<AccountId32>), ProtocolErr> {
     // Set up channels for communication between signing protocol and other signing parties
     let (tx, _rx) = broadcast::channel(1000);
     let (tx_to_others, rx_to_others) = mpsc::channel(1000);
@@ -257,7 +290,7 @@ pub async fn user_connects_to_validators(
 
             // Send a SubscribeMessage in the payload of the final handshake message
             let subscribe_message_vec =
-                serde_json::to_vec(&SubscribeMessage::new(sig_uid, user_signing_keypair))?;
+                serde_json::to_vec(&SubscribeMessage::new(session_id, user_signing_keypair))?;
 
             let mut encrypted_connection = noise_handshake_initiator(
                 ws_stream,
@@ -304,33 +337,11 @@ pub async fn user_connects_to_validators(
     // Connect to validators
     future::try_join_all(connect_to_validators).await?;
 
-    // Set up the signing protocol
+    // Things needed for protocol execution
     let channels = Channels(Broadcaster(tx_ref.clone()), rx_to_others);
     let mut tss_accounts: Vec<AccountId32> =
         validators_info.iter().map(|v| v.tss_account.clone()).collect();
     tss_accounts.push(user_signing_keypair.public().into());
 
-    let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
-        converted_transaction_request.to_string(),
-    )?;
-
-    let sig_hash = hex::encode(parsed_tx.sighash());
-
-    let digest: PrehashedMessage = hex::decode(sig_hash)?
-        .try_into()
-        .map_err(|_| ProtocolErr::Conversion("Digest Conversion"))?;
-
-    // Execute the signing protocol
-    let rsig = execute_protocol::execute_signing_protocol(
-        channels,
-        key_share,
-        &digest,
-        user_signing_keypair,
-        tss_accounts,
-    )
-    .await?;
-
-    // Return a signature if everything went well
-    let (signature, recovery_id) = rsig.to_backend();
-    Ok(RecoverableSignature { signature, recovery_id })
+    Ok((channels, tss_accounts))
 }

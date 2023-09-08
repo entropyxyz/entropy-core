@@ -52,7 +52,7 @@ use crate::{
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, setup_client, spawn_testing_validators,
-            update_constraints, user_connects_to_validators,
+            update_constraints, user_participates_in_signing_protocol,
         },
         user::send_key,
     },
@@ -779,7 +779,7 @@ async fn test_sign_tx_user_participates() {
     // Submit transaction requests, and connect and participate in signing
     let (test_user_res, sig_result) = future::join(
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
-        user_connects_to_validators(
+        user_participates_in_signing_protocol(
             &users_keyshare_option.unwrap(),
             &sig_uid,
             validators_info.clone(),
