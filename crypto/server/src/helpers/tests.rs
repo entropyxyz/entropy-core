@@ -4,7 +4,6 @@
 use std::{net::TcpListener, time::Duration};
 
 use axum::{routing::IntoMakeService, Router};
-use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::KeyVisibility;
 use futures::future;
 use kvdb::{
@@ -22,7 +21,7 @@ use subxt::{
     utils::{AccountId32 as subxtAccountId32, Static},
     OnlineClient,
 };
-use synedrion::{sessions::PrehashedMessage, KeyShare};
+use synedrion::KeyShare;
 use testing_utils::substrate_context::testing_context;
 use tokio::sync::{broadcast, mpsc};
 use tokio_tungstenite::connect_async;
@@ -39,7 +38,6 @@ use crate::{
         },
         signing::SignatureState,
         substrate::get_subgroup,
-        tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
     },
     signing_client::{
         protocol_execution::{execute_protocol, Channels},
@@ -164,26 +162,23 @@ pub async fn spawn_testing_validators(
     (ips, ids, user_keyshare_option)
 }
 
-pub async fn update_constraints(
+pub async fn update_programs(
     entropy_api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: &sr25519::Pair,
     constraint_modification_account: &sr25519::Pair,
-    initial_constraints: Constraints,
+    initial_program: Vec<u8>,
 ) {
     // update/set their constraints
-    let update_constraints_tx = entropy::tx()
+    let update_program_tx = entropy::tx()
         .constraints()
-        .update_constraints(subxtAccountId32::from(sig_req_keyring.public()), initial_constraints);
+        .update_v2_constraints(subxtAccountId32::from(sig_req_keyring.public()), initial_program);
 
     let constraint_modification_account =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(constraint_modification_account.clone());
 
     entropy_api
         .tx()
-        .sign_and_submit_then_watch_default(
-            &update_constraints_tx,
-            &constraint_modification_account,
-        )
+        .sign_and_submit_then_watch_default(&update_program_tx, &constraint_modification_account)
         .await
         .unwrap()
         .wait_for_in_block()
@@ -239,7 +234,7 @@ pub async fn user_connects_to_validators(
     sig_uid: &str,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
-    converted_transaction_request: &str,
+    sig_hash: [u8; 32],
 ) -> Result<RecoverableSignature, ProtocolErr> {
     // Set up channels for communication between signing protocol and other signing parties
     let (tx, _rx) = broadcast::channel(1000);
@@ -310,21 +305,11 @@ pub async fn user_connects_to_validators(
         validators_info.iter().map(|v| v.tss_account.clone()).collect();
     tss_accounts.push(user_signing_keypair.public().into());
 
-    let parsed_tx = <Evm as Architecture>::TransactionRequest::parse(
-        converted_transaction_request.to_string(),
-    )?;
-
-    let sig_hash = hex::encode(parsed_tx.sighash());
-
-    let digest: PrehashedMessage = hex::decode(sig_hash)?
-        .try_into()
-        .map_err(|_| ProtocolErr::Conversion("Digest Conversion"))?;
-
     // Execute the signing protocol
     let rsig = execute_protocol::execute_signing_protocol(
         channels,
         key_share,
-        &digest,
+        &sig_hash,
         user_signing_keypair,
         tss_accounts,
     )

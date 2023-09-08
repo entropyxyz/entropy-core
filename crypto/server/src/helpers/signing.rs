@@ -163,3 +163,20 @@ pub async fn do_signing(
 pub fn create_unique_tx_id(account: &String, sig_hash: &String) -> String {
     format!("{account}_{sig_hash}")
 }
+
+/// Produces a specific hash on a given message
+pub struct Hasher;
+
+impl Hasher {
+    /// Produces the Keccak256 hash on a given message.
+    ///
+    /// In practice, if `data` is an RLP-serialized Ethereum transaction, this should produce the
+    /// corrosponding .
+    pub fn keccak(data: &[u8]) -> [u8; 32] {
+        use sha3::{Digest, Keccak256};
+
+        let mut keccak = Keccak256::new();
+        keccak.update(data);
+        keccak.finalize().into()
+    }
+}

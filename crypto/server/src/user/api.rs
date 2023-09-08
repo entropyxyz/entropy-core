@@ -10,6 +10,7 @@ use axum::{
 };
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
+use ec_runtime::{InitialState, Runtime};
 use entropy_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
@@ -47,9 +48,9 @@ use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
     get_and_store_values, get_random_server_info,
     helpers::{
-        signing::{create_unique_tx_id, do_signing, SignatureState},
+        signing::{create_unique_tx_id, do_signing, Hasher, SignatureState},
         substrate::{
-            get_constraints, get_key_visibility, get_subgroup, return_all_addresses_of_subgroup,
+            get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
         user::{do_dkg, send_key},
         validator::get_signer,
@@ -72,9 +73,7 @@ pub struct ValidatorInfo {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserTransactionRequest {
-    /// 'eth', etc.
-    pub arch: String,
-    /// ETH: RLP encoded transaction request
+    /// Hex-encoded raw data to be signed (eg. RLP-serialized Ethereum transaction)
     pub transaction_request: String,
     /// Information from the validators in signing party
     pub validators_info: Vec<ValidatorInfo>,
@@ -119,53 +118,49 @@ pub async fn sign_tx(
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
     let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
-    let parsed_tx =
-        <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
-    let sig_hash = hex::encode(parsed_tx.sighash());
+    let raw_message = hex::decode(user_tx_req.transaction_request.clone())?;
+    let sig_hash = hex::encode(Hasher::keccak(&raw_message));
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
     check_signing_group(subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
+
     let has_key = check_for_key(&signing_address, &app_state.kv_store).await?;
     if !has_key {
         recover_key(&api, &app_state.kv_store, &signer, signing_address).await?
     }
-    match user_tx_req.arch.as_str() {
-        "evm" => {
-            let evm_acl = get_constraints(&api, &second_signing_address_conversion)
-                .await?
-                .evm_acl
-                .ok_or(UserErr::Parse("No constraints found for this account."))?;
 
-            evm_acl.eval(parsed_tx)?;
+    let program = get_program(&api, &second_signing_address_conversion).await?;
 
-            let (mut response_tx, response_rx) = mpsc::channel(1);
+    let mut runtime = Runtime::new();
+    let initial_state = InitialState { data: raw_message };
 
-            // Do the signing protocol in another task, so we can already respond
-            tokio::spawn(async move {
-                let signing_protocol_output = do_signing(
-                    user_tx_req,
-                    sig_hash,
-                    &app_state,
-                    tx_id,
-                    signing_address_converted,
-                    users_x25519_public_key.as_bytes(),
-                    key_visibility,
-                )
-                .await
-                .map(|signature| base64::encode(signature.to_rsv_bytes()))
-                .map_err(|error| error.to_string());
+    runtime.evaluate(&program, &initial_state)?;
 
-                // This response chunk is sent later with the result of the signing protocol
-                if response_tx.try_send(serde_json::to_string(&signing_protocol_output)).is_err() {
-                    tracing::warn!("Cannot send signing protocol output - connection is closed")
-                };
-            });
+    let (mut response_tx, response_rx) = mpsc::channel(1);
 
-            // This indicates that the signing protocol is starting successfully
-            Ok((StatusCode::OK, StreamBody::new(response_rx)))
-        },
-        _ => Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]")),
-    }
+    // Do the signing protocol in another task, so we can already respond
+    tokio::spawn(async move {
+        let signing_protocol_output = do_signing(
+            user_tx_req,
+            sig_hash,
+            &app_state,
+            tx_id,
+            signing_address_converted,
+            users_x25519_public_key.as_bytes(),
+            key_visibility,
+        )
+        .await
+        .map(|signature| base64::encode(signature.to_rsv_bytes()))
+        .map_err(|error| error.to_string());
+
+        // This response chunk is sent later with the result of the signing protocol
+        if response_tx.try_send(serde_json::to_string(&signing_protocol_output)).is_err() {
+            tracing::warn!("Cannot send signing protocol output - connection is closed")
+        };
+    });
+
+    // This indicates that the signing protocol is starting successfully
+    Ok((StatusCode::OK, StreamBody::new(response_rx)))
 }
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.

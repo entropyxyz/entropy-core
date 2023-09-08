@@ -7,6 +7,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use ec_runtime::RuntimeError as ProgramRuntimeError;
 use entropy_constraints::Error as ConstraintsError;
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
@@ -94,6 +95,12 @@ pub enum UserErr {
     AddrParseError(#[from] std::net::AddrParseError),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
+    #[error("No program set")]
+    NoProgramDefined,
+    #[error("Runtime error: {0:?}")]
+    RuntimeError(#[from] ProgramRuntimeError),
+    #[error("Parse transaction_request error")]
+    ParsingError(#[from] hex::FromHexError),
     #[error("Validator Error: {0}")]
     ValidatorError(&'static str),
 }
