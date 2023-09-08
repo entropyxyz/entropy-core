@@ -519,7 +519,7 @@ pub fn testing(
                     get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
                     ServerInfo {
                         tss_account: hex![
-                            "9e5b01a2a1e64f97ce27abbaf897fde843b146cc189c106093ba763bf536f062"
+                            "14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611"
                         ]
                         .into(),
                         endpoint: "127.0.0.1:3002".as_bytes().to_vec(),

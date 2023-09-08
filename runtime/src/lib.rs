@@ -119,13 +119,14 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node"),
-    impl_name: create_runtime_str!("substrate-node"),
+    impl_name: create_runtime_str!("entropy-node"),
     authoring_version: 10,
     // Per convention: if the runtime behavior changes, increment spec_version
     // and set impl_version to 0. If only runtime
     // implementation changes and behavior does not, then leave spec_version as
     // is and increment impl_version.
-    spec_version: 267,
+    #[allow(clippy::zero_prefixed_literal)]
+    spec_version: 005,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,

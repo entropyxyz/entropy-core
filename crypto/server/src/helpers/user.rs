@@ -1,7 +1,7 @@
 use std::{net::SocketAddrV4, str::FromStr, time::Duration};
 
 use entropy_shared::SETUP_TIMEOUT_SECONDS;
-use kvdb::kv_manager::{KeyParams, PartyId};
+use kvdb::kv_manager::KeyParams;
 use sp_core::crypto::AccountId32;
 use subxt::{
     ext::sp_core::{sr25519, Bytes},
@@ -61,10 +61,8 @@ pub async fn do_dkg(
 	.map_err(|_| UserErr::SessionError("Error getting lock".to_string()))?
 	// TODO: using signature ID as session ID. Correct?
 	.insert(session_uid.clone(), listener);
-    let my_id = PartyId::new(account_sp_core.clone());
 
-    open_protocol_connections(&converted_validator_info, &session_uid, &my_id, signer, state)
-        .await?;
+    open_protocol_connections(&converted_validator_info, &session_uid, signer, state).await?;
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
         let broadcast_out = ready??;

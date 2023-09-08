@@ -16,7 +16,7 @@ use rand_core::OsRng;
 use serial_test::serial;
 use sp_core::crypto::AccountId32;
 use subxt::{
-    ext::sp_core::{sr25519, Bytes, Pair},
+    ext::sp_core::{sr25519, Pair},
     tx::PairSigner,
     utils::{AccountId32 as subxtAccountId32, Static},
     OnlineClient,
@@ -25,7 +25,6 @@ use synedrion::KeyShare;
 use testing_utils::substrate_context::testing_context;
 use tokio::sync::{broadcast, mpsc};
 use tokio_tungstenite::connect_async;
-use x25519_dalek::PublicKey;
 
 use super::signing::RecoverableSignature;
 use crate::{
@@ -48,7 +47,6 @@ use crate::{
         ListenerState, ProtocolErr, SubscribeMessage,
     },
     user::api::ValidatorInfo,
-    validation::SignedMessage,
     AppState,
 };
 
@@ -253,16 +251,8 @@ pub async fn user_connects_to_validators(
             let (ws_stream, _response) = connect_async(ws_endpoint).await?;
 
             // Send a SubscribeMessage in the payload of the final handshake message
-            let server_public_key = PublicKey::from(validator_info.x25519_public_key);
-            let signed_message = SignedMessage::new(
-                user_signing_keypair,
-                &Bytes(serde_json::to_vec(&SubscribeMessage::new(
-                    sig_uid,
-                    PartyId::new(user_signing_keypair.public().into()),
-                ))?),
-                &server_public_key,
-            )?;
-            let subscribe_message_vec = serde_json::to_vec(&signed_message)?;
+            let subscribe_message_vec =
+                serde_json::to_vec(&SubscribeMessage::new(sig_uid, user_signing_keypair))?;
 
             let mut encrypted_connection = noise_handshake_initiator(
                 ws_stream,

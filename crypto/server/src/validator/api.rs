@@ -101,6 +101,7 @@ pub async fn get_all_keys(
 pub async fn get_random_server_info(
     api: &OnlineClient<EntropyConfig>,
     my_subgroup: u8,
+    my_stash_address: subxt::utils::AccountId32,
 ) -> Result<ServerInfo<subxt::utils::AccountId32>, ValidatorErr> {
     let signing_group_addresses_query =
         entropy::storage().staking_extension().signing_groups(my_subgroup);
@@ -111,17 +112,17 @@ pub async fn get_random_server_info(
         .fetch(&signing_group_addresses_query)
         .await?
         .ok_or_else(|| ValidatorErr::OptionUnwrapError("Querying Signing Groups Error"))?;
-
     // TODO: Just gets first person in subgroup, maybe do this randomly?
     // find kvdb that isn't syncing and get their URL
     let mut server_sync_state = false;
+    let mut not_me = true;
     let mut server_to_query = 0;
     let mut server_info: Option<
         entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo<
             subxt::utils::AccountId32,
         >,
     > = None;
-    while !server_sync_state {
+    while !server_sync_state || !not_me {
         let server_info_query = entropy::storage()
             .staking_extension()
             .threshold_servers(&signing_group_addresses[server_to_query]);
@@ -143,6 +144,9 @@ pub async fn get_random_server_info(
             .fetch(&server_state_query)
             .await?
             .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
+        if my_stash_address == signing_group_addresses[server_to_query] {
+            not_me = false
+        }
         server_to_query += 1;
     }
     let server_info_result =

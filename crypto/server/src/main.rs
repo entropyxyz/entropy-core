@@ -227,11 +227,11 @@ async fn main() {
             thread::sleep(sleep_time);
             my_subgroup = Ok(get_subgroup(&api, &signer).await.expect("Failed to get subgroup."));
         }
-        let sbgrp =
-            my_subgroup.expect("Failed to get subgroup.").0.expect("failed to get subgroup");
-        let key_server_info = get_random_server_info(&api, sbgrp)
-            .await
-            .expect("Issue getting registered keys from chain.");
+        let (sbgrp, validator_stash) = my_subgroup.expect("Failed to get subgroup.");
+        let key_server_info =
+            get_random_server_info(&api, sbgrp.expect("failed to get subgroup"), validator_stash)
+                .await
+                .expect("Issue getting registered keys from chain.");
         let ip_address =
             String::from_utf8(key_server_info.endpoint).expect("failed to parse IP address.");
         let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
