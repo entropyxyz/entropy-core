@@ -197,6 +197,12 @@ pub async fn new_user(
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = AccountId32::new(*address_slice);
 
+        let _key_visibility = get_key_visibility_of_registering_user(
+            &api,
+            &SubxtAccountId32::from(sig_request_address.clone()),
+        )
+        .await?;
+
         let key_share = do_dkg(
             &data.validators_info,
             &signer,
@@ -274,11 +280,11 @@ pub async fn receive_key(
     Ok(StatusCode::OK)
 }
 
-/// Returns wether an account is registering or swapping. If it is not, it returns error
-pub async fn register_info(
+/// Returns the key visibility of a given registering user
+pub async fn get_key_visibility_of_registering_user(
     api: &OnlineClient<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
-) -> Result<bool, UserErr> {
+) -> Result<KeyVisibility, UserErr> {
     let registering_info_query = entropy::storage().relayer().registering(who);
     let register_info = api
         .storage()
@@ -291,7 +297,7 @@ pub async fn register_info(
         return Err(UserErr::NotRegistering("Declare swap Onchain first"));
     }
 
-    Ok(register_info.is_swapping)
+    Ok(*register_info.key_visibility)
 }
 
 /// Confirms that a address has finished registering on chain.
