@@ -28,6 +28,7 @@ pub struct Keys {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Values {
     pub values: Vec<SignedMessage>,
+	// pub timestamp:
 }
 
 /// Endpoint to allow a new node to sync their kvdb with a member of their subgroup
@@ -45,6 +46,8 @@ pub async fn sync_kvdb(
 	let decrypted_message =
 	signed_msg.decrypt(signer.signer()).unwrap();
 	check_in_subgroup(&api, &signer, signing_address).await?;
+	// TODO add a timestamp and a check within x time so message can't be stored and resent
+	// check_timestamp();
 	let keys: Keys = serde_json::from_slice(&decrypted_message)?;
 
 
