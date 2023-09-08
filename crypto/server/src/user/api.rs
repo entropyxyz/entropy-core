@@ -197,7 +197,7 @@ pub async fn new_user(
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = AccountId32::new(*address_slice);
 
-        let _key_visibility = get_key_visibility_of_registering_user(
+        let key_visibility = get_key_visibility_of_registering_user(
             &api,
             &SubxtAccountId32::from(sig_request_address.clone()),
         )
@@ -207,8 +207,9 @@ pub async fn new_user(
             &data.validators_info,
             &signer,
             &app_state.listener_state,
-            sig_request_address.to_string(),
+            &sig_request_address,
             &my_subgroup,
+            key_visibility,
         )
         .await?;
         let serialized_key_share = key_serialize(&key_share)

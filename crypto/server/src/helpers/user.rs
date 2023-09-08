@@ -1,6 +1,6 @@
 use std::{net::SocketAddrV4, str::FromStr, time::Duration};
 
-use entropy_shared::SETUP_TIMEOUT_SECONDS;
+use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
 use kvdb::kv_manager::KeyParams;
 use sp_core::crypto::AccountId32;
 use subxt::{
@@ -31,9 +31,11 @@ pub async fn do_dkg(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     state: &ListenerState,
-    session_uid: String,
+    sig_request_account: &AccountId32,
     my_subgroup: &u8,
+    key_visibility: KeyVisibility,
 ) -> Result<KeyShare<KeyParams>, UserErr> {
+    let session_uid = sig_request_account.to_string();
     let account_sp_core = AccountId32::new(*signer.account_id().clone().as_ref());
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
@@ -52,9 +54,22 @@ pub async fn do_dkg(
         converted_validator_info.push(validator_info);
         tss_accounts.push(tss_account);
     }
+
+    if key_visibility == KeyVisibility::Private {
+        tss_accounts.push(sig_request_account.clone());
+    }
+
+    // If key key visibility is private, pass the user's ID to the listener
+    let user_details_option = None;
+    // let user_details_option = if key_visibility == KeyVisibility::Private {
+    //     Some((sig_request_account, *user_x25519_public_key))
+    // } else {
+    //     None
+    // };
+
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(converted_validator_info.clone(), &account_sp_core, None);
+        Listener::new(converted_validator_info.clone(), &account_sp_core, user_details_option);
     state
 	.listeners
 	.lock()
