@@ -30,7 +30,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{Constraints, KeyVisibility, SIGNING_PARTY_SIZE};
+    use entropy_shared::{Constraints, KeyVisibility, X25519PublicKey, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays},
         inherent::Vec,
@@ -71,6 +71,7 @@ pub mod pallet {
         pub confirmations: Vec<u8>,
         pub constraints: Option<Constraints>,
         pub key_visibility: KeyVisibility,
+        pub x25519_public_key: X25519PublicKey,
     }
 
     #[pallet::genesis_config]
@@ -81,7 +82,9 @@ pub mod pallet {
 
     #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self { Self { registered_accounts: Default::default() } }
+        fn default() -> Self {
+            Self { registered_accounts: Default::default() }
+        }
     }
 
     #[pallet::genesis_build]
@@ -173,6 +176,7 @@ pub mod pallet {
             constraint_account: T::AccountId,
             key_visibility: KeyVisibility,
             initial_constraints: Option<Constraints>,
+            x25519_public_key: X25519PublicKey,
         ) -> DispatchResult {
             let sig_req_account = ensure_signed(origin)?;
 
@@ -200,6 +204,7 @@ pub mod pallet {
                     confirmations: vec![],
                     constraints: initial_constraints,
                     key_visibility,
+                    x25519_public_key,
                 },
             );
 
@@ -331,10 +336,12 @@ pub mod pallet {
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct ValidateConfirmRegistered<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
 
     impl<T: Config + Send + Sync> Debug for ValidateConfirmRegistered<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         #[cfg(feature = "std")]
         fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -342,18 +349,24 @@ pub mod pallet {
         }
 
         #[cfg(not(feature = "std"))]
-        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
+        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+            Ok(())
+        }
     }
 
     impl<T: Config + Send + Sync> ValidateConfirmRegistered<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         #[allow(clippy::new_without_default)]
-        pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
+        pub fn new() -> Self {
+            Self(sp_std::marker::PhantomData)
+        }
     }
 
     impl<T: Config + Send + Sync> SignedExtension for ValidateConfirmRegistered<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         type AccountId = T::AccountId;
         type AdditionalSigned = ();
