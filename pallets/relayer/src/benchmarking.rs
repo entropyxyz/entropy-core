@@ -61,7 +61,7 @@ benchmarks! {
     let constraint_account: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();
 
-  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account, KeyVisibility::Public, Some(constraints))
+  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account, KeyVisibility::Public, Some(constraints), [0; 32])
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
     assert!(Registering::<T>::contains_key(sig_req_account));
@@ -84,7 +84,7 @@ benchmarks! {
         confirmations: vec![],
         constraints: None,
         key_visibility: KeyVisibility::Public,
-        [0; 32],
+        x25519_public_key: [0; 32],
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
   verify {
@@ -110,7 +110,7 @@ confirm_register_registered {
         confirmations: confirmation,
         constraints: None,
         key_visibility: KeyVisibility::Public,
-        [0; 32],
+        x25519_public_key: [0; 32],
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
   verify {
@@ -136,7 +136,7 @@ confirm_register_registered {
         confirmations: confirmation,
         constraints: None,
         key_visibility: KeyVisibility::Public,
-        [0; 32],
+        x25519_public_key: [0; 32],
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
   verify {
