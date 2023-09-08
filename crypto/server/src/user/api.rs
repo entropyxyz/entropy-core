@@ -44,7 +44,10 @@ use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
-    chain_api::{entropy, get_api, EntropyConfig},
+    chain_api::{
+        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
+        get_api, EntropyConfig,
+    },
     get_and_store_values, get_random_server_info,
     helpers::{
         signing::{create_unique_tx_id, do_signing, SignatureState},
@@ -197,19 +200,18 @@ pub async fn new_user(
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = AccountId32::new(*address_slice);
 
-        let key_visibility = get_key_visibility_of_registering_user(
-            &api,
-            &SubxtAccountId32::from(sig_request_address.clone()),
-        )
-        .await?;
+        let user_details =
+            get_registering_user_info(&api, &SubxtAccountId32::from(sig_request_address.clone()))
+                .await?;
 
         let key_share = do_dkg(
             &data.validators_info,
             &signer,
             &app_state.listener_state,
-            &sig_request_address,
+            sig_request_address.clone(),
             &my_subgroup,
-            key_visibility,
+            *user_details.key_visibility,
+            user_details.x25519_public_key,
         )
         .await?;
         let serialized_key_share = key_serialize(&key_share)
@@ -282,10 +284,10 @@ pub async fn receive_key(
 }
 
 /// Returns the key visibility of a given registering user
-pub async fn get_key_visibility_of_registering_user(
+pub async fn get_registering_user_info(
     api: &OnlineClient<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
-) -> Result<KeyVisibility, UserErr> {
+) -> Result<RegisteringDetails, UserErr> {
     let registering_info_query = entropy::storage().relayer().registering(who);
     let register_info = api
         .storage()
@@ -298,7 +300,7 @@ pub async fn get_key_visibility_of_registering_user(
         return Err(UserErr::NotRegistering("Declare swap Onchain first"));
     }
 
-    Ok(*register_info.key_visibility)
+    Ok(register_info)
 }
 
 /// Confirms that a address has finished registering on chain.
