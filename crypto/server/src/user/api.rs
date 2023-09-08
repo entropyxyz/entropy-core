@@ -200,9 +200,11 @@ pub async fn new_user(
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = AccountId32::new(*address_slice);
 
-        let user_details =
-            get_registering_user_info(&api, &SubxtAccountId32::from(sig_request_address.clone()))
-                .await?;
+        let user_details = get_registering_user_details(
+            &api,
+            &SubxtAccountId32::from(sig_request_address.clone()),
+        )
+        .await?;
 
         let key_share = do_dkg(
             &data.validators_info,
@@ -283,8 +285,8 @@ pub async fn receive_key(
     Ok(StatusCode::OK)
 }
 
-/// Returns the key visibility of a given registering user
-pub async fn get_registering_user_info(
+/// Returns details of a given registering user including key key visibility and X25519 public key.
+pub async fn get_registering_user_details(
     api: &OnlineClient<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
 ) -> Result<RegisteringDetails, UserErr> {
