@@ -5,30 +5,38 @@ use kvdb::kv_manager::KvManager;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::{AccountId32, Ss58Codec};
-use subxt::{ext::sp_core::{Bytes, sr25519}, tx::PairSigner, OnlineClient, utils::AccountId32 as SubxtAccountId32};
+use subxt::{
+    ext::sp_core::{sr25519, Bytes},
+    tx::PairSigner,
+    utils::AccountId32 as SubxtAccountId32,
+    OnlineClient,
+};
 use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{
         entropy::{self, runtime_types::pallet_staking_extension::pallet::ServerInfo},
-        EntropyConfig, get_api
+        get_api, EntropyConfig,
     },
     get_signer,
+    helpers::{
+        launch::FORBIDDEN_KEYS,
+        substrate::{get_subgroup, return_all_addresses_of_subgroup},
+    },
     validation::SignedMessage,
     validator::errors::ValidatorErr,
     AppState,
-	helpers::{launch::FORBIDDEN_KEYS, substrate::{get_subgroup, return_all_addresses_of_subgroup}, }
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Keys {
     pub keys: Vec<String>,
+    // pub timestamp:
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Values {
     pub values: Vec<SignedMessage>,
-	// pub timestamp:
 }
 
 /// Endpoint to allow a new node to sync their kvdb with a member of their subgroup
@@ -36,24 +44,22 @@ pub async fn sync_kvdb(
     State(app_state): State<AppState>,
     Json(signed_msg): Json<SignedMessage>,
 ) -> Result<Json<Values>, ValidatorErr> {
-	let api = get_api(&app_state.configuration.endpoint).await?;
-	let signing_address = signed_msg.account_id();
-	if !signed_msg.verify() {
-		return Err(ValidatorErr::InvalidSignature("Invalid signature."));
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let signing_address = signed_msg.account_id();
+    if !signed_msg.verify() {
+        return Err(ValidatorErr::InvalidSignature("Invalid signature."));
     }
     let sender = PublicKey::from(signed_msg.sender().to_bytes());
-	let signer = get_signer(&app_state.kv_store).await?;
-	let decrypted_message =
-	signed_msg.decrypt(signer.signer()).unwrap();
-	check_in_subgroup(&api, &signer, signing_address).await?;
-	// TODO add a timestamp and a check within x time so message can't be stored and resent
-	// check_timestamp();
-	let keys: Keys = serde_json::from_slice(&decrypted_message)?;
-
+    let signer = get_signer(&app_state.kv_store).await?;
+    let decrypted_message = signed_msg.decrypt(signer.signer()).unwrap();
+    check_in_subgroup(&api, &signer, signing_address).await?;
+    // TODO add a timestamp and a check within x time so message can't be stored and resent
+    // check_timestamp();
+    let keys: Keys = serde_json::from_slice(&decrypted_message)?;
 
     let mut values: Vec<SignedMessage> = vec![];
     for key in keys.keys {
-		check_forbidden_key(&key)?;
+        check_forbidden_key(&key)?;
         let result = app_state.kv_store.kv().get(&key).await?;
         let reencrypted_key_result = SignedMessage::new(signer.signer(), &Bytes(result), &sender)
             .map_err(|e| ValidatorErr::Encryption(e.to_string()))?;
@@ -165,6 +171,7 @@ pub async fn get_and_store_values(
     batch_size: usize,
     dev: bool,
     recip: &x25519_dalek::PublicKey,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
 ) -> Result<(), ValidatorErr> {
     let mut keys_stored = 0;
     while keys_stored < all_keys.len() {
@@ -172,12 +179,14 @@ pub async fn get_and_store_values(
         if keys_to_send_slice > all_keys.len() {
             keys_to_send_slice = all_keys.len();
         }
-        let signer = get_signer(kv).await?;
         let remaining_keys = all_keys[keys_stored..(keys_to_send_slice)].to_vec();
-		let keys_to_send = Keys {keys: remaining_keys.clone()};
-		let enc_keys =
-                SignedMessage::new(signer.signer(), &Bytes(serde_json::to_vec(&keys_to_send).unwrap()), recip)
-                    .map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
+        let keys_to_send = Keys { keys: remaining_keys.clone() };
+        let enc_keys = SignedMessage::new(
+            signer.signer(),
+            &Bytes(serde_json::to_vec(&keys_to_send).unwrap()),
+            recip,
+        )
+        .map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
         let client = reqwest::Client::new();
         let formatted_url = format!("http://{url}/validator/sync_kvdb");
         let result = client
@@ -244,32 +253,36 @@ pub async fn check_balance_for_fees(
 }
 
 pub fn check_forbidden_key(key: &str) -> Result<(), ValidatorErr> {
-	let forbidden = FORBIDDEN_KEYS.contains(&key);
-	if forbidden {
-		return Err(ValidatorErr::ForbiddenKey)
-	}
-	Ok(())
+    let forbidden = FORBIDDEN_KEYS.contains(&key);
+    if forbidden {
+        return Err(ValidatorErr::ForbiddenKey);
+    }
+    Ok(())
 }
 
-pub async fn check_in_subgroup(api: &OnlineClient<EntropyConfig>, signer: &PairSigner<EntropyConfig, sr25519::Pair>, signing_address: AccountId32) -> Result<(), ValidatorErr> {
-	let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
+pub async fn check_in_subgroup(
+    api: &OnlineClient<EntropyConfig>,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signing_address: AccountId32,
+) -> Result<(), ValidatorErr> {
+    let (subgroup, _) = get_subgroup(&api, &signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| ValidatorErr::SubgroupError("Subgroup Error"))?;
     let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
-	let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
-		.map_err(|_| ValidatorErr::StringError("Account Conversion"))?;
-	let stash_address_query =
-		entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
-	let stash_address = api
-		.storage()
-		.at_latest()
-		.await?
-		.fetch(&stash_address_query)
-		.await?
-		.ok_or_else(|| ValidatorErr::OptionUnwrapError("Stash Fetch Error"))?;
+    let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
+        .map_err(|_| ValidatorErr::StringError("Account Conversion"))?;
+    let stash_address_query =
+        entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
+    let stash_address = api
+        .storage()
+        .at_latest()
+        .await?
+        .fetch(&stash_address_query)
+        .await?
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Stash Fetch Error"))?;
 
-	let in_subgroup = addresses_in_subgroup.contains(&stash_address);
-	if !in_subgroup {
-		return Err(ValidatorErr::NotInSubgroup);
-	}
-	Ok(())
+    let in_subgroup = addresses_in_subgroup.contains(&stash_address);
+    if !in_subgroup {
+        return Err(ValidatorErr::NotInSubgroup);
+    }
+    Ok(())
 }

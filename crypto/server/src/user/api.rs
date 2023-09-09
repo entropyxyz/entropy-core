@@ -476,7 +476,7 @@ pub async fn recover_key(
         .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
     let ip_address = String::from_utf8(key_server_info.endpoint)?;
     let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
-    get_and_store_values(vec![signing_address], kv_store, ip_address, 1, false, &recip_key)
+    get_and_store_values(vec![signing_address], kv_store, ip_address, 1, false, &recip_key, signer)
         .await
         .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
     Ok(())

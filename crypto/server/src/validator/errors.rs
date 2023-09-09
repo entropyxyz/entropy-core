@@ -30,15 +30,15 @@ pub enum ValidatorErr {
     Decryption(String),
     #[error("Validation Error: {0}")]
     Encryption(String),
-	#[error("Forbidden Key")]
+    #[error("Forbidden Key")]
     ForbiddenKey,
-	#[error("Invalid Signature: {0}")]
+    #[error("Invalid Signature: {0}")]
     InvalidSignature(&'static str),
-	#[error("Subgroup error: {0}")]
+    #[error("Subgroup error: {0}")]
     SubgroupError(&'static str),
-	#[error("Account unable to be deserialized: {0}")]
+    #[error("Account unable to be deserialized: {0}")]
     StringError(&'static str),
-	#[error("Validator not in subgroup")]
+    #[error("Validator not in subgroup")]
     NotInSubgroup,
 }
 
