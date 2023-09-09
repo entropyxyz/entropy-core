@@ -40,6 +40,10 @@ pub enum ValidatorErr {
     StringError(&'static str),
     #[error("Validator not in subgroup")]
     NotInSubgroup,
+    #[error("Message is too old")]
+    StaleMessage,
+    #[error("Time subtraction error: {0}")]
+    SystemTime(#[from] std::time::SystemTimeError),
 }
 
 impl IntoResponse for ValidatorErr {

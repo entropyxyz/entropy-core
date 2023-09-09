@@ -1,4 +1,7 @@
-use std::str::FromStr;
+use std::{
+    str::FromStr,
+    time::{Duration, SystemTime},
+};
 
 use axum::{extract::State, Json};
 use kvdb::kv_manager::KvManager;
@@ -28,10 +31,12 @@ use crate::{
     AppState,
 };
 
+pub const TIME_BUFFER: Duration = Duration::from_secs(15);
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Keys {
     pub keys: Vec<String>,
-    // pub timestamp:
+    pub timestamp: SystemTime,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -52,10 +57,11 @@ pub async fn sync_kvdb(
     let sender = PublicKey::from(signed_msg.sender().to_bytes());
     let signer = get_signer(&app_state.kv_store).await?;
     let decrypted_message = signed_msg.decrypt(signer.signer()).unwrap();
+    let keys: Keys = serde_json::from_slice(&decrypted_message)?;
+    check_stale(keys.timestamp, SystemTime::now(), TIME_BUFFER)?;
     check_in_subgroup(&api, &signer, signing_address).await?;
     // TODO add a timestamp and a check within x time so message can't be stored and resent
     // check_timestamp();
-    let keys: Keys = serde_json::from_slice(&decrypted_message)?;
 
     let mut values: Vec<SignedMessage> = vec![];
     for key in keys.keys {
@@ -180,7 +186,7 @@ pub async fn get_and_store_values(
             keys_to_send_slice = all_keys.len();
         }
         let remaining_keys = all_keys[keys_stored..(keys_to_send_slice)].to_vec();
-        let keys_to_send = Keys { keys: remaining_keys.clone() };
+        let keys_to_send = Keys { keys: remaining_keys.clone(), timestamp: SystemTime::now() };
         let enc_keys = SignedMessage::new(
             signer.signer(),
             &Bytes(serde_json::to_vec(&keys_to_send).unwrap()),
@@ -260,6 +266,7 @@ pub fn check_forbidden_key(key: &str) -> Result<(), ValidatorErr> {
     Ok(())
 }
 
+/// Checks to see if message sender is in the same subgroup as current validator
 pub async fn check_in_subgroup(
     api: &OnlineClient<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
@@ -283,6 +290,19 @@ pub async fn check_in_subgroup(
     let in_subgroup = addresses_in_subgroup.contains(&stash_address);
     if !in_subgroup {
         return Err(ValidatorErr::NotInSubgroup);
+    }
+    Ok(())
+}
+
+/// Checks if the message sent was within X amount of time
+pub fn check_stale(
+    message_time: SystemTime,
+    current_time: SystemTime,
+    time_buffer: Duration,
+) -> Result<(), ValidatorErr> {
+    let time_difference = current_time.duration_since(message_time)?;
+    if time_difference > time_buffer {
+        return Err(ValidatorErr::StaleMessage);
     }
     Ok(())
 }

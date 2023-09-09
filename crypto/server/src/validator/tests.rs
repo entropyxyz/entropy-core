@@ -1,4 +1,4 @@
-use std::net::TcpListener;
+use std::{net::TcpListener, time::SystemTime};
 
 use bip39::{Language, Mnemonic};
 use entropy_shared::MIN_BALANCE;
@@ -104,17 +104,17 @@ async fn test_get_no_safe_crypto_error() {
     let recip = PublicKey::from(&b_usr_ss);
     let values = vec![vec![10], vec![11], vec![12]];
 
-    let keys = Keys { keys: addrs.clone() };
-    let enc_keys =
-        SignedMessage::new(&b_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip).unwrap();
     let port = 3001;
-    let (bob_axum, _) = create_clients("bob".to_string(), values, addrs, false, true).await;
+    let (bob_axum, _) = create_clients("bob".to_string(), values, addrs.clone(), false, true).await;
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{port}")).unwrap();
 
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
+		axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
     });
     let client = reqwest::Client::new();
+	let keys = Keys { keys: addrs, timestamp: SystemTime::now() };
+	let enc_keys =
+	SignedMessage::new(&b_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip).unwrap();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
     let result = client
         .post(formatted_url)
