@@ -269,9 +269,9 @@ pub async fn check_in_subgroup(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     signing_address: AccountId32,
 ) -> Result<(), ValidatorErr> {
-    let (subgroup, _) = get_subgroup(&api, &signer).await?;
+    let (subgroup, _) = get_subgroup(api, signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| ValidatorErr::SubgroupError("Subgroup Error"))?;
-    let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
+    let addresses_in_subgroup = return_all_addresses_of_subgroup(api, my_subgroup).await?;
     let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
         .map_err(|_| ValidatorErr::StringError("Account Conversion"))?;
     let stash_address_query =
