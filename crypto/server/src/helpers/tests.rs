@@ -4,7 +4,7 @@
 use std::{net::TcpListener, time::Duration};
 
 use axum::{routing::IntoMakeService, Router};
-use entropy_shared::KeyVisibility;
+use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 use futures::future;
 use kvdb::{
     clean_tests,
@@ -252,6 +252,24 @@ pub async fn user_participates_in_signing_protocol(
     // Return a signature if everything went well
     let (signature, recovery_id) = rsig.to_backend();
     Ok(RecoverableSignature { signature, recovery_id })
+}
+
+/// Called during registration when key visibility is private - the user participates
+/// in the DKG protocol.
+pub async fn user_participates_in_dkg_protocol(
+    validators_info: Vec<ValidatorInfo>,
+    user_signing_keypair: &sr25519::Pair,
+) -> Result<KeyShare<KeyParams>, ProtocolErr> {
+    let sig_req_account: AccountId32 = user_signing_keypair.public().into();
+    let session_id = sig_req_account.to_string();
+    let (channels, tss_accounts) =
+        user_connects_to_validators(&session_id, validators_info, user_signing_keypair).await?;
+
+    // The user's subgroup is SIGNING_PARTY_SIZE + 1, so they will always be alone in their subgroup
+    let user_subgroup = SIGNING_PARTY_SIZE as u8 + 1;
+
+	execute_protocol::execute_dkg(channels, user_signing_keypair, tss_accounts, &user_subgroup)
+		.await
 }
 
 async fn user_connects_to_validators(
