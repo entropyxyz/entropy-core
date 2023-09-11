@@ -4,7 +4,6 @@ use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{Acl, KeyVisibility, OcwMessage};
-use ethers_core::types::{Address, TransactionRequest};
 use futures::{
     future::{self, join_all},
     join, Future, SinkExt, StreamExt,
@@ -30,7 +29,10 @@ use subxt::{
     OnlineClient,
 };
 use testing_utils::{
-    constants::{ALICE_STASH_ADDRESS, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
+    constants::{
+        ALICE_STASH_ADDRESS, BAREBONES_PROGRAM_WASM_BYTECODE, MESSAGE_SHOULD_FAIL,
+        MESSAGE_SHOULD_SUCCEED, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+    },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
     },
@@ -48,11 +50,11 @@ use crate::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
             DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
-        signing::{create_unique_tx_id, SignatureState},
+        signing::{create_unique_tx_id, Hasher, SignatureState},
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, setup_client, spawn_testing_validators,
-            update_constraints, user_participates_in_signing_protocol,
+            update_programs, user_participates_in_signing_protocol,
         },
         user::send_key,
     },
@@ -93,19 +95,17 @@ async fn test_sign_tx_no_chain() {
         spawn_testing_validators(Some(signing_address.clone()), false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let initial_constraints = |address: [u8; 20]| -> Constraints {
-        let mut evm_acl = Acl::<[u8; 20]>::default();
-        evm_acl.addresses.push(address);
 
-        Constraints { evm_acl: Some(Static(evm_acl)), btc_acl: None }
-    };
+    update_programs(
+        &entropy_api,
+        &one.pair(),
+        &one.pair(),
+        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+    )
+    .await;
 
-    update_constraints(&entropy_api, &one.pair(), &one.pair(), initial_constraints([1u8; 20]))
-        .await;
-    let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(1);
-    let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
+    let message_should_succeed_hash = Hasher::keccak(MESSAGE_SHOULD_SUCCEED);
 
-    let sig_hash = transaction_request.sighash();
     let validators_info = vec![
         ValidatorInfo {
             ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
@@ -118,13 +118,14 @@ async fn test_sign_tx_no_chain() {
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
     ];
-    let converted_transaction_request: String = hex::encode(&transaction_request.rlp_unsigned());
+
+    let converted_transaction_request: String = hex::encode(MESSAGE_SHOULD_SUCCEED);
 
     let signing_address = one.to_account_id().to_ss58check();
-    let sig_uid = create_unique_tx_id(&signing_address, &hex::encode(sig_hash));
+    let hash_as_string = hex::encode(&message_should_succeed_hash);
+    let sig_uid = create_unique_tx_id(&signing_address, &hash_as_string);
 
     let mut generic_msg = UserTransactionRequest {
-        arch: "evm".to_string(),
         transaction_request: converted_transaction_request.clone(),
         validators_info,
     };
@@ -279,7 +280,7 @@ async fn test_sign_tx_no_chain() {
     }
 
     // Test a transcation which does not pass constaints
-    generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp());
+    generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
 
     let test_user_failed_constraints_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -287,23 +288,11 @@ async fn test_sign_tx_no_chain() {
     for res in test_user_failed_constraints_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Constraints error: Constraint Evaluation error: Transaction not allowed."
+            "Runtime error: Runtime(Error::Evaluation(\"Length of data is too short.\"))"
         );
     }
 
-    // Test unsupported transaction type
-    generic_msg.arch = "btc".to_string();
-    let test_user_failed_arch_res =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-
-    for res in test_user_failed_arch_res {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "Parse error: Unknown \"arch\". Must be one of: [\"evm\"]"
-        );
-    }
-
-    let sig_request = SigMessage { message: hex::encode(sig_hash) };
+    let sig_request = SigMessage { message: hex::encode(message_should_succeed_hash) };
     let mock_client = reqwest::Client::new();
 
     join_all(validator_ips.iter().map(|validator_ip| async {
@@ -398,12 +387,14 @@ async fn test_fail_signing_group() {
     let _ = spawn_testing_validators(None, false).await;
 
     let _substrate_context = test_node_process_testing_state().await;
-    let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(4);
+    let message_raw = MESSAGE_SHOULD_SUCCEED.to_owned();
+
     let validators_info = vec![
         ValidatorInfo {
             ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
-            tss_account: TSS_ACCOUNTS[0].clone(),
+            tss_account: hex!["a664add5dfaca1dd560b949b5699b5f0c3c1df3a2ea77ceb0eeb4f77cc3ade04"]
+                .into(),
         },
         ValidatorInfo {
             ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
@@ -412,11 +403,8 @@ async fn test_fail_signing_group() {
         },
     ];
 
-    let generic_msg = UserTransactionRequest {
-        arch: "evm".to_string(),
-        transaction_request: hex::encode(&transaction_request.rlp()),
-        validators_info,
-    };
+    let generic_msg =
+        UserTransactionRequest { transaction_request: hex::encode(message_raw), validators_info };
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let signed_message = SignedMessage::new(
         &dave.pair(),
@@ -705,20 +693,15 @@ async fn test_sign_tx_user_participates() {
         spawn_testing_validators(Some(signing_address.clone()), true).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let initial_constraints = |address: [u8; 20]| -> Constraints {
-        let mut evm_acl = Acl::<[u8; 20]>::default();
-        evm_acl.addresses.push(address);
 
-        Constraints { evm_acl: Some(Static(evm_acl)), btc_acl: None }
-    };
+    update_programs(
+        &entropy_api,
+        &one.pair(),
+        &one.pair(),
+        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+    )
+    .await;
 
-    update_constraints(&entropy_api, &one.pair(), &one.pair(), initial_constraints([1u8; 20]))
-        .await;
-
-    let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(1);
-    let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
-
-    let sig_hash = transaction_request.sighash();
     let validators_info = vec![
         ValidatorInfo {
             ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
@@ -731,14 +714,15 @@ async fn test_sign_tx_user_participates() {
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
     ];
-    let converted_transaction_request: String =
-        hex::encode(&transaction_request.rlp_unsigned().to_vec());
+
+    let converted_transaction_request: String = hex::encode(MESSAGE_SHOULD_SUCCEED);
+    let message_should_succeed_hash = Hasher::keccak(MESSAGE_SHOULD_SUCCEED);
 
     let signing_address = one.clone().to_account_id().to_ss58check();
-    let sig_uid = create_unique_tx_id(&signing_address, &hex::encode(&sig_hash));
+    let hash_as_string = hex::encode(&message_should_succeed_hash);
+    let sig_uid = create_unique_tx_id(&signing_address, &hash_as_string);
 
     let mut generic_msg = UserTransactionRequest {
-        arch: "evm".to_string(),
         transaction_request: converted_transaction_request.clone(),
         validators_info: validators_info.clone(),
     };
@@ -784,7 +768,7 @@ async fn test_sign_tx_user_participates() {
             &sig_uid,
             validators_info.clone(),
             &one.pair(),
-            &converted_transaction_request,
+            message_should_succeed_hash,
         ),
     )
     .await;
@@ -906,7 +890,7 @@ async fn test_sign_tx_user_participates() {
     }
 
     // Test a transcation which does not pass constaints
-    generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec());
+    generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
 
     let test_user_failed_constraints_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -914,23 +898,11 @@ async fn test_sign_tx_user_participates() {
     for res in test_user_failed_constraints_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Constraints error: Constraint Evaluation error: Transaction not allowed."
+            "Runtime error: Runtime(Error::Evaluation(\"Length of data is too short.\"))"
         );
     }
 
-    // Test unsupported transaction type
-    generic_msg.arch = "btc".to_string();
-    let test_user_failed_arch_res =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-
-    for res in test_user_failed_arch_res {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "Parse error: Unknown \"arch\". Must be one of: [\"evm\"]"
-        );
-    }
-
-    let sig_request = SigMessage { message: hex::encode(sig_hash.clone()) };
+    let sig_request = SigMessage { message: hex::encode(message_should_succeed_hash) };
     let mock_client = reqwest::Client::new();
 
     join_all(validator_ips.iter().map(|validator_ip| async {
