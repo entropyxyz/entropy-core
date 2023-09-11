@@ -224,54 +224,6 @@ async fn test_sync_kvdb() {
 
     clean_tests();
 }
-// TODO JA test validation
-// #[tokio::test]
-// #[serial]
-// async fn test_get_safe_crypto_error() {
-//     clean_tests();
-//     let addrs = vec![
-//         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
-//         "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
-//         "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
-//     ];
-
-//     let a_usr_sk = mnemonic_to_pair(&new_mnemonic()).unwrap();
-//     let a_usr_ss = derive_static_secret(&a_usr_sk);
-//     let sender = PublicKey::from(&a_usr_ss).to_bytes();
-
-//     let b_usr_sk = mnemonic_to_pair(&new_mnemonic()).unwrap();
-//     let b_usr_ss = derive_static_secret(&b_usr_sk);
-//     let recip = PublicKey::from(&b_usr_ss);
-
-// 	let keys = Keys { keys: addrs };
-// 	let enc_keys =
-//                 SignedMessage::new(&a_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()),
-// &recip).unwrap();
-
-//     let port = 3001;
-
-//     let (bob_axum, _) = create_clients("bob".to_string(), vec![], vec![], false, true).await;
-//     let listener_bob = TcpListener::bind(format!("0.0.0.0:{port}")).unwrap();
-
-//     tokio::spawn(async move {
-//         axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
-//     });
-
-//     let client = reqwest::Client::new();
-//     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
-//     let result = client
-//         .post(formatted_url)
-//         .header("Content-Type", "application/json")
-//         .body(serde_json::to_string(&enc_keys).unwrap())
-//         .send()
-//         .await
-//         .unwrap();
-
-//     // Validates that keys signed/encrypted to a different key
-//     // than the validator server return with a 500 error.
-//     assert_eq!(result.status(), 500);
-//     clean_tests();
-// }
 
 #[tokio::test]
 #[serial]
