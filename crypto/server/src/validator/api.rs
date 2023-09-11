@@ -56,7 +56,7 @@ pub async fn sync_kvdb(
     }
     let sender = PublicKey::from(signed_msg.sender().to_bytes());
     let signer = get_signer(&app_state.kv_store).await?;
-    let decrypted_message = signed_msg.decrypt(signer.signer()).unwrap();
+    let decrypted_message = signed_msg.decrypt(signer.signer())?;
     let keys: Keys = serde_json::from_slice(&decrypted_message)?;
     check_stale(keys.timestamp, SystemTime::now(), TIME_BUFFER)?;
     check_in_subgroup(&api, &signer, signing_address).await?;
@@ -187,12 +187,9 @@ pub async fn get_and_store_values(
         }
         let remaining_keys = all_keys[keys_stored..(keys_to_send_slice)].to_vec();
         let keys_to_send = Keys { keys: remaining_keys.clone(), timestamp: SystemTime::now() };
-        let enc_keys = SignedMessage::new(
-            signer.signer(),
-            &Bytes(serde_json::to_vec(&keys_to_send).unwrap()),
-            recip,
-        )
-        .map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
+        let enc_keys =
+            SignedMessage::new(signer.signer(), &Bytes(serde_json::to_vec(&keys_to_send)?), recip)
+                .map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
         let client = reqwest::Client::new();
         let formatted_url = format!("http://{url}/validator/sync_kvdb");
         let result = client

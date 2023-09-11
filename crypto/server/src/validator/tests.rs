@@ -5,6 +5,7 @@ use entropy_shared::MIN_BALANCE;
 use kvdb::clean_tests;
 use serial_test::serial;
 use sp_core::{sr25519, Pair};
+use sp_keyring::AccountKeyring;
 use subxt::{ext::sp_core::Bytes, tx::PairSigner};
 use testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
@@ -16,36 +17,20 @@ use x25519_dalek::PublicKey;
 
 use super::api::{
     check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info,
-    tell_chain_syncing_is_done, Keys,
+    tell_chain_syncing_is_done, Keys, TIME_BUFFER,
 };
 use crate::{
     chain_api::{get_api, EntropyConfig},
     helpers::{
-        launch::{DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC, DEFAULT_MNEMONIC},
+        launch::{
+            DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
+            DEFAULT_MNEMONIC, FORBIDDEN_KEYS,
+        },
         substrate::get_subgroup,
-        tests::{create_clients, setup_client},
-        validator::get_signer,
+        tests::create_clients,
     },
-    validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, to_bytes, SignedMessage},
+    validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
 };
-
-#[tokio::test]
-#[serial]
-async fn test_sync_kvdb() {
-    clean_tests();
-    setup_client().await;
-    let client = reqwest::Client::new();
-
-    let response = client
-        .post("http://localhost:3001/validator/sync_kvdb")
-        .header("Content-Type", "application/json")
-        .send()
-        .await
-        .unwrap();
-
-    dbg!(response);
-    clean_tests();
-}
 
 #[tokio::test]
 async fn test_get_all_keys() {
@@ -88,9 +73,9 @@ async fn test_get_all_keys_fail() {
 
 #[tokio::test]
 #[serial]
-async fn test_get_no_safe_crypto_error() {
+async fn test_sync_kvdb() {
     clean_tests();
-    let cxt = test_context_stationary().await;
+    let _ctx = test_context_stationary().await;
     let addrs = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
         "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
@@ -109,15 +94,15 @@ async fn test_get_no_safe_crypto_error() {
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{port}")).unwrap();
 
     tokio::spawn(async move {
-		axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
+        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
     });
     let client = reqwest::Client::new();
-	let keys = Keys { keys: addrs, timestamp: SystemTime::now() };
-	let enc_keys =
-	SignedMessage::new(&b_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip).unwrap();
+    let mut keys = Keys { keys: addrs, timestamp: SystemTime::now() };
+    let enc_keys =
+        SignedMessage::new(&b_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip).unwrap();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
     let result = client
-        .post(formatted_url)
+        .post(formatted_url.clone())
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&enc_keys).unwrap())
         .send()
@@ -127,9 +112,119 @@ async fn test_get_no_safe_crypto_error() {
     // Validates that keys signed/encrypted to the correct key
     // return no error (status code 200).
     assert_eq!(result.status(), 200);
+
+    let a_usr_sk = mnemonic_to_pair(
+        &Mnemonic::from_phrase(DEFAULT_ALICE_MNEMONIC, Language::English).unwrap(),
+    )
+    .unwrap();
+    let a_usr_ss = derive_static_secret(&a_usr_sk);
+    let sender = PublicKey::from(&a_usr_ss);
+
+    let enc_keys_failed_decrypt =
+        SignedMessage::new(&b_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &sender).unwrap();
+    let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
+    let result_2 = client
+        .post(formatted_url.clone())
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&enc_keys_failed_decrypt).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(result_2.status(), 500);
+    assert_eq!(
+        result_2.text().await.unwrap(),
+        "Validation Error: ChaCha20 decryption error: aead::Error"
+    );
+
+    let enc_keys =
+        SignedMessage::new(&a_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip).unwrap();
+    let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
+    let result_3 = client
+        .post(formatted_url.clone())
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&enc_keys).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(result_3.status(), 500);
+    assert_eq!(result_3.text().await.unwrap(), "Validator not in subgroup");
+
+    // check random key fails not in subgroup
+    let random_usr_sk = mnemonic_to_pair(&new_mnemonic()).unwrap();
+
+    let enc_keys =
+        SignedMessage::new(&random_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip)
+            .unwrap();
+    let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
+    let result_3 = client
+        .post(formatted_url.clone())
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&enc_keys).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(result_3.status(), 500);
+    // fails on lookup for stash key
+    assert_eq!(result_3.text().await.unwrap(), "Option Unwrap error: Stash Fetch Error");
+
+    keys.keys = vec![FORBIDDEN_KEYS[0].to_string()];
+    let enc_forbidden =
+        SignedMessage::new(&b_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip).unwrap();
+    let result_4 = client
+        .post(formatted_url.clone())
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&enc_forbidden).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(result_4.status(), 500);
+    assert_eq!(result_4.text().await.unwrap(), "Forbidden Key");
+
+    keys.timestamp = keys.timestamp.checked_sub(TIME_BUFFER).unwrap();
+    let enc_stale =
+        SignedMessage::new(&b_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip).unwrap();
+    let result_5 = client
+        .post(formatted_url.clone())
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&enc_stale).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(result_5.status(), 500);
+    assert_eq!(result_5.text().await.unwrap(), "Message is too old");
+
+    let sig: [u8; 64] = [0; 64];
+    let slice: [u8; 32] = [0; 32];
+    let nonce: [u8; 12] = [0; 12];
+
+    let user_input_bad = SignedMessage::new_test(
+        Bytes(serde_json::to_vec(&keys.clone()).unwrap()),
+        sr25519::Signature::from_raw(sig),
+        AccountKeyring::Eve.pair().public().into(),
+        slice,
+        slice,
+        nonce,
+    );
+
+    let failed_sign = client
+        .post(formatted_url.clone())
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&user_input_bad).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(failed_sign.status(), 500);
+    assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+
     clean_tests();
 }
-// TODO JA test validation, forbidden keys, not in signing group, timestamp
+// TODO JA test validation
 // #[tokio::test]
 // #[serial]
 // async fn test_get_safe_crypto_error() {

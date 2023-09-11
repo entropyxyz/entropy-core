@@ -22,8 +22,6 @@ pub enum ValidatorErr {
     Reqwest(#[from] reqwest::Error),
     #[error("Kv error: {0}")]
     Kv(#[from] kvdb::kv_manager::error::KvError),
-    #[error("Sync error: {0}")]
-    SafeCryptoError(&'static str),
     #[error("User Error: {0}")]
     UserErr(#[from] crate::user::UserErr),
     #[error("Validation Error: {0}")]
@@ -44,6 +42,8 @@ pub enum ValidatorErr {
     StaleMessage,
     #[error("Time subtraction error: {0}")]
     SystemTime(#[from] std::time::SystemTimeError),
+    #[error("Validation Error: {0}")]
+    ValidationErr(#[from] crate::validation::errors::ValidationErr),
 }
 
 impl IntoResponse for ValidatorErr {
