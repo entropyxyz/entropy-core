@@ -60,8 +60,6 @@ pub async fn sync_kvdb(
     let keys: Keys = serde_json::from_slice(&decrypted_message)?;
     check_stale(keys.timestamp, SystemTime::now(), TIME_BUFFER)?;
     check_in_subgroup(&api, &signer, signing_address).await?;
-    // TODO add a timestamp and a check within x time so message can't be stored and resent
-    // check_timestamp();
 
     let mut values: Vec<SignedMessage> = vec![];
     for key in keys.keys {
