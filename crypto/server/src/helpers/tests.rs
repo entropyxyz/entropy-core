@@ -268,8 +268,8 @@ pub async fn user_participates_in_dkg_protocol(
     // The user's subgroup is SIGNING_PARTY_SIZE + 1, so they will always be alone in their subgroup
     let user_subgroup = SIGNING_PARTY_SIZE as u8 + 1;
 
-	execute_protocol::execute_dkg(channels, user_signing_keypair, tss_accounts, &user_subgroup)
-		.await
+    execute_protocol::execute_dkg(channels, user_signing_keypair, tss_accounts, &user_subgroup)
+        .await
 }
 
 async fn user_connects_to_validators(
