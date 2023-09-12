@@ -257,6 +257,7 @@ pub mod pallet {
 
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 let mut weight;
+                // just inserts last validator's verifying_key, need to do dispute resolution
                 Registered::<T>::insert(
                     &sig_req_account,
                     RegisteredInfo {
