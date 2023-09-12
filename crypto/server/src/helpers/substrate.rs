@@ -1,11 +1,13 @@
 use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 use subxt::{ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32, Config, OnlineClient};
+#[cfg(test)]
 use x25519_dalek::PublicKey;
 
+#[cfg(test)]
+use crate::validation::derive_static_secret;
 use crate::{
     chain_api::{entropy, EntropyConfig},
     user::UserErr,
-    validation::derive_static_secret,
 };
 
 /// gets the subgroup of the working validator
