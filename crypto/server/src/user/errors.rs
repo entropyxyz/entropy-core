@@ -102,7 +102,7 @@ pub enum UserErr {
     #[error("Parse transaction_request error")]
     ParsingError(#[from] hex::FromHexError),
     #[error("Validator Error: {0}")]
-    ValidatorError(&'static str),
+    ValidatorError(String),
 }
 
 impl IntoResponse for UserErr {
