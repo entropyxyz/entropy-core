@@ -54,7 +54,8 @@ use crate::{
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, setup_client, spawn_testing_validators,
-            update_programs, user_participates_in_signing_protocol,
+            update_programs, user_participates_in_dkg_protocol,
+            user_participates_in_signing_protocol,
         },
         user::send_key,
     },
@@ -457,7 +458,13 @@ async fn test_store_share() {
         OcwMessage { sig_request_accounts: vec![alice.encode()], block_number, validators_info };
     let client = reqwest::Client::new();
 
-    put_register_request_on_chain(&api, &alice, alice_constraint.to_account_id().into()).await;
+    put_register_request_on_chain(
+        &api,
+        &alice,
+        alice_constraint.to_account_id().into(),
+        KeyVisibility::Public,
+    )
+    .await;
 
     run_to_block(&api, block_number + 1).await;
 
@@ -510,8 +517,13 @@ async fn test_store_share() {
     assert_eq!(response_4.text().await.unwrap(), "Data is stale");
 
     block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
-    put_register_request_on_chain(&api, &alice_constraint, alice_constraint.to_account_id().into())
-        .await;
+    put_register_request_on_chain(
+        &api,
+        &alice_constraint,
+        alice_constraint.to_account_id().into(),
+        KeyVisibility::Public,
+    )
+    .await;
     onchain_user_request.block_number = block_number;
     run_to_block(&api, block_number + 1).await;
 
@@ -652,14 +664,21 @@ pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: &Sr25519Keyring,
     constraint_account: subxtAccountId32,
+    key_visibility: KeyVisibility,
 ) {
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
+
+    let x25519_public_key = {
+        let x25519_secret_key = derive_static_secret(&sig_req_keyring.pair());
+        PublicKey::from(&x25519_secret_key).to_bytes()
+    };
+
     let registering_tx = entropy::tx().relayer().register(
         constraint_account,
-        Static(KeyVisibility::Public),
+        Static(key_visibility),
         None,
-        [0; 32],
+        x25519_public_key,
     );
 
     api.tx()
@@ -987,4 +1006,87 @@ async fn test_sign_tx_user_participates() {
     // fails when tries to decode the nonsense message
     assert_ne!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
     clean_tests();
+}
+
+/// Test demonstration registering with private key visibility, where the user participates in DKG
+/// and holds a keyshare.
+#[tokio::test]
+#[serial]
+async fn test_register_private_key_visibility() {
+    clean_tests();
+
+    let one = AccountKeyring::One;
+    let constraint_account = AccountKeyring::Charlie;
+
+    let (validator_ips, _validator_ids, _users_keyshare_option) =
+        spawn_testing_validators(None, false).await;
+    let substrate_context = test_context_stationary().await;
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+
+    let block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
+
+    put_register_request_on_chain(
+        &api,
+        &one,
+        constraint_account.to_account_id().into(),
+        KeyVisibility::Private,
+    )
+    .await;
+    run_to_block(&api, block_number + 1).await;
+
+    // make_register(
+    //     &api,
+    //     one.pair(),
+    //     &constraint_account.to_account_id().into(),
+    //     KeyVisibility::Private,
+    // )
+    // .await;
+
+    // Simulate the propagation pallet making a `user/new` request to the second validator
+    // as we only have one chain node running
+    let onchain_user_request = {
+        // Since we only have two validators we use both of them, but if we had more we would
+        // need to select them using same method as the chain does (based on block number)
+        let validators_info: Vec<entropy_shared::ValidatorInfo> = validator_ips
+            .iter()
+            .enumerate()
+            .map(|(i, ip)| entropy_shared::ValidatorInfo {
+                ip_address: ip.as_bytes().to_vec(),
+                x25519_public_key: X25519_PUBLIC_KEYS[i],
+                tss_account: TSS_ACCOUNTS[i].clone().encode(),
+            })
+            .collect();
+        OcwMessage { sig_request_accounts: vec![one.encode()], block_number, validators_info }
+    };
+
+    let client = reqwest::Client::new();
+    let validators_info: Vec<ValidatorInfo> = validator_ips
+        .iter()
+        .enumerate()
+        .map(|(i, ip)| ValidatorInfo {
+            ip_address: SocketAddrV4::from_str(ip).unwrap(),
+            x25519_public_key: X25519_PUBLIC_KEYS[i],
+            tss_account: TSS_ACCOUNTS[i].clone(),
+        })
+        .collect();
+
+    let (new_user_response_result, keyshare_result) = future::join(
+        client
+            .post("http://127.0.0.1:3002/user/new")
+            .body(onchain_user_request.clone().encode())
+            .send(),
+        user_participates_in_dkg_protocol(validators_info.clone(), &one.pair()),
+    )
+    .await;
+
+    let response = new_user_response_result.unwrap();
+    assert_eq!(response.text().await.unwrap(), "");
+    // assert_eq!(response.status(), StatusCode::OK);
+
+    assert!(keyshare_result.is_ok());
+    // println!(" made keyshare {:?}", keyshare_result.unwrap());
+
+    // TODO wait for next block?
+    // std::thread::sleep(std::time::Duration::from_secs(60));
+    // println!("done waiting");
 }

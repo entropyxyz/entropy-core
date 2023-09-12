@@ -1,9 +1,11 @@
 use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 use subxt::{ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32, Config, OnlineClient};
+use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{entropy, EntropyConfig},
     user::UserErr,
+    validation::derive_static_secret,
 };
 
 /// gets the subgroup of the working validator
@@ -83,12 +85,16 @@ pub async fn make_register(
 ) {
     use subxt::utils::Static;
 
+    let x25519_public_key = {
+        let x25519_secret_key = derive_static_secret(&sig_req_keyring);
+        PublicKey::from(&x25519_secret_key).to_bytes()
+    };
+
     let sig_req_account = PairSigner::<EntropyConfig, sr25519::Pair>::new(sig_req_keyring);
 
     let registering_query = entropy::storage().relayer().registering(sig_req_account.account_id());
     let is_registering_1 =
         api.storage().at_latest().await.unwrap().fetch(&registering_query).await.unwrap();
-    println!("is_registering_1: {is_registering_1:?}");
     assert!(is_registering_1.is_none());
 
     // register the user
@@ -96,7 +102,7 @@ pub async fn make_register(
         constraint_account.clone(),
         Static(key_visibility),
         None,
-        [0; 32],
+        x25519_public_key,
     );
 
     api.tx()

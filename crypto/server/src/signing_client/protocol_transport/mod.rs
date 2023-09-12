@@ -113,7 +113,6 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(),
         Ok((ws_channels, party_id)) => (Ok(()), Some((ws_channels, party_id))),
         Err(err) => (Err(format!("{err:?}")), None),
     };
-
     // Send them a response as to whether we are happy with their subscribe message
     let subscribe_response_json =
         serde_json::to_string(&subscribe_response).map_err(|_| WsError::ConnectionClosed)?;
@@ -185,7 +184,9 @@ fn get_ws_channels(
 ) -> Result<WsChannels, SubscribeErr> {
     let mut listeners =
         state.listeners.lock().map_err(|e| SubscribeErr::LockError(e.to_string()))?;
-    let listener = listeners.get_mut(sig_uid).ok_or(SubscribeErr::NoListener("no listener"))?;
+    let listener = listeners
+        .get_mut(sig_uid)
+        .ok_or(SubscribeErr::NoListener("No listener when getting ws channels"))?;
     let ws_channels = listener.subscribe(tss_account)?;
 
     if ws_channels.is_final {

@@ -265,8 +265,9 @@ pub async fn user_participates_in_dkg_protocol(
     let (channels, tss_accounts) =
         user_connects_to_validators(&session_id, validators_info, user_signing_keypair).await?;
 
-    // The user's subgroup is SIGNING_PARTY_SIZE + 1, so they will always be alone in their subgroup
-    let user_subgroup = SIGNING_PARTY_SIZE as u8 + 1;
+    // The user's subgroup id is SIGNING_PARTY_SIZE. They will always be alone in their subgroup
+    // as all other subgroup id's are < SIGNING_PARTY_SIZE
+    let user_subgroup = SIGNING_PARTY_SIZE as u8;
 
     execute_protocol::execute_dkg(channels, user_signing_keypair, tss_accounts, &user_subgroup)
         .await
@@ -342,8 +343,10 @@ async fn user_connects_to_validators(
 
     // Things needed for protocol execution
     let channels = Channels(Broadcaster(tx_ref.clone()), rx_to_others);
+
     let mut tss_accounts: Vec<AccountId32> =
         validators_info.iter().map(|v| v.tss_account.clone()).collect();
+    // Add ourself to the list of partys as we will participate
     tss_accounts.push(user_signing_keypair.public().into());
 
     Ok((channels, tss_accounts))
