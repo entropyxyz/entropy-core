@@ -3,7 +3,7 @@ use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE as SIG_PARTIES};
 use frame_benchmarking::{
     account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec,
 };
-use frame_support::traits::Get;
+use frame_support::{traits::Get, BoundedVec};
 use frame_system::{EventRecord, RawOrigin};
 #[cfg(feature = "runtime-benchmarks")]
 use pallet_constraints::benchmarking::generate_benchmarking_constraints;
@@ -86,7 +86,7 @@ benchmarks! {
         key_visibility: KeyVisibility::Public,
         x25519_public_key: [0; 32],
     });
-  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
+  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())
   verify {
     assert_last_event::<T>(Event::<T>::AccountRegistering(sig_req_account, 0).into());
   }
@@ -112,7 +112,7 @@ confirm_register_registered {
         key_visibility: KeyVisibility::Public,
         x25519_public_key: [0; 32],
     });
-  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
+  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())
   verify {
     assert_last_event::<T>(Event::<T>::AccountRegistered(sig_req_account).into());
   }
@@ -138,7 +138,7 @@ confirm_register_registered {
         key_visibility: KeyVisibility::Public,
         x25519_public_key: [0; 32],
     });
-  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0)
+  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())
   verify {
     assert_last_event::<T>(Event::<T>::AccountRegistered(sig_req_account).into());
   }

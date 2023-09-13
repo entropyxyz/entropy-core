@@ -244,7 +244,14 @@ async fn setup_dkg(
         send_key(&api, &stash_address, &mut addresses_in_subgroup, user_registration_info, &signer)
             .await?;
         // TODO: Error handling really complex needs to be thought about.
-        confirm_registered(&api, sig_request_address.into(), my_subgroup, &signer).await?;
+        confirm_registered(
+            &api,
+            sig_request_address.into(),
+            my_subgroup,
+            &signer,
+            key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec(),
+        )
+        .await?;
     }
     Ok(())
 }
@@ -325,12 +332,17 @@ pub async fn confirm_registered(
     who: SubxtAccountId32,
     subgroup: u8,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    verifying_key: Vec<u8>,
 ) -> Result<(), subxt::error::Error> {
     // TODO error handling + return error
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
-    let registration_tx = entropy::tx().relayer().confirm_register(who, subgroup);
+    let registration_tx = entropy::tx().relayer().confirm_register(
+        who,
+        subgroup,
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
+    );
     let _ = api
         .tx()
         .sign_and_submit_then_watch_default(&registration_tx, signer)
@@ -498,11 +510,11 @@ pub async fn recover_key(
     let unwrapped_subgroup = my_subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let key_server_info = get_random_server_info(api, unwrapped_subgroup, stash_address)
         .await
-        .map_err(|_| UserErr::ValidatorError("Error getting server"))?;
+        .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
     let ip_address = String::from_utf8(key_server_info.endpoint)?;
     let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
-    get_and_store_values(vec![signing_address], kv_store, ip_address, 1, false, &recip_key)
+    get_and_store_values(vec![signing_address], kv_store, ip_address, 1, false, &recip_key, signer)
         .await
-        .map_err(|_| UserErr::ValidatorError("Error getting server"))?;
+        .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
     Ok(())
 }

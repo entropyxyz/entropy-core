@@ -236,9 +236,10 @@ async fn main() {
             String::from_utf8(key_server_info.endpoint).expect("failed to parse IP address.");
         let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
         let all_keys = get_all_keys(&api, batch_size).await.expect("failed to get all keys.");
-        let _ =
-            get_and_store_values(all_keys, &kv_store, ip_address, batch_size, args.dev, &recip_key)
-                .await;
+        let _ = get_and_store_values(
+            all_keys, &kv_store, ip_address, batch_size, args.dev, &recip_key, &signer,
+        )
+        .await;
         tell_chain_syncing_is_done(&api, &signer).await.expect("failed to finish chain sync.");
     }
 

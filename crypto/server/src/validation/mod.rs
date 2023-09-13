@@ -142,9 +142,6 @@ pub fn new_mnemonic() -> Mnemonic {
 }
 
 #[cfg(test)]
-pub fn to_bytes(b: &[u8]) -> Bytes { Bytes(b.to_vec()) }
-
-#[cfg(test)]
 mod tests {
     use super::*;
 

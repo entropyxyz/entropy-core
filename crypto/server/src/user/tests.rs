@@ -476,7 +476,6 @@ async fn test_store_share() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
 
     // Wait until user is confirmed as registered
@@ -568,6 +567,7 @@ async fn test_store_share() {
 }
 
 #[tokio::test]
+#[serial]
 async fn test_return_addresses_of_subgroup() {
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();

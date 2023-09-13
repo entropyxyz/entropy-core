@@ -136,5 +136,5 @@ pub async fn get_key_visibility(
         .fetch(&registered_info_query)
         .await?
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
-    Ok(result.0)
+    Ok(result.key_visibility.0)
 }
