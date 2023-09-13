@@ -1020,11 +1020,11 @@ async fn test_sign_tx_user_participates() {
     clean_tests();
 }
 
-/// Test demonstration registering with private key visibility, where the user participates in DKG
+/// Test demonstrating registering with private key visibility, where the user participates in DKG
 /// and holds a keyshare.
 #[tokio::test]
 #[serial]
-async fn test_register_private_key_visibility() {
+async fn test_register_with_private_key_visibility() {
     clean_tests();
 
     let one = AccountKeyring::One;
@@ -1045,14 +1045,6 @@ async fn test_register_private_key_visibility() {
     )
     .await;
     run_to_block(&api, block_number + 1).await;
-
-    // make_register(
-    //     &api,
-    //     one.pair(),
-    //     &constraint_account.to_account_id().into(),
-    //     KeyVisibility::Private,
-    // )
-    // .await;
 
     // Simulate the propagation pallet making a `user/new` request to the second validator
     // as we only have one chain node running
@@ -1092,13 +1084,8 @@ async fn test_register_private_key_visibility() {
     .await;
 
     let response = new_user_response_result.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
-    // assert_eq!(response.status(), StatusCode::OK);
 
     assert!(keyshare_result.is_ok());
-    // println!(" made keyshare {:?}", keyshare_result.unwrap());
-
-    // TODO wait for next block?
-    // std::thread::sleep(std::time::Duration::from_secs(60));
-    // println!("done waiting");
 }
