@@ -308,7 +308,11 @@ pub async fn confirm_registered(
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
-    let registration_tx = entropy::tx().relayer().confirm_register(who, subgroup, verifying_key);
+    let registration_tx = entropy::tx().relayer().confirm_register(
+        who,
+        subgroup,
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
+    );
     let _ = api
         .tx()
         .sign_and_submit_then_watch_default(&registration_tx, signer)

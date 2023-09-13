@@ -199,7 +199,7 @@ pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &sr25
     assert!(is_registering.unwrap().is_none());
     let is_registered =
         api.storage().at_latest().await.unwrap().fetch(&registered_query).await.unwrap();
-    assert_eq!(is_registered.as_ref().unwrap().verifying_key.len(), 33usize);
+    assert_eq!(is_registered.as_ref().unwrap().verifying_key.0.len(), 33usize);
     assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
 }
 

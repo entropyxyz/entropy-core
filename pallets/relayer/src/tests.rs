@@ -3,6 +3,7 @@ use entropy_shared::{Constraints, KeyVisibility};
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
+    BoundedVec,
 };
 use pallet_constraints::{ActiveArchitectures, AllowedToModifyConstraints};
 use pallet_relayer::Call as RelayerCall;
@@ -67,14 +68,14 @@ fn it_registers_a_user() {
 fn it_confirms_registers_a_user_then_swap() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0, vec![]),
+            Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
             Error::<Test>::NoThresholdKey
         );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
 
         assert_noop!(
-            Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0, vec![]),
+            Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
             Error::<Test>::NotRegistering
         );
 
@@ -86,23 +87,28 @@ fn it_confirms_registers_a_user_then_swap() {
         ));
 
         assert_noop!(
-            Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 3, vec![]),
+            Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 3, BoundedVec::default()),
             Error::<Test>::InvalidSubgroup
         );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
 
         assert_noop!(
-            Relayer::confirm_register(RuntimeOrigin::signed(2), 1, 0, vec![]),
+            Relayer::confirm_register(RuntimeOrigin::signed(2), 1, 0, BoundedVec::default()),
             Error::<Test>::NotInSigningGroup
         );
 
         assert_eq!(Relayer::registered(1), None);
 
-        assert_ok!(Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0, vec![]));
+        assert_ok!(Relayer::confirm_register(
+            RuntimeOrigin::signed(1),
+            1,
+            0,
+            BoundedVec::default()
+        ));
 
         assert_noop!(
-            Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0, vec![]),
+            Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
             Error::<Test>::AlreadyConfirmed
         );
 
@@ -117,12 +123,20 @@ fn it_confirms_registers_a_user_then_swap() {
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
 
-        assert_ok!(Relayer::confirm_register(RuntimeOrigin::signed(2), 1, 1, vec![]));
+        assert_ok!(Relayer::confirm_register(
+            RuntimeOrigin::signed(2),
+            1,
+            1,
+            BoundedVec::default()
+        ));
 
         assert_eq!(Relayer::registering(1), None);
         assert_eq!(
             Relayer::registered(1).unwrap(),
-            RegisteredInfo { key_visibility: KeyVisibility::Private, verifying_key: vec![] }
+            RegisteredInfo {
+                key_visibility: KeyVisibility::Private,
+                verifying_key: BoundedVec::default()
+            }
         );
 
         // make sure constraint and sig req keys are set
@@ -163,7 +177,7 @@ fn it_provides_free_txs_confirm_done() {
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
-            verifying_key: vec![],
+            verifying_key: BoundedVec::default(),
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
@@ -180,7 +194,7 @@ fn it_provides_free_txs_confirm_done_fails_1() {
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
-            verifying_key: vec![],
+            verifying_key: BoundedVec::default(),
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
@@ -197,7 +211,7 @@ fn it_provides_free_txs_confirm_done_fails_2() {
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
-            verifying_key: vec![],
+            verifying_key: BoundedVec::default(),
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
@@ -218,12 +232,17 @@ fn it_provides_free_txs_confirm_done_fails_3() {
             None
         ));
 
-        assert_ok!(Relayer::confirm_register(RuntimeOrigin::signed(7), 5, 0, vec![]));
+        assert_ok!(Relayer::confirm_register(
+            RuntimeOrigin::signed(7),
+            5,
+            0,
+            BoundedVec::default()
+        ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
-            verifying_key: vec![],
+            verifying_key: BoundedVec::default(),
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
@@ -246,7 +265,7 @@ fn it_provides_free_txs_confirm_done_fails_4() {
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 5,
-            verifying_key: vec![],
+            verifying_key: BoundedVec::default(),
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
@@ -269,7 +288,7 @@ fn it_provides_free_txs_confirm_done_fails_5() {
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
-            verifying_key: vec![],
+            verifying_key: BoundedVec::default(),
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);

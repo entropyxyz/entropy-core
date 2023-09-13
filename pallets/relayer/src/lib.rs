@@ -35,7 +35,7 @@ pub mod pallet {
         dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays},
         inherent::Vec,
         pallet_prelude::*,
-        traits::IsSubType,
+        traits::{ConstU32, IsSubType},
     };
     use frame_system::pallet_prelude::*;
     use pallet_constraints::{AllowedToModifyConstraints, Pallet as ConstraintsPallet};
@@ -78,7 +78,7 @@ pub mod pallet {
     pub struct RegisteredInfo {
         pub key_visibility: KeyVisibility,
         // TODO better type
-        pub verifying_key: Vec<u8>,
+        pub verifying_key: BoundedVec<u8, ConstU32<33>>,
     }
 
     #[pallet::genesis_config]
@@ -103,7 +103,7 @@ pub mod pallet {
                 };
                 Registered::<T>::insert(
                     account_info.0.clone(),
-                    RegisteredInfo { key_visibility, verifying_key: vec![] },
+                    RegisteredInfo { key_visibility, verifying_key: BoundedVec::default() },
                 );
                 AllowedToModifyConstraints::<T>::insert(
                     account_info.0.clone(),
@@ -231,8 +231,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
             signing_subgroup: u8,
-            // TODO: better type with size restrictions
-            verifying_key: Vec<u8>,
+            verifying_key: BoundedVec<u8, ConstU32<33>>,
         ) -> DispatchResultWithPostInfo {
             let ts_server_account = ensure_signed(origin)?;
             let validator_stash =
