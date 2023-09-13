@@ -26,7 +26,7 @@ use subxt::{
     },
     tx::PairSigner,
     utils::{AccountId32 as subxtAccountId32, Static},
-    OnlineClient,
+    Config, OnlineClient,
 };
 use testing_utils::{
     constants::{
@@ -478,6 +478,18 @@ async fn test_store_share() {
 
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
+
+    // Wait until user is confirmed as registered
+    let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
+    let registered_query = entropy::storage().relayer().registered(alice_account_id);
+    for _ in 0..10 {
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        let query_registered_status =
+            api.storage().at_latest().await.unwrap().fetch(&registered_query).await;
+        if query_registered_status.unwrap().is_some() {
+            break;
+        }
+    }
 
     let get_query = UnsafeQuery::new(alice.to_account_id().to_string(), "".to_string()).to_json();
 
