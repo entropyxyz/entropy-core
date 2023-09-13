@@ -1,4 +1,11 @@
-use std::{env, fs, net::SocketAddrV4, path::PathBuf, str::FromStr, sync::Arc, time::Duration};
+use std::{
+    env, fs,
+    net::SocketAddrV4,
+    path::PathBuf,
+    str::FromStr,
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
@@ -128,6 +135,7 @@ async fn test_sign_tx_no_chain() {
     let mut generic_msg = UserTransactionRequest {
         transaction_request: converted_transaction_request.clone(),
         validators_info,
+        timestamp: SystemTime::now(),
     };
 
     let submit_transaction_requests =
@@ -163,6 +171,7 @@ async fn test_sign_tx_no_chain() {
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
 
+    generic_msg.timestamp = SystemTime::now();
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
@@ -174,6 +183,7 @@ async fn test_sign_tx_no_chain() {
         assert!(matches!(signing_result, Ok(sig) if sig.len() == 88));
     }
 
+    generic_msg.timestamp = SystemTime::now();
     // test failing cases
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
@@ -187,6 +197,7 @@ async fn test_sign_tx_no_chain() {
 
     let mut generic_msg_bad_validators = generic_msg.clone();
     generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
+    generic_msg.timestamp = SystemTime::now();
 
     let test_user_failed_x25519_pub_key = submit_transaction_requests(
         validator_ips_and_keys.clone(),
@@ -245,6 +256,7 @@ async fn test_sign_tx_no_chain() {
         encrypted_connection.recv().await.is_err()
     });
 
+    generic_msg.timestamp = SystemTime::now();
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
         generic_msg.clone(),
@@ -262,6 +274,7 @@ async fn test_sign_tx_no_chain() {
     assert!(connection_attempt_handle.await.unwrap());
 
     // Bad Account ID - an account ID is given which is not in the signing group
+    generic_msg.timestamp = SystemTime::now();
     let mut generic_msg_bad_account_id = generic_msg.clone();
     generic_msg_bad_account_id.validators_info[0].tss_account =
         AccountKeyring::Dave.to_account_id();
@@ -281,6 +294,7 @@ async fn test_sign_tx_no_chain() {
 
     // Test a transcation which does not pass constaints
     generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
+    generic_msg.timestamp = SystemTime::now();
 
     let test_user_failed_constraints_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -403,8 +417,11 @@ async fn test_fail_signing_group() {
         },
     ];
 
-    let generic_msg =
-        UserTransactionRequest { transaction_request: hex::encode(message_raw), validators_info };
+    let generic_msg = UserTransactionRequest {
+        transaction_request: hex::encode(message_raw),
+        validators_info,
+        timestamp: SystemTime::now(),
+    };
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let signed_message = SignedMessage::new(
         &dave.pair(),
@@ -721,6 +738,7 @@ async fn test_sign_tx_user_participates() {
     let mut generic_msg = UserTransactionRequest {
         transaction_request: converted_transaction_request.clone(),
         validators_info: validators_info.clone(),
+        timestamp: SystemTime::now(),
     };
 
     let submit_transaction_requests =
@@ -755,7 +773,7 @@ async fn test_sign_tx_user_participates() {
         (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
-
+    generic_msg.timestamp = SystemTime::now();
     // Submit transaction requests, and connect and participate in signing
     let (test_user_res, sig_result) = future::join(
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
@@ -780,6 +798,7 @@ async fn test_sign_tx_user_participates() {
         assert_eq!(signature_base64, signing_result.unwrap());
     }
 
+    generic_msg.timestamp = SystemTime::now();
     // test failing cases
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
@@ -791,6 +810,7 @@ async fn test_sign_tx_user_participates() {
         );
     }
 
+    generic_msg.timestamp = SystemTime::now();
     let mut generic_msg_bad_validators = generic_msg.clone();
     generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
 
@@ -850,6 +870,7 @@ async fn test_sign_tx_user_participates() {
         // returns true if this part of the test passes
         encrypted_connection.recv().await.is_err()
     });
+    generic_msg.timestamp = SystemTime::now();
 
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
@@ -866,7 +887,7 @@ async fn test_sign_tx_user_participates() {
     }
 
     assert!(connection_attempt_handle.await.unwrap());
-
+    generic_msg.timestamp = SystemTime::now();
     // Bad Account ID - an account ID is given which is not in the signing group
     let mut generic_msg_bad_account_id = generic_msg.clone();
     generic_msg_bad_account_id.validators_info[0].tss_account =
@@ -887,6 +908,7 @@ async fn test_sign_tx_user_participates() {
 
     // Test a transcation which does not pass constaints
     generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
+    generic_msg.timestamp = SystemTime::now();
 
     let test_user_failed_constraints_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;

@@ -17,7 +17,7 @@ use x25519_dalek::PublicKey;
 
 use super::api::{
     check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info,
-    tell_chain_syncing_is_done, Keys, TIME_BUFFER,
+    tell_chain_syncing_is_done, Keys,
 };
 use crate::{
     chain_api::{get_api, EntropyConfig},
@@ -29,7 +29,9 @@ use crate::{
         substrate::get_subgroup,
         tests::create_clients,
     },
-    validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
+    validation::{
+        derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage, TIME_BUFFER,
+    },
 };
 
 #[tokio::test]
@@ -196,7 +198,7 @@ async fn test_sync_kvdb() {
         .unwrap();
 
     assert_eq!(result_5.status(), 500);
-    assert_eq!(result_5.text().await.unwrap(), "Message is too old");
+    assert_eq!(result_5.text().await.unwrap(), "Validation Error: Message is too old");
 
     let sig: [u8; 64] = [0; 64];
     let slice: [u8; 32] = [0; 32];

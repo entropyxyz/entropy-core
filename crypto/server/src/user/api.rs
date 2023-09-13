@@ -1,4 +1,4 @@
-use std::{net::SocketAddrV4, str::FromStr, sync::Arc};
+use std::{net::SocketAddrV4, str::FromStr, sync::Arc, time::SystemTime};
 
 use axum::{
     body::{Bytes, StreamBody},
@@ -56,7 +56,7 @@ use crate::{
         validator::get_signer,
     },
     signing_client::{ListenerState, ProtocolErr},
-    validation::SignedMessage,
+    validation::{check_stale, SignedMessage},
     AppState, Configuration,
 };
 
@@ -77,6 +77,8 @@ pub struct UserTransactionRequest {
     pub transaction_request: String,
     /// Information from the validators in signing party
     pub validators_info: Vec<ValidatorInfo>,
+    /// When the message was created and signed
+    pub timestamp: SystemTime,
 }
 
 /// Type for validators to send user key's back and forth
@@ -118,6 +120,7 @@ pub async fn sign_tx(
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
     let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
+    check_stale(user_tx_req.timestamp)?;
     let raw_message = hex::decode(user_tx_req.transaction_request.clone())?;
     let sig_hash = hex::encode(Hasher::keccak(&raw_message));
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
