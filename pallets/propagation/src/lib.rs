@@ -37,7 +37,9 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn offchain_worker(block_number: T::BlockNumber) { let _ = Self::post(block_number); }
+        fn offchain_worker(block_number: T::BlockNumber) {
+            let _ = Self::post(block_number);
+        }
 
         fn on_initialize(block_number: T::BlockNumber) -> Weight {
             pallet_relayer::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
@@ -60,6 +62,11 @@ pub mod pallet {
         pub fn post(block_number: T::BlockNumber) -> Result<(), http::Error> {
             let messages =
                 pallet_relayer::Pallet::<T>::dkg(block_number.saturating_sub(1u32.into()));
+
+            // Only inform the signing client if there were users who registered in the last block
+            if messages.is_empty() {
+                return Ok(());
+            };
 
             let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
