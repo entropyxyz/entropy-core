@@ -1,7 +1,4 @@
-use std::{
-    str::FromStr,
-    time::{Duration, SystemTime},
-};
+use std::{str::FromStr, time::SystemTime};
 
 use axum::{extract::State, Json};
 use kvdb::kv_manager::KvManager;
@@ -26,12 +23,10 @@ use crate::{
         launch::FORBIDDEN_KEYS,
         substrate::{get_subgroup, return_all_addresses_of_subgroup},
     },
-    validation::SignedMessage,
+    validation::{check_stale, SignedMessage},
     validator::errors::ValidatorErr,
     AppState,
 };
-
-pub const TIME_BUFFER: Duration = Duration::from_secs(15);
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Keys {
@@ -58,7 +53,7 @@ pub async fn sync_kvdb(
     let signer = get_signer(&app_state.kv_store).await?;
     let decrypted_message = signed_msg.decrypt(signer.signer())?;
     let keys: Keys = serde_json::from_slice(&decrypted_message)?;
-    check_stale(keys.timestamp, SystemTime::now(), TIME_BUFFER)?;
+    check_stale(keys.timestamp)?;
     check_in_subgroup(&api, &signer, signing_address).await?;
 
     let mut values: Vec<SignedMessage> = vec![];
@@ -285,19 +280,6 @@ pub async fn check_in_subgroup(
     let in_subgroup = addresses_in_subgroup.contains(&stash_address);
     if !in_subgroup {
         return Err(ValidatorErr::NotInSubgroup);
-    }
-    Ok(())
-}
-
-/// Checks if the message sent was within X amount of time
-pub fn check_stale(
-    message_time: SystemTime,
-    current_time: SystemTime,
-    time_buffer: Duration,
-) -> Result<(), ValidatorErr> {
-    let time_difference = current_time.duration_since(message_time)?;
-    if time_difference > time_buffer {
-        return Err(ValidatorErr::StaleMessage);
     }
     Ok(())
 }
