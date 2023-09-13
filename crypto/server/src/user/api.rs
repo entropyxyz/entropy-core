@@ -184,6 +184,25 @@ pub async fn new_user(
     check_in_registration_group(&data.validators_info, signer.account_id())?;
     validate_new_user(&data, &api, &app_state.kv_store).await?;
 
+    // Do the DKG protocol in another task, so we can already respond
+    tokio::spawn(async move {
+        if let Err(err) = setup_dkg(api, signer, data, app_state).await {
+            // TODO here we would check the error and if it relates to a misbehaving node,
+            // use the slashing mechanism
+            tracing::warn!("User registration failed {:?}", err);
+        }
+    });
+
+    Ok(StatusCode::OK)
+}
+
+/// Setup and execute DKG. Called internally by the [new_user] function.
+async fn setup_dkg(
+    api: OnlineClient<EntropyConfig>,
+    signer: PairSigner<EntropyConfig, sr25519::Pair>,
+    data: OcwMessage,
+    app_state: AppState,
+) -> Result<(), UserErr> {
     let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
@@ -227,7 +246,7 @@ pub async fn new_user(
         // TODO: Error handling really complex needs to be thought about.
         confirm_registered(&api, sig_request_address.into(), my_subgroup, &signer).await?;
     }
-    Ok(StatusCode::OK)
+    Ok(())
 }
 
 /// HTTP POST endpoint to recieve a keyshare from another threshold server in the same
