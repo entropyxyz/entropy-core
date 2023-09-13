@@ -37,9 +37,7 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn offchain_worker(block_number: T::BlockNumber) {
-            let _ = Self::post(block_number);
-        }
+        fn offchain_worker(block_number: T::BlockNumber) { let _ = Self::post(block_number); }
 
         fn on_initialize(block_number: T::BlockNumber) -> Weight {
             pallet_relayer::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
