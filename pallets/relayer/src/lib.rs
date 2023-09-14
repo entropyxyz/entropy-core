@@ -84,7 +84,7 @@ pub mod pallet {
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub registered_accounts: Vec<(T::AccountId, u8)>,
+        pub registered_accounts: Vec<(T::AccountId, u8, Option<[u8; 32]>)>,
     }
 
     #[cfg(feature = "std")]
@@ -97,7 +97,9 @@ pub mod pallet {
         fn build(&self) {
             for account_info in &self.registered_accounts {
                 let key_visibility = match account_info.1 {
-                    1 => KeyVisibility::Private,
+                    1 => KeyVisibility::Private(
+                        account_info.2.expect("Private key visibility needs x25519 public key"),
+                    ),
                     2 => KeyVisibility::Permissioned,
                     _ => KeyVisibility::Public,
                 };

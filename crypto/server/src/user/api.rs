@@ -45,7 +45,10 @@ use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
-    chain_api::{entropy, get_api, EntropyConfig},
+    chain_api::{
+        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
+        get_api, EntropyConfig,
+    },
     get_and_store_values, get_random_server_info,
     helpers::{
         signing::{create_unique_tx_id, do_signing, Hasher, SignatureState},
@@ -108,8 +111,6 @@ pub async fn sign_tx(
     let second_signing_address_conversion = SubxtAccountId32::from_str(&signing_address)
         .map_err(|_| UserErr::StringError("Account Conversion"))?;
 
-    let users_x25519_public_key = signed_msg.sender(); //.as_bytes();
-
     let api = get_api(&app_state.configuration.endpoint).await?;
     let key_visibility = get_key_visibility(&api, &second_signing_address_conversion).await?;
 
@@ -149,7 +150,6 @@ pub async fn sign_tx(
             &app_state,
             tx_id,
             signing_address_converted,
-            users_x25519_public_key.as_bytes(),
             key_visibility,
         )
         .await
@@ -184,6 +184,25 @@ pub async fn new_user(
     check_in_registration_group(&data.validators_info, signer.account_id())?;
     validate_new_user(&data, &api, &app_state.kv_store).await?;
 
+    // Do the DKG protocol in another task, so we can already respond
+    tokio::spawn(async move {
+        if let Err(err) = setup_dkg(api, signer, data, app_state).await {
+            // TODO here we would check the error and if it relates to a misbehaving node,
+            // use the slashing mechanism
+            tracing::warn!("User registration failed {:?}", err);
+        }
+    });
+
+    Ok(StatusCode::OK)
+}
+
+/// Setup and execute DKG. Called internally by the [new_user] function.
+async fn setup_dkg(
+    api: OnlineClient<EntropyConfig>,
+    signer: PairSigner<EntropyConfig, sr25519::Pair>,
+    data: OcwMessage,
+    app_state: AppState,
+) -> Result<(), UserErr> {
     let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
@@ -195,12 +214,19 @@ pub async fn new_user(
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = AccountId32::new(*address_slice);
 
+        let user_details = get_registering_user_details(
+            &api,
+            &SubxtAccountId32::from(sig_request_address.clone()),
+        )
+        .await?;
+
         let key_share = do_dkg(
             &data.validators_info,
             &signer,
             &app_state.listener_state,
-            sig_request_address.to_string(),
+            sig_request_address.clone(),
             &my_subgroup,
+            *user_details.key_visibility,
         )
         .await?;
         let serialized_key_share = key_serialize(&key_share)
@@ -226,7 +252,7 @@ pub async fn new_user(
         )
         .await?;
     }
-    Ok(StatusCode::OK)
+    Ok(())
 }
 
 /// HTTP POST endpoint to recieve a keyshare from another threshold server in the same
@@ -279,11 +305,11 @@ pub async fn receive_key(
     Ok(StatusCode::OK)
 }
 
-/// Returns wether an account is registering or swapping. If it is not, it returns error
-pub async fn register_info(
+/// Returns details of a given registering user including key key visibility and X25519 public key.
+pub async fn get_registering_user_details(
     api: &OnlineClient<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
-) -> Result<bool, UserErr> {
+) -> Result<RegisteringDetails, UserErr> {
     let registering_info_query = entropy::storage().relayer().registering(who);
     let register_info = api
         .storage()
@@ -296,7 +322,7 @@ pub async fn register_info(
         return Err(UserErr::NotRegistering("Declare swap Onchain first"));
     }
 
-    Ok(register_info.is_swapping)
+    Ok(register_info)
 }
 
 /// Confirms that a address has finished registering on chain.

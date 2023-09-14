@@ -56,7 +56,7 @@ fn it_registers_a_user() {
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None
+            None,
         ));
 
         assert!(Relayer::registering(1).unwrap().is_registering);
@@ -82,7 +82,7 @@ fn it_confirms_registers_a_user_then_swap() {
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Private,
+            KeyVisibility::Private([0; 32]),
             Some(Constraints::default()),
         ));
 
@@ -118,7 +118,7 @@ fn it_confirms_registers_a_user_then_swap() {
             is_swapping: false,
             confirmations: vec![0],
             constraints: Some(Constraints::default()),
-            key_visibility: KeyVisibility::Private,
+            key_visibility: KeyVisibility::Private([0; 32]),
         };
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
@@ -134,7 +134,7 @@ fn it_confirms_registers_a_user_then_swap() {
         assert_eq!(
             Relayer::registered(1).unwrap(),
             RegisteredInfo {
-                key_visibility: KeyVisibility::Private,
+                key_visibility: KeyVisibility::Private([0; 32]),
                 verifying_key: BoundedVec::default()
             }
         );
@@ -153,12 +153,12 @@ fn it_doesnt_allow_double_registering() {
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Permissioned,
-            None
+            None,
         ));
 
         // error if they try to submit another request, even with a different constraint key
         assert_noop!(
-            Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Permissioned, None),
+            Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Permissioned, None,),
             Error::<Test>::AlreadySubmitted
         );
     });
@@ -171,7 +171,7 @@ fn it_provides_free_txs_confirm_done() {
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None
+            None,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
@@ -229,7 +229,7 @@ fn it_provides_free_txs_confirm_done_fails_3() {
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None
+            None,
         ));
 
         assert_ok!(Relayer::confirm_register(
@@ -259,7 +259,7 @@ fn it_provides_free_txs_confirm_done_fails_4() {
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None
+            None,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
@@ -282,7 +282,7 @@ fn it_provides_free_txs_confirm_done_fails_5() {
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None
+            None,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {

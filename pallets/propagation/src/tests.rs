@@ -17,21 +17,6 @@ fn knows_how_to_mock_several_http_calls() {
             sent: true,
             response: Some([].to_vec()),
             body: [
-                0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 10, 32, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4,
-                11, 32, 4, 0, 0, 0, 0, 0, 0, 0,
-            ]
-            .to_vec(),
-            ..Default::default()
-        });
-
-        state.expect_request(testing::PendingRequest {
-            method: "POST".into(),
-            uri: "http://localhost:3001/user/new".into(),
-            sent: true,
-            response: Some([].to_vec()),
-            body: [
                 3, 0, 0, 0, 8, 32, 1, 0, 0, 0, 0, 0, 0, 0, 32, 2, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 4, 20, 32, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -47,8 +32,8 @@ fn knows_how_to_mock_several_http_calls() {
         Propagation::post(1).unwrap();
 
         System::set_block_number(3);
-        assert_ok!(Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, None));
-        assert_ok!(Relayer::register(RuntimeOrigin::signed(2), 3, KeyVisibility::Public, None));
+        assert_ok!(Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, None,));
+        assert_ok!(Relayer::register(RuntimeOrigin::signed(2), 3, KeyVisibility::Public, None,));
         // full send
         Propagation::post(4).unwrap();
         // test pruning

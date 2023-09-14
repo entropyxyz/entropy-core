@@ -22,7 +22,7 @@ pub type X25519PublicKey = [u8; 32];
 pub enum KeyVisibility {
     Public,
     Permissioned,
-    Private,
+    Private(X25519PublicKey),
 }
 
 /// Information from the validators in signing party

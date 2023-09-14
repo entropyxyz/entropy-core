@@ -4,7 +4,7 @@
 use std::{net::TcpListener, time::Duration};
 
 use axum::{routing::IntoMakeService, Router};
-use entropy_shared::KeyVisibility;
+use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 use futures::future;
 use kvdb::{
     clean_tests,
@@ -230,13 +230,55 @@ async fn test_get_signing_group() {
 
 /// Called when KeyVisibility is private - the user connects to relevant validators
 /// and participates in the signing protocol
-pub async fn user_connects_to_validators(
+pub async fn user_participates_in_signing_protocol(
     key_share: &KeyShare<KeyParams>,
     sig_uid: &str,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
     sig_hash: [u8; 32],
 ) -> Result<RecoverableSignature, ProtocolErr> {
+    let (channels, tss_accounts) =
+        user_connects_to_validators(sig_uid, validators_info, user_signing_keypair).await?;
+
+    // Execute the signing protocol
+    let rsig = execute_protocol::execute_signing_protocol(
+        channels,
+        key_share,
+        &sig_hash,
+        user_signing_keypair,
+        tss_accounts,
+    )
+    .await?;
+
+    // Return a signature if everything went well
+    let (signature, recovery_id) = rsig.to_backend();
+    Ok(RecoverableSignature { signature, recovery_id })
+}
+
+/// Called during registration when key visibility is private - the user participates
+/// in the DKG protocol.
+pub async fn user_participates_in_dkg_protocol(
+    validators_info: Vec<ValidatorInfo>,
+    user_signing_keypair: &sr25519::Pair,
+) -> Result<KeyShare<KeyParams>, ProtocolErr> {
+    let sig_req_account: AccountId32 = user_signing_keypair.public().into();
+    let session_id = sig_req_account.to_string();
+    let (channels, tss_accounts) =
+        user_connects_to_validators(&session_id, validators_info, user_signing_keypair).await?;
+
+    // The user's subgroup id is SIGNING_PARTY_SIZE. They will always be alone in their subgroup
+    // as all other subgroup id's are < SIGNING_PARTY_SIZE
+    let user_subgroup = SIGNING_PARTY_SIZE as u8;
+
+    execute_protocol::execute_dkg(channels, user_signing_keypair, tss_accounts, &user_subgroup)
+        .await
+}
+
+async fn user_connects_to_validators(
+    session_id: &str,
+    validators_info: Vec<ValidatorInfo>,
+    user_signing_keypair: &sr25519::Pair,
+) -> Result<(Channels, Vec<AccountId32>), ProtocolErr> {
     // Set up channels for communication between signing protocol and other signing parties
     let (tx, _rx) = broadcast::channel(1000);
     let (tx_to_others, rx_to_others) = mpsc::channel(1000);
@@ -253,7 +295,7 @@ pub async fn user_connects_to_validators(
 
             // Send a SubscribeMessage in the payload of the final handshake message
             let subscribe_message_vec =
-                serde_json::to_vec(&SubscribeMessage::new(sig_uid, user_signing_keypair))?;
+                serde_json::to_vec(&SubscribeMessage::new(session_id, user_signing_keypair))?;
 
             let mut encrypted_connection = noise_handshake_initiator(
                 ws_stream,
@@ -300,23 +342,13 @@ pub async fn user_connects_to_validators(
     // Connect to validators
     future::try_join_all(connect_to_validators).await?;
 
-    // Set up the signing protocol
+    // Things needed for protocol execution
     let channels = Channels(Broadcaster(tx_ref.clone()), rx_to_others);
+
     let mut tss_accounts: Vec<AccountId32> =
         validators_info.iter().map(|v| v.tss_account.clone()).collect();
+    // Add ourself to the list of partys as we will participate
     tss_accounts.push(user_signing_keypair.public().into());
 
-    // Execute the signing protocol
-    let rsig = execute_protocol::execute_signing_protocol(
-        channels,
-        key_share,
-        &sig_hash,
-        user_signing_keypair,
-        tss_accounts,
-    )
-    .await?;
-
-    // Return a signature if everything went well
-    let (signature, recovery_id) = rsig.to_backend();
-    Ok(RecoverableSignature { signature, recovery_id })
+    Ok((channels, tss_accounts))
 }

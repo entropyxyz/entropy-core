@@ -88,7 +88,6 @@ pub async fn make_register(
     let registering_query = entropy::storage().relayer().registering(sig_req_account.account_id());
     let is_registering_1 =
         api.storage().at_latest().await.unwrap().fetch(&registering_query).await.unwrap();
-    println!("is_registering_1: {is_registering_1:?}");
     assert!(is_registering_1.is_none());
 
     // register the user
