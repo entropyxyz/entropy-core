@@ -5,7 +5,7 @@ use std::{
 };
 
 use bip39::{Language, Mnemonic};
-use entropy_shared::{KeyVisibility, X25519PublicKey, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 use tokio::time::timeout;
@@ -82,7 +82,6 @@ pub async fn do_signing(
     app_state: &AppState,
     tx_id: String,
     user_address: AccountId32,
-    user_x25519_public_key: &X25519PublicKey,
     key_visibility: KeyVisibility,
 ) -> Result<RecoverableSignature, ProtocolErr> {
     let state = &app_state.listener_state;
@@ -104,13 +103,12 @@ pub async fn do_signing(
         .map(|validator_info| AccountId32::new(*validator_info.tss_account.clone().as_ref()))
         .collect();
 
-    if key_visibility == KeyVisibility::Private {
+    // If key key visibility is private, add them to the list of parties and pass the user's ID to
+    // the listener
+    let user_details_option = if let KeyVisibility::Private(user_x25519_public_key) = key_visibility
+    {
         tss_accounts.push(user_address.clone());
-    }
-
-    // If key key visibility is private, pass the user's ID to the listener
-    let user_details_option = if key_visibility == KeyVisibility::Private {
-        Some((user_address, *user_x25519_public_key))
+        Some((user_address, user_x25519_public_key))
     } else {
         None
     };

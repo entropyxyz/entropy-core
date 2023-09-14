@@ -109,8 +109,6 @@ pub async fn sign_tx(
     let second_signing_address_conversion = SubxtAccountId32::from_str(&signing_address)
         .map_err(|_| UserErr::StringError("Account Conversion"))?;
 
-    let users_x25519_public_key = signed_msg.sender(); //.as_bytes();
-
     let api = get_api(&app_state.configuration.endpoint).await?;
     let key_visibility = get_key_visibility(&api, &second_signing_address_conversion).await?;
 
@@ -149,7 +147,6 @@ pub async fn sign_tx(
             &app_state,
             tx_id,
             signing_address_converted,
-            users_x25519_public_key.as_bytes(),
             key_visibility,
         )
         .await
@@ -227,7 +224,6 @@ async fn setup_dkg(
             sig_request_address.clone(),
             &my_subgroup,
             *user_details.key_visibility,
-            user_details.x25519_public_key,
         )
         .await?;
         let serialized_key_share = key_serialize(&key_share)

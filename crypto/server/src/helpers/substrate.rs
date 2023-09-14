@@ -1,10 +1,7 @@
 use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 use subxt::{ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32, Config, OnlineClient};
-#[cfg(test)]
-use x25519_dalek::PublicKey;
 
 #[cfg(test)]
-use crate::validation::derive_static_secret;
 use crate::{
     chain_api::{entropy, EntropyConfig},
     user::UserErr,
@@ -87,11 +84,6 @@ pub async fn make_register(
 ) {
     use subxt::utils::Static;
 
-    let x25519_public_key = {
-        let x25519_secret_key = derive_static_secret(&sig_req_keyring);
-        PublicKey::from(&x25519_secret_key).to_bytes()
-    };
-
     let sig_req_account = PairSigner::<EntropyConfig, sr25519::Pair>::new(sig_req_keyring);
 
     let registering_query = entropy::storage().relayer().registering(sig_req_account.account_id());
@@ -100,12 +92,8 @@ pub async fn make_register(
     assert!(is_registering_1.is_none());
 
     // register the user
-    let registering_tx = entropy::tx().relayer().register(
-        constraint_account.clone(),
-        Static(key_visibility),
-        None,
-        x25519_public_key,
-    );
+    let registering_tx =
+        entropy::tx().relayer().register(constraint_account.clone(), Static(key_visibility), None);
 
     api.tx()
         .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)

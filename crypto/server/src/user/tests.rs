@@ -681,17 +681,8 @@ pub async fn put_register_request_on_chain(
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
-    let x25519_public_key = {
-        let x25519_secret_key = derive_static_secret(&sig_req_keyring.pair());
-        PublicKey::from(&x25519_secret_key).to_bytes()
-    };
-
-    let registering_tx = entropy::tx().relayer().register(
-        constraint_account,
-        Static(key_visibility),
-        None,
-        x25519_public_key,
-    );
+    let registering_tx =
+        entropy::tx().relayer().register(constraint_account, Static(key_visibility), None);
 
     api.tx()
         .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
@@ -1037,11 +1028,16 @@ async fn test_register_with_private_key_visibility() {
 
     let block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
 
+    let x25519_public_key = {
+        let x25519_secret_key = derive_static_secret(&one.pair());
+        PublicKey::from(&x25519_secret_key).to_bytes()
+    };
+
     put_register_request_on_chain(
         &api,
         &one,
         constraint_account.to_account_id().into(),
-        KeyVisibility::Private,
+        KeyVisibility::Private(x25519_public_key),
     )
     .await;
     run_to_block(&api, block_number + 1).await;
