@@ -1,8 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::time::Duration;
 
 use bip39::{Language, Mnemonic};
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
@@ -40,39 +36,6 @@ impl RecoverableSignature {
 
         res
     }
-}
-
-// TODO: JA Remove all below, temporary
-/// The state used to temporarily store completed signatures
-#[derive(Debug, Clone)]
-pub struct SignatureState {
-    pub signatures: Arc<Mutex<HashMap<Box<[u8]>, RecoverableSignature>>>,
-}
-
-impl SignatureState {
-    pub fn new() -> SignatureState {
-        let signatures = Arc::new(Mutex::new(HashMap::new()));
-        SignatureState { signatures }
-    }
-
-    pub fn insert(&self, prehashed_message: &[u8], value: &RecoverableSignature) {
-        let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
-        signatures.insert(prehashed_message.into(), value.clone());
-    }
-
-    pub fn get(&self, prehashed_message: &[u8]) -> Option<RecoverableSignature> {
-        let signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
-        signatures.get(prehashed_message).cloned()
-    }
-
-    pub fn drain(&self) {
-        let mut signatures = self.signatures.lock().unwrap_or_else(|e| e.into_inner());
-        let _ = signatures.drain();
-    }
-}
-
-impl Default for SignatureState {
-    fn default() -> Self { Self::new() }
 }
 
 /// Start the signing protocol for a given message
@@ -147,12 +110,6 @@ pub async fn do_signing(
     let result = signing_service
         .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
         .await?;
-
-    signing_service.handle_result(
-        &result,
-        &hex::decode(sig_hash.clone())?,
-        &app_state.signature_state,
-    );
 
     Ok(result)
 }

@@ -36,7 +36,6 @@ use crate::{
             setup_latest_block_number, setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC,
             DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
-        signing::SignatureState,
         substrate::get_subgroup,
     },
     signing_client::{
@@ -58,8 +57,7 @@ pub async fn setup_client() {
     let _ = setup_latest_block_number(&kv_store).await;
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let signature_state = SignatureState::new();
-    let app_state = AppState { listener_state, configuration, kv_store, signature_state };
+    let app_state = AppState { listener_state, configuration, kv_store };
     let app = app(app_state).into_make_service();
     let listener = TcpListener::bind("0.0.0.0:3001").unwrap();
 
@@ -77,7 +75,6 @@ pub async fn create_clients(
 ) -> (IntoMakeService<Router>, KvManager) {
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let signature_state = SignatureState::new();
 
     let path = format!(".entropy/testing/test_db_{key_number}");
     let _ = std::fs::remove_dir_all(path.clone());
@@ -92,8 +89,7 @@ pub async fn create_clients(
         let _ = kv_store.clone().kv().put(reservation, value).await;
     }
 
-    let app_state =
-        AppState { listener_state, configuration, kv_store: kv_store.clone(), signature_state };
+    let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
 
     let app = app(app_state).into_make_service();
 

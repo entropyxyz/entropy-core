@@ -47,38 +47,6 @@
 //!   http://127.0.0.1:3001/user/sign_tx
 //! ```
 //!
-//! #### `/signer/signature` - POST
-//!
-//! [crate::signing_client::api::get_signature()]
-//!
-//! Get a signature, given a message hash. If a message was successfully signed, this
-//! returns the signature.
-//!
-//! This takes a [`Message`](crate::signing_client::api::Message) containing a hex encoded message
-//! hash. For evm transactions this should be an ethers
-//! [`TransactionRequest`](ethers_core::types::transaction::request::TransactionRequest) sighash.
-//!
-//! Curl example for `/signer/signature`:
-//! ```text
-//! curl -X POST -H "Content-Type: application/json" \
-//!   -d '{"message" "0x174...hex encoded sighash..."}' \
-//!   -H "Accept: application/json" \
-//!   http://127.0.0.1:3001/signer/signature
-//! ```
-//!
-//! #### `/signer/drain` - GET
-//!
-//! [crate::signing_client::api::drain()]
-//!
-//! Remove signatures from state.
-//! This should be called after `get_signature`.
-//!
-//! Curl example for `user/drain`:
-//! ```text
-//! curl -X GET -H "Accept: application/json" \
-//!   http://127.0.0.1:3001/user/drain
-//! ```
-//!
 //! ### For the blockchain node
 //!
 //! #### `/user/new` - POST
@@ -158,7 +126,6 @@ use crate::{
             init_tracing, load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration,
             StartupArgs,
         },
-        signing::SignatureState,
         substrate::get_subgroup,
         validator::get_signer,
     },
@@ -174,7 +141,6 @@ pub struct AppState {
     pub listener_state: ListenerState,
     pub configuration: Configuration,
     pub kv_store: KvManager,
-    pub signature_state: SignatureState,
 }
 
 #[tokio::main]
@@ -186,13 +152,11 @@ async fn main() {
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(args.chain_endpoint);
     let kv_store = load_kv_store(args.bob, args.alice, args.no_password).await;
-    let signature_state = SignatureState::new();
 
     let app_state = AppState {
         listener_state,
         configuration: configuration.clone(),
         kv_store: kv_store.clone(),
-        signature_state,
     };
 
     setup_mnemonic(&kv_store, args.alice, args.bob).await.expect("Issue creating Mnemonic");
@@ -257,8 +221,6 @@ pub fn app(app_state: AppState) -> Router {
         .route("/user/sign_tx", post(sign_tx))
         .route("/user/new", post(new_user))
         .route("/user/receive_key", post(receive_key))
-        .route("/signer/signature", post(get_signature))
-        .route("/signer/drain", get(drain))
         .route("/validator/sync_kvdb", post(sync_kvdb))
         .route("/healthz", get(healthz))
         .route("/ws", get(ws_handler));

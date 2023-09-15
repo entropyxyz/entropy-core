@@ -51,7 +51,7 @@ use crate::{
     },
     get_and_store_values, get_random_server_info,
     helpers::{
-        signing::{create_unique_tx_id, do_signing, Hasher, SignatureState},
+        signing::{create_unique_tx_id, do_signing, Hasher},
         substrate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },

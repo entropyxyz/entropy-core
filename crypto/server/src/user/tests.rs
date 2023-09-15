@@ -51,13 +51,13 @@ use x25519_dalek::{PublicKey, StaticSecret};
 use super::UserInputPartyInfo;
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
-    drain, get_signature, get_signer,
+    get_signer,
     helpers::{
         launch::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
             DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
-        signing::{create_unique_tx_id, Hasher, SignatureState},
+        signing::{create_unique_tx_id, Hasher},
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, setup_client, spawn_testing_validators,
@@ -78,7 +78,6 @@ use crate::{
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
-    Message as SigMessage,
 };
 
 #[tokio::test]
@@ -307,22 +306,7 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    let sig_request = SigMessage { message: hex::encode(message_should_succeed_hash) };
     let mock_client = reqwest::Client::new();
-
-    join_all(validator_ips.iter().map(|validator_ip| async {
-        let url = format!("http://{}/signer/signature", validator_ip.clone());
-        let res = mock_client
-            .post(url)
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&sig_request).unwrap())
-            .send()
-            .await
-            .unwrap();
-        assert_eq!(res.status(), 202);
-        assert_eq!(res.content_length().unwrap(), 88);
-    }))
-    .await;
     // fails verification tests
     // wrong key for wrong validator
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
@@ -946,22 +930,7 @@ async fn test_sign_tx_user_participates() {
         );
     }
 
-    let sig_request = SigMessage { message: hex::encode(message_should_succeed_hash) };
     let mock_client = reqwest::Client::new();
-
-    join_all(validator_ips.iter().map(|validator_ip| async {
-        let url = format!("http://{}/signer/signature", validator_ip.clone());
-        let res = mock_client
-            .post(url)
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&sig_request).unwrap())
-            .send()
-            .await
-            .unwrap();
-        assert_eq!(res.status(), 202);
-        assert_eq!(res.content_length().unwrap(), 88);
-    }))
-    .await;
     // fails verification tests
     // wrong key for wrong validator
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
