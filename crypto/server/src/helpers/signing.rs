@@ -150,11 +150,14 @@ pub async fn do_signing(
         .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
         .await?;
 
-    signing_service.handle_result(
-        &result,
-        &hex::decode(sig_hash.clone())?,
-        &app_state.signature_state,
-    );
+    // signing_service.handle_result(
+    //     &result,
+    //     &hex::decode(sig_hash.clone())?,
+    //     &app_state.signature_state,
+    // 	kv_manager
+    // );
+    let sig_reservation = kv_manager.kv().reserve_key(sig_hash.clone()).await?;
+    kv_manager.kv().put(sig_reservation, result.to_rsv_bytes().to_vec()).await?;
 
     Ok(result)
 }

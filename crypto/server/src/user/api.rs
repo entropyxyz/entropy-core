@@ -57,6 +57,7 @@ use crate::{
     },
     signing_client::{ListenerState, ProtocolErr},
     validation::{check_stale, SignedMessage},
+    validator::api::check_forbidden_key,
     AppState, Configuration,
 };
 
@@ -91,6 +92,12 @@ pub struct UserRegistrationInfo {
     pub value: Vec<u8>,
 }
 
+/// Hex encoded message hash used to retrieve a signature for a particular message
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Debug))]
+#[derive(Clone)]
+pub struct SignatureMessage {
+    pub key: String,
+}
 /// Called by a user to initiate the signing process for a message
 ///
 /// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
@@ -99,6 +106,7 @@ pub async fn sign_tx(
     Json(signed_msg): Json<SignedMessage>,
 ) -> Result<(StatusCode, StreamBody<impl Stream<Item = Result<String, serde_json::Error>>>), UserErr>
 {
+    // TODO add check to see if sig already exists
     let signer = get_signer(&app_state.kv_store).await?;
     let signing_address = signed_msg.account_id().to_ss58check();
 
@@ -277,6 +285,31 @@ pub async fn receive_key(
         app_state.kv_store.kv().reserve_key(user_registration_info.key.to_string()).await?;
     app_state.kv_store.kv().put(reservation, user_registration_info.value).await?;
     Ok(StatusCode::OK)
+}
+
+/// Returns the signature of the requested sighash
+///
+/// This will be removed when after client participates in signing
+pub async fn get_signature(
+    State(app_state): State<AppState>,
+    Json(signed_msg): Json<SignedMessage>,
+) -> Result<String, UserErr> {
+    let signing_address = signed_msg.account_id();
+    // make sure sig belongs to said address
+    // by getting the recovery key from chain and matching to recovery key from sig
+    if !signed_msg.verify() {
+        return Err(UserErr::InvalidSignature("Invalid signature."));
+    }
+    let signer = get_signer(&app_state.kv_store).await?;
+    let decrypted_message =
+        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+
+    let msg: SignatureMessage = serde_json::from_slice(&decrypted_message)?;
+    check_forbidden_key(&msg.key).map_err(|e| UserErr::ValidatorError(e.to_string()))?;
+    let sig = app_state.kv_store.kv().get(&msg.key).await?;
+    // TODO determine if sig from validator is needed
+    Ok(base64::encode(sig))
+    // TODO prune sig after?
 }
 
 /// Returns wether an account is registering or swapping. If it is not, it returns error

@@ -77,7 +77,7 @@ use crate::{
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
-    Message as SigMessage,
+    SignatureMessage,
 };
 
 #[tokio::test]
@@ -306,19 +306,26 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    let sig_request = SigMessage { message: hex::encode(message_should_succeed_hash) };
+    let sig_request = SignatureMessage { key: hex::encode(message_should_succeed_hash) };
     let mock_client = reqwest::Client::new();
 
-    join_all(validator_ips.iter().map(|validator_ip| async {
-        let url = format!("http://{}/signer/signature", validator_ip.clone());
+    join_all(validator_ips_and_keys.iter().map(|(validator_ip, validator_key)| async {
+        let server_public_key = PublicKey::from(*validator_key);
+        let signed_message = SignedMessage::new(
+            &one.pair(),
+            &Bytes(serde_json::to_vec(&sig_request.clone()).unwrap()),
+            &server_public_key,
+        )
+        .unwrap();
+        let url = format!("http://{}/user/signature", validator_ip.clone());
         let res = mock_client
             .post(url)
             .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&sig_request).unwrap())
+            .body(serde_json::to_string(&signed_message).unwrap())
             .send()
             .await
             .unwrap();
-        assert_eq!(res.status(), 202);
+        assert_eq!(res.status(), 200);
         assert_eq!(res.content_length().unwrap(), 88);
     }))
     .await;
@@ -920,19 +927,26 @@ async fn test_sign_tx_user_participates() {
         );
     }
 
-    let sig_request = SigMessage { message: hex::encode(message_should_succeed_hash) };
+    let sig_request = SignatureMessage { key: hex::encode(message_should_succeed_hash) };
     let mock_client = reqwest::Client::new();
 
-    join_all(validator_ips.iter().map(|validator_ip| async {
-        let url = format!("http://{}/signer/signature", validator_ip.clone());
+    join_all(validator_ips_and_keys.iter().map(|(validator_ip, validator_key)| async {
+        let server_public_key = PublicKey::from(*validator_key);
+        let signed_message = SignedMessage::new(
+            &one.pair(),
+            &Bytes(serde_json::to_vec(&sig_request.clone()).unwrap()),
+            &server_public_key,
+        )
+        .unwrap();
+        let url = format!("http://{}/user/signature", validator_ip.clone());
         let res = mock_client
             .post(url)
             .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&sig_request).unwrap())
+            .body(serde_json::to_string(&signed_message).unwrap())
             .send()
             .await
             .unwrap();
-        assert_eq!(res.status(), 202);
+        assert_eq!(res.status(), 200);
         assert_eq!(res.content_length().unwrap(), 88);
     }))
     .await;

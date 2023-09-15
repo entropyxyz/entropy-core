@@ -47,7 +47,7 @@
 //!   http://127.0.0.1:3001/user/sign_tx
 //! ```
 //!
-//! #### `/signer/signature` - POST
+//! #### `/user/signature` - POST
 //!
 //! [crate::signing_client::api::get_signature()]
 //!
@@ -58,12 +58,12 @@
 //! hash. For evm transactions this should be an ethers
 //! [`TransactionRequest`](ethers_core::types::transaction::request::TransactionRequest) sighash.
 //!
-//! Curl example for `/signer/signature`:
+//! Curl example for `/user/signature`:
 //! ```text
 //! curl -X POST -H "Content-Type: application/json" \
 //!   -d '{"message" "0x174...hex encoded sighash..."}' \
 //!   -H "Accept: application/json" \
-//!   http://127.0.0.1:3001/signer/signature
+//!   http://127.0.0.1:3001/user/signature
 //! ```
 //!
 //! #### `/signer/drain` - GET
@@ -257,7 +257,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/user/sign_tx", post(sign_tx))
         .route("/user/new", post(new_user))
         .route("/user/receive_key", post(receive_key))
-        .route("/signer/signature", post(get_signature))
+        .route("/user/signature", post(get_signature))
         .route("/signer/drain", get(drain))
         .route("/validator/sync_kvdb", post(sync_kvdb))
         .route("/healthz", get(healthz))
