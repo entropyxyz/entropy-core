@@ -28,7 +28,7 @@ use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{
     ext::{
-        sp_core::{sr25519, Bytes, Pair},
+        sp_core::{sr25519, Bytes, Pair, sr25519::Signature},
         sp_runtime::AccountId32,
     },
     tx::PairSigner,
@@ -174,13 +174,20 @@ async fn test_sign_tx_no_chain() {
     generic_msg.timestamp = SystemTime::now();
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-
+	let mut i = 0;
     for res in test_user_res {
         let mut res = res.unwrap();
         assert_eq!(res.status(), 200);
         let chunk = res.chunk().await.unwrap().unwrap();
-        let signing_result: Result<String, String> = serde_json::from_slice(&chunk).unwrap();
-        assert!(matches!(signing_result, Ok(sig) if sig.len() == 88));
+        let signing_result: Result<(String, Signature), String> = serde_json::from_slice(&chunk).unwrap();
+		// TODO can we test the signature for validity
+        assert_eq!(signing_result.clone().unwrap().0.len(), 88);
+		let decoded_sig = base64::decode(signing_result.unwrap().0).unwrap();
+		let mnemonic = if i == 0 { DEFAULT_MNEMONIC } else {DEFAULT_BOB_MNEMONIC};
+		let sk = <sr25519::Pair as Pair>::from_string(mnemonic, None).unwrap();
+		let sig_recovery = <sr25519::Pair as Pair>::verify(&signing_result.clone().unwrap().1, base64::decode(signing_result.unwrap().0).unwrap(),  &sr25519::Public(sk.public().0));
+		assert!(sig_recovery);
+		i += 1;
     }
 
     generic_msg.timestamp = SystemTime::now();
