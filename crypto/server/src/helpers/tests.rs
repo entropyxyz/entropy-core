@@ -99,7 +99,7 @@ pub async fn create_clients(
 pub async fn spawn_testing_validators(
     sig_req_keyring: Option<String>,
     // If this is true a keyshare for the user will be generated and returned
-    private_key_visibility: bool,
+    extra_private_keys: bool,
 ) -> (Vec<String>, Vec<PartyId>, Option<KeyShare<KeyParams>>) {
     // spawn threshold servers
     let ports = vec![3001i64, 3002];
@@ -117,7 +117,7 @@ pub async fn spawn_testing_validators(
     ));
 
     let user_keyshare_option = if sig_req_keyring.is_some() {
-        let number_of_shares = if private_key_visibility { 3 } else { 2 };
+        let number_of_shares = if extra_private_keys { 3 } else { 2 };
         let shares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, number_of_shares, None);
         let validator_1_threshold_keyshare: Vec<u8> =
             kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
@@ -132,10 +132,10 @@ pub async fn spawn_testing_validators(
             bob_kv.kv().reserve_key(sig_req_keyring.clone().unwrap()).await.unwrap();
         bob_kv.kv().put(bob_reservation, validator_2_threshold_keyshare).await.unwrap();
 
-        if private_key_visibility {
+        if extra_private_keys {
             Some(shares[2].clone())
         } else {
-            None
+            Some(shares[1].clone())
         }
     } else {
         None
