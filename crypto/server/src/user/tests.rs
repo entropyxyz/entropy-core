@@ -99,7 +99,7 @@ async fn test_sign_tx_no_chain() {
     let two = AccountKeyring::Two;
 
     let signing_address = one.clone().to_account_id().to_ss58check();
-    let (validator_ips, _validator_ids, user_keyshare_option) =
+    let (validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -193,7 +193,7 @@ async fn test_sign_tx_no_chain() {
             recover_id,
         )
         .unwrap();
-        assert_eq!(user_keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
+        assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
         let mnemonic = if i == 0 { DEFAULT_MNEMONIC } else { DEFAULT_BOB_MNEMONIC };
         let sk = <sr25519::Pair as Pair>::from_string(mnemonic, None).unwrap();
         let sig_recovery = <sr25519::Pair as Pair>::verify(
@@ -810,7 +810,7 @@ async fn test_sign_tx_user_participates() {
     let (test_user_res, sig_result) = future::join(
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
         user_participates_in_signing_protocol(
-            &users_keyshare_option.unwrap(),
+            &users_keyshare_option.clone().unwrap(),
             &sig_uid,
             validators_info.clone(),
             &one.pair(),
@@ -822,12 +822,34 @@ async fn test_sign_tx_user_participates() {
     let signature_base64 = base64::encode(sig_result.unwrap().to_rsv_bytes());
     assert_eq!(signature_base64.len(), 88);
 
+    let mut i = 0;
     for res in test_user_res {
         let mut res = res.unwrap();
         assert_eq!(res.status(), 200);
         let chunk = res.chunk().await.unwrap().unwrap();
-        let signing_result: Result<String, String> = serde_json::from_slice(&chunk).unwrap();
-        assert_eq!(signature_base64, signing_result.unwrap());
+        let signing_result: Result<(String, Signature), String> =
+            serde_json::from_slice(&chunk).unwrap();
+        assert_eq!(signing_result.clone().unwrap().0.len(), 88);
+        let mut decoded_sig = base64::decode(signing_result.clone().unwrap().0).unwrap();
+        let recovery_digit = decoded_sig.pop().unwrap();
+        let signature = k256Signature::from_slice(&decoded_sig).unwrap();
+        let recover_id = RecoveryId::from_byte(recovery_digit).unwrap();
+        let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+            &message_should_succeed_hash,
+            &signature,
+            recover_id,
+        )
+        .unwrap();
+        assert_eq!(users_keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
+        let mnemonic = if i == 0 { DEFAULT_MNEMONIC } else { DEFAULT_BOB_MNEMONIC };
+        let sk = <sr25519::Pair as Pair>::from_string(mnemonic, None).unwrap();
+        let sig_recovery = <sr25519::Pair as Pair>::verify(
+            &signing_result.clone().unwrap().1,
+            base64::decode(signing_result.unwrap().0).unwrap(),
+            &sr25519::Public(sk.public().0),
+        );
+        assert!(sig_recovery);
+        i += 1;
     }
 
     generic_msg.timestamp = SystemTime::now();
