@@ -1,59 +1,17 @@
 // TODO do these all need to be public?
-mod broadcaster;
 pub mod errors;
 pub mod execute_protocol;
-pub mod noise;
-pub mod protocol_message;
+pub mod protocol_transport;
+
+use std::{fmt, net::SocketAddrV4};
 
 use entropy_shared::X25519PublicKey;
 use serde::{Deserialize, Serialize};
-use std::{fmt, net::SocketAddrV4};
 // TODO to minimise dependencies we could maybe use subxt::utils::AccountId32
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 
-// use super::signing::RecoverableSignature;
-// use crate::{
-//     app,
-//     chain_api::{entropy, get_api, EntropyConfig},
-//     get_signer,
-//     helpers::{
-//         launch::{
-//             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
-//         },
-//         signing::SignatureState,
-//         substrate::{get_subgroup, make_register},
-//         tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
-//     },
-//     signing_client::{
-//         new_party::{signing_protocol, Channels},
-//         protocol_transport::{
-//             listener::WsChannels, noise::noise_handshake_initiator, ws_to_channels, Broadcaster,
-//             WsConnection,
-//         },
-//         SignerState, SigningErr, SubscribeMessage,
-//     },
-//     user::api::ValidatorInfo,
-//     validation::SignedMessage,
-//     AppState,
-// };
-
-// Things we need:
-//
-//     KeyParams and PartyId (currently in kvmanager)
-//     user::api::ValidatorInfo,
-//     validation::SignedMessage,
-//
-// use super::signing::RecoverableSignature;
-// pretty much all of signing_client
-// For spawning tasks without tokio: use wasm_bindgen_futures::spawn_local;
-// tokio sync library is available in wasm, but could also use `futures` crate channel
-// implementations
-// gloo-net for websocket api
-//
-//
-//
-
+// This could maybe move to entropy-shared
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct PartyId(AccountId32);
 
