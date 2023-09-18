@@ -37,6 +37,7 @@ sp-core           ={ version="21.0.0", default-features=false }
 # Entropy
 entropy-shared={ path="../shared" }
 kvdb          ={ path="../kvdb", default-features=false }
+entropy-protocol={ path="../protocol", features=["server"] }
 
 # Constraints
 entropy-constraints={ path="../constraints" }
