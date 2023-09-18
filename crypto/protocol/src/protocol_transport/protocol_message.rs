@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use subxt::ext::sp_core::sr25519::Signature;
 use synedrion::sessions::SignedMessage;
 
-use crate::{errors::ProtocolMessageErr, PartyId};
+use crate::{protocol_transport::errors::ProtocolMessageErr, PartyId};
 
 /// A Message related to the signing or DKG protocol.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,11 +26,11 @@ impl TryFrom<&String> for ProtocolMessage {
 }
 
 impl ProtocolMessage {
-    pub(super) fn new_bcast(from: &PartyId, payload: SignedMessage<Signature>) -> Self {
+    pub(crate) fn new_bcast(from: &PartyId, payload: SignedMessage<Signature>) -> Self {
         Self { from: from.clone(), to: None, payload }
     }
 
-    pub(super) fn new_p2p(from: &PartyId, to: &PartyId, payload: SignedMessage<Signature>) -> Self {
+    pub(crate) fn new_p2p(from: &PartyId, to: &PartyId, payload: SignedMessage<Signature>) -> Self {
         Self { from: from.clone(), to: Some(to.clone()), payload }
     }
 }
