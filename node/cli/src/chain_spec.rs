@@ -280,9 +280,16 @@ pub fn testnet_genesis(
         },
         relayer: RelayerConfig {
             registered_accounts: vec![
-                (get_account_id_from_seed::<sr25519::Public>("Dave"), 0),
-                (get_account_id_from_seed::<sr25519::Public>("Eve"), 1),
-                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 2),
+                (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
+                (
+                    get_account_id_from_seed::<sr25519::Public>("Eve"),
+                    1,
+                    Some([
+                        28, 63, 144, 84, 78, 147, 195, 214, 190, 234, 111, 101, 117, 133, 9, 198,
+                        96, 96, 76, 140, 152, 251, 255, 28, 167, 38, 157, 185, 192, 42, 201, 82,
+                    ]),
+                ),
+                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 2, None),
             ],
         },
         vesting: Default::default(),
@@ -519,7 +526,7 @@ pub fn testing(
                     get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
                     ServerInfo {
                         tss_account: hex![
-                            "9e5b01a2a1e64f97ce27abbaf897fde843b146cc189c106093ba763bf536f062"
+                            "14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611"
                         ]
                         .into(),
                         endpoint: "127.0.0.1:3002".as_bytes().to_vec(),
@@ -596,9 +603,16 @@ pub fn testing(
         },
         relayer: RelayerConfig {
             registered_accounts: vec![
-                (get_account_id_from_seed::<sr25519::Public>("Dave"), 0),
-                (get_account_id_from_seed::<sr25519::Public>("Eve"), 1),
-                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 2),
+                (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
+                (
+                    get_account_id_from_seed::<sr25519::Public>("Eve"),
+                    1,
+                    Some([
+                        28, 63, 144, 84, 78, 147, 195, 214, 190, 234, 111, 101, 117, 133, 9, 198,
+                        96, 96, 76, 140, 152, 251, 255, 28, 167, 38, 157, 185, 192, 42, 201, 82,
+                    ]),
+                ),
+                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 2, None),
             ],
         },
         vesting: Default::default(),

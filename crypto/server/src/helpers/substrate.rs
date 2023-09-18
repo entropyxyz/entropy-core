@@ -1,10 +1,5 @@
-use entropy_shared::{Acl, Constraints, KeyVisibility, SIGNING_PARTY_SIZE};
-use subxt::{
-    ext::sp_core::sr25519,
-    tx::PairSigner,
-    utils::{AccountId32, Static},
-    Config, OnlineClient,
-};
+use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
+use subxt::{ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32, Config, OnlineClient};
 
 use crate::{
     chain_api::{entropy, EntropyConfig},
@@ -61,42 +56,20 @@ pub async fn return_all_addresses_of_subgroup(
     Ok(subgroup_addresses)
 }
 
-/// Queries the user's Constraints from the chain
-pub async fn get_constraints(
+/// Queries the user's program from the chain
+pub async fn get_program(
     substrate_api: &OnlineClient<EntropyConfig>,
     sig_req_account: &<EntropyConfig as Config>::AccountId,
-) -> Result<Constraints, UserErr> {
-    // ConstraintsPallet::ActiveArchitectures contains which ACL architectures have active ACLs, but
-    // I think this code is going to be scrapped as part of a new constraints system before we
-    // support 10+ architectures. If we ever need to use it, this link is a great starting point: https://github.com/paritytech/subxt/blob/master/examples/examples/storage_iterating.rs
+) -> Result<Vec<u8>, UserErr> {
+    let bytecode_address = entropy::storage().constraints().v2_bytecode(sig_req_account);
 
-    let evm_acl_storage_address = entropy::storage().constraints().evm_acl(sig_req_account);
-    let btc_acl_storage_address = entropy::storage().constraints().btc_acl(sig_req_account);
-
-    let (evm_acl_result, btc_acl_result) = futures::join!(
-        substrate_api.storage().at_latest().await?.fetch(&evm_acl_storage_address),
-        substrate_api.storage().at_latest().await?.fetch(&btc_acl_storage_address)
-    );
-
-    // if both are errors, the user has no constraints set, and we should error
-    if evm_acl_result.is_err() && btc_acl_result.is_err() {
-        return Err(UserErr::GenericSubstrate(evm_acl_result.unwrap_err()));
-    }
-
-    Ok(Constraints {
-        evm_acl: Some(
-            evm_acl_result
-                .unwrap_or_default()
-                .unwrap_or_else(|| Static(Acl::<[u8; 20]>::default()))
-                .0,
-        ),
-        btc_acl: Some(
-            btc_acl_result
-                .unwrap_or_default()
-                .unwrap_or_else(|| Static(Acl::<[u8; 32]>::default()))
-                .0,
-        ),
-    })
+    substrate_api
+        .storage()
+        .at_latest()
+        .await?
+        .fetch(&bytecode_address)
+        .await?
+        .ok_or(UserErr::NoProgramDefined)
 }
 
 /// Puts a user in the Registering state on-chain and waits for that transaction to be included in a
@@ -108,12 +81,13 @@ pub async fn make_register(
     constraint_account: &AccountId32,
     key_visibility: KeyVisibility,
 ) {
+    use subxt::utils::Static;
+
     let sig_req_account = PairSigner::<EntropyConfig, sr25519::Pair>::new(sig_req_keyring);
 
     let registering_query = entropy::storage().relayer().registering(sig_req_account.account_id());
     let is_registering_1 =
         api.storage().at_latest().await.unwrap().fetch(&registering_query).await.unwrap();
-    println!("is_registering_1: {is_registering_1:?}");
     assert!(is_registering_1.is_none());
 
     // register the user
@@ -149,5 +123,5 @@ pub async fn get_key_visibility(
         .fetch(&registered_info_query)
         .await?
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
-    Ok(result.0)
+    Ok(result.key_visibility.0)
 }

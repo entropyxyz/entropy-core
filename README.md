@@ -116,6 +116,15 @@ Public key (hex): `0x2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475e
 Account ID: `0x2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f`
 SS58 Address: `5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV`
 
+#### Charlie
+Secret phrase `lake carry still awful point mention bike category tornado plate brass lock` is account:
+  Network ID/version: substrate
+  Secret seed:        `0xb9085925e9452f3e465b51a883a0dbb2c13d5610b6f8f7e7f206f7f044daa419`
+  Public key (hex):   `0x14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611`
+  Account ID:         `0x14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611`
+  SS58 Address:       `5CY1EquGdAiiJJ28FDiT8EB1C3gnMixtPn4pbSggFF6nUat7`
+
+
 ## Running Devnet
 
 - Devnet requires 2 validator nodes, 2 threshold clients running on the same machine

@@ -10,4 +10,8 @@ pub enum ValidationErr {
     Conversion(String),
     #[error("Secret String failure: {0:?}")]
     SecretString(&'static str),
+    #[error("Message is too old")]
+    StaleMessage,
+    #[error("Time subtraction error: {0}")]
+    SystemTime(#[from] std::time::SystemTimeError),
 }

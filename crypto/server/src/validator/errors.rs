@@ -22,14 +22,24 @@ pub enum ValidatorErr {
     Reqwest(#[from] reqwest::Error),
     #[error("Kv error: {0}")]
     Kv(#[from] kvdb::kv_manager::error::KvError),
-    #[error("Sync error: {0}")]
-    SafeCryptoError(&'static str),
     #[error("User Error: {0}")]
     UserErr(#[from] crate::user::UserErr),
     #[error("Validation Error: {0}")]
     Decryption(String),
     #[error("Validation Error: {0}")]
     Encryption(String),
+    #[error("Forbidden Key")]
+    ForbiddenKey,
+    #[error("Invalid Signature: {0}")]
+    InvalidSignature(&'static str),
+    #[error("Subgroup error: {0}")]
+    SubgroupError(&'static str),
+    #[error("Account unable to be deserialized: {0}")]
+    StringError(&'static str),
+    #[error("Validator not in subgroup")]
+    NotInSubgroup,
+    #[error("Validation Error: {0}")]
+    ValidationErr(#[from] crate::validation::errors::ValidationErr),
 }
 
 impl IntoResponse for ValidatorErr {

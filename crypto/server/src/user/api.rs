@@ -1,4 +1,4 @@
-use std::{net::SocketAddrV4, str::FromStr, sync::Arc};
+use std::{net::SocketAddrV4, str::FromStr, sync::Arc, time::SystemTime};
 
 use axum::{
     body::{Bytes, StreamBody},
@@ -10,6 +10,7 @@ use axum::{
 };
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
+use ec_runtime::{InitialState, Runtime};
 use entropy_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
@@ -44,17 +45,21 @@ use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
-    chain_api::{entropy, get_api, EntropyConfig},
+    chain_api::{
+        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
+        get_api, EntropyConfig,
+    },
+    get_and_store_values, get_random_server_info,
     helpers::{
-        signing::{create_unique_tx_id, do_signing, SignatureState},
+        signing::{create_unique_tx_id, do_signing, Hasher, SignatureState},
         substrate::{
-            get_constraints, get_key_visibility, get_subgroup, return_all_addresses_of_subgroup,
+            get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
         user::{do_dkg, send_key},
         validator::get_signer,
     },
     signing_client::{ListenerState, ProtocolErr},
-    validation::SignedMessage,
+    validation::{check_stale, SignedMessage},
     AppState, Configuration,
 };
 
@@ -71,12 +76,12 @@ pub struct ValidatorInfo {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserTransactionRequest {
-    /// 'eth', etc.
-    pub arch: String,
-    /// ETH: RLP encoded transaction request
+    /// Hex-encoded raw data to be signed (eg. RLP-serialized Ethereum transaction)
     pub transaction_request: String,
     /// Information from the validators in signing party
     pub validators_info: Vec<ValidatorInfo>,
+    /// When the message was created and signed
+    pub timestamp: SystemTime,
 }
 
 /// Type for validators to send user key's back and forth
@@ -106,8 +111,6 @@ pub async fn sign_tx(
     let second_signing_address_conversion = SubxtAccountId32::from_str(&signing_address)
         .map_err(|_| UserErr::StringError("Account Conversion"))?;
 
-    let users_x25519_public_key = signed_msg.sender(); //.as_bytes();
-
     let api = get_api(&app_state.configuration.endpoint).await?;
     let key_visibility = get_key_visibility(&api, &second_signing_address_conversion).await?;
 
@@ -118,49 +121,49 @@ pub async fn sign_tx(
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
     let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
-    let parsed_tx =
-        <Evm as Architecture>::TransactionRequest::parse(user_tx_req.transaction_request.clone())?;
-    let sig_hash = hex::encode(parsed_tx.sighash());
+    check_stale(user_tx_req.timestamp)?;
+    let raw_message = hex::decode(user_tx_req.transaction_request.clone())?;
+    let sig_hash = hex::encode(Hasher::keccak(&raw_message));
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
     check_signing_group(subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
-    match user_tx_req.arch.as_str() {
-        "evm" => {
-            let evm_acl = get_constraints(&api, &second_signing_address_conversion)
-                .await?
-                .evm_acl
-                .ok_or(UserErr::Parse("No constraints found for this account."))?;
 
-            evm_acl.eval(parsed_tx)?;
-
-            let (mut response_tx, response_rx) = mpsc::channel(1);
-
-            // Do the signing protocol in another task, so we can already respond
-            tokio::spawn(async move {
-                let signing_protocol_output = do_signing(
-                    user_tx_req,
-                    sig_hash,
-                    &app_state,
-                    tx_id,
-                    signing_address_converted,
-                    users_x25519_public_key.as_bytes(),
-                    key_visibility,
-                )
-                .await
-                .map(|signature| base64::encode(signature.to_rsv_bytes()))
-                .map_err(|error| error.to_string());
-
-                // This response chunk is sent later with the result of the signing protocol
-                if response_tx.try_send(serde_json::to_string(&signing_protocol_output)).is_err() {
-                    tracing::warn!("Cannot send signing protocol output - connection is closed")
-                };
-            });
-
-            // This indicates that the signing protocol is starting successfully
-            Ok((StatusCode::OK, StreamBody::new(response_rx)))
-        },
-        _ => Err(UserErr::Parse("Unknown \"arch\". Must be one of: [\"evm\"]")),
+    let has_key = check_for_key(&signing_address, &app_state.kv_store).await?;
+    if !has_key {
+        recover_key(&api, &app_state.kv_store, &signer, signing_address).await?
     }
+
+    let program = get_program(&api, &second_signing_address_conversion).await?;
+
+    let mut runtime = Runtime::new();
+    let initial_state = InitialState { data: raw_message };
+
+    runtime.evaluate(&program, &initial_state)?;
+
+    let (mut response_tx, response_rx) = mpsc::channel(1);
+
+    // Do the signing protocol in another task, so we can already respond
+    tokio::spawn(async move {
+        let signing_protocol_output = do_signing(
+            user_tx_req,
+            sig_hash,
+            &app_state,
+            tx_id,
+            signing_address_converted,
+            key_visibility,
+        )
+        .await
+        .map(|signature| base64::encode(signature.to_rsv_bytes()))
+        .map_err(|error| error.to_string());
+
+        // This response chunk is sent later with the result of the signing protocol
+        if response_tx.try_send(serde_json::to_string(&signing_protocol_output)).is_err() {
+            tracing::warn!("Cannot send signing protocol output - connection is closed")
+        };
+    });
+
+    // This indicates that the signing protocol is starting successfully
+    Ok((StatusCode::OK, StreamBody::new(response_rx)))
 }
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.
@@ -181,6 +184,25 @@ pub async fn new_user(
     check_in_registration_group(&data.validators_info, signer.account_id())?;
     validate_new_user(&data, &api, &app_state.kv_store).await?;
 
+    // Do the DKG protocol in another task, so we can already respond
+    tokio::spawn(async move {
+        if let Err(err) = setup_dkg(api, signer, data, app_state).await {
+            // TODO here we would check the error and if it relates to a misbehaving node,
+            // use the slashing mechanism
+            tracing::warn!("User registration failed {:?}", err);
+        }
+    });
+
+    Ok(StatusCode::OK)
+}
+
+/// Setup and execute DKG. Called internally by the [new_user] function.
+async fn setup_dkg(
+    api: OnlineClient<EntropyConfig>,
+    signer: PairSigner<EntropyConfig, sr25519::Pair>,
+    data: OcwMessage,
+    app_state: AppState,
+) -> Result<(), UserErr> {
     let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
@@ -192,12 +214,19 @@ pub async fn new_user(
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = AccountId32::new(*address_slice);
 
+        let user_details = get_registering_user_details(
+            &api,
+            &SubxtAccountId32::from(sig_request_address.clone()),
+        )
+        .await?;
+
         let key_share = do_dkg(
             &data.validators_info,
             &signer,
             &app_state.listener_state,
-            sig_request_address.to_string(),
+            sig_request_address.clone(),
             &my_subgroup,
+            *user_details.key_visibility,
         )
         .await?;
         let serialized_key_share = key_serialize(&key_share)
@@ -214,9 +243,16 @@ pub async fn new_user(
         send_key(&api, &stash_address, &mut addresses_in_subgroup, user_registration_info, &signer)
             .await?;
         // TODO: Error handling really complex needs to be thought about.
-        confirm_registered(&api, sig_request_address.into(), my_subgroup, &signer).await?;
+        confirm_registered(
+            &api,
+            sig_request_address.into(),
+            my_subgroup,
+            &signer,
+            key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec(),
+        )
+        .await?;
     }
-    Ok(StatusCode::OK)
+    Ok(())
 }
 
 /// HTTP POST endpoint to recieve a keyshare from another threshold server in the same
@@ -269,11 +305,11 @@ pub async fn receive_key(
     Ok(StatusCode::OK)
 }
 
-/// Returns wether an account is registering or swapping. If it is not, it returns error
-pub async fn register_info(
+/// Returns details of a given registering user including key key visibility and X25519 public key.
+pub async fn get_registering_user_details(
     api: &OnlineClient<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
-) -> Result<bool, UserErr> {
+) -> Result<RegisteringDetails, UserErr> {
     let registering_info_query = entropy::storage().relayer().registering(who);
     let register_info = api
         .storage()
@@ -286,7 +322,7 @@ pub async fn register_info(
         return Err(UserErr::NotRegistering("Declare swap Onchain first"));
     }
 
-    Ok(register_info.is_swapping)
+    Ok(register_info)
 }
 
 /// Confirms that a address has finished registering on chain.
@@ -295,12 +331,17 @@ pub async fn confirm_registered(
     who: SubxtAccountId32,
     subgroup: u8,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    verifying_key: Vec<u8>,
 ) -> Result<(), subxt::error::Error> {
     // TODO error handling + return error
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
-    let registration_tx = entropy::tx().relayer().confirm_register(who, subgroup);
+    let registration_tx = entropy::tx().relayer().confirm_register(
+        who,
+        subgroup,
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
+    );
     let _ = api
         .tx()
         .sign_and_submit_then_watch_default(&registration_tx, signer)
@@ -450,5 +491,29 @@ pub fn check_in_registration_group(
     if !is_proper_signer {
         return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
     }
+    Ok(())
+}
+
+pub async fn check_for_key(account: &str, kv: &KvManager) -> Result<bool, UserErr> {
+    let exists_result = kv.kv().exists(account).await?;
+    Ok(exists_result)
+}
+
+pub async fn recover_key(
+    api: &OnlineClient<EntropyConfig>,
+    kv_store: &KvManager,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signing_address: String,
+) -> Result<(), UserErr> {
+    let (my_subgroup, stash_address) = get_subgroup(api, signer).await?;
+    let unwrapped_subgroup = my_subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+    let key_server_info = get_random_server_info(api, unwrapped_subgroup, stash_address)
+        .await
+        .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
+    let ip_address = String::from_utf8(key_server_info.endpoint)?;
+    let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
+    get_and_store_values(vec![signing_address], kv_store, ip_address, 1, false, &recip_key, signer)
+        .await
+        .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
     Ok(())
 }

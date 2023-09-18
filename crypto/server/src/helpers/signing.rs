@@ -5,8 +5,7 @@ use std::{
 };
 
 use bip39::{Language, Mnemonic};
-use entropy_shared::{KeyVisibility, X25519PublicKey, SETUP_TIMEOUT_SECONDS};
-use kvdb::kv_manager::PartyId;
+use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
 use sp_core::crypto::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 use tokio::time::timeout;
@@ -83,7 +82,6 @@ pub async fn do_signing(
     app_state: &AppState,
     tx_id: String,
     user_address: AccountId32,
-    user_x25519_public_key: &X25519PublicKey,
     key_visibility: KeyVisibility,
 ) -> Result<RecoverableSignature, ProtocolErr> {
     let state = &app_state.listener_state;
@@ -95,7 +93,7 @@ pub async fn do_signing(
     let signer =
         get_signer(kv_manager).await.map_err(|_| ProtocolErr::UserError("Error getting Signer"))?;
     let account_sp_core = AccountId32::new(*signer.account_id().clone().as_ref());
-    let my_id = PartyId::new(account_sp_core.clone());
+
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
 
@@ -105,13 +103,12 @@ pub async fn do_signing(
         .map(|validator_info| AccountId32::new(*validator_info.tss_account.clone().as_ref()))
         .collect();
 
-    if key_visibility == KeyVisibility::Private {
+    // If key key visibility is private, add them to the list of parties and pass the user's ID to
+    // the listener
+    let user_details_option = if let KeyVisibility::Private(user_x25519_public_key) = key_visibility
+    {
         tss_accounts.push(user_address.clone());
-    }
-
-    // If key key visibility is private, pass the user's ID to the listener
-    let user_details_option = if key_visibility == KeyVisibility::Private {
-        Some((user_address, *user_x25519_public_key))
+        Some((user_address, user_x25519_public_key))
     } else {
         None
     };
@@ -130,7 +127,6 @@ pub async fn do_signing(
     open_protocol_connections(
         &sign_context.sign_init.validators_info,
         &sign_context.sign_init.sig_uid,
-        &my_id,
         &signer,
         state,
     )
@@ -164,4 +160,21 @@ pub async fn do_signing(
 /// Creates a unique tx Id by concatenating the user's signing key and message digest
 pub fn create_unique_tx_id(account: &String, sig_hash: &String) -> String {
     format!("{account}_{sig_hash}")
+}
+
+/// Produces a specific hash on a given message
+pub struct Hasher;
+
+impl Hasher {
+    /// Produces the Keccak256 hash on a given message.
+    ///
+    /// In practice, if `data` is an RLP-serialized Ethereum transaction, this should produce the
+    /// corrosponding .
+    pub fn keccak(data: &[u8]) -> [u8; 32] {
+        use sha3::{Digest, Keccak256};
+
+        let mut keccak = Keccak256::new();
+        keccak.update(data);
+        keccak.finalize().into()
+    }
 }

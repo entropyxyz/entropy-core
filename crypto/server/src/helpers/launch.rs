@@ -19,9 +19,14 @@ pub const DEFAULT_BOB_MNEMONIC: &str =
     "where sight patient orphan general short empower hope party hurt month voice";
 pub const DEFAULT_ALICE_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
+#[cfg(test)]
+pub const DEFAULT_CHARLIE_MNEMONIC: &str =
+    "lake carry still awful point mention bike category tornado plate brass lock";
 
 #[cfg(test)]
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
+
+pub const FORBIDDEN_KEYS: [&str; 3] = ["MNEMONIC", "SHARED_SECRET", "DH_PUBLIC"];
 
 pub fn init_tracing() { tracing_subscriber::fmt().with_target(false).json().init(); }
 
@@ -102,7 +107,7 @@ pub struct StartupArgs {
 
 pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Result<(), KvError> {
     // Check if a mnemonic exists in the kvdb.
-    let exists_result = kv.kv().exists("MNEMONIC").await.expect("issue querying DB");
+    let exists_result = kv.kv().exists(FORBIDDEN_KEYS[0]).await.expect("issue querying DB");
     if !exists_result {
         // Generate a new mnemonic
         let mut mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
@@ -126,15 +131,21 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Res
         let static_secret = derive_static_secret(&pair);
         let dh_public = x25519_dalek::PublicKey::from(&static_secret);
 
-        let ss_reservation =
-            kv.kv().reserve_key("SHARED_SECRET".to_string()).await.expect("Issue reserving ss key");
+        let ss_reservation = kv
+            .kv()
+            .reserve_key(FORBIDDEN_KEYS[1].to_string())
+            .await
+            .expect("Issue reserving ss key");
         kv.kv()
             .put(ss_reservation, static_secret.to_bytes().to_vec())
             .await
             .expect("failed to update secret share");
 
-        let dh_reservation =
-            kv.kv().reserve_key("DH_PUBLIC".to_string()).await.expect("Issue reserving DH key");
+        let dh_reservation = kv
+            .kv()
+            .reserve_key(FORBIDDEN_KEYS[2].to_string())
+            .await
+            .expect("Issue reserving DH key");
 
         let converted_dh_public = dh_public.to_bytes().to_vec();
         kv.kv()
@@ -154,8 +165,11 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Res
         fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
 
         // Update the value in the kvdb
-        let reservation =
-            kv.kv().reserve_key("MNEMONIC".to_string()).await.expect("Issue reserving mnemonic");
+        let reservation = kv
+            .kv()
+            .reserve_key(FORBIDDEN_KEYS[0].to_string())
+            .await
+            .expect("Issue reserving mnemonic");
         kv.kv()
             .put(reservation, phrase.as_bytes().to_vec())
             .await
@@ -171,11 +185,11 @@ pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
             .kv()
             .reserve_key("LATEST_BLOCK_NUMBER".to_string())
             .await
-            .expect("Issue reserving mnemonic");
+            .expect("Issue reserving latest block number");
         kv.kv()
             .put(reservation, 0u32.to_be_bytes().to_vec())
             .await
-            .expect("failed to update mnemonic");
+            .expect("failed to update latest block number");
     }
     Ok(())
 }

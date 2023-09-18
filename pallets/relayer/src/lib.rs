@@ -35,7 +35,7 @@ pub mod pallet {
         dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays},
         inherent::Vec,
         pallet_prelude::*,
-        traits::IsSubType,
+        traits::{ConstU32, IsSubType},
     };
     use frame_system::pallet_prelude::*;
     use pallet_constraints::{AllowedToModifyConstraints, Pallet as ConstraintsPallet};
@@ -73,10 +73,18 @@ pub mod pallet {
         pub key_visibility: KeyVisibility,
     }
 
+    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[scale_info(skip_type_params(T))]
+    pub struct RegisteredInfo {
+        pub key_visibility: KeyVisibility,
+        // TODO better type
+        pub verifying_key: BoundedVec<u8, ConstU32<33>>,
+    }
+
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub registered_accounts: Vec<(T::AccountId, u8)>,
+        pub registered_accounts: Vec<(T::AccountId, u8, Option<[u8; 32]>)>,
     }
 
     #[cfg(feature = "std")]
@@ -89,11 +97,16 @@ pub mod pallet {
         fn build(&self) {
             for account_info in &self.registered_accounts {
                 let key_visibility = match account_info.1 {
-                    1 => KeyVisibility::Private,
+                    1 => KeyVisibility::Private(
+                        account_info.2.expect("Private key visibility needs x25519 public key"),
+                    ),
                     2 => KeyVisibility::Permissioned,
                     _ => KeyVisibility::Public,
                 };
-                Registered::<T>::insert(account_info.0.clone(), key_visibility);
+                Registered::<T>::insert(
+                    account_info.0.clone(),
+                    RegisteredInfo { key_visibility, verifying_key: BoundedVec::default() },
+                );
                 AllowedToModifyConstraints::<T>::insert(
                     account_info.0.clone(),
                     account_info.0.clone(),
@@ -120,7 +133,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn registered)]
     pub type Registered<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, KeyVisibility, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, RegisteredInfo, OptionQuery>;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -220,6 +233,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
             signing_subgroup: u8,
+            verifying_key: BoundedVec<u8, ConstU32<33>>,
         ) -> DispatchResultWithPostInfo {
             let ts_server_account = ensure_signed(origin)?;
             let validator_stash =
@@ -244,7 +258,14 @@ pub mod pallet {
 
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 let mut weight;
-                Registered::<T>::insert(&sig_req_account, registering_info.key_visibility);
+                // just inserts last validator's verifying_key, need to do dispute resolution
+                Registered::<T>::insert(
+                    &sig_req_account,
+                    RegisteredInfo {
+                        key_visibility: registering_info.key_visibility,
+                        verifying_key,
+                    },
+                );
                 Registering::<T>::remove(&sig_req_account);
                 weight =
                     <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
@@ -383,7 +404,7 @@ pub mod pallet {
             _info: &DispatchInfoOf<Self::Call>,
             _len: usize,
         ) -> TransactionValidity {
-            if let Some(Call::confirm_register { sig_req_account, signing_subgroup }) =
+            if let Some(Call::confirm_register { sig_req_account, signing_subgroup, .. }) =
                 call.is_sub_type()
             {
                 let validator_stash =

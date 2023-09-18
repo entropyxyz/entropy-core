@@ -1,10 +1,16 @@
-use std::{env, fs, net::SocketAddrV4, path::PathBuf, str::FromStr, sync::Arc, time::Duration};
+use std::{
+    env, fs,
+    net::SocketAddrV4,
+    path::PathBuf,
+    str::FromStr,
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_shared::{Acl, KeyVisibility, OcwMessage};
-use ethers_core::types::{Address, TransactionRequest};
 use futures::{
     future::{self, join_all},
     join, Future, SinkExt, StreamExt,
@@ -27,10 +33,13 @@ use subxt::{
     },
     tx::PairSigner,
     utils::{AccountId32 as subxtAccountId32, Static},
-    OnlineClient,
+    Config, OnlineClient,
 };
 use testing_utils::{
-    constants::{ALICE_STASH_ADDRESS, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
+    constants::{
+        ALICE_STASH_ADDRESS, BAREBONES_PROGRAM_WASM_BYTECODE, MESSAGE_SHOULD_FAIL,
+        MESSAGE_SHOULD_SUCCEED, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+    },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
     },
@@ -45,13 +54,15 @@ use crate::{
     drain, get_signature, get_signer,
     helpers::{
         launch::{
-            setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
+            DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
-        signing::{create_unique_tx_id, SignatureState},
-        substrate::{make_register, return_all_addresses_of_subgroup},
+        signing::{create_unique_tx_id, Hasher, SignatureState},
+        substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, setup_client, spawn_testing_validators,
-            update_constraints, user_connects_to_validators,
+            update_programs, user_participates_in_dkg_protocol,
+            user_participates_in_signing_protocol,
         },
         user::send_key,
     },
@@ -62,7 +73,7 @@ use crate::{
         ListenerState, SubscribeMessage,
     },
     user::{
-        api::{UserRegistrationInfo, UserTransactionRequest, ValidatorInfo},
+        api::{recover_key, UserRegistrationInfo, UserTransactionRequest, ValidatorInfo},
         tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
@@ -92,19 +103,17 @@ async fn test_sign_tx_no_chain() {
         spawn_testing_validators(Some(signing_address.clone()), false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let initial_constraints = |address: [u8; 20]| -> Constraints {
-        let mut evm_acl = Acl::<[u8; 20]>::default();
-        evm_acl.addresses.push(address);
 
-        Constraints { evm_acl: Some(Static(evm_acl)), btc_acl: None }
-    };
+    update_programs(
+        &entropy_api,
+        &one.pair(),
+        &one.pair(),
+        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+    )
+    .await;
 
-    update_constraints(&entropy_api, &one.pair(), &one.pair(), initial_constraints([1u8; 20]))
-        .await;
-    let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(1);
-    let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
+    let message_should_succeed_hash = Hasher::keccak(MESSAGE_SHOULD_SUCCEED);
 
-    let sig_hash = transaction_request.sighash();
     let validators_info = vec![
         ValidatorInfo {
             ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
@@ -117,15 +126,17 @@ async fn test_sign_tx_no_chain() {
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
     ];
-    let converted_transaction_request: String = hex::encode(&transaction_request.rlp_unsigned());
+
+    let converted_transaction_request: String = hex::encode(MESSAGE_SHOULD_SUCCEED);
 
     let signing_address = one.to_account_id().to_ss58check();
-    let sig_uid = create_unique_tx_id(&signing_address, &hex::encode(sig_hash));
+    let hash_as_string = hex::encode(&message_should_succeed_hash);
+    let sig_uid = create_unique_tx_id(&signing_address, &hash_as_string);
 
     let mut generic_msg = UserTransactionRequest {
-        arch: "evm".to_string(),
         transaction_request: converted_transaction_request.clone(),
         validators_info,
+        timestamp: SystemTime::now(),
     };
 
     let submit_transaction_requests =
@@ -161,6 +172,7 @@ async fn test_sign_tx_no_chain() {
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
 
+    generic_msg.timestamp = SystemTime::now();
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
@@ -172,6 +184,7 @@ async fn test_sign_tx_no_chain() {
         assert!(matches!(signing_result, Ok(sig) if sig.len() == 88));
     }
 
+    generic_msg.timestamp = SystemTime::now();
     // test failing cases
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
@@ -185,6 +198,7 @@ async fn test_sign_tx_no_chain() {
 
     let mut generic_msg_bad_validators = generic_msg.clone();
     generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
+    generic_msg.timestamp = SystemTime::now();
 
     let test_user_failed_x25519_pub_key = submit_transaction_requests(
         validator_ips_and_keys.clone(),
@@ -214,24 +228,13 @@ async fn test_sign_tx_no_chain() {
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         // create a SubscribeMessage from a party who is not in the signing commitee
-        let server_public_key = PublicKey::from(validator_ip_and_key.1);
-        let signed_message = SignedMessage::new(
-            &AccountKeyring::Ferdie.pair(),
-            &Bytes(
-                serde_json::to_vec(&SubscribeMessage::new(
-                    &sig_uid,
-                    PartyId::new(AccountKeyring::Ferdie.to_account_id()),
-                ))
-                .unwrap(),
-            ),
-            &server_public_key,
-        )
-        .unwrap();
-        let subscribe_message_vec = serde_json::to_vec(&signed_message).unwrap();
+        let subscribe_message_vec =
+            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &AccountKeyring::Ferdie.pair()))
+                .unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
-            WsConnection::WsStream(ws_stream),
+            ws_stream,
             &AccountKeyring::Ferdie.pair(),
             validator_ip_and_key.1,
             subscribe_message_vec,
@@ -254,6 +257,7 @@ async fn test_sign_tx_no_chain() {
         encrypted_connection.recv().await.is_err()
     });
 
+    generic_msg.timestamp = SystemTime::now();
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
         generic_msg.clone(),
@@ -271,6 +275,7 @@ async fn test_sign_tx_no_chain() {
     assert!(connection_attempt_handle.await.unwrap());
 
     // Bad Account ID - an account ID is given which is not in the signing group
+    generic_msg.timestamp = SystemTime::now();
     let mut generic_msg_bad_account_id = generic_msg.clone();
     generic_msg_bad_account_id.validators_info[0].tss_account =
         AccountKeyring::Dave.to_account_id();
@@ -289,7 +294,8 @@ async fn test_sign_tx_no_chain() {
     }
 
     // Test a transcation which does not pass constaints
-    generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp());
+    generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
+    generic_msg.timestamp = SystemTime::now();
 
     let test_user_failed_constraints_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -297,23 +303,11 @@ async fn test_sign_tx_no_chain() {
     for res in test_user_failed_constraints_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Constraints error: Constraint Evaluation error: Transaction not allowed."
+            "Runtime error: Runtime(Error::Evaluation(\"Length of data is too short.\"))"
         );
     }
 
-    // Test unsupported transaction type
-    generic_msg.arch = "btc".to_string();
-    let test_user_failed_arch_res =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-
-    for res in test_user_failed_arch_res {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "Parse error: Unknown \"arch\". Must be one of: [\"evm\"]"
-        );
-    }
-
-    let sig_request = SigMessage { message: hex::encode(sig_hash) };
+    let sig_request = SigMessage { message: hex::encode(message_should_succeed_hash) };
     let mock_client = reqwest::Client::new();
 
     join_all(validator_ips.iter().map(|validator_ip| async {
@@ -408,12 +402,14 @@ async fn test_fail_signing_group() {
     let _ = spawn_testing_validators(None, false).await;
 
     let _substrate_context = test_node_process_testing_state().await;
-    let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(4);
+    let message_raw = MESSAGE_SHOULD_SUCCEED.to_owned();
+
     let validators_info = vec![
         ValidatorInfo {
             ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
-            tss_account: TSS_ACCOUNTS[0].clone(),
+            tss_account: hex!["a664add5dfaca1dd560b949b5699b5f0c3c1df3a2ea77ceb0eeb4f77cc3ade04"]
+                .into(),
         },
         ValidatorInfo {
             ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
@@ -423,9 +419,9 @@ async fn test_fail_signing_group() {
     ];
 
     let generic_msg = UserTransactionRequest {
-        arch: "evm".to_string(),
-        transaction_request: hex::encode(&transaction_request.rlp()),
+        transaction_request: hex::encode(message_raw),
         validators_info,
+        timestamp: SystemTime::now(),
     };
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let signed_message = SignedMessage::new(
@@ -479,7 +475,13 @@ async fn test_store_share() {
         OcwMessage { sig_request_accounts: vec![alice.encode()], block_number, validators_info };
     let client = reqwest::Client::new();
 
-    put_register_request_on_chain(&api, &alice, alice_constraint.to_account_id().into()).await;
+    put_register_request_on_chain(
+        &api,
+        &alice,
+        alice_constraint.to_account_id().into(),
+        KeyVisibility::Public,
+    )
+    .await;
 
     run_to_block(&api, block_number + 1).await;
 
@@ -491,8 +493,19 @@ async fn test_store_share() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
+
+    // Wait until user is confirmed as registered
+    let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
+    let registered_query = entropy::storage().relayer().registered(alice_account_id);
+    for _ in 0..10 {
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        let query_registered_status =
+            api.storage().at_latest().await.unwrap().fetch(&registered_query).await;
+        if query_registered_status.unwrap().is_some() {
+            break;
+        }
+    }
 
     let get_query = UnsafeQuery::new(alice.to_account_id().to_string(), "".to_string()).to_json();
 
@@ -532,8 +545,13 @@ async fn test_store_share() {
     assert_eq!(response_4.text().await.unwrap(), "Data is stale");
 
     block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
-    put_register_request_on_chain(&api, &alice_constraint, alice_constraint.to_account_id().into())
-        .await;
+    put_register_request_on_chain(
+        &api,
+        &alice_constraint,
+        alice_constraint.to_account_id().into(),
+        KeyVisibility::Public,
+    )
+    .await;
     onchain_user_request.block_number = block_number;
     run_to_block(&api, block_number + 1).await;
 
@@ -566,6 +584,7 @@ async fn test_store_share() {
 }
 
 #[tokio::test]
+#[serial]
 async fn test_return_addresses_of_subgroup() {
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
@@ -642,15 +661,45 @@ async fn test_send_and_receive_keys() {
     clean_tests();
 }
 
+#[tokio::test]
+#[serial]
+async fn test_recover_key() {
+    clean_tests();
+    let cxt = test_node_process_testing_state().await;
+    setup_client().await;
+    let (_, bob_kv) = create_clients("validator2".to_string(), vec![], vec![], false, true).await;
+
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let unsafe_query = UnsafeQuery::new("key".to_string(), "value".to_string());
+    let client = reqwest::Client::new();
+
+    let _ = client
+        .post("http://127.0.0.1:3001/unsafe/put")
+        .header("Content-Type", "application/json")
+        .body(unsafe_query.clone().to_json())
+        .send()
+        .await
+        .unwrap();
+    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_CHARLIE_MNEMONIC, None).unwrap();
+    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+    let _ = recover_key(&api, &bob_kv, &signer_alice, unsafe_query.key.clone()).await.unwrap();
+
+    let value = bob_kv.kv().get(&unsafe_query.key).await.unwrap();
+    assert_eq!(value, unsafe_query.value.into_bytes());
+    clean_tests();
+}
+
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: &Sr25519Keyring,
     constraint_account: subxtAccountId32,
+    key_visibility: KeyVisibility,
 ) {
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
+
     let registering_tx =
-        entropy::tx().relayer().register(constraint_account, Static(KeyVisibility::Public), None);
+        entropy::tx().relayer().register(constraint_account, Static(key_visibility), None);
 
     api.tx()
         .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
@@ -683,20 +732,15 @@ async fn test_sign_tx_user_participates() {
         spawn_testing_validators(Some(signing_address.clone()), true).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let initial_constraints = |address: [u8; 20]| -> Constraints {
-        let mut evm_acl = Acl::<[u8; 20]>::default();
-        evm_acl.addresses.push(address);
 
-        Constraints { evm_acl: Some(Static(evm_acl)), btc_acl: None }
-    };
+    update_programs(
+        &entropy_api,
+        &one.pair(),
+        &one.pair(),
+        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+    )
+    .await;
 
-    update_constraints(&entropy_api, &one.pair(), &one.pair(), initial_constraints([1u8; 20]))
-        .await;
-
-    let transaction_request = TransactionRequest::new().to(Address::from([1u8; 20])).value(1);
-    let transaction_request_fail = TransactionRequest::new().to(Address::from([3u8; 20])).value(10);
-
-    let sig_hash = transaction_request.sighash();
     let validators_info = vec![
         ValidatorInfo {
             ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
@@ -709,16 +753,18 @@ async fn test_sign_tx_user_participates() {
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
     ];
-    let converted_transaction_request: String =
-        hex::encode(&transaction_request.rlp_unsigned().to_vec());
+
+    let converted_transaction_request: String = hex::encode(MESSAGE_SHOULD_SUCCEED);
+    let message_should_succeed_hash = Hasher::keccak(MESSAGE_SHOULD_SUCCEED);
 
     let signing_address = one.clone().to_account_id().to_ss58check();
-    let sig_uid = create_unique_tx_id(&signing_address, &hex::encode(&sig_hash));
+    let hash_as_string = hex::encode(&message_should_succeed_hash);
+    let sig_uid = create_unique_tx_id(&signing_address, &hash_as_string);
 
     let mut generic_msg = UserTransactionRequest {
-        arch: "evm".to_string(),
         transaction_request: converted_transaction_request.clone(),
         validators_info: validators_info.clone(),
+        timestamp: SystemTime::now(),
     };
 
     let submit_transaction_requests =
@@ -753,16 +799,16 @@ async fn test_sign_tx_user_participates() {
         (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
-
+    generic_msg.timestamp = SystemTime::now();
     // Submit transaction requests, and connect and participate in signing
     let (test_user_res, sig_result) = future::join(
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
-        user_connects_to_validators(
+        user_participates_in_signing_protocol(
             &users_keyshare_option.unwrap(),
             &sig_uid,
             validators_info.clone(),
             &one.pair(),
-            &converted_transaction_request,
+            message_should_succeed_hash,
         ),
     )
     .await;
@@ -778,6 +824,7 @@ async fn test_sign_tx_user_participates() {
         assert_eq!(signature_base64, signing_result.unwrap());
     }
 
+    generic_msg.timestamp = SystemTime::now();
     // test failing cases
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
@@ -789,6 +836,7 @@ async fn test_sign_tx_user_participates() {
         );
     }
 
+    generic_msg.timestamp = SystemTime::now();
     let mut generic_msg_bad_validators = generic_msg.clone();
     generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
 
@@ -820,24 +868,13 @@ async fn test_sign_tx_user_participates() {
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         // create a SubscribeMessage from a party who is not in the signing commitee
-        let server_public_key = PublicKey::from(validator_ip_and_key.1);
-        let signed_message = SignedMessage::new(
-            &AccountKeyring::Ferdie.pair(),
-            &Bytes(
-                serde_json::to_vec(&SubscribeMessage::new(
-                    &sig_uid,
-                    PartyId::new(AccountKeyring::Ferdie.to_account_id()),
-                ))
-                .unwrap(),
-            ),
-            &server_public_key,
-        )
-        .unwrap();
-        let subscribe_message_vec = serde_json::to_vec(&signed_message).unwrap();
+        let subscribe_message_vec =
+            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &AccountKeyring::Ferdie.pair()))
+                .unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
-            WsConnection::WsStream(ws_stream),
+            ws_stream,
             &AccountKeyring::Ferdie.pair(),
             validator_ip_and_key.1,
             subscribe_message_vec,
@@ -859,6 +896,7 @@ async fn test_sign_tx_user_participates() {
         // returns true if this part of the test passes
         encrypted_connection.recv().await.is_err()
     });
+    generic_msg.timestamp = SystemTime::now();
 
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
@@ -875,7 +913,7 @@ async fn test_sign_tx_user_participates() {
     }
 
     assert!(connection_attempt_handle.await.unwrap());
-
+    generic_msg.timestamp = SystemTime::now();
     // Bad Account ID - an account ID is given which is not in the signing group
     let mut generic_msg_bad_account_id = generic_msg.clone();
     generic_msg_bad_account_id.validators_info[0].tss_account =
@@ -895,7 +933,8 @@ async fn test_sign_tx_user_participates() {
     }
 
     // Test a transcation which does not pass constaints
-    generic_msg.transaction_request = hex::encode(&transaction_request_fail.rlp().to_vec());
+    generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
+    generic_msg.timestamp = SystemTime::now();
 
     let test_user_failed_constraints_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -903,23 +942,11 @@ async fn test_sign_tx_user_participates() {
     for res in test_user_failed_constraints_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Constraints error: Constraint Evaluation error: Transaction not allowed."
+            "Runtime error: Runtime(Error::Evaluation(\"Length of data is too short.\"))"
         );
     }
 
-    // Test unsupported transaction type
-    generic_msg.arch = "btc".to_string();
-    let test_user_failed_arch_res =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-
-    for res in test_user_failed_arch_res {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "Parse error: Unknown \"arch\". Must be one of: [\"evm\"]"
-        );
-    }
-
-    let sig_request = SigMessage { message: hex::encode(sig_hash.clone()) };
+    let sig_request = SigMessage { message: hex::encode(message_should_succeed_hash) };
     let mock_client = reqwest::Client::new();
 
     join_all(validator_ips.iter().map(|validator_ip| async {
@@ -1004,4 +1031,79 @@ async fn test_sign_tx_user_participates() {
     // fails when tries to decode the nonsense message
     assert_ne!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
     clean_tests();
+}
+
+/// Test demonstrating registering with private key visibility, where the user participates in DKG
+/// and holds a keyshare.
+#[tokio::test]
+#[serial]
+async fn test_register_with_private_key_visibility() {
+    clean_tests();
+
+    let one = AccountKeyring::One;
+    let constraint_account = AccountKeyring::Charlie;
+
+    let (validator_ips, _validator_ids, _users_keyshare_option) =
+        spawn_testing_validators(None, false).await;
+    let substrate_context = test_context_stationary().await;
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+
+    let block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
+
+    let x25519_public_key = {
+        let x25519_secret_key = derive_static_secret(&one.pair());
+        PublicKey::from(&x25519_secret_key).to_bytes()
+    };
+
+    put_register_request_on_chain(
+        &api,
+        &one,
+        constraint_account.to_account_id().into(),
+        KeyVisibility::Private(x25519_public_key),
+    )
+    .await;
+    run_to_block(&api, block_number + 1).await;
+
+    // Simulate the propagation pallet making a `user/new` request to the second validator
+    // as we only have one chain node running
+    let onchain_user_request = {
+        // Since we only have two validators we use both of them, but if we had more we would
+        // need to select them using same method as the chain does (based on block number)
+        let validators_info: Vec<entropy_shared::ValidatorInfo> = validator_ips
+            .iter()
+            .enumerate()
+            .map(|(i, ip)| entropy_shared::ValidatorInfo {
+                ip_address: ip.as_bytes().to_vec(),
+                x25519_public_key: X25519_PUBLIC_KEYS[i],
+                tss_account: TSS_ACCOUNTS[i].clone().encode(),
+            })
+            .collect();
+        OcwMessage { sig_request_accounts: vec![one.encode()], block_number, validators_info }
+    };
+
+    let client = reqwest::Client::new();
+    let validators_info: Vec<ValidatorInfo> = validator_ips
+        .iter()
+        .enumerate()
+        .map(|(i, ip)| ValidatorInfo {
+            ip_address: SocketAddrV4::from_str(ip).unwrap(),
+            x25519_public_key: X25519_PUBLIC_KEYS[i],
+            tss_account: TSS_ACCOUNTS[i].clone(),
+        })
+        .collect();
+
+    let (new_user_response_result, keyshare_result) = future::join(
+        client
+            .post("http://127.0.0.1:3002/user/new")
+            .body(onchain_user_request.clone().encode())
+            .send(),
+        user_participates_in_dkg_protocol(validators_info.clone(), &one.pair()),
+    )
+    .await;
+
+    let response = new_user_response_result.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.text().await.unwrap(), "");
+
+    assert!(keyshare_result.is_ok());
 }
