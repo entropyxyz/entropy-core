@@ -1,7 +1,7 @@
-use std::{convert::TryFrom, fmt, path::PathBuf};
+use std::{convert::TryFrom, path::PathBuf};
 
+use entropy_protocol::{KeyParams, PartyId};
 use serde::{Deserialize, Serialize};
-use sp_core::crypto::AccountId32;
 use synedrion::KeyShare;
 use tracing::{info, span, Level, Span};
 use zeroize::Zeroize;
@@ -17,48 +17,6 @@ use crate::encrypted_sled::Password;
 #[derive(Zeroize, Debug, Clone, Serialize, Deserialize)]
 #[zeroize(drop)]
 pub struct Entropy(pub Vec<u8>);
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub struct PartyId(AccountId32);
-
-impl PartyId {
-    pub fn new(acc: AccountId32) -> Self { Self(acc) }
-}
-
-impl From<PartyId> for String {
-    fn from(party_id: PartyId) -> Self {
-        let bytes: &[u8] = party_id.0.as_ref();
-        hex::encode(bytes)
-    }
-}
-
-impl TryFrom<String> for PartyId {
-    type Error = String;
-
-    fn try_from(s: String) -> Result<Self, Self::Error> {
-        let bytes = hex::decode(s).map_err(|err| format!("{err}"))?;
-        let acc = AccountId32::try_from(bytes.as_ref())
-            .map_err(|_err| format!("Invalid party ID length: {}", bytes.len()))?;
-        Ok(Self(acc))
-    }
-}
-
-impl fmt::Display for PartyId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        let bytes: &[u8] = self.0.as_ref();
-        write!(f, "PartyId({})", hex::encode(&bytes[0..4]))
-    }
-}
-
-#[cfg(not(test))]
-use synedrion::ProductionParams;
-#[cfg(not(test))]
-pub type KeyParams = ProductionParams;
-
-#[cfg(test)]
-use synedrion::TestParams;
-#[cfg(test)]
-pub type KeyParams = TestParams;
 
 /// This records encapsulates the additional information that's only available
 /// after the share is created: the correspondence of shares to party IDs they were distributed to.
