@@ -9,6 +9,7 @@ use axum::{
 };
 use ec_runtime::RuntimeError as ProgramRuntimeError;
 use entropy_constraints::Error as ConstraintsError;
+use entropy_protocol::errors::ProtocolExecutionErr;
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
@@ -103,6 +104,8 @@ pub enum UserErr {
     ParsingError(#[from] hex::FromHexError),
     #[error("Validator Error: {0}")]
     ValidatorError(String),
+    #[error("Protocol Execution Error {0}")]
+    ProtocolExecution(#[from] ProtocolExecutionErr),
 }
 
 impl IntoResponse for UserErr {

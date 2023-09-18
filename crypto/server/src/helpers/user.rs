@@ -1,7 +1,10 @@
 use std::{net::SocketAddrV4, str::FromStr, time::Duration};
 
+use entropy_protocol::{
+    execute_protocol::{execute_dkg, Channels},
+    KeyParams,
+};
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
-use kvdb::kv_manager::KeyParams;
 use sp_core::crypto::AccountId32;
 use subxt::{
     ext::sp_core::{sr25519, Bytes},
@@ -15,11 +18,7 @@ use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{entropy, EntropyConfig},
-    signing_client::{
-        protocol_execution::{execute_protocol::execute_dkg, Channels},
-        protocol_transport::{open_protocol_connections, Listener},
-        ListenerState,
-    },
+    signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
     user::{
         api::{UserRegistrationInfo, ValidatorInfo},
         errors::UserErr,

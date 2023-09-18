@@ -15,8 +15,8 @@ use crate::{
     sign_init::SignInit,
     signing_client::{
         protocol_execution::{Channels, ThresholdSigningService},
-        protocol_transport::{open_protocol_connections, Listener},
-        ProtocolErr,
+        protocol_transport::open_protocol_connections,
+        Listener, ProtocolErr,
     },
     user::api::UserTransactionRequest,
     validation::mnemonic_to_pair,
