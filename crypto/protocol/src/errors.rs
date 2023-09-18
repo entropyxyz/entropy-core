@@ -1,26 +1,14 @@
-use std::string::FromUtf8Error;
-
+use crate::protocol_transport::protocol_message::ProtocolMessage;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum ProtocolMessageErr {
-    #[error("Utf8Error: {0:?}")]
-    Utf8(#[from] std::str::Utf8Error),
-    #[error("Deserialization Error: {0:?}")]
-    Deserialization(#[from] serde_json::Error),
-}
-
-/// Errors relating to encrypted WS connections / noise handshaking
-#[derive(Debug, Error)]
-pub enum EncryptedConnectionError {
-    #[error("Noise error: {0}")]
-    Noise(#[from] snow::error::Error),
-    #[error("Utf8Error: {0:?}")]
-    Utf8(#[from] std::str::Utf8Error),
-    #[error("Utf8Error: {0:?}")]
-    FromUtf8(#[from] FromUtf8Error),
-    #[error("Websocket error: {0}")]
-    WebSocket(#[from] WsError),
-    #[error("Could not get remote public key")]
-    RemotePublicKey,
+pub enum ProtocolExecutionErr {
+    #[error("Session Creation Error: {0}")]
+    SessionCreationError(synedrion::InitError),
+    #[error("Incoming message stream error: {0}")]
+    IncomingStream(String),
+    #[error("Synedrion session error {0}")]
+    SynedrionSession(synedrion::sessions::Error),
+    #[error("Broadcast error: {0}")]
+    Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
 }
