@@ -107,7 +107,8 @@ pub async fn execute_signing_protocol(
     .map_err(ProtocolExecutionErr::SessionCreationError)?;
 
     loop {
-        let (mut receiving, to_send) = sending.start_receiving(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)?;
+        let (mut receiving, to_send) =
+            sending.start_receiving(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)?;
 
         match to_send {
             ToSend::Broadcast(message) => {

@@ -16,9 +16,7 @@ use synedrion::k256::ecdsa::{RecoveryId, Signature};
 pub struct PartyId(AccountId32);
 
 impl PartyId {
-    pub fn new(acc: AccountId32) -> Self {
-        Self(acc)
-    }
+    pub fn new(acc: AccountId32) -> Self { Self(acc) }
 }
 
 impl From<PartyId> for String {

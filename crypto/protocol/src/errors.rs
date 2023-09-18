@@ -1,5 +1,6 @@
-use crate::protocol_transport::protocol_message::ProtocolMessage;
 use thiserror::Error;
+
+use crate::protocol_transport::protocol_message::ProtocolMessage;
 
 #[derive(Debug, Error)]
 pub enum ProtocolExecutionErr {
