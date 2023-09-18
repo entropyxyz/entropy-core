@@ -2413,12 +2413,15 @@ dependencies = [
 name = "entropy-protocol"
 version = "0.0.1"
 dependencies = [
+ "async-trait",
+ "blake2",
  "entropy-constraints",
  "entropy-shared",
  "futures",
  "hex",
  "rand_core 0.6.4",
  "serde",
+ "serde_json",
  "snow",
  "sp-core 21.0.0",
  "subxt",
