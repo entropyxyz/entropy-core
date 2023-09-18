@@ -16,12 +16,16 @@ use synedrion::{
     KeyShare, PartyIdx, RecoverableSignature,
 };
 use tokio::sync::mpsc;
-use tracing::instrument;
 
-use crate::{KeyParams, PartyId, errors::ProtocolErr, protocol_message::ProtocolMessage};
+// use tracing::instrument;
+use crate::{
+    errors::ProtocolExecutionErr,
+    protocol_transport::{broadcaster::Broadcaster, protocol_message::ProtocolMessage},
+    KeyParams, PartyId,
+};
 
 pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;
-pub type ChannelOut = crate::broadcaster::Broadcaster;
+pub type ChannelOut = Broadcaster;
 
 /// Thin wrapper broadcasting channel out and messages from other nodes in
 pub struct Channels(pub ChannelOut, pub ChannelIn);
@@ -57,14 +61,14 @@ impl PrehashVerifier<sr25519::Signature> for VerifierWrapper {
 }
 
 /// execute threshold signing protocol.
-#[instrument(skip(chans, threshold_signer))]
+// #[instrument(skip(chans, threshold_signer))]
 pub async fn execute_signing_protocol(
     mut chans: Channels,
     key_share: &KeyShare<KeyParams>,
     prehashed_message: &PrehashedMessage,
     threshold_signer: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
-) -> Result<RecoverableSignature, ProtocolErr> {
+) -> Result<RecoverableSignature, ProtocolExecutionErr> {
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_idx = key_share.party_index();
@@ -100,11 +104,10 @@ pub async fn execute_signing_protocol(
         key_share,
         prehashed_message,
     )
-    .map_err(ProtocolErr::SessionCreationError)?;
+    .map_err(ProtocolExecutionErr::SessionCreationError)?;
 
     loop {
-        let (mut receiving, to_send) =
-            sending.start_receiving(&mut OsRng).map_err(ProtocolErr::ProtocolExecution)?;
+        let (mut receiving, to_send) = sending.start_receiving(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)?;
 
         match to_send {
             ToSend::Broadcast(message) => {
@@ -121,12 +124,12 @@ pub async fn execute_signing_protocol(
         };
 
         while receiving.has_cached_messages() {
-            receiving.receive_cached_message().map_err(ProtocolErr::ProtocolExecution)?;
+            receiving.receive_cached_message().map_err(ProtocolExecutionErr::SynedrionSession)?;
         }
 
         while !receiving.can_finalize() {
             let signing_message = rx.recv().await.ok_or_else(|| {
-                ProtocolErr::IncomingStream(format!("{:?}", receiving.current_stage()))
+                ProtocolExecutionErr::IncomingStream(format!("{:?}", receiving.current_stage()))
             })?;
 
             // TODO: we shouldn't send broadcasts to ourselves in the first place.
@@ -136,10 +139,10 @@ pub async fn execute_signing_protocol(
             let from_idx = id_to_index[&signing_message.from];
             receiving
                 .receive(from_idx, signing_message.payload)
-                .map_err(ProtocolErr::ProtocolExecution)?;
+                .map_err(ProtocolExecutionErr::SynedrionSession)?;
         }
 
-        match receiving.finalize(&mut OsRng).map_err(ProtocolErr::ProtocolExecution)? {
+        match receiving.finalize(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)? {
             FinalizeOutcome::Result(res) => break Ok(res),
             FinalizeOutcome::AnotherRound(new_sending) => sending = new_sending,
         }
@@ -147,13 +150,13 @@ pub async fn execute_signing_protocol(
 }
 
 /// Execute dkg.
-#[instrument(skip(chans, threshold_signer))]
+// #[instrument(skip(chans, threshold_signer))]
 pub async fn execute_dkg(
     mut chans: Channels,
     threshold_signer: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
     my_idx: &u8,
-) -> Result<KeyShare<KeyParams>, ProtocolErr> {
+) -> Result<KeyShare<KeyParams>, ProtocolExecutionErr> {
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());
@@ -186,11 +189,11 @@ pub async fn execute_dkg(
         &verifiers,
         PartyIdx::from_usize(*my_idx as usize),
     )
-    .map_err(ProtocolErr::SessionCreationError)?;
+    .map_err(ProtocolExecutionErr::SessionCreationError)?;
 
     loop {
         let (mut receiving, to_send) =
-            sending.start_receiving(&mut OsRng).map_err(ProtocolErr::ProtocolExecution)?;
+            sending.start_receiving(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)?;
 
         match to_send {
             ToSend::Broadcast(message) => {
@@ -207,12 +210,12 @@ pub async fn execute_dkg(
         };
 
         while receiving.has_cached_messages() {
-            receiving.receive_cached_message().map_err(ProtocolErr::ProtocolExecution)?;
+            receiving.receive_cached_message().map_err(ProtocolExecutionErr::SynedrionSession)?;
         }
 
         while !receiving.can_finalize() {
             let signing_message = rx.recv().await.ok_or_else(|| {
-                ProtocolErr::IncomingStream(format!("{:?}", receiving.current_stage()))
+                ProtocolExecutionErr::IncomingStream(format!("{:?}", receiving.current_stage()))
             })?;
 
             // TODO: we shouldn't send broadcasts to ourselves in the first place.
@@ -222,10 +225,10 @@ pub async fn execute_dkg(
             let from_idx = id_to_index[&signing_message.from];
             receiving
                 .receive(from_idx, signing_message.payload)
-                .map_err(ProtocolErr::ProtocolExecution)?;
+                .map_err(ProtocolExecutionErr::SynedrionSession)?;
         }
 
-        match receiving.finalize(&mut OsRng).map_err(ProtocolErr::ProtocolExecution)? {
+        match receiving.finalize(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)? {
             FinalizeOutcome::Result(res) => break Ok(res),
             FinalizeOutcome::AnotherRound(new_sending) => sending = new_sending,
         }
