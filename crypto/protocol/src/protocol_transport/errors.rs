@@ -12,8 +12,8 @@ pub enum WsError {
     MessageAfterProtocolFinish,
     #[error("UTF8 parse error {0}")]
     UTF8Parse(#[from] FromUtf8Error),
-    // #[error("Cannot get signer from app state")]
-    // AppState(#[from] crate::user::UserErr),
+    #[error("Cannot get signer from app state")]
+    SignerFromAppState,
     #[error("Unexpected message type")]
     UnexpectedMessageType,
     #[error("Encrypted connection error {0}")]

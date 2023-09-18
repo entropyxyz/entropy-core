@@ -1,11 +1,13 @@
 // TODO do these all need to be public?
 pub mod errors;
 pub mod execute_protocol;
+mod protocol_message;
 pub mod protocol_transport;
 
 use std::{fmt, net::SocketAddrV4};
 
 use entropy_shared::X25519PublicKey;
+pub use protocol_message::ProtocolMessage;
 use serde::{Deserialize, Serialize};
 // TODO to minimise dependencies we could maybe use subxt::utils::AccountId32
 use sp_core::crypto::AccountId32;

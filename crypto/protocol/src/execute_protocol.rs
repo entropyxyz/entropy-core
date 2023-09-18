@@ -19,9 +19,8 @@ use tokio::sync::mpsc;
 
 // use tracing::instrument;
 use crate::{
-    errors::ProtocolExecutionErr,
-    protocol_transport::{broadcaster::Broadcaster, protocol_message::ProtocolMessage},
-    KeyParams, PartyId,
+    errors::ProtocolExecutionErr, protocol_message::ProtocolMessage,
+    protocol_transport::Broadcaster, KeyParams, PartyId,
 };
 
 pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;

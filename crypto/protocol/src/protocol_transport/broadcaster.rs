@@ -2,7 +2,7 @@
 
 use tokio::sync::broadcast::{self, error::SendError};
 
-use super::protocol_message::ProtocolMessage;
+use crate::protocol_message::ProtocolMessage;
 
 #[derive(Debug)]
 pub struct Broadcaster(pub broadcast::Sender<ProtocolMessage>);
