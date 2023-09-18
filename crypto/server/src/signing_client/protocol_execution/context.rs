@@ -1,4 +1,4 @@
-use kvdb::kv_manager::KeyParams;
+use entropy_protocol::KeyParams;
 use synedrion::{sessions::PrehashedMessage, KeyShare};
 
 use crate::sign_init::SignInit;

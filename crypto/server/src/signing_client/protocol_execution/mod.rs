@@ -1,18 +1,20 @@
 //! Handle execution of the signing and DKG protocols
 #![allow(dead_code)]
 mod context;
-pub mod execute_protocol;
-mod protocol_message;
+// pub mod execute_protocol;
+// mod protocol_message;
 
-use kvdb::kv_manager::{KeyParams, KvManager};
+pub use entropy_protocol::{
+    execute_protocol::{execute_signing_protocol, Channels},
+    KeyParams, ProtocolMessage,
+};
+use kvdb::kv_manager::KvManager;
 use sp_core::crypto::AccountId32;
 use subxt::ext::sp_core::sr25519;
 use synedrion::KeyShare;
 use tracing::{info, instrument};
 
-pub use self::{
-    context::SignContext, execute_protocol::Channels, protocol_message::ProtocolMessage,
-};
+pub use self::context::SignContext;
 use crate::{
     helpers::signing::{RecoverableSignature, SignatureState},
     sign_init::SignInit,
@@ -61,7 +63,7 @@ impl<'a> ThresholdSigningService<'a> {
         threshold_accounts: Vec<AccountId32>,
     ) -> Result<RecoverableSignature, ProtocolErr> {
         info!("execute_sign: {ctx:?}");
-        let rsig = execute_protocol::execute_signing_protocol(
+        let rsig = execute_signing_protocol(
             channels,
             &ctx.key_share,
             &ctx.sign_init.msg,

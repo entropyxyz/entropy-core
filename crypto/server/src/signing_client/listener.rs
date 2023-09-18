@@ -2,15 +2,12 @@
 
 use std::collections::HashMap;
 
+use entropy_protocol::{protocol_transport::Broadcaster, ProtocolMessage};
 use entropy_shared::X25519PublicKey;
 use sp_core::crypto::AccountId32;
 use tokio::sync::{broadcast, mpsc, oneshot};
 
-use super::Broadcaster;
-use crate::{
-    signing_client::{ProtocolMessage, SubscribeErr},
-    user::api::ValidatorInfo,
-};
+use crate::{signing_client::SubscribeErr, user::api::ValidatorInfo};
 
 pub type ListenerResult = Result<Broadcaster, SubscribeErr>;
 
