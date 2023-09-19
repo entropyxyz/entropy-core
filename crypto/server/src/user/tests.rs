@@ -10,17 +10,18 @@ use std::{
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
+use entropy_protocol::{
+    protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
+    user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
+    PartyId, ValidatorInfo,
+};
 use entropy_shared::{Acl, KeyVisibility, OcwMessage};
 use futures::{
     future::{self, join_all},
     join, Future, SinkExt, StreamExt,
 };
 use hex_literal::hex;
-use kvdb::{
-    clean_tests,
-    encrypted_sled::PasswordMethod,
-    kv_manager::{value::KvManager, PartyId},
-};
+use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
 use more_asserts as ma;
 use parity_scale_codec::Encode;
 use serial_test::serial;
@@ -61,19 +62,15 @@ use crate::{
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, setup_client, spawn_testing_validators,
-            update_programs, user_participates_in_dkg_protocol,
-            user_participates_in_signing_protocol,
+            update_programs,
         },
         user::send_key,
     },
     load_kv_store, new_user,
     r#unsafe::api::UnsafeQuery,
-    signing_client::{
-        protocol_transport::{noise::noise_handshake_initiator, WsConnection},
-        ListenerState, SubscribeMessage,
-    },
+    signing_client::ListenerState,
     user::{
-        api::{recover_key, UserRegistrationInfo, UserTransactionRequest, ValidatorInfo},
+        api::{recover_key, UserRegistrationInfo, UserTransactionRequest},
         tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},

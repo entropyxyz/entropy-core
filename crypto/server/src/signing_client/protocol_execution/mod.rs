@@ -6,7 +6,7 @@ mod context;
 
 pub use entropy_protocol::{
     execute_protocol::{execute_signing_protocol, Channels},
-    KeyParams, ProtocolMessage,
+    KeyParams, ProtocolMessage, RecoverableSignature,
 };
 use kvdb::kv_manager::KvManager;
 use sp_core::crypto::AccountId32;
@@ -16,7 +16,7 @@ use tracing::{info, instrument};
 
 pub use self::context::SignContext;
 use crate::{
-    helpers::signing::{RecoverableSignature, SignatureState},
+    helpers::signing::SignatureState,
     sign_init::SignInit,
     signing_client::{ListenerState, ProtocolErr},
 };

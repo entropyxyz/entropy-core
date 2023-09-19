@@ -2,7 +2,7 @@ use std::{net::SocketAddrV4, str::FromStr, time::Duration};
 
 use entropy_protocol::{
     execute_protocol::{execute_dkg, Channels},
-    KeyParams,
+    KeyParams, ValidatorInfo,
 };
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
 use sp_core::crypto::AccountId32;
@@ -19,10 +19,7 @@ use x25519_dalek::PublicKey;
 use crate::{
     chain_api::{entropy, EntropyConfig},
     signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
-    user::{
-        api::{UserRegistrationInfo, ValidatorInfo},
-        errors::UserErr,
-    },
+    user::{api::UserRegistrationInfo, errors::UserErr},
     validation::SignedMessage,
 };
 /// complete the dkg process for a new user

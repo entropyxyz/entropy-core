@@ -3,10 +3,10 @@ pub use entropy_protocol::protocol_transport::{Broadcaster, SubscribeMessage};
 use entropy_protocol::{
     protocol_transport::{
         errors::WsError,
-        noise::{noise_handshake_initiator, noise_handshake_responder, EncryptedWsConnection},
-        WsConnection,
+        noise::{noise_handshake_initiator, noise_handshake_responder},
+        ws_to_channels, WsChannels,
     },
-    PartyId, ProtocolMessage,
+    PartyId, ValidatorInfo,
 };
 use entropy_shared::X25519PublicKey;
 use futures::future;
@@ -14,11 +14,10 @@ use sp_core::crypto::AccountId32;
 use subxt::{ext::sp_core::sr25519, tx::PairSigner};
 use tokio_tungstenite::connect_async;
 
-pub(super) use super::listener::WsChannels;
 use super::ProtocolErr;
 use crate::{
-    chain_api::EntropyConfig, get_signer, signing_client::SubscribeErr, user::api::ValidatorInfo,
-    AppState, ListenerState, SUBSCRIBE_TIMEOUT_SECONDS,
+    chain_api::EntropyConfig, get_signer, signing_client::SubscribeErr, AppState, ListenerState,
+    SUBSCRIBE_TIMEOUT_SECONDS,
 };
 
 /// Set up websocket connections to other members of the signing committee
@@ -193,35 +192,4 @@ fn get_ws_channels(
         let _ = tx.send(Ok(broadcaster));
     };
     Ok(ws_channels)
-}
-
-/// Send singing protocol messages over websocket, and websocket messages to signing protocol
-pub async fn ws_to_channels<T: WsConnection>(
-    mut connection: EncryptedWsConnection<T>,
-    mut ws_channels: WsChannels,
-    remote_party_id: PartyId,
-) -> Result<(), WsError> {
-    loop {
-        tokio::select! {
-            // Incoming message from remote peer
-            signing_message_result = connection.recv() => {
-                let serialized_signing_message = signing_message_result.map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
-                let msg = ProtocolMessage::try_from(&serialized_signing_message)?;
-                ws_channels.tx.send(msg).await.map_err(|_| WsError::MessageAfterProtocolFinish)?;
-            }
-            // Outgoing message (from signing protocol to remote peer)
-            Ok(msg) = ws_channels.broadcast.recv() => {
-                // Check that the message is for this peer
-                if let Some(party_id) = &msg.to {
-                    if party_id != &remote_party_id {
-                        continue;
-                    }
-                }
-                let message_string = serde_json::to_string(&msg)?;
-                // TODO if this fails, the ws connection has been dropped during the protocol
-                // we should inform the chain of this.
-                connection.send(message_string).await.map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
-            }
-        }
-    }
 }

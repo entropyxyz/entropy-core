@@ -2,12 +2,15 @@
 
 use std::collections::HashMap;
 
-use entropy_protocol::{protocol_transport::Broadcaster, ProtocolMessage};
+use entropy_protocol::{
+    protocol_transport::{Broadcaster, WsChannels},
+    ProtocolMessage, ValidatorInfo,
+};
 use entropy_shared::X25519PublicKey;
 use sp_core::crypto::AccountId32;
 use tokio::sync::{broadcast, mpsc, oneshot};
 
-use crate::{signing_client::SubscribeErr, user::api::ValidatorInfo};
+use crate::signing_client::SubscribeErr;
 
 pub type ListenerResult = Result<Broadcaster, SubscribeErr>;
 
@@ -23,15 +26,6 @@ pub struct Listener {
     tx_ready: oneshot::Sender<ListenerResult>,
     /// Remaining validators we want to connect to
     pub validators: HashMap<AccountId32, X25519PublicKey>,
-}
-
-/// Channels between a remote party and the signing or DKG protocol
-pub struct WsChannels {
-    pub broadcast: broadcast::Receiver<ProtocolMessage>,
-    pub tx: mpsc::Sender<ProtocolMessage>,
-    /// A flag to show that this is the last connection to be set up, and we can proceed with the
-    /// protocol
-    pub is_final: bool,
 }
 
 impl Listener {

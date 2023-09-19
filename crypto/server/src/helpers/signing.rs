@@ -5,9 +5,9 @@ use std::{
 };
 
 use bip39::{Language, Mnemonic};
+use entropy_protocol::RecoverableSignature;
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
 use sp_core::crypto::AccountId32;
-use synedrion::k256::ecdsa::{RecoveryId, Signature};
 use tokio::time::timeout;
 
 use crate::{
@@ -22,25 +22,6 @@ use crate::{
     validation::mnemonic_to_pair,
     AppState,
 };
-
-#[derive(Clone, Debug)]
-pub struct RecoverableSignature {
-    pub signature: Signature,
-    pub recovery_id: RecoveryId,
-}
-
-impl RecoverableSignature {
-    pub fn to_rsv_bytes(&self) -> [u8; 65] {
-        let mut res = [0u8; 65];
-
-        let rs = self.signature.to_bytes();
-        res[0..64].copy_from_slice(&rs);
-
-        res[64] = self.recovery_id.to_byte();
-
-        res
-    }
-}
 
 // TODO: JA Remove all below, temporary
 /// The state used to temporarily store completed signatures

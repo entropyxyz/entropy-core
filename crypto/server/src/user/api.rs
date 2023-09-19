@@ -14,6 +14,7 @@ use ec_runtime::{InitialState, Runtime};
 use entropy_constraints::{
     Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
 };
+use entropy_protocol::ValidatorInfo;
 use entropy_shared::{
     types::{Acl, AclKind, Arch, Constraints, KeyVisibility},
     OcwMessage, X25519PublicKey, SIGNING_PARTY_SIZE,
@@ -62,15 +63,6 @@ use crate::{
     validation::{check_stale, SignedMessage},
     AppState, Configuration,
 };
-
-/// Information from the validators in signing party
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ValidatorInfo {
-    pub x25519_public_key: X25519PublicKey,
-    pub ip_address: SocketAddrV4,
-    pub tss_account: AccountId32,
-}
 
 /// Represents an unparsed, transaction request coming from the client.
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
