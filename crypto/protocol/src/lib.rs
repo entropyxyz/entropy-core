@@ -3,6 +3,7 @@ pub mod errors;
 pub mod execute_protocol;
 mod protocol_message;
 pub mod protocol_transport;
+pub mod user;
 
 use std::{fmt, net::SocketAddrV4};
 
@@ -77,10 +78,9 @@ impl RecoverableSignature {
     }
 }
 
-// TODO move from user::api
+// #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 /// Information from the validators in signing party
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
     pub ip_address: SocketAddrV4,

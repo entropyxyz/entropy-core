@@ -1,6 +1,8 @@
 use thiserror::Error;
 
-use crate::protocol_message::ProtocolMessage;
+use crate::{
+    protocol_message::ProtocolMessage, protocol_transport::errors::EncryptedConnectionErr,
+};
 
 #[derive(Debug, Error)]
 pub enum ProtocolExecutionErr {
@@ -12,4 +14,18 @@ pub enum ProtocolExecutionErr {
     SynedrionSession(synedrion::sessions::Error),
     #[error("Broadcast error: {0}")]
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
+}
+
+#[derive(Debug, Error)]
+pub enum UserRunningProtocolErr {
+    #[error("Encrypted Conection Error: ")]
+    EncryptedConnection(#[from] EncryptedConnectionErr),
+    #[error("Protocol Execution Error {0}")]
+    ProtocolExecution(#[from] ProtocolExecutionErr),
+    #[error("Serde Json error: {0}")]
+    SerdeJson(#[from] serde_json::Error),
+    #[error("Bad Subscribe Message: {0}")]
+    BadSubscribeMessage(String),
+    #[error("Connection Error: {0}")]
+    Connection(String),
 }

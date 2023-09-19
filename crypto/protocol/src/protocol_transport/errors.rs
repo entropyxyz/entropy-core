@@ -36,7 +36,7 @@ pub enum ProtocolMessageErr {
 
 /// Errors relating to encrypted WS connections / noise handshaking
 #[derive(Debug, Error)]
-pub enum EncryptedConnectionError {
+pub enum EncryptedConnectionErr {
     #[error("Noise error: {0}")]
     Noise(#[from] snow::error::Error),
     #[error("Utf8Error: {0:?}")]
