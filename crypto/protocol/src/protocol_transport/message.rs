@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use sp_core::Pair;
-use subxt::ext::sp_core::{crypto::AccountId32, sr25519, sr25519::Signature};
+use sp_core::{sr25519, sr25519::Signature, Pair};
+use subxt::ext::sp_core::crypto::AccountId32;
 
 /// A message sent by a party when initiating a websocket connection to participate
 /// in the signing or DKG protcol

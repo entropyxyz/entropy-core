@@ -2,8 +2,7 @@
 
 use entropy_shared::SIGNING_PARTY_SIZE;
 use futures::future;
-use sp_core::crypto::AccountId32;
-use subxt::ext::sp_core::{sr25519, Pair};
+use sp_core::{crypto::AccountId32, sr25519, Pair};
 use synedrion::KeyShare;
 // TODO maybe use different implementations of channels for wasm compatibility
 use tokio::sync::{broadcast, mpsc};

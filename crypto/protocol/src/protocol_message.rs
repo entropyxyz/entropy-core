@@ -1,7 +1,7 @@
 use std::str;
 
 use serde::{Deserialize, Serialize};
-use subxt::ext::sp_core::sr25519::Signature;
+use sp_core::sr25519::Signature;
 use synedrion::sessions::SignedMessage;
 
 use crate::{protocol_transport::errors::ProtocolMessageErr, PartyId};

@@ -1,14 +1,12 @@
 #![allow(dead_code)]
-use codec::{Decode, Encode, MaxEncodedLen};
-use scale_info::TypeInfo;
-
 #[cfg(not(feature = "wasm"))]
 use codec::alloc::vec::Vec;
+use codec::{Decode, Encode, MaxEncodedLen};
 #[cfg(not(feature = "wasm"))]
 use frame_support::RuntimeDebug;
 #[cfg(not(feature = "wasm"))]
 use node_primitives::BlockNumber;
-
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 

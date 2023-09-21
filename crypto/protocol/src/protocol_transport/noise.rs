@@ -9,8 +9,7 @@
 use blake2::{Blake2s256, Digest};
 use entropy_shared::X25519PublicKey;
 use snow::{params::NoiseParams, Builder, HandshakeState};
-use sp_core::{crypto::Zeroize, Pair};
-use subxt::ext::sp_core::sr25519;
+use sp_core::{crypto::Zeroize, sr25519, Pair};
 use x25519_dalek::StaticSecret;
 
 use super::{errors::EncryptedConnectionErr, WsConnection};

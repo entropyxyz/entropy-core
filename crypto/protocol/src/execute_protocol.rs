@@ -2,8 +2,7 @@
 use std::collections::HashMap;
 
 use rand_core::{CryptoRngCore, OsRng};
-use sp_core::crypto::AccountId32;
-use subxt::ext::sp_core::{sr25519, Pair};
+use sp_core::{crypto::AccountId32, sr25519, Pair};
 use synedrion::{
     sessions::{
         make_interactive_signing_session, make_keygen_and_aux_session, FinalizeOutcome,
