@@ -8,7 +8,7 @@ license    ="AGPL-3.0-or-later"
 [dependencies]
 async-trait   ="0.1.73"
 serde_json    ="1.0"
-entropy-shared={ path="../shared", default-features=false, features=["wasm"] }
+entropy-shared={ path="../shared", default-features=false }
 synedrion     ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="v0.0.9" }
 serde         ={ version="1.0", features=["derive"], default-features=false }
 subxt         ={ package="subxt", git="https://github.com/paritytech/subxt.git", tag="v0.29.0" }
@@ -27,4 +27,4 @@ axum             ={ version="0.6.18", features=["ws"], optional=true }
 tokio-tungstenite={ version="0.19.0", optional=true }
 
 [features]
-server=["dep:axum", "dep:tokio-tungstenite"]
+server=["dep:axum", "dep:tokio-tungstenite", "entropy-shared/std"]
