@@ -178,16 +178,21 @@ pub async fn new_user(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
+    dbg!("1");
     let data = OcwMessage::decode(&mut encoded_data.as_ref())?;
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
+    dbg!("2");
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let signer = get_signer(&app_state.kv_store).await?;
+    dbg!("3");
 
     check_in_registration_group(&data.validators_info, signer.account_id())?;
+    dbg!("4");
     validate_new_user(&data, &api, &app_state.kv_store).await?;
+    dbg!("5");
 
     // Do the DKG protocol in another task, so we can already respond
     tokio::spawn(async move {
@@ -209,8 +214,11 @@ async fn setup_dkg(
     app_state: AppState,
 ) -> Result<(), UserErr> {
     let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
+    dbg!("6");
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+    dbg!("7");
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
+    dbg!("8");
 
     for sig_request_account in data.sig_request_accounts {
         let address_slice: &[u8; 32] = &sig_request_account
@@ -224,6 +232,7 @@ async fn setup_dkg(
             &SubxtAccountId32::from(sig_request_address.clone()),
         )
         .await?;
+        dbg!("9");
 
         let key_share = do_dkg(
             &data.validators_info,
@@ -234,6 +243,7 @@ async fn setup_dkg(
             *user_details.key_visibility,
         )
         .await?;
+        dbg!("10");
         let serialized_key_share = key_serialize(&key_share)
             .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
@@ -245,8 +255,10 @@ async fn setup_dkg(
             key: sig_request_address.to_string(),
             value: serialized_key_share,
         };
+        dbg!("11");
         send_key(&api, &stash_address, &mut addresses_in_subgroup, user_registration_info, &signer)
             .await?;
+            dbg!("12");
         // TODO: Error handling really complex needs to be thought about.
         confirm_registered(
             &api,
@@ -256,6 +268,7 @@ async fn setup_dkg(
             key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec(),
         )
         .await?;
+        dbg!("13");
     }
     Ok(())
 }
@@ -442,6 +455,7 @@ pub async fn validate_new_user(
             .map_err(|_| UserErr::Conversion("Account Conversion"))?,
     ) >= chain_data.block_number
     {
+        dbg!("repeated");
         // change error
         return Err(UserErr::RepeatedData);
     }
@@ -456,6 +470,7 @@ pub async fn validate_new_user(
 
     // we subtract 1 as the message info is coming from the previous block
     if latest_block_number.saturating_sub(1) != chain_data.block_number {
+        dbg!("stale");
         return Err(UserErr::StaleData);
     }
 
@@ -477,6 +492,7 @@ pub async fn validate_new_user(
 
     let verifying_data_hash = hasher_verifying_data.finalize();
     if verifying_data_hash != chain_data_hash {
+        dbg!("invlaid");
         return Err(UserErr::InvalidData);
     }
     kv_manager.kv().delete("LATEST_BLOCK_NUMBER").await?;

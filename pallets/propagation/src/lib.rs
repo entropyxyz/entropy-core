@@ -103,10 +103,13 @@ pub mod pallet {
 
             // check response code
             if response.code != 200 {
-                log::warn!("Unexpected status code: {}", response.code);
+                log::warn!("Unexpected status code: {:?}, {}", response.id, response.code);
+                let res_body = response.body();
+                log::warn!("response body: {:?}", res_body.error());
                 return Err(http::Error::Unknown);
             }
-            let _res_body = response.body().collect::<Vec<u8>>();
+            let res_body = response.body();
+            log::warn!("response body: {:?}", res_body.error());
 
             Self::deposit_event(Event::MessagesPassed(req_body));
 

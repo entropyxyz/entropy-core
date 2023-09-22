@@ -39,6 +39,7 @@ pub async fn do_dkg(
     let account_sp_core = AccountId32::new(*signer.account_id().clone().as_ref());
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
+    dbg!("14");
     for validator_info in validators_info {
         let address_slice: &[u8; 32] = &validator_info
             .tss_account
@@ -54,6 +55,7 @@ pub async fn do_dkg(
         converted_validator_info.push(validator_info);
         tss_accounts.push(tss_account);
     }
+    dbg!("15");
 
     // If key key visibility is private, include them in the list of connecting parties and pass
     // their ID to the listener
@@ -64,6 +66,7 @@ pub async fn do_dkg(
         } else {
             None
         };
+        dbg!("16");
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
@@ -74,6 +77,7 @@ pub async fn do_dkg(
 	.map_err(|_| UserErr::SessionError("Error getting lock".to_string()))?
 	// TODO: using signature ID as session ID. Correct?
 	.insert(session_uid.clone(), listener);
+    dbg!("17");
 
     open_protocol_connections(&converted_validator_info, &session_uid, signer, state).await?;
     let channels = {
@@ -81,7 +85,9 @@ pub async fn do_dkg(
         let broadcast_out = ready??;
         Channels(broadcast_out, rx_from_others)
     };
+    dbg!("18");
     let result = execute_dkg(channels, signer.signer(), tss_accounts, my_subgroup).await?;
+    dbg!("19");
     Ok(result)
 }
 
