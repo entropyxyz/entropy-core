@@ -506,6 +506,7 @@ pub fn check_in_registration_group(
     validators_info: &[entropy_shared::ValidatorInfo],
     validator_address: &SubxtAccountId32,
 ) -> Result<(), UserErr> {
+    dbg!(validators_info.clone(), validator_address.clone());
     let is_proper_signer = validators_info
         .iter()
         .any(|validator_info| validator_info.tss_account == validator_address.encode());

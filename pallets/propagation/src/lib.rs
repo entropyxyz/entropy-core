@@ -40,7 +40,7 @@ pub mod pallet {
         fn offchain_worker(block_number: T::BlockNumber) { let _ = Self::post(block_number); }
 
         fn on_initialize(block_number: T::BlockNumber) -> Weight {
-            pallet_relayer::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
+            // pallet_relayer::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
             T::DbWeight::get().writes(1)
         }
     }
