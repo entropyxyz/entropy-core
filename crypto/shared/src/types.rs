@@ -21,7 +21,7 @@ pub type X25519PublicKey = [u8; 32];
 /// Public -> Anyone can request a signature
 /// Permissioned -> Only permissioned users can request a signature
 /// Private -> Requires the keyshare holder to participate in the threshold signing process
-#[cfg_attr(feature = "std", derive(Debug))]
+#[cfg_attr(not(feature = "wasm-no-std"), derive(Debug))]
 #[cfg_attr(feature = "wasm-no-std", derive(RuntimeDebug))]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
