@@ -10,29 +10,29 @@ use entropy_protocol::{
 };
 use entropy_shared::X25519PublicKey;
 use futures::future;
-use sp_core::crypto::AccountId32;
-use subxt::{ext::sp_core::sr25519, tx::PairSigner};
+use subxt::utils::AccountId32;
 use tokio_tungstenite::connect_async;
 
 use super::ProtocolErr;
 use crate::{
-    chain_api::EntropyConfig, get_signer, signing_client::SubscribeErr, AppState, ListenerState,
-    SUBSCRIBE_TIMEOUT_SECONDS,
+    get_signer, signing_client::SubscribeErr, validation::derive_static_secret, AppState,
+    ListenerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
 
 /// Set up websocket connections to other members of the signing committee
 pub async fn open_protocol_connections(
     validators_info: &[ValidatorInfo],
     session_uid: &str,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signer: &subxt_signer::sr25519::Keypair,
     state: &ListenerState,
+    x25519_secret_key: &x25519_dalek::StaticSecret,
 ) -> Result<(), ProtocolErr> {
     let connect_to_validators = validators_info
         .iter()
         .filter(|validators_info| {
             // Decide whether to initiate a connection by comparing accound ids
             // otherwise, we wait for them to connect to us
-            signer.account_id() > &validators_info.tss_account.clone().into()
+            signer.public_key().0 > validators_info.tss_account.0
         })
         .map(|validator_info| async move {
             // Open a ws connection
@@ -41,11 +41,11 @@ pub async fn open_protocol_connections(
 
             // Send a SubscribeMessage in the payload of the final handshake message
             let subscribe_message_vec =
-                serde_json::to_vec(&SubscribeMessage::new(session_uid, signer.signer()))?;
+                serde_json::to_vec(&SubscribeMessage::new(session_uid, signer))?;
 
             let mut encrypted_connection = noise_handshake_initiator(
                 ws_stream,
-                signer.signer(),
+                x25519_secret_key,
                 validator_info.x25519_public_key,
                 subscribe_message_vec,
             )
@@ -88,9 +88,10 @@ pub async fn open_protocol_connections(
 /// Handle an incoming websocket connection
 pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
     let signer = get_signer(&app_state.kv_store).await.map_err(|_| WsError::SignerFromAppState)?;
+    let x25519_secret_key = derive_static_secret(signer.signer());
 
     let (mut encrypted_connection, serialized_signed_message) =
-        noise_handshake_responder(socket, signer.signer())
+        noise_handshake_responder(socket, &x25519_secret_key)
             .await
             .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
 
@@ -155,7 +156,7 @@ async fn handle_initial_incoming_ws_message(
             listeners.get(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
 
         if !listener.validators.iter().any(|(validator_account_id, validator_x25519_pk)| {
-            validator_account_id == &msg.account_id() && validator_x25519_pk == &remote_public_key
+            validator_account_id == &msg.account_id().0 && validator_x25519_pk == &remote_public_key
         }) {
             // Make the signing process fail, since one of the commitee has misbehaved
             listeners.remove(&msg.session_id);

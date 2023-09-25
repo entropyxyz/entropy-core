@@ -224,15 +224,19 @@ async fn test_sign_tx_no_chain() {
         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
+        let ferdie_sk = AccountKeyring::Ferdie.pair().to_raw_vec();
+        let ferdie_keypair =
+            subxt_signer::sr25519::Keypair::from_seed(ferdie_sk.try_into().unwrap()).unwrap();
+        let ferdie_x25519_sk = derive_static_secret(&AccountKeyring::Ferdie.pair());
+
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
-            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &AccountKeyring::Ferdie.pair()))
-                .unwrap();
+            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
             ws_stream,
-            &AccountKeyring::Ferdie.pair(),
+            &ferdie_x25519_sk,
             validator_ip_and_key.1,
             subscribe_message_vec,
         )
@@ -275,7 +279,7 @@ async fn test_sign_tx_no_chain() {
     generic_msg.timestamp = SystemTime::now();
     let mut generic_msg_bad_account_id = generic_msg.clone();
     generic_msg_bad_account_id.validators_info[0].tss_account =
-        AccountKeyring::Dave.to_account_id();
+        subxtAccountId32(AccountKeyring::Dave.into());
 
     let test_user_failed_tss_account = submit_transaction_requests(
         validator_ips_and_keys.clone(),
@@ -797,6 +801,12 @@ async fn test_sign_tx_user_participates() {
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
     generic_msg.timestamp = SystemTime::now();
+
+    let one_sk = one.pair().to_raw_vec();
+    let one_keypair =
+        subxt_signer::sr25519::Keypair::from_seed(one_sk.try_into().unwrap()).unwrap();
+    let one_x25519_sk = derive_static_secret(&one.pair());
+
     // Submit transaction requests, and connect and participate in signing
     let (test_user_res, sig_result) = future::join(
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
@@ -804,8 +814,9 @@ async fn test_sign_tx_user_participates() {
             &users_keyshare_option.unwrap(),
             &sig_uid,
             validators_info.clone(),
-            &one.pair(),
+            &one_keypair,
             message_should_succeed_hash,
+            &one_x25519_sk,
         ),
     )
     .await;
@@ -864,15 +875,19 @@ async fn test_sign_tx_user_participates() {
         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
+        let ferdie_sk = AccountKeyring::Ferdie.pair().to_raw_vec();
+        let ferdie_keypair =
+            subxt_signer::sr25519::Keypair::from_seed(ferdie_sk.try_into().unwrap()).unwrap();
+        let ferdie_x25519_sk = derive_static_secret(&AccountKeyring::Ferdie.pair());
+
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
-            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &AccountKeyring::Ferdie.pair()))
-                .unwrap();
+            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
             ws_stream,
-            &AccountKeyring::Ferdie.pair(),
+            &ferdie_x25519_sk,
             validator_ip_and_key.1,
             subscribe_message_vec,
         )
@@ -914,7 +929,7 @@ async fn test_sign_tx_user_participates() {
     // Bad Account ID - an account ID is given which is not in the signing group
     let mut generic_msg_bad_account_id = generic_msg.clone();
     generic_msg_bad_account_id.validators_info[0].tss_account =
-        AccountKeyring::Dave.to_account_id();
+        subxtAccountId32(AccountKeyring::Dave.into());
 
     let test_user_failed_tss_account = submit_transaction_requests(
         validator_ips_and_keys.clone(),
@@ -1089,12 +1104,17 @@ async fn test_register_with_private_key_visibility() {
         })
         .collect();
 
+    let one_sk = one.pair().to_raw_vec();
+    let one_keypair =
+        subxt_signer::sr25519::Keypair::from_seed(one_sk.try_into().unwrap()).unwrap();
+    let one_x25519_sk = derive_static_secret(&one.pair());
+
     let (new_user_response_result, keyshare_result) = future::join(
         client
             .post("http://127.0.0.1:3002/user/new")
             .body(onchain_user_request.clone().encode())
             .send(),
-        user_participates_in_dkg_protocol(validators_info.clone(), &one.pair()),
+        user_participates_in_dkg_protocol(validators_info.clone(), &one_keypair, &one_x25519_sk),
     )
     .await;
 

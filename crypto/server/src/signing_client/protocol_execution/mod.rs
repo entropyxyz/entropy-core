@@ -9,8 +9,7 @@ pub use entropy_protocol::{
     KeyParams, ProtocolMessage, RecoverableSignature,
 };
 use kvdb::kv_manager::KvManager;
-use sp_core::crypto::AccountId32;
-use subxt::ext::sp_core::sr25519;
+use subxt::utils::AccountId32;
 use synedrion::KeyShare;
 use tracing::{info, instrument};
 
@@ -59,7 +58,7 @@ impl<'a> ThresholdSigningService<'a> {
         &self,
         ctx: &SignContext,
         channels: Channels,
-        threshold_signer: &sr25519::Pair,
+        threshold_signer: &subxt_signer::sr25519::Keypair,
         threshold_accounts: Vec<AccountId32>,
     ) -> Result<RecoverableSignature, ProtocolErr> {
         info!("execute_sign: {ctx:?}");

@@ -1,7 +1,7 @@
 //! Message sent to Signing Client on protocol initiation.
 use entropy_protocol::ValidatorInfo;
 use serde::{Deserialize, Serialize};
-use sp_core::crypto::AccountId32;
+use subxt::utils::AccountId32;
 use synedrion::sessions::PrehashedMessage;
 
 use crate::{signing_client::ProtocolErr, user::api::UserTransactionRequest};

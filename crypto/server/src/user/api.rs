@@ -57,7 +57,7 @@ use crate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
         user::{do_dkg, send_key},
-        validator::get_signer,
+        validator::{get_signer, get_subxt_signer},
     },
     signing_client::{ListenerState, ProtocolErr},
     validation::{check_stale, SignedMessage},
@@ -99,6 +99,9 @@ pub async fn sign_tx(
 
     let signing_address_converted =
         AccountId32::from_str(&signing_address).map_err(UserErr::StringError)?;
+
+    let signing_address_arr: [u8; 32] = *signing_address_converted.as_ref();
+    let signing_address_subxt = SubxtAccountId32(signing_address_arr);
     // TODO go back over to simplify accountID type
     let second_signing_address_conversion = SubxtAccountId32::from_str(&signing_address)
         .map_err(|_| UserErr::StringError("Account Conversion"))?;
@@ -141,7 +144,7 @@ pub async fn sign_tx(
             sig_hash,
             &app_state,
             tx_id,
-            signing_address_converted,
+            signing_address_subxt,
             key_visibility,
         )
         .await
@@ -199,6 +202,8 @@ async fn setup_dkg(
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
 
+    let subxt_signer = get_subxt_signer(&app_state.kv_store).await?;
+
     for sig_request_account in data.sig_request_accounts {
         let address_slice: &[u8; 32] = &sig_request_account
             .clone()
@@ -219,6 +224,7 @@ async fn setup_dkg(
             sig_request_address.clone(),
             &my_subgroup,
             *user_details.key_visibility,
+            &subxt_signer,
         )
         .await?;
         let serialized_key_share = key_serialize(&key_share)

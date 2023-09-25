@@ -9,11 +9,10 @@ use entropy_shared::KeyVisibility;
 use kvdb::{clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use rand_core::OsRng;
 use serial_test::serial;
-use sp_core::crypto::AccountId32;
 use subxt::{
     ext::sp_core::{sr25519, Pair},
     tx::PairSigner,
-    utils::{AccountId32 as subxtAccountId32, Static},
+    utils::{AccountId32 as SubxtAccountId32, Static},
     OnlineClient,
 };
 use synedrion::KeyShare;
@@ -95,13 +94,13 @@ pub async fn spawn_testing_validators(
 
     let (alice_axum, alice_kv) =
         create_clients("validator1".to_string(), vec![], vec![], true, false).await;
-    let alice_id = PartyId::new(AccountId32::new(
+    let alice_id = PartyId::new(SubxtAccountId32(
         *get_signer(&alice_kv).await.unwrap().account_id().clone().as_ref(),
     ));
 
     let (bob_axum, bob_kv) =
         create_clients("validator2".to_string(), vec![], vec![], false, true).await;
-    let bob_id = PartyId::new(AccountId32::new(
+    let bob_id = PartyId::new(SubxtAccountId32(
         *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
     ));
 
@@ -156,7 +155,7 @@ pub async fn update_programs(
     // update/set their constraints
     let update_program_tx = entropy::tx()
         .constraints()
-        .update_v2_constraints(subxtAccountId32::from(sig_req_keyring.public()), initial_program);
+        .update_v2_constraints(SubxtAccountId32::from(sig_req_keyring.public()), initial_program);
 
     let constraint_modification_account =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(constraint_modification_account.clone());
