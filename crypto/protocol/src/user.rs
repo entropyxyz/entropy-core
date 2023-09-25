@@ -2,7 +2,8 @@
 
 use entropy_shared::SIGNING_PARTY_SIZE;
 use futures::future;
-use sp_core::{crypto::AccountId32, sr25519, Pair};
+use subxt::utils::AccountId32;
+use subxt_signer::sr25519;
 use synedrion::KeyShare;
 // TODO maybe use different implementations of channels for wasm compatibility
 use tokio::sync::{broadcast, mpsc};
@@ -23,11 +24,17 @@ pub async fn user_participates_in_signing_protocol(
     key_share: &KeyShare<KeyParams>,
     sig_uid: &str,
     validators_info: Vec<ValidatorInfo>,
-    user_signing_keypair: &sr25519::Pair,
+    user_signing_keypair: &sr25519::Keypair,
     sig_hash: [u8; 32],
+    x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<RecoverableSignature, UserRunningProtocolErr> {
-    let (channels, tss_accounts) =
-        user_connects_to_validators(sig_uid, validators_info, user_signing_keypair).await?;
+    let (channels, tss_accounts) = user_connects_to_validators(
+        sig_uid,
+        validators_info,
+        user_signing_keypair,
+        x25519_private_key,
+    )
+    .await?;
 
     // Execute the signing protocol
     let rsig = execute_protocol::execute_signing_protocol(
@@ -48,12 +55,18 @@ pub async fn user_participates_in_signing_protocol(
 /// in the DKG protocol.
 pub async fn user_participates_in_dkg_protocol(
     validators_info: Vec<ValidatorInfo>,
-    user_signing_keypair: &sr25519::Pair,
+    user_signing_keypair: &sr25519::Keypair,
+    x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<KeyShare<KeyParams>, UserRunningProtocolErr> {
-    let sig_req_account: AccountId32 = user_signing_keypair.public().into();
+    let sig_req_account: AccountId32 = user_signing_keypair.public_key().0.into();
     let session_id = sig_req_account.to_string();
-    let (channels, tss_accounts) =
-        user_connects_to_validators(&session_id, validators_info, user_signing_keypair).await?;
+    let (channels, tss_accounts) = user_connects_to_validators(
+        &session_id,
+        validators_info,
+        user_signing_keypair,
+        x25519_private_key,
+    )
+    .await?;
 
     // The user's subgroup id is SIGNING_PARTY_SIZE. They will always be alone in their subgroup
     // as all other subgroup id's are < SIGNING_PARTY_SIZE
@@ -69,7 +82,8 @@ pub async fn user_participates_in_dkg_protocol(
 async fn user_connects_to_validators(
     session_id: &str,
     validators_info: Vec<ValidatorInfo>,
-    user_signing_keypair: &sr25519::Pair,
+    user_signing_keypair: &sr25519::Keypair,
+    x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<(Channels, Vec<AccountId32>), UserRunningProtocolErr> {
     // Set up channels for communication between signing protocol and other signing parties
     let (tx, _rx) = broadcast::channel(1000);
@@ -93,7 +107,7 @@ async fn user_connects_to_validators(
 
             let mut encrypted_connection = noise_handshake_initiator(
                 ws_stream,
-                user_signing_keypair,
+                x25519_private_key,
                 validator_info.x25519_public_key,
                 subscribe_message_vec,
             )
@@ -138,7 +152,7 @@ async fn user_connects_to_validators(
     let mut tss_accounts: Vec<AccountId32> =
         validators_info.iter().map(|v| v.tss_account.clone()).collect();
     // Add ourself to the list of partys as we will participate
-    tss_accounts.push(user_signing_keypair.public().into());
+    tss_accounts.push(user_signing_keypair.public_key().0.into());
 
     Ok((channels, tss_accounts))
 }

@@ -10,13 +10,16 @@ use std::{fmt, net::SocketAddrV4};
 use entropy_shared::X25519PublicKey;
 pub use protocol_message::ProtocolMessage;
 use serde::{Deserialize, Serialize};
-// TODO to minimise dependencies we could maybe use subxt::utils::AccountId32
-use sp_core::crypto::AccountId32;
+use subxt::utils::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 
 // This could maybe move to entropy-shared
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PartyId(AccountId32);
+
+impl std::hash::Hash for PartyId {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) { self.0 .0.hash(state); }
+}
 
 impl PartyId {
     pub fn new(acc: AccountId32) -> Self { Self(acc) }
@@ -34,8 +37,10 @@ impl TryFrom<String> for PartyId {
 
     fn try_from(s: String) -> Result<Self, Self::Error> {
         let bytes = hex::decode(s).map_err(|err| format!("{err}"))?;
-        let acc = AccountId32::try_from(bytes.as_ref())
-            .map_err(|_err| format!("Invalid party ID length: {}", bytes.len()))?;
+        let len = bytes.len();
+        let arr: [u8; 32] =
+            bytes.try_into().map_err(|_err| format!("Invalid party ID length: {}", len))?;
+        let acc = arr.into();
         Ok(Self(acc))
     }
 }

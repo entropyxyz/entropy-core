@@ -6,12 +6,12 @@
 //! handshake starts)
 //!
 //! See: <https://noiseexplorer.com/patterns/XK>
-use blake2::{Blake2s256, Digest};
+// use blake2::{Blake2s256, Digest};
 use entropy_shared::X25519PublicKey;
 use snow::{params::NoiseParams, Builder, HandshakeState};
-use sp_core::{crypto::Zeroize, sr25519, Pair};
-use x25519_dalek::StaticSecret;
 
+// use subxt_signer::sr25519;
+// use x25519_dalek::StaticSecret;
 use super::{errors::EncryptedConnectionErr, WsConnection};
 
 /// The handshake pattern and other parameters
@@ -23,7 +23,7 @@ const NOISE_PROLOGUE: &[u8; 24] = b"Entropy signing protocol";
 /// Handshake as an initiator
 pub async fn noise_handshake_initiator<T: WsConnection>(
     mut ws_connection: T,
-    local_private_key: &sr25519::Pair,
+    local_private_key: &x25519_dalek::StaticSecret,
     remote_public_key: X25519PublicKey,
     final_message_payload: Vec<u8>,
 ) -> Result<EncryptedWsConnection<T>, EncryptedConnectionErr> {
@@ -48,7 +48,7 @@ pub async fn noise_handshake_initiator<T: WsConnection>(
 /// Handshake as a responder
 pub async fn noise_handshake_responder<T: WsConnection>(
     mut ws_connection: T,
-    local_private_key: &sr25519::Pair,
+    local_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<(EncryptedWsConnection<T>, String), EncryptedConnectionErr> {
     let mut noise = setup_noise(local_private_key, None).await?;
 
@@ -73,11 +73,10 @@ pub async fn noise_handshake_responder<T: WsConnection>(
 
 /// Configure the noise handshake
 async fn setup_noise(
-    local_private_key: &sr25519::Pair,
+    local_private_key: &x25519_dalek::StaticSecret,
     remote_public_key_option: Option<X25519PublicKey>,
 ) -> Result<HandshakeState, snow::error::Error> {
-    let private_key = derive_static_secret(local_private_key).to_bytes();
-
+    let private_key = local_private_key.to_bytes();
     let params: NoiseParams = NOISE_PARAMS.parse()?;
     let builder: Builder<'_> =
         Builder::new(params).local_private_key(&private_key).prologue(NOISE_PROLOGUE);
@@ -121,14 +120,15 @@ impl<T: WsConnection> EncryptedWsConnection<T> {
     }
 }
 
-/// Derives a static secret from a sr25519 private key for usage in static Diffie-Hellman.
-pub fn derive_static_secret(sk: &sr25519::Pair) -> x25519_dalek::StaticSecret {
-    let mut buffer: [u8; 32] = [0; 32];
-    let mut hasher = Blake2s256::new();
-    hasher.update(sk.to_raw_vec());
-    let hash = hasher.finalize().to_vec();
-    buffer.copy_from_slice(&hash);
-    let result = StaticSecret::from(buffer);
-    buffer.zeroize();
-    result
-}
+// /// Derives a static secret from a sr25519 private key for usage in static Diffie-Hellman.
+// pub fn derive_static_secret(sk: &sr25519::Keypair) -> x25519_dalek::StaticSecret {
+//     let mut buffer: [u8; 32] = [0; 32];
+//     let mut hasher = Blake2s256::new();
+//     hasher.update(sk.to_raw_vec());
+//     let hash = hasher.finalize().to_vec();
+//     buffer.copy_from_slice(&hash);
+//     let result = StaticSecret::from(buffer);
+//     // buffer.zeroize();
+// 	buffer = [0; 32];
+//     result
+// }

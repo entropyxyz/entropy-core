@@ -2,7 +2,10 @@
 use std::collections::HashMap;
 
 use rand_core::{CryptoRngCore, OsRng};
-use sp_core::{crypto::AccountId32, sr25519, Pair};
+use serde::{Deserialize, Serialize};
+use serde_big_array::BigArray;
+use subxt::utils::AccountId32;
+use subxt_signer::sr25519;
 use synedrion::{
     sessions::{
         make_interactive_signing_session, make_keygen_and_aux_session, FinalizeOutcome,
@@ -28,29 +31,36 @@ pub type ChannelOut = Broadcaster;
 /// Thin wrapper broadcasting channel out and messages from other nodes in
 pub struct Channels(pub ChannelOut, pub ChannelIn);
 
-struct SignerWrapper(sr25519::Pair);
+struct SignerWrapper(sr25519::Keypair);
 
-#[derive(Clone)]
-struct VerifierWrapper(sr25519::Public);
+struct VerifierWrapper(sr25519::PublicKey);
 
-impl RandomizedPrehashSigner<sr25519::Signature> for SignerWrapper {
+impl Clone for VerifierWrapper {
+    fn clone(&self) -> Self { VerifierWrapper(sr25519::PublicKey(self.0 .0)) }
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
+pub struct SignatureWrapper(#[serde(with = "BigArray")] [u8; 64]);
+
+impl RandomizedPrehashSigner<SignatureWrapper> for SignerWrapper {
     fn sign_prehash_with_rng(
         &self,
         _rng: &mut impl CryptoRngCore,
         prehash: &[u8],
-    ) -> Result<sr25519::Signature, signature::Error> {
+    ) -> Result<SignatureWrapper, signature::Error> {
         // TODO: doesn't seem like there's a way to randomize signing?
-        Ok(self.0.sign(prehash))
+        Ok(SignatureWrapper(self.0.sign(prehash).0))
     }
 }
 
-impl PrehashVerifier<sr25519::Signature> for VerifierWrapper {
+impl PrehashVerifier<SignatureWrapper> for VerifierWrapper {
     fn verify_prehash(
         &self,
         prehash: &[u8],
-        signature: &sr25519::Signature,
+        signature: &SignatureWrapper,
     ) -> Result<(), signature::Error> {
-        if sr25519::Pair::verify(signature, prehash, &self.0) {
+        let sig = sr25519::Signature(signature.0);
+        if sr25519::verify(&sig, prehash, &self.0) {
             Ok(())
         } else {
             Err(signature::Error::new())
@@ -64,7 +74,7 @@ pub async fn execute_signing_protocol(
     mut chans: Channels,
     key_share: &KeyShare<KeyParams>,
     prehashed_message: &PrehashedMessage,
-    threshold_signer: &sr25519::Pair,
+    threshold_signer: &sr25519::Keypair,
     threshold_accounts: Vec<AccountId32>,
 ) -> Result<RecoverableSignature, ProtocolExecutionErr> {
     let party_ids: Vec<PartyId> =
@@ -86,7 +96,7 @@ pub async fn execute_signing_protocol(
     // We should have `Public` objects at this point, not `AccountId32`.
     let verifiers = threshold_accounts
         .into_iter()
-        .map(|acc| VerifierWrapper(sr25519::Public::from_raw(acc.into())))
+        .map(|acc| VerifierWrapper(sr25519::PublicKey(acc.0)))
         .collect::<Vec<_>>();
 
     // TODO (#375): this should come from whoever initiates the signing process,
@@ -152,7 +162,7 @@ pub async fn execute_signing_protocol(
 // #[instrument(skip(chans, threshold_signer))]
 pub async fn execute_dkg(
     mut chans: Channels,
-    threshold_signer: &sr25519::Pair,
+    threshold_signer: &sr25519::Keypair,
     threshold_accounts: Vec<AccountId32>,
     my_idx: &u8,
 ) -> Result<KeyShare<KeyParams>, ProtocolExecutionErr> {
@@ -173,7 +183,7 @@ pub async fn execute_dkg(
     // We should have `Public` objects at this point, not `AccountId32`.
     let verifiers = threshold_accounts
         .into_iter()
-        .map(|acc| VerifierWrapper(sr25519::Public::from_raw(acc.into())))
+        .map(|acc| VerifierWrapper(sr25519::PublicKey(acc.0)))
         .collect::<Vec<_>>();
 
     // TODO (#375): this should come from whoever initiates the signing process,
