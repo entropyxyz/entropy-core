@@ -23,4 +23,4 @@ std=[
   "dep:node-primitives",
 ]
 wasm=["codec/std", "scale-info/std", "serde/std", "sp-std/std"]
-wasm-no-std=["dep:frame-support", "dep:node-primitives"]
+wasm-no-std=["frame-support", "dep:node-primitives"]
