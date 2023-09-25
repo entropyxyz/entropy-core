@@ -59,7 +59,7 @@ sp-core       ={ package="sp-core", git="https://github.com/paritytech/substrate
 log           ={ version="0.4.0", default-features=false }
 pallet-session={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.43" }
 sp-staking    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.43" }
-entropy-shared={ path="../../crypto/shared", default-features=false }
+entropy-shared={ path="../../crypto/shared", default-features=false, features=["wasm-no-std"] }
 serde         ={ version="1.0.147", default-features=false }
 
 [dev-dependencies]
