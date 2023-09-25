@@ -77,7 +77,7 @@ pub async fn do_dkg(
     open_protocol_connections(
         &converted_validator_info,
         &session_uid,
-        &subxt_signer,
+        subxt_signer,
         state,
         &x25519_secret_key,
     )
@@ -88,7 +88,7 @@ pub async fn do_dkg(
         Channels(broadcast_out, rx_from_others)
     };
 
-    let result = execute_dkg(channels, &subxt_signer, tss_accounts, my_subgroup).await?;
+    let result = execute_dkg(channels, subxt_signer, tss_accounts, my_subgroup).await?;
     Ok(result)
 }
 

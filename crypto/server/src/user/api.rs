@@ -408,7 +408,7 @@ pub fn check_signing_group(
 ) -> Result<(), UserErr> {
     // Check that validators given by the user match those from get_current_subgroup_signers
     for validator in validators_info {
-        if !subgroup_signers.contains(&validator.tss_account.clone().into()) {
+        if !subgroup_signers.contains(&validator.tss_account) {
             return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
         }
     }
