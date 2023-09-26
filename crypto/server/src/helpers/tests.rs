@@ -1,7 +1,7 @@
 // only compile when testing
 #![cfg(test)]
 
-use std::{net::TcpListener, time::Duration};
+use std::{net::TcpListener, str::FromStr, time::Duration};
 
 use axum::{routing::IntoMakeService, Router};
 use entropy_protocol::{KeyParams, PartyId};
@@ -9,6 +9,7 @@ use entropy_shared::KeyVisibility;
 use kvdb::{clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use rand_core::OsRng;
 use serial_test::serial;
+use sp_keyring::AccountKeyring;
 use subxt::{
     ext::sp_core::{sr25519, Pair},
     tx::PairSigner,
@@ -31,6 +32,7 @@ use crate::{
         substrate::get_subgroup,
     },
     signing_client::ListenerState,
+    validation::derive_static_secret,
     AppState,
 };
 
@@ -210,4 +212,16 @@ async fn test_get_signing_group() {
     assert!(result_charlie.is_err());
 
     clean_tests();
+}
+
+pub fn keyring_to_subxt_signer_and_x25519(
+    keyring: &AccountKeyring,
+) -> (subxt_signer::sr25519::Keypair, x25519_dalek::StaticSecret) {
+    (
+        subxt_signer::sr25519::Keypair::from_uri(
+            &subxt_signer::SecretUri::from_str(&keyring.to_seed()).unwrap(),
+        )
+        .unwrap(),
+        derive_static_secret(&keyring.pair()),
+    )
 }

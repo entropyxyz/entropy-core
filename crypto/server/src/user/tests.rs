@@ -61,8 +61,8 @@ use crate::{
         signing::{create_unique_tx_id, Hasher, SignatureState},
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
-            check_if_confirmation, create_clients, setup_client, spawn_testing_validators,
-            update_programs,
+            check_if_confirmation, create_clients, keyring_to_subxt_signer_and_x25519,
+            setup_client, spawn_testing_validators, update_programs,
         },
         user::send_key,
     },
@@ -224,10 +224,8 @@ async fn test_sign_tx_no_chain() {
         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
-        let ferdie_sk = AccountKeyring::Ferdie.pair().to_raw_vec();
-        let ferdie_keypair =
-            subxt_signer::sr25519::Keypair::from_seed(ferdie_sk.try_into().unwrap()).unwrap();
-        let ferdie_x25519_sk = derive_static_secret(&AccountKeyring::Ferdie.pair());
+        let (ferdie_keypair, ferdie_x25519_sk) =
+            keyring_to_subxt_signer_and_x25519(&AccountKeyring::Ferdie);
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
@@ -802,10 +800,7 @@ async fn test_sign_tx_user_participates() {
     ];
     generic_msg.timestamp = SystemTime::now();
 
-    let one_sk = one.pair().to_raw_vec();
-    let one_keypair =
-        subxt_signer::sr25519::Keypair::from_seed(one_sk.try_into().unwrap()).unwrap();
-    let one_x25519_sk = derive_static_secret(&one.pair());
+    let (one_keypair, one_x25519_sk) = keyring_to_subxt_signer_and_x25519(&one);
 
     // Submit transaction requests, and connect and participate in signing
     let (test_user_res, sig_result) = future::join(
@@ -875,9 +870,10 @@ async fn test_sign_tx_user_participates() {
         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
-        let ferdie_sk = AccountKeyring::Ferdie.pair().to_raw_vec();
-        let ferdie_keypair =
-            subxt_signer::sr25519::Keypair::from_seed(ferdie_sk.try_into().unwrap()).unwrap();
+        let ferdie_keypair = subxt_signer::sr25519::Keypair::from_uri(
+            &subxt_signer::SecretUri::from_str(&AccountKeyring::Ferdie.to_seed()).unwrap(),
+        )
+        .unwrap();
         let ferdie_x25519_sk = derive_static_secret(&AccountKeyring::Ferdie.pair());
 
         // create a SubscribeMessage from a party who is not in the signing commitee
@@ -1062,10 +1058,8 @@ async fn test_register_with_private_key_visibility() {
 
     let block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
 
-    let x25519_public_key = {
-        let x25519_secret_key = derive_static_secret(&one.pair());
-        PublicKey::from(&x25519_secret_key).to_bytes()
-    };
+    let (one_keypair, one_x25519_sk) = keyring_to_subxt_signer_and_x25519(&one);
+    let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
 
     put_register_request_on_chain(
         &api,
@@ -1104,11 +1098,7 @@ async fn test_register_with_private_key_visibility() {
         })
         .collect();
 
-    let one_sk = one.pair().to_raw_vec();
-    let one_keypair =
-        subxt_signer::sr25519::Keypair::from_seed(one_sk.try_into().unwrap()).unwrap();
-    let one_x25519_sk = derive_static_secret(&one.pair());
-
+    // Call the `user/new` endpoint, and connect and participate in the protocol
     let (new_user_response_result, keyshare_result) = future::join(
         client
             .post("http://127.0.0.1:3002/user/new")

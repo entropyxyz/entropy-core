@@ -57,8 +57,9 @@ pub async fn do_dkg(
     let user_details_option =
         if let KeyVisibility::Private(users_x25519_public_key) = key_visibility {
             let account_id_arr: [u8; 32] = *sig_request_account.as_ref();
-            tss_accounts.push(SubxtAccountId32(account_id_arr));
-            Some((account_id.clone(), users_x25519_public_key))
+            let user_account_id = SubxtAccountId32(account_id_arr);
+            tss_accounts.push(user_account_id.clone());
+            Some((user_account_id, users_x25519_public_key))
         } else {
             None
         };

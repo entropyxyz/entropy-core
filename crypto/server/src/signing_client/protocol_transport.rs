@@ -146,7 +146,7 @@ async fn handle_initial_incoming_ws_message(
 
     {
         // Check that the given public key matches the public key we got in the
-        // UserTransactionRequest
+        // UserTransactionRequest or register transaction
         let mut listeners = app_state
             .listener_state
             .listeners
@@ -155,13 +155,21 @@ async fn handle_initial_incoming_ws_message(
         let listener =
             listeners.get(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
 
+        println!(" mine x25519: {:?} ", remote_public_key);
+        println!(" mine sr: {:?} ", msg.public_key);
         if !listener.validators.iter().any(|(validator_account_id, validator_x25519_pk)| {
-            validator_account_id == &msg.account_id().0 && validator_x25519_pk == &remote_public_key
+            // println!(" {:?} {:?}", validator_account_id, msg.public_key);
+            println!(" them x25519: {:?}", validator_x25519_pk);
+            println!(" them sr {:?}", validator_account_id);
+            // println!(" {:?} {:?}", validator_account_id, msg.public_key);
+            validator_account_id == &msg.public_key && validator_x25519_pk == &remote_public_key
         }) {
             // Make the signing process fail, since one of the commitee has misbehaved
             listeners.remove(&msg.session_id);
             return Err(SubscribeErr::Decryption(
-                "Public key does not match that given in UserTransactionRequest".to_string(),
+                "Public key does not match that given in UserTransactionRequest or register \
+                 transaction"
+                    .to_string(),
             ));
         }
     }
