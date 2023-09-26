@@ -208,7 +208,7 @@ async fn test_sign_tx_no_chain() {
     assert_eq!(
         responses.next().unwrap().unwrap().text().await.unwrap(),
         "{\"Err\":\"Subscribe message rejected: Decryption(\\\"Public key does not match that \
-         given in UserTransactionRequest\\\")\"}"
+         given in UserTransactionRequest or register transaction\\\")\"}"
     );
 
     assert_eq!(
@@ -247,7 +247,8 @@ async fn test_sign_tx_no_chain() {
             serde_json::from_str(&response_message).unwrap();
 
         assert_eq!(
-            Err("Decryption(\"Public key does not match that given in UserTransactionRequest\")"
+            Err("Decryption(\"Public key does not match that given in UserTransactionRequest or \
+                 register transaction\")"
                 .to_string()),
             subscribe_response
         );
@@ -854,7 +855,7 @@ async fn test_sign_tx_user_participates() {
     assert_eq!(
         responses.next().unwrap().unwrap().text().await.unwrap(),
         "{\"Err\":\"Subscribe message rejected: Decryption(\\\"Public key does not match that \
-         given in UserTransactionRequest\\\")\"}"
+         given in UserTransactionRequest or register transaction\\\")\"}"
     );
 
     assert_eq!(
@@ -896,7 +897,8 @@ async fn test_sign_tx_user_participates() {
             serde_json::from_str(&response_message).unwrap();
 
         assert_eq!(
-            Err("Decryption(\"Public key does not match that given in UserTransactionRequest\")"
+            Err("Decryption(\"Public key does not match that given in UserTransactionRequest or \
+                 register transaction\")"
                 .to_string()),
             subscribe_response
         );
