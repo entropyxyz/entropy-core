@@ -155,13 +155,7 @@ async fn handle_initial_incoming_ws_message(
         let listener =
             listeners.get(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
 
-        println!(" mine x25519: {:?} ", remote_public_key);
-        println!(" mine sr: {:?} ", msg.public_key);
         if !listener.validators.iter().any(|(validator_account_id, validator_x25519_pk)| {
-            // println!(" {:?} {:?}", validator_account_id, msg.public_key);
-            println!(" them x25519: {:?}", validator_x25519_pk);
-            println!(" them sr {:?}", validator_account_id);
-            // println!(" {:?} {:?}", validator_account_id, msg.public_key);
             validator_account_id == &msg.public_key && validator_x25519_pk == &remote_public_key
         }) {
             // Make the signing process fail, since one of the commitee has misbehaved
