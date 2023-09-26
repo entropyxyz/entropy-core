@@ -1,15 +1,15 @@
 mod broadcaster;
 pub mod errors;
-mod message;
 pub mod noise;
+mod subscribe_message;
 
 use async_trait::async_trait;
 pub use broadcaster::Broadcaster;
 use errors::WsError;
 #[cfg(feature = "server")]
 use futures::{SinkExt, StreamExt};
-pub use message::SubscribeMessage;
 use noise::EncryptedWsConnection;
+pub use subscribe_message::SubscribeMessage;
 use tokio::sync::{broadcast, mpsc};
 
 use crate::{PartyId, ProtocolMessage};
