@@ -1,8 +1,6 @@
 //! Handle execution of the signing and DKG protocols
 #![allow(dead_code)]
 mod context;
-// pub mod execute_protocol;
-// mod protocol_message;
 
 pub use entropy_protocol::{
     execute_protocol::{execute_signing_protocol, Channels},

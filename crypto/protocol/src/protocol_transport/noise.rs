@@ -6,12 +6,9 @@
 //! handshake starts)
 //!
 //! See: <https://noiseexplorer.com/patterns/XK>
-// use blake2::{Blake2s256, Digest};
 use entropy_shared::X25519PublicKey;
 use snow::{params::NoiseParams, Builder, HandshakeState};
 
-// use subxt_signer::sr25519;
-// use x25519_dalek::StaticSecret;
 use super::{errors::EncryptedConnectionErr, WsConnection};
 
 /// The handshake pattern and other parameters
@@ -119,16 +116,3 @@ impl<T: WsConnection> EncryptedWsConnection<T> {
             .map_err(|_| EncryptedConnectionErr::RemotePublicKey)
     }
 }
-
-// /// Derives a static secret from a sr25519 private key for usage in static Diffie-Hellman.
-// pub fn derive_static_secret(sk: &sr25519::Keypair) -> x25519_dalek::StaticSecret {
-//     let mut buffer: [u8; 32] = [0; 32];
-//     let mut hasher = Blake2s256::new();
-//     hasher.update(sk.to_raw_vec());
-//     let hash = hasher.finalize().to_vec();
-//     buffer.copy_from_slice(&hash);
-//     let result = StaticSecret::from(buffer);
-//     // buffer.zeroize();
-// 	buffer = [0; 32];
-//     result
-// }
