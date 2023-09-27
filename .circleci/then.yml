@@ -2,9 +2,9 @@ commands:
     fmt-lint:
         steps:
             - run: curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
-            - run: rustup run nightly-2022-11-16-x86_64-unknown-linux-gnu cargo fmt --check
+            - run: rustup run nightly-2023-06-15-x86_64-unknown-linux-gnu cargo fmt --check
             - run: taplo fmt --check
-            - run: rustup run nightly-2022-11-16-x86_64-unknown-linux-gnu cargo clippy -- -D warnings
+            - run: rustup run nightly-2023-06-15-x86_64-unknown-linux-gnu cargo clippy -- -D warnings
     increase-swap:
         steps:
             - run: sudo swapoff -a
@@ -21,9 +21,9 @@ commands:
     install-rust:
         steps:
             - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-            - run: rustup toolchain install nightly-2022-11-16-x86_64-unknown-linux-gnu
+            - run: rustup toolchain install nightly-2023-06-15-x86_64-unknown-linux-gnu
             - run: rustup update stable
-            - run: rustup target add wasm32-unknown-unknown --toolchain nightly-2022-11-16-x86_64-unknown-linux-gnu
+            - run: rustup target add wasm32-unknown-unknown --toolchain nightly-2023-06-15-x86_64-unknown-linux-gnu
     install-dependencies-and-checkout:
         steps:
             # Needed to getch the currently private `synedrion` dependency
