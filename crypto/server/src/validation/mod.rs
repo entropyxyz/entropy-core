@@ -220,7 +220,8 @@ mod tests {
         let result = check_stale(SystemTime::now());
         assert!(result.is_ok());
 
-        let fail_time = SystemTime::now().checked_sub(TIME_BUFFER).unwrap();
+        let fail_time =
+            SystemTime::now().checked_sub(TIME_BUFFER).unwrap().checked_sub(TIME_BUFFER).unwrap();
         let fail_stale = check_stale(fail_time).unwrap_err();
         assert_eq!(fail_stale.to_string(), "Message is too old".to_string());
 

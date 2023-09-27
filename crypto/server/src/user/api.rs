@@ -36,7 +36,7 @@ use parity_scale_codec::{Decode, DecodeAll, Encode};
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::AccountId32;
 use subxt::{
-    ext::sp_core::{crypto::Ss58Codec, sr25519, Pair},
+    ext::sp_core::{crypto::Ss58Codec, sr25519, sr25519::Signature, Pair},
     tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32,
     Config, OnlineClient,
@@ -52,7 +52,7 @@ use crate::{
     },
     get_and_store_values, get_random_server_info,
     helpers::{
-        signing::{create_unique_tx_id, do_signing, Hasher, SignatureState},
+        signing::{create_unique_tx_id, do_signing, Hasher},
         substrate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
@@ -148,7 +148,12 @@ pub async fn sign_tx(
             key_visibility,
         )
         .await
-        .map(|signature| base64::encode(signature.to_rsv_bytes()))
+        .map(|signature| {
+            (
+                base64::encode(signature.to_rsv_bytes()),
+                signer.signer().sign(&signature.to_rsv_bytes()),
+            )
+        })
         .map_err(|error| error.to_string());
 
         // This response chunk is sent later with the result of the signing protocol

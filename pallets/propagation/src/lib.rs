@@ -61,11 +61,6 @@ pub mod pallet {
             let messages =
                 pallet_relayer::Pallet::<T>::dkg(block_number.saturating_sub(1u32.into()));
 
-            // Only inform the signing client if there were users who registered in the last block
-            if messages.is_empty() {
-                return Ok(());
-            };
-
             let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
@@ -112,7 +107,7 @@ pub mod pallet {
                 return Err(http::Error::Unknown);
             }
             let _res_body = response.body().collect::<Vec<u8>>();
-            // ToDo: DF: handle _res_body
+
             Self::deposit_event(Event::MessagesPassed(req_body));
 
             Ok(())

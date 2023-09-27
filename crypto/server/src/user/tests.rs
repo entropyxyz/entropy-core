@@ -29,13 +29,14 @@ use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{
     ext::{
-        sp_core::{sr25519, Bytes, Pair},
+        sp_core::{sr25519, sr25519::Signature, Bytes, Pair},
         sp_runtime::AccountId32,
     },
     tx::PairSigner,
     utils::{AccountId32 as subxtAccountId32, Static},
     Config, OnlineClient,
 };
+use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 use testing_utils::{
     constants::{
         ALICE_STASH_ADDRESS, BAREBONES_PROGRAM_WASM_BYTECODE, MESSAGE_SHOULD_FAIL,
@@ -52,13 +53,13 @@ use x25519_dalek::{PublicKey, StaticSecret};
 use super::UserInputPartyInfo;
 use crate::{
     chain_api::{entropy, get_api, EntropyConfig},
-    drain, get_signature, get_signer,
+    get_signer,
     helpers::{
         launch::{
             setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
             DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
-        signing::{create_unique_tx_id, Hasher, SignatureState},
+        signing::{create_unique_tx_id, Hasher},
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, keyring_to_subxt_signer_and_x25519,
@@ -75,7 +76,6 @@ use crate::{
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
-    Message as SigMessage,
 };
 
 #[tokio::test]
@@ -96,7 +96,7 @@ async fn test_sign_tx_no_chain() {
     let two = AccountKeyring::Two;
 
     let signing_address = one.clone().to_account_id().to_ss58check();
-    let (validator_ips, _validator_ids, _) =
+    let (validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -172,13 +172,34 @@ async fn test_sign_tx_no_chain() {
     generic_msg.timestamp = SystemTime::now();
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-
+    let mut i = 0;
     for res in test_user_res {
         let mut res = res.unwrap();
         assert_eq!(res.status(), 200);
         let chunk = res.chunk().await.unwrap().unwrap();
-        let signing_result: Result<String, String> = serde_json::from_slice(&chunk).unwrap();
-        assert!(matches!(signing_result, Ok(sig) if sig.len() == 88));
+        let signing_result: Result<(String, Signature), String> =
+            serde_json::from_slice(&chunk).unwrap();
+        assert_eq!(signing_result.clone().unwrap().0.len(), 88);
+        let mut decoded_sig = base64::decode(signing_result.clone().unwrap().0).unwrap();
+        let recovery_digit = decoded_sig.pop().unwrap();
+        let signature = k256Signature::from_slice(&decoded_sig).unwrap();
+        let recover_id = RecoveryId::from_byte(recovery_digit).unwrap();
+        let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+            &message_should_succeed_hash,
+            &signature,
+            recover_id,
+        )
+        .unwrap();
+        assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
+        let mnemonic = if i == 0 { DEFAULT_MNEMONIC } else { DEFAULT_BOB_MNEMONIC };
+        let sk = <sr25519::Pair as Pair>::from_string(mnemonic, None).unwrap();
+        let sig_recovery = <sr25519::Pair as Pair>::verify(
+            &signing_result.clone().unwrap().1,
+            base64::decode(signing_result.unwrap().0).unwrap(),
+            &sr25519::Public(sk.public().0),
+        );
+        assert!(sig_recovery);
+        i += 1;
     }
 
     generic_msg.timestamp = SystemTime::now();
@@ -307,22 +328,7 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    let sig_request = SigMessage { message: hex::encode(message_should_succeed_hash) };
     let mock_client = reqwest::Client::new();
-
-    join_all(validator_ips.iter().map(|validator_ip| async {
-        let url = format!("http://{}/signer/signature", validator_ip.clone());
-        let res = mock_client
-            .post(url)
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&sig_request).unwrap())
-            .send()
-            .await
-            .unwrap();
-        assert_eq!(res.status(), 202);
-        assert_eq!(res.content_length().unwrap(), 88);
-    }))
-    .await;
     // fails verification tests
     // wrong key for wrong validator
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
@@ -807,7 +813,7 @@ async fn test_sign_tx_user_participates() {
     let (test_user_res, sig_result) = future::join(
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
         user_participates_in_signing_protocol(
-            &users_keyshare_option.unwrap(),
+            &users_keyshare_option.clone().unwrap(),
             &sig_uid,
             validators_info.clone(),
             &one_keypair,
@@ -820,12 +826,34 @@ async fn test_sign_tx_user_participates() {
     let signature_base64 = base64::encode(sig_result.unwrap().to_rsv_bytes());
     assert_eq!(signature_base64.len(), 88);
 
+    let mut i = 0;
     for res in test_user_res {
         let mut res = res.unwrap();
         assert_eq!(res.status(), 200);
         let chunk = res.chunk().await.unwrap().unwrap();
-        let signing_result: Result<String, String> = serde_json::from_slice(&chunk).unwrap();
-        assert_eq!(signature_base64, signing_result.unwrap());
+        let signing_result: Result<(String, Signature), String> =
+            serde_json::from_slice(&chunk).unwrap();
+        assert_eq!(signing_result.clone().unwrap().0.len(), 88);
+        let mut decoded_sig = base64::decode(signing_result.clone().unwrap().0).unwrap();
+        let recovery_digit = decoded_sig.pop().unwrap();
+        let signature = k256Signature::from_slice(&decoded_sig).unwrap();
+        let recover_id = RecoveryId::from_byte(recovery_digit).unwrap();
+        let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+            &message_should_succeed_hash,
+            &signature,
+            recover_id,
+        )
+        .unwrap();
+        assert_eq!(users_keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
+        let mnemonic = if i == 0 { DEFAULT_MNEMONIC } else { DEFAULT_BOB_MNEMONIC };
+        let sk = <sr25519::Pair as Pair>::from_string(mnemonic, None).unwrap();
+        let sig_recovery = <sr25519::Pair as Pair>::verify(
+            &signing_result.clone().unwrap().1,
+            base64::decode(signing_result.unwrap().0).unwrap(),
+            &sr25519::Public(sk.public().0),
+        );
+        assert!(sig_recovery);
+        i += 1;
     }
 
     generic_msg.timestamp = SystemTime::now();
@@ -956,22 +984,7 @@ async fn test_sign_tx_user_participates() {
         );
     }
 
-    let sig_request = SigMessage { message: hex::encode(message_should_succeed_hash) };
     let mock_client = reqwest::Client::new();
-
-    join_all(validator_ips.iter().map(|validator_ip| async {
-        let url = format!("http://{}/signer/signature", validator_ip.clone());
-        let res = mock_client
-            .post(url)
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&sig_request).unwrap())
-            .send()
-            .await
-            .unwrap();
-        assert_eq!(res.status(), 202);
-        assert_eq!(res.content_length().unwrap(), 88);
-    }))
-    .await;
     // fails verification tests
     // wrong key for wrong validator
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);

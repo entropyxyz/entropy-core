@@ -28,7 +28,6 @@ use crate::{
             setup_latest_block_number, setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC,
             DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
-        signing::SignatureState,
         substrate::get_subgroup,
     },
     signing_client::ListenerState,
@@ -44,8 +43,7 @@ pub async fn setup_client() {
     let _ = setup_latest_block_number(&kv_store).await;
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let signature_state = SignatureState::new();
-    let app_state = AppState { listener_state, configuration, kv_store, signature_state };
+    let app_state = AppState { listener_state, configuration, kv_store };
     let app = app(app_state).into_make_service();
     let listener = TcpListener::bind("0.0.0.0:3001").unwrap();
 
@@ -63,7 +61,6 @@ pub async fn create_clients(
 ) -> (IntoMakeService<Router>, KvManager) {
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let signature_state = SignatureState::new();
 
     let path = format!(".entropy/testing/test_db_{key_number}");
     let _ = std::fs::remove_dir_all(path.clone());
@@ -78,8 +75,7 @@ pub async fn create_clients(
         let _ = kv_store.clone().kv().put(reservation, value).await;
     }
 
-    let app_state =
-        AppState { listener_state, configuration, kv_store: kv_store.clone(), signature_state };
+    let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
 
     let app = app(app_state).into_make_service();
 
@@ -89,7 +85,7 @@ pub async fn create_clients(
 pub async fn spawn_testing_validators(
     sig_req_keyring: Option<String>,
     // If this is true a keyshare for the user will be generated and returned
-    private_key_visibility: bool,
+    extra_private_keys: bool,
 ) -> (Vec<String>, Vec<PartyId>, Option<KeyShare<KeyParams>>) {
     // spawn threshold servers
     let ports = vec![3001i64, 3002];
@@ -107,7 +103,7 @@ pub async fn spawn_testing_validators(
     ));
 
     let user_keyshare_option = if sig_req_keyring.is_some() {
-        let number_of_shares = if private_key_visibility { 3 } else { 2 };
+        let number_of_shares = if extra_private_keys { 3 } else { 2 };
         let shares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, number_of_shares, None);
         let validator_1_threshold_keyshare: Vec<u8> =
             kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
@@ -122,10 +118,10 @@ pub async fn spawn_testing_validators(
             bob_kv.kv().reserve_key(sig_req_keyring.clone().unwrap()).await.unwrap();
         bob_kv.kv().put(bob_reservation, validator_2_threshold_keyshare).await.unwrap();
 
-        if private_key_visibility {
+        if extra_private_keys {
             Some(shares[2].clone())
         } else {
-            None
+            Some(shares[1].clone())
         }
     } else {
         None
