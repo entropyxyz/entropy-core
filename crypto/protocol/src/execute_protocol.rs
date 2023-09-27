@@ -18,8 +18,8 @@ use synedrion::{
     KeyShare, PartyIdx, RecoverableSignature,
 };
 use tokio::sync::mpsc;
+use tracing::instrument;
 
-// use tracing::instrument;
 use crate::{
     errors::ProtocolExecutionErr, protocol_message::ProtocolMessage,
     protocol_transport::Broadcaster, KeyParams, PartyId,
@@ -39,6 +39,8 @@ impl Clone for VerifierWrapper {
     fn clone(&self) -> Self { VerifierWrapper(sr25519::PublicKey(self.0 .0)) }
 }
 
+/// This is a raw signature from [sr25519::Signature]
+// we cannot use Signature directly because it doesn't implement Serialize
 #[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
 pub struct SignatureWrapper(#[serde(with = "BigArray")] [u8; 64]);
 
@@ -68,8 +70,8 @@ impl PrehashVerifier<SignatureWrapper> for VerifierWrapper {
     }
 }
 
-/// execute threshold signing protocol.
-// #[instrument(skip(chans, threshold_signer))]
+/// Execute threshold signing protocol.
+#[instrument(skip(chans, threshold_signer))]
 pub async fn execute_signing_protocol(
     mut chans: Channels,
     key_share: &KeyShare<KeyParams>,

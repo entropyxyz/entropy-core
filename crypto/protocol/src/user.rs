@@ -5,7 +5,6 @@ use futures::future;
 use subxt::utils::AccountId32;
 use subxt_signer::sr25519;
 use synedrion::KeyShare;
-// TODO maybe use different implementations of channels for wasm compatibility
 use tokio::sync::{broadcast, mpsc};
 use tokio_tungstenite::connect_async;
 
@@ -132,10 +131,10 @@ async fn user_connects_to_validators(
 
             // Handle protocol messages in another task
             tokio::spawn(async move {
-                if let Err(_err) =
+                if let Err(err) =
                     ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await
                 {
-                    // tracing::warn!("{:?}", err);
+                    tracing::warn!("{:?}", err);
                 };
             });
 

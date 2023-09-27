@@ -23,6 +23,7 @@ thiserror      ="1.0.40"
 snow           ="0.9.2"
 getrandom      ={ version="0.2", features=["js"] }
 rand_core      ={ version="0.6.4", features=["getrandom"] }
+tracing        ="0.1.37"
 
 # Used only with the `server` feature to implement the WsConnection trait
 axum             ={ version="0.6.18", features=["ws"], optional=true }

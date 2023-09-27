@@ -7,13 +7,15 @@ use crate::{
     execute_protocol::SignatureWrapper, protocol_transport::errors::ProtocolMessageErr, PartyId,
 };
 
-/// A Message related to the signing or DKG protocol.
+/// A Message send during the signing or DKG protocol.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct ProtocolMessage {
+    /// Identifier of the author of this message
     pub from: PartyId,
-    // If `None`, it's a broadcast message
+    /// If `None`, it's a broadcast message sent to all parties
     pub to: Option<PartyId>,
+    /// The signed protocol message
     pub payload: SignedMessage<SignatureWrapper>,
 }
 

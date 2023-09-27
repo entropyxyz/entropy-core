@@ -1,4 +1,4 @@
-// TODO do these all need to be public?
+//! Protocol execution and transport logic for the Entropy signing and DKG protocols
 pub mod errors;
 pub mod execute_protocol;
 mod protocol_message;
@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use subxt::utils::AccountId32;
 use synedrion::k256::ecdsa::{RecoveryId, Signature};
 
-// This could maybe move to entropy-shared
+/// Identifies a party participating in a protocol session
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PartyId(AccountId32);
 
@@ -54,16 +54,19 @@ impl fmt::Display for PartyId {
 
 #[cfg(not(test))]
 use synedrion::ProductionParams;
+/// Parameters used for the threshold signing scheme in production
 #[cfg(not(test))]
 pub type KeyParams = ProductionParams;
 
 #[cfg(test)]
 use synedrion::TestParams;
+/// Parameters used for the threshold signing scheme in tests (faster but less secure)
 #[cfg(test)]
 pub type KeyParams = TestParams;
 
 pub use synedrion::KeyShare;
 
+/// A secp256k1 signature from which we can recover the public key of the keypair used to create it
 #[derive(Clone, Debug)]
 pub struct RecoverableSignature {
     pub signature: Signature,
@@ -83,7 +86,6 @@ impl RecoverableSignature {
     }
 }
 
-// #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 /// Information from the validators in signing party
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct ValidatorInfo {
