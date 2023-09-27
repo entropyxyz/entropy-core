@@ -27,7 +27,10 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config:
-        frame_system::Config + pallet_authorship::Config + pallet_relayer::Config
+        frame_system::Config
+        + pallet_authorship::Config
+        + pallet_relayer::Config
+        + pallet_staking_extension::Config
     {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
     }
@@ -37,11 +40,15 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn offchain_worker(block_number: T::BlockNumber) { let _ = Self::post(block_number); }
+        fn offchain_worker(block_number: T::BlockNumber) {
+            let _ = Self::post_dkg(block_number);
+            let _ = Self::post_proactive_refresh(block_number);
+        }
 
         fn on_initialize(block_number: T::BlockNumber) -> Weight {
             pallet_relayer::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
-            T::DbWeight::get().writes(1)
+            pallet_staking_extension::ProactiveRefresh::<T>::put(false);
+            T::DbWeight::get().writes(2)
         }
     }
 
@@ -57,7 +64,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {}
 
     impl<T: Config> Pallet<T> {
-        pub fn post(block_number: T::BlockNumber) -> Result<(), http::Error> {
+        pub fn post_dkg(block_number: T::BlockNumber) -> Result<(), http::Error> {
             let messages =
                 pallet_relayer::Pallet::<T>::dkg(block_number.saturating_sub(1u32.into()));
 
@@ -109,6 +116,56 @@ pub mod pallet {
             let _res_body = response.body().collect::<Vec<u8>>();
 
             Self::deposit_event(Event::MessagesPassed(req_body));
+
+            Ok(())
+        }
+
+        pub fn post_proactive_refresh(_block_number: T::BlockNumber) -> Result<(), http::Error> {
+            let do_refresh = pallet_staking_extension::Pallet::<T>::proactive_refresh();
+
+            if !do_refresh {
+                return Ok(());
+            }
+
+            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+            let kind = sp_core::offchain::StorageKind::PERSISTENT;
+            let from_local = sp_io::offchain::local_storage_get(kind, b"refresh")
+                .unwrap_or_else(|| b"http://localhost:3001/signer/proactive_refresh".to_vec());
+            let url = str::from_utf8(&from_local)
+                .unwrap_or("http://localhost:3001/signer/proactive_refresh");
+
+            let (servers_info, _i) =
+                pallet_relayer::Pallet::<T>::get_validator_info().unwrap_or_default();
+            let validators_info = servers_info
+                .iter()
+                .map(|server_info| ValidatorInfo {
+                    x25519_public_key: server_info.x25519_public_key,
+                    ip_address: server_info.endpoint.clone(),
+                    tss_account: server_info.tss_account.encode(),
+                })
+                .collect::<Vec<_>>();
+
+            log::warn!("propagation::post::req_body: {:?}", &[validators_info.encode()]);
+            // We construct the request
+            // important: the header->Content-Type must be added and match that of the receiving
+            // party!!
+            let pending = http::Request::post(url, vec![validators_info.encode()]) // scheint zu klappen
+                .deadline(deadline)
+                .send()
+                .map_err(|_| http::Error::IoError)?;
+
+            // We await response, same as in fn get()
+            let response =
+                pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+
+            // check response code
+            if response.code != 200 {
+                log::warn!("Unexpected status code: {}", response.code);
+                return Err(http::Error::Unknown);
+            }
+            let _res_body = response.body().collect::<Vec<u8>>();
+
+            // Self::deposit_event(Event::MessagesPassed(req_body));
 
             Ok(())
         }

@@ -221,6 +221,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/user/sign_tx", post(sign_tx))
         .route("/user/new", post(new_user))
         .route("/user/receive_key", post(receive_key))
+        .route("/signer/proactive_refresh", post(proactive_refresh))
         .route("/validator/sync_kvdb", post(sync_kvdb))
         .route("/healthz", get(healthz))
         .route("/ws", get(ws_handler));
