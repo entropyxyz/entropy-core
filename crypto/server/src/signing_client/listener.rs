@@ -25,6 +25,7 @@ pub struct Listener {
     /// Endpoint to notify protocol execution ready-for-signing
     tx_ready: oneshot::Sender<ListenerResult>,
     /// Remaining validators we want to connect to
+    // Key is subxt AccountId32 but it doesn't implement Hash so we use [u8; 32]
     pub validators: HashMap<[u8; 32], X25519PublicKey>,
 }
 

@@ -23,6 +23,7 @@ pub async fn get_signer(
     Ok(PairSigner::<EntropyConfig, sr25519::Pair>::new(pair.0))
 }
 
+/// Similar to [get_signer()] but gets a [subxt_signer::sr25519::Keypair]
 pub async fn get_subxt_signer(kv: &KvManager) -> Result<subxt_signer::sr25519::Keypair, UserErr> {
     let _ = kv.kv().exists("MNEMONIC").await?;
     let raw_m = kv.kv().get("MNEMONIC").await?;

@@ -88,13 +88,6 @@ pub async fn do_signing(
         Channels(broadcast_out, rx_from_others)
     };
 
-    // let raw = kv_manager.kv().get("MNEMONIC").await?;
-    // let secret = core::str::from_utf8(&raw)?;
-    // let mnemonic = Mnemonic::from_phrase(secret, Language::English)
-    //     .map_err(|e| ProtocolErr::Mnemonic(e.to_string()))?;
-    // let threshold_signer = mnemonic_to_pair(&mnemonic)
-    //     .map_err(|_| ProtocolErr::SecretString("Secret String Error"))?;
-
     let result =
         signing_service.execute_sign(&sign_context, channels, &subxt_signer, tss_accounts).await?;
 

@@ -210,6 +210,7 @@ async fn test_get_signing_group() {
     clean_tests();
 }
 
+/// Get a subxt_signer keypair and x25519 secret key from an [AccountKeyring]
 pub fn keyring_to_subxt_signer_and_x25519(
     keyring: &AccountKeyring,
 ) -> (subxt_signer::sr25519::Keypair, x25519_dalek::StaticSecret) {
