@@ -11,19 +11,19 @@ init :: add-user mkdir copy-service build link
 show ::
 		cat Makefile
 
-build :: 
+build ::
 		cargo build --release
 
 copy-service ::
 		cp service/* /etc/systemd/system
 
-add-user :: 
-		adduser --system --no-create-home --group entropy 
+add-user ::
+		adduser --system --no-create-home --group entropy
 
-mkdir :: 
+mkdir ::
 		mkdir -p /var/run/entropy
 
-link :: 
+link ::
 		cp target/release/entropy target/release/server /var/run/entropy/
 		cp service/* /etc/systemd/system/
 		chown entropy:entropy -R /var/run/entropy
@@ -60,8 +60,8 @@ vercel-install-api-docs :: vercel-rustup rust
 		# Let's make things even smaller by making it possible to build
 		# the `libstd` stuff ourselves.
 		export PATH="${PATH}:${HOME}/.cargo/bin" rustup update \
-			&& rustup toolchain install nightly-2023-02-09-x86_64-unknown-linux-gnu \
-			&& rustup component add rust-src --toolchain nightly-2023-02-09-x86_64-unknown-linux-gnu
+			&& rustup toolchain install nightly-2023-06-15-x86_64-unknown-linux-gnu \
+			&& rustup component add rust-src --toolchain nightly-2023-06-15-x86_64-unknown-linux-gnu
 		# Install build dependencies required for Amazon Linux 2, the
 		# base of the Vercel build image. See:
 		# https://vercel.com/docs/concepts/deployments/build-image
@@ -96,8 +96,8 @@ vercel-install-api-docs :: vercel-rustup rust
 vercel-build-api-docs ::
 		export PATH="${PATH}:${HOME}/.cargo/bin" \
 			&& rustup target add wasm32-unknown-unknown \
-				--toolchain nightly-2023-02-09-x86_64-unknown-linux-gnu \
-			&& cargo +nightly-2023-02-09-x86_64-unknown-linux-gnu doc \
+				--toolchain nightly-2023-06-15-x86_64-unknown-linux-gnu \
+			&& cargo +nightly-2023-06-15-x86_64-unknown-linux-gnu doc \
 				--profile vercel --no-deps \
 				--target x86_64-unknown-linux-gnu \
 				-Z build-std=std,panic_abort \

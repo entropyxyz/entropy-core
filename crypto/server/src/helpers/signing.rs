@@ -1,42 +1,23 @@
 use std::time::Duration;
 
-use bip39::{Language, Mnemonic};
+use entropy_protocol::RecoverableSignature;
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
-use sp_core::crypto::AccountId32;
-use synedrion::k256::ecdsa::{RecoveryId, Signature};
+use subxt::utils::AccountId32;
 use tokio::time::timeout;
 
 use crate::{
     get_signer,
+    helpers::validator::get_subxt_signer,
     sign_init::SignInit,
     signing_client::{
         protocol_execution::{Channels, ThresholdSigningService},
-        protocol_transport::{open_protocol_connections, Listener},
-        ProtocolErr,
+        protocol_transport::open_protocol_connections,
+        Listener, ProtocolErr,
     },
     user::api::UserTransactionRequest,
-    validation::mnemonic_to_pair,
+    validation::derive_static_secret,
     AppState,
 };
-
-#[derive(Clone, Debug)]
-pub struct RecoverableSignature {
-    pub signature: Signature,
-    pub recovery_id: RecoveryId,
-}
-
-impl RecoverableSignature {
-    pub fn to_rsv_bytes(&self) -> [u8; 65] {
-        let mut res = [0u8; 65];
-
-        let rs = self.signature.to_bytes();
-        res[0..64].copy_from_slice(&rs);
-
-        res[64] = self.recovery_id.to_byte();
-
-        res
-    }
-}
 
 /// Start the signing protocol for a given message
 pub async fn do_signing(
@@ -55,7 +36,13 @@ pub async fn do_signing(
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let signer =
         get_signer(kv_manager).await.map_err(|_| ProtocolErr::UserError("Error getting Signer"))?;
-    let account_sp_core = AccountId32::new(*signer.account_id().clone().as_ref());
+
+    let x25519_secret_key = derive_static_secret(signer.signer());
+    let subxt_signer = get_subxt_signer(kv_manager)
+        .await
+        .map_err(|_| ProtocolErr::UserError("Error getting Signer"))?;
+
+    let account_id = AccountId32(subxt_signer.public_key().0);
 
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
@@ -63,7 +50,7 @@ pub async fn do_signing(
     let mut tss_accounts: Vec<AccountId32> = message
         .validators_info
         .iter()
-        .map(|validator_info| AccountId32::new(*validator_info.tss_account.clone().as_ref()))
+        .map(|validator_info| validator_info.tss_account.clone())
         .collect();
 
     // If key key visibility is private, add them to the list of parties and pass the user's ID to
@@ -78,7 +65,7 @@ pub async fn do_signing(
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(message.validators_info, &account_sp_core, user_details_option);
+        Listener::new(message.validators_info, &account_id, user_details_option);
 
     state
         .listeners
@@ -90,8 +77,9 @@ pub async fn do_signing(
     open_protocol_connections(
         &sign_context.sign_init.validators_info,
         &sign_context.sign_init.sig_uid,
-        &signer,
+        &subxt_signer,
         state,
+        &x25519_secret_key,
     )
     .await?;
     let channels = {
@@ -100,16 +88,8 @@ pub async fn do_signing(
         Channels(broadcast_out, rx_from_others)
     };
 
-    let raw = kv_manager.kv().get("MNEMONIC").await?;
-    let secret = core::str::from_utf8(&raw)?;
-    let mnemonic = Mnemonic::from_phrase(secret, Language::English)
-        .map_err(|e| ProtocolErr::Mnemonic(e.to_string()))?;
-    let threshold_signer = mnemonic_to_pair(&mnemonic)
-        .map_err(|_| ProtocolErr::SecretString("Secret String Error"))?;
-
-    let result = signing_service
-        .execute_sign(&sign_context, channels, &threshold_signer, tss_accounts)
-        .await?;
+    let result =
+        signing_service.execute_sign(&sign_context, channels, &subxt_signer, tss_accounts).await?;
 
     Ok(result)
 }

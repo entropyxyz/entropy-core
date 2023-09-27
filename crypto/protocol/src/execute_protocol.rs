@@ -1,10 +1,11 @@
 //! A wrapper for the threshold signing library to handle sending and receiving messages.
 use std::collections::HashMap;
 
-use kvdb::kv_manager::{KeyParams, PartyId};
 use rand_core::{CryptoRngCore, OsRng};
-use sp_core::crypto::AccountId32;
-use subxt::ext::sp_core::{sr25519, Pair};
+use serde::{Deserialize, Serialize};
+use serde_big_array::BigArray;
+use subxt::utils::AccountId32;
+use subxt_signer::sr25519;
 use synedrion::{
     sessions::{
         make_interactive_signing_session, make_keygen_and_aux_session, FinalizeOutcome,
@@ -19,37 +20,49 @@ use synedrion::{
 use tokio::sync::mpsc;
 use tracing::instrument;
 
-use crate::signing_client::{ProtocolErr, ProtocolMessage};
+use crate::{
+    errors::ProtocolExecutionErr, protocol_message::ProtocolMessage,
+    protocol_transport::Broadcaster, KeyParams, PartyId,
+};
 
-pub type ChannelIn = mpsc::Receiver<super::ProtocolMessage>;
-pub type ChannelOut = crate::signing_client::protocol_transport::Broadcaster;
+pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;
+pub type ChannelOut = Broadcaster;
 
 /// Thin wrapper broadcasting channel out and messages from other nodes in
 pub struct Channels(pub ChannelOut, pub ChannelIn);
 
-struct SignerWrapper(sr25519::Pair);
+struct SignerWrapper(sr25519::Keypair);
 
-#[derive(Clone)]
-struct VerifierWrapper(sr25519::Public);
+struct VerifierWrapper(sr25519::PublicKey);
 
-impl RandomizedPrehashSigner<sr25519::Signature> for SignerWrapper {
+impl Clone for VerifierWrapper {
+    fn clone(&self) -> Self { VerifierWrapper(sr25519::PublicKey(self.0 .0)) }
+}
+
+/// This is a raw signature from [sr25519::Signature]
+// we cannot use Signature directly because it doesn't implement Serialize
+#[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
+pub struct SignatureWrapper(#[serde(with = "BigArray")] [u8; 64]);
+
+impl RandomizedPrehashSigner<SignatureWrapper> for SignerWrapper {
     fn sign_prehash_with_rng(
         &self,
         _rng: &mut impl CryptoRngCore,
         prehash: &[u8],
-    ) -> Result<sr25519::Signature, signature::Error> {
+    ) -> Result<SignatureWrapper, signature::Error> {
         // TODO: doesn't seem like there's a way to randomize signing?
-        Ok(self.0.sign(prehash))
+        Ok(SignatureWrapper(self.0.sign(prehash).0))
     }
 }
 
-impl PrehashVerifier<sr25519::Signature> for VerifierWrapper {
+impl PrehashVerifier<SignatureWrapper> for VerifierWrapper {
     fn verify_prehash(
         &self,
         prehash: &[u8],
-        signature: &sr25519::Signature,
+        signature: &SignatureWrapper,
     ) -> Result<(), signature::Error> {
-        if sr25519::Pair::verify(signature, prehash, &self.0) {
+        let sig = sr25519::Signature(signature.0);
+        if sr25519::verify(&sig, prehash, &self.0) {
             Ok(())
         } else {
             Err(signature::Error::new())
@@ -57,15 +70,15 @@ impl PrehashVerifier<sr25519::Signature> for VerifierWrapper {
     }
 }
 
-/// execute threshold signing protocol.
+/// Execute threshold signing protocol.
 #[instrument(skip(chans, threshold_signer))]
 pub async fn execute_signing_protocol(
     mut chans: Channels,
     key_share: &KeyShare<KeyParams>,
     prehashed_message: &PrehashedMessage,
-    threshold_signer: &sr25519::Pair,
+    threshold_signer: &sr25519::Keypair,
     threshold_accounts: Vec<AccountId32>,
-) -> Result<RecoverableSignature, ProtocolErr> {
+) -> Result<RecoverableSignature, ProtocolExecutionErr> {
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_idx = key_share.party_index();
@@ -85,7 +98,7 @@ pub async fn execute_signing_protocol(
     // We should have `Public` objects at this point, not `AccountId32`.
     let verifiers = threshold_accounts
         .into_iter()
-        .map(|acc| VerifierWrapper(sr25519::Public::from_raw(acc.into())))
+        .map(|acc| VerifierWrapper(sr25519::PublicKey(acc.0)))
         .collect::<Vec<_>>();
 
     // TODO (#375): this should come from whoever initiates the signing process,
@@ -101,11 +114,11 @@ pub async fn execute_signing_protocol(
         key_share,
         prehashed_message,
     )
-    .map_err(ProtocolErr::SessionCreationError)?;
+    .map_err(ProtocolExecutionErr::SessionCreationError)?;
 
     loop {
         let (mut receiving, to_send) =
-            sending.start_receiving(&mut OsRng).map_err(ProtocolErr::ProtocolExecution)?;
+            sending.start_receiving(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)?;
 
         match to_send {
             ToSend::Broadcast(message) => {
@@ -122,12 +135,12 @@ pub async fn execute_signing_protocol(
         };
 
         while receiving.has_cached_messages() {
-            receiving.receive_cached_message().map_err(ProtocolErr::ProtocolExecution)?;
+            receiving.receive_cached_message().map_err(ProtocolExecutionErr::SynedrionSession)?;
         }
 
         while !receiving.can_finalize() {
             let signing_message = rx.recv().await.ok_or_else(|| {
-                ProtocolErr::IncomingStream(format!("{:?}", receiving.current_stage()))
+                ProtocolExecutionErr::IncomingStream(format!("{:?}", receiving.current_stage()))
             })?;
 
             // TODO: we shouldn't send broadcasts to ourselves in the first place.
@@ -137,10 +150,10 @@ pub async fn execute_signing_protocol(
             let from_idx = id_to_index[&signing_message.from];
             receiving
                 .receive(from_idx, signing_message.payload)
-                .map_err(ProtocolErr::ProtocolExecution)?;
+                .map_err(ProtocolExecutionErr::SynedrionSession)?;
         }
 
-        match receiving.finalize(&mut OsRng).map_err(ProtocolErr::ProtocolExecution)? {
+        match receiving.finalize(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)? {
             FinalizeOutcome::Result(res) => break Ok(res),
             FinalizeOutcome::AnotherRound(new_sending) => sending = new_sending,
         }
@@ -151,10 +164,10 @@ pub async fn execute_signing_protocol(
 #[instrument(skip(chans, threshold_signer))]
 pub async fn execute_dkg(
     mut chans: Channels,
-    threshold_signer: &sr25519::Pair,
+    threshold_signer: &sr25519::Keypair,
     threshold_accounts: Vec<AccountId32>,
     my_idx: &u8,
-) -> Result<KeyShare<KeyParams>, ProtocolErr> {
+) -> Result<KeyShare<KeyParams>, ProtocolExecutionErr> {
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());
@@ -172,7 +185,7 @@ pub async fn execute_dkg(
     // We should have `Public` objects at this point, not `AccountId32`.
     let verifiers = threshold_accounts
         .into_iter()
-        .map(|acc| VerifierWrapper(sr25519::Public::from_raw(acc.into())))
+        .map(|acc| VerifierWrapper(sr25519::PublicKey(acc.0)))
         .collect::<Vec<_>>();
 
     // TODO (#375): this should come from whoever initiates the signing process,
@@ -187,11 +200,11 @@ pub async fn execute_dkg(
         &verifiers,
         PartyIdx::from_usize(*my_idx as usize),
     )
-    .map_err(ProtocolErr::SessionCreationError)?;
+    .map_err(ProtocolExecutionErr::SessionCreationError)?;
 
     loop {
         let (mut receiving, to_send) =
-            sending.start_receiving(&mut OsRng).map_err(ProtocolErr::ProtocolExecution)?;
+            sending.start_receiving(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)?;
 
         match to_send {
             ToSend::Broadcast(message) => {
@@ -208,12 +221,12 @@ pub async fn execute_dkg(
         };
 
         while receiving.has_cached_messages() {
-            receiving.receive_cached_message().map_err(ProtocolErr::ProtocolExecution)?;
+            receiving.receive_cached_message().map_err(ProtocolExecutionErr::SynedrionSession)?;
         }
 
         while !receiving.can_finalize() {
             let signing_message = rx.recv().await.ok_or_else(|| {
-                ProtocolErr::IncomingStream(format!("{:?}", receiving.current_stage()))
+                ProtocolExecutionErr::IncomingStream(format!("{:?}", receiving.current_stage()))
             })?;
 
             // TODO: we shouldn't send broadcasts to ourselves in the first place.
@@ -223,10 +236,10 @@ pub async fn execute_dkg(
             let from_idx = id_to_index[&signing_message.from];
             receiving
                 .receive(from_idx, signing_message.payload)
-                .map_err(ProtocolErr::ProtocolExecution)?;
+                .map_err(ProtocolExecutionErr::SynedrionSession)?;
         }
 
-        match receiving.finalize(&mut OsRng).map_err(ProtocolErr::ProtocolExecution)? {
+        match receiving.finalize(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)? {
             FinalizeOutcome::Result(res) => break Ok(res),
             FinalizeOutcome::AnotherRound(new_sending) => sending = new_sending,
         }

@@ -1,12 +1,15 @@
 use std::{net::SocketAddrV4, str::FromStr, time::Duration};
 
+use entropy_protocol::{
+    execute_protocol::{execute_dkg, Channels},
+    KeyParams, ValidatorInfo,
+};
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
-use kvdb::kv_manager::KeyParams;
 use sp_core::crypto::AccountId32;
 use subxt::{
     ext::sp_core::{sr25519, Bytes},
     tx::PairSigner,
-    utils::AccountId32 as subxtAccountId32,
+    utils::AccountId32 as SubxtAccountId32,
     OnlineClient,
 };
 use synedrion::KeyShare;
@@ -15,16 +18,9 @@ use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{entropy, EntropyConfig},
-    signing_client::{
-        protocol_execution::{execute_protocol::execute_dkg, Channels},
-        protocol_transport::{open_protocol_connections, Listener},
-        ListenerState,
-    },
-    user::{
-        api::{UserRegistrationInfo, ValidatorInfo},
-        errors::UserErr,
-    },
-    validation::SignedMessage,
+    signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
+    user::{api::UserRegistrationInfo, errors::UserErr},
+    validation::{derive_static_secret, SignedMessage},
 };
 /// complete the dkg process for a new user
 pub async fn do_dkg(
@@ -34,9 +30,10 @@ pub async fn do_dkg(
     sig_request_account: AccountId32,
     my_subgroup: &u8,
     key_visibility: KeyVisibility,
+    subxt_signer: &subxt_signer::sr25519::Keypair,
 ) -> Result<KeyShare<KeyParams>, UserErr> {
     let session_uid = sig_request_account.to_string();
-    let account_sp_core = AccountId32::new(*signer.account_id().clone().as_ref());
+    let account_id = SubxtAccountId32(*signer.account_id().clone().as_ref());
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
     for validator_info in validators_info {
@@ -45,7 +42,7 @@ pub async fn do_dkg(
             .clone()
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
-        let tss_account = AccountId32::new(*address_slice);
+        let tss_account = SubxtAccountId32(*address_slice);
         let validator_info = ValidatorInfo {
             x25519_public_key: validator_info.x25519_public_key,
             ip_address: SocketAddrV4::from_str(std::str::from_utf8(&validator_info.ip_address)?)?,
@@ -59,15 +56,17 @@ pub async fn do_dkg(
     // their ID to the listener
     let user_details_option =
         if let KeyVisibility::Private(users_x25519_public_key) = key_visibility {
-            tss_accounts.push(sig_request_account.clone());
-            Some((sig_request_account, users_x25519_public_key))
+            let account_id_arr: [u8; 32] = *sig_request_account.as_ref();
+            let user_account_id = SubxtAccountId32(account_id_arr);
+            tss_accounts.push(user_account_id.clone());
+            Some((user_account_id, users_x25519_public_key))
         } else {
             None
         };
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(converted_validator_info.clone(), &account_sp_core, user_details_option);
+        Listener::new(converted_validator_info.clone(), &account_id, user_details_option);
     state
 	.listeners
 	.lock()
@@ -75,21 +74,30 @@ pub async fn do_dkg(
 	// TODO: using signature ID as session ID. Correct?
 	.insert(session_uid.clone(), listener);
 
-    open_protocol_connections(&converted_validator_info, &session_uid, signer, state).await?;
+    let x25519_secret_key = derive_static_secret(signer.signer());
+    open_protocol_connections(
+        &converted_validator_info,
+        &session_uid,
+        subxt_signer,
+        state,
+        &x25519_secret_key,
+    )
+    .await?;
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
         let broadcast_out = ready??;
         Channels(broadcast_out, rx_from_others)
     };
-    let result = execute_dkg(channels, signer.signer(), tss_accounts, my_subgroup).await?;
+
+    let result = execute_dkg(channels, subxt_signer, tss_accounts, my_subgroup).await?;
     Ok(result)
 }
 
 /// Send's user key share to other members of signing subgroup
 pub async fn send_key(
     api: &OnlineClient<EntropyConfig>,
-    stash_address: &subxtAccountId32,
-    addresses_in_subgroup: &mut Vec<subxtAccountId32>,
+    stash_address: &SubxtAccountId32,
+    addresses_in_subgroup: &mut Vec<SubxtAccountId32>,
     user_registration_info: UserRegistrationInfo,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
 ) -> Result<(), UserErr> {

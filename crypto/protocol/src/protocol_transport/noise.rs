@@ -8,10 +8,8 @@
 //! See: <https://noiseexplorer.com/patterns/XK>
 use entropy_shared::X25519PublicKey;
 use snow::{params::NoiseParams, Builder, HandshakeState};
-use subxt::ext::sp_core::sr25519;
 
-use super::{super::errors::EncryptedConnectionError, WsConnection};
-use crate::validation::derive_static_secret;
+use super::{errors::EncryptedConnectionErr, WsConnection};
 
 /// The handshake pattern and other parameters
 const NOISE_PARAMS: &str = "Noise_XK_25519_ChaChaPoly_BLAKE2s";
@@ -22,10 +20,10 @@ const NOISE_PROLOGUE: &[u8; 24] = b"Entropy signing protocol";
 /// Handshake as an initiator
 pub async fn noise_handshake_initiator<T: WsConnection>(
     mut ws_connection: T,
-    local_private_key: &sr25519::Pair,
+    local_private_key: &x25519_dalek::StaticSecret,
     remote_public_key: X25519PublicKey,
     final_message_payload: Vec<u8>,
-) -> Result<EncryptedWsConnection<T>, EncryptedConnectionError> {
+) -> Result<EncryptedWsConnection<T>, EncryptedConnectionErr> {
     let mut noise = setup_noise(local_private_key, Some(remote_public_key)).await?;
 
     // Used to hold handshake messages
@@ -47,8 +45,8 @@ pub async fn noise_handshake_initiator<T: WsConnection>(
 /// Handshake as a responder
 pub async fn noise_handshake_responder<T: WsConnection>(
     mut ws_connection: T,
-    local_private_key: &sr25519::Pair,
-) -> Result<(EncryptedWsConnection<T>, String), EncryptedConnectionError> {
+    local_private_key: &x25519_dalek::StaticSecret,
+) -> Result<(EncryptedWsConnection<T>, String), EncryptedConnectionErr> {
     let mut noise = setup_noise(local_private_key, None).await?;
 
     // Used to hold handshake messages
@@ -72,11 +70,10 @@ pub async fn noise_handshake_responder<T: WsConnection>(
 
 /// Configure the noise handshake
 async fn setup_noise(
-    local_private_key: &sr25519::Pair,
+    local_private_key: &x25519_dalek::StaticSecret,
     remote_public_key_option: Option<X25519PublicKey>,
 ) -> Result<HandshakeState, snow::error::Error> {
-    let private_key = derive_static_secret(local_private_key).to_bytes();
-
+    let private_key = local_private_key.to_bytes();
     let params: NoiseParams = NOISE_PARAMS.parse()?;
     let builder: Builder<'_> =
         Builder::new(params).local_private_key(&private_key).prologue(NOISE_PROLOGUE);
@@ -97,25 +94,25 @@ pub struct EncryptedWsConnection<T: WsConnection> {
 
 impl<T: WsConnection> EncryptedWsConnection<T> {
     /// Receive and decrypt the next message
-    pub async fn recv(&mut self) -> Result<String, EncryptedConnectionError> {
+    pub async fn recv(&mut self) -> Result<String, EncryptedConnectionErr> {
         let ciphertext = self.ws_connection.recv().await?;
         let len = self.noise_transport.read_message(&ciphertext, &mut self.buf)?;
         Ok(String::from_utf8(self.buf[..len].to_vec())?)
     }
 
     /// Encrypt and send a message
-    pub async fn send(&mut self, msg: String) -> Result<(), EncryptedConnectionError> {
+    pub async fn send(&mut self, msg: String) -> Result<(), EncryptedConnectionErr> {
         let len = self.noise_transport.write_message(msg.as_bytes(), &mut self.buf)?;
         self.ws_connection.send(self.buf[..len].to_vec()).await?;
         Ok(())
     }
 
     /// Get the remote party's public encryption key
-    pub fn remote_public_key(&self) -> Result<X25519PublicKey, EncryptedConnectionError> {
+    pub fn remote_public_key(&self) -> Result<X25519PublicKey, EncryptedConnectionErr> {
         self.noise_transport
             .get_remote_static()
-            .ok_or(EncryptedConnectionError::RemotePublicKey)?
+            .ok_or(EncryptedConnectionErr::RemotePublicKey)?
             .try_into()
-            .map_err(|_| EncryptedConnectionError::RemotePublicKey)
+            .map_err(|_| EncryptedConnectionErr::RemotePublicKey)
     }
 }

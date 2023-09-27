@@ -1,9 +1,9 @@
 pub use acl::*;
-use codec::{Decode, Encode};
-use frame_support::pallet_prelude::*;
+use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_std::{fmt::Debug, vec::Vec};
+
 /// Supported architectures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, Serialize, Deserialize, TypeInfo)]
 pub enum Arch {

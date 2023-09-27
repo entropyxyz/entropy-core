@@ -5,6 +5,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use entropy_protocol::errors::ProtocolExecutionErr;
 use kvdb::kv_manager::error::InnerKvError;
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
@@ -14,6 +15,8 @@ use super::ProtocolMessage;
 /// Errors for protocol execution
 #[derive(Debug, Error)]
 pub enum ProtocolErr {
+    #[error("Protocol Execution Error {0}")]
+    ProtocolExecution(#[from] ProtocolExecutionErr),
     #[error("Kv error: {0}")]
     Kv(#[from] kvdb::kv_manager::error::KvError),
     #[error("Inner Kv error: {0}")]
@@ -31,12 +34,6 @@ pub enum ProtocolErr {
     OneshotTimeout(#[from] RecvError),
     #[error("Subscribe API error: {0}")]
     Subscribe(#[from] SubscribeErr),
-    #[error("Session Creation Error: {0}")]
-    SessionCreationError(synedrion::InitError),
-    #[error("Protocol Execution error: {0}")]
-    ProtocolExecution(synedrion::sessions::Error),
-    #[error("Incoming message stream error: {0}")]
-    IncomingStream(String),
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("Utf8Error: {0:?}")]
@@ -55,12 +52,8 @@ pub enum ProtocolErr {
     SessionError(String),
     #[error("String Conversion Error: {0}")]
     StringConversion(#[from] FromUtf8Error),
-    #[error("Secret String failure: {0:?}")]
-    SecretString(&'static str),
     #[error("User Error: {0}")]
     UserError(&'static str),
-    #[error("mnemonic failure: {0:?}")]
-    Mnemonic(String),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
     #[error("Subscribe message rejected: {0}")]
@@ -110,54 +103,4 @@ impl IntoResponse for SubscribeErr {
         let body = format!("{self}").into_bytes();
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
     }
-}
-
-// todo: delete
-#[derive(Debug, Error)]
-pub enum ProtocolMessageErr {
-    #[error("Utf8Error: {0:?}")]
-    Utf8(#[from] std::str::Utf8Error),
-    #[error("Deserialization Error: {0:?}")]
-    Deserialization(#[from] serde_json::Error),
-}
-
-#[derive(Debug, Error)]
-pub enum WsError {
-    #[error("Ws Connection closed unexpectedly")]
-    ConnectionClosed,
-    #[error("Connection error: {0}")]
-    ConnectionError(#[from] axum::Error),
-    #[error("Message received after signing protocol has finished")]
-    MessageAfterProtocolFinish,
-    #[error("UTF8 parse error {0}")]
-    UTF8Parse(#[from] FromUtf8Error),
-    #[error("Cannot get signer from app state")]
-    AppState(#[from] crate::user::UserErr),
-    #[error("Unexpected message type")]
-    UnexpectedMessageType,
-    #[error("Client connection error: {0}")]
-    Tungstenite(#[from] tokio_tungstenite::tungstenite::Error),
-    #[error("Encrypted connection error {0}")]
-    EncryptedConnection(String),
-    #[error("Error parsing Signing Message")]
-    ProtocolMessage(#[from] ProtocolMessageErr),
-    #[error("Serialization Error: {0:?}")]
-    Serialization(#[from] serde_json::Error),
-    #[error("Received bad subscribe message")]
-    BadSubscribeMessage,
-}
-
-/// Errors relating to encrypted WS connections / noise handshaking
-#[derive(Debug, Error)]
-pub enum EncryptedConnectionError {
-    #[error("Noise error: {0}")]
-    Noise(#[from] snow::error::Error),
-    #[error("Utf8Error: {0:?}")]
-    Utf8(#[from] std::str::Utf8Error),
-    #[error("Utf8Error: {0:?}")]
-    FromUtf8(#[from] FromUtf8Error),
-    #[error("Websocket error: {0}")]
-    WebSocket(#[from] WsError),
-    #[error("Could not get remote public key")]
-    RemotePublicKey,
 }

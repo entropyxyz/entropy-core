@@ -10,17 +10,18 @@ use std::{
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
 use entropy_constraints::{Architecture, Evm, Parse};
+use entropy_protocol::{
+    protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
+    user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
+    PartyId, ValidatorInfo,
+};
 use entropy_shared::{Acl, KeyVisibility, OcwMessage};
 use futures::{
     future::{self, join_all},
     join, Future, SinkExt, StreamExt,
 };
 use hex_literal::hex;
-use kvdb::{
-    clean_tests,
-    encrypted_sled::PasswordMethod,
-    kv_manager::{value::KvManager, PartyId},
-};
+use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
 use more_asserts as ma;
 use parity_scale_codec::Encode;
 use serial_test::serial;
@@ -61,20 +62,16 @@ use crate::{
         signing::{create_unique_tx_id, Hasher},
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
-            check_if_confirmation, create_clients, setup_client, spawn_testing_validators,
-            update_programs, user_participates_in_dkg_protocol,
-            user_participates_in_signing_protocol,
+            check_if_confirmation, create_clients, keyring_to_subxt_signer_and_x25519,
+            setup_client, spawn_testing_validators, update_programs,
         },
         user::send_key,
     },
     load_kv_store, new_user,
     r#unsafe::api::UnsafeQuery,
-    signing_client::{
-        protocol_transport::{noise::noise_handshake_initiator, WsConnection},
-        ListenerState, SubscribeMessage,
-    },
+    signing_client::ListenerState,
     user::{
-        api::{recover_key, UserRegistrationInfo, UserTransactionRequest, ValidatorInfo},
+        api::{recover_key, UserRegistrationInfo, UserTransactionRequest},
         tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
@@ -232,7 +229,7 @@ async fn test_sign_tx_no_chain() {
     assert_eq!(
         responses.next().unwrap().unwrap().text().await.unwrap(),
         "{\"Err\":\"Subscribe message rejected: Decryption(\\\"Public key does not match that \
-         given in UserTransactionRequest\\\")\"}"
+         given in UserTransactionRequest or register transaction\\\")\"}"
     );
 
     assert_eq!(
@@ -248,15 +245,17 @@ async fn test_sign_tx_no_chain() {
         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
+        let (ferdie_keypair, ferdie_x25519_sk) =
+            keyring_to_subxt_signer_and_x25519(&AccountKeyring::Ferdie);
+
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
-            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &AccountKeyring::Ferdie.pair()))
-                .unwrap();
+            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
             ws_stream,
-            &AccountKeyring::Ferdie.pair(),
+            &ferdie_x25519_sk,
             validator_ip_and_key.1,
             subscribe_message_vec,
         )
@@ -269,7 +268,8 @@ async fn test_sign_tx_no_chain() {
             serde_json::from_str(&response_message).unwrap();
 
         assert_eq!(
-            Err("Decryption(\"Public key does not match that given in UserTransactionRequest\")"
+            Err("Decryption(\"Public key does not match that given in UserTransactionRequest or \
+                 register transaction\")"
                 .to_string()),
             subscribe_response
         );
@@ -299,7 +299,7 @@ async fn test_sign_tx_no_chain() {
     generic_msg.timestamp = SystemTime::now();
     let mut generic_msg_bad_account_id = generic_msg.clone();
     generic_msg_bad_account_id.validators_info[0].tss_account =
-        AccountKeyring::Dave.to_account_id();
+        subxtAccountId32(AccountKeyring::Dave.into());
 
     let test_user_failed_tss_account = submit_transaction_requests(
         validator_ips_and_keys.clone(),
@@ -806,6 +806,9 @@ async fn test_sign_tx_user_participates() {
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
     generic_msg.timestamp = SystemTime::now();
+
+    let (one_keypair, one_x25519_sk) = keyring_to_subxt_signer_and_x25519(&one);
+
     // Submit transaction requests, and connect and participate in signing
     let (test_user_res, sig_result) = future::join(
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
@@ -813,8 +816,9 @@ async fn test_sign_tx_user_participates() {
             &users_keyshare_option.clone().unwrap(),
             &sig_uid,
             validators_info.clone(),
-            &one.pair(),
+            &one_keypair,
             message_should_succeed_hash,
+            &one_x25519_sk,
         ),
     )
     .await;
@@ -879,7 +883,7 @@ async fn test_sign_tx_user_participates() {
     assert_eq!(
         responses.next().unwrap().unwrap().text().await.unwrap(),
         "{\"Err\":\"Subscribe message rejected: Decryption(\\\"Public key does not match that \
-         given in UserTransactionRequest\\\")\"}"
+         given in UserTransactionRequest or register transaction\\\")\"}"
     );
 
     assert_eq!(
@@ -895,15 +899,20 @@ async fn test_sign_tx_user_participates() {
         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
+        let ferdie_keypair = subxt_signer::sr25519::Keypair::from_uri(
+            &subxt_signer::SecretUri::from_str(&AccountKeyring::Ferdie.to_seed()).unwrap(),
+        )
+        .unwrap();
+        let ferdie_x25519_sk = derive_static_secret(&AccountKeyring::Ferdie.pair());
+
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
-            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &AccountKeyring::Ferdie.pair()))
-                .unwrap();
+            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
             ws_stream,
-            &AccountKeyring::Ferdie.pair(),
+            &ferdie_x25519_sk,
             validator_ip_and_key.1,
             subscribe_message_vec,
         )
@@ -916,7 +925,8 @@ async fn test_sign_tx_user_participates() {
             serde_json::from_str(&response_message).unwrap();
 
         assert_eq!(
-            Err("Decryption(\"Public key does not match that given in UserTransactionRequest\")"
+            Err("Decryption(\"Public key does not match that given in UserTransactionRequest or \
+                 register transaction\")"
                 .to_string()),
             subscribe_response
         );
@@ -945,7 +955,7 @@ async fn test_sign_tx_user_participates() {
     // Bad Account ID - an account ID is given which is not in the signing group
     let mut generic_msg_bad_account_id = generic_msg.clone();
     generic_msg_bad_account_id.validators_info[0].tss_account =
-        AccountKeyring::Dave.to_account_id();
+        subxtAccountId32(AccountKeyring::Dave.into());
 
     let test_user_failed_tss_account = submit_transaction_requests(
         validator_ips_and_keys.clone(),
@@ -1063,10 +1073,8 @@ async fn test_register_with_private_key_visibility() {
 
     let block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
 
-    let x25519_public_key = {
-        let x25519_secret_key = derive_static_secret(&one.pair());
-        PublicKey::from(&x25519_secret_key).to_bytes()
-    };
+    let (one_keypair, one_x25519_sk) = keyring_to_subxt_signer_and_x25519(&one);
+    let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
 
     put_register_request_on_chain(
         &api,
@@ -1105,12 +1113,13 @@ async fn test_register_with_private_key_visibility() {
         })
         .collect();
 
+    // Call the `user/new` endpoint, and connect and participate in the protocol
     let (new_user_response_result, keyshare_result) = future::join(
         client
             .post("http://127.0.0.1:3002/user/new")
             .body(onchain_user_request.clone().encode())
             .send(),
-        user_participates_in_dkg_protocol(validators_info.clone(), &one.pair()),
+        user_participates_in_dkg_protocol(validators_info.clone(), &one_keypair, &one_x25519_sk),
     )
     .await;
 

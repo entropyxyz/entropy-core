@@ -1,6 +1,10 @@
 #![allow(dead_code)]
-use codec::{alloc::vec::Vec, Decode, Encode, MaxEncodedLen};
+#[cfg(not(feature = "wasm"))]
+use codec::alloc::vec::Vec;
+use codec::{Decode, Encode, MaxEncodedLen};
+#[cfg(feature = "wasm-no-std")]
 use frame_support::RuntimeDebug;
+#[cfg(not(feature = "wasm"))]
 use node_primitives::BlockNumber;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
@@ -17,8 +21,10 @@ pub type X25519PublicKey = [u8; 32];
 /// Public -> Anyone can request a signature
 /// Permissioned -> Only permissioned users can request a signature
 /// Private -> Requires the keyshare holder to participate in the threshold signing process
+#[cfg_attr(not(feature = "wasm-no-std"), derive(Debug))]
+#[cfg_attr(feature = "wasm-no-std", derive(RuntimeDebug))]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Copy, Clone, PartialEq, Eq, RuntimeDebug, Encode, Decode, TypeInfo, MaxEncodedLen)]
+#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
 pub enum KeyVisibility {
     Public,
     Permissioned,
@@ -34,10 +40,11 @@ pub struct ValidatorInfo {
     pub tss_account: codec::alloc::vec::Vec<u8>,
 }
 
+#[cfg(not(feature = "wasm"))]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct OcwMessage {
     pub block_number: BlockNumber,
-    pub sig_request_accounts: Vec<codec::alloc::vec::Vec<u8>>,
+    pub sig_request_accounts: Vec<Vec<u8>>,
     pub validators_info: Vec<ValidatorInfo>,
 }

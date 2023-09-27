@@ -1,12 +1,10 @@
 //! Message sent to Signing Client on protocol initiation.
+use entropy_protocol::ValidatorInfo;
 use serde::{Deserialize, Serialize};
-use sp_core::crypto::AccountId32;
+use subxt::utils::AccountId32;
 use synedrion::sessions::PrehashedMessage;
 
-use crate::{
-    signing_client::ProtocolErr,
-    user::api::{UserTransactionRequest, ValidatorInfo},
-};
+use crate::{signing_client::ProtocolErr, user::api::UserTransactionRequest};
 
 /// Information passed to the Signing Client, to initiate the signing process.
 /// Most of this information comes from a `Message` struct which gets propagated when a user's

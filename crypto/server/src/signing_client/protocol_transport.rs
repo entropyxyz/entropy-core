@@ -1,43 +1,38 @@
-//! Connect to other threshold servers over websocket for exchanging protocol messages
-mod broadcaster;
-pub mod listener;
-mod message;
-pub mod noise;
-
-use async_trait::async_trait;
-use axum::extract::ws::{self, WebSocket};
+use axum::extract::ws::WebSocket;
+pub use entropy_protocol::protocol_transport::{Broadcaster, SubscribeMessage};
+use entropy_protocol::{
+    protocol_transport::{
+        errors::WsError,
+        noise::{noise_handshake_initiator, noise_handshake_responder},
+        ws_to_channels, WsChannels,
+    },
+    PartyId, ValidatorInfo,
+};
 use entropy_shared::X25519PublicKey;
-use futures::{future, SinkExt, StreamExt};
-use kvdb::kv_manager::PartyId;
-pub(super) use listener::WsChannels;
-use sp_core::crypto::AccountId32;
-use subxt::{ext::sp_core::sr25519, tx::PairSigner};
-use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
+use futures::future;
+use subxt::utils::AccountId32;
+use tokio_tungstenite::connect_async;
 
-use self::noise::{noise_handshake_initiator, noise_handshake_responder, EncryptedWsConnection};
-pub use self::{broadcaster::Broadcaster, listener::Listener, message::SubscribeMessage};
 use super::ProtocolErr;
 use crate::{
-    chain_api::EntropyConfig,
-    get_signer,
-    signing_client::{ProtocolMessage, SubscribeErr, WsError},
-    user::api::ValidatorInfo,
-    AppState, ListenerState, SUBSCRIBE_TIMEOUT_SECONDS,
+    get_signer, signing_client::SubscribeErr, validation::derive_static_secret, AppState,
+    ListenerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
 
 /// Set up websocket connections to other members of the signing committee
 pub async fn open_protocol_connections(
     validators_info: &[ValidatorInfo],
     session_uid: &str,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signer: &subxt_signer::sr25519::Keypair,
     state: &ListenerState,
+    x25519_secret_key: &x25519_dalek::StaticSecret,
 ) -> Result<(), ProtocolErr> {
     let connect_to_validators = validators_info
         .iter()
         .filter(|validators_info| {
             // Decide whether to initiate a connection by comparing accound ids
             // otherwise, we wait for them to connect to us
-            signer.account_id() > &validators_info.tss_account.clone().into()
+            signer.public_key().0 > validators_info.tss_account.0
         })
         .map(|validator_info| async move {
             // Open a ws connection
@@ -46,11 +41,11 @@ pub async fn open_protocol_connections(
 
             // Send a SubscribeMessage in the payload of the final handshake message
             let subscribe_message_vec =
-                serde_json::to_vec(&SubscribeMessage::new(session_uid, signer.signer()))?;
+                serde_json::to_vec(&SubscribeMessage::new(session_uid, signer))?;
 
             let mut encrypted_connection = noise_handshake_initiator(
                 ws_stream,
-                signer.signer(),
+                x25519_secret_key,
                 validator_info.x25519_public_key,
                 subscribe_message_vec,
             )
@@ -92,10 +87,11 @@ pub async fn open_protocol_connections(
 
 /// Handle an incoming websocket connection
 pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
-    let signer = get_signer(&app_state.kv_store).await?;
+    let signer = get_signer(&app_state.kv_store).await.map_err(|_| WsError::SignerFromAppState)?;
+    let x25519_secret_key = derive_static_secret(signer.signer());
 
     let (mut encrypted_connection, serialized_signed_message) =
-        noise_handshake_responder(socket, signer.signer())
+        noise_handshake_responder(socket, &x25519_secret_key)
             .await
             .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
 
@@ -150,7 +146,7 @@ async fn handle_initial_incoming_ws_message(
 
     {
         // Check that the given public key matches the public key we got in the
-        // UserTransactionRequest
+        // UserTransactionRequest or register transaction
         let mut listeners = app_state
             .listener_state
             .listeners
@@ -160,12 +156,14 @@ async fn handle_initial_incoming_ws_message(
             listeners.get(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
 
         if !listener.validators.iter().any(|(validator_account_id, validator_x25519_pk)| {
-            validator_account_id == &msg.account_id() && validator_x25519_pk == &remote_public_key
+            validator_account_id == &msg.public_key && validator_x25519_pk == &remote_public_key
         }) {
             // Make the signing process fail, since one of the commitee has misbehaved
             listeners.remove(&msg.session_id);
             return Err(SubscribeErr::Decryption(
-                "Public key does not match that given in UserTransactionRequest".to_string(),
+                "Public key does not match that given in UserTransactionRequest or register \
+                 transaction"
+                    .to_string(),
             ));
         }
     }
@@ -197,73 +195,4 @@ fn get_ws_channels(
         let _ = tx.send(Ok(broadcaster));
     };
     Ok(ws_channels)
-}
-
-/// Send singing protocol messages over websocket, and websocket messages to signing protocol
-pub async fn ws_to_channels<T: WsConnection>(
-    mut connection: EncryptedWsConnection<T>,
-    mut ws_channels: WsChannels,
-    remote_party_id: PartyId,
-) -> Result<(), WsError> {
-    loop {
-        tokio::select! {
-            // Incoming message from remote peer
-            signing_message_result = connection.recv() => {
-                let serialized_signing_message = signing_message_result.map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
-                let msg = ProtocolMessage::try_from(&serialized_signing_message)?;
-                ws_channels.tx.send(msg).await.map_err(|_| WsError::MessageAfterProtocolFinish)?;
-            }
-            // Outgoing message (from signing protocol to remote peer)
-            Ok(msg) = ws_channels.broadcast.recv() => {
-                // Check that the message is for this peer
-                if let Some(party_id) = &msg.to {
-                    if party_id != &remote_party_id {
-                        continue;
-                    }
-                }
-                let message_string = serde_json::to_string(&msg)?;
-                // TODO if this fails, the ws connection has been dropped during the protocol
-                // we should inform the chain of this.
-                connection.send(message_string).await.map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
-            }
-        }
-    }
-}
-
-/// Represents the functionality of a Websocket connection with binary messages
-/// allowing us to generalize over different websocket implementations
-#[async_trait]
-pub trait WsConnection {
-    async fn recv(&mut self) -> Result<Vec<u8>, WsError>;
-    async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError>;
-}
-
-#[async_trait]
-impl WsConnection for WebSocket {
-    async fn recv(&mut self) -> Result<Vec<u8>, WsError> {
-        if let ws::Message::Binary(msg) = self.recv().await.ok_or(WsError::ConnectionClosed)?? {
-            Ok(msg)
-        } else {
-            Err(WsError::UnexpectedMessageType)
-        }
-    }
-
-    async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError> {
-        self.send(ws::Message::Binary(msg)).await.map_err(|_| WsError::ConnectionClosed)
-    }
-}
-
-#[async_trait]
-impl WsConnection for WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>> {
-    async fn recv(&mut self) -> Result<Vec<u8>, WsError> {
-        if let Message::Binary(msg) = self.next().await.ok_or(WsError::ConnectionClosed)?? {
-            Ok(msg)
-        } else {
-            Err(WsError::UnexpectedMessageType)
-        }
-    }
-
-    async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError> {
-        SinkExt::send(&mut self, Message::Binary(msg)).await.map_err(|_| WsError::ConnectionClosed)
-    }
 }
