@@ -4,6 +4,7 @@ use crate::{
     protocol_message::ProtocolMessage, protocol_transport::errors::EncryptedConnectionErr,
 };
 
+/// An error during or while setting up a protocol session
 #[derive(Debug, Error)]
 pub enum ProtocolExecutionErr {
     #[error("Session Creation Error: {0}")]
@@ -16,6 +17,7 @@ pub enum ProtocolExecutionErr {
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
 }
 
+/// An error when running a protocol session on the client side
 #[derive(Debug, Error)]
 pub enum UserRunningProtocolErr {
     #[error("Encrypted Conection Error: ")]

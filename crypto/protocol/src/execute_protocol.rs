@@ -161,7 +161,7 @@ pub async fn execute_signing_protocol(
 }
 
 /// Execute dkg.
-// #[instrument(skip(chans, threshold_signer))]
+#[instrument(skip(chans, threshold_signer))]
 pub async fn execute_dkg(
     mut chans: Channels,
     threshold_signer: &sr25519::Keypair,

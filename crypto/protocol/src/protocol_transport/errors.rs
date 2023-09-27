@@ -2,6 +2,7 @@ use std::string::FromUtf8Error;
 
 use thiserror::Error;
 
+/// An error relating to a websocket connection
 #[derive(Debug, Error)]
 pub enum WsError {
     #[error("Ws Connection closed unexpectedly")]
@@ -26,6 +27,7 @@ pub enum WsError {
     BadSubscribeMessage,
 }
 
+/// An error relating to handling a `ProtocolMessage`
 #[derive(Debug, Error)]
 pub enum ProtocolMessageErr {
     #[error("Utf8Error: {0:?}")]

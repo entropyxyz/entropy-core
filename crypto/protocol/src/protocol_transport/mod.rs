@@ -1,3 +1,4 @@
+//! Channels for exchanging protocol messages using noise protocol over websockets
 mod broadcaster;
 pub mod errors;
 pub mod noise;
@@ -32,9 +33,6 @@ pub trait WsConnection {
 }
 
 #[cfg(feature = "server")]
-use tokio_tungstenite::{tungstenite, MaybeTlsStream};
-
-#[cfg(feature = "server")]
 #[async_trait]
 impl WsConnection for axum::extract::ws::WebSocket {
     async fn recv(&mut self) -> Result<Vec<u8>, WsError> {
@@ -56,6 +54,9 @@ impl WsConnection for axum::extract::ws::WebSocket {
             .map_err(|_| WsError::ConnectionClosed)
     }
 }
+
+#[cfg(feature = "server")]
+use tokio_tungstenite::{tungstenite, MaybeTlsStream};
 
 #[cfg(feature = "server")]
 #[async_trait]
