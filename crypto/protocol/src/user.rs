@@ -1,24 +1,33 @@
-#![cfg(feature = "server")]
-
 use entropy_shared::SIGNING_PARTY_SIZE;
-use futures::future;
+use futures::{future, Future};
 use subxt::utils::AccountId32;
 use subxt_signer::sr25519;
 use synedrion::KeyShare;
+// #[cfg(feature = "wasm")]
+// use wasm_bindgen::prelude::*;
+#[cfg(feature = "server")]
+use tokio::net::TcpStream;
+#[cfg(feature = "server")]
+use tokio::spawn;
 use tokio::sync::{broadcast, mpsc};
-use tokio_tungstenite::connect_async;
+#[cfg(feature = "server")]
+use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+#[cfg(feature = "wasm")]
+use wasm_bindgen_futures::spawn_local as spawn;
 
 use crate::{
     errors::UserRunningProtocolErr,
     execute_protocol::{self, Channels},
     protocol_transport::{
-        noise::noise_handshake_initiator, ws_to_channels, Broadcaster, SubscribeMessage, WsChannels,
+        noise::noise_handshake_initiator, ws_to_channels, Broadcaster, SubscribeMessage,
+        WsChannels, WsConnection,
     },
     KeyParams, PartyId, RecoverableSignature, ValidatorInfo,
 };
 
 /// Called when KeyVisibility is private - the user connects to relevant validators
 /// and participates in the signing protocol
+// #[cfg_attr(feature="wasm", wasm_bindgen)]
 pub async fn user_participates_in_signing_protocol(
     key_share: &KeyShare<KeyParams>,
     sig_uid: &str,
@@ -28,6 +37,7 @@ pub async fn user_participates_in_signing_protocol(
     x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<RecoverableSignature, UserRunningProtocolErr> {
     let (channels, tss_accounts) = user_connects_to_validators(
+        open_ws_connection,
         sig_uid,
         validators_info,
         user_signing_keypair,
@@ -60,6 +70,7 @@ pub async fn user_participates_in_dkg_protocol(
     let sig_req_account: AccountId32 = user_signing_keypair.public_key().0.into();
     let session_id = sig_req_account.to_string();
     let (channels, tss_accounts) = user_connects_to_validators(
+        open_ws_connection,
         &session_id,
         validators_info,
         user_signing_keypair,
@@ -78,12 +89,51 @@ pub async fn user_participates_in_dkg_protocol(
     Ok(keyshare)
 }
 
-async fn user_connects_to_validators(
+#[cfg(feature = "server")]
+async fn open_ws_connection(
+    add: String,
+) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, UserRunningProtocolErr> {
+    let (ws_stream, _response) =
+        connect_async(add).await.map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
+    Ok(ws_stream)
+}
+
+#[cfg(feature = "wasm")]
+async fn open_ws_connection(
+    add: String,
+) -> Result<gloo_net::websocket::futures::WebSocket, UserRunningProtocolErr> {
+    let ws_stream = gloo_net::websocket::futures::WebSocket::open(&add)
+        .map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
+    Ok(ws_stream)
+}
+
+#[cfg(feature = "server")]
+trait ThreadSafeWsConnection: WsConnection + std::marker::Send + 'static {}
+
+#[cfg(feature = "wasm")]
+trait ThreadSafeWsConnection: WsConnection + 'static {}
+
+#[cfg(feature = "server")]
+impl ThreadSafeWsConnection
+    for WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>
+{
+}
+
+#[cfg(feature = "wasm")]
+impl ThreadSafeWsConnection for gloo_net::websocket::futures::WebSocket {}
+
+async fn user_connects_to_validators<F, Fut, W>(
+    open_ws_connection: F,
     session_id: &str,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Keypair,
     x25519_private_key: &x25519_dalek::StaticSecret,
-) -> Result<(Channels, Vec<AccountId32>), UserRunningProtocolErr> {
+) -> Result<(Channels, Vec<AccountId32>), UserRunningProtocolErr>
+where
+    F: Fn(String) -> Fut,
+    Fut: Future<Output = Result<W, UserRunningProtocolErr>>,
+    W: ThreadSafeWsConnection,
+{
     // Set up channels for communication between signing protocol and other signing parties
     let (tx, _rx) = broadcast::channel(1000);
     let (tx_to_others, rx_to_others) = mpsc::channel(1000);
@@ -93,12 +143,10 @@ async fn user_connects_to_validators(
     // Create a vec of futures which connect to the other parties over ws
     let connect_to_validators = validators_info
         .iter()
-        .map(|validator_info| async move {
+        .map(|validator_info| async {
             // Open a ws connection
             let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
-            let (ws_stream, _response) = connect_async(ws_endpoint)
-                .await
-                .map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
+            let ws_stream = open_ws_connection(ws_endpoint).await?;
 
             // Send a SubscribeMessage in the payload of the final handshake message
             let subscribe_message_vec =
@@ -130,7 +178,7 @@ async fn user_connects_to_validators(
             let remote_party_id = PartyId::new(validator_info.tss_account.clone());
 
             // Handle protocol messages in another task
-            tokio::spawn(async move {
+            spawn(async move {
                 if let Err(err) =
                     ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await
                 {

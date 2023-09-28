@@ -7,7 +7,7 @@ mod subscribe_message;
 use async_trait::async_trait;
 pub use broadcaster::Broadcaster;
 use errors::WsError;
-#[cfg(feature = "server")]
+#[cfg(any(feature = "server", feature = "wasm"))]
 use futures::{SinkExt, StreamExt};
 use noise::EncryptedWsConnection;
 pub use subscribe_message::SubscribeMessage;
@@ -26,10 +26,36 @@ pub struct WsChannels {
 
 /// Represents the functionality of a Websocket connection with binary messages
 /// allowing us to generalize over different websocket implementations
-#[async_trait]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 pub trait WsConnection {
     async fn recv(&mut self) -> Result<Vec<u8>, WsError>;
     async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError>;
+}
+
+// #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+// #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+#[cfg(feature = "wasm")]
+#[async_trait(?Send)]
+impl WsConnection for gloo_net::websocket::futures::WebSocket {
+    async fn recv(&mut self) -> Result<Vec<u8>, WsError> {
+        if let gloo_net::websocket::Message::Bytes(msg) = self
+            .next()
+            .await
+            .ok_or(WsError::ConnectionClosed)?
+            .map_err(|e| WsError::ConnectionError(e.to_string()))?
+        {
+            Ok(msg)
+        } else {
+            Err(WsError::UnexpectedMessageType)
+        }
+    }
+
+    async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError> {
+        SinkExt::send(&mut self, gloo_net::websocket::Message::Bytes(msg))
+            .await
+            .map_err(|_| WsError::ConnectionClosed)
+    }
 }
 
 #[cfg(feature = "server")]
