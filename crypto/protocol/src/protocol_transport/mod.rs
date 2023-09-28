@@ -11,9 +11,13 @@ use errors::WsError;
 use futures::{SinkExt, StreamExt};
 use noise::EncryptedWsConnection;
 pub use subscribe_message::SubscribeMessage;
+#[cfg(feature = "server")]
+use tokio::net::TcpStream;
 use tokio::sync::{broadcast, mpsc};
+#[cfg(feature = "server")]
+use tokio_tungstenite::{connect_async, tungstenite, MaybeTlsStream, WebSocketStream};
 
-use crate::{PartyId, ProtocolMessage};
+use crate::{errors::UserRunningProtocolErr, PartyId, ProtocolMessage};
 
 /// Channels between a remote party and the signing or DKG protocol
 pub struct WsChannels {
@@ -33,8 +37,6 @@ pub trait WsConnection {
     async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError>;
 }
 
-// #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
-// #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg(feature = "wasm")]
 #[async_trait(?Send)]
 impl WsConnection for gloo_net::websocket::futures::WebSocket {
@@ -80,9 +82,6 @@ impl WsConnection for axum::extract::ws::WebSocket {
             .map_err(|_| WsError::ConnectionClosed)
     }
 }
-
-#[cfg(feature = "server")]
-use tokio_tungstenite::{tungstenite, MaybeTlsStream};
 
 #[cfg(feature = "server")]
 #[async_trait]
@@ -137,3 +136,41 @@ pub async fn ws_to_channels<T: WsConnection>(
         }
     }
 }
+
+/// Open a ws connection with tungstenite
+#[cfg(feature = "server")]
+pub async fn open_ws_connection(
+    add: String,
+) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, UserRunningProtocolErr> {
+    let (ws_stream, _response) =
+        connect_async(add).await.map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
+    Ok(ws_stream)
+}
+
+/// Open a ws connection with JS
+#[cfg(feature = "wasm")]
+pub async fn open_ws_connection(
+    add: String,
+) -> Result<gloo_net::websocket::futures::WebSocket, UserRunningProtocolErr> {
+    let ws_stream = gloo_net::websocket::futures::WebSocket::open(&add)
+        .map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
+    Ok(ws_stream)
+}
+
+// This dummy trait is only needed because we cant add #[cfg] to where clauses
+/// Trait only when not using wasm, adding the send marker trait
+#[cfg(feature = "server")]
+pub trait ThreadSafeWsConnection: WsConnection + std::marker::Send + 'static {}
+
+/// Trait only when using wasm, not adding the send marker trait
+#[cfg(feature = "wasm")]
+pub trait ThreadSafeWsConnection: WsConnection + 'static {}
+
+#[cfg(feature = "server")]
+impl ThreadSafeWsConnection
+    for WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>
+{
+}
+
+#[cfg(feature = "wasm")]
+impl ThreadSafeWsConnection for gloo_net::websocket::futures::WebSocket {}

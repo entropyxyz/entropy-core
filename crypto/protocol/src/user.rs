@@ -6,12 +6,8 @@ use synedrion::KeyShare;
 // #[cfg(feature = "wasm")]
 // use wasm_bindgen::prelude::*;
 #[cfg(feature = "server")]
-use tokio::net::TcpStream;
-#[cfg(feature = "server")]
 use tokio::spawn;
 use tokio::sync::{broadcast, mpsc};
-#[cfg(feature = "server")]
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 #[cfg(feature = "wasm")]
 use wasm_bindgen_futures::spawn_local as spawn;
 
@@ -19,8 +15,8 @@ use crate::{
     errors::UserRunningProtocolErr,
     execute_protocol::{self, Channels},
     protocol_transport::{
-        noise::noise_handshake_initiator, ws_to_channels, Broadcaster, SubscribeMessage,
-        WsChannels, WsConnection,
+        noise::noise_handshake_initiator, open_ws_connection, ws_to_channels, Broadcaster,
+        SubscribeMessage, ThreadSafeWsConnection, WsChannels,
     },
     KeyParams, PartyId, RecoverableSignature, ValidatorInfo,
 };
@@ -88,39 +84,6 @@ pub async fn user_participates_in_dkg_protocol(
 
     Ok(keyshare)
 }
-
-#[cfg(feature = "server")]
-async fn open_ws_connection(
-    add: String,
-) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, UserRunningProtocolErr> {
-    let (ws_stream, _response) =
-        connect_async(add).await.map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
-    Ok(ws_stream)
-}
-
-#[cfg(feature = "wasm")]
-async fn open_ws_connection(
-    add: String,
-) -> Result<gloo_net::websocket::futures::WebSocket, UserRunningProtocolErr> {
-    let ws_stream = gloo_net::websocket::futures::WebSocket::open(&add)
-        .map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
-    Ok(ws_stream)
-}
-
-#[cfg(feature = "server")]
-trait ThreadSafeWsConnection: WsConnection + std::marker::Send + 'static {}
-
-#[cfg(feature = "wasm")]
-trait ThreadSafeWsConnection: WsConnection + 'static {}
-
-#[cfg(feature = "server")]
-impl ThreadSafeWsConnection
-    for WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>
-{
-}
-
-#[cfg(feature = "wasm")]
-impl ThreadSafeWsConnection for gloo_net::websocket::futures::WebSocket {}
 
 async fn user_connects_to_validators<F, Fut, W>(
     open_ws_connection: F,
