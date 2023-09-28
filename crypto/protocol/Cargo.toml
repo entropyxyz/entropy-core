@@ -29,6 +29,20 @@ tracing        ="0.1.37"
 axum             ={ version="0.6.18", features=["ws"], optional=true }
 tokio-tungstenite={ version="0.19.0", optional=true }
 
+# Used only with the `wasm` feature
+gloo-net            ={ version="0.4.0", default-features=false, features=["websocket"], optional=true }
+wasm-bindgen-futures={ version="0.4.37", optional=true }
+wasm-bindgen        ={ version="0.2.87", optional=true }
+
 [features]
 server=["dep:axum", "dep:tokio-tungstenite", "entropy-shared/std", "subxt/substrate-compat"]
-wasm  =["entropy-shared/wasm", "subxt-signer/web"]
+wasm=[
+  "entropy-shared/wasm",
+  "subxt-signer/web",
+  "dep:gloo-net",
+  "dep:wasm-bindgen-futures",
+  "dep:wasm-bindgen",
+]
+
+[lib]
+crate-type=["cdylib", "rlib"]
