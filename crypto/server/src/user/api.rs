@@ -84,6 +84,8 @@ pub struct UserRegistrationInfo {
     pub key: String,
     /// User threshold signing key
     pub value: Vec<u8>,
+    /// Is this a proactive refresh message
+    pub proactive_refresh: bool
 }
 
 /// Called by a user to initiate the signing process for a message
@@ -242,6 +244,7 @@ async fn setup_dkg(
         let user_registration_info = UserRegistrationInfo {
             key: sig_request_address.to_string(),
             value: serialized_key_share,
+            proactive_refresh: false
         };
         send_key(&api, &stash_address, &mut addresses_in_subgroup, user_registration_info, &signer)
             .await?;
@@ -297,10 +300,15 @@ pub async fn receive_key(
         return Err(UserErr::NotInSubgroup);
     }
 
-    let exists_result =
-        app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
-    if exists_result {
-        return Err(UserErr::AlreadyRegistered);
+    if user_registration_info.proactive_refresh {
+        // TODO validate that an active proactive refresh is happening
+        app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
+    } else {
+        let exists_result =
+            app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
+        if exists_result {
+            return Err(UserErr::AlreadyRegistered);
+        }
     }
     let reservation =
         app_state.kv_store.kv().reserve_key(user_registration_info.key.to_string()).await?;

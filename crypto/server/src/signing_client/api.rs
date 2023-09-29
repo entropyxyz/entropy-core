@@ -11,7 +11,7 @@ use parity_scale_codec::Decode;
 
 use crate::{
     chain_api::get_api,
-    helpers::{user::check_in_registration_group, validator::get_signer},
+    helpers::{user::{check_in_registration_group, send_key}, validator::get_signer, substrate::{get_subgroup, return_all_addresses_of_subgroup}},
     signing_client::{protocol_transport::handle_socket, ProtocolErr},
     user::api::UserRegistrationInfo,
     validator::api::get_all_keys,
@@ -34,17 +34,20 @@ pub async fn proactive_refresh(
     check_in_registration_group(&validators_info, signer.account_id()).unwrap();
     // TODO batch the network keys into smaller groups per session
     let all_keys = get_all_keys(&api, KEY_AMOUNT_PROACTIVE_REFRESH).await.unwrap();
+    let (subgroup, stash_address) = get_subgroup(&api, &signer).await.unwrap();
+    let my_subgroup = subgroup.unwrap();//subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await.unwrap();
 
     for key in all_keys {
         // do proactive refresh
 
-        let new_key = UserRegistrationInfo { key, value: vec![10] };
+        let new_key_info = UserRegistrationInfo { key, value: vec![10], proactive_refresh: true };
 
-        app_state.kv_store.kv().delete(&new_key.key).await?;
-        let reservation = app_state.kv_store.kv().reserve_key(new_key.key).await?;
-        app_state.kv_store.kv().put(reservation, new_key.value.clone()).await?;
+        app_state.kv_store.kv().delete(&new_key_info.key).await?;
+        let reservation = app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
+        app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
 
-        // send key
+        send_key(&api, &stash_address, &mut addresses_in_subgroup, new_key_info, &signer);
     }
     // TODO: Tell chain refresh is done?
     Ok(StatusCode::OK)
