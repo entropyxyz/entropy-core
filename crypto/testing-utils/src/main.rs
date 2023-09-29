@@ -10,6 +10,7 @@ use testing_utils::test_client::{get_api, register, seed_from_string, KeyVisibil
 struct Cli {
     #[clap(subcommand)]
     command: CliCommand,
+	/// The chain endpoint to use eg: ws://blah:9944
     #[arg(short, long)]
     chain_endpoint: Option<String>,
 }
@@ -24,7 +25,7 @@ enum CliCommand {
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    let default_endpoint_addr = "ws://localhost:5001".to_string();
+    let default_endpoint_addr = "ws://localhost:9944".to_string();
     let endpoint_addr = cli.chain_endpoint.unwrap_or(default_endpoint_addr);
 
     match cli.command {
