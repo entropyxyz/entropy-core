@@ -12632,19 +12632,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "subxt-client"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "blake2",
- "clap 4.4.6",
- "entropy-shared",
- "sp-core 21.0.0",
- "subxt",
- "tokio",
-]
-
-[[package]]
 name = "subxt-codegen"
 version = "0.29.0"
 source = "git+https://github.com/paritytech/subxt.git?tag=v0.29.0#e40a8629e279e80a7fbb56ff553a430a36612956"

@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use blake2::{Blake2s256, Digest};
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use subxt::{tx::PairSigner, utils::AccountId32 as SubxtAccountId32, Config, OnlineClient};
 
@@ -51,4 +52,13 @@ async fn put_register_request_on_chain(
         .wait_for_success()
         .await?;
     Ok(())
+}
+
+pub fn seed_from_string(input: String) -> [u8; 32] {
+    let mut buffer: [u8; 32] = [0; 32];
+    let mut hasher = Blake2s256::new();
+    hasher.update(input.as_bytes());
+    let hash = hasher.finalize().to_vec();
+    buffer.copy_from_slice(&hash);
+    buffer
 }
