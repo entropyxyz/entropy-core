@@ -9,7 +9,7 @@ edition="2021"
 subxt             ={ package="subxt", git="https://github.com/paritytech/subxt.git", tag="v0.29.0" }
 sp-keyring        ="24.0.0"
 project-root      ="0.2.2"
-sp-core           ={ version="21.0.0", default-features=false }
+sp-core           ={ version="21.0.0" }
 env_logger        ="0.9.0"
 log               ="0.4.14"
 which             ="4.0.2"
@@ -17,3 +17,10 @@ parity-scale-codec="3.0.0"
 lazy_static       ="1.4.0"
 hex-literal       ="0.3.4"
 entropy-shared    ={ path="../shared" }
+
+# For CLI
+clap  ={ version="4.4.6", features=["derive"] }
+anyhow="1.0.75"
+blake2="0.10.4"
+# TODO rm unneeded features
+tokio={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util"] }
