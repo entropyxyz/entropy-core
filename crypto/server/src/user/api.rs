@@ -56,7 +56,7 @@ use crate::{
         substrate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
-        user::{do_dkg, send_key},
+        user::{do_dkg, send_key, check_in_registration_group},
         validator::{get_signer, get_subxt_signer},
     },
     signing_client::{ListenerState, ProtocolErr},
@@ -480,20 +480,6 @@ pub async fn validate_new_user(
     kv_manager.kv().delete("LATEST_BLOCK_NUMBER").await?;
     let reservation = kv_manager.kv().reserve_key("LATEST_BLOCK_NUMBER".to_string()).await?;
     kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
-    Ok(())
-}
-
-/// Checks if a validator is in the current selected registration committee
-pub fn check_in_registration_group(
-    validators_info: &[entropy_shared::ValidatorInfo],
-    validator_address: &SubxtAccountId32,
-) -> Result<(), UserErr> {
-    let is_proper_signer = validators_info
-        .iter()
-        .any(|validator_info| validator_info.tss_account == validator_address.encode());
-    if !is_proper_signer {
-        return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
-    }
     Ok(())
 }
 

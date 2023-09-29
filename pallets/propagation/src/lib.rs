@@ -145,7 +145,7 @@ pub mod pallet {
                 })
                 .collect::<Vec<_>>();
 
-            log::warn!("propagation::post::req_body: {:?}", &[validators_info.encode()]);
+            log::warn!("propagation::post proactive refresh: {:?}", &[validators_info.encode()]);
             // We construct the request
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
