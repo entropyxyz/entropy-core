@@ -56,7 +56,7 @@ use crate::{
         substrate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
-        user::{do_dkg, send_key, check_in_registration_group},
+        user::{check_in_registration_group, do_dkg, send_key},
         validator::{get_signer, get_subxt_signer},
     },
     signing_client::{ListenerState, ProtocolErr},
