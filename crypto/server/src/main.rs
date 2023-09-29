@@ -208,7 +208,6 @@ async fn main() {
         tell_chain_syncing_is_done(&api, &signer).await.expect("failed to finish chain sync.");
     }
 
-    // TODO: unhardcode endpoint
     let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
     tracing::info!("listening on {}", addr);
     axum::Server::bind(&addr)

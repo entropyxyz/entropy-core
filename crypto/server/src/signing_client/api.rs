@@ -13,6 +13,7 @@ use crate::{
     chain_api::get_api,
     helpers::{user::check_in_registration_group, validator::get_signer},
     signing_client::{protocol_transport::handle_socket, ProtocolErr},
+    user::api::UserRegistrationInfo,
     validator::api::get_all_keys,
     AppState,
 };
@@ -36,6 +37,13 @@ pub async fn proactive_refresh(
 
     for key in all_keys {
         // do proactive refresh
+
+        let new_key = UserRegistrationInfo { key, value: vec![10] };
+
+        app_state.kv_store.kv().delete(&new_key.key).await?;
+        let reservation = app_state.kv_store.kv().reserve_key(new_key.key).await?;
+        app_state.kv_store.kv().put(reservation, new_key.value.clone()).await?;
+
         // send key
     }
     // TODO: Tell chain refresh is done?
