@@ -1,10 +1,10 @@
+#[cfg(feature = "wasm")]
+pub mod wasm;
 use entropy_shared::SIGNING_PARTY_SIZE;
 use futures::{future, Future};
 use subxt::utils::AccountId32;
 use subxt_signer::sr25519;
 use synedrion::KeyShare;
-// #[cfg(feature = "wasm")]
-// use wasm_bindgen::prelude::*;
 #[cfg(feature = "server")]
 use tokio::spawn;
 use tokio::sync::{broadcast, mpsc};
@@ -23,7 +23,6 @@ use crate::{
 
 /// Called when KeyVisibility is private - the user connects to relevant validators
 /// and participates in the signing protocol
-// #[cfg_attr(feature="wasm", wasm_bindgen)]
 pub async fn user_participates_in_signing_protocol(
     key_share: &KeyShare<KeyParams>,
     sig_uid: &str,
