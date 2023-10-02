@@ -15,7 +15,7 @@ use x25519_dalek::PublicKey;
 pub use crate::chain_api::entropy::runtime_types::entropy_shared::{
     constraints::Constraints, types::KeyVisibility,
 };
-use crate::chain_api::{entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *};
+use crate::{chain_api::{entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *}, constants::BAREBONES_PROGRAM_WASM_BYTECODE};
 
 pub async fn get_api(ws_url: String) -> anyhow::Result<OnlineClient<EntropyConfig>> {
     Ok(OnlineClient::<EntropyConfig>::from_url(ws_url.clone()).await?)
@@ -137,6 +137,21 @@ pub async fn sign(
     Ok(())
 }
 
+pub async fn update_program(
+    api: &OnlineClient<EntropyConfig>,
+    sig_req_keypair: sr25519::Pair,
+    program_keypair: sr25519::Pair,
+	_program: &[u8],
+) -> anyhow::Result<()> {
+    update_programs(
+        &api,
+        &sig_req_keypair,
+        &program_keypair,
+        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+    )
+    .await
+}
+
 async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keypair: sr25519::Pair,
@@ -168,29 +183,7 @@ pub struct UserTransactionRequest {
     /// When the message was created and signed
     pub timestamp: SystemTime,
 }
-// pub fn seed_from_string(input: String) -> [u8; 32] {
-//     let mut buffer: [u8; 32] = [0; 32];
-//     let mut hasher = Blake2s256::new();
-//     hasher.update(input.as_bytes());
-//     let hash = hasher.finalize().to_vec();
-//     buffer.copy_from_slice(&hash);
-//     buffer
-// }
 
-// let subgroup_info_query =
-// entropy::storage().staking_extension().signing_groups(0 as u8);
-// 	let subgroup_info = api
-// 	.storage()
-// .at_latest()
-// 	.await?
-// .fetch(&subgroup_info_query)
-// 	.await?;
-//
-// 	println!("SSS {:?}", subgroup_info);
-//
-// let sudo_tx = entropy::tx().balances().force_set_balance(account_id32.into(), 9);
-// api.tx().sudo().sign_and_submit_then_watch_default();
-//
 /// Gets the current signing committee
 /// The signing committee is composed as the validators at the index into each subgroup
 /// Where the index is computed as the user's sighash as an integer modulo the number of subgroups
@@ -266,7 +259,7 @@ pub async fn update_programs(
     sig_req_keyring: &sr25519::Pair,
     constraint_modification_account: &sr25519::Pair,
     initial_program: Vec<u8>,
-) {
+) -> anyhow::Result<()> {
     // update/set their constraints
     let update_program_tx = entropy::tx()
         .constraints()
@@ -278,12 +271,22 @@ pub async fn update_programs(
     entropy_api
         .tx()
         .sign_and_submit_then_watch_default(&update_program_tx, &constraint_modification_account)
-        .await
-        .unwrap()
+        .await?
         .wait_for_in_block()
-        .await
-        .unwrap()
+        .await?
         .wait_for_success()
-        .await
-        .unwrap();
+        .await?;
+	Ok(())
 }
+
+// pub fn seed_from_string(input: String) -> [u8; 32] {
+//     let mut buffer: [u8; 32] = [0; 32];
+//     let mut hasher = Blake2s256::new();
+//     hasher.update(input.as_bytes());
+//     let hash = hasher.finalize().to_vec();
+//     buffer.copy_from_slice(&hash);
+//     buffer
+// }
+
+// let sudo_tx = entropy::tx().balances().force_set_balance(account_id32.into(), 9);
+// api.tx().sudo().sign_and_submit_then_watch_default();
