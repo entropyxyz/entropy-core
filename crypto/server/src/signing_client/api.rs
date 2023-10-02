@@ -1,3 +1,5 @@
+use std::{net::SocketAddrV4, str::FromStr, time::Duration};
+
 use axum::{
     body::Bytes,
     extract::{
@@ -7,13 +9,31 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
+use entropy_protocol::{
+    execute_protocol::{execute_dkg, Channels},
+    KeyParams, ValidatorInfo,
+};
+use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
+use sp_core::crypto::AccountId32;
+use subxt::{
+    ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32 as SubxtAccountId32, OnlineClient,
+};
+use tokio::time::timeout;
 
 use crate::{
-    chain_api::get_api,
-    helpers::{user::{check_in_registration_group, send_key}, validator::get_signer, substrate::{get_subgroup, return_all_addresses_of_subgroup}},
-    signing_client::{protocol_transport::handle_socket, ProtocolErr},
+    chain_api::{entropy, get_api, EntropyConfig},
+    helpers::{
+        substrate::{get_subgroup, return_all_addresses_of_subgroup},
+        user::{check_in_registration_group, send_key},
+        validator::get_signer,
+    },
+    signing_client::{
+        protocol_transport::{handle_socket, open_protocol_connections},
+        Listener, ListenerState, ProtocolErr,
+    },
     user::api::UserRegistrationInfo,
+    validation::{derive_static_secret, SignedMessage},
     validator::api::get_all_keys,
     AppState,
 };
@@ -35,10 +55,12 @@ pub async fn proactive_refresh(
     // TODO batch the network keys into smaller groups per session
     let all_keys = get_all_keys(&api, KEY_AMOUNT_PROACTIVE_REFRESH).await.unwrap();
     let (subgroup, stash_address) = get_subgroup(&api, &signer).await.unwrap();
-    let my_subgroup = subgroup.unwrap();//subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await.unwrap();
+    let my_subgroup = subgroup.unwrap(); // subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+    let mut addresses_in_subgroup =
+        return_all_addresses_of_subgroup(&api, my_subgroup).await.unwrap();
 
     for key in all_keys {
+        // TODO: check key visibility don't do private (requires user to be online)
         // do proactive refresh
 
         let new_key_info = UserRegistrationInfo { key, value: vec![10], proactive_refresh: true };
@@ -66,4 +88,62 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
         tracing::warn!("Websocket connection closed unexpectedly {:?}", err);
         // TODO here we should inform the chain that signing failed
     };
+}
+
+pub async fn do_proactive_refresh(
+    validators_info: &Vec<entropy_shared::ValidatorInfo>,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    state: &ListenerState,
+    sig_request_account: AccountId32,
+    my_subgroup: &u8,
+    subxt_signer: &subxt_signer::sr25519::Keypair,
+) -> Result<(), ProtocolErr> {
+    let session_uid = sig_request_account.to_string();
+    let account_id = SubxtAccountId32(*signer.account_id().clone().as_ref());
+    let mut converted_validator_info = vec![];
+    let mut tss_accounts = vec![];
+    for validator_info in validators_info {
+        let address_slice: &[u8; 32] = &validator_info
+            .tss_account
+            .clone()
+            .try_into()
+            .map_err(|_| ProtocolErr::AddressConversionError("Invalid Length".to_string()))?;
+        let tss_account = SubxtAccountId32(*address_slice);
+        let validator_info = ValidatorInfo {
+            x25519_public_key: validator_info.x25519_public_key,
+            ip_address: SocketAddrV4::from_str(std::str::from_utf8(&validator_info.ip_address)?)?,
+            tss_account: tss_account.clone(),
+        };
+        converted_validator_info.push(validator_info);
+        tss_accounts.push(tss_account);
+    }
+
+    // subscribe to all other participating parties. Listener waits for other subscribers.
+    let (rx_ready, rx_from_others, listener) =
+        Listener::new(converted_validator_info.clone(), &account_id, None);
+    state
+   .listeners
+   .lock()
+   .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
+   // TODO: using signature ID as session ID. Correct?
+   .insert(session_uid.clone(), listener);
+    let x25519_secret_key = derive_static_secret(signer.signer());
+
+    open_protocol_connections(
+        &converted_validator_info,
+        &session_uid,
+        subxt_signer,
+        state,
+        &x25519_secret_key,
+    )
+    .await
+    .unwrap();
+    let channels = {
+        let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
+        let broadcast_out = ready??;
+        Channels(broadcast_out, rx_from_others)
+    };
+    // let result = execute_proactive_refresh(channels, subxt_signer, tss_accounts,
+    // my_subgroup).await?; dbg!(result);
+    Ok(())
 }

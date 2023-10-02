@@ -608,8 +608,11 @@ async fn test_send_and_receive_keys() {
     setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-    let user_registration_info =
-        UserRegistrationInfo { key: alice.to_account_id().to_string(), value: vec![10], proactive_refresh: false };
+    let user_registration_info = UserRegistrationInfo {
+        key: alice.to_account_id().to_string(),
+        value: vec![10],
+        proactive_refresh: false,
+    };
 
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);

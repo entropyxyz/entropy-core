@@ -85,7 +85,7 @@ pub struct UserRegistrationInfo {
     /// User threshold signing key
     pub value: Vec<u8>,
     /// Is this a proactive refresh message
-    pub proactive_refresh: bool
+    pub proactive_refresh: bool,
 }
 
 /// Called by a user to initiate the signing process for a message
@@ -244,7 +244,7 @@ async fn setup_dkg(
         let user_registration_info = UserRegistrationInfo {
             key: sig_request_address.to_string(),
             value: serialized_key_share,
-            proactive_refresh: false
+            proactive_refresh: false,
         };
         send_key(&api, &stash_address, &mut addresses_in_subgroup, user_registration_info, &signer)
             .await?;

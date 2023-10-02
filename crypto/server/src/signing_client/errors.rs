@@ -70,6 +70,10 @@ pub enum ProtocolErr {
     EncryptedConnection(String),
     #[error("Program error: {0}")]
     ProgramError(#[from] entropy_constraints::Error),
+    #[error("Invalid length for converting address")]
+    AddressConversionError(String),
+    #[error("Ip Address Error: {0}")]
+    AddrParseError(#[from] std::net::AddrParseError),
 }
 
 impl IntoResponse for ProtocolErr {
