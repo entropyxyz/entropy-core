@@ -19,8 +19,22 @@ hex-literal       ="0.3.4"
 entropy-shared    ={ path="../shared" }
 
 # For CLI
-clap  ={ version="4.4.6", features=["derive"] }
-anyhow="1.0.75"
-blake2="0.10.4"
+clap            ={ version="4.4.6", features=["derive"] }
+anyhow          ="1.0.75"
+chacha20poly1305="0.10.1"
+blake2          ="0.10.4"
+futures         ="0.3"
+num             ="0.4.0"
+rand_core       ="0.6.4"
+serde           ={ version="1.0", default-features=false, features=["derive"] }
+serde_json      ="1.0"
+thiserror       ="1.0.47"
+x25519-dalek    ="2.0.0-pre.1"
+zeroize         ="1.5.7"
+generic-array   ="0.14.6"
+entropy-protocol={ path="../protocol", features=["server"] }
+reqwest         ={ version="0.11", features=["json", "stream"] }
+sha3            ="0.10.8"
 # TODO rm unneeded features
 tokio={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util"] }
+hex  ="0.4.3"
