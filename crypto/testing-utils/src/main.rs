@@ -2,7 +2,7 @@
 use clap::{Parser, Subcommand};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32 as SubxtAccountId32;
-use testing_utils::test_client::{get_api, register, seed_from_string, KeyVisibility};
+use testing_utils::test_client::{get_api, register, KeyVisibility};
 
 #[derive(Parser, Debug, Clone)]
 #[clap(version, about, long_about = None)]
@@ -10,7 +10,7 @@ use testing_utils::test_client::{get_api, register, seed_from_string, KeyVisibil
 struct Cli {
     #[clap(subcommand)]
     command: CliCommand,
-	/// The chain endpoint to use eg: ws://blah:9944
+    /// The chain endpoint to use eg: ws://blah:9944
     #[arg(short, long)]
     chain_endpoint: Option<String>,
 }
@@ -18,7 +18,12 @@ struct Cli {
 #[derive(Subcommand, Debug, Clone)]
 enum CliCommand {
     /// Register with Entropy and create shares
-    Register { account_name: String },
+    Register {
+        /// A name from which to generate a keypair
+        account_name: String,
+        // #[arg(value_enum)]
+        // key_visibility: KeyVisibility,
+    },
 }
 
 #[tokio::main]
@@ -30,18 +35,20 @@ async fn main() -> anyhow::Result<()> {
 
     match cli.command {
         CliCommand::Register { account_name } => {
-            let seed = seed_from_string(account_name);
-            let sig_req_keypair = sr25519::Pair::from_seed(&seed);
+            let (sig_req_keypair, _) =
+                sr25519::Pair::from_string_with_seed(&format!("//{}", account_name), None)?;
             let api = get_api(endpoint_addr).await?;
+            println!("Signature request account: {:?}", sig_req_keypair.public());
+
             // TODO constraint account
             let constraint_account = SubxtAccountId32([0; 32]);
             let key_visibility = KeyVisibility::Public;
-            match register(&api, sig_req_keypair, constraint_account, key_visibility).await {
+            match register(&api, sig_req_keypair, constraint_account, key_visibility, None).await {
                 Ok(register_status) => {
-                    println!("Registered {:?}", register_status);
+                    println!("Registered successfully: {:?}", register_status);
                 },
                 Err(err) => {
-                    println!("Error {:?}", err);
+                    println!("Error: {:?}", err);
                 },
             }
         },
