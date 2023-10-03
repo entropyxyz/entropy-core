@@ -15,8 +15,9 @@ use x25519_dalek::PublicKey;
 pub use crate::chain_api::entropy::runtime_types::entropy_shared::{
     constraints::Constraints, types::KeyVisibility,
 };
-use crate::{chain_api::{entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *}, constants::BAREBONES_PROGRAM_WASM_BYTECODE};
+use crate::chain_api::{entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *};
 
+/// Get the Entropy api
 pub async fn get_api(ws_url: String) -> anyhow::Result<OnlineClient<EntropyConfig>> {
     Ok(OnlineClient::<EntropyConfig>::from_url(ws_url.clone()).await?)
 }
@@ -33,6 +34,7 @@ pub async fn register(
     let account_id32: AccountId32 = sig_req_keypair.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
     let registered_query = entropy::storage().relayer().registered(account_id);
+
     let query_registered_status = api.storage().at_latest().await?.fetch(&registered_query).await;
     if let Some(registered_status) = query_registered_status? {
         return Err(anyhow!("Already registered {:?}", registered_status));
@@ -47,6 +49,7 @@ pub async fn register(
         initial_program,
     )
     .await?;
+
     // Wait until user is confirmed as registered
     for _ in 0..20 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
@@ -137,20 +140,43 @@ pub async fn sign(
     Ok(())
 }
 
+/// Update a program
 pub async fn update_program(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keypair: sr25519::Pair,
     program_keypair: sr25519::Pair,
-	_program: &[u8],
+    program: Vec<u8>,
 ) -> anyhow::Result<()> {
-    update_programs(
-        &api,
-        &sig_req_keypair,
-        &program_keypair,
-        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
-    )
-    .await
+    let update_program_tx = entropy::tx()
+        .constraints()
+        .update_v2_constraints(SubxtAccountId32::from(sig_req_keypair.public()), program);
+
+    let constraint_modification_account =
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_keypair.clone());
+
+    api.tx()
+        .sign_and_submit_then_watch_default(&update_program_tx, &constraint_modification_account)
+        .await?
+        .wait_for_in_block()
+        .await?
+        .wait_for_success()
+        .await?;
+    Ok(())
 }
+
+// pub async fn transfer_balance() {
+// let pair = sp_core::sr25519::Pair::from_string(&mnemonic_phrase_A, None).unwrap();
+// let account_A = PairSigner::new(pair);
+//
+// let balance_transfer_tx = entropy::tx().balances().transfer(account_B, 10_000);
+//
+//     let events = api
+//         .tx()
+//         .sign_and_submit_then_watch_default(&balance_transfer_tx, &account_A)
+//         .await?
+//         .wait_for_finalized_success()
+//         .await?;
+// }
 
 async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
@@ -252,31 +278,6 @@ impl Hasher {
         keccak.update(data);
         keccak.finalize().into()
     }
-}
-
-pub async fn update_programs(
-    entropy_api: &OnlineClient<EntropyConfig>,
-    sig_req_keyring: &sr25519::Pair,
-    constraint_modification_account: &sr25519::Pair,
-    initial_program: Vec<u8>,
-) -> anyhow::Result<()> {
-    // update/set their constraints
-    let update_program_tx = entropy::tx()
-        .constraints()
-        .update_v2_constraints(SubxtAccountId32::from(sig_req_keyring.public()), initial_program);
-
-    let constraint_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(constraint_modification_account.clone());
-
-    entropy_api
-        .tx()
-        .sign_and_submit_then_watch_default(&update_program_tx, &constraint_modification_account)
-        .await?
-        .wait_for_in_block()
-        .await?
-        .wait_for_success()
-        .await?;
-	Ok(())
 }
 
 // pub fn seed_from_string(input: String) -> [u8; 32] {
