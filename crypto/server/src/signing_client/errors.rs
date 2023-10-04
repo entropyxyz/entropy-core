@@ -74,6 +74,8 @@ pub enum ProtocolErr {
     AddressConversionError(String),
     #[error("Ip Address Error: {0}")]
     AddrParseError(#[from] std::net::AddrParseError),
+    #[error("Kv Fatal error")]
+    KvSerialize(String),
 }
 
 impl IntoResponse for ProtocolErr {

@@ -3,11 +3,13 @@ use kvdb::clean_tests;
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::crypto::Ss58Codec;
-use sp_keyring::{AccountKeyring, Sr25519Keyring};
+use sp_keyring::{AccountKeyring};
+use futures::{
+    future::{join_all},
+};
 use testing_utils::{
     constants::{
-        ALICE_STASH_ADDRESS, BAREBONES_PROGRAM_WASM_BYTECODE, MESSAGE_SHOULD_FAIL,
-        MESSAGE_SHOULD_SUCCEED, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+        TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
@@ -21,10 +23,10 @@ use crate::{helpers::tests::spawn_testing_validators, r#unsafe::api::UnsafeQuery
 async fn test_proactive_refresh() {
     clean_tests();
     let one = AccountKeyring::Eve;
-    let cxt = test_context_stationary().await;
+    let _cxt = test_context_stationary().await;
 
     let signing_address = one.clone().to_account_id().to_ss58check();
-    let (validator_ips, _validator_ids, users_keyshare_option) =
+    let (validator_ips, _validator_ids, _users_keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), true).await;
 
     let client = reqwest::Client::new();
@@ -54,17 +56,32 @@ async fn test_proactive_refresh() {
         },
     ];
 
-    let response_2 = client
-        .post("http://127.0.0.1:3001/signer/proactive_refresh")
-        .header("Content-Type", "application/json")
-        .body(validators_info.clone().encode())
-        .send()
+let submit_transaction_requests =
+    |validator_urls: Vec<String>,
+     validators_info: Vec<entropy_shared::ValidatorInfo>| async move {
+        let mock_client = reqwest::Client::new();
+        join_all(
+            validator_urls
+                .iter()
+                .map(|ip| async {
+                    let url = format!("http://{}/signer/proactive_refresh", ip.clone());
+                    mock_client
+                        .post(url)
+                        .header("Content-Type", "application/json")
+                        .body(validators_info.clone().encode())
+                        .send()
+                        .await
+                })
+                .collect::<Vec<_>>(),
+        )
         .await
-        .unwrap();
+    };
+    let test_user_res =
+    submit_transaction_requests(validator_ips.clone(), validators_info.clone()).await;
 
-    assert_eq!(response_2.status(), StatusCode::OK);
-    assert_eq!(response_2.text().await.unwrap(), "");
-
+    for res in test_user_res {
+        assert_eq!(res.unwrap().status(), StatusCode::OK);
+    }
     // check get key before proactive refresh
     let response_3 = client
         .post("http://127.0.0.1:3001/unsafe/get")
@@ -75,6 +92,9 @@ async fn test_proactive_refresh() {
         .unwrap();
 
     let value_after = response_3.text().await.unwrap();
+    dbg!(value.clone());
+    dbg!(value_after.clone());
+
     assert_ne!(value, value_after);
     clean_tests();
 }

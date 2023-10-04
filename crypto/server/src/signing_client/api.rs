@@ -10,30 +10,34 @@ use axum::{
     response::IntoResponse,
 };
 use entropy_protocol::{
-    execute_protocol::{execute_dkg, Channels},
+    execute_protocol::{execute_proactive_refresh, Channels},
     KeyParams, ValidatorInfo,
 };
-use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
+use kvdb::kv_manager::{
+    helpers::{serialize as key_serialize, deserialize},
+};
+use synedrion::{KeyShare, KeyShareChange};
+use entropy_shared::{SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
 use sp_core::crypto::AccountId32;
 use subxt::{
-    ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32 as SubxtAccountId32, OnlineClient,
+    ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
 };
 use tokio::time::timeout;
 
 use crate::{
-    chain_api::{entropy, get_api, EntropyConfig},
+    chain_api::{get_api, EntropyConfig},
     helpers::{
         substrate::{get_subgroup, return_all_addresses_of_subgroup},
         user::{check_in_registration_group, send_key},
-        validator::get_signer,
+        validator::{get_signer, get_subxt_signer},
     },
     signing_client::{
         protocol_transport::{handle_socket, open_protocol_connections},
         Listener, ListenerState, ProtocolErr,
     },
     user::api::UserRegistrationInfo,
-    validation::{derive_static_secret, SignedMessage},
+    validation::{derive_static_secret},
     validator::api::get_all_keys,
     AppState,
 };
@@ -58,18 +62,28 @@ pub async fn proactive_refresh(
     let my_subgroup = subgroup.unwrap(); // subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup =
         return_all_addresses_of_subgroup(&api, my_subgroup).await.unwrap();
-
+    let subxt_signer = get_subxt_signer(&app_state.kv_store).await.unwrap();
     for key in all_keys {
+        let sig_request_address = AccountId32::from_str(&key).unwrap();
+
         // TODO: check key visibility don't do private (requires user to be online)
-        // do proactive refresh
+        // key should always exist, figure out how to handle
+        let exists_result = app_state.kv_store.kv().exists(&key).await.unwrap();
+        if exists_result {
+            let old_key_share = app_state.kv_store.kv().get(&key).await?;
+            let deserialized_old_key: KeyShare<KeyParams> = deserialize(&old_key_share).unwrap();
+            // do proactive refresh
+            let key_share_changes = do_proactive_refresh(&validators_info, &signer, &app_state.listener_state, sig_request_address, &my_subgroup, &subxt_signer).await.unwrap();
+            let new_key_share = deserialized_old_key.update(key_share_changes);
+            let serialized_key_share = key_serialize(&new_key_share)
+                .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
+            let new_key_info = UserRegistrationInfo { key, value: serialized_key_share, proactive_refresh: true };
 
-        let new_key_info = UserRegistrationInfo { key, value: vec![10], proactive_refresh: true };
-
-        app_state.kv_store.kv().delete(&new_key_info.key).await?;
-        let reservation = app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
-        app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
-
-        send_key(&api, &stash_address, &mut addresses_in_subgroup, new_key_info, &signer);
+            app_state.kv_store.kv().delete(&new_key_info.key).await?;
+            let reservation = app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
+            app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
+            send_key(&api, &stash_address, &mut addresses_in_subgroup, new_key_info, &signer);
+        }
     }
     // TODO: Tell chain refresh is done?
     Ok(StatusCode::OK)
@@ -97,7 +111,7 @@ pub async fn do_proactive_refresh(
     sig_request_account: AccountId32,
     my_subgroup: &u8,
     subxt_signer: &subxt_signer::sr25519::Keypair,
-) -> Result<(), ProtocolErr> {
+) -> Result<KeyShareChange<KeyParams>, ProtocolErr> {
     let session_uid = sig_request_account.to_string();
     let account_id = SubxtAccountId32(*signer.account_id().clone().as_ref());
     let mut converted_validator_info = vec![];
@@ -143,7 +157,6 @@ pub async fn do_proactive_refresh(
         let broadcast_out = ready??;
         Channels(broadcast_out, rx_from_others)
     };
-    // let result = execute_proactive_refresh(channels, subxt_signer, tss_accounts,
-    // my_subgroup).await?; dbg!(result);
-    Ok(())
+    let result = execute_proactive_refresh(channels, subxt_signer, tss_accounts, my_subgroup).await?; 
+    Ok(result)
 }
