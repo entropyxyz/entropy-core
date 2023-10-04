@@ -10,13 +10,13 @@ use axum::{
     response::IntoResponse,
 };
 use entropy_protocol::{
-    execute_protocol::{execute_proactive_refresh, Channels},
+    execute_protocol::{Channels, execute_proactive_refresh},
     KeyParams, ValidatorInfo,
 };
 use kvdb::kv_manager::{
     helpers::{serialize as key_serialize, deserialize},
 };
-use synedrion::{KeyShare, KeyShareChange};
+use synedrion::{KeyShare};
 use entropy_shared::{SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
 use sp_core::crypto::AccountId32;
@@ -73,8 +73,7 @@ pub async fn proactive_refresh(
             let old_key_share = app_state.kv_store.kv().get(&key).await?;
             let deserialized_old_key: KeyShare<KeyParams> = deserialize(&old_key_share).unwrap();
             // do proactive refresh
-            let key_share_changes = do_proactive_refresh(&validators_info, &signer, &app_state.listener_state, sig_request_address, &my_subgroup, &subxt_signer).await.unwrap();
-            let new_key_share = deserialized_old_key.update(key_share_changes);
+            let new_key_share = do_proactive_refresh(&validators_info, &signer, &app_state.listener_state, sig_request_address, &my_subgroup, &subxt_signer, deserialized_old_key).await.unwrap();
             let serialized_key_share = key_serialize(&new_key_share)
                 .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
             let new_key_info = UserRegistrationInfo { key, value: serialized_key_share, proactive_refresh: true };
@@ -111,7 +110,8 @@ pub async fn do_proactive_refresh(
     sig_request_account: AccountId32,
     my_subgroup: &u8,
     subxt_signer: &subxt_signer::sr25519::Keypair,
-) -> Result<KeyShareChange<KeyParams>, ProtocolErr> {
+    old_key: KeyShare<KeyParams>
+) -> Result<KeyShare<KeyParams>, ProtocolErr> {
     let session_uid = sig_request_account.to_string();
     let account_id = SubxtAccountId32(*signer.account_id().clone().as_ref());
     let mut converted_validator_info = vec![];
@@ -157,6 +157,6 @@ pub async fn do_proactive_refresh(
         let broadcast_out = ready??;
         Channels(broadcast_out, rx_from_others)
     };
-    let result = execute_proactive_refresh(channels, subxt_signer, tss_accounts, my_subgroup).await?; 
+    let result = execute_proactive_refresh(channels, subxt_signer, tss_accounts, my_subgroup, old_key).await?; 
     Ok(result)
 }

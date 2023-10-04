@@ -15,7 +15,7 @@ use synedrion::{
         self,
         hazmat::{PrehashVerifier, RandomizedPrehashSigner},
     },
-    KeyShare, PartyIdx, RecoverableSignature, KeyShareChange
+    KeyShare, PartyIdx, RecoverableSignature
 };
 use tokio::sync::mpsc;
 use tracing::instrument;
@@ -253,10 +253,12 @@ pub async fn execute_proactive_refresh(
     threshold_signer: &sr25519::Keypair,
     threshold_accounts: Vec<AccountId32>,
     my_idx: &u8,
-) -> Result<KeyShareChange<KeyParams>, ProtocolExecutionErr> {
+    old_key: KeyShare<KeyParams>
+) -> Result<KeyShare<KeyParams>, ProtocolExecutionErr> {
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());
+    dbg!("10");
     let id_to_index = party_ids
         .iter()
         .enumerate()
@@ -278,6 +280,7 @@ pub async fn execute_proactive_refresh(
     // (or as some deterministic function, e.g. the hash of the last block mined)
     // and be the same for all participants.
     let shared_randomness = b"123456";
+    dbg!("11");
 
     let mut sending = make_key_refresh_session(
         &mut OsRng,
@@ -287,10 +290,11 @@ pub async fn execute_proactive_refresh(
         PartyIdx::from_usize(*my_idx as usize),
     )
     .map_err(ProtocolExecutionErr::SessionCreationError)?;
-
-    loop {
+    dbg!("12");
+    let key_change = loop {
         let (mut receiving, to_send) =
             sending.start_receiving(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)?;
+            dbg!("13");
 
         match to_send {
             ToSend::Broadcast(message) => {
@@ -305,15 +309,18 @@ pub async fn execute_proactive_refresh(
                     ))?;
                 },
         };
+        dbg!("15");
 
         while receiving.has_cached_messages() {
             receiving.receive_cached_message().map_err(ProtocolExecutionErr::SynedrionSession)?;
         }
+        dbg!("16");
 
         while !receiving.can_finalize() {
             let signing_message = rx.recv().await.ok_or_else(|| {
                 ProtocolExecutionErr::IncomingStream(format!("{:?}", receiving.current_stage()))
             })?;
+            dbg!("17");
 
             // TODO: we shouldn't send broadcasts to ourselves in the first place.
             if signing_message.from == my_id {
@@ -323,11 +330,15 @@ pub async fn execute_proactive_refresh(
             receiving
                 .receive(from_idx, signing_message.payload)
                 .map_err(ProtocolExecutionErr::SynedrionSession)?;
+                dbg!("18");
         }
 
-        match receiving.finalize(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)? {
-            FinalizeOutcome::Result(res) => break Ok(res),
+    match receiving.finalize(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)? {
+            FinalizeOutcome::Result(res) => break res,
             FinalizeOutcome::AnotherRound(new_sending) => sending = new_sending,
         }
-    }
+    };
+
+    Ok(old_key.update(key_change))
+
 }
