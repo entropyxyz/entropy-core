@@ -27,14 +27,14 @@ enum CliCommand {
         // #[arg(value_enum)]
         // key_visibility: KeyVisibility,
     },
-	/// Ask the network to sign a given message
+    /// Ask the network to sign a given message
     Sign {
         /// A name from which to generate a keypair
         account_name: String,
         /// A hex encoded message
         message_hex: String,
     },
-	/// Update to the 'barebones' program
+    /// Update to the 'barebones' program
     UpdateProgram {
         /// A name from which to generate a keypair
         account_name: String,
