@@ -1,19 +1,13 @@
 use axum::http::StatusCode;
+use futures::future::join_all;
 use kvdb::clean_tests;
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::crypto::Ss58Codec;
-use sp_keyring::{AccountKeyring};
-use futures::{
-    future::{join_all},
-};
+use sp_keyring::AccountKeyring;
 use testing_utils::{
-    constants::{
-        TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
-    },
-    substrate_context::{
-        test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
-    },
+    constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
+    substrate_context::test_context_stationary,
 };
 
 use crate::{helpers::tests::spawn_testing_validators, r#unsafe::api::UnsafeQuery};
@@ -56,28 +50,27 @@ async fn test_proactive_refresh() {
         },
     ];
 
-let submit_transaction_requests =
-    |validator_urls: Vec<String>,
-     validators_info: Vec<entropy_shared::ValidatorInfo>| async move {
-        let mock_client = reqwest::Client::new();
-        join_all(
-            validator_urls
-                .iter()
-                .map(|ip| async {
-                    let url = format!("http://{}/signer/proactive_refresh", ip.clone());
-                    mock_client
-                        .post(url)
-                        .header("Content-Type", "application/json")
-                        .body(validators_info.clone().encode())
-                        .send()
-                        .await
-                })
-                .collect::<Vec<_>>(),
-        )
-        .await
-    };
+    let submit_transaction_requests =
+        |validator_urls: Vec<String>, validators_info: Vec<entropy_shared::ValidatorInfo>| async move {
+            let mock_client = reqwest::Client::new();
+            join_all(
+                validator_urls
+                    .iter()
+                    .map(|ip| async {
+                        let url = format!("http://{}/signer/proactive_refresh", ip.clone());
+                        mock_client
+                            .post(url)
+                            .header("Content-Type", "application/json")
+                            .body(validators_info.clone().encode())
+                            .send()
+                            .await
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .await
+        };
     let test_user_res =
-    submit_transaction_requests(validator_ips.clone(), validators_info.clone()).await;
+        submit_transaction_requests(validator_ips.clone(), validators_info.clone()).await;
 
     for res in test_user_res {
         assert_eq!(res.unwrap().status(), StatusCode::OK);
@@ -92,8 +85,6 @@ let submit_transaction_requests =
         .unwrap();
 
     let value_after = response_3.text().await.unwrap();
-    dbg!(value.clone());
-    dbg!(value_after.clone());
 
     assert_ne!(value, value_after);
     clean_tests();

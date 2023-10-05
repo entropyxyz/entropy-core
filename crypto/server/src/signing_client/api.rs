@@ -10,19 +10,15 @@ use axum::{
     response::IntoResponse,
 };
 use entropy_protocol::{
-    execute_protocol::{Channels, execute_proactive_refresh},
+    execute_protocol::{execute_proactive_refresh, Channels},
     KeyParams, ValidatorInfo,
 };
-use kvdb::kv_manager::{
-    helpers::{serialize as key_serialize, deserialize},
-};
-use synedrion::{KeyShare};
-use entropy_shared::{SETUP_TIMEOUT_SECONDS};
+use entropy_shared::SETUP_TIMEOUT_SECONDS;
+use kvdb::kv_manager::helpers::{deserialize, serialize as key_serialize};
 use parity_scale_codec::Decode;
 use sp_core::crypto::AccountId32;
-use subxt::{
-    ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
-};
+use subxt::{ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32 as SubxtAccountId32};
+use synedrion::KeyShare;
 use tokio::time::timeout;
 
 use crate::{
@@ -37,7 +33,7 @@ use crate::{
         Listener, ListenerState, ProtocolErr,
     },
     user::api::UserRegistrationInfo,
-    validation::{derive_static_secret},
+    validation::derive_static_secret,
     validator::api::get_all_keys,
     AppState,
 };
@@ -51,37 +47,57 @@ pub async fn proactive_refresh(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, ProtocolErr> {
-    let validators_info =
-        Vec::<entropy_shared::ValidatorInfo>::decode(&mut encoded_data.as_ref()).unwrap();
-    let api = get_api(&app_state.configuration.endpoint).await.unwrap();
-    let signer = get_signer(&app_state.kv_store).await.unwrap();
-    check_in_registration_group(&validators_info, signer.account_id()).unwrap();
+    let validators_info = Vec::<entropy_shared::ValidatorInfo>::decode(&mut encoded_data.as_ref())?;
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let signer =
+        get_signer(&app_state.kv_store).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    check_in_registration_group(&validators_info, signer.account_id())
+        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     // TODO batch the network keys into smaller groups per session
-    let all_keys = get_all_keys(&api, KEY_AMOUNT_PROACTIVE_REFRESH).await.unwrap();
-    let (subgroup, stash_address) = get_subgroup(&api, &signer).await.unwrap();
-    let my_subgroup = subgroup.unwrap(); // subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    let mut addresses_in_subgroup =
-        return_all_addresses_of_subgroup(&api, my_subgroup).await.unwrap();
-    let subxt_signer = get_subxt_signer(&app_state.kv_store).await.unwrap();
+    let all_keys = get_all_keys(&api, KEY_AMOUNT_PROACTIVE_REFRESH)
+        .await
+        .map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
+    let (subgroup, stash_address) =
+        get_subgroup(&api, &signer).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    let my_subgroup = subgroup.ok_or_else(|| ProtocolErr::SubgroupError("Subgroup Error"))?;
+    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup)
+        .await
+        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    let subxt_signer = get_subxt_signer(&app_state.kv_store)
+        .await
+        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     for key in all_keys {
-        let sig_request_address = AccountId32::from_str(&key).unwrap();
+        let sig_request_address = AccountId32::from_str(&key).map_err(ProtocolErr::StringError)?;
 
         // TODO: check key visibility don't do private (requires user to be online)
         // key should always exist, figure out how to handle
-        let exists_result = app_state.kv_store.kv().exists(&key).await.unwrap();
+        let exists_result = app_state.kv_store.kv().exists(&key).await?;
         if exists_result {
             let old_key_share = app_state.kv_store.kv().get(&key).await?;
-            let deserialized_old_key: KeyShare<KeyParams> = deserialize(&old_key_share).unwrap();
-            // do proactive refresh
-            let new_key_share = do_proactive_refresh(&validators_info, &signer, &app_state.listener_state, sig_request_address, &my_subgroup, &subxt_signer, deserialized_old_key).await.unwrap();
+            let deserialized_old_key: KeyShare<KeyParams> = deserialize(&old_key_share)
+                .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
+
+            let new_key_share = do_proactive_refresh(
+                &validators_info,
+                &signer,
+                &app_state.listener_state,
+                sig_request_address,
+                &my_subgroup,
+                &subxt_signer,
+                deserialized_old_key,
+            )
+            .await?;
             let serialized_key_share = key_serialize(&new_key_share)
                 .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
-            let new_key_info = UserRegistrationInfo { key, value: serialized_key_share, proactive_refresh: true };
+            let new_key_info =
+                UserRegistrationInfo { key, value: serialized_key_share, proactive_refresh: true };
 
             app_state.kv_store.kv().delete(&new_key_info.key).await?;
             let reservation = app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
             app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
-            send_key(&api, &stash_address, &mut addresses_in_subgroup, new_key_info, &signer);
+            send_key(&api, &stash_address, &mut addresses_in_subgroup, new_key_info, &signer)
+                .await
+                .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
         }
     }
     // TODO: Tell chain refresh is done?
@@ -110,7 +126,7 @@ pub async fn do_proactive_refresh(
     sig_request_account: AccountId32,
     my_subgroup: &u8,
     subxt_signer: &subxt_signer::sr25519::Keypair,
-    old_key: KeyShare<KeyParams>
+    old_key: KeyShare<KeyParams>,
 ) -> Result<KeyShare<KeyParams>, ProtocolErr> {
     let session_uid = sig_request_account.to_string();
     let account_id = SubxtAccountId32(*signer.account_id().clone().as_ref());
@@ -150,13 +166,14 @@ pub async fn do_proactive_refresh(
         state,
         &x25519_secret_key,
     )
-    .await
-    .unwrap();
+    .await?;
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
         let broadcast_out = ready??;
         Channels(broadcast_out, rx_from_others)
     };
-    let result = execute_proactive_refresh(channels, subxt_signer, tss_accounts, my_subgroup, old_key).await?; 
+    let result =
+        execute_proactive_refresh(channels, subxt_signer, tss_accounts, my_subgroup, old_key)
+            .await?;
     Ok(result)
 }

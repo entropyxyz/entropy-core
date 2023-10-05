@@ -34,13 +34,11 @@ pub async fn do_signing(
     let info =
         SignInit::new(message.clone(), sig_hash.clone(), tx_id.clone(), user_address.clone())?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
-    let signer =
-        get_signer(kv_manager).await.map_err(|_| ProtocolErr::UserError("Error getting Signer"))?;
+    let signer = get_signer(kv_manager).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
 
     let x25519_secret_key = derive_static_secret(signer.signer());
-    let subxt_signer = get_subxt_signer(kv_manager)
-        .await
-        .map_err(|_| ProtocolErr::UserError("Error getting Signer"))?;
+    let subxt_signer =
+        get_subxt_signer(kv_manager).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
 
     let account_id = AccountId32(subxt_signer.public_key().0);
 

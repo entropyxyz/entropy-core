@@ -1,6 +1,6 @@
 use std::{convert::TryFrom, path::PathBuf};
 
-use entropy_protocol::{PartyId};
+use entropy_protocol::PartyId;
 use serde::{Deserialize, Serialize};
 use synedrion::{KeyShare, ProductionParams};
 use tracing::{info, span, Level, Span};
