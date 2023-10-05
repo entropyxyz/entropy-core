@@ -1,4 +1,4 @@
-//! Simple CLI to test registering
+//! Simple CLI to test registering, updating programs and signing
 use clap::{Parser, Subcommand};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32 as SubxtAccountId32;
@@ -9,7 +9,7 @@ use testing_utils::{
 
 #[derive(Parser, Debug, Clone)]
 #[clap(version, about, long_about = None)]
-#[clap(about = "Test tool for Entropy")]
+#[clap(about = "Test tool for Entropy devnet")]
 struct Cli {
     #[clap(subcommand)]
     command: CliCommand,
@@ -27,12 +27,14 @@ enum CliCommand {
         // #[arg(value_enum)]
         // key_visibility: KeyVisibility,
     },
+	/// Ask the network to sign a given message
     Sign {
         /// A name from which to generate a keypair
         account_name: String,
         /// A hex encoded message
         message_hex: String,
     },
+	/// Update to the 'barebones' program
     UpdateProgram {
         /// A name from which to generate a keypair
         account_name: String,
