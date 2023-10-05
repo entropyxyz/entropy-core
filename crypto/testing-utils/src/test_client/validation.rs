@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use blake2::{Blake2s256, Digest};
 use chacha20poly1305::{
     aead::{Aead, AeadCore, KeyInit},
