@@ -53,6 +53,7 @@ pub async fn proactive_refresh(
         get_signer(&app_state.kv_store).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     check_in_registration_group(&validators_info, signer.account_id())
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    // TODO: validate this endpoint
     // TODO batch the network keys into smaller groups per session
     let all_keys = get_all_keys(&api, KEY_AMOUNT_PROACTIVE_REFRESH)
         .await

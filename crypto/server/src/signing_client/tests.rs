@@ -37,7 +37,7 @@ async fn test_proactive_refresh() {
 
     let value = response.text().await.unwrap();
 
-    let validators_info = vec![
+    let mut validators_info = vec![
         entropy_shared::ValidatorInfo {
             ip_address: "127.0.0.1:3001".as_bytes().to_vec(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
@@ -87,5 +87,18 @@ async fn test_proactive_refresh() {
     let value_after = response_3.text().await.unwrap();
 
     assert_ne!(value, value_after);
+    let alice = AccountKeyring::Alice;
+
+    validators_info[0].tss_account = alice.encode();
+    validators_info[1].tss_account = alice.encode();
+
+    let test_user_res_not_in_group =
+        submit_transaction_requests(validator_ips.clone(), validators_info.clone()).await;
+    for res in test_user_res_not_in_group {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "User Error: Invalid Signer: Invalid Signer in Signing group"
+        );
+    }
     clean_tests();
 }
