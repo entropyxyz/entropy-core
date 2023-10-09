@@ -13,6 +13,7 @@ use tracing::{info, instrument};
 
 pub use self::context::SignContext;
 use crate::{
+    helpers::signing::SignatureState,
     sign_init::SignInit,
     signing_client::{ListenerState, ProtocolErr},
 };
@@ -70,5 +71,17 @@ impl<'a> ThresholdSigningService<'a> {
 
         let (signature, recovery_id) = rsig.to_backend();
         Ok(RecoverableSignature { signature, recovery_id })
+    }
+
+    // todo placeholder for any result handling
+    #[instrument]
+    #[allow(unused_variables)]
+    pub fn handle_result(
+        &self,
+        signature: &RecoverableSignature,
+        sig_hash: &[u8],
+        signatures: &SignatureState,
+    ) {
+        signatures.insert(sig_hash, signature);
     }
 }

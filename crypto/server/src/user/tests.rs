@@ -76,6 +76,7 @@ use crate::{
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
+    Message as SigMessage,
 };
 
 #[tokio::test]
@@ -203,6 +204,23 @@ async fn test_sign_tx_no_chain() {
     }
 
     generic_msg.timestamp = SystemTime::now();
+
+    let sig_request = SigMessage { message: hex::encode(message_should_succeed_hash) };
+    let mock_client = reqwest::Client::new();
+
+    join_all(validator_ips.iter().map(|validator_ip| async {
+        let url = format!("http://{}/signer/signature", validator_ip.clone());
+        let res = mock_client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&sig_request).unwrap())
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(res.status(), 202);
+        assert_eq!(res.content_length().unwrap(), 88);
+    }))
+    .await;
     // test failing cases
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;

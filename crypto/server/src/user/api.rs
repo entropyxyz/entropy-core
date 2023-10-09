@@ -50,9 +50,9 @@ use crate::{
         entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
         get_api, EntropyConfig,
     },
-    get_and_store_values, get_random_server_info,
+    drain, get_and_store_values, get_random_server_info, get_signature,
     helpers::{
-        signing::{create_unique_tx_id, do_signing, Hasher},
+        signing::{create_unique_tx_id, do_signing, Hasher, SignatureState},
         substrate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
@@ -61,7 +61,7 @@ use crate::{
     },
     signing_client::{ListenerState, ProtocolErr},
     validation::{check_stale, SignedMessage},
-    AppState, Configuration,
+    AppState, Configuration, Message as SigMessage,
 };
 
 /// Represents an unparsed, transaction request coming from the client.

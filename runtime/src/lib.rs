@@ -126,7 +126,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // implementation changes and behavior does not, then leave spec_version as
     // is and increment impl_version.
     #[allow(clippy::zero_prefixed_literal)]
-    spec_version: 007,
+    spec_version: 008,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,

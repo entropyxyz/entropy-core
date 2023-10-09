@@ -126,6 +126,7 @@ use crate::{
             init_tracing, load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration,
             StartupArgs,
         },
+        signing::SignatureState,
         substrate::get_subgroup,
         validator::get_signer,
     },
@@ -141,6 +142,7 @@ pub struct AppState {
     pub listener_state: ListenerState,
     pub configuration: Configuration,
     pub kv_store: KvManager,
+    pub signature_state: SignatureState,
 }
 
 #[tokio::main]
@@ -152,11 +154,13 @@ async fn main() {
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(args.chain_endpoint);
     let kv_store = load_kv_store(args.bob, args.alice, args.no_password).await;
+    let signature_state = SignatureState::new();
 
     let app_state = AppState {
         listener_state,
         configuration: configuration.clone(),
         kv_store: kv_store.clone(),
+        signature_state,
     };
 
     setup_mnemonic(&kv_store, args.alice, args.bob).await.expect("Issue creating Mnemonic");
@@ -224,6 +228,8 @@ pub fn app(app_state: AppState) -> Router {
         .route("/signer/proactive_refresh", post(proactive_refresh))
         .route("/validator/sync_kvdb", post(sync_kvdb))
         .route("/healthz", get(healthz))
+        .route("/signer/signature", post(get_signature))
+        .route("/signer/drain", get(drain))
         .route("/ws", get(ws_handler));
 
     // Unsafe routes are for testing purposes only
