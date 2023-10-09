@@ -53,7 +53,7 @@ pub enum ProtocolErr {
     #[error("String Conversion Error: {0}")]
     StringConversion(#[from] FromUtf8Error),
     #[error("User Error: {0}")]
-    UserError(&'static str),
+    UserError(String),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
     #[error("Subscribe message rejected: {0}")]
@@ -70,6 +70,18 @@ pub enum ProtocolErr {
     EncryptedConnection(String),
     #[error("Program error: {0}")]
     ProgramError(#[from] entropy_constraints::Error),
+    #[error("Invalid length for converting address")]
+    AddressConversionError(String),
+    #[error("Ip Address Error: {0}")]
+    AddrParseError(#[from] std::net::AddrParseError),
+    #[error("Kv Fatal error")]
+    KvSerialize(String),
+    #[error("Validator Error: {0}")]
+    ValidatorErr(String),
+    #[error("Subgroup error: {0}")]
+    SubgroupError(&'static str),
+    #[error("Account unable to be deserialized: {0}")]
+    StringError(&'static str),
 }
 
 impl IntoResponse for ProtocolErr {

@@ -5,6 +5,7 @@ use entropy_protocol::{
     KeyParams, ValidatorInfo,
 };
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
+use parity_scale_codec::Encode;
 use sp_core::crypto::AccountId32;
 use subxt::{
     ext::sp_core::{sr25519, Bytes},
@@ -131,6 +132,20 @@ pub async fn send_key(
             .body(serde_json::to_string(&signed_message)?)
             .send()
             .await?;
+    }
+    Ok(())
+}
+
+/// Checks if a validator is in the current selected registration committee
+pub fn check_in_registration_group(
+    validators_info: &[entropy_shared::ValidatorInfo],
+    validator_address: &SubxtAccountId32,
+) -> Result<(), UserErr> {
+    let is_proper_signer = validators_info
+        .iter()
+        .any(|validator_info| validator_info.tss_account == validator_address.encode());
+    if !is_proper_signer {
+        return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
     }
     Ok(())
 }

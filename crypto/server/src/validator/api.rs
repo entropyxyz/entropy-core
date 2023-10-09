@@ -73,6 +73,7 @@ pub async fn get_all_keys(
     api: &OnlineClient<EntropyConfig>,
     batch_size: usize,
 ) -> Result<Vec<String>, ValidatorErr> {
+    // TODO: get all keys should return all keys not just "batch size"
     // zero batch size will cause infinite loop, also not needed
     assert_ne!(batch_size, 0);
     let mut result_length = batch_size;

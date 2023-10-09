@@ -56,7 +56,7 @@ use crate::{
         substrate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
-        user::{do_dkg, send_key},
+        user::{check_in_registration_group, do_dkg, send_key},
         validator::{get_signer, get_subxt_signer},
     },
     signing_client::{ListenerState, ProtocolErr},
@@ -84,6 +84,8 @@ pub struct UserRegistrationInfo {
     pub key: String,
     /// User threshold signing key
     pub value: Vec<u8>,
+    /// Is this a proactive refresh message
+    pub proactive_refresh: bool,
 }
 
 /// Called by a user to initiate the signing process for a message
@@ -242,6 +244,7 @@ async fn setup_dkg(
         let user_registration_info = UserRegistrationInfo {
             key: sig_request_address.to_string(),
             value: serialized_key_share,
+            proactive_refresh: false,
         };
         send_key(&api, &stash_address, &mut addresses_in_subgroup, user_registration_info, &signer)
             .await?;
@@ -297,10 +300,15 @@ pub async fn receive_key(
         return Err(UserErr::NotInSubgroup);
     }
 
-    let exists_result =
-        app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
-    if exists_result {
-        return Err(UserErr::AlreadyRegistered);
+    if user_registration_info.proactive_refresh {
+        // TODO validate that an active proactive refresh is happening
+        app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
+    } else {
+        let exists_result =
+            app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
+        if exists_result {
+            return Err(UserErr::AlreadyRegistered);
+        }
     }
     let reservation =
         app_state.kv_store.kv().reserve_key(user_registration_info.key.to_string()).await?;
@@ -480,20 +488,6 @@ pub async fn validate_new_user(
     kv_manager.kv().delete("LATEST_BLOCK_NUMBER").await?;
     let reservation = kv_manager.kv().reserve_key("LATEST_BLOCK_NUMBER".to_string()).await?;
     kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
-    Ok(())
-}
-
-/// Checks if a validator is in the current selected registration committee
-pub fn check_in_registration_group(
-    validators_info: &[entropy_shared::ValidatorInfo],
-    validator_address: &SubxtAccountId32,
-) -> Result<(), UserErr> {
-    let is_proper_signer = validators_info
-        .iter()
-        .any(|validator_info| validator_info.tss_account == validator_address.encode());
-    if !is_proper_signer {
-        return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
-    }
     Ok(())
 }
 

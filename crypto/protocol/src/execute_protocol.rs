@@ -8,8 +8,8 @@ use subxt::utils::AccountId32;
 use subxt_signer::sr25519;
 use synedrion::{
     sessions::{
-        make_interactive_signing_session, make_keygen_and_aux_session, FinalizeOutcome,
-        PrehashedMessage, ToSend,
+        make_interactive_signing_session, make_key_refresh_session, make_keygen_and_aux_session,
+        FinalizeOutcome, PrehashedMessage, ToSend,
     },
     signature::{
         self,
@@ -244,4 +244,92 @@ pub async fn execute_dkg(
             FinalizeOutcome::AnotherRound(new_sending) => sending = new_sending,
         }
     }
+}
+
+/// Execute proactive refresh.
+#[instrument(skip(chans, threshold_signer))]
+pub async fn execute_proactive_refresh(
+    mut chans: Channels,
+    threshold_signer: &sr25519::Keypair,
+    threshold_accounts: Vec<AccountId32>,
+    my_idx: &u8,
+    old_key: KeyShare<KeyParams>,
+) -> Result<KeyShare<KeyParams>, ProtocolExecutionErr> {
+    let party_ids: Vec<PartyId> =
+        threshold_accounts.clone().into_iter().map(PartyId::new).collect();
+    let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());
+    let id_to_index = party_ids
+        .iter()
+        .enumerate()
+        .map(|(idx, id)| (id, PartyIdx::from_usize(idx)))
+        .collect::<HashMap<_, _>>();
+
+    let tx = &chans.0;
+    let rx = &mut chans.1;
+
+    let signer = SignerWrapper(threshold_signer.clone());
+    // TODO (#376): while `Public::from_raw` happens to work here, it is not the correct way.
+    // We should have `Public` objects at this point, not `AccountId32`.
+    let verifiers = threshold_accounts
+        .into_iter()
+        .map(|acc| VerifierWrapper(sr25519::PublicKey(acc.0)))
+        .collect::<Vec<_>>();
+
+    // TODO (#375): this should come from whoever initiates the signing process,
+    // (or as some deterministic function, e.g. the hash of the last block mined)
+    // and be the same for all participants.
+    let shared_randomness = b"123456";
+
+    let mut sending = make_key_refresh_session(
+        &mut OsRng,
+        shared_randomness,
+        signer,
+        &verifiers,
+        PartyIdx::from_usize(*my_idx as usize),
+    )
+    .map_err(ProtocolExecutionErr::SessionCreationError)?;
+    let key_change = loop {
+        let (mut receiving, to_send) =
+            sending.start_receiving(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)?;
+
+        match to_send {
+            ToSend::Broadcast(message) => {
+                tx.send(ProtocolMessage::new_bcast(&my_id, message))?;
+            },
+            ToSend::Direct(msgs) =>
+                for (id_to, message) in msgs.into_iter() {
+                    tx.send(ProtocolMessage::new_p2p(
+                        &my_id,
+                        &party_ids[id_to.as_usize()],
+                        message,
+                    ))?;
+                },
+        };
+
+        while receiving.has_cached_messages() {
+            receiving.receive_cached_message().map_err(ProtocolExecutionErr::SynedrionSession)?;
+        }
+
+        while !receiving.can_finalize() {
+            let signing_message = rx.recv().await.ok_or_else(|| {
+                ProtocolExecutionErr::IncomingStream(format!("{:?}", receiving.current_stage()))
+            })?;
+
+            // TODO: we shouldn't send broadcasts to ourselves in the first place.
+            if signing_message.from == my_id {
+                continue;
+            }
+            let from_idx = id_to_index[&signing_message.from];
+            receiving
+                .receive(from_idx, signing_message.payload)
+                .map_err(ProtocolExecutionErr::SynedrionSession)?;
+        }
+
+        match receiving.finalize(&mut OsRng).map_err(ProtocolExecutionErr::SynedrionSession)? {
+            FinalizeOutcome::Result(res) => break res,
+            FinalizeOutcome::AnotherRound(new_sending) => sending = new_sending,
+        }
+    };
+
+    Ok(old_key.update(key_change))
 }
