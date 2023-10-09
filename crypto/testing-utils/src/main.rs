@@ -2,6 +2,7 @@
 use std::time::Instant;
 
 use clap::{Parser, Subcommand};
+use colored::Colorize;
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32 as SubxtAccountId32;
 use testing_utils::{
@@ -15,7 +16,8 @@ use testing_utils::{
 struct Cli {
     #[clap(subcommand)]
     command: CliCommand,
-    /// The chain endpoint to use eg: ws://blah:9944
+    /// The chain endpoint to use eg: "ws://blah:9944". Defaults to the ENTROPY_DEVNET environment
+    /// variable
     #[arg(short, long)]
     chain_endpoint: Option<String>,
 }
@@ -41,6 +43,8 @@ enum CliCommand {
     UpdateProgram {
         /// A name from which to generate a keypair
         account_name: String,
+        /// The path to a .wasm file containing the program (defaults to barebones program)
+        program_file: Option<std::path::PathBuf>,
     },
 }
 
@@ -56,13 +60,28 @@ enum Visibility {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let now = Instant::now();
+    match run_command().await {
+        Ok(output) => {
+            println!("Success: {}", output.green());
+        },
+        Err(err) => {
+            println!("{}", "Failed!".red());
+            return Err(err);
+        },
+    }
+    println!("{}", format!("That took {:?}", now.elapsed()).yellow());
+    Ok(())
+}
+
+async fn run_command() -> anyhow::Result<String> {
     let cli = Cli::parse();
 
-    let default_endpoint_addr = "ws://localhost:9944".to_string();
-    let endpoint_addr = cli.chain_endpoint.unwrap_or(default_endpoint_addr);
+    let endpoint_addr = cli.chain_endpoint.unwrap_or_else(|| {
+        std::env::var("ENTROPY_DEVNET").unwrap_or("ws://localhost:9944".to_string())
+    });
     let api = get_api(endpoint_addr).await?;
 
-    let now = Instant::now();
     match cli.command {
         CliCommand::Register { account_name, key_visibility } => {
             let (sig_req_keypair, _) =
@@ -84,33 +103,20 @@ async fn main() -> anyhow::Result<()> {
                 _ => KeyVisibility::Public,
             };
 
-            match register(&api, sig_req_keypair, program_account, key_visibility_converted, None)
-                .await
-            {
-                Ok(register_status) => {
-                    println!("Registered successfully: {:?}", register_status);
-                },
-                Err(err) => {
-                    println!("Error: {:?}", err);
-                },
-            }
+            let register_status =
+                register(&api, sig_req_keypair, program_account, key_visibility_converted, None)
+                    .await?;
+            Ok(format!("{:?}", register_status))
         },
         CliCommand::Sign { account_name, message_hex } => {
             let (sig_req_keypair, _) =
                 sr25519::Pair::from_string_with_seed(&format!("//{}", account_name), None)?;
             println!("Signature request account: {:?}", sig_req_keypair.public());
             let message = hex::decode(message_hex)?;
-            match sign(&api, sig_req_keypair, message).await {
-                Ok(()) => {
-                    println!("Signed successfully");
-                },
-                Err(err) => {
-                    println!("Error: {:?}", err);
-                },
-            }
+            sign(&api, sig_req_keypair, message).await?;
+            Ok("Message signed".to_string())
         },
-        CliCommand::UpdateProgram { account_name } => {
-            // TODO read program from a file
+        CliCommand::UpdateProgram { account_name, program_file } => {
             let (sig_req_keypair, _) =
                 sr25519::Pair::from_string_with_seed(&format!("//{}", account_name), None)?;
             println!("Signature request account: {:?}", sig_req_keypair.public());
@@ -119,17 +125,13 @@ async fn main() -> anyhow::Result<()> {
                 sr25519::Pair::from_string_with_seed(&format!("//{}-program", account_name), None)?;
             println!("Program account: {:?}", program_keypair.public());
 
-            let program = BAREBONES_PROGRAM_WASM_BYTECODE.to_owned();
-            match update_program(&api, sig_req_keypair, program_keypair, program).await {
-                Ok(()) => {
-                    println!("Updated successfully");
-                },
-                Err(err) => {
-                    println!("Error: {:?}", err);
-                },
-            }
+            let program = match program_file {
+                Some(file_name) => std::fs::read(file_name)?,
+                None => BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+            };
+
+            update_program(&api, sig_req_keypair, program_keypair, program).await?;
+            Ok("program updated".to_string())
         },
-    };
-    println!("That took {:?}", now.elapsed());
-    Ok(())
+    }
 }

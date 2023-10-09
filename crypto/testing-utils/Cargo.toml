@@ -38,5 +38,6 @@ sha3            ="0.10.8"
 base64          ="0.13.0"
 synedrion       ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="v0.0.9" }
 # TODO rm unneeded features
-tokio={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util"] }
-hex  ="0.4.3"
+tokio  ={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util"] }
+hex    ="0.4.3"
+colored="2.0.4"
