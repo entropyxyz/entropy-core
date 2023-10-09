@@ -2,6 +2,123 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### ⚙️ Miscellaneous Tasks
+
+- Separate `entropy-protocol` crate with protocol execution logic ([#404](https://github.com/orhun/git-cliff/issues/404))
+
+### Things which have moved to the `entropy-protocol` crate:
+- `PartyId`
+- `RecoverableSignature`
+- `KeyParams`
+- `ValidatorInfo`
+- `ProtocolMessage`
+
+and the `protocol-transport` and `execute-protocol` modules.
+
+### Significant changes:
+
+`sp-core` does not compile to wasm. So we use `subxt` for `AccountId32` and `subxt-signer` for sr25519 signing. Unfortunately `subxt-signer`'s `Keypair` does not allow us direct access to the private key, which we use to generate an x25519 keypair with `derive-static-secret`. So we still use `sp-core::sr25519::Pair` in order to get x25519 keypairs, and theres currently no way to do this on the client side.
+
+### Commits: 
+
+* entropy-protocol crate
+
+* entropy-user-protocol crate
+
+* Add needed dependencies
+
+* Errors
+
+* Protocol transport module
+
+* Execute protocol fns
+
+* Top level lib.rs
+
+* Lockfile
+
+* Fmt
+
+* Rm half-baked user-protocol crate
+
+* Begin refactor of server
+
+* Refactor signing client
+
+* Refactor server
+
+* Update entropy-protocol api
+
+* Refactor kvdb
+
+* Dependencies
+
+* Refactor
+
+* Update server tests
+
+* taplo
+
+* Update dependencies for compiling for wasm
+
+* Rm entropy-constraints as dependency
+
+* Taplo
+
+* Add wasm feature to entropy-shared
+
+* Use wasm feature
+
+* Lockfile
+
+* Avoid using subxt whereever possilbe
+
+* With server feature, include everything for protocol
+
+* Simplify features
+
+* Use subxt_signer and subxt::utils::AccountId32
+
+* Testing-utils should use subxt::utils::AccountId32
+
+* Server uses subxt_signer and subxt::utils::AccountId32 when interfacing with entropy-protocol
+
+* shared has wasm feature flag
+
+* Clippy
+
+* Fix feature flags for entropy-shared
+
+* Fix derive macros for entropy-shared types
+
+* Clippy
+
+* Fix tests
+
+* Rm println
+
+* Fix tests
+
+* rename module for clarity
+
+* bump CI to nightly-2023-06-15
+
+* bump rust version in Makefile
+
+* Tidy Cargo.toml
+
+* Add tracing, add doccomments
+
+* Comments and tidying
+
+* Rm unused files
+
+* Tidy server
+
+* Rm comments - ([9ac98b5](https://github.com/orhun/git-cliff/commit/9ac98b5a0391dccde74539927c29861fc544a39b))
+
 ## [0.0.7](https://github.com/orhun/git-cliff/compare/v0.0.6..v0.0.7) - 2023-09-22
 
 ## [0.0.6](https://github.com/orhun/git-cliff/compare/v0.0.5..v0.0.6) - 2023-09-15
