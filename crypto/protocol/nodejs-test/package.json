@@ -5,7 +5,6 @@
   "license": "MIT",
   "dependencies": {
     "entropy-protocol": "file:../pkg",
-    "websocket-polyfill": "^0.0.3"
-  },
-  "type": "module"
+    "ws": "^8.14.2"
+  }
 }
