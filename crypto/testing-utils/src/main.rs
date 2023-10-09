@@ -110,6 +110,7 @@ async fn main() -> anyhow::Result<()> {
             }
         },
         CliCommand::UpdateProgram { account_name } => {
+            // TODO read program from a file
             let (sig_req_keypair, _) =
                 sr25519::Pair::from_string_with_seed(&format!("//{}", account_name), None)?;
             println!("Signature request account: {:?}", sig_req_keypair.public());
