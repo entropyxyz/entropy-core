@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
 use subxt::{tx::PairSigner, utils::AccountId32 as SubxtAccountId32, Config, OnlineClient};
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
+pub use validation::derive_static_secret;
 use validation::SignedMessage;
 use x25519_dalek::PublicKey;
 
