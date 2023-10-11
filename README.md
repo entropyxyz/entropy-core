@@ -25,7 +25,7 @@ cargo build --release
 Spinning up a local Entropy node for development and basic testing can be done with:
 
 ```sh
-cargo run --release -p entropy -- --dev --ws-external
+cargo run --release -p entropy -- --dev --rpc-external
 ```
 
 Once built, the binary can also be run directly with:
