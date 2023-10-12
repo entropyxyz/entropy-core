@@ -25,19 +25,19 @@ cargo build --release
 Spinning up a local Entropy node for development and basic testing can be done with:
 
 ```sh
-cargo run --release -p entropy -- --dev --ws-external
+cargo run --release -p entropy -- --dev --rpc-external
 ```
 
 Once built, the binary can also be run directly with:
 
 ```sh
-./target/release/entropy --dev --ws-external
+./target/release/entropy --dev --rpc-external
 ```
 
 Optionally, you can also run it with detailed logging:
 
 ```bash
-RUST_BACKTRACE=1 ./target/release/entropy -ldebug --dev --ws-external
+RUST_BACKTRACE=1 ./target/release/entropy -ldebug --dev --rpc-external
 ```
 
 ### Testing
@@ -67,12 +67,12 @@ Then run the following command to start a single node development chain.
 
 This command will firstly compile your code, and then start a local development network. You can
 also replace the default command
-(`cargo build --release && ./target/release/entropy --dev --ws-external`)
+(`cargo build --release && ./target/release/entropy --dev --rpc-external`)
 by appending your own. A few useful ones are as follow.
 
 ```bash
 # Run Substrate node without re-compiling
-./scripts/docker_run.sh ./target/release/entropy --dev --ws-external
+./scripts/docker_run.sh ./target/release/entropy --dev --rpc-external
 
 # Purge the local dev chain
 ./scripts/docker_run.sh ./target/release/entropy purge-chain --dev
