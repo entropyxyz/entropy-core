@@ -1291,11 +1291,11 @@ parameter_types! {
 }
 
 impl pallet_constraints::Config for Runtime {
+    type ConstraintsDepositPerByte = ConstraintsDepositPerByte;
     type Currency = Balances;
     type MaxAclLength = MaxAclLength;
     type MaxBytecodeLength = MaxBytecodeLength;
     type RuntimeEvent = RuntimeEvent;
-    type ConstraintsDepositPerByte = ConstraintsDepositPerByte;
     type WeightInfo = weights::pallet_constraints::WeightInfo<Runtime>;
 }
 

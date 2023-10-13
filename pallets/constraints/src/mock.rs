@@ -83,11 +83,11 @@ impl pallet_balances::Config for Test {
 }
 
 impl pallet_constraints::Config for Test {
+    type ConstraintsDepositPerByte = ConstraintsDepositPerByte;
     type Currency = Balances;
     type MaxAclLength = MaxAclLength;
     type MaxBytecodeLength = MaxBytecodeLength;
     type RuntimeEvent = RuntimeEvent;
-    type ConstraintsDepositPerByte = ConstraintsDepositPerByte;
     type WeightInfo = ();
 }
 
