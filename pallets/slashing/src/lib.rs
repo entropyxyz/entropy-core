@@ -86,9 +86,10 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// A helper to trigger an offence.
-        // # Note
-        //
-        // This is only used for demo purposes and should be removed before launch.
+        ///
+        /// # Note
+        ///
+        /// This is only used for demo purposes and should be removed before launch.
         #[pallet::call_index(0)]
         #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1).ref_time())]
         pub fn demo_offence(
