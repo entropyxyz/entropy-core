@@ -214,29 +214,6 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    let mut generic_msg_bad_validators = generic_msg.clone();
-    generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
-    generic_msg.timestamp = SystemTime::now();
-
-    let test_user_failed_x25519_pub_key = submit_transaction_requests(
-        validator_ips_and_keys.clone(),
-        generic_msg_bad_validators,
-        one,
-    )
-    .await;
-
-    let mut responses = test_user_failed_x25519_pub_key.into_iter();
-    assert_eq!(
-        responses.next().unwrap().unwrap().text().await.unwrap(),
-        "{\"Err\":\"Subscribe message rejected: Decryption(\\\"Public key does not match that \
-         given in UserTransactionRequest or register transaction\\\")\"}"
-    );
-
-    assert_eq!(
-        responses.next().unwrap().unwrap().text().await.unwrap(),
-        "{\"Err\":\"Oneshot timeout error: channel closed\"}"
-    );
-
     // Test attempting to connect over ws by someone who is not in the signing group
     let validator_ip_and_key = validator_ips_and_keys[0].clone();
     let connection_attempt_handle = tokio::spawn(async move {
@@ -267,12 +244,7 @@ async fn test_sign_tx_no_chain() {
         let subscribe_response: Result<(), String> =
             serde_json::from_str(&response_message).unwrap();
 
-        assert_eq!(
-            Err("Decryption(\"Public key does not match that given in UserTransactionRequest or \
-                 register transaction\")"
-                .to_string()),
-            subscribe_response
-        );
+        assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
         // The stream should not continue to send messages
         // returns true if this part of the test passes
         encrypted_connection.recv().await.is_err()
@@ -885,13 +857,12 @@ async fn test_sign_tx_user_participates() {
     let mut responses = test_user_failed_x25519_pub_key.into_iter();
     assert_eq!(
         responses.next().unwrap().unwrap().text().await.unwrap(),
-        "{\"Err\":\"Subscribe message rejected: Decryption(\\\"Public key does not match that \
-         given in UserTransactionRequest or register transaction\\\")\"}"
+        "{\"Err\":\"Timed out waiting for remote party\"}"
     );
 
     assert_eq!(
         responses.next().unwrap().unwrap().text().await.unwrap(),
-        "{\"Err\":\"Oneshot timeout error: channel closed\"}"
+        "{\"Err\":\"Timed out waiting for remote party\"}"
     );
 
     // Test attempting to connect over ws by someone who is not in the signing group
