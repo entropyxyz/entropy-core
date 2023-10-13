@@ -137,37 +137,8 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Sets or clears the constraints for a given signature-request account.
-        /// If the members of `new_constraints` are `None`, those constraints will be removed.
-        /// Must be sent from a constraint-modification account.
-        /// TODO update weights
-        #[pallet::call_index(0)]
-        #[pallet::weight({
-            let (evm_acl_len, btc_acl_len) = Pallet::<T>::constraint_weight_values(new_constraints);
-            <T as Config>::WeightInfo::update_constraints(evm_acl_len, btc_acl_len)
-        })]
-        pub fn update_constraints(
-            origin: OriginFor<T>,
-            sig_req_account: T::AccountId,
-            new_constraints: Constraints,
-        ) -> DispatchResult {
-            let constraint_account = ensure_signed(origin)?;
-
-            ensure!(
-                AllowedToModifyConstraints::<T>::contains_key(
-                    &constraint_account,
-                    &sig_req_account
-                ),
-                Error::<T>::NotAuthorized
-            );
-
-            Self::validate_constraints(&new_constraints)?;
-            Self::set_constraints_unchecked(&sig_req_account, &new_constraints);
-
-            Self::deposit_event(Event::ConstraintsUpdated(sig_req_account, new_constraints));
-
-            Ok(())
-        }
-
+        ///
+        /// Note that the call must be sent from a constraint-modification account.
         #[pallet::call_index(1)]
         #[pallet::weight({<T as Config>::WeightInfo::update_v2_constraints()})]
         pub fn update_v2_constraints(

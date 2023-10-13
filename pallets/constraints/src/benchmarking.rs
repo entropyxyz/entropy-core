@@ -33,24 +33,6 @@ pub fn generate_benchmarking_constraints(evm_acl_len: u32, btc_acl_len: u32) -> 
 
 benchmarks! {
 
-  update_constraints {
-    // number of addresses in the ACL
-    let a in 0 .. <T as crate::Config>::MaxAclLength::get();
-    let b in 0 .. <T as crate::Config>::MaxAclLength::get();
-    let constraints = generate_benchmarking_constraints(a, b);
-
-    let constraint_account: T::AccountId = whitelisted_caller();
-    let sig_req_account: T::AccountId = whitelisted_caller();
-
-    let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
-    let _ = CurrencyOf::<T>::make_free_balance_be(&constraint_account, value);
-
-    <AllowedToModifyConstraints<T>>::insert(constraint_account.clone(), sig_req_account.clone(), ());
-  }: _(RawOrigin::Signed(constraint_account.clone()), sig_req_account, constraints.clone())
-  verify {
-    assert_last_event::<T>(Event::<T>::ConstraintsUpdated(constraint_account, constraints).into());
-  }
-
   update_v2_constraints {
     let v2_constraint = vec![10];
     let constraint_account: T::AccountId = whitelisted_caller();
