@@ -425,7 +425,7 @@ pub async fn get_current_subgroup_signers(
 
 /// Checks if a validator is in the current selected signing committee
 pub fn check_signing_group(
-    subgroup_signers: &Vec<ValidatorInfo>,
+    subgroup_signers: &[ValidatorInfo],
     validators_info: &Vec<ValidatorInfo>,
     my_id: &<EntropyConfig as Config>::AccountId,
 ) -> Result<(), UserErr> {
