@@ -33,8 +33,8 @@ pub fn generate_benchmarking_constraints(evm_acl_len: u32, btc_acl_len: u32) -> 
 
 benchmarks! {
 
-  update_v2_constraints {
-    let v2_constraint = vec![10];
+  update_constraints {
+    let constraint = vec![10];
     let constraint_account: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();
 
@@ -42,9 +42,9 @@ benchmarks! {
     let _ = CurrencyOf::<T>::make_free_balance_be(&constraint_account, value);
 
     <AllowedToModifyConstraints<T>>::insert(constraint_account.clone(), sig_req_account.clone(), ());
-  }: _(RawOrigin::Signed(constraint_account.clone()), sig_req_account, v2_constraint.clone())
+  }: _(RawOrigin::Signed(constraint_account.clone()), sig_req_account, constraint.clone())
   verify {
-    assert_last_event::<T>(Event::<T>::ConstraintsV2Updated(constraint_account, v2_constraint).into());
+    assert_last_event::<T>(Event::<T>::ConstraintsV2Updated(constraint_account, constraint).into());
   }
 }
 

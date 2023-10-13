@@ -76,7 +76,7 @@ fn set_v2_constraints() {
                 SIG_REQ_ACCOUNT,
                 v2_too_long,
             ),
-            Error::<Test>::V2ConstraintLengthExceeded
+            Error::<Test>::ConstraintLengthExceeded
         );
     });
 }

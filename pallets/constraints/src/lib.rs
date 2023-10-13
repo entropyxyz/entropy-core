@@ -43,8 +43,8 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type WeightInfo: WeightInfo;
         type MaxAclLength: Get<u32>;
-        type MaxV2BytecodeLength: Get<u32>;
-        type V2ConstraintsDepositPerByte: Get<BalanceOf<Self>>;
+        type MaxBytecodeLength: Get<u32>;
+        type ConstraintsDepositPerByte: Get<BalanceOf<Self>>;
         /// The currency mechanism.
         type Currency: ReservableCurrency<Self::AccountId>;
     }
@@ -107,10 +107,10 @@ pub mod pallet {
         ResultQuery<Error<T>::ArchitectureDisabled>,
     >;
 
-    /// Stores V2 storage blob
+    /// Stores the set of constraints for a given account.
     #[pallet::storage]
-    #[pallet::getter(fn v2_bytecode)]
-    pub type V2Bytecode<T: Config> =
+    #[pallet::getter(fn bytecode)]
+    pub type Bytecode<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, OptionQuery>;
 
     #[pallet::event]
@@ -128,8 +128,8 @@ pub mod pallet {
         ArchitectureDisabled,
         /// ACL is too long, make it smaller
         AclLengthExceeded,
-        /// V2 constraint length is too long
-        V2ConstraintLengthExceeded,
+        /// Constraint length is too long
+        ConstraintLengthExceeded,
     }
 
     #[pallet::call]
@@ -138,8 +138,8 @@ pub mod pallet {
         ///
         /// Note that the call must be sent from a constraint-modification account.
         #[pallet::call_index(0)]
-        #[pallet::weight({<T as Config>::WeightInfo::update_v2_constraints()})]
-        pub fn update_v2_constraints(
+        #[pallet::weight({<T as Config>::WeightInfo::update_constraints()})]
+        pub fn update_constraints(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
             new_constraints: Vec<u8>,
@@ -147,8 +147,8 @@ pub mod pallet {
             let constraint_account = ensure_signed(origin)?;
             let new_constraints_length = new_constraints.len();
             ensure!(
-                new_constraints_length as u32 <= T::MaxV2BytecodeLength::get(),
-                Error::<T>::V2ConstraintLengthExceeded
+                new_constraints_length as u32 <= T::MaxBytecodeLength::get(),
+                Error::<T>::ConstraintLengthExceeded
             );
 
             ensure!(
@@ -158,16 +158,15 @@ pub mod pallet {
                 ),
                 Error::<T>::NotAuthorized
             );
-            let old_constraints_length =
-                Self::v2_bytecode(&sig_req_account).unwrap_or_default().len();
+            let old_constraints_length = Self::bytecode(&sig_req_account).unwrap_or_default().len();
 
-            Self::charge_constraint_v2_fee(
+            Self::charge_constraint_fee(
                 constraint_account,
                 old_constraints_length as u32,
                 new_constraints_length as u32,
             )?;
 
-            V2Bytecode::<T>::insert(&sig_req_account, &new_constraints);
+            Bytecode::<T>::insert(&sig_req_account, &new_constraints);
             Self::deposit_event(Event::ConstraintsV2Updated(sig_req_account, new_constraints));
             Ok(())
         }
@@ -243,18 +242,18 @@ pub mod pallet {
             (evm_acl_len, btc_acl_len)
         }
 
-        pub fn charge_constraint_v2_fee(
+        pub fn charge_constraint_fee(
             from: T::AccountId,
             old_constraints_length: u32,
             new_constraints_length: u32,
         ) -> DispatchResult {
             if old_constraints_length > new_constraints_length {
-                let charge = T::V2ConstraintsDepositPerByte::get()
+                let charge = T::ConstraintsDepositPerByte::get()
                     .saturating_mul((old_constraints_length - new_constraints_length).into());
                 T::Currency::unreserve(&from, charge);
             }
             if new_constraints_length > old_constraints_length {
-                let charge = T::V2ConstraintsDepositPerByte::get()
+                let charge = T::ConstraintsDepositPerByte::get()
                     .saturating_mul((new_constraints_length - old_constraints_length).into());
                 T::Currency::reserve(&from, charge)?;
             }
