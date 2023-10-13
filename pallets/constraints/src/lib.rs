@@ -137,7 +137,7 @@ pub mod pallet {
         /// Sets or clears the constraints for a given signature-request account.
         ///
         /// Note that the call must be sent from a constraint-modification account.
-        #[pallet::call_index(1)]
+        #[pallet::call_index(0)]
         #[pallet::weight({<T as Config>::WeightInfo::update_v2_constraints()})]
         pub fn update_v2_constraints(
             origin: OriginFor<T>,
