@@ -44,7 +44,7 @@ benchmarks! {
     <AllowedToModifyConstraints<T>>::insert(constraint_account.clone(), sig_req_account.clone(), ());
   }: _(RawOrigin::Signed(constraint_account.clone()), sig_req_account, constraint.clone())
   verify {
-    assert_last_event::<T>(Event::<T>::ConstraintsV2Updated(constraint_account, constraint).into());
+    assert_last_event::<T>(Event::<T>::ConstraintsUpdated(constraint_account, constraint).into());
   }
 }
 
