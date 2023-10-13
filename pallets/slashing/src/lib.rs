@@ -86,13 +86,16 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// A helper to trigger an offence.
-        ///
         // # Note
         //
         // This is only used for demo purposes and should be removed before launch.
         #[pallet::call_index(0)]
         #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1).ref_time())]
-        pub fn demo_offence(origin: OriginFor<T>, reporter: T::AccountId, offenders: Vec<T::AccountId>) -> DispatchResult {
+        pub fn demo_offence(
+            origin: OriginFor<T>,
+            reporter: T::AccountId,
+            offenders: Vec<T::AccountId>,
+        ) -> DispatchResult {
             let _ = ensure_root(origin)?;
             Self::do_offence(reporter, offenders)?;
             Ok(())

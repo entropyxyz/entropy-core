@@ -1,4 +1,4 @@
-use frame_support::{assert_ok, assert_err};
+use frame_support::{assert_err, assert_ok};
 use sp_runtime::Perbill;
 use sp_staking::offence::Offence;
 
@@ -40,4 +40,3 @@ fn signed_origin_cannot_initiate_demo_offence() {
         );
     })
 }
-
