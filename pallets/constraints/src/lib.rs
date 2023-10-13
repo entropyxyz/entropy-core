@@ -116,8 +116,6 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// All new constraints. [constraint_account, constraints]
-        ConstraintsUpdated(T::AccountId, Constraints),
         /// All new V2 constraints. [constraint_account, constraints]
         ConstraintsV2Updated(T::AccountId, Vec<u8>),
     }
