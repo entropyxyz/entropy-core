@@ -1,13 +1,24 @@
-//! # Constraint Pallet
+//! # Constraints Pallet
 //!
 //! ## Overview
 //!
-//! Holds the onchain constraints for users
+//! This pallet stores the WebAssembly (Wasm) program bytecode on-chain and allows users to change
+//! it as required.
 //!
+//! A program is a piece of logic which is run by the network when a signing operation is requested.
+//! The succesful execution of a program indicates to validators on the network that they should
+//! sign a given message.
 //!
-//! ### Public Functions
+//! Programs are initially registered through the Relayer pallet's `register` extrinsic.
 //!
-//! update_constraints - lets a user update their constraints
+//! ## Interface
+//!
+//! ### Dispatchable Functions
+//!
+//! #### Public
+//!
+//! `update_constraints` - Allows a user to either add or remove a set of constraints for a
+//! particular signature-request account.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
