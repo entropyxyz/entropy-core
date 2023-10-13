@@ -117,12 +117,17 @@ pub async fn sign_tx(
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
-    let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
+    let mut user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
     check_stale(user_tx_req.timestamp)?;
     let raw_message = hex::decode(user_tx_req.transaction_request.clone())?;
     let sig_hash = hex::encode(Hasher::keccak(&raw_message));
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
-    check_signing_group(subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
+    check_signing_group(&subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
+
+    // Use the validator info from chain as we can be sure it is in the correct order and the
+    // details are correct
+    user_tx_req.validators_info = subgroup_signers;
+
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
 
     let has_key = check_for_key(&signing_address, &app_state.kv_store).await?;
@@ -369,7 +374,7 @@ pub async fn confirm_registered(
 pub async fn get_current_subgroup_signers(
     api: &OnlineClient<EntropyConfig>,
     sig_hash: &str,
-) -> Result<Vec<SubxtAccountId32>, UserErr> {
+) -> Result<Vec<ValidatorInfo>, UserErr> {
     let mut subgroup_signers = vec![];
     let number = Arc::new(BigInt::from_str_radix(sig_hash, 16)?);
     let futures = (0..SIGNING_PARTY_SIZE)
@@ -393,16 +398,21 @@ pub async fn get_current_subgroup_signers(
                 let threshold_address_query = entropy::storage()
                     .staking_extension()
                     .threshold_servers(subgroup_info[index_of_signer].clone());
-                let threshold_address = api
+                let server_info = api
                     .storage()
                     .at_latest()
                     .await?
                     .fetch(&threshold_address_query)
                     .await?
-                    .ok_or(UserErr::SubgroupError("Stash Fetch Error"))?
-                    .tss_account;
+                    .ok_or(UserErr::SubgroupError("Stash Fetch Error"))?;
 
-                Ok::<_, UserErr>(threshold_address)
+                Ok::<_, UserErr>(ValidatorInfo {
+                    x25519_public_key: server_info.x25519_public_key,
+                    ip_address: SocketAddrV4::from_str(std::str::from_utf8(
+                        &server_info.endpoint,
+                    )?)?,
+                    tss_account: server_info.tss_account,
+                })
             }
         })
         .collect::<Vec<_>>();
@@ -415,18 +425,20 @@ pub async fn get_current_subgroup_signers(
 
 /// Checks if a validator is in the current selected signing committee
 pub fn check_signing_group(
-    subgroup_signers: Vec<SubxtAccountId32>,
+    subgroup_signers: &[ValidatorInfo],
     validators_info: &Vec<ValidatorInfo>,
     my_id: &<EntropyConfig as Config>::AccountId,
 ) -> Result<(), UserErr> {
+    let subgroup_signer_ids: Vec<SubxtAccountId32> =
+        subgroup_signers.iter().map(|signer| signer.tss_account.clone()).collect();
     // Check that validators given by the user match those from get_current_subgroup_signers
     for validator in validators_info {
-        if !subgroup_signers.contains(&validator.tss_account) {
+        if !subgroup_signer_ids.contains(&validator.tss_account) {
             return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
         }
     }
     // Finally, check that we ourselves are in the signing group
-    if !subgroup_signers.contains(my_id) {
+    if !subgroup_signer_ids.contains(my_id) {
         return Err(UserErr::InvalidSigner(
             "Signing group is valid, but this threshold server is not in the group",
         ));
