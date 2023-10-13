@@ -96,7 +96,7 @@ pub mod pallet {
             reporter: T::AccountId,
             offenders: Vec<T::AccountId>,
         ) -> DispatchResult {
-            let _ = ensure_root(origin)?;
+            ensure_root(origin)?;
             Self::do_offence(reporter, offenders)?;
             Ok(())
         }
