@@ -8,18 +8,18 @@ const CONSTRAINT_ACCOUNT: u64 = 1u64;
 const SIG_REQ_ACCOUNT: u64 = 2u64;
 
 #[test]
-fn set_v2_constraints() {
+fn set_constraints() {
     new_test_ext().execute_with(|| {
-        let v2_empty_constraint = vec![];
-        let v2_constraint = vec![10u8, 11u8];
-        let v2_too_long = vec![1u8, 2u8, 3u8, 4u8, 5u8];
+        let empty_constraint = vec![];
+        let constraint = vec![10u8, 11u8];
+        let too_long = vec![1u8, 2u8, 3u8, 4u8, 5u8];
 
         // make sure no one can add a constraint without explicit permissions
         assert_noop!(
-            ConstraintsPallet::update_v2_constraints(
+            ConstraintsPallet::update_constraints(
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                v2_constraint.clone(),
+                constraint.clone(),
             ),
             Error::<Test>::NotAuthorized
         );
@@ -28,10 +28,10 @@ fn set_v2_constraints() {
 
         // can't pay deposit
         assert_noop!(
-            ConstraintsPallet::update_v2_constraints(
+            ConstraintsPallet::update_constraints(
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                v2_constraint.clone(),
+                constraint.clone(),
             ),
             BalancesError::<Test>::InsufficientBalance
         );
@@ -39,23 +39,23 @@ fn set_v2_constraints() {
         Balances::make_free_balance_be(&CONSTRAINT_ACCOUNT, 100);
 
         // It's okay to have an empty constraint
-        assert_ok!(ConstraintsPallet::update_v2_constraints(
+        assert_ok!(ConstraintsPallet::update_constraints(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
-            v2_empty_constraint.clone()
+            empty_constraint.clone()
         ));
 
-        assert_ok!(ConstraintsPallet::update_v2_constraints(
+        assert_ok!(ConstraintsPallet::update_constraints(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
-            v2_constraint.clone()
+            constraint.clone()
         ));
 
-        assert_eq!(ConstraintsPallet::v2_bytecode(SIG_REQ_ACCOUNT).unwrap(), v2_constraint);
+        assert_eq!(ConstraintsPallet::bytecode(SIG_REQ_ACCOUNT).unwrap(), constraint);
         assert_eq!(Balances::free_balance(CONSTRAINT_ACCOUNT), 90);
 
         // deposit refunded partial
-        assert_ok!(ConstraintsPallet::update_v2_constraints(
+        assert_ok!(ConstraintsPallet::update_constraints(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
             vec![10u8]
@@ -63,7 +63,7 @@ fn set_v2_constraints() {
         assert_eq!(Balances::free_balance(CONSTRAINT_ACCOUNT), 95);
 
         // deposit refunded full
-        assert_ok!(ConstraintsPallet::update_v2_constraints(
+        assert_ok!(ConstraintsPallet::update_constraints(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
             vec![]
@@ -71,10 +71,10 @@ fn set_v2_constraints() {
         assert_eq!(Balances::free_balance(CONSTRAINT_ACCOUNT), 100);
 
         assert_noop!(
-            ConstraintsPallet::update_v2_constraints(
+            ConstraintsPallet::update_constraints(
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                v2_too_long,
+                too_long,
             ),
             Error::<Test>::ConstraintLengthExceeded
         );

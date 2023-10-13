@@ -116,8 +116,8 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// All new V2 constraints. [constraint_account, constraints]
-        ConstraintsV2Updated(T::AccountId, Vec<u8>),
+        /// All new constraints. [constraint_account, constraints]
+        ConstraintsUpdated(T::AccountId, Vec<u8>),
     }
 
     #[pallet::error]
@@ -167,7 +167,7 @@ pub mod pallet {
             )?;
 
             Bytecode::<T>::insert(&sig_req_account, &new_constraints);
-            Self::deposit_event(Event::ConstraintsV2Updated(sig_req_account, new_constraints));
+            Self::deposit_event(Event::ConstraintsUpdated(sig_req_account, new_constraints));
             Ok(())
         }
     }
