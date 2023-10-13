@@ -7,6 +7,8 @@ use wasm_bindgen_derive::TryFromJsValue;
 
 use super::user_participates_in_dkg_protocol;
 
+extern crate alloc;
+
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub async fn run_dkg_protocol(
     validators_info_js: ValidatorInfoArray,
