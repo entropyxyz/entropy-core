@@ -29,7 +29,7 @@ pub async fn run_dkg_protocol(
 
     let x25519_private_key_raw: [u8; 32] = x25519_private_key_vec.try_into().unwrap();
     let x25519_private_key: x25519_dalek::StaticSecret = x25519_private_key_raw.into();
-	unimplemented!();
+    unimplemented!();
     // let key_share = user_participates_in_dkg_protocol(
     //     validators_info.0,
     //     &user_signing_keypair,
