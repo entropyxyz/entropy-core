@@ -5,6 +5,7 @@ mod protocol_message;
 pub mod protocol_transport;
 pub mod user;
 
+extern crate alloc;
 use std::{fmt, net::SocketAddrV4};
 
 use entropy_shared::X25519PublicKey;
@@ -18,11 +19,15 @@ use synedrion::k256::ecdsa::{RecoveryId, Signature};
 pub struct PartyId(AccountId32);
 
 impl std::hash::Hash for PartyId {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) { self.0 .0.hash(state); }
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0 .0.hash(state);
+    }
 }
 
 impl PartyId {
-    pub fn new(acc: AccountId32) -> Self { Self(acc) }
+    pub fn new(acc: AccountId32) -> Self {
+        Self(acc)
+    }
 }
 
 impl From<PartyId> for String {

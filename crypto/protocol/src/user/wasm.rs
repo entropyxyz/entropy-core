@@ -7,8 +7,6 @@ use wasm_bindgen_derive::TryFromJsValue;
 
 use super::user_participates_in_dkg_protocol;
 
-extern crate alloc;
-
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub async fn run_dkg_protocol(
     validators_info_js: ValidatorInfoArray,
@@ -31,17 +29,17 @@ pub async fn run_dkg_protocol(
 
     let x25519_private_key_raw: [u8; 32] = x25519_private_key_vec.try_into().unwrap();
     let x25519_private_key: x25519_dalek::StaticSecret = x25519_private_key_raw.into();
-
-    let key_share = user_participates_in_dkg_protocol(
-        validators_info.0,
-        &user_signing_keypair,
-        &x25519_private_key,
-    )
-    .await
-    .map_err(|err| Error::new(&format!("{}", err)))?;
-
-    // TODO decide how to return KeyShare
-    Ok(format!("{:?}", key_share))
+	unimplemented!();
+    // let key_share = user_participates_in_dkg_protocol(
+    //     validators_info.0,
+    //     &user_signing_keypair,
+    //     &x25519_private_key,
+    // )
+    // .await
+    // .map_err(|err| Error::new(&format!("{}", err)))?;
+    //
+    // // TODO decide how to return KeyShare
+    // Ok(format!("{:?}", key_share))
 }
 
 // #[cfg_attr(feature = "wasm", wasm_bindgen)]
@@ -84,8 +82,4 @@ impl ValidatorInfo {
         };
         Ok(Self(validator_info))
     }
-
-    // pub fn nn(&self) -> crate::ValidatorInfo {
-    // 	self.0
-    // }
 }
