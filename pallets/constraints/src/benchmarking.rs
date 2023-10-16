@@ -20,17 +20,6 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     assert_eq!(event, &system_event);
 }
 
-/// Generates a set of constraints fit to the specified storage complexity parameters
-pub fn generate_benchmarking_constraints(evm_acl_len: u32, btc_acl_len: u32) -> Constraints {
-    let mut evm_acl = Acl::<[u8; 20]>::default();
-    let mut btc_acl = Acl::<[u8; 32]>::default();
-
-    evm_acl.addresses = (0..evm_acl_len).map(|_| <[u8; 20]>::default()).collect::<Vec<_>>();
-    btc_acl.addresses = (0..btc_acl_len).map(|_| <[u8; 32]>::default()).collect::<Vec<_>>();
-
-    Constraints { evm_acl: Some(evm_acl), btc_acl: Some(btc_acl) }
-}
-
 benchmarks! {
 
   update_constraints {
