@@ -6,6 +6,7 @@ use entropy_protocol::ValidatorInfo;
 use entropy_shared::SIGNING_PARTY_SIZE;
 use futures::future::{join_all, try_join_all};
 use num::{bigint::BigInt, Num, ToPrimitive};
+use parity_scale_codec::Decode;
 use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
 use subxt::{tx::PairSigner, utils::AccountId32 as SubxtAccountId32, Config, OnlineClient};
@@ -17,7 +18,9 @@ use x25519_dalek::PublicKey;
 pub use crate::chain_api::entropy::runtime_types::entropy_shared::{
     constraints::Constraints, types::KeyVisibility,
 };
-use crate::chain_api::{entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *};
+use crate::chain_api::{
+    entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *,
+};
 
 /// Get the Entropy api
 pub async fn get_api(ws_url: String) -> anyhow::Result<OnlineClient<EntropyConfig>> {
@@ -166,6 +169,44 @@ pub async fn update_program(
     Ok(())
 }
 
+/// Get info on all registered accounts
+pub async fn get_accounts(
+    api: &OnlineClient<EntropyConfig>,
+) -> anyhow::Result<Vec<(Vec<u8>, RegisteredInfo)>> {
+    let storage_address = subxt::dynamic::storage_root("Relayer", "Registered");
+    let batch_size = 100;
+    let mut iter =
+        api.storage().at_latest().await?.iter(storage_address, batch_size as u32).await?;
+    let mut accounts = Vec::new();
+    while let Some((storage_key, account)) = iter.next().await? {
+        let decoded = account.into_encoded();
+        let registered_info = RegisteredInfo::decode(&mut decoded.as_ref())?;
+        let key = storage_key.0[storage_key.0.len() - 32..].to_vec();
+        accounts.push((key, registered_info))
+    }
+    Ok(accounts)
+}
+
+// TODO this is not tested
+/// Fund a given account with sudo
+pub async fn fund_account(
+    api: &OnlineClient<EntropyConfig>,
+    root_keypair: sr25519::Pair,
+    account_to_fund: AccountId32,
+    amount: u128,
+) -> anyhow::Result<()> {
+    let root_account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(root_keypair);
+    let sudo_tx = entropy::tx().balances().force_set_balance(account_to_fund.into(), amount);
+    api.tx()
+        .sign_and_submit_then_watch_default(&sudo_tx, &root_account)
+        .await?
+        .wait_for_in_block()
+        .await?
+        .wait_for_success()
+        .await?;
+    Ok(())
+}
+
 // pub async fn transfer_balance() {
 // let pair = sp_core::sr25519::Pair::from_string(&mnemonic_phrase_A, None).unwrap();
 // let account_A = PairSigner::new(pair);
@@ -290,6 +331,3 @@ impl Hasher {
 //     buffer.copy_from_slice(&hash);
 //     buffer
 // }
-
-// let sudo_tx = entropy::tx().balances().force_set_balance(account_id32.into(), 9);
-// api.tx().sudo().sign_and_submit_then_watch_default();
