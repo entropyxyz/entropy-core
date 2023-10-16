@@ -82,42 +82,6 @@ pub mod pallet {
         ResultQuery<Error<T>::NotAuthorized>,
     >;
 
-    /// 2-ary set associating a signature-request account to the architectures it has active
-    /// constraints on.
-    #[pallet::storage]
-    #[pallet::getter(fn active_constraints_by_arch)]
-    pub type ActiveArchitectures<T: Config> = StorageDoubleMap<
-        _,
-        Blake2_128Concat,
-        T::AccountId,
-        Blake2_128Concat,
-        Arch,
-        (),
-        ResultQuery<Error<T>::ArchitectureDisabled>,
-    >;
-
-    /// Stores the EVM ACL of each user
-    #[pallet::storage]
-    #[pallet::getter(fn evm_acl)]
-    pub type EvmAcl<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        T::AccountId,
-        Acl<[u8; 20]>,
-        ResultQuery<Error<T>::ArchitectureDisabled>,
-    >;
-
-    /// Stores the BTC ACL of each user
-    #[pallet::storage]
-    #[pallet::getter(fn btc_acl)]
-    pub type BtcAcl<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        T::AccountId,
-        Acl<[u8; 32]>,
-        ResultQuery<Error<T>::ArchitectureDisabled>,
-    >;
-
     /// Stores the set of constraints for a given account.
     #[pallet::storage]
     #[pallet::getter(fn bytecode)]
@@ -135,10 +99,6 @@ pub mod pallet {
     pub enum Error<T> {
         /// Constraint account doesn't have permission to modify these constraints
         NotAuthorized,
-        /// User has disabled signing for this architecture
-        ArchitectureDisabled,
-        /// ACL is too long, make it smaller
-        AclLengthExceeded,
         /// Constraint length is too long
         ConstraintLengthExceeded,
     }
@@ -187,70 +147,26 @@ pub mod pallet {
         /// Sets the constraints for a given signature-request account without validating the
         /// constraints (eg ACL length checks, etc.)
         pub fn set_constraints_unchecked(
-            sig_req_account: &T::AccountId,
-            constraints: &Constraints,
+            _sig_req_account: &T::AccountId,
+            _constraints: &Constraints,
         ) {
-            let Constraints { evm_acl, btc_acl } = constraints;
-
-            match evm_acl {
-                Some(acl) => {
-                    EvmAcl::<T>::insert(sig_req_account.clone(), acl);
-                    ActiveArchitectures::<T>::insert(sig_req_account.clone(), Arch::Evm, ());
-                },
-                None => {
-                    ActiveArchitectures::<T>::remove(sig_req_account.clone(), Arch::Evm);
-                    EvmAcl::<T>::remove(sig_req_account.clone());
-                },
-            }
-            match btc_acl {
-                Some(acl) => {
-                    BtcAcl::<T>::insert(sig_req_account.clone(), acl);
-                    ActiveArchitectures::<T>::insert(sig_req_account, Arch::Btc, ());
-                },
-                None => {
-                    ActiveArchitectures::<T>::remove(sig_req_account.clone(), Arch::Btc);
-                    BtcAcl::<T>::remove(sig_req_account);
-                },
-            }
+            todo!("Jake, do we need this anymore?")
         }
 
         /// Validates constraints before they are stored anywhere as a set of valid constraints
-        pub fn validate_constraints(constraints: &Constraints) -> Result<(), Error<T>> {
-            let Constraints { evm_acl, btc_acl } = constraints;
-
-            Self::validate_acl(evm_acl)?;
-            Self::validate_acl(btc_acl)?;
-
-            Ok(())
+        pub fn validate_constraints(_constraints: &Constraints) -> Result<(), Error<T>> {
+            todo!("Jake, do we need this anymore?")
         }
 
         /// Validates an ACL before it is stored anywhere as a valid constraint
-        fn validate_acl<A>(acl: &Option<Acl<A>>) -> Result<(), Error<T>> {
-            if let Some(acl) = acl {
-                ensure!(
-                    acl.addresses.len() as u32 <= T::MaxAclLength::get(),
-                    Error::<T>::AclLengthExceeded
-                );
-            }
-
-            Ok(())
+        fn _validate_acl<A>(_acl: &Option<Acl<A>>) -> Result<(), Error<T>> {
+            todo!("Jake, do we need this anymore?")
         }
 
         /// Returns information about Constraints that can be used to calculate weights.
         /// Used as values in some `#[pallet::weight]` macros.
-        pub fn constraint_weight_values(constraints: &Constraints) -> (u32, u32) {
-            let Constraints { evm_acl, btc_acl } = constraints;
-
-            let mut evm_acl_len: u32 = 0;
-            if let Some(acl) = evm_acl {
-                evm_acl_len += acl.addresses.len() as u32;
-            }
-            let mut btc_acl_len: u32 = 0;
-            if let Some(acl) = btc_acl {
-                btc_acl_len += acl.addresses.len() as u32;
-            }
-
-            (evm_acl_len, btc_acl_len)
+        pub fn constraint_weight_values(_constraints: &Constraints) -> (u32, u32) {
+            todo!("Jake, do we need this anymore?")
         }
 
         pub fn charge_constraint_fee(
