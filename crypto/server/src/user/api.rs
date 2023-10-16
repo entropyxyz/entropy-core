@@ -138,7 +138,8 @@ pub async fn sign_tx(
     let program = get_program(&api, &second_signing_address_conversion).await?;
 
     let mut runtime = Runtime::new();
-    let initial_state = InitialState { data: raw_message };
+    let initial_state =
+        InitialState { data: raw_message, signature_request_key: signing_address_arr.to_vec() };
 
     runtime.evaluate(&program, &initial_state)?;
 
