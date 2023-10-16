@@ -31,6 +31,7 @@ RUN --mount=type=secret,id=credentials,required=true apt-get update \
         -C strip=${STRIP} \
     && install target/release/${PACKAGE} /usr/local/bin
 
+# Second stage containing just the built binary and no other build dependencies
 FROM --platform=linux/amd64 alpine:${ALPINE_VERSION}
 ARG PACKAGE
 ENV binary $PACKAGE
