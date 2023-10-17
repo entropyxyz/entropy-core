@@ -21,6 +21,8 @@ services:
     build:
       args:
         PACKAGE: server
+      ssh:
+        - default
       secrets:
         - credentials
       tags:
@@ -38,6 +40,8 @@ services:
   # In a local devnet setup, for now, this is "Alice's chain."
   chain-node:
     build:
+      ssh:
+        - default
       secrets:
         - credentials
       tags:
