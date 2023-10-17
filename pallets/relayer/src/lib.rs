@@ -172,6 +172,7 @@ pub mod pallet {
         IpAddressError,
         SigningGroupError,
         NoSyncedValidators,
+        MaxProgramLengthExceeded,
     }
 
     #[pallet::call]
@@ -208,6 +209,12 @@ pub mod pallet {
                 Error::<T>::AlreadySubmitted
             );
 
+            ensure!(
+                initial_program.len() as u32
+                    <= <T as pallet_constraints::Config>::MaxV2BytecodeLength::get(),
+                Error::<T>::MaxProgramLengthExceeded,
+            );
+
             let block_number = <frame_system::Pallet<T>>::block_number();
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(sig_req_account.clone().encode());
@@ -219,7 +226,7 @@ pub mod pallet {
                 &sig_req_account,
                 RegisteringDetails::<T> {
                     is_registering: true,
-                    program_modification_account: program_modification_account.clone(),
+                    program_modification_account,
                     is_swapping: false,
                     confirmations: vec![],
                     program: initial_program,
