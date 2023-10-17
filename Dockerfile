@@ -49,13 +49,14 @@ COPY --from=build --chown=entropy:entropy --chmod=554 /usr/local/bin/${PACKAGE} 
 COPY --chown=entropy:entropy --chmod=554 bin/entrypoint.sh /usr/local/bin/entrypoint.sh
 USER entropy
 
-# Expose Substrate's default Prometheus endpoint.
+###
+# Describe the available ports to expose.
+##
+# Substrate's default Prometheus endpoint.
 EXPOSE 9615
-
-# Expose Substrate's default RPC port.
+# Substrate's default RPC port.
 EXPOSE 9944
-
-# Expose Substrate's default P2P port.
+# Substrate's default P2P port.
 EXPOSE 30333
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

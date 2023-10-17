@@ -10,7 +10,7 @@
 # Docker and container engine preparation/runtime stuff.
 ###
 .dockerignore
-docker-compose.yml
+docker-compose.yaml
 
 #################################
 # General editor and IDE stuff. #
