@@ -38,7 +38,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{Constraints, KeyVisibility, SIGNING_PARTY_SIZE};
+    use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays},
         inherent::Vec,
@@ -188,7 +188,7 @@ pub mod pallet {
         // TODO: This benchmark is going to need to change
         #[pallet::call_index(0)]
         #[pallet::weight({
-            let (mut evm_acl_len, mut btc_acl_len) = (0, 0);
+            let (evm_acl_len, btc_acl_len) = (0, 0);
             // if let Some(constraints) = &initial_program {
             //     (evm_acl_len, btc_acl_len) = ConstraintsPallet::<T>::constraint_weight_values(constraints);
             // }
