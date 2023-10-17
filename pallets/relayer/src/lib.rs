@@ -8,13 +8,16 @@
 //! generation (DKG) process.
 //!
 //! After this process validator nodes on the network can confirm that they have received a
-//! key-share from the registering user - at which point the user can be considered as registered.
+//! key-share from the registering user. Once enough validators have signaled that they have the
+//! user's key-share (right now this is one validator per partition) the user can be considered as
+//! registered.
 //!
 //! ### Public Functions
 //!
 //! `register` - Allows a user to signal their intent to register onto the Entropy network.
 //! `confirm_register` - Allows validator nodes to confirm that they have recieved a user's
-//! key-share and that the user can be succesfully registered.
+//! key-share. After enough succesful confirmations from validators that user will be succesfully
+//! registered.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::new_without_default)]
