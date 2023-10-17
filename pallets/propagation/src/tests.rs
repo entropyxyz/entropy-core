@@ -60,8 +60,8 @@ fn knows_how_to_mock_several_http_calls() {
         Propagation::post_dkg(1).unwrap();
 
         System::set_block_number(3);
-        assert_ok!(Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, None,));
-        assert_ok!(Relayer::register(RuntimeOrigin::signed(2), 3, KeyVisibility::Public, None,));
+        assert_ok!(Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, vec![],));
+        assert_ok!(Relayer::register(RuntimeOrigin::signed(2), 3, KeyVisibility::Public, vec![],));
         // full send
         Propagation::post_dkg(4).unwrap();
         // test pruning
