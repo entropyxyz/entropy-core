@@ -1,5 +1,5 @@
 use codec::Encode;
-use entropy_shared::{Constraints, KeyVisibility};
+use entropy_shared::KeyVisibility;
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
@@ -52,11 +52,13 @@ fn it_tests_get_validator_rotation() {
 #[test]
 fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
+        let empty_program = vec![];
+
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None,
+            empty_program,
         ));
 
         assert!(Relayer::registering(1).unwrap().is_registering);
@@ -79,11 +81,12 @@ fn it_confirms_registers_a_user_then_swap() {
             Error::<Test>::NotRegistering
         );
 
+        let empty_program = vec![];
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Private([0; 32]),
-            Some(Constraints::default()),
+            empty_program,
         ));
 
         assert_noop!(
@@ -114,10 +117,10 @@ fn it_confirms_registers_a_user_then_swap() {
 
         let registering_info = RegisteringDetails::<Test> {
             is_registering: true,
-            constraint_account: 2 as <Test as frame_system::Config>::AccountId,
+            program_modification_account: 2 as <Test as frame_system::Config>::AccountId,
             is_swapping: false,
             confirmations: vec![0],
-            constraints: Some(Constraints::default()),
+            program: vec![],
             key_visibility: KeyVisibility::Private([0; 32]),
         };
 
@@ -149,16 +152,17 @@ fn it_confirms_registers_a_user_then_swap() {
 fn it_doesnt_allow_double_registering() {
     new_test_ext().execute_with(|| {
         // register a user
+        let empty_program = vec![];
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Permissioned,
-            None,
+            empty_program,
         ));
 
         // error if they try to submit another request, even with a different constraint key
         assert_noop!(
-            Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Permissioned, None,),
+            Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Permissioned, vec![]),
             Error::<Test>::AlreadySubmitted
         );
     });
@@ -167,11 +171,12 @@ fn it_doesnt_allow_double_registering() {
 #[test]
 fn it_provides_free_txs_confirm_done() {
     new_test_ext().execute_with(|| {
+        let empty_program = vec![];
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None,
+            empty_program,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
@@ -225,11 +230,12 @@ fn it_provides_free_txs_confirm_done_fails_2() {
 #[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(3)"]
 fn it_provides_free_txs_confirm_done_fails_3() {
     new_test_ext().execute_with(|| {
+        let empty_program = vec![];
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None,
+            empty_program,
         ));
 
         assert_ok!(Relayer::confirm_register(
@@ -255,11 +261,12 @@ fn it_provides_free_txs_confirm_done_fails_3() {
 #[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(4)"]
 fn it_provides_free_txs_confirm_done_fails_4() {
     new_test_ext().execute_with(|| {
+        let empty_program = vec![];
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None,
+            empty_program,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
@@ -278,11 +285,12 @@ fn it_provides_free_txs_confirm_done_fails_4() {
 #[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(5)"]
 fn it_provides_free_txs_confirm_done_fails_5() {
     new_test_ext().execute_with(|| {
+        let empty_program = vec![];
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None,
+            empty_program,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
