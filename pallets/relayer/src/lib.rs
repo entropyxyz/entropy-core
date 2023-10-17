@@ -1,16 +1,21 @@
 //! # Relayer Pallet
 //!
-//!
 //! ## Overview
 //!
-//! Allows a user to ask to sign, register with the network and allows a node to confirm
-//! signing was completed properly.
+//! Entrypoint into the Entropy network.
+//!
+//! It allows a user to submit a registration request to the network initiating the distributed key
+//! generation (DKG) process.
+//!
+//! After this process validator nodes on the network can confirm that they have received a
+//! key-share from the registering user - at which point the user can be considered as registered.
 //!
 //! ### Public Functions
 //!
-//! prep_transaction - declares intent to sign, this gets relayed to thereshold network
-//! register - register's a user and that they have created and distributed entropy shards
-//! confirm_done - allows a node to confirm signing has happened and if a failure occured
+//! `register` - Allows a user to signal their intent to register onto the Entropy network.
+//! `confirm_register` - Allows validator nodes to confirm that they have recieved a user's
+//! key-share and that the user can be succesfully registered.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::new_without_default)]
 #![allow(clippy::or_fun_call)]
@@ -166,14 +171,16 @@ pub mod pallet {
         NoSyncedValidators,
     }
 
-    /// Allows a user to kick off signing process
-    /// `sig_request`: signature request for user
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Signals that a user wants to register an account with Entropy.
+        /// Allows a user to signal that they want to register an account with the Entropy network.
         ///
-        /// This should be called by the signature-request account, and specify the initial
-        /// constraint-modification `AccountId` that can set constraints.
+        /// The caller provides an initial program, if any, an account which is able to modify a
+        /// the program, and the program's permission level on the network.
+        ///
+        /// Note that a user needs to be confirmed by validators through the
+        /// [`Self::confirm_register`] extrinsic before they can be considered as registered on the
+        /// network.
         // TODO: This benchmark is going to need to change
         #[pallet::call_index(0)]
         #[pallet::weight({
@@ -225,11 +232,15 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Used by validators to confirm they have received a key-share from a user that is
-        /// registering. After a validator from each partition confirms they have a
-        /// keyshare, this should get the user to a `Registered` state
+        /// Allows validators to confirm that they have received a key-share from a user that is
+        /// in the process of registering.
+        ///
+        /// After a validator from each partition confirms they have a keyshare the user will be
+        /// considered as registered on the network.
         #[pallet::call_index(2)]
-        #[pallet::weight((<T as Config>::WeightInfo::confirm_register_swapping(SIGNING_PARTY_SIZE as u32), Pays::No))]
+        #[pallet::weight(
+            (<T as Config>::WeightInfo::confirm_register_swapping(SIGNING_PARTY_SIZE as u32), Pays::No))
+        ]
         pub fn confirm_register(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
