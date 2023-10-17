@@ -102,4 +102,4 @@ services:
       - "all"
       - "--validator" # This is what makes the node a validator.
       - "--bootnodes"
-      - "/dns/chain-node/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
+      - "/dns4/chain-node/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
