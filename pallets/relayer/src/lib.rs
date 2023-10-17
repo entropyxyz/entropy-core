@@ -65,11 +65,12 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
+        // TODO: This should probably be described as an `enum`
         pub is_registering: bool,
-        pub constraint_account: T::AccountId,
+        pub program_modification_account: T::AccountId,
         pub is_swapping: bool,
         pub confirmations: Vec<u8>,
-        pub constraints: Option<Constraints>,
+        pub program: Vec<u8>,
         pub key_visibility: KeyVisibility,
     }
 
@@ -173,45 +174,45 @@ pub mod pallet {
         ///
         /// This should be called by the signature-request account, and specify the initial
         /// constraint-modification `AccountId` that can set constraints.
+        // TODO: This benchmark is going to need to change
         #[pallet::call_index(0)]
         #[pallet::weight({
             let (mut evm_acl_len, mut btc_acl_len) = (0, 0);
-            if let Some(constraints) = &initial_constraints {
-                (evm_acl_len, btc_acl_len) = ConstraintsPallet::<T>::constraint_weight_values(constraints);
-            }
+            // if let Some(constraints) = &initial_program {
+            //     (evm_acl_len, btc_acl_len) = ConstraintsPallet::<T>::constraint_weight_values(constraints);
+            // }
             <T as Config>::WeightInfo::register(evm_acl_len, btc_acl_len)
         })]
         pub fn register(
             origin: OriginFor<T>,
-            constraint_account: T::AccountId,
+            program_modification_account: T::AccountId,
             key_visibility: KeyVisibility,
-            initial_constraints: Option<Constraints>,
+            initial_program: Vec<u8>,
         ) -> DispatchResult {
             let sig_req_account = ensure_signed(origin)?;
 
-            // ensure account isn't already registered or has existing constraints
+            // Ensure account isn't already registered or has existing constraints
             ensure!(!Registered::<T>::contains_key(&sig_req_account), Error::<T>::AlreadySubmitted);
             ensure!(
                 !Registering::<T>::contains_key(&sig_req_account),
                 Error::<T>::AlreadySubmitted
             );
-            if let Some(constraints) = &initial_constraints {
-                ConstraintsPallet::<T>::validate_constraints(constraints)?;
-            }
+
             let block_number = <frame_system::Pallet<T>>::block_number();
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(sig_req_account.clone().encode());
                 Ok(())
             })?;
-            // put account into a registering state
+
+            // Put account into a registering state
             Registering::<T>::insert(
                 &sig_req_account,
                 RegisteringDetails::<T> {
                     is_registering: true,
-                    constraint_account: constraint_account.clone(),
+                    program_modification_account: program_modification_account.clone(),
                     is_swapping: false,
                     confirmations: vec![],
-                    constraints: initial_constraints,
+                    program: initial_program,
                     key_visibility,
                 },
             );
@@ -271,17 +272,16 @@ pub mod pallet {
                     <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
                 if !registering_info.is_swapping {
                     AllowedToModifyConstraints::<T>::insert(
-                        &registering_info.constraint_account,
+                        &registering_info.program_modification_account,
                         sig_req_account.clone(),
                         (),
                     );
 
-                    if let Some(constraints) = registering_info.constraints {
-                        ConstraintsPallet::<T>::set_constraints_unchecked(
-                            &sig_req_account,
-                            &constraints,
-                        );
-                    }
+                    ConstraintsPallet::<T>::set_program_unchecked(
+                        &sig_req_account,
+                        registering_info.program,
+                    )?;
+
                     weight =
                         <T as Config>::WeightInfo::confirm_register_swapping(confirmation_length);
                 }

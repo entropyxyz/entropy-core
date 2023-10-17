@@ -205,6 +205,26 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
+        /// Write a program for a given signature-request account directly into storage.
+        ///
+        /// # Note
+        ///
+        /// This does not perform any checks against the submitter of the request and whether or
+        /// not they are allowed to update a program for the given account.
+        pub fn set_program_unchecked(
+            sig_req_account: &T::AccountId,
+            program: Vec<u8>,
+        ) -> Result<(), Error<T>> {
+            ensure!(
+                program.len() as u32 <= T::MaxV2BytecodeLength::get(),
+                Error::<T>::V2ConstraintLengthExceeded
+            );
+
+            V2Bytecode::<T>::insert(sig_req_account, program);
+
+            Ok(())
+        }
+
         /// Sets the constraints for a given signature-request account without validating the
         /// constraints (eg ACL length checks, etc.)
         pub fn set_constraints_unchecked(
