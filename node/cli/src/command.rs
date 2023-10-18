@@ -35,10 +35,6 @@ impl SubstrateCli for Cli {
                 Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),
         })
     }
-
-    fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        &entropy_runtime::VERSION
-    }
 }
 
 /// Parse and run command line arguments
@@ -112,7 +108,7 @@ pub fn run() -> sc_cli::Result<()> {
                                 .into());
                         }
 
-                        cmd.run::<Block, ExecutorDispatch>(config)
+						cmd.run::<Block, sp_statement_store::runtime_api::HostFunctions>(config)
                     },
                     BenchmarkCmd::Block(cmd) => {
                         let PartialComponents { client, .. } = service::new_partial(&config)?;

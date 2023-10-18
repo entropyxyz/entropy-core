@@ -81,10 +81,10 @@ pub async fn get_all_keys(
     while result_length == batch_size {
         result_length = 0;
         // query the registered mapping in the relayer pallet
-        let storage_address = subxt::dynamic::storage_root("Relayer", "Registered");
-        let mut iter =
-            api.storage().at_latest().await?.iter(storage_address, batch_size as u32).await?;
-        while let Some((key, _account)) = iter.next().await? {
+        let keys = Vec::<()>::new();
+        let storage_address = subxt::dynamic::storage("Relayer", "Registered", keys);
+        let mut iter = api.storage().at_latest().await?.iter(storage_address).await?;
+        while let Some(Ok((key, _account))) = iter.next().await {
             let new_key = hex::encode(key);
             let len = new_key.len();
             let final_key = &new_key[len - 64..];

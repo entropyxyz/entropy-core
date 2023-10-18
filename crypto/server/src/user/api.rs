@@ -36,6 +36,7 @@ use parity_scale_codec::{Decode, DecodeAll, Encode};
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::AccountId32;
 use subxt::{
+    backend::legacy::LegacyRpcMethods,
     ext::sp_core::{crypto::Ss58Codec, sr25519, sr25519::Signature, Pair},
     tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32,
@@ -48,7 +49,7 @@ use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
 use crate::{
     chain_api::{
         entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
-        get_api, EntropyConfig,
+        get_api, get_rpc, EntropyConfig,
     },
     get_and_store_values, get_random_server_info,
     helpers::{
@@ -184,16 +185,15 @@ pub async fn new_user(
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
-
     let api = get_api(&app_state.configuration.endpoint).await?;
+    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let signer = get_signer(&app_state.kv_store).await?;
-
     check_in_registration_group(&data.validators_info, signer.account_id())?;
-    validate_new_user(&data, &api, &app_state.kv_store).await?;
+    validate_new_user(&data, &api, &rpc, &app_state.kv_store).await?;
 
     // Do the DKG protocol in another task, so we can already respond
     tokio::spawn(async move {
-        if let Err(err) = setup_dkg(api, signer, data, app_state).await {
+        if let Err(err) = setup_dkg(api, &rpc, signer, data, app_state).await {
             // TODO here we would check the error and if it relates to a misbehaving node,
             // use the slashing mechanism
             tracing::warn!("User registration failed {:?}", err);
@@ -206,6 +206,7 @@ pub async fn new_user(
 /// Setup and execute DKG. Called internally by the [new_user] function.
 async fn setup_dkg(
     api: OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: PairSigner<EntropyConfig, sr25519::Pair>,
     data: OcwMessage,
     app_state: AppState,
@@ -213,7 +214,6 @@ async fn setup_dkg(
     let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
-
     let subxt_signer = get_subxt_signer(&app_state.kv_store).await?;
 
     for sig_request_account in data.sig_request_accounts {
@@ -222,10 +222,10 @@ async fn setup_dkg(
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = AccountId32::new(*address_slice);
-
         let user_details = get_registering_user_details(
             &api,
             &SubxtAccountId32::from(sig_request_address.clone()),
+            &rpc
         )
         .await?;
 
@@ -325,12 +325,13 @@ pub async fn receive_key(
 pub async fn get_registering_user_details(
     api: &OnlineClient<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> Result<RegisteringDetails, UserErr> {
+    let block_hash = rpc.chain_get_block_hash(None).await?.unwrap();
     let registering_info_query = entropy::storage().relayer().registering(who);
     let register_info = api
         .storage()
-        .at_latest()
-        .await?
+        .at(block_hash)
         .fetch(&registering_info_query)
         .await?
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
@@ -355,7 +356,7 @@ pub async fn confirm_registered(
         subgroup,
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
     );
-    let _ = api
+    let result = api
         .tx()
         .sign_and_submit_then_watch_default(&registration_tx, signer)
         .await?
@@ -448,6 +449,7 @@ pub fn check_signing_group(
 pub async fn validate_new_user(
     chain_data: &OcwMessage,
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_manager: &KvManager,
 ) -> Result<(), UserErr> {
     let last_block_number_recorded = kv_manager.kv().get("LATEST_BLOCK_NUMBER").await?;
@@ -460,13 +462,11 @@ pub async fn validate_new_user(
         // change error
         return Err(UserErr::RepeatedData);
     }
-    let latest_block_number = api
-        .rpc()
-        .block(None)
+
+    let latest_block_number = rpc
+        .chain_get_header(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number"))?
-        .block
-        .header
         .number;
 
     // we subtract 1 as the message info is coming from the previous block
@@ -475,18 +475,13 @@ pub async fn validate_new_user(
     }
 
     let mut hasher_chain_data = Blake2s256::new();
-    hasher_chain_data.update(chain_data.sig_request_accounts.encode());
+    hasher_chain_data.update(Some(chain_data.sig_request_accounts.clone()).encode());
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
 
+    let block_hash = rpc.chain_get_block_hash(None).await?.unwrap();
     let verifying_data_query = entropy::storage().relayer().dkg(chain_data.block_number);
-    let verifying_data = api
-        .storage()
-        .at_latest()
-        .await?
-        .fetch(&verifying_data_query)
-        .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get verifying data"))?;
+    let verifying_data = api.storage().at(block_hash).fetch(&verifying_data_query).await?;
 
     hasher_verifying_data.update(verifying_data.encode());
 

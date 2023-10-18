@@ -15,6 +15,7 @@ use subxt::{
     tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static},
     OnlineClient,
+    backend::{legacy::LegacyRpcMethods},
 };
 use synedrion::KeyShare;
 use testing_utils::substrate_context::testing_context;
@@ -172,15 +173,16 @@ pub async fn update_programs(
 }
 
 /// Verify that a Registering account has all confirmation, and that it is registered.
-pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, key: &sr25519::Pair) {
+pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<EntropyConfig>, key: &sr25519::Pair) {
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
     let registering_query = entropy::storage().relayer().registering(signer.account_id());
     let registered_query = entropy::storage().relayer().registered(signer.account_id());
-    let is_registering = api.storage().at_latest().await.unwrap().fetch(&registering_query).await;
+    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    let is_registering = api.storage().at(block_hash.clone()).fetch(&registering_query).await;
     // cleared from is_registering state
     assert!(is_registering.unwrap().is_none());
     let is_registered =
-        api.storage().at_latest().await.unwrap().fetch(&registered_query).await.unwrap();
+        api.storage().at(block_hash.clone()).fetch(&registered_query).await.unwrap();
     assert_eq!(is_registered.as_ref().unwrap().verifying_key.0.len(), 33usize);
     assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
 }

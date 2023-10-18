@@ -16,7 +16,7 @@ mod tests;
 pub mod pallet {
     use codec::Encode;
     use entropy_shared::{OcwMessage, ValidatorInfo};
-    use frame_support::{inherent::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
+    use frame_support::{dispatch::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
     use frame_system::pallet_prelude::*;
     use scale_info::prelude::vec;
     use sp_core;
@@ -40,13 +40,13 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn offchain_worker(block_number: T::BlockNumber) {
+        fn offchain_worker(block_number: BlockNumberFor<T>) {
             let _ = Self::post_dkg(block_number);
             let _ = Self::post_proactive_refresh(block_number);
         }
 
-        fn on_initialize(block_number: T::BlockNumber) -> Weight {
-            pallet_relayer::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
+        fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
+            // pallet_relayer::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
             pallet_staking_extension::ProactiveRefresh::<T>::put(false);
             T::DbWeight::get().writes(2)
         }
@@ -64,7 +64,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {}
 
     impl<T: Config> Pallet<T> {
-        pub fn post_dkg(block_number: T::BlockNumber) -> Result<(), http::Error> {
+        pub fn post_dkg(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let messages =
                 pallet_relayer::Pallet::<T>::dkg(block_number.saturating_sub(1u32.into()));
 
@@ -76,7 +76,7 @@ pub mod pallet {
 
             log::warn!("propagation::post::messages: {:?}", &messages);
             let converted_block_number: u32 =
-                T::BlockNumber::try_into(block_number).unwrap_or_default();
+                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
             let (servers_info, _i) =
                 pallet_relayer::Pallet::<T>::get_validator_info().unwrap_or_default();
             let validators_info = servers_info
@@ -120,7 +120,7 @@ pub mod pallet {
             Ok(())
         }
 
-        pub fn post_proactive_refresh(_block_number: T::BlockNumber) -> Result<(), http::Error> {
+        pub fn post_proactive_refresh(_block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let do_refresh = pallet_staking_extension::Pallet::<T>::proactive_refresh();
 
             if !do_refresh {

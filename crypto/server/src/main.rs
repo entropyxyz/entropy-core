@@ -115,7 +115,7 @@ use tracing::Level;
 use validator::api::get_random_server_info;
 
 use self::{
-    chain_api::get_api,
+    chain_api::{get_api, get_rpc},
     signing_client::{api::*, ListenerState},
     user::api::*,
 };
@@ -164,11 +164,12 @@ async fn main() {
     // Below deals with syncing the kvdb
     if args.sync {
         let api = get_api(&configuration.endpoint).await.expect("Issue acquiring chain API");
+        let rpc = get_rpc(&configuration.endpoint).await.expect("Issue acquiring chain RPC");
         let mut is_syncing = true;
         let sleep_time = Duration::from_secs(20);
         // wait for chain to be fully synced before starting key swap
         while is_syncing {
-            let health = api.rpc().system_health().await.expect("Issue checking chain health");
+            let health = rpc.system_health().await.expect("Issue checking chain health");
             is_syncing = health.is_syncing;
             if is_syncing {
                 println!("chain syncing, retrying {is_syncing:?}");

@@ -19,8 +19,7 @@ mod benchmarking;
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::{
-        dispatch::DispatchResult,
-        inherent::Vec,
+        dispatch::{DispatchResult, Vec},
         pallet_prelude::*,
         sp_runtime::{Perbill, RuntimeDebug},
         traits::{ValidatorSet, ValidatorSetWithIdentification},

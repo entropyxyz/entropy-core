@@ -35,7 +35,7 @@ use frame_support::{
     parameter_types,
     traits::{
         ConstU16, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
-        InstanceFilter, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, U128CurrencyToVote,
+        InstanceFilter, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced,
         WithdrawReasons,
     },
     weights::{
@@ -53,7 +53,7 @@ use frame_system::{
     EnsureRoot, EnsureSigned,
 };
 pub use node_primitives::{AccountId, Signature};
-use node_primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment};
+use node_primitives::{AccountIndex, Balance, BlockNumber, Hash, Moment, Nonce};
 #[cfg(any(feature = "std", test))]
 pub use pallet_balances::Call as BalancesCall;
 use pallet_election_provider_multi_phase::SolutionAccuracyOf;
@@ -235,13 +235,14 @@ impl frame_system::Config for Runtime {
     type BaseCallFilter = BaseCallFilter;
     type BlockHashCount = BlockHashCount;
     type BlockLength = RuntimeBlockLength;
-    type BlockNumber = BlockNumber;
     type BlockWeights = RuntimeBlockWeights;
+    /// The block type for the runtime.
+	  type Block = Block;
     type DbWeight = RocksDbWeight;
+    /// The type for storing how many extrinsics an account has signed.
+	  type Nonce = Nonce;
     type Hash = Hash;
     type Hashing = BlakeTwo256;
-    type Header = generic::Header<BlockNumber, BlakeTwo256>;
-    type Index = Index;
     type Lookup = Indices;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
     type OnKilledAccount = ();
@@ -331,7 +332,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
                 c,
                 RuntimeCall::Democracy(..)
                     | RuntimeCall::Council(..)
-                    | RuntimeCall::Society(..)
                     | RuntimeCall::TechnicalCommittee(..)
                     | RuntimeCall::Elections(..)
                     | RuntimeCall::Treasury(..)
@@ -425,12 +425,12 @@ impl pallet_balances::Config for Runtime {
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
     type FreezeIdentifier = ();
-    type HoldIdentifier = HoldReason;
     type MaxFreezes = ();
     type MaxHolds = ConstU32<2>;
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
+    type RuntimeHoldReason = RuntimeHoldReason;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 }
@@ -580,7 +580,7 @@ impl pallet_staking::Config for Runtime {
     type BondingDuration = BondingDuration;
     type Currency = Balances;
     type CurrencyBalance = Balance;
-    type CurrencyToVote = U128CurrencyToVote;
+    type CurrencyToVote = sp_staking::currency_to_vote::U128CurrencyToVote;
     type ElectionProvider = ElectionProviderMultiPhase;
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
     type GenesisElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
@@ -590,7 +590,6 @@ impl pallet_staking::Config for Runtime {
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
-    type OnStakerSlash = ();
     // send the slashed funds to the treasury.
     type Reward = ();
     type RewardRemainder = Treasury;
@@ -603,6 +602,7 @@ impl pallet_staking::Config for Runtime {
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = Timestamp;
     type VoterList = BagsList;
+    type EventListeners = NominationPools;
     type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
 }
 
@@ -839,7 +839,7 @@ impl pallet_elections_phragmen::Config for Runtime {
     type CandidacyBond = CandidacyBond;
     type ChangeMembers = Council;
     type Currency = Balances;
-    type CurrencyToVote = U128CurrencyToVote;
+    type CurrencyToVote = sp_staking::currency_to_vote::U128CurrencyToVote;
     type DesiredMembers = DesiredMembers;
     type DesiredRunnersUp = DesiredRunnersUp;
     // NOTE: this implies that council's genesis members cannot be set directly and must come from
@@ -1025,7 +1025,7 @@ where RuntimeCall: From<LocalCall>
         call: RuntimeCall,
         public: <Signature as traits::Verify>::Signer,
         account: AccountId,
-        nonce: Index,
+        nonce: <Runtime as frame_system::Config>::Nonce,
     ) -> Option<(RuntimeCall, <UncheckedExtrinsic as traits::Extrinsic>::SignaturePayload)> {
         let tip = 0;
         // take the biggest period possible.
@@ -1075,7 +1075,6 @@ where RuntimeCall: From<C>
 impl pallet_im_online::Config for Runtime {
     type AuthorityId = ImOnlineId;
     type MaxKeys = MaxKeys;
-    type MaxPeerDataEncodingSize = MaxPeerDataEncodingSize;
     type MaxPeerInHeartbeats = MaxPeerInHeartbeats;
     type NextSessionRotation = Babe;
     type ReportUnresponsiveness = Offences;
@@ -1149,37 +1148,6 @@ impl pallet_recovery::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_recovery::weights::SubstrateWeight<Runtime>;
-}
-
-parameter_types! {
-  pub const CandidateDeposit: Balance = 10 * DOLLARS;
-  pub const WrongSideDeduction: Balance = 2 * DOLLARS;
-  pub const MaxStrikes: u32 = 10;
-  pub const RotationPeriod: BlockNumber = 80 * HOURS;
-  pub const PeriodSpend: Balance = 500 * DOLLARS;
-  pub const MaxLockDuration: BlockNumber = 36 * 30 * DAYS;
-  pub const ChallengePeriod: BlockNumber = 7 * DAYS;
-  pub const MaxCandidateIntake: u32 = 10;
-  pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
-}
-
-impl pallet_society::Config for Runtime {
-    type CandidateDeposit = CandidateDeposit;
-    type ChallengePeriod = ChallengePeriod;
-    type Currency = Balances;
-    type FounderSetOrigin =
-        pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>;
-    type MaxCandidateIntake = MaxCandidateIntake;
-    type MaxLockDuration = MaxLockDuration;
-    type MaxStrikes = MaxStrikes;
-    type MembershipChanged = ();
-    type PalletId = SocietyPalletId;
-    type PeriodSpend = PeriodSpend;
-    type Randomness = RandomnessCollectiveFlip;
-    type RotationPeriod = RotationPeriod;
-    type RuntimeEvent = RuntimeEvent;
-    type SuspensionJudgementOrigin = pallet_society::EnsureFounder<Runtime>;
-    type WrongSideDeduction = WrongSideDeduction;
 }
 
 parameter_types! {
@@ -1356,7 +1324,6 @@ construct_runtime!(
     Historical: pallet_session_historical = 36,
     RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip = 37,
     Identity: pallet_identity = 38,
-    Society: pallet_society = 39,
 
     Recovery: pallet_recovery = 40,
     Vesting: pallet_vesting = 41,
@@ -1626,8 +1593,8 @@ impl_runtime_apis! {
     }
   }
 
-  impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
-    fn account_nonce(account: AccountId) -> Index {
+  impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Nonce> for Runtime {
+    fn account_nonce(account: AccountId) -> Nonce {
       System::account_nonce(account)
     }
   }

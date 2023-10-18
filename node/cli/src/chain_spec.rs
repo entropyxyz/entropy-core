@@ -24,7 +24,7 @@ use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, Block, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
     ImOnlineConfig, IndicesConfig, MaxNominations, RelayerConfig, SessionConfig, SessionKeys,
-    SocietyConfig, StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
+    StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeConfig,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
@@ -178,7 +178,7 @@ pub fn testnet_genesis(
     const STASH: Balance = ENDOWMENT / 1000;
 
     GenesisConfig {
-        system: SystemConfig { code: wasm_binary_unwrap().to_vec() },
+        system: SystemConfig { code: wasm_binary_unwrap().to_vec(), ..Default::default() },
         balances: BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
         },
@@ -263,21 +263,13 @@ pub fn testnet_genesis(
         babe: BabeConfig {
             authorities: vec![],
             epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
+            ..Default::default()
         },
         im_online: ImOnlineConfig { keys: vec![] },
-        authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
-        grandpa: GrandpaConfig { authorities: vec![] },
+        authority_discovery: AuthorityDiscoveryConfig { keys: vec![], ..Default::default() },
+        grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        society: SocietyConfig {
-            members: endowed_accounts
-                .iter()
-                .take((num_endowed_accounts + 1) / 2)
-                .cloned()
-                .collect(),
-            pot: 0,
-            max_members: 999,
-        },
         relayer: RelayerConfig {
             registered_accounts: vec![
                 (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
@@ -346,7 +338,7 @@ pub fn devnet_genesis(
     const STASH: Balance = ENDOWMENT / 1000;
 
     GenesisConfig {
-        system: SystemConfig { code: wasm_binary_unwrap().to_vec() },
+        system: SystemConfig { code: wasm_binary_unwrap().to_vec(), ..Default::default() },
         balances: BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
         },
@@ -397,21 +389,13 @@ pub fn devnet_genesis(
         babe: BabeConfig {
             authorities: vec![],
             epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
+            ..Default::default()
         },
         im_online: ImOnlineConfig { keys: vec![] },
-        authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
-        grandpa: GrandpaConfig { authorities: vec![] },
+        authority_discovery: AuthorityDiscoveryConfig { keys: vec![], ..Default::default() },
+        grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        society: SocietyConfig {
-            members: endowed_accounts
-                .iter()
-                .take((num_endowed_accounts + 1) / 2)
-                .cloned()
-                .collect(),
-            pot: 0,
-            max_members: 999,
-        },
         relayer: RelayerConfig { registered_accounts: vec![] },
         vesting: Default::default(),
         transaction_storage: Default::default(),
@@ -465,7 +449,7 @@ pub fn testing(
     const STASH: Balance = ENDOWMENT / 1000;
 
     GenesisConfig {
-        system: SystemConfig { code: wasm_binary_unwrap().to_vec() },
+        system: SystemConfig { code: wasm_binary_unwrap().to_vec(), ..Default::default() },
         balances: BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
         },
@@ -586,21 +570,13 @@ pub fn testing(
         babe: BabeConfig {
             authorities: vec![],
             epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
+            ..Default::default()
         },
         im_online: ImOnlineConfig { keys: vec![] },
-        authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
-        grandpa: GrandpaConfig { authorities: vec![] },
+        authority_discovery: AuthorityDiscoveryConfig { keys: vec![], ..Default::default() },
+        grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        society: SocietyConfig {
-            members: endowed_accounts
-                .iter()
-                .take((num_endowed_accounts + 1) / 2)
-                .cloned()
-                .collect(),
-            pot: 0,
-            max_members: 999,
-        },
         relayer: RelayerConfig {
             registered_accounts: vec![
                 (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
