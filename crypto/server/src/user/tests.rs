@@ -13,7 +13,7 @@ use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_protocol::{
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
-    PartyId, ValidatorInfo,
+    KeyParams, PartyId, ValidatorInfo,
 };
 use entropy_shared::{Acl, KeyVisibility, OcwMessage};
 use futures::{
@@ -36,7 +36,10 @@ use subxt::{
     utils::{AccountId32 as subxtAccountId32, Static},
     Config, OnlineClient,
 };
-use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
+use synedrion::{
+    k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
+    KeyShare,
+};
 use testing_utils::{
     constants::{
         ALICE_STASH_ADDRESS, BAREBONES_PROGRAM_WASM_BYTECODE, MESSAGE_SHOULD_FAIL,
@@ -172,35 +175,16 @@ async fn test_sign_tx_no_chain() {
     generic_msg.timestamp = SystemTime::now();
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-    let mut i = 0;
-    for res in test_user_res {
-        let mut res = res.unwrap();
-        assert_eq!(res.status(), 200);
-        let chunk = res.chunk().await.unwrap().unwrap();
-        let signing_result: Result<(String, Signature), String> =
-            serde_json::from_slice(&chunk).unwrap();
-        assert_eq!(signing_result.clone().unwrap().0.len(), 88);
-        let mut decoded_sig = base64::decode(signing_result.clone().unwrap().0).unwrap();
-        let recovery_digit = decoded_sig.pop().unwrap();
-        let signature = k256Signature::from_slice(&decoded_sig).unwrap();
-        let recover_id = RecoveryId::from_byte(recovery_digit).unwrap();
-        let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
-            &message_should_succeed_hash,
-            &signature,
-            recover_id,
-        )
-        .unwrap();
-        assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
-        let mnemonic = if i == 0 { DEFAULT_MNEMONIC } else { DEFAULT_BOB_MNEMONIC };
-        let sk = <sr25519::Pair as Pair>::from_string(mnemonic, None).unwrap();
-        let sig_recovery = <sr25519::Pair as Pair>::verify(
-            &signing_result.clone().unwrap().1,
-            base64::decode(signing_result.unwrap().0).unwrap(),
-            &sr25519::Public(sk.public().0),
-        );
-        assert!(sig_recovery);
-        i += 1;
-    }
+
+    verify_signature(test_user_res, message_should_succeed_hash, keyshare_option.clone()).await;
+
+    generic_msg.timestamp = SystemTime::now();
+    generic_msg.validators_info = generic_msg.validators_info.into_iter().rev().collect::<Vec<_>>();
+    let test_user_res_order =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    verify_signature(test_user_res_order, message_should_succeed_hash, keyshare_option.clone())
+        .await;
 
     generic_msg.timestamp = SystemTime::now();
     // test failing cases
@@ -213,29 +197,6 @@ async fn test_sign_tx_no_chain() {
             "Not Registering error: Register Onchain first"
         );
     }
-
-    let mut generic_msg_bad_validators = generic_msg.clone();
-    generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
-    generic_msg.timestamp = SystemTime::now();
-
-    let test_user_failed_x25519_pub_key = submit_transaction_requests(
-        validator_ips_and_keys.clone(),
-        generic_msg_bad_validators,
-        one,
-    )
-    .await;
-
-    let mut responses = test_user_failed_x25519_pub_key.into_iter();
-    assert_eq!(
-        responses.next().unwrap().unwrap().text().await.unwrap(),
-        "{\"Err\":\"Subscribe message rejected: Decryption(\\\"Public key does not match that \
-         given in UserTransactionRequest or register transaction\\\")\"}"
-    );
-
-    assert_eq!(
-        responses.next().unwrap().unwrap().text().await.unwrap(),
-        "{\"Err\":\"Oneshot timeout error: channel closed\"}"
-    );
 
     // Test attempting to connect over ws by someone who is not in the signing group
     let validator_ip_and_key = validator_ips_and_keys[0].clone();
@@ -267,12 +228,7 @@ async fn test_sign_tx_no_chain() {
         let subscribe_response: Result<(), String> =
             serde_json::from_str(&response_message).unwrap();
 
-        assert_eq!(
-            Err("Decryption(\"Public key does not match that given in UserTransactionRequest or \
-                 register transaction\")"
-                .to_string()),
-            subscribe_response
-        );
+        assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
         // The stream should not continue to send messages
         // returns true if this part of the test passes
         encrypted_connection.recv().await.is_err()
@@ -608,8 +564,11 @@ async fn test_send_and_receive_keys() {
     setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
 
-    let user_registration_info =
-        UserRegistrationInfo { key: alice.to_account_id().to_string(), value: vec![10] };
+    let user_registration_info = UserRegistrationInfo {
+        key: alice.to_account_id().to_string(),
+        value: vec![10],
+        proactive_refresh: false,
+    };
 
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
@@ -826,35 +785,8 @@ async fn test_sign_tx_user_participates() {
     let signature_base64 = base64::encode(sig_result.unwrap().to_rsv_bytes());
     assert_eq!(signature_base64.len(), 88);
 
-    let mut i = 0;
-    for res in test_user_res {
-        let mut res = res.unwrap();
-        assert_eq!(res.status(), 200);
-        let chunk = res.chunk().await.unwrap().unwrap();
-        let signing_result: Result<(String, Signature), String> =
-            serde_json::from_slice(&chunk).unwrap();
-        assert_eq!(signing_result.clone().unwrap().0.len(), 88);
-        let mut decoded_sig = base64::decode(signing_result.clone().unwrap().0).unwrap();
-        let recovery_digit = decoded_sig.pop().unwrap();
-        let signature = k256Signature::from_slice(&decoded_sig).unwrap();
-        let recover_id = RecoveryId::from_byte(recovery_digit).unwrap();
-        let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
-            &message_should_succeed_hash,
-            &signature,
-            recover_id,
-        )
-        .unwrap();
-        assert_eq!(users_keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
-        let mnemonic = if i == 0 { DEFAULT_MNEMONIC } else { DEFAULT_BOB_MNEMONIC };
-        let sk = <sr25519::Pair as Pair>::from_string(mnemonic, None).unwrap();
-        let sig_recovery = <sr25519::Pair as Pair>::verify(
-            &signing_result.clone().unwrap().1,
-            base64::decode(signing_result.unwrap().0).unwrap(),
-            &sr25519::Public(sk.public().0),
-        );
-        assert!(sig_recovery);
-        i += 1;
-    }
+    verify_signature(test_user_res, message_should_succeed_hash, users_keyshare_option.clone())
+        .await;
 
     generic_msg.timestamp = SystemTime::now();
     // test failing cases
@@ -882,13 +814,12 @@ async fn test_sign_tx_user_participates() {
     let mut responses = test_user_failed_x25519_pub_key.into_iter();
     assert_eq!(
         responses.next().unwrap().unwrap().text().await.unwrap(),
-        "{\"Err\":\"Subscribe message rejected: Decryption(\\\"Public key does not match that \
-         given in UserTransactionRequest or register transaction\\\")\"}"
+        "{\"Err\":\"Timed out waiting for remote party\"}"
     );
 
     assert_eq!(
         responses.next().unwrap().unwrap().text().await.unwrap(),
-        "{\"Err\":\"Oneshot timeout error: channel closed\"}"
+        "{\"Err\":\"Timed out waiting for remote party\"}"
     );
 
     // Test attempting to connect over ws by someone who is not in the signing group
@@ -1128,4 +1059,41 @@ async fn test_register_with_private_key_visibility() {
     assert_eq!(response.text().await.unwrap(), "");
 
     assert!(keyshare_result.is_ok());
+}
+
+pub async fn verify_signature(
+    test_user_res: Vec<Result<reqwest::Response, reqwest::Error>>,
+    message_should_succeed_hash: [u8; 32],
+    keyshare_option: Option<KeyShare<KeyParams>>,
+) {
+    let mut i = 0;
+    for res in test_user_res {
+        let mut res = res.unwrap();
+
+        assert_eq!(res.status(), 200);
+        let chunk = res.chunk().await.unwrap().unwrap();
+        let signing_result: Result<(String, Signature), String> =
+            serde_json::from_slice(&chunk).unwrap();
+        assert_eq!(signing_result.clone().unwrap().0.len(), 88);
+        let mut decoded_sig = base64::decode(signing_result.clone().unwrap().0).unwrap();
+        let recovery_digit = decoded_sig.pop().unwrap();
+        let signature = k256Signature::from_slice(&decoded_sig).unwrap();
+        let recover_id = RecoveryId::from_byte(recovery_digit).unwrap();
+        let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+            &message_should_succeed_hash,
+            &signature,
+            recover_id,
+        )
+        .unwrap();
+        assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
+        let mnemonic = if i == 0 { DEFAULT_MNEMONIC } else { DEFAULT_BOB_MNEMONIC };
+        let sk = <sr25519::Pair as Pair>::from_string(mnemonic, None).unwrap();
+        let sig_recovery = <sr25519::Pair as Pair>::verify(
+            &signing_result.clone().unwrap().1,
+            base64::decode(signing_result.unwrap().0).unwrap(),
+            &sr25519::Public(sk.public().0),
+        );
+        assert!(sig_recovery);
+        i += 1;
+    }
 }

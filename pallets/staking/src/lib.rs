@@ -137,6 +137,10 @@ pub mod pallet {
         ValueQuery,
     >;
 
+    #[pallet::storage]
+    #[pallet::getter(fn proactive_refresh)]
+    pub type ProactiveRefresh<T: Config> = StorageValue<_, bool, ValueQuery>;
+
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
@@ -345,6 +349,8 @@ pub mod pallet {
         pub fn new_session_handler(
             validators: &[<T as pallet_session::Config>::ValidatorId],
         ) -> Result<(), DispatchError> {
+            // signal proactive refresh
+            <ProactiveRefresh<T>>::put(true);
             // Init a 2D Vec where indices and values represent subgroups and validators,
             // respectively.
             let mut new_validators_set: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> =

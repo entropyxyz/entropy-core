@@ -1,8 +1,8 @@
 use std::{convert::TryFrom, path::PathBuf};
 
-use entropy_protocol::{KeyParams, PartyId};
+use entropy_protocol::PartyId;
 use serde::{Deserialize, Serialize};
-use synedrion::KeyShare;
+use synedrion::{KeyShare, ProductionParams};
 use tracing::{info, span, Level, Span};
 use zeroize::Zeroize;
 
@@ -24,7 +24,7 @@ pub struct Entropy(pub Vec<u8>);
 pub struct PartyInfo {
     // TODO: in the future this will probably be a mapping {party_id: [share_id, share_id, ...]}
     pub party_ids: Vec<PartyId>,
-    pub share: KeyShare<KeyParams>,
+    pub share: KeyShare<ProductionParams>,
 }
 
 /// Kv manager for grpc services

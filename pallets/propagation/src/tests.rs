@@ -40,20 +40,40 @@ fn knows_how_to_mock_several_http_calls() {
             .to_vec(),
             ..Default::default()
         });
+        state.expect_request(testing::PendingRequest {
+            method: "POST".into(),
+            uri: "http://localhost:3001/signer/proactive_refresh".into(),
+            sent: true,
+            response: Some([].to_vec()),
+            body: [
+                8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 4, 20, 32, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 40, 32, 8, 0, 0,
+                0, 0, 0, 0, 0,
+            ]
+            .to_vec(),
+            ..Default::default()
+        });
     });
 
     t.execute_with(|| {
-        Propagation::post(1).unwrap();
+        Propagation::post_dkg(1).unwrap();
 
         System::set_block_number(3);
         assert_ok!(Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, None,));
         assert_ok!(Relayer::register(RuntimeOrigin::signed(2), 3, KeyVisibility::Public, None,));
         // full send
-        Propagation::post(4).unwrap();
+        Propagation::post_dkg(4).unwrap();
         // test pruning
         assert_eq!(Relayer::dkg(3).len(), 2);
         Propagation::on_initialize(5);
         assert_eq!(Relayer::dkg(3).len(), 0);
+
+        Propagation::post_proactive_refresh(6).unwrap();
+        pallet_staking_extension::ProactiveRefresh::<Test>::put(true);
+        Propagation::post_proactive_refresh(6).unwrap();
+        Propagation::on_initialize(6);
+        assert_eq!(Staking::proactive_refresh(), false);
     })
 }
 
