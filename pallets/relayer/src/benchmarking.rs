@@ -53,15 +53,14 @@ pub fn add_non_syncing_validators<T: Config>(
 
 benchmarks! {
   register {
-    // number of addresses in the ACL
-    let a in 0 .. <T as pallet_constraints::Config>::MaxAclLength::get();
-    let b in 0 .. <T as pallet_constraints::Config>::MaxAclLength::get();
-    let constraints = generate_benchmarking_constraints(a, b);
+    // Since we're usually using `steps >> 1` when running benches this shouldn't take too long to
+    // run
+    let p in 0..<T as pallet_constraints::Config>::MaxV2BytecodeLength::get();
+    let program = vec![0u8; p as usize];
 
     let constraint_account: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();
-
-  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account, KeyVisibility::Public, Some(constraints))
+  }: _(RawOrigin::Signed(sig_req_account.clone()), constraint_account, KeyVisibility::Public, program)
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
     assert!(Registering::<T>::contains_key(sig_req_account));
