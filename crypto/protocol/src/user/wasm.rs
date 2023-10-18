@@ -1,56 +1,98 @@
+//! Wrappers around functions to run dkg and signing protocols for JS
 use js_sys::Error;
 use subxt::utils::AccountId32;
 use subxt_signer::sr25519;
+use synedrion::KeyShare;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_derive::TryFromJsValue;
 
-use super::user_participates_in_dkg_protocol;
+use super::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol};
+use crate::KeyParams;
 
+/// Run the DKG protocol on the client side
+/// This returns the keypair as a JSON encoded string
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub async fn run_dkg_protocol(
     validators_info_js: ValidatorInfoArray,
     user_signing_keypair_seed: Vec<u8>,
     x25519_private_key_vec: Vec<u8>,
 ) -> Result<String, Error> {
-    // ) -> Result<KeyShare<KeyParams>, UserRunningProtocolErr> {
-    let js_val: &JsValue = validators_info_js.as_ref();
-    let array: &js_sys::Array =
-        js_val.dyn_ref().ok_or_else(|| Error::new("The argument must be an array"))?;
-    let length: usize = array.length().try_into().map_err(|err| Error::new(&format!("{}", err)))?;
-    let mut validators_info = Vec::<ValidatorInfo>::with_capacity(length);
-    for js in array.iter() {
-        let typed_elem = ValidatorInfo::try_from(&js).map_err(|err| Error::new(&err))?;
-        validators_info.push(typed_elem);
-    }
+    let validators_info = parse_validator_info(validators_info_js)?;
 
-    let seed: [u8; 32] = user_signing_keypair_seed.try_into().unwrap();
-    let user_signing_keypair = sr25519::Keypair::from_seed(seed).unwrap();
+    let user_signing_keypair = {
+        let seed: [u8; 32] = user_signing_keypair_seed
+            .try_into()
+            .map_err(|_| Error::new("User signing keypair seed must be 32 bytes"))?;
+        sr25519::Keypair::from_seed(seed).map_err(|err| Error::new(&err.to_string()))?
+    };
 
-    let x25519_private_key_raw: [u8; 32] = x25519_private_key_vec.try_into().unwrap();
-    let x25519_private_key: x25519_dalek::StaticSecret = x25519_private_key_raw.into();
-    unimplemented!();
-    // let key_share = user_participates_in_dkg_protocol(
-    //     validators_info.0,
-    //     &user_signing_keypair,
-    //     &x25519_private_key,
-    // )
-    // .await
-    // .map_err(|err| Error::new(&format!("{}", err)))?;
-    //
-    // // TODO decide how to return KeyShare
-    // Ok(format!("{:?}", key_share))
+    let x25519_private_key: x25519_dalek::StaticSecret = {
+        let x25519_private_key_raw: [u8; 32] = x25519_private_key_vec
+            .try_into()
+            .map_err(|_| Error::new("x25519 private key must be 32 bytes"))?;
+        x25519_private_key_raw.into()
+    };
+
+    let key_share = user_participates_in_dkg_protocol(
+        validators_info,
+        &user_signing_keypair,
+        &x25519_private_key,
+    )
+    .await
+    .map_err(|err| Error::new(&format!("{}", err)))?;
+
+    // TODO bincode would be better but it hides details from JS. Really we need a JS keyshare type
+    Ok(serde_json::to_string(&key_share).map_err(|err| Error::new(&err.to_string()))?)
 }
 
-// #[cfg_attr(feature = "wasm", wasm_bindgen)]
-// pub async fn run_signing_protocol(
-//     key_share: &KeyShare<KeyParams>,
-//     sig_uid: &str,
-//     sig_hash: [u8; 32],
-// validators_info: ValidatorInfoArray,
-// user_signing_keypair_seed: Vec<u8>,
-// x25519_private_key_vec: Vec<u8>,
-// ) -> Result<RecoverableSignature, UserRunningProtocolErr> {
+/// Run the signing protocol on the client side
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+pub async fn run_signing_protocol(
+    key_share: String,
+    // TODO we should not need both sig_uid and sig_hash
+    sig_uid: String,
+    sig_hash: Vec<u8>,
+    validators_info_js: ValidatorInfoArray,
+    user_signing_keypair_seed: Vec<u8>,
+    x25519_private_key_vec: Vec<u8>,
+) -> Result<String, Error> {
+    let validators_info = parse_validator_info(validators_info_js)?;
+
+    let user_signing_keypair = {
+        let seed: [u8; 32] = user_signing_keypair_seed
+            .try_into()
+            .map_err(|_| Error::new("User signing keypair seed must be 32 bytes"))?;
+        sr25519::Keypair::from_seed(seed).map_err(|err| Error::new(&err.to_string()))?
+    };
+
+    let x25519_private_key: x25519_dalek::StaticSecret = {
+        let x25519_private_key_raw: [u8; 32] = x25519_private_key_vec
+            .try_into()
+            .map_err(|_| Error::new("x25519 private key must be 32 bytes"))?;
+        x25519_private_key_raw.into()
+    };
+
+    let sig_hash: [u8; 32] =
+        sig_hash.try_into().map_err(|_| Error::new("Message hash must be 32 bytes"))?;
+
+    let key_share: KeyShare<KeyParams> =
+        serde_json::from_str(&key_share).map_err(|err| Error::new(&err.to_string()))?;
+
+    let signature = user_participates_in_signing_protocol(
+        &key_share,
+        &sig_uid,
+        validators_info,
+        &user_signing_keypair,
+        sig_hash,
+        &x25519_private_key,
+    )
+    .await
+    .map_err(|err| Error::new(&format!("{}", err)))?;
+
+    // TODO decide on a type
+    Ok(format!("{:?}", signature))
+}
 
 #[wasm_bindgen]
 extern "C" {
@@ -72,14 +114,40 @@ impl ValidatorInfo {
         ip_address: String,
         tss_account: Vec<u8>,
     ) -> Result<ValidatorInfo, Error> {
-        let x25519_public_key: [u8; 32] = x25519_public_key_vec.try_into().unwrap(); //.map_err(|err| Error::new(&format!("{}", err)))?;
+        let x25519_public_key: [u8; 32] = x25519_public_key_vec
+            .try_into()
+            .map_err(|_| Error::new("x25519 public key must be 32 bytes"))?;
+
         let validator_info = crate::ValidatorInfo {
             x25519_public_key,
             ip_address: ip_address.parse().map_err(|err| Error::new(&format!("{}", err)))?,
             tss_account: AccountId32(
-                tss_account.try_into().unwrap(), //.map_err(|err| Error::new(&format!("{}", err)))?,
+                tss_account
+                    .try_into()
+                    .map_err(|_| Error::new("TSS Account ID must be 32 bytes"))?,
             ),
         };
         Ok(Self(validator_info))
     }
+}
+
+// This is in a separate impl block as it is not exposed to wasm
+impl ValidatorInfo {
+    fn into_validator_info(self) -> crate::ValidatorInfo { self.0 }
+}
+
+// Parse a JS array of JS ValidatorInfo
+fn parse_validator_info(
+    validators_info_js: ValidatorInfoArray,
+) -> Result<Vec<crate::ValidatorInfo>, Error> {
+    let js_val: &JsValue = validators_info_js.as_ref();
+    let array: &js_sys::Array =
+        js_val.dyn_ref().ok_or_else(|| Error::new("The argument must be an array"))?;
+    let length: usize = array.length().try_into().map_err(|err| Error::new(&format!("{}", err)))?;
+    let mut validators_info = Vec::<crate::ValidatorInfo>::with_capacity(length);
+    for js in array.iter() {
+        let typed_elem = ValidatorInfo::try_from(&js).map_err(|err| Error::new(&err))?;
+        validators_info.push(typed_elem.into_validator_info());
+    }
+    Ok(validators_info)
 }
