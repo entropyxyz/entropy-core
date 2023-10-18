@@ -77,12 +77,13 @@ benchmarks! {
         let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
     }
+
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         is_registering: true,
-        constraint_account: sig_req_account.clone(),
+        program_modification_account: sig_req_account.clone(),
         is_swapping: false,
         confirmations: vec![],
-        constraints: None,
+        program: vec![],
         key_visibility: KeyVisibility::Public,
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())
@@ -104,10 +105,10 @@ confirm_register_registered {
     let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         is_registering: true,
-        constraint_account: sig_req_account.clone(),
+        program_modification_account: sig_req_account.clone(),
         is_swapping: false,
         confirmations: confirmation,
-        constraints: None,
+        program: vec![],
         key_visibility: KeyVisibility::Public,
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())
@@ -129,10 +130,10 @@ confirm_register_registered {
     let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         is_registering: true,
-        constraint_account: sig_req_account.clone(),
+        program_modification_account: sig_req_account.clone(),
         is_swapping: true,
         confirmations: confirmation,
-        constraints: None,
+        program: vec![],
         key_visibility: KeyVisibility::Public,
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())
