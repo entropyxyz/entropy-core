@@ -185,14 +185,9 @@ pub mod pallet {
         /// Note that a user needs to be confirmed by validators through the
         /// [`Self::confirm_register`] extrinsic before they can be considered as registered on the
         /// network.
-        // TODO: This benchmark is going to need to change
         #[pallet::call_index(0)]
         #[pallet::weight({
-            let (evm_acl_len, btc_acl_len) = (0, 0);
-            // if let Some(constraints) = &initial_program {
-            //     (evm_acl_len, btc_acl_len) = ConstraintsPallet::<T>::constraint_weight_values(constraints);
-            // }
-            <T as Config>::WeightInfo::register(evm_acl_len, btc_acl_len)
+            <T as Config>::WeightInfo::register(initial_program.len() as u32)
         })]
         pub fn register(
             origin: OriginFor<T>,
