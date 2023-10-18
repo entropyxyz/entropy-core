@@ -461,7 +461,7 @@ async fn test_store_share() {
     let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
     let registered_query = entropy::storage().relayer().registered(alice_account_id);
     for _ in 0..10 {
-        std::thread::sleep(std::time::Duration::from_millis(500));
+        std::thread::sleep(std::time::Duration::from_millis(1000));
         let query_registered_status =
             api.storage().at_latest().await.unwrap().fetch(&registered_query).await;
         if query_registered_status.unwrap().is_some() {
