@@ -92,25 +92,4 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
-	/// Storage: StakingExtension ThresholdToStash (r:1 w:0)
-	/// Proof Skipped: StakingExtension ThresholdToStash (max_values: None, max_size: None, mode: Measured)
-	/// Storage: Relayer Registering (r:1 w:1)
-	/// Proof Skipped: Relayer Registering (max_values: None, max_size: None, mode: Measured)
-	/// Storage: StakingExtension SigningGroups (r:1 w:0)
-	/// Proof Skipped: StakingExtension SigningGroups (max_values: None, max_size: None, mode: Measured)
-	/// Storage: Relayer Registered (r:0 w:1)
-	/// Proof Skipped: Relayer Registered (max_values: None, max_size: None, mode: Measured)
-	/// The range of component `c` is `[0, 2]`.
-	fn confirm_register_swapping(c: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `16480`
-		//  Estimated: `19945`
-		// Minimum execution time: 51_000_000 picoseconds.
-		Weight::from_parts(54_653_314, 0)
-			.saturating_add(Weight::from_parts(0, 19945))
-			// Standard Error: 80_615
-			.saturating_add(Weight::from_parts(289_779, 0).saturating_mul(c.into()))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(2))
-	}
 }
