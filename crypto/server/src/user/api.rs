@@ -110,7 +110,7 @@ pub async fn sign_tx(
         .map_err(|_| UserErr::StringError("Account Conversion"))?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
-    let rpc = get_rpc(&app_state.configuration.endpoint).await.unwrap();
+    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
     let key_visibility = get_key_visibility(&api, &rpc, &second_signing_address_conversion).await?;
 
@@ -302,7 +302,10 @@ pub async fn receive_key(
 
     let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
         .map_err(|_| UserErr::StringError("Account Conversion"))?;
-    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
+    let block_hash = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
 
     // check message is from the person sending the message (get stash key from threshold key)
     let stash_address_query =
@@ -339,7 +342,10 @@ pub async fn get_registering_user_details(
     who: &<EntropyConfig as Config>::AccountId,
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> Result<RegisteringDetails, UserErr> {
-    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
+    let block_hash = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
     let registering_info_query = entropy::storage().relayer().registering(who);
     let register_info = api
         .storage()
@@ -388,7 +394,10 @@ pub async fn get_current_subgroup_signers(
 ) -> Result<Vec<ValidatorInfo>, UserErr> {
     let mut subgroup_signers = vec![];
     let number = Arc::new(BigInt::from_str_radix(sig_hash, 16)?);
-    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
+    let block_hash = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
     let futures = (0..SIGNING_PARTY_SIZE)
         .map(|i| {
             let owned_number = Arc::clone(&number);
@@ -491,7 +500,10 @@ pub async fn validate_new_user(
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
 
-    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
+    let block_hash = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
     let verifying_data_query = entropy::storage().relayer().dkg(chain_data.block_number);
     let verifying_data = api.storage().at(block_hash).fetch(&verifying_data_query).await?;
 
