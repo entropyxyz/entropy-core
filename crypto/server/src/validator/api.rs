@@ -75,19 +75,14 @@ pub async fn sync_kvdb(
 pub async fn get_all_keys(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    batch_size: usize,
 ) -> Result<Vec<String>, ValidatorErr> {
     // TODO: get all keys should return all keys not just "batch size"
     // zero batch size will cause infinite loop, also not needed
-    assert_ne!(batch_size, 0);
-    let mut result_length = batch_size;
     let mut addresses: Vec<String> = vec![];
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
         .ok_or_else(|| ValidatorErr::OptionUnwrapError("Errir getting block hash"))?;
-    while result_length == batch_size {
-        result_length = 0;
         // query the registered mapping in the relayer pallet
         let keys = Vec::<()>::new();
         let storage_address = subxt::dynamic::storage("Relayer", "Registered", keys);
@@ -96,21 +91,11 @@ pub async fn get_all_keys(
             let new_key = hex::encode(key);
             let len = new_key.len();
             let final_key = &new_key[len - 64..];
-
+            // checks address is valid
             let address: AccountId32 =
-                AccountId32::from_str(final_key).expect("Account conversion error");
-
-            // todo add validation
-            // dbg!(address.to_string(), bool::decode(mut account));
-            // if account.to_value()? {
-            if addresses.contains(&address.to_string()) {
-                result_length = 0;
-            } else {
-                addresses.push(address.to_string());
-                result_length += 1;
-            }
+                AccountId32::from_str(final_key).map_err(|_| ValidatorErr::AddressConversionError("Invalid Address".to_string()))?;
+            addresses.push(address.to_string())
         }
-    }
     Ok(addresses)
 }
 

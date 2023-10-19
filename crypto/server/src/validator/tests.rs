@@ -41,10 +41,10 @@ async fn test_get_all_keys() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
-    let mut result = get_all_keys(&api, &rpc, 3).await.unwrap();
-    let mut result_2 = get_all_keys(&api, &rpc, 5).await.unwrap();
-    let mut result_3 = get_all_keys(&api, &rpc, 1).await.unwrap();
-    let mut result_4 = get_all_keys(&api, &rpc, 1000).await.unwrap();
+    let mut result = get_all_keys(&api, &rpc).await.unwrap();
+    let mut result_2 = get_all_keys(&api, &rpc).await.unwrap();
+    let mut result_3 = get_all_keys(&api, &rpc).await.unwrap();
+    let mut result_4 = get_all_keys(&api, &rpc).await.unwrap();
 
     let mut expected_results = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL",
@@ -61,17 +61,6 @@ async fn test_get_all_keys() {
     assert_eq!(result_2, expected_results);
     assert_eq!(result_3, expected_results);
     assert_eq!(result_4, expected_results);
-    clean_tests();
-}
-
-#[tokio::test]
-#[should_panic]
-async fn test_get_all_keys_fail() {
-    clean_tests();
-    let cxt = testing_context().await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
-    let _ = get_all_keys(&api, &rpc, 0).await.unwrap();
     clean_tests();
 }
 

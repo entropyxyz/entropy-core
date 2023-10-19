@@ -39,7 +39,6 @@ use crate::{
 };
 
 pub const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
-pub const KEY_AMOUNT_PROACTIVE_REFRESH: usize = 1000;
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during proactive refresh.
 /// The http request takes a parity scale encoded [ValidatorInfo] which tells us which validators
 /// are in the registration group and will perform a proactive_refresh.
@@ -56,7 +55,7 @@ pub async fn proactive_refresh(
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     // TODO: validate this endpoint
     // TODO batch the network keys into smaller groups per session
-    let all_keys = get_all_keys(&api, &rpc, KEY_AMOUNT_PROACTIVE_REFRESH)
+    let all_keys = get_all_keys(&api, &rpc)
         .await
         .map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
     let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
