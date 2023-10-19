@@ -55,9 +55,8 @@ pub async fn proactive_refresh(
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     // TODO: validate this endpoint
     // TODO batch the network keys into smaller groups per session
-    let all_keys = get_all_keys(&api, &rpc)
-        .await
-        .map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
+    let all_keys =
+        get_all_keys(&api, &rpc).await.map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
     let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;

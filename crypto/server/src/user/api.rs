@@ -213,10 +213,10 @@ async fn setup_dkg(
     data: OcwMessage,
     app_state: AppState,
 ) -> Result<(), UserErr> {
-    let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer).await?;
+    let (subgroup, stash_address) = get_subgroup(&api, rpc, &signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup =
-        return_all_addresses_of_subgroup(&api, &rpc, my_subgroup).await?;
+        return_all_addresses_of_subgroup(&api, rpc, my_subgroup).await?;
     let subxt_signer = get_subxt_signer(&app_state.kv_store).await?;
 
     for sig_request_account in data.sig_request_accounts {
@@ -228,7 +228,7 @@ async fn setup_dkg(
         let user_details = get_registering_user_details(
             &api,
             &SubxtAccountId32::from(sig_request_address.clone()),
-            &rpc,
+            rpc,
         )
         .await?;
 
@@ -256,7 +256,7 @@ async fn setup_dkg(
         };
         send_key(
             &api,
-            &rpc,
+            rpc,
             &stash_address,
             &mut addresses_in_subgroup,
             user_registration_info,
@@ -533,7 +533,7 @@ pub async fn recover_key(
 ) -> Result<(), UserErr> {
     let (my_subgroup, stash_address) = get_subgroup(api, rpc, signer).await?;
     let unwrapped_subgroup = my_subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    let key_server_info = get_random_server_info(api, &rpc, unwrapped_subgroup, stash_address)
+    let key_server_info = get_random_server_info(api, rpc, unwrapped_subgroup, stash_address)
         .await
         .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
     let ip_address = String::from_utf8(key_server_info.endpoint)?;

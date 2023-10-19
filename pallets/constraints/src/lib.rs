@@ -164,7 +164,7 @@ pub mod pallet {
             let constraint_account = ensure_signed(origin)?;
             let new_constraints_length = new_constraints.len();
             ensure!(
-                new_constraints_length as u32 <= T::MaxV2BytecodeLength::get() as u32,
+                new_constraints_length as u32 <= T::MaxV2BytecodeLength::get(),
                 Error::<T>::V2ConstraintLengthExceeded
             );
 

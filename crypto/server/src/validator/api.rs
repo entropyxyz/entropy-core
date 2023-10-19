@@ -83,19 +83,19 @@ pub async fn get_all_keys(
         .chain_get_block_hash(None)
         .await?
         .ok_or_else(|| ValidatorErr::OptionUnwrapError("Errir getting block hash"))?;
-        // query the registered mapping in the relayer pallet
-        let keys = Vec::<()>::new();
-        let storage_address = subxt::dynamic::storage("Relayer", "Registered", keys);
-        let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
-        while let Some(Ok((key, _account))) = iter.next().await {
-            let new_key = hex::encode(key);
-            let len = new_key.len();
-            let final_key = &new_key[len - 64..];
-            // checks address is valid
-            let address: AccountId32 =
-                AccountId32::from_str(final_key).map_err(|_| ValidatorErr::AddressConversionError("Invalid Address".to_string()))?;
-            addresses.push(address.to_string())
-        }
+    // query the registered mapping in the relayer pallet
+    let keys = Vec::<()>::new();
+    let storage_address = subxt::dynamic::storage("Relayer", "Registered", keys);
+    let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
+    while let Some(Ok((key, _account))) = iter.next().await {
+        let new_key = hex::encode(key);
+        let len = new_key.len();
+        let final_key = &new_key[len - 64..];
+        // checks address is valid
+        let address: AccountId32 = AccountId32::from_str(final_key)
+            .map_err(|_| ValidatorErr::AddressConversionError("Invalid Address".to_string()))?;
+        addresses.push(address.to_string())
+    }
     Ok(addresses)
 }
 
@@ -266,7 +266,7 @@ pub async fn check_in_subgroup(
 ) -> Result<(), ValidatorErr> {
     let (subgroup, _) = get_subgroup(api, rpc, signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| ValidatorErr::SubgroupError("Subgroup Error"))?;
-    let addresses_in_subgroup = return_all_addresses_of_subgroup(api, &rpc, my_subgroup).await?;
+    let addresses_in_subgroup = return_all_addresses_of_subgroup(api, rpc, my_subgroup).await?;
     let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
         .map_err(|_| ValidatorErr::StringError("Account Conversion"))?;
     let stash_address_query =
