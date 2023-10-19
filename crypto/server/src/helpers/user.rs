@@ -110,7 +110,7 @@ pub async fn send_key(
             .position(|address| *address == *stash_address)
             .ok_or_else(|| UserErr::OptionUnwrapError("Validator not in subgroup"))?,
     );
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
 
     for validator in addresses_in_subgroup {
         let server_info_query = entropy::storage().staking_extension().threshold_servers(validator);

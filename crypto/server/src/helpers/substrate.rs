@@ -19,7 +19,7 @@ pub async fn get_subgroup(
     let threshold_address = signer.account_id();
     let stash_address_query =
         entropy::storage().staking_extension().threshold_to_stash(threshold_address);
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
 
     let stash_address = api
         .storage()
@@ -51,7 +51,7 @@ pub async fn return_all_addresses_of_subgroup(
     subgroup: u8,
 ) -> Result<Vec<AccountId32>, UserErr> {
     let subgroup_addresses_query = entropy::storage().staking_extension().signing_groups(subgroup);
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
     let subgroup_addresses = api
         .storage()
         .at(block_hash)
@@ -129,7 +129,7 @@ pub async fn get_key_visibility(
     who: &<EntropyConfig as Config>::AccountId,
 ) -> Result<KeyVisibility, UserErr> {
     let registered_info_query = entropy::storage().relayer().registered(who);
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
     let result = api
         .storage()
         .at(block_hash)

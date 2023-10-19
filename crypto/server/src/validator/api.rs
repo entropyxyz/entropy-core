@@ -82,7 +82,7 @@ pub async fn get_all_keys(
     assert_ne!(batch_size, 0);
     let mut result_length = batch_size;
     let mut addresses: Vec<String> = vec![];
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or_else(|| ValidatorErr::OptionUnwrapError("Errir getting block hash"))?;
     while result_length == batch_size {
         result_length = 0;
         // query the registered mapping in the relayer pallet
@@ -120,7 +120,7 @@ pub async fn get_random_server_info(
 ) -> Result<ServerInfo<subxt::utils::AccountId32>, ValidatorErr> {
     let signing_group_addresses_query =
         entropy::storage().staking_extension().signing_groups(my_subgroup);
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or_else(|| ValidatorErr::OptionUnwrapError("Errir getting block hash"))?;
     let signing_group_addresses = api
         .storage()
         .at(block_hash)
@@ -242,7 +242,7 @@ pub async fn check_balance_for_fees(
     min_balance: u128,
 ) -> Result<bool, ValidatorErr> {
     let balance_query = entropy::storage().system().account(address);
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or_else(|| ValidatorErr::OptionUnwrapError("Errir getting block hash"))?;
     let account_info =
         api.storage().at(block_hash).fetch(&balance_query).await?.ok_or_else(|| {
             ValidatorErr::OptionUnwrapError("Account does not exist, add balance")
@@ -277,7 +277,7 @@ pub async fn check_in_subgroup(
         .map_err(|_| ValidatorErr::StringError("Account Conversion"))?;
     let stash_address_query =
         entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or_else(|| ValidatorErr::OptionUnwrapError("Errir getting block hash"))?;
 
     let stash_address = api
         .storage()
