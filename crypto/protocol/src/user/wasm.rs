@@ -1,9 +1,10 @@
 //! Wrappers around functions to run dkg and signing protocols for JS
+use std::net::SocketAddrV4;
+
 use js_sys::Error;
 use subxt::utils::AccountId32;
 use subxt_signer::sr25519;
 use synedrion::KeyShare;
-#[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_derive::TryFromJsValue;
 
@@ -101,39 +102,56 @@ extern "C" {
 }
 
 /// Details of a validator
+/// This differs from [crate::ValidatorInfo] only in that the fields must be private
 #[derive(TryFromJsValue)]
 #[wasm_bindgen]
 #[derive(Clone)]
-pub struct ValidatorInfo(crate::ValidatorInfo);
+pub struct ValidatorInfo {
+    x25519_public_key: [u8; 32],
+    ip_address: SocketAddrV4,
+    tss_account: AccountId32,
+}
 
 #[wasm_bindgen]
 impl ValidatorInfo {
-    #[wasm_bindgen(js_name = new)]
+    #[wasm_bindgen(constructor)]
     pub fn new(
         x25519_public_key_vec: Vec<u8>,
         ip_address: String,
         tss_account: Vec<u8>,
     ) -> Result<ValidatorInfo, Error> {
-        let x25519_public_key: [u8; 32] = x25519_public_key_vec
-            .try_into()
-            .map_err(|_| Error::new("x25519 public key must be 32 bytes"))?;
-
-        let validator_info = crate::ValidatorInfo {
-            x25519_public_key,
+        Ok(Self {
+            x25519_public_key: x25519_public_key_vec
+                .try_into()
+                .map_err(|_| Error::new("x25519 public key must be 32 bytes"))?,
             ip_address: ip_address.parse().map_err(|err| Error::new(&format!("{}", err)))?,
             tss_account: AccountId32(
                 tss_account
                     .try_into()
                     .map_err(|_| Error::new("TSS Account ID must be 32 bytes"))?,
             ),
-        };
-        Ok(Self(validator_info))
+        })
     }
+
+    #[wasm_bindgen(js_name=getX25519PublicKey)]
+    pub fn get_x25519_public_key(&self) -> Vec<u8> { self.x25519_public_key.to_vec() }
+
+    #[wasm_bindgen(js_name=getIpAddress)]
+    pub fn get_ip_address(&self) -> String { self.ip_address.to_string() }
+
+    #[wasm_bindgen(js_name=getTssAccount)]
+    pub fn get_tss_account(&self) -> Vec<u8> { self.tss_account.0.to_vec() }
 }
 
 // This is in a separate impl block as it is not exposed to wasm
 impl ValidatorInfo {
-    fn into_validator_info(self) -> crate::ValidatorInfo { self.0 }
+    fn into_validator_info(self) -> crate::ValidatorInfo {
+        crate::ValidatorInfo {
+            x25519_public_key: self.x25519_public_key,
+            ip_address: self.ip_address,
+            tss_account: self.tss_account,
+        }
+    }
 }
 
 // Parse a JS array of JS ValidatorInfo
