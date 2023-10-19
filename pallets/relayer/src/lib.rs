@@ -67,7 +67,6 @@ pub mod pallet {
     pub struct RegisteringDetails<T: Config> {
         pub is_registering: bool,
         pub constraint_account: T::AccountId,
-        pub is_swapping: bool,
         pub confirmations: Vec<u8>,
         pub constraints: Option<Constraints>,
         pub key_visibility: KeyVisibility,
@@ -209,7 +208,6 @@ pub mod pallet {
                 RegisteringDetails::<T> {
                     is_registering: true,
                     constraint_account: constraint_account.clone(),
-                    is_swapping: false,
                     confirmations: vec![],
                     constraints: initial_constraints,
                     key_visibility,
@@ -228,7 +226,12 @@ pub mod pallet {
         /// registering. After a validator from each partition confirms they have a
         /// keyshare, this should get the user to a `Registered` state
         #[pallet::call_index(2)]
-        #[pallet::weight((<T as Config>::WeightInfo::confirm_register_swapping(SIGNING_PARTY_SIZE as u32), Pays::No))]
+        #[pallet::weight({
+            let weight =
+                <T as Config>::WeightInfo::confirm_register_registering(SIGNING_PARTY_SIZE as u32)
+                .max(<T as Config>::WeightInfo::confirm_register_registered(SIGNING_PARTY_SIZE as u32));
+            (weight, Pays::No)
+        })]
         pub fn confirm_register(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
@@ -257,7 +260,6 @@ pub mod pallet {
             );
 
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
-                let mut weight;
                 // just inserts last validator's verifying_key, need to do dispute resolution
                 Registered::<T>::insert(
                     &sig_req_account,
@@ -267,24 +269,22 @@ pub mod pallet {
                     },
                 );
                 Registering::<T>::remove(&sig_req_account);
-                weight =
-                    <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
-                if !registering_info.is_swapping {
-                    AllowedToModifyConstraints::<T>::insert(
-                        &registering_info.constraint_account,
-                        sig_req_account.clone(),
-                        (),
-                    );
 
-                    if let Some(constraints) = registering_info.constraints {
-                        ConstraintsPallet::<T>::set_constraints_unchecked(
-                            &sig_req_account,
-                            &constraints,
-                        );
-                    }
-                    weight =
-                        <T as Config>::WeightInfo::confirm_register_swapping(confirmation_length);
+                AllowedToModifyConstraints::<T>::insert(
+                    &registering_info.constraint_account,
+                    sig_req_account.clone(),
+                    (),
+                );
+
+                if let Some(constraints) = registering_info.constraints {
+                    ConstraintsPallet::<T>::set_constraints_unchecked(
+                        &sig_req_account,
+                        &constraints,
+                    );
                 }
+
+                let weight =
+                    <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
 
                 Self::deposit_event(Event::AccountRegistered(sig_req_account));
                 Ok(Some(weight).into())
