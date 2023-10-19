@@ -48,8 +48,8 @@ pub mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, Vec},
         pallet_prelude::*,
-        traits::{Currency, GenesisBuild, ConstU32},
-        BoundedVec, DefaultNoBound
+        traits::{ConstU32, Currency, GenesisBuild},
+        BoundedVec, DefaultNoBound,
     };
     use frame_system::pallet_prelude::*;
 
@@ -155,7 +155,7 @@ pub mod pallet {
     }
 
     #[pallet::genesis_build]
-	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             let _ = self
                 .threshold_servers

@@ -22,7 +22,7 @@ use synedrion::KeyShare;
 use tokio::time::timeout;
 
 use crate::{
-    chain_api::{get_api, EntropyConfig},
+    chain_api::{get_api, get_rpc, EntropyConfig},
     helpers::{
         substrate::{get_subgroup, return_all_addresses_of_subgroup},
         user::{check_in_registration_group, send_key},
@@ -49,19 +49,21 @@ pub async fn proactive_refresh(
 ) -> Result<StatusCode, ProtocolErr> {
     let validators_info = Vec::<entropy_shared::ValidatorInfo>::decode(&mut encoded_data.as_ref())?;
     let api = get_api(&app_state.configuration.endpoint).await?;
+    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let signer =
         get_signer(&app_state.kv_store).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     check_in_registration_group(&validators_info, signer.account_id())
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     // TODO: validate this endpoint
     // TODO batch the network keys into smaller groups per session
-    let all_keys = get_all_keys(&api, KEY_AMOUNT_PROACTIVE_REFRESH)
+    let all_keys = get_all_keys(&api, &rpc, KEY_AMOUNT_PROACTIVE_REFRESH)
         .await
         .map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
-    let (subgroup, stash_address) =
-        get_subgroup(&api, &signer).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
+        .await
+        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     let my_subgroup = subgroup.ok_or_else(|| ProtocolErr::SubgroupError("Subgroup Error"))?;
-    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup)
+    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, my_subgroup)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     let subxt_signer = get_subxt_signer(&app_state.kv_store)
@@ -96,7 +98,7 @@ pub async fn proactive_refresh(
             app_state.kv_store.kv().delete(&new_key_info.key).await?;
             let reservation = app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
             app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
-            send_key(&api, &stash_address, &mut addresses_in_subgroup, new_key_info, &signer)
+            send_key(&api, &rpc, &stash_address, &mut addresses_in_subgroup, new_key_info, &signer)
                 .await
                 .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
         }

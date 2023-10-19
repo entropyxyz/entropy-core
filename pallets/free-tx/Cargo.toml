@@ -16,7 +16,7 @@ sp-std            ={ git="https://github.com/paritytech/substrate", branch="polk
 log               ={ version="0.4.0", default-features=false }
 
 [dev-dependencies]
-sp-core                        ={ version ="21.0.0", git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
+sp-core                        ={ version="21.0.0", git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
 sp-io                          ={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
 pallet-balances                ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
 pallet-session                 ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }

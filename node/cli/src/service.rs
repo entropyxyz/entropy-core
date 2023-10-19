@@ -40,9 +40,9 @@ use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandler
 use sc_statement_store::Store as StatementStore;
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_api::{offchain::DbExternalities, ProvideRuntimeApi};
+use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_core::crypto::Pair;
 use sp_runtime::{generic, traits::Block as BlockT, SaturatedConversion};
-use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 
 use crate::cli::Cli;
 /// The full client type definition.
@@ -211,28 +211,28 @@ pub fn new_partial(
 
     let slot_duration = babe_link.config().slot_duration();
     let (import_queue, babe_worker_handle) =
-		sc_consensus_babe::import_queue(sc_consensus_babe::ImportQueueParams {
-			link: babe_link.clone(),
-			block_import: block_import.clone(),
-			justification_import: Some(Box::new(justification_import)),
-			client: client.clone(),
-			select_chain: select_chain.clone(),
-			create_inherent_data_providers: move |_, ()| async move {
-				let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+        sc_consensus_babe::import_queue(sc_consensus_babe::ImportQueueParams {
+            link: babe_link.clone(),
+            block_import: block_import.clone(),
+            justification_import: Some(Box::new(justification_import)),
+            client: client.clone(),
+            select_chain: select_chain.clone(),
+            create_inherent_data_providers: move |_, ()| async move {
+                let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
-				let slot =
+                let slot =
 				sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 					*timestamp,
 					slot_duration,
 				);
 
-				Ok((slot, timestamp))
-			},
-			spawner: &task_manager.spawn_essential_handle(),
-			registry: config.prometheus_registry(),
-			telemetry: telemetry.as_ref().map(|x| x.handle()),
-			offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool.clone()),
-		})?;
+                Ok((slot, timestamp))
+            },
+            spawner: &task_manager.spawn_essential_handle(),
+            registry: config.prometheus_registry(),
+            telemetry: telemetry.as_ref().map(|x| x.handle()),
+            offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool.clone()),
+        })?;
 
     let import_setup = (block_import, grandpa_link, babe_link);
 

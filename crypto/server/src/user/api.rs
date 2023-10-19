@@ -110,7 +110,9 @@ pub async fn sign_tx(
         .map_err(|_| UserErr::StringError("Account Conversion"))?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
-    let key_visibility = get_key_visibility(&api, &second_signing_address_conversion).await?;
+    let rpc = get_rpc(&app_state.configuration.endpoint).await.unwrap();
+
+    let key_visibility = get_key_visibility(&api, &rpc, &second_signing_address_conversion).await?;
 
     if key_visibility != KeyVisibility::Public && !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
@@ -122,7 +124,7 @@ pub async fn sign_tx(
     check_stale(user_tx_req.timestamp)?;
     let raw_message = hex::decode(user_tx_req.transaction_request.clone())?;
     let sig_hash = hex::encode(Hasher::keccak(&raw_message));
-    let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
+    let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &sig_hash).await?;
     check_signing_group(&subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
 
     // Use the validator info from chain as we can be sure it is in the correct order and the
@@ -133,10 +135,10 @@ pub async fn sign_tx(
 
     let has_key = check_for_key(&signing_address, &app_state.kv_store).await?;
     if !has_key {
-        recover_key(&api, &app_state.kv_store, &signer, signing_address).await?
+        recover_key(&api, &rpc, &app_state.kv_store, &signer, signing_address).await?
     }
 
-    let program = get_program(&api, &second_signing_address_conversion).await?;
+    let program = get_program(&api, &rpc, &second_signing_address_conversion).await?;
 
     let mut runtime = Runtime::new();
     let initial_state = InitialState { data: raw_message };
@@ -211,9 +213,10 @@ async fn setup_dkg(
     data: OcwMessage,
     app_state: AppState,
 ) -> Result<(), UserErr> {
-    let (subgroup, stash_address) = get_subgroup(&api, &signer).await?;
+    let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
+    let mut addresses_in_subgroup =
+        return_all_addresses_of_subgroup(&api, &rpc, my_subgroup).await?;
     let subxt_signer = get_subxt_signer(&app_state.kv_store).await?;
 
     for sig_request_account in data.sig_request_accounts {
@@ -225,7 +228,7 @@ async fn setup_dkg(
         let user_details = get_registering_user_details(
             &api,
             &SubxtAccountId32::from(sig_request_address.clone()),
-            &rpc
+            &rpc,
         )
         .await?;
 
@@ -251,8 +254,15 @@ async fn setup_dkg(
             value: serialized_key_share,
             proactive_refresh: false,
         };
-        send_key(&api, &stash_address, &mut addresses_in_subgroup, user_registration_info, &signer)
-            .await?;
+        send_key(
+            &api,
+            &rpc,
+            &stash_address,
+            &mut addresses_in_subgroup,
+            user_registration_info,
+            &signer,
+        )
+        .await?;
         // TODO: Error handling really complex needs to be thought about.
         confirm_registered(
             &api,
@@ -282,22 +292,24 @@ pub async fn receive_key(
 
     let user_registration_info: UserRegistrationInfo = serde_json::from_slice(&decrypted_message)?;
     let api = get_api(&app_state.configuration.endpoint).await?;
-    let my_subgroup = get_subgroup(&api, &signer)
+    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
+
+    let my_subgroup = get_subgroup(&api, &rpc, &signer)
         .await?
         .0
         .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, my_subgroup).await?;
+    let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, my_subgroup).await?;
 
     let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
         .map_err(|_| UserErr::StringError("Account Conversion"))?;
+    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
 
     // check message is from the person sending the message (get stash key from threshold key)
     let stash_address_query =
         entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
     let stash_address = api
         .storage()
-        .at_latest()
-        .await?
+        .at(block_hash)
         .fetch(&stash_address_query)
         .await?
         .ok_or_else(|| UserErr::SubgroupError("Stash Fetch Error"))?;
@@ -356,7 +368,7 @@ pub async fn confirm_registered(
         subgroup,
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
     );
-    let result = api
+    let _ = api
         .tx()
         .sign_and_submit_then_watch_default(&registration_tx, signer)
         .await?
@@ -371,10 +383,12 @@ pub async fn confirm_registered(
 /// Where the index is computed as the user's sighash as an integer modulo the number of subgroups
 pub async fn get_current_subgroup_signers(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     sig_hash: &str,
 ) -> Result<Vec<ValidatorInfo>, UserErr> {
     let mut subgroup_signers = vec![];
     let number = Arc::new(BigInt::from_str_radix(sig_hash, 16)?);
+    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
     let futures = (0..SIGNING_PARTY_SIZE)
         .map(|i| {
             let owned_number = Arc::clone(&number);
@@ -383,8 +397,7 @@ pub async fn get_current_subgroup_signers(
                     entropy::storage().staking_extension().signing_groups(i as u8);
                 let subgroup_info = api
                     .storage()
-                    .at_latest()
-                    .await?
+                    .at(block_hash)
                     .fetch(&subgroup_info_query)
                     .await?
                     .ok_or(UserErr::SubgroupError("Subgroup Fetch Error"))?;
@@ -398,8 +411,7 @@ pub async fn get_current_subgroup_signers(
                     .threshold_servers(subgroup_info[index_of_signer].clone());
                 let server_info = api
                     .storage()
-                    .at_latest()
-                    .await?
+                    .at(block_hash)
                     .fetch(&threshold_address_query)
                     .await?
                     .ok_or(UserErr::SubgroupError("Stash Fetch Error"))?;
@@ -502,13 +514,14 @@ pub async fn check_for_key(account: &str, kv: &KvManager) -> Result<bool, UserEr
 
 pub async fn recover_key(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_store: &KvManager,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     signing_address: String,
 ) -> Result<(), UserErr> {
-    let (my_subgroup, stash_address) = get_subgroup(api, signer).await?;
+    let (my_subgroup, stash_address) = get_subgroup(api, rpc, signer).await?;
     let unwrapped_subgroup = my_subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    let key_server_info = get_random_server_info(api, unwrapped_subgroup, stash_address)
+    let key_server_info = get_random_server_info(api, &rpc, unwrapped_subgroup, stash_address)
         .await
         .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
     let ip_address = String::from_utf8(key_server_info.endpoint)?;

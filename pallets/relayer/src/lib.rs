@@ -95,7 +95,7 @@ pub mod pallet {
     }
 
     #[pallet::genesis_build]
-	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             for account_info in &self.registered_accounts {
                 let key_visibility = match account_info.1 {

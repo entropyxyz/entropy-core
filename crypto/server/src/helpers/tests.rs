@@ -11,18 +11,18 @@ use rand_core::OsRng;
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
 use subxt::{
+    backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519, Pair},
     tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static},
     OnlineClient,
-    backend::{legacy::LegacyRpcMethods},
 };
 use synedrion::KeyShare;
 use testing_utils::substrate_context::testing_context;
 
 use crate::{
     app,
-    chain_api::{entropy, get_api, EntropyConfig},
+    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     get_signer,
     helpers::{
         launch::{
@@ -173,7 +173,11 @@ pub async fn update_programs(
 }
 
 /// Verify that a Registering account has all confirmation, and that it is registered.
-pub async fn check_if_confirmation(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<EntropyConfig>, key: &sr25519::Pair) {
+pub async fn check_if_confirmation(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    key: &sr25519::Pair,
+) {
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
     let registering_query = entropy::storage().relayer().registering(signer.account_id());
     let registered_query = entropy::storage().relayer().registered(signer.account_id());
@@ -194,19 +198,21 @@ async fn test_get_signing_group() {
     let cxt = testing_context().await;
     setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let result_alice = get_subgroup(&api, &signer_alice).await.unwrap().0;
+    let result_alice = get_subgroup(&api, &rpc, &signer_alice).await.unwrap().0;
     assert_eq!(result_alice, Some(0));
 
     let p_bob = <sr25519::Pair as Pair>::from_string(DEFAULT_BOB_MNEMONIC, None).unwrap();
     let signer_bob = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_bob);
-    let result_bob = get_subgroup(&api, &signer_bob).await.unwrap().0;
+    let result_bob = get_subgroup(&api, &rpc, &signer_bob).await.unwrap().0;
     assert_eq!(result_bob, Some(1));
 
     let p_charlie = <sr25519::Pair as Pair>::from_string("//Charlie//stash", None).unwrap();
     let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
-    let result_charlie = get_subgroup(&api, &signer_charlie).await;
+    let result_charlie = get_subgroup(&api, &rpc, &signer_charlie).await;
     assert!(result_charlie.is_err());
 
     clean_tests();

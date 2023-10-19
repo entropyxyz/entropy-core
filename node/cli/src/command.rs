@@ -108,7 +108,7 @@ pub fn run() -> sc_cli::Result<()> {
                                 .into());
                         }
 
-						cmd.run::<Block, sp_statement_store::runtime_api::HostFunctions>(config)
+                        cmd.run::<Block, sp_statement_store::runtime_api::HostFunctions>(config)
                     },
                     BenchmarkCmd::Block(cmd) => {
                         let PartialComponents { client, .. } = service::new_partial(&config)?;

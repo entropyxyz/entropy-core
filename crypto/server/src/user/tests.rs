@@ -462,8 +462,7 @@ async fn test_store_share() {
     for _ in 0..10 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
-        let query_registered_status =
-            api.storage().at(block_hash).fetch(&registered_query).await;
+        let query_registered_status = api.storage().at(block_hash).fetch(&registered_query).await;
         if query_registered_status.unwrap().is_some() {
             break;
         }
@@ -550,7 +549,9 @@ async fn test_store_share() {
 async fn test_return_addresses_of_subgroup() {
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let result = return_all_addresses_of_subgroup(&api, 0u8).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
+    let result = return_all_addresses_of_subgroup(&api, &rpc, 0u8).await.unwrap();
     assert_eq!(result.len(), 1);
 }
 
@@ -563,6 +564,7 @@ async fn test_send_and_receive_keys() {
     let cxt = test_context_stationary().await;
     setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
     let user_registration_info = UserRegistrationInfo {
         key: alice.to_account_id().to_string(),
@@ -576,6 +578,7 @@ async fn test_send_and_receive_keys() {
     // sends key to alice validator, while filtering out own key
     let _ = send_key(
         &api,
+        &rpc,
         &alice.to_account_id().into(),
         &mut vec![ALICE_STASH_ADDRESS.clone(), alice.to_account_id().into()],
         user_registration_info.clone(),
@@ -635,6 +638,7 @@ async fn test_recover_key() {
     let (_, bob_kv) = create_clients("validator2".to_string(), vec![], vec![], false, true).await;
 
     let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
     let unsafe_query = UnsafeQuery::new("key".to_string(), "value".to_string());
     let client = reqwest::Client::new();
 
@@ -647,7 +651,8 @@ async fn test_recover_key() {
         .unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_CHARLIE_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let _ = recover_key(&api, &bob_kv, &signer_alice, unsafe_query.key.clone()).await.unwrap();
+    let _ =
+        recover_key(&api, &rpc, &bob_kv, &signer_alice, unsafe_query.key.clone()).await.unwrap();
 
     let value = bob_kv.kv().get(&unsafe_query.key).await.unwrap();
     assert_eq!(value, unsafe_query.value.into_bytes());
@@ -1015,7 +1020,7 @@ async fn test_register_with_private_key_visibility() {
         KeyVisibility::Private(x25519_public_key),
     )
     .await;
-    run_to_block(&rpc, block_number + 2).await;
+    run_to_block(&rpc, block_number + 1).await;
 
     // Simulate the propagation pallet making a `user/new` request to the second validator
     // as we only have one chain node running

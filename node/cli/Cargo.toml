@@ -53,7 +53,7 @@ frame-system                      ={ version="4.0.0-dev", git='https://github.co
 frame-system-rpc-runtime-api      ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 pallet-transaction-payment        ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 pallet-staking-extension          ={ version="3.0.0", path="../../pallets/staking" }
-pallet-asset-conversion-tx-payment       ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
+pallet-asset-conversion-tx-payment={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 pallet-free-tx                    ={ version="3.0.0-monthly-2021-10", path="../../pallets/free-tx" }
 node-inspect                      ={ version="0.9.0-dev", optional=true, git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 substrate-frame-cli               ={ version="4.0.0-dev", optional=true, git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
@@ -68,7 +68,7 @@ sc-network-statement              ={ version="0.10.0-dev", git='https://github.c
 sc-storage-monitor                ={ version="0.1.0", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 pallet-asset-tx-payment           ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 sp-statement-store                ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
-sc-offchain                        ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
+sc-offchain                       ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 
 [build-dependencies]
 clap                        ={ version="4.2.5", optional=true }

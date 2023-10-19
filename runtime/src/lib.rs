@@ -35,8 +35,7 @@ use frame_support::{
     parameter_types,
     traits::{
         ConstU16, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
-        InstanceFilter, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced,
-        WithdrawReasons,
+        InstanceFilter, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, WithdrawReasons,
     },
     weights::{
         constants::{
@@ -233,18 +232,18 @@ impl frame_system::Config for Runtime {
     type AccountData = pallet_balances::AccountData<Balance>;
     type AccountId = AccountId;
     type BaseCallFilter = BaseCallFilter;
+    /// The block type for the runtime.
+    type Block = Block;
     type BlockHashCount = BlockHashCount;
     type BlockLength = RuntimeBlockLength;
     type BlockWeights = RuntimeBlockWeights;
-    /// The block type for the runtime.
-	  type Block = Block;
     type DbWeight = RocksDbWeight;
-    /// The type for storing how many extrinsics an account has signed.
-	  type Nonce = Nonce;
     type Hash = Hash;
     type Hashing = BlakeTwo256;
     type Lookup = Indices;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+    /// The type for storing how many extrinsics an account has signed.
+    type Nonce = Nonce;
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
@@ -430,8 +429,8 @@ impl pallet_balances::Config for Runtime {
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
-    type RuntimeHoldReason = RuntimeHoldReason;
     type RuntimeEvent = RuntimeEvent;
+    type RuntimeHoldReason = RuntimeHoldReason;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 }
 
@@ -583,6 +582,7 @@ impl pallet_staking::Config for Runtime {
     type CurrencyToVote = sp_staking::currency_to_vote::U128CurrencyToVote;
     type ElectionProvider = ElectionProviderMultiPhase;
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
+    type EventListeners = NominationPools;
     type GenesisElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
     type HistoryDepth = HistoryDepth;
     type MaxNominations = MaxNominations;
@@ -602,7 +602,6 @@ impl pallet_staking::Config for Runtime {
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = Timestamp;
     type VoterList = BagsList;
-    type EventListeners = NominationPools;
     type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
 }
 

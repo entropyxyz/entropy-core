@@ -2,7 +2,7 @@
 pub use subxt::PolkadotConfig as EntropyConfig;
 use subxt::{
     backend::{legacy::LegacyRpcMethods, rpc::RpcClient},
-    OnlineClient
+    OnlineClient,
 };
 
 #[subxt::subxt(
