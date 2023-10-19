@@ -14,6 +14,7 @@ use testing_utils::{
     },
 };
 
+// This is the name of the environment variable used to store the root seed
 const ENTROPY_DEVNET_ROOT_SEED: &str = "ENTROPY_DEVNET_ROOT_SEED";
 
 #[derive(Parser, Debug, Clone)]
@@ -79,14 +80,14 @@ async fn main() -> anyhow::Result<()> {
     match run_command().await {
         Ok(output) => {
             println!("Success: {}", output.green());
+            println!("{}", format!("That took {:?}", now.elapsed()).yellow());
+            Ok(())
         },
         Err(err) => {
             println!("{}", "Failed!".red());
-            return Err(err);
+            Err(err)
         },
     }
-    println!("{}", format!("That took {:?}", now.elapsed()).yellow());
-    Ok(())
 }
 
 async fn run_command() -> anyhow::Result<String> {
@@ -151,11 +152,24 @@ async fn run_command() -> anyhow::Result<String> {
         CliCommand::Status => {
             let accounts = get_accounts(&api).await?;
             println!(
-                "There are {} registered Entropy accounts.",
+                "There are {} registered Entropy accounts.\n",
                 accounts.len().to_string().green()
             );
-            for (key, info) in accounts {
-                println!("{}, {:?}", hex::encode(key), info);
+            if !accounts.is_empty() {
+                println!(
+                    "{:<64} {:<12} {}",
+                    "Signature request account ID:".green(),
+                    "Visibility:".purple(),
+                    "Verifying key: ".cyan()
+                );
+                for (key, info) in accounts {
+                    println!(
+                        "{} {:<12} {}",
+                        hex::encode(key).green(),
+                        format!("{:?}", info.key_visibility).purple(),
+                        hex::encode(info.verifying_key.0).cyan()
+                    );
+                }
             }
             Ok("Got status".to_string())
         },
