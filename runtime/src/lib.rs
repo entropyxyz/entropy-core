@@ -1288,10 +1288,7 @@ impl pallet_propagation::Config for Runtime {
 }
 
 construct_runtime!(
-  pub enum Runtime where
-    Block = Block,
-    NodeBlock = node_primitives::Block,
-    UncheckedExtrinsic = UncheckedExtrinsic
+  pub enum Runtime
   {
     System: frame_system = 1,
     Utility: pallet_utility = 2,

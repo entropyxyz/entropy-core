@@ -48,8 +48,8 @@ pub mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, Vec},
         pallet_prelude::*,
-        traits::{ConstU32, Currency, GenesisBuild},
-        BoundedVec, DefaultNoBound,
+        traits::Currency,
+        DefaultNoBound,
     };
     use frame_system::pallet_prelude::*;
 

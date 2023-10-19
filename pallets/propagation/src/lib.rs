@@ -46,7 +46,7 @@ pub mod pallet {
         }
 
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
-            // pallet_relayer::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
+            pallet_relayer::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
             pallet_staking_extension::ProactiveRefresh::<T>::put(false);
             T::DbWeight::get().writes(2)
         }

@@ -19,7 +19,7 @@
 //! Substrate chain configurations.
 
 #![allow(dead_code)]
-pub use entropy_runtime::GenesisConfig;
+pub use entropy_runtime::RuntimeGenesisConfig;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, Block, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
@@ -75,7 +75,7 @@ pub struct Extensions {
 }
 
 /// Specialized `ChainSpec`.
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
+pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig, Extensions>;
 
 fn session_keys(
     grandpa: GrandpaId,
@@ -133,7 +133,7 @@ pub fn authority_keys_from_seed(
     )
 }
 
-/// Helper function to create GenesisConfig for testing
+/// Helper function to create RuntimeGenesisConfig for testing
 pub fn testnet_genesis(
     initial_authorities: Vec<(
         AccountId,
@@ -145,7 +145,7 @@ pub fn testnet_genesis(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
-) -> GenesisConfig {
+) -> RuntimeGenesisConfig {
     let mut endowed_accounts = endowed_accounts_dev();
     // endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
@@ -177,7 +177,7 @@ pub fn testnet_genesis(
     const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 1000;
 
-    GenesisConfig {
+    RuntimeGenesisConfig {
         system: SystemConfig { code: wasm_binary_unwrap().to_vec(), ..Default::default() },
         balances: BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
@@ -291,7 +291,7 @@ pub fn testnet_genesis(
     }
 }
 
-/// Helper function to create GenesisConfig for testing
+/// Helper function to create RuntimeGenesisConfig for testing
 pub fn devnet_genesis(
     initial_authorities: Vec<(
         AccountId,
@@ -303,7 +303,7 @@ pub fn devnet_genesis(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
-) -> GenesisConfig {
+) -> RuntimeGenesisConfig {
     let mut endowed_accounts = endowed_accounts_devnet();
     // endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
@@ -337,7 +337,7 @@ pub fn devnet_genesis(
     const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 1000;
 
-    GenesisConfig {
+    RuntimeGenesisConfig {
         system: SystemConfig { code: wasm_binary_unwrap().to_vec(), ..Default::default() },
         balances: BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
@@ -404,7 +404,7 @@ pub fn devnet_genesis(
     }
 }
 
-/// Helper function to create GenesisConfig for testing
+/// Helper function to create RuntimeGenesisConfig for testing
 pub fn testing(
     initial_authorities: Vec<(
         AccountId,
@@ -416,7 +416,7 @@ pub fn testing(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
-) -> GenesisConfig {
+) -> RuntimeGenesisConfig {
     let mut endowed_accounts = endowed_accounts_dev();
     // endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
@@ -448,7 +448,7 @@ pub fn testing(
     const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 1000;
 
-    GenesisConfig {
+    RuntimeGenesisConfig {
         system: SystemConfig { code: wasm_binary_unwrap().to_vec(), ..Default::default() },
         balances: BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
@@ -649,7 +649,7 @@ pub fn devnet_config() -> ChainSpec {
     )
 }
 
-fn local_testnet_genesis() -> GenesisConfig {
+fn local_testnet_genesis() -> RuntimeGenesisConfig {
     testnet_genesis(
         vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
         vec![],
@@ -680,7 +680,7 @@ pub(crate) mod tests {
     use super::*;
     use crate::service::{new_full_base, NewFullBase};
 
-    fn local_testnet_genesis_instant_single() -> GenesisConfig {
+    fn local_testnet_genesis_instant_single() -> RuntimeGenesisConfig {
         testnet_genesis(
             vec![authority_keys_from_seed("Alice")],
             vec![],

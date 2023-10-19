@@ -42,7 +42,7 @@ pub mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays, Vec},
         pallet_prelude::*,
-        traits::{ConstU32, GenesisBuild, IsSubType},
+        traits::{ConstU32, IsSubType},
     };
     use frame_system::pallet_prelude::*;
     use pallet_constraints::{AllowedToModifyProgram, Pallet as ConstraintsPallet};
