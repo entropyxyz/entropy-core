@@ -17,7 +17,7 @@ jobs:
     name: Build and upload binaries
     runs-on: ubuntu-22.04
     container:
-      image: rust:1.68.2-slim-bullseye
+      image: rust:1.73.0-slim-bullseye
     outputs:
       git_ref_basename: ${{ steps.git-ref-basename.outputs.git_ref_basename }}
     steps:
@@ -72,33 +72,26 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Build binaries.
         env:
+          GIT_SSH_COMMAND: ssh -F ~/.ssh/config
+          RUSTFLAGS: -C target-feature=+crt-static -C strip=symbols
           # We set this environment variables because Cargo does not
           # itself actually support using OpenSSH config files. See:
           # https://doc.rust-lang.org/cargo/appendix/git-authentication.html#ssh-authentication
           CARGO_NET_GIT_FETCH_WITH_CLI: true
-          GIT_SSH_COMMAND: ssh -F ~/.ssh/config
         run: |
-          cargo build --release
-      # TODO: Why doesn't `cargo build --release` strip debug info and
-      #       symbols from the built binary by default? Let's do that.
-      - name: Strip built binaries.
-        shell: bash
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          echo "Before stripping:"
-          ls -l target/release/{entropy,server} # Show unstripped size.
-          strip target/release/{entropy,server} # Actually strip.
-          echo "After stripping:"
-          ls -l target/release/{entropy,server} # Show stripped size.
+          # Pass `--target` explicitly because of
+          # https://github.com/rust-lang/rust/issues/78210
+          cargo build --release --target x86_64-unknown-linux-gnu
       - uses: actions/upload-artifact@v3
         with:
           name: entropy_${{ steps.git-ref-basename.outputs.git_ref_basename }}_${{ runner.os }}_${{ runner.arch }}
-          path: target/release/entropy
+          path: target/x86_64-unknown-linux-gnu/release/entropy
+          if-no-files-found: error
       - uses: actions/upload-artifact@v3
         with:
           name: server_${{ steps.git-ref-basename.outputs.git_ref_basename }}_${{ runner.os }}_${{ runner.arch }}
-          path: target/release/server
+          path: target/x86_64-unknown-linux-gnu/release/server
+          if-no-files-found: error
 
   # Creates a new GitHub Release, adding built artifacts as release assets.
   release:
