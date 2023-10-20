@@ -1,19 +1,15 @@
-mod validation;
-use std::{sync::Arc, time::SystemTime};
+mod common;
+use std::time::SystemTime;
 
 use anyhow::anyhow;
-use entropy_protocol::ValidatorInfo;
-use entropy_shared::SIGNING_PARTY_SIZE;
-use futures::future::{join_all, try_join_all};
-use num::{bigint::BigInt, Num, ToPrimitive};
+pub use common::derive_static_secret;
+use common::{get_current_subgroup_signers, Hasher, UserTransactionRequest};
+use futures::future::try_join_all;
 use parity_scale_codec::Decode;
-use serde::{Deserialize, Serialize};
-use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
+use sp_core::{crypto::AccountId32, sr25519, Pair};
 use subxt::{tx::PairSigner, utils::AccountId32 as SubxtAccountId32, Config, OnlineClient};
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
-pub use validation::derive_static_secret;
-use validation::SignedMessage;
-use x25519_dalek::PublicKey;
+use x25519_chacha20poly1305::encrypt_and_sign;
 
 pub use crate::chain_api::entropy::runtime_types::entropy_shared::{
     constraints::Constraints, types::KeyVisibility,
@@ -88,20 +84,23 @@ pub async fn sign(
     let submit_transaction_requests = validators_info
         .iter()
         .map(|validator_info| async {
-            let server_public_key = PublicKey::from(validator_info.x25519_public_key);
-            let signed_message = SignedMessage::new(
-                &sig_req_keypair.clone(),
-                &Bytes(user_transaction_request_vec.clone()),
-                &server_public_key,
+            let signed_message_json = encrypt_and_sign(
+                sig_req_keypair.to_raw_vec(),
+                user_transaction_request_vec.clone(),
+                validator_info.x25519_public_key.to_vec(),
             )
-            .unwrap();
+            .map_err(|js_err| {
+                anyhow!(js_err
+                    .as_string()
+                    .unwrap_or("encrypt_and_sign gives bad JS error".to_string()))
+            })?;
             let url = format!("http://{}/user/sign_tx", validator_info.ip_address.to_string());
 
             let mock_client = reqwest::Client::new();
             let res = mock_client
                 .post(url)
                 .header("Content-Type", "application/json")
-                .body(serde_json::to_string(&signed_message).unwrap())
+                .body(signed_message_json)
                 .send()
                 .await;
             println!("sent a request");
@@ -242,92 +241,3 @@ async fn put_register_request_on_chain(
         .await?;
     Ok(())
 }
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct UserTransactionRequest {
-    /// Hex-encoded raw data to be signed (eg. RLP-serialized Ethereum transaction)
-    pub transaction_request: String,
-    /// Information from the validators in signing party
-    pub validators_info: Vec<ValidatorInfo>,
-    /// When the message was created and signed
-    pub timestamp: SystemTime,
-}
-
-/// Gets the current signing committee
-/// The signing committee is composed as the validators at the index into each subgroup
-/// Where the index is computed as the user's sighash as an integer modulo the number of subgroups
-pub async fn get_current_subgroup_signers(
-    api: &OnlineClient<EntropyConfig>,
-    sig_hash: &str,
-) -> anyhow::Result<Vec<ValidatorInfo>> {
-    let mut subgroup_signers = vec![];
-    let number = Arc::new(BigInt::from_str_radix(sig_hash, 16)?);
-    let futures = (0..SIGNING_PARTY_SIZE)
-        .map(|i| {
-            let owned_number = Arc::clone(&number);
-            async move {
-                let subgroup_info_query =
-                    entropy::storage().staking_extension().signing_groups(i as u8);
-                let subgroup_info = api
-                    .storage()
-                    .at_latest()
-                    .await?
-                    .fetch(&subgroup_info_query)
-                    .await?
-                    .ok_or(anyhow!("Subgroup Fetch Error"))?;
-
-                let index_of_signer_big = &*owned_number % subgroup_info.len();
-                let index_of_signer =
-                    index_of_signer_big.to_usize().ok_or(anyhow!("Usize error"))?;
-
-                let threshold_address_query = entropy::storage()
-                    .staking_extension()
-                    .threshold_servers(subgroup_info[index_of_signer].clone());
-                let server_info = api
-                    .storage()
-                    .at_latest()
-                    .await?
-                    .fetch(&threshold_address_query)
-                    .await?
-                    .ok_or(anyhow!("Stash Fetch Error"))?;
-                let validator_info = ValidatorInfo {
-                    x25519_public_key: server_info.x25519_public_key,
-                    ip_address: std::str::from_utf8(&server_info.endpoint)?.parse()?,
-                    tss_account: server_info.tss_account,
-                };
-                Ok::<_, anyhow::Error>(validator_info)
-            }
-        })
-        .collect::<Vec<_>>();
-    let results = join_all(futures).await;
-    for result in results.into_iter() {
-        subgroup_signers.push(result?);
-    }
-    Ok(subgroup_signers)
-}
-
-/// Produces a specific hash on a given message
-pub struct Hasher;
-
-impl Hasher {
-    /// Produces the Keccak256 hash on a given message.
-    ///
-    /// In practice, if `data` is an RLP-serialized Ethereum transaction, this should produce the
-    /// corrosponding .
-    pub fn keccak(data: &[u8]) -> [u8; 32] {
-        use sha3::{Digest, Keccak256};
-
-        let mut keccak = Keccak256::new();
-        keccak.update(data);
-        keccak.finalize().into()
-    }
-}
-
-// pub fn seed_from_string(input: String) -> [u8; 32] {
-//     let mut buffer: [u8; 32] = [0; 32];
-//     let mut hasher = Blake2s256::new();
-//     hasher.update(input.as_bytes());
-//     let hash = hasher.finalize().to_vec();
-//     buffer.copy_from_slice(&hash);
-//     buffer
-// }
