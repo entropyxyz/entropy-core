@@ -16,9 +16,13 @@ fn get_path() -> Box<std::path::Path> {
     binary_path.push(format!("target/{}/entropy", build_type));
     let binary_path = binary_path.as_path();
 
-    let error_msg = "Missing `entropy` binary, please build it before running test suite (`cargo \
-                     build -p entropy`)";
-    assert!(binary_path.try_exists().expect(error_msg), "{}", error_msg);
+    let error_msg = format!(
+        "Missing `entropy` binary, please build it in `{}` mode before running test suite (e.g \
+         `cargo build -p entropy [--release]`)",
+        build_type
+    );
+
+    assert!(binary_path.try_exists().expect(&error_msg), "{}", error_msg);
 
     binary_path.into()
 }
