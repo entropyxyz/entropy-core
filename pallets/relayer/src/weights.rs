@@ -11,7 +11,6 @@ use sp_std::marker::PhantomData;
 // The weight info trait for `pallet_realyer`.
 pub trait WeightInfo {
     fn register(evm_acl_len: u32, btc_acl_len: u32) -> Weight;
-    fn confirm_register_swapping(c: u32) -> Weight;
     fn confirm_register_registered(c: u32) -> Weight;
     fn confirm_register_registering(c: u32) -> Weight;
 }
@@ -80,28 +79,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
     }
-
-    /// Storage: StakingExtension ThresholdToStash (r:1 w:0)
-    /// Proof Skipped: StakingExtension ThresholdToStash (max_values: None, max_size: None, mode:
-    /// Measured) Storage: Relayer Registering (r:1 w:1)
-    /// Proof Skipped: Relayer Registering (max_values: None, max_size: None, mode: Measured)
-    /// Storage: StakingExtension SigningGroups (r:1 w:0)
-    /// Proof Skipped: StakingExtension SigningGroups (max_values: None, max_size: None, mode:
-    /// Measured) Storage: Relayer Registered (r:0 w:1)
-    /// Proof Skipped: Relayer Registered (max_values: None, max_size: None, mode: Measured)
-    /// The range of component `c` is `[0, 2]`.
-    fn confirm_register_swapping(c: u32) -> Weight {
-        // Proof Size summary in bytes:
-        //  Measured:  `16479`
-        //  Estimated: `19944`
-        // Minimum execution time: 50_000_000 picoseconds.
-        Weight::from_parts(54_109_392, 0)
-			.saturating_add(Weight::from_parts(0, 19944))
-			// Standard Error: 105_147
-			.saturating_add(Weight::from_parts(712_707, 0).saturating_mul(c.into()))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(2))
-    }
 }
 
 // For backwards compatibility and tests
@@ -167,27 +144,5 @@ impl WeightInfo for () {
 			.saturating_add(Weight::from_parts(1_047_513, 0).saturating_mul(c.into()))
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(3))
-    }
-
-    /// Storage: StakingExtension ThresholdToStash (r:1 w:0)
-    /// Proof Skipped: StakingExtension ThresholdToStash (max_values: None, max_size: None, mode:
-    /// Measured) Storage: Relayer Registering (r:1 w:1)
-    /// Proof Skipped: Relayer Registering (max_values: None, max_size: None, mode: Measured)
-    /// Storage: StakingExtension SigningGroups (r:1 w:0)
-    /// Proof Skipped: StakingExtension SigningGroups (max_values: None, max_size: None, mode:
-    /// Measured) Storage: Relayer Registered (r:0 w:1)
-    /// Proof Skipped: Relayer Registered (max_values: None, max_size: None, mode: Measured)
-    /// The range of component `c` is `[0, 2]`.
-    fn confirm_register_swapping(c: u32) -> Weight {
-        // Proof Size summary in bytes:
-        //  Measured:  `16479`
-        //  Estimated: `19944`
-        // Minimum execution time: 50_000_000 picoseconds.
-        Weight::from_parts(54_109_392, 0)
-			.saturating_add(Weight::from_parts(0, 19944))
-			// Standard Error: 105_147
-			.saturating_add(Weight::from_parts(712_707, 0).saturating_mul(c.into()))
-			.saturating_add(RocksDbWeight::get().reads(3))
-			.saturating_add(RocksDbWeight::get().writes(2))
     }
 }
