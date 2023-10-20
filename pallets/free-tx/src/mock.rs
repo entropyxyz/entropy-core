@@ -3,7 +3,7 @@ use core::convert::{TryFrom, TryInto};
 use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
 use frame_support::{
     ord_parameter_types, parameter_types,
-    traits::{ConstU32, GenesisBuild, Get, Hooks, OneSessionHandler},
+    traits::{ConstU32, Get, Hooks, OneSessionHandler},
 };
 use frame_system as system;
 use frame_system::EnsureSignedBy;
@@ -12,7 +12,7 @@ use pallet_staking::StakerStatus;
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
-    testing::{Header, TestXt, UintAuthorityId},
+    testing::{TestXt, UintAuthorityId},
     traits::{BlakeTwo256, ConvertInto, IdentityLookup, Zero},
     Perbill, BuildStorage
 };
