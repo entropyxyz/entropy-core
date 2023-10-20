@@ -80,7 +80,6 @@ benchmarks! {
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         is_registering: true,
         program_modification_account: sig_req_account.clone(),
-        is_swapping: false,
         confirmations: vec![],
         program: vec![],
         key_visibility: KeyVisibility::Public,
@@ -105,32 +104,6 @@ confirm_register_registered {
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         is_registering: true,
         program_modification_account: sig_req_account.clone(),
-        is_swapping: false,
-        confirmations: confirmation,
-        program: vec![],
-        key_visibility: KeyVisibility::Public,
-    });
-  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())
-  verify {
-    assert_last_event::<T>(Event::<T>::AccountRegistered(sig_req_account).into());
-  }
-
-  confirm_register_swapping {
-    let c in 0 .. SIG_PARTIES as u32;
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    let validator_account: T::AccountId = whitelisted_caller();
-    let threshold_account: T::AccountId = whitelisted_caller();
-    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
-    for i in 0..SIG_PARTIES {
-        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
-        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
-    }
-    let adjusted_sig_size = SIG_PARTIES - 1;
-    let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
-    <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
-        is_registering: true,
-        program_modification_account: sig_req_account.clone(),
-        is_swapping: true,
         confirmations: confirmation,
         program: vec![],
         key_visibility: KeyVisibility::Public,

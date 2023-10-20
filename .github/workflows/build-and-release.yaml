@@ -119,6 +119,6 @@ jobs:
             --draft \
             --target "${{ github.sha }}" \
             --title "${{ needs.build.outputs.git_ref_basename }}" \
-            $(echo ${{ github.ref_name }} | grep --quiet -E 'v[0-9]\.[0-9]\.[0-9]-' && echo '--prerelease') \
+            $(echo ${{ github.ref_name }} | grep --quiet -E '^test|v[0-9]\.[0-9]\.[0-9]-' && echo '--prerelease') \
             --verify-tag "${{ github.ref_name }}" \
             {entropy,server}_${{ needs.build.outputs.git_ref_basename }}_${{ runner.os }}_${{ runner.arch }}/*

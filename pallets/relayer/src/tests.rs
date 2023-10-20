@@ -67,7 +67,7 @@ fn it_registers_a_user() {
 }
 
 #[test]
-fn it_confirms_registers_a_user_then_swap() {
+fn it_confirms_registers_a_user() {
     new_test_ext().execute_with(|| {
         assert_noop!(
             Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
@@ -118,7 +118,6 @@ fn it_confirms_registers_a_user_then_swap() {
         let registering_info = RegisteringDetails::<Test> {
             is_registering: true,
             program_modification_account: 2 as <Test as frame_system::Config>::AccountId,
-            is_swapping: false,
             confirmations: vec![0],
             program: vec![],
             key_visibility: KeyVisibility::Private([0; 32]),
