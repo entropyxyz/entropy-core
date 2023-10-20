@@ -14,14 +14,13 @@ use sp_runtime::{
     curve::PiecewiseLinear,
     testing::{Header, TestXt, UintAuthorityId},
     traits::{BlakeTwo256, ConvertInto, IdentityLookup, Zero},
-    Perbill,
+    Perbill, BuildStorage
 };
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::collections::btree_map::BTreeMap;
 
 use crate as pallet_free_tx;
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
 
@@ -30,20 +29,17 @@ pub const BLOCK_TIME: u64 = 1000;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
-  pub enum Test where
-    Block = Block,
-    NodeBlock = Block,
-    UncheckedExtrinsic = UncheckedExtrinsic,
+  pub enum Test
   {
-    System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-    Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-    Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-    Staking: pallet_staking_extension::{Pallet, Call, Storage, Event<T>, Config<T>},
-    FrameStaking: pallet_staking::{Pallet, Call, Storage, Event<T>},
-    Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
-    Historical: pallet_session_historical::{Pallet},
-    BagsList: pallet_bags_list::{Pallet, Call, Storage, Event<T>},
-    FreeTx: pallet_free_tx::{Pallet, Call, Storage, Event<T>},
+    System: frame_system,
+    Balances: pallet_balances,
+    Timestamp: pallet_timestamp,
+    Staking: pallet_staking_extension,
+    FrameStaking: pallet_staking,
+    Session: pallet_session,
+    Historical: pallet_session_historical,
+    BagsList: pallet_bags_list,
+    FreeTx: pallet_free_tx,
   }
 );
 type AccountId = u64;
@@ -55,18 +51,17 @@ parameter_types! {
 }
 
 impl system::Config for Test {
-    type AccountData = pallet_balances::AccountData<Balance>;
-    type AccountId = AccountId;
+    type AccountData = pallet_balances::AccountData<u64>;
+    type AccountId = u64;
     type BaseCallFilter = frame_support::traits::Everything;
     type BlockHashCount = BlockHashCount;
     type BlockLength = ();
-    type BlockNumber = u64;
     type BlockWeights = ();
+    type Block = Block;
     type DbWeight = ();
+    type Nonce = u64;
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type Header = Header;
-    type Index = u64;
     type Lookup = IdentityLookup<Self::AccountId>;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
     type OnKilledAccount = ();
@@ -98,15 +93,15 @@ parameter_types! {
 }
 impl pallet_balances::Config for Test {
     type AccountStore = System;
-    type Balance = Balance;
+    type Balance = u64;
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
     type FreezeIdentifier = ();
-    type HoldIdentifier = ();
     type MaxFreezes = ();
     type MaxHolds = ();
-    type MaxLocks = MaxLocks;
+    type MaxLocks = ();
     type MaxReserves = ();
+  	type RuntimeHoldReason = RuntimeHoldReason;
     type ReserveIdentifier = [u8; 8];
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
@@ -222,7 +217,7 @@ impl pallet_staking::Config for Test {
     type BondingDuration = BondingDuration;
     type Currency = Balances;
     type CurrencyBalance = Balance;
-    type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
+    type CurrencyToVote = ();
     type ElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
     type GenesisElectionProvider = Self::ElectionProvider;
@@ -232,7 +227,6 @@ impl pallet_staking::Config for Test {
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
-    type OnStakerSlash = ();
     type Reward = ();
     type RewardRemainder = ();
     type RuntimeEvent = RuntimeEvent;
@@ -242,6 +236,7 @@ impl pallet_staking::Config for Test {
     type SlashDeferDuration = SlashDeferDuration;
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = pallet_timestamp::Pallet<Test>;
+    type EventListeners = ();
     type VoterList = BagsList;
     type WeightInfo = ();
 }
@@ -321,7 +316,7 @@ impl Default for ExtBuilder {
 impl ExtBuilder {
     fn build(self) -> sp_io::TestExternalities {
         sp_tracing::try_init_simple();
-        let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+        let mut storage = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 
         let _ = pallet_balances::GenesisConfig::<Test> {
             balances: vec![
