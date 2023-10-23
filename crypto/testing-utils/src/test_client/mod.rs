@@ -4,15 +4,17 @@ use std::time::SystemTime;
 use anyhow::anyhow;
 pub use common::derive_static_secret;
 use common::{get_current_subgroup_signers, Hasher, UserTransactionRequest};
+use entropy_protocol::RecoverableSignature;
 use futures::future::try_join_all;
 use parity_scale_codec::Decode;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
-use subxt::{tx::PairSigner, utils::AccountId32 as SubxtAccountId32, Config, OnlineClient};
+use subxt::{tx::PairSigner, utils::{AccountId32 as SubxtAccountId32, Static}, Config, OnlineClient};
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 use x25519_chacha20poly1305::encrypt_and_sign;
+use entropy_shared::KeyVisibility;
 
 pub use crate::chain_api::entropy::runtime_types::entropy_shared::{
-    constraints::Constraints, types::KeyVisibility,
+    constraints::Constraints,
 };
 use crate::chain_api::{
     entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *,
@@ -68,7 +70,7 @@ pub async fn sign(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keypair: sr25519::Pair,
     message: Vec<u8>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<RecoverableSignature> {
     let message_hash = Hasher::keccak(&message);
     let message_hash_hex = hex::encode(message_hash);
     let validators_info = get_current_subgroup_signers(api, &message_hash_hex).await?;
@@ -127,33 +129,28 @@ pub async fn sign(
         let mut decoded_sig = base64::decode(signature_base64)?;
         let recovery_digit = decoded_sig.pop().ok_or(anyhow!("Cannot get recovery digit"))?;
         let signature = k256Signature::from_slice(&decoded_sig)?;
-        let recover_id =
+        let recovery_id =
             RecoveryId::from_byte(recovery_digit).ok_or(anyhow!("Cannot create recovery id"))?;
         let recovery_key_from_sig =
-            VerifyingKey::recover_from_prehash(&message_hash, &signature, recover_id).unwrap();
+            VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id).unwrap();
         println!("Verifying Key {:?}", recovery_key_from_sig);
-        // let mnemonic = if i == 0 { DEFAULT_MNEMONIC } else { DEFAULT_BOB_MNEMONIC };
-        // let sk = <sr25519::Pair as Pair>::from_string(mnemonic, None).unwrap();
-        // let sig_recovery = <sr25519::Pair as Pair>::verify(
-        //     &signing_result.clone().unwrap().1,
-        //     base64::decode(signing_result.unwrap().0).unwrap(),
-        //     &sr25519::Public(sk.public().0),
-        // );
-        // assert!(sig_recovery);
+		return Ok(RecoverableSignature {
+			signature,
+			recovery_id,
+		})
     }
-    Ok(())
+    Err(anyhow!("No result from validator"))
 }
 
 /// Update a program
 pub async fn update_program(
     api: &OnlineClient<EntropyConfig>,
-    sig_req_keypair: sr25519::Pair,
+    sig_req_account: SubxtAccountId32,
     program_keypair: sr25519::Pair,
     program: Vec<u8>,
 ) -> anyhow::Result<()> {
-    let update_program_tx = entropy::tx()
-        .constraints()
-        .update_v2_constraints(SubxtAccountId32::from(sig_req_keypair.public()), program);
+    let update_program_tx =
+        entropy::tx().constraints().update_v2_constraints(sig_req_account, program);
 
     let constraint_modification_account =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(program_keypair.clone());
@@ -230,7 +227,7 @@ async fn put_register_request_on_chain(
     let sig_req_account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keypair);
 
     let registering_tx =
-        entropy::tx().relayer().register(constraint_account, key_visibility, initial_program);
+        entropy::tx().relayer().register(constraint_account, Static(key_visibility), initial_program);
 
     api.tx()
         .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
