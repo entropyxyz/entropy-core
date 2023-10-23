@@ -2386,6 +2386,7 @@ dependencies = [
  "sc-network-common",
  "sc-network-statement",
  "sc-network-sync",
+ "sc-offchain",
  "sc-rpc",
  "sc-rpc-api",
  "sc-service",

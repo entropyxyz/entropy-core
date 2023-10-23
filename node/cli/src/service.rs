@@ -29,21 +29,21 @@ use futures::prelude::*;
 use kitchensink_runtime::RuntimeApi;
 use node_executor::ExecutorDispatch;
 use node_primitives::Block;
-use sc_client_api::BlockBackend;
+use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_babe::{self, SlotProportion};
 use sc_executor::NativeElseWasmExecutor;
 use sc_network::{event::Event, NetworkEventStream, NetworkService};
 use sc_network_common::sync::warp::WarpSyncParams;
 use sc_network_sync::SyncingService;
+use sc_offchain::OffchainDb;
 use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};
 use sc_statement_store::Store as StatementStore;
 use sc_telemetry::{Telemetry, TelemetryWorker};
-use sp_api::ProvideRuntimeApi;
+use sp_api::{offchain::DbExternalities, ProvideRuntimeApi};
 use sp_core::crypto::Pair;
 use sp_runtime::{generic, traits::Block as BlockT, SaturatedConversion};
 
 use crate::cli::Cli;
-
 /// The full client type definition.
 pub type FullClient =
     sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
@@ -326,6 +326,7 @@ pub fn new_full_base(
         &sc_consensus_babe::BabeBlockImport<Block, FullClient, FullGrandpaBlockImport>,
         &sc_consensus_babe::BabeLink<Block>,
     ),
+    set_endpoint: Option<String>,
 ) -> Result<NewFullBase, ServiceError> {
     let hwbench = (!disable_hardware_benchmarks)
         .then_some(config.database.path().map(|database_path| {
@@ -388,6 +389,15 @@ pub fn new_full_base(
             client.clone(),
             network.clone(),
         );
+
+        if set_endpoint.is_some() {
+            let mut offchain_db = OffchainDb::new(backend.offchain_storage().unwrap());
+            offchain_db.local_storage_set(
+                sp_core::offchain::StorageKind::PERSISTENT,
+                b"propagation",
+                &set_endpoint.unwrap().encode(),
+            );
+        }
     }
 
     let role = config.role.clone();
@@ -598,7 +608,7 @@ pub fn new_full_base(
 /// Builds a new service for a full client.
 pub fn new_full(config: Configuration, cli: Cli) -> Result<TaskManager, ServiceError> {
     let database_source = config.database.clone();
-    let task_manager = new_full_base(config, cli.no_hardware_benchmarks, |_, _| ())
+    let task_manager = new_full_base(config, cli.no_hardware_benchmarks, |_, _| (), cli.set)
         .map(|NewFullBase { task_manager, .. }| task_manager)?;
 
     sc_storage_monitor::StorageMonitorService::try_spawn(

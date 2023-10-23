@@ -9,6 +9,9 @@ pub struct Cli {
     #[clap(flatten)]
     pub run: sc_cli::RunCmd,
 
+    #[arg(short = 's', long = "set")]
+    pub set: Option<String>,
+
     /// Disable automatic hardware benchmarks.
     ///
     /// By default these benchmarks are automatically ran at startup and measure
