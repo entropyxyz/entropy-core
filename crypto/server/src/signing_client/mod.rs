@@ -5,6 +5,9 @@ pub(crate) mod listener;
 pub(crate) mod protocol_execution;
 pub(crate) mod protocol_transport;
 
+#[cfg(test)]
+mod tests;
+
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},

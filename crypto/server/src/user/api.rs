@@ -56,7 +56,7 @@ use crate::{
         substrate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
-        user::{do_dkg, send_key},
+        user::{check_in_registration_group, do_dkg, send_key},
         validator::{get_signer, get_subxt_signer},
     },
     signing_client::{ListenerState, ProtocolErr},
@@ -84,6 +84,8 @@ pub struct UserRegistrationInfo {
     pub key: String,
     /// User threshold signing key
     pub value: Vec<u8>,
+    /// Is this a proactive refresh message
+    pub proactive_refresh: bool,
 }
 
 /// Called by a user to initiate the signing process for a message
@@ -115,12 +117,17 @@ pub async fn sign_tx(
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
-    let user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
+    let mut user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
     check_stale(user_tx_req.timestamp)?;
     let raw_message = hex::decode(user_tx_req.transaction_request.clone())?;
     let sig_hash = hex::encode(Hasher::keccak(&raw_message));
     let subgroup_signers = get_current_subgroup_signers(&api, &sig_hash).await?;
-    check_signing_group(subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
+    check_signing_group(&subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
+
+    // Use the validator info from chain as we can be sure it is in the correct order and the
+    // details are correct
+    user_tx_req.validators_info = subgroup_signers;
+
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
 
     let has_key = check_for_key(&signing_address, &app_state.kv_store).await?;
@@ -242,6 +249,7 @@ async fn setup_dkg(
         let user_registration_info = UserRegistrationInfo {
             key: sig_request_address.to_string(),
             value: serialized_key_share,
+            proactive_refresh: false,
         };
         send_key(&api, &stash_address, &mut addresses_in_subgroup, user_registration_info, &signer)
             .await?;
@@ -297,10 +305,15 @@ pub async fn receive_key(
         return Err(UserErr::NotInSubgroup);
     }
 
-    let exists_result =
-        app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
-    if exists_result {
-        return Err(UserErr::AlreadyRegistered);
+    if user_registration_info.proactive_refresh {
+        // TODO validate that an active proactive refresh is happening
+        app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
+    } else {
+        let exists_result =
+            app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
+        if exists_result {
+            return Err(UserErr::AlreadyRegistered);
+        }
     }
     let reservation =
         app_state.kv_store.kv().reserve_key(user_registration_info.key.to_string()).await?;
@@ -361,7 +374,7 @@ pub async fn confirm_registered(
 pub async fn get_current_subgroup_signers(
     api: &OnlineClient<EntropyConfig>,
     sig_hash: &str,
-) -> Result<Vec<SubxtAccountId32>, UserErr> {
+) -> Result<Vec<ValidatorInfo>, UserErr> {
     let mut subgroup_signers = vec![];
     let number = Arc::new(BigInt::from_str_radix(sig_hash, 16)?);
     let futures = (0..SIGNING_PARTY_SIZE)
@@ -385,16 +398,21 @@ pub async fn get_current_subgroup_signers(
                 let threshold_address_query = entropy::storage()
                     .staking_extension()
                     .threshold_servers(subgroup_info[index_of_signer].clone());
-                let threshold_address = api
+                let server_info = api
                     .storage()
                     .at_latest()
                     .await?
                     .fetch(&threshold_address_query)
                     .await?
-                    .ok_or(UserErr::SubgroupError("Stash Fetch Error"))?
-                    .tss_account;
+                    .ok_or(UserErr::SubgroupError("Stash Fetch Error"))?;
 
-                Ok::<_, UserErr>(threshold_address)
+                Ok::<_, UserErr>(ValidatorInfo {
+                    x25519_public_key: server_info.x25519_public_key,
+                    ip_address: SocketAddrV4::from_str(std::str::from_utf8(
+                        &server_info.endpoint,
+                    )?)?,
+                    tss_account: server_info.tss_account,
+                })
             }
         })
         .collect::<Vec<_>>();
@@ -407,18 +425,20 @@ pub async fn get_current_subgroup_signers(
 
 /// Checks if a validator is in the current selected signing committee
 pub fn check_signing_group(
-    subgroup_signers: Vec<SubxtAccountId32>,
+    subgroup_signers: &[ValidatorInfo],
     validators_info: &Vec<ValidatorInfo>,
     my_id: &<EntropyConfig as Config>::AccountId,
 ) -> Result<(), UserErr> {
+    let subgroup_signer_ids: Vec<SubxtAccountId32> =
+        subgroup_signers.iter().map(|signer| signer.tss_account.clone()).collect();
     // Check that validators given by the user match those from get_current_subgroup_signers
     for validator in validators_info {
-        if !subgroup_signers.contains(&validator.tss_account) {
+        if !subgroup_signer_ids.contains(&validator.tss_account) {
             return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
         }
     }
     // Finally, check that we ourselves are in the signing group
-    if !subgroup_signers.contains(my_id) {
+    if !subgroup_signer_ids.contains(my_id) {
         return Err(UserErr::InvalidSigner(
             "Signing group is valid, but this threshold server is not in the group",
         ));
@@ -480,20 +500,6 @@ pub async fn validate_new_user(
     kv_manager.kv().delete("LATEST_BLOCK_NUMBER").await?;
     let reservation = kv_manager.kv().reserve_key("LATEST_BLOCK_NUMBER".to_string()).await?;
     kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
-    Ok(())
-}
-
-/// Checks if a validator is in the current selected registration committee
-pub fn check_in_registration_group(
-    validators_info: &[entropy_shared::ValidatorInfo],
-    validator_address: &SubxtAccountId32,
-) -> Result<(), UserErr> {
-    let is_proper_signer = validators_info
-        .iter()
-        .any(|validator_info| validator_info.tss_account == validator_address.encode());
-    if !is_proper_signer {
-        return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
-    }
     Ok(())
 }
 

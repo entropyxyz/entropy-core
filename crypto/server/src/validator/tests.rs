@@ -43,7 +43,7 @@ async fn test_get_all_keys() {
     let mut result = get_all_keys(&api, 3).await.unwrap();
     let mut result_2 = get_all_keys(&api, 5).await.unwrap();
     let mut result_3 = get_all_keys(&api, 1).await.unwrap();
-    let mut result_4 = get_all_keys(&api, 6).await.unwrap();
+    let mut result_4 = get_all_keys(&api, 1000).await.unwrap();
 
     let mut expected_results = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL",
