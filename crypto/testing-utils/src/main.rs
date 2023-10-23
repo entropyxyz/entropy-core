@@ -33,8 +33,10 @@ struct Cli {
 enum CliCommand {
     /// Register with Entropy and create shares
     Register {
-        /// A name from which to generate a keypair
-        account_name: String,
+        /// A name from which to generate a signature request keypair
+        signature_request_account_name: String,
+        /// A name from which to generate a program modification keypair
+        program_account_name: String,
         /// Public, Private or Permissioned
         #[arg(value_enum)]
         key_visibility: Option<Visibility>,
@@ -42,14 +44,16 @@ enum CliCommand {
     /// Ask the network to sign a given message
     Sign {
         /// A name from which to generate a keypair
-        account_name: String,
+        signature_request_account_name: String,
         /// A hex encoded message
         message_hex: String,
     },
     /// Update to the 'barebones' program
     UpdateProgram {
-        /// A name from which to generate a keypair
-        account_name: String,
+        /// A name from which to generate a signature request keypair
+        signature_request_account_name: String,
+        /// A name from which to generate a program modification keypair
+        program_account_name: String,
         /// The path to a .wasm file containing the program (defaults to barebones program)
         program_file: Option<std::path::PathBuf>,
     },
@@ -99,13 +103,15 @@ async fn run_command() -> anyhow::Result<String> {
     let api = get_api(endpoint_addr).await?;
 
     match cli.command {
-        CliCommand::Register { account_name, key_visibility } => {
-            let (sig_req_keypair, _) =
-                sr25519::Pair::from_string_with_seed(&format!("//{}", account_name), None)?;
+        CliCommand::Register {
+            signature_request_account_name,
+            program_account_name,
+            key_visibility,
+        } => {
+            let sig_req_keypair = account_name_to_keypair(signature_request_account_name)?;
             println!("Signature request account: {:?}", sig_req_keypair.public());
 
-            let (program_keypair, _) =
-                sr25519::Pair::from_string_with_seed(&format!("//{}-program", account_name), None)?;
+            let program_keypair = account_name_to_keypair(program_account_name)?;
             let program_account = SubxtAccountId32(program_keypair.public().0);
             println!("Program account: {:?}", program_keypair.public());
 
@@ -124,21 +130,23 @@ async fn run_command() -> anyhow::Result<String> {
                     .await?;
             Ok(format!("{:?}", register_status))
         },
-        CliCommand::Sign { account_name, message_hex } => {
-            let (sig_req_keypair, _) =
-                sr25519::Pair::from_string_with_seed(&format!("//{}", account_name), None)?;
+        CliCommand::Sign { signature_request_account_name, message_hex } => {
+            let sig_req_keypair = account_name_to_keypair(signature_request_account_name)?;
             println!("Signature request account: {:?}", sig_req_keypair.public());
             let message = hex::decode(message_hex)?;
-            sign(&api, sig_req_keypair, message).await?;
+            let _recoverable_signature = sign(&api, sig_req_keypair, message).await?;
             Ok("Message signed".to_string())
         },
-        CliCommand::UpdateProgram { account_name, program_file } => {
-            let (sig_req_keypair, _) =
-                sr25519::Pair::from_string_with_seed(&format!("//{}", account_name), None)?;
+        CliCommand::UpdateProgram {
+            signature_request_account_name,
+            program_account_name,
+            program_file,
+        } => {
+            let sig_req_keypair = account_name_to_keypair(signature_request_account_name)?;
             println!("Signature request account: {:?}", sig_req_keypair.public());
+            let sig_req_account = SubxtAccountId32(sig_req_keypair.public().0);
 
-            let (program_keypair, _) =
-                sr25519::Pair::from_string_with_seed(&format!("//{}-program", account_name), None)?;
+            let program_keypair = account_name_to_keypair(program_account_name)?;
             println!("Program account: {:?}", program_keypair.public());
 
             let program = match program_file {
@@ -146,7 +154,7 @@ async fn run_command() -> anyhow::Result<String> {
                 None => BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 
-            update_program(&api, sig_req_keypair, program_keypair, program).await?;
+            update_program(&api, sig_req_account, program_keypair, program).await?;
             Ok("program updated".to_string())
         },
         CliCommand::Status => {
@@ -185,12 +193,19 @@ async fn run_command() -> anyhow::Result<String> {
                 let root_seed: [u8; 32] = root_seed_vec.try_into().unwrap();
                 sr25519::Pair::from_seed(&root_seed)
             };
-            let (to_fund_keypair, _) =
-                sr25519::Pair::from_string_with_seed(&format!("//{}", account_to_fund), None)?;
+            let to_fund_keypair = account_name_to_keypair(account_to_fund)?;
             let amount = amount.unwrap_or(100_000);
 
             fund_account(&api, root_keypair, to_fund_keypair.public().into(), amount).await?;
             Ok("Account funded".to_string())
         },
     }
+}
+
+/// Generate an sr2119 keypair from a given seed string
+fn account_name_to_keypair(account_name: String) -> anyhow::Result<sr25519::Pair> {
+    let account_name =
+        if account_name.starts_with("//") { account_name } else { format!("//{}", account_name) };
+    let (sig_req_keypair, _) = sr25519::Pair::from_string_with_seed(&account_name, None)?;
+    Ok(sig_req_keypair)
 }
