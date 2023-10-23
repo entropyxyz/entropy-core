@@ -37,7 +37,7 @@ reqwest                ={ version="0.11", features=["json", "stream"] }
 sha3                   ="0.10.8"
 base64                 ="0.13.0"
 synedrion              ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="v0.0.9" }
-x25519-chacha20poly1305={ git="ssh://git@github.com/entropyxyz/x25519-chacha20poly1305.git", branch="keypair-creation-bug" }
+x25519-chacha20poly1305={ git="https://github.com/entropyxyz/x25519-chacha20poly1305.git", branch="keypair-creation-bug" }
 # TODO rm unneeded features
 tokio  ={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util"] }
 hex    ="0.4.3"
