@@ -326,7 +326,7 @@ pub fn new_full_base(
         &sc_consensus_babe::BabeBlockImport<Block, FullClient, FullGrandpaBlockImport>,
         &sc_consensus_babe::BabeLink<Block>,
     ),
-    set_endpoint: Option<String>,
+    tss_server_endpoint: Option<String>,
 ) -> Result<NewFullBase, ServiceError> {
     let hwbench = (!disable_hardware_benchmarks)
         .then_some(config.database.path().map(|database_path| {
@@ -390,7 +390,7 @@ pub fn new_full_base(
             network.clone(),
         );
 
-        if let Some(endpoint) = set_endpoint {
+        if let Some(endpoint) = tss_server_endpoint {
             let mut offchain_db = OffchainDb::new(
                 backend.offchain_storage().expect("failed getting offchain storage"),
             );
@@ -617,7 +617,7 @@ pub fn new_full_base(
 pub fn new_full(config: Configuration, cli: Cli) -> Result<TaskManager, ServiceError> {
     let database_source = config.database.clone();
     let task_manager =
-        new_full_base(config, cli.no_hardware_benchmarks, |_, _| (), cli.rpc_endpoint)
+        new_full_base(config, cli.no_hardware_benchmarks, |_, _| (), cli.tss_server_endpoint)
             .map(|NewFullBase { task_manager, .. }| task_manager)?;
 
     sc_storage_monitor::StorageMonitorService::try_spawn(

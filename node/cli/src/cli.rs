@@ -11,8 +11,8 @@ pub struct Cli {
 
     /// Sets the `scheme://host:port` for offchain worker
     /// (i.e., TSS server, RPC API) endpoint.
-    #[arg(long = "rpc-endpoint")]
-    pub rpc_endpoint: Option<String>,
+    #[arg(long = "threshold-server-endpoint")]
+    pub tss_server_endpoint: Option<String>,
 
     /// Disable automatic hardware benchmarks.
     ///
