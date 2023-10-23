@@ -9,8 +9,9 @@ pub struct Cli {
     #[clap(flatten)]
     pub run: sc_cli::RunCmd,
 
-    /// Sets path for offch
-    #[arg(short = 'r', long = "rpc-endpoint")]
+    /// Sets the `scheme://host:port` for offchain worker
+    /// (i.e., TSS server, RPC API) endpoint.
+    #[arg(long = "rpc-endpoint")]
     pub rpc_endpoint: Option<String>,
 
     /// Disable automatic hardware benchmarks.

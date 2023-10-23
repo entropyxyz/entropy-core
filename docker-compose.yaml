@@ -66,6 +66,8 @@ services:
       - "all"
       - "--validator" # This is what makes the node a validator.
       - "--node-key=0000000000000000000000000000000000000000000000000000000000000001"
+      - "--rpc-endpoint"
+      - "http://tss-server:3001"
 
   bob-tss:
     image: entropy:tss-server
@@ -103,3 +105,5 @@ services:
       - "--validator" # This is what makes the node a validator.
       - "--bootnodes"
       - "/dns4/chain-node/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
+      - "--rpc-endpoint"
+      - "http://bob-tss:3001"
