@@ -615,8 +615,9 @@ pub fn new_full_base(
 /// Builds a new service for a full client.
 pub fn new_full(config: Configuration, cli: Cli) -> Result<TaskManager, ServiceError> {
     let database_source = config.database.clone();
-    let task_manager = new_full_base(config, cli.no_hardware_benchmarks, |_, _| (), cli.set)
-        .map(|NewFullBase { task_manager, .. }| task_manager)?;
+    let task_manager =
+        new_full_base(config, cli.no_hardware_benchmarks, |_, _| (), cli.rpc_endpoint)
+            .map(|NewFullBase { task_manager, .. }| task_manager)?;
 
     sc_storage_monitor::StorageMonitorService::try_spawn(
         cli.storage_monitor,
