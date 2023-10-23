@@ -2,8 +2,10 @@ mod common;
 use std::time::SystemTime;
 
 use anyhow::anyhow;
+pub use common::derive_static_secret;
 use common::{get_current_subgroup_signers, Hasher, UserTransactionRequest};
 use entropy_protocol::RecoverableSignature;
+pub use entropy_shared::KeyVisibility;
 use futures::future::try_join_all;
 use parity_scale_codec::Decode;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
@@ -15,8 +17,6 @@ use subxt::{
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 use x25519_chacha20poly1305::encrypt_and_sign;
 
-pub use common::derive_static_secret;
-pub use entropy_shared::KeyVisibility;
 pub use crate::chain_api::entropy::runtime_types::entropy_shared::constraints::Constraints;
 use crate::chain_api::{
     entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *,
