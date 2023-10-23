@@ -390,25 +390,21 @@ pub fn new_full_base(
             network.clone(),
         );
 
-        if set_endpoint.is_some() {
+        if let Some(endpoint) = set_endpoint {
             let mut offchain_db = OffchainDb::new(
                 backend.offchain_storage().expect("failed getting offchain storage"),
             );
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
                 b"propagation",
-                &format!("{}/user/new", set_endpoint.clone().expect("failed unwrapping endpoint"))
-                    .into_bytes(),
+                &format!("{}/user/new", endpoint).into_bytes(),
             );
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
                 b"refresh",
-                &format!(
-                    "{}/signer/proactive_refresh",
-                    set_endpoint.expect("failed unwrapping endpoint")
-                )
-                .into_bytes(),
+                &format!("{}/signer/proactive_refresh", endpoint).into_bytes(),
             );
+            log::info!("offchain rpc set to {}", endpoint);
         }
     }
 
