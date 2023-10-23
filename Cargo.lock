@@ -15642,7 +15642,7 @@ dependencies = [
 [[package]]
 name = "x25519-chacha20poly1305"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/x25519-chacha20poly1305.git?branch=error-handling#a5d640bd3c3fae6a53c678dcb5db840f875d7314"
+source = "git+ssh://git@github.com/entropyxyz/x25519-chacha20poly1305.git?branch=keypair-creation-bug#999a71bf7888ff6343704a8bf9838df2858ef4b2"
 dependencies = [
  "bip39 0.6.0-beta.1",
  "blake2",
