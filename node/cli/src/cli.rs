@@ -10,7 +10,7 @@ pub struct Cli {
     pub run: sc_cli::RunCmd,
 
     /// Sets path for offch
-    #[arg(short = 's', long = "rpc-endpoint")]
+    #[arg(short = 'r', long = "rpc-endpoint")]
     pub rpc_endpoint: Option<String>,
 
     /// Disable automatic hardware benchmarks.
