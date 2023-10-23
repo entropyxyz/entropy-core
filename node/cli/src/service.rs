@@ -391,7 +391,9 @@ pub fn new_full_base(
         );
 
         if set_endpoint.is_some() {
-            let mut offchain_db = OffchainDb::new(backend.offchain_storage().unwrap());
+            let mut offchain_db = OffchainDb::new(
+                backend.offchain_storage().expect("failed getting offchain storage"),
+            );
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
                 b"propagation",
@@ -691,6 +693,7 @@ mod tests {
                          babe_link: &sc_consensus_babe::BabeLink<Block>| {
                             setup_handles = Some((block_import.clone(), babe_link.clone()));
                         },
+                        None,
                     )?;
 
                 let node = sc_service_test::TestNetComponents::new(
@@ -858,7 +861,7 @@ mod tests {
             crate::chain_spec::tests::integration_test_config_with_two_authorities(),
             |config| {
                 let NewFullBase { task_manager, client, network, sync, transaction_pool, .. } =
-                    new_full_base(config, false, |_, _| ())?;
+                    new_full_base(config, false, |_, _| (), None)?;
                 Ok(sc_service_test::TestNetComponents::new(
                     task_manager,
                     client,
