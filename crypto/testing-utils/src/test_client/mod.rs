@@ -5,17 +5,19 @@ use anyhow::anyhow;
 pub use common::derive_static_secret;
 use common::{get_current_subgroup_signers, Hasher, UserTransactionRequest};
 use entropy_protocol::RecoverableSignature;
+use entropy_shared::KeyVisibility;
 use futures::future::try_join_all;
 use parity_scale_codec::Decode;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
-use subxt::{tx::PairSigner, utils::{AccountId32 as SubxtAccountId32, Static}, Config, OnlineClient};
+use subxt::{
+    tx::PairSigner,
+    utils::{AccountId32 as SubxtAccountId32, Static},
+    Config, OnlineClient,
+};
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 use x25519_chacha20poly1305::encrypt_and_sign;
-use entropy_shared::KeyVisibility;
 
-pub use crate::chain_api::entropy::runtime_types::entropy_shared::{
-    constraints::Constraints,
-};
+pub use crate::chain_api::entropy::runtime_types::entropy_shared::constraints::Constraints;
 use crate::chain_api::{
     entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *,
 };
@@ -134,10 +136,7 @@ pub async fn sign(
         let recovery_key_from_sig =
             VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id).unwrap();
         println!("Verifying Key {:?}", recovery_key_from_sig);
-		return Ok(RecoverableSignature {
-			signature,
-			recovery_id,
-		})
+        return Ok(RecoverableSignature { signature, recovery_id });
     }
     Err(anyhow!("No result from validator"))
 }
@@ -226,8 +225,11 @@ async fn put_register_request_on_chain(
 ) -> anyhow::Result<()> {
     let sig_req_account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keypair);
 
-    let registering_tx =
-        entropy::tx().relayer().register(constraint_account, Static(key_visibility), initial_program);
+    let registering_tx = entropy::tx().relayer().register(
+        constraint_account,
+        Static(key_visibility),
+        initial_program,
+    );
 
     api.tx()
         .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)

@@ -1078,18 +1078,23 @@ async fn test_sign_tx_with_test_client() {
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
     test_client::update_program(
-            &entropy_api,
-            subxtAccountId32(pre_registered_user.into()),
-            pre_registered_user.pair(),
-            BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
-        )
-        .await
-        .unwrap();
+        &entropy_api,
+        subxtAccountId32(pre_registered_user.into()),
+        pre_registered_user.pair(),
+        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+    )
+    .await
+    .unwrap();
 
     let message_should_succeed_hash = Hasher::keccak(MESSAGE_SHOULD_SUCCEED);
 
-    let recoverable_signature =
-        test_client::sign(&entropy_api, pre_registered_user.pair(), MESSAGE_SHOULD_SUCCEED.to_vec()).await.unwrap();
+    let recoverable_signature = test_client::sign(
+        &entropy_api,
+        pre_registered_user.pair(),
+        MESSAGE_SHOULD_SUCCEED.to_vec(),
+    )
+    .await
+    .unwrap();
     let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
         &message_should_succeed_hash,
         &recoverable_signature.signature,
