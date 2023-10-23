@@ -397,7 +397,12 @@ pub fn new_full_base(
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
                 b"propagation",
-                &set_endpoint.unwrap().into_bytes(),
+                &format!("{}/user/new", set_endpoint.clone().unwrap()).into_bytes(),
+            );
+            offchain_db.local_storage_set(
+                sp_core::offchain::StorageKind::PERSISTENT,
+                b"refresh",
+                &format!("{}/signer/proactive_refresh", set_endpoint.unwrap()).into_bytes(),
             );
         }
     }
