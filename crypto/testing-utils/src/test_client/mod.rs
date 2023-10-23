@@ -100,26 +100,24 @@ pub async fn sign(
             })?;
             let url = format!("http://{}/user/sign_tx", validator_info.ip_address.to_string());
 
-            let mock_client = reqwest::Client::new();
-            let res = mock_client
+            let client = reqwest::Client::new();
+            let res = client
                 .post(url)
                 .header("Content-Type", "application/json")
                 .body(signed_message_json)
                 .send()
                 .await;
-            println!("sent a request");
             Ok::<_, anyhow::Error>(res)
         })
         .collect::<Vec<_>>();
 
     let results = try_join_all(submit_transaction_requests).await?;
-    println!("Got all results");
 
-    for res in results {
+    // Get the first result
+    if let Some(res) = results.into_iter().next() {
         let mut output = res?;
         if output.status() != 200 {
-            println!("output {}", output.text().await?);
-            return Err(anyhow!("Signing failed"));
+            return Err(anyhow!("Signing failed: {}", output.text().await?));
         }
 
         let chunk = output.chunk().await?.ok_or(anyhow!("No response"))?;
@@ -128,6 +126,7 @@ pub async fn sign(
         let (signature_base64, _signature_of_signature) =
             signing_result.map_err(|err| anyhow!(err))?;
         println!("Signature: {}", signature_base64);
+
         let mut decoded_sig = base64::decode(signature_base64)?;
         let recovery_digit = decoded_sig.pop().ok_or(anyhow!("Cannot get recovery digit"))?;
         let signature = k256Signature::from_slice(&decoded_sig)?;
@@ -136,6 +135,7 @@ pub async fn sign(
         let recovery_key_from_sig =
             VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id).unwrap();
         println!("Verifying Key {:?}", recovery_key_from_sig);
+
         return Ok(RecoverableSignature { signature, recovery_id });
     }
     Err(anyhow!("No result from validator"))
