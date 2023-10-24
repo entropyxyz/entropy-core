@@ -125,9 +125,14 @@ async fn run_command() -> anyhow::Result<String> {
                 _ => KeyVisibility::Public,
             };
 
-            let register_status =
-                register(&api, signature_request_account_name, program_account, key_visibility_converted, None)
-                    .await?;
+            let register_status = register(
+                &api,
+                signature_request_account_name,
+                program_account,
+                key_visibility_converted,
+                None,
+            )
+            .await?;
             Ok(format!("{:?}", register_status))
         },
         CliCommand::Sign { signature_request_account_name, message_hex } => {

@@ -1080,7 +1080,7 @@ async fn test_sign_tx_with_test_client() {
     test_client::update_program(
         &entropy_api,
         subxtAccountId32(pre_registered_user.into()),
-        pre_registered_user.pair(),
+        pre_registered_user.to_seed(),
         BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
     )
     .await
@@ -1120,7 +1120,7 @@ async fn test_sign_tx_private_with_test_client() {
     test_client::update_program(
         &entropy_api,
         subxtAccountId32(pre_registered_user.into()),
-        pre_registered_user.pair(),
+        pre_registered_user.to_seed(),
         BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
     )
     .await
