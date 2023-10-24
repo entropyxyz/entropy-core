@@ -40,11 +40,16 @@ pub async fn get_api(ws_url: String) -> anyhow::Result<OnlineClient<EntropyConfi
 /// Register an account
 pub async fn register(
     api: &OnlineClient<EntropyConfig>,
-    sig_req_keypair: sr25519::Pair,
+    sig_req_seed_string: String,
     constraint_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
     initial_program: Option<Constraints>,
 ) -> anyhow::Result<RegisteredInfo> {
+    let sig_req_seed = SeedString::new(sig_req_seed_string);
+    let sig_req_keypair: sr25519::Pair = sig_req_seed.clone().try_into()?;
+    let _sig_req_subxt_keypair: subxt_signer::sr25519::Keypair = sig_req_seed.try_into()?;
+    info!("Signature request account: {}", hex::encode(sig_req_keypair.public().0));
+
     // Check if user is already registered
     let account_id32: AccountId32 = sig_req_keypair.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
@@ -188,9 +193,12 @@ pub async fn sign(
 pub async fn update_program(
     api: &OnlineClient<EntropyConfig>,
     sig_req_account: SubxtAccountId32,
-    program_keypair: sr25519::Pair,
+    program_seed_string: String,
     program: Vec<u8>,
 ) -> anyhow::Result<()> {
+    let program_seed = SeedString::new(program_seed_string);
+    let program_keypair: sr25519::Pair = program_seed.try_into()?;
+
     let update_program_tx =
         entropy::tx().constraints().update_v2_constraints(sig_req_account, program);
 
@@ -284,6 +292,7 @@ async fn put_register_request_on_chain(
     Ok(())
 }
 
+/// A string from which to generate a sr25519 keypair for test accounts
 #[derive(Clone)]
 struct SeedString(String);
 

@@ -1,12 +1,11 @@
 //! Simple CLI to test registering, updating programs and signing
-use std::{str::FromStr, time::Instant};
+use std::time::Instant;
 
 use anyhow::anyhow;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32 as SubxtAccountId32;
-use subxt_signer::SecretUri;
 use testing_utils::{
     constants::BAREBONES_PROGRAM_WASM_BYTECODE,
     test_client::{
@@ -109,7 +108,7 @@ async fn run_command() -> anyhow::Result<String> {
             program_account_name,
             key_visibility,
         } => {
-            let sig_req_keypair = account_name_to_keypair(signature_request_account_name)?;
+            let sig_req_keypair = account_name_to_keypair(signature_request_account_name.clone())?;
             println!("Signature request account: {:?}", sig_req_keypair.public());
 
             let program_keypair = account_name_to_keypair(program_account_name)?;
@@ -127,7 +126,7 @@ async fn run_command() -> anyhow::Result<String> {
             };
 
             let register_status =
-                register(&api, sig_req_keypair, program_account, key_visibility_converted, None)
+                register(&api, signature_request_account_name, program_account, key_visibility_converted, None)
                     .await?;
             Ok(format!("{:?}", register_status))
         },
@@ -146,15 +145,12 @@ async fn run_command() -> anyhow::Result<String> {
             println!("Signature request account: {:?}", sig_req_keypair.public());
             let sig_req_account = SubxtAccountId32(sig_req_keypair.public().0);
 
-            let program_keypair = account_name_to_keypair(program_account_name)?;
-            println!("Program account: {:?}", program_keypair.public());
-
             let program = match program_file {
                 Some(file_name) => std::fs::read(file_name)?,
                 None => BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 
-            update_program(&api, sig_req_account, program_keypair, program).await?;
+            update_program(&api, sig_req_account, program_account_name, program).await?;
             Ok("program updated".to_string())
         },
         CliCommand::Status => {
