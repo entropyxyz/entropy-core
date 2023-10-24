@@ -105,5 +105,5 @@ services:
       - "--validator" # This is what makes the node a validator.
       - "--bootnodes"
       - "/dns4/chain-node/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
-      - "--threshold-server-endpoint"
+      - "--tss-server-endpoint"
       - "http://bob-tss:3001"
