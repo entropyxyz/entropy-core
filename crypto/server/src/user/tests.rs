@@ -1090,8 +1090,49 @@ async fn test_sign_tx_with_test_client() {
 
     let recoverable_signature = test_client::sign(
         &entropy_api,
-        pre_registered_user.pair(),
+        pre_registered_user.to_seed(),
         MESSAGE_SHOULD_SUCCEED.to_vec(),
+        None,
+    )
+    .await
+    .unwrap();
+    let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+        &message_should_succeed_hash,
+        &recoverable_signature.signature,
+        recoverable_signature.recovery_id,
+    )
+    .unwrap();
+    assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
+}
+
+#[tokio::test]
+#[serial]
+async fn test_sign_tx_private_with_test_client() {
+    clean_tests();
+    let pre_registered_user = AccountKeyring::Eve;
+
+    let signing_address = pre_registered_user.clone().to_account_id().to_ss58check();
+    let (_validator_ips, _validator_ids, keyshare_option) =
+        spawn_testing_validators(Some(signing_address.clone()), true).await;
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+
+    test_client::update_program(
+        &entropy_api,
+        subxtAccountId32(pre_registered_user.into()),
+        pre_registered_user.pair(),
+        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+    )
+    .await
+    .unwrap();
+
+    let message_should_succeed_hash = Hasher::keccak(MESSAGE_SHOULD_SUCCEED);
+
+    let recoverable_signature = test_client::sign(
+        &entropy_api,
+        pre_registered_user.to_seed(),
+        MESSAGE_SHOULD_SUCCEED.to_vec(),
+        keyshare_option.clone(),
     )
     .await
     .unwrap();
