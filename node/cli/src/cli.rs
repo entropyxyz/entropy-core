@@ -9,8 +9,11 @@ pub struct Cli {
     #[clap(flatten)]
     pub run: sc_cli::RunCmd,
 
-    /// Sets the `scheme://host:port` for offchain worker
-    /// (i.e., TSS server, RPC API) endpoint.
+    /// Sets the URL of the Threshold Signing Server (TSS) to use.
+    ///
+    /// The format should be in the form of `scheme://hostname:port`.
+    ///
+    /// If no endpoint is provided a default TSS URL of `https://localhost:3001` is used.
     #[arg(long = "tss-server-endpoint")]
     pub tss_server_endpoint: Option<String>,
 
