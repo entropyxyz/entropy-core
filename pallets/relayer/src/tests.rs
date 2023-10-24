@@ -15,6 +15,10 @@ use sp_runtime::{
 use crate as pallet_relayer;
 use crate::{mock::*, Error, RegisteredInfo, RegisteringDetails, ValidateConfirmRegistered};
 
+/// consts used for testing
+const CONSTRAINT_ACCOUNT: u64 = 1u64;
+const SIG_REQ_ACCOUNT: u64 = 2u64;
+
 #[test]
 fn it_tests_get_validator_rotation() {
     new_test_ext().execute_with(|| {
@@ -63,6 +67,34 @@ fn it_registers_a_user() {
 
         assert!(Relayer::registering(1).unwrap().is_registering);
         assert_eq!(Relayer::dkg(0), vec![1u64.encode()]);
+    });
+}
+
+#[test]
+fn it_takes_a_program_storage_deposit_during_register() {
+    new_test_ext().execute_with(|| {
+        use frame_support::traits::Currency;
+
+        let program = vec![1u8, 2u8];
+        let initial_balance = 100;
+
+        Balances::make_free_balance_be(&CONSTRAINT_ACCOUNT, initial_balance);
+
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(SIG_REQ_ACCOUNT),
+            CONSTRAINT_ACCOUNT,
+            KeyVisibility::Public,
+            program.clone(),
+        ));
+
+        let expected_reserve =
+            <Test as pallet_constraints::Config>::V2ConstraintsDepositPerByte::get()
+                * (program.len() as u32);
+
+        assert_eq!(
+            Balances::free_balance(CONSTRAINT_ACCOUNT),
+            initial_balance - (expected_reserve as u64)
+        );
     });
 }
 

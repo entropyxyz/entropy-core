@@ -208,6 +208,13 @@ pub mod pallet {
                 Error::<T>::MaxProgramLengthExceeded,
             );
 
+            // We take a storage deposit here based off the program length. This can be returned to
+            // the user if they clear the program from storage using the Constraints pallet.
+            ConstraintsPallet::<T>::reserve_program_deposit(
+                &program_modification_account,
+                initial_program.len(),
+            )?;
+
             let block_number = <frame_system::Pallet<T>>::block_number();
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(sig_req_account.clone().encode());
