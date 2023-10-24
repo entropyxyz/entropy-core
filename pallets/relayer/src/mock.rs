@@ -306,7 +306,7 @@ parameter_types! {
 }
 
 impl pallet_constraints::Config for Test {
-    type Currency = ();
+    type Currency = Balances;
     type MaxAclLength = MaxAclLength;
     type MaxV2BytecodeLength = MaxV2BytecodeLength;
     type RuntimeEvent = RuntimeEvent;
