@@ -10,6 +10,7 @@ pub struct Cli {
     pub run: sc_cli::RunCmd,
 
     /// Sets the `scheme://host:port` for offchain worker
+    /// Validator should set it to the location of the tss server
     /// (i.e., TSS server, RPC API) endpoint.
     #[arg(long = "tss-server-endpoint")]
     pub tss_server_endpoint: Option<String>,
