@@ -404,7 +404,7 @@ pub fn new_full_base(
                 b"refresh",
                 &format!("{}/signer/proactive_refresh", endpoint).into_bytes(),
             );
-            log::info!("offchain rpc set to {}", endpoint);
+            log::info!("Threshold Signing Sever (TSS) location changed to {}", endpoint);
         }
     }
 
