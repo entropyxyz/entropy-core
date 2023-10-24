@@ -4,17 +4,17 @@ use std::time::SystemTime;
 use anyhow::anyhow;
 pub use common::derive_static_secret;
 use common::{get_current_subgroup_signers, Hasher, UserTransactionRequest};
-use entropy_protocol::RecoverableSignature;
+use entropy_protocol::{RecoverableSignature, user::user_participates_in_signing_protocol, KeyParams};
 pub use entropy_shared::KeyVisibility;
 use futures::future::try_join_all;
 use parity_scale_codec::Decode;
-use sp_core::{crypto::AccountId32, sr25519, Pair};
+use sp_core::{crypto::{AccountId32, Ss58Codec}, sr25519, Pair};
 use subxt::{
     tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static},
     Config, OnlineClient,
 };
-use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
+use synedrion::{k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey}, KeyShare};
 use x25519_chacha20poly1305::encrypt_and_sign;
 
 pub use crate::chain_api::entropy::runtime_types::entropy_shared::constraints::Constraints;
@@ -71,7 +71,9 @@ pub async fn register(
 pub async fn sign(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keypair: sr25519::Pair,
+    sig_req_subxt_keypair: subxt_signer::sr25519::Keypair,
     message: Vec<u8>,
+    private: Option<KeyShare<KeyParams>>,
 ) -> anyhow::Result<RecoverableSignature> {
     let message_hash = Hasher::keccak(&message);
     let message_hash_hex = hex::encode(message_hash);
@@ -84,6 +86,7 @@ pub async fn sign(
     };
 
     let user_transaction_request_vec = serde_json::to_vec(&generic_msg)?;
+    let validators_info_clone = validators_info.clone();
 
     let submit_transaction_requests = validators_info
         .iter()
@@ -111,7 +114,31 @@ pub async fn sign(
         })
         .collect::<Vec<_>>();
 
-    let results = try_join_all(submit_transaction_requests).await?;
+
+    let results = if let Some(keyshare) = private {
+        let x25519_secret = derive_static_secret(&sig_req_keypair);
+
+        let sig_uid = {
+            let account_id32: AccountId32 = sig_req_keypair.public().into();
+            let account_id_ss58 = account_id32.to_ss58check();
+            format!("{account_id_ss58}_{message_hash_hex}")
+        };
+        let (validator_results, own_result) = futures::future::join(
+            try_join_all(submit_transaction_requests),
+            user_participates_in_signing_protocol(
+                &keyshare,
+                &sig_uid,
+                validators_info_clone,
+                &sig_req_subxt_keypair,
+                message_hash,
+                &x25519_secret,
+            ),
+        )
+            .await;
+        validator_results?
+    } else {
+        try_join_all(submit_transaction_requests).await?
+    };
 
     // Get the first result
     if let Some(res) = results.into_iter().next() {
