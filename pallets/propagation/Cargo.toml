@@ -83,6 +83,7 @@ std=[
   'pallet-constraints/std',
   'pallet-balances/std',
   'pallet-babe/std',
+  'pallet-relayer/std',
   "sp-io/std",
   "sp-runtime/std",
   "sp-npos-elections/std",

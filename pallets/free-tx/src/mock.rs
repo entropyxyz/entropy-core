@@ -14,7 +14,7 @@ use sp_runtime::{
     curve::PiecewiseLinear,
     testing::{TestXt, UintAuthorityId},
     traits::{BlakeTwo256, ConvertInto, IdentityLookup, Zero},
-    Perbill, BuildStorage
+    BuildStorage, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::collections::btree_map::BTreeMap;
@@ -54,16 +54,16 @@ impl system::Config for Test {
     type AccountData = pallet_balances::AccountData<u64>;
     type AccountId = u64;
     type BaseCallFilter = frame_support::traits::Everything;
+    type Block = Block;
     type BlockHashCount = BlockHashCount;
     type BlockLength = ();
     type BlockWeights = ();
-    type Block = Block;
     type DbWeight = ();
-    type Nonce = u64;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type Lookup = IdentityLookup<Self::AccountId>;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type Nonce = u64;
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
@@ -101,9 +101,9 @@ impl pallet_balances::Config for Test {
     type MaxHolds = ();
     type MaxLocks = ();
     type MaxReserves = ();
-  	type RuntimeHoldReason = RuntimeHoldReason;
     type ReserveIdentifier = [u8; 8];
     type RuntimeEvent = RuntimeEvent;
+    type RuntimeHoldReason = RuntimeHoldReason;
     type WeightInfo = ();
 }
 
@@ -220,6 +220,7 @@ impl pallet_staking::Config for Test {
     type CurrencyToVote = ();
     type ElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
+    type EventListeners = ();
     type GenesisElectionProvider = Self::ElectionProvider;
     type HistoryDepth = ConstU32<84>;
     type MaxNominations = MaxNominations;
@@ -236,7 +237,6 @@ impl pallet_staking::Config for Test {
     type SlashDeferDuration = SlashDeferDuration;
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = pallet_timestamp::Pallet<Test>;
-    type EventListeners = ();
     type VoterList = BagsList;
     type WeightInfo = ();
 }

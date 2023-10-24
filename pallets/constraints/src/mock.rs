@@ -2,7 +2,8 @@ use frame_support::parameter_types;
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
-    traits::{BlakeTwo256, IdentityLookup}, BuildStorage
+    traits::{BlakeTwo256, IdentityLookup},
+    BuildStorage,
 };
 
 use crate as pallet_constraints;
@@ -28,16 +29,16 @@ impl system::Config for Test {
     type AccountData = pallet_balances::AccountData<u64>;
     type AccountId = u64;
     type BaseCallFilter = frame_support::traits::Everything;
+    type Block = Block;
     type BlockHashCount = BlockHashCount;
     type BlockLength = ();
     type BlockWeights = ();
-    type Block = Block;
     type DbWeight = ();
-    type Nonce = u64;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type Lookup = IdentityLookup<Self::AccountId>;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type Nonce = u64;
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
@@ -69,9 +70,9 @@ impl pallet_balances::Config for Test {
     type MaxHolds = ();
     type MaxLocks = ();
     type MaxReserves = ();
-  	type RuntimeHoldReason = RuntimeHoldReason;
     type ReserveIdentifier = [u8; 8];
     type RuntimeEvent = RuntimeEvent;
+    type RuntimeHoldReason = RuntimeHoldReason;
     type WeightInfo = ();
 }
 
