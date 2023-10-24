@@ -1,5 +1,5 @@
 //! Simple CLI to test registering, updating programs and signing
-use std::{time::Instant, str::FromStr};
+use std::{str::FromStr, time::Instant};
 
 use anyhow::anyhow;
 use clap::{Parser, Subcommand};
@@ -132,12 +132,10 @@ async fn run_command() -> anyhow::Result<String> {
             Ok(format!("{:?}", register_status))
         },
         CliCommand::Sign { signature_request_account_name, message_hex } => {
-            let sig_req_keypair = account_name_to_keypair(signature_request_account_name.clone())?;
-            let sig_req_subxt_keypair = account_name_to_subxt_keypair(signature_request_account_name)?;
-            println!("Signature request account: {:?}", sig_req_keypair.public());
             let message = hex::decode(message_hex)?;
-            let _recoverable_signature = sign(&api, sig_req_keypair, sig_req_subxt_keypair,  message, None).await?;
-            Ok("Message signed".to_string())
+            let recoverable_signature =
+                sign(&api, signature_request_account_name, message, None).await?;
+            Ok(format!("Message signed: {:?}", recoverable_signature))
         },
         CliCommand::UpdateProgram {
             signature_request_account_name,
@@ -210,12 +208,4 @@ fn account_name_to_keypair(account_name: String) -> anyhow::Result<sr25519::Pair
         if account_name.starts_with("//") { account_name } else { format!("//{}", account_name) };
     let (sig_req_keypair, _) = sr25519::Pair::from_string_with_seed(&account_name, None)?;
     Ok(sig_req_keypair)
-}
-
-fn account_name_to_subxt_keypair(account_name: String) -> anyhow::Result<subxt_signer::sr25519::Keypair> {
-    let account_name =
-        if account_name.starts_with("//") { account_name } else { format!("//{}", account_name) };
-    let uri = SecretUri::from_str(&account_name)?;
-    let keypair = subxt_signer::sr25519::Keypair::from_uri(&uri)?;
-    Ok(keypair)
 }

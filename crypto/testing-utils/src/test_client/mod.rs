@@ -1,20 +1,30 @@
 mod common;
-use std::time::SystemTime;
+use std::{str::FromStr, time::SystemTime};
 
 use anyhow::anyhow;
 pub use common::derive_static_secret;
 use common::{get_current_subgroup_signers, Hasher, UserTransactionRequest};
-use entropy_protocol::{RecoverableSignature, user::user_participates_in_signing_protocol, KeyParams};
+use entropy_protocol::{
+    user::user_participates_in_signing_protocol, KeyParams, RecoverableSignature,
+};
 pub use entropy_shared::KeyVisibility;
 use futures::future::try_join_all;
+use log::info;
 use parity_scale_codec::Decode;
-use sp_core::{crypto::{AccountId32, Ss58Codec}, sr25519, Pair};
+use sp_core::{
+    crypto::{AccountId32, Ss58Codec},
+    sr25519, Pair,
+};
 use subxt::{
     tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static},
     Config, OnlineClient,
 };
-use synedrion::{k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey}, KeyShare};
+use subxt_signer::SecretUri;
+use synedrion::{
+    k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
+    KeyShare,
+};
 use x25519_chacha20poly1305::encrypt_and_sign;
 
 pub use crate::chain_api::entropy::runtime_types::entropy_shared::constraints::Constraints;
@@ -70,15 +80,20 @@ pub async fn register(
 /// Request to sign a message
 pub async fn sign(
     api: &OnlineClient<EntropyConfig>,
-    sig_req_keypair: sr25519::Pair,
-    sig_req_subxt_keypair: subxt_signer::sr25519::Keypair,
+    sig_req_seed_string: String,
     message: Vec<u8>,
     private: Option<KeyShare<KeyParams>>,
 ) -> anyhow::Result<RecoverableSignature> {
+    let sig_req_seed = SeedString::new(sig_req_seed_string);
+    let sig_req_keypair: sr25519::Pair = sig_req_seed.clone().try_into()?;
+    let sig_req_subxt_keypair: subxt_signer::sr25519::Keypair = sig_req_seed.try_into()?;
+    info!("Signature request account: {}", hex::encode(sig_req_keypair.public().0));
+
     let message_hash = Hasher::keccak(&message);
     let message_hash_hex = hex::encode(message_hash);
     let validators_info = get_current_subgroup_signers(api, &message_hash_hex).await?;
-    println!("Validators info {:?}", validators_info);
+    info!("Validators info {:?}", validators_info);
+
     let generic_msg = UserTransactionRequest {
         transaction_request: hex::encode(message),
         validators_info: validators_info.clone(),
@@ -88,6 +103,7 @@ pub async fn sign(
     let user_transaction_request_vec = serde_json::to_vec(&generic_msg)?;
     let validators_info_clone = validators_info.clone();
 
+    // Make http requests to tss servers
     let submit_transaction_requests = validators_info
         .iter()
         .map(|validator_info| async {
@@ -114,7 +130,7 @@ pub async fn sign(
         })
         .collect::<Vec<_>>();
 
-
+    // If we have a keyshare, connect to tss servers
     let results = if let Some(keyshare) = private {
         let x25519_secret = derive_static_secret(&sig_req_keypair);
 
@@ -123,7 +139,7 @@ pub async fn sign(
             let account_id_ss58 = account_id32.to_ss58check();
             format!("{account_id_ss58}_{message_hash_hex}")
         };
-        let (validator_results, own_result) = futures::future::join(
+        let (validator_results, _own_result) = futures::future::join(
             try_join_all(submit_transaction_requests),
             user_participates_in_signing_protocol(
                 &keyshare,
@@ -134,7 +150,7 @@ pub async fn sign(
                 &x25519_secret,
             ),
         )
-            .await;
+        .await;
         validator_results?
     } else {
         try_join_all(submit_transaction_requests).await?
@@ -152,7 +168,7 @@ pub async fn sign(
             serde_json::from_slice(&chunk).unwrap();
         let (signature_base64, _signature_of_signature) =
             signing_result.map_err(|err| anyhow!(err))?;
-        println!("Signature: {}", signature_base64);
+        info!("Signature: {}", signature_base64);
 
         let mut decoded_sig = base64::decode(signature_base64)?;
         let recovery_digit = decoded_sig.pop().ok_or(anyhow!("Cannot get recovery digit"))?;
@@ -161,11 +177,11 @@ pub async fn sign(
             RecoveryId::from_byte(recovery_digit).ok_or(anyhow!("Cannot create recovery id"))?;
         let recovery_key_from_sig =
             VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id).unwrap();
-        println!("Verifying Key {:?}", recovery_key_from_sig);
+        info!("Verifying Key {:?}", recovery_key_from_sig);
 
         return Ok(RecoverableSignature { signature, recovery_id });
     }
-    Err(anyhow!("No result from validator"))
+    Err(anyhow!("No results to return"))
 }
 
 /// Update a program
@@ -266,4 +282,32 @@ async fn put_register_request_on_chain(
         .wait_for_success()
         .await?;
     Ok(())
+}
+
+#[derive(Clone)]
+struct SeedString(String);
+
+impl SeedString {
+    fn new(seed_string: String) -> Self {
+        Self(if seed_string.starts_with("//") { seed_string } else { format!("//{}", seed_string) })
+    }
+}
+
+impl TryFrom<SeedString> for sr25519::Pair {
+    type Error = anyhow::Error;
+
+    fn try_from(seed_string: SeedString) -> Result<Self, Self::Error> {
+        let (keypair, _) = sr25519::Pair::from_string_with_seed(&seed_string.0, None)?;
+        Ok(keypair)
+    }
+}
+
+impl TryFrom<SeedString> for subxt_signer::sr25519::Keypair {
+    type Error = anyhow::Error;
+
+    fn try_from(seed_string: SeedString) -> Result<Self, Self::Error> {
+        let uri = SecretUri::from_str(&seed_string.0)?;
+        let keypair = subxt_signer::sr25519::Keypair::from_uri(&uri)?;
+        Ok(keypair)
+    }
 }
