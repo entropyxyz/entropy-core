@@ -66,7 +66,7 @@ services:
       - "all"
       - "--validator" # This is what makes the node a validator.
       - "--node-key=0000000000000000000000000000000000000000000000000000000000000001"
-      - "--threshold-server-endpoint"
+      - "--tss-server-endpoint"
       - "http://tss-server:3001"
 
   bob-tss:
