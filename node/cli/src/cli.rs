@@ -9,6 +9,11 @@ pub struct Cli {
     #[clap(flatten)]
     pub run: sc_cli::RunCmd,
 
+    /// Sets the `scheme://host:port` for offchain worker
+    /// (i.e., TSS server, RPC API) endpoint.
+    #[arg(long = "tss-server-endpoint")]
+    pub tss_server_endpoint: Option<String>,
+
     /// Disable automatic hardware benchmarks.
     ///
     /// By default these benchmarks are automatically ran at startup and measure

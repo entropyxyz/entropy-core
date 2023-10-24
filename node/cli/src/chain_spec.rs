@@ -749,7 +749,7 @@ pub(crate) mod tests {
     fn test_connectivity() {
         sc_service_test::connectivity(integration_test_config_with_two_authorities(), |config| {
             let NewFullBase { task_manager, client, network, sync, transaction_pool, .. } =
-                new_full_base(config, false, |_, _| ())?;
+                new_full_base(config, false, |_, _| (), None)?;
             Ok(sc_service_test::TestNetComponents::new(
                 task_manager,
                 client,
