@@ -38,7 +38,7 @@ use core::marker::PhantomData;
 
 /// Weight functions needed for pallet_constraints.
 pub trait WeightInfo {
-	fn update_constraints() -> Weight;
+	fn update_program() -> Weight;
 }
 
 /// Weights for pallet_constraints using the Substrate node and recommended hardware.
@@ -48,7 +48,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Proof Skipped: Constraints AllowedToModifyConstraints (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Constraints Bytecode (r:1 w:1)
 	/// Proof Skipped: Constraints Bytecode (max_values: None, max_size: None, mode: Measured)
-	fn update_constraints() -> Weight {
+	fn update_program() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `236`
 		//  Estimated: `3701`
@@ -65,7 +65,7 @@ impl WeightInfo for () {
 	/// Proof Skipped: Constraints AllowedToModifyConstraints (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Constraints Bytecode (r:1 w:1)
 	/// Proof Skipped: Constraints Bytecode (max_values: None, max_size: None, mode: Measured)
-	fn update_constraints() -> Weight {
+	fn update_program() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `236`
 		//  Estimated: `3701`

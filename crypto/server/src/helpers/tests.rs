@@ -153,7 +153,7 @@ pub async fn update_programs(
     // update/set their constraints
     let update_program_tx = entropy::tx()
         .constraints()
-        .update_constraints(SubxtAccountId32::from(sig_req_keyring.public()), initial_program);
+        .update_program(SubxtAccountId32::from(sig_req_keyring.public()), initial_program);
 
     let constraint_modification_account =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(constraint_modification_account.clone());

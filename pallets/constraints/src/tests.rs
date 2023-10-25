@@ -16,7 +16,7 @@ fn set_constraints() {
 
         // make sure no one can add a constraint without explicit permissions
         assert_noop!(
-            ConstraintsPallet::update_constraints(
+            ConstraintsPallet::update_program(
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
                 SIG_REQ_ACCOUNT,
                 constraint.clone(),
@@ -28,7 +28,7 @@ fn set_constraints() {
 
         // can't pay deposit
         assert_noop!(
-            ConstraintsPallet::update_constraints(
+            ConstraintsPallet::update_program(
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
                 SIG_REQ_ACCOUNT,
                 constraint.clone(),
@@ -39,13 +39,13 @@ fn set_constraints() {
         Balances::make_free_balance_be(&CONSTRAINT_ACCOUNT, 100);
 
         // It's okay to have an empty constraint
-        assert_ok!(ConstraintsPallet::update_constraints(
+        assert_ok!(ConstraintsPallet::update_program(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
             empty_constraint.clone()
         ));
 
-        assert_ok!(ConstraintsPallet::update_constraints(
+        assert_ok!(ConstraintsPallet::update_program(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
             constraint.clone()
@@ -55,7 +55,7 @@ fn set_constraints() {
         assert_eq!(Balances::free_balance(CONSTRAINT_ACCOUNT), 90);
 
         // deposit refunded partial
-        assert_ok!(ConstraintsPallet::update_constraints(
+        assert_ok!(ConstraintsPallet::update_program(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
             vec![10u8]
@@ -63,7 +63,7 @@ fn set_constraints() {
         assert_eq!(Balances::free_balance(CONSTRAINT_ACCOUNT), 95);
 
         // deposit refunded full
-        assert_ok!(ConstraintsPallet::update_constraints(
+        assert_ok!(ConstraintsPallet::update_program(
             RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
             SIG_REQ_ACCOUNT,
             vec![]
@@ -71,7 +71,7 @@ fn set_constraints() {
         assert_eq!(Balances::free_balance(CONSTRAINT_ACCOUNT), 100);
 
         assert_noop!(
-            ConstraintsPallet::update_constraints(
+            ConstraintsPallet::update_program(
                 RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
                 SIG_REQ_ACCOUNT,
                 too_long,

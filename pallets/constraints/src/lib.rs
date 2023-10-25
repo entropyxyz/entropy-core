@@ -17,8 +17,8 @@
 //!
 //! #### Public
 //!
-//! `update_constraints` - Allows a user to either add or remove a set of constraints for a
-//! particular signature-request account.
+//! `update_program` - Allows a program-modification account to change the program associated with
+//! a particular signature-request account.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
@@ -124,8 +124,8 @@ pub mod pallet {
         ///
         /// Note that the call must be sent from a program-modification account.
         #[pallet::call_index(0)]
-        #[pallet::weight({<T as Config>::WeightInfo::update_constraints()})]
-        pub fn update_constraints(
+        #[pallet::weight({<T as Config>::WeightInfo::update_program()})]
+        pub fn update_program(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
             new_program: Vec<u8>,

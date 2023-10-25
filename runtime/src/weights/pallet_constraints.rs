@@ -38,7 +38,7 @@ impl<T: frame_system::Config> pallet_constraints::WeightInfo for WeightInfo<T> {
 	/// Proof Skipped: Constraints AllowedToModifyConstraints (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Constraints Bytecode (r:1 w:1)
 	/// Proof Skipped: Constraints Bytecode (max_values: None, max_size: None, mode: Measured)
-	fn update_constraints() -> Weight {
+	fn update_program() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `236`
 		//  Estimated: `3701`
