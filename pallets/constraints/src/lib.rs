@@ -60,7 +60,7 @@ pub mod pallet {
         type MaxBytecodeLength: Get<u32>;
 
         /// The amount to charge, per byte, for storing a program on-chain.
-        type ConstraintsDepositPerByte: Get<BalanceOf<Self>>;
+        type ProgramDepositPerByte: Get<BalanceOf<Self>>;
 
         /// The currency mechanism, used to take storage deposits for example.
         type Currency: ReservableCurrency<Self::AccountId>;
@@ -73,22 +73,24 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    /// If the constraint-modification `AccountId` and signature-request `AccountId` tuple as a key
-    /// exists, then the constraint-modification `AccountId` is authorized to modify the
-    /// constraints for this account
+    /// A mapping for checking whether a program-modification account is allowed to update a
+    /// program on behalf of a signature-request account.
+    ///
+    /// If the program-modification account and signature-request account pair is found in storage
+    /// then program modification is allowed.
     #[pallet::storage]
     #[pallet::getter(fn sig_req_accounts)]
-    pub type AllowedToModifyConstraints<T: Config> = StorageDoubleMap<
+    pub type AllowedToModifyProgram<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
-        T::AccountId,
+        T::AccountId, // Program-modification account
         Blake2_128Concat,
-        T::AccountId,
+        T::AccountId, // Signature-request account
         (),
         ResultQuery<Error<T>::NotAuthorized>,
     >;
 
-    /// Stores the set of constraints for a given account.
+    /// Stores the program bytecode for a given signature-request account.
     #[pallet::storage]
     #[pallet::getter(fn bytecode)]
     pub type Bytecode<T: Config> =
@@ -97,54 +99,64 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// All new constraints. [constraint_account, constraints]
-        ConstraintsUpdated(T::AccountId, Vec<u8>),
+        /// The bytecode of a program was updated.
+        ProgramUpdated {
+            /// The program modification account which updated the program.
+            program_modification_account: T::AccountId,
+
+            /// The new program bytecode.
+            new_program: Vec<u8>,
+        },
     }
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Constraint account doesn't have permission to modify these constraints
+        /// Program modification account doesn't have permission to modify this program.
         NotAuthorized,
-        /// Constraint length is too long
-        ConstraintLengthExceeded,
+
+        /// The program length is too long.
+        ProgramLengthExceeded,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Sets or clears the constraints for a given signature-request account.
+        /// Sets or clears the program for a given signature-request account.
         ///
-        /// Note that the call must be sent from a constraint-modification account.
+        /// Note that the call must be sent from a program-modification account.
         #[pallet::call_index(0)]
         #[pallet::weight({<T as Config>::WeightInfo::update_constraints()})]
         pub fn update_constraints(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
-            new_constraints: Vec<u8>,
+            new_program: Vec<u8>,
         ) -> DispatchResult {
-            let constraint_account = ensure_signed(origin)?;
-            let new_constraints_length = new_constraints.len();
+            let program_modification_account = ensure_signed(origin)?;
+            let new_program_length = new_program.len();
             ensure!(
-                new_constraints_length as u32 <= T::MaxBytecodeLength::get(),
-                Error::<T>::ConstraintLengthExceeded
+                new_program_length as u32 <= T::MaxBytecodeLength::get(),
+                Error::<T>::ProgramLengthExceeded
             );
 
             ensure!(
-                AllowedToModifyConstraints::<T>::contains_key(
-                    &constraint_account,
+                AllowedToModifyProgram::<T>::contains_key(
+                    &program_modification_account,
                     &sig_req_account
                 ),
                 Error::<T>::NotAuthorized
             );
-            let old_constraints_length = Self::bytecode(&sig_req_account).unwrap_or_default().len();
+            let old_program_length = Self::bytecode(&sig_req_account).unwrap_or_default().len();
 
             Self::update_program_storage_deposit(
-                &constraint_account,
-                old_constraints_length,
-                new_constraints_length,
+                &program_modification_account,
+                old_program_length,
+                new_program_length,
             )?;
 
-            Bytecode::<T>::insert(&sig_req_account, &new_constraints);
-            Self::deposit_event(Event::ConstraintsUpdated(sig_req_account, new_constraints));
+            Bytecode::<T>::insert(&sig_req_account, &new_program);
+            Self::deposit_event(Event::ProgramUpdated {
+                program_modification_account,
+                new_program,
+            });
             Ok(())
         }
     }
@@ -162,7 +174,7 @@ pub mod pallet {
         ) -> Result<(), Error<T>> {
             ensure!(
                 program.len() as u32 <= T::MaxBytecodeLength::get(),
-                Error::<T>::ConstraintLengthExceeded
+                Error::<T>::ProgramLengthExceeded
             );
 
             Bytecode::<T>::insert(sig_req_account, program);
@@ -179,7 +191,7 @@ pub mod pallet {
         /// The deposit can be returned using the [`Self::unreserve_program_deposit`] function.
         pub fn reserve_program_deposit(from: &T::AccountId, program_len: usize) -> DispatchResult {
             let deposit =
-                T::ConstraintsDepositPerByte::get().saturating_mul((program_len as u32).into());
+                T::ProgramDepositPerByte::get().saturating_mul((program_len as u32).into());
 
             T::Currency::reserve(from, deposit)
         }
@@ -187,7 +199,7 @@ pub mod pallet {
         /// Returns a storage deposit placed by [`Self::reserve_program_deposit`].
         pub fn unreserve_program_deposit(from: &T::AccountId, program_len: usize) -> BalanceOf<T> {
             let deposit =
-                T::ConstraintsDepositPerByte::get().saturating_mul((program_len as u32).into());
+                T::ProgramDepositPerByte::get().saturating_mul((program_len as u32).into());
 
             T::Currency::unreserve(from, deposit)
         }

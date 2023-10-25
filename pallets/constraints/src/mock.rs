@@ -59,7 +59,7 @@ impl system::Config for Test {
 parameter_types! {
   pub const MaxAclLength: u32 = 25;
   pub const MaxBytecodeLength: u32 = 3;
-  pub const ConstraintsDepositPerByte: u32 = 5;
+  pub const ProgramDepositPerByte: u32 = 5;
 }
 
 parameter_types! {
@@ -83,10 +83,9 @@ impl pallet_balances::Config for Test {
 }
 
 impl pallet_constraints::Config for Test {
-    type ConstraintsDepositPerByte = ConstraintsDepositPerByte;
     type Currency = Balances;
-    type MaxAclLength = MaxAclLength;
     type MaxBytecodeLength = MaxBytecodeLength;
+    type ProgramDepositPerByte = ProgramDepositPerByte;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }

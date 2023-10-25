@@ -1,7 +1,7 @@
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use pallet_balances::Error as BalancesError;
 
-use crate::{mock::*, AllowedToModifyConstraints, Error};
+use crate::{mock::*, AllowedToModifyProgram, Error};
 
 /// consts used for testing
 const CONSTRAINT_ACCOUNT: u64 = 1u64;
@@ -24,7 +24,7 @@ fn set_constraints() {
             Error::<Test>::NotAuthorized
         );
 
-        AllowedToModifyConstraints::<Test>::insert(CONSTRAINT_ACCOUNT, SIG_REQ_ACCOUNT, ());
+        AllowedToModifyProgram::<Test>::insert(CONSTRAINT_ACCOUNT, SIG_REQ_ACCOUNT, ());
 
         // can't pay deposit
         assert_noop!(
@@ -76,7 +76,7 @@ fn set_constraints() {
                 SIG_REQ_ACCOUNT,
                 too_long,
             ),
-            Error::<Test>::ConstraintLengthExceeded
+            Error::<Test>::ProgramLengthExceeded
         );
     });
 }

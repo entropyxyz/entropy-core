@@ -5,7 +5,7 @@ use frame_support::{
     dispatch::{GetDispatchInfo, Pays},
     BoundedVec,
 };
-use pallet_constraints::AllowedToModifyConstraints;
+use pallet_constraints::AllowedToModifyProgram;
 use pallet_relayer::Call as RelayerCall;
 use sp_runtime::{
     traits::SignedExtension,
@@ -87,9 +87,8 @@ fn it_takes_a_program_storage_deposit_during_register() {
             program.clone(),
         ));
 
-        let expected_reserve =
-            <Test as pallet_constraints::Config>::ConstraintsDepositPerByte::get()
-                * (program.len() as u32);
+        let expected_reserve = <Test as pallet_constraints::Config>::ProgramDepositPerByte::get()
+            * (program.len() as u32);
 
         assert_eq!(
             Balances::free_balance(CONSTRAINT_ACCOUNT),
@@ -174,7 +173,7 @@ fn it_confirms_registers_a_user() {
         );
 
         // make sure constraint and sig req keys are set
-        assert!(AllowedToModifyConstraints::<Test>::contains_key(2, 1));
+        assert!(AllowedToModifyProgram::<Test>::contains_key(2, 1));
     });
 }
 
