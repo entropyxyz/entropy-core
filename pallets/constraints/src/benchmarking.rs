@@ -22,18 +22,18 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 
 benchmarks! {
 
-  update_constraints {
-    let constraint = vec![10];
-    let constraint_account: T::AccountId = whitelisted_caller();
+  update_program {
+    let program = vec![10];
+    let program_modification_account: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();
 
     let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
-    let _ = CurrencyOf::<T>::make_free_balance_be(&constraint_account, value);
+    let _ = CurrencyOf::<T>::make_free_balance_be(&program_modification_account, value);
 
-    <AllowedToModifyConstraints<T>>::insert(constraint_account.clone(), sig_req_account.clone(), ());
-  }: _(RawOrigin::Signed(constraint_account.clone()), sig_req_account, constraint.clone())
+    <AllowedToModifyProgram<T>>::insert(program_modification_account.clone(), sig_req_account.clone(), ());
+  }: _(RawOrigin::Signed(program_modification_account.clone()), sig_req_account, program.clone())
   verify {
-    assert_last_event::<T>(Event::<T>::ConstraintsUpdated(constraint_account, constraint).into());
+    assert_last_event::<T>(Event::<T>::ConstraintsUpdated(program_modification_account, program).into());
   }
 }
 
