@@ -1,12 +1,11 @@
 //! Benchmarking setup for pallet-propgation
 
-use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec};
-use frame_support::traits::{Currency, Get};
+use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
+use frame_support::traits::Currency;
 use frame_system::{EventRecord, RawOrigin};
 use sp_runtime::Saturating;
 
 use super::*;
-use crate::pallet::{Acl, Constraints};
 #[allow(unused)]
 use crate::Pallet as ConstraintsPallet;
 
@@ -33,7 +32,12 @@ benchmarks! {
     <AllowedToModifyProgram<T>>::insert(program_modification_account.clone(), sig_req_account.clone(), ());
   }: _(RawOrigin::Signed(program_modification_account.clone()), sig_req_account, program.clone())
   verify {
-    assert_last_event::<T>(Event::<T>::ConstraintsUpdated(program_modification_account, program).into());
+    assert_last_event::<T>(
+        Event::<T>::ProgramUpdated {
+            program_modification_account,
+            new_program: program
+        }.into()
+    );
   }
 }
 
