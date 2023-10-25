@@ -37,7 +37,6 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 
-    pub use entropy_shared::{Acl, AclKind, Arch, Constraints};
     use frame_support::{
         inherent::Vec,
         pallet_prelude::{ResultQuery, *},
@@ -162,31 +161,6 @@ pub mod pallet {
             Bytecode::<T>::insert(sig_req_account, program);
 
             Ok(())
-        }
-
-        /// Sets the constraints for a given signature-request account without validating the
-        /// constraints (eg ACL length checks, etc.)
-        pub fn set_constraints_unchecked(
-            _sig_req_account: &T::AccountId,
-            _constraints: &Constraints,
-        ) {
-            todo!("Jake, do we need this anymore?")
-        }
-
-        /// Validates constraints before they are stored anywhere as a set of valid constraints
-        pub fn validate_constraints(_constraints: &Constraints) -> Result<(), Error<T>> {
-            todo!("Jake, do we need this anymore?")
-        }
-
-        /// Validates an ACL before it is stored anywhere as a valid constraint
-        fn _validate_acl<A>(_acl: &Option<Acl<A>>) -> Result<(), Error<T>> {
-            todo!("Jake, do we need this anymore?")
-        }
-
-        /// Returns information about Constraints that can be used to calculate weights.
-        /// Used as values in some `#[pallet::weight]` macros.
-        pub fn constraint_weight_values(_constraints: &Constraints) -> (u32, u32) {
-            todo!("Jake, do we need this anymore?")
         }
 
         /// Takes some balance from an account as a storage deposit based off the length of the
