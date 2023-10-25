@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+At the moment this project **does not** adhere to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Breaking Changes
+
+There are a few breaking changes in this release, mostly related to the APIs around Programs
+(formerly Constraints).
+
+Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy-core/pull/428) and
+[#433](https://github.com/entropyxyz/entropy-core/pull/433) are:
+
+- The Constraint pallet's `update_v2_constraints` extrinsic has been renamed to `update_program`.
+  The extrinsic arguments remain unchanged
+- The Constraint pallet's `ConstraintsV2Updated` event has been renamed to `ProgramUpdated` and now
+  has two fields instead of a single tuple for its body
+- The Constraint pallet's `V2ConstraintLengthExceeded` error has been renamed to `ProgramLengthExceeded`
+- The Relayer pallet's `register` extrinsic now takes a `Vec<u8>` as a program instead of an
+  `Option<Contraints>`
+
+### Added
+- Proactive refresh ([#413](https://github.com/entropyxyz/entropy-core/pull/413))
+- Write a Dockerfile that can build both `entropy` and `server`. ([#430](https://github.com/entropyxyz/entropy-core/pull/430))
+- Developer experience improvements: SSH auth from workstations, entirely local "devnet"
+  functionality with Compose ([#434](https://github.com/entropyxyz/entropy-core/pull/434))
+- Allow local host pass for offchain url ([#443](https://github.com/entropyxyz/entropy-core/pull/443))
+
+### Changed
+- Replace outdated `--ws-external` with `--rpc-external` ([#424](https://github.com/entropyxyz/entropy-core/pull/424))
+- Place `demo_offence` dispatchable behind root origin check ([#426](https://github.com/entropyxyz/entropy-core/pull/426))
+- Update `pallet-relayer` to use Contraints V2 ([#433](https://github.com/entropyxyz/entropy-core/pull/433))
+
+### Removed
+- Remove `is_swapping` from registration details ([#437](https://github.com/entropyxyz/entropy-core/pull/437))
+- Remove V1 constraints from `pallet_constraints` ([#428](https://github.com/entropyxyz/entropy-core/pull/428))
+
+### Fixed
+- Ensure correct validator order by using ValidatorInfo from chain rather than from user ([#425](https://github.com/entropyxyz/entropy-core/pull/425))
+- Take a storage deposit for programs during registration ([#447](https://github.com/entropyxyz/entropy-core/pull/447))
+
 ## [0.0.7](https://github.com/entropyxyz/entropy-core/compare/v0.0.6..v0.0.7) - 2023-09-22
 
 ## [0.0.6](https://github.com/entropyxyz/entropy-core/compare/v0.0.5..v0.0.6) - 2023-09-15
@@ -54,7 +97,6 @@ All notable changes to this project will be documented in this file.
 
 - Refactor: remove unused deps ([#224](https://github.com/entropyxyz/entropy-core/pull/224))
 
-
 ### ⚙️ Miscellaneous Tasks
 
 - Add is syncing in  ([#254](https://github.com/entropyxyz/entropy-core/pull/254))
@@ -70,7 +112,6 @@ All notable changes to this project will be documented in this file.
 ### 🐛 Bug Fixes
 
 - Fix tests ([#170](https://github.com/entropyxyz/entropy-core/pull/170))
-
 - Fix: refactor substrate<>client types; fix master ([#155](https://github.com/entropyxyz/entropy-core/pull/155))
 - Fix: solve unknown media type warning ([#154](https://github.com/entropyxyz/entropy-core/pull/154))
 - Fix non deterministic tests ([#145](https://github.com/entropyxyz/entropy-core/pull/145))
