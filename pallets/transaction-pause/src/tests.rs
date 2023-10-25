@@ -22,7 +22,6 @@
 
 use frame_support::{assert_noop, assert_ok};
 use mock::{RuntimeEvent, *};
-use pallet_constraints::Constraints;
 use sp_runtime::traits::BadOrigin;
 
 use super::*;
@@ -136,7 +135,7 @@ fn paused_transaction_filter_work() {
         let whitelist_address_call =
             &mock::RuntimeCall::ConstraintsPallet(pallet_constraints::Call::update_program {
                 sig_req_account: ALICE,
-                new_constraints: Constraints::default(),
+                new_program: vec![],
             });
         assert!(!PausedTransactionFilter::<Runtime>::contains(BALANCE_TRANSFER));
         assert!(!PausedTransactionFilter::<Runtime>::contains(whitelist_address_call));

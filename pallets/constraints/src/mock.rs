@@ -57,7 +57,6 @@ impl system::Config for Test {
 }
 
 parameter_types! {
-  pub const MaxAclLength: u32 = 25;
   pub const MaxBytecodeLength: u32 = 3;
   pub const ProgramDepositPerByte: u32 = 5;
 }

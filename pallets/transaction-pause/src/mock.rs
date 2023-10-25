@@ -82,16 +82,14 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-  pub const MaxAclLength: u32 = 25;
   pub const MaxBytecodeLength: u32 = 3;
-  pub const ConstraintsDepositPerByte: u32 = 5;
+  pub const ProgramDepositPerByte: u32 = 5;
 }
 
 impl pallet_constraints::Config for Runtime {
-    type ConstraintsDepositPerByte = ConstraintsDepositPerByte;
     type Currency = ();
-    type MaxAclLength = MaxAclLength;
     type MaxBytecodeLength = MaxBytecodeLength;
+    type ProgramDepositPerByte = ProgramDepositPerByte;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
