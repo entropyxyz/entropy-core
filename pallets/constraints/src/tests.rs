@@ -1,166 +1,82 @@
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use pallet_balances::Error as BalancesError;
 
-use crate::{mock::*, Acl, AllowedToModifyConstraints, Constraints, Error};
+use crate::{mock::*, AllowedToModifyProgram, Error};
 
 /// consts used for testing
-const CONSTRAINT_ACCOUNT: u64 = 1u64;
+const PROGRAM_MODIFICATION_ACCOUNT: u64 = 1u64;
 const SIG_REQ_ACCOUNT: u64 = 2u64;
 
-// Integration Test
 #[test]
-fn assert_permissions_are_restricted_properly() {
+fn set_programs() {
     new_test_ext().execute_with(|| {
-        // In practice, we should use `None` instead of `Some(Acl::default())`,
-        // but this is fine to test permission
-        let valid_constraints = Constraints {
-            evm_acl: Some(Acl::<[u8; 20]>::default()),
-            btc_acl: Some(Acl::<[u8; 32]>::default()),
-        };
+        let empty_program = vec![];
+        let program = vec![10u8, 11u8];
+        let too_long = vec![1u8, 2u8, 3u8, 4u8, 5u8];
 
-        // make sure no one can add a constraint without explicit permissions
+        // make sure no one can add a program without explicit permissions
         assert_noop!(
-            ConstraintsPallet::update_constraints(
-                RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
+            ConstraintsPallet::update_program(
+                RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                valid_constraints.clone(),
+                program.clone(),
             ),
             Error::<Test>::NotAuthorized
         );
 
-        // give permission to modify constraints and make sure the acl can be updated
-        AllowedToModifyConstraints::<Test>::insert(CONSTRAINT_ACCOUNT, SIG_REQ_ACCOUNT, ());
-        assert_ok!(ConstraintsPallet::update_constraints(
-            RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
-            SIG_REQ_ACCOUNT,
-            valid_constraints.clone()
-        ));
-        assert!(ConstraintsPallet::evm_acl(SIG_REQ_ACCOUNT).is_ok());
-
-        // make sure sig-req key can't modify or delete constraints
-        assert_noop!(
-            ConstraintsPallet::update_constraints(
-                RuntimeOrigin::signed(SIG_REQ_ACCOUNT),
-                SIG_REQ_ACCOUNT,
-                valid_constraints.clone(),
-            ),
-            Error::<Test>::NotAuthorized
-        );
-        assert_noop!(
-            ConstraintsPallet::update_constraints(
-                RuntimeOrigin::signed(SIG_REQ_ACCOUNT),
-                SIG_REQ_ACCOUNT,
-                valid_constraints.clone(),
-            ),
-            Error::<Test>::NotAuthorized
-        );
-
-        // removing permissions should prevent modification
-        AllowedToModifyConstraints::<Test>::remove(CONSTRAINT_ACCOUNT, SIG_REQ_ACCOUNT);
-        assert_noop!(
-            ConstraintsPallet::update_constraints(
-                RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
-                SIG_REQ_ACCOUNT,
-                valid_constraints
-            ),
-            Error::<Test>::NotAuthorized
-        );
-    });
-}
-
-#[test]
-fn return_error_if_constraints_arent_set() {
-    new_test_ext().execute_with(|| {
-        // In practice, we should use `None` instead of `Some(Acl::default())`,
-        // but this is fine to test permission
-        let valid_constraints = Constraints {
-            evm_acl: Some(Acl::<[u8; 20]>::default()),
-            btc_acl: Some(Acl::<[u8; 32]>::default()),
-        };
-
-        // give permission to modify constraints
-        AllowedToModifyConstraints::<Test>::insert(CONSTRAINT_ACCOUNT, SIG_REQ_ACCOUNT, ());
-
-        // make sure acl is empty
-        assert!(ConstraintsPallet::evm_acl(SIG_REQ_ACCOUNT).is_err());
-
-        // make sure we can update the ACL
-        assert_ok!(ConstraintsPallet::update_constraints(
-            RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
-            SIG_REQ_ACCOUNT,
-            valid_constraints
-        ));
-
-        // make sure acl updates
-        assert_eq!(
-            ConstraintsPallet::evm_acl(SIG_REQ_ACCOUNT).unwrap(),
-            Acl::<[u8; 20]>::default()
-        );
-    });
-}
-
-#[test]
-fn set_v2_constraints() {
-    new_test_ext().execute_with(|| {
-        let v2_constraint = vec![10u8, 11u8];
-        let v2_too_long = vec![1u8, 2u8, 3u8, 4u8, 5u8];
-
-        // make sure no one can add a constraint without explicit permissions
-        assert_noop!(
-            ConstraintsPallet::update_v2_constraints(
-                RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
-                SIG_REQ_ACCOUNT,
-                v2_constraint.clone(),
-            ),
-            Error::<Test>::NotAuthorized
-        );
-
-        AllowedToModifyConstraints::<Test>::insert(CONSTRAINT_ACCOUNT, SIG_REQ_ACCOUNT, ());
+        AllowedToModifyProgram::<Test>::insert(PROGRAM_MODIFICATION_ACCOUNT, SIG_REQ_ACCOUNT, ());
 
         // can't pay deposit
         assert_noop!(
-            ConstraintsPallet::update_v2_constraints(
-                RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
+            ConstraintsPallet::update_program(
+                RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                v2_constraint.clone(),
+                program.clone(),
             ),
             BalancesError::<Test>::InsufficientBalance
         );
 
-        Balances::make_free_balance_be(&CONSTRAINT_ACCOUNT, 100);
+        Balances::make_free_balance_be(&PROGRAM_MODIFICATION_ACCOUNT, 100);
 
-        assert_ok!(ConstraintsPallet::update_v2_constraints(
-            RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
+        // It's okay to have an empty program
+        assert_ok!(ConstraintsPallet::update_program(
+            RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
             SIG_REQ_ACCOUNT,
-            v2_constraint.clone()
+            empty_program.clone()
         ));
 
-        assert_eq!(ConstraintsPallet::v2_bytecode(SIG_REQ_ACCOUNT).unwrap(), v2_constraint);
-        assert_eq!(Balances::free_balance(CONSTRAINT_ACCOUNT), 90);
+        assert_ok!(ConstraintsPallet::update_program(
+            RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
+            SIG_REQ_ACCOUNT,
+            program.clone()
+        ));
+
+        assert_eq!(ConstraintsPallet::bytecode(SIG_REQ_ACCOUNT).unwrap(), program);
+        assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 90);
 
         // deposit refunded partial
-        assert_ok!(ConstraintsPallet::update_v2_constraints(
-            RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
+        assert_ok!(ConstraintsPallet::update_program(
+            RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
             SIG_REQ_ACCOUNT,
             vec![10u8]
         ));
-        assert_eq!(Balances::free_balance(CONSTRAINT_ACCOUNT), 95);
+        assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 95);
 
         // deposit refunded full
-        assert_ok!(ConstraintsPallet::update_v2_constraints(
-            RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
+        assert_ok!(ConstraintsPallet::update_program(
+            RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
             SIG_REQ_ACCOUNT,
             vec![]
         ));
-        assert_eq!(Balances::free_balance(CONSTRAINT_ACCOUNT), 100);
+        assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 100);
 
         assert_noop!(
-            ConstraintsPallet::update_v2_constraints(
-                RuntimeOrigin::signed(CONSTRAINT_ACCOUNT),
+            ConstraintsPallet::update_program(
+                RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
                 SIG_REQ_ACCOUNT,
-                v2_too_long,
+                too_long,
             ),
-            Error::<Test>::V2ConstraintLengthExceeded
+            Error::<Test>::ProgramLengthExceeded
         );
     });
 }

@@ -61,7 +61,7 @@ pub async fn get_program(
     substrate_api: &OnlineClient<EntropyConfig>,
     sig_req_account: &<EntropyConfig as Config>::AccountId,
 ) -> Result<Vec<u8>, UserErr> {
-    let bytecode_address = entropy::storage().constraints().v2_bytecode(sig_req_account);
+    let bytecode_address = entropy::storage().constraints().bytecode(sig_req_account);
 
     substrate_api
         .storage()

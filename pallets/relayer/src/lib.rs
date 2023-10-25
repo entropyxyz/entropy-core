@@ -46,7 +46,7 @@ pub mod pallet {
         traits::{ConstU32, IsSubType},
     };
     use frame_system::pallet_prelude::*;
-    use pallet_constraints::{AllowedToModifyConstraints, Pallet as ConstraintsPallet};
+    use pallet_constraints::{AllowedToModifyProgram, Pallet as ConstraintsPallet};
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
@@ -114,7 +114,7 @@ pub mod pallet {
                     account_info.0.clone(),
                     RegisteredInfo { key_visibility, verifying_key: BoundedVec::default() },
                 );
-                AllowedToModifyConstraints::<T>::insert(
+                AllowedToModifyProgram::<T>::insert(
                     account_info.0.clone(),
                     account_info.0.clone(),
                     (),
@@ -204,7 +204,7 @@ pub mod pallet {
 
             ensure!(
                 initial_program.len() as u32
-                    <= <T as pallet_constraints::Config>::MaxV2BytecodeLength::get(),
+                    <= <T as pallet_constraints::Config>::MaxBytecodeLength::get(),
                 Error::<T>::MaxProgramLengthExceeded,
             );
 
@@ -291,7 +291,7 @@ pub mod pallet {
                 );
                 Registering::<T>::remove(&sig_req_account);
 
-                AllowedToModifyConstraints::<T>::insert(
+                AllowedToModifyProgram::<T>::insert(
                     &registering_info.program_modification_account,
                     sig_req_account.clone(),
                     (),

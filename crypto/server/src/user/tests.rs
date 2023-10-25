@@ -73,10 +73,7 @@ use crate::{
     load_kv_store, new_user,
     r#unsafe::api::UnsafeQuery,
     signing_client::ListenerState,
-    user::{
-        api::{recover_key, UserRegistrationInfo, UserTransactionRequest},
-        tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
-    },
+    user::api::{recover_key, UserRegistrationInfo, UserTransactionRequest},
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
 };

@@ -5,8 +5,6 @@ use frame_benchmarking::{
 };
 use frame_support::{traits::Get, BoundedVec};
 use frame_system::{EventRecord, RawOrigin};
-#[cfg(feature = "runtime-benchmarks")]
-use pallet_constraints::benchmarking::generate_benchmarking_constraints;
 use pallet_staking_extension::{
     benchmarking::create_validators, IsValidatorSynced, ServerInfo, SigningGroups,
     ThresholdServers, ThresholdToStash,
@@ -55,7 +53,7 @@ benchmarks! {
   register {
     // Since we're usually using `steps >> 1` when running benches this shouldn't take too long to
     // run
-    let p in 0..<T as pallet_constraints::Config>::MaxV2BytecodeLength::get();
+    let p in 0..<T as pallet_constraints::Config>::MaxBytecodeLength::get();
     let program = vec![0u8; p as usize];
 
     let constraint_account: T::AccountId = whitelisted_caller();
