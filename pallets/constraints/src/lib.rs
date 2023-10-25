@@ -50,12 +50,19 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
+        /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
+        /// Describes the weights of the dispatchables exposed by this pallet.
         type WeightInfo: WeightInfo;
-        type MaxAclLength: Get<u32>;
+
+        /// The maximum length of a program that may be stored on-chain.
         type MaxBytecodeLength: Get<u32>;
+
+        /// The amount to charge, per byte, for storing a program on-chain.
         type ConstraintsDepositPerByte: Get<BalanceOf<Self>>;
-        /// The currency mechanism.
+
+        /// The currency mechanism, used to take storage deposits for example.
         type Currency: ReservableCurrency<Self::AccountId>;
     }
 
