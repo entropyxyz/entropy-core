@@ -16,7 +16,7 @@ use crate as pallet_relayer;
 use crate::{mock::*, Error, RegisteredInfo, RegisteringDetails, ValidateConfirmRegistered};
 
 /// consts used for testing
-const CONSTRAINT_ACCOUNT: u64 = 1u64;
+const PROGRAM_MODIFICATION_ACCOUNT: u64 = 1u64;
 const SIG_REQ_ACCOUNT: u64 = 2u64;
 
 #[test]
@@ -78,11 +78,11 @@ fn it_takes_a_program_storage_deposit_during_register() {
         let program = vec![1u8, 2u8];
         let initial_balance = 100;
 
-        Balances::make_free_balance_be(&CONSTRAINT_ACCOUNT, initial_balance);
+        Balances::make_free_balance_be(&PROGRAM_MODIFICATION_ACCOUNT, initial_balance);
 
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(SIG_REQ_ACCOUNT),
-            CONSTRAINT_ACCOUNT,
+            PROGRAM_MODIFICATION_ACCOUNT,
             KeyVisibility::Public,
             program.clone(),
         ));
@@ -91,7 +91,7 @@ fn it_takes_a_program_storage_deposit_during_register() {
             * (program.len() as u32);
 
         assert_eq!(
-            Balances::free_balance(CONSTRAINT_ACCOUNT),
+            Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT),
             initial_balance - (expected_reserve as u64)
         );
     });
