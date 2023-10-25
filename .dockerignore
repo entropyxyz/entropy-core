@@ -1,0 +1,55 @@
+# This file lists filesystem patterns to omit from the container
+# build context. Omitting files from the build context speeds up
+# the build by reducing the amount of files transferred by the
+# container engine client to the image build server.
+#
+# See:
+# https://docs.docker.com/build/building/context/#dockerignore-files
+
+###
+# Docker and container engine preparation/runtime stuff.
+###
+.dockerignore
+docker-compose.yaml
+
+#################################
+# General editor and IDE stuff. #
+#################################
+*.swp
+.editorconfig
+
+# Microsoft Visual Studio Code
+.vscode
+.devcontainer
+
+##############################################
+# Git, GitHub, CI/CD, and Rust system stuff. #
+##############################################
+.circleci
+.git
+.github
+.gitignore
+.rustfmt.toml
+.taplo.toml
+CHANGELOG.md
+LICENSE
+Makefile
+README.md
+cliff.toml
+target
+
+# Our own generated stuff.
+.cargo
+.cargo-remote.toml
+.entropy
+chains
+scripts
+service
+shell.nix
+
+# No idea what this stuff is for but we don't seem to need it.
+# TODO: Are these actually just temporary things that we can
+#       delete because they're no longer needed? Is it cruft?
+.envrc
+file_header.txt
+local-share1.json

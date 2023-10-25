@@ -1,0 +1,117 @@
+---
+name: Build and release
+run-name: Build and release (started by @${{ github.triggering_actor }})
+
+on:
+  push:
+    tags:
+      # First, match SemVer.org conformant tags in the `release/` tagspace.
+      - release/v[0-9]+.[0-9]+.[0-9]+-?**  # Release, or pre-release build.
+      - release/v[0-9]+.[0-9]+.[0-9]+\+?** # Release with build identifier.
+      # Then, also, basically any release-ish name in the `test/` tagspace.
+      - test/**release/**
+
+jobs:
+  # Builds binaries, then uploads them as artifacts to the Workflow Summary.
+  build:
+    name: Build and upload binaries
+    runs-on: ubuntu-22.04
+    container:
+      image: rust:1.73.0-slim-bullseye
+    outputs:
+      git_ref_basename: ${{ steps.git-ref-basename.outputs.git_ref_basename }}
+    steps:
+      - name: Get basename of Git ref.
+        id: git-ref-basename
+        shell: bash
+        run: |
+          echo git_ref_basename="$(basename "${{ github.ref_name }}")" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v4
+      - name: Prepare Rust container.
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install --yes \
+            git pkg-config protobuf-compiler make libjemalloc2 clang \
+            openssl libssl-dev
+          rustup target add wasm32-unknown-unknown
+      - name: Set up SSH.
+        shell: bash
+        run: |
+          mkdir -p $HOME/.ssh
+          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > $HOME/.ssh/known_hosts
+          cat <<-EOF > $HOME/.ssh/synedrion_id
+          ${{ secrets.SSH_KEY_SYNEDRION }}
+          EOF
+          cat <<-EOF > $HOME/.ssh/constraints_id
+          ${{ secrets.SSH_KEY_CONSTRAINTS }}
+          EOF
+          chmod 0600 $HOME/.ssh/known_hosts $HOME/.ssh/{synedrion,constraints}_id
+          cat <<-EOF >> $HOME/.ssh/config
+          Host github.com_*
+            HostName github.com
+            HostKeyAlgorithms ssh-ed25519
+            UserKnownHostsFile $HOME/.ssh/known_hosts
+          Host github.com_synedrion
+            IdentityFile $HOME/.ssh/synedrion_id
+          Host github.com_constraints
+            IdentityFile $HOME/.ssh/constraints_id
+          EOF
+          git config --global url.ssh://git@github.com_synedrion/entropyxyz/synedrion.git.insteadOf ssh://git@github.com/entropyxyz/synedrion.git
+          git config --global url.ssh://git@github.com_constraints/entropyxyz/constraints.git.insteadOf ssh://git@github.com/entropyxyz/constraints.git
+      - name: Cache build.
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build binaries.
+        env:
+          GIT_SSH_COMMAND: ssh -F ~/.ssh/config
+          RUSTFLAGS: -C target-feature=+crt-static -C strip=symbols
+          # We set this environment variables because Cargo does not
+          # itself actually support using OpenSSH config files. See:
+          # https://doc.rust-lang.org/cargo/appendix/git-authentication.html#ssh-authentication
+          CARGO_NET_GIT_FETCH_WITH_CLI: true
+        run: |
+          # Pass `--target` explicitly because of
+          # https://github.com/rust-lang/rust/issues/78210
+          cargo build --release --target x86_64-unknown-linux-gnu
+      - uses: actions/upload-artifact@v3
+        with:
+          name: entropy_${{ steps.git-ref-basename.outputs.git_ref_basename }}_${{ runner.os }}_${{ runner.arch }}
+          path: target/x86_64-unknown-linux-gnu/release/entropy
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v3
+        with:
+          name: server_${{ steps.git-ref-basename.outputs.git_ref_basename }}_${{ runner.os }}_${{ runner.arch }}
+          path: target/x86_64-unknown-linux-gnu/release/server
+          if-no-files-found: error
+
+  # Creates a new GitHub Release, adding built artifacts as release assets.
+  release:
+    name: Publish new release
+    needs:
+      - build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
+      - name: Create release.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create \
+            --draft \
+            --target "${{ github.sha }}" \
+            --title "${{ needs.build.outputs.git_ref_basename }}" \
+            $(echo ${{ github.ref_name }} | grep --quiet -E '^test|v[0-9]\.[0-9]\.[0-9]-' && echo '--prerelease') \
+            --verify-tag "${{ github.ref_name }}" \
+            {entropy,server}_${{ needs.build.outputs.git_ref_basename }}_${{ runner.os }}_${{ runner.arch }}/*

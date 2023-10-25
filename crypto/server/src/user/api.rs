@@ -334,9 +334,6 @@ pub async fn get_registering_user_details(
         .fetch(&registering_info_query)
         .await?
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
-    if !register_info.is_swapping && !register_info.is_registering {
-        return Err(UserErr::NotRegistering("Declare swap Onchain first"));
-    }
 
     Ok(register_info)
 }

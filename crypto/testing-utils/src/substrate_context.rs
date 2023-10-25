@@ -4,12 +4,27 @@ use subxt::{config::substrate::SubstrateExtrinsicParams, OnlineClient};
 use super::node_proc::TestNodeProcess;
 use crate::chain_api::*;
 
-/// substrate node should be installed
-fn get_path() -> String {
-    format!(
-        "{}/target/release/entropy",
-        project_root::get_project_root().unwrap().to_string_lossy()
-    )
+/// Verifies that the Entropy node binary exists.
+///
+/// # Panics
+///
+/// If no Entropy binary can be found.
+fn get_path() -> Box<std::path::Path> {
+    let build_type = if cfg!(debug_assertions) { "debug" } else { "release" };
+
+    let mut binary_path = project_root::get_project_root().expect("Error obtaining project root.");
+    binary_path.push(format!("target/{}/entropy", build_type));
+    let binary_path = binary_path.as_path();
+
+    let error_msg = format!(
+        "Missing `entropy` binary, please build it in `{}` mode before running test suite (e.g \
+         `cargo build -p entropy [--release]`)",
+        build_type
+    );
+
+    assert!(binary_path.try_exists().expect(&error_msg), "{}", error_msg);
+
+    binary_path.into()
 }
 
 pub type NodeRuntimeSignedExtra = SubstrateExtrinsicParams<EntropyConfig>;
@@ -19,8 +34,9 @@ pub async fn test_node_process_with(
     chain_type: String,
 ) -> TestNodeProcess<EntropyConfig> {
     let path = get_path();
+    let path = path.to_str().expect("Path should've been checked to be valid earlier.");
 
-    let proc = TestNodeProcess::<EntropyConfig>::build(path.as_str(), chain_type)
+    let proc = TestNodeProcess::<EntropyConfig>::build(path, chain_type)
         .with_authority(key)
         .scan_for_open_ports()
         .spawn::<EntropyConfig>()
@@ -30,8 +46,9 @@ pub async fn test_node_process_with(
 
 pub async fn test_node(key: AccountKeyring, chain_type: String) -> TestNodeProcess<EntropyConfig> {
     let path = get_path();
+    let path = path.to_str().expect("Path should've been checked to be valid earlier.");
 
-    let proc = TestNodeProcess::<EntropyConfig>::build(path.as_str(), chain_type)
+    let proc = TestNodeProcess::<EntropyConfig>::build(path, chain_type)
         .with_authority(key)
         .spawn::<EntropyConfig>()
         .await;

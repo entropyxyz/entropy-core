@@ -131,10 +131,10 @@ pub mod pallet {
             );
             let old_constraints_length = Self::bytecode(&sig_req_account).unwrap_or_default().len();
 
-            Self::charge_constraint_fee(
-                constraint_account,
-                old_constraints_length as u32,
-                new_constraints_length as u32,
+            Self::update_program_storage_deposit(
+                &constraint_account,
+                old_constraints_length,
+                new_constraints_length,
             )?;
 
             Bytecode::<T>::insert(&sig_req_account, &new_constraints);
@@ -144,6 +144,26 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
+        /// Write a program for a given signature-request account directly into storage.
+        ///
+        /// # Note
+        ///
+        /// This does not perform any checks against the submitter of the request and whether or
+        /// not they are allowed to update a program for the given account.
+        pub fn set_program_unchecked(
+            sig_req_account: &T::AccountId,
+            program: Vec<u8>,
+        ) -> Result<(), Error<T>> {
+            ensure!(
+                program.len() as u32 <= T::MaxBytecodeLength::get(),
+                Error::<T>::ConstraintLengthExceeded
+            );
+
+            Bytecode::<T>::insert(sig_req_account, program);
+
+            Ok(())
+        }
+
         /// Sets the constraints for a given signature-request account without validating the
         /// constraints (eg ACL length checks, etc.)
         pub fn set_constraints_unchecked(
@@ -169,21 +189,46 @@ pub mod pallet {
             todo!("Jake, do we need this anymore?")
         }
 
-        pub fn charge_constraint_fee(
-            from: T::AccountId,
-            old_constraints_length: u32,
-            new_constraints_length: u32,
+        /// Takes some balance from an account as a storage deposit based off the length of the
+        /// program they wish to store on-chain.
+        ///
+        /// This helps prevent state bloat by ensuring that storage is paid for and encouraging that
+        /// unused programs eventually get cleaned up.
+        ///
+        /// The deposit can be returned using the [`Self::unreserve_program_deposit`] function.
+        pub fn reserve_program_deposit(from: &T::AccountId, program_len: usize) -> DispatchResult {
+            let deposit =
+                T::ConstraintsDepositPerByte::get().saturating_mul((program_len as u32).into());
+
+            T::Currency::reserve(from, deposit)
+        }
+
+        /// Returns a storage deposit placed by [`Self::reserve_program_deposit`].
+        pub fn unreserve_program_deposit(from: &T::AccountId, program_len: usize) -> BalanceOf<T> {
+            let deposit =
+                T::ConstraintsDepositPerByte::get().saturating_mul((program_len as u32).into());
+
+            T::Currency::unreserve(from, deposit)
+        }
+
+        /// Updates the storage deposit associated with a particular program.
+        ///
+        /// This will either try and reserve a bigger deposit or return a deposit depending on the
+        /// size of the updated program.
+        pub fn update_program_storage_deposit(
+            from: &T::AccountId,
+            old_program_length: usize,
+            new_program_length: usize,
         ) -> DispatchResult {
-            if old_constraints_length > new_constraints_length {
-                let charge = T::ConstraintsDepositPerByte::get()
-                    .saturating_mul((old_constraints_length - new_constraints_length).into());
-                T::Currency::unreserve(&from, charge);
+            if old_program_length > new_program_length {
+                let len_diff = old_program_length - new_program_length;
+                Self::unreserve_program_deposit(from, len_diff);
             }
-            if new_constraints_length > old_constraints_length {
-                let charge = T::ConstraintsDepositPerByte::get()
-                    .saturating_mul((new_constraints_length - old_constraints_length).into());
-                T::Currency::reserve(&from, charge)?;
+            if new_program_length > old_program_length {
+                let len_diff = new_program_length - old_program_length;
+                Self::reserve_program_deposit(from, len_diff)?;
             }
+
             Ok(())
         }
     }

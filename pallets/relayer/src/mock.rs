@@ -307,7 +307,7 @@ parameter_types! {
 
 impl pallet_constraints::Config for Test {
     type ConstraintsDepositPerByte = ConstraintsDepositPerByte;
-    type Currency = ();
+    type Currency = Balances;
     type MaxAclLength = MaxAclLength;
     type MaxBytecodeLength = MaxBytecodeLength;
     type RuntimeEvent = RuntimeEvent;
