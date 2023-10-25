@@ -1,13 +1,14 @@
 mod common;
 use std::{str::FromStr, time::SystemTime};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, ensure};
 pub use common::derive_static_secret;
 use common::{get_current_subgroup_signers, Hasher, UserTransactionRequest};
 use entropy_protocol::{
-    user::user_participates_in_signing_protocol, KeyParams, RecoverableSignature,
+    user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
+    KeyParams, RecoverableSignature, ValidatorInfo,
 };
-pub use entropy_shared::KeyVisibility;
+pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 use futures::future::try_join_all;
 use log::info;
 use parity_scale_codec::Decode;
@@ -44,10 +45,10 @@ pub async fn register(
     constraint_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
     initial_program: Option<Constraints>,
-) -> anyhow::Result<RegisteredInfo> {
+) -> anyhow::Result<(RegisteredInfo, Option<KeyShare<KeyParams>>)> {
     let sig_req_seed = SeedString::new(sig_req_seed_string);
     let sig_req_keypair: sr25519::Pair = sig_req_seed.clone().try_into()?;
-    let _sig_req_subxt_keypair: subxt_signer::sr25519::Keypair = sig_req_seed.try_into()?;
+    let sig_req_subxt_keypair: subxt_signer::sr25519::Keypair = sig_req_seed.try_into()?;
     info!("Signature request account: {}", hex::encode(sig_req_keypair.public().0));
 
     // Check if user is already registered
@@ -70,14 +71,39 @@ pub async fn register(
     )
     .await?;
 
+    // If registering with private key visibility, participate in the DKG protocol
+    let keyshare_option = match key_visibility {
+        KeyVisibility::Private(_x25519_pk) => {
+            let x25519_secret = derive_static_secret(&sig_req_keypair);
+            let block_number = api
+                .rpc()
+                .block(None)
+                .await?
+                .ok_or(anyhow!("Cannot get current block number"))?
+                .block
+                .header
+                .number;
+            let validators_info = get_dkg_committee(api, block_number).await?;
+            Some(
+                user_participates_in_dkg_protocol(
+                    validators_info,
+                    &sig_req_subxt_keypair,
+                    &x25519_secret,
+                )
+                .await?,
+            )
+        },
+        _ => None,
+    };
+
     // Wait until user is confirmed as registered
     for _ in 0..20 {
-        std::thread::sleep(std::time::Duration::from_millis(1000));
         let query_registered_status =
             api.storage().at_latest().await?.fetch(&registered_query).await;
         if let Some(registered_status) = query_registered_status? {
-            return Ok(registered_status);
+            return Ok((registered_status, keyshare_option));
         }
+        std::thread::sleep(std::time::Duration::from_millis(1000));
     }
     Err(anyhow!("Timed out waiting for register confirmation"))
 }
@@ -122,7 +148,7 @@ pub async fn sign(
                     .as_string()
                     .unwrap_or("encrypt_and_sign gives bad JS error".to_string()))
             })?;
-            let url = format!("http://{}/user/sign_tx", validator_info.ip_address.to_string());
+            let url = format!("http://{}/user/sign_tx", validator_info.ip_address);
 
             let client = reqwest::Client::new();
             let res = client
@@ -267,6 +293,7 @@ pub async fn fund_account(
 //         .await?;
 // }
 
+// Submit a register transaction
 async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keypair: sr25519::Pair,
@@ -319,4 +346,71 @@ impl TryFrom<SeedString> for subxt_signer::sr25519::Keypair {
         let keypair = subxt_signer::sr25519::Keypair::from_uri(&uri)?;
         Ok(keypair)
     }
+}
+
+/// Get the commitee of tss servers who will perform DKG for a given block number
+async fn get_dkg_committee(
+    api: &OnlineClient<EntropyConfig>,
+    block_number: u32,
+) -> anyhow::Result<Vec<ValidatorInfo>> {
+    let mut validators_info: Vec<ValidatorInfo> = vec![];
+
+    for i in 0..SIGNING_PARTY_SIZE {
+        let account_id = select_validator_from_subgroup(api, i as u8, block_number).await?;
+
+        let threshold_address_query =
+            entropy::storage().staking_extension().threshold_servers(account_id);
+        let server_info = api
+            .storage()
+            .at_latest()
+            .await?
+            .fetch(&threshold_address_query)
+            .await?
+            .ok_or(anyhow!("Stash Fetch Error"))?;
+        let validator_info = ValidatorInfo {
+            x25519_public_key: server_info.x25519_public_key,
+            ip_address: std::str::from_utf8(&server_info.endpoint)?.parse()?,
+            tss_account: server_info.tss_account,
+        };
+        validators_info.push(validator_info);
+    }
+    Ok(validators_info)
+}
+
+/// For a given subgroup ID, choose a validator using a block number, omitting validators who are
+/// not synced
+async fn select_validator_from_subgroup(
+    api: &OnlineClient<EntropyConfig>,
+    signing_group: u8,
+    block_number: u32,
+) -> anyhow::Result<SubxtAccountId32> {
+    let subgroup_info_query = entropy::storage().staking_extension().signing_groups(signing_group);
+    let mut subgroup_addresses = api
+        .storage()
+        .at_latest()
+        .await?
+        .fetch(&subgroup_info_query)
+        .await?
+        .ok_or(anyhow!("Subgroup Fetch Error"))?;
+
+    let address = loop {
+        ensure!(!subgroup_addresses.is_empty(), "No synced validators");
+        let selection: u32 = block_number % subgroup_addresses.len() as u32;
+        let address = &subgroup_addresses[selection as usize];
+        let is_validator_syned_query =
+            entropy::storage().staking_extension().is_validator_synced(address);
+        let is_synced = api
+            .storage()
+            .at_latest()
+            .await?
+            .fetch(&is_validator_syned_query)
+            .await?
+            .ok_or(anyhow!("Cannot query whether validator is synced"))?;
+        if !is_synced {
+            subgroup_addresses.remove(selection as usize);
+        } else {
+            break address;
+        }
+    };
+    Ok(address.clone())
 }
