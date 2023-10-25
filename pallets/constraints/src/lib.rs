@@ -146,42 +146,10 @@ pub mod pallet {
             );
             let old_program_length = Self::bytecode(&sig_req_account).unwrap_or_default().len();
 
-            Self::validate_constraints(&new_constraints)?;
-            Self::set_constraints_unchecked(&sig_req_account, &new_constraints);
-
-            Self::deposit_event(Event::ConstraintsUpdated(sig_req_account, new_constraints));
-
-            Ok(())
-        }
-
-        #[pallet::call_index(1)]
-        #[pallet::weight({<T as Config>::WeightInfo::update_v2_constraints()})]
-        pub fn update_v2_constraints(
-            origin: OriginFor<T>,
-            sig_req_account: T::AccountId,
-            new_constraints: Vec<u8>,
-        ) -> DispatchResult {
-            let constraint_account = ensure_signed(origin)?;
-            let new_constraints_length = new_constraints.len();
-            ensure!(
-                new_constraints_length as u32 <= T::MaxV2BytecodeLength::get(),
-                Error::<T>::V2ConstraintLengthExceeded
-            );
-
-            ensure!(
-                AllowedToModifyConstraints::<T>::contains_key(
-                    &constraint_account,
-                    &sig_req_account
-                ),
-                Error::<T>::NotAuthorized
-            );
-            let old_constraints_length =
-                Self::v2_bytecode(&sig_req_account).unwrap_or_default().len();
-
-            Self::charge_constraint_v2_fee(
-                constraint_account,
-                old_constraints_length as u32,
-                new_constraints_length as u32,
+            Self::update_program_storage_deposit(
+                &program_modification_account,
+                old_program_length,
+                new_program_length,
             )?;
 
             Bytecode::<T>::insert(&sig_req_account, &new_program);
