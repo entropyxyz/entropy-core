@@ -2,9 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.7](https://github.com/orhun/git-cliff/compare/v0.0.6..v0.0.7) - 2023-09-22
+## [0.0.7](https://github.com/entropyxyz/entropy-core/compare/v0.0.6..v0.0.7) - 2023-09-22
 
-## [0.0.6](https://github.com/orhun/git-cliff/compare/v0.0.5..v0.0.6) - 2023-09-15
+## [0.0.6](https://github.com/entropyxyz/entropy-core/compare/v0.0.5..v0.0.6) - 2023-09-15
 
 ### ⚙️ Miscellaneous Tasks
 
@@ -15,7 +15,7 @@ All notable changes to this project will be documented in this file.
 - Working proof of concept for generated API docs automatically publishable to Vercel Project. ([#373](https://github.com/entropyxyz/entropy-core/pull/373))
 - Use websockets rather than server sent events for signing protocol messages ([#364](https://github.com/entropyxyz/entropy-core/pull/364))
 
-## [0.0.5](https://github.com/orhun/git-cliff/compare/v0.0.2-devnet..v0.0.5) - 2023-06-23
+## [0.0.5](https://github.com/entropyxyz/entropy-core/compare/v0.0.2-devnet..v0.0.5) - 2023-06-23
 
 ### ⛰️  Features
 
@@ -48,7 +48,7 @@ All notable changes to this project will be documented in this file.
 - Add function to rotate signing selectors ([#263](https://github.com/entropyxyz/entropy-core/pull/263))
 - Add more explicit expect errors ([#264](https://github.com/entropyxyz/entropy-core/pull/264))
 
-## [0.0.2-devnet](https://github.com/orhun/git-cliff/compare/v0.0.1-devnet..v0.0.2-devnet) - 2022-12-16
+## [0.0.2-devnet](https://github.com/entropyxyz/entropy-core/compare/v0.0.1-devnet..v0.0.2-devnet) - 2022-12-16
 
 ### 🚜 Refactor
 
