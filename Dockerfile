@@ -83,13 +83,33 @@ RUN addgroup --system entropy \
         entropy \
     && chown -R entropy:entropy /srv/entropy
 
+# Despite statically linking our binaries, we will still need these
+# libraries to process the /etc/nsswitch.conf file and perform DNS
+# lookups, as we've built with glibc, but Alpine provides musl libc.
+# This is a notorious issue in GNU glibc, currently without a fix:
+#     https://sourceware.org/bugzilla/show_bug.cgi?id=27959
+COPY --from=build \
+    /lib/x86_64-linux-gnu/libnss_* \
+    /lib/x86_64-linux-gnu/libc.so.6 \
+    /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 \
+    /lib/x86_64-linux-gnu/libresolv.so.2 \
+    /lib/x86_64-linux-gnu/
+
+# Lastly, we copy our own files into the final container image stage.
 COPY --from=build --chown=entropy:entropy --chmod=554 /usr/local/bin/${PACKAGE} /usr/local/bin/${PACKAGE}
 COPY --chown=entropy:entropy --chmod=554 bin/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+# Don't run as the `root` user within the container.
 USER entropy
 
 ###
-# Describe the available ports to expose.
-##
+# Describe the available ports to expose for `server`.
+###
+# TSS server's REST-style HTTP API port.
+EXPOSE 3001
+###
+# Describe the available ports to expose for `entropy`.
+###
 # Substrate's default Prometheus endpoint.
 EXPOSE 9615
 # Substrate's default RPC port.
