@@ -37,7 +37,7 @@ frame_support::construct_runtime!(
     Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     Authorship: pallet_authorship::{Pallet, Storage},
     Relayer: pallet_relayer::{Pallet, Call, Storage, Event<T>},
-    Constraints: pallet_programs::{Pallet, Call, Storage, Event<T>},
+    Programs: pallet_programs::{Pallet, Call, Storage, Event<T>},
     Propagation: pallet_propagation::{Pallet, Call, Storage, Event<T>},
     Staking: pallet_staking_extension::{Pallet, Call, Storage, Event<T>, Config<T>},
     FrameStaking: pallet_staking::{Pallet, Call, Storage, Event<T>},

@@ -115,7 +115,7 @@ construct_runtime!(
     System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
     TransactionPause: transaction_pause::{Pallet, Storage, Call, Event<T>},
     Balances: pallet_balances::{Pallet, Storage, Call, Event<T>},
-    ConstraintsPallet: pallet_programs::{Pallet, Call, Storage, Event<T>},
+    ProgramsPallet: pallet_programs::{Pallet, Call, Storage, Event<T>},
   }
 );
 

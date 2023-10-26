@@ -44,10 +44,10 @@ pub trait WeightInfo {
 /// Weights for pallet_programs using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	/// Storage: Constraints AllowedToModifyConstraints (r:1 w:0)
-	/// Proof Skipped: Constraints AllowedToModifyConstraints (max_values: None, max_size: None, mode: Measured)
-	/// Storage: Constraints Bytecode (r:1 w:1)
-	/// Proof Skipped: Constraints Bytecode (max_values: None, max_size: None, mode: Measured)
+	/// Storage: Programs AllowedToModifyPrograms (r:1 w:0)
+	/// Proof Skipped: Programs AllowedToModifyPrograms (max_values: None, max_size: None, mode: Measured)
+	/// Storage: Programs Bytecode (r:1 w:1)
+	/// Proof Skipped: Programs Bytecode (max_values: None, max_size: None, mode: Measured)
 	fn update_program() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `236`
@@ -61,10 +61,10 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-	/// Storage: Constraints AllowedToModifyConstraints (r:1 w:0)
-	/// Proof Skipped: Constraints AllowedToModifyConstraints (max_values: None, max_size: None, mode: Measured)
-	/// Storage: Constraints Bytecode (r:1 w:1)
-	/// Proof Skipped: Constraints Bytecode (max_values: None, max_size: None, mode: Measured)
+	/// Storage: Programs AllowedToModifyPrograms (r:1 w:0)
+	/// Proof Skipped: Programs AllowedToModifyPrograms (max_values: None, max_size: None, mode: Measured)
+	/// Storage: Programs Bytecode (r:1 w:1)
+	/// Proof Skipped: Programs Bytecode (max_values: None, max_size: None, mode: Measured)
 	fn update_program() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `236`

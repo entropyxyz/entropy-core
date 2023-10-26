@@ -19,12 +19,12 @@ use crate::{
 
 /// Errors related to parsing and evaulating programs.
 #[derive(Error, Debug, PartialEq)]
-pub enum ConstraintsError {
+pub enum ProgramError {
     /// Transaction request could not be parsed
     #[error("Invalid transaction request: {0}")]
     InvalidTransactionRequest(String),
     /// Transaction request did not meet programs requirements.
-    #[error("Constraint Evaluation error: {0}")]
+    #[error("Program Evaluation error: {0}")]
     Evaluation(&'static str),
 }
 
@@ -56,8 +56,8 @@ pub enum UserErr {
     SubgroupError(&'static str),
     #[error("Invalid Signature: {0}")]
     InvalidSignature(&'static str),
-    #[error("Constraints error: {0}")]
-    ConstraintsError(#[from] ConstraintsError),
+    #[error("Program error: {0}")]
+    ProgramError(#[from] ProgramError),
     #[error("Signing/DKG protocol error: {0}")]
     SigningClientError(#[from] ProtocolErr),
     #[error("Transaction request unable to be deserialized: {0}")]

@@ -1441,7 +1441,7 @@ mod benches {
       [pallet_balances, Balances]
       [pallet_bounties, Bounties]
       [pallet_collective, Council]
-      [pallet_programs, Constraints]
+      [pallet_programs, Programs]
       [pallet_democracy, Democracy]
       [pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
       [pallet_election_provider_support_benchmarking, EPSBench::<Runtime>]

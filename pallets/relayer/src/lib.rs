@@ -46,7 +46,7 @@ pub mod pallet {
         traits::{ConstU32, IsSubType},
     };
     use frame_system::pallet_prelude::*;
-    use pallet_programs::{AllowedToModifyProgram, Pallet as ConstraintsPallet};
+    use pallet_programs::{AllowedToModifyProgram, Pallet as ProgramsPallet};
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
@@ -209,8 +209,8 @@ pub mod pallet {
             );
 
             // We take a storage deposit here based off the program length. This can be returned to
-            // the user if they clear the program from storage using the Constraints pallet.
-            ConstraintsPallet::<T>::reserve_program_deposit(
+            // the user if they clear the program from storage using the Programs pallet.
+            ProgramsPallet::<T>::reserve_program_deposit(
                 &program_modification_account,
                 initial_program.len(),
             )?;
@@ -297,7 +297,7 @@ pub mod pallet {
                     (),
                 );
 
-                ConstraintsPallet::<T>::set_program_unchecked(
+                ProgramsPallet::<T>::set_program_unchecked(
                     &sig_req_account,
                     registering_info.program,
                 )?;

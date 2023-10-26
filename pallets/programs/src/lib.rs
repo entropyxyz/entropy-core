@@ -1,4 +1,4 @@
-//! # Constraints Pallet
+//! # Programs Pallet
 //!
 //! ## Overview
 //!

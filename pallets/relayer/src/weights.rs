@@ -88,10 +88,10 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Proof Skipped: StakingExtension SigningGroups (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Relayer Registered (r:0 w:1)
 	/// Proof Skipped: Relayer Registered (max_values: None, max_size: None, mode: Measured)
-	/// Storage: Constraints V2Bytecode (r:0 w:1)
-	/// Proof Skipped: Constraints V2Bytecode (max_values: None, max_size: None, mode: Measured)
-	/// Storage: Constraints AllowedToModifyConstraints (r:0 w:1)
-	/// Proof Skipped: Constraints AllowedToModifyConstraints (max_values: None, max_size: None, mode: Measured)
+	/// Storage: Programs V2Bytecode (r:0 w:1)
+	/// Proof Skipped: Programs V2Bytecode (max_values: None, max_size: None, mode: Measured)
+	/// Storage: Programs AllowedToModifyPrograms (r:0 w:1)
+	/// Proof Skipped: Programs AllowedToModifyPrograms (max_values: None, max_size: None, mode: Measured)
 	/// The range of component `c` is `[0, 2]`.
 	fn confirm_register_registered(_c: u32, ) -> Weight {
 		// Proof Size summary in bytes:
@@ -148,10 +148,10 @@ impl WeightInfo for () {
 	/// Proof Skipped: StakingExtension SigningGroups (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Relayer Registered (r:0 w:1)
 	/// Proof Skipped: Relayer Registered (max_values: None, max_size: None, mode: Measured)
-	/// Storage: Constraints V2Bytecode (r:0 w:1)
-	/// Proof Skipped: Constraints V2Bytecode (max_values: None, max_size: None, mode: Measured)
-	/// Storage: Constraints AllowedToModifyConstraints (r:0 w:1)
-	/// Proof Skipped: Constraints AllowedToModifyConstraints (max_values: None, max_size: None, mode: Measured)
+	/// Storage: Programs V2Bytecode (r:0 w:1)
+	/// Proof Skipped: Programs V2Bytecode (max_values: None, max_size: None, mode: Measured)
+	/// Storage: Programs AllowedToModifyPrograms (r:0 w:1)
+	/// Proof Skipped: Programs AllowedToModifyPrograms (max_values: None, max_size: None, mode: Measured)
 	/// The range of component `c` is `[0, 2]`.
 	fn confirm_register_registered(_c: u32, ) -> Weight {
 		// Proof Size summary in bytes:

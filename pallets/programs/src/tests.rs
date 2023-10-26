@@ -16,7 +16,7 @@ fn set_programs() {
 
         // make sure no one can add a program without explicit permissions
         assert_noop!(
-            ConstraintsPallet::update_program(
+            ProgramsPallet::update_program(
                 RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
                 SIG_REQ_ACCOUNT,
                 program.clone(),
@@ -28,7 +28,7 @@ fn set_programs() {
 
         // can't pay deposit
         assert_noop!(
-            ConstraintsPallet::update_program(
+            ProgramsPallet::update_program(
                 RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
                 SIG_REQ_ACCOUNT,
                 program.clone(),
@@ -39,23 +39,23 @@ fn set_programs() {
         Balances::make_free_balance_be(&PROGRAM_MODIFICATION_ACCOUNT, 100);
 
         // It's okay to have an empty program
-        assert_ok!(ConstraintsPallet::update_program(
+        assert_ok!(ProgramsPallet::update_program(
             RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
             SIG_REQ_ACCOUNT,
             empty_program.clone()
         ));
 
-        assert_ok!(ConstraintsPallet::update_program(
+        assert_ok!(ProgramsPallet::update_program(
             RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
             SIG_REQ_ACCOUNT,
             program.clone()
         ));
 
-        assert_eq!(ConstraintsPallet::bytecode(SIG_REQ_ACCOUNT).unwrap(), program);
+        assert_eq!(ProgramsPallet::bytecode(SIG_REQ_ACCOUNT).unwrap(), program);
         assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 90);
 
         // deposit refunded partial
-        assert_ok!(ConstraintsPallet::update_program(
+        assert_ok!(ProgramsPallet::update_program(
             RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
             SIG_REQ_ACCOUNT,
             vec![10u8]
@@ -63,7 +63,7 @@ fn set_programs() {
         assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 95);
 
         // deposit refunded full
-        assert_ok!(ConstraintsPallet::update_program(
+        assert_ok!(ProgramsPallet::update_program(
             RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
             SIG_REQ_ACCOUNT,
             vec![]
@@ -71,7 +71,7 @@ fn set_programs() {
         assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 100);
 
         assert_noop!(
-            ConstraintsPallet::update_program(
+            ProgramsPallet::update_program(
                 RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
                 SIG_REQ_ACCOUNT,
                 too_long,

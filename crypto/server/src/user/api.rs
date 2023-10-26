@@ -41,7 +41,7 @@ use subxt::{
 use tracing::instrument;
 use zeroize::Zeroize;
 
-use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo, ConstraintsError};
+use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo, ProgramsError};
 use crate::{
     chain_api::{
         entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},

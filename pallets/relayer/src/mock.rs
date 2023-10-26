@@ -41,7 +41,7 @@ frame_support::construct_runtime!(
     Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
     Historical: pallet_session_historical::{Pallet},
     BagsList: pallet_bags_list::{Pallet, Call, Storage, Event<T>},
-    Constraints: pallet_programs::{Pallet, Call, Storage, Event<T>},
+    Programs: pallet_programs::{Pallet, Call, Storage, Event<T>},
   }
 );
 

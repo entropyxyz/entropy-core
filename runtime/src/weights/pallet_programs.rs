@@ -34,10 +34,10 @@ use core::marker::PhantomData;
 /// Weight functions for `pallet_programs`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_programs::WeightInfo for WeightInfo<T> {
-	/// Storage: Constraints AllowedToModifyConstraints (r:1 w:0)
-	/// Proof Skipped: Constraints AllowedToModifyConstraints (max_values: None, max_size: None, mode: Measured)
-	/// Storage: Constraints Bytecode (r:1 w:1)
-	/// Proof Skipped: Constraints Bytecode (max_values: None, max_size: None, mode: Measured)
+	/// Storage: Programs AllowedToModifyPrograms (r:1 w:0)
+	/// Proof Skipped: Programs AllowedToModifyPrograms (max_values: None, max_size: None, mode: Measured)
+	/// Storage: Programs Bytecode (r:1 w:1)
+	/// Proof Skipped: Programs Bytecode (max_values: None, max_size: None, mode: Measured)
 	fn update_program() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `236`
