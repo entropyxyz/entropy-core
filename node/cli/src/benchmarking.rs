@@ -4,12 +4,14 @@
 
 use std::{sync::Arc, time::Duration};
 
-use kitchensink_runtime::{BalancesCall, SystemCall};
+use entropy_runtime::{self as runtime, BalancesCall, SystemCall};
 use node_primitives::{AccountId, Balance};
 use sc_cli::Result;
+use sc_client_api::BlockBackend;
+use sp_core::{Encode, Pair};
 use sp_inherents::{InherentData, InherentDataProvider};
 use sp_keyring::Sr25519Keyring;
-use sp_runtime::OpaqueExtrinsic;
+use sp_runtime::{OpaqueExtrinsic, SaturatedConversion};
 
 use crate::service::{create_extrinsic, FullClient};
 
@@ -22,19 +24,13 @@ pub struct RemarkBuilder {
 
 impl RemarkBuilder {
     /// Creates a new [`Self`] from the given client.
-    pub fn new(client: Arc<FullClient>) -> Self {
-        Self { client }
-    }
+    pub fn new(client: Arc<FullClient>) -> Self { Self { client } }
 }
 
 impl frame_benchmarking_cli::ExtrinsicBuilder for RemarkBuilder {
-    fn pallet(&self) -> &str {
-        "system"
-    }
+    fn pallet(&self) -> &str { "system" }
 
-    fn extrinsic(&self) -> &str {
-        "remark"
-    }
+    fn extrinsic(&self) -> &str { "remark" }
 
     fn build(&self, nonce: u32) -> std::result::Result<OpaqueExtrinsic, &'static str> {
         let acc = Sr25519Keyring::Bob.pair();
@@ -67,13 +63,9 @@ impl TransferKeepAliveBuilder {
 }
 
 impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
-    fn pallet(&self) -> &str {
-        "balances"
-    }
+    fn pallet(&self) -> &str { "balances" }
 
-    fn extrinsic(&self) -> &str {
-        "transfer_keep_alive"
-    }
+    fn extrinsic(&self) -> &str { "transfer_keep_alive" }
 
     fn build(&self, nonce: u32) -> std::result::Result<OpaqueExtrinsic, &'static str> {
         let acc = Sr25519Keyring::Bob.pair();
@@ -105,8 +97,8 @@ pub fn create_benchmark_extrinsic(
     let period =
         runtime::BlockHashCount::get().checked_next_power_of_two().map(|c| c / 2).unwrap_or(2)
             as u64;
+
     let extra: runtime::SignedExtra = (
-        frame_system::CheckNonZeroSender::<runtime::Runtime>::new(),
         frame_system::CheckSpecVersion::<runtime::Runtime>::new(),
         frame_system::CheckTxVersion::<runtime::Runtime>::new(),
         frame_system::CheckGenesis::<runtime::Runtime>::new(),
@@ -117,17 +109,20 @@ pub fn create_benchmark_extrinsic(
         frame_system::CheckNonce::<runtime::Runtime>::from(nonce),
         frame_system::CheckWeight::<runtime::Runtime>::new(),
         pallet_transaction_payment::ChargeTransactionPayment::<runtime::Runtime>::from(0),
+        pallet_free_tx::ValidateElectricityPayment::<runtime::Runtime>::new(),
+        pallet_relayer::ValidateConfirmRegistered::<runtime::Runtime>::new(),
     );
 
     let raw_payload = runtime::SignedPayload::from_raw(
         call.clone(),
         extra.clone(),
         (
-            (),
             runtime::VERSION.spec_version,
             runtime::VERSION.transaction_version,
             genesis_hash,
             best_hash,
+            (),
+            (),
             (),
             (),
             (),
