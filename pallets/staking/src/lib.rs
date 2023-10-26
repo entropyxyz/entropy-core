@@ -152,7 +152,7 @@ pub mod pallet {
         pub threshold_servers:
             Vec<(<T as pallet_session::Config>::ValidatorId, ServerInfo<T::AccountId>)>,
         pub signing_groups: Vec<(u8, Vec<<T as pallet_session::Config>::ValidatorId>)>,
-        pub do_proactive_refresh: bool,
+        pub activate_proactive_refresh: bool,
     }
 
     #[pallet::genesis_build]
@@ -176,7 +176,7 @@ pub mod pallet {
                 }
             }
 
-            ProactiveRefresh::<T>::put(self.do_proactive_refresh);
+            ProactiveRefresh::<T>::put(self.activate_proactive_refresh);
         }
     }
     // Errors inform users that something went wrong.
