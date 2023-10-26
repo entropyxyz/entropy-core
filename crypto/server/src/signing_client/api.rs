@@ -17,12 +17,15 @@ use entropy_shared::SETUP_TIMEOUT_SECONDS;
 use kvdb::kv_manager::helpers::{deserialize, serialize as key_serialize};
 use parity_scale_codec::Decode;
 use sp_core::crypto::AccountId32;
-use subxt::{ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32 as SubxtAccountId32};
+use subxt::{
+    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
+    utils::AccountId32 as SubxtAccountId32, OnlineClient,
+};
 use synedrion::KeyShare;
 use tokio::time::timeout;
 
 use crate::{
-    chain_api::{get_api, get_rpc, EntropyConfig},
+    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         substrate::{get_subgroup, return_all_addresses_of_subgroup},
         user::{check_in_registration_group, send_key},
@@ -51,6 +54,7 @@ pub async fn proactive_refresh(
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let signer =
         get_signer(&app_state.kv_store).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    validate_proactive_refresh(&api, &rpc).await?;
     check_in_registration_group(&validators_info, signer.account_id())
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     // TODO: validate this endpoint
@@ -177,4 +181,26 @@ pub async fn do_proactive_refresh(
         execute_proactive_refresh(channels, subxt_signer, tss_accounts, my_subgroup, old_key)
             .await?;
     Ok(result)
+}
+
+/// Validates if proactive refresh was called for by chain
+/// TODO should check validity of message integraty https://github.com/entropyxyz/entropy-core/issues/454
+pub async fn validate_proactive_refresh(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> Result<(), ProtocolErr> {
+    let block_hash = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or_else(|| ProtocolErr::OptionUnwrapError("Error getting block hash"))?;
+    let proactive_info_query = entropy::storage().staking_extension().proactive_refresh();
+    let proactive_info =
+        api.storage().at(block_hash).fetch(&proactive_info_query).await?.ok_or_else(|| {
+            ProtocolErr::OptionUnwrapError("Error getting Proactive Refresh trigger")
+        })?;
+
+    if !proactive_info {
+        return Err(ProtocolErr::NoProactiveRefresh);
+    }
+    Ok(())
 }

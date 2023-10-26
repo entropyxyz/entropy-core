@@ -7,17 +7,22 @@ use sp_core::crypto::Ss58Codec;
 use sp_keyring::AccountKeyring;
 use testing_utils::{
     constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
-    substrate_context::test_context_stationary,
+    substrate_context::{test_context_stationary, test_node_process_testing_state},
 };
 
-use crate::{helpers::tests::spawn_testing_validators, r#unsafe::api::UnsafeQuery};
+use super::api::validate_proactive_refresh;
+use crate::{
+    chain_api::{get_api, get_rpc},
+    helpers::tests::spawn_testing_validators,
+    r#unsafe::api::UnsafeQuery,
+};
 
 #[tokio::test]
 #[serial]
 async fn test_proactive_refresh() {
     clean_tests();
     let one = AccountKeyring::Eve;
-    let _cxt = test_context_stationary().await;
+    let _cxt = test_node_process_testing_state().await;
 
     let signing_address = one.clone().to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, _users_keyshare_option) =
@@ -100,5 +105,17 @@ async fn test_proactive_refresh() {
             "User Error: Invalid Signer: Invalid Signer in Signing group"
         );
     }
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+#[should_panic = "called `Result::unwrap()` on an `Err` value: NoProactiveRefresh"]
+async fn test_proactive_refresh_validation_fail() {
+    clean_tests();
+    let cxt = test_context_stationary().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+    validate_proactive_refresh(&api, &rpc).await.unwrap();
     clean_tests();
 }
