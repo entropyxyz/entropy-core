@@ -1,7 +1,12 @@
 [package]
-name   ="pallet-free-tx"
-version="3.0.0-monthly-2021-10"
-edition="2021"
+name   ='pallet-free-tx'
+version   ='0.0.7'
+authors   =['Entropy Cryptography <admin@entropy.xyz>']
+homepage  ='https://entropy.xyz/'
+license   ='AGPL-3.0-or-later'
+repository='https://github.com/entropyxyz/entropy-core'
+edition   ='2021'
+publish   =false
 
 [dependencies]
 codec             ={ package="parity-scale-codec", version="3.6.3", default-features=false }
