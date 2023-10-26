@@ -10,7 +10,7 @@ use testing_utils::{
     substrate_context::{test_context_stationary, test_node_process_testing_state},
 };
 
-use super::api::validate_proactive_refresh;
+use super::{api::validate_proactive_refresh, ProtocolErr};
 use crate::{
     chain_api::{get_api, get_rpc},
     helpers::tests::spawn_testing_validators,
@@ -110,12 +110,12 @@ async fn test_proactive_refresh() {
 
 #[tokio::test]
 #[serial]
-#[should_panic = "called `Result::unwrap()` on an `Err` value: NoProactiveRefresh"]
 async fn test_proactive_refresh_validation_fail() {
     clean_tests();
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
-    validate_proactive_refresh(&api, &rpc).await.unwrap();
+    let err = validate_proactive_refresh(&api, &rpc).await;
+    assert!(matches!(err, Err(ProtocolErr::NoProactiveRefresh)));
     clean_tests();
 }
