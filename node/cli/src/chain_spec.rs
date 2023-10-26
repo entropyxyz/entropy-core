@@ -319,7 +319,7 @@ pub fn local_devnet_genesis(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
-) -> GenesisConfig {
+) -> RuntimeGenesisConfig {
     let mut endowed_accounts = endowed_accounts_dev();
     // endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
@@ -351,8 +351,8 @@ pub fn local_devnet_genesis(
     const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 1000;
 
-    GenesisConfig {
-        system: SystemConfig { code: wasm_binary_unwrap().to_vec() },
+    RuntimeGenesisConfig {
+        system: SystemConfig { code: wasm_binary_unwrap().to_vec(), ..Default::default() },
         balances: BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
         },
@@ -437,21 +437,13 @@ pub fn local_devnet_genesis(
         babe: BabeConfig {
             authorities: vec![],
             epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
+            ..Default::default()
         },
         im_online: ImOnlineConfig { keys: vec![] },
-        authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
-        grandpa: GrandpaConfig { authorities: vec![] },
+        authority_discovery: AuthorityDiscoveryConfig { keys: vec![], ..Default::default() },
+        grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        society: SocietyConfig {
-            members: endowed_accounts
-                .iter()
-                .take((num_endowed_accounts + 1) / 2)
-                .cloned()
-                .collect(),
-            pot: 0,
-            max_members: 999,
-        },
         relayer: RelayerConfig {
             registered_accounts: vec![
                 (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
