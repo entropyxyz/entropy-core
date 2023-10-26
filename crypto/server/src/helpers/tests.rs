@@ -150,9 +150,9 @@ pub async fn update_programs(
     constraint_modification_account: &sr25519::Pair,
     initial_program: Vec<u8>,
 ) {
-    // update/set their constraints
+    // update/set their programs
     let update_program_tx = entropy::tx()
-        .constraints()
+        .programs()
         .update_program(SubxtAccountId32::from(sig_req_keyring.public()), initial_program);
 
     let constraint_modification_account =
