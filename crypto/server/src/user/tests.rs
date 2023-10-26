@@ -1061,7 +1061,6 @@ async fn test_register_with_private_key_visibility() {
     .await;
 
     let response = new_user_response_result.unwrap();
-    // assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
 
     assert!(keyshare_result.is_ok());
