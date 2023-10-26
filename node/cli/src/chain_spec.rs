@@ -242,6 +242,7 @@ pub fn testnet_genesis(
                 (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
+            activate_proactive_refresh: false,
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {
@@ -540,6 +541,7 @@ pub fn devnet_genesis(
         staking_extension: StakingExtensionConfig {
             threshold_servers: vec![],
             signing_groups: vec![],
+            activate_proactive_refresh: false,
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {
@@ -721,6 +723,7 @@ pub fn testing(
                 ),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
+            activate_proactive_refresh: true,
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {

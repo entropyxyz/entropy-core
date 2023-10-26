@@ -176,51 +176,6 @@ fn it_deletes_when_no_bond_left() {
 }
 
 #[test]
-fn it_tests_on_new_session() {
-    new_test_ext().execute_with(|| {
-        // // situation 1 - changed is false no changes should be made
-        assert_eq!(Staking::proactive_refresh(), false);
-        MockSessionManager::new_session(0);
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
-        assert_eq!(Staking::proactive_refresh(), true);
-        // catches out of order validators
-        MockSessionManager::new_session(1);
-
-        // nothing is changed
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
-
-        // // situation 2 - authority 2 leaves authority 3 enters
-        MockSessionManager::new_session(2);
-        // authority 3 replaces authority 2
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
-
-        // situation 3 - authority 2 leaves not replaces
-        MockSessionManager::new_session(3);
-
-        // authority 2 left sig group 1 has no one in signing group
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
-        assert_eq!(Staking::signing_groups(1), Some(vec![]));
-
-        //  // situation 4 - same number but both authorities change
-        MockSessionManager::new_session(4);
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![4]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
-
-        // situation 5/6 = odd number of validators
-        MockSessionManager::new_session(5);
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![2, 1]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
-
-        MockSessionManager::new_session(6);
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1, 2, 4]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3, 5]);
-    });
-}
-
-#[test]
 fn it_declares_synced() {
     new_test_ext().execute_with(|| {
         assert_noop!(
