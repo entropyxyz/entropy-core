@@ -16,8 +16,8 @@ secrets:
 
 services:
   # Threshold Signature Scheme server
-  # In a local devnet setup, for now, this is "Alice's server."
-  tss-server:
+  # In a local devnet setup, for now, this is "Alice's TSS server."
+  alice-tss-server:
     build:
       args:
         PACKAGE: server
@@ -34,11 +34,11 @@ services:
       - "--threshold-url"
       - "0.0.0.0:3001"
       - "--chain-endpoint"
-      - "ws://chain-node:9944"
+      - "ws://alice-chain-node:9944"
 
   # Sometimes also called simply a "chain," or a "validator."
   # In a local devnet setup, for now, this is "Alice's chain."
-  chain-node:
+  alice-chain-node:
     build:
       ssh:
         - default
@@ -47,16 +47,19 @@ services:
       tags:
         - entropy:chain-node
     depends_on:
-      - tss-server
+      - alice-tss-server
     ports:
-      # Enables other chain nodes speak to the validator.
-      # We comment this out because we're working only within
-      # the Docker network layer, not the host's network stack.
+      # Enables other chain nodes speak to the validator. We comment
+      # this out because we're working only within the Docker network
+      # layer, not the host's network stack. I.e., the port is open
+      # locally, but we do not publish it to the Docker host itself.
       #- "127.0.0.1:30333:30333/tcp" # P2P Port.
-      # Enables network clients to speak to the node's API.
-      - "127.0.0.1:9944:9944/tcp"   # RPC Port.
+      # Enables network clients to speak to the chain node's REST API.
+      - "127.0.0.1:9944:9944/tcp"   # "RPC Port."
     command:
-      - "--alice"
+      - "--chain"
+      - "local-devnet"
+      - "--alice"               # Shortcut for `--name Alice --validator`
       - "--base-path"
       - ".entropy/alice"
       - "--rpc-port"
@@ -64,15 +67,15 @@ services:
       - "--unsafe-rpc-external" # Intentional, for TSS's access.
       - "--rpc-cors"
       - "all"
-      - "--validator" # This is what makes the node a validator.
       - "--node-key=0000000000000000000000000000000000000000000000000000000000000001"
       - "--tss-server-endpoint"
-      - "http://tss-server:3001"
+      - "http://alice-tss-server:3001"
 
-  bob-tss:
+  # "Bob's TSS server."
+  bob-tss-server:
     image: entropy:tss-server
     depends_on:
-      - tss-server
+      - alice-tss-server
     ports:
       - "127.0.0.1:3002:3001/tcp"
     command:
@@ -82,19 +85,17 @@ services:
       - "--chain-endpoint"
       - "ws://bob-chain-node:9944"
 
+  # "Bob's chain node."
   bob-chain-node:
     image: entropy:chain-node
     depends_on:
-      - bob-tss
+      - bob-tss-server
     ports:
-      # Enables other chain nodes speak to the validator.
-      # We comment this out because we're working only within
-      # the Docker network layer, not the host's network stack.
-      #- "127.0.0.1:30333:30333/tcp" # P2P Port.
-      # Enables network clients to speak to the node's API.
-      - "127.0.0.1:9945:9944/tcp"   # RPC Port.
+      - "127.0.0.1:9945:9944/tcp"
     command:
-      - "--bob"
+      - "--chain"
+      - "local-devnet"
+      - "--bob"                 # Shortcut for `--name Bob --validator`
       - "--base-path"
       - ".entropy/bob"
       - "--rpc-port"
@@ -102,8 +103,7 @@ services:
       - "--unsafe-rpc-external" # Intentional, for TSS's access.
       - "--rpc-cors"
       - "all"
-      - "--validator" # This is what makes the node a validator.
       - "--bootnodes"
-      - "/dns4/chain-node/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
+      - "/dns4/alice-chain-node/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
       - "--tss-server-endpoint"
-      - "http://bob-tss:3001"
+      - "http://bob-tss-server:3001"
