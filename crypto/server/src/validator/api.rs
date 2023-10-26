@@ -80,7 +80,7 @@ pub async fn get_all_keys(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Errir getting block hash"))?;
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Error getting block hash"))?;
     // query the registered mapping in the relayer pallet
     let keys = Vec::<()>::new();
     let storage_address = subxt::dynamic::storage("Relayer", "Registered", keys);
@@ -109,7 +109,7 @@ pub async fn get_random_server_info(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Errir getting block hash"))?;
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Error getting block hash"))?;
     let signing_group_addresses = api
         .storage()
         .at(block_hash)
@@ -234,7 +234,7 @@ pub async fn check_balance_for_fees(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Errir getting block hash"))?;
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Error getting block hash"))?;
     let account_info =
         api.storage().at(block_hash).fetch(&balance_query).await?.ok_or_else(|| {
             ValidatorErr::OptionUnwrapError("Account does not exist, add balance")
@@ -272,7 +272,7 @@ pub async fn check_in_subgroup(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Errir getting block hash"))?;
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Error getting block hash"))?;
 
     let stash_address = api
         .storage()

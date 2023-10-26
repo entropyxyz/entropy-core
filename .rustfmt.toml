@@ -3,7 +3,8 @@
 
 # version-related
 unstable_features=true
-use_try_shorthand=true # replace any `try!` (2015 Rust) with `?` 
+use_try_shorthand=true   # replace any `try!` (2015 Rust) with `?`
+edition          ="2018"
 
 # misc formatting
 condense_wildcard_suffixes =true # replace: (a,b,_,_)=(1, 2, 3, 4); -> (a,b,..)=(1, 2, 3, 4);
