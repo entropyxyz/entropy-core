@@ -40,8 +40,7 @@ pub mod weights;
 pub mod pallet {
     use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
     use frame_support::{
-        dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays},
-        inherent::Vec,
+        dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays, Vec},
         pallet_prelude::*,
         traits::{ConstU32, IsSubType},
     };
@@ -64,7 +63,7 @@ pub mod pallet {
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        type PruneBlock: Get<Self::BlockNumber>;
+        type PruneBlock: Get<BlockNumberFor<Self>>;
         type SigningPartySize: Get<usize>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
@@ -89,18 +88,14 @@ pub mod pallet {
     }
 
     #[pallet::genesis_config]
+    #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
         pub registered_accounts: Vec<(T::AccountId, u8, Option<[u8; 32]>)>,
     }
 
-    #[cfg(feature = "std")]
-    impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self { Self { registered_accounts: Default::default() } }
-    }
-
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             for account_info in &self.registered_accounts {
                 let key_visibility = match account_info.1 {
@@ -135,7 +130,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn dkg)]
     pub type Dkg<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Vec<u8>>, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn registered)]
@@ -154,7 +149,7 @@ pub mod pallet {
         /// An account has been registered. \[who\]
         AccountRegistered(T::AccountId),
         /// An account has been registered. [who, block_number, failures]
-        ConfirmedDone(T::AccountId, T::BlockNumber, Vec<u32>),
+        ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
 
     // Errors inform users that something went wrong.
@@ -341,14 +336,14 @@ pub mod pallet {
 
         pub fn get_validator_rotation(
             signing_group: u8,
-            block_number: T::BlockNumber,
+            block_number: BlockNumberFor<T>,
         ) -> Result<(<T as pallet_session::Config>::ValidatorId, u32), Error<T>> {
             let mut i: u32 = 0;
             let mut addresses =
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_group)
                     .ok_or(Error::<T>::SigningGroupError)?;
             let converted_block_number: u32 =
-                T::BlockNumber::try_into(block_number).unwrap_or_default();
+                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
             let address = loop {
                 ensure!(!addresses.is_empty(), Error::<T>::NoSyncedValidators);
                 let selection: u32 = converted_block_number % addresses.len() as u32;
