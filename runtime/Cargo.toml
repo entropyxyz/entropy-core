@@ -102,7 +102,7 @@ pallet-vesting={ version="4.0.0-dev", default-features=false, git='https://githu
 
 pallet-relayer          ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/relayer' }
 pallet-slashing         ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/slashing' }
-pallet-constraints      ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/constraints' }
+pallet-programs      ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/constraints' }
 pallet-staking-extension={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/staking' }
 pallet-transaction-pause={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/transaction-pause' }
 pallet-free-tx          ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/free-tx' }
@@ -130,7 +130,7 @@ std=[
   "codec/std",
   "scale-info/std",
   "pallet-collective/std",
-  "pallet-constraints/std",
+  "pallet-programs/std",
   "pallet-conviction-voting/std",
   "pallet-democracy/std",
   "pallet-elections-phragmen/std",
@@ -206,7 +206,7 @@ runtime-benchmarks=[
   "pallet-bags-list/runtime-benchmarks",
   "pallet-bounties/runtime-benchmarks",
   "pallet-collective/runtime-benchmarks",
-  "pallet-constraints/runtime-benchmarks",
+  "pallet-programs/runtime-benchmarks",
   "pallet-nomination-pools-benchmarking/runtime-benchmarks",
   "pallet-conviction-voting/runtime-benchmarks",
   "pallet-democracy/runtime-benchmarks",

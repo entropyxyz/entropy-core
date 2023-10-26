@@ -17,7 +17,7 @@ sp-core           ={ git="https://github.com/paritytech/substrate", branch="polk
 sp-io             ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43" }
 pallet-balances   ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43" }
 smallvec          ="1.4.1"
-pallet-constraints={ version="3.0.0-monthly-2021-10", default-features=false, path="../constraints" }
+pallet-programs={ version="3.0.0-monthly-2021-10", default-features=false, path="../constraints" }
 
 [features]
 default=["std"]
@@ -31,7 +31,7 @@ std=[
   "sp-runtime/std",
   "frame-support/std",
   "frame-system/std",
-  "pallet-constraints/std",
+  "pallet-programs/std",
   "sp-std/std",
 ]
 try-runtime=["frame-support/try-runtime"]
