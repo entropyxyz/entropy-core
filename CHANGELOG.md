@@ -14,8 +14,9 @@ At the moment this project **does not** adhere to
 There are a few breaking changes in this release, mostly related to the APIs around Programs
 (formerly Constraints).
 
-Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy-core/pull/428) and
-[#433](https://github.com/entropyxyz/entropy-core/pull/433) are:
+Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy-core/pull/428),
+[#433](https://github.com/entropyxyz/entropy-core/pull/433), and
+[#451](https://github.com/entropyxyz/entropy-core/pull/451) are:
 
 - The Constraint pallet's `update_v2_constraints` extrinsic has been renamed to `update_program`.
   The extrinsic arguments remain unchanged
@@ -24,6 +25,7 @@ Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy
 - The Constraint pallet's `V2ConstraintLengthExceeded` error has been renamed to `ProgramLengthExceeded`
 - The Relayer pallet's `register` extrinsic now takes a `Vec<u8>` as a program instead of an
   `Option<Contraints>`
+- The Constraints pallet has been renamed to the Programs pallet
 
 ### Added
 - Proactive refresh ([#413](https://github.com/entropyxyz/entropy-core/pull/413))
@@ -36,6 +38,7 @@ Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy
 - Replace outdated `--ws-external` with `--rpc-external` ([#424](https://github.com/entropyxyz/entropy-core/pull/424))
 - Place `demo_offence` dispatchable behind root origin check ([#426](https://github.com/entropyxyz/entropy-core/pull/426))
 - Update `pallet-relayer` to use Contraints V2 ([#433](https://github.com/entropyxyz/entropy-core/pull/433))
+- Rename `pallet-constraints` to `pallet-programs` ([#451](https://github.com/entropyxyz/entropy-core/pull/451))
 
 ### Removed
 - Remove `is_swapping` from registration details ([#437](https://github.com/entropyxyz/entropy-core/pull/437))
