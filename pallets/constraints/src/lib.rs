@@ -38,7 +38,7 @@ pub mod weights;
 pub mod pallet {
 
     use frame_support::{
-        inherent::Vec,
+        dispatch::Vec,
         pallet_prelude::{ResultQuery, *},
         traits::{Currency, ReservableCurrency},
     };

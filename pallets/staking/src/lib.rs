@@ -46,7 +46,10 @@ use crate as pallet_staking_extension;
 pub mod pallet {
     use entropy_shared::{X25519PublicKey, SIGNING_PARTY_SIZE};
     use frame_support::{
-        dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency,
+        dispatch::{DispatchResult, Vec},
+        pallet_prelude::*,
+        traits::Currency,
+        DefaultNoBound,
     };
     use frame_system::pallet_prelude::*;
 
@@ -142,22 +145,17 @@ pub mod pallet {
     pub type ProactiveRefresh<T: Config> = StorageValue<_, bool, ValueQuery>;
 
     #[pallet::genesis_config]
+    #[derive(DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
+        #[serde(skip)]
         pub threshold_servers:
             Vec<(<T as pallet_session::Config>::ValidatorId, ServerInfo<T::AccountId>)>,
         pub signing_groups: Vec<(u8, Vec<<T as pallet_session::Config>::ValidatorId>)>,
     }
 
-    #[cfg(feature = "std")]
-    impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self {
-            Self { threshold_servers: Default::default(), signing_groups: Default::default() }
-        }
-    }
-
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             let _ = self
                 .threshold_servers
