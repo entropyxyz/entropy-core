@@ -1,0 +1,79 @@
+#!/bin/sh -
+#
+# This is a [Git pre-commit hook], which runs first-pass checks on any
+# code we write and that we can perform locally, on a developer's own
+# workstation, *before* it is committed to the repository. This helps
+# conform to the [Entropy style guide], lightening loads on upstream
+# services/servers (such as CI tooling) and increases iteration speed.
+#
+# If the script is causing trouble, developers can bypass these checks
+# by invoking `git commit` with [the `--no-verify` flag].
+#
+# [Git pre-commit hook]: https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks#_committing_workflow_hooks
+# [Entropy style guide]: https://github.com/entropyxyz/meta/wiki/Style-guide
+# [the `--no-verify` flag]: https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---no-verify
+
+###
+# Global variable initializations.
+###
+# It's shell, so `0` is "yes," non-zero is "no."
+commit_is_ok_to_go=0
+# Message to print if prepped commit isn't a go.
+commit_error_hints=""
+
+# Lint Rust source code with Rust tooling.
+format_rs () {
+    check_format rustfmt --check .rs
+}
+
+# Lint any `.toml` configuration files, too.
+format_toml () {
+    check_format taplo format --check .toml
+}
+
+# Generic format-checking function. This function might change
+# the value of the `commit_is_ok_to_go` global variable, thus
+# signalling that the commit should not proceed.
+check_format () {
+    local executable="$1" # What command to run.
+    local subcommand="$2" # Its subcommand, if needed.
+    local check_flag="$3" # The check mode flag, if needed.
+    local extensions="$4" # File path extensions to filter.
+
+    # But if only three arguments were passed...
+    if [ $# -eq 3 ]; then
+        unset -v subcommand   # ...assume no subcommand.
+        local check_flag="$2"
+        local extensions="$3"
+    fi
+
+    echo "Running '$executable' on added, modified, or renamed '$extensions' files..." 1>&2
+    for file in $(git diff --cached --diff-filter=AMR --name-only | grep ".${extensions}\$"); do
+        echo "Checking ${file}..." 1>&2
+        $executable $subcommand $check_flag "${file}"
+        if [ 0 -ne $? ]; then
+            commit_is_ok_to_go=1
+            commit_error_hints="${commit_error_hints}File ${file} should be formatted. Try: \`$executable $subcommand ${file}\`\n"
+        fi
+        echo "${file} has been checked with '$executable'." 1>&2
+    done
+    echo "Checks with '$executable' completed." 1>&2
+}
+
+main () {
+    commit_error_hints="\nThe following issues prevented your commit from completing.\n\n"
+    commit_error_hints="${commit_error_hints}Bypass this check with 'git commit --no-verify'"
+    commit_error_hints="${commit_error_hints} only if you feel strongly about your commit in"
+    commit_error_hints="${commit_error_hints} its current state. Otherwise, please examine the"
+    commit_error_hints="${commit_error_hints} following output, fix the issues, and try again."
+    commit_error_hints="${commit_error_hints}\n\nFor more detailed errors, see above."
+    commit_error_hints="${commit_error_hints}\n\n"
+    echo "Running pre-commit checks..." 1>&2
+    format_rs
+    format_toml
+    echo "Pre-commit checks completed." 1>&2
+    echo $commit_error_hints 1>&2 # Help the user out, if needed.
+    exit $commit_is_ok_to_go
+}
+
+main "$@"
