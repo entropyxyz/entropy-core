@@ -2490,7 +2490,6 @@ dependencies = [
  "pallet-balances",
  "pallet-bounties",
  "pallet-collective",
- "pallet-constraints",
  "pallet-conviction-voting",
  "pallet-democracy",
  "pallet-election-provider-multi-phase",
@@ -2511,6 +2510,7 @@ dependencies = [
  "pallet-offences",
  "pallet-offences-benchmarking",
  "pallet-preimage",
+ "pallet-programs",
  "pallet-propagation",
  "pallet-proxy",
  "pallet-recovery",
@@ -6406,25 +6406,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-constraints"
-version = "3.0.0-monthly-2021-10"
-dependencies = [
- "entropy-shared",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "pallet-balances",
- "parity-scale-codec",
- "scale-info",
- "sp-core 7.0.0",
- "sp-io 7.0.0",
- "sp-runtime 7.0.0",
- "sp-staking",
- "sp-std 5.0.0",
-]
-
-[[package]]
 name = "pallet-contracts"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.43#5e49f6e44820affccaf517fd22af564f4b495d40"
@@ -6991,6 +6972,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-programs"
+version = "3.0.0-monthly-2021-10"
+dependencies = [
+ "entropy-shared",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 7.0.0",
+ "sp-io 7.0.0",
+ "sp-runtime 7.0.0",
+ "sp-staking",
+ "sp-std 5.0.0",
+]
+
+[[package]]
 name = "pallet-propagation"
 version = "3.0.0-monthly-2021-10"
 dependencies = [
@@ -7005,7 +7005,7 @@ dependencies = [
  "pallet-babe",
  "pallet-bags-list",
  "pallet-balances",
- "pallet-constraints",
+ "pallet-programs",
  "pallet-relayer",
  "pallet-session",
  "pallet-staking",
@@ -7104,7 +7104,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-bags-list",
  "pallet-balances",
- "pallet-constraints",
+ "pallet-programs",
  "pallet-session",
  "pallet-staking",
  "pallet-staking-extension",
@@ -7428,7 +7428,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-balances",
- "pallet-constraints",
+ "pallet-programs",
  "parity-scale-codec",
  "scale-info",
  "smallvec 1.11.0",
