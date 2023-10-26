@@ -13,7 +13,7 @@ use sp_inherents::{InherentData, InherentDataProvider};
 use sp_keyring::Sr25519Keyring;
 use sp_runtime::{OpaqueExtrinsic, SaturatedConversion};
 
-use crate::service::{create_extrinsic, FullClient};
+use crate::service::FullClient;
 
 /// Generates `System::Remark` extrinsics for the benchmarks.
 ///
@@ -34,11 +34,11 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for RemarkBuilder {
 
     fn build(&self, nonce: u32) -> std::result::Result<OpaqueExtrinsic, &'static str> {
         let acc = Sr25519Keyring::Bob.pair();
-        let extrinsic: OpaqueExtrinsic = create_extrinsic(
+        let extrinsic: OpaqueExtrinsic = create_benchmark_extrinsic(
             self.client.as_ref(),
             acc,
-            SystemCall::remark { remark: vec![] },
-            Some(nonce),
+            SystemCall::remark { remark: vec![] }.into(),
+            nonce,
         )
         .into();
 
@@ -69,11 +69,12 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
 
     fn build(&self, nonce: u32) -> std::result::Result<OpaqueExtrinsic, &'static str> {
         let acc = Sr25519Keyring::Bob.pair();
-        let extrinsic: OpaqueExtrinsic = create_extrinsic(
+        let extrinsic: OpaqueExtrinsic = create_benchmark_extrinsic(
             self.client.as_ref(),
             acc,
-            BalancesCall::transfer_keep_alive { dest: self.dest.clone().into(), value: self.value },
-            Some(nonce),
+            BalancesCall::transfer_keep_alive { dest: self.dest.clone().into(), value: self.value }
+                .into(),
+            nonce,
         )
         .into();
 
