@@ -7,7 +7,7 @@ use sp_runtime::Saturating;
 
 use super::*;
 #[allow(unused)]
-use crate::Pallet as ConstraintsPallet;
+use crate::Pallet as ProgramsPallet;
 
 type CurrencyOf<T> = <T as Config>::Currency;
 
@@ -41,4 +41,4 @@ benchmarks! {
   }
 }
 
-impl_benchmark_test_suite!(ConstraintsPallet, crate::mock::new_test_ext(), crate::mock::Test);
+impl_benchmark_test_suite!(ProgramsPallet, crate::mock::new_test_ext(), crate::mock::Test);

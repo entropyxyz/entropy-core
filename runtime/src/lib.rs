@@ -1256,12 +1256,12 @@ parameter_types! {
   pub const ProgramDepositPerByte: Balance = MILLICENTS;
 }
 
-impl pallet_constraints::Config for Runtime {
+impl pallet_programs::Config for Runtime {
     type Currency = Balances;
     type MaxBytecodeLength = MaxBytecodeLength;
     type ProgramDepositPerByte = ProgramDepositPerByte;
     type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = weights::pallet_constraints::WeightInfo<Runtime>;
+    type WeightInfo = weights::pallet_programs::WeightInfo<Runtime>;
 }
 
 impl pallet_transaction_pause::Config for Runtime {
@@ -1336,7 +1336,7 @@ construct_runtime!(
     // custom pallets
     Relayer: pallet_relayer = 51,
     Slashing: pallet_slashing = 52,
-    Constraints: pallet_constraints = 53,
+    Programs: pallet_programs = 53,
     TransactionPause: pallet_transaction_pause = 54,
     FreeTx: pallet_free_tx = 55,
     Propagation: pallet_propagation = 56,
@@ -1404,7 +1404,7 @@ mod benches {
       [pallet_balances, Balances]
       [pallet_bounties, Bounties]
       [pallet_collective, Council]
-      [pallet_constraints, Constraints]
+      [pallet_programs, Programs]
       [pallet_democracy, Democracy]
       [pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
       [pallet_election_provider_support_benchmarking, EPSBench::<Runtime>]

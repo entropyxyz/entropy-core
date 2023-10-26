@@ -33,7 +33,7 @@ frame_support::construct_runtime!(
     Timestamp: pallet_timestamp,
     Authorship: pallet_authorship,
     Relayer: pallet_relayer,
-    Constraints: pallet_constraints,
+    Programs: pallet_programs,
     Propagation: pallet_propagation,
     Staking: pallet_staking_extension,
     FrameStaking: pallet_staking,
@@ -301,7 +301,7 @@ parameter_types! {
   pub const ProgramDepositPerByte: u32 = 5;
 }
 
-impl pallet_constraints::Config for Test {
+impl pallet_programs::Config for Test {
     type Currency = ();
     type MaxBytecodeLength = MaxBytecodeLength;
     type ProgramDepositPerByte = ProgramDepositPerByte;

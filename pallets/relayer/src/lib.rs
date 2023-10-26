@@ -45,7 +45,7 @@ pub mod pallet {
         traits::{ConstU32, IsSubType},
     };
     use frame_system::pallet_prelude::*;
-    use pallet_constraints::{AllowedToModifyProgram, Pallet as ConstraintsPallet};
+    use pallet_programs::{AllowedToModifyProgram, Pallet as ProgramsPallet};
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
@@ -59,7 +59,7 @@ pub mod pallet {
         + frame_system::Config
         + pallet_authorship::Config
         + pallet_staking_extension::Config
-        + pallet_constraints::Config
+        + pallet_programs::Config
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -190,7 +190,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let sig_req_account = ensure_signed(origin)?;
 
-            // Ensure account isn't already registered or has existing constraints
+            // Ensure account isn't already registered or has existing programs
             ensure!(!Registered::<T>::contains_key(&sig_req_account), Error::<T>::AlreadySubmitted);
             ensure!(
                 !Registering::<T>::contains_key(&sig_req_account),
@@ -199,13 +199,13 @@ pub mod pallet {
 
             ensure!(
                 initial_program.len() as u32
-                    <= <T as pallet_constraints::Config>::MaxBytecodeLength::get(),
+                    <= <T as pallet_programs::Config>::MaxBytecodeLength::get(),
                 Error::<T>::MaxProgramLengthExceeded,
             );
 
             // We take a storage deposit here based off the program length. This can be returned to
-            // the user if they clear the program from storage using the Constraints pallet.
-            ConstraintsPallet::<T>::reserve_program_deposit(
+            // the user if they clear the program from storage using the Programs pallet.
+            ProgramsPallet::<T>::reserve_program_deposit(
                 &program_modification_account,
                 initial_program.len(),
             )?;
@@ -292,7 +292,7 @@ pub mod pallet {
                     (),
                 );
 
-                ConstraintsPallet::<T>::set_program_unchecked(
+                ProgramsPallet::<T>::set_program_unchecked(
                     &sig_req_account,
                     registering_info.program,
                 )?;

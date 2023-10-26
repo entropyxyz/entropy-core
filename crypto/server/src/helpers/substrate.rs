@@ -73,7 +73,7 @@ pub async fn get_program(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     sig_req_account: &<EntropyConfig as Config>::AccountId,
 ) -> Result<Vec<u8>, UserErr> {
-    let bytecode_address = entropy::storage().constraints().bytecode(sig_req_account);
+    let bytecode_address = entropy::storage().programs().bytecode(sig_req_account);
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
@@ -94,7 +94,7 @@ pub async fn make_register(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     sig_req_keyring: sr25519::Pair,
-    constraint_account: &AccountId32,
+    program_modification_account: &AccountId32,
     key_visibility: KeyVisibility,
 ) {
     use subxt::utils::Static;
@@ -109,7 +109,7 @@ pub async fn make_register(
     // register the user
     let empty_program = vec![];
     let registering_tx = entropy::tx().relayer().register(
-        constraint_account.clone(),
+        program_modification_account.clone(),
         Static(key_visibility),
         empty_program,
     );

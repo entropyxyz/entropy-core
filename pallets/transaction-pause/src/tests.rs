@@ -133,7 +133,7 @@ fn unpause_transaction_work() {
 fn paused_transaction_filter_work() {
     ExtBuilder::default().build().execute_with(|| {
         let whitelist_address_call =
-            &mock::RuntimeCall::ConstraintsPallet(pallet_constraints::Call::update_program {
+            &mock::RuntimeCall::ProgramsPallet(pallet_programs::Call::update_program {
                 sig_req_account: ALICE,
                 new_program: vec![],
             });
@@ -146,7 +146,7 @@ fn paused_transaction_filter_work() {
         ));
         assert_ok!(TransactionPause::pause_transaction(
             RuntimeOrigin::signed(1),
-            b"ConstraintsPallet".to_vec(),
+            b"ProgramsPallet".to_vec(),
             b"update_program".to_vec()
         ));
 
@@ -159,7 +159,7 @@ fn paused_transaction_filter_work() {
         ));
         assert_ok!(TransactionPause::unpause_transaction(
             RuntimeOrigin::signed(1),
-            b"ConstraintsPallet".to_vec(),
+            b"ProgramsPallet".to_vec(),
             b"update_program".to_vec()
         ));
 

@@ -6,7 +6,7 @@ use sp_runtime::{
     BuildStorage,
 };
 
-use crate as pallet_constraints;
+use crate as pallet_programs;
 
 type Block = frame_system::mocking::MockBlock<Test>;
 
@@ -15,7 +15,7 @@ frame_support::construct_runtime!(
   pub enum Test
   {
     System: frame_system,
-    ConstraintsPallet: pallet_constraints,
+    ProgramsPallet: pallet_programs,
     Balances: pallet_balances,
   }
 );
@@ -76,7 +76,7 @@ impl pallet_balances::Config for Test {
     type WeightInfo = ();
 }
 
-impl pallet_constraints::Config for Test {
+impl pallet_programs::Config for Test {
     type Currency = Balances;
     type MaxBytecodeLength = MaxBytecodeLength;
     type ProgramDepositPerByte = ProgramDepositPerByte;

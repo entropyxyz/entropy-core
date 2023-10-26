@@ -44,7 +44,7 @@ Constraints have now moved to [entropyxyz/constraints](https://github.com/entrop
 1. User submits a transaction (`pallets::relayer::prep_transaction`) to the chain, containing a message including their substrate address and their (hashed) message.
 2. A set of transactions is picked up by the next block proposer (substrate: TODO). The proposed block contains the proposed signing party information (`server/sign_init`).
 3. Upon block creation, signers read the block (`pallets::propagation::post`), containing the IP addresses of nodes who must now execute signing protocols. If a node is in a signing party, it advances to the next step.
-4. The user submits the full message to be signed to nodes in the signing party by making a POST request to `/user/tx`, so that they can check if it meets the configured constraints.
+4. The user submits the full message to be signed to nodes in the signing party by making a POST request to `/user/tx`, so that they can check if it meets the configured programs.
 <!-- 2. In the next block, an offchain worker is created (`pallet::propagation::offchain_worker`) -->
 <!--   - currently: by each node. The communication manager waits for calls from each other node about node party information. -->
 <!--   - eventually: after implementing Partitions, the communication manager will already have this information from on-chain. -->

@@ -5,7 +5,7 @@ use frame_support::{
     dispatch::{GetDispatchInfo, Pays},
     BoundedVec,
 };
-use pallet_constraints::AllowedToModifyProgram;
+use pallet_programs::AllowedToModifyProgram;
 use pallet_relayer::Call as RelayerCall;
 use sp_runtime::{
     traits::SignedExtension,
@@ -87,7 +87,7 @@ fn it_takes_a_program_storage_deposit_during_register() {
             program.clone(),
         ));
 
-        let expected_reserve = <Test as pallet_constraints::Config>::ProgramDepositPerByte::get()
+        let expected_reserve = <Test as pallet_programs::Config>::ProgramDepositPerByte::get()
             * (program.len() as u32);
 
         assert_eq!(
@@ -172,7 +172,7 @@ fn it_confirms_registers_a_user() {
             }
         );
 
-        // make sure constraint and sig req keys are set
+        // make sure program and sig req keys are set
         assert!(AllowedToModifyProgram::<Test>::contains_key(2, 1));
     });
 }
@@ -189,7 +189,7 @@ fn it_doesnt_allow_double_registering() {
             empty_program,
         ));
 
-        // error if they try to submit another request, even with a different constraint key
+        // error if they try to submit another request, even with a different program key
         assert_noop!(
             Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Permissioned, vec![]),
             Error::<Test>::AlreadySubmitted

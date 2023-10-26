@@ -13,11 +13,11 @@ frame-system      ={ git="https://github.com/paritytech/substrate", branch="polk
 sp-std            ={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0", default-features=false }
 
 [dev-dependencies]
-sp-core           ={ version="21.0.0", git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
-sp-io             ={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
-pallet-balances   ={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
-smallvec          ="1.4.1"
-pallet-constraints={ version="3.0.0-monthly-2021-10", default-features=false, path="../constraints" }
+pallet-balances={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
+pallet-programs={ version="3.0.0-monthly-2021-10", default-features=false, path="../programs" }
+smallvec       ="1.4.1"
+sp-core        ={ version="21.0.0", git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
+sp-io          ={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
 
 [features]
 default=["std"]
@@ -31,7 +31,7 @@ std=[
   "sp-runtime/std",
   "frame-support/std",
   "frame-system/std",
-  "pallet-constraints/std",
+  "pallet-programs/std",
   "sp-std/std",
 ]
 try-runtime=["frame-support/try-runtime"]

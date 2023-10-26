@@ -85,7 +85,7 @@ parameter_types! {
   pub const ProgramDepositPerByte: u32 = 5;
 }
 
-impl pallet_constraints::Config for Runtime {
+impl pallet_programs::Config for Runtime {
     type Currency = ();
     type MaxBytecodeLength = MaxBytecodeLength;
     type ProgramDepositPerByte = ProgramDepositPerByte;
@@ -110,7 +110,7 @@ construct_runtime!(
     System: frame_system,
     TransactionPause: transaction_pause,
     Balances: pallet_balances,
-    ConstraintsPallet: pallet_constraints,
+    ProgramsPallet: pallet_programs,
   }
 );
 

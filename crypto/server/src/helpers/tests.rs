@@ -148,20 +148,20 @@ pub async fn spawn_testing_validators(
 pub async fn update_programs(
     entropy_api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: &sr25519::Pair,
-    constraint_modification_account: &sr25519::Pair,
+    program_modification_account: &sr25519::Pair,
     initial_program: Vec<u8>,
 ) {
-    // update/set their constraints
+    // update/set their programs
     let update_program_tx = entropy::tx()
-        .constraints()
+        .programs()
         .update_program(SubxtAccountId32::from(sig_req_keyring.public()), initial_program);
 
-    let constraint_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(constraint_modification_account.clone());
+    let program_modification_account =
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_account.clone());
 
     entropy_api
         .tx()
-        .sign_and_submit_then_watch_default(&update_program_tx, &constraint_modification_account)
+        .sign_and_submit_then_watch_default(&update_program_tx, &program_modification_account)
         .await
         .unwrap()
         .wait_for_in_block()

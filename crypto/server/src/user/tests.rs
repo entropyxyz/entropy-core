@@ -9,13 +9,12 @@ use std::{
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
-use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_protocol::{
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, PartyId, ValidatorInfo,
 };
-use entropy_shared::{Acl, KeyVisibility, OcwMessage};
+use entropy_shared::{KeyVisibility, OcwMessage};
 use futures::{
     future::{self, join_all},
     join, Future, SinkExt, StreamExt,
@@ -272,10 +271,10 @@ async fn test_sign_tx_no_chain() {
     generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
     generic_msg.timestamp = SystemTime::now();
 
-    let test_user_failed_constraints_res =
+    let test_user_failed_programs_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    for res in test_user_failed_constraints_res {
+    for res in test_user_failed_programs_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
             "Runtime error: Runtime(Error::Evaluation(\"Length of data is too short.\"))"
@@ -412,7 +411,7 @@ async fn test_fail_signing_group() {
 async fn test_store_share() {
     clean_tests();
     let alice = AccountKeyring::Alice;
-    let alice_constraint = AccountKeyring::Charlie;
+    let alice_program = AccountKeyring::Charlie;
 
     let cxt = test_context_stationary().await;
     let (_validator_ips, _validator_ids, _) = spawn_testing_validators(None, false).await;
@@ -439,7 +438,7 @@ async fn test_store_share() {
     put_register_request_on_chain(
         &api,
         &alice,
-        alice_constraint.to_account_id().into(),
+        alice_program.to_account_id().into(),
         KeyVisibility::Public,
     )
     .await;
@@ -508,8 +507,8 @@ async fn test_store_share() {
     block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     put_register_request_on_chain(
         &api,
-        &alice_constraint,
-        alice_constraint.to_account_id().into(),
+        &alice_program,
+        alice_program.to_account_id().into(),
         KeyVisibility::Public,
     )
     .await;
@@ -662,15 +661,18 @@ async fn test_recover_key() {
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: &Sr25519Keyring,
-    constraint_account: subxtAccountId32,
+    program_modification_account: subxtAccountId32,
     key_visibility: KeyVisibility,
 ) {
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
     let empty_program = vec![];
-    let registering_tx =
-        entropy::tx().relayer().register(constraint_account, Static(key_visibility), empty_program);
+    let registering_tx = entropy::tx().relayer().register(
+        program_modification_account,
+        Static(key_visibility),
+        empty_program,
+    );
 
     api.tx()
         .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
@@ -911,10 +913,10 @@ async fn test_sign_tx_user_participates() {
     generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
     generic_msg.timestamp = SystemTime::now();
 
-    let test_user_failed_constraints_res =
+    let test_user_failed_programs_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    for res in test_user_failed_constraints_res {
+    for res in test_user_failed_programs_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
             "Runtime error: Runtime(Error::Evaluation(\"Length of data is too short.\"))"
@@ -1001,7 +1003,7 @@ async fn test_register_with_private_key_visibility() {
     clean_tests();
 
     let one = AccountKeyring::One;
-    let constraint_account = AccountKeyring::Charlie;
+    let program_modification_account = AccountKeyring::Charlie;
 
     let (validator_ips, _validator_ids, _users_keyshare_option) =
         spawn_testing_validators(None, false).await;
@@ -1016,7 +1018,7 @@ async fn test_register_with_private_key_visibility() {
     put_register_request_on_chain(
         &api,
         &one,
-        constraint_account.to_account_id().into(),
+        program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
     )
     .await;
