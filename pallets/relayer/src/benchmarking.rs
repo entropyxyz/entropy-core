@@ -56,9 +56,9 @@ benchmarks! {
     let p in 0..<T as pallet_programs::Config>::MaxBytecodeLength::get();
     let program = vec![0u8; p as usize];
 
-    let constraint_account: T::AccountId = whitelisted_caller();
+    let program_modification_account: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();
-  }: _(RawOrigin::Signed(sig_req_account.clone()), constraint_account, KeyVisibility::Public, program)
+  }: _(RawOrigin::Signed(sig_req_account.clone()), program_modification_account, KeyVisibility::Public, program)
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
     assert!(Registering::<T>::contains_key(sig_req_account));

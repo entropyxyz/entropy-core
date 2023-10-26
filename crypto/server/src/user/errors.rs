@@ -17,13 +17,13 @@ use crate::{
     signing_client::{ProtocolErr, SubscribeErr},
 };
 
-/// Errors related to parsing and evaulating constraints.
+/// Errors related to parsing and evaulating programs.
 #[derive(Error, Debug, PartialEq)]
 pub enum ConstraintsError {
     /// Transaction request could not be parsed
     #[error("Invalid transaction request: {0}")]
     InvalidTransactionRequest(String),
-    /// Transaction request did not meet constraint requirements.
+    /// Transaction request did not meet programs requirements.
     #[error("Constraint Evaluation error: {0}")]
     Evaluation(&'static str),
 }

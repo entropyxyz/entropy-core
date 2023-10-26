@@ -78,7 +78,7 @@ pub async fn get_program(
 pub async fn make_register(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: sr25519::Pair,
-    constraint_account: &AccountId32,
+    program_modification_account: &AccountId32,
     key_visibility: KeyVisibility,
 ) {
     use subxt::utils::Static;
@@ -93,7 +93,7 @@ pub async fn make_register(
     // register the user
     let empty_program = vec![];
     let registering_tx = entropy::tx().relayer().register(
-        constraint_account.clone(),
+        program_modification_account.clone(),
         Static(key_visibility),
         empty_program,
     );

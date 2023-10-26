@@ -26,7 +26,7 @@
 // --template
 // frame-weight-template.hbs
 // --output
-// pallets/constraints/src/weights.rs
+// pallets/programs/src/weights.rs
 
 #![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(unused_parens)]

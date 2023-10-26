@@ -172,7 +172,7 @@ fn it_confirms_registers_a_user() {
             }
         );
 
-        // make sure constraint and sig req keys are set
+        // make sure program and sig req keys are set
         assert!(AllowedToModifyProgram::<Test>::contains_key(2, 1));
     });
 }
@@ -189,7 +189,7 @@ fn it_doesnt_allow_double_registering() {
             empty_program,
         ));
 
-        // error if they try to submit another request, even with a different constraint key
+        // error if they try to submit another request, even with a different program key
         assert_noop!(
             Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Permissioned, vec![]),
             Error::<Test>::AlreadySubmitted

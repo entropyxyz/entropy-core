@@ -195,7 +195,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let sig_req_account = ensure_signed(origin)?;
 
-            // Ensure account isn't already registered or has existing constraints
+            // Ensure account isn't already registered or has existing programs
             ensure!(!Registered::<T>::contains_key(&sig_req_account), Error::<T>::AlreadySubmitted);
             ensure!(
                 !Registering::<T>::contains_key(&sig_req_account),
