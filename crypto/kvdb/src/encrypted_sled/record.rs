@@ -34,5 +34,7 @@ impl EncryptedRecord {
 }
 
 impl From<EncryptedRecord> for (Vec<u8>, XNonce) {
-    fn from(record: EncryptedRecord) -> Self { (record.encrypted_value, record.nonce.into()) }
+    fn from(record: EncryptedRecord) -> Self {
+        (record.encrypted_value, record.nonce.into())
+    }
 }

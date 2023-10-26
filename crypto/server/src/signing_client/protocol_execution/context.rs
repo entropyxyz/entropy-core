@@ -17,5 +17,7 @@ impl SignContext {
         Self { sign_init, key_share }
     }
 
-    pub fn msg_to_sign(&self) -> &PrehashedMessage { &self.sign_init.msg }
+    pub fn msg_to_sign(&self) -> &PrehashedMessage {
+        &self.sign_init.msg
+    }
 }

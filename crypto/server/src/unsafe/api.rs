@@ -20,9 +20,13 @@ pub struct UnsafeQuery {
 #[cfg(test)]
 /// Struct representing the query type
 impl UnsafeQuery {
-    pub fn new(key: String, value: String) -> Self { UnsafeQuery { key, value } }
+    pub fn new(key: String, value: String) -> Self {
+        UnsafeQuery { key, value }
+    }
 
-    pub fn to_json(&self) -> String { to_string(self).unwrap() }
+    pub fn to_json(&self) -> String {
+        to_string(self).unwrap()
+    }
 }
 
 /// Gets a value from the encrypted KVDB.

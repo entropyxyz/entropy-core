@@ -173,7 +173,8 @@ parameter_types! {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where RuntimeCall: From<C>
+where
+    RuntimeCall: From<C>,
 {
     type Extrinsic = TestXt<RuntimeCall, ()>;
     type OverarchingCall = RuntimeCall;
@@ -478,9 +479,13 @@ pub(crate) fn start_session(session_index: SessionIndex) {
     );
 }
 
-pub(crate) fn active_era() -> EraIndex { FrameStaking::active_era().unwrap().index }
+pub(crate) fn active_era() -> EraIndex {
+    FrameStaking::active_era().unwrap().index
+}
 
-pub(crate) fn current_era() -> EraIndex { FrameStaking::current_era().unwrap() }
+pub(crate) fn current_era() -> EraIndex {
+    FrameStaking::current_era().unwrap()
+}
 
 /// Progress until the given era.
 pub(crate) fn start_active_era(era_index: EraIndex) {

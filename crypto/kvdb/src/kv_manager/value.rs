@@ -38,7 +38,9 @@ impl KvManager {
         Ok(KvManager { kv: Kv::<KvValue>::new(root, password)? })
     }
 
-    pub fn kv(&self) -> &Kv<KvValue> { &self.kv }
+    pub fn kv(&self) -> &Kv<KvValue> {
+        &self.kv
+    }
 }
 
 /// Value type stored in the kv-store

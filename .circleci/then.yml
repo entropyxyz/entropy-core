@@ -1,29 +1,41 @@
 commands:
     fmt-lint:
         steps:
-            - run: curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
-            - run: rustup run nightly-2023-06-15-x86_64-unknown-linux-gnu cargo fmt --check
-            - run: taplo fmt --check
-            - run: rustup run nightly-2023-06-15-x86_64-unknown-linux-gnu cargo clippy -- -D warnings
+            - run:
+                name: Format and lint.
+                command: |
+                  curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
+                  cargo fmt --check
+                  taplo fmt --check
+                  cargo clippy -- -D warnings
     increase-swap:
         steps:
-            - run: sudo swapoff -a
-            - run: sudo dd if=/dev/zero of=/swapfile bs=1G count=8
-            - run: sudo chmod 0600 /swapfile
-            - run: sudo mkswap /swapfile
-            - run: sudo swapon /swapfile
-            - run: grep Swap /proc/meminfo
+            - run:
+                name: Increase swap.
+                command: |
+                  sudo swapoff -a
+                  sudo dd if=/dev/zero of=/swapfile bs=1G count=8
+                  sudo chmod 0600 /swapfile
+                  sudo mkswap /swapfile
+                  sudo swapon /swapfile
+                  grep Swap /proc/meminfo
     install-dependencies:
         steps:
-            - run: sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
-            - run: sudo apt-get update
-            - run: sudo apt install -y libssl-dev clang libclang-dev tor && sudo systemctl start tor && sudo systemctl enable tor
+            - run:
+                name: Install dependencies.
+                command: |
+                  sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
+                  sudo apt-get update
+                  sudo apt install -y libssl-dev clang libclang-dev tor && sudo systemctl start tor && sudo systemctl enable tor
     install-rust:
         steps:
-            - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-            - run: rustup toolchain install nightly-2023-06-15-x86_64-unknown-linux-gnu
-            - run: rustup update stable
-            - run: rustup target add wasm32-unknown-unknown --toolchain nightly-2023-06-15-x86_64-unknown-linux-gnu
+            - run:
+                name: Install Rust.
+                command: |
+                  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+                  source "$HOME/.cargo/env"
+                  rustup update stable
+                  rustup target add wasm32-unknown-unknown
     install-dependencies-and-checkout:
         steps:
             # Needed to getch the currently private `synedrion` dependency

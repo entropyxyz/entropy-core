@@ -102,10 +102,14 @@ impl SignedMessage {
     }
 
     /// Returns the AccountId32 of the message signer.
-    pub fn account_id(&self) -> AccountId32 { AccountId32::new(self.pk) }
+    pub fn account_id(&self) -> AccountId32 {
+        AccountId32::new(self.pk)
+    }
 
     /// Returns the public DH parameter of the message sender.
-    pub fn sender(&self) -> x25519_dalek::PublicKey { x25519_dalek::PublicKey::from(self.a) }
+    pub fn sender(&self) -> x25519_dalek::PublicKey {
+        x25519_dalek::PublicKey::from(self.a)
+    }
 
     /// Verifies the signature of the hash of self.msg stored in self.sig
     /// with the public key self.pk.
@@ -119,7 +123,9 @@ impl SignedMessage {
 
     #[cfg(test)]
     /// Returns a serialized json string of self.
-    pub fn to_json(&self) -> String { to_string(self).unwrap() }
+    pub fn to_json(&self) -> String {
+        to_string(self).unwrap()
+    }
 }
 
 /// Derives a static secret from a sr25519 private key for usage in static Diffie-Hellman.

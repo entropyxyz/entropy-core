@@ -75,7 +75,9 @@ pub struct SubstrateTestingContext {
 
 impl SubstrateTestingContext {
     /// Returns a `subxt` client connected to the test Substrate node.
-    pub fn client(&self) -> &OnlineClient<EntropyConfig> { &self.api }
+    pub fn client(&self) -> &OnlineClient<EntropyConfig> {
+        &self.api
+    }
 }
 
 /// Constructs a new testing context for when we need multiple Substrate nodes.

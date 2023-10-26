@@ -441,8 +441,12 @@ pub mod pallet {
             I::new_session_genesis(new_index)
         }
 
-        fn end_session(end_index: SessionIndex) { I::end_session(end_index); }
+        fn end_session(end_index: SessionIndex) {
+            I::end_session(end_index);
+        }
 
-        fn start_session(start_index: SessionIndex) { I::start_session(start_index); }
+        fn start_session(start_index: SessionIndex) {
+            I::start_session(start_index);
+        }
     }
 }

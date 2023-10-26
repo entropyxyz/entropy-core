@@ -161,14 +161,24 @@ pub mod pallet {
 
         const ID: Kind = *b"tux-really-angry";
 
-        fn offenders(&self) -> Vec<Offender> { self.offenders.clone() }
+        fn offenders(&self) -> Vec<Offender> {
+            self.offenders.clone()
+        }
 
-        fn session_index(&self) -> SessionIndex { self.session_index }
+        fn session_index(&self) -> SessionIndex {
+            self.session_index
+        }
 
-        fn validator_set_count(&self) -> u32 { self.validator_set_count }
+        fn validator_set_count(&self) -> u32 {
+            self.validator_set_count
+        }
 
-        fn time_slot(&self) -> Self::TimeSlot { self.session_index }
+        fn time_slot(&self) -> Self::TimeSlot {
+            self.session_index
+        }
 
-        fn slash_fraction(&self, _offenders_count: u32) -> Perbill { Perbill::from_perthousand(0) }
+        fn slash_fraction(&self, _offenders_count: u32) -> Perbill {
+            Perbill::from_perthousand(0)
+        }
     }
 }

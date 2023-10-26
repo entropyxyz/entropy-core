@@ -226,7 +226,7 @@ pub fn development_config_genesis() -> RuntimeGenesisConfig {
     )
 }
 
-pub fn local_devnet_config_genesis() -> GenesisConfig {
+pub fn local_devnet_config_genesis() -> RuntimeGenesisConfig {
     local_devnet_genesis(
         vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
         vec![],
@@ -234,7 +234,7 @@ pub fn local_devnet_config_genesis() -> GenesisConfig {
     )
 }
 
-pub fn testing_config_genesis() -> GenesisConfig {
+pub fn testing_config_genesis() -> RuntimeGenesisConfig {
     testing(
         vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
         vec![],

@@ -171,7 +171,8 @@ parameter_types! {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where RuntimeCall: From<C>
+where
+    RuntimeCall: From<C>,
 {
     type Extrinsic = TestXt<RuntimeCall, ()>;
     type OverarchingCall = RuntimeCall;
@@ -274,7 +275,9 @@ parameter_types! {
 pub struct Author11;
 impl FindAuthor<u64> for Author11 {
     fn find_author<'a, I>(_digests: I) -> Option<u64>
-    where I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])> {
+    where
+        I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])>,
+    {
         Some(11)
     }
 }
