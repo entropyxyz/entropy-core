@@ -1373,7 +1373,7 @@ construct_runtime!(
     // custom pallets
     Relayer: pallet_relayer = 51,
     Slashing: pallet_slashing = 52,
-    Constraints: pallet_programs = 53,
+    Programs: pallet_programs = 53,
     TransactionPause: pallet_transaction_pause = 54,
     FreeTx: pallet_free_tx = 55,
     Propagation: pallet_propagation = 56,
