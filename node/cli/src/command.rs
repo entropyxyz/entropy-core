@@ -12,17 +12,29 @@ use crate::{
 };
 
 impl SubstrateCli for Cli {
-    fn impl_name() -> String { "Substrate Node".into() }
+    fn impl_name() -> String {
+        "Substrate Node".into()
+    }
 
-    fn impl_version() -> String { env!("SUBSTRATE_CLI_IMPL_VERSION").into() }
+    fn impl_version() -> String {
+        env!("SUBSTRATE_CLI_IMPL_VERSION").into()
+    }
 
-    fn description() -> String { env!("CARGO_PKG_DESCRIPTION").into() }
+    fn description() -> String {
+        env!("CARGO_PKG_DESCRIPTION").into()
+    }
 
-    fn author() -> String { env!("CARGO_PKG_AUTHORS").into() }
+    fn author() -> String {
+        env!("CARGO_PKG_AUTHORS").into()
+    }
 
-    fn support_url() -> String { "support.anonymous.an".into() }
+    fn support_url() -> String {
+        "support.anonymous.an".into()
+    }
 
-    fn copyright_start_year() -> i32 { 2017 }
+    fn copyright_start_year() -> i32 {
+        2017
+    }
 
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
@@ -31,8 +43,9 @@ impl SubstrateCli for Cli {
             "local-devnet" => Box::new(chain_spec::local_devnet_config()),
             "" | "local" => Box::new(chain_spec::local_testnet_config()),
             "devnet" => Box::new(chain_spec::devnet_config()),
-            path =>
-                Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),
+            path => {
+                Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?)
+            },
         })
     }
 }
@@ -153,8 +166,9 @@ pub fn run() -> sc_cli::Result<()> {
 
                         cmd.run(client, inherent_benchmark_data()?, Vec::new(), &ext_factory)
                     },
-                    BenchmarkCmd::Machine(cmd) =>
-                        cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()),
+                    BenchmarkCmd::Machine(cmd) => {
+                        cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone())
+                    },
                 }
             })
         },
