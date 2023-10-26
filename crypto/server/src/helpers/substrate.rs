@@ -22,7 +22,7 @@ pub async fn get_subgroup(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
 
     let stash_address = api
         .storage()
@@ -57,7 +57,7 @@ pub async fn return_all_addresses_of_subgroup(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
     let subgroup_addresses = api
         .storage()
         .at(block_hash)
@@ -77,7 +77,7 @@ pub async fn get_program(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
 
     substrate_api
         .storage()
@@ -141,7 +141,7 @@ pub async fn get_key_visibility(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
     let result = api
         .storage()
         .at(block_hash)
