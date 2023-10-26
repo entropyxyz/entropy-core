@@ -12,11 +12,11 @@ use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
 use ec_runtime::{InitialState, Runtime};
 use entropy_constraints::{
-    Architecture, Error as ConstraintsError, Evaluate, Evm, GetReceiver, GetSender, Parse,
+    Error as ConstraintsError,
 };
 use entropy_protocol::ValidatorInfo;
 use entropy_shared::{
-    types::{Acl, AclKind, Arch, Constraints, KeyVisibility},
+    types::{KeyVisibility},
     OcwMessage, X25519PublicKey, SIGNING_PARTY_SIZE,
 };
 use futures::{

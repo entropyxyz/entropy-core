@@ -3,12 +3,6 @@ use thiserror::Error;
 #[cfg(test)]
 mod tests;
 
-pub mod architectures;
-pub mod constraints;
-
-pub use architectures::*;
-pub use constraints::*;
-
 /// Errors related to parsing and evaulating constraints.
 #[derive(Error, Debug, PartialEq)]
 pub enum Error {

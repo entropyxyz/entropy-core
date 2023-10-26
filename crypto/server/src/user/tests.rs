@@ -9,13 +9,12 @@ use std::{
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
-use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_protocol::{
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, PartyId, ValidatorInfo,
 };
-use entropy_shared::{Acl, KeyVisibility, OcwMessage};
+use entropy_shared::{KeyVisibility, OcwMessage};
 use futures::{
     future::{self, join_all},
     join, Future, SinkExt, StreamExt,
