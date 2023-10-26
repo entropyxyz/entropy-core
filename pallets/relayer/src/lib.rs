@@ -46,7 +46,7 @@ pub mod pallet {
         traits::{ConstU32, IsSubType},
     };
     use frame_system::pallet_prelude::*;
-    use pallet_constraints::{AllowedToModifyProgram, Pallet as ConstraintsPallet};
+    use pallet_programs::{AllowedToModifyProgram, Pallet as ConstraintsPallet};
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
@@ -60,7 +60,7 @@ pub mod pallet {
         + frame_system::Config
         + pallet_authorship::Config
         + pallet_staking_extension::Config
-        + pallet_constraints::Config
+        + pallet_programs::Config
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -204,7 +204,7 @@ pub mod pallet {
 
             ensure!(
                 initial_program.len() as u32
-                    <= <T as pallet_constraints::Config>::MaxBytecodeLength::get(),
+                    <= <T as pallet_programs::Config>::MaxBytecodeLength::get(),
                 Error::<T>::MaxProgramLengthExceeded,
             );
 

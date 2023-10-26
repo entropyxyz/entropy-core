@@ -41,7 +41,7 @@ frame_support::construct_runtime!(
     Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
     Historical: pallet_session_historical::{Pallet},
     BagsList: pallet_bags_list::{Pallet, Call, Storage, Event<T>},
-    Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
+    Constraints: pallet_programs::{Pallet, Call, Storage, Event<T>},
   }
 );
 
@@ -304,7 +304,7 @@ parameter_types! {
   pub const ProgramDepositPerByte: u32 = 5;
 }
 
-impl pallet_constraints::Config for Test {
+impl pallet_programs::Config for Test {
     type Currency = Balances;
     type MaxBytecodeLength = MaxBytecodeLength;
     type ProgramDepositPerByte = ProgramDepositPerByte;

@@ -5,7 +5,7 @@ use frame_support::{
     dispatch::{GetDispatchInfo, Pays},
     BoundedVec,
 };
-use pallet_constraints::AllowedToModifyProgram;
+use pallet_programs::AllowedToModifyProgram;
 use pallet_relayer::Call as RelayerCall;
 use sp_runtime::{
     traits::SignedExtension,
@@ -87,7 +87,7 @@ fn it_takes_a_program_storage_deposit_during_register() {
             program.clone(),
         ));
 
-        let expected_reserve = <Test as pallet_constraints::Config>::ProgramDepositPerByte::get()
+        let expected_reserve = <Test as pallet_programs::Config>::ProgramDepositPerByte::get()
             * (program.len() as u32);
 
         assert_eq!(

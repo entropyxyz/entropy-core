@@ -6,7 +6,7 @@ use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
 };
 
-use crate as pallet_constraints;
+use crate as pallet_programs;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -19,7 +19,7 @@ frame_support::construct_runtime!(
     UncheckedExtrinsic = UncheckedExtrinsic,
   {
     System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-    ConstraintsPallet: pallet_constraints::{Pallet, Call, Storage, Event<T>},
+    ConstraintsPallet: pallet_programs::{Pallet, Call, Storage, Event<T>},
     Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
   }
 );
@@ -81,7 +81,7 @@ impl pallet_balances::Config for Test {
     type WeightInfo = ();
 }
 
-impl pallet_constraints::Config for Test {
+impl pallet_programs::Config for Test {
     type Currency = Balances;
     type MaxBytecodeLength = MaxBytecodeLength;
     type ProgramDepositPerByte = ProgramDepositPerByte;

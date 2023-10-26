@@ -133,7 +133,7 @@ fn unpause_transaction_work() {
 fn paused_transaction_filter_work() {
     ExtBuilder::default().build().execute_with(|| {
         let whitelist_address_call =
-            &mock::RuntimeCall::ConstraintsPallet(pallet_constraints::Call::update_program {
+            &mock::RuntimeCall::ConstraintsPallet(pallet_programs::Call::update_program {
                 sig_req_account: ALICE,
                 new_program: vec![],
             });

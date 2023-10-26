@@ -53,7 +53,7 @@ benchmarks! {
   register {
     // Since we're usually using `steps >> 1` when running benches this shouldn't take too long to
     // run
-    let p in 0..<T as pallet_constraints::Config>::MaxBytecodeLength::get();
+    let p in 0..<T as pallet_programs::Config>::MaxBytecodeLength::get();
     let program = vec![0u8; p as usize];
 
     let constraint_account: T::AccountId = whitelisted_caller();
