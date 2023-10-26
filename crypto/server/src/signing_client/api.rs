@@ -183,8 +183,11 @@ pub async fn do_proactive_refresh(
     Ok(result)
 }
 
-/// Validates if proactive refresh was called for by chain
-/// TODO should check validity of message integraty https://github.com/entropyxyz/entropy-core/issues/454
+/// Validates if proactive refresh was called for by chain.
+///
+/// # TODO
+///
+/// In the future we should check validity of message integrity. See https://github.com/entropyxyz/entropy-core/issues/454
 pub async fn validate_proactive_refresh(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
