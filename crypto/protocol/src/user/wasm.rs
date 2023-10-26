@@ -47,18 +47,25 @@ pub async fn run_dkg_protocol(
     Ok(serde_json::to_string(&key_share).map_err(|err| Error::new(&err.to_string()))?)
 }
 
+// format!("{account}_{sig_hash}")
 /// Run the signing protocol on the client side
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub async fn run_signing_protocol(
     key_share: String,
-    // TODO we should not need both sig_uid and sig_hash
     sig_uid: String,
-    sig_hash: Vec<u8>,
     validators_info_js: ValidatorInfoArray,
     user_signing_keypair_seed: Vec<u8>,
     x25519_private_key_vec: Vec<u8>,
 ) -> Result<String, Error> {
     let validators_info = parse_validator_info(validators_info_js)?;
+
+    // sig_hash is the suffix of the sig_uid
+    let sig_hash: [u8; 32] = {
+        let sig_hash_hex = &sig_uid[65..];
+        let sig_hash_vec =
+            hex::decode(sig_hash_hex).map_err(|_| Error::new("Cannot parse sig_uid"))?;
+        sig_hash_vec.try_into().map_err(|_| Error::new("Message hash must be 32 bytes"))?
+    };
 
     let user_signing_keypair = {
         let seed: [u8; 32] = user_signing_keypair_seed
@@ -73,9 +80,6 @@ pub async fn run_signing_protocol(
             .map_err(|_| Error::new("x25519 private key must be 32 bytes"))?;
         x25519_private_key_raw.into()
     };
-
-    let sig_hash: [u8; 32] =
-        sig_hash.try_into().map_err(|_| Error::new("Message hash must be 32 bytes"))?;
 
     let key_share: KeyShare<KeyParams> =
         serde_json::from_str(&key_share).map_err(|err| Error::new(&err.to_string()))?;
