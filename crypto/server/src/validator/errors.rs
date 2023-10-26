@@ -40,6 +40,8 @@ pub enum ValidatorErr {
     NotInSubgroup,
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
+    #[error("Invalid length for converting address")]
+    AddressConversionError(String),
 }
 
 impl IntoResponse for ValidatorErr {

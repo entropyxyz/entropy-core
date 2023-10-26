@@ -1,4 +1,4 @@
-use entropy_runtime::GenesisConfig;
+use entropy_runtime::RuntimeGenesisConfig;
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use node_primitives::AccountId;
@@ -11,7 +11,7 @@ use crate::chain_spec::{
     authority_keys_from_seed, devnet_genesis, get_account_id_from_seed, testing, testnet_genesis,
 };
 
-pub fn devnet_config_genesis() -> GenesisConfig {
+pub fn devnet_config_genesis() -> RuntimeGenesisConfig {
     #[rustfmt::skip]
 	// stash, controller, session-key
 	// generated with secret:
@@ -115,7 +115,7 @@ pub fn devnet_config_genesis() -> GenesisConfig {
     devnet_genesis(initial_authorities, vec![], root_key)
 }
 
-pub fn staging_testnet_config_genesis() -> GenesisConfig {
+pub fn staging_testnet_config_genesis() -> RuntimeGenesisConfig {
     #[rustfmt::skip]
 	// stash, controller, session-key
 	// generated with secret:
@@ -217,7 +217,7 @@ pub fn staging_testnet_config_genesis() -> GenesisConfig {
     testnet_genesis(initial_authorities, vec![], root_key)
 }
 
-pub fn development_config_genesis() -> GenesisConfig {
+pub fn development_config_genesis() -> RuntimeGenesisConfig {
     testnet_genesis(
         vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
         vec![],
@@ -225,7 +225,7 @@ pub fn development_config_genesis() -> GenesisConfig {
     )
 }
 
-pub fn testing_config_genesis() -> GenesisConfig {
+pub fn testing_config_genesis() -> RuntimeGenesisConfig {
     testing(
         vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
         vec![],

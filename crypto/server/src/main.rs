@@ -115,7 +115,7 @@ use tracing::Level;
 use validator::api::get_random_server_info;
 
 use self::{
-    chain_api::get_api,
+    chain_api::{get_api, get_rpc},
     signing_client::{api::*, ListenerState},
     user::api::*,
 };
@@ -164,11 +164,12 @@ async fn main() {
     // Below deals with syncing the kvdb
     if args.sync {
         let api = get_api(&configuration.endpoint).await.expect("Issue acquiring chain API");
+        let rpc = get_rpc(&configuration.endpoint).await.expect("Issue acquiring chain RPC");
         let mut is_syncing = true;
         let sleep_time = Duration::from_secs(20);
         // wait for chain to be fully synced before starting key swap
         while is_syncing {
-            let health = api.rpc().system_health().await.expect("Issue checking chain health");
+            let health = rpc.system_health().await.expect("Issue checking chain health");
             is_syncing = health.is_syncing;
             if is_syncing {
                 println!("chain syncing, retrying {is_syncing:?}");
@@ -177,30 +178,34 @@ async fn main() {
         }
         // TODO: find a proper batch size
         let batch_size = 10;
-        let key_amount = 10_000;
         let signer = get_signer(&kv_store).await.expect("Issue acquiring threshold signer key");
-        let has_fee_balance = check_balance_for_fees(&api, signer.account_id(), MIN_BALANCE)
+        let has_fee_balance = check_balance_for_fees(&api, &rpc, signer.account_id(), MIN_BALANCE)
             .await
             .expect("Issue checking chain for signer balance");
         if !has_fee_balance {
             panic!("threshold account needs balance: {:?}", signer.account_id());
         }
         // if not in subgroup retry until you are
-        let mut my_subgroup = get_subgroup(&api, &signer).await;
+        let mut my_subgroup = get_subgroup(&api, &rpc, &signer).await;
         while my_subgroup.is_err() {
             println!("you are not currently a validator, retrying");
             thread::sleep(sleep_time);
-            my_subgroup = Ok(get_subgroup(&api, &signer).await.expect("Failed to get subgroup."));
+            my_subgroup =
+                Ok(get_subgroup(&api, &rpc, &signer).await.expect("Failed to get subgroup."));
         }
         let (sbgrp, validator_stash) = my_subgroup.expect("Failed to get subgroup.");
-        let key_server_info =
-            get_random_server_info(&api, sbgrp.expect("failed to get subgroup"), validator_stash)
-                .await
-                .expect("Issue getting registered keys from chain.");
+        let key_server_info = get_random_server_info(
+            &api,
+            &rpc,
+            sbgrp.expect("failed to get subgroup"),
+            validator_stash,
+        )
+        .await
+        .expect("Issue getting registered keys from chain.");
         let ip_address =
             String::from_utf8(key_server_info.endpoint).expect("failed to parse IP address.");
         let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
-        let all_keys = get_all_keys(&api, key_amount).await.expect("failed to get all keys.");
+        let all_keys = get_all_keys(&api, &rpc).await.expect("failed to get all keys.");
         let _ = get_and_store_values(
             all_keys, &kv_store, ip_address, batch_size, args.dev, &recip_key, &signer,
         )

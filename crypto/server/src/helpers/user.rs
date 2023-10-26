@@ -8,6 +8,7 @@ use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Encode;
 use sp_core::crypto::AccountId32;
 use subxt::{
+    backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519, Bytes},
     tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32,
@@ -97,6 +98,7 @@ pub async fn do_dkg(
 /// Send's user key share to other members of signing subgroup
 pub async fn send_key(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     stash_address: &SubxtAccountId32,
     addresses_in_subgroup: &mut Vec<SubxtAccountId32>,
     user_registration_info: UserRegistrationInfo,
@@ -108,12 +110,16 @@ pub async fn send_key(
             .position(|address| *address == *stash_address)
             .ok_or_else(|| UserErr::OptionUnwrapError("Validator not in subgroup"))?,
     );
+    let block_hash = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Errir getting block hash"))?;
+
     for validator in addresses_in_subgroup {
         let server_info_query = entropy::storage().staking_extension().threshold_servers(validator);
         let server_info = api
             .storage()
-            .at_latest()
-            .await?
+            .at(block_hash)
             .fetch(&server_info_query)
             .await?
             .ok_or_else(|| UserErr::OptionUnwrapError("Server Info Fetch Error"))?;

@@ -3,16 +3,16 @@ use std::cell::RefCell;
 use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
 use frame_support::{
     parameter_types,
-    traits::{ConstU32, GenesisBuild, OneSessionHandler},
+    traits::{ConstU32, OneSessionHandler},
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
-    testing::{Header, TestXt, UintAuthorityId},
+    testing::{TestXt, UintAuthorityId},
     traits::{BlakeTwo256, ConvertInto, IdentityLookup},
-    Perbill,
+    BuildStorage, Perbill,
 };
 use sp_staking::{
     offence::{OffenceError, ReportOffence},
@@ -21,25 +21,21 @@ use sp_staking::{
 
 use crate as pallet_slashing;
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type Balance = u64;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
-  pub enum Test where
-    Block = Block,
-    NodeBlock = Block,
-    UncheckedExtrinsic = UncheckedExtrinsic,
+  pub enum Test
   {
-    System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-    Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-    Slashing: pallet_slashing::{Pallet, Call, Storage, Event<T>},
-    Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
-    Historical: pallet_session_historical::{Pallet},
-    Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-    Staking: pallet_staking::{Pallet, Call, Storage, Config<T>, Event<T>},
-    BagsList: pallet_bags_list::{Pallet, Call, Storage, Event<T>},
+    System: frame_system,
+    Balances: pallet_balances,
+    Slashing: pallet_slashing,
+    Session: pallet_session,
+    Historical: pallet_session_historical,
+    Timestamp: pallet_timestamp,
+    Staking: pallet_staking,
+    BagsList: pallet_bags_list,
   }
 );
 type AccountId = u64;
@@ -50,20 +46,19 @@ parameter_types! {
 }
 
 impl system::Config for Test {
-    type AccountData = pallet_balances::AccountData<Balance>;
-    type AccountId = AccountId;
+    type AccountData = pallet_balances::AccountData<u64>;
+    type AccountId = u64;
     type BaseCallFilter = frame_support::traits::Everything;
+    type Block = Block;
     type BlockHashCount = BlockHashCount;
     type BlockLength = ();
-    type BlockNumber = u64;
     type BlockWeights = ();
     type DbWeight = ();
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type Header = Header;
-    type Index = u64;
     type Lookup = IdentityLookup<Self::AccountId>;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type Nonce = u64;
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
@@ -204,9 +199,10 @@ impl pallet_staking::Config for Test {
     type BondingDuration = BondingDuration;
     type Currency = Balances;
     type CurrencyBalance = Balance;
-    type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
+    type CurrencyToVote = ();
     type ElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
+    type EventListeners = ();
     type GenesisElectionProvider = Self::ElectionProvider;
     type HistoryDepth = ConstU32<84>;
     type MaxNominations = MaxNominations;
@@ -214,7 +210,6 @@ impl pallet_staking::Config for Test {
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
-    type OnStakerSlash = ();
     type Reward = ();
     type RewardRemainder = ();
     type RuntimeEvent = RuntimeEvent;
@@ -238,13 +233,13 @@ impl pallet_balances::Config for Test {
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
     type FreezeIdentifier = ();
-    type HoldIdentifier = ();
     type MaxFreezes = ();
     type MaxHolds = ();
     type MaxLocks = ();
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
     type RuntimeEvent = RuntimeEvent;
+    type RuntimeHoldReason = RuntimeHoldReason;
     type WeightInfo = ();
 }
 
@@ -298,7 +293,7 @@ impl pallet_slashing::Config for Test {
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let mut storage = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+    let mut storage = system::GenesisConfig::<Test>::default().build_storage().unwrap();
     let _ = pallet_session::GenesisConfig::<Test> {
         keys: (0..5).map(|id| (id, id, SessionKeys { foo: id.into() })).collect(),
     }
