@@ -69,7 +69,7 @@ pub enum ProtocolErr {
     #[error("Encrypted connection error {0}")]
     EncryptedConnection(String),
     #[error("Program error: {0}")]
-    ProgramError(#[from] entropy_constraints::Error),
+    ProgramError(#[from] crate::user::errors::ConstraintsError),
     #[error("Invalid length for converting address")]
     AddressConversionError(String),
     #[error("Ip Address Error: {0}")]

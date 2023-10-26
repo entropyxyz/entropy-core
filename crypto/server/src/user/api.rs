@@ -11,12 +11,9 @@ use axum::{
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
 use ec_runtime::{InitialState, Runtime};
-use entropy_constraints::{
-    Error as ConstraintsError,
-};
 use entropy_protocol::ValidatorInfo;
 use entropy_shared::{
-    types::{KeyVisibility},
+    types::KeyVisibility,
     OcwMessage, X25519PublicKey, SIGNING_PARTY_SIZE,
 };
 use futures::{
@@ -44,7 +41,7 @@ use subxt::{
 use tracing::instrument;
 use zeroize::Zeroize;
 
-use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo};
+use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo, ConstraintsError};
 use crate::{
     chain_api::{
         entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
