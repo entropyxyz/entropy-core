@@ -72,7 +72,9 @@ main () {
     format_rs
     format_toml
     echo "Pre-commit checks completed." 1>&2
-    echo $commit_error_hints 1>&2 # Help the user out, if needed.
+    if [ 0 -ne $commit_is_ok_to_go ]; then
+        echo $commit_error_hints 1>&2 # Help the user out, if needed.
+    fi
     exit $commit_is_ok_to_go
 }
 
