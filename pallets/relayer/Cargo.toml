@@ -67,7 +67,7 @@ sp-std                  ={ package="sp-std", git="https://github.com/paritytech/
 pallet-authorship       ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.43" }
 log                     ={ version="0.4.0", default-features=false }
 pallet-staking-extension={ version="3.0.0", default-features=false, path="../staking" }
-pallet-programs      ={ path="../programs", default-features=false }
+pallet-programs         ={ path="../programs", default-features=false }
 pallet-staking          ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.43" }
 pallet-session          ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v0.9.43" }
 

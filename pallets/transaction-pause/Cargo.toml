@@ -13,10 +13,10 @@ frame-system      ={ git="https://github.com/paritytech/substrate", branch="polk
 sp-std            ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43", default-features=false }
 
 [dev-dependencies]
-sp-core           ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43" }
-sp-io             ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43" }
-pallet-balances   ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43" }
-smallvec          ="1.4.1"
+sp-core        ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43" }
+sp-io          ={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43" }
+pallet-balances={ git="https://github.com/paritytech/substrate", branch="polkadot-v0.9.43" }
+smallvec       ="1.4.1"
 pallet-programs={ version="3.0.0-monthly-2021-10", default-features=false, path="../programs" }
 
 [features]

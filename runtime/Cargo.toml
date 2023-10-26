@@ -102,7 +102,7 @@ pallet-vesting={ version="4.0.0-dev", default-features=false, git='https://githu
 
 pallet-relayer          ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/relayer' }
 pallet-slashing         ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/slashing' }
-pallet-programs      ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/programs' }
+pallet-programs         ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/programs' }
 pallet-staking-extension={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/staking' }
 pallet-transaction-pause={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/transaction-pause' }
 pallet-free-tx          ={ version='3.0.0-monthly-2021-10', default-features=false, path='../pallets/free-tx' }

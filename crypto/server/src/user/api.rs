@@ -12,10 +12,7 @@ use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
 use ec_runtime::{InitialState, Runtime};
 use entropy_protocol::ValidatorInfo;
-use entropy_shared::{
-    types::KeyVisibility,
-    OcwMessage, X25519PublicKey, SIGNING_PARTY_SIZE,
-};
+use entropy_shared::{types::KeyVisibility, OcwMessage, X25519PublicKey, SIGNING_PARTY_SIZE};
 use futures::{
     channel::mpsc,
     future::{join_all, FutureExt},
@@ -41,7 +38,7 @@ use subxt::{
 use tracing::instrument;
 use zeroize::Zeroize;
 
-use super::{ParsedUserInputPartyInfo, UserErr, UserInputPartyInfo, ProgramError};
+use super::{ParsedUserInputPartyInfo, ProgramError, UserErr, UserInputPartyInfo};
 use crate::{
     chain_api::{
         entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},

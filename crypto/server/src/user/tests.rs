@@ -660,8 +660,11 @@ pub async fn put_register_request_on_chain(
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
     let empty_program = vec![];
-    let registering_tx =
-        entropy::tx().relayer().register(program_modification_account, Static(key_visibility), empty_program);
+    let registering_tx = entropy::tx().relayer().register(
+        program_modification_account,
+        Static(key_visibility),
+        empty_program,
+    );
 
     api.tx()
         .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
