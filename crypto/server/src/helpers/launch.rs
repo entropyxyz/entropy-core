@@ -28,7 +28,9 @@ pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
 pub const FORBIDDEN_KEYS: [&str; 3] = ["MNEMONIC", "SHARED_SECRET", "DH_PUBLIC"];
 
-pub fn init_tracing() { tracing_subscriber::fmt().with_target(false).json().init(); }
+pub fn init_tracing() {
+    tracing_subscriber::fmt().with_target(false).json().init();
+}
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Configuration {
@@ -36,7 +38,9 @@ pub struct Configuration {
 }
 
 impl Configuration {
-    pub(crate) fn new(endpoint: String) -> Configuration { Configuration { endpoint } }
+    pub(crate) fn new(endpoint: String) -> Configuration {
+        Configuration { endpoint }
+    }
 }
 
 pub async fn load_kv_store(is_bob: bool, is_alice: bool, no_password: bool) -> KvManager {

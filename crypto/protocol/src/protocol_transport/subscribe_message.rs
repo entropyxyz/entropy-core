@@ -27,7 +27,9 @@ impl SubscribeMessage {
         }
     }
 
-    pub fn account_id(&self) -> AccountId32 { self.public_key.into() }
+    pub fn account_id(&self) -> AccountId32 {
+        self.public_key.into()
+    }
 
     pub fn verify(&self) -> bool {
         sr25519::verify(
