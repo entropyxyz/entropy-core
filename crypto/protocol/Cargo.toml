@@ -1,7 +1,7 @@
 [package]
 name       ='entropy-protocol'
 version    ='0.0.1'
-authors    =['Entropy Cryptography <admin@entropy.xyz>']
+authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 description="Entropy Signing and DKG protocol execution and transport logic"
 homepage   ='https://entropy.xyz/'
 license    ='AGPL-3.0-or-later'
