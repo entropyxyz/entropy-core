@@ -415,6 +415,7 @@ pub fn local_devnet_genesis(
                 (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
+            activate_proactive_refresh: false,
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {
