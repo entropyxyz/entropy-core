@@ -152,6 +152,7 @@ fn it_confirms_registers_a_user() {
             confirmations: vec![0],
             program: vec![],
             key_visibility: KeyVisibility::Private([0; 32]),
+            verifying_key: Some(BoundedVec::default()),
         };
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
@@ -176,6 +177,8 @@ fn it_confirms_registers_a_user() {
         assert!(AllowedToModifyProgram::<Test>::contains_key(2, 1));
     });
 }
+
+// TODO add a failed registering test bad verification key
 
 #[test]
 fn it_doesnt_allow_double_registering() {

@@ -77,6 +77,7 @@ pub mod pallet {
         pub confirmations: Vec<u8>,
         pub program: Vec<u8>,
         pub key_visibility: KeyVisibility,
+        pub verifying_key: Option<BoundedVec<u8, ConstU32<33>>>,
     }
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -148,6 +149,8 @@ pub mod pallet {
         AccountRegistering(T::AccountId, u8),
         /// An account has been registered. \[who\]
         AccountRegistered(T::AccountId),
+        /// An account registration has failed
+        FailedRegistered(T::AccountId),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
@@ -225,6 +228,7 @@ pub mod pallet {
                     confirmations: vec![],
                     program: initial_program,
                     key_visibility,
+                    verifying_key: None,
                 },
             );
 
@@ -276,7 +280,16 @@ pub mod pallet {
             );
 
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
-                // just inserts last validator's verifying_key, need to do dispute resolution
+                if registering_info.verifying_key.unwrap() != verifying_key {
+                    Registering::<T>::remove(&sig_req_account);
+                    Self::deposit_event(Event::FailedRegistered(sig_req_account));
+                    // do benchamrk for this path
+                    return Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(
+                        confirmation_length,
+                    ))
+                    .into());
+                }
+                // check to make verify key is the same
                 Registered::<T>::insert(
                     &sig_req_account,
                     RegisteredInfo {
@@ -303,6 +316,20 @@ pub mod pallet {
                 Self::deposit_event(Event::AccountRegistered(sig_req_account));
                 Ok(Some(weight).into())
             } else {
+                if registering_info.verifying_key.is_none() {
+                    registering_info.verifying_key = Some(verifying_key.clone());
+                }
+
+                if registering_info.verifying_key.unwrap() != verifying_key {
+                    Registering::<T>::remove(&sig_req_account);
+                    Self::deposit_event(Event::FailedRegistered(sig_req_account));
+                    // do benchamrk for this path
+                    return Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(
+                        confirmation_length,
+                    ))
+                    .into());
+                }
+                registering_info.verifying_key = Some(verifying_key);
                 registering_info.confirmations.push(signing_subgroup);
                 Registering::<T>::insert(&sig_req_account, registering_info);
                 Self::deposit_event(Event::AccountRegistering(sig_req_account, signing_subgroup));

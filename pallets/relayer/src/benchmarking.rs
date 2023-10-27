@@ -81,11 +81,38 @@ benchmarks! {
         confirmations: vec![],
         program: vec![],
         key_visibility: KeyVisibility::Public,
+        verifying_key: None
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())
   verify {
     assert_last_event::<T>(Event::<T>::AccountRegistering(sig_req_account, 0).into());
   }
+
+  // confirm_register_failed_registering {
+  //   let c in 0 .. SIG_PARTIES as u32;
+  //   let sig_req_account: T::AccountId = whitelisted_caller();
+  //   let validator_account: T::AccountId = whitelisted_caller();
+  //   let threshold_account: T::AccountId = whitelisted_caller();
+  //   let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
+  //   for i in 0..SIG_PARTIES {
+  //       let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
+  //       <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
+  //   }
+  //   let adjusted_sig_size = SIG_PARTIES - 1;
+  //   let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
+  //   <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
+  //       is_registering: true,
+  //       program_modification_account: sig_req_account.clone(),
+  //       confirmations: confirmation,
+  //       program: vec![],
+  //       key_visibility: KeyVisibility::Public,
+  //       verifying_key: None
+  //   });
+  // }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, vec![10].try_into().unwrap())
+  // verify {
+  //   assert_last_event::<T>(Event::<T>::FailedRegistered(sig_req_account).into());
+  // }
+
 
 confirm_register_registered {
     let c in 0 .. SIG_PARTIES as u32;
@@ -105,6 +132,7 @@ confirm_register_registered {
         confirmations: confirmation,
         program: vec![],
         key_visibility: KeyVisibility::Public,
+        verifying_key: None
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())
   verify {
