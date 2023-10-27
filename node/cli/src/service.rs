@@ -70,7 +70,9 @@ impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
         entropy_runtime::api::dispatch(method, data)
     }
 
-    fn native_version() -> sc_executor::NativeVersion { entropy_runtime::native_version() }
+    fn native_version() -> sc_executor::NativeVersion {
+        entropy_runtime::native_version()
+    }
 }
 
 /// Creates a new partial node.
