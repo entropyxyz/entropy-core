@@ -1,13 +1,12 @@
 [package]
 name       ='entropy-protocol'
-version   ='0.0.1'
-authors   =['Entropy Cryptography <admin@entropy.xyz>']
+version    ='0.0.1'
+authors    =['Entropy Cryptography <admin@entropy.xyz>']
 description="Entropy Signing and DKG protocol execution and transport logic"
-homepage  ='https://entropy.xyz/'
-license   ='AGPL-3.0-or-later'
-repository='https://github.com/entropyxyz/entropy-core'
-edition   ='2021'
-
+homepage   ='https://entropy.xyz/'
+license    ='AGPL-3.0-or-later'
+repository ='https://github.com/entropyxyz/entropy-core'
+edition    ='2021'
 
 [dependencies]
 async-trait    ="0.1.73"

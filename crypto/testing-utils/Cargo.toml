@@ -1,5 +1,5 @@
 [package]
-name   ="testing-utils"
+name      ="testing-utils"
 version   ='0.0.7'
 authors   =['Entropy Cryptography <admin@entropy.xyz>']
 homepage  ='https://entropy.xyz/'

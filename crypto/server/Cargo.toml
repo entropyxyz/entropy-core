@@ -1,6 +1,6 @@
 [package]
-name   ="server"
-version="0.1.0"
+name      ="server"
+version   ="0.1.0"
 authors   =['Entropy Cryptography <admin@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'

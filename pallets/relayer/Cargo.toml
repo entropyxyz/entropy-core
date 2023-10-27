@@ -1,5 +1,5 @@
 [package]
-name       ='pallet-relayer'
+name      ='pallet-relayer'
 version   ='0.0.7'
 authors   =['Entropy Cryptography <admin@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
@@ -65,7 +65,7 @@ entropy-shared          ={ path="../../crypto/shared", default-features=false, f
 sp-std                  ={ package="sp-std", git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0", default-features=false }
 pallet-authorship       ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
 log                     ={ version="0.4.0", default-features=false }
-pallet-programs         ={ version = "0.0.7", path="../programs", default-features=false }
+pallet-programs         ={ version="0.0.7", path="../programs", default-features=false }
 pallet-session          ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
 pallet-staking          ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
 pallet-staking-extension={ version="0.0.7", default-features=false, path="../staking" }
