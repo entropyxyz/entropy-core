@@ -1,14 +1,13 @@
 [package]
-name       ='entropy'
-authors    =['Substrate DevHub <https://github. Fm/substrate-developer-hub>']
-build      ='build.rs'
-description='A fresh FRAME-based Substrate node, ready for hacking.'
-edition    ='2021'
-homepage   ='https://substrate.dev'
-license    ='AGPL-3.0-or-later'
-publish    =false
-repository ='https://github.com/substrate-developer-hub/substrate-node-template/'
-version    ='3.0.0-monthly-2021-10'
+name      ='entropy'
+version   ='0.0.7'
+authors   =['Entropy Cryptography <engineering@entropy.xyz>']
+homepage  ='https://entropy.xyz/'
+license   ='AGPL-3.0-or-later'
+repository='https://github.com/entropyxyz/entropy-core'
+build     ='build.rs'
+edition   ='2021'
+publish   =false
 
 [package.metadata.docs.rs]
 targets=['x86_64-unknown-linux-gnu']
@@ -52,9 +51,9 @@ sp-keyring                        ={ version="24.0.0", git='https://github.com/p
 frame-system                      ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 frame-system-rpc-runtime-api      ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 pallet-transaction-payment        ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
-pallet-staking-extension          ={ version="3.0.0", path="../../pallets/staking" }
+pallet-staking-extension          ={ version="0.0.7", path="../../pallets/staking" }
 pallet-asset-conversion-tx-payment={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
-pallet-free-tx                    ={ version="3.0.0-monthly-2021-10", path="../../pallets/free-tx" }
+pallet-free-tx                    ={ version="0.0.7", path="../../pallets/free-tx" }
 node-inspect                      ={ version="0.9.0-dev", optional=true, git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 substrate-frame-cli               ={ version="4.0.0-dev", optional=true, git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 sc-sysinfo                        ={ version="6.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
@@ -89,7 +88,7 @@ sp-tracing     ={ version="10.0.0", git='https://github.com/paritytech/substrate
 
 [dependencies.entropy-runtime]
 path   ='../../runtime'
-version='3.0.0-monthly-2021-10'
+version='0.0.7'
 
 [dependencies.frame-benchmarking]
 git    ='https://github.com/paritytech/substrate'
