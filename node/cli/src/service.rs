@@ -22,10 +22,8 @@
 
 use std::sync::Arc;
 
-use codec::Encode;
 use entropy_runtime::RuntimeApi;
 use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
-use frame_system_rpc_runtime_api::AccountNonceApi;
 use futures::prelude::*;
 use node_primitives::Block;
 use sc_client_api::{Backend, BlockBackend};
@@ -39,9 +37,8 @@ use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandler
 use sc_statement_store::Store as StatementStore;
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
-use sp_api::{offchain::DbExternalities, ProvideRuntimeApi};
-use sp_core::crypto::Pair;
-use sp_runtime::{generic, traits::Block as BlockT, SaturatedConversion};
+use sp_api::offchain::DbExternalities;
+use sp_runtime::traits::Block as BlockT;
 
 use crate::cli::Cli;
 /// The full client type definition.
@@ -209,7 +206,7 @@ pub fn new_partial(
         let keystore = keystore_container.keystore();
         let chain_spec = config.chain_spec.cloned_box();
 
-        let rpc_backend = backend.clone();
+        let _rpc_backend = backend.clone();
         let rpc_statement_store = statement_store.clone();
         let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
             let deps = crate::rpc::FullDeps {
