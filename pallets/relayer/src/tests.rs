@@ -178,8 +178,39 @@ fn it_confirms_registers_a_user() {
     });
 }
 
-// TODO add a failed registering test bad verification key
+#[test]
+fn it_fails_on_non_matching_verifying_keys() {
+    new_test_ext().execute_with(|| {
+        let empty_program = vec![];
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(1),
+            2 as <Test as frame_system::Config>::AccountId,
+            KeyVisibility::Private([0; 32]),
+            empty_program,
+        ));
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
 
+        assert_ok!(Relayer::confirm_register(
+            RuntimeOrigin::signed(1),
+            1,
+            0,
+            BoundedVec::default()
+        ));
+
+        // uses different verifying key
+        assert_ok!(Relayer::confirm_register(
+            RuntimeOrigin::signed(2),
+            1,
+            1,
+            vec![10].try_into().unwrap()
+        ));
+
+        // not registered or registering
+        assert_eq!(Relayer::registering(1), None);
+        assert_eq!(Relayer::registered(1), None);
+    })
+}
 #[test]
 fn it_doesnt_allow_double_registering() {
     new_test_ext().execute_with(|| {

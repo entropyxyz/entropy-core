@@ -169,6 +169,7 @@ pub mod pallet {
         SigningGroupError,
         NoSyncedValidators,
         MaxProgramLengthExceeded,
+        NoVerifyingKey,
     }
 
     #[pallet::call]
@@ -279,8 +280,15 @@ pub mod pallet {
                 Error::<T>::NotInSigningGroup
             );
 
+            if registering_info.verifying_key.is_none() {
+                registering_info.verifying_key = Some(verifying_key.clone());
+            }
+
+            let registering_info_verifying_key =
+                registering_info.verifying_key.ok_or(Error::<T>::NoVerifyingKey)?;
+
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
-                if registering_info.verifying_key.unwrap() != verifying_key {
+                if registering_info_verifying_key != verifying_key {
                     Registering::<T>::remove(&sig_req_account);
                     Self::deposit_event(Event::FailedRegistered(sig_req_account));
                     // do benchamrk for this path
@@ -316,11 +324,7 @@ pub mod pallet {
                 Self::deposit_event(Event::AccountRegistered(sig_req_account));
                 Ok(Some(weight).into())
             } else {
-                if registering_info.verifying_key.is_none() {
-                    registering_info.verifying_key = Some(verifying_key.clone());
-                }
-
-                if registering_info.verifying_key.unwrap() != verifying_key {
+                if registering_info_verifying_key != verifying_key {
                     Registering::<T>::remove(&sig_req_account);
                     Self::deposit_event(Event::FailedRegistered(sig_req_account));
                     // do benchamrk for this path
