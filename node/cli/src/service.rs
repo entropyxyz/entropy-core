@@ -23,10 +23,10 @@
 use std::sync::Arc;
 
 use codec::Encode;
+use entropy_runtime::RuntimeApi;
 use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
 use frame_system_rpc_runtime_api::AccountNonceApi;
 use futures::prelude::*;
-use kitchensink_runtime::RuntimeApi;
 use node_primitives::Block;
 use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_babe::{self, SlotProportion};
@@ -210,17 +210,17 @@ pub fn new_partial(
         let rpc_backend = backend.clone();
         let rpc_statement_store = statement_store.clone();
         let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
-            let deps = node_rpc::FullDeps {
+            let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: pool.clone(),
                 select_chain: select_chain.clone(),
                 chain_spec: chain_spec.cloned_box(),
                 deny_unsafe,
-                babe: node_rpc::BabeDeps {
+                babe: crate::rpc::BabeDeps {
                     keystore: keystore.clone(),
                     babe_worker_handle: babe_worker_handle.clone(),
                 },
-                grandpa: node_rpc::GrandpaDeps {
+                grandpa: crate::rpc::GrandpaDeps {
                     shared_voter_state: shared_voter_state.clone(),
                     shared_authority_set: shared_authority_set.clone(),
                     justification_stream: justification_stream.clone(),
@@ -228,10 +228,9 @@ pub fn new_partial(
                     finality_provider: finality_proof_provider.clone(),
                 },
                 statement_store: rpc_statement_store.clone(),
-                backend: rpc_backend.clone(),
             };
 
-            node_rpc::create_full(deps).map_err(Into::into)
+            crate::rpc::create_full(deps).map_err(Into::into)
         };
 
         (rpc_extensions_builder, shared_voter_state2)

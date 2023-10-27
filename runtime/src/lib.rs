@@ -315,9 +315,7 @@ pub enum ProxyType {
     Staking,
 }
 impl Default for ProxyType {
-    fn default() -> Self {
-        Self::Any
-    }
+    fn default() -> Self { Self::Any }
 }
 impl InstanceFilter<RuntimeCall> for ProxyType {
     fn filter(&self, c: &RuntimeCall) -> bool {
@@ -1020,8 +1018,7 @@ parameter_types! {
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
-where
-    RuntimeCall: From<LocalCall>,
+where RuntimeCall: From<LocalCall>
 {
     fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
         call: RuntimeCall,
@@ -1068,8 +1065,7 @@ impl frame_system::offchain::SigningTypes for Runtime {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
-where
-    RuntimeCall: From<C>,
+where RuntimeCall: From<C>
 {
     type Extrinsic = UncheckedExtrinsic;
     type OverarchingCall = RuntimeCall;
@@ -1207,15 +1203,11 @@ parameter_types! {
 use sp_runtime::traits::Convert;
 pub struct BalanceToU256;
 impl Convert<Balance, sp_core::U256> for BalanceToU256 {
-    fn convert(balance: Balance) -> sp_core::U256 {
-        sp_core::U256::from(balance)
-    }
+    fn convert(balance: Balance) -> sp_core::U256 { sp_core::U256::from(balance) }
 }
 pub struct U256ToBalance;
 impl Convert<sp_core::U256, Balance> for U256ToBalance {
-    fn convert(n: sp_core::U256) -> Balance {
-        n.try_into().unwrap_or(Balance::max_value())
-    }
+    fn convert(n: sp_core::U256) -> Balance { n.try_into().unwrap_or(Balance::max_value()) }
 }
 
 impl pallet_nomination_pools::Config for Runtime {
@@ -1500,6 +1492,16 @@ impl_runtime_apis! {
     }
   }
 
+    impl sp_statement_store::runtime_api::ValidateStatement<Block> for Runtime {
+        fn validate_statement(
+            _source: sp_statement_store::runtime_api::StatementSource,
+            _statement: sp_statement_store::Statement,
+        ) -> Result<sp_statement_store::runtime_api::ValidStatement, sp_statement_store::runtime_api::InvalidStatement> {
+            unimplemented!("We're only using this to implement `ValidateStatement` for our runtime, \
+                but not actually running it.")
+        }
+    }
+
     impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
         fn offchain_worker(header: &<Block as BlockT>::Header) {
             Executive::offchain_worker(header)
@@ -1721,9 +1723,7 @@ mod tests {
     #[test]
     fn validate_transaction_submitter_bounds() {
         fn is_submit_signed_transaction<T>()
-        where
-            T: CreateSignedTransaction<RuntimeCall>,
-        {
+        where T: CreateSignedTransaction<RuntimeCall> {
         }
 
         is_submit_signed_transaction::<Runtime>();
