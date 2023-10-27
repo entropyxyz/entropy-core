@@ -47,7 +47,6 @@ pub async fn run_dkg_protocol(
     Ok(serde_json::to_string(&key_share).map_err(|err| Error::new(&err.to_string()))?)
 }
 
-// format!("{account}_{sig_hash}")
 /// Run the signing protocol on the client side
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub async fn run_signing_protocol(
