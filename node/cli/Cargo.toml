@@ -51,7 +51,7 @@ sp-keyring                        ={ version="24.0.0", git='https://github.com/p
 frame-system                      ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 frame-system-rpc-runtime-api      ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 pallet-transaction-payment        ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
-pallet-staking-extension          ={ version="3.0.0", path="../../pallets/staking" }
+pallet-staking-extension          ={ version="0.0.7", path="../../pallets/staking" }
 pallet-asset-conversion-tx-payment={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 pallet-free-tx                    ={ version="0.0.7", path="../../pallets/free-tx" }
 node-inspect                      ={ version="0.9.0-dev", optional=true, git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
