@@ -279,7 +279,7 @@ pub mod pallet {
                 signing_subgroup_addresses.contains(&validator_stash),
                 Error::<T>::NotInSigningGroup
             );
-
+            // if no one has sent in a verifying key yet, use current
             if registering_info.verifying_key.is_none() {
                 registering_info.verifying_key = Some(verifying_key.clone());
             }
@@ -288,6 +288,7 @@ pub mod pallet {
                 registering_info.verifying_key.ok_or(Error::<T>::NoVerifyingKey)?;
 
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
+                // If verifying key does not match for everyone, registration failed
                 if registering_info_verifying_key != verifying_key {
                     Registering::<T>::remove(&sig_req_account);
                     Self::deposit_event(Event::FailedRegistered(sig_req_account));
@@ -325,6 +326,7 @@ pub mod pallet {
                 Self::deposit_event(Event::AccountRegistered(sig_req_account));
                 Ok(Some(weight).into())
             } else {
+                // If verifying key does not match for everyone, registration failed
                 if registering_info_verifying_key != verifying_key {
                     Registering::<T>::remove(&sig_req_account);
                     Self::deposit_event(Event::FailedRegistered(sig_req_account));
