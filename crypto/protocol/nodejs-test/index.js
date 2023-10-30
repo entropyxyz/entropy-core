@@ -1,50 +1,50 @@
+// This takes parameters for the sign or dkg protocols as a JSON serialized string given as a
+// command line argument
+//
+// It is called from a rust test in `server` by spawning a process running Nodejs with this script
 const protocol = require('entropy-protocol')
 Object.assign(global, { WebSocket: require('ws') });
 
+// Create ValidatorInfo objects from objects parsed from JSON
 function parseVadidatorInfo(inputObject) {
+    console.log('input: ', inputObject)
     return new protocol.ValidatorInfo(
-        new Uint8Array(inputObject.x25519PrivateKey),
-        inputObject.ipAddress,
-        new Uint8Array(inputObject.tssAccount),       )
-)
+        new Uint8Array(inputObject.x25519_public_key),
+        inputObject.ip_address,
+        new Uint8Array(inputObject.tss_account),
+    )
 }
 
-let parsed
+let input
 try {
-    const input = JSON.parse(process.argv[3])
+    input = JSON.parse(process.argv[3])
     Object.assign(input, {
-        userSigningKeypairSeed: new Uint8Array(input.userSigningKeypairSeed),
-        x25519PrivateKey: new Uint8Array(input.x25519PrivateKey),
-        validatorsInfo: input.validatorsInfo.map(parseVadidatorInfo)
+        user_sig_req_seed: new Uint8Array(input.user_sig_req_seed),
+        x25519_private_key: new Uint8Array(input.x25519_private_key),
+        validators_info: input.validators_info.map(parseVadidatorInfo)
     })
 } catch (err) {
-    console.log(`Usage: ${process.argv[0]} JSON`)
+    console.log(`Usage: ${process.argv[0]} <command> <JSON payload>`)
     console.log(err)
 }
-console.log(parsed)
 
 switch(process.argv[2].toLowerCase()) {
     case 'register':
-// protocol.run_dkg_protocol([validatorInfo], userSigningKeypairSeed, x25519PrivateKey).then((output) => {
-//   console.log('OUTPUT:', output)
-// }).catch((err) => {
-//   console.log('ERR', err)
-// })
+        // It is not yet possible to test registering
+        // protocol.run_dkg_protocol([validatorInfo], userSigningKeypairSeed, x25519PrivateKey).then((output) => {
+        //   console.log('OUTPUT:', output)
+        // }).catch((err) => {
+        //   console.log('ERR', err)
+        // })
         break
     case 'sign':
-// protocol.run_signing_protocol(keyshare, sig_uid, sig_hash, [validatorInfo], userSigningKeypairSeed, x25519PrivateKey).then((output) => {
-//   console.log('OUTPUT:', output)
-// }).catch((err) => {
-//   console.log('ERR', err)
-// })
+        console.log('Starting signing protocol with these arguments', input)
+        protocol.run_signing_protocol(input.key_share, input.sig_uid, input.validators_info, input.user_sig_req_seed, input.x25519_private_key).then((output) => {
+            console.log('OUTPUT:', output)
+        }).catch((err) => {
+            console.error('ERR', err)
+        })
         break
     default:
         throw new Error('First argument must be register or sign')
 }
-// const validatorInfo = new protocol.ValidatorInfo(
-//     new Uint8Array(32), // x25519PrivateKey
-//     '127.0.0.1:3000',
-//     new Uint8Array(32), // TSS Account
-// )
-// console.log(JSON.stringify(validatorInfo))
-
