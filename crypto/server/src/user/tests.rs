@@ -24,7 +24,7 @@ use hex_literal::hex;
 use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
 use more_asserts as ma;
 use parity_scale_codec::Encode;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serial_test::serial;
 use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
@@ -1071,7 +1071,11 @@ async fn test_wasm_sign_tx_user_participates() {
 
     let (_one_keypair, one_x25519_sk) = keyring_to_subxt_signer_and_x25519(&one);
 
-    let eve_seed: [u8; 32] = hex::decode("786ad0e2df456fe43dd1f91ebca22e235bc162e0bb8d53c633e8c85b2af68b7a").unwrap().try_into().unwrap();
+    let eve_seed: [u8; 32] =
+        hex::decode("786ad0e2df456fe43dd1f91ebca22e235bc162e0bb8d53c633e8c85b2af68b7a")
+            .unwrap()
+            .try_into()
+            .unwrap();
 
     // Submit transaction requests, and connect and participate in signing
     let (test_user_res, _sig_result) = future::join(
@@ -1083,7 +1087,7 @@ async fn test_wasm_sign_tx_user_participates() {
             eve_seed,
             // seed_str_to_seed(&one.to_seed()),
             &one_x25519_sk,
-            )
+        ),
     )
     .await;
 
@@ -1416,7 +1420,7 @@ struct UserParticipatesInSigningProtocolArgs {
 struct ValidatorInfoParsed {
     x25519_public_key: [u8; 32],
     ip_address: String,
-    tss_account: [u8; 32]
+    tss_account: [u8; 32],
 }
 
 /// For testing running the protocol on wasm, spawn a process running nodejs and pass
@@ -1431,13 +1435,14 @@ pub async fn spawn_user_participates_in_signing_protocol(
     let args = UserParticipatesInSigningProtocolArgs {
         sig_uid: sig_uid.to_string(),
         user_sig_req_seed: user_sig_req_seed.to_vec(),
-        validators_info: validators_info.into_iter().map(|validator_info| {
-            ValidatorInfoParsed {
+        validators_info: validators_info
+            .into_iter()
+            .map(|validator_info| ValidatorInfoParsed {
                 x25519_public_key: validator_info.x25519_public_key,
                 ip_address: validator_info.ip_address.to_string(),
                 tss_account: *validator_info.tss_account.as_ref(),
-            }
-        }).collect(),
+            })
+            .collect(),
         key_share: serde_json::to_string(key_share).unwrap(),
         x25519_private_key: x25519_private_key.to_bytes().to_vec(),
     };
