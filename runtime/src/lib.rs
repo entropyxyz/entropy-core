@@ -1500,11 +1500,11 @@ impl_runtime_apis! {
     }
   }
 
-    impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
-        fn offchain_worker(header: &<Block as BlockT>::Header) {
-            Executive::offchain_worker(header)
-        }
-    }
+  impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
+      fn offchain_worker(header: &<Block as BlockT>::Header) {
+          Executive::offchain_worker(header)
+      }
+  }
 
   impl fg_primitives::GrandpaApi<Block> for Runtime {
     fn grandpa_authorities() -> GrandpaAuthorityList {

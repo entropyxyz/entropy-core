@@ -22,12 +22,9 @@
 
 use std::sync::Arc;
 
-use codec::Encode;
+use entropy_runtime::RuntimeApi;
 use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
-use frame_system_rpc_runtime_api::AccountNonceApi;
 use futures::prelude::*;
-use kitchensink_runtime::RuntimeApi;
-use node_executor::ExecutorDispatch;
 use node_primitives::Block;
 use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_babe::{self, SlotProportion};
@@ -37,12 +34,10 @@ use sc_network_common::sync::warp::WarpSyncParams;
 use sc_network_sync::SyncingService;
 use sc_offchain::OffchainDb;
 use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};
-use sc_statement_store::Store as StatementStore;
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
-use sp_api::{offchain::DbExternalities, ProvideRuntimeApi};
-use sp_core::crypto::Pair;
-use sp_runtime::{generic, traits::Block as BlockT, SaturatedConversion};
+use sp_api::offchain::DbExternalities;
+use sp_runtime::traits::Block as BlockT;
 
 use crate::cli::Cli;
 /// The full client type definition.
@@ -56,78 +51,24 @@ type FullGrandpaBlockImport =
 /// The transaction pool type defintion.
 pub type TransactionPool = sc_transaction_pool::FullPool<Block, FullClient>;
 
-/// Fetch the nonce of the given `account` from the chain state.
-///
-/// Note: Should only be used for tests.
-pub fn fetch_nonce(client: &FullClient, account: sp_core::sr25519::Pair) -> u32 {
-    let best_hash = client.chain_info().best_hash;
-    client
-        .runtime_api()
-        .account_nonce(best_hash, account.public().into())
-        .expect("Fetching account nonce works; qed")
-}
+// Our native executor instance.
+pub struct ExecutorDispatch;
 
-/// Create a transaction using the given `call`.
-///
-/// The transaction will be signed by `sender`. If `nonce` is `None` it will be fetched from the
-/// state of the best block.
-///
-/// Note: Should only be used for tests.
-pub fn create_extrinsic(
-    client: &FullClient,
-    sender: sp_core::sr25519::Pair,
-    function: impl Into<kitchensink_runtime::RuntimeCall>,
-    nonce: Option<u32>,
-) -> kitchensink_runtime::UncheckedExtrinsic {
-    let function = function.into();
-    let genesis_hash = client.block_hash(0).ok().flatten().expect("Genesis block exists; qed");
-    let best_hash = client.chain_info().best_hash;
-    let best_block = client.chain_info().best_number;
-    let nonce = nonce.unwrap_or_else(|| fetch_nonce(client, sender.clone()));
+impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
+    /// Only enable the benchmarking host functions when we actually want to benchmark.
+    #[cfg(feature = "runtime-benchmarks")]
+    type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+    /// Otherwise we only use the default Substrate host functions.
+    #[cfg(not(feature = "runtime-benchmarks"))]
+    type ExtendHostFunctions = ();
 
-    let period = kitchensink_runtime::BlockHashCount::get()
-        .checked_next_power_of_two()
-        .map(|c| c / 2)
-        .unwrap_or(2) as u64;
-    let tip = 0;
-    let extra: kitchensink_runtime::SignedExtra = (
-        frame_system::CheckNonZeroSender::<kitchensink_runtime::Runtime>::new(),
-        frame_system::CheckSpecVersion::<kitchensink_runtime::Runtime>::new(),
-        frame_system::CheckTxVersion::<kitchensink_runtime::Runtime>::new(),
-        frame_system::CheckGenesis::<kitchensink_runtime::Runtime>::new(),
-        frame_system::CheckEra::<kitchensink_runtime::Runtime>::from(generic::Era::mortal(
-            period,
-            best_block.saturated_into(),
-        )),
-        frame_system::CheckNonce::<kitchensink_runtime::Runtime>::from(nonce),
-        frame_system::CheckWeight::<kitchensink_runtime::Runtime>::new(),
-        pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<kitchensink_runtime::Runtime>::from(
-            tip, None,
-        ),
-    );
+    fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+        entropy_runtime::api::dispatch(method, data)
+    }
 
-    let raw_payload = kitchensink_runtime::SignedPayload::from_raw(
-        function.clone(),
-        extra.clone(),
-        (
-            (),
-            kitchensink_runtime::VERSION.spec_version,
-            kitchensink_runtime::VERSION.transaction_version,
-            genesis_hash,
-            best_hash,
-            (),
-            (),
-            (),
-        ),
-    );
-    let signature = raw_payload.using_encoded(|e| sender.sign(e));
-
-    kitchensink_runtime::UncheckedExtrinsic::new_signed(
-        function,
-        sp_runtime::AccountId32::from(sender.public()).into(),
-        kitchensink_runtime::Signature::Sr25519(signature),
-        extra,
-    )
+    fn native_version() -> sc_executor::NativeVersion {
+        entropy_runtime::native_version()
+    }
 }
 
 /// Creates a new partial node.
@@ -143,7 +84,7 @@ pub fn new_partial(
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
             impl Fn(
-                node_rpc::DenyUnsafe,
+                sc_rpc_api::DenyUnsafe,
                 sc_rpc::SubscriptionTaskExecutor,
             ) -> Result<jsonrpsee::RpcModule<()>, sc_service::Error>,
             (
@@ -153,7 +94,6 @@ pub fn new_partial(
             ),
             grandpa::SharedVoterState,
             Option<Telemetry>,
-            Arc<StatementStore>,
         ),
     >,
     ServiceError,
@@ -236,15 +176,6 @@ pub fn new_partial(
 
     let import_setup = (block_import, grandpa_link, babe_link);
 
-    let statement_store = sc_statement_store::Store::new_shared(
-        &config.data_path,
-        Default::default(),
-        client.clone(),
-        config.prometheus_registry(),
-        &task_manager.spawn_handle(),
-    )
-    .map_err(|e| ServiceError::Other(format!("Statement store error: {e:?}")))?;
-
     let (rpc_extensions_builder, rpc_setup) = {
         let (_, grandpa_link, _) = &import_setup;
 
@@ -264,31 +195,28 @@ pub fn new_partial(
         let keystore = keystore_container.keystore();
         let chain_spec = config.chain_spec.cloned_box();
 
-        let rpc_backend = backend.clone();
-        let rpc_statement_store = statement_store.clone();
+        let _rpc_backend = backend.clone();
         let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
-            let deps = node_rpc::FullDeps {
+            let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: pool.clone(),
                 select_chain: select_chain.clone(),
                 chain_spec: chain_spec.cloned_box(),
                 deny_unsafe,
-                babe: node_rpc::BabeDeps {
+                babe: crate::rpc::BabeDeps {
                     keystore: keystore.clone(),
                     babe_worker_handle: babe_worker_handle.clone(),
                 },
-                grandpa: node_rpc::GrandpaDeps {
+                grandpa: crate::rpc::GrandpaDeps {
                     shared_voter_state: shared_voter_state.clone(),
                     shared_authority_set: shared_authority_set.clone(),
                     justification_stream: justification_stream.clone(),
                     subscription_executor,
                     finality_provider: finality_proof_provider.clone(),
                 },
-                statement_store: rpc_statement_store.clone(),
-                backend: rpc_backend.clone(),
             };
 
-            node_rpc::create_full(deps).map_err(Into::into)
+            crate::rpc::create_full(deps).map_err(Into::into)
         };
 
         (rpc_extensions_builder, shared_voter_state2)
@@ -302,7 +230,7 @@ pub fn new_partial(
         select_chain,
         import_queue,
         transaction_pool,
-        other: (rpc_extensions_builder, import_setup, rpc_setup, telemetry, statement_store),
+        other: (rpc_extensions_builder, import_setup, rpc_setup, telemetry),
     })
 }
 
@@ -347,7 +275,7 @@ pub fn new_full_base(
         keystore_container,
         select_chain,
         transaction_pool,
-        other: (rpc_builder, import_setup, rpc_setup, mut telemetry, statement_store),
+        other: (rpc_builder, import_setup, rpc_setup, mut telemetry),
     } = new_partial(&config)?;
 
     let shared_voter_state = rpc_setup;
@@ -361,12 +289,6 @@ pub fn new_full_base(
     net_config.add_notification_protocol(grandpa::grandpa_peers_set_config(
         grandpa_protocol_name.clone(),
     ));
-
-    let statement_handler_proto = sc_network_statement::StatementHandlerPrototype::new(
-        client.block_hash(0u32).ok().flatten().expect("Genesis block exists; qed"),
-        config.chain_spec.fork_id(),
-    );
-    net_config.add_notification_protocol(statement_handler_proto.set_config());
 
     let warp_sync = Arc::new(grandpa::warp_proof::NetworkProvider::new(
         backend.clone(),
@@ -599,26 +521,6 @@ pub fn new_full_base(
             grandpa::run_grandpa_voter(grandpa_config)?,
         );
     }
-
-    // Spawn statement protocol worker
-    let statement_protocol_executor = {
-        let spawn_handle = task_manager.spawn_handle();
-        Box::new(move |fut| {
-            spawn_handle.spawn("network-statement-validator", Some("networking"), fut);
-        })
-    };
-    let statement_handler = statement_handler_proto.build(
-        network.clone(),
-        sync_service.clone(),
-        statement_store,
-        prometheus_registry.as_ref(),
-        statement_protocol_executor,
-    )?;
-    task_manager.spawn_handle().spawn(
-        "network-statement-handler",
-        Some("networking"),
-        statement_handler.run(),
-    );
 
     network_starter.start_network();
     Ok(NewFullBase {

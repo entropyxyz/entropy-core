@@ -13,7 +13,7 @@ use crate::{
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "Substrate Node".into()
+        "Entropy Node".into()
     }
 
     fn impl_version() -> String {
@@ -29,11 +29,11 @@ impl SubstrateCli for Cli {
     }
 
     fn support_url() -> String {
-        "support.anonymous.an".into()
+        "https://github.com/entropyxyz/entropy-core/".into()
     }
 
     fn copyright_start_year() -> i32 {
-        2017
+        2022
     }
 
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
@@ -121,7 +121,7 @@ pub fn run() -> sc_cli::Result<()> {
                                 .into());
                         }
 
-                        cmd.run::<Block, sp_statement_store::runtime_api::HostFunctions>(config)
+                        cmd.run::<Block, ()>(config)
                     },
                     BenchmarkCmd::Block(cmd) => {
                         let PartialComponents { client, .. } = service::new_partial(&config)?;
@@ -174,6 +174,9 @@ pub fn run() -> sc_cli::Result<()> {
         },
         #[cfg(feature = "try-runtime")]
         Some(Subcommand::TryRuntime(cmd)) => {
+            use sc_executor::{sp_wasm_interface::ExtendedHostFunctions, NativeExecutionDispatch};
+
+            use crate::service::ExecutorDispatch;
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
                 // we don't need any of the components of new_partial, just a runtime, or a task
@@ -182,9 +185,18 @@ pub fn run() -> sc_cli::Result<()> {
                 let task_manager =
                     sc_service::TaskManager::new(config.tokio_handle.clone(), registry)
                         .map_err(|e| sc_cli::Error::Service(sc_service::Error::Prometheus(e)))?;
-                Ok((cmd.run::<Block, node_executor::ExecutorDispatch>(config), task_manager))
+                let info_provider = timestamp_with_aura_info(6000);
+
+                Ok((
+                    cmd.run::<Block, ExtendedHostFunctions<
+                        sp_io::SubstrateHostFunctions,
+                        <ExecutorDispatch as NativeExecutionDispatch>::ExtendHostFunctions,
+                    >, _>(Some(info_provider)),
+                    task_manager,
+                ))
             })
         },
+
         #[cfg(not(feature = "try-runtime"))]
         Some(Subcommand::TryRuntime) => Err("TryRuntime wasn't enabled when building the node. \
                                              You can enable it with `--features try-runtime`."
