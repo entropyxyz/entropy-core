@@ -3,7 +3,10 @@ use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE as SIG_PARTIES};
 use frame_benchmarking::{
     account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec,
 };
-use frame_support::{traits::Get, BoundedVec};
+use frame_support::{
+    traits::{Currency, Get},
+    BoundedVec,
+};
 use frame_system::{EventRecord, RawOrigin};
 use pallet_staking_extension::{
     benchmarking::create_validators, IsValidatorSynced, ServerInfo, SigningGroups,
@@ -58,6 +61,8 @@ benchmarks! {
 
     let program_modification_account: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();
+    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
   }: _(RawOrigin::Signed(sig_req_account.clone()), program_modification_account, KeyVisibility::Public, program)
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
@@ -83,35 +88,39 @@ benchmarks! {
         key_visibility: KeyVisibility::Public,
         verifying_key: None
     });
+    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())
   verify {
     assert_last_event::<T>(Event::<T>::AccountRegistering(sig_req_account, 0).into());
   }
 
-  // confirm_register_failed_registering {
-  //   let c in 0 .. SIG_PARTIES as u32;
-  //   let sig_req_account: T::AccountId = whitelisted_caller();
-  //   let validator_account: T::AccountId = whitelisted_caller();
-  //   let threshold_account: T::AccountId = whitelisted_caller();
-  //   let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
-  //   for i in 0..SIG_PARTIES {
-  //       let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
-  //       <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
-  //   }
-  //   let adjusted_sig_size = SIG_PARTIES - 1;
-  //   let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
-  //   <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
-  //       is_registering: true,
-  //       program_modification_account: sig_req_account.clone(),
-  //       confirmations: confirmation,
-  //       program: vec![],
-  //       key_visibility: KeyVisibility::Public,
-  //       verifying_key: None
-  //   });
-  // }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, vec![10].try_into().unwrap())
-  // verify {
-  //   assert_last_event::<T>(Event::<T>::FailedRegistered(sig_req_account).into());
-  // }
+  confirm_register_failed_registering {
+    let c in 0 .. SIG_PARTIES as u32;
+    let sig_req_account: T::AccountId = whitelisted_caller();
+    let validator_account: T::AccountId = whitelisted_caller();
+    let threshold_account: T::AccountId = whitelisted_caller();
+    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
+    for i in 0..SIG_PARTIES {
+        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
+        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
+    }
+    let adjusted_sig_size = SIG_PARTIES - 1;
+    let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
+    <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
+        is_registering: true,
+        program_modification_account: sig_req_account.clone(),
+        confirmations: confirmation,
+        program: vec![],
+        key_visibility: KeyVisibility::Public,
+        verifying_key: Some(BoundedVec::default())
+    });
+    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
+  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, vec![10].try_into().unwrap())
+  verify {
+    assert_last_event::<T>(Event::<T>::FailedRegistered(sig_req_account).into());
+  }
 
 
 confirm_register_registered {
@@ -134,6 +143,8 @@ confirm_register_registered {
         key_visibility: KeyVisibility::Public,
         verifying_key: None
     });
+    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())
   verify {
     assert_last_event::<T>(Event::<T>::AccountRegistered(sig_req_account).into());

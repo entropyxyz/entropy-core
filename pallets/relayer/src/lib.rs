@@ -291,10 +291,11 @@ pub mod pallet {
                 if registering_info_verifying_key != verifying_key {
                     Registering::<T>::remove(&sig_req_account);
                     Self::deposit_event(Event::FailedRegistered(sig_req_account));
-                    // do benchamrk for this path
-                    return Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(
-                        confirmation_length,
-                    ))
+                    return Ok(Some(
+                        <T as Config>::WeightInfo::confirm_register_failed_registering(
+                            confirmation_length,
+                        ),
+                    )
                     .into());
                 }
                 // check to make verify key is the same
@@ -327,10 +328,11 @@ pub mod pallet {
                 if registering_info_verifying_key != verifying_key {
                     Registering::<T>::remove(&sig_req_account);
                     Self::deposit_event(Event::FailedRegistered(sig_req_account));
-                    // do benchamrk for this path
-                    return Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(
-                        confirmation_length,
-                    ))
+                    return Ok(Some(
+                        <T as Config>::WeightInfo::confirm_register_failed_registering(
+                            confirmation_length,
+                        ),
+                    )
                     .into());
                 }
                 registering_info.verifying_key = Some(verifying_key);
