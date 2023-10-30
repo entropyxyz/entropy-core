@@ -1,5 +1,5 @@
 use axum::extract::ws::WebSocket;
-pub use entropy_protocol::protocol_transport::{Broadcaster, SubscribeMessage};
+pub use entropy_protocol::protocol_transport::SubscribeMessage;
 use entropy_protocol::{
     protocol_transport::{
         errors::WsError,
