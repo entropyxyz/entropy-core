@@ -207,7 +207,6 @@ pub fn new_partial(
         let chain_spec = config.chain_spec.cloned_box();
 
         let _rpc_backend = backend.clone();
-        let rpc_statement_store = statement_store.clone();
         let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
@@ -226,7 +225,6 @@ pub fn new_partial(
                     subscription_executor,
                     finality_provider: finality_proof_provider.clone(),
                 },
-                statement_store: rpc_statement_store.clone(),
             };
 
             crate::rpc::create_full(deps).map_err(Into::into)
