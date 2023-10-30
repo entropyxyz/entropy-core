@@ -2537,14 +2537,12 @@ dependencies = [
  "sc-keystore",
  "sc-network",
  "sc-network-common",
- "sc-network-statement",
  "sc-network-sync",
  "sc-offchain",
  "sc-rpc",
  "sc-rpc-api",
  "sc-service",
  "sc-service-test",
- "sc-statement-store",
  "sc-storage-monitor",
  "sc-sync-state-rpc",
  "sc-sysinfo",
@@ -2566,7 +2564,6 @@ dependencies = [
  "sp-keyring 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-keystore 0.27.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-statement-store",
  "sp-timestamp",
  "sp-tracing 10.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-transaction-storage-proof",
@@ -9362,24 +9359,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sc-network-statement"
-version = "0.10.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2fd1233dc26dbb9f9bbc1d2cca2c03945d"
-dependencies = [
- "array-bytes 6.1.0",
- "async-channel",
- "futures",
- "libp2p",
- "log",
- "parity-scale-codec",
- "sc-network",
- "sc-network-common",
- "sp-consensus",
- "sp-statement-store",
- "substrate-prometheus-endpoint",
-]
-
-[[package]]
 name = "sc-network-sync"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2fd1233dc26dbb9f9bbc1d2cca2c03945d"
@@ -9675,24 +9654,6 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.1",
  "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
-]
-
-[[package]]
-name = "sc-statement-store"
-version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2fd1233dc26dbb9f9bbc1d2cca2c03945d"
-dependencies = [
- "log",
- "parity-db",
- "parking_lot 0.12.1",
- "sc-client-api",
- "sp-api",
- "sp-blockchain",
- "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-statement-store",
- "substrate-prometheus-endpoint",
- "tokio",
 ]
 
 [[package]]
