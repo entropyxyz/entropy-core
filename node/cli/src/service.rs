@@ -84,7 +84,7 @@ pub fn new_partial(
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
             impl Fn(
-                node_rpc::DenyUnsafe,
+                sc_rpc_api::DenyUnsafe,
                 sc_rpc::SubscriptionTaskExecutor,
             ) -> Result<jsonrpsee::RpcModule<()>, sc_service::Error>,
             (
