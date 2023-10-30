@@ -1,14 +1,12 @@
 [package]
-authors    =['Substrate DevHub <https://github.com/substrate-developer-hub>']
-description='FRAME pallet template for defining custom runtime logic.'
-edition    ='2021'
-homepage   ='https://substrate.dev'
-license    ='AGPL-3.0-or-later'
-name       ='pallet-propagation'
-publish    =false
-readme     ='README.md'
-repository ='https://github.com/substrate-developer-hub/substrate-node-template/'
-version    ='3.0.0-monthly-2021-10'
+name      ='pallet-propagation'
+version   ='0.0.7'
+authors   =['Entropy Cryptography <engineering@entropy.xyz>']
+homepage  ='https://entropy.xyz/'
+license   ='AGPL-3.0-or-later'
+repository='https://github.com/entropyxyz/entropy-core'
+edition   ='2021'
+publish   =false
 
 [package.metadata.docs.rs]
 targets=['x86_64-unknown-linux-gnu']
@@ -40,9 +38,9 @@ version         ='4.0.0-dev'
 
 [dependencies]
 pallet-authorship       ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-pallet-relayer          ={ version="3.0.0", default-features=false, path="../relayer" }
-pallet-programs         ={ default-features=false, path="../programs" }
-pallet-staking-extension={ version="3.0.0", default-features=false, path="../staking" }
+pallet-relayer          ={ version="0.0.7", default-features=false, path="../relayer" }
+pallet-programs         ={ version="0.0.7", default-features=false, path="../programs" }
+pallet-staking-extension={ version="0.0.7", default-features=false, path="../staking" }
 
 scale-info           ={ version="2.0.1", default-features=false, features=["derive"] }
 log                  ={ version="0.4.0", default-features=false }
