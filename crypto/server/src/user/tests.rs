@@ -24,6 +24,7 @@ use hex_literal::hex;
 use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
 use more_asserts as ma;
 use parity_scale_codec::Encode;
+use serde::{Serialize, Deserialize};
 use serial_test::serial;
 use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
@@ -987,6 +988,310 @@ async fn test_sign_tx_user_participates() {
     clean_tests();
 }
 
+#[tokio::test]
+#[serial]
+async fn test_wasm_sign_tx_user_participates() {
+    clean_tests();
+    let one = AccountKeyring::Eve;
+    let two = AccountKeyring::Two;
+
+    let signing_address = one.clone().to_account_id().to_ss58check();
+    let (validator_ips, _validator_ids, users_keyshare_option) =
+        spawn_testing_validators(Some(signing_address.clone()), true).await;
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+
+    update_programs(
+        &entropy_api,
+        &one.pair(),
+        &one.pair(),
+        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+    )
+    .await;
+
+    let validators_info = vec![
+        ValidatorInfo {
+            ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone(),
+        },
+        ValidatorInfo {
+            ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone(),
+        },
+    ];
+
+    let converted_transaction_request: String = hex::encode(MESSAGE_SHOULD_SUCCEED);
+    let message_should_succeed_hash = Hasher::keccak(MESSAGE_SHOULD_SUCCEED);
+
+    let signing_address = one.clone().to_account_id().to_ss58check();
+    let hash_as_string = hex::encode(&message_should_succeed_hash);
+    let sig_uid = create_unique_tx_id(&signing_address, &hash_as_string);
+
+    let mut generic_msg = UserTransactionRequest {
+        transaction_request: converted_transaction_request.clone(),
+        validators_info: validators_info.clone(),
+        timestamp: SystemTime::now(),
+    };
+
+    let submit_transaction_requests =
+        |validator_urls_and_keys: Vec<(String, [u8; 32])>,
+         generic_msg: UserTransactionRequest,
+         keyring: Sr25519Keyring| async move {
+            let mock_client = reqwest::Client::new();
+            join_all(
+                validator_urls_and_keys
+                    .iter()
+                    .map(|validator_tuple| async {
+                        let server_public_key = PublicKey::from(validator_tuple.1);
+                        let signed_message = SignedMessage::new(
+                            &keyring.pair(),
+                            &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+                            &server_public_key,
+                        )
+                        .unwrap();
+                        let url = format!("http://{}/user/sign_tx", validator_tuple.0.clone());
+                        mock_client
+                            .post(url)
+                            .header("Content-Type", "application/json")
+                            .body(serde_json::to_string(&signed_message).unwrap())
+                            .send()
+                            .await
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .await
+        };
+    let validator_ips_and_keys = vec![
+        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
+        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
+    ];
+    generic_msg.timestamp = SystemTime::now();
+
+    let (_one_keypair, one_x25519_sk) = keyring_to_subxt_signer_and_x25519(&one);
+
+    let eve_seed: [u8; 32] = hex::decode("786ad0e2df456fe43dd1f91ebca22e235bc162e0bb8d53c633e8c85b2af68b7a").unwrap().try_into().unwrap();
+
+    // Submit transaction requests, and connect and participate in signing
+    let (test_user_res, _sig_result) = future::join(
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
+        spawn_user_participates_in_signing_protocol(
+            &users_keyshare_option.clone().unwrap(),
+            &sig_uid,
+            validators_info.clone(),
+            eve_seed,
+            // seed_str_to_seed(&one.to_seed()),
+            &one_x25519_sk,
+            )
+    )
+    .await;
+
+    // let signature_base64 = base64::encode(sig_result.unwrap().to_rsv_bytes());
+    // assert_eq!(signature_base64.len(), 88);
+
+    verify_signature(test_user_res, message_should_succeed_hash, users_keyshare_option.clone())
+        .await;
+
+    generic_msg.timestamp = SystemTime::now();
+    // test failing cases
+    let test_user_res_not_registered =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
+
+    for res in test_user_res_not_registered {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "Not Registering error: Register Onchain first"
+        );
+    }
+
+    generic_msg.timestamp = SystemTime::now();
+    let mut generic_msg_bad_validators = generic_msg.clone();
+    generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
+
+    let test_user_failed_x25519_pub_key = submit_transaction_requests(
+        validator_ips_and_keys.clone(),
+        generic_msg_bad_validators,
+        one,
+    )
+    .await;
+
+    let mut responses = test_user_failed_x25519_pub_key.into_iter();
+    assert_eq!(
+        responses.next().unwrap().unwrap().text().await.unwrap(),
+        "{\"Err\":\"Timed out waiting for remote party\"}"
+    );
+
+    assert_eq!(
+        responses.next().unwrap().unwrap().text().await.unwrap(),
+        "{\"Err\":\"Timed out waiting for remote party\"}"
+    );
+
+    // Test attempting to connect over ws by someone who is not in the signing group
+    let validator_ip_and_key = validator_ips_and_keys[0].clone();
+    let connection_attempt_handle = tokio::spawn(async move {
+        // Wait for the "user" to submit the signing request
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
+        let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
+
+        let ferdie_keypair = subxt_signer::sr25519::Keypair::from_uri(
+            &subxt_signer::SecretUri::from_str(&AccountKeyring::Ferdie.to_seed()).unwrap(),
+        )
+        .unwrap();
+        let ferdie_x25519_sk = derive_static_secret(&AccountKeyring::Ferdie.pair());
+
+        // create a SubscribeMessage from a party who is not in the signing commitee
+        let subscribe_message_vec =
+            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
+
+        // Attempt a noise handshake including the subscribe message in the payload
+        let mut encrypted_connection = noise_handshake_initiator(
+            ws_stream,
+            &ferdie_x25519_sk,
+            validator_ip_and_key.1,
+            subscribe_message_vec,
+        )
+        .await
+        .unwrap();
+
+        // Check the response as to whether they accepted our SubscribeMessage
+        let response_message = encrypted_connection.recv().await.unwrap();
+        let subscribe_response: Result<(), String> =
+            serde_json::from_str(&response_message).unwrap();
+
+        assert_eq!(
+            Err("Decryption(\"Public key does not match that given in UserTransactionRequest or \
+                 register transaction\")"
+                .to_string()),
+            subscribe_response
+        );
+        // The stream should not continue to send messages
+        // returns true if this part of the test passes
+        encrypted_connection.recv().await.is_err()
+    });
+    generic_msg.timestamp = SystemTime::now();
+
+    let test_user_bad_connection_res = submit_transaction_requests(
+        vec![validator_ips_and_keys[1].clone()],
+        generic_msg.clone(),
+        one,
+    )
+    .await;
+
+    for res in test_user_bad_connection_res {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "{\"Err\":\"Timed out waiting for remote party\"}"
+        );
+    }
+
+    assert!(connection_attempt_handle.await.unwrap());
+    generic_msg.timestamp = SystemTime::now();
+    // Bad Account ID - an account ID is given which is not in the signing group
+    let mut generic_msg_bad_account_id = generic_msg.clone();
+    generic_msg_bad_account_id.validators_info[0].tss_account =
+        subxtAccountId32(AccountKeyring::Dave.into());
+
+    let test_user_failed_tss_account = submit_transaction_requests(
+        validator_ips_and_keys.clone(),
+        generic_msg_bad_account_id,
+        one,
+    )
+    .await;
+
+    for res in test_user_failed_tss_account {
+        let res = res.unwrap();
+        assert_eq!(res.status(), 500);
+        assert_eq!(res.text().await.unwrap(), "Invalid Signer: Invalid Signer in Signing group");
+    }
+
+    // Test a transcation which does not pass constaints
+    generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
+    generic_msg.timestamp = SystemTime::now();
+
+    let test_user_failed_constraints_res =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    for res in test_user_failed_constraints_res {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "Runtime error: Runtime(Error::Evaluation(\"Length of data is too short.\"))"
+        );
+    }
+
+    let mock_client = reqwest::Client::new();
+    // fails verification tests
+    // wrong key for wrong validator
+    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
+    let failed_signed_message = SignedMessage::new(
+        &one.pair(),
+        &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+        &server_public_key,
+    )
+    .unwrap();
+    let failed_res = mock_client
+        .post("http://127.0.0.1:3001/user/sign_tx")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&failed_signed_message).unwrap())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(failed_res.status(), 500);
+    assert_eq!(
+        failed_res.text().await.unwrap(),
+        "Validation error: ChaCha20 decryption error: aead::Error"
+    );
+
+    let sig: [u8; 64] = [0; 64];
+    let slice: [u8; 32] = [0; 32];
+    let nonce: [u8; 12] = [0; 12];
+
+    let user_input_bad = SignedMessage::new_test(
+        Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+        sr25519::Signature::from_raw(sig),
+        one.pair().public().into(),
+        slice,
+        slice,
+        nonce,
+    );
+
+    let failed_sign = mock_client
+        .post("http://127.0.0.1:3001/user/sign_tx")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&user_input_bad).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(failed_sign.status(), 500);
+    assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+
+    // checks that sig not needed with public key visibility
+    let user_input_bad = SignedMessage::new_test(
+        Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+        sr25519::Signature::from_raw(sig),
+        AccountKeyring::Dave.pair().public().into(),
+        slice,
+        slice,
+        nonce,
+    );
+
+    let failed_sign = mock_client
+        .post("http://127.0.0.1:3001/user/sign_tx")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&user_input_bad).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(failed_sign.status(), 500);
+    // fails lower down in stack because no sig needed on pub account
+    // fails when tries to decode the nonsense message
+    assert_ne!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+    clean_tests();
+}
+
 /// Test demonstrating registering with private key visibility, where the user participates in DKG
 /// and holds a keyshare.
 #[tokio::test]
@@ -1097,3 +1402,80 @@ pub async fn verify_signature(
         i += 1;
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct UserParticipatesInSigningProtocolArgs {
+    user_sig_req_seed: Vec<u8>,
+    x25519_private_key: Vec<u8>,
+    sig_uid: String,
+    key_share: String,
+    validators_info: Vec<ValidatorInfoParsed>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ValidatorInfoParsed {
+    x25519_public_key: [u8; 32],
+    ip_address: String,
+    tss_account: [u8; 32]
+}
+
+/// For testing running the protocol on wasm, spawn a process running nodejs and pass
+/// the protocol runnning parameters as JSON as a command line argument
+pub async fn spawn_user_participates_in_signing_protocol(
+    key_share: &KeyShare<KeyParams>,
+    sig_uid: &str,
+    validators_info: Vec<ValidatorInfo>,
+    user_sig_req_seed: [u8; 32],
+    x25519_private_key: &x25519_dalek::StaticSecret,
+) -> Option<String> {
+    let args = UserParticipatesInSigningProtocolArgs {
+        sig_uid: sig_uid.to_string(),
+        user_sig_req_seed: user_sig_req_seed.to_vec(),
+        validators_info: validators_info.into_iter().map(|validator_info| {
+            ValidatorInfoParsed {
+                x25519_public_key: validator_info.x25519_public_key,
+                ip_address: validator_info.ip_address.to_string(),
+                tss_account: *validator_info.tss_account.as_ref(),
+            }
+        }).collect(),
+        key_share: serde_json::to_string(key_share).unwrap(),
+        x25519_private_key: x25519_private_key.to_bytes().to_vec(),
+    };
+    let json_params = serde_json::to_string(&args).unwrap();
+
+    let test_script_path = format!(
+        "{}/crypto/protocol/nodejs-test/index.js",
+        project_root::get_project_root().unwrap().to_string_lossy()
+    );
+
+    let output = tokio::process::Command::new("node")
+        .arg(test_script_path)
+        .arg("sign")
+        .arg(json_params)
+        .output()
+        .await
+        .unwrap();
+
+    println!("std out: {}", String::from_utf8(output.stdout).unwrap());
+    println!("std err: {}", String::from_utf8(output.stderr).unwrap());
+    None
+}
+
+// use sp_core::crypto::ExposeSecret;
+// fn seed_str_to_seed(seed_str: &str) -> [u8; 32] {
+//     let secret_uri = sp_core::crypto::SecretUri::from_str(seed_str).unwrap();
+//     println!("secret {}", secret_uri.phrase.expose_secret());
+//     let mnemonic = Mnemonic::from_phrase(phrase, Language::English).unwrap();
+//     let big_seed =
+//         substrate_bip39::seed_from_entropy(mnemonic.entropy(), password.unwrap_or(""))
+// 				.map_err(|_| SecretStringError::InvalidSeed)?;
+// 		let mut seed = Self::Seed::default();
+// 		let seed_slice = seed.as_mut();
+// 		let seed_len = seed_slice.len();
+// 		debug_assert!(seed_len <= big_seed.len());
+// 		seed_slice[..seed_len].copy_from_slice(&big_seed[..seed_len]);
+// 		Self::from_seed_slice(seed_slice).map(|x| (x, seed))
+//     let stripped = secret_uri.phrase.expose_secret().strip_prefix("0x").unwrap();
+//     let seed_vec = hex::decode(stripped).unwrap();
+//     seed_vec.try_into().unwrap()
+// }
