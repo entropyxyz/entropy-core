@@ -42,7 +42,6 @@ sp-transaction-pool   ={ version="4.0.0-dev", default-features=false, git='https
 sp-version            ={ version="22.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
 sp-npos-elections     ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
 sp-io                 ={ version="23.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-sp-statement-store    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 
 # frame dependencies
 frame-executive={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
@@ -192,7 +191,6 @@ std=[
   "frame-try-runtime/std",
   "sp-npos-elections/std",
   "sp-io/std",
-  "sp-statement-store/std",
   "substrate-wasm-builder",
 ]
 runtime-benchmarks=[

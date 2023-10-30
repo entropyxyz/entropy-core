@@ -1500,21 +1500,11 @@ impl_runtime_apis! {
     }
   }
 
-    impl sp_statement_store::runtime_api::ValidateStatement<Block> for Runtime {
-        fn validate_statement(
-            _source: sp_statement_store::runtime_api::StatementSource,
-            _statement: sp_statement_store::Statement,
-        ) -> Result<sp_statement_store::runtime_api::ValidStatement, sp_statement_store::runtime_api::InvalidStatement> {
-            unimplemented!("We're only using this to implement `ValidateStatement` for our runtime, \
-                but not actually running it.")
-        }
-    }
-
-    impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
-        fn offchain_worker(header: &<Block as BlockT>::Header) {
-            Executive::offchain_worker(header)
-        }
-    }
+  impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
+      fn offchain_worker(header: &<Block as BlockT>::Header) {
+          Executive::offchain_worker(header)
+      }
+  }
 
   impl fg_primitives::GrandpaApi<Block> for Runtime {
     fn grandpa_authorities() -> GrandpaAuthorityList {
