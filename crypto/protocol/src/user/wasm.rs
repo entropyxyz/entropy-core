@@ -60,7 +60,8 @@ pub async fn run_signing_protocol(
 
     // sig_hash is the suffix of the sig_uid
     let sig_hash: [u8; 32] = {
-        let sig_hash_hex = &sig_uid[65..];
+        // 49 is the length of an ss58 encoded account id + 1 for the separator
+        let sig_hash_hex = &sig_uid[49..];
         let sig_hash_vec =
             hex::decode(sig_hash_hex).map_err(|_| Error::new("Cannot parse sig_uid"))?;
         sig_hash_vec.try_into().map_err(|_| Error::new("Message hash must be 32 bytes"))?

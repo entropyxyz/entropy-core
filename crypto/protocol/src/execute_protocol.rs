@@ -82,7 +82,11 @@ pub async fn execute_signing_protocol(
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_idx = key_share.party_index();
-    let my_id = &party_ids[my_idx.as_usize()];
+    let my_id = party_ids.get(my_idx.as_usize()).ok_or(ProtocolExecutionErr::BadKeyShare(
+        "Keyshare index is greater than the number of parties".to_string(),
+    ))?;
+
+    log_either_platform(format!("party ids: {:?}", party_ids));
 
     let id_to_index = party_ids
         .iter()
@@ -122,10 +126,16 @@ pub async fn execute_signing_protocol(
 
         match to_send {
             ToSend::Broadcast(message) => {
+                log_either_platform(format!("{} sending a broadcast message", my_id));
                 tx.send(ProtocolMessage::new_bcast(my_id, message))?;
             },
             ToSend::Direct(msgs) =>
                 for (id_to, message) in msgs.into_iter() {
+                    log_either_platform(format!(
+                        "{} sending a direct message to {}",
+                        my_id,
+                        party_ids[id_to.as_usize()]
+                    ));
                     tx.send(ProtocolMessage::new_p2p(
                         my_id,
                         &party_ids[id_to.as_usize()],
@@ -135,6 +145,7 @@ pub async fn execute_signing_protocol(
         };
 
         while receiving.has_cached_messages() {
+            log_either_platform(format!("received a cached msg {}", my_id));
             receiving.receive_cached_message().map_err(ProtocolExecutionErr::SynedrionSession)?;
         }
 
@@ -147,6 +158,12 @@ pub async fn execute_signing_protocol(
             if &signing_message.from == my_id {
                 continue;
             }
+            log_either_platform(format!(
+                "{} received a msg from {} broadcast: {}",
+                my_id,
+                signing_message.from,
+                signing_message.to.is_none()
+            ));
             let from_idx = id_to_index[&signing_message.from];
             receiving
                 .receive(from_idx, signing_message.payload)
@@ -170,7 +187,11 @@ pub async fn execute_dkg(
 ) -> Result<KeyShare<KeyParams>, ProtocolExecutionErr> {
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
+    // TODO this will panic if we give an out of bounds my_idx
     let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());
+    // let my_id = party_ids.get(*my_idx as usize).ok_or(ProtocolExecutionErr::BadKeyShare("Keyshare
+    // index is greater than the number of parties".to_string()))?;
+
     let id_to_index = party_ids
         .iter()
         .enumerate()
@@ -332,4 +353,15 @@ pub async fn execute_proactive_refresh(
     };
 
     Ok(old_key.update(key_change))
+}
+
+#[cfg(feature = "server")]
+fn log_either_platform(to_display: String) {
+    println!("From a TSS server: {}", to_display);
+}
+
+#[cfg(feature = "wasm")]
+fn log_either_platform(to_display: String) {
+    use web_sys::console;
+    console::log_1(&to_display.into());
 }
