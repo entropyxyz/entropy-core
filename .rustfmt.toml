@@ -6,11 +6,11 @@ use_try_shorthand=true   # replace any `try!` (2015 Rust) with `?`
 edition          ="2018"
 
 # misc formatting
-match_block_trailing_comma =true # include comma in match blocks after '}'
-use_field_init_shorthand   =true # struct initialization short {x: x} -> {x}
+match_block_trailing_comma=true # include comma in match blocks after '}'
+use_field_init_shorthand  =true # struct initialization short {x: x} -> {x}
 
 # reduce whitespace
-newline_style    ="Unix" # not auto, we won the culture war. \n over \r\n
+newline_style="Unix" # not auto, we won the culture war. \n over \r\n
 
 # width settings: everything to 100
 max_width           =100   # default: 100
