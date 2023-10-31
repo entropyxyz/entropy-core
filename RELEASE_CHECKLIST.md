@@ -40,7 +40,8 @@
 
 ## Publish Artifacts and Release
 - [ ] Ensure **all** CI checks on `master` pass
-- [ ] Create a Git tag, following [release tag naming conventions](https://github.com/entropyxyz/meta/wiki/Release-management)
+- [ ] Create a Git tag From the squashed release PR commit on `master`
+    - Make sure to follow [release tag naming conventions](https://github.com/entropyxyz/meta/wiki/Release-management)
     - `git tag release/vX.X.X`
     - Nice to have: sign the tag with an offline GPG key (`git tag -s ...`)
 - [ ] Push tag to build and publish artifacts
