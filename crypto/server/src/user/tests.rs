@@ -412,11 +412,28 @@ async fn test_store_share() {
     clean_tests();
     let alice = AccountKeyring::Alice;
     let alice_program = AccountKeyring::Charlie;
+    let signing_address = alice.clone().to_account_id().to_ss58check();
 
     let cxt = test_context_stationary().await;
-    let (_validator_ips, _validator_ids, _) = spawn_testing_validators(None, false).await;
+    // put alice key in db to make sure overwrites
+    let (_validator_ips, _validator_ids, _) =
+        spawn_testing_validators(Some(signing_address.clone()), false).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
+    let client = reqwest::Client::new();
+    let get_query = UnsafeQuery::new(signing_address, "".to_string()).to_json();
+
+    // check get key before proactive refresh
+    let response = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query.clone())
+        .send()
+        .await
+        .unwrap();
+
+    let value = response.text().await.unwrap();
 
     let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let validators_info = vec![
@@ -433,7 +450,6 @@ async fn test_store_share() {
     ];
     let mut onchain_user_request =
         OcwMessage { sig_request_accounts: vec![alice.encode()], block_number, validators_info };
-    let client = reqwest::Client::new();
 
     put_register_request_on_chain(
         &api,
@@ -446,20 +462,20 @@ async fn test_store_share() {
     run_to_block(&rpc, block_number + 1).await;
 
     // succeeds
-    let response = client
+    let response_2 = client
         .post("http://127.0.0.1:3002/user/new")
         .body(onchain_user_request.clone().encode())
         .send()
         .await
         .unwrap();
 
-    assert_eq!(response.text().await.unwrap(), "");
+    assert_eq!(response_2.text().await.unwrap(), "");
 
     // Wait until user is confirmed as registered
     let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
     let registered_query = entropy::storage().relayer().registered(alice_account_id);
     for _ in 0..10 {
-        std::thread::sleep(std::time::Duration::from_millis(1000));
+        std::thread::sleep(std::time::Duration::from_millis(5000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
         let query_registered_status = api.storage().at(block_hash).fetch(&registered_query).await;
         if query_registered_status.unwrap().is_some() {
@@ -467,33 +483,18 @@ async fn test_store_share() {
         }
     }
 
-    let get_query = UnsafeQuery::new(alice.to_account_id().to_string(), "".to_string()).to_json();
-
     // check alice has new key
-    let response_2 = client
+    let response_3 = client
         .post("http://127.0.0.1:3001/unsafe/get")
         .header("Content-Type", "application/json")
         .body(get_query.clone())
         .send()
         .await
         .unwrap();
-
-    ma::assert_gt!(response_2.text().await.unwrap().len(), 1000);
+    let value_after = response_3.text().await.unwrap();
+    assert_ne!(value, value_after);
 
     // fails repeated data
-    let response_3 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .body(onchain_user_request.clone().encode())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_3.text().await.unwrap(), "Data is repeated");
-
-    run_to_block(&rpc, block_number + 3).await;
-    onchain_user_request.block_number = block_number + 1;
-    // fails stale data
     let response_4 = client
         .post("http://127.0.0.1:3001/user/new")
         .body(onchain_user_request.clone().encode())
@@ -502,7 +503,20 @@ async fn test_store_share() {
         .unwrap();
 
     assert_eq!(response_4.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_4.text().await.unwrap(), "Data is stale");
+    assert_eq!(response_4.text().await.unwrap(), "Data is repeated");
+
+    run_to_block(&rpc, block_number + 3).await;
+    onchain_user_request.block_number = block_number + 1;
+    // fails stale data
+    let response_5 = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_5.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_5.text().await.unwrap(), "Data is stale");
 
     block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     put_register_request_on_chain(
@@ -516,18 +530,6 @@ async fn test_store_share() {
     run_to_block(&rpc, block_number + 1).await;
 
     // fails not verified data
-    let response_5 = client
-        .post("http://127.0.0.1:3001/user/new")
-        .body(onchain_user_request.clone().encode())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_5.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_5.text().await.unwrap(), "Data is not verifiable");
-
-    onchain_user_request.validators_info[0].tss_account = TSS_ACCOUNTS[1].clone().encode();
-    // fails not in validator group data
     let response_6 = client
         .post("http://127.0.0.1:3001/user/new")
         .body(onchain_user_request.clone().encode())
@@ -536,7 +538,19 @@ async fn test_store_share() {
         .unwrap();
 
     assert_eq!(response_6.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_6.text().await.unwrap(), "Invalid Signer: Invalid Signer in Signing group");
+    assert_eq!(response_6.text().await.unwrap(), "Data is not verifiable");
+
+    onchain_user_request.validators_info[0].tss_account = TSS_ACCOUNTS[1].clone().encode();
+    // fails not in validator group data
+    let response_7 = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_7.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_7.text().await.unwrap(), "Invalid Signer: Invalid Signer in Signing group");
 
     check_if_confirmation(&api, &rpc, &alice.pair()).await;
     // TODO check if key is in other subgroup member
@@ -611,7 +625,7 @@ async fn test_send_and_receive_keys() {
     .unwrap()
     .to_json();
 
-    // fails key already stored
+    // fails key already stored not in registering state
     let response_3 = client
         .post("http://127.0.0.1:3001/user/receive_key")
         .header("Content-Type", "application/json")
@@ -623,8 +637,27 @@ async fn test_send_and_receive_keys() {
     assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(response_3.text().await.unwrap(), "User already registered");
 
-    // TODO negative validation tests
+    put_register_request_on_chain(
+        &api,
+        &alice.clone(),
+        alice.to_account_id().into(),
+        KeyVisibility::Public,
+    )
+    .await;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    run_to_block(&rpc, block_number + 2).await;
 
+    // a key in registering state can be overwritten
+    let response_4 = client
+        .post("http://127.0.0.1:3001/user/receive_key")
+        .header("Content-Type", "application/json")
+        .body(signed_message.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_4.status(), StatusCode::OK);
+    assert_eq!(response_4.text().await.unwrap(), "");
     clean_tests();
 }
 
