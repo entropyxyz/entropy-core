@@ -250,7 +250,8 @@ pub mod pallet {
         #[pallet::weight({
             let weight =
                 <T as Config>::WeightInfo::confirm_register_registering(SIGNING_PARTY_SIZE as u32)
-                .max(<T as Config>::WeightInfo::confirm_register_registered(SIGNING_PARTY_SIZE as u32));
+                .max(<T as Config>::WeightInfo::confirm_register_registered(SIGNING_PARTY_SIZE as u32))
+                .max(<T as Config>::WeightInfo::confirm_register_failed_registering(SIGNING_PARTY_SIZE as u32));
             (weight, Pays::No)
         })]
         pub fn confirm_register(
