@@ -462,20 +462,20 @@ async fn test_store_share() {
     run_to_block(&rpc, block_number + 1).await;
 
     // succeeds
-    let response_2 = client
+    let user_registration_response = client
         .post("http://127.0.0.1:3002/user/new")
         .body(onchain_user_request.clone().encode())
         .send()
         .await
         .unwrap();
 
-    assert_eq!(response_2.text().await.unwrap(), "");
+    assert_eq!(user_registration_response.text().await.unwrap(), "");
 
     // Wait until user is confirmed as registered
     let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
     let registered_query = entropy::storage().relayer().registered(alice_account_id);
     for _ in 0..10 {
-        std::thread::sleep(std::time::Duration::from_millis(5000));
+        std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
         let query_registered_status = api.storage().at(block_hash).fetch(&registered_query).await;
         if query_registered_status.unwrap().is_some() {
