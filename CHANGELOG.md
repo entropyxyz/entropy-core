@@ -28,7 +28,9 @@ Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy
 - The Constraints pallet has been renamed to the Programs pallet
 
 ### Added
-- Adds a way for a dkg registration to fail if validators resolve to different verifying keys. This would move the user key out of registering state and allow them to re register. If this happens a new event FailedRegistered(AccountId) gets emitted ([#460](https://github.com/entropyxyz/entropy-core/pull/460))
+- Add way for validators to resolve diff verifying keys ([#460](https://github.com/entropyxyz/entropy-core/pull/460))
+    - This introduces a new `FailedRegistered` event which might be of interest to consumers of this
+      pallet.
 - Proactive refresh ([#413](https://github.com/entropyxyz/entropy-core/pull/413))
 - Write a Dockerfile that can build both `entropy` and `server`. ([#430](https://github.com/entropyxyz/entropy-core/pull/430))
 - Developer experience improvements: SSH auth from workstations, entirely local "devnet"
