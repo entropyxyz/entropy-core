@@ -424,7 +424,7 @@ async fn test_store_share() {
     let client = reqwest::Client::new();
     let get_query = UnsafeQuery::new(signing_address, "".to_string()).to_json();
 
-    // check get key before proactive refresh
+    // check get key before registration to see if key gets replaced
     let response = client
         .post("http://127.0.0.1:3001/unsafe/get")
         .header("Content-Type", "application/json")
