@@ -325,7 +325,7 @@ pub async fn receive_key(
         let exists_result =
             app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
         if exists_result {
-            let registraiton_details = is_regestering(
+            let registraiton_details = is_registering(
                 &api,
                 &rpc,
                 &SubxtAccountId32::from_str(&user_registration_info.key)
