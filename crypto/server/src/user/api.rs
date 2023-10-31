@@ -367,7 +367,7 @@ pub async fn get_registering_user_details(
 }
 
 /// Returns if a key is in a regestering state.
-pub async fn is_regestering(
+pub async fn is_registering(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
