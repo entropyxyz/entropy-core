@@ -1,0 +1,25 @@
+---
+name: Get basename(1) of Git ref
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    outputs:
+      git_ref_basename:
+        description: Last portion of a Git ref, like `basename(1)`.
+        value: ${{ jobs.git-ref-basename.outputs.git_ref_basename }}
+
+jobs:
+  git-ref-basename:
+    name: Git ref basename
+    runs-on: ubuntu-latest
+    outputs:
+      git_ref_basename: ${{ steps.git-ref-basename.outputs.git_ref_basename }}
+    steps:
+      - name: Get basename of Git ref.
+        id: git-ref-basename
+        shell: bash
+        run: |
+          echo git_ref_basename="$(basename "${{ github.ref_name }}")" >> $GITHUB_OUTPUT
