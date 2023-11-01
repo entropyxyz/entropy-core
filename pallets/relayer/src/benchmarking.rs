@@ -75,6 +75,7 @@ benchmarks! {
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
     let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
+    // add validators and a registering user
     for i in 0..SIG_PARTIES {
         let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
@@ -101,6 +102,7 @@ benchmarks! {
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
     let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
+    // add validators and a registering user with different verifying key
     for i in 0..SIG_PARTIES {
         let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
@@ -132,6 +134,7 @@ confirm_register_registered {
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
     let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
+    // add validators, a registering user and one less than all confirmations
     for i in 0..SIG_PARTIES {
         let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);

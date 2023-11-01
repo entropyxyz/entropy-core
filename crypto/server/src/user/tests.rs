@@ -605,7 +605,7 @@ async fn test_send_and_receive_keys() {
     let get_query = UnsafeQuery::new(user_registration_info.key.clone(), "".to_string()).to_json();
 
     // check alice has new key
-    let response_2 = client
+    let response_new_key = client
         .post("http://127.0.0.1:3001/unsafe/get")
         .header("Content-Type", "application/json")
         .body(get_query.clone())
@@ -614,7 +614,7 @@ async fn test_send_and_receive_keys() {
         .unwrap();
 
     assert_eq!(
-        response_2.text().await.unwrap(),
+        response_new_key.text().await.unwrap(),
         std::str::from_utf8(&user_registration_info.value.clone()).unwrap().to_string()
     );
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
@@ -628,7 +628,7 @@ async fn test_send_and_receive_keys() {
     .to_json();
 
     // fails key already stored not in registering state
-    let response_3 = client
+    let response_already_in_storage = client
         .post("http://127.0.0.1:3001/user/receive_key")
         .header("Content-Type", "application/json")
         .body(signed_message.clone())
@@ -636,8 +636,8 @@ async fn test_send_and_receive_keys() {
         .await
         .unwrap();
 
-    assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_3.text().await.unwrap(), "User already registered");
+    assert_eq!(response_already_in_storage.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_already_in_storage.text().await.unwrap(), "User already registered");
 
     put_register_request_on_chain(
         &api,
@@ -650,7 +650,7 @@ async fn test_send_and_receive_keys() {
     run_to_block(&rpc, block_number + 2).await;
 
     // a key in registering state can be overwritten
-    let response_4 = client
+    let response_overwrites_key = client
         .post("http://127.0.0.1:3001/user/receive_key")
         .header("Content-Type", "application/json")
         .body(signed_message.clone())
@@ -658,8 +658,8 @@ async fn test_send_and_receive_keys() {
         .await
         .unwrap();
 
-    assert_eq!(response_4.status(), StatusCode::OK);
-    assert_eq!(response_4.text().await.unwrap(), "");
+    assert_eq!(response_overwrites_key.status(), StatusCode::OK);
+    assert_eq!(response_overwrites_key.text().await.unwrap(), "");
     clean_tests();
 }
 
