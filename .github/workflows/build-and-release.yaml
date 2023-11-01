@@ -4,6 +4,11 @@ run-name: Build and release (started by @${{ github.triggering_actor }})
 
 on:
   push:
+
+    # This is a temporary fix, just for this branch.
+    branches:
+      - vi/ci-builds-for-entropy-js
+
     tags:
       # First, match SemVer.org conformant tags in the `release/` tagspace.
       - release/v[0-9]+.[0-9]+.[0-9]+-?**  # Release, or pre-release build.
@@ -48,7 +53,7 @@ jobs:
 
   release:
     name: Publish new release
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.ref != 'refs/heads/vi/ci-builds-for-entropy-js'
     needs:
       - git-ref-basename
       - build-entropy

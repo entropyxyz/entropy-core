@@ -1,3 +1,17 @@
+###
+# NOTE: This is a STOP-GAP MEASURE/BAND-AID/QUICK 'N' DIRTY FIX for
+#       the sole and express purpose of, at least temporarily, making
+#       it possible to run `entropy-js` tests without triggering the
+#       binary's currently-unexplained segmentation faults when they
+#       are sending messages or communicating with other chain nodes.
+#
+#       There is no way we can use a single-stage Ubuntu build for a
+#       production deployment, nor are we intending to do so. Rather,
+#       this Dockerfile is just a "known working" configuration based
+#       on the `master` branch's `Dockerfile`, and that's all we need
+#       for the time being. I know, I know, we'll work it out. Trust.
+###
+
 # Which Cargo package to build. This is also the binary name.
 ARG PACKAGE=entropy
 # Version of Rust to build with.
@@ -10,7 +24,7 @@ ARG ALPINE_VERSION=3
 # https://doc.rust-lang.org/rustc/codegen-options/index.html#strip
 ARG STRIP=symbols
 
-FROM --platform=linux/amd64 rust:${RUST_VERSION}-slim-${DEBIAN_CODENAME} as build
+FROM ubuntu:22.04
 ARG PACKAGE
 ARG ALPINE_VERSION
 ARG STRIP
@@ -24,8 +38,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && apt-get install --yes \
         git pkg-config protobuf-compiler make libjemalloc2 clang \
         openssl libssl-dev \
-        bash \
-    && rustup target add wasm32-unknown-unknown
+        bash curl \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && $HOME/.cargo/bin/rustup target add wasm32-unknown-unknown
 
 # Now fetch and build our own source code. This is a somewhat involved
 # set of shell commands but the basic idea is that we are running the
@@ -64,14 +79,14 @@ RUN --mount=type=ssh \
     && echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" \
         > ~/.ssh/known_hosts \
     && CARGO_NET_GIT_FETCH_WITH_CLI=true \
-        cargo rustc --release -p ${PACKAGE} -- \
+        $HOME/.cargo/bin/cargo rustc --release -p ${PACKAGE} -- \
             -C target-feature=+crt-static \
             -C strip=${STRIP} \
     && install target/release/${PACKAGE} /usr/local/bin
 
 # Next stage will contain just our built binary, without dependencies.
-FROM --platform=linux/amd64 alpine:${ALPINE_VERSION}
-ARG PACKAGE
+#FROM alpine:${ALPINE_VERSION}
+#ARG PACKAGE
 ENV binary $PACKAGE
 
 WORKDIR /srv/entropy
@@ -88,15 +103,15 @@ RUN addgroup --system entropy \
 # lookups, as we've built with glibc, but Alpine provides musl libc.
 # This is a notorious issue in GNU glibc, currently without a fix:
 #     https://sourceware.org/bugzilla/show_bug.cgi?id=27959
-COPY --from=build \
-    /lib/x86_64-linux-gnu/libnss_* \
-    /lib/x86_64-linux-gnu/libc.so.6 \
-    /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 \
-    /lib/x86_64-linux-gnu/libresolv.so.2 \
-    /lib/x86_64-linux-gnu/
+#COPY --from=build \
+#    /lib/x86_64-linux-gnu/libnss_* \
+#    /lib/x86_64-linux-gnu/libc.so.6 \
+#    /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 \
+#    /lib/x86_64-linux-gnu/libresolv.so.2 \
+#    /lib/x86_64-linux-gnu/
 
 # Lastly, we copy our own files into the final container image stage.
-COPY --from=build --chown=entropy:entropy --chmod=554 /usr/local/bin/${PACKAGE} /usr/local/bin/${PACKAGE}
+#COPY --from=build --chown=entropy:entropy --chmod=554 /usr/local/bin/${PACKAGE} /usr/local/bin/${PACKAGE}
 COPY --chown=entropy:entropy --chmod=554 bin/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 # Don't run as the `root` user within the container.
