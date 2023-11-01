@@ -102,8 +102,8 @@ pub enum UserErr {
     CodecError(#[from] parity_scale_codec::Error),
     #[error("Kv Fatal error")]
     KvSerialize(String),
-    #[error("Ip Address Error: {0}")]
-    AddrParseError(#[from] std::net::AddrParseError),
+    #[error("Socket Address Parse Error: {0}")]
+    SocketAddParseError(#[from] std::io::Error),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
     #[error("No program set")]

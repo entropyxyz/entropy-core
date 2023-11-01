@@ -1,4 +1,4 @@
-use std::{net::SocketAddrV4, str::FromStr, time::Duration};
+use std::{net::ToSocketAddrs, time::Duration};
 
 use entropy_protocol::{
     execute_protocol::{execute_dkg, Channels},
@@ -47,7 +47,10 @@ pub async fn do_dkg(
         let tss_account = SubxtAccountId32(*address_slice);
         let validator_info = ValidatorInfo {
             x25519_public_key: validator_info.x25519_public_key,
-            ip_address: SocketAddrV4::from_str(std::str::from_utf8(&validator_info.ip_address)?)?,
+            ip_address: std::str::from_utf8(&validator_info.ip_address)?
+                .to_socket_addrs()?
+                .next()
+                .ok_or_else(|| UserErr::OptionUnwrapError("Error parsing socket address"))?,
             tss_account: tss_account.clone(),
         };
         converted_validator_info.push(validator_info);

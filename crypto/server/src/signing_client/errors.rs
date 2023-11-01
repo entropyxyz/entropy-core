@@ -71,8 +71,8 @@ pub enum ProtocolErr {
     ProgramError(#[from] crate::user::errors::ProgramError),
     #[error("Invalid length for converting address")]
     AddressConversionError(String),
-    #[error("Ip Address Error: {0}")]
-    AddrParseError(#[from] std::net::AddrParseError),
+    #[error("Socket Address Parse Error: {0}")]
+    SocketAddParseError(#[from] std::io::Error),
     #[error("Kv Fatal error")]
     KvSerialize(String),
     #[error("Validator Error: {0}")]
