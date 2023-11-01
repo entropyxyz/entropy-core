@@ -332,7 +332,7 @@ pub async fn receive_key(
                     .map_err(|_| UserErr::StringError("Account Conversion"))?,
             )
             .await?;
-            if registraiton_details {
+            if registration_details {
                 app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
             } else {
                 return Err(UserErr::AlreadyRegistered);
