@@ -71,8 +71,8 @@ pub enum ProtocolErr {
     ProgramError(#[from] crate::user::errors::ProgramError),
     #[error("Invalid length for converting address")]
     AddressConversionError(String),
-    #[error("Ip Address Error: {0}")]
-    AddrParseError(#[from] std::net::AddrParseError),
+    #[error("Socket Address Parse Error: {0}")]
+    SocketAddParseError(#[from] std::io::Error),
     #[error("Kv Fatal error")]
     KvSerialize(String),
     #[error("Validator Error: {0}")]
@@ -82,7 +82,7 @@ pub enum ProtocolErr {
     #[error("Account unable to be deserialized: {0}")]
     StringError(&'static str),
     #[error("Option Unwrap error: {0}")]
-    OptionUnwrapError(&'static str),
+    OptionUnwrapError(String),
     #[error("Proactive Refresh not called for")]
     NoProactiveRefresh,
 }

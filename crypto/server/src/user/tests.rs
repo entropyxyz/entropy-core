@@ -1,6 +1,6 @@
 use std::{
     env, fs,
-    net::SocketAddrV4,
+    net::{SocketAddr, ToSocketAddrs},
     path::PathBuf,
     str::FromStr,
     sync::Arc,
@@ -113,12 +113,12 @@ async fn test_sign_tx_no_chain() {
 
     let validators_info = vec![
         ValidatorInfo {
-            ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
+            ip_address: "localhost:3001".to_socket_addrs().unwrap().next().unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             tss_account: TSS_ACCOUNTS[0].clone(),
         },
         ValidatorInfo {
-            ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
+            ip_address: SocketAddr::from_str("127.0.0.1:3002").unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
@@ -365,13 +365,13 @@ async fn test_fail_signing_group() {
 
     let validators_info = vec![
         ValidatorInfo {
-            ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
+            ip_address: SocketAddr::from_str("127.0.0.1:3001").unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             tss_account: hex!["a664add5dfaca1dd560b949b5699b5f0c3c1df3a2ea77ceb0eeb4f77cc3ade04"]
                 .into(),
         },
         ValidatorInfo {
-            ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
+            ip_address: SocketAddr::from_str("127.0.0.1:3002").unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
@@ -716,12 +716,12 @@ async fn test_sign_tx_user_participates() {
 
     let validators_info = vec![
         ValidatorInfo {
-            ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
+            ip_address: SocketAddr::from_str("127.0.0.1:3001").unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             tss_account: TSS_ACCOUNTS[0].clone(),
         },
         ValidatorInfo {
-            ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
+            ip_address: SocketAddr::from_str("127.0.0.1:3002").unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
@@ -1046,7 +1046,7 @@ async fn test_register_with_private_key_visibility() {
         .iter()
         .enumerate()
         .map(|(i, ip)| ValidatorInfo {
-            ip_address: SocketAddrV4::from_str(ip).unwrap(),
+            ip_address: SocketAddr::from_str(ip).unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[i],
             tss_account: TSS_ACCOUNTS[i].clone(),
         })

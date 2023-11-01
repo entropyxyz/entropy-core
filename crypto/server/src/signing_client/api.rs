@@ -1,4 +1,4 @@
-use std::{net::SocketAddrV4, str::FromStr, time::Duration};
+use std::{net::ToSocketAddrs, str::FromStr, time::Duration};
 
 use axum::{
     body::Bytes,
@@ -146,7 +146,15 @@ pub async fn do_proactive_refresh(
         let tss_account = SubxtAccountId32(*address_slice);
         let validator_info = ValidatorInfo {
             x25519_public_key: validator_info.x25519_public_key,
-            ip_address: SocketAddrV4::from_str(std::str::from_utf8(&validator_info.ip_address)?)?,
+            ip_address: std::str::from_utf8(&validator_info.ip_address)?
+                .to_socket_addrs()?
+                .next()
+                .ok_or_else(|| {
+                    ProtocolErr::OptionUnwrapError(format!(
+                        "Error parsing socket address: {:?}",
+                        validator_info.ip_address
+                    ))
+                })?,
             tss_account: tss_account.clone(),
         };
         converted_validator_info.push(validator_info);
@@ -195,11 +203,11 @@ pub async fn validate_proactive_refresh(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| ProtocolErr::OptionUnwrapError("Error getting block hash"))?;
+        .ok_or_else(|| ProtocolErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let proactive_info_query = entropy::storage().staking_extension().proactive_refresh();
     let proactive_info =
         api.storage().at(block_hash).fetch(&proactive_info_query).await?.ok_or_else(|| {
-            ProtocolErr::OptionUnwrapError("Error getting Proactive Refresh trigger")
+            ProtocolErr::OptionUnwrapError("Error getting Proactive Refresh trigger".to_string())
         })?;
 
     if !proactive_info {
