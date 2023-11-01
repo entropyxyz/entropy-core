@@ -113,7 +113,7 @@ async fn test_sign_tx_no_chain() {
 
     let validators_info = vec![
         ValidatorInfo {
-            ip_address: SocketAddr::from_str("127.0.0.1:3001").unwrap(),
+            ip_address: "localhost:3001".to_socket_addrs().unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             tss_account: TSS_ACCOUNTS[0].clone(),
         },
