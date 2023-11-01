@@ -52,6 +52,8 @@ pub mod pallet {
     use sp_std::{fmt::Debug, vec};
 
     pub use crate::weights::WeightInfo;
+
+    const VERIFICATION_KEY_LENGTH: u32 = 33;
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
     pub trait Config:
@@ -77,7 +79,7 @@ pub mod pallet {
         pub confirmations: Vec<u8>,
         pub program: Vec<u8>,
         pub key_visibility: KeyVisibility,
-        pub verifying_key: Option<BoundedVec<u8, ConstU32<33>>>,
+        pub verifying_key: Option<BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>>,
     }
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -258,7 +260,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
             signing_subgroup: u8,
-            verifying_key: BoundedVec<u8, ConstU32<33>>,
+            verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
         ) -> DispatchResultWithPostInfo {
             let ts_server_account = ensure_signed(origin)?;
             let validator_stash =
