@@ -321,7 +321,7 @@ pub async fn receive_key(
         // TODO validate that an active proactive refresh is happening
         app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
     } else {
-        // delete key if user in regestering phase
+        // delete key if user in registering phase
         let exists_result =
             app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
         if exists_result {
