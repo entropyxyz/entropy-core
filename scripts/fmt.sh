@@ -1,4 +1,4 @@
 #!/bin/bash
-cargo fmt
+rustup run nightly cargo fmt
 taplo fmt
-cargo clippy -- -D warnings
+rustup run nightly cargo clippy -- -D warnings

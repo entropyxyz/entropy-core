@@ -41,6 +41,7 @@ pub trait WeightInfo {
 	fn register(p: u32, ) -> Weight;
 	fn confirm_register_registering(c: u32, ) -> Weight;
 	fn confirm_register_registered(c: u32, ) -> Weight;
+	fn confirm_register_failed_registering(c: u32, ) -> Weight;
 }
 
 /// Weights for pallet_relayer using the Substrate node and recommended hardware.
@@ -102,6 +103,25 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(4_u64))
 	}
+	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Relayer::Registering` (r:1 w:1)
+	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
+	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `c` is `[0, 2]`.
+	fn confirm_register_failed_registering(c: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `16501`
+		//  Estimated: `19966`
+		// Minimum execution time: 24_000_000 picoseconds.
+		Weight::from_parts(24_583_333, 0)
+			.saturating_add(Weight::from_parts(0, 19966))
+			// Standard Error: 954_703
+			.saturating_add(Weight::from_parts(1_250_000, 0).saturating_mul(c.into()))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }
 
 // For backwards compatibility and tests
@@ -161,5 +181,24 @@ impl WeightInfo for () {
 		Weight::from_parts(435_656_077, 19944)
 			.saturating_add(RocksDbWeight::get().reads(3_u64))
 			.saturating_add(RocksDbWeight::get().writes(4_u64))
+	}
+	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Relayer::Registering` (r:1 w:1)
+	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
+	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `c` is `[0, 2]`.
+	fn confirm_register_failed_registering(c: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `16501`
+		//  Estimated: `19966`
+		// Minimum execution time: 24_000_000 picoseconds.
+		Weight::from_parts(24_583_333, 0)
+			.saturating_add(Weight::from_parts(0, 19966))
+			// Standard Error: 954_703
+			.saturating_add(Weight::from_parts(1_250_000, 0).saturating_mul(c.into()))
+			.saturating_add(RocksDbWeight::get().reads(3))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 }
