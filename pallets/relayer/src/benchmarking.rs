@@ -102,6 +102,7 @@ benchmarks! {
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
     let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
+    let invalid_verifying_key = vec![10].try_into().unwrap();
     // add validators and a registering user with different verifying key
     for i in 0..SIG_PARTIES {
         let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
@@ -119,10 +120,7 @@ benchmarks! {
     });
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
-let invalid_verifying_key = vec![10].try_into().unwrap();
-...
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, invalid_verifying_key)
-  ...
   verify {
     assert_last_event::<T>(Event::<T>::FailedRegistration(sig_req_account).into());
   }
