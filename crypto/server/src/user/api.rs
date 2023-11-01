@@ -366,7 +366,7 @@ pub async fn get_registering_user_details(
     Ok(register_info)
 }
 
-/// Returns if a key is in a registering state.
+/// Returns `true` if the given account is in a "registering" state.
 pub async fn is_registering(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
