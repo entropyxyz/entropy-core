@@ -375,7 +375,7 @@ pub async fn is_registering(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let registering_info_query = entropy::storage().relayer().registering(who);
     let register_info = api.storage().at(block_hash).fetch(&registering_info_query).await?;
 
