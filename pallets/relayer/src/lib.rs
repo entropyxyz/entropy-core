@@ -288,7 +288,7 @@ pub mod pallet {
             }
 
             let registering_info_verifying_key =
-                registering_info.verifying_key.ok_or(Error::<T>::NoVerifyingKey)?;
+                registering_info.verifying_key.clone().ok_or(Error::<T>::NoVerifyingKey)?;
 
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 // If verifying key does not match for everyone, registration failed
@@ -339,7 +339,6 @@ pub mod pallet {
                     )
                     .into());
                 }
-                registering_info.verifying_key = Some(verifying_key);
                 registering_info.confirmations.push(signing_subgroup);
                 Registering::<T>::insert(&sig_req_account, registering_info);
                 Self::deposit_event(Event::AccountRegistering(sig_req_account, signing_subgroup));
