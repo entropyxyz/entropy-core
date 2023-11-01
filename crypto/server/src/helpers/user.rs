@@ -50,7 +50,12 @@ pub async fn do_dkg(
             ip_address: std::str::from_utf8(&validator_info.ip_address)?
                 .to_socket_addrs()?
                 .next()
-                .ok_or_else(|| UserErr::OptionUnwrapError("Error parsing socket address"))?,
+                .ok_or_else(|| {
+                    UserErr::OptionUnwrapError(format!(
+                        "Error parsing socket address: {:?}",
+                        validator_info.ip_address
+                    ))
+                })?,
             tss_account: tss_account.clone(),
         };
         converted_validator_info.push(validator_info);
@@ -111,12 +116,12 @@ pub async fn send_key(
         addresses_in_subgroup
             .iter()
             .position(|address| *address == *stash_address)
-            .ok_or_else(|| UserErr::OptionUnwrapError("Validator not in subgroup"))?,
+            .ok_or_else(|| UserErr::OptionUnwrapError("Validator not in subgroup".to_string()))?,
     );
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
 
     for validator in addresses_in_subgroup {
         let server_info_query = entropy::storage().staking_extension().threshold_servers(validator);
@@ -125,7 +130,7 @@ pub async fn send_key(
             .at(block_hash)
             .fetch(&server_info_query)
             .await?
-            .ok_or_else(|| UserErr::OptionUnwrapError("Server Info Fetch Error"))?;
+            .ok_or_else(|| UserErr::OptionUnwrapError("Server Info Fetch Error".to_string()))?;
         let signed_message = SignedMessage::new(
             signer.signer(),
             &Bytes(serde_json::to_vec(&user_registration_info.clone())?),

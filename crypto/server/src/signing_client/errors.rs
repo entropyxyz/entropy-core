@@ -82,7 +82,7 @@ pub enum ProtocolErr {
     #[error("Account unable to be deserialized: {0}")]
     StringError(&'static str),
     #[error("Option Unwrap error: {0}")]
-    OptionUnwrapError(&'static str),
+    OptionUnwrapError(String),
     #[error("Proactive Refresh not called for")]
     NoProactiveRefresh,
 }

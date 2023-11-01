@@ -299,7 +299,7 @@ pub async fn receive_key(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
 
     // check message is from the person sending the message (get stash key from threshold key)
     let stash_address_query =
@@ -339,7 +339,7 @@ pub async fn get_registering_user_details(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let registering_info_query = entropy::storage().relayer().registering(who);
     let register_info = api
         .storage()
@@ -391,7 +391,7 @@ pub async fn get_current_subgroup_signers(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let futures = (0..SIGNING_PARTY_SIZE)
         .map(|i| {
             let owned_number = Arc::clone(&number);
@@ -425,7 +425,10 @@ pub async fn get_current_subgroup_signers(
                         .to_socket_addrs()?
                         .next()
                         .ok_or_else(|| {
-                            UserErr::OptionUnwrapError("Error parsing socket address")
+                            UserErr::OptionUnwrapError(format!(
+                                "Error parsing socket address: {:?}",
+                                server_info.endpoint
+                            ))
                         })?,
                     tss_account: server_info.tss_account,
                 })
@@ -484,7 +487,7 @@ pub async fn validate_new_user(
     let latest_block_number = rpc
         .chain_get_header(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number"))?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
     // we subtract 1 as the message info is coming from the previous block
@@ -500,7 +503,7 @@ pub async fn validate_new_user(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let verifying_data_query = entropy::storage().relayer().dkg(chain_data.block_number);
     let verifying_data = api.storage().at(block_hash).fetch(&verifying_data_query).await?;
 

@@ -81,7 +81,7 @@ pub enum UserErr {
     #[error("Subscribe API error: {0}")]
     Subscribe(#[from] SubscribeErr),
     #[error("Option Unwrap error: {0}")]
-    OptionUnwrapError(&'static str),
+    OptionUnwrapError(String),
     #[error("Data is stale")]
     StaleData,
     #[error("Data is not verifiable")]
