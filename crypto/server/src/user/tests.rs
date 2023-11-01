@@ -415,7 +415,6 @@ async fn test_store_share() {
     let signing_address = alice.clone().to_account_id().to_ss58check();
 
     let cxt = test_context_stationary().await;
-    // put alice key in db to make sure overwrites
     let (_validator_ips, _validator_ids, _) =
         spawn_testing_validators(Some(signing_address.clone()), false).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
@@ -433,7 +432,7 @@ async fn test_store_share() {
         .await
         .unwrap();
 
-    let value = response_key.text().await.unwrap();
+    let original_key_shard = response_key.text().await.unwrap();
 
     let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let validators_info = vec![
@@ -491,8 +490,8 @@ async fn test_store_share() {
         .send()
         .await
         .unwrap();
-    let value_after = response_new_key.text().await.unwrap();
-    assert_ne!(value, value_after);
+    let key_shard_after = response_new_key.text().await.unwrap();
+    assert_ne!(original_key_shard, key_shard_after);
 
     // fails repeated data
     let response_repeated_data = client

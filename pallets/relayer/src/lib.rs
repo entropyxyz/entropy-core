@@ -292,7 +292,7 @@ pub mod pallet {
                 // If verifying key does not match for everyone, registration failed
                 if registering_info_verifying_key != verifying_key {
                     Registering::<T>::remove(&sig_req_account);
-                    Self::deposit_event(Event::FailedRegistered(sig_req_account));
+                    Self::deposit_event(Event::FailedRegistration(sig_req_account));
                     return Ok(Some(
                         <T as Config>::WeightInfo::confirm_register_failed_registering(
                             confirmation_length,
@@ -300,7 +300,6 @@ pub mod pallet {
                     )
                     .into());
                 }
-                // check to make verify key is the same
                 Registered::<T>::insert(
                     &sig_req_account,
                     RegisteredInfo {
@@ -330,7 +329,7 @@ pub mod pallet {
                 // If verifying key does not match for everyone, registration failed
                 if registering_info_verifying_key != verifying_key {
                     Registering::<T>::remove(&sig_req_account);
-                    Self::deposit_event(Event::FailedRegistered(sig_req_account));
+                    Self::deposit_event(Event::FailedRegistration(sig_req_account));
                     return Ok(Some(
                         <T as Config>::WeightInfo::confirm_register_failed_registering(
                             confirmation_length,
