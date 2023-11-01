@@ -118,17 +118,42 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node"),
+
     impl_name: create_runtime_str!("entropy-node"),
-    authoring_version: 10,
-    // Per convention: if the runtime behavior changes, increment spec_version
-    // and set impl_version to 0. If only runtime
-    // implementation changes and behavior does not, then leave spec_version as
-    // is and increment impl_version.
+
+    // This shouldn't ever really need to be updated unless block production changes in some serious
+    // way.
+    //
+    // > TLDR: Set the version to some sane value like 1 for now. We will need to have some more
+    // discussion on the future of this authoring_version and if we maybe deprecate it or change it
+    // and improve the documentation on when to bump this.
+    //
+    // See: https://substrate.stackexchange.com/questions/984/when-are-you-required-to-change-the-authoring-version-for-forkless-runtime-upg
+    authoring_version: 1,
+
+    // We update this if the runtime behaviour has changed. When this happens we set the
+    // `impl_version` to `0`.
     #[allow(clippy::zero_prefixed_literal)]
     spec_version: 007,
+
+    // We only bump this if the runtime behaviour remains unchanged, but the implementations details
+    // have changed.
+    //
+    // We also leave `spec_version` unchanged in that case.
     impl_version: 1,
+
     apis: RUNTIME_API_VERSIONS,
+
+    // This should be updated if an _existing_ call or extrinsic has changed (new pallet index, new
+    // call index, parameter changes, etc.).
+    //
+    // The `spec_version` also needs to be bumped in this case.
     transaction_version: 2,
+
+    // Version of the state implementation to use.
+    //
+    // Shouldn't ever really be changing this. If it does change it's probably consensus breaking,
+    // so make sure you know what you're doing.
     state_version: 1,
 };
 
