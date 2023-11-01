@@ -150,7 +150,7 @@ pub mod pallet {
         /// An account has been registered. \[who\]
         AccountRegistered(T::AccountId),
         /// An account registration has failed
-        FailedRegistered(T::AccountId),
+        FailedRegistration(T::AccountId),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
