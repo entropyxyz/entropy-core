@@ -134,13 +134,13 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // We update this if the runtime behaviour has changed. When this happens we set the
     // `impl_version` to `0`.
     #[allow(clippy::zero_prefixed_literal)]
-    spec_version: 007,
+    spec_version: 008,
 
     // We only bump this if the runtime behaviour remains unchanged, but the implementations details
     // have changed.
     //
     // We also leave `spec_version` unchanged in that case.
-    impl_version: 1,
+    impl_version: 0,
 
     apis: RUNTIME_API_VERSIONS,
 
@@ -148,7 +148,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // call index, parameter changes, etc.).
     //
     // The `spec_version` also needs to be bumped in this case.
-    transaction_version: 2,
+    transaction_version: 3,
 
     // Version of the state implementation to use.
     //
