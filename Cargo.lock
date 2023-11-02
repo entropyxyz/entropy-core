@@ -2347,7 +2347,7 @@ dependencies = [
 [[package]]
 name = "ec-core"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git?branch=example-risc0-verify#36a427fca8db368cd9125cb551764db9331d81d5"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?rev=3b852fe#3b852fe2180f55b544e22edb3935abbb0c45c75b"
 dependencies = [
  "getrandom 0.2.10",
  "serde",
@@ -2358,9 +2358,9 @@ dependencies = [
 [[package]]
 name = "ec-runtime"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git?branch=example-risc0-verify#36a427fca8db368cd9125cb551764db9331d81d5"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?rev=3b852fe#3b852fe2180f55b544e22edb3935abbb0c45c75b"
 dependencies = [
- "ec-core 0.1.0 (git+ssh://git@github.com/entropyxyz/constraints.git?branch=example-risc0-verify)",
+ "ec-core 0.1.0 (git+ssh://git@github.com/entropyxyz/constraints.git?rev=3b852fe)",
  "thiserror",
  "wasmtime 12.0.1",
 ]
