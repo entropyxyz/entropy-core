@@ -89,7 +89,7 @@ pub async fn spawn_testing_validators(
     extra_private_keys: bool,
 ) -> (Vec<String>, Vec<PartyId>, Option<KeyShare<KeyParams>>) {
     // spawn threshold servers
-    let ports = vec![3001i64, 3002];
+    let ports = [3001i64, 3002];
 
     let (alice_axum, alice_kv) =
         create_clients("validator1".to_string(), vec![], vec![], true, false).await;
@@ -182,15 +182,10 @@ pub async fn check_if_confirmation(
     let registering_query = entropy::storage().relayer().registering(signer.account_id());
     let registered_query = entropy::storage().relayer().registered(signer.account_id());
     let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
-    let is_registering = api.storage().at(block_hash.clone()).fetch(&registering_query).await;
+    let is_registering = api.storage().at(block_hash).fetch(&registering_query).await;
     // cleared from is_registering state
     assert!(is_registering.unwrap().is_none());
-<<<<<<< Updated upstream
-    let is_registered =
-        api.storage().at(block_hash.clone()).fetch(&registered_query).await.unwrap();
-=======
     let is_registered = api.storage().at(block_hash).fetch(&registered_query).await.unwrap();
->>>>>>> Stashed changes
     assert_eq!(is_registered.as_ref().unwrap().verifying_key.0.len(), 33usize);
     assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
 }

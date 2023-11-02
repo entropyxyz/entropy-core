@@ -95,7 +95,7 @@ async fn test_sign_tx_no_chain() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let signing_address = one.clone().to_account_id().to_ss58check();
+    let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), false).await;
     let substrate_context = test_context_stationary().await;
@@ -122,7 +122,7 @@ async fn test_sign_tx_no_chain() {
     let converted_transaction_request: String = hex::encode(PREIMAGE_SHOULD_SUCCEED);
 
     let signing_address = one.to_account_id().to_ss58check();
-    let hash_as_string = hex::encode(&message_should_succeed_hash);
+    let hash_as_string = hex::encode(message_should_succeed_hash);
     let sig_uid = create_unique_tx_id(&signing_address, &hash_as_string);
 
     let mut generic_msg = UserSignatureRequest {
@@ -410,7 +410,7 @@ async fn test_store_share() {
     clean_tests();
     let alice = AccountKeyring::Alice;
     let alice_program = AccountKeyring::Charlie;
-    let signing_address = alice.clone().to_account_id().to_ss58check();
+    let signing_address = alice.to_account_id().to_ss58check();
 
     let cxt = test_context_stationary().await;
     let (_validator_ips, _validator_ids, _) =
@@ -589,7 +589,7 @@ async fn test_send_and_receive_keys() {
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
     let client = reqwest::Client::new();
     // sends key to alice validator, while filtering out own key
-    let _ = send_key(
+    send_key(
         &api,
         &rpc,
         &alice.to_account_id().into(),
@@ -618,9 +618,9 @@ async fn test_send_and_receive_keys() {
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
 
     let signed_message = SignedMessage::new(
-        &signer_alice.signer(),
+        signer_alice.signer(),
         &Bytes(serde_json::to_vec(&user_registration_info.clone()).unwrap()),
-        &PublicKey::from(server_public_key),
+        &server_public_key,
     )
     .unwrap()
     .to_json();
@@ -683,8 +683,7 @@ async fn test_recover_key() {
         .unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_CHARLIE_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let _ =
-        recover_key(&api, &rpc, &bob_kv, &signer_alice, unsafe_query.key.clone()).await.unwrap();
+    recover_key(&api, &rpc, &bob_kv, &signer_alice, unsafe_query.key.clone()).await.unwrap();
 
     let value = bob_kv.kv().get(&unsafe_query.key).await.unwrap();
     assert_eq!(value, unsafe_query.value.into_bytes());
@@ -733,7 +732,7 @@ async fn test_sign_tx_user_participates() {
     let one = AccountKeyring::Eve;
     let two = AccountKeyring::Two;
 
-    let signing_address = one.clone().to_account_id().to_ss58check();
+    let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, users_keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), true).await;
     let substrate_context = test_context_stationary().await;
@@ -758,8 +757,8 @@ async fn test_sign_tx_user_participates() {
     let encoded_transaction_request: String = hex::encode(PREIMAGE_SHOULD_SUCCEED);
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
-    let signing_address = one.clone().to_account_id().to_ss58check();
-    let hash_as_hexstring = hex::encode(&message_should_succeed_hash);
+    let signing_address = one.to_account_id().to_ss58check();
+    let hash_as_hexstring = hex::encode(message_should_succeed_hash);
     let sig_uid = create_unique_tx_id(&signing_address, &hash_as_hexstring);
 
     let mut generic_msg = UserSignatureRequest {

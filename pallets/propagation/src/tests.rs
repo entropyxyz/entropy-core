@@ -73,7 +73,7 @@ fn knows_how_to_mock_several_http_calls() {
         pallet_staking_extension::ProactiveRefresh::<Test>::put(true);
         Propagation::post_proactive_refresh(6).unwrap();
         Propagation::on_initialize(6);
-        assert_eq!(Staking::proactive_refresh(), false);
+        assert!(!Staking::proactive_refresh());
     })
 }
 
