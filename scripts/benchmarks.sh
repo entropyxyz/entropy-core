@@ -1,11 +1,15 @@
 #!/bin/bash
 
-steps=5
-repeat=2
+steps=50
+repeat=20
 entropyOutput=./runtime/src/weights/
 entropyChain=dev
 pallets=(
   pallet_relayer
+  pallet_staking_extension
+  pallet_programs
+  pallet_transaction_pause
+  pallet_free_tx
 )
 
 for p in ${pallets[@]}
