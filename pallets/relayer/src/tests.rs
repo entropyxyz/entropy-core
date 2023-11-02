@@ -65,7 +65,7 @@ fn it_registers_a_user() {
             empty_program,
         ));
 
-        assert!(Relayer::registering(1).unwrap().is_registering);
+        assert_eq!(Relayer::registering(1).unwrap().registration_block, 0);
         assert_eq!(Relayer::dkg(0), vec![1u64.encode()]);
     });
 }
@@ -153,7 +153,7 @@ fn it_confirms_registers_a_user() {
         );
 
         let registering_info = RegisteringDetails::<Test> {
-            is_registering: true,
+            registration_block: 0,
             program_modification_account: 2 as <Test as frame_system::Config>::AccountId,
             confirmations: vec![0],
             program: vec![],
@@ -239,6 +239,28 @@ fn it_doesnt_allow_double_registering() {
     });
 }
 
+#[test]
+fn it_tests_prune_registration() {
+    new_test_ext().execute_with(|| {
+        // register a user
+        let empty_program = vec![];
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(1),
+            2,
+            KeyVisibility::Permissioned,
+            empty_program,
+        ));
+
+        assert_noop!(
+            Relayer::prune_registration(RuntimeOrigin::signed(1)),
+            Error::<Test>::NotLongEnough
+        );
+        assert!(Relayer::registering(1).is_some());
+        System::set_block_number(5);
+        assert_ok!(Relayer::prune_registration(RuntimeOrigin::signed(1)));
+        assert_eq!(Relayer::registering(1), None);
+    });
+}
 #[test]
 fn it_provides_free_txs_confirm_done() {
     new_test_ext().execute_with(|| {

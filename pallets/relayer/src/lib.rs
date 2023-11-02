@@ -48,7 +48,10 @@ pub mod pallet {
     use pallet_programs::{AllowedToModifyProgram, Pallet as ProgramsPallet};
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
-    use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
+    use sp_runtime::{
+        traits::{DispatchInfoOf, SignedExtension},
+        Saturating,
+    };
     use sp_std::{fmt::Debug, vec};
 
     pub use crate::weights::WeightInfo;
@@ -74,7 +77,7 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
-        pub is_registering: bool,
+        pub registration_block: BlockNumberFor<T>,
         pub program_modification_account: T::AccountId,
         pub confirmations: Vec<u8>,
         pub program: Vec<u8>,
@@ -153,6 +156,8 @@ pub mod pallet {
         AccountRegistered(T::AccountId),
         /// An account registration has failed
         FailedRegistration(T::AccountId),
+        /// An account cancelled their registraiton
+        RegistrationCancelled(T::AccountId),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
@@ -172,6 +177,7 @@ pub mod pallet {
         NoSyncedValidators,
         MaxProgramLengthExceeded,
         NoVerifyingKey,
+        NotLongEnough,
     }
 
     #[pallet::call]
@@ -226,7 +232,7 @@ pub mod pallet {
             Registering::<T>::insert(
                 &sig_req_account,
                 RegisteringDetails::<T> {
-                    is_registering: true,
+                    registration_block: block_number,
                     program_modification_account,
                     confirmations: vec![],
                     program: initial_program,
@@ -240,6 +246,25 @@ pub mod pallet {
 
             Self::deposit_event(Event::SignalRegister(sig_req_account));
 
+            Ok(())
+        }
+
+        #[pallet::call_index(1)]
+        // TODO benchmark
+        #[pallet::weight({
+            <T as Config>::WeightInfo::register(0u32)
+        })]
+        pub fn prune_registration(origin: OriginFor<T>) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let registering_info = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
+            let block_number = <frame_system::Pallet<T>>::block_number();
+            ensure!(
+                block_number.saturating_sub(registering_info.registration_block)
+                    >= T::PruneBlock::get(),
+                Error::<T>::NotLongEnough
+            );
+            Registering::<T>::remove(&who);
+            Self::deposit_event(Event::RegistrationCancelled(who));
             Ok(())
         }
 

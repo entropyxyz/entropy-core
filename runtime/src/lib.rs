@@ -1272,7 +1272,7 @@ impl pallet_slashing::Config for Runtime {
 }
 
 parameter_types! {
-  pub const PruneBlock: BlockNumber = 10;
+  pub const PruneBlock: BlockNumber = 20;
   pub const SigningPartySize: usize = SIGNING_PARTY_SIZE;
 }
 
