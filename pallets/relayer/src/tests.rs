@@ -242,23 +242,23 @@ fn it_doesnt_allow_double_registering() {
 #[test]
 fn it_tests_prune_registration() {
     new_test_ext().execute_with(|| {
-        // register a user
         let empty_program = vec![];
+        // register a user
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Permissioned,
             empty_program,
         ));
-
+        // checks to make sure it is not long enough
         assert_noop!(
             Relayer::prune_registration(RuntimeOrigin::signed(1)),
             Error::<Test>::NotLongEnough
         );
-        assert!(Relayer::registering(1).is_some());
+        assert!(Relayer::registering(1).is_some(), "Make sure there is registering state");
         System::set_block_number(5);
         assert_ok!(Relayer::prune_registration(RuntimeOrigin::signed(1)));
-        assert_eq!(Relayer::registering(1), None);
+        assert_eq!(Relayer::registering(1), None, "Make sure registering is pruned");
     });
 }
 #[test]

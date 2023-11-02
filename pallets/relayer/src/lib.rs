@@ -249,8 +249,8 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Allows a user to remove themselves from registering state if it has been longer than prune block
         #[pallet::call_index(1)]
-        // TODO benchmark
         #[pallet::weight({
             <T as Config>::WeightInfo::prune_registration()
         })]
