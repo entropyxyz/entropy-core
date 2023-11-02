@@ -42,8 +42,8 @@ use synedrion::{
 };
 use testing_utils::{
     constants::{
-        ALICE_STASH_ADDRESS, BAREBONES_PROGRAM_WASM_BYTECODE, MESSAGE_SHOULD_FAIL,
-        MESSAGE_SHOULD_SUCCEED, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+        ALICE_STASH_ADDRESS, TEST_PROGRAM_WASM_BYTECODE, PREIMAGE_SHOULD_FAIL,
+        PREIMAGE_SHOULD_SUCCEED, EXTRA_SHOULD_FAIL, EXTRA_SHOULD_SUCCEED, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
@@ -73,7 +73,7 @@ use crate::{
     load_kv_store, new_user,
     r#unsafe::api::UnsafeQuery,
     signing_client::ListenerState,
-    user::api::{recover_key, UserRegistrationInfo, UserTransactionRequest},
+    user::api::{recover_key, UserRegistrationInfo, UserSignatureRequest},
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
 };
@@ -105,11 +105,11 @@ async fn test_sign_tx_no_chain() {
         &entropy_api,
         &one.pair(),
         &one.pair(),
-        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
     )
     .await;
 
-    let message_should_succeed_hash = Hasher::keccak(MESSAGE_SHOULD_SUCCEED);
+    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
     let validators_info = vec![
         ValidatorInfo {
@@ -124,21 +124,22 @@ async fn test_sign_tx_no_chain() {
         },
     ];
 
-    let converted_transaction_request: String = hex::encode(MESSAGE_SHOULD_SUCCEED);
+    let converted_transaction_request: String = hex::encode(PREIMAGE_SHOULD_SUCCEED);
 
     let signing_address = one.to_account_id().to_ss58check();
     let hash_as_string = hex::encode(&message_should_succeed_hash);
     let sig_uid = create_unique_tx_id(&signing_address, &hash_as_string);
 
-    let mut generic_msg = UserTransactionRequest {
-        transaction_request: converted_transaction_request.clone(),
+    let mut generic_msg = UserSignatureRequest {
+        preimage: converted_transaction_request.clone(),
+        extra: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
         validators_info,
         timestamp: SystemTime::now(),
     };
 
     let submit_transaction_requests =
         |validator_urls_and_keys: Vec<(String, [u8; 32])>,
-         generic_msg: UserTransactionRequest,
+         generic_msg: UserSignatureRequest,
          keyring: Sr25519Keyring| async move {
             let mock_client = reqwest::Client::new();
             join_all(
@@ -267,8 +268,9 @@ async fn test_sign_tx_no_chain() {
         assert_eq!(res.text().await.unwrap(), "Invalid Signer: Invalid Signer in Signing group");
     }
 
-    // Test a transcation which does not pass constaints
-    generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
+    // Now, test a signature request that should fail
+    // The test program is written to fail when `extra` is `None`
+    generic_msg.extra = None;
     generic_msg.timestamp = SystemTime::now();
 
     let test_user_failed_programs_res =
@@ -277,7 +279,7 @@ async fn test_sign_tx_no_chain() {
     for res in test_user_failed_programs_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Runtime error: Runtime(Error::Evaluation(\"Length of data is too short.\"))"
+            "Runtime error: Runtime(Error::Evaluation(\"This program requires that `extra` be `Some`.\"))"
         );
     }
 
@@ -361,7 +363,6 @@ async fn test_fail_signing_group() {
     let _ = spawn_testing_validators(None, false).await;
 
     let _substrate_context = test_node_process_testing_state().await;
-    let message_raw = MESSAGE_SHOULD_SUCCEED.to_owned();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -377,8 +378,10 @@ async fn test_fail_signing_group() {
         },
     ];
 
-    let generic_msg = UserTransactionRequest {
-        transaction_request: hex::encode(message_raw),
+    let preimage = PREIMAGE_SHOULD_SUCCEED.to_owned();
+    let generic_msg = UserSignatureRequest {
+        preimage: hex::encode(preimage),
+        extra: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
         validators_info,
         timestamp: SystemTime::now(),
     };
@@ -745,7 +748,7 @@ async fn test_sign_tx_user_participates() {
         &entropy_api,
         &one.pair(),
         &one.pair(),
-        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
     )
     .await;
 
@@ -762,22 +765,23 @@ async fn test_sign_tx_user_participates() {
         },
     ];
 
-    let converted_transaction_request: String = hex::encode(MESSAGE_SHOULD_SUCCEED);
-    let message_should_succeed_hash = Hasher::keccak(MESSAGE_SHOULD_SUCCEED);
+    let encoded_transaction_request: String = hex::encode(PREIMAGE_SHOULD_SUCCEED);
+    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
     let signing_address = one.clone().to_account_id().to_ss58check();
-    let hash_as_string = hex::encode(&message_should_succeed_hash);
-    let sig_uid = create_unique_tx_id(&signing_address, &hash_as_string);
+    let hash_as_hexstring = hex::encode(&message_should_succeed_hash);
+    let sig_uid = create_unique_tx_id(&signing_address, &hash_as_hexstring);
 
-    let mut generic_msg = UserTransactionRequest {
-        transaction_request: converted_transaction_request.clone(),
+    let mut generic_msg = UserSignatureRequest {
+        preimage: encoded_transaction_request.clone(),
+        extra: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
     };
 
     let submit_transaction_requests =
         |validator_urls_and_keys: Vec<(String, [u8; 32])>,
-         generic_msg: UserTransactionRequest,
+         generic_msg: UserSignatureRequest,
          keyring: Sr25519Keyring| async move {
             let mock_client = reqwest::Client::new();
             join_all(
@@ -944,8 +948,9 @@ async fn test_sign_tx_user_participates() {
         assert_eq!(res.text().await.unwrap(), "Invalid Signer: Invalid Signer in Signing group");
     }
 
-    // Test a transcation which does not pass constaints
-    generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
+    // Now, test a signature request that should fail
+    // The test program is written to fail when `extra` is `None`
+    generic_msg.extra = None;
     generic_msg.timestamp = SystemTime::now();
 
     let test_user_failed_programs_res =
@@ -954,7 +959,7 @@ async fn test_sign_tx_user_participates() {
     for res in test_user_failed_programs_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Runtime error: Runtime(Error::Evaluation(\"Length of data is too short.\"))"
+            "Runtime error: Runtime(Error::Evaluation(\"This program requires that `extra` be `Some`.\"))"
         );
     }
 

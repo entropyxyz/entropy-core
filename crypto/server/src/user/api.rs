@@ -62,9 +62,11 @@ use crate::{
 /// Represents an unparsed, transaction request coming from the client.
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
-pub struct UserTransactionRequest {
-    /// Hex-encoded raw data to be signed (eg. RLP-serialized Ethereum transaction)
-    pub transaction_request: String,
+pub struct UserSignatureRequest {
+    /// Hex-encoded raw data to be signed (eg. hex-encoded RLP-serialized Ethereum transaction)
+    pub preimage: String,
+    /// Hex-encoded extra data required for program evaluation (eg. zero-knowledge proof, serialized struct, etc)
+    pub extra: Option<String>,
     /// Information from the validators in signing party
     pub validators_info: Vec<ValidatorInfo>,
     /// When the message was created and signed
@@ -114,10 +116,12 @@ pub async fn sign_tx(
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
-    let mut user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
+    let mut user_tx_req: UserSignatureRequest = serde_json::from_slice(&decrypted_message)?;
     check_stale(user_tx_req.timestamp)?;
-    let raw_message = hex::decode(user_tx_req.transaction_request.clone())?;
-    let sig_hash = hex::encode(Hasher::keccak(&raw_message));
+
+    let preimage = hex::decode(&user_tx_req.preimage)?;
+    let extra = user_tx_req.extra.as_ref().map(hex::decode).transpose()?;
+    let sig_hash = hex::encode(Hasher::keccak(&preimage));
     let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &sig_hash).await?;
     check_signing_group(&subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
 
@@ -135,7 +139,7 @@ pub async fn sign_tx(
     let program = get_program(&api, &rpc, &second_signing_address_conversion).await?;
 
     let mut runtime = Runtime::new();
-    let initial_state = InitialState { data: raw_message };
+    let initial_state = InitialState { preimage, extra };
 
     runtime.evaluate(&program, &initial_state)?;
 
