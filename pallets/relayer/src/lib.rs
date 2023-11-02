@@ -252,7 +252,7 @@ pub mod pallet {
         #[pallet::call_index(1)]
         // TODO benchmark
         #[pallet::weight({
-            <T as Config>::WeightInfo::register(0u32)
+            <T as Config>::WeightInfo::prune_registration()
         })]
         pub fn prune_registration(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
