@@ -12,12 +12,13 @@
   etc.), bump `transaction_version` and bump `spec_version`
 - [ ] If you're confused about what to bump, read [this](https://paritytech.github.io/polkadot-sdk/master/sp_version/struct.RuntimeVersion.html)
 - [ ] Update runtime benchmarks
-    - `cargo build -p entropy --release && ./scripts/benchmarks.sh`
+    - `cargo build -p entropy --release --features runtime-benchmarks && ./scripts/benchmarks.sh`
 - [ ] Bump `version` in TOML manifests
     - For crates with `publish = false`, bump `PATCH` version
     - For crates with `publish = true`, bump based off [SemVer](https://semver.org/)
 - [ ] Update runtime metadata
-    - `cargo run -p entropy -- --dev && ./scripts/pull_entropy_metadata.sh`
+    - `cargo run -p entropy -- --dev`
+    - `./scripts/pull_entropy_metadata.sh`
 
 ## Prep the Threshold Signing Server (TSS)
 - [ ] Bump `version` in TOML manifests
