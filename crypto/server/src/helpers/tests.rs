@@ -185,8 +185,12 @@ pub async fn check_if_confirmation(
     let is_registering = api.storage().at(block_hash.clone()).fetch(&registering_query).await;
     // cleared from is_registering state
     assert!(is_registering.unwrap().is_none());
+<<<<<<< Updated upstream
     let is_registered =
         api.storage().at(block_hash.clone()).fetch(&registered_query).await.unwrap();
+=======
+    let is_registered = api.storage().at(block_hash).fetch(&registered_query).await.unwrap();
+>>>>>>> Stashed changes
     assert_eq!(is_registered.as_ref().unwrap().verifying_key.0.len(), 33usize);
     assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
 }

@@ -42,8 +42,8 @@ use synedrion::{
 };
 use testing_utils::{
     constants::{
-        ALICE_STASH_ADDRESS, TEST_PROGRAM_WASM_BYTECODE, PREIMAGE_SHOULD_FAIL,
-        PREIMAGE_SHOULD_SUCCEED, EXTRA_SHOULD_FAIL, EXTRA_SHOULD_SUCCEED, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+        ALICE_STASH_ADDRESS, EXTRA_SHOULD_FAIL, EXTRA_SHOULD_SUCCEED, PREIMAGE_SHOULD_FAIL,
+        PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
@@ -101,13 +101,8 @@ async fn test_sign_tx_no_chain() {
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    update_programs(
-        &entropy_api,
-        &one.pair(),
-        &one.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-    )
-    .await;
+    update_programs(&entropy_api, &one.pair(), &one.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+        .await;
 
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
@@ -744,13 +739,8 @@ async fn test_sign_tx_user_participates() {
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    update_programs(
-        &entropy_api,
-        &one.pair(),
-        &one.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-    )
-    .await;
+    update_programs(&entropy_api, &one.pair(), &one.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+        .await;
 
     let validators_info = vec![
         ValidatorInfo {
