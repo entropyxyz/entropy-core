@@ -263,6 +263,13 @@ pub mod pallet {
                     >= T::PruneBlock::get(),
                 Error::<T>::NotLongEnough
             );
+
+            // return program deposit
+            ProgramsPallet::<T>::update_program_storage_deposit(
+                &registering_info.program_modification_account,
+                registering_info.program.len(),
+                0,
+            )?;
             Registering::<T>::remove(&who);
             Self::deposit_event(Event::RegistrationCancelled(who));
             Ok(())

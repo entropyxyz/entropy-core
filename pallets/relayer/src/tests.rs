@@ -3,6 +3,7 @@ use entropy_shared::KeyVisibility;
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
+    traits::Currency,
     BoundedVec,
 };
 use pallet_programs::AllowedToModifyProgram;
@@ -242,14 +243,17 @@ fn it_doesnt_allow_double_registering() {
 #[test]
 fn it_tests_prune_registration() {
     new_test_ext().execute_with(|| {
-        let empty_program = vec![];
+        let inital_program = vec![10];
+        Balances::make_free_balance_be(&2, 100);
         // register a user
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Permissioned,
-            empty_program,
+            inital_program,
         ));
+        assert_eq!(Balances::free_balance(2), 95, "Deposit is charged");
+
         // checks to make sure it is not long enough
         assert_noop!(
             Relayer::prune_registration(RuntimeOrigin::signed(1)),
@@ -259,6 +263,7 @@ fn it_tests_prune_registration() {
         System::set_block_number(5);
         assert_ok!(Relayer::prune_registration(RuntimeOrigin::signed(1)));
         assert_eq!(Relayer::registering(1), None, "Make sure registering is pruned");
+        assert_eq!(Balances::free_balance(2), 100, "Deposit is returned");
     });
 }
 #[test]
