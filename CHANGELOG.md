@@ -28,6 +28,7 @@ Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy
 - The Constraints pallet has been renamed to the Programs pallet
 
 ### Added
+- Add a prune_registration extrinsic in relayer that allows for accounts to be moved out of registering state if dkg fails ([#472](https://github.com/entropyxyz/entropy-core/pull/472))
 - Add way for validators to resolve diff verifying keys ([#460](https://github.com/entropyxyz/entropy-core/pull/460))
     - This introduces a new `FailedRegistration` event which might be of interest to consumers of this
       pallet.
