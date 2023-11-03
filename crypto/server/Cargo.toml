@@ -44,7 +44,7 @@ kvdb            ={ path="../kvdb", default-features=false }
 entropy-protocol={ path="../protocol", features=["server"] }
 
 # Constraints
-ec-runtime={ git="ssh://git@github.com/entropyxyz/constraints.git", rev="3b852fe"}
+ec-runtime={ git="ssh://git@github.com/entropyxyz/constraints.git", rev="3b852fe" }
 
 # Logging
 log               ="0.4.17"                                              # todo: remove, overlaps tracing
