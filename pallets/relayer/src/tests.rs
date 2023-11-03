@@ -65,8 +65,6 @@ fn it_registers_a_user() {
             KeyVisibility::Public,
             empty_program,
         ));
-
-        assert_eq!(Relayer::registering(1).unwrap().registration_block, 0);
         assert_eq!(Relayer::dkg(0), vec![1u64.encode()]);
     });
 }
@@ -154,7 +152,6 @@ fn it_confirms_registers_a_user() {
         );
 
         let registering_info = RegisteringDetails::<Test> {
-            registration_block: 0,
             program_modification_account: 2 as <Test as frame_system::Config>::AccountId,
             confirmations: vec![0],
             program: vec![],

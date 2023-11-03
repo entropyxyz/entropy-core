@@ -73,7 +73,6 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
-        pub registration_block: BlockNumberFor<T>,
         pub program_modification_account: T::AccountId,
         pub confirmations: Vec<u8>,
         pub program: Vec<u8>,
@@ -227,7 +226,6 @@ pub mod pallet {
             Registering::<T>::insert(
                 &sig_req_account,
                 RegisteringDetails::<T> {
-                    registration_block: block_number,
                     program_modification_account,
                     confirmations: vec![],
                     program: initial_program,
