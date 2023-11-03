@@ -156,7 +156,7 @@ pub mod pallet {
         AccountRegistered(T::AccountId),
         /// An account registration has failed
         FailedRegistration(T::AccountId),
-        /// An account cancelled their registraiton
+        /// An account cancelled their registration
         RegistrationCancelled(T::AccountId),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
