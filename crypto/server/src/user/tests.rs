@@ -104,8 +104,6 @@ async fn test_sign_tx_no_chain() {
     update_programs(&entropy_api, &one.pair(), &one.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
         .await;
 
-    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-
     let validators_info = vec![
         ValidatorInfo {
             ip_address: "localhost:3001".to_socket_addrs().unwrap().next().unwrap(),
@@ -119,14 +117,13 @@ async fn test_sign_tx_no_chain() {
         },
     ];
 
-    let converted_transaction_request: String = hex::encode(PREIMAGE_SHOULD_SUCCEED);
-
+    let image = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let hash_as_string = hex::encode(image);
     let signing_address = one.to_account_id().to_ss58check();
-    let hash_as_string = hex::encode(message_should_succeed_hash);
     let sig_uid = create_unique_tx_id(&signing_address, &hash_as_string);
 
     let mut generic_msg = UserSignatureRequest {
-        preimage: converted_transaction_request.clone(),
+        preimage: hex::encode(PREIMAGE_SHOULD_SUCCEED),
         extra: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
         validators_info,
         timestamp: SystemTime::now(),
@@ -134,7 +131,7 @@ async fn test_sign_tx_no_chain() {
 
     let submit_transaction_requests =
         |validator_urls_and_keys: Vec<(String, [u8; 32])>,
-         generic_msg: UserSignatureRequest,
+         signature_request: UserSignatureRequest,
          keyring: Sr25519Keyring| async move {
             let mock_client = reqwest::Client::new();
             join_all(
@@ -144,7 +141,7 @@ async fn test_sign_tx_no_chain() {
                         let server_public_key = PublicKey::from(validator_tuple.1);
                         let signed_message = SignedMessage::new(
                             &keyring.pair(),
-                            &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+                            &Bytes(serde_json::to_vec(&signature_request.clone()).unwrap()),
                             &server_public_key,
                         )
                         .unwrap();
@@ -169,14 +166,14 @@ async fn test_sign_tx_no_chain() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    verify_signature(test_user_res, message_should_succeed_hash, keyshare_option.clone()).await;
+    verify_signature(test_user_res, image, keyshare_option.clone()).await;
 
     generic_msg.timestamp = SystemTime::now();
     generic_msg.validators_info = generic_msg.validators_info.into_iter().rev().collect::<Vec<_>>();
     let test_user_res_order =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    verify_signature(test_user_res_order, message_should_succeed_hash, keyshare_option.clone())
+    verify_signature(test_user_res_order, image, keyshare_option.clone())
         .await;
 
     generic_msg.timestamp = SystemTime::now();
@@ -373,9 +370,8 @@ async fn test_fail_signing_group() {
         },
     ];
 
-    let preimage = PREIMAGE_SHOULD_SUCCEED.to_owned();
     let generic_msg = UserSignatureRequest {
-        preimage: hex::encode(preimage),
+        preimage: hex::encode(PREIMAGE_SHOULD_SUCCEED),
         extra: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
         validators_info,
         timestamp: SystemTime::now(),
