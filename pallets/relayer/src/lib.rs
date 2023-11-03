@@ -254,11 +254,10 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let registering_info = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
             // return program deposit
-            ProgramsPallet::<T>::update_program_storage_deposit(
+            ProgramsPallet::<T>::unreserve_program_deposit(
                 &registering_info.program_modification_account,
                 registering_info.program.len(),
-                0,
-            )?;
+            );
             Registering::<T>::remove(&who);
             Self::deposit_event(Event::RegistrationCancelled(who));
             Ok(())
