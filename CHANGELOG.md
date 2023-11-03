@@ -36,8 +36,8 @@ Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy
 - Add way for validators to resolve diff verifying keys ([#460](https://github.com/entropyxyz/entropy-core/pull/460))
     - This introduces a new `FailedRegistration` event which might be of interest to consumers of this
       pallet.
-- Add prune_registration extrinsic ([#472](https://github.com/entropyxyz/entropy-core/pull/472))
-  - allows for accounts to be moved out of registering state if dkg fails
+- Add `prune_registration` extrinsic ([#472](https://github.com/entropyxyz/entropy-core/pull/472))
+  - Allows for accounts to be moved out of registering state if DKG fails.
 
 ### Changed
 - Replace outdated `--ws-external` with `--rpc-external` ([#424](https://github.com/entropyxyz/entropy-core/pull/424))
