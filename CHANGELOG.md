@@ -37,7 +37,7 @@ Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy
     - This introduces a new `FailedRegistration` event which might be of interest to consumers of this
       pallet.
 - Add `prune_registration` extrinsic ([#472](https://github.com/entropyxyz/entropy-core/pull/472))
-  - Allows for accounts to be moved out of registering state if DKG fails.
+  - Allows for accounts to be moved out of registering state (e.g if DKG fails).
 
 ### Changed
 - Replace outdated `--ws-external` with `--rpc-external` ([#424](https://github.com/entropyxyz/entropy-core/pull/424))
