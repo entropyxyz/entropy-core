@@ -82,7 +82,6 @@ benchmarks! {
         key_visibility: KeyVisibility::Public,
         verifying_key: Some(BoundedVec::default())
     });
-        frame_system::Pallet::<T>::set_block_number(25u32.into());
   }: _(RawOrigin::Signed(sig_req_account.clone()))
   verify {
     assert_last_event::<T>(Event::RegistrationCancelled(sig_req_account.clone()).into());

@@ -48,10 +48,7 @@ pub mod pallet {
     use pallet_programs::{AllowedToModifyProgram, Pallet as ProgramsPallet};
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
-    use sp_runtime::{
-        traits::{DispatchInfoOf, SignedExtension},
-        Saturating,
-    };
+    use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
     use sp_std::{fmt::Debug, vec};
 
     pub use crate::weights::WeightInfo;
@@ -68,7 +65,6 @@ pub mod pallet {
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        type PruneBlock: Get<BlockNumberFor<Self>>;
         type SigningPartySize: Get<usize>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
@@ -257,13 +253,6 @@ pub mod pallet {
         pub fn prune_registration(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
             let registering_info = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
-            let block_number = <frame_system::Pallet<T>>::block_number();
-            ensure!(
-                block_number.saturating_sub(registering_info.registration_block)
-                    >= T::PruneBlock::get(),
-                Error::<T>::NotLongEnough
-            );
-
             // return program deposit
             ProgramsPallet::<T>::update_program_storage_deposit(
                 &registering_info.program_modification_account,

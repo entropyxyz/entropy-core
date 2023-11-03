@@ -253,14 +253,7 @@ fn it_tests_prune_registration() {
             inital_program,
         ));
         assert_eq!(Balances::free_balance(2), 95, "Deposit is charged");
-
-        // checks to make sure it is not long enough
-        assert_noop!(
-            Relayer::prune_registration(RuntimeOrigin::signed(1)),
-            Error::<Test>::NotLongEnough
-        );
         assert!(Relayer::registering(1).is_some(), "Make sure there is registering state");
-        System::set_block_number(5);
         assert_ok!(Relayer::prune_registration(RuntimeOrigin::signed(1)));
         assert_eq!(Relayer::registering(1), None, "Make sure registering is pruned");
         assert_eq!(Balances::free_balance(2), 100, "Deposit is returned");
