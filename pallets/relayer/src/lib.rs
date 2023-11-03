@@ -173,7 +173,6 @@ pub mod pallet {
         NoSyncedValidators,
         MaxProgramLengthExceeded,
         NoVerifyingKey,
-        NotLongEnough,
     }
 
     #[pallet::call]
