@@ -39,6 +39,7 @@ use core::marker::PhantomData;
 /// Weight functions needed for pallet_relayer.
 pub trait WeightInfo {
 	fn register(p: u32, ) -> Weight;
+	fn prune_registration() -> Weight;
 	fn confirm_register_registering(c: u32, ) -> Weight;
 	fn confirm_register_registered(c: u32, ) -> Weight;
 	fn confirm_register_failed_registering(c: u32, ) -> Weight;
@@ -64,6 +65,18 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(Weight::from_parts(528, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
+	}
+	/// Storage: `Relayer::Registering` (r:1 w:1)
+	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn prune_registration() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `171`
+		//  Estimated: `3636`
+		// Minimum execution time: 12_000_000 picoseconds.
+		Weight::from_parts(12_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3636))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	/// Storage: StakingExtension ThresholdToStash (r:1 w:0)
 	/// Proof Skipped: StakingExtension ThresholdToStash (max_values: None, max_size: None, mode: Measured)
@@ -143,6 +156,18 @@ impl WeightInfo for () {
 			.saturating_add(Weight::from_parts(528, 0).saturating_mul(p.into()))
 			.saturating_add(RocksDbWeight::get().reads(3_u64))
 			.saturating_add(RocksDbWeight::get().writes(2_u64))
+	}
+	/// Storage: `Relayer::Registering` (r:1 w:1)
+	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn prune_registration() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `171`
+		//  Estimated: `3636`
+		// Minimum execution time: 12_000_000 picoseconds.
+		Weight::from_parts(12_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3636))
+			.saturating_add(RocksDbWeight::get().reads(1))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	/// Storage: StakingExtension ThresholdToStash (r:1 w:0)
 	/// Proof Skipped: StakingExtension ThresholdToStash (max_values: None, max_size: None, mode: Measured)

@@ -1272,12 +1272,10 @@ impl pallet_slashing::Config for Runtime {
 }
 
 parameter_types! {
-  pub const PruneBlock: BlockNumber = 10;
   pub const SigningPartySize: usize = SIGNING_PARTY_SIZE;
 }
 
 impl pallet_relayer::Config for Runtime {
-    type PruneBlock = PruneBlock;
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
     type WeightInfo = weights::pallet_relayer::WeightInfo<Runtime>;

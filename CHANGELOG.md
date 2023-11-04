@@ -28,14 +28,16 @@ Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy
 - The Constraints pallet has been renamed to the Programs pallet
 
 ### Added
-- Add way for validators to resolve diff verifying keys ([#460](https://github.com/entropyxyz/entropy-core/pull/460))
-    - This introduces a new `FailedRegistration` event which might be of interest to consumers of this
-      pallet.
 - Proactive refresh ([#413](https://github.com/entropyxyz/entropy-core/pull/413))
 - Write a Dockerfile that can build both `entropy` and `server`. ([#430](https://github.com/entropyxyz/entropy-core/pull/430))
 - Developer experience improvements: SSH auth from workstations, entirely local "devnet"
   functionality with Compose ([#434](https://github.com/entropyxyz/entropy-core/pull/434))
 - Allow local host pass for offchain url ([#443](https://github.com/entropyxyz/entropy-core/pull/443))
+- Add way for validators to resolve diff verifying keys ([#460](https://github.com/entropyxyz/entropy-core/pull/460))
+    - This introduces a new `FailedRegistration` event which might be of interest to consumers of this
+      pallet.
+- Add `prune_registration` extrinsic ([#472](https://github.com/entropyxyz/entropy-core/pull/472))
+  - Allows for accounts to be moved out of registering state (e.g if DKG fails).
 
 ### Changed
 - Replace outdated `--ws-external` with `--rpc-external` ([#424](https://github.com/entropyxyz/entropy-core/pull/424))
