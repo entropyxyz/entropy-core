@@ -22,7 +22,7 @@ pub enum ProtocolExecutionErr {
 /// An error when running a protocol session on the client side
 #[derive(Debug, Error)]
 pub enum UserRunningProtocolErr {
-    #[error("Encrypted Conection Error: ")]
+    #[error("Encrypted Connection Error: {0}")]
     EncryptedConnection(#[from] EncryptedConnectionErr),
     #[error("Protocol Execution Error {0}")]
     ProtocolExecution(#[from] ProtocolExecutionErr),
