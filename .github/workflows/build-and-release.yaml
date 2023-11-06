@@ -7,7 +7,7 @@ on:
 
     # This is a temporary fix, just for this branch.
     branches:
-      - vi/ci-builds-for-entropy-js
+      - hc-release-v0.0.8-images
 
     tags:
       # First, match SemVer.org conformant tags in the `release/` tagspace.
@@ -53,7 +53,7 @@ jobs:
 
   release:
     name: Publish new release
-    if: github.event_name != 'schedule' && github.ref != 'refs/heads/vi/ci-builds-for-entropy-js'
+    if: github.event_name != 'schedule' && github.ref != 'refs/heads/hc-release-v0.0.8-images'
     needs:
       - git-ref-basename
       - build-entropy
