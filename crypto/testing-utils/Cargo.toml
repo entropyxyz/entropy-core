@@ -39,7 +39,7 @@ base64                 ="0.13.0"
 synedrion              ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="v0.0.9" }
 x25519-chacha20poly1305={ git="https://github.com/entropyxyz/x25519-chacha20poly1305.git", branch="keypair-creation-bug" }
 # TODO rm unneeded features
-tokio  ={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util"] }
-hex    ="0.4.3"
-colored="2.0.4"
-subxt-signer = "0.31.0"
+tokio       ={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util"] }
+hex         ="0.4.3"
+colored     ="2.0.4"
+subxt-signer="0.31.0"
