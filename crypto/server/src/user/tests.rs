@@ -50,7 +50,10 @@ use testing_utils::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
     },
 };
-use tokio::task::JoinHandle;
+use tokio::{
+    io::{AsyncRead, AsyncReadExt},
+    task::JoinHandle,
+};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use x25519_dalek::{PublicKey, StaticSecret};
 
@@ -1539,16 +1542,31 @@ pub async fn spawn_user_participates_in_signing_protocol(
         project_root::get_project_root().unwrap().to_string_lossy()
     );
 
-    let output = tokio::process::Command::new("node")
+    let child_process = tokio::process::Command::new("node")
         .arg(test_script_path)
         .arg("sign")
         .arg(json_params)
-        .output()
-        .await
+        .spawn()
         .unwrap();
+    if let Some(mut std_out) = child_process.stdout {
+        if let Some(mut std_err) = child_process.stderr {
+            let mut out_buffer = [0; 500];
+            let mut err_buffer = [0; 500];
+            loop {
+                tokio::select! {
+                    Ok(n) = std_out.read(&mut out_buffer[..]) => {
+                        if n == 0 { break;}
+                        println!("buffer: {}", std::str::from_utf8(&out_buffer).unwrap());
+                    }
+                    Ok(n) = std_err.read(&mut err_buffer[..]) => {
+                        if n == 0 { break;}
+                        println!("buffer: {}", std::str::from_utf8(&err_buffer).unwrap());
+                    }
+                }
+            }
+        }
+    };
 
-    println!("std out: {}", String::from_utf8(output.stdout).unwrap());
-    println!("std err: {}", String::from_utf8(output.stderr).unwrap());
     None
 }
 
@@ -1577,7 +1595,6 @@ pub async fn spawn_user_participates_in_dkg_protocol(
         "{}/crypto/protocol/nodejs-test/index.js",
         project_root::get_project_root().unwrap().to_string_lossy()
     );
-
     let output = tokio::process::Command::new("node")
         .arg(test_script_path)
         .arg("register")
@@ -1589,23 +1606,34 @@ pub async fn spawn_user_participates_in_dkg_protocol(
     println!("std out: {}", String::from_utf8(output.stdout).unwrap());
     println!("std err: {}", String::from_utf8(output.stderr).unwrap());
     None
+    // let child_process = tokio::process::Command::new("node")
+    //     .arg(test_script_path)
+    //     .arg("register")
+    //     .arg(json_params)
+    //     .spawn()
+    //     .unwrap();
+    //
+    // let mut std_out = child_process.stdout.unwrap();
+    // let mut std_err = child_process.stderr.unwrap();
+    //
+    // let mut out_buffer = [0; 500];
+    // let mut err_buffer = [0; 500];
+    // loop {
+    //     tokio::select! {
+    //         Ok(n) = std_out.read(&mut out_buffer[..]) => {
+    //             if n == 0 {
+    //                 println!("std out ended");
+    //                 break;}
+    //             println!("{}", std::str::from_utf8(&out_buffer).unwrap());
+    //         }
+    //         Ok(n) = std_err.read(&mut err_buffer[..]) => {
+    //             if n == 0 {
+    //                 println!("std err ended");
+    //                 break;}
+    //             println!("{}", std::str::from_utf8(&err_buffer).unwrap());
+    //         }
+    //     }
+    // }
+    // println!("stream finished");
+    // None
 }
-
-// use sp_core::crypto::ExposeSecret;
-// fn seed_str_to_seed(seed_str: &str) -> [u8; 32] {
-//     let secret_uri = sp_core::crypto::SecretUri::from_str(seed_str).unwrap();
-//     println!("secret {}", secret_uri.phrase.expose_secret());
-//     let mnemonic = Mnemonic::from_phrase(phrase, Language::English).unwrap();
-//     let big_seed =
-//         substrate_bip39::seed_from_entropy(mnemonic.entropy(), password.unwrap_or(""))
-// 				.map_err(|_| SecretStringError::InvalidSeed)?;
-// 		let mut seed = Self::Seed::default();
-// 		let seed_slice = seed.as_mut();
-// 		let seed_len = seed_slice.len();
-// 		debug_assert!(seed_len <= big_seed.len());
-// 		seed_slice[..seed_len].copy_from_slice(&big_seed[..seed_len]);
-// 		Self::from_seed_slice(seed_slice).map(|x| (x, seed))
-//     let stripped = secret_uri.phrase.expose_secret().strip_prefix("0x").unwrap();
-//     let seed_vec = hex::decode(stripped).unwrap();
-//     seed_vec.try_into().unwrap()
-// }
