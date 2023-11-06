@@ -116,18 +116,18 @@ pub async fn sign_tx(
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
-    let mut user_tx_req: UserSignatureRequest = serde_json::from_slice(&decrypted_message)?;
-    check_stale(user_tx_req.timestamp)?;
+    let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&decrypted_message)?;
+    check_stale(user_sig_req.timestamp)?;
 
-    let preimage = hex::decode(&user_tx_req.preimage)?;
-    let extra = user_tx_req.extra.as_ref().map(hex::decode).transpose()?;
+    let preimage = hex::decode(&user_sig_req.preimage)?;
+    let extra = user_sig_req.extra.as_ref().map(hex::decode).transpose()?;
     let sig_hash = hex::encode(Hasher::keccak(&preimage));
     let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &sig_hash).await?;
-    check_signing_group(&subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
+    check_signing_group(&subgroup_signers, &user_sig_req.validators_info, signer.account_id())?;
 
     // Use the validator info from chain as we can be sure it is in the correct order and the
     // details are correct
-    user_tx_req.validators_info = subgroup_signers;
+    user_sig_req.validators_info = subgroup_signers;
 
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
 
@@ -148,7 +148,7 @@ pub async fn sign_tx(
     // Do the signing protocol in another task, so we can already respond
     tokio::spawn(async move {
         let signing_protocol_output = do_signing(
-            user_tx_req,
+            user_sig_req,
             sig_hash,
             &app_state,
             tx_id,
