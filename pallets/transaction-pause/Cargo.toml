@@ -1,6 +1,6 @@
 [package]
 name      ="pallet-transaction-pause"
-version   ='0.0.7'
+version   ='0.0.8'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -19,7 +19,7 @@ sp-std            ={ git="https://github.com/paritytech/substrate", branch="polk
 
 [dev-dependencies]
 pallet-balances={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
-pallet-programs={ version="0.0.7", default-features=false, path="../programs" }
+pallet-programs={ version="0.0.8", default-features=false, path="../programs" }
 smallvec       ="1.4.1"
 sp-core        ={ version="21.0.0", git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
 sp-io          ={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }

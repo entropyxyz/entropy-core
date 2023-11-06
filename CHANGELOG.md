@@ -9,6 +9,8 @@ At the moment this project **does not** adhere to
 
 ## [Unreleased]
 
+## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7..v0.0.8) - 2023-11-06
+
 ### Breaking Changes
 
 There are a few breaking changes in this release, mostly related to the APIs around Programs
@@ -19,15 +21,17 @@ Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy
 [#451](https://github.com/entropyxyz/entropy-core/pull/451) are:
 
 - The Constraint pallet's `update_v2_constraints` extrinsic has been renamed to `update_program`.
-  The extrinsic arguments remain unchanged
+    - The extrinsic arguments remain unchanged
 - The Constraint pallet's `ConstraintsV2Updated` event has been renamed to `ProgramUpdated` and now
   has two fields instead of a single tuple for its body
 - The Constraint pallet's `V2ConstraintLengthExceeded` error has been renamed to `ProgramLengthExceeded`
 - The Relayer pallet's `register` extrinsic now takes a `Vec<u8>` as a program instead of an
   `Option<Contraints>`
 - The Constraints pallet has been renamed to the Programs pallet
+- The `entropy-constraints` crate has been removed
 
 ### Added
+- Separate `entropy-protocol` crate with protocol execution logic ([#404](https://github.com/entropyxyz/entropy-core/pull/404))
 - Proactive refresh ([#413](https://github.com/entropyxyz/entropy-core/pull/413))
 - Write a Dockerfile that can build both `entropy` and `server`. ([#430](https://github.com/entropyxyz/entropy-core/pull/430))
 - Developer experience improvements: SSH auth from workstations, entirely local "devnet"
@@ -37,13 +41,18 @@ Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy
     - This introduces a new `FailedRegistration` event which might be of interest to consumers of this
       pallet.
 - Add `prune_registration` extrinsic ([#472](https://github.com/entropyxyz/entropy-core/pull/472))
-  - Allows for accounts to be moved out of registering state (e.g if DKG fails).
+    - Allows for accounts to be moved out of registering state (e.g if DKG fails).
+    - This introduces a new `RegistrationCancelled` event which might be of interest to consumers of
+      this pallet.
 
 ### Changed
 - Replace outdated `--ws-external` with `--rpc-external` ([#424](https://github.com/entropyxyz/entropy-core/pull/424))
+- Ensure correct validator order by using ValidatorInfo from chain rather than from user ([#425](https://github.com/entropyxyz/entropy-core/pull/425))
 - Place `demo_offence` dispatchable behind root origin check ([#426](https://github.com/entropyxyz/entropy-core/pull/426))
 - Update `pallet-relayer` to use Contraints V2 ([#433](https://github.com/entropyxyz/entropy-core/pull/433))
 - Rename `pallet-constraints` to `pallet-programs` ([#451](https://github.com/entropyxyz/entropy-core/pull/451))
+- Add way for validators to resolve diff verifying keys ([#460](https://github.com/entropyxyz/entropy-core/pull/460))
+- Fix socket address type ([#469](https://github.com/entropyxyz/entropy-core/pull/469))
 
 ### Removed
 - Remove `is_swapping` from registration details ([#437](https://github.com/entropyxyz/entropy-core/pull/437))

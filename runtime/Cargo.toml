@@ -1,6 +1,6 @@
 [package]
 name      ='entropy-runtime'
-version   ='0.0.7'
+version   ='0.0.8'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -100,13 +100,13 @@ pallet-nomination-pools-benchmarking={ version="1.0.0", default-features=false, 
 pallet-nomination-pools-runtime-api={ version="1.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
 pallet-vesting={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
 
-pallet-relayer          ={ version='0.0.7', default-features=false, path='../pallets/relayer' }
-pallet-slashing         ={ version='0.0.7', default-features=false, path='../pallets/slashing' }
-pallet-programs         ={ version='0.0.7', default-features=false, path='../pallets/programs' }
-pallet-staking-extension={ version='0.0.7', default-features=false, path='../pallets/staking' }
-pallet-transaction-pause={ version='0.0.7', default-features=false, path='../pallets/transaction-pause' }
-pallet-free-tx          ={ version='0.0.7', default-features=false, path='../pallets/free-tx' }
-pallet-propagation      ={ version='0.0.7', default-features=false, path='../pallets/propagation' }
+pallet-relayer          ={ version='0.0.8', default-features=false, path='../pallets/relayer' }
+pallet-slashing         ={ version='0.0.8', default-features=false, path='../pallets/slashing' }
+pallet-programs         ={ version='0.0.8', default-features=false, path='../pallets/programs' }
+pallet-staking-extension={ version='0.0.8', default-features=false, path='../pallets/staking' }
+pallet-transaction-pause={ version='0.0.8', default-features=false, path='../pallets/transaction-pause' }
+pallet-free-tx          ={ version='0.0.8', default-features=false, path='../pallets/free-tx' }
+pallet-propagation      ={ version='0.0.8', default-features=false, path='../pallets/propagation' }
 
 entropy-shared={ path="../crypto/shared", default-features=false, features=["wasm-no-std"] }
 
