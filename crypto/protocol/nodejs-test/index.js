@@ -30,12 +30,12 @@ try {
 
 switch(process.argv[2].toLowerCase()) {
     case 'register':
-        // It is not yet possible to test registering
-        // protocol.run_dkg_protocol([validatorInfo], userSigningKeypairSeed, x25519PrivateKey).then((output) => {
-        //   console.log('OUTPUT:', output)
-        // }).catch((err) => {
-        //   console.log('ERR', err)
-        // })
+        console.log('Starting DKG protocol with these arguments', input)
+        protocol.run_dkg_protocol(input.validators_info, input.user_sig_req_seed, input.x25519_private_key).then((output) => {
+          console.log('OUTPUT:', output)
+        }).catch((err) => {
+          console.log('ERR', err)
+        })
         break
     case 'sign':
         console.log('Starting signing protocol with these arguments', input)
