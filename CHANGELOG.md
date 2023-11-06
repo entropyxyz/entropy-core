@@ -8,7 +8,6 @@ At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-https://github.com/entropyxyz/entropy-core/compare/v0.0.7...master
 
 ## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7..v0.0.8) - 2023-11-06
 
