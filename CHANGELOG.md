@@ -8,8 +8,9 @@ At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+https://github.com/entropyxyz/entropy-core/compare/v0.0.7...master
 
-## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7..v0.0.8) - 2023-11-02
+## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7..v0.0.8) - 2023-11-06
 
 ### Breaking Changes
 
@@ -21,7 +22,7 @@ Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy
 [#451](https://github.com/entropyxyz/entropy-core/pull/451) are:
 
 - The Constraint pallet's `update_v2_constraints` extrinsic has been renamed to `update_program`.
-      The extrinsic arguments remain unchanged
+    - The extrinsic arguments remain unchanged
 - The Constraint pallet's `ConstraintsV2Updated` event has been renamed to `ProgramUpdated` and now
   has two fields instead of a single tuple for its body
 - The Constraint pallet's `V2ConstraintLengthExceeded` error has been renamed to `ProgramLengthExceeded`
@@ -38,8 +39,12 @@ Some notables changes introduced in [#428](https://github.com/entropyxyz/entropy
   functionality with Compose ([#434](https://github.com/entropyxyz/entropy-core/pull/434))
 - Allow local host pass for offchain url ([#443](https://github.com/entropyxyz/entropy-core/pull/443))
 - Add way for validators to resolve diff verifying keys ([#460](https://github.com/entropyxyz/entropy-core/pull/460))
-    - This introduces a new `FailedRegistered` event which might be of interest to consumers of this
+    - This introduces a new `FailedRegistration` event which might be of interest to consumers of this
       pallet.
+- Add `prune_registration` extrinsic ([#472](https://github.com/entropyxyz/entropy-core/pull/472))
+    - Allows for accounts to be moved out of registering state (e.g if DKG fails).
+    - This introduces a new `RegistrationCancelled` event which might be of interest to consumers of
+      this pallet.
 
 ### Changed
 - Replace outdated `--ws-external` with `--rpc-external` ([#424](https://github.com/entropyxyz/entropy-core/pull/424))

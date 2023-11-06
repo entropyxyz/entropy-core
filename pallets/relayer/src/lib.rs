@@ -65,7 +65,6 @@ pub mod pallet {
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        type PruneBlock: Get<BlockNumberFor<Self>>;
         type SigningPartySize: Get<usize>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
@@ -74,7 +73,6 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
-        pub is_registering: bool,
         pub program_modification_account: T::AccountId,
         pub confirmations: Vec<u8>,
         pub program: Vec<u8>,
@@ -153,6 +151,8 @@ pub mod pallet {
         AccountRegistered(T::AccountId),
         /// An account registration has failed
         FailedRegistration(T::AccountId),
+        /// An account cancelled their registration
+        RegistrationCancelled(T::AccountId),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
@@ -226,7 +226,6 @@ pub mod pallet {
             Registering::<T>::insert(
                 &sig_req_account,
                 RegisteringDetails::<T> {
-                    is_registering: true,
                     program_modification_account,
                     confirmations: vec![],
                     program: initial_program,
@@ -240,6 +239,24 @@ pub mod pallet {
 
             Self::deposit_event(Event::SignalRegister(sig_req_account));
 
+            Ok(())
+        }
+
+        /// Allows a user to remove themselves from registering state if it has been longer than prune block
+        #[pallet::call_index(1)]
+        #[pallet::weight({
+            <T as Config>::WeightInfo::prune_registration()
+        })]
+        pub fn prune_registration(origin: OriginFor<T>) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let registering_info = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
+            // return program deposit
+            ProgramsPallet::<T>::unreserve_program_deposit(
+                &registering_info.program_modification_account,
+                registering_info.program.len(),
+            );
+            Registering::<T>::remove(&who);
+            Self::deposit_event(Event::RegistrationCancelled(who));
             Ok(())
         }
 

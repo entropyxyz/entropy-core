@@ -16,7 +16,6 @@ for p in ${pallets[@]}
 do
     ./target/release/entropy benchmark pallet \
         --chain $entropyChain \
-        --execution=wasm \
         --wasm-execution=compiled \
         --pallet=$p  \
         --extrinsic='*' \
