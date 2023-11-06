@@ -173,8 +173,7 @@ async fn test_sign_tx_no_chain() {
     let test_user_res_order =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    verify_signature(test_user_res_order, image, keyshare_option.clone())
-        .await;
+    verify_signature(test_user_res_order, image, keyshare_option.clone()).await;
 
     generic_msg.timestamp = SystemTime::now();
     // test failing cases
