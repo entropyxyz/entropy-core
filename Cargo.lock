@@ -1661,9 +1661,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-bigint"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf4c2f4e1afd912bc40bfd6fed5d9dc1f288e0ba01bfcc835cc5bc3eb13efe15"
+checksum = "740fe28e594155f10cfc383984cbefd529d7396050557148f79cb0f621204124"
 dependencies = [
  "generic-array 0.14.7",
  "rand_core 0.6.4",
@@ -1719,7 +1719,7 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97a4eeb0a8686cfc94242c8860628627206a2b24148d6ab8f5d41c708438582f"
 dependencies = [
- "crypto-bigint 0.5.2",
+ "crypto-bigint 0.5.3",
  "rand_core 0.6.4",
 ]
 
@@ -2309,7 +2309,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "968405c8fdc9b3bf4df0a6638858cc0b52462836ab6b1c87377785dd09cf1c0b"
 dependencies = [
  "base16ct 0.2.0",
- "crypto-bigint 0.5.2",
+ "crypto-bigint 0.5.3",
  "digest 0.10.7",
  "ff 0.13.0",
  "generic-array 0.14.7",
@@ -12777,11 +12777,12 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 
 [[package]]
 name = "synedrion"
-version = "0.0.9"
-source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=v0.0.9#febe12002fab393222f156bd3bdf17900f412b4f"
+version = "0.0.11"
+source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=v0.0.11#af9e0279ddec01da6d9490473327fff17acd6c79"
 dependencies = [
  "base64 0.21.2",
- "crypto-bigint 0.5.2",
+ "cfg-if",
+ "crypto-bigint 0.5.3",
  "crypto-primes",
  "digest 0.10.7",
  "hex",

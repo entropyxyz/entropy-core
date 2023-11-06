@@ -9,7 +9,7 @@ license    ="AGPL-3.0-or-later"
 async-trait    ="0.1.73"
 serde_json     ="1.0"
 entropy-shared ={ path="../shared", default-features=false }
-synedrion      ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="v0.0.9" }
+synedrion      ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="v0.0.11" }
 serde          ={ version="1.0", features=["derive"], default-features=false }
 serde-big-array="0.5.1"
 subxt          ={ package="subxt", git="https://github.com/paritytech/subxt.git", tag="v0.29.0", default-features=false }
