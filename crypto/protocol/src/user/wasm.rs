@@ -48,6 +48,7 @@ pub async fn run_dkg_protocol(
 }
 
 /// Run the signing protocol on the client side
+/// Returns a recoverable signature as a base64 encoded string
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub async fn run_signing_protocol(
     key_share: String,
@@ -95,8 +96,7 @@ pub async fn run_signing_protocol(
     .await
     .map_err(|err| Error::new(&format!("{}", err)))?;
 
-    // TODO decide on a type
-    Ok(format!("{:?}", signature))
+    Ok(base64::encode(signature.to_rsv_bytes()))
 }
 
 #[wasm_bindgen]

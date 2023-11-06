@@ -53,16 +53,16 @@ impl fmt::Display for PartyId {
     }
 }
 
-#[cfg(not(test))]
-use synedrion::ProductionParams;
-/// Parameters used for the threshold signing scheme in production
-#[cfg(not(test))]
-pub type KeyParams = ProductionParams;
+// #[cfg(not(test))]
+// use synedrion::ProductionParams;
+// /// Parameters used for the threshold signing scheme in production
+// #[cfg(not(test))]
+// pub type KeyParams = ProductionParams;
 
-#[cfg(test)]
+// #[cfg(test)]
 use synedrion::TestParams;
 /// Parameters used for the threshold signing scheme in tests (faster but less secure)
-#[cfg(test)]
+// #[cfg(test)]
 pub type KeyParams = TestParams;
 
 pub use synedrion::KeyShare;
@@ -93,4 +93,15 @@ pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
     pub ip_address: SocketAddrV4,
     pub tss_account: AccountId32,
+}
+
+#[cfg(feature = "server")]
+pub fn log_either_platform(to_display: String) {
+    println!("From a TSS server: {}", to_display);
+}
+
+#[cfg(feature = "wasm")]
+pub fn log_either_platform(to_display: String) {
+    use web_sys::console;
+    console::log_1(&to_display.into());
 }

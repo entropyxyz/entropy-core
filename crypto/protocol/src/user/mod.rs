@@ -14,6 +14,7 @@ use wasm_bindgen_futures::spawn_local as spawn;
 use crate::{
     errors::UserRunningProtocolErr,
     execute_protocol::{self, Channels},
+    log_either_platform,
     protocol_transport::{
         noise::noise_handshake_initiator, open_ws_connection, ws_to_channels, Broadcaster,
         SubscribeMessage, ThreadSafeWsConnection, WsChannels,
@@ -31,7 +32,6 @@ pub async fn user_participates_in_signing_protocol(
     sig_hash: [u8; 32],
     x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<RecoverableSignature, UserRunningProtocolErr> {
-    println!("********");
     let (channels, tss_accounts) = user_connects_to_validators(
         open_ws_connection,
         sig_uid,
@@ -145,7 +145,8 @@ where
                 if let Err(err) =
                     ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await
                 {
-                    tracing::warn!("{:?}", err);
+                    tracing::warn!("WS message loop error: {:?}", err);
+                    log_either_platform(format!("error from message loop {:?}", err));
                 };
             });
 
