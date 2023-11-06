@@ -1370,6 +1370,85 @@ async fn test_register_with_private_key_visibility() {
     assert!(keyshare_result.is_ok());
 }
 
+/// Test demonstrating registering with private key visibility on wasm
+#[tokio::test]
+#[serial]
+async fn test_wasm_register_with_private_key_visibility() {
+    clean_tests();
+
+    let one = AccountKeyring::One;
+    let constraint_account = AccountKeyring::Charlie;
+
+    let (validator_ips, _validator_ids, _users_keyshare_option) =
+        spawn_testing_validators(None, false).await;
+    let substrate_context = test_context_stationary().await;
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+
+    let block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
+
+    let (_one_keypair, one_x25519_sk) = keyring_to_subxt_signer_and_x25519(&one);
+    let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
+
+    put_register_request_on_chain(
+        &api,
+        &one,
+        constraint_account.to_account_id().into(),
+        KeyVisibility::Private(x25519_public_key),
+    )
+    .await;
+    run_to_block(&api, block_number + 1).await;
+
+    // Simulate the propagation pallet making a `user/new` request to the second validator
+    // as we only have one chain node running
+    let onchain_user_request = {
+        // Since we only have two validators we use both of them, but if we had more we would
+        // need to select them using same method as the chain does (based on block number)
+        let validators_info: Vec<entropy_shared::ValidatorInfo> = validator_ips
+            .iter()
+            .enumerate()
+            .map(|(i, ip)| entropy_shared::ValidatorInfo {
+                ip_address: ip.as_bytes().to_vec(),
+                x25519_public_key: X25519_PUBLIC_KEYS[i],
+                tss_account: TSS_ACCOUNTS[i].clone().encode(),
+            })
+            .collect();
+        OcwMessage { sig_request_accounts: vec![one.encode()], block_number, validators_info }
+    };
+
+    let client = reqwest::Client::new();
+    let validators_info: Vec<ValidatorInfo> = validator_ips
+        .iter()
+        .enumerate()
+        .map(|(i, ip)| ValidatorInfo {
+            ip_address: SocketAddrV4::from_str(ip).unwrap(),
+            x25519_public_key: X25519_PUBLIC_KEYS[i],
+            tss_account: TSS_ACCOUNTS[i].clone(),
+        })
+        .collect();
+
+    let one_seed: [u8; 32] =
+        hex::decode("3b3993c957ed9342cbb011eb9029c53fb253345114eff7da5951e98a41ba5ad5")
+            .unwrap()
+            .try_into()
+            .unwrap();
+
+    // Call the `user/new` endpoint, and connect and participate in the protocol
+    let (new_user_response_result, keyshare_result) = future::join(
+        client
+            .post("http://127.0.0.1:3002/user/new")
+            .body(onchain_user_request.clone().encode())
+            .send(),
+        spawn_user_participates_in_dkg_protocol(validators_info.clone(), one_seed, &one_x25519_sk),
+    )
+    .await;
+
+    let response = new_user_response_result.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.text().await.unwrap(), "");
+
+    assert!(keyshare_result.is_some());
+}
+
 pub async fn verify_signature(
     test_user_res: Vec<Result<reqwest::Response, reqwest::Error>>,
     message_should_succeed_hash: [u8; 32],
@@ -1417,6 +1496,13 @@ struct UserParticipatesInSigningProtocolArgs {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct UserParticipatesInDkgProtocolArgs {
+    user_sig_req_seed: Vec<u8>,
+    x25519_private_key: Vec<u8>,
+    validators_info: Vec<ValidatorInfoParsed>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct ValidatorInfoParsed {
     x25519_public_key: [u8; 32],
     ip_address: String,
@@ -1456,6 +1542,45 @@ pub async fn spawn_user_participates_in_signing_protocol(
     let output = tokio::process::Command::new("node")
         .arg(test_script_path)
         .arg("sign")
+        .arg(json_params)
+        .output()
+        .await
+        .unwrap();
+
+    println!("std out: {}", String::from_utf8(output.stdout).unwrap());
+    println!("std err: {}", String::from_utf8(output.stderr).unwrap());
+    None
+}
+
+/// For testing running the DKG protocol on wasm, spawn a process running nodejs and pass
+/// the protocol runnning parameters as JSON as a command line argument
+pub async fn spawn_user_participates_in_dkg_protocol(
+    validators_info: Vec<ValidatorInfo>,
+    user_sig_req_seed: [u8; 32],
+    x25519_private_key: &x25519_dalek::StaticSecret,
+) -> Option<String> {
+    let args = UserParticipatesInDkgProtocolArgs {
+        user_sig_req_seed: user_sig_req_seed.to_vec(),
+        validators_info: validators_info
+            .into_iter()
+            .map(|validator_info| ValidatorInfoParsed {
+                x25519_public_key: validator_info.x25519_public_key,
+                ip_address: validator_info.ip_address.to_string(),
+                tss_account: *validator_info.tss_account.as_ref(),
+            })
+            .collect(),
+        x25519_private_key: x25519_private_key.to_bytes().to_vec(),
+    };
+    let json_params = serde_json::to_string(&args).unwrap();
+
+    let test_script_path = format!(
+        "{}/crypto/protocol/nodejs-test/index.js",
+        project_root::get_project_root().unwrap().to_string_lossy()
+    );
+
+    let output = tokio::process::Command::new("node")
+        .arg(test_script_path)
+        .arg("register")
         .arg(json_params)
         .output()
         .await
