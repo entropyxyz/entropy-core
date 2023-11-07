@@ -28,7 +28,7 @@ use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     KeyShare,
 };
-use x25519_chacha20poly1305::encrypt_and_sign;
+use x25519_chacha20poly1305::SignedMessage;
 
 use crate::chain_api::{
     entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *,
@@ -113,7 +113,7 @@ pub async fn sign(
 ) -> anyhow::Result<RecoverableSignature> {
     let sig_req_seed = SeedString::new(sig_req_seed_string);
     let sig_req_keypair: sr25519::Pair = sig_req_seed.clone().try_into()?;
-    let sig_req_subxt_keypair: subxt_signer::sr25519::Keypair = sig_req_seed.try_into()?;
+    let sig_req_subxt_keypair: subxt_signer::sr25519::Keypair = sig_req_seed.clone().try_into()?;
     info!("Signature request account: {}", hex::encode(sig_req_keypair.public().0));
 
     let message_hash = Hasher::keccak(&message);
@@ -130,20 +130,24 @@ pub async fn sign(
     let user_transaction_request_vec = serde_json::to_vec(&generic_msg)?;
     let validators_info_clone = validators_info.clone();
 
+    use sp_core_6::Pair;
+    let (keypair_sp_core_6, _) =
+        sp_core_6::sr25519::Pair::from_string_with_seed(&sig_req_seed.0, None)
+            .map_err(|_| anyhow!("Could not create sr25519 keypair"))?;
+
     // Make http requests to tss servers
     let submit_transaction_requests = validators_info
         .iter()
         .map(|validator_info| async {
-            let signed_message_json = encrypt_and_sign(
-                sig_req_keypair.to_raw_vec(),
-                user_transaction_request_vec.clone(),
-                validator_info.x25519_public_key.to_vec(),
-            )
-            .map_err(|js_err| {
-                anyhow!(js_err
-                    .as_string()
-                    .unwrap_or("encrypt_and_sign gives bad JS error".to_string()))
-            })?;
+            let validator_public_key: x25519_dalek::PublicKey =
+                validator_info.x25519_public_key.into();
+            let signed_message = SignedMessage::new(
+                &keypair_sp_core_6,
+                &sp_core_6::Bytes(user_transaction_request_vec.clone()),
+                &validator_public_key,
+            )?;
+            let signed_message_json = signed_message.to_json()?;
+
             let url = format!("http://{}/user/sign_tx", validator_info.ip_address);
 
             let client = reqwest::Client::new();
@@ -276,20 +280,6 @@ pub async fn fund_account(
     Ok(())
 }
 
-// pub async fn transfer_balance() {
-// let pair = sp_core::sr25519::Pair::from_string(&mnemonic_phrase_A, None).unwrap();
-// let account_A = PairSigner::new(pair);
-//
-// let balance_transfer_tx = entropy::tx().balances().transfer(account_B, 10_000);
-//
-//     let events = api
-//         .tx()
-//         .sign_and_submit_then_watch_default(&balance_transfer_tx, &account_A)
-//         .await?
-//         .wait_for_finalized_success()
-//         .await?;
-// }
-
 // Submit a register transaction
 async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
@@ -324,6 +314,11 @@ impl SeedString {
     fn new(seed_string: String) -> Self {
         Self(if seed_string.starts_with("//") { seed_string } else { format!("//{}", seed_string) })
     }
+
+    // fn seed(&self) -> anyhow::Result<[u8; 32]> {
+    //     let (_, seed_option) = sr25519::Pair::from_string_with_seed(&seed_string.0, None)?;
+    //     Ok(seed_option.ok_or(anyhow!("Could not get seed"))?)
+    // }
 }
 
 impl TryFrom<SeedString> for sr25519::Pair {
