@@ -38,7 +38,7 @@ To build from source, you will need some development tooling installed on your l
 
 **Do this** to build Entropy from source.
 
-1. [Install Rust](https://www.rust-lang.org/tools/install).
+1. [Install Rust](https://www.rust-lang.org/tools/install) and [Substrate dependencies for your Operating System](https://docs.substrate.io/install/).
 1. Building the chain node and threshold signature scheme (TSS) server binaries can be done by running:
     ```sh
     cargo build --release
