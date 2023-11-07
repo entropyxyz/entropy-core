@@ -5,8 +5,6 @@ use frame_benchmarking::{
 };
 use frame_support::{traits::Get, BoundedVec};
 use frame_system::{EventRecord, RawOrigin};
-#[cfg(feature = "runtime-benchmarks")]
-use pallet_constraints::benchmarking::generate_benchmarking_constraints;
 use pallet_staking_extension::{
     benchmarking::create_validators, IsValidatorSynced, ServerInfo, SigningGroups,
     ThresholdServers, ThresholdToStash,
@@ -53,15 +51,14 @@ pub fn add_non_syncing_validators<T: Config>(
 
 benchmarks! {
   register {
-    // number of addresses in the ACL
-    let a in 0 .. <T as pallet_constraints::Config>::MaxAclLength::get();
-    let b in 0 .. <T as pallet_constraints::Config>::MaxAclLength::get();
-    let constraints = generate_benchmarking_constraints(a, b);
+    // Since we're usually using `steps >> 1` when running benches this shouldn't take too long to
+    // run
+    let p in 0..<T as pallet_programs::Config>::MaxBytecodeLength::get();
+    let program = vec![0u8; p as usize];
 
-    let constraint_account: T::AccountId = whitelisted_caller();
+    let program_modification_account: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();
-
-  }:  _(RawOrigin::Signed(sig_req_account.clone()), constraint_account, KeyVisibility::Public, Some(constraints))
+  }: _(RawOrigin::Signed(sig_req_account.clone()), program_modification_account, KeyVisibility::Public, program)
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
     assert!(Registering::<T>::contains_key(sig_req_account));
@@ -77,12 +74,12 @@ benchmarks! {
         let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
     }
+
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         is_registering: true,
-        constraint_account: sig_req_account.clone(),
-        is_swapping: false,
+        program_modification_account: sig_req_account.clone(),
         confirmations: vec![],
-        constraints: None,
+        program: vec![],
         key_visibility: KeyVisibility::Public,
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())
@@ -104,35 +101,9 @@ confirm_register_registered {
     let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         is_registering: true,
-        constraint_account: sig_req_account.clone(),
-        is_swapping: false,
+        program_modification_account: sig_req_account.clone(),
         confirmations: confirmation,
-        constraints: None,
-        key_visibility: KeyVisibility::Public,
-    });
-  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())
-  verify {
-    assert_last_event::<T>(Event::<T>::AccountRegistered(sig_req_account).into());
-  }
-
-  confirm_register_swapping {
-    let c in 0 .. SIG_PARTIES as u32;
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    let validator_account: T::AccountId = whitelisted_caller();
-    let threshold_account: T::AccountId = whitelisted_caller();
-    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
-    for i in 0..SIG_PARTIES {
-        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
-        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
-    }
-    let adjusted_sig_size = SIG_PARTIES - 1;
-    let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
-    <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
-        is_registering: true,
-        constraint_account: sig_req_account.clone(),
-        is_swapping: true,
-        confirmations: confirmation,
-        constraints: None,
+        program: vec![],
         key_visibility: KeyVisibility::Public,
     });
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::default())

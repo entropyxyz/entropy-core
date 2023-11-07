@@ -1,0 +1,34 @@
+---
+version: "3.8"
+name: entropy
+
+secrets: &common-secrets
+  credentials:
+    file: ${XDG_DATA_HOME:-~/.local/share}/entropy-cryptography/.entropy.auth.sh
+
+x-common-build-auth: &common-build-auth
+  ssh:
+    - default
+  secrets:
+    - credentials
+
+services:
+  # Threshold Signature Scheme server
+  tss-server:
+    image: entropyxyz/server
+    build:
+      <<: *common-build-auth
+      args:
+        PACKAGE: server
+      tags:
+        - entropyxyz/server
+
+  # Sometimes also called simply a "chain," or a "validator."
+  chain-node:
+    image: entropyxyz/entropy
+    build:
+      <<: *common-build-auth
+      args:
+        PACKAGE: entropy
+      tags:
+        - entropyxyz/entropy

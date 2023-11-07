@@ -19,11 +19,12 @@ pub mod errors {
         ($e:expr, $r:expr, $w:expr) => {
             match $e {
                 Some(x) => x,
-                None =>
+                None => {
                     return {
                         log::warn!("{}", $w);
                         T::DbWeight::get().reads($r)
-                    },
+                    }
+                },
             }
         };
     }

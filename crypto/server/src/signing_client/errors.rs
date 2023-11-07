@@ -29,7 +29,6 @@ pub enum ProtocolErr {
     Bincode(#[from] Box<bincode::ErrorKind>),
     #[error("Deserialization Error: {0}")]
     Deserialization(String),
-    // Validation(&'static str),
     #[error("Oneshot timeout error: {0}")]
     OneshotTimeout(#[from] RecvError),
     #[error("Subscribe API error: {0}")]
@@ -69,7 +68,7 @@ pub enum ProtocolErr {
     #[error("Encrypted connection error {0}")]
     EncryptedConnection(String),
     #[error("Program error: {0}")]
-    ProgramError(#[from] entropy_constraints::Error),
+    ProgramError(#[from] crate::user::errors::ProgramError),
     #[error("Invalid length for converting address")]
     AddressConversionError(String),
     #[error("Ip Address Error: {0}")]
@@ -82,6 +81,10 @@ pub enum ProtocolErr {
     SubgroupError(&'static str),
     #[error("Account unable to be deserialized: {0}")]
     StringError(&'static str),
+    #[error("Option Unwrap error: {0}")]
+    OptionUnwrapError(&'static str),
+    #[error("Proactive Refresh not called for")]
+    NoProactiveRefresh,
 }
 
 impl IntoResponse for ProtocolErr {

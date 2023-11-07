@@ -1,7 +1,7 @@
 use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
 use frame_support::{
     parameter_types,
-    traits::{ConstU32, FindAuthor, GenesisBuild, OneSessionHandler},
+    traits::{ConstU32, FindAuthor, OneSessionHandler},
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
@@ -9,16 +9,15 @@ use pallet_staking_extension::ServerInfo;
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
-    testing::{Header, TestXt, UintAuthorityId},
+    testing::{TestXt, UintAuthorityId},
     traits::{BlakeTwo256, ConvertInto, IdentityLookup},
-    Perbill,
+    BuildStorage, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
 
 use crate as pallet_relayer;
 
 const NULL_ARR: [u8; 32] = [0; 32];
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
 type AccountId = u64;
@@ -26,22 +25,19 @@ type Balance = u64;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
-  pub enum Test where
-    Block = Block,
-    NodeBlock = Block,
-    UncheckedExtrinsic = UncheckedExtrinsic,
+  pub enum Test
   {
-    System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-    Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-    Authorship: pallet_authorship::{Pallet, Storage},
-    Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-    Relayer: pallet_relayer::{Pallet, Call, Storage, Event<T>},
-    Staking: pallet_staking_extension::{Pallet, Call, Storage, Event<T>, Config<T>},
-    FrameStaking: pallet_staking::{Pallet, Call, Storage, Event<T>},
-    Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
-    Historical: pallet_session_historical::{Pallet},
-    BagsList: pallet_bags_list::{Pallet, Call, Storage, Event<T>},
-    Constraints: pallet_constraints::{Pallet, Call, Storage, Event<T>},
+    System: frame_system,
+    Balances: pallet_balances,
+    Authorship: pallet_authorship,
+    Timestamp: pallet_timestamp,
+    Relayer: pallet_relayer,
+    Staking: pallet_staking_extension,
+    FrameStaking: pallet_staking,
+    Session: pallet_session,
+    Historical: pallet_session_historical,
+    BagsList: pallet_bags_list,
+    Programs: pallet_programs,
   }
 );
 
@@ -54,17 +50,16 @@ impl system::Config for Test {
     type AccountData = pallet_balances::AccountData<Balance>;
     type AccountId = u64;
     type BaseCallFilter = frame_support::traits::Everything;
+    type Block = Block;
     type BlockHashCount = BlockHashCount;
     type BlockLength = ();
-    type BlockNumber = u64;
     type BlockWeights = ();
     type DbWeight = ();
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type Header = Header;
-    type Index = u64;
     type Lookup = IdentityLookup<Self::AccountId>;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type Nonce = u64;
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
@@ -98,13 +93,13 @@ impl pallet_balances::Config for Test {
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
     type FreezeIdentifier = ();
-    type HoldIdentifier = ();
     type MaxFreezes = ();
     type MaxHolds = ();
     type MaxLocks = MaxLocks;
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
     type RuntimeEvent = RuntimeEvent;
+    type RuntimeHoldReason = RuntimeHoldReason;
     type WeightInfo = ();
 }
 
@@ -174,7 +169,8 @@ parameter_types! {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where RuntimeCall: From<C>
+where
+    RuntimeCall: From<C>,
 {
     type Extrinsic = TestXt<RuntimeCall, ()>;
     type OverarchingCall = RuntimeCall;
@@ -218,9 +214,10 @@ impl pallet_staking::Config for Test {
     type BondingDuration = BondingDuration;
     type Currency = Balances;
     type CurrencyBalance = Balance;
-    type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
+    type CurrencyToVote = ();
     type ElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
+    type EventListeners = ();
     type GenesisElectionProvider = Self::ElectionProvider;
     type HistoryDepth = ConstU32<84>;
     type MaxNominations = MaxNominations;
@@ -228,7 +225,6 @@ impl pallet_staking::Config for Test {
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
-    type OnStakerSlash = ();
     type Reward = ();
     type RewardRemainder = ();
     type RuntimeEvent = RuntimeEvent;
@@ -277,7 +273,9 @@ parameter_types! {
 pub struct Author11;
 impl FindAuthor<u64> for Author11 {
     fn find_author<'a, I>(_digests: I) -> Option<u64>
-    where I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])> {
+    where
+        I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])>,
+    {
         Some(11)
     }
 }
@@ -300,23 +298,21 @@ impl pallet_relayer::Config for Test {
 }
 
 parameter_types! {
-  pub const MaxAclLength: u32 = 25;
-  pub const MaxV2BytecodeLength: u32 = 3;
-  pub const V2ConstraintsDepositPerByte: u32 = 5;
+  pub const MaxBytecodeLength: u32 = 3;
+  pub const ProgramDepositPerByte: u32 = 5;
 }
 
-impl pallet_constraints::Config for Test {
-    type Currency = ();
-    type MaxAclLength = MaxAclLength;
-    type MaxV2BytecodeLength = MaxV2BytecodeLength;
+impl pallet_programs::Config for Test {
+    type Currency = Balances;
+    type MaxBytecodeLength = MaxBytecodeLength;
+    type ProgramDepositPerByte = ProgramDepositPerByte;
     type RuntimeEvent = RuntimeEvent;
-    type V2ConstraintsDepositPerByte = V2ConstraintsDepositPerByte;
     type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+    let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
         threshold_servers: vec![
             (5, ServerInfo { tss_account: 7, x25519_public_key: NULL_ARR, endpoint: vec![20] }),
@@ -327,6 +323,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         ],
         // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
         signing_groups: vec![(0, vec![1, 5]), (1, vec![2, 6, 7])],
+        activate_proactive_refresh: false,
     };
 
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();

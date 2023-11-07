@@ -8,7 +8,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use ec_runtime::RuntimeError as ProgramRuntimeError;
-use entropy_constraints::Error as ConstraintsError;
 use entropy_protocol::errors::ProtocolExecutionErr;
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
@@ -17,6 +16,17 @@ use crate::{
     chain_api::entropy,
     signing_client::{ProtocolErr, SubscribeErr},
 };
+
+/// Errors related to parsing and evaulating programs.
+#[derive(Error, Debug, PartialEq)]
+pub enum ProgramError {
+    /// Transaction request could not be parsed
+    #[error("Invalid transaction request: {0}")]
+    InvalidTransactionRequest(String),
+    /// Transaction request did not meet programs requirements.
+    #[error("Program Evaluation error: {0}")]
+    Evaluation(&'static str),
+}
 
 #[derive(Debug, Error)]
 pub enum UserErr {
@@ -46,8 +56,8 @@ pub enum UserErr {
     SubgroupError(&'static str),
     #[error("Invalid Signature: {0}")]
     InvalidSignature(&'static str),
-    #[error("Constraints error: {0}")]
-    ConstraintsError(#[from] ConstraintsError),
+    #[error("Program error: {0}")]
+    ProgramError(#[from] ProgramError),
     #[error("Signing/DKG protocol error: {0}")]
     SigningClientError(#[from] ProtocolErr),
     #[error("Transaction request unable to be deserialized: {0}")]

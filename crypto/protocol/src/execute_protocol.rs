@@ -36,7 +36,9 @@ struct SignerWrapper(sr25519::Keypair);
 struct VerifierWrapper(sr25519::PublicKey);
 
 impl Clone for VerifierWrapper {
-    fn clone(&self) -> Self { VerifierWrapper(sr25519::PublicKey(self.0 .0)) }
+    fn clone(&self) -> Self {
+        VerifierWrapper(sr25519::PublicKey(self.0 .0))
+    }
 }
 
 /// This is a raw signature from [sr25519::Signature]
@@ -124,14 +126,15 @@ pub async fn execute_signing_protocol(
             ToSend::Broadcast(message) => {
                 tx.send(ProtocolMessage::new_bcast(my_id, message))?;
             },
-            ToSend::Direct(msgs) =>
+            ToSend::Direct(msgs) => {
                 for (id_to, message) in msgs.into_iter() {
                     tx.send(ProtocolMessage::new_p2p(
                         my_id,
                         &party_ids[id_to.as_usize()],
                         message,
                     ))?;
-                },
+                }
+            },
         };
 
         while receiving.has_cached_messages() {
@@ -210,14 +213,15 @@ pub async fn execute_dkg(
             ToSend::Broadcast(message) => {
                 tx.send(ProtocolMessage::new_bcast(&my_id, message))?;
             },
-            ToSend::Direct(msgs) =>
+            ToSend::Direct(msgs) => {
                 for (id_to, message) in msgs.into_iter() {
                     tx.send(ProtocolMessage::new_p2p(
                         &my_id,
                         &party_ids[id_to.as_usize()],
                         message,
                     ))?;
-                },
+                }
+            },
         };
 
         while receiving.has_cached_messages() {
@@ -296,14 +300,15 @@ pub async fn execute_proactive_refresh(
             ToSend::Broadcast(message) => {
                 tx.send(ProtocolMessage::new_bcast(&my_id, message))?;
             },
-            ToSend::Direct(msgs) =>
+            ToSend::Direct(msgs) => {
                 for (id_to, message) in msgs.into_iter() {
                     tx.send(ProtocolMessage::new_p2p(
                         &my_id,
                         &party_ids[id_to.as_usize()],
                         message,
                     ))?;
-                },
+                }
+            },
         };
 
         while receiving.has_cached_messages() {

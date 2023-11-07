@@ -1,7 +1,11 @@
 [package]
-name   ="server"
-version="0.1.0"
-edition="2021"
+name      ="server"
+version   ="0.1.0"
+authors   =['Entropy Cryptography <engineering@entropy.xyz>']
+homepage  ='https://entropy.xyz/'
+license   ='AGPL-3.0-or-later'
+repository='https://github.com/entropyxyz/entropy-core'
+edition   ='2021'
 
 [dependencies]
 # Common
@@ -30,7 +34,7 @@ reqwest    ={ version="0.11", features=["json", "stream"] }
 axum       ={ version="0.6.18", features=["ws"] }
 axum-macros="0.3.7"
 # Substrate
-subxt             ={ package="subxt", git="https://github.com/paritytech/subxt.git", tag="v0.29.0" }
+subxt             ={ package="subxt", git="https://github.com/paritytech/subxt.git", tag="v0.32.1" }
 parity-scale-codec="3.4.0"
 sp-core           ={ version="21.0.0", default-features=false }
 
@@ -40,8 +44,7 @@ kvdb            ={ path="../kvdb", default-features=false }
 entropy-protocol={ path="../protocol", features=["server"] }
 
 # Constraints
-entropy-constraints={ path="../constraints" }
-ec-runtime         ={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.2.0" }
+ec-runtime={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.2.0" }
 
 # Logging
 log               ="0.4.17"                                              # todo: remove, overlaps tracing

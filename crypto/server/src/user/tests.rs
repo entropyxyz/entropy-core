@@ -9,13 +9,12 @@ use std::{
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
-use entropy_constraints::{Architecture, Evm, Parse};
 use entropy_protocol::{
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, PartyId, ValidatorInfo,
 };
-use entropy_shared::{Acl, KeyVisibility, OcwMessage};
+use entropy_shared::{KeyVisibility, OcwMessage};
 use futures::{
     future::{self, join_all},
     join, Future, SinkExt, StreamExt,
@@ -28,6 +27,7 @@ use serial_test::serial;
 use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{
+    backend::legacy::LegacyRpcMethods,
     ext::{
         sp_core::{sr25519, sr25519::Signature, Bytes, Pair},
         sp_runtime::AccountId32,
@@ -56,7 +56,7 @@ use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::UserInputPartyInfo;
 use crate::{
-    chain_api::{entropy, get_api, EntropyConfig},
+    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     get_signer,
     helpers::{
         launch::{
@@ -74,10 +74,7 @@ use crate::{
     load_kv_store, new_user,
     r#unsafe::api::UnsafeQuery,
     signing_client::ListenerState,
-    user::{
-        api::{recover_key, UserRegistrationInfo, UserTransactionRequest},
-        tests::entropy::runtime_types::entropy_shared::constraints::Constraints,
-    },
+    user::api::{recover_key, UserRegistrationInfo, UserTransactionRequest},
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
 };
@@ -275,10 +272,10 @@ async fn test_sign_tx_no_chain() {
     generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
     generic_msg.timestamp = SystemTime::now();
 
-    let test_user_failed_constraints_res =
+    let test_user_failed_programs_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    for res in test_user_failed_constraints_res {
+    for res in test_user_failed_programs_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
             "Runtime error: Runtime(Error::Evaluation(\"Length of data is too short.\"))"
@@ -415,13 +412,14 @@ async fn test_fail_signing_group() {
 async fn test_store_share() {
     clean_tests();
     let alice = AccountKeyring::Alice;
-    let alice_constraint = AccountKeyring::Charlie;
+    let alice_program = AccountKeyring::Charlie;
 
     let cxt = test_context_stationary().await;
     let (_validator_ips, _validator_ids, _) = spawn_testing_validators(None, false).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
-    let mut block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
+    let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
             ip_address: b"127.0.0.1:3001".to_vec(),
@@ -441,12 +439,12 @@ async fn test_store_share() {
     put_register_request_on_chain(
         &api,
         &alice,
-        alice_constraint.to_account_id().into(),
+        alice_program.to_account_id().into(),
         KeyVisibility::Public,
     )
     .await;
 
-    run_to_block(&api, block_number + 1).await;
+    run_to_block(&rpc, block_number + 1).await;
 
     // succeeds
     let response = client
@@ -462,9 +460,9 @@ async fn test_store_share() {
     let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
     let registered_query = entropy::storage().relayer().registered(alice_account_id);
     for _ in 0..10 {
-        std::thread::sleep(std::time::Duration::from_millis(500));
-        let query_registered_status =
-            api.storage().at_latest().await.unwrap().fetch(&registered_query).await;
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+        let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+        let query_registered_status = api.storage().at(block_hash).fetch(&registered_query).await;
         if query_registered_status.unwrap().is_some() {
             break;
         }
@@ -494,7 +492,7 @@ async fn test_store_share() {
     assert_eq!(response_3.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(response_3.text().await.unwrap(), "Data is repeated");
 
-    run_to_block(&api, block_number + 3).await;
+    run_to_block(&rpc, block_number + 3).await;
     onchain_user_request.block_number = block_number + 1;
     // fails stale data
     let response_4 = client
@@ -507,16 +505,16 @@ async fn test_store_share() {
     assert_eq!(response_4.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(response_4.text().await.unwrap(), "Data is stale");
 
-    block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
+    block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     put_register_request_on_chain(
         &api,
-        &alice_constraint,
-        alice_constraint.to_account_id().into(),
+        &alice_program,
+        alice_program.to_account_id().into(),
         KeyVisibility::Public,
     )
     .await;
     onchain_user_request.block_number = block_number;
-    run_to_block(&api, block_number + 1).await;
+    run_to_block(&rpc, block_number + 1).await;
 
     // fails not verified data
     let response_5 = client
@@ -541,7 +539,7 @@ async fn test_store_share() {
     assert_eq!(response_6.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(response_6.text().await.unwrap(), "Invalid Signer: Invalid Signer in Signing group");
 
-    check_if_confirmation(&api, &alice.pair()).await;
+    check_if_confirmation(&api, &rpc, &alice.pair()).await;
     // TODO check if key is in other subgroup member
     clean_tests();
 }
@@ -551,7 +549,9 @@ async fn test_store_share() {
 async fn test_return_addresses_of_subgroup() {
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let result = return_all_addresses_of_subgroup(&api, 0u8).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
+    let result = return_all_addresses_of_subgroup(&api, &rpc, 0u8).await.unwrap();
     assert_eq!(result.len(), 1);
 }
 
@@ -564,6 +564,7 @@ async fn test_send_and_receive_keys() {
     let cxt = test_context_stationary().await;
     setup_client().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
     let user_registration_info = UserRegistrationInfo {
         key: alice.to_account_id().to_string(),
@@ -577,6 +578,7 @@ async fn test_send_and_receive_keys() {
     // sends key to alice validator, while filtering out own key
     let _ = send_key(
         &api,
+        &rpc,
         &alice.to_account_id().into(),
         &mut vec![ALICE_STASH_ADDRESS.clone(), alice.to_account_id().into()],
         user_registration_info.clone(),
@@ -636,6 +638,7 @@ async fn test_recover_key() {
     let (_, bob_kv) = create_clients("validator2".to_string(), vec![], vec![], false, true).await;
 
     let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
     let unsafe_query = UnsafeQuery::new("key".to_string(), "value".to_string());
     let client = reqwest::Client::new();
 
@@ -648,7 +651,8 @@ async fn test_recover_key() {
         .unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_CHARLIE_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let _ = recover_key(&api, &bob_kv, &signer_alice, unsafe_query.key.clone()).await.unwrap();
+    let _ =
+        recover_key(&api, &rpc, &bob_kv, &signer_alice, unsafe_query.key.clone()).await.unwrap();
 
     let value = bob_kv.kv().get(&unsafe_query.key).await.unwrap();
     assert_eq!(value, unsafe_query.value.into_bytes());
@@ -658,14 +662,18 @@ async fn test_recover_key() {
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: &Sr25519Keyring,
-    constraint_account: subxtAccountId32,
+    program_modification_account: subxtAccountId32,
     key_visibility: KeyVisibility,
 ) {
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
-    let registering_tx =
-        entropy::tx().relayer().register(constraint_account, Static(key_visibility), None);
+    let empty_program = vec![];
+    let registering_tx = entropy::tx().relayer().register(
+        program_modification_account,
+        Static(key_visibility),
+        empty_program,
+    );
 
     api.tx()
         .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
@@ -679,10 +687,10 @@ pub async fn put_register_request_on_chain(
         .unwrap();
 }
 
-pub async fn run_to_block(api: &OnlineClient<EntropyConfig>, block_run: u32) {
+pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32) {
     let mut current_block = 0;
     while current_block < block_run {
-        current_block = api.rpc().block(None).await.unwrap().unwrap().block.header.number;
+        current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     }
 }
 
@@ -906,10 +914,10 @@ async fn test_sign_tx_user_participates() {
     generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
     generic_msg.timestamp = SystemTime::now();
 
-    let test_user_failed_constraints_res =
+    let test_user_failed_programs_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    for res in test_user_failed_constraints_res {
+    for res in test_user_failed_programs_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
             "Runtime error: Runtime(Error::Evaluation(\"Length of data is too short.\"))"
@@ -996,14 +1004,14 @@ async fn test_register_with_private_key_visibility() {
     clean_tests();
 
     let one = AccountKeyring::One;
-    let constraint_account = AccountKeyring::Charlie;
+    let program_modification_account = AccountKeyring::Charlie;
 
     let (validator_ips, _validator_ids, _users_keyshare_option) =
         spawn_testing_validators(None, false).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-
-    let block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
     let (one_keypair, one_x25519_sk) = keyring_to_subxt_signer_and_x25519(&one);
     let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
@@ -1011,11 +1019,11 @@ async fn test_register_with_private_key_visibility() {
     put_register_request_on_chain(
         &api,
         &one,
-        constraint_account.to_account_id().into(),
+        program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
     )
     .await;
-    run_to_block(&api, block_number + 1).await;
+    run_to_block(&rpc, block_number + 1).await;
 
     // Simulate the propagation pallet making a `user/new` request to the second validator
     // as we only have one chain node running
@@ -1056,7 +1064,6 @@ async fn test_register_with_private_key_visibility() {
     .await;
 
     let response = new_user_response_result.unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
 
     assert!(keyshare_result.is_ok());

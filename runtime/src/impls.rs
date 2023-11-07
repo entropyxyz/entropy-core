@@ -41,7 +41,7 @@ mod multiplier_tests {
     use sp_runtime::{
         assert_eq_error_rate,
         traits::{Convert, One, Zero},
-        FixedPointNumber,
+        BuildStorage, FixedPointNumber,
     };
 
     use crate::{
@@ -57,9 +57,13 @@ mod multiplier_tests {
             .unwrap_or_else(|| BlockWeights::get().max_block)
     }
 
-    fn min_multiplier() -> Multiplier { MinimumMultiplier::get() }
+    fn min_multiplier() -> Multiplier {
+        MinimumMultiplier::get()
+    }
 
-    fn target() -> Weight { TargetBlockFullness::get() * max_normal() }
+    fn target() -> Weight {
+        TargetBlockFullness::get() * max_normal()
+    }
 
     // update based on runtime impl.
     fn runtime_multiplier_update(fm: Multiplier) -> Multiplier {
@@ -96,9 +100,11 @@ mod multiplier_tests {
     }
 
     fn run_with_system_weight<F>(w: Weight, assertions: F)
-    where F: Fn() {
+    where
+        F: Fn(),
+    {
         let mut t: sp_io::TestExternalities =
-            frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap().into();
+            frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap().into();
         t.execute_with(|| {
             System::set_block_consumed_resources(w, 0);
             assertions()

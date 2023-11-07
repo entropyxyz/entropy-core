@@ -70,9 +70,6 @@ pub mod module {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
-
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
@@ -130,7 +127,8 @@ pub mod module {
 
 pub struct PausedTransactionFilter<T>(sp_std::marker::PhantomData<T>);
 impl<T: Config> Contains<T::RuntimeCall> for PausedTransactionFilter<T>
-where <T as frame_system::Config>::RuntimeCall: GetCallMetadata
+where
+    <T as frame_system::Config>::RuntimeCall: GetCallMetadata,
 {
     fn contains(call: &T::RuntimeCall) -> bool {
         let CallMetadata { function_name, pallet_name } = call.get_call_metadata();

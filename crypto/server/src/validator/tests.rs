@@ -20,7 +20,7 @@ use super::api::{
     tell_chain_syncing_is_done, Keys,
 };
 use crate::{
-    chain_api::{get_api, EntropyConfig},
+    chain_api::{get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::{
             DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
@@ -39,11 +39,12 @@ async fn test_get_all_keys() {
     clean_tests();
     let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
-    let mut result = get_all_keys(&api, 3).await.unwrap();
-    let mut result_2 = get_all_keys(&api, 5).await.unwrap();
-    let mut result_3 = get_all_keys(&api, 1).await.unwrap();
-    let mut result_4 = get_all_keys(&api, 1000).await.unwrap();
+    let mut result = get_all_keys(&api, &rpc).await.unwrap();
+    let mut result_2 = get_all_keys(&api, &rpc).await.unwrap();
+    let mut result_3 = get_all_keys(&api, &rpc).await.unwrap();
+    let mut result_4 = get_all_keys(&api, &rpc).await.unwrap();
 
     let mut expected_results = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL",
@@ -60,16 +61,6 @@ async fn test_get_all_keys() {
     assert_eq!(result_2, expected_results);
     assert_eq!(result_3, expected_results);
     assert_eq!(result_4, expected_results);
-    clean_tests();
-}
-
-#[tokio::test]
-#[should_panic]
-async fn test_get_all_keys_fail() {
-    clean_tests();
-    let cxt = testing_context().await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let _ = get_all_keys(&api, 0).await.unwrap();
     clean_tests();
 }
 
@@ -233,11 +224,15 @@ async fn test_get_and_store_values() {
     clean_tests();
     let cxt = test_node_process_testing_state().await;
     let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
+
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let my_subgroup = get_subgroup(&api, &signer_alice).await.unwrap().0.unwrap();
+    let my_subgroup = get_subgroup(&api, &rpc, &signer_alice).await.unwrap().0.unwrap();
     let server_info =
-        get_random_server_info(&api, my_subgroup, signer_alice.account_id().clone()).await.unwrap();
+        get_random_server_info(&api, &rpc, my_subgroup, signer_alice.account_id().clone())
+            .await
+            .unwrap();
     let recip_key = x25519_dalek::PublicKey::from(server_info.x25519_public_key);
     let keys = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
@@ -288,17 +283,19 @@ async fn test_get_random_server_info() {
     clean_tests();
     let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let (my_subgroup, validator_address) = get_subgroup(&api, &signer_alice).await.unwrap();
+    let (my_subgroup, validator_address) = get_subgroup(&api, &rpc, &signer_alice).await.unwrap();
 
     let result =
-        get_random_server_info(&api, my_subgroup.unwrap(), signer_alice.account_id().clone())
+        get_random_server_info(&api, &rpc, my_subgroup.unwrap(), signer_alice.account_id().clone())
             .await
             .unwrap();
     assert_eq!("127.0.0.1:3001".as_bytes().to_vec(), result.endpoint);
     // panics here because no other validators in subgroup
-    get_random_server_info(&api, my_subgroup.unwrap(), validator_address).await.unwrap();
+    get_random_server_info(&api, &rpc, my_subgroup.unwrap(), validator_address).await.unwrap();
     clean_tests();
 }
 
@@ -308,17 +305,20 @@ async fn test_check_balance_for_fees() {
     clean_tests();
     let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
-    let result = check_balance_for_fees(&api, &ALICE_STASH_ADDRESS, MIN_BALANCE).await.unwrap();
+    let result =
+        check_balance_for_fees(&api, &rpc, &ALICE_STASH_ADDRESS, MIN_BALANCE).await.unwrap();
 
     assert!(result);
 
-    let result_2 = check_balance_for_fees(&api, &ALICE_STASH_ADDRESS, 10000000000000000000000u128)
-        .await
-        .unwrap();
+    let result_2 =
+        check_balance_for_fees(&api, &rpc, &ALICE_STASH_ADDRESS, 10000000000000000000000u128)
+            .await
+            .unwrap();
     assert!(!result_2);
 
-    let _ = check_balance_for_fees(&api, &RANDOM_ACCOUNT, MIN_BALANCE).await.unwrap();
+    let _ = check_balance_for_fees(&api, &rpc, &RANDOM_ACCOUNT, MIN_BALANCE).await.unwrap();
     clean_tests();
 }
 

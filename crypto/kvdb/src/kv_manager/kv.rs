@@ -26,7 +26,8 @@ pub struct Kv<V> {
 // database functionality using the "actor" pattern (Kv is the "handle"): https://ryhl.io/blog/actors-with-tokio/
 // see also https://tokio.rs/tokio/tutorial/channels
 impl<V: 'static> Kv<V>
-where V: Debug + Send + Sync + Serialize + DeserializeOwned
+where
+    V: Debug + Send + Sync + Serialize + DeserializeOwned,
 {
     /// Creates a new kv service. Returns [InitErr] on failure.
     /// the path of the kvstore is `root_path` + "/kvstore/" + `kv_name`

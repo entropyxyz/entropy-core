@@ -1,7 +1,6 @@
 use entropy_runtime::{Block, EXISTENTIAL_DEPOSIT};
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
-use node_executor::ExecutorDispatch;
-use sc_cli::{ChainSpec, RuntimeVersion, SubstrateCli};
+use sc_cli::SubstrateCli;
 use sc_service::PartialComponents;
 use sp_keyring::Sr25519Keyring;
 
@@ -13,31 +12,41 @@ use crate::{
 };
 
 impl SubstrateCli for Cli {
-    fn impl_name() -> String { "Substrate Node".into() }
+    fn impl_name() -> String {
+        "Entropy Node".into()
+    }
 
-    fn impl_version() -> String { env!("SUBSTRATE_CLI_IMPL_VERSION").into() }
+    fn impl_version() -> String {
+        env!("SUBSTRATE_CLI_IMPL_VERSION").into()
+    }
 
-    fn description() -> String { env!("CARGO_PKG_DESCRIPTION").into() }
+    fn description() -> String {
+        env!("CARGO_PKG_DESCRIPTION").into()
+    }
 
-    fn author() -> String { env!("CARGO_PKG_AUTHORS").into() }
+    fn author() -> String {
+        env!("CARGO_PKG_AUTHORS").into()
+    }
 
-    fn support_url() -> String { "support.anonymous.an".into() }
+    fn support_url() -> String {
+        "https://github.com/entropyxyz/entropy-core/".into()
+    }
 
-    fn copyright_start_year() -> i32 { 2017 }
+    fn copyright_start_year() -> i32 {
+        2022
+    }
 
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
             "dev" => Box::new(chain_spec::development_config()),
             "test" => Box::new(chain_spec::testing_config()),
+            "local-devnet" => Box::new(chain_spec::local_devnet_config()),
             "" | "local" => Box::new(chain_spec::local_testnet_config()),
             "devnet" => Box::new(chain_spec::devnet_config()),
-            path =>
-                Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),
+            path => {
+                Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?)
+            },
         })
-    }
-
-    fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        &entropy_runtime::VERSION
     }
 }
 
@@ -112,7 +121,7 @@ pub fn run() -> sc_cli::Result<()> {
                                 .into());
                         }
 
-                        cmd.run::<Block, ExecutorDispatch>(config)
+                        cmd.run::<Block, ()>(config)
                     },
                     BenchmarkCmd::Block(cmd) => {
                         let PartialComponents { client, .. } = service::new_partial(&config)?;
@@ -157,13 +166,17 @@ pub fn run() -> sc_cli::Result<()> {
 
                         cmd.run(client, inherent_benchmark_data()?, Vec::new(), &ext_factory)
                     },
-                    BenchmarkCmd::Machine(cmd) =>
-                        cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()),
+                    BenchmarkCmd::Machine(cmd) => {
+                        cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone())
+                    },
                 }
             })
         },
         #[cfg(feature = "try-runtime")]
         Some(Subcommand::TryRuntime(cmd)) => {
+            use sc_executor::{sp_wasm_interface::ExtendedHostFunctions, NativeExecutionDispatch};
+
+            use crate::service::ExecutorDispatch;
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
                 // we don't need any of the components of new_partial, just a runtime, or a task
@@ -172,9 +185,18 @@ pub fn run() -> sc_cli::Result<()> {
                 let task_manager =
                     sc_service::TaskManager::new(config.tokio_handle.clone(), registry)
                         .map_err(|e| sc_cli::Error::Service(sc_service::Error::Prometheus(e)))?;
-                Ok((cmd.run::<Block, ExecutorDispatch>(config), task_manager))
+                let info_provider = timestamp_with_aura_info(6000);
+
+                Ok((
+                    cmd.run::<Block, ExtendedHostFunctions<
+                        sp_io::SubstrateHostFunctions,
+                        <ExecutorDispatch as NativeExecutionDispatch>::ExtendHostFunctions,
+                    >, _>(Some(info_provider)),
+                    task_manager,
+                ))
             })
         },
+
         #[cfg(not(feature = "try-runtime"))]
         Some(Subcommand::TryRuntime) => Err("TryRuntime wasn't enabled when building the node. \
                                              You can enable it with `--features try-runtime`."

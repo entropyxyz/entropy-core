@@ -19,7 +19,9 @@ pub struct KeyReservation {
 }
 /// kv store needs PartialEq to complare values
 impl PartialEq for KeyReservation {
-    fn eq(&self, other: &Self) -> bool { self.key == other.key }
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key
+    }
 }
 
 // Provided by the requester and used by the manager task to send the command response back to the

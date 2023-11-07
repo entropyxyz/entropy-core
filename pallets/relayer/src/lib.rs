@@ -1,16 +1,24 @@
 //! # Relayer Pallet
 //!
-//!
 //! ## Overview
 //!
-//! Allows a user to ask to sign, register with the network and allows a node to confirm
-//! signing was completed properly.
+//! Entrypoint into the Entropy network.
+//!
+//! It allows a user to submit a registration request to the network initiating the distributed key
+//! generation (DKG) process.
+//!
+//! After this process validator nodes on the network can confirm that they have received a
+//! key-share from the registering user. Once enough validators have signaled that they have the
+//! user's key-share (right now this is one validator per partition) the user can be considered as
+//! registered.
 //!
 //! ### Public Functions
 //!
-//! prep_transaction - declares intent to sign, this gets relayed to thereshold network
-//! register - register's a user and that they have created and distributed entropy shards
-//! confirm_done - allows a node to confirm signing has happened and if a failure occured
+//! `register` - Allows a user to signal their intent to register onto the Entropy network.
+//! `confirm_register` - Allows validator nodes to confirm that they have recieved a user's
+//! key-share. After enough succesful confirmations from validators that user will be succesfully
+//! registered.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::new_without_default)]
 #![allow(clippy::or_fun_call)]
@@ -30,15 +38,14 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{Constraints, KeyVisibility, SIGNING_PARTY_SIZE};
+    use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
     use frame_support::{
-        dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays},
-        inherent::Vec,
+        dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays, Vec},
         pallet_prelude::*,
         traits::{ConstU32, IsSubType},
     };
     use frame_system::pallet_prelude::*;
-    use pallet_constraints::{AllowedToModifyConstraints, Pallet as ConstraintsPallet};
+    use pallet_programs::{AllowedToModifyProgram, Pallet as ProgramsPallet};
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
@@ -52,11 +59,11 @@ pub mod pallet {
         + frame_system::Config
         + pallet_authorship::Config
         + pallet_staking_extension::Config
-        + pallet_constraints::Config
+        + pallet_programs::Config
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        type PruneBlock: Get<Self::BlockNumber>;
+        type PruneBlock: Get<BlockNumberFor<Self>>;
         type SigningPartySize: Get<usize>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
@@ -66,10 +73,9 @@ pub mod pallet {
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
         pub is_registering: bool,
-        pub constraint_account: T::AccountId,
-        pub is_swapping: bool,
+        pub program_modification_account: T::AccountId,
         pub confirmations: Vec<u8>,
-        pub constraints: Option<Constraints>,
+        pub program: Vec<u8>,
         pub key_visibility: KeyVisibility,
     }
 
@@ -82,18 +88,14 @@ pub mod pallet {
     }
 
     #[pallet::genesis_config]
+    #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
         pub registered_accounts: Vec<(T::AccountId, u8, Option<[u8; 32]>)>,
     }
 
-    #[cfg(feature = "std")]
-    impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self { Self { registered_accounts: Default::default() } }
-    }
-
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             for account_info in &self.registered_accounts {
                 let key_visibility = match account_info.1 {
@@ -107,7 +109,7 @@ pub mod pallet {
                     account_info.0.clone(),
                     RegisteredInfo { key_visibility, verifying_key: BoundedVec::default() },
                 );
-                AllowedToModifyConstraints::<T>::insert(
+                AllowedToModifyProgram::<T>::insert(
                     account_info.0.clone(),
                     account_info.0.clone(),
                     (),
@@ -128,7 +130,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn dkg)]
     pub type Dkg<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Vec<u8>>, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn registered)]
@@ -147,7 +149,7 @@ pub mod pallet {
         /// An account has been registered. \[who\]
         AccountRegistered(T::AccountId),
         /// An account has been registered. [who, block_number, failures]
-        ConfirmedDone(T::AccountId, T::BlockNumber, Vec<u32>),
+        ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
 
     // Errors inform users that something went wrong.
@@ -163,55 +165,65 @@ pub mod pallet {
         IpAddressError,
         SigningGroupError,
         NoSyncedValidators,
+        MaxProgramLengthExceeded,
     }
 
-    /// Allows a user to kick off signing process
-    /// `sig_request`: signature request for user
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Signals that a user wants to register an account with Entropy.
+        /// Allows a user to signal that they want to register an account with the Entropy network.
         ///
-        /// This should be called by the signature-request account, and specify the initial
-        /// constraint-modification `AccountId` that can set constraints.
+        /// The caller provides an initial program, if any, an account which is able to modify a
+        /// the program, and the program's permission level on the network.
+        ///
+        /// Note that a user needs to be confirmed by validators through the
+        /// [`Self::confirm_register`] extrinsic before they can be considered as registered on the
+        /// network.
         #[pallet::call_index(0)]
         #[pallet::weight({
-            let (mut evm_acl_len, mut btc_acl_len) = (0, 0);
-            if let Some(constraints) = &initial_constraints {
-                (evm_acl_len, btc_acl_len) = ConstraintsPallet::<T>::constraint_weight_values(constraints);
-            }
-            <T as Config>::WeightInfo::register(evm_acl_len, btc_acl_len)
+            <T as Config>::WeightInfo::register(initial_program.len() as u32)
         })]
         pub fn register(
             origin: OriginFor<T>,
-            constraint_account: T::AccountId,
+            program_modification_account: T::AccountId,
             key_visibility: KeyVisibility,
-            initial_constraints: Option<Constraints>,
+            initial_program: Vec<u8>,
         ) -> DispatchResult {
             let sig_req_account = ensure_signed(origin)?;
 
-            // ensure account isn't already registered or has existing constraints
+            // Ensure account isn't already registered or has existing programs
             ensure!(!Registered::<T>::contains_key(&sig_req_account), Error::<T>::AlreadySubmitted);
             ensure!(
                 !Registering::<T>::contains_key(&sig_req_account),
                 Error::<T>::AlreadySubmitted
             );
-            if let Some(constraints) = &initial_constraints {
-                ConstraintsPallet::<T>::validate_constraints(constraints)?;
-            }
+
+            ensure!(
+                initial_program.len() as u32
+                    <= <T as pallet_programs::Config>::MaxBytecodeLength::get(),
+                Error::<T>::MaxProgramLengthExceeded,
+            );
+
+            // We take a storage deposit here based off the program length. This can be returned to
+            // the user if they clear the program from storage using the Programs pallet.
+            ProgramsPallet::<T>::reserve_program_deposit(
+                &program_modification_account,
+                initial_program.len(),
+            )?;
+
             let block_number = <frame_system::Pallet<T>>::block_number();
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(sig_req_account.clone().encode());
                 Ok(())
             })?;
-            // put account into a registering state
+
+            // Put account into a registering state
             Registering::<T>::insert(
                 &sig_req_account,
                 RegisteringDetails::<T> {
                     is_registering: true,
-                    constraint_account: constraint_account.clone(),
-                    is_swapping: false,
+                    program_modification_account,
                     confirmations: vec![],
-                    constraints: initial_constraints,
+                    program: initial_program,
                     key_visibility,
                 },
             );
@@ -224,11 +236,18 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Used by validators to confirm they have received a key-share from a user that is
-        /// registering. After a validator from each partition confirms they have a
-        /// keyshare, this should get the user to a `Registered` state
+        /// Allows validators to confirm that they have received a key-share from a user that is
+        /// in the process of registering.
+        ///
+        /// After a validator from each partition confirms they have a keyshare the user will be
+        /// considered as registered on the network.
         #[pallet::call_index(2)]
-        #[pallet::weight((<T as Config>::WeightInfo::confirm_register_swapping(SIGNING_PARTY_SIZE as u32), Pays::No))]
+        #[pallet::weight({
+            let weight =
+                <T as Config>::WeightInfo::confirm_register_registering(SIGNING_PARTY_SIZE as u32)
+                .max(<T as Config>::WeightInfo::confirm_register_registered(SIGNING_PARTY_SIZE as u32));
+            (weight, Pays::No)
+        })]
         pub fn confirm_register(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
@@ -257,7 +276,6 @@ pub mod pallet {
             );
 
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
-                let mut weight;
                 // just inserts last validator's verifying_key, need to do dispute resolution
                 Registered::<T>::insert(
                     &sig_req_account,
@@ -267,24 +285,20 @@ pub mod pallet {
                     },
                 );
                 Registering::<T>::remove(&sig_req_account);
-                weight =
-                    <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
-                if !registering_info.is_swapping {
-                    AllowedToModifyConstraints::<T>::insert(
-                        &registering_info.constraint_account,
-                        sig_req_account.clone(),
-                        (),
-                    );
 
-                    if let Some(constraints) = registering_info.constraints {
-                        ConstraintsPallet::<T>::set_constraints_unchecked(
-                            &sig_req_account,
-                            &constraints,
-                        );
-                    }
-                    weight =
-                        <T as Config>::WeightInfo::confirm_register_swapping(confirmation_length);
-                }
+                AllowedToModifyProgram::<T>::insert(
+                    &registering_info.program_modification_account,
+                    sig_req_account.clone(),
+                    (),
+                );
+
+                ProgramsPallet::<T>::set_program_unchecked(
+                    &sig_req_account,
+                    registering_info.program,
+                )?;
+
+                let weight =
+                    <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
 
                 Self::deposit_event(Event::AccountRegistered(sig_req_account));
                 Ok(Some(weight).into())
@@ -322,14 +336,14 @@ pub mod pallet {
 
         pub fn get_validator_rotation(
             signing_group: u8,
-            block_number: T::BlockNumber,
+            block_number: BlockNumberFor<T>,
         ) -> Result<(<T as pallet_session::Config>::ValidatorId, u32), Error<T>> {
             let mut i: u32 = 0;
             let mut addresses =
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_group)
                     .ok_or(Error::<T>::SigningGroupError)?;
             let converted_block_number: u32 =
-                T::BlockNumber::try_into(block_number).unwrap_or_default();
+                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
             let address = loop {
                 ensure!(!addresses.is_empty(), Error::<T>::NoSyncedValidators);
                 let selection: u32 = converted_block_number % addresses.len() as u32;
@@ -352,10 +366,12 @@ pub mod pallet {
     #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct ValidateConfirmRegistered<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
 
     impl<T: Config + Send + Sync> Debug for ValidateConfirmRegistered<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         #[cfg(feature = "std")]
         fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -363,18 +379,24 @@ pub mod pallet {
         }
 
         #[cfg(not(feature = "std"))]
-        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result { Ok(()) }
+        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+            Ok(())
+        }
     }
 
     impl<T: Config + Send + Sync> ValidateConfirmRegistered<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         #[allow(clippy::new_without_default)]
-        pub fn new() -> Self { Self(sp_std::marker::PhantomData) }
+        pub fn new() -> Self {
+            Self(sp_std::marker::PhantomData)
+        }
     }
 
     impl<T: Config + Send + Sync> SignedExtension for ValidateConfirmRegistered<T>
-    where <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
     {
         type AccountId = T::AccountId;
         type AdditionalSigned = ();

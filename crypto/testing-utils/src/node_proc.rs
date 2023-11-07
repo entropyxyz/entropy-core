@@ -17,17 +17,23 @@ pub struct TestNodeProcess<R: Config> {
 }
 
 impl<R> Drop for TestNodeProcess<R>
-where R: Config
+where
+    R: Config,
 {
-    fn drop(&mut self) { let _ = self.kill(); }
+    fn drop(&mut self) {
+        let _ = self.kill();
+    }
 }
 
 impl<R> TestNodeProcess<R>
-where R: Config
+where
+    R: Config,
 {
     /// Construct a builder for spawning a test node process.
     pub fn build<S>(program: S, chain_type: String) -> TestNodeProcessBuilder
-    where S: AsRef<OsStr> + Clone {
+    where
+        S: AsRef<OsStr> + Clone,
+    {
         TestNodeProcessBuilder::new(program, chain_type)
     }
 
@@ -43,7 +49,9 @@ where R: Config
     }
 
     /// Returns the subxt client connected to the running node.
-    pub fn client(&self) -> &OnlineClient<R> { &self.client }
+    pub fn client(&self) -> &OnlineClient<R> {
+        &self.client
+    }
 }
 
 /// Construct a test node process.
@@ -56,7 +64,9 @@ pub struct TestNodeProcessBuilder {
 
 impl TestNodeProcessBuilder {
     pub fn new<P>(node_path: P, chain_type: String) -> TestNodeProcessBuilder
-    where P: AsRef<OsStr> {
+    where
+        P: AsRef<OsStr>,
+    {
         Self {
             node_path: node_path.as_ref().into(),
             authority: None,
@@ -81,7 +91,9 @@ impl TestNodeProcessBuilder {
 
     /// Spawn the substrate node at the given path, and wait for rpc to be initialized.
     pub async fn spawn<R>(&self) -> Result<TestNodeProcess<R>, String>
-    where R: Config {
+    where
+        R: Config,
+    {
         let mut cmd = process::Command::new(&self.node_path);
         cmd.env("RUST_LOG", "error").arg(&self.chain_type).arg("--tmp");
 

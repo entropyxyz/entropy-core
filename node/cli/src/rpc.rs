@@ -37,7 +37,7 @@ use grandpa::{
     FinalityProofProvider, GrandpaJustificationStream, SharedAuthoritySet, SharedVoterState,
 };
 use jsonrpsee::RpcModule;
-use node_primitives::{AccountId, Balance, Block, BlockNumber, Hash, Index};
+use node_primitives::{AccountId, Balance, Block, BlockNumber, Hash, Nonce};
 use sc_client_api::AuxStore;
 use sc_consensus_babe::BabeWorkerHandle;
 use sc_rpc::SubscriptionTaskExecutor;
@@ -88,8 +88,6 @@ pub struct FullDeps<C, P, SC, B> {
     pub babe: BabeDeps,
     /// GRANDPA specific dependencies.
     pub grandpa: GrandpaDeps<B>,
-    /// Shared statement store reference.
-    pub statement_store: Arc<dyn sp_statement_store::StatementStore>,
 }
 
 /// Instantiate all Full RPC extensions.
@@ -105,38 +103,24 @@ where
         + Sync
         + Send
         + 'static,
-    C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
+    C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: BabeApi<Block>,
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
     SC: SelectChain<Block> + 'static,
     B: sc_client_api::Backend<Block> + Send + Sync + 'static,
-    B::State: sc_client_api::backend::StateBackend<sp_runtime::traits::HashFor<Block>>,
 {
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
     use sc_consensus_babe_rpc::{Babe, BabeApiServer};
     use sc_consensus_grandpa_rpc::{Grandpa, GrandpaApiServer};
-    use sc_rpc::{
-        dev::{Dev, DevApiServer},
-        statement::StatementApiServer,
-    };
+    use sc_rpc::dev::{Dev, DevApiServer};
     use sc_sync_state_rpc::{SyncState, SyncStateApiServer};
     use substrate_frame_rpc_system::{System, SystemApiServer};
-    // use substrate_state_trie_migration_rpc::{StateMigration, StateMigrationApiServer};
 
     let mut io = RpcModule::new(());
 
-    let FullDeps {
-        client,
-        pool,
-        select_chain,
-        chain_spec,
-        deny_unsafe,
-        babe,
-        grandpa,
-        statement_store,
-    } = deps;
+    let FullDeps { client, pool, select_chain, chain_spec, deny_unsafe, babe, grandpa } = deps;
     let BabeDeps { keystore, babe_worker_handle } = babe;
     let GrandpaDeps {
         shared_voter_state,
@@ -170,8 +154,5 @@ where
             .into_rpc(),
     )?;
     io.merge(Dev::new(client, deny_unsafe).into_rpc())?;
-    let statement_store =
-        sc_rpc::statement::StatementStore::new(statement_store, deny_unsafe).into_rpc();
-    io.merge(statement_store)?;
     Ok(io)
 }
