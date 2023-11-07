@@ -4,7 +4,7 @@
 
 This repo contains the Entropy blockchain node, the validator server (evaluates programs, stores threshold keyshares, and coordinates threshold-signing), and misc. testing utilities for the network.
 
-Our blockchain node is written with [Substrate](https://github.com/substrate-developer-hub/substrate-node-template).
+Our blockchain node is written with [Substrate](https://substrate.io/) using [Substrate's node template](https://github.com/substrate-developer-hub/substrate-node-template).
 
 ## Getting Started
 
