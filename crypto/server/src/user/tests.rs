@@ -42,8 +42,9 @@ use synedrion::{
 };
 use testing_utils::{
     constants::{
-        ALICE_STASH_ADDRESS, EXTRA_SHOULD_FAIL, EXTRA_SHOULD_SUCCEED, PREIMAGE_SHOULD_FAIL,
-        PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+        ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
+        PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS,
+        X25519_PUBLIC_KEYS,
     },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
@@ -124,7 +125,7 @@ async fn test_sign_tx_no_chain() {
 
     let mut generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
-        auxilary_data: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
+        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         validators_info,
         timestamp: SystemTime::now(),
     };
@@ -260,7 +261,7 @@ async fn test_sign_tx_no_chain() {
     }
 
     // Now, test a signature request that should fail
-    // The test program is written to fail when `extra` is `None`
+    // The test program is written to fail when `auxilary_data` is `None`
     generic_msg.auxilary_data = None;
     generic_msg.timestamp = SystemTime::now();
 
@@ -270,7 +271,7 @@ async fn test_sign_tx_no_chain() {
     for res in test_user_failed_programs_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Runtime error: Runtime(Error::Evaluation(\"This program requires that `extra` be `Some`.\"))"
+            "Runtime error: Runtime(Error::Evaluation(\"This program requires that `auxilary_data` be `Some`.\"))"
         );
     }
 
@@ -371,7 +372,7 @@ async fn test_fail_signing_group() {
 
     let generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
-        auxilary_data: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
+        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         validators_info,
         timestamp: SystemTime::now(),
     };
@@ -758,7 +759,7 @@ async fn test_sign_tx_user_participates() {
 
     let mut generic_msg = UserSignatureRequest {
         message: encoded_transaction_request.clone(),
-        auxilary_data: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
+        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
     };
@@ -933,7 +934,7 @@ async fn test_sign_tx_user_participates() {
     }
 
     // Now, test a signature request that should fail
-    // The test program is written to fail when `extra` is `None`
+    // The test program is written to fail when `auxilary_data` is `None`
     generic_msg.auxilary_data = None;
     generic_msg.timestamp = SystemTime::now();
 
@@ -943,7 +944,7 @@ async fn test_sign_tx_user_participates() {
     for res in test_user_failed_programs_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Runtime error: Runtime(Error::Evaluation(\"This program requires that `extra` be `Some`.\"))"
+            "Runtime error: Runtime(Error::Evaluation(\"This program requires that `auxilary_data` be `Some`.\"))"
         );
     }
 

@@ -27,10 +27,10 @@ lazy_static! {
     ];
 }
 
+/// The following constants are values used for integration testing specific to the `example_barebones_with_extra.wasm` from the `constraints` repo.
 pub const TEST_PROGRAM_WASM_BYTECODE: &[u8] =
     include_bytes!("../example_barebones_with_extra.wasm");
 pub const PREIMAGE_SHOULD_SUCCEED: &[u8] = "asdfasdfasdfasdf".as_bytes();
 pub const PREIMAGE_SHOULD_FAIL: &[u8] = "asdf".as_bytes();
-// note that EXTRA_SHOULD_SUCCEED's value random data that is already in hexstring form
-pub const EXTRA_SHOULD_SUCCEED: &[u8] = "fdsafdsa".as_bytes();
-pub const EXTRA_SHOULD_FAIL: Option<&[u8]> = None;
+pub const AUXILARY_DATA_SHOULD_SUCCEED: &[u8] = "fdsafdsa".as_bytes();
+pub const AUXILARY_DATA_SHOULD_FAIL: Option<&[u8]> = None;
