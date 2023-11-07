@@ -27,6 +27,7 @@ use entropy_runtime::{
     StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeConfig,
 };
+use entropy_shared::ValidatorInfo;
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 pub use node_primitives::{AccountId, Balance, Signature};
@@ -242,7 +243,7 @@ pub fn testnet_genesis(
                 (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
-            activate_proactive_refresh: false,
+            activate_proactive_refresh: vec![],
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {
@@ -415,7 +416,7 @@ pub fn local_devnet_genesis(
                 (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
-            activate_proactive_refresh: false,
+            activate_proactive_refresh: vec![],
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {
@@ -542,7 +543,7 @@ pub fn devnet_genesis(
         staking_extension: StakingExtensionConfig {
             threshold_servers: vec![],
             signing_groups: vec![],
-            activate_proactive_refresh: false,
+            activate_proactive_refresh: vec![],
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {
@@ -724,7 +725,30 @@ pub fn testing(
                 ),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
-            activate_proactive_refresh: true,
+            activate_proactive_refresh: vec![
+                ValidatorInfo {
+                    tss_account: hex![
+                        "e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"
+                    ]
+                    .into(),
+                    ip_address: "127.0.0.1:3001".as_bytes().to_vec(),
+                    x25519_public_key: [
+                        10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124,
+                        195, 141, 148, 249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247, 58, 34,
+                    ],
+                },
+                ValidatorInfo {
+                    tss_account: hex![
+                        "2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"
+                    ]
+                    .into(),
+                    ip_address: "127.0.0.1:3002".as_bytes().to_vec(),
+                    x25519_public_key: [
+                        225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245, 89,
+                        36, 170, 169, 181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136, 102, 10,
+                    ],
+                },
+            ],
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {

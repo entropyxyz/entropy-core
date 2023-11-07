@@ -59,7 +59,7 @@ pub enum ProtocolErr {
     BadSubscribeMessage(String),
     #[error("From Hex Error: {0}")]
     FromHex(#[from] hex::FromHexError),
-    #[error("Vec<u8> Conversion Error: {0}")]
+    #[error("Conversion Error: {0}")]
     Conversion(&'static str),
     #[error("Could not open ws connection: {0}")]
     ConnectionError(#[from] tokio_tungstenite::tungstenite::Error),
@@ -83,8 +83,12 @@ pub enum ProtocolErr {
     StringError(&'static str),
     #[error("Option Unwrap error: {0}")]
     OptionUnwrapError(String),
-    #[error("Proactive Refresh not called for")]
-    NoProactiveRefresh,
+    #[error("Proactive Refresh data incorrect")]
+    InvalidData,
+    #[error("Data is repeated")]
+    RepeatedData,
+    #[error("Data is stale")]
+    StaleData,
 }
 
 impl IntoResponse for ProtocolErr {

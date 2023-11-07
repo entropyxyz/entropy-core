@@ -44,7 +44,7 @@ use crate as pallet_staking_extension;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{X25519PublicKey, SIGNING_PARTY_SIZE};
+    use entropy_shared::{ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, Vec},
         pallet_prelude::*,
@@ -142,7 +142,7 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn proactive_refresh)]
-    pub type ProactiveRefresh<T: Config> = StorageValue<_, bool, ValueQuery>;
+    pub type ProactiveRefresh<T: Config> = StorageValue<_, Vec<ValidatorInfo>, ValueQuery>;
 
     #[pallet::genesis_config]
     #[derive(DefaultNoBound)]
@@ -152,7 +152,7 @@ pub mod pallet {
         pub threshold_servers:
             Vec<(<T as pallet_session::Config>::ValidatorId, ServerInfo<T::AccountId>)>,
         pub signing_groups: Vec<(u8, Vec<<T as pallet_session::Config>::ValidatorId>)>,
-        pub activate_proactive_refresh: bool,
+        pub activate_proactive_refresh: Vec<ValidatorInfo>,
     }
 
     #[pallet::genesis_build]
@@ -176,7 +176,7 @@ pub mod pallet {
                 }
             }
 
-            ProactiveRefresh::<T>::put(self.activate_proactive_refresh);
+            ProactiveRefresh::<T>::put(self.activate_proactive_refresh.clone());
         }
     }
     // Errors inform users that something went wrong.

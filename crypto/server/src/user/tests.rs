@@ -66,7 +66,7 @@ use crate::{
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, keyring_to_subxt_signer_and_x25519,
-            setup_client, spawn_testing_validators, update_programs,
+            run_to_block, setup_client, spawn_testing_validators, update_programs,
         },
         user::send_key,
     },
@@ -719,13 +719,6 @@ pub async fn put_register_request_on_chain(
         .wait_for_success()
         .await
         .unwrap();
-}
-
-pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32) {
-    let mut current_block = 0;
-    while current_block < block_run {
-        current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    }
 }
 
 #[tokio::test]

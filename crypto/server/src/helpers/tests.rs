@@ -36,7 +36,7 @@ use crate::{
     AppState,
 };
 
-pub async fn setup_client() {
+pub async fn setup_client() -> KvManager {
     let kv_store =
         KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap();
@@ -44,13 +44,14 @@ pub async fn setup_client() {
     let _ = setup_latest_block_number(&kv_store).await;
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let app_state = AppState { listener_state, configuration, kv_store };
+    let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
     let app = app(app_state).into_make_service();
     let listener = TcpListener::bind("0.0.0.0:3001").unwrap();
 
     tokio::spawn(async move {
         axum::Server::from_tcp(listener).unwrap().serve(app).await.unwrap();
     });
+    kv_store
 }
 
 pub async fn create_clients(
@@ -189,6 +190,13 @@ pub async fn check_if_confirmation(
         api.storage().at(block_hash.clone()).fetch(&registered_query).await.unwrap();
     assert_eq!(is_registered.as_ref().unwrap().verifying_key.0.len(), 33usize);
     assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
+}
+
+pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32) {
+    let mut current_block = 0;
+    while current_block < block_run {
+        current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    }
 }
 
 #[tokio::test]

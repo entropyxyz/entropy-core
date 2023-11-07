@@ -15,7 +15,7 @@ mod tests;
 #[frame_support::pallet]
 pub mod pallet {
     use codec::Encode;
-    use entropy_shared::{OcwMessage, ValidatorInfo};
+    use entropy_shared::{OcwMessage, OcwMessageProactiveRefresh, ValidatorInfo};
     use frame_support::{dispatch::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
     use frame_system::pallet_prelude::*;
     use scale_info::prelude::vec;
@@ -47,7 +47,7 @@ pub mod pallet {
 
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
             pallet_relayer::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
-            pallet_staking_extension::ProactiveRefresh::<T>::put(false);
+            pallet_staking_extension::ProactiveRefresh::<T>::take();
             T::DbWeight::get().writes(2)
         }
     }
@@ -120,10 +120,10 @@ pub mod pallet {
             Ok(())
         }
 
-        pub fn post_proactive_refresh(_block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
-            let do_refresh = pallet_staking_extension::Pallet::<T>::proactive_refresh();
+        pub fn post_proactive_refresh(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
+            let refresh_info = pallet_staking_extension::Pallet::<T>::proactive_refresh();
 
-            if !do_refresh {
+            if refresh_info.is_empty() {
                 return Ok(());
             }
 
@@ -146,10 +146,18 @@ pub mod pallet {
                 .collect::<Vec<_>>();
 
             log::warn!("propagation::post proactive refresh: {:?}", &[validators_info.encode()]);
+            let converted_block_number: u32 =
+                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
+
+            let req_body = OcwMessageProactiveRefresh {
+                // subtract 1 from blocknumber since the request is from the last block
+                block_number: converted_block_number.saturating_sub(1),
+                validators_info,
+            };
             // We construct the request
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
-            let pending = http::Request::post(url, vec![validators_info.encode()]) // scheint zu klappen
+            let pending = http::Request::post(url, vec![req_body.encode()]) // scheint zu klappen
                 .deadline(deadline)
                 .send()
                 .map_err(|_| http::Error::IoError)?;

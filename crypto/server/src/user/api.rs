@@ -504,14 +504,13 @@ pub async fn validate_new_user(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_manager: &KvManager,
 ) -> Result<(), UserErr> {
-    let last_block_number_recorded = kv_manager.kv().get("LATEST_BLOCK_NUMBER").await?;
+    let last_block_number_recorded = kv_manager.kv().get("LATEST_BLOCK_NUMBER_NEW_USER").await?;
     if u32::from_be_bytes(
         last_block_number_recorded
             .try_into()
-            .map_err(|_| UserErr::Conversion("Account Conversion"))?,
+            .map_err(|_| UserErr::Conversion("Block number conversion"))?,
     ) >= chain_data.block_number
     {
-        // change error
         return Err(UserErr::RepeatedData);
     }
 
@@ -544,8 +543,9 @@ pub async fn validate_new_user(
     if verifying_data_hash != chain_data_hash {
         return Err(UserErr::InvalidData);
     }
-    kv_manager.kv().delete("LATEST_BLOCK_NUMBER").await?;
-    let reservation = kv_manager.kv().reserve_key("LATEST_BLOCK_NUMBER".to_string()).await?;
+    kv_manager.kv().delete("LATEST_BLOCK_NUMBER_NEW_USER").await?;
+    let reservation =
+        kv_manager.kv().reserve_key("LATEST_BLOCK_NUMBER_NEW_USER".to_string()).await?;
     kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
     Ok(())
 }
