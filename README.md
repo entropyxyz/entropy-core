@@ -12,7 +12,7 @@ You can begin using this repository in a few different ways. This section descri
 
 ### Getting started with Docker
 
-This provides a [Docker Compose](https://docs.docker.com/compose/) configuration that spins up a simple, two-node development blockchain. We provide [Docker images](https://hub.docker.com/orgs/entropyxyz) that you can pull, or you can build from source.
+This repository provides a [Docker Compose](https://docs.docker.com/compose/) configuration that spins up a simple, two-node development blockchain. We provide [Docker images](https://hub.docker.com/orgs/entropyxyz) that you can pull, or you can build from source.
 
 **Do this** to use the Docker Compose configuration:
 
