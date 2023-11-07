@@ -81,7 +81,7 @@ to interact with your chain. [Click here](https://polkadot.js.org/apps/#/explore
 
 ## Testnet
 
-- Currently our network requires 2 binaries
+- Currently our network requires 2 binaries (`entropy` and `server`)
 - `cargo build --release` will build both
 - To run both you can reference /scripts/sdk-entropy-node.sh for the chain and /scripts/sdk-alice-tss.sh for the threshold client
 
