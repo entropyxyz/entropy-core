@@ -200,7 +200,6 @@ pub async fn do_proactive_refresh(
 ///
 /// the data matches what is on chain
 /// the data is not repeated
-///
 pub async fn validate_proactive_refresh(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -215,7 +214,7 @@ pub async fn validate_proactive_refresh(
         .await?
         .ok_or_else(|| ProtocolErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
-
+    // prevents multiple repeated messages being sent
     if u32::from_be_bytes(
         last_block_number_recorded
             .try_into()
@@ -242,6 +241,7 @@ pub async fn validate_proactive_refresh(
     let mut hasher_verifying_data = Blake2s256::new();
     hasher_verifying_data.update(proactive_info.encode());
     let verifying_data_hash = hasher_verifying_data.finalize();
+    // checks validity of data
     if verifying_data_hash != chain_data_hash {
         return Err(ProtocolErr::InvalidData);
     }

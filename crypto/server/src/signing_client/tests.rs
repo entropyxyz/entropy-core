@@ -143,10 +143,13 @@ async fn test_proactive_refresh_validation_fail() {
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let ocw_message = OcwMessageProactiveRefresh { validators_info };
     run_to_block(&rpc, block_number).await;
+
+    // maniputales kvdb to get to repeated data error
     kv.kv().delete("LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH").await.unwrap();
     let reservation =
         kv.kv().reserve_key("LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH".to_string()).await.unwrap();
     kv.kv().put(reservation, (block_number + 5).to_be_bytes().to_vec()).await.unwrap();
+
     let err_stale_data =
         validate_proactive_refresh(&api, &rpc, &kv, &ocw_message).await.map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
