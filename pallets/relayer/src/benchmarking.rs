@@ -69,6 +69,23 @@ benchmarks! {
     assert!(Registering::<T>::contains_key(sig_req_account));
   }
 
+  prune_registration {
+    let program_modification_account: T::AccountId = whitelisted_caller();
+    let sig_req_account: T::AccountId = whitelisted_caller();
+    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
+      <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
+        program_modification_account: sig_req_account.clone(),
+        confirmations: vec![],
+        program: vec![],
+        key_visibility: KeyVisibility::Public,
+        verifying_key: Some(BoundedVec::default())
+    });
+  }: _(RawOrigin::Signed(sig_req_account.clone()))
+  verify {
+    assert_last_event::<T>(Event::RegistrationCancelled(sig_req_account.clone()).into());
+  }
+
   confirm_register_registering {
     let c in 0 .. SIG_PARTIES as u32;
     let sig_req_account: T::AccountId = whitelisted_caller();
@@ -82,7 +99,6 @@ benchmarks! {
     }
 
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
-        is_registering: true,
         program_modification_account: sig_req_account.clone(),
         confirmations: vec![],
         program: vec![],
@@ -111,7 +127,6 @@ benchmarks! {
     let adjusted_sig_size = SIG_PARTIES - 1;
     let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
-        is_registering: true,
         program_modification_account: sig_req_account.clone(),
         confirmations: confirmation,
         program: vec![],
@@ -140,7 +155,6 @@ confirm_register_registered {
     let adjusted_sig_size = SIG_PARTIES - 1;
     let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
-        is_registering: true,
         program_modification_account: sig_req_account.clone(),
         confirmations: confirmation,
         program: vec![],

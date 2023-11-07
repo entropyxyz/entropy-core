@@ -7,7 +7,7 @@
 # image's build environment. This makes it possible to use one
 # Dockerfile and still ultimately run a few different bianries.
 main () {
-    exec "/usr/local/bin/${binary}" "$@"
+    exec "/usr/local/bin/${entropy_binary}" "$@"
 }
 
 main "$@"

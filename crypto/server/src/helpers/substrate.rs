@@ -128,7 +128,7 @@ pub async fn make_register(
     let block_hash_2 = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
 
     let query_registering_status = api.storage().at(block_hash_2).fetch(&registering_query).await;
-    assert!(query_registering_status.unwrap().unwrap().is_registering);
+    assert!(query_registering_status.unwrap().is_some());
 }
 
 /// Returns wether an account is registered

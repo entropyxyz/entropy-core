@@ -55,48 +55,22 @@ cargo test --release -p server --features unsafe -- --test user::tests::test_uns
 Once the node template is running locally, you can connect it with **Polkadot-JS Apps** front-end
 to interact with your chain. [Click here](https://polkadot.js.org/apps/#/explorer?rpc=ws://localhost:9944) connecting the Apps to your local node template.
 
-### Run in Docker
-
-First, install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
-
-Then run the following command to start a single node development chain.
-
-```bash
-./scripts/docker_run.sh
-```
-
-This command will firstly compile your code, and then start a local development network. You can
-also replace the default command
-(`cargo build --release && ./target/release/entropy --dev --rpc-external`)
-by appending your own. A few useful ones are as follow.
-
-```bash
-# Run Substrate node without re-compiling
-./scripts/docker_run.sh ./target/release/entropy --dev --rpc-external
-
-# Purge the local dev chain
-./scripts/docker_run.sh ./target/release/entropy purge-chain --dev
-
-# Check whether the code is compilable
-./scripts/docker_run.sh cargo check
-```
 
 ## Testnet
 
-- Currently our network requires 2 binaries
-- `cargo build --release` will build both
-- To run both you can reference /scripts/sdk-entropy-node.sh for the chain and /scripts/sdk-alice-tss.sh for the threshold client
+-   Currently our network requires 2 binaries
+-   `cargo build --release` will build both
+-   To run both you can reference /scripts/sdk-entropy-node.sh for the chain and /scripts/sdk-alice-tss.sh for the threshold client
 
 ### Changing Defaults
 
-- All defaults are ready to go out the box but can be changed if needed with varying degrees of difficult
-
-- To change chain address away from default ws://127.0.0.1:9944 you need to inform the sig client which can be done with the env variable `export ENDPOINT=`
-- To change the default of the sig client from `http://127.0.0.1:3001/sign` you need to tell the chain after it is running by making an rpc call. Example code can be found here `https://github.com/entropyxyz/util-scripts/blob/master/setEndpoint.ts`. You also need to maintain the route as /sign
+-   All defaults are ready to go out the box but can be changed if needed with varying degrees of difficult
+-   To change chain address away from default `ws://127.0.0.1:9944` you need to inform the sig client which can be done with the env variable `export ENDPOINT=`
+-   To change the default of the sig client from `http://127.0.0.1:3001/sign` you need to tell the chain after it is running by making an rpc call. Example code can be found [here](https://github.com/entropyxyz/util-scripts/blob/master/setEndpoint.ts). You also need to maintain the route as `/sign`
 
 ## Threshold Keys
 
-- Keys for internal testnet use only, not secure, here for convenience do not use them for anything real
+-   Keys for internal testnet use only, not secure, here for convenience do not use them for anything real
 
 #### Alice
 
@@ -117,58 +91,57 @@ Account ID: `0x2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f`
 SS58 Address: `5D2SVCUkK5FgFiBwPTJuTN65J6fACSEoZrL41thZBAycwnQV`
 
 #### Charlie
-Secret phrase `lake carry still awful point mention bike category tornado plate brass lock` is account:
-  Network ID/version: substrate
-  Secret seed:        `0xb9085925e9452f3e465b51a883a0dbb2c13d5610b6f8f7e7f206f7f044daa419`
-  Public key (hex):   `0x14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611`
-  Account ID:         `0x14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611`
-  SS58 Address:       `5CY1EquGdAiiJJ28FDiT8EB1C3gnMixtPn4pbSggFF6nUat7`
 
+Secret phrase `lake carry still awful point mention bike category tornado plate brass lock` is account:
+Network ID/version: substrate
+Secret seed: `0xb9085925e9452f3e465b51a883a0dbb2c13d5610b6f8f7e7f206f7f044daa419`
+Public key (hex): `0x14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611`
+Account ID: `0x14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611`
+SS58 Address: `5CY1EquGdAiiJJ28FDiT8EB1C3gnMixtPn4pbSggFF6nUat7`
 
 ## Running Devnet
 
-- Devnet requires 2 validator nodes, 2 threshold clients running on the same machine
+-   Devnet requires 2 validator nodes, 2 threshold clients running on the same machine
 
-- Open 5 terminals lol
+-   Open 5 terminals lol
 
-- In terminal 1 set up chain 1
+-   In terminal 1 set up chain 1
 
-  - `cargo build --release`
-  - `./scripts/alice.sh`
+    -   `cargo build --release`
+    -   `./scripts/alice.sh`
 
-- In terminal 2 run alice threshold client
+-   In terminal 2 run alice threshold client
 
-  - `cargo build --release --features="alice unsafe"`
-  - `./scripts/server.sh`
+    -   `cargo build --release --features="alice unsafe"`
+    -   `./scripts/server.sh`
 
-- In terminal 3 run chain 2
+-   In terminal 3 run chain 2
 
-  - `./scripts/bob.sh`
+    -   `./scripts/bob.sh`
 
-- In terminal 5run bob threshold client
-  - `cargo build --release --features="bob unsafe"`
-  - `./scripts/server_bob.sh`
+-   In terminal 5run bob threshold client
+    -   `cargo build --release --features="bob unsafe"`
+    -   `./scripts/server_bob.sh`
 
-With all 4 nodes running the chain is now working, next we now have a clash where both chains by default send their OCW messages to port 3001, you need to change one of those
+With all 4 nodes running the chain is now working, next we now have a clash where both chains by default send their OCW messages to port `3001`, you need to change one of those
 
-- From this repo <https://github.com/entropyxyz/util-scripts>
-  - Need to setup the repo and link the wasm first
-  - `cd pkg`
-  - `npm link`
-  - `cd ..`
-  - `npm link x25519-chacha20poly1305-wasm`
-- Run setEndpoint.ts
-  - `ts-node setEndpoint.ts`
+-   From this repo <https://github.com/entropyxyz/util-scripts>
+    -   Need to setup the repo and link the wasm first
+    -   `cd pkg`
+    -   `npm link`
+    -   `cd ..`
+    -   `npm link x25519-chacha20poly1305-wasm`
+-   Run setEndpoint.ts
+    -   `ts-node setEndpoint.ts`
 
 next register
 
-- `ts-node register.ts`
+-   `ts-node register.ts`
 
 now you can sign
 
-- `ts-node sign.ts`
-
+-   `ts-node sign.ts`
 
 ## Pulling Metadata
 
-Everytime a change to the chain's interface happens, metadata needs to be pulled, run a dev chain and run ./script/pull_entropy_metadata. Subxt needs to be installed first ```cargo install subxt-cli```
+Everytime a change to the chain's interface happens, metadata needs to be pulled, run a dev chain and run `./script/pull_entropy_metadata`. Subxt needs to be installed first `cargo install subxt-cli`
