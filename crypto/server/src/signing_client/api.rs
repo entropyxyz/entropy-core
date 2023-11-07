@@ -196,11 +196,11 @@ pub async fn do_proactive_refresh(
     Ok(result)
 }
 
-/// Validates if proactive refresh was called for by chain.
+/// Validates proactive refresh call. It checks that
 ///
-/// # TODO
+/// the data matches what is on chain
+/// the data is not repeated
 ///
-/// In the future we should check validity of message integrity. See https://github.com/entropyxyz/entropy-core/issues/454
 pub async fn validate_proactive_refresh(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -210,25 +210,20 @@ pub async fn validate_proactive_refresh(
     let last_block_number_recorded =
         kv_manager.kv().get("LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH").await?;
 
-    if u32::from_be_bytes(
-        last_block_number_recorded
-            .try_into()
-            .map_err(|_| ProtocolErr::Conversion("Block number conversion"))?,
-    ) >= ocw_data.block_number
-    {
-        return Err(ProtocolErr::RepeatedData);
-    }
     let latest_block_number = rpc
         .chain_get_header(None)
         .await?
         .ok_or_else(|| ProtocolErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
-    // // we subtract 1 as the message info is coming from the previous block
-    if latest_block_number.saturating_sub(1) != ocw_data.block_number
-        && latest_block_number.saturating_sub(1) != 0
+    if u32::from_be_bytes(
+        last_block_number_recorded
+            .try_into()
+            .map_err(|_| ProtocolErr::Conversion("Block number conversion"))?,
+    ) >= latest_block_number
+        && latest_block_number != 0
     {
-        return Err(ProtocolErr::StaleData);
+        return Err(ProtocolErr::RepeatedData);
     }
 
     let block_hash = rpc
@@ -254,6 +249,6 @@ pub async fn validate_proactive_refresh(
     kv_manager.kv().delete("LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH").await?;
     let reservation =
         kv_manager.kv().reserve_key("LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH".to_string()).await?;
-    kv_manager.kv().put(reservation, ocw_data.block_number.to_be_bytes().to_vec()).await?;
+    kv_manager.kv().put(reservation, latest_block_number.to_be_bytes().to_vec()).await?;
     Ok(())
 }

@@ -120,7 +120,7 @@ pub mod pallet {
             Ok(())
         }
 
-        pub fn post_proactive_refresh(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
+        pub fn post_proactive_refresh(_block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let refresh_info = pallet_staking_extension::Pallet::<T>::proactive_refresh();
 
             if refresh_info.is_empty() {
@@ -146,12 +146,8 @@ pub mod pallet {
                 .collect::<Vec<_>>();
 
             log::warn!("propagation::post proactive refresh: {:?}", &[validators_info.encode()]);
-            let converted_block_number: u32 =
-                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
 
             let req_body = OcwMessageProactiveRefresh {
-                // subtract 1 from blocknumber since the request is from the last block
-                block_number: converted_block_number.saturating_sub(1),
                 validators_info,
             };
             // We construct the request

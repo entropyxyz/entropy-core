@@ -87,8 +87,6 @@ pub enum ProtocolErr {
     InvalidData,
     #[error("Data is repeated")]
     RepeatedData,
-    #[error("Data is stale")]
-    StaleData,
 }
 
 impl IntoResponse for ProtocolErr {

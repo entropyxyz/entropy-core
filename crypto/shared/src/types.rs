@@ -69,6 +69,5 @@ pub struct OcwMessage {
     frame_support::Deserialize,
 )]
 pub struct OcwMessageProactiveRefresh {
-    pub block_number: BlockNumber,
     pub validators_info: Vec<ValidatorInfo>,
 }
