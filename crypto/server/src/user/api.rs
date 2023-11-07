@@ -10,7 +10,7 @@ use axum::{
 };
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
-use ec_runtime::{SignatureRequest, Runtime};
+use ec_runtime::{Runtime, SignatureRequest};
 use entropy_protocol::ValidatorInfo;
 use entropy_shared::{types::KeyVisibility, OcwMessage, X25519PublicKey, SIGNING_PARTY_SIZE};
 use futures::{
