@@ -147,9 +147,7 @@ pub mod pallet {
 
             log::warn!("propagation::post proactive refresh: {:?}", &[validators_info.encode()]);
 
-            let req_body = OcwMessageProactiveRefresh {
-                validators_info,
-            };
+            let req_body = OcwMessageProactiveRefresh { validators_info };
             // We construct the request
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
