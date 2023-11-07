@@ -1,6 +1,7 @@
 mod common;
 use std::{str::FromStr, time::SystemTime};
 
+pub use crate::chain_api::{get_api, get_rpc};
 use anyhow::{anyhow, ensure};
 pub use common::derive_static_secret;
 use common::{get_current_subgroup_signers, Hasher, UserTransactionRequest};
@@ -17,6 +18,7 @@ use sp_core::{
     sr25519, Pair,
 };
 use subxt::{
+    backend::legacy::LegacyRpcMethods,
     tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static},
     Config, OnlineClient,
@@ -28,23 +30,18 @@ use synedrion::{
 };
 use x25519_chacha20poly1305::encrypt_and_sign;
 
-pub use crate::chain_api::entropy::runtime_types::entropy_shared::constraints::Constraints;
 use crate::chain_api::{
     entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *,
 };
 
-/// Get the Entropy api
-pub async fn get_api(ws_url: String) -> anyhow::Result<OnlineClient<EntropyConfig>> {
-    Ok(OnlineClient::<EntropyConfig>::from_url(ws_url.clone()).await?)
-}
-
 /// Register an account
 pub async fn register(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     sig_req_seed_string: String,
     constraint_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
-    initial_program: Option<Constraints>,
+    initial_program: Vec<u8>,
 ) -> anyhow::Result<(RegisteredInfo, Option<KeyShare<KeyParams>>)> {
     let sig_req_seed = SeedString::new(sig_req_seed_string);
     let sig_req_keypair: sr25519::Pair = sig_req_seed.clone().try_into()?;
@@ -75,14 +72,13 @@ pub async fn register(
     let keyshare_option = match key_visibility {
         KeyVisibility::Private(_x25519_pk) => {
             let x25519_secret = derive_static_secret(&sig_req_keypair);
-            let block_number = api
-                .rpc()
-                .block(None)
+
+            let block_number = rpc
+                .chain_get_header(None)
                 .await?
                 .ok_or(anyhow!("Cannot get current block number"))?
-                .block
-                .header
                 .number;
+
             let validators_info = get_dkg_committee(api, block_number).await?;
             Some(
                 user_participates_in_dkg_protocol(
@@ -225,14 +221,13 @@ pub async fn update_program(
     let program_seed = SeedString::new(program_seed_string);
     let program_keypair: sr25519::Pair = program_seed.try_into()?;
 
-    let update_program_tx =
-        entropy::tx().constraints().update_v2_constraints(sig_req_account, program);
+    let update_program_tx = entropy::tx().programs().update_program(sig_req_account, program);
 
-    let constraint_modification_account =
+    let program_modification_account =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(program_keypair.clone());
 
     api.tx()
-        .sign_and_submit_then_watch_default(&update_program_tx, &constraint_modification_account)
+        .sign_and_submit_then_watch_default(&update_program_tx, &program_modification_account)
         .await?
         .wait_for_in_block()
         .await?
@@ -244,16 +239,18 @@ pub async fn update_program(
 /// Get info on all registered accounts
 pub async fn get_accounts(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> anyhow::Result<Vec<(Vec<u8>, RegisteredInfo)>> {
-    let storage_address = subxt::dynamic::storage_root("Relayer", "Registered");
-    let batch_size = 100;
-    let mut iter =
-        api.storage().at_latest().await?.iter(storage_address, batch_size as u32).await?;
+    let block_hash =
+        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
+    let keys = Vec::<()>::new();
+    let storage_address = subxt::dynamic::storage("Relayer", "Registered", keys);
+    let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut accounts = Vec::new();
-    while let Some((storage_key, account)) = iter.next().await? {
+    while let Some(Ok((storage_key, account))) = iter.next().await {
         let decoded = account.into_encoded();
         let registered_info = RegisteredInfo::decode(&mut decoded.as_ref())?;
-        let key = storage_key.0[storage_key.0.len() - 32..].to_vec();
+        let key = storage_key[storage_key.len() - 32..].to_vec();
         accounts.push((key, registered_info))
     }
     Ok(accounts)
@@ -299,7 +296,7 @@ async fn put_register_request_on_chain(
     sig_req_keypair: sr25519::Pair,
     constraint_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
-    initial_program: Option<Constraints>,
+    initial_program: Vec<u8>,
 ) -> anyhow::Result<()> {
     let sig_req_account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keypair);
 

@@ -9,8 +9,8 @@ use subxt::utils::AccountId32 as SubxtAccountId32;
 use testing_utils::{
     constants::BAREBONES_PROGRAM_WASM_BYTECODE,
     test_client::{
-        derive_static_secret, fund_account, get_accounts, get_api, register, sign, update_program,
-        KeyVisibility,
+        derive_static_secret, fund_account, get_accounts, get_api, get_rpc, register, sign,
+        update_program, KeyVisibility,
     },
 };
 
@@ -100,7 +100,8 @@ async fn run_command() -> anyhow::Result<String> {
     let endpoint_addr = cli.chain_endpoint.unwrap_or_else(|| {
         std::env::var("ENTROPY_DEVNET").unwrap_or("ws://localhost:9944".to_string())
     });
-    let api = get_api(endpoint_addr).await?;
+    let api = get_api(&endpoint_addr).await?;
+    let rpc = get_rpc(&endpoint_addr).await?;
 
     match cli.command {
         CliCommand::Register {
@@ -125,12 +126,16 @@ async fn run_command() -> anyhow::Result<String> {
                 _ => KeyVisibility::Public,
             };
 
+            // TODO we should take initial program as an argument
+            let initial_program = Vec::new();
+
             let register_status = register(
                 &api,
+                &rpc,
                 signature_request_account_name,
                 program_account,
                 key_visibility_converted,
-                None,
+                initial_program,
             )
             .await?;
             Ok(format!("{:?}", register_status))
@@ -159,7 +164,7 @@ async fn run_command() -> anyhow::Result<String> {
             Ok("program updated".to_string())
         },
         CliCommand::Status => {
-            let accounts = get_accounts(&api).await?;
+            let accounts = get_accounts(&api, &rpc).await?;
             println!(
                 "There are {} registered Entropy accounts.\n",
                 accounts.len().to_string().green()
