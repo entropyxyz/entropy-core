@@ -10,7 +10,7 @@ use axum::{
 };
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
-use ec_runtime::{InitialState, Runtime};
+use ec_runtime::{SignatureRequest, Runtime};
 use entropy_protocol::ValidatorInfo;
 use entropy_shared::{types::KeyVisibility, OcwMessage, X25519PublicKey, SIGNING_PARTY_SIZE};
 use futures::{
@@ -64,9 +64,9 @@ use crate::{
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserSignatureRequest {
     /// Hex-encoded raw data to be signed (eg. hex-encoded RLP-serialized Ethereum transaction)
-    pub preimage: String,
-    /// Hex-encoded extra data required for program evaluation (eg. zero-knowledge proof, serialized struct, etc)
-    pub extra: Option<String>,
+    pub message: String,
+    /// Hex-encoded auxilary data for program evaluation, will not be signed (eg. zero-knowledge proof, serialized struct, etc)
+    pub auxilary_data: Option<String>,
     /// Information from the validators in signing party
     pub validators_info: Vec<ValidatorInfo>,
     /// When the message was created and signed
@@ -119,9 +119,9 @@ pub async fn sign_tx(
     let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&decrypted_message)?;
     check_stale(user_sig_req.timestamp)?;
 
-    let preimage = hex::decode(&user_sig_req.preimage)?;
-    let extra = user_sig_req.extra.as_ref().map(hex::decode).transpose()?;
-    let sig_hash = hex::encode(Hasher::keccak(&preimage));
+    let message = hex::decode(&user_sig_req.message)?;
+    let auxilary_data = user_sig_req.auxilary_data.as_ref().map(hex::decode).transpose()?;
+    let sig_hash = hex::encode(Hasher::keccak(&message));
     let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &sig_hash).await?;
     check_signing_group(&subgroup_signers, &user_sig_req.validators_info, signer.account_id())?;
 
@@ -139,9 +139,9 @@ pub async fn sign_tx(
     let program = get_program(&api, &rpc, &second_signing_address_conversion).await?;
 
     let mut runtime = Runtime::new();
-    let initial_state = InitialState { preimage, extra };
+    let signature_request = SignatureRequest { message, auxilary_data };
 
-    runtime.evaluate(&program, &initial_state)?;
+    runtime.evaluate(&program, &signature_request)?;
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 

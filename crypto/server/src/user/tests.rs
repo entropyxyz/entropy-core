@@ -123,8 +123,8 @@ async fn test_sign_tx_no_chain() {
     let sig_uid = create_unique_tx_id(&signing_address, &hash_as_string);
 
     let mut generic_msg = UserSignatureRequest {
-        preimage: hex::encode(PREIMAGE_SHOULD_SUCCEED),
-        extra: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
+        message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        auxilary_data: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
         validators_info,
         timestamp: SystemTime::now(),
     };
@@ -261,7 +261,7 @@ async fn test_sign_tx_no_chain() {
 
     // Now, test a signature request that should fail
     // The test program is written to fail when `extra` is `None`
-    generic_msg.extra = None;
+    generic_msg.auxilary_data = None;
     generic_msg.timestamp = SystemTime::now();
 
     let test_user_failed_programs_res =
@@ -370,8 +370,8 @@ async fn test_fail_signing_group() {
     ];
 
     let generic_msg = UserSignatureRequest {
-        preimage: hex::encode(PREIMAGE_SHOULD_SUCCEED),
-        extra: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
+        message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        auxilary_data: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
         validators_info,
         timestamp: SystemTime::now(),
     };
@@ -757,8 +757,8 @@ async fn test_sign_tx_user_participates() {
     let sig_uid = create_unique_tx_id(&signing_address, &hash_as_hexstring);
 
     let mut generic_msg = UserSignatureRequest {
-        preimage: encoded_transaction_request.clone(),
-        extra: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
+        message: encoded_transaction_request.clone(),
+        auxilary_data: Some(hex::encode(EXTRA_SHOULD_SUCCEED)),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
     };
@@ -934,7 +934,7 @@ async fn test_sign_tx_user_participates() {
 
     // Now, test a signature request that should fail
     // The test program is written to fail when `extra` is `None`
-    generic_msg.extra = None;
+    generic_msg.auxilary_data = None;
     generic_msg.timestamp = SystemTime::now();
 
     let test_user_failed_programs_res =
