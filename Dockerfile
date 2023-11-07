@@ -1,18 +1,19 @@
 # Which Cargo package to build. This is also the binary name.
 ARG PACKAGE=entropy
 # Version of Rust to build with.
-ARG RUST_VERSION=1.73.0
+ARG RUST_STABLE_VERSION=1.73.0
 # Version of upstream Debian to build with.
 ARG DEBIAN_CODENAME=bullseye
-# Version of Alpine to deploy with.
-ARG ALPINE_VERSION=3
+# Version of Ubuntu to deploy with.
+ARG UBUNTU_VERSION=20.04
 # Whether or not to `strip(1)` the binaries. See:
 # https://doc.rust-lang.org/rustc/codegen-options/index.html#strip
 ARG STRIP=symbols
 
-FROM --platform=linux/amd64 rust:${RUST_VERSION}-slim-${DEBIAN_CODENAME} as build
+FROM docker.io/library/debian:${DEBIAN_CODENAME}-20230522-slim as build
 ARG PACKAGE
-ARG ALPINE_VERSION
+ARG RUST_STABLE_VERSION
+ARG UBUNTU_VERSION
 ARG STRIP
 
 # Prepare and cache build dependencies, to speed up subsequent runs.
@@ -21,11 +22,17 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean; \
         > /etc/apt/apt.conf.d/keep-cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install --yes \
-        git pkg-config protobuf-compiler make libjemalloc2 clang \
+    export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update && apt-get install --yes --no-install-recommends \
+        git bash curl ca-certificates openssh-client \
+        pkg-config protobuf-compiler make clang \
         openssl libssl-dev \
-        bash \
-    && rustup target add wasm32-unknown-unknown
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --no-modify-path --default-toolchain none \
+    && $HOME/.cargo/bin/rustup toolchain install "${RUST_STABLE_VERSION}" --profile minimal \
+    && $HOME/.cargo/bin/rustup default "${RUST_STABLE_VERSION}" \
+    && $HOME/.cargo/bin/rustup component add rust-src rustfmt clippy \
+    && $HOME/.cargo/bin/rustup target add wasm32-unknown-unknown
 
 # Now fetch and build our own source code. This is a somewhat involved
 # set of shell commands but the basic idea is that we are running the
@@ -64,15 +71,19 @@ RUN --mount=type=ssh \
     && echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" \
         > ~/.ssh/known_hosts \
     && CARGO_NET_GIT_FETCH_WITH_CLI=true \
-        cargo rustc --release -p ${PACKAGE} -- \
-            -C target-feature=+crt-static \
+        $HOME/.cargo/bin/cargo rustc --release -p ${PACKAGE} -- \
             -C strip=${STRIP} \
     && install target/release/${PACKAGE} /usr/local/bin
 
 # Next stage will contain just our built binary, without dependencies.
-FROM --platform=linux/amd64 alpine:${ALPINE_VERSION}
+FROM docker.io/library/ubuntu:${UBUNTU_VERSION}
 ARG PACKAGE
-ENV binary $PACKAGE
+ENV entropy_binary $PACKAGE
+
+# Prepare the distribution image with necessary runtime dependencies.
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update && apt-get install --yes --no-install-recommends \
+        ca-certificates
 
 WORKDIR /srv/entropy
 RUN addgroup --system entropy \
@@ -83,18 +94,6 @@ RUN addgroup --system entropy \
         entropy \
     && chown -R entropy:entropy /srv/entropy
 
-# Despite statically linking our binaries, we will still need these
-# libraries to process the /etc/nsswitch.conf file and perform DNS
-# lookups, as we've built with glibc, but Alpine provides musl libc.
-# This is a notorious issue in GNU glibc, currently without a fix:
-#     https://sourceware.org/bugzilla/show_bug.cgi?id=27959
-COPY --from=build \
-    /lib/x86_64-linux-gnu/libnss_* \
-    /lib/x86_64-linux-gnu/libc.so.6 \
-    /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 \
-    /lib/x86_64-linux-gnu/libresolv.so.2 \
-    /lib/x86_64-linux-gnu/
-
 # Lastly, we copy our own files into the final container image stage.
 COPY --from=build --chown=entropy:entropy --chmod=554 /usr/local/bin/${PACKAGE} /usr/local/bin/${PACKAGE}
 COPY --chown=entropy:entropy --chmod=554 bin/entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -103,12 +102,12 @@ COPY --chown=entropy:entropy --chmod=554 bin/entrypoint.sh /usr/local/bin/entryp
 USER entropy
 
 ###
-# Describe the available ports to expose for `server`.
+# Describe the available ports to expose for the `server` binary.
 ###
 # TSS server's REST-style HTTP API port.
 EXPOSE 3001
 ###
-# Describe the available ports to expose for `entropy`.
+# Describe the available ports to expose for the `entropy` binary.
 ###
 # Substrate's default Prometheus endpoint.
 EXPOSE 9615

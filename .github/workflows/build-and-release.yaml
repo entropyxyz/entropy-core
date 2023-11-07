@@ -10,12 +10,9 @@ on:
       - release/v[0-9]+.[0-9]+.[0-9]+\+?** # Release with build identifier.
       # Then, also, basically any release-ish name in the `test/` tagspace.
       - test/**release/**
-
   schedule:
     # Build the default branch weekly. Our version of "nightly."
     - cron: 55 4 * * 0   # Every Sunday at 4:55 AM.
-    # And nightly, but this is just for quicker testing for now.
-    - cron: 55 4 * * 1-6
 
 jobs:
 
