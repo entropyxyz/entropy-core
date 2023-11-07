@@ -1,10 +1,9 @@
-use super::{api::validate_proactive_refresh, ProtocolErr};
+use super::api::validate_proactive_refresh;
 use crate::{
     chain_api::{get_api, get_rpc},
     helpers::tests::{run_to_block, setup_client, spawn_testing_validators},
     r#unsafe::api::UnsafeQuery,
 };
-use axum::http::StatusCode;
 use entropy_shared::OcwMessageProactiveRefresh;
 use futures::future::join_all;
 use kvdb::clean_tests;
@@ -42,12 +41,12 @@ async fn test_proactive_refresh() {
         .unwrap();
 
     let value = response.text().await.unwrap();
-    let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-    let mut validators_info = vec![
+    let validators_info = vec![
         entropy_shared::ValidatorInfo {
             ip_address: "127.0.0.1:3001".as_bytes().to_vec(),
-            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[0].clone().encode(),
         },
         entropy_shared::ValidatorInfo {
@@ -58,12 +57,19 @@ async fn test_proactive_refresh() {
     ];
 
     let mut ocw_message = OcwMessageProactiveRefresh { validators_info, block_number };
+
+    let test_fail_incorrect_data =
+        submit_transaction_requests(validator_ips.clone(), ocw_message.clone()).await;
+
+    for res in test_fail_incorrect_data {
+        assert_eq!(res.unwrap().text().await.unwrap(), "Proactive Refresh data incorrect");
+    }
+    ocw_message.validators_info[0].x25519_public_key = X25519_PUBLIC_KEYS[0];
     let test_user_res =
         submit_transaction_requests(validator_ips.clone(), ocw_message.clone()).await;
 
     for res in test_user_res {
         assert_eq!(res.unwrap().text().await.unwrap(), "");
-        // assert_eq!(res.unwrap().status(), StatusCode::OK);
     }
     // check get key before proactive refresh
     let response_3 = client
@@ -96,7 +102,7 @@ async fn test_proactive_refresh_invalid_signer() {
     let signing_address = alice.clone().to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, _users_keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), true).await;
-    let mut validators_info = vec![
+    let validators_info = vec![
         entropy_shared::ValidatorInfo {
             ip_address: "127.0.0.1:3001".as_bytes().to_vec(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
@@ -108,9 +114,9 @@ async fn test_proactive_refresh_invalid_signer() {
             tss_account: alice.encode(),
         },
     ];
-    let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-    let mut ocw_message = OcwMessageProactiveRefresh { validators_info, block_number };
+    let ocw_message = OcwMessageProactiveRefresh { validators_info, block_number };
     let test_user_res_not_in_group =
         submit_transaction_requests(validator_ips.clone(), ocw_message.clone()).await;
     for res in test_user_res_not_in_group {
@@ -165,14 +171,11 @@ async fn test_proactive_refresh_validation_fail() {
         },
     ];
 
-    let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    let mut ocw_message = OcwMessageProactiveRefresh { validators_info, block_number };
-    let err_repeated_data = validate_proactive_refresh(&api, &rpc, &kv, &ocw_message).await;
-    assert!(matches!(err_repeated_data, Err(ProtocolErr::InvalidData)));
-    block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    ocw_message.block_number = block_number;
-    run_to_block(&rpc, block_number).await;
-    let err_stale_data = validate_proactive_refresh(&api, &rpc, &kv, &ocw_message).await;
-    assert!(matches!(err_stale_data, Err(ProtocolErr::StaleData)));
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let ocw_message = OcwMessageProactiveRefresh { validators_info, block_number };
+    run_to_block(&rpc, block_number + 2).await;
+    let err_stale_data =
+        validate_proactive_refresh(&api, &rpc, &kv, &ocw_message).await.map_err(|e| e.to_string());
+    assert_eq!(err_stale_data, Err("Data is stale".to_string()));
     clean_tests();
 }

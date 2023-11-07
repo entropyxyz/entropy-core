@@ -238,7 +238,7 @@ pub async fn validate_proactive_refresh(
     let proactive_info_query = entropy::storage().staking_extension().proactive_refresh();
     let proactive_info =
         api.storage().at(block_hash).fetch(&proactive_info_query).await?.ok_or_else(|| {
-            ProtocolErr::OptionUnwrapError("Error getting Proactive Refresh trigger".to_string())
+            ProtocolErr::OptionUnwrapError("Error getting Proactive Refresh data".to_string())
         })?;
 
     let mut hasher_chain_data = Blake2s256::new();
