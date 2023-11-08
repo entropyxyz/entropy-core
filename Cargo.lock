@@ -2499,6 +2499,7 @@ dependencies = [
  "clap 4.3.11",
  "clap_complete",
  "entropy-runtime",
+ "entropy-shared",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "frame-system",

@@ -9,12 +9,18 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
+use blake2::{Blake2s256, Digest};
 use entropy_protocol::{
     execute_protocol::{execute_proactive_refresh, Channels},
     KeyParams, ValidatorInfo,
 };
-use entropy_shared::SETUP_TIMEOUT_SECONDS;
-use kvdb::kv_manager::helpers::{deserialize, serialize as key_serialize};
+use parity_scale_codec::Encode;
+
+use entropy_shared::{OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
+use kvdb::kv_manager::{
+    helpers::{deserialize, serialize as key_serialize},
+    KvManager,
+};
 use parity_scale_codec::Decode;
 use sp_core::crypto::AccountId32;
 use subxt::{
@@ -27,6 +33,7 @@ use tokio::time::timeout;
 use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
+        launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         substrate::{get_subgroup, return_all_addresses_of_subgroup},
         user::{check_in_registration_group, send_key},
         validator::{get_signer, get_subxt_signer},
@@ -49,15 +56,14 @@ pub async fn proactive_refresh(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, ProtocolErr> {
-    let validators_info = Vec::<entropy_shared::ValidatorInfo>::decode(&mut encoded_data.as_ref())?;
+    let ocw_data = OcwMessageProactiveRefresh::decode(&mut encoded_data.as_ref())?;
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let signer =
         get_signer(&app_state.kv_store).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-    validate_proactive_refresh(&api, &rpc).await?;
-    check_in_registration_group(&validators_info, signer.account_id())
+    check_in_registration_group(&ocw_data.validators_info, signer.account_id())
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-    // TODO: validate this endpoint
+    validate_proactive_refresh(&api, &rpc, &app_state.kv_store, &ocw_data).await?;
     // TODO batch the network keys into smaller groups per session
     let all_keys =
         get_all_keys(&api, &rpc).await.map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
@@ -83,7 +89,7 @@ pub async fn proactive_refresh(
                 .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
 
             let new_key_share = do_proactive_refresh(
-                &validators_info,
+                &ocw_data.validators_info,
                 &signer,
                 &app_state.listener_state,
                 sig_request_address,
@@ -191,15 +197,37 @@ pub async fn do_proactive_refresh(
     Ok(result)
 }
 
-/// Validates if proactive refresh was called for by chain.
 ///
-/// # TODO
+/// Validates proactive refresh call.
 ///
-/// In the future we should check validity of message integrity. See https://github.com/entropyxyz/entropy-core/issues/454
+/// It checks that:
+/// - the data matches what is on-chain
+/// - the data is not repeated on-chain
 pub async fn validate_proactive_refresh(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
+    kv_manager: &KvManager,
+    ocw_data: &OcwMessageProactiveRefresh,
 ) -> Result<(), ProtocolErr> {
+    let last_block_number_recorded =
+        kv_manager.kv().get(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH).await?;
+
+    let latest_block_number = rpc
+        .chain_get_header(None)
+        .await?
+        .ok_or_else(|| ProtocolErr::OptionUnwrapError("Failed to get block number".to_string()))?
+        .number;
+    // prevents multiple repeated messages being sent
+    if u32::from_be_bytes(
+        last_block_number_recorded
+            .try_into()
+            .map_err(|_| ProtocolErr::Conversion("Block number conversion"))?,
+    ) >= latest_block_number
+        && latest_block_number != 0
+    {
+        return Err(ProtocolErr::RepeatedData);
+    }
+
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
@@ -207,11 +235,23 @@ pub async fn validate_proactive_refresh(
     let proactive_info_query = entropy::storage().staking_extension().proactive_refresh();
     let proactive_info =
         api.storage().at(block_hash).fetch(&proactive_info_query).await?.ok_or_else(|| {
-            ProtocolErr::OptionUnwrapError("Error getting Proactive Refresh trigger".to_string())
+            ProtocolErr::OptionUnwrapError("Error getting Proactive Refresh data".to_string())
         })?;
 
-    if !proactive_info {
-        return Err(ProtocolErr::NoProactiveRefresh);
+    let mut hasher_chain_data = Blake2s256::new();
+    hasher_chain_data.update(ocw_data.validators_info.encode());
+    let chain_data_hash = hasher_chain_data.finalize();
+    let mut hasher_verifying_data = Blake2s256::new();
+    hasher_verifying_data.update(proactive_info.encode());
+    let verifying_data_hash = hasher_verifying_data.finalize();
+    // checks validity of data
+    if verifying_data_hash != chain_data_hash {
+        return Err(ProtocolErr::InvalidData);
     }
+
+    kv_manager.kv().delete(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH).await?;
+    let reservation =
+        kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string()).await?;
+    kv_manager.kv().put(reservation, latest_block_number.to_be_bytes().to_vec()).await?;
     Ok(())
 }

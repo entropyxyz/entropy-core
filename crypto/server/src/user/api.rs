@@ -12,7 +12,7 @@ use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
 use ec_runtime::{Runtime, SignatureRequest};
 use entropy_protocol::ValidatorInfo;
-use entropy_shared::{types::KeyVisibility, OcwMessage, X25519PublicKey, SIGNING_PARTY_SIZE};
+use entropy_shared::{types::KeyVisibility, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE};
 use futures::{
     channel::mpsc,
     future::{join_all, FutureExt},
@@ -47,6 +47,7 @@ use crate::{
     },
     get_and_store_values, get_random_server_info,
     helpers::{
+        launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{create_unique_tx_id, do_signing, Hasher},
         substrate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
@@ -175,13 +176,13 @@ pub async fn sign_tx(
 }
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.
-/// The http request takes a parity scale encoded [OcwMessage] which tells us which validators are
+/// The http request takes a parity scale encoded [OcwMessageDkg] which tells us which validators are
 /// in the registration group and will perform a DKG.
 pub async fn new_user(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
-    let data = OcwMessage::decode(&mut encoded_data.as_ref())?;
+    let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
@@ -208,7 +209,7 @@ async fn setup_dkg(
     api: OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: PairSigner<EntropyConfig, sr25519::Pair>,
-    data: OcwMessage,
+    data: OcwMessageDkg,
     app_state: AppState,
 ) -> Result<(), UserErr> {
     let (subgroup, stash_address) = get_subgroup(&api, rpc, &signer).await?;
@@ -503,19 +504,18 @@ pub fn check_signing_group(
 /// Validates new user endpoint
 /// Checks the chain for validity of data and block number of data matches current block
 pub async fn validate_new_user(
-    chain_data: &OcwMessage,
+    chain_data: &OcwMessageDkg,
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_manager: &KvManager,
 ) -> Result<(), UserErr> {
-    let last_block_number_recorded = kv_manager.kv().get("LATEST_BLOCK_NUMBER").await?;
+    let last_block_number_recorded = kv_manager.kv().get(LATEST_BLOCK_NUMBER_NEW_USER).await?;
     if u32::from_be_bytes(
         last_block_number_recorded
             .try_into()
-            .map_err(|_| UserErr::Conversion("Account Conversion"))?,
+            .map_err(|_| UserErr::Conversion("Block number conversion"))?,
     ) >= chain_data.block_number
     {
-        // change error
         return Err(UserErr::RepeatedData);
     }
 
@@ -548,8 +548,8 @@ pub async fn validate_new_user(
     if verifying_data_hash != chain_data_hash {
         return Err(UserErr::InvalidData);
     }
-    kv_manager.kv().delete("LATEST_BLOCK_NUMBER").await?;
-    let reservation = kv_manager.kv().reserve_key("LATEST_BLOCK_NUMBER".to_string()).await?;
+    kv_manager.kv().delete(LATEST_BLOCK_NUMBER_NEW_USER).await?;
+    let reservation = kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_NEW_USER.to_string()).await?;
     kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
     Ok(())
 }

@@ -14,7 +14,7 @@ use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, PartyId, ValidatorInfo,
 };
-use entropy_shared::{KeyVisibility, OcwMessage};
+use entropy_shared::{KeyVisibility, OcwMessageDkg};
 use futures::{
     future::{self, join_all},
     join, Future, SinkExt, StreamExt,
@@ -67,7 +67,7 @@ use crate::{
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, keyring_to_subxt_signer_and_x25519,
-            setup_client, spawn_testing_validators, update_programs,
+            run_to_block, setup_client, spawn_testing_validators, update_programs,
         },
         user::send_key,
     },
@@ -442,7 +442,7 @@ async fn test_store_share() {
         },
     ];
     let mut onchain_user_request =
-        OcwMessage { sig_request_accounts: vec![alice.encode()], block_number, validators_info };
+        OcwMessageDkg { sig_request_accounts: vec![alice.encode()], block_number, validators_info };
 
     put_register_request_on_chain(
         &api,
@@ -712,13 +712,6 @@ pub async fn put_register_request_on_chain(
         .wait_for_success()
         .await
         .unwrap();
-}
-
-pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32) {
-    let mut current_block = 0;
-    while current_block < block_run {
-        current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    }
 }
 
 #[tokio::test]
@@ -1063,7 +1056,7 @@ async fn test_register_with_private_key_visibility() {
                 tss_account: TSS_ACCOUNTS[i].clone().encode(),
             })
             .collect();
-        OcwMessage { sig_request_accounts: vec![one.encode()], block_number, validators_info }
+        OcwMessageDkg { sig_request_accounts: vec![one.encode()], block_number, validators_info }
     };
 
     let client = reqwest::Client::new();
