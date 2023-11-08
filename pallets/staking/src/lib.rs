@@ -152,7 +152,7 @@ pub mod pallet {
         pub threshold_servers:
             Vec<(<T as pallet_session::Config>::ValidatorId, ServerInfo<T::AccountId>)>,
         pub signing_groups: Vec<(u8, Vec<<T as pallet_session::Config>::ValidatorId>)>,
-        pub activate_proactive_refresh: Vec<ValidatorInfo>,
+        pub proactive_refresh_validators: Vec<ValidatorInfo>,
     }
 
     #[pallet::genesis_build]
