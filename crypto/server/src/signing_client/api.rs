@@ -198,8 +198,11 @@ pub async fn do_proactive_refresh(
 
 /// Validates proactive refresh call. It checks that
 ///
-/// the data matches what is on chain
-/// the data is not repeated
+/// Validates proactive refresh call.
+///
+/// It checks that:
+/// - the data matches what is on-chain
+/// - the data is not repeated on-chain
 pub async fn validate_proactive_refresh(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
