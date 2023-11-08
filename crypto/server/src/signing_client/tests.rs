@@ -9,7 +9,7 @@ use crate::{
 };
 use entropy_shared::OcwMessageProactiveRefresh;
 use futures::future::join_all;
-use kvdb::clean_tests;
+use kvdb::{clean_tests, kv_manager::helpers::serialize};
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::crypto::Ss58Codec;
@@ -23,26 +23,47 @@ use testing_utils::{
 #[serial]
 async fn test_proactive_refresh() {
     clean_tests();
-    let one = AccountKeyring::Eve;
+    let eve = AccountKeyring::Eve;
+    let dave = AccountKeyring::Dave;
     let _cxt = test_node_process_testing_state().await;
 
-    let signing_address = one.to_account_id().to_ss58check();
-    let (validator_ips, _validator_ids, _users_keyshare_option) =
+    let signing_address = eve.to_account_id().to_ss58check();
+    let (validator_ips, _validator_ids, users_keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), true).await;
 
     let client = reqwest::Client::new();
-    let get_query = UnsafeQuery::new(one.to_account_id().to_string(), "".to_string()).to_json();
+    let converted_key_share = serialize(&users_keyshare_option.unwrap()).unwrap();
+    let get_query_eve = UnsafeQuery::new(eve.to_account_id().to_string(), vec![]).to_json();
+    let get_query_dave =
+        UnsafeQuery::new(dave.to_account_id().to_string(), converted_key_share.clone()).to_json();
 
     // check get key before proactive refresh
-    let response = client
+    let key_before_result_eve = client
         .post("http://127.0.0.1:3001/unsafe/get")
         .header("Content-Type", "application/json")
-        .body(get_query.clone())
+        .body(get_query_eve.clone())
         .send()
         .await
         .unwrap();
 
-    let value = response.text().await.unwrap();
+    let key_before_eve = key_before_result_eve.text().await.unwrap();
+
+    // puts dave key into kvdb
+    client
+        .post("http://127.0.0.1:3001/unsafe/put")
+        .header("Content-Type", "application/json")
+        .body(get_query_dave.clone())
+        .send()
+        .await
+        .unwrap();
+    // puts dave key into kvdb
+    client
+        .post("http://127.0.0.1:3002/unsafe/put")
+        .header("Content-Type", "application/json")
+        .body(get_query_dave.clone())
+        .send()
+        .await
+        .unwrap();
 
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
@@ -73,17 +94,31 @@ async fn test_proactive_refresh() {
         assert_eq!(res.unwrap().text().await.unwrap(), "");
     }
     // check get key before proactive refresh
-    let response_3 = client
+    let key_after_result_eve = client
         .post("http://127.0.0.1:3001/unsafe/get")
         .header("Content-Type", "application/json")
-        .body(get_query.clone())
+        .body(get_query_eve.clone())
         .send()
         .await
         .unwrap();
 
-    let value_after = response_3.text().await.unwrap();
+    // check get key before proactive refresh
+    let key_after_result_dave = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query_dave.clone())
+        .send()
+        .await
+        .unwrap();
 
-    assert_ne!(value, value_after);
+    let key_after_eve = key_after_result_eve.text().await.unwrap();
+    let key_after_dave = key_after_result_dave.text().await.unwrap();
+
+    // eve has private visibility so key does not change
+    assert_eq!(key_before_eve, key_after_eve);
+    // dave's not private so changes
+    assert_ne!(converted_key_share, serialize(&key_after_dave).unwrap());
+
     let alice = AccountKeyring::Alice;
     ocw_message.validators_info[0].tss_account = alice.encode();
     ocw_message.validators_info[1].tss_account = alice.encode();

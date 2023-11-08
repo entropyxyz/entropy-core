@@ -415,7 +415,7 @@ async fn test_store_share() {
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
     let client = reqwest::Client::new();
-    let get_query = UnsafeQuery::new(signing_address, "".to_string()).to_json();
+    let get_query = UnsafeQuery::new(signing_address, vec![]).to_json();
 
     // check get key before registration to see if key gets replaced
     let response_key = client
@@ -596,7 +596,7 @@ async fn test_send_and_receive_keys() {
     .await
     .unwrap();
 
-    let get_query = UnsafeQuery::new(user_registration_info.key.clone(), "".to_string()).to_json();
+    let get_query = UnsafeQuery::new(user_registration_info.key.clone(), vec![]).to_json();
 
     // check alice has new key
     let response_new_key = client
@@ -667,7 +667,7 @@ async fn test_recover_key() {
 
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
-    let unsafe_query = UnsafeQuery::new("key".to_string(), "value".to_string());
+    let unsafe_query = UnsafeQuery::new("key".to_string(), vec![10]);
     let client = reqwest::Client::new();
 
     let _ = client
@@ -682,7 +682,7 @@ async fn test_recover_key() {
     recover_key(&api, &rpc, &bob_kv, &signer_alice, unsafe_query.key.clone()).await.unwrap();
 
     let value = bob_kv.kv().get(&unsafe_query.key).await.unwrap();
-    assert_eq!(value, unsafe_query.value.into_bytes());
+    assert_eq!(value, unsafe_query.value);
     clean_tests();
 }
 
