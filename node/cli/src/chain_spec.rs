@@ -243,7 +243,7 @@ pub fn testnet_genesis(
                 (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
-            activate_proactive_refresh: vec![],
+            proactive_refresh_validators: vec![],
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {
@@ -416,7 +416,7 @@ pub fn local_devnet_genesis(
                 (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
-            activate_proactive_refresh: vec![],
+            proactive_refresh_validators: vec![],
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {
@@ -543,7 +543,7 @@ pub fn devnet_genesis(
         staking_extension: StakingExtensionConfig {
             threshold_servers: vec![],
             signing_groups: vec![],
-            activate_proactive_refresh: vec![],
+            proactive_refresh_validators: vec![],
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {
@@ -725,7 +725,7 @@ pub fn testing(
                 ),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
-            activate_proactive_refresh: vec![
+            proactive_refresh_validators: vec![
                 ValidatorInfo {
                     tss_account: hex![
                         "e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"

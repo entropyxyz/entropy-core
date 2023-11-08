@@ -176,7 +176,7 @@ pub mod pallet {
                 }
             }
 
-            ProactiveRefresh::<T>::put(self.activate_proactive_refresh.clone());
+            ProactiveRefresh::<T>::put(self.proactive_refresh_validators.clone());
         }
     }
     // Errors inform users that something went wrong.

@@ -47,6 +47,7 @@ use crate::{
     },
     get_and_store_values, get_random_server_info,
     helpers::{
+        launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{create_unique_tx_id, do_signing, Hasher},
         substrate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
@@ -504,7 +505,7 @@ pub async fn validate_new_user(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_manager: &KvManager,
 ) -> Result<(), UserErr> {
-    let last_block_number_recorded = kv_manager.kv().get("LATEST_BLOCK_NUMBER_NEW_USER").await?;
+    let last_block_number_recorded = kv_manager.kv().get(LATEST_BLOCK_NUMBER_NEW_USER).await?;
     if u32::from_be_bytes(
         last_block_number_recorded
             .try_into()
@@ -543,9 +544,8 @@ pub async fn validate_new_user(
     if verifying_data_hash != chain_data_hash {
         return Err(UserErr::InvalidData);
     }
-    kv_manager.kv().delete("LATEST_BLOCK_NUMBER_NEW_USER").await?;
-    let reservation =
-        kv_manager.kv().reserve_key("LATEST_BLOCK_NUMBER_NEW_USER".to_string()).await?;
+    kv_manager.kv().delete(LATEST_BLOCK_NUMBER_NEW_USER).await?;
+    let reservation = kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_NEW_USER.to_string()).await?;
     kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
     Ok(())
 }

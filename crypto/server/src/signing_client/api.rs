@@ -33,6 +33,7 @@ use tokio::time::timeout;
 use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
+        launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         substrate::{get_subgroup, return_all_addresses_of_subgroup},
         user::{check_in_registration_group, send_key},
         validator::{get_signer, get_subxt_signer},
@@ -209,7 +210,7 @@ pub async fn validate_proactive_refresh(
     ocw_data: &OcwMessageProactiveRefresh,
 ) -> Result<(), ProtocolErr> {
     let last_block_number_recorded =
-        kv_manager.kv().get("LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH").await?;
+        kv_manager.kv().get(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH).await?;
 
     let latest_block_number = rpc
         .chain_get_header(None)
@@ -248,9 +249,9 @@ pub async fn validate_proactive_refresh(
         return Err(ProtocolErr::InvalidData);
     }
 
-    kv_manager.kv().delete("LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH").await?;
+    kv_manager.kv().delete(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH).await?;
     let reservation =
-        kv_manager.kv().reserve_key("LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH".to_string()).await?;
+        kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string()).await?;
     kv_manager.kv().put(reservation, latest_block_number.to_be_bytes().to_vec()).await?;
     Ok(())
 }

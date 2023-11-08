@@ -99,7 +99,7 @@ pub mod pallet {
             // We construct the request
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
-            let pending = http::Request::post(url, vec![req_body.encode()]) // scheint zu klappen
+            let pending = http::Request::post(url, vec![req_body.encode()])
                 .deadline(deadline)
                 .send()
                 .map_err(|_| http::Error::IoError)?;
@@ -151,7 +151,7 @@ pub mod pallet {
             // We construct the request
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
-            let pending = http::Request::post(url, vec![req_body.encode()]) // scheint zu klappen
+            let pending = http::Request::post(url, vec![req_body.encode()])
                 .deadline(deadline)
                 .send()
                 .map_err(|_| http::Error::IoError)?;
