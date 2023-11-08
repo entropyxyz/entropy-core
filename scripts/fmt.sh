@@ -1,4 +1,4 @@
 #!/bin/bash
-cargo fmt
+cargo fmt --all
 taplo fmt
 cargo clippy -- -D warnings

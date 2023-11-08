@@ -52,6 +52,8 @@ pub mod pallet {
     use sp_std::{fmt::Debug, vec};
 
     pub use crate::weights::WeightInfo;
+
+    const VERIFICATION_KEY_LENGTH: u32 = 33;
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
     pub trait Config:
@@ -63,7 +65,6 @@ pub mod pallet {
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        type PruneBlock: Get<BlockNumberFor<Self>>;
         type SigningPartySize: Get<usize>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
@@ -72,11 +73,11 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
-        pub is_registering: bool,
         pub program_modification_account: T::AccountId,
         pub confirmations: Vec<u8>,
         pub program: Vec<u8>,
         pub key_visibility: KeyVisibility,
+        pub verifying_key: Option<BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>>,
     }
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -148,6 +149,10 @@ pub mod pallet {
         AccountRegistering(T::AccountId, u8),
         /// An account has been registered. \[who\]
         AccountRegistered(T::AccountId),
+        /// An account registration has failed
+        FailedRegistration(T::AccountId),
+        /// An account cancelled their registration
+        RegistrationCancelled(T::AccountId),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
@@ -166,6 +171,7 @@ pub mod pallet {
         SigningGroupError,
         NoSyncedValidators,
         MaxProgramLengthExceeded,
+        NoVerifyingKey,
     }
 
     #[pallet::call]
@@ -220,11 +226,11 @@ pub mod pallet {
             Registering::<T>::insert(
                 &sig_req_account,
                 RegisteringDetails::<T> {
-                    is_registering: true,
                     program_modification_account,
                     confirmations: vec![],
                     program: initial_program,
                     key_visibility,
+                    verifying_key: None,
                 },
             );
 
@@ -233,6 +239,24 @@ pub mod pallet {
 
             Self::deposit_event(Event::SignalRegister(sig_req_account));
 
+            Ok(())
+        }
+
+        /// Allows a user to remove themselves from registering state if it has been longer than prune block
+        #[pallet::call_index(1)]
+        #[pallet::weight({
+            <T as Config>::WeightInfo::prune_registration()
+        })]
+        pub fn prune_registration(origin: OriginFor<T>) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let registering_info = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
+            // return program deposit
+            ProgramsPallet::<T>::unreserve_program_deposit(
+                &registering_info.program_modification_account,
+                registering_info.program.len(),
+            );
+            Registering::<T>::remove(&who);
+            Self::deposit_event(Event::RegistrationCancelled(who));
             Ok(())
         }
 
@@ -245,14 +269,15 @@ pub mod pallet {
         #[pallet::weight({
             let weight =
                 <T as Config>::WeightInfo::confirm_register_registering(SIGNING_PARTY_SIZE as u32)
-                .max(<T as Config>::WeightInfo::confirm_register_registered(SIGNING_PARTY_SIZE as u32));
+                .max(<T as Config>::WeightInfo::confirm_register_registered(SIGNING_PARTY_SIZE as u32))
+                .max(<T as Config>::WeightInfo::confirm_register_failed_registering(SIGNING_PARTY_SIZE as u32));
             (weight, Pays::No)
         })]
         pub fn confirm_register(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
             signing_subgroup: u8,
-            verifying_key: BoundedVec<u8, ConstU32<33>>,
+            verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
         ) -> DispatchResultWithPostInfo {
             let ts_server_account = ensure_signed(origin)?;
             let validator_stash =
@@ -274,9 +299,26 @@ pub mod pallet {
                 signing_subgroup_addresses.contains(&validator_stash),
                 Error::<T>::NotInSigningGroup
             );
+            // if no one has sent in a verifying key yet, use current
+            if registering_info.verifying_key.is_none() {
+                registering_info.verifying_key = Some(verifying_key.clone());
+            }
+
+            let registering_info_verifying_key =
+                registering_info.verifying_key.clone().ok_or(Error::<T>::NoVerifyingKey)?;
 
             if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
-                // just inserts last validator's verifying_key, need to do dispute resolution
+                // If verifying key does not match for everyone, registration failed
+                if registering_info_verifying_key != verifying_key {
+                    Registering::<T>::remove(&sig_req_account);
+                    Self::deposit_event(Event::FailedRegistration(sig_req_account));
+                    return Ok(Some(
+                        <T as Config>::WeightInfo::confirm_register_failed_registering(
+                            confirmation_length,
+                        ),
+                    )
+                    .into());
+                }
                 Registered::<T>::insert(
                     &sig_req_account,
                     RegisteredInfo {
@@ -303,6 +345,17 @@ pub mod pallet {
                 Self::deposit_event(Event::AccountRegistered(sig_req_account));
                 Ok(Some(weight).into())
             } else {
+                // If verifying key does not match for everyone, registration failed
+                if registering_info_verifying_key != verifying_key {
+                    Registering::<T>::remove(&sig_req_account);
+                    Self::deposit_event(Event::FailedRegistration(sig_req_account));
+                    return Ok(Some(
+                        <T as Config>::WeightInfo::confirm_register_failed_registering(
+                            confirmation_length,
+                        ),
+                    )
+                    .into());
+                }
                 registering_info.confirmations.push(signing_subgroup);
                 Registering::<T>::insert(&sig_req_account, registering_info);
                 Self::deposit_event(Event::AccountRegistering(sig_req_account, signing_subgroup));

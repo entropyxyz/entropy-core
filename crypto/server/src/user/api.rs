@@ -1,4 +1,4 @@
-use std::{net::SocketAddrV4, str::FromStr, sync::Arc, time::SystemTime};
+use std::{net::ToSocketAddrs, str::FromStr, sync::Arc, time::SystemTime};
 
 use axum::{
     body::{Bytes, StreamBody},
@@ -239,6 +239,9 @@ async fn setup_dkg(
         let serialized_key_share = key_serialize(&key_share)
             .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
+        if app_state.kv_store.kv().exists(&sig_request_address.to_string()).await? {
+            app_state.kv_store.kv().delete(&sig_request_address.to_string()).await?;
+        }
         let reservation =
             app_state.kv_store.kv().reserve_key(sig_request_address.to_string()).await?;
         app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
@@ -299,7 +302,7 @@ pub async fn receive_key(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
 
     // check message is from the person sending the message (get stash key from threshold key)
     let stash_address_query =
@@ -318,10 +321,22 @@ pub async fn receive_key(
         // TODO validate that an active proactive refresh is happening
         app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
     } else {
+        // delete key if user in registering phase
         let exists_result =
             app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
         if exists_result {
-            return Err(UserErr::AlreadyRegistered);
+            let registration_details = is_registering(
+                &api,
+                &rpc,
+                &SubxtAccountId32::from_str(&user_registration_info.key)
+                    .map_err(|_| UserErr::StringError("Account Conversion"))?,
+            )
+            .await?;
+            if registration_details {
+                app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
+            } else {
+                return Err(UserErr::AlreadyRegistered);
+            }
         }
     }
     let reservation =
@@ -339,7 +354,7 @@ pub async fn get_registering_user_details(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let registering_info_query = entropy::storage().relayer().registering(who);
     let register_info = api
         .storage()
@@ -349,6 +364,22 @@ pub async fn get_registering_user_details(
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
 
     Ok(register_info)
+}
+
+/// Returns `true` if the given account is in a "registering" state.
+pub async fn is_registering(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    who: &<EntropyConfig as Config>::AccountId,
+) -> Result<bool, UserErr> {
+    let block_hash = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
+    let registering_info_query = entropy::storage().relayer().registering(who);
+    let register_info = api.storage().at(block_hash).fetch(&registering_info_query).await?;
+
+    Ok(register_info.is_some())
 }
 
 /// Confirms that a address has finished registering on chain.
@@ -391,7 +422,7 @@ pub async fn get_current_subgroup_signers(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let futures = (0..SIGNING_PARTY_SIZE)
         .map(|i| {
             let owned_number = Arc::clone(&number);
@@ -421,9 +452,15 @@ pub async fn get_current_subgroup_signers(
 
                 Ok::<_, UserErr>(ValidatorInfo {
                     x25519_public_key: server_info.x25519_public_key,
-                    ip_address: SocketAddrV4::from_str(std::str::from_utf8(
-                        &server_info.endpoint,
-                    )?)?,
+                    ip_address: std::str::from_utf8(&server_info.endpoint)?
+                        .to_socket_addrs()?
+                        .next()
+                        .ok_or_else(|| {
+                            UserErr::OptionUnwrapError(format!(
+                                "Error parsing socket address: {:?}",
+                                server_info.endpoint
+                            ))
+                        })?,
                     tss_account: server_info.tss_account,
                 })
             }
@@ -481,7 +518,7 @@ pub async fn validate_new_user(
     let latest_block_number = rpc
         .chain_get_header(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number"))?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
     // we subtract 1 as the message info is coming from the previous block
@@ -497,7 +534,7 @@ pub async fn validate_new_user(
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash"))?;
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let verifying_data_query = entropy::storage().relayer().dkg(chain_data.block_number);
     let verifying_data = api.storage().at(block_hash).fetch(&verifying_data_query).await?;
 
