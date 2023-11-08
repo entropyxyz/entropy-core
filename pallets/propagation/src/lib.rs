@@ -15,7 +15,7 @@ mod tests;
 #[frame_support::pallet]
 pub mod pallet {
     use codec::Encode;
-    use entropy_shared::{OcwMessage, OcwMessageProactiveRefresh, ValidatorInfo};
+    use entropy_shared::{OcwMessageDkg, OcwMessageProactiveRefresh, ValidatorInfo};
     use frame_support::{dispatch::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
     use frame_system::pallet_prelude::*;
     use scale_info::prelude::vec;
@@ -55,9 +55,13 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Messages passed to validators
-        /// parameters. [OcwMessage]
-        MessagesPassed(OcwMessage),
+        /// DKG Message passed to validators
+        /// parameters. [OcwMessageDkg]
+        DkgMessagePassed(OcwMessageDkg),
+
+        /// Proactive Refresh Message passed to validators
+        /// parameters. [OcwMessageProactiveRefresh]
+        ProactiveRefreshMessagePassed(OcwMessageProactiveRefresh),
     }
 
     #[pallet::call]
@@ -88,7 +92,7 @@ pub mod pallet {
                 })
                 .collect::<Vec<_>>();
             // the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
-            let req_body = OcwMessage {
+            let req_body = OcwMessageDkg {
                 // subtract 1 from blocknumber since the request is from the last block
                 block_number: converted_block_number.saturating_sub(1),
                 sig_request_accounts: messages,
@@ -115,7 +119,7 @@ pub mod pallet {
             }
             let _res_body = response.body().collect::<Vec<u8>>();
 
-            Self::deposit_event(Event::MessagesPassed(req_body));
+            Self::deposit_event(Event::DkgMessagePassed(req_body));
 
             Ok(())
         }
@@ -167,7 +171,7 @@ pub mod pallet {
             }
             let _res_body = response.body().collect::<Vec<u8>>();
 
-            // Self::deposit_event(Event::MessagesPassed(req_body));
+            Self::deposit_event(Event::ProactiveRefreshMessagePassed(req_body));
 
             Ok(())
         }

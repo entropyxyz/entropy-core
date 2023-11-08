@@ -47,10 +47,11 @@ pub struct ValidatorInfo {
     pub tss_account: codec::alloc::vec::Vec<u8>,
 }
 
+/// Offchain worker message for initiating a dkg
 #[cfg(not(feature = "wasm"))]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
-pub struct OcwMessage {
+pub struct OcwMessageDkg {
     pub block_number: BlockNumber,
     pub sig_request_accounts: Vec<Vec<u8>>,
     pub validators_info: Vec<ValidatorInfo>,

@@ -14,7 +14,7 @@ use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, PartyId, ValidatorInfo,
 };
-use entropy_shared::{KeyVisibility, OcwMessage};
+use entropy_shared::{KeyVisibility, OcwMessageDkg};
 use futures::{
     future::{self, join_all},
     join, Future, SinkExt, StreamExt,
@@ -448,7 +448,7 @@ async fn test_store_share() {
         },
     ];
     let mut onchain_user_request =
-        OcwMessage { sig_request_accounts: vec![alice.encode()], block_number, validators_info };
+        OcwMessageDkg { sig_request_accounts: vec![alice.encode()], block_number, validators_info };
 
     put_register_request_on_chain(
         &api,
@@ -1066,7 +1066,7 @@ async fn test_register_with_private_key_visibility() {
                 tss_account: TSS_ACCOUNTS[i].clone().encode(),
             })
             .collect();
-        OcwMessage { sig_request_accounts: vec![one.encode()], block_number, validators_info }
+        OcwMessageDkg { sig_request_accounts: vec![one.encode()], block_number, validators_info }
     };
 
     let client = reqwest::Client::new();
