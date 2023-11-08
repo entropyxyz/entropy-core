@@ -9,6 +9,14 @@ At the moment this project **does not** adhere to
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- In the JSON body of the `/sign_tx` endpoint, the `preimage` field has been renamed to `message`. It remains a hex-encoded `string`. [#475](https://github.com/entropyxyz/entropy-core/pull/475/) 
+
+### Added
+
+- The JSON body of the `/sign_tx` endpoint has an additional field `auxilary_data`, which, like `message` (previously `preimage`) is a hex-encoded `string`. [#475](https://github.com/entropyxyz/entropy-core/pull/475/)
+
 ## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7..v0.0.8) - 2023-11-06
 
 ### Breaking Changes
