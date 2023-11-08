@@ -23,6 +23,9 @@ pub const DEFAULT_ALICE_MNEMONIC: &str =
 pub const DEFAULT_CHARLIE_MNEMONIC: &str =
     "lake carry still awful point mention bike category tornado plate brass lock";
 
+pub const LATEST_BLOCK_NUMBER_NEW_USER: &str = "LATEST_BLOCK_NUMBER_NEW_USER";
+pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH";
+
 #[cfg(test)]
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
@@ -183,11 +186,25 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Res
 }
 
 pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
-    let exists_result = kv.kv().exists("LATEST_BLOCK_NUMBER").await.expect("issue querying DB");
-    if !exists_result {
+    let exists_result_new_user =
+        kv.kv().exists(LATEST_BLOCK_NUMBER_NEW_USER).await.expect("issue querying DB");
+    if !exists_result_new_user {
         let reservation = kv
             .kv()
-            .reserve_key("LATEST_BLOCK_NUMBER".to_string())
+            .reserve_key(LATEST_BLOCK_NUMBER_NEW_USER.to_string())
+            .await
+            .expect("Issue reserving latest block number");
+        kv.kv()
+            .put(reservation, 0u32.to_be_bytes().to_vec())
+            .await
+            .expect("failed to update latest block number");
+    }
+    let exists_result_proactive_refresh =
+        kv.kv().exists(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH).await.expect("issue querying DB");
+    if !exists_result_proactive_refresh {
+        let reservation = kv
+            .kv()
+            .reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string())
             .await
             .expect("Issue reserving latest block number");
         kv.kv()
