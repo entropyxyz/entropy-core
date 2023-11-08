@@ -56,6 +56,7 @@ pub struct OcwMessage {
     pub validators_info: Vec<ValidatorInfo>,
 }
 
+/// Offchain worker message for initiating a proactive refresh
 #[cfg(not(feature = "wasm"))]
 #[derive(
     Clone,
