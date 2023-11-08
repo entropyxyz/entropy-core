@@ -144,7 +144,7 @@ async fn test_proactive_refresh_validation_fail() {
     let ocw_message = OcwMessageProactiveRefresh { validators_info };
     run_to_block(&rpc, block_number).await;
 
-    // maniputales kvdb to get to repeated data error
+    // manipulates kvdb to get to repeated data error
     kv.kv().delete("LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH").await.unwrap();
     let reservation =
         kv.kv().reserve_key("LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH".to_string()).await.unwrap();
