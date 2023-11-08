@@ -196,7 +196,6 @@ pub async fn do_proactive_refresh(
     Ok(result)
 }
 
-/// Validates proactive refresh call. It checks that
 ///
 /// Validates proactive refresh call.
 ///
