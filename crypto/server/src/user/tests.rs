@@ -1436,7 +1436,7 @@ async fn test_wasm_register_with_private_key_visibility() {
             .unwrap();
 
     // Call the `user/new` endpoint, and connect and participate in the protocol
-    let (new_user_response_result, keyshare_result) = future::join(
+    let (new_user_response_result, keyshare_option) = future::join(
         client
             .post("http://127.0.0.1:3002/user/new")
             .body(onchain_user_request.clone().encode())
@@ -1449,7 +1449,7 @@ async fn test_wasm_register_with_private_key_visibility() {
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
 
-    assert!(keyshare_result.is_some());
+    assert!(keyshare_option.is_some());
 }
 
 pub async fn verify_signature(
@@ -1542,32 +1542,40 @@ pub async fn spawn_user_participates_in_signing_protocol(
         project_root::get_project_root().unwrap().to_string_lossy()
     );
 
-    let child_process = tokio::process::Command::new("node")
+    let output = tokio::process::Command::new("node")
         .arg(test_script_path)
-        .arg("sign")
+        .arg("register")
         .arg(json_params)
-        .spawn()
+        .output()
+        .await
         .unwrap();
-    if let Some(mut std_out) = child_process.stdout {
-        if let Some(mut std_err) = child_process.stderr {
-            let mut out_buffer = [0; 500];
-            let mut err_buffer = [0; 500];
-            loop {
-                tokio::select! {
-                    Ok(n) = std_out.read(&mut out_buffer[..]) => {
-                        if n == 0 { break;}
-                        println!("buffer: {}", std::str::from_utf8(&out_buffer).unwrap());
-                    }
-                    Ok(n) = std_err.read(&mut err_buffer[..]) => {
-                        if n == 0 { break;}
-                        println!("buffer: {}", std::str::from_utf8(&err_buffer).unwrap());
-                    }
-                }
-            }
-        }
-    };
-
-    None
+    Some(String::from_utf8(output.stdout).unwrap())
+    // let child_process = tokio::process::Command::new("node")
+    //     .arg(test_script_path)
+    //     .arg("sign")
+    //     .arg(json_params)
+    //     .spawn()
+    //     .unwrap();
+    // if let Some(mut std_out) = child_process.stdout {
+    //     if let Some(mut std_err) = child_process.stderr {
+    //         let mut out_buffer = [0; 500];
+    //         let mut err_buffer = [0; 500];
+    //         loop {
+    //             tokio::select! {
+    //                 Ok(n) = std_out.read(&mut out_buffer[..]) => {
+    //                     if n == 0 { break;}
+    //                     println!("buffer: {}", std::str::from_utf8(&out_buffer).unwrap());
+    //                 }
+    //                 Ok(n) = std_err.read(&mut err_buffer[..]) => {
+    //                     if n == 0 { break;}
+    //                     println!("buffer: {}", std::str::from_utf8(&err_buffer).unwrap());
+    //                 }
+    //             }
+    //         }
+    //     }
+    // };
+    //
+    // None
 }
 
 /// For testing running the DKG protocol on wasm, spawn a process running nodejs and pass
@@ -1602,38 +1610,5 @@ pub async fn spawn_user_participates_in_dkg_protocol(
         .output()
         .await
         .unwrap();
-
-    println!("std out: {}", String::from_utf8(output.stdout).unwrap());
-    println!("std err: {}", String::from_utf8(output.stderr).unwrap());
-    None
-    // let child_process = tokio::process::Command::new("node")
-    //     .arg(test_script_path)
-    //     .arg("register")
-    //     .arg(json_params)
-    //     .spawn()
-    //     .unwrap();
-    //
-    // let mut std_out = child_process.stdout.unwrap();
-    // let mut std_err = child_process.stderr.unwrap();
-    //
-    // let mut out_buffer = [0; 500];
-    // let mut err_buffer = [0; 500];
-    // loop {
-    //     tokio::select! {
-    //         Ok(n) = std_out.read(&mut out_buffer[..]) => {
-    //             if n == 0 {
-    //                 println!("std out ended");
-    //                 break;}
-    //             println!("{}", std::str::from_utf8(&out_buffer).unwrap());
-    //         }
-    //         Ok(n) = std_err.read(&mut err_buffer[..]) => {
-    //             if n == 0 {
-    //                 println!("std err ended");
-    //                 break;}
-    //             println!("{}", std::str::from_utf8(&err_buffer).unwrap());
-    //         }
-    //     }
-    // }
-    // println!("stream finished");
-    // None
+    Some(String::from_utf8(output.stdout).unwrap())
 }
