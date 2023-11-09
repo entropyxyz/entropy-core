@@ -12216,16 +12216,16 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 
 [[package]]
 name = "synedrion"
-version = "0.0.9"
-source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=v0.0.9#febe12002fab393222f156bd3bdf17900f412b4f"
+version = "0.0.11"
+source = "git+ssh://git@github.com/entropyxyz/synedrion.git?branch=fix-32bit#d536131c819f993e4627033f98d20307e0d47a5e"
 dependencies = [
  "base64 0.21.2",
+ "cfg-if",
  "crypto-bigint 0.5.3",
  "crypto-primes",
  "digest 0.10.7",
  "hex",
  "k256",
- "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "rmp-serde",
  "serde",
