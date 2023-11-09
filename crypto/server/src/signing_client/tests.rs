@@ -26,7 +26,7 @@ async fn test_proactive_refresh() {
     let one = AccountKeyring::Eve;
     let _cxt = test_node_process_testing_state().await;
 
-    let signing_address = one.clone().to_account_id().to_ss58check();
+    let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, _users_keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), true).await;
 

@@ -10,7 +10,7 @@ use axum::{
 };
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
-use ec_runtime::{InitialState, Runtime};
+use ec_runtime::{Runtime, SignatureRequest};
 use entropy_protocol::ValidatorInfo;
 use entropy_shared::{types::KeyVisibility, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE};
 use futures::{
@@ -63,9 +63,11 @@ use crate::{
 /// Represents an unparsed, transaction request coming from the client.
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
-pub struct UserTransactionRequest {
-    /// Hex-encoded raw data to be signed (eg. RLP-serialized Ethereum transaction)
-    pub transaction_request: String,
+pub struct UserSignatureRequest {
+    /// Hex-encoded raw data to be signed (eg. hex-encoded RLP-serialized Ethereum transaction)
+    pub message: String,
+    /// Hex-encoded auxilary data for program evaluation, will not be signed (eg. zero-knowledge proof, serialized struct, etc)
+    pub auxilary_data: Option<String>,
     /// Information from the validators in signing party
     pub validators_info: Vec<ValidatorInfo>,
     /// When the message was created and signed
@@ -115,16 +117,18 @@ pub async fn sign_tx(
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
-    let mut user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
-    check_stale(user_tx_req.timestamp)?;
-    let raw_message = hex::decode(user_tx_req.transaction_request.clone())?;
-    let sig_hash = hex::encode(Hasher::keccak(&raw_message));
+    let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&decrypted_message)?;
+    check_stale(user_sig_req.timestamp)?;
+
+    let message = hex::decode(&user_sig_req.message)?;
+    let auxilary_data = user_sig_req.auxilary_data.as_ref().map(hex::decode).transpose()?;
+    let sig_hash = hex::encode(Hasher::keccak(&message));
     let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &sig_hash).await?;
-    check_signing_group(&subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
+    check_signing_group(&subgroup_signers, &user_sig_req.validators_info, signer.account_id())?;
 
     // Use the validator info from chain as we can be sure it is in the correct order and the
     // details are correct
-    user_tx_req.validators_info = subgroup_signers;
+    user_sig_req.validators_info = subgroup_signers;
 
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
 
@@ -136,16 +140,16 @@ pub async fn sign_tx(
     let program = get_program(&api, &rpc, &second_signing_address_conversion).await?;
 
     let mut runtime = Runtime::new();
-    let initial_state = InitialState { data: raw_message };
+    let signature_request = SignatureRequest { message, auxilary_data };
 
-    runtime.evaluate(&program, &initial_state)?;
+    runtime.evaluate(&program, &signature_request)?;
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 
     // Do the signing protocol in another task, so we can already respond
     tokio::spawn(async move {
         let signing_protocol_output = do_signing(
-            user_tx_req,
+            user_sig_req,
             sig_hash,
             &app_state,
             tx_id,
