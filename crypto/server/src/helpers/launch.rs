@@ -19,7 +19,6 @@ pub const DEFAULT_BOB_MNEMONIC: &str =
     "where sight patient orphan general short empower hope party hurt month voice";
 pub const DEFAULT_ALICE_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
-#[cfg(test)]
 pub const DEFAULT_CHARLIE_MNEMONIC: &str =
     "lake carry still awful point mention bike category tornado plate brass lock";
 
@@ -112,7 +111,12 @@ pub struct StartupArgs {
     pub no_password: bool,
 }
 
-pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Result<(), KvError> {
+pub async fn setup_mnemonic(
+    kv: &KvManager,
+    is_alice: bool,
+    is_bob: bool,
+    is_charlie: bool,
+) -> Result<(), KvError> {
     // Check if a mnemonic exists in the kvdb.
     let exists_result = kv.kv().exists(FORBIDDEN_KEYS[0]).await.expect("issue querying DB");
     if !exists_result {
@@ -129,6 +133,10 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Res
         }
         if is_bob {
             mnemonic = Mnemonic::from_phrase(DEFAULT_BOB_MNEMONIC, Language::English)
+                .expect("Issue creating Mnemonic");
+        }
+        if is_charlie {
+            mnemonic = Mnemonic::from_phrase(DEFAULT_CHARLIE_MNEMONIC, Language::English)
                 .expect("Issue creating Mnemonic");
         }
 
