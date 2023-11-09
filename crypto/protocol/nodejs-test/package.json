@@ -2,7 +2,7 @@
   "name": "node-test",
   "version": "1.0.0",
   "main": "index.js",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "dependencies": {
     "entropy-protocol": "file:../pkg",
     "ws": "^8.14.2"
