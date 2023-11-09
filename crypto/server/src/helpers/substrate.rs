@@ -131,7 +131,7 @@ pub async fn make_register(
     assert!(query_registering_status.unwrap().is_some());
 }
 
-/// Returns wether an account is registered
+/// Returns a registered user's key visibility
 pub async fn get_key_visibility(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,

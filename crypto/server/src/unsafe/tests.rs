@@ -11,7 +11,7 @@ async fn test_unsafe_get_endpoint() {
     setup_client().await;
     let client = reqwest::Client::new();
 
-    let get_query = UnsafeQuery::new("MNEMONIC".to_string(), "foo".to_string()).to_json();
+    let get_query = UnsafeQuery::new("MNEMONIC".to_string(), vec![10]).to_json();
 
     // Test that the get endpoint works
     let response = client
@@ -48,7 +48,7 @@ async fn test_unsafe_get_endpoint() {
 
     assert_eq!(get_response.status(), StatusCode::OK);
     let updated_response_mnemonic = get_response.text().await.unwrap();
-    assert_eq!(updated_response_mnemonic, "foo".to_string());
+    assert_eq!(updated_response_mnemonic.as_bytes().to_vec(), vec![10]);
 
     clean_tests();
 }

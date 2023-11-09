@@ -16,7 +16,7 @@ use entropy_protocol::{
 };
 use parity_scale_codec::Encode;
 
-use entropy_shared::{OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::{KeyVisibility, OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
 use kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
     KvManager,
@@ -34,7 +34,7 @@ use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        substrate::{get_subgroup, return_all_addresses_of_subgroup},
+        substrate::{get_key_visibility, get_subgroup, return_all_addresses_of_subgroup},
         user::{check_in_registration_group, send_key},
         validator::{get_signer, get_subxt_signer},
     },
@@ -79,7 +79,12 @@ pub async fn proactive_refresh(
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     for key in all_keys {
         let sig_request_address = AccountId32::from_str(&key).map_err(ProtocolErr::StringError)?;
-
+        let key_visibility =
+            get_key_visibility(&api, &rpc, &sig_request_address.clone().into()).await.unwrap();
+        if key_visibility != KeyVisibility::Public && key_visibility != KeyVisibility::Permissioned
+        {
+            return Ok(StatusCode::ACCEPTED);
+        }
         // TODO: check key visibility don't do private (requires user to be online)
         // key should always exist, figure out how to handle
         let exists_result = app_state.kv_store.kv().exists(&key).await?;
