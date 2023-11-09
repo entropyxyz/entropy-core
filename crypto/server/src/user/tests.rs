@@ -1030,43 +1030,39 @@ async fn test_wasm_sign_tx_user_participates() {
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    update_programs(
-        &entropy_api,
-        &one.pair(),
-        &one.pair(),
-        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
-    )
-    .await;
+    update_programs(&entropy_api, &one.pair(), &one.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+        .await;
 
     let validators_info = vec![
         ValidatorInfo {
-            ip_address: SocketAddrV4::from_str("127.0.0.1:3001").unwrap(),
+            ip_address: SocketAddr::from_str("127.0.0.1:3001").unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             tss_account: TSS_ACCOUNTS[0].clone(),
         },
         ValidatorInfo {
-            ip_address: SocketAddrV4::from_str("127.0.0.1:3002").unwrap(),
+            ip_address: SocketAddr::from_str("127.0.0.1:3002").unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
     ];
 
-    let converted_transaction_request: String = hex::encode(MESSAGE_SHOULD_SUCCEED);
-    let message_should_succeed_hash = Hasher::keccak(MESSAGE_SHOULD_SUCCEED);
+    let encoded_transaction_request: String = hex::encode(PREIMAGE_SHOULD_SUCCEED);
+    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
-    let signing_address = one.clone().to_account_id().to_ss58check();
-    let hash_as_string = hex::encode(&message_should_succeed_hash);
-    let sig_uid = create_unique_tx_id(&signing_address, &hash_as_string);
+    let signing_address = one.to_account_id().to_ss58check();
+    let hash_as_hexstring = hex::encode(message_should_succeed_hash);
+    let sig_uid = create_unique_tx_id(&signing_address, &hash_as_hexstring);
 
-    let mut generic_msg = UserTransactionRequest {
-        transaction_request: converted_transaction_request.clone(),
+    let mut generic_msg = UserSignatureRequest {
+        message: encoded_transaction_request.clone(),
+        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
     };
 
     let submit_transaction_requests =
         |validator_urls_and_keys: Vec<(String, [u8; 32])>,
-         generic_msg: UserTransactionRequest,
+         generic_msg: UserSignatureRequest,
          keyring: Sr25519Keyring| async move {
             let mock_client = reqwest::Client::new();
             join_all(
@@ -1239,17 +1235,18 @@ async fn test_wasm_sign_tx_user_participates() {
         assert_eq!(res.text().await.unwrap(), "Invalid Signer: Invalid Signer in Signing group");
     }
 
-    // Test a transcation which does not pass constaints
-    generic_msg.transaction_request = hex::encode(MESSAGE_SHOULD_FAIL);
+    // Now, test a signature request that should fail
+    // The test program is written to fail when `auxilary_data` is `None`
+    generic_msg.auxilary_data = None;
     generic_msg.timestamp = SystemTime::now();
 
-    let test_user_failed_constraints_res =
+    let test_user_failed_programs_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    for res in test_user_failed_constraints_res {
+    for res in test_user_failed_programs_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Runtime error: Runtime(Error::Evaluation(\"Length of data is too short.\"))"
+            "Runtime error: Runtime(Error::Evaluation(\"This program requires that `auxilary_data` be `Some`.\"))"
         );
     }
 
@@ -1405,14 +1402,14 @@ async fn test_wasm_register_with_private_key_visibility() {
     clean_tests();
 
     let one = AccountKeyring::One;
-    let constraint_account = AccountKeyring::Charlie;
+    let program_modification_account = AccountKeyring::Charlie;
 
     let (validator_ips, _validator_ids, _users_keyshare_option) =
         spawn_testing_validators(None, false).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-
-    let block_number = api.rpc().block(None).await.unwrap().unwrap().block.header.number + 1;
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
     let (_one_keypair, one_x25519_sk) = keyring_to_subxt_signer_and_x25519(&one);
     let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
@@ -1420,11 +1417,11 @@ async fn test_wasm_register_with_private_key_visibility() {
     put_register_request_on_chain(
         &api,
         &one,
-        constraint_account.to_account_id().into(),
+        program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
     )
     .await;
-    run_to_block(&api, block_number + 1).await;
+    run_to_block(&rpc, block_number + 1).await;
 
     // Simulate the propagation pallet making a `user/new` request to the second validator
     // as we only have one chain node running
@@ -1440,7 +1437,7 @@ async fn test_wasm_register_with_private_key_visibility() {
                 tss_account: TSS_ACCOUNTS[i].clone().encode(),
             })
             .collect();
-        OcwMessage { sig_request_accounts: vec![one.encode()], block_number, validators_info }
+        OcwMessageDkg { sig_request_accounts: vec![one.encode()], block_number, validators_info }
     };
 
     let client = reqwest::Client::new();
@@ -1448,7 +1445,7 @@ async fn test_wasm_register_with_private_key_visibility() {
         .iter()
         .enumerate()
         .map(|(i, ip)| ValidatorInfo {
-            ip_address: SocketAddrV4::from_str(ip).unwrap(),
+            ip_address: SocketAddr::from_str(ip).unwrap(),
             x25519_public_key: X25519_PUBLIC_KEYS[i],
             tss_account: TSS_ACCOUNTS[i].clone(),
         })
