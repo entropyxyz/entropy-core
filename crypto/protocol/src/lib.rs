@@ -19,11 +19,15 @@ use synedrion::k256::ecdsa::{RecoveryId, Signature};
 pub struct PartyId(AccountId32);
 
 impl std::hash::Hash for PartyId {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) { self.0 .0.hash(state); }
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0 .0.hash(state);
+    }
 }
 
 impl PartyId {
-    pub fn new(acc: AccountId32) -> Self { Self(acc) }
+    pub fn new(acc: AccountId32) -> Self {
+        Self(acc)
+    }
 }
 
 impl From<PartyId> for String {
@@ -93,15 +97,4 @@ pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
     pub ip_address: SocketAddrV4,
     pub tss_account: AccountId32,
-}
-
-#[cfg(feature = "server")]
-pub fn log_either_platform(to_display: String) {
-    println!("From a TSS server: {}", to_display);
-}
-
-#[cfg(feature = "wasm")]
-pub fn log_either_platform(to_display: String) {
-    use web_sys::console;
-    console::log_1(&to_display.into());
 }

@@ -43,11 +43,11 @@ pub async fn run_dkg_protocol(
     .await
     .map_err(|err| Error::new(&format!("{}", err)))?;
 
-    // TODO bincode would be better but it hides details from JS. Really we need a JS keyshare type
     Ok(serde_json::to_string(&key_share).map_err(|err| Error::new(&err.to_string()))?)
 }
 
 /// Run the signing protocol on the client side
+/// `key_share` is given as a JSON encoded [synedrion::KeyShare]
 /// Returns a recoverable signature as a base64 encoded string
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub async fn run_signing_protocol(
@@ -105,7 +105,7 @@ extern "C" {
     pub type ValidatorInfoArray;
 }
 
-/// Details of a validator
+/// Details of a validator intended for use on JS
 /// This differs from [crate::ValidatorInfo] only in that the fields must be private
 #[derive(TryFromJsValue)]
 #[wasm_bindgen]
@@ -138,13 +138,19 @@ impl ValidatorInfo {
     }
 
     #[wasm_bindgen(js_name=getX25519PublicKey)]
-    pub fn get_x25519_public_key(&self) -> Vec<u8> { self.x25519_public_key.to_vec() }
+    pub fn get_x25519_public_key(&self) -> Vec<u8> {
+        self.x25519_public_key.to_vec()
+    }
 
     #[wasm_bindgen(js_name=getIpAddress)]
-    pub fn get_ip_address(&self) -> String { self.ip_address.to_string() }
+    pub fn get_ip_address(&self) -> String {
+        self.ip_address.to_string()
+    }
 
     #[wasm_bindgen(js_name=getTssAccount)]
-    pub fn get_tss_account(&self) -> Vec<u8> { self.tss_account.0.to_vec() }
+    pub fn get_tss_account(&self) -> Vec<u8> {
+        self.tss_account.0.to_vec()
+    }
 }
 
 // This is in a separate impl block as it is not exposed to wasm
@@ -158,7 +164,7 @@ impl ValidatorInfo {
     }
 }
 
-// Parse a JS array of JS ValidatorInfo
+/// Parse a JS array of JS ValidatorInfo
 fn parse_validator_info(
     validators_info_js: ValidatorInfoArray,
 ) -> Result<Vec<crate::ValidatorInfo>, Error> {

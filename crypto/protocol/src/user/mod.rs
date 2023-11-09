@@ -14,7 +14,6 @@ use wasm_bindgen_futures::spawn_local as spawn;
 use crate::{
     errors::UserRunningProtocolErr,
     execute_protocol::{self, Channels},
-    log_either_platform,
     protocol_transport::{
         noise::noise_handshake_initiator, open_ws_connection, ws_to_channels, Broadcaster,
         SubscribeMessage, ThreadSafeWsConnection, WsChannels,
@@ -32,6 +31,7 @@ pub async fn user_participates_in_signing_protocol(
     sig_hash: [u8; 32],
     x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<RecoverableSignature, UserRunningProtocolErr> {
+    // Make WS connections to the given set of TSS servers
     let (channels, tss_accounts) = user_connects_to_validators(
         open_ws_connection,
         sig_uid,
@@ -63,6 +63,7 @@ pub async fn user_participates_in_dkg_protocol(
     user_signing_keypair: &sr25519::Keypair,
     x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<KeyShare<KeyParams>, UserRunningProtocolErr> {
+    // Make WS connections to the given set of TSS servers
     let sig_req_account: AccountId32 = user_signing_keypair.public_key().0.into();
     let session_id = sig_req_account.to_string();
     let (channels, tss_accounts) = user_connects_to_validators(
@@ -85,6 +86,7 @@ pub async fn user_participates_in_dkg_protocol(
     Ok(keyshare)
 }
 
+/// Connect to TSS servers using websockets and the noise protocol
 async fn user_connects_to_validators<F, Fut, W>(
     open_ws_connection: F,
     session_id: &str,
@@ -97,7 +99,7 @@ where
     Fut: Future<Output = Result<W, UserRunningProtocolErr>>,
     W: ThreadSafeWsConnection,
 {
-    // Set up channels for communication between signing protocol and other signing parties
+    // Set up channels for communication between the protocol and the other parties
     let (tx, _rx) = broadcast::channel(1000);
     let (tx_to_others, rx_to_others) = mpsc::channel(1000);
     let tx_ref = &tx;
@@ -111,7 +113,7 @@ where
             let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
             let ws_stream = open_ws_connection(ws_endpoint).await?;
 
-            // Send a SubscribeMessage in the payload of the final handshake message
+            // Prepare a SubscribeMessage for the payload of the final handshake message
             let subscribe_message_vec =
                 serde_json::to_vec(&SubscribeMessage::new(session_id, user_signing_keypair))?;
 
@@ -146,7 +148,6 @@ where
                     ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await
                 {
                     tracing::warn!("WS message loop error: {:?}", err);
-                    log_either_platform(format!("error from message loop {:?}", err));
                 };
             });
 
