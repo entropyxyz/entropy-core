@@ -2445,6 +2445,7 @@ version = "0.0.1"
 dependencies = [
  "async-trait",
  "axum",
+ "base64 0.13.1",
  "blake2",
  "entropy-shared",
  "futures",
@@ -12778,7 +12779,7 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 [[package]]
 name = "synedrion"
 version = "0.0.11"
-source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=v0.0.11#af9e0279ddec01da6d9490473327fff17acd6c79"
+source = "git+ssh://git@github.com/entropyxyz/synedrion.git?branch=fix-32bit#d536131c819f993e4627033f98d20307e0d47a5e"
 dependencies = [
  "base64 0.21.2",
  "cfg-if",
@@ -12787,7 +12788,6 @@ dependencies = [
  "digest 0.10.7",
  "hex",
  "k256",
- "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "rmp-serde",
  "serde",
