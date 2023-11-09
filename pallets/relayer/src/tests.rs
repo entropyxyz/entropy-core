@@ -1,11 +1,12 @@
 use codec::Encode;
-use entropy_shared::{Constraints, KeyVisibility};
+use entropy_shared::KeyVisibility;
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
+    traits::Currency,
     BoundedVec,
 };
-use pallet_constraints::{ActiveArchitectures, AllowedToModifyConstraints};
+use pallet_programs::AllowedToModifyProgram;
 use pallet_relayer::Call as RelayerCall;
 use sp_runtime::{
     traits::SignedExtension,
@@ -14,6 +15,10 @@ use sp_runtime::{
 
 use crate as pallet_relayer;
 use crate::{mock::*, Error, RegisteredInfo, RegisteringDetails, ValidateConfirmRegistered};
+
+/// consts used for testing
+const PROGRAM_MODIFICATION_ACCOUNT: u64 = 1u64;
+const SIG_REQ_ACCOUNT: u64 = 2u64;
 
 #[test]
 fn it_tests_get_validator_rotation() {
@@ -52,21 +57,49 @@ fn it_tests_get_validator_rotation() {
 #[test]
 fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
+        let empty_program = vec![];
+
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None,
+            empty_program,
         ));
-
-        assert!(Relayer::registering(1).unwrap().is_registering);
         assert_eq!(Relayer::dkg(0), vec![1u64.encode()]);
     });
 }
 
 #[test]
-fn it_confirms_registers_a_user_then_swap() {
+fn it_takes_a_program_storage_deposit_during_register() {
     new_test_ext().execute_with(|| {
+        use frame_support::traits::Currency;
+
+        let program = vec![1u8, 2u8];
+        let initial_balance = 100;
+
+        Balances::make_free_balance_be(&PROGRAM_MODIFICATION_ACCOUNT, initial_balance);
+
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(SIG_REQ_ACCOUNT),
+            PROGRAM_MODIFICATION_ACCOUNT,
+            KeyVisibility::Public,
+            program.clone(),
+        ));
+
+        let expected_reserve = <Test as pallet_programs::Config>::ProgramDepositPerByte::get()
+            * (program.len() as u32);
+
+        assert_eq!(
+            Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT),
+            initial_balance - (expected_reserve as u64)
+        );
+    });
+}
+
+#[test]
+fn it_confirms_registers_a_user() {
+    new_test_ext().execute_with(|| {
+        let expected_verifying_key = BoundedVec::default();
         assert_noop!(
             Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
             Error::<Test>::NoThresholdKey
@@ -79,11 +112,12 @@ fn it_confirms_registers_a_user_then_swap() {
             Error::<Test>::NotRegistering
         );
 
+        let empty_program = vec![];
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Private([0; 32]),
-            Some(Constraints::default()),
+            empty_program,
         ));
 
         assert_noop!(
@@ -104,21 +138,25 @@ fn it_confirms_registers_a_user_then_swap() {
             RuntimeOrigin::signed(1),
             1,
             0,
-            BoundedVec::default()
+            expected_verifying_key.clone()
         ));
 
         assert_noop!(
-            Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
+            Relayer::confirm_register(
+                RuntimeOrigin::signed(1),
+                1,
+                0,
+                expected_verifying_key.clone()
+            ),
             Error::<Test>::AlreadyConfirmed
         );
 
         let registering_info = RegisteringDetails::<Test> {
-            is_registering: true,
-            constraint_account: 2 as <Test as frame_system::Config>::AccountId,
-            is_swapping: false,
+            program_modification_account: 2 as <Test as frame_system::Config>::AccountId,
             confirmations: vec![0],
-            constraints: Some(Constraints::default()),
+            program: vec![],
             key_visibility: KeyVisibility::Private([0; 32]),
+            verifying_key: Some(expected_verifying_key.clone()),
         };
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
@@ -127,7 +165,7 @@ fn it_confirms_registers_a_user_then_swap() {
             RuntimeOrigin::signed(2),
             1,
             1,
-            BoundedVec::default()
+            expected_verifying_key.clone()
         ));
 
         assert_eq!(Relayer::registering(1), None);
@@ -135,49 +173,105 @@ fn it_confirms_registers_a_user_then_swap() {
             Relayer::registered(1).unwrap(),
             RegisteredInfo {
                 key_visibility: KeyVisibility::Private([0; 32]),
-                verifying_key: BoundedVec::default()
+                verifying_key: expected_verifying_key
             }
         );
 
-        // make sure constraint and sig req keys are set
-        assert!(AllowedToModifyConstraints::<Test>::contains_key(2, 1));
-        assert!(ActiveArchitectures::<Test>::iter_key_prefix(1).count() == 0);
+        // make sure program and sig req keys are set
+        assert!(AllowedToModifyProgram::<Test>::contains_key(2, 1));
     });
 }
 
 #[test]
+fn it_fails_on_non_matching_verifying_keys() {
+    new_test_ext().execute_with(|| {
+        let empty_program = vec![];
+        let expected_verifying_key = BoundedVec::default();
+        let unexpected_verifying_key = vec![10];
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(1),
+            2 as <Test as frame_system::Config>::AccountId,
+            KeyVisibility::Private([0; 32]),
+            empty_program,
+        ));
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
+
+        assert_ok!(Relayer::confirm_register(
+            RuntimeOrigin::signed(1),
+            1,
+            0,
+            expected_verifying_key
+        ));
+
+        // uses different verifying key
+        assert_ok!(Relayer::confirm_register(
+            RuntimeOrigin::signed(2),
+            1,
+            1,
+            unexpected_verifying_key.try_into().unwrap()
+        ));
+
+        // not registered or registering
+        assert_eq!(Relayer::registering(1), None);
+        assert_eq!(Relayer::registered(1), None);
+    })
+}
+#[test]
 fn it_doesnt_allow_double_registering() {
     new_test_ext().execute_with(|| {
         // register a user
+        let empty_program = vec![];
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Permissioned,
-            None,
+            empty_program,
         ));
 
-        // error if they try to submit another request, even with a different constraint key
+        // error if they try to submit another request, even with a different program key
         assert_noop!(
-            Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Permissioned, None,),
+            Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Permissioned, vec![]),
             Error::<Test>::AlreadySubmitted
         );
     });
 }
 
 #[test]
+fn it_tests_prune_registration() {
+    new_test_ext().execute_with(|| {
+        let inital_program = vec![10];
+        Balances::make_free_balance_be(&2, 100);
+        // register a user
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(1),
+            2,
+            KeyVisibility::Permissioned,
+            inital_program,
+        ));
+        assert_eq!(Balances::free_balance(2), 95, "Deposit is charged");
+        assert!(Relayer::registering(1).is_some(), "Make sure there is registering state");
+        assert_ok!(Relayer::prune_registration(RuntimeOrigin::signed(1)));
+        assert_eq!(Relayer::registering(1), None, "Make sure registering is pruned");
+        assert_eq!(Balances::free_balance(2), 100, "Deposit is returned");
+    });
+}
+#[test]
 fn it_provides_free_txs_confirm_done() {
     new_test_ext().execute_with(|| {
+        let empty_program = vec![];
+        let expected_verifying_key = BoundedVec::default();
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None,
+            empty_program,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
-            verifying_key: BoundedVec::default(),
+            verifying_key: expected_verifying_key,
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
@@ -190,11 +284,12 @@ fn it_provides_free_txs_confirm_done() {
 #[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(1)"]
 fn it_provides_free_txs_confirm_done_fails_1() {
     new_test_ext().execute_with(|| {
+        let expected_verifying_key = BoundedVec::default();
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
-            verifying_key: BoundedVec::default(),
+            verifying_key: expected_verifying_key,
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
@@ -207,11 +302,12 @@ fn it_provides_free_txs_confirm_done_fails_1() {
 #[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(2)"]
 fn it_provides_free_txs_confirm_done_fails_2() {
     new_test_ext().execute_with(|| {
+        let expected_verifying_key = BoundedVec::default();
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
-            verifying_key: BoundedVec::default(),
+            verifying_key: expected_verifying_key,
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
@@ -225,24 +321,26 @@ fn it_provides_free_txs_confirm_done_fails_2() {
 #[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(3)"]
 fn it_provides_free_txs_confirm_done_fails_3() {
     new_test_ext().execute_with(|| {
+        let empty_program = vec![];
+        let expected_verifying_key = BoundedVec::default();
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None,
+            empty_program,
         ));
 
         assert_ok!(Relayer::confirm_register(
             RuntimeOrigin::signed(7),
             5,
             0,
-            BoundedVec::default()
+            expected_verifying_key.clone()
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
-            verifying_key: BoundedVec::default(),
+            verifying_key: expected_verifying_key,
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
@@ -255,17 +353,19 @@ fn it_provides_free_txs_confirm_done_fails_3() {
 #[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(4)"]
 fn it_provides_free_txs_confirm_done_fails_4() {
     new_test_ext().execute_with(|| {
+        let empty_program = vec![];
+        let expected_verifying_key = BoundedVec::default();
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None,
+            empty_program,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 5,
-            verifying_key: BoundedVec::default(),
+            verifying_key: expected_verifying_key,
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
@@ -278,17 +378,19 @@ fn it_provides_free_txs_confirm_done_fails_4() {
 #[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(5)"]
 fn it_provides_free_txs_confirm_done_fails_5() {
     new_test_ext().execute_with(|| {
+        let empty_program = vec![];
+        let expected_verifying_key = BoundedVec::default();
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            None,
+            empty_program,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
-            verifying_key: BoundedVec::default(),
+            verifying_key: expected_verifying_key,
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);

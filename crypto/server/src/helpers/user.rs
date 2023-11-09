@@ -1,4 +1,4 @@
-use std::{net::SocketAddrV4, str::FromStr, time::Duration};
+use std::{net::ToSocketAddrs, time::Duration};
 
 use entropy_protocol::{
     execute_protocol::{execute_dkg, Channels},
@@ -8,6 +8,7 @@ use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Encode;
 use sp_core::crypto::AccountId32;
 use subxt::{
+    backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519, Bytes},
     tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32,
@@ -46,7 +47,15 @@ pub async fn do_dkg(
         let tss_account = SubxtAccountId32(*address_slice);
         let validator_info = ValidatorInfo {
             x25519_public_key: validator_info.x25519_public_key,
-            ip_address: SocketAddrV4::from_str(std::str::from_utf8(&validator_info.ip_address)?)?,
+            ip_address: std::str::from_utf8(&validator_info.ip_address)?
+                .to_socket_addrs()?
+                .next()
+                .ok_or_else(|| {
+                    UserErr::OptionUnwrapError(format!(
+                        "Error parsing socket address: {:?}",
+                        validator_info.ip_address
+                    ))
+                })?,
             tss_account: tss_account.clone(),
         };
         converted_validator_info.push(validator_info);
@@ -97,6 +106,7 @@ pub async fn do_dkg(
 /// Send's user key share to other members of signing subgroup
 pub async fn send_key(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     stash_address: &SubxtAccountId32,
     addresses_in_subgroup: &mut Vec<SubxtAccountId32>,
     user_registration_info: UserRegistrationInfo,
@@ -106,17 +116,21 @@ pub async fn send_key(
         addresses_in_subgroup
             .iter()
             .position(|address| *address == *stash_address)
-            .ok_or_else(|| UserErr::OptionUnwrapError("Validator not in subgroup"))?,
+            .ok_or_else(|| UserErr::OptionUnwrapError("Validator not in subgroup".to_string()))?,
     );
+    let block_hash = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
+
     for validator in addresses_in_subgroup {
         let server_info_query = entropy::storage().staking_extension().threshold_servers(validator);
         let server_info = api
             .storage()
-            .at_latest()
-            .await?
+            .at(block_hash)
             .fetch(&server_info_query)
             .await?
-            .ok_or_else(|| UserErr::OptionUnwrapError("Server Info Fetch Error"))?;
+            .ok_or_else(|| UserErr::OptionUnwrapError("Server Info Fetch Error".to_string()))?;
         let signed_message = SignedMessage::new(
             signer.signer(),
             &Bytes(serde_json::to_vec(&user_registration_info.clone())?),

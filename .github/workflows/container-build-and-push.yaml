@@ -1,0 +1,89 @@
+---
+name: Container build and push
+run-name: Build ${{ inputs.docker_build_arg_package }} container image
+
+permissions:
+  actions: write
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      docker_build_arg_package:
+        description: >
+          Value of `PACKAGE` to pass to `--build-args`. Expected to
+          be one of `entropy` or `server`.
+        type: string
+        required: true
+      git_ref_basename:
+        description: Last portion of the Git ref, like `basename(1)`.
+        type: string
+        required: true
+    secrets:
+      DOCKER_HUB_USERNAME:
+        description: Username with which to log in to Docker Hub.
+        required: true
+      DOCKER_HUB_CI_TOKEN:
+        description: >
+          Docker Hub Personal Access Token (PAT) used as a password
+          with which to log in to Docker Hub.
+        required: true
+      CI_MACHINE_USER_TOKEN:
+        description: Fine-grained GitHub Personal Access Token specific for CI.
+        required: true
+
+jobs:
+  build:
+    name: Build and upload ${{ inputs.docker_build_arg_package }} binary
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_CI_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: entropyxyz/${{ inputs.docker_build_arg_package }}
+          tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha,format=long
+      - name: Build ${{ inputs.docker_build_arg_package }} container image
+        id: docker-build
+        uses: docker/build-push-action@v5
+        with:
+          build-args:
+            PACKAGE=${{ inputs.docker_build_arg_package }}
+          secrets: |
+            credentials=${{ secrets.CI_MACHINE_USER_TOKEN }}
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          push: true
+      - name: Copy binary to local filesystem
+        id: copy-binary
+        run: |
+          tmpdir="$(mktemp -d)"
+          container_id=$(docker container run \
+            --rm \
+            --detach \
+            --entrypoint /bin/sleep \
+            $(echo "$DOCKER_METADATA_OUTPUT_TAGS" | head -n 1 | tr -d $'\n') \
+            99) # You're getting 99 seconds of sleeeeeeepy.
+          docker container cp \
+            ${container_id}:/usr/local/bin/${{ inputs.docker_build_arg_package }} \
+            ${tmpdir}/${{ inputs.docker_build_arg_package }}
+          docker container kill --signal SIGKILL "${container_id}"
+          echo path=${tmpdir}/${{ inputs.docker_build_arg_package }} >> $GITHUB_OUTPUT
+      - name: Upload ${{ inputs.docker_build_arg_package }} binary artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ inputs.docker_build_arg_package}}_${{ inputs.git_ref_basename }}_${{ runner.os }}_${{ runner.arch }}
+          path: ${{ steps.copy-binary.outputs.path }}
+          if-no-files-found: error

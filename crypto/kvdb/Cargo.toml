@@ -1,13 +1,17 @@
 [package]
-name   ="kvdb"
-version="0.1.0"
-edition="2021"
+name      ="kvdb"
+version   ="0.1.0"
+authors   =['Entropy Cryptography <engineering@entropy.xyz>']
+homepage  ='https://entropy.xyz/'
+license   ='AGPL-3.0-or-later'
+repository='https://github.com/entropyxyz/entropy-core'
+edition   ='2021'
 
 [dependencies]
 # Common
 rand     ={ version="0.8", default-features=false }
 serde    ={ version="1.0", features=["derive"] }
-thiserror="1.0.40"
+thiserror="1.0.48"
 hex      ="0.4"
 
 # Substrate

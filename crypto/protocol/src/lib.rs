@@ -6,7 +6,7 @@ pub mod protocol_transport;
 pub mod user;
 
 extern crate alloc;
-use std::{fmt, net::SocketAddrV4};
+use std::{fmt, net::SocketAddr};
 
 use entropy_shared::X25519PublicKey;
 pub use protocol_message::ProtocolMessage;
@@ -57,16 +57,16 @@ impl fmt::Display for PartyId {
     }
 }
 
-// #[cfg(not(test))]
-// use synedrion::ProductionParams;
-// /// Parameters used for the threshold signing scheme in production
-// #[cfg(not(test))]
-// pub type KeyParams = ProductionParams;
+#[cfg(not(test))]
+use synedrion::ProductionParams;
+/// Parameters used for the threshold signing scheme in production
+#[cfg(not(test))]
+pub type KeyParams = ProductionParams;
 
-// #[cfg(test)]
+#[cfg(test)]
 use synedrion::TestParams;
 /// Parameters used for the threshold signing scheme in tests (faster but less secure)
-// #[cfg(test)]
+#[cfg(test)]
 pub type KeyParams = TestParams;
 
 pub use synedrion::KeyShare;
@@ -95,6 +95,6 @@ impl RecoverableSignature {
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
-    pub ip_address: SocketAddrV4,
+    pub ip_address: SocketAddr,
     pub tss_account: AccountId32,
 }

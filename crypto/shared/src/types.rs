@@ -10,9 +10,6 @@ use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "std")]
-/// common structs etc, shared among the substrate-blockchain-code and the crypto-code
-pub use crate::constraints::*;
 /// X25519 public key used by the client in non-interactive ECDH to authenticate/encrypt
 /// interactions with the threshold server (eg distributing threshold shares).
 pub type X25519PublicKey = [u8; 32];
@@ -32,19 +29,47 @@ pub enum KeyVisibility {
 }
 
 /// Information from the validators in signing party
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+#[cfg(not(feature = "wasm"))]
+#[derive(
+    Clone,
+    Encode,
+    Decode,
+    Debug,
+    Eq,
+    PartialEq,
+    TypeInfo,
+    frame_support::Serialize,
+    frame_support::Deserialize,
+)]
 pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
     pub ip_address: codec::alloc::vec::Vec<u8>,
     pub tss_account: codec::alloc::vec::Vec<u8>,
 }
 
+/// Offchain worker message for initiating a dkg
 #[cfg(not(feature = "wasm"))]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
-pub struct OcwMessage {
+pub struct OcwMessageDkg {
     pub block_number: BlockNumber,
     pub sig_request_accounts: Vec<Vec<u8>>,
+    pub validators_info: Vec<ValidatorInfo>,
+}
+
+/// Offchain worker message for initiating a proactive refresh
+#[cfg(not(feature = "wasm"))]
+#[derive(
+    Clone,
+    Encode,
+    Decode,
+    Debug,
+    Eq,
+    PartialEq,
+    TypeInfo,
+    frame_support::Serialize,
+    frame_support::Deserialize,
+)]
+pub struct OcwMessageProactiveRefresh {
     pub validators_info: Vec<ValidatorInfo>,
 }

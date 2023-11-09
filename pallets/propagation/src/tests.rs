@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use entropy_shared::KeyVisibility;
+use codec::Encode;
+use entropy_shared::{KeyVisibility, ValidatorInfo};
 use frame_support::{assert_ok, traits::OnInitialize};
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
@@ -60,8 +61,8 @@ fn knows_how_to_mock_several_http_calls() {
         Propagation::post_dkg(1).unwrap();
 
         System::set_block_number(3);
-        assert_ok!(Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, None,));
-        assert_ok!(Relayer::register(RuntimeOrigin::signed(2), 3, KeyVisibility::Public, None,));
+        assert_ok!(Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, vec![],));
+        assert_ok!(Relayer::register(RuntimeOrigin::signed(2), 3, KeyVisibility::Public, vec![],));
         // full send
         Propagation::post_dkg(4).unwrap();
         // test pruning
@@ -70,10 +71,14 @@ fn knows_how_to_mock_several_http_calls() {
         assert_eq!(Relayer::dkg(3).len(), 0);
 
         Propagation::post_proactive_refresh(6).unwrap();
-        pallet_staking_extension::ProactiveRefresh::<Test>::put(true);
+        pallet_staking_extension::ProactiveRefresh::<Test>::put(vec![ValidatorInfo {
+            x25519_public_key: [0u8; 32],
+            ip_address: "test".encode(),
+            tss_account: "test".encode(),
+        }]);
         Propagation::post_proactive_refresh(6).unwrap();
         Propagation::on_initialize(6);
-        assert_eq!(Staking::proactive_refresh(), false);
+        assert_eq!(Staking::proactive_refresh(), vec![]);
     })
 }
 

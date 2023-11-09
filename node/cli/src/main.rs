@@ -12,4 +12,6 @@ mod command;
 mod endowed_accounts;
 mod rpc;
 
-fn main() -> sc_cli::Result<()> { command::run() }
+fn main() -> sc_cli::Result<()> {
+    command::run()
+}

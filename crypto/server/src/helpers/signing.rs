@@ -14,14 +14,14 @@ use crate::{
         protocol_transport::open_protocol_connections,
         Listener, ProtocolErr,
     },
-    user::api::UserTransactionRequest,
+    user::api::UserSignatureRequest,
     validation::derive_static_secret,
     AppState,
 };
 
 /// Start the signing protocol for a given message
 pub async fn do_signing(
-    message: UserTransactionRequest,
+    message: UserSignatureRequest,
     sig_hash: String,
     app_state: &AppState,
     tx_id: String,

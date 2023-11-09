@@ -29,7 +29,6 @@ pub enum ProtocolErr {
     Bincode(#[from] Box<bincode::ErrorKind>),
     #[error("Deserialization Error: {0}")]
     Deserialization(String),
-    // Validation(&'static str),
     #[error("Oneshot timeout error: {0}")]
     OneshotTimeout(#[from] RecvError),
     #[error("Subscribe API error: {0}")]
@@ -60,7 +59,7 @@ pub enum ProtocolErr {
     BadSubscribeMessage(String),
     #[error("From Hex Error: {0}")]
     FromHex(#[from] hex::FromHexError),
-    #[error("Vec<u8> Conversion Error: {0}")]
+    #[error("Conversion Error: {0}")]
     Conversion(&'static str),
     #[error("Could not open ws connection: {0}")]
     ConnectionError(#[from] tokio_tungstenite::tungstenite::Error),
@@ -69,11 +68,11 @@ pub enum ProtocolErr {
     #[error("Encrypted connection error {0}")]
     EncryptedConnection(String),
     #[error("Program error: {0}")]
-    ProgramError(#[from] entropy_constraints::Error),
+    ProgramError(#[from] crate::user::errors::ProgramError),
     #[error("Invalid length for converting address")]
     AddressConversionError(String),
-    #[error("Ip Address Error: {0}")]
-    AddrParseError(#[from] std::net::AddrParseError),
+    #[error("Socket Address Parse Error: {0}")]
+    SocketAddParseError(#[from] std::io::Error),
     #[error("Kv Fatal error")]
     KvSerialize(String),
     #[error("Validator Error: {0}")]
@@ -82,6 +81,12 @@ pub enum ProtocolErr {
     SubgroupError(&'static str),
     #[error("Account unable to be deserialized: {0}")]
     StringError(&'static str),
+    #[error("Option Unwrap error: {0}")]
+    OptionUnwrapError(String),
+    #[error("Proactive Refresh data incorrect")]
+    InvalidData,
+    #[error("Data is repeated")]
+    RepeatedData,
 }
 
 impl IntoResponse for ProtocolErr {

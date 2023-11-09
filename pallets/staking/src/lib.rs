@@ -44,9 +44,12 @@ use crate as pallet_staking_extension;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{X25519PublicKey, SIGNING_PARTY_SIZE};
+    use entropy_shared::{ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE};
     use frame_support::{
-        dispatch::DispatchResult, inherent::Vec, pallet_prelude::*, traits::Currency,
+        dispatch::{DispatchResult, Vec},
+        pallet_prelude::*,
+        traits::Currency,
+        DefaultNoBound,
     };
     use frame_system::pallet_prelude::*;
 
@@ -139,25 +142,21 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn proactive_refresh)]
-    pub type ProactiveRefresh<T: Config> = StorageValue<_, bool, ValueQuery>;
+    pub type ProactiveRefresh<T: Config> = StorageValue<_, Vec<ValidatorInfo>, ValueQuery>;
 
     #[pallet::genesis_config]
+    #[derive(DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
+        #[serde(skip)]
         pub threshold_servers:
             Vec<(<T as pallet_session::Config>::ValidatorId, ServerInfo<T::AccountId>)>,
         pub signing_groups: Vec<(u8, Vec<<T as pallet_session::Config>::ValidatorId>)>,
-    }
-
-    #[cfg(feature = "std")]
-    impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self {
-            Self { threshold_servers: Default::default(), signing_groups: Default::default() }
-        }
+        pub proactive_refresh_validators: Vec<ValidatorInfo>,
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             let _ = self
                 .threshold_servers
@@ -176,6 +175,8 @@ pub mod pallet {
                     IsValidatorSynced::<T>::insert(validator_id, true);
                 }
             }
+
+            ProactiveRefresh::<T>::put(self.proactive_refresh_validators.clone());
         }
     }
     // Errors inform users that something went wrong.
@@ -349,8 +350,6 @@ pub mod pallet {
         pub fn new_session_handler(
             validators: &[<T as pallet_session::Config>::ValidatorId],
         ) -> Result<(), DispatchError> {
-            // signal proactive refresh
-            <ProactiveRefresh<T>>::put(true);
             // Init a 2D Vec where indices and values represent subgroups and validators,
             // respectively.
             let mut new_validators_set: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> =
@@ -443,8 +442,12 @@ pub mod pallet {
             I::new_session_genesis(new_index)
         }
 
-        fn end_session(end_index: SessionIndex) { I::end_session(end_index); }
+        fn end_session(end_index: SessionIndex) {
+            I::end_session(end_index);
+        }
 
-        fn start_session(start_index: SessionIndex) { I::start_session(start_index); }
+        fn start_session(start_index: SessionIndex) {
+            I::start_session(start_index);
+        }
     }
 }

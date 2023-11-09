@@ -1,0 +1,89 @@
+# Docker Compose file for making an Entropy blockchain network.
+# Currently, it's intended for LOCAL DEVNET FUNCTIONALITY ONLY.
+# Things will get better and more generic, but for the moment
+# this iteration is for simplifying the dogfooding and testing
+# workflows our engineers use, and trying to cut down on some
+# of the more complicated test code that spins up this kind of
+# environment for their tests. Eventually, we will converge on
+# a more canonical set of environments and configuration files.
+---
+version: "3.8"
+name: entropy-local-devnet
+
+secrets:
+  credentials:
+    file: ${XDG_DATA_HOME:-~/.local/share}/entropy-cryptography/.entropy.auth.sh
+
+services:
+  # In a local devnet setup, for now, this is "Alice's TSS server."
+  alice-tss-server:
+    extends:
+      file: docker-compose-common.yaml
+      service: tss-server
+    ports:
+      - "127.0.0.1:3001:3001/tcp"
+    command:
+      - "--alice"
+      - "--threshold-url"
+      - "0.0.0.0:3001"
+      - "--chain-endpoint"
+      - "ws://alice-chain-node:9944"
+
+  # In a local devnet setup, for now, this is "Alice's chain."
+  alice-chain-node:
+    extends:
+      file: docker-compose-common.yaml
+      service: chain-node
+    ports:
+      - "127.0.0.1:9944:9944/tcp"   # "RPC Port."
+    command:
+      - "--chain"
+      - "local-devnet"
+      - "--alice"               # Shortcut for `--name Alice --validator`
+      - "--base-path"
+      - ".entropy/alice"
+      - "--rpc-port"
+      - "9944"
+      - "--rpc-cors"
+      - "all"
+      - "--unsafe-rpc-external" # Intentional, for TSS's access.
+      - "--node-key=0000000000000000000000000000000000000000000000000000000000000001"
+      - "--tss-server-endpoint"
+      - "http://alice-tss-server:3001"
+
+  # "Bob's TSS server."
+  bob-tss-server:
+    extends:
+      file: docker-compose-common.yaml
+      service: tss-server
+    ports:
+      - "127.0.0.1:3002:3001/tcp"
+    command:
+      - "--bob"
+      - "--threshold-url"
+      - "0.0.0.0:3001"
+      - "--chain-endpoint"
+      - "ws://bob-chain-node:9944"
+
+  # "Bob's chain node."
+  bob-chain-node:
+    extends:
+      file: docker-compose-common.yaml
+      service: chain-node
+    ports:
+      - "127.0.0.1:9945:9944/tcp"
+    command:
+      - "--chain"
+      - "local-devnet"
+      - "--bob"                 # Shortcut for `--name Bob --validator`
+      - "--base-path"
+      - ".entropy/bob"
+      - "--rpc-port"
+      - "9944"
+      - "--rpc-cors"
+      - "all"
+      - "--unsafe-rpc-external" # Intentional, for TSS's access.
+      - "--bootnodes"
+      - "/dns4/alice-chain-node/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
+      - "--tss-server-endpoint"
+      - "http://bob-tss-server:3001"

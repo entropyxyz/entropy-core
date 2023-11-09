@@ -15,8 +15,8 @@ mod tests;
 #[frame_support::pallet]
 pub mod pallet {
     use codec::Encode;
-    use entropy_shared::{OcwMessage, ValidatorInfo};
-    use frame_support::{inherent::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
+    use entropy_shared::{OcwMessageDkg, OcwMessageProactiveRefresh, ValidatorInfo};
+    use frame_support::{dispatch::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
     use frame_system::pallet_prelude::*;
     use scale_info::prelude::vec;
     use sp_core;
@@ -40,14 +40,14 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn offchain_worker(block_number: T::BlockNumber) {
+        fn offchain_worker(block_number: BlockNumberFor<T>) {
             let _ = Self::post_dkg(block_number);
             let _ = Self::post_proactive_refresh(block_number);
         }
 
-        fn on_initialize(block_number: T::BlockNumber) -> Weight {
+        fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
             pallet_relayer::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
-            pallet_staking_extension::ProactiveRefresh::<T>::put(false);
+            pallet_staking_extension::ProactiveRefresh::<T>::take();
             T::DbWeight::get().writes(2)
         }
     }
@@ -55,16 +55,20 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Messages passed to validators
-        /// parameters. [OcwMessage]
-        MessagesPassed(OcwMessage),
+        /// DKG Message passed to validators
+        /// parameters. [OcwMessageDkg]
+        DkgMessagePassed(OcwMessageDkg),
+
+        /// Proactive Refresh Message passed to validators
+        /// parameters. [OcwMessageProactiveRefresh]
+        ProactiveRefreshMessagePassed(OcwMessageProactiveRefresh),
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {}
 
     impl<T: Config> Pallet<T> {
-        pub fn post_dkg(block_number: T::BlockNumber) -> Result<(), http::Error> {
+        pub fn post_dkg(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let messages =
                 pallet_relayer::Pallet::<T>::dkg(block_number.saturating_sub(1u32.into()));
 
@@ -76,7 +80,7 @@ pub mod pallet {
 
             log::warn!("propagation::post::messages: {:?}", &messages);
             let converted_block_number: u32 =
-                T::BlockNumber::try_into(block_number).unwrap_or_default();
+                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
             let (servers_info, _i) =
                 pallet_relayer::Pallet::<T>::get_validator_info().unwrap_or_default();
             let validators_info = servers_info
@@ -88,7 +92,7 @@ pub mod pallet {
                 })
                 .collect::<Vec<_>>();
             // the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
-            let req_body = OcwMessage {
+            let req_body = OcwMessageDkg {
                 // subtract 1 from blocknumber since the request is from the last block
                 block_number: converted_block_number.saturating_sub(1),
                 sig_request_accounts: messages,
@@ -99,7 +103,7 @@ pub mod pallet {
             // We construct the request
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
-            let pending = http::Request::post(url, vec![req_body.encode()]) // scheint zu klappen
+            let pending = http::Request::post(url, vec![req_body.encode()])
                 .deadline(deadline)
                 .send()
                 .map_err(|_| http::Error::IoError)?;
@@ -115,15 +119,15 @@ pub mod pallet {
             }
             let _res_body = response.body().collect::<Vec<u8>>();
 
-            Self::deposit_event(Event::MessagesPassed(req_body));
+            Self::deposit_event(Event::DkgMessagePassed(req_body));
 
             Ok(())
         }
 
-        pub fn post_proactive_refresh(_block_number: T::BlockNumber) -> Result<(), http::Error> {
-            let do_refresh = pallet_staking_extension::Pallet::<T>::proactive_refresh();
+        pub fn post_proactive_refresh(_block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
+            let refresh_info = pallet_staking_extension::Pallet::<T>::proactive_refresh();
 
-            if !do_refresh {
+            if refresh_info.is_empty() {
                 return Ok(());
             }
 
@@ -146,10 +150,12 @@ pub mod pallet {
                 .collect::<Vec<_>>();
 
             log::warn!("propagation::post proactive refresh: {:?}", &[validators_info.encode()]);
+
+            let req_body = OcwMessageProactiveRefresh { validators_info };
             // We construct the request
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
-            let pending = http::Request::post(url, vec![validators_info.encode()]) // scheint zu klappen
+            let pending = http::Request::post(url, vec![req_body.encode()])
                 .deadline(deadline)
                 .send()
                 .map_err(|_| http::Error::IoError)?;
@@ -165,7 +171,7 @@ pub mod pallet {
             }
             let _res_body = response.body().collect::<Vec<u8>>();
 
-            // Self::deposit_event(Event::MessagesPassed(req_body));
+            Self::deposit_event(Event::ProactiveRefreshMessagePassed(req_body));
 
             Ok(())
         }

@@ -10,7 +10,7 @@
 # Docker and container engine preparation/runtime stuff.
 ###
 .dockerignore
-docker-compose.yml
+docker-compose.yaml
 
 #################################
 # General editor and IDE stuff. #
@@ -25,31 +25,27 @@ docker-compose.yml
 ##############################################
 # Git, GitHub, CI/CD, and Rust system stuff. #
 ##############################################
+.circleci
 .git
 .github
 .gitignore
-.circleci
 .rustfmt.toml
 .taplo.toml
-cliff.toml
 CHANGELOG.md
 LICENSE
-README.md
 Makefile
+README.md
+cliff.toml
 target
 
-###
-# Stuff generated during build or runtime.
-###
+# Our own generated stuff.
 .cargo
 .cargo-remote.toml
-
-# Our own generated stuff.
 .entropy
 chains
 scripts
-shell.nix
 service
+shell.nix
 
 # No idea what this stuff is for but we don't seem to need it.
 # TODO: Are these actually just temporary things that we can

@@ -17,4 +17,6 @@ pub fn get_db_path(testing: bool) -> String {
     result
 }
 
-pub fn clean_tests() { let _result = std::fs::remove_dir_all(get_db_path(true)); }
+pub fn clean_tests() {
+    let _result = std::fs::remove_dir_all(get_db_path(true));
+}

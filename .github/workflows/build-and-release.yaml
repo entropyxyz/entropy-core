@@ -10,108 +10,53 @@ on:
       - release/v[0-9]+.[0-9]+.[0-9]+\+?** # Release with build identifier.
       # Then, also, basically any release-ish name in the `test/` tagspace.
       - test/**release/**
+  schedule:
+    # Build the default branch weekly. Our version of "nightly."
+    - cron: 55 4 * * 0   # Every Sunday at 4:55 AM.
 
 jobs:
-  # Builds binaries, then uploads them as artifacts to the Workflow Summary.
-  build:
-    name: Build and upload binaries
-    runs-on: ubuntu-22.04
-    container:
-      image: rust:1.68.2-slim-bullseye
-    outputs:
-      git_ref_basename: ${{ steps.git-ref-basename.outputs.git_ref_basename }}
-    steps:
-      - name: Get basename of Git ref.
-        id: git-ref-basename
-        shell: bash
-        run: |
-          echo git_ref_basename="$(basename "${{ github.ref_name }}")" >> $GITHUB_OUTPUT
-      - uses: actions/checkout@v4
-      - name: Prepare Rust container.
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          apt-get update
-          apt-get install --yes \
-            git pkg-config protobuf-compiler make libjemalloc2 clang \
-            openssl libssl-dev
-          rustup target add wasm32-unknown-unknown
-      - name: Set up SSH.
-        shell: bash
-        run: |
-          mkdir -p $HOME/.ssh
-          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > $HOME/.ssh/known_hosts
-          cat <<-EOF > $HOME/.ssh/synedrion_id
-          ${{ secrets.SSH_KEY_SYNEDRION }}
-          EOF
-          cat <<-EOF > $HOME/.ssh/constraints_id
-          ${{ secrets.SSH_KEY_CONSTRAINTS }}
-          EOF
-          chmod 0600 $HOME/.ssh/known_hosts $HOME/.ssh/{synedrion,constraints}_id
-          cat <<-EOF >> $HOME/.ssh/config
-          Host github.com_*
-            HostName github.com
-            HostKeyAlgorithms ssh-ed25519
-            UserKnownHostsFile $HOME/.ssh/known_hosts
-          Host github.com_synedrion
-            IdentityFile $HOME/.ssh/synedrion_id
-          Host github.com_constraints
-            IdentityFile $HOME/.ssh/constraints_id
-          EOF
-          git config --global url.ssh://git@github.com_synedrion/entropyxyz/synedrion.git.insteadOf ssh://git@github.com/entropyxyz/synedrion.git
-          git config --global url.ssh://git@github.com_constraints/entropyxyz/constraints.git.insteadOf ssh://git@github.com/entropyxyz/constraints.git
-      - name: Cache build.
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Build binaries.
-        env:
-          # We set this environment variables because Cargo does not
-          # itself actually support using OpenSSH config files. See:
-          # https://doc.rust-lang.org/cargo/appendix/git-authentication.html#ssh-authentication
-          CARGO_NET_GIT_FETCH_WITH_CLI: true
-          GIT_SSH_COMMAND: ssh -F ~/.ssh/config
-        run: |
-          cargo build --release
-      # TODO: Why doesn't `cargo build --release` strip debug info and
-      #       symbols from the built binary by default? Let's do that.
-      - name: Strip built binaries.
-        shell: bash
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          echo "Before stripping:"
-          ls -l target/release/{entropy,server} # Show unstripped size.
-          strip target/release/{entropy,server} # Actually strip.
-          echo "After stripping:"
-          ls -l target/release/{entropy,server} # Show stripped size.
-      - uses: actions/upload-artifact@v3
-        with:
-          name: entropy_${{ steps.git-ref-basename.outputs.git_ref_basename }}_${{ runner.os }}_${{ runner.arch }}
-          path: target/release/entropy
-      - uses: actions/upload-artifact@v3
-        with:
-          name: server_${{ steps.git-ref-basename.outputs.git_ref_basename }}_${{ runner.os }}_${{ runner.arch }}
-          path: target/release/server
 
-  # Creates a new GitHub Release, adding built artifacts as release assets.
+  git-ref-basename:
+    uses: ./.github/workflows/git-ref-basename.yaml
+
+  build-entropy:
+    uses: ./.github/workflows/container-build-and-push.yaml
+    needs:
+      - git-ref-basename
+    with:
+      docker_build_arg_package: entropy
+      git_ref_basename: ${{ needs.git-ref-basename.outputs.git_ref_basename }}
+    secrets:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_CI_TOKEN: ${{ secrets.DOCKER_HUB_CI_TOKEN }}
+      CI_MACHINE_USER_TOKEN: ${{ secrets.CI_MACHINE_USER_TOKEN }}
+
+  build-server:
+    uses: ./.github/workflows/container-build-and-push.yaml
+    needs:
+      - git-ref-basename
+    with:
+      docker_build_arg_package: server
+      git_ref_basename: ${{ needs.git-ref-basename.outputs.git_ref_basename }}
+    secrets:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_CI_TOKEN: ${{ secrets.DOCKER_HUB_CI_TOKEN }}
+      CI_MACHINE_USER_TOKEN: ${{ secrets.CI_MACHINE_USER_TOKEN }}
+
   release:
     name: Publish new release
+    if: github.event_name != 'schedule'
     needs:
-      - build
-    runs-on: ubuntu-22.04
+      - git-ref-basename
+      - build-entropy
+      - build-server
     permissions:
       contents: write
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
-      - name: Create release.
+      - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -119,6 +64,6 @@ jobs:
             --draft \
             --target "${{ github.sha }}" \
             --title "${{ needs.build.outputs.git_ref_basename }}" \
-            $(echo ${{ github.ref_name }} | grep --quiet -E 'v[0-9]\.[0-9]\.[0-9]-' && echo '--prerelease') \
+            $(echo ${{ github.ref_name }} | grep --quiet -E '^test|v[0-9]\.[0-9]\.[0-9]-' && echo '--prerelease') \
             --verify-tag "${{ github.ref_name }}" \
-            {entropy,server}_${{ needs.build.outputs.git_ref_basename }}_${{ runner.os }}_${{ runner.arch }}/*
+            {entropy,server}_${{ needs.git-ref-basename.outputs.git_ref_basename }}_${{ runner.os }}_${{ runner.arch }}/*
