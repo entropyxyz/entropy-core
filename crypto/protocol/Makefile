@@ -12,10 +12,6 @@ build-web ::
 build-bundler ::
 	wasm-pack build --target bundler . -F wasm
 
-test ::
-	cd nodejs-test && node index.js
-# 	cd nodejs-test && ts-node test.ts
-
 # Cleans out build artifacts.
 clean ::
 	rm -rf pkg/ nodejs-test/node_modules/
