@@ -1,5 +1,5 @@
 //! Wrappers around functions to run dkg and signing protocols for JS
-use std::net::SocketAddrV4;
+use std::net::SocketAddr;
 
 use js_sys::Error;
 use subxt::utils::AccountId32;
@@ -112,7 +112,7 @@ extern "C" {
 #[derive(Clone)]
 pub struct ValidatorInfo {
     x25519_public_key: [u8; 32],
-    ip_address: SocketAddrV4,
+    ip_address: SocketAddr,
     tss_account: AccountId32,
 }
 

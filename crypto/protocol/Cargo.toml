@@ -38,11 +38,10 @@ wasm-bindgen-futures={ version="0.4.37", optional=true }
 wasm-bindgen        ={ version="0.2.87", optional=true }
 wasm-bindgen-derive ={ version="0.2", optional=true }
 js-sys              ={ version="0.3.64", optional=true }
-web-sys             ={ version="0.3.64", features=["console"], optional=true }
 base64              ={ version="0.13.0", optional=true }
 
 [features]
-server=["dep:axum", "dep:tokio-tungstenite", "entropy-shared/std", "subxt/substrate-compat"]
+server=["dep:axum", "dep:tokio-tungstenite", "entropy-shared/std", "subxt/substrate-compat", "subxt/native"]
 wasm=[
   "entropy-shared/wasm",
   "subxt-signer/web",
@@ -51,8 +50,8 @@ wasm=[
   "dep:wasm-bindgen",
   "dep:wasm-bindgen-derive",
   "dep:js-sys",
-  "dep:web-sys",
   "dep:base64",
+  "subxt/web",
 ]
 
 [lib]
