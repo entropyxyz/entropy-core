@@ -3,7 +3,7 @@
 
 
 "entropy-protocol@file:../pkg":
-  version "0.0.1"
+  version "0.1.0"
 
 ws@^8.14.2:
   version "8.14.2"

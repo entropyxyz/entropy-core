@@ -12,7 +12,8 @@ edition    ='2021'
 async-trait    ="0.1.73"
 serde_json     ="1.0"
 entropy-shared ={ path="../shared", default-features=false }
-synedrion      ={ git="ssh://git@github.com/entropyxyz/synedrion.git", branch="fix-32bit" }
+# synedrion      ={ git="ssh://git@github.com/entropyxyz/synedrion.git", branch="fix-32bit" }
+synedrion      ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="v0.0.9" }
 serde          ={ version="1.0", features=["derive"], default-features=false }
 serde-big-array="0.5.1"
 subxt          ={ package="subxt", git="https://github.com/paritytech/subxt.git", tag="v0.32.1", default-features=false }
