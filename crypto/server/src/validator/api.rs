@@ -66,7 +66,7 @@ pub async fn sync_validator(
         }
         // TODO: find a proper batch size
         let batch_size = 10;
-        let signer = get_signer(&kv_store).await.expect("Issue acquiring threshold signer key");
+        let signer = get_signer(kv_store).await.expect("Issue acquiring threshold signer key");
         let has_fee_balance = check_balance_for_fees(&api, &rpc, signer.account_id(), MIN_BALANCE)
             .await
             .expect("Issue checking chain for signer balance");
@@ -95,7 +95,7 @@ pub async fn sync_validator(
         let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
         let all_keys = get_all_keys(&api, &rpc).await.expect("failed to get all keys.");
         let _ = get_and_store_values(
-            all_keys, &kv_store, ip_address, batch_size, dev, &recip_key, &signer,
+            all_keys, kv_store, ip_address, batch_size, dev, &recip_key, &signer,
         )
         .await;
         tell_chain_syncing_is_done(&api, &signer).await.expect("failed to finish chain sync.");
