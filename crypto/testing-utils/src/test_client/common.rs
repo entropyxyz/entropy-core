@@ -97,7 +97,13 @@ pub async fn get_current_subgroup_signers(
                     .ok_or(anyhow!("Stash Fetch Error"))?;
                 let validator_info = ValidatorInfo {
                     x25519_public_key: server_info.x25519_public_key,
-                    ip_address: std::str::from_utf8(&server_info.endpoint)?.parse()?,
+                    ip_address: std::str::from_utf8(&server_info.endpoint)?
+                        .to_socket_addrs()?
+                        .next()
+                        .ok_or(anyhow!(
+                            "Error parsing socket address: {:?}",
+                            server_info.endpoint
+                        ))?,
                     tss_account: server_info.tss_account,
                 };
                 Ok::<_, anyhow::Error>(validator_info)
@@ -106,6 +112,7 @@ pub async fn get_current_subgroup_signers(
         .collect::<Vec<_>>();
     let results = join_all(futures).await;
     for result in results.into_iter() {
+        println!("Result: {:?}", result);
         subgroup_signers.push(result?);
     }
     Ok(subgroup_signers)
