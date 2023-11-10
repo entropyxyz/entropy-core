@@ -201,7 +201,7 @@ async fn test_sign_tx_no_chain() {
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
-            bincode::encode(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
+            bincode::serialize(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
