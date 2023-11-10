@@ -22,7 +22,7 @@ pub enum WsError {
     #[error("Error parsing Signing Message")]
     ProtocolMessage(#[from] super::errors::ProtocolMessageErr),
     #[error("Serialization Error: {0:?}")]
-    Serialization(#[from] serde_json::Error),
+    Serialization(#[from] bincode::Error),
     #[error("Received bad subscribe message")]
     BadSubscribeMessage,
 }
@@ -33,7 +33,7 @@ pub enum ProtocolMessageErr {
     #[error("Utf8Error: {0:?}")]
     Utf8(#[from] std::str::Utf8Error),
     #[error("Deserialization Error: {0:?}")]
-    Deserialization(#[from] serde_json::Error),
+    Deserialization(#[from] bincode::Error),
 }
 
 /// Errors relating to encrypted WS connections / noise handshaking

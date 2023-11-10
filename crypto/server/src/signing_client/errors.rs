@@ -109,8 +109,8 @@ pub enum SubscribeErr {
     InvalidSignature(&'static str),
     #[error("Validation error: {0}")]
     Decryption(String),
-    #[error("Serde Json error: {0}")]
-    SerdeJson(#[from] serde_json::Error),
+    #[error("Serialization/Deserialization error: {0}")]
+    Serialization(#[from] bincode::Error),
     #[error("User Error: {0}")]
     UserError(String),
 }
