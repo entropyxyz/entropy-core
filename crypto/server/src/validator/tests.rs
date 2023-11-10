@@ -20,14 +20,14 @@ use super::api::{
     sync_validator, tell_chain_syncing_is_done, Keys,
 };
 use crate::{
-    chain_api::{get_api, get_rpc, EntropyConfig},
+    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::{
             DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
             DEFAULT_MNEMONIC, FORBIDDEN_KEYS,
         },
         substrate::get_subgroup,
-        tests::{create_clients, setup_client},
+        tests::create_clients,
     },
     validation::{
         derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage, TIME_BUFFER,
@@ -342,7 +342,9 @@ async fn test_tell_chain_syncing_is_done() {
 #[serial]
 async fn test_sync_validator() {
     clean_tests();
-    let _ctx = test_node_process_testing_state(true).await;
+    let ctx = test_node_process_testing_state(true).await;
+    let api = get_api(&ctx.ws_url).await.unwrap();
+    let rpc = get_rpc(&ctx.ws_url).await.unwrap();
     let values = vec![vec![10], vec![11], vec![12]];
     let keys = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
@@ -374,6 +376,14 @@ async fn test_sync_validator() {
         assert!(val.is_ok());
         assert_eq!(val.unwrap(), values[i]);
     }
+    // check if validator is synced
+    let p_charlie = <sr25519::Pair as Pair>::from_string("//Charlie//stash", None).unwrap();
+    let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
+    let synced_query =
+        entropy::storage().staking_extension().is_validator_synced(signer_charlie.account_id());
+    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    let is_synced = api.storage().at(block_hash).fetch(&synced_query).await.unwrap().unwrap();
+    assert!(is_synced);
 
     clean_tests();
 }
