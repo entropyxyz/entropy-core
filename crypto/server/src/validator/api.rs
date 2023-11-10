@@ -40,6 +40,10 @@ pub struct Values {
     pub values: Vec<SignedMessage>,
 }
 
+/// Syncs a validator by
+/// getting all registered keys from chain 
+/// finding a server in their subgroup that us synced
+/// getting all shards from said validator
 pub async fn sync_validator(
     sync: bool,
     dev: bool,
