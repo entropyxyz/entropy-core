@@ -19,11 +19,11 @@ pub struct ProtocolMessage {
     pub payload: SignedMessage<SignatureWrapper>,
 }
 
-impl TryFrom<&String> for ProtocolMessage {
+impl TryFrom<&[u8]> for ProtocolMessage {
     type Error = ProtocolMessageErr;
 
-    fn try_from(value: &String) -> Result<Self, Self::Error> {
-        let parsed_msg: ProtocolMessage = serde_json::from_str(value)?;
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        let parsed_msg: ProtocolMessage = bincode::deserialize(value)?;
         Ok(parsed_msg)
     }
 }

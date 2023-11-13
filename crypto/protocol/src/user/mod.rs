@@ -115,7 +115,7 @@ where
 
             // Prepare a SubscribeMessage for the payload of the final handshake message
             let subscribe_message_vec =
-                serde_json::to_vec(&SubscribeMessage::new(session_id, user_signing_keypair))?;
+                bincode::serialize(&SubscribeMessage::new(session_id, user_signing_keypair))?;
 
             let mut encrypted_connection = noise_handshake_initiator(
                 ws_stream,
@@ -128,7 +128,7 @@ where
             // Check the response as to whether they accepted our SubscribeMessage
             let response_message = encrypted_connection.recv().await?;
 
-            let subscribe_response: Result<(), String> = serde_json::from_str(&response_message)?;
+            let subscribe_response: Result<(), String> = bincode::deserialize(&response_message)?;
             if let Err(error_message) = subscribe_response {
                 return Err(UserRunningProtocolErr::BadSubscribeMessage(error_message));
             }

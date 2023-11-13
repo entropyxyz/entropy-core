@@ -24,12 +24,13 @@ This repository provides a [Docker Compose](https://docs.docker.com/compose/) co
     ```sh
     docker compose up --detach # Detaching is optional.
     ```
-    ```sh
-    docker compose up --detach # Detaching is optional.
-    ```
 1. Once running, if you have `--detach`ed your terminal from the containers' output streams, you can view them again like so:
     ```sh
     docker compose logs --follow # Following is also optional.
+    ```
+1. If you need to communicate directly with the threshold signature scheme server from your Docker host machine, you may also need to include its address in your local `/etc/hosts` file:
+    ```sh
+    echo "127.0.0.1	alice-tss-server bob-tss-server" | sudo tee -a /etc/hosts
     ```
 
 ### Building from source

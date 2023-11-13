@@ -26,8 +26,8 @@ pub enum UserRunningProtocolErr {
     EncryptedConnection(#[from] EncryptedConnectionErr),
     #[error("Protocol Execution Error {0}")]
     ProtocolExecution(#[from] ProtocolExecutionErr),
-    #[error("Serde Json error: {0}")]
-    SerdeJson(#[from] serde_json::Error),
+    #[error("Serialization Error: {0:?}")]
+    Serialization(#[from] bincode::Error),
     #[error("Bad Subscribe Message: {0}")]
     BadSubscribeMessage(String),
     #[error("Connection Error: {0}")]
