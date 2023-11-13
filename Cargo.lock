@@ -2584,6 +2584,7 @@ dependencies = [
  "async-trait",
  "axum",
  "base64 0.13.1",
+ "bincode",
  "blake2",
  "entropy-shared",
  "futures",

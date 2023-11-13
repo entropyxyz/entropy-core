@@ -129,18 +129,13 @@ pub async fn ws_to_channels<T: WsConnection>(
                             continue;
                         }
                     }
-                    let message_string = serde_json::to_string(&msg)?;
+                    let message_vec = bincode::serialize(&msg)?;
                     // TODO if this fails, the ws connection has been dropped during the protocol
                     // we should inform the chain of this.
-                    connection.send(message_string).await.map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
+                    connection.send(message_vec).await.map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
                 } else {
                     return Ok(());
-                    // return Err(WsError::EncryptedConnection("protocol finished".to_string()));
                 }
-                let message_vec = bincode::serialize(&msg)?;
-                // TODO if this fails, the ws connection has been dropped during the protocol
-                // we should inform the chain of this.
-                connection.send(message_vec).await.map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
             }
         }
     }
