@@ -40,16 +40,14 @@ pub struct Values {
     pub values: Vec<SignedMessage>,
 }
 
+// TODO: find a proper batch size
+pub const BATHC_SIZE_FOR_KEY_VALUE_GET: usize = 10;
+
 /// Syncs a validator by
 /// getting all registered keys from chain
 /// finding a server in their subgroup that us synced
 /// getting all shards from said validator
-pub async fn sync_validator(
-    sync: bool,
-    dev: bool,
-    endpoint: &str,
-    kv_store: &KvManager,
-) -> Result<(), ()> {
+pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &KvManager) {
     if sync {
         let api = get_api(endpoint).await.expect("Issue acquiring chain API");
         let rpc = get_rpc(endpoint).await.expect("Issue acquiring chain RPC");
@@ -64,8 +62,6 @@ pub async fn sync_validator(
                 thread::sleep(sleep_time);
             }
         }
-        // TODO: find a proper batch size
-        let batch_size = 10;
         let signer = get_signer(kv_store).await.expect("Issue acquiring threshold signer key");
         let has_fee_balance = check_balance_for_fees(&api, &rpc, signer.account_id(), MIN_BALANCE)
             .await
@@ -94,14 +90,19 @@ pub async fn sync_validator(
             String::from_utf8(key_server_info.endpoint).expect("failed to parse IP address.");
         let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
         let all_keys = get_all_keys(&api, &rpc).await.expect("failed to get all keys.");
-        let _ = get_and_store_values(
-            all_keys, kv_store, ip_address, batch_size, dev, &recip_key, &signer,
+        get_and_store_values(
+            all_keys,
+            kv_store,
+            ip_address,
+            BATHC_SIZE_FOR_KEY_VALUE_GET,
+            dev,
+            &recip_key,
+            &signer,
         )
-        .await;
+        .await
+        .expect("failed to get and store all values");
         tell_chain_syncing_is_done(&api, &signer).await.expect("failed to finish chain sync.");
     }
-
-    Ok(())
 }
 
 /// Endpoint to allow a new node to sync their kvdb with a member of their subgroup

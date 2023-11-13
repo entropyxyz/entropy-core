@@ -156,9 +156,7 @@ async fn main() {
     setup_mnemonic(&kv_store, args.alice, args.bob, false).await.expect("Issue creating Mnemonic");
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
     // Below deals with syncing the kvdb
-    sync_validator(args.sync, args.dev, &configuration.endpoint, &kv_store)
-        .await
-        .expect("validator sync error");
+    sync_validator(args.sync, args.dev, &configuration.endpoint, &kv_store).await;
     let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
     tracing::info!("listening on {}", addr);
     axum::Server::bind(&addr)

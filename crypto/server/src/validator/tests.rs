@@ -368,7 +368,7 @@ async fn test_sync_validator() {
         axum::Server::from_tcp(listener_charlie).unwrap().serve(charlie_axum).await.unwrap();
     });
 
-    sync_validator(true, false, "ws://127.0.0.1:9944", &charlie_kv).await.unwrap();
+    sync_validator(true, false, "ws://127.0.0.1:9944", &charlie_kv).await;
 
     for (i, key) in keys.iter().enumerate() {
         println!("!! -> -> RECEIVED KEY at IDX {i} of value {key:?}");
