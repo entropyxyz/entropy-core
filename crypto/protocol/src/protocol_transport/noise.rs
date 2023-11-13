@@ -102,7 +102,6 @@ impl<T: WsConnection> EncryptedWsConnection<T> {
 
     /// Encrypt and send a message
     pub async fn send(&mut self, msg: Vec<u8>) -> Result<(), EncryptedConnectionErr> {
-        println!("Writing message of length {}", msg.len());
         let len = self.noise_transport.write_message(&msg, &mut self.buf)?;
         self.ws_connection.send(self.buf[..len].to_vec()).await?;
         Ok(())
@@ -115,5 +114,67 @@ impl<T: WsConnection> EncryptedWsConnection<T> {
             .ok_or(EncryptedConnectionErr::RemotePublicKey)?
             .try_into()
             .map_err(|_| EncryptedConnectionErr::RemotePublicKey)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::protocol_transport::WsError;
+    use async_trait::async_trait;
+    use tokio::sync::mpsc;
+
+    struct MockWsConnection {
+        sender: mpsc::Sender<Vec<u8>>,
+        receiver: mpsc::Receiver<Vec<u8>>,
+    }
+
+    impl MockWsConnection {
+        fn new(our_tx: mpsc::Sender<Vec<u8>>, their_rx: mpsc::Receiver<Vec<u8>>) -> Self {
+            Self { sender: our_tx, receiver: their_rx }
+        }
+    }
+
+    #[async_trait]
+    impl WsConnection for MockWsConnection {
+        async fn recv(&mut self) -> Result<Vec<u8>, WsError> {
+            Ok(self.receiver.recv().await.unwrap())
+        }
+
+        async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError> {
+            self.sender.send(msg).await.unwrap();
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn test_encrypted_connection() {
+        let alice_sk = x25519_dalek::StaticSecret::new(rand_core::OsRng);
+
+        let bob_sk = x25519_dalek::StaticSecret::new(rand_core::OsRng);
+        let bob_pk = x25519_dalek::PublicKey::from(&bob_sk);
+
+        let (alice_tx, alice_rx) = mpsc::channel(100);
+        let (bob_tx, bob_rx) = mpsc::channel(100);
+
+        let (alice_connection_result, bob_connection_result) = futures::future::join(
+            noise_handshake_initiator(
+                MockWsConnection::new(alice_tx, bob_rx),
+                &alice_sk,
+                bob_pk.as_bytes().clone(),
+                Vec::new(),
+            ),
+            noise_handshake_responder(MockWsConnection::new(bob_tx, alice_rx), &bob_sk),
+        )
+        .await;
+
+        let mut alice_connection = alice_connection_result.unwrap();
+        let (mut bob_connection, _) = bob_connection_result.unwrap();
+
+        alice_connection.send(b"hello bob".to_vec()).await.unwrap();
+        bob_connection.send(b"hello alice".to_vec()).await.unwrap();
+
+        assert_eq!(bob_connection.recv().await.unwrap(), b"hello bob".to_vec());
+        assert_eq!(alice_connection.recv().await.unwrap(), b"hello alice".to_vec());
     }
 }
