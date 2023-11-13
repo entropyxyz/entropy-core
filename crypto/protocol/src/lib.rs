@@ -5,7 +5,7 @@ mod protocol_message;
 pub mod protocol_transport;
 pub mod user;
 
-use std::{fmt};
+use std::fmt;
 
 use entropy_shared::X25519PublicKey;
 pub use protocol_message::ProtocolMessage;
