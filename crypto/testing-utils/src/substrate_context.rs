@@ -6,25 +6,39 @@ use crate::chain_api::*;
 
 /// Verifies that the Entropy node binary exists.
 ///
+/// If a path is provided using the `ENTROPY_NODE` environment variable, that will take priority.
+/// Otherwise it will search for an Entropy node binary based on the build type of the test suite.
+///
 /// # Panics
 ///
 /// If no Entropy binary can be found.
 fn get_path() -> Box<std::path::Path> {
-    let build_type = if cfg!(debug_assertions) { "debug" } else { "release" };
+    if let Ok(path) = std::env::var("ENTROPY_NODE") {
+        let binary_path = dbg!(std::path::Path::new(&path));
+        let error_msg = format!(
+            "Unable to find an Entropy binary at the path provided by `ENTROPY_NODE=\"{}\"`",
+            &path
+        );
 
-    let mut binary_path = project_root::get_project_root().expect("Error obtaining project root.");
-    binary_path.push(format!("target/{}/entropy", build_type));
-    let binary_path = binary_path.as_path();
+        assert!(binary_path.try_exists().expect(&error_msg), "{}", error_msg);
+        binary_path.into()
+    } else {
+        let build_type = if cfg!(debug_assertions) { "debug" } else { "release" };
 
-    let error_msg = format!(
-        "Missing `entropy` binary, please build it in `{}` mode before running test suite (e.g \
+        let mut binary_path =
+            project_root::get_project_root().expect("Error obtaining project root.");
+        binary_path.push(format!("target/{}/entropy", build_type));
+        let binary_path = binary_path.as_path();
+
+        let error_msg = format!(
+         "Missing `entropy` binary, please build it in `{}` mode before running test suite (e.g \
          `cargo build -p entropy [--release]`)",
-        build_type
-    );
+          build_type
+        );
 
-    assert!(binary_path.try_exists().expect(&error_msg), "{}", error_msg);
-
-    binary_path.into()
+        assert!(binary_path.try_exists().expect(&error_msg), "{}", error_msg);
+        binary_path.into()
+    }
 }
 
 pub type NodeRuntimeSignedExtra = SubstrateExtrinsicParams<EntropyConfig>;
