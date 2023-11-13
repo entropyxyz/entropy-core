@@ -69,7 +69,8 @@ pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
 }
 
 /// Tests chain with test state in chain config
-/// force_authoring: bool -> will produce blocks2
+///
+/// Allowing `force_authoring` will produce blocks.
 pub async fn test_node_process_testing_state(
     force_authoring: bool,
 ) -> TestNodeProcess<EntropyConfig> {
