@@ -102,7 +102,6 @@ impl<T: WsConnection> EncryptedWsConnection<T> {
 
     /// Encrypt and send a message
     pub async fn send(&mut self, msg: Vec<u8>) -> Result<(), EncryptedConnectionErr> {
-        println!("Writing message of length {}", msg.len());
         let len = self.noise_transport.write_message(&msg, &mut self.buf)?;
         self.ws_connection.send(self.buf[..len].to_vec()).await?;
         Ok(())
@@ -172,10 +171,10 @@ mod tests {
         let mut alice_connection = alice_connection_result.unwrap();
         let (mut bob_connection, _) = bob_connection_result.unwrap();
 
-        alice_connection.send("hello bob".to_string()).await.unwrap();
-        bob_connection.send("hello alice".to_string()).await.unwrap();
+        alice_connection.send(b"hello bob".to_vec()).await.unwrap();
+        bob_connection.send(b"hello alice".to_vec()).await.unwrap();
 
-        assert_eq!(bob_connection.recv().await.unwrap(), "hello bob".to_string());
-        assert_eq!(alice_connection.recv().await.unwrap(), "hello alice".to_string());
+        assert_eq!(bob_connection.recv().await.unwrap(), b"hello bob".to_vec());
+        assert_eq!(alice_connection.recv().await.unwrap(), b"hello alice".to_vec());
     }
 }
