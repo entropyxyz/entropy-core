@@ -201,7 +201,7 @@ async fn test_sign_tx_no_chain() {
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
-            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
+            bincode::serialize(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
@@ -216,7 +216,7 @@ async fn test_sign_tx_no_chain() {
         // Check the response as to whether they accepted our SubscribeMessage
         let response_message = encrypted_connection.recv().await.unwrap();
         let subscribe_response: Result<(), String> =
-            serde_json::from_str(&response_message).unwrap();
+            bincode::deserialize(&response_message).unwrap();
 
         assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
         // The stream should not continue to send messages
@@ -863,7 +863,7 @@ async fn test_sign_tx_user_participates() {
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
-            serde_json::to_vec(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
+            bincode::serialize(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
@@ -878,7 +878,7 @@ async fn test_sign_tx_user_participates() {
         // Check the response as to whether they accepted our SubscribeMessage
         let response_message = encrypted_connection.recv().await.unwrap();
         let subscribe_response: Result<(), String> =
-            serde_json::from_str(&response_message).unwrap();
+            bincode::deserialize(&response_message).unwrap();
 
         assert_eq!(
             Err("Decryption(\"Public key does not match that given in UserTransactionRequest or \
