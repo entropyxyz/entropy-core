@@ -101,6 +101,9 @@ pub struct EncryptedWsConnection<T: WsConnection> {
 
 impl<T: WsConnection> EncryptedWsConnection<T> {
     /// Receive and decrypt the next message
+    /// This splits the incoming message into chunks of the maximum message size allowed
+    /// by the noise protocol, decrypts them individually and concatenates the results into
+    /// a single message
     pub async fn recv(&mut self) -> Result<Vec<u8>, EncryptedConnectionErr> {
         let ciphertext = self.ws_connection.recv().await?;
 
@@ -117,6 +120,8 @@ impl<T: WsConnection> EncryptedWsConnection<T> {
     }
 
     /// Encrypt and send a message
+    /// This splits the outgoing message into chunks of the maximum size allowed by the noise
+    /// protocol, encrypts them individually and concatenates the results into a single message
     pub async fn send(&mut self, msg: Vec<u8>) -> Result<(), EncryptedConnectionErr> {
         let mut messages = Vec::new();
         let mut i = 0;
