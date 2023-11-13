@@ -10264,7 +10264,6 @@ dependencies = [
  "hex",
  "hex-literal",
  "kvdb 0.1.0",
- "log",
  "more-asserts",
  "num",
  "parity-scale-codec",
