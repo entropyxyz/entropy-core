@@ -19,7 +19,6 @@ pub const DEFAULT_BOB_MNEMONIC: &str =
     "where sight patient orphan general short empower hope party hurt month voice";
 pub const DEFAULT_ALICE_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
-#[cfg(test)]
 pub const DEFAULT_CHARLIE_MNEMONIC: &str =
     "lake carry still awful point mention bike category tornado plate brass lock";
 
@@ -35,6 +34,14 @@ pub fn init_tracing() {
     tracing_subscriber::fmt().with_target(false).json().init();
 }
 
+// Deafult name for TSS server
+// Will set mnemonic and db path
+#[derive(Debug, PartialEq)]
+pub enum ValidatorName {
+    Alice,
+    Bob,
+    Charlie,
+}
 #[derive(Deserialize, Debug, Clone)]
 pub struct Configuration {
     pub endpoint: String,
@@ -46,7 +53,7 @@ impl Configuration {
     }
 }
 
-pub async fn load_kv_store(is_bob: bool, is_alice: bool, no_password: bool) -> KvManager {
+pub async fn load_kv_store(validator_name: &Option<ValidatorName>, no_password: bool) -> KvManager {
     let mut root: PathBuf = PathBuf::from(kvdb::get_db_path(false));
     if cfg!(test) {
         return KvManager::new(
@@ -55,11 +62,11 @@ pub async fn load_kv_store(is_bob: bool, is_alice: bool, no_password: bool) -> K
         )
         .unwrap();
     }
-    if is_bob {
+    if validator_name == &Some(ValidatorName::Bob) {
         root.push("bob");
         return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     };
-    if is_alice {
+    if validator_name == &Some(ValidatorName::Alice) {
         return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     };
     // TODO remove and force password
@@ -112,7 +119,10 @@ pub struct StartupArgs {
     pub no_password: bool,
 }
 
-pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Result<(), KvError> {
+pub async fn setup_mnemonic(
+    kv: &KvManager,
+    validator_name: &Option<ValidatorName>,
+) -> Result<(), KvError> {
     // Check if a mnemonic exists in the kvdb.
     let exists_result = kv.kv().exists(FORBIDDEN_KEYS[0]).await.expect("issue querying DB");
     if !exists_result {
@@ -123,12 +133,16 @@ pub async fn setup_mnemonic(kv: &KvManager, is_alice: bool, is_bob: bool) -> Res
             mnemonic = Mnemonic::from_phrase(DEFAULT_MNEMONIC, Language::English)
                 .expect("Issue creating Mnemonic");
         }
-        if is_alice {
+        if validator_name == &Some(ValidatorName::Alice) {
             mnemonic = Mnemonic::from_phrase(DEFAULT_ALICE_MNEMONIC, Language::English)
                 .expect("Issue creating Mnemonic");
         }
-        if is_bob {
+        if validator_name == &Some(ValidatorName::Bob) {
             mnemonic = Mnemonic::from_phrase(DEFAULT_BOB_MNEMONIC, Language::English)
+                .expect("Issue creating Mnemonic");
+        }
+        if validator_name == &Some(ValidatorName::Charlie) {
+            mnemonic = Mnemonic::from_phrase(DEFAULT_CHARLIE_MNEMONIC, Language::English)
                 .expect("Issue creating Mnemonic");
         }
 

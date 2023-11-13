@@ -1,10 +1,10 @@
-use std::{str::FromStr, time::SystemTime};
-
 use axum::{extract::State, Json};
+use entropy_shared::MIN_BALANCE;
 use kvdb::kv_manager::KvManager;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::{AccountId32, Ss58Codec};
+use std::{str::FromStr, thread, time::Duration, time::SystemTime};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519, Bytes},
@@ -38,6 +38,71 @@ pub struct Keys {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Values {
     pub values: Vec<SignedMessage>,
+}
+
+// TODO: find a proper batch size
+pub const BATHC_SIZE_FOR_KEY_VALUE_GET: usize = 10;
+
+/// Syncs a validator by:
+/// - getting all registered keys from chain
+/// - finding a server in their subgroup that is synced
+/// - getting all shards from said validator
+pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &KvManager) {
+    if sync {
+        let api = get_api(endpoint).await.expect("Issue acquiring chain API");
+        let rpc = get_rpc(endpoint).await.expect("Issue acquiring chain RPC");
+        let mut is_syncing = true;
+        let sleep_time = Duration::from_secs(20);
+        // wait for chain to be fully synced before starting key swap
+        while is_syncing {
+            let health = rpc.system_health().await.expect("Issue checking chain health");
+            is_syncing = health.is_syncing;
+            if is_syncing {
+                println!("chain syncing, retrying {is_syncing:?}");
+                thread::sleep(sleep_time);
+            }
+        }
+        let signer = get_signer(kv_store).await.expect("Issue acquiring threshold signer key");
+        let has_fee_balance = check_balance_for_fees(&api, &rpc, signer.account_id(), MIN_BALANCE)
+            .await
+            .expect("Issue checking chain for signer balance");
+        if !has_fee_balance {
+            panic!("threshold account needs balance: {:?}", signer.account_id());
+        }
+        // if not in subgroup retry until you are
+        let mut my_subgroup = get_subgroup(&api, &rpc, &signer).await;
+        while my_subgroup.is_err() {
+            println!("you are not currently a validator, retrying");
+            thread::sleep(sleep_time);
+            my_subgroup =
+                Ok(get_subgroup(&api, &rpc, &signer).await.expect("Failed to get subgroup."));
+        }
+        let (subgroup, validator_stash) = my_subgroup.expect("Failed to get subgroup.");
+        let key_server_info = get_random_server_info(
+            &api,
+            &rpc,
+            subgroup.expect("failed to get subgroup"),
+            validator_stash,
+        )
+        .await
+        .expect("Issue getting registered keys from chain.");
+        let ip_address =
+            String::from_utf8(key_server_info.endpoint).expect("failed to parse IP address.");
+        let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
+        let all_keys = get_all_keys(&api, &rpc).await.expect("failed to get all keys.");
+        get_and_store_values(
+            all_keys,
+            kv_store,
+            ip_address,
+            BATHC_SIZE_FOR_KEY_VALUE_GET,
+            dev,
+            &recip_key,
+            &signer,
+        )
+        .await
+        .expect("failed to get and store all values");
+        tell_chain_syncing_is_done(&api, &signer).await.expect("failed to finish chain sync.");
+    }
 }
 
 /// Endpoint to allow a new node to sync their kvdb with a member of their subgroup
@@ -118,42 +183,33 @@ pub async fn get_random_server_info(
         .ok_or_else(|| ValidatorErr::OptionUnwrapError("Querying Signing Groups Error"))?;
     // TODO: Just gets first person in subgroup, maybe do this randomly?
     // find kvdb that isn't syncing and get their URL
-    let mut server_sync_state = false;
-    let mut not_me = true;
     let mut server_to_query = 0;
-    let mut server_info: Option<
-        entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo<
-            subxt::utils::AccountId32,
-        >,
-    > = None;
-    while !server_sync_state || !not_me {
+    let server_info = loop {
         let server_info_query = entropy::storage()
             .staking_extension()
             .threshold_servers(&signing_group_addresses[server_to_query]);
-        server_info = Some(
-            api.storage()
-                .at(block_hash)
-                .fetch(&server_info_query)
-                .await?
-                .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server Info Fetch Error"))?,
-        );
+        let server_info = api
+            .storage()
+            .at(block_hash)
+            .fetch(&server_info_query)
+            .await?
+            .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server Info Fetch Error"))?;
         let server_state_query = entropy::storage()
             .staking_extension()
             .is_validator_synced(&signing_group_addresses[server_to_query]);
-        server_sync_state = api
+        let server_sync_state = api
             .storage()
             .at(block_hash)
             .fetch(&server_state_query)
             .await?
             .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
-        if my_stash_address == signing_group_addresses[server_to_query] {
-            not_me = false
+        if my_stash_address != signing_group_addresses[server_to_query] && server_sync_state {
+            break server_info;
         }
         server_to_query += 1;
-    }
-    let server_info_result =
-        server_info.ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
-    Ok(server_info_result)
+    };
+
+    Ok(server_info)
 }
 
 /// from keys of registered account get their corresponding entropy threshold keys
@@ -196,6 +252,11 @@ pub async fn get_and_store_values(
             break;
         }
         for (i, encrypted_key) in returned_values.values.iter().enumerate() {
+            // if it exists could be old, delete old key grab new one
+            if kv.kv().exists(&remaining_keys[i].clone()).await? {
+                kv.kv().delete(&remaining_keys[i].clone()).await?;
+            }
+
             let reservation = kv.kv().reserve_key(remaining_keys[i].clone()).await?;
             let key = encrypted_key
                 .decrypt(signer.signer())

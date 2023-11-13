@@ -45,7 +45,7 @@ use crate::{
         entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
         get_api, get_rpc, EntropyConfig,
     },
-    get_and_store_values, get_random_server_info,
+    get_random_server_info,
     helpers::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{create_unique_tx_id, do_signing, Hasher},
@@ -57,6 +57,7 @@ use crate::{
     },
     signing_client::{ListenerState, ProtocolErr},
     validation::{check_stale, SignedMessage},
+    validator::api::get_and_store_values,
     AppState, Configuration,
 };
 

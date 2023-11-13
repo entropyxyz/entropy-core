@@ -30,11 +30,11 @@ where
     R: Config,
 {
     /// Construct a builder for spawning a test node process.
-    pub fn build<S>(program: S, chain_type: String) -> TestNodeProcessBuilder
+    pub fn build<S>(program: S, chain_type: String, force_authoring: bool) -> TestNodeProcessBuilder
     where
         S: AsRef<OsStr> + Clone,
     {
-        TestNodeProcessBuilder::new(program, chain_type)
+        TestNodeProcessBuilder::new(program, chain_type, force_authoring)
     }
 
     /// Attempt to kill the running substrate process.
@@ -60,10 +60,11 @@ pub struct TestNodeProcessBuilder {
     authority: Option<AccountKeyring>,
     scan_port_range: bool,
     chain_type: String,
+    force_authoring: bool,
 }
 
 impl TestNodeProcessBuilder {
-    pub fn new<P>(node_path: P, chain_type: String) -> TestNodeProcessBuilder
+    pub fn new<P>(node_path: P, chain_type: String, force_authoring: bool) -> TestNodeProcessBuilder
     where
         P: AsRef<OsStr>,
     {
@@ -72,6 +73,7 @@ impl TestNodeProcessBuilder {
             authority: None,
             scan_port_range: false,
             chain_type,
+            force_authoring,
         }
     }
 
@@ -96,7 +98,9 @@ impl TestNodeProcessBuilder {
     {
         let mut cmd = process::Command::new(&self.node_path);
         cmd.env("RUST_LOG", "error").arg(&self.chain_type).arg("--tmp");
-
+        if self.force_authoring {
+            cmd.arg("--force-authoring");
+        }
         if let Some(authority) = self.authority {
             let authority = format!("{authority:?}");
             let arg = format!("--{}", authority.as_str().to_lowercase());

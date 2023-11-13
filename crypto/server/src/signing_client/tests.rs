@@ -25,7 +25,7 @@ async fn test_proactive_refresh() {
     clean_tests();
     let eve = AccountKeyring::Eve;
     let dave = AccountKeyring::Dave;
-    let _cxt = test_node_process_testing_state().await;
+    let _cxt = test_node_process_testing_state(false).await;
 
     let signing_address = eve.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, users_keyshare_option) =
