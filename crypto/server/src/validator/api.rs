@@ -81,7 +81,7 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
         let key_server_info = get_random_server_info(
             &api,
             &rpc,
-            sbgrp.expect("failed to get subgroup"),
+            subgroup.expect("failed to get subgroup"),
             validator_stash,
         )
         .await
