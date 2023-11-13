@@ -1,4 +1,4 @@
-use std::{net::ToSocketAddrs, str::FromStr, sync::Arc, time::SystemTime};
+use std::{str::FromStr, sync::Arc, time::SystemTime};
 
 use axum::{
     body::{Bytes, StreamBody},
@@ -457,15 +457,7 @@ pub async fn get_current_subgroup_signers(
 
                 Ok::<_, UserErr>(ValidatorInfo {
                     x25519_public_key: server_info.x25519_public_key,
-                    ip_address: std::str::from_utf8(&server_info.endpoint)?
-                        .to_socket_addrs()?
-                        .next()
-                        .ok_or_else(|| {
-                            UserErr::OptionUnwrapError(format!(
-                                "Error parsing socket address: {:?}",
-                                server_info.endpoint
-                            ))
-                        })?,
+                    ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
                     tss_account: server_info.tss_account,
                 })
             }

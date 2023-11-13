@@ -5,7 +5,7 @@ mod protocol_message;
 pub mod protocol_transport;
 pub mod user;
 
-use std::{fmt, net::SocketAddr};
+use std::{fmt};
 
 use entropy_shared::X25519PublicKey;
 pub use protocol_message::ProtocolMessage;
@@ -94,6 +94,6 @@ impl RecoverableSignature {
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
-    pub ip_address: SocketAddr,
+    pub ip_address: String,
     pub tss_account: AccountId32,
 }
