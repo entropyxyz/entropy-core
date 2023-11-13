@@ -26,8 +26,8 @@ use crate::{
     get_signer,
     helpers::{
         launch::{
-            setup_latest_block_number, setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC,
-            DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName,
+            DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         substrate::get_subgroup,
     },
@@ -40,7 +40,7 @@ pub async fn setup_client() -> KvManager {
     let kv_store =
         KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap();
-    let _ = setup_mnemonic(&kv_store, true, false, false).await;
+    let _ = setup_mnemonic(&kv_store, &Some(ValidatorName::Alice)).await;
     let _ = setup_latest_block_number(&kv_store).await;
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
@@ -58,9 +58,7 @@ pub async fn create_clients(
     key_number: String,
     values: Vec<Vec<u8>>,
     keys: Vec<String>,
-    is_alice: bool,
-    is_bob: bool,
-    is_charlie: bool,
+    validator_name: &Option<ValidatorName>,
 ) -> (IntoMakeService<Router>, KvManager) {
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
@@ -70,7 +68,7 @@ pub async fn create_clients(
 
     let kv_store =
         KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
-    let _ = setup_mnemonic(&kv_store, is_alice, is_bob, is_charlie).await;
+    let _ = setup_mnemonic(&kv_store, validator_name).await;
     let _ = setup_latest_block_number(&kv_store).await;
 
     for (i, value) in values.into_iter().enumerate() {
@@ -94,13 +92,13 @@ pub async fn spawn_testing_validators(
     let ports = [3001i64, 3002];
 
     let (alice_axum, alice_kv) =
-        create_clients("validator1".to_string(), vec![], vec![], true, false, false).await;
+        create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
     let alice_id = PartyId::new(SubxtAccountId32(
         *get_signer(&alice_kv).await.unwrap().account_id().clone().as_ref(),
     ));
 
     let (bob_axum, bob_kv) =
-        create_clients("validator2".to_string(), vec![], vec![], false, true, false).await;
+        create_clients("validator2".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
     let bob_id = PartyId::new(SubxtAccountId32(
         *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
     ));

@@ -60,8 +60,8 @@ use crate::{
     get_signer,
     helpers::{
         launch::{
-            setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
-            DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            setup_mnemonic, Configuration, ValidatorName, DEFAULT_BOB_MNEMONIC,
+            DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::{create_unique_tx_id, Hasher},
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
@@ -83,8 +83,8 @@ use crate::{
 #[serial]
 async fn test_get_signer_does_not_throw_err() {
     clean_tests();
-    let kv_store = load_kv_store(false, false, false).await;
-    let mnemonic = setup_mnemonic(&kv_store, false, false, false).await;
+    let kv_store = load_kv_store(&None, false).await;
+    let mnemonic = setup_mnemonic(&kv_store, &None).await;
     assert!(mnemonic.is_ok());
     get_signer(&kv_store).await.unwrap();
     clean_tests();
@@ -664,7 +664,7 @@ async fn test_recover_key() {
     let cxt = test_node_process_testing_state(false).await;
     setup_client().await;
     let (_, bob_kv) =
-        create_clients("validator2".to_string(), vec![], vec![], false, true, false).await;
+        create_clients("validator2".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
 
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();

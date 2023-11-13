@@ -122,7 +122,7 @@ use crate::{
     helpers::{
         launch::{
             init_tracing, load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration,
-            StartupArgs,
+            StartupArgs, ValidatorName,
         },
         validator::get_signer,
     },
@@ -145,15 +145,21 @@ async fn main() {
 
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(args.chain_endpoint);
-    let kv_store = load_kv_store(args.bob, args.alice, args.no_password).await;
+    let mut validator_name = None;
+    if args.alice {
+        validator_name = Some(ValidatorName::Alice);
+    }
+    if args.bob {
+        validator_name = Some(ValidatorName::Bob);
+    }
+    let kv_store = load_kv_store(&validator_name, args.no_password).await;
 
     let app_state = AppState {
         listener_state,
         configuration: configuration.clone(),
         kv_store: kv_store.clone(),
     };
-
-    setup_mnemonic(&kv_store, args.alice, args.bob, false).await.expect("Issue creating Mnemonic");
+    setup_mnemonic(&kv_store, &validator_name).await.expect("Issue creating Mnemonic");
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
     // Below deals with syncing the kvdb
     sync_validator(args.sync, args.dev, &configuration.endpoint, &kv_store).await;

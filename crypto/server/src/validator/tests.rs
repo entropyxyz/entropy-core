@@ -23,7 +23,7 @@ use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::{
-            DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
+            ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
             DEFAULT_MNEMONIC, FORBIDDEN_KEYS,
         },
         substrate::get_subgroup,
@@ -84,7 +84,7 @@ async fn test_sync_kvdb() {
 
     let port = 3001;
     let (bob_axum, _) =
-        create_clients("bob".to_string(), values, addrs.clone(), false, true, false).await;
+        create_clients("bob".to_string(), values, addrs.clone(), &Some(ValidatorName::Bob)).await;
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{port}")).unwrap();
 
     tokio::spawn(async move {
@@ -244,11 +244,16 @@ async fn test_get_and_store_values() {
     let port_1 = 3003;
     let values = vec![vec![10], vec![11], vec![12]];
     // Construct a client to use for dispatching requests.
-    let (alice_axum, _) =
-        create_clients("alice".to_string(), values.clone(), keys.clone(), true, false, false).await;
+    let (alice_axum, _) = create_clients(
+        "alice".to_string(),
+        values.clone(),
+        keys.clone(),
+        &Some(ValidatorName::Alice),
+    )
+    .await;
 
     let (bob_axum, bob_kv) =
-        create_clients("bob".to_string(), vec![], vec![], false, true, false).await;
+        create_clients("bob".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
     let listener_alice = TcpListener::bind(format!("0.0.0.0:{port_0}")).unwrap();
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{port_1}")).unwrap();
 
@@ -351,8 +356,13 @@ async fn test_sync_validator() {
         "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
         "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
     ];
-    let (alice_axum, _) =
-        create_clients("alice".to_string(), values.clone(), keys.clone(), true, false, false).await;
+    let (alice_axum, _) = create_clients(
+        "alice".to_string(),
+        values.clone(),
+        keys.clone(),
+        &Some(ValidatorName::Alice),
+    )
+    .await;
     let listener_alice = TcpListener::bind(format!("0.0.0.0:3001")).unwrap();
 
     tokio::spawn(async move {
@@ -364,9 +374,7 @@ async fn test_sync_validator() {
         "charlie".to_string(),
         vec![values[1].clone()],
         vec![keys[0].clone()],
-        false,
-        false,
-        true,
+        &Some(ValidatorName::Charlie),
     )
     .await;
     let listener_charlie = TcpListener::bind(format!("0.0.0.0:3002")).unwrap();
