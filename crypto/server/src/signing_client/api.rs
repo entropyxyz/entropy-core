@@ -1,4 +1,4 @@
-use std::{net::ToSocketAddrs, str::FromStr, time::Duration};
+use std::{str::FromStr, time::Duration};
 
 use axum::{
     body::Bytes,
@@ -157,15 +157,7 @@ pub async fn do_proactive_refresh(
         let tss_account = SubxtAccountId32(*address_slice);
         let validator_info = ValidatorInfo {
             x25519_public_key: validator_info.x25519_public_key,
-            ip_address: std::str::from_utf8(&validator_info.ip_address)?
-                .to_socket_addrs()?
-                .next()
-                .ok_or_else(|| {
-                    ProtocolErr::OptionUnwrapError(format!(
-                        "Error parsing socket address: {:?}",
-                        validator_info.ip_address
-                    ))
-                })?,
+            ip_address: std::str::from_utf8(&validator_info.ip_address)?.to_string(),
             tss_account: tss_account.clone(),
         };
         converted_validator_info.push(validator_info);
