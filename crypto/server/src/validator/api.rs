@@ -77,7 +77,7 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
             my_subgroup =
                 Ok(get_subgroup(&api, &rpc, &signer).await.expect("Failed to get subgroup."));
         }
-        let (sbgrp, validator_stash) = my_subgroup.expect("Failed to get subgroup.");
+        let (subgroup, validator_stash) = my_subgroup.expect("Failed to get subgroup.");
         let key_server_info = get_random_server_info(
             &api,
             &rpc,
