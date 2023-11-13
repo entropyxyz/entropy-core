@@ -359,9 +359,16 @@ async fn test_sync_validator() {
         axum::Server::from_tcp(listener_alice).unwrap().serve(alice_axum).await.unwrap();
     });
 
-    let (charlie_axum, charlie_kv) =
-        create_clients("charlie".to_string(), values.clone(), keys.clone(), false, false, true)
-            .await;
+    // adds only 1 key and 1 value to see if others get filled and no error from already having values (also gets overwritten)
+    let (charlie_axum, charlie_kv) = create_clients(
+        "charlie".to_string(),
+        vec![values[1].clone()],
+        vec![keys[0].clone()],
+        false,
+        false,
+        true,
+    )
+    .await;
     let listener_charlie = TcpListener::bind(format!("0.0.0.0:3002")).unwrap();
 
     tokio::spawn(async move {

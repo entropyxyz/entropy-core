@@ -183,42 +183,33 @@ pub async fn get_random_server_info(
         .ok_or_else(|| ValidatorErr::OptionUnwrapError("Querying Signing Groups Error"))?;
     // TODO: Just gets first person in subgroup, maybe do this randomly?
     // find kvdb that isn't syncing and get their URL
-    let mut server_sync_state = false;
-    let mut not_me = true;
     let mut server_to_query = 0;
-    let mut server_info: Option<
-        entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo<
-            subxt::utils::AccountId32,
-        >,
-    > = None;
-    while !server_sync_state || !not_me {
+    let server_info = loop {
         let server_info_query = entropy::storage()
             .staking_extension()
             .threshold_servers(&signing_group_addresses[server_to_query]);
-        server_info = Some(
-            api.storage()
-                .at(block_hash)
-                .fetch(&server_info_query)
-                .await?
-                .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server Info Fetch Error"))?,
-        );
+        let server_info = api
+            .storage()
+            .at(block_hash)
+            .fetch(&server_info_query)
+            .await?
+            .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server Info Fetch Error"))?;
         let server_state_query = entropy::storage()
             .staking_extension()
             .is_validator_synced(&signing_group_addresses[server_to_query]);
-        server_sync_state = api
+        let server_sync_state = api
             .storage()
             .at(block_hash)
             .fetch(&server_state_query)
             .await?
             .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
-        if my_stash_address == signing_group_addresses[server_to_query] {
-            not_me = false
+        if my_stash_address != signing_group_addresses[server_to_query] && server_sync_state {
+            break server_info;
         }
         server_to_query += 1;
-    }
-    let server_info_result =
-        server_info.ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
-    Ok(server_info_result)
+    };
+
+    Ok(server_info)
 }
 
 /// from keys of registered account get their corresponding entropy threshold keys
@@ -261,6 +252,11 @@ pub async fn get_and_store_values(
             break;
         }
         for (i, encrypted_key) in returned_values.values.iter().enumerate() {
+            // if it exists could be old, delete old key grab new one
+            if kv.kv().exists(&remaining_keys[i].clone()).await? {
+                kv.kv().delete(&remaining_keys[i].clone()).await?;
+            }
+
             let reservation = kv.kv().reserve_key(remaining_keys[i].clone()).await?;
             let key = encrypted_key
                 .decrypt(signer.signer())
