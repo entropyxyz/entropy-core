@@ -43,10 +43,10 @@ pub struct Values {
 // TODO: find a proper batch size
 pub const BATHC_SIZE_FOR_KEY_VALUE_GET: usize = 10;
 
-/// Syncs a validator by
-/// getting all registered keys from chain
-/// finding a server in their subgroup that us synced
-/// getting all shards from said validator
+/// Syncs a validator by:
+/// - getting all registered keys from chain
+/// - finding a server in their subgroup that is synced
+/// - getting all shards from said validator
 pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &KvManager) {
     if sync {
         let api = get_api(endpoint).await.expect("Issue acquiring chain API");
