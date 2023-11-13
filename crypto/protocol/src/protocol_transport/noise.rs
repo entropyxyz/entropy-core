@@ -46,7 +46,7 @@ pub async fn noise_handshake_initiator<T: WsConnection>(
 pub async fn noise_handshake_responder<T: WsConnection>(
     mut ws_connection: T,
     local_private_key: &x25519_dalek::StaticSecret,
-) -> Result<(EncryptedWsConnection<T>, String), EncryptedConnectionErr> {
+) -> Result<(EncryptedWsConnection<T>, Vec<u8>), EncryptedConnectionErr> {
     let mut noise = setup_noise(local_private_key, None).await?;
 
     // Used to hold handshake messages
@@ -59,7 +59,7 @@ pub async fn noise_handshake_responder<T: WsConnection>(
     ws_connection.send(buf[..len].to_vec()).await?;
 
     let len = noise.read_message(&ws_connection.recv().await?, &mut buf)?;
-    let response = String::from_utf8(buf[..len].to_vec())?;
+    let response = buf[..len].to_vec();
 
     // Transition the state machine into transport mode now that the handshake is complete.
     Ok((
@@ -94,15 +94,16 @@ pub struct EncryptedWsConnection<T: WsConnection> {
 
 impl<T: WsConnection> EncryptedWsConnection<T> {
     /// Receive and decrypt the next message
-    pub async fn recv(&mut self) -> Result<String, EncryptedConnectionErr> {
+    pub async fn recv(&mut self) -> Result<Vec<u8>, EncryptedConnectionErr> {
         let ciphertext = self.ws_connection.recv().await?;
         let len = self.noise_transport.read_message(&ciphertext, &mut self.buf)?;
-        Ok(String::from_utf8(self.buf[..len].to_vec())?)
+        Ok(self.buf[..len].to_vec())
     }
 
     /// Encrypt and send a message
-    pub async fn send(&mut self, msg: String) -> Result<(), EncryptedConnectionErr> {
-        let len = self.noise_transport.write_message(msg.as_bytes(), &mut self.buf)?;
+    pub async fn send(&mut self, msg: Vec<u8>) -> Result<(), EncryptedConnectionErr> {
+        println!("Writing message of length {}", msg.len());
+        let len = self.noise_transport.write_message(&msg, &mut self.buf)?;
         self.ws_connection.send(self.buf[..len].to_vec()).await?;
         Ok(())
     }
