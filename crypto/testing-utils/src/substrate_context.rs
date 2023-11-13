@@ -14,7 +14,7 @@ use crate::chain_api::*;
 /// If no Entropy binary can be found.
 fn get_path() -> Box<std::path::Path> {
     if let Ok(path) = std::env::var("ENTROPY_NODE") {
-        let binary_path = dbg!(std::path::Path::new(&path));
+        let binary_path = std::path::Path::new(&path);
         let error_msg = format!(
             "Unable to find an Entropy binary at the path provided by `ENTROPY_NODE=\"{}\"`",
             &path
