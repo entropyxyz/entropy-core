@@ -20,7 +20,11 @@ use futures::{
     join, Future, SinkExt, StreamExt,
 };
 use hex_literal::hex;
-use kvdb::{clean_tests, encrypted_sled::PasswordMethod, kv_manager::value::KvManager};
+use kvdb::{
+    clean_tests,
+    encrypted_sled::PasswordMethod,
+    kv_manager::{helpers::deserialize as keyshare_deserialize, value::KvManager},
+};
 use more_asserts as ma;
 use parity_scale_codec::Encode;
 use serde::{Deserialize, Serialize};
@@ -1206,6 +1210,7 @@ async fn test_register_with_private_key_visibility() {
     assert_eq!(response.text().await.unwrap(), "");
 
     assert!(keyshare_result.is_ok());
+    clean_tests();
 }
 
 /// Test demonstrating registering with private key visibility on wasm
@@ -1284,7 +1289,27 @@ async fn test_wasm_register_with_private_key_visibility() {
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
 
-    assert!(keyshare_option.is_some());
+    let signing_address = one.to_account_id().to_ss58check();
+    let get_query = UnsafeQuery::new(signing_address, vec![]).to_json();
+    let server_keyshare_response = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query.clone())
+        .send()
+        .await
+        .unwrap();
+    let server_keyshare_serialized = server_keyshare_response.bytes().await.unwrap();
+    let server_keyshare: KeyShare<KeyParams> =
+        keyshare_deserialize(&server_keyshare_serialized).unwrap();
+
+    let user_keyshare_json = keyshare_option.unwrap();
+    let user_keyshare: KeyShare<KeyParams> = serde_json::from_str(&user_keyshare_json).unwrap();
+
+    let user_verifying_key = user_keyshare.verifying_key();
+    let server_verifying_key = server_keyshare.verifying_key();
+    assert_eq!(user_verifying_key, server_verifying_key);
+
+    clean_tests();
 }
 
 pub async fn verify_signature(
