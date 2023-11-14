@@ -7,7 +7,7 @@ use colored::Colorize;
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32 as SubxtAccountId32;
 use testing_utils::{
-    constants::BAREBONES_PROGRAM_WASM_BYTECODE,
+    constants::TEST_PROGRAM_WASM_BYTECODE,
     test_client::{
         derive_static_secret, fund_account, get_accounts, get_api, get_rpc, register, sign,
         update_program, KeyVisibility,
@@ -157,11 +157,11 @@ async fn run_command() -> anyhow::Result<String> {
 
             let program = match program_file {
                 Some(file_name) => std::fs::read(file_name)?,
-                None => BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+                None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 
             update_program(&api, sig_req_account, program_account_name, program).await?;
-            Ok("program updated".to_string())
+            Ok("Program updated".to_string())
         },
         CliCommand::Status => {
             let accounts = get_accounts(&api, &rpc).await?;

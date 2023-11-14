@@ -4,7 +4,7 @@ use std::{str::FromStr, time::SystemTime};
 pub use crate::chain_api::{get_api, get_rpc};
 use anyhow::{anyhow, ensure};
 pub use common::derive_static_secret;
-use common::{get_current_subgroup_signers, Hasher, UserTransactionRequest};
+use common::{get_current_subgroup_signers, Hasher, UserSignatureRequest};
 use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, RecoverableSignature, ValidatorInfo,
@@ -33,6 +33,7 @@ use x25519_chacha20poly1305::SignedMessage;
 use crate::chain_api::{
     entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *,
 };
+use crate::constants::AUXILARY_DATA_SHOULD_SUCCEED;
 
 /// Register an account
 pub async fn register(
@@ -121,8 +122,10 @@ pub async fn sign(
     let validators_info = get_current_subgroup_signers(api, &message_hash_hex).await?;
     info!("Validators info {:?}", validators_info);
 
-    let generic_msg = UserTransactionRequest {
-        transaction_request: hex::encode(message),
+    let generic_msg = UserSignatureRequest {
+        message: hex::encode(message),
+        // TODO this should be parsed in
+        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
     };
@@ -361,7 +364,7 @@ async fn get_dkg_committee(
             .ok_or(anyhow!("Stash Fetch Error"))?;
         let validator_info = ValidatorInfo {
             x25519_public_key: server_info.x25519_public_key,
-            ip_address: std::str::from_utf8(&server_info.endpoint)?.parse()?,
+            ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
             tss_account: server_info.tss_account,
         };
         validators_info.push(validator_info);

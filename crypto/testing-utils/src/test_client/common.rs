@@ -47,11 +47,13 @@ pub fn derive_static_secret(sk: &sr25519::Pair) -> StaticSecret {
     result
 }
 
-/// A request to sign a message
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct UserTransactionRequest {
-    /// Hex-encoded raw data to be signed (eg. RLP-serialized Ethereum transaction)
-    pub transaction_request: String,
+/// Represents an unparsed, transaction request coming from the client.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UserSignatureRequest {
+    /// Hex-encoded raw data to be signed (eg. hex-encoded RLP-serialized Ethereum transaction)
+    pub message: String,
+    /// Hex-encoded auxilary data for program evaluation, will not be signed (eg. zero-knowledge proof, serialized struct, etc)
+    pub auxilary_data: Option<String>,
     /// Information from the validators in signing party
     pub validators_info: Vec<ValidatorInfo>,
     /// When the message was created and signed
@@ -97,13 +99,7 @@ pub async fn get_current_subgroup_signers(
                     .ok_or(anyhow!("Stash Fetch Error"))?;
                 let validator_info = ValidatorInfo {
                     x25519_public_key: server_info.x25519_public_key,
-                    ip_address: std::str::from_utf8(&server_info.endpoint)?
-                        .to_socket_addrs()?
-                        .next()
-                        .ok_or(anyhow!(
-                            "Error parsing socket address: {:?}",
-                            server_info.endpoint
-                        ))?,
+                    ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
                     tss_account: server_info.tss_account,
                 };
                 Ok::<_, anyhow::Error>(validator_info)
