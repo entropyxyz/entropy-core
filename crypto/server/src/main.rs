@@ -97,7 +97,7 @@ mod r#unsafe;
 mod user;
 pub(crate) mod validation;
 mod validator;
-use std::{net::SocketAddr, str::FromStr, string::String, thread, time::Duration};
+use std::{net::SocketAddr, str::FromStr};
 
 use axum::{
     http::Method,
@@ -105,7 +105,6 @@ use axum::{
     Router,
 };
 use clap::Parser;
-use entropy_shared::MIN_BALANCE;
 use kvdb::kv_manager::KvManager;
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -115,7 +114,6 @@ use tracing::Level;
 use validator::api::get_random_server_info;
 
 use self::{
-    chain_api::{get_api, get_rpc},
     signing_client::{api::*, ListenerState},
     user::api::*,
 };
@@ -124,16 +122,12 @@ use crate::{
     helpers::{
         launch::{
             init_tracing, load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration,
-            StartupArgs,
+            StartupArgs, ValidatorName,
         },
-        substrate::get_subgroup,
         validator::get_signer,
     },
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
-    validator::api::{
-        check_balance_for_fees, get_all_keys, get_and_store_values, sync_kvdb,
-        tell_chain_syncing_is_done,
-    },
+    validator::api::{sync_kvdb, sync_validator},
 };
 
 #[derive(Clone)]
@@ -151,68 +145,24 @@ async fn main() {
 
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(args.chain_endpoint);
-    let kv_store = load_kv_store(args.bob, args.alice, args.no_password).await;
+    let mut validator_name = None;
+    if args.alice {
+        validator_name = Some(ValidatorName::Alice);
+    }
+    if args.bob {
+        validator_name = Some(ValidatorName::Bob);
+    }
+    let kv_store = load_kv_store(&validator_name, args.no_password).await;
 
     let app_state = AppState {
         listener_state,
         configuration: configuration.clone(),
         kv_store: kv_store.clone(),
     };
-
-    setup_mnemonic(&kv_store, args.alice, args.bob).await.expect("Issue creating Mnemonic");
+    setup_mnemonic(&kv_store, &validator_name).await.expect("Issue creating Mnemonic");
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
     // Below deals with syncing the kvdb
-    if args.sync {
-        let api = get_api(&configuration.endpoint).await.expect("Issue acquiring chain API");
-        let rpc = get_rpc(&configuration.endpoint).await.expect("Issue acquiring chain RPC");
-        let mut is_syncing = true;
-        let sleep_time = Duration::from_secs(20);
-        // wait for chain to be fully synced before starting key swap
-        while is_syncing {
-            let health = rpc.system_health().await.expect("Issue checking chain health");
-            is_syncing = health.is_syncing;
-            if is_syncing {
-                println!("chain syncing, retrying {is_syncing:?}");
-                thread::sleep(sleep_time);
-            }
-        }
-        // TODO: find a proper batch size
-        let batch_size = 10;
-        let signer = get_signer(&kv_store).await.expect("Issue acquiring threshold signer key");
-        let has_fee_balance = check_balance_for_fees(&api, &rpc, signer.account_id(), MIN_BALANCE)
-            .await
-            .expect("Issue checking chain for signer balance");
-        if !has_fee_balance {
-            panic!("threshold account needs balance: {:?}", signer.account_id());
-        }
-        // if not in subgroup retry until you are
-        let mut my_subgroup = get_subgroup(&api, &rpc, &signer).await;
-        while my_subgroup.is_err() {
-            println!("you are not currently a validator, retrying");
-            thread::sleep(sleep_time);
-            my_subgroup =
-                Ok(get_subgroup(&api, &rpc, &signer).await.expect("Failed to get subgroup."));
-        }
-        let (sbgrp, validator_stash) = my_subgroup.expect("Failed to get subgroup.");
-        let key_server_info = get_random_server_info(
-            &api,
-            &rpc,
-            sbgrp.expect("failed to get subgroup"),
-            validator_stash,
-        )
-        .await
-        .expect("Issue getting registered keys from chain.");
-        let ip_address =
-            String::from_utf8(key_server_info.endpoint).expect("failed to parse IP address.");
-        let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
-        let all_keys = get_all_keys(&api, &rpc).await.expect("failed to get all keys.");
-        let _ = get_and_store_values(
-            all_keys, &kv_store, ip_address, batch_size, args.dev, &recip_key, &signer,
-        )
-        .await;
-        tell_chain_syncing_is_done(&api, &signer).await.expect("failed to finish chain sync.");
-    }
-
+    sync_validator(args.sync, args.dev, &configuration.endpoint, &kv_store).await;
     let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
     tracing::info!("listening on {}", addr);
     axum::Server::bind(&addr)

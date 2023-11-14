@@ -17,13 +17,13 @@ use x25519_dalek::PublicKey;
 
 use super::api::{
     check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info,
-    tell_chain_syncing_is_done, Keys,
+    sync_validator, tell_chain_syncing_is_done, Keys,
 };
 use crate::{
-    chain_api::{get_api, get_rpc, EntropyConfig},
+    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::{
-            DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
+            ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
             DEFAULT_MNEMONIC, FORBIDDEN_KEYS,
         },
         substrate::get_subgroup,
@@ -83,7 +83,8 @@ async fn test_sync_kvdb() {
     let values = vec![vec![10], vec![11], vec![12]];
 
     let port = 3001;
-    let (bob_axum, _) = create_clients("bob".to_string(), values, addrs.clone(), false, true).await;
+    let (bob_axum, _) =
+        create_clients("bob".to_string(), values, addrs.clone(), &Some(ValidatorName::Bob)).await;
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{port}")).unwrap();
 
     tokio::spawn(async move {
@@ -222,7 +223,7 @@ async fn test_sync_kvdb() {
 #[serial]
 async fn test_get_and_store_values() {
     clean_tests();
-    let cxt = test_node_process_testing_state().await;
+    let cxt = test_node_process_testing_state(false).await;
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 
@@ -243,10 +244,16 @@ async fn test_get_and_store_values() {
     let port_1 = 3003;
     let values = vec![vec![10], vec![11], vec![12]];
     // Construct a client to use for dispatching requests.
-    let (alice_axum, _) =
-        create_clients("alice".to_string(), values.clone(), keys.clone(), true, false).await;
+    let (alice_axum, _) = create_clients(
+        "alice".to_string(),
+        values.clone(),
+        keys.clone(),
+        &Some(ValidatorName::Alice),
+    )
+    .await;
 
-    let (bob_axum, bob_kv) = create_clients("bob".to_string(), vec![], vec![], false, true).await;
+    let (bob_axum, bob_kv) =
+        create_clients("bob".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
     let listener_alice = TcpListener::bind(format!("0.0.0.0:{port_0}")).unwrap();
     let listener_bob = TcpListener::bind(format!("0.0.0.0:{port_1}")).unwrap();
 
@@ -333,5 +340,65 @@ async fn test_tell_chain_syncing_is_done() {
     // expect this to fail in the proper way
     let result = tell_chain_syncing_is_done(&api, &signer_alice).await;
     assert!(result.is_err());
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_sync_validator() {
+    clean_tests();
+    let ctx = test_node_process_testing_state(true).await;
+    let api = get_api(&ctx.ws_url).await.unwrap();
+    let rpc = get_rpc(&ctx.ws_url).await.unwrap();
+    let values = vec![vec![10], vec![11], vec![12]];
+    let keys = vec![
+        "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
+        "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
+        "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
+    ];
+    let (alice_axum, _) = create_clients(
+        "alice".to_string(),
+        values.clone(),
+        keys.clone(),
+        &Some(ValidatorName::Alice),
+    )
+    .await;
+    let listener_alice = TcpListener::bind(format!("0.0.0.0:3001")).unwrap();
+
+    tokio::spawn(async move {
+        axum::Server::from_tcp(listener_alice).unwrap().serve(alice_axum).await.unwrap();
+    });
+
+    // adds only 1 key and 1 value to see if others get filled and no error from already having values (also gets overwritten)
+    let (charlie_axum, charlie_kv) = create_clients(
+        "charlie".to_string(),
+        vec![values[1].clone()],
+        vec![keys[0].clone()],
+        &Some(ValidatorName::Charlie),
+    )
+    .await;
+    let listener_charlie = TcpListener::bind(format!("0.0.0.0:3002")).unwrap();
+
+    tokio::spawn(async move {
+        axum::Server::from_tcp(listener_charlie).unwrap().serve(charlie_axum).await.unwrap();
+    });
+
+    sync_validator(true, false, "ws://127.0.0.1:9944", &charlie_kv).await;
+
+    for (i, key) in keys.iter().enumerate() {
+        println!("!! -> -> RECEIVED KEY at IDX {i} of value {key:?}");
+        let val = charlie_kv.kv().get(key).await;
+        assert!(val.is_ok());
+        assert_eq!(val.unwrap(), values[i]);
+    }
+    // check if validator is synced
+    let p_charlie = <sr25519::Pair as Pair>::from_string("//Charlie//stash", None).unwrap();
+    let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
+    let synced_query =
+        entropy::storage().staking_extension().is_validator_synced(signer_charlie.account_id());
+    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    let is_synced = api.storage().at(block_hash).fetch(&synced_query).await.unwrap().unwrap();
+    assert!(is_synced);
+
     clean_tests();
 }

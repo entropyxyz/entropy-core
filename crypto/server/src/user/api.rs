@@ -1,4 +1,4 @@
-use std::{net::ToSocketAddrs, str::FromStr, sync::Arc, time::SystemTime};
+use std::{str::FromStr, sync::Arc, time::SystemTime};
 
 use axum::{
     body::{Bytes, StreamBody},
@@ -45,7 +45,7 @@ use crate::{
         entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
         get_api, get_rpc, EntropyConfig,
     },
-    get_and_store_values, get_random_server_info,
+    get_random_server_info,
     helpers::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{create_unique_tx_id, do_signing, Hasher},
@@ -57,6 +57,7 @@ use crate::{
     },
     signing_client::{ListenerState, ProtocolErr},
     validation::{check_stale, SignedMessage},
+    validator::api::get_and_store_values,
     AppState, Configuration,
 };
 
@@ -457,15 +458,7 @@ pub async fn get_current_subgroup_signers(
 
                 Ok::<_, UserErr>(ValidatorInfo {
                     x25519_public_key: server_info.x25519_public_key,
-                    ip_address: std::str::from_utf8(&server_info.endpoint)?
-                        .to_socket_addrs()?
-                        .next()
-                        .ok_or_else(|| {
-                            UserErr::OptionUnwrapError(format!(
-                                "Error parsing socket address: {:?}",
-                                server_info.endpoint
-                            ))
-                        })?,
+                    ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
                     tss_account: server_info.tss_account,
                 })
             }

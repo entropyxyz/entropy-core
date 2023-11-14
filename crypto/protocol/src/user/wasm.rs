@@ -1,6 +1,4 @@
 //! Wrappers around functions to run dkg and signing protocols for JS
-use std::net::SocketAddr;
-
 use js_sys::Error;
 use subxt::utils::AccountId32;
 use subxt_signer::sr25519;
@@ -112,7 +110,7 @@ extern "C" {
 #[derive(Clone)]
 pub struct ValidatorInfo {
     x25519_public_key: [u8; 32],
-    ip_address: SocketAddr,
+    ip_address: String,
     tss_account: AccountId32,
 }
 
@@ -128,7 +126,7 @@ impl ValidatorInfo {
             x25519_public_key: x25519_public_key_vec
                 .try_into()
                 .map_err(|_| Error::new("x25519 public key must be 32 bytes"))?,
-            ip_address: ip_address.parse().map_err(|err| Error::new(&format!("{}", err)))?,
+            ip_address,
             tss_account: AccountId32(
                 tss_account
                     .try_into()

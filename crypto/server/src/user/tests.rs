@@ -1,6 +1,5 @@
 use std::{
     env, fs,
-    net::{SocketAddr, ToSocketAddrs},
     path::PathBuf,
     str::FromStr,
     sync::Arc,
@@ -68,8 +67,8 @@ use crate::{
     get_signer,
     helpers::{
         launch::{
-            setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
-            DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            setup_mnemonic, Configuration, ValidatorName, DEFAULT_BOB_MNEMONIC,
+            DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::{create_unique_tx_id, Hasher},
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
@@ -91,8 +90,8 @@ use crate::{
 #[serial]
 async fn test_get_signer_does_not_throw_err() {
     clean_tests();
-    let kv_store = load_kv_store(false, false, false).await;
-    let mnemonic = setup_mnemonic(&kv_store, false, false).await;
+    let kv_store = load_kv_store(&None, false).await;
+    let mnemonic = setup_mnemonic(&kv_store, &None).await;
     assert!(mnemonic.is_ok());
     get_signer(&kv_store).await.unwrap();
     clean_tests();
@@ -115,12 +114,12 @@ async fn test_sign_tx_no_chain() {
 
     let validators_info = vec![
         ValidatorInfo {
-            ip_address: "localhost:3001".to_socket_addrs().unwrap().next().unwrap(),
+            ip_address: "localhost:3001".to_string(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             tss_account: TSS_ACCOUNTS[0].clone(),
         },
         ValidatorInfo {
-            ip_address: SocketAddr::from_str("127.0.0.1:3002").unwrap(),
+            ip_address: "127.0.0.1:3002".to_string(),
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
@@ -362,17 +361,17 @@ async fn test_fail_signing_group() {
     let dave = AccountKeyring::Dave;
     let _ = spawn_testing_validators(None, false).await;
 
-    let _substrate_context = test_node_process_testing_state().await;
+    let _substrate_context = test_node_process_testing_state(false).await;
 
     let validators_info = vec![
         ValidatorInfo {
-            ip_address: SocketAddr::from_str("127.0.0.1:3001").unwrap(),
+            ip_address: "127.0.0.1:3001".to_string(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             tss_account: hex!["a664add5dfaca1dd560b949b5699b5f0c3c1df3a2ea77ceb0eeb4f77cc3ade04"]
                 .into(),
         },
         ValidatorInfo {
-            ip_address: SocketAddr::from_str("127.0.0.1:3002").unwrap(),
+            ip_address: "127.0.0.1:3002".to_string(),
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
@@ -669,9 +668,10 @@ async fn test_send_and_receive_keys() {
 #[serial]
 async fn test_recover_key() {
     clean_tests();
-    let cxt = test_node_process_testing_state().await;
+    let cxt = test_node_process_testing_state(false).await;
     setup_client().await;
-    let (_, bob_kv) = create_clients("validator2".to_string(), vec![], vec![], false, true).await;
+    let (_, bob_kv) =
+        create_clients("validator2".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
 
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
@@ -740,12 +740,12 @@ async fn test_sign_tx_user_participates() {
 
     let validators_info = vec![
         ValidatorInfo {
-            ip_address: SocketAddr::from_str("127.0.0.1:3001").unwrap(),
+            ip_address: "127.0.0.1:3001".to_string(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             tss_account: TSS_ACCOUNTS[0].clone(),
         },
         ValidatorInfo {
-            ip_address: SocketAddr::from_str("127.0.0.1:3002").unwrap(),
+            ip_address: "127.0.0.1:3002".to_string(),
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
@@ -1190,7 +1190,7 @@ async fn test_register_with_private_key_visibility() {
         .iter()
         .enumerate()
         .map(|(i, ip)| ValidatorInfo {
-            ip_address: SocketAddr::from_str(ip).unwrap(),
+            ip_address: ip.to_string(),
             x25519_public_key: X25519_PUBLIC_KEYS[i],
             tss_account: TSS_ACCOUNTS[i].clone(),
         })
