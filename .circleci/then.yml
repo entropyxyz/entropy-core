@@ -28,7 +28,6 @@ commands:
                   sudo apt-get update
                   sudo apt install -y libssl-dev clang libclang-dev tor && sudo systemctl start tor && sudo systemctl enable tor
                   sudo apt install -y yarn
-                  curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
     install-rust:
         steps:
             - run:
@@ -38,6 +37,9 @@ commands:
                   source "$HOME/.cargo/env"
                   rustup update stable
                   rustup target add wasm32-unknown-unknown
+    install-wasm-pack:
+        steps:
+            - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
     install-dependencies-and-checkout:
         steps:
             # Needed to getch the currently private `synedrion` dependency
@@ -49,6 +51,7 @@ commands:
             - checkout
             - install-dependencies
             - install-rust
+            - install-wasm-pack
     new-cmd:
         steps:
             - run: echo test
