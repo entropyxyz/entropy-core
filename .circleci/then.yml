@@ -113,7 +113,6 @@ jobs:
                   cd nodejs-test
                   yarn
                   cd ../../..
-            # - run: cargo build -p entropy-protocol --target wasm32-unknown-unknown --no-default-features -F wasm
             - run:
                 command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
                 no_output_timeout: 45m
