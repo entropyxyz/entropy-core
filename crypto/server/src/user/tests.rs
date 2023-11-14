@@ -1038,12 +1038,12 @@ async fn test_wasm_sign_tx_user_participates() {
 
     let validators_info = vec![
         ValidatorInfo {
-            ip_address: SocketAddr::from_str("127.0.0.1:3001").unwrap(),
+            ip_address: "127.0.0.1:3001".to_string(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             tss_account: TSS_ACCOUNTS[0].clone(),
         },
         ValidatorInfo {
-            ip_address: SocketAddr::from_str("127.0.0.1:3002").unwrap(),
+            ip_address: "127.0.0.1:3002".to_string(),
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
@@ -1263,7 +1263,7 @@ async fn test_wasm_register_with_private_key_visibility() {
         .iter()
         .enumerate()
         .map(|(i, ip)| ValidatorInfo {
-            ip_address: SocketAddr::from_str(ip).unwrap(),
+            ip_address: ip.clone(),
             x25519_public_key: X25519_PUBLIC_KEYS[i],
             tss_account: TSS_ACCOUNTS[i].clone(),
         })
