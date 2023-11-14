@@ -102,7 +102,14 @@ jobs:
         steps:
             - increase-swap
             - install-dependencies-and-checkout
-            - cd crypto/protocol && make build-nodejs && cd nodejs-test && yarn && cd ../../..
+            - run:
+                name: Build entropy-protocol nodejs package.
+                command: |
+                  cd crypto/entropy-protocol
+                  make build-nodejs
+                  cd nodejs-test
+                  yarn
+                  cd ../../..
             # - run: cargo build -p entropy-protocol --target wasm32-unknown-unknown --no-default-features -F wasm
             - run:
                 command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
