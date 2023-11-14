@@ -13,6 +13,8 @@ At the moment this project **does not** adhere to
 
 - In the JSON body of the `/sign_tx` endpoint, the `preimage` field has been renamed to `message`. It remains a hex-encoded `string`. [#475](https://github.com/entropyxyz/entropy-core/pull/475/) 
 
+- The ip_address type taken by ValidatorInfo was changed from `SocketAddr` to `String`. This significantly reduces the complexity of the `/sign_tx` endpoint. [#496](https://github.com/entropyxyz/entropy-core/pull/496/)
+
 ### Added
 -  Auxiliary data for program evaluation ([#475](https://github.com/entropyxyz/entropy-core/pull/475/))
 
