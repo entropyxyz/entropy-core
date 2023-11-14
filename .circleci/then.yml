@@ -27,6 +27,8 @@ commands:
                   sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
                   sudo apt-get update
                   sudo apt install -y libssl-dev clang libclang-dev tor && sudo systemctl start tor && sudo systemctl enable tor
+                  sudo apt install -y yarn
+                  curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
     install-rust:
         steps:
             - run:
@@ -100,7 +102,8 @@ jobs:
         steps:
             - increase-swap
             - install-dependencies-and-checkout
-            - run: cargo build -p entropy-protocol --target wasm32-unknown-unknown --no-default-features -F wasm
+            - cd crypto/protocol && make build-nodejs && cd nodejs-test && yarn && cd ../../..
+            # - run: cargo build -p entropy-protocol --target wasm32-unknown-unknown --no-default-features -F wasm
             - run:
                 command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
                 no_output_timeout: 45m
