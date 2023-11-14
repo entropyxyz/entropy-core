@@ -1022,7 +1022,6 @@ async fn test_sign_tx_user_participates() {
 async fn test_wasm_sign_tx_user_participates() {
     clean_tests();
     let one = AccountKeyring::Eve;
-    let two = AccountKeyring::Two;
 
     let signing_address = one.clone().to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, users_keyshare_option) =
@@ -1103,222 +1102,36 @@ async fn test_wasm_sign_tx_user_participates() {
             .unwrap();
 
     // Submit transaction requests, and connect and participate in signing
-    let (test_user_res, _sig_result) = future::join(
+    let (mut test_user_res, user_sig_result) = future::join(
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
         spawn_user_participates_in_signing_protocol(
             &users_keyshare_option.clone().unwrap(),
             &sig_uid,
             validators_info.clone(),
             eve_seed,
-            // seed_str_to_seed(&one.to_seed()),
             &one_x25519_sk,
         ),
     )
     .await;
 
-    // let signature_base64 = base64::encode(sig_result.unwrap().to_rsv_bytes());
-    // assert_eq!(signature_base64.len(), 88);
+    // Check that the signature the user gets matches the first of the server's signatures
+    let user_sig = user_sig_result.unwrap();
+    let user_sig = if let Some(user_sig_stripped) = user_sig.strip_suffix("\n") {
+        user_sig_stripped.to_string()
+    } else {
+        user_sig
+    };
+    let mut server_res = test_user_res.pop().unwrap().unwrap();
+    assert_eq!(server_res.status(), 200);
+    let chunk = server_res.chunk().await.unwrap().unwrap();
+    let signing_result: Result<(String, Signature), String> =
+        serde_json::from_slice(&chunk).unwrap();
+    assert_eq!(user_sig, signing_result.unwrap().0);
 
+    // Verify the remaining server results, which should be the same
     verify_signature(test_user_res, message_should_succeed_hash, users_keyshare_option.clone())
         .await;
 
-    generic_msg.timestamp = SystemTime::now();
-    // test failing cases
-    let test_user_res_not_registered =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
-
-    for res in test_user_res_not_registered {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "Not Registering error: Register Onchain first"
-        );
-    }
-
-    generic_msg.timestamp = SystemTime::now();
-    let mut generic_msg_bad_validators = generic_msg.clone();
-    generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
-
-    let test_user_failed_x25519_pub_key = submit_transaction_requests(
-        validator_ips_and_keys.clone(),
-        generic_msg_bad_validators,
-        one,
-    )
-    .await;
-
-    let mut responses = test_user_failed_x25519_pub_key.into_iter();
-    assert_eq!(
-        responses.next().unwrap().unwrap().text().await.unwrap(),
-        "{\"Err\":\"Timed out waiting for remote party\"}"
-    );
-
-    assert_eq!(
-        responses.next().unwrap().unwrap().text().await.unwrap(),
-        "{\"Err\":\"Timed out waiting for remote party\"}"
-    );
-
-    // Test attempting to connect over ws by someone who is not in the signing group
-    let validator_ip_and_key = validator_ips_and_keys[0].clone();
-    let connection_attempt_handle = tokio::spawn(async move {
-        // Wait for the "user" to submit the signing request
-        tokio::time::sleep(Duration::from_millis(500)).await;
-        let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
-        let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
-
-        let ferdie_keypair = subxt_signer::sr25519::Keypair::from_uri(
-            &subxt_signer::SecretUri::from_str(&AccountKeyring::Ferdie.to_seed()).unwrap(),
-        )
-        .unwrap();
-        let ferdie_x25519_sk = derive_static_secret(&AccountKeyring::Ferdie.pair());
-
-        // create a SubscribeMessage from a party who is not in the signing commitee
-        let subscribe_message_vec =
-            bincode::serialize(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
-
-        // Attempt a noise handshake including the subscribe message in the payload
-        let mut encrypted_connection = noise_handshake_initiator(
-            ws_stream,
-            &ferdie_x25519_sk,
-            validator_ip_and_key.1,
-            subscribe_message_vec,
-        )
-        .await
-        .unwrap();
-
-        // Check the response as to whether they accepted our SubscribeMessage
-        let response_message = encrypted_connection.recv().await.unwrap();
-        let subscribe_response: Result<(), String> =
-            bincode::deserialize(&response_message).unwrap();
-
-        assert_eq!(
-            Err("Decryption(\"Public key does not match that given in UserTransactionRequest or \
-                 register transaction\")"
-                .to_string()),
-            subscribe_response
-        );
-        // The stream should not continue to send messages
-        // returns true if this part of the test passes
-        encrypted_connection.recv().await.is_err()
-    });
-    generic_msg.timestamp = SystemTime::now();
-
-    let test_user_bad_connection_res = submit_transaction_requests(
-        vec![validator_ips_and_keys[1].clone()],
-        generic_msg.clone(),
-        one,
-    )
-    .await;
-
-    for res in test_user_bad_connection_res {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "{\"Err\":\"Timed out waiting for remote party\"}"
-        );
-    }
-
-    assert!(connection_attempt_handle.await.unwrap());
-    generic_msg.timestamp = SystemTime::now();
-    // Bad Account ID - an account ID is given which is not in the signing group
-    let mut generic_msg_bad_account_id = generic_msg.clone();
-    generic_msg_bad_account_id.validators_info[0].tss_account =
-        subxtAccountId32(AccountKeyring::Dave.into());
-
-    let test_user_failed_tss_account = submit_transaction_requests(
-        validator_ips_and_keys.clone(),
-        generic_msg_bad_account_id,
-        one,
-    )
-    .await;
-
-    for res in test_user_failed_tss_account {
-        let res = res.unwrap();
-        assert_eq!(res.status(), 500);
-        assert_eq!(res.text().await.unwrap(), "Invalid Signer: Invalid Signer in Signing group");
-    }
-
-    // Now, test a signature request that should fail
-    // The test program is written to fail when `auxilary_data` is `None`
-    generic_msg.auxilary_data = None;
-    generic_msg.timestamp = SystemTime::now();
-
-    let test_user_failed_programs_res =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-
-    for res in test_user_failed_programs_res {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "Runtime error: Runtime(Error::Evaluation(\"This program requires that `auxilary_data` be `Some`.\"))"
-        );
-    }
-
-    let mock_client = reqwest::Client::new();
-    // fails verification tests
-    // wrong key for wrong validator
-    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
-    let failed_signed_message = SignedMessage::new(
-        &one.pair(),
-        &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-        &server_public_key,
-    )
-    .unwrap();
-    let failed_res = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&failed_signed_message).unwrap())
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(failed_res.status(), 500);
-    assert_eq!(
-        failed_res.text().await.unwrap(),
-        "Validation error: ChaCha20 decryption error: aead::Error"
-    );
-
-    let sig: [u8; 64] = [0; 64];
-    let slice: [u8; 32] = [0; 32];
-    let nonce: [u8; 12] = [0; 12];
-
-    let user_input_bad = SignedMessage::new_test(
-        Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-        sr25519::Signature::from_raw(sig),
-        one.pair().public().into(),
-        slice,
-        slice,
-        nonce,
-    );
-
-    let failed_sign = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&user_input_bad).unwrap())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(failed_sign.status(), 500);
-    assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
-
-    // checks that sig not needed with public key visibility
-    let user_input_bad = SignedMessage::new_test(
-        Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-        sr25519::Signature::from_raw(sig),
-        AccountKeyring::Dave.pair().public().into(),
-        slice,
-        slice,
-        nonce,
-    );
-
-    let failed_sign = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&user_input_bad).unwrap())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(failed_sign.status(), 500);
-    // fails lower down in stack because no sig needed on pub account
-    // fails when tries to decode the nonsense message
-    assert_ne!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
     clean_tests();
 }
 
@@ -1572,32 +1385,6 @@ pub async fn spawn_user_participates_in_signing_protocol(
         .await
         .unwrap();
     Some(String::from_utf8(output.stdout).unwrap())
-    // let child_process = tokio::process::Command::new("node")
-    //     .arg(test_script_path)
-    //     .arg("sign")
-    //     .arg(json_params)
-    //     .spawn()
-    //     .unwrap();
-    // if let Some(mut std_out) = child_process.stdout {
-    //     if let Some(mut std_err) = child_process.stderr {
-    //         let mut out_buffer = [0; 500];
-    //         let mut err_buffer = [0; 500];
-    //         loop {
-    //             tokio::select! {
-    //                 Ok(n) = std_out.read(&mut out_buffer[..]) => {
-    //                     if n == 0 { break;}
-    //                     println!("buffer: {}", std::str::from_utf8(&out_buffer).unwrap());
-    //                 }
-    //                 Ok(n) = std_err.read(&mut err_buffer[..]) => {
-    //                     if n == 0 { break;}
-    //                     println!("buffer: {}", std::str::from_utf8(&err_buffer).unwrap());
-    //                 }
-    //             }
-    //         }
-    //     }
-    // };
-    //
-    // None
 }
 
 /// For testing running the DKG protocol on wasm, spawn a process running nodejs and pass

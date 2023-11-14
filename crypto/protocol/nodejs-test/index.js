@@ -10,7 +10,6 @@ Object.assign(global, { WebSocket: require('ws') });
 
 // Create ValidatorInfo objects from objects parsed from JSON
 function parseVadidatorInfo(inputObject) {
-    console.log('input: ', inputObject)
     return new protocol.ValidatorInfo(
         new Uint8Array(inputObject.x25519_public_key),
         inputObject.ip_address,
@@ -41,7 +40,6 @@ switch(process.argv[2].toLowerCase()) {
         })
         break
     case 'sign':
-        console.log('Starting signing protocol with these arguments', input)
         protocol.run_signing_protocol(input.key_share, input.sig_uid, input.validators_info, input.user_sig_req_seed, input.x25519_private_key).then((output) => {
             console.log(output)
         }).catch((err) => {

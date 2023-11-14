@@ -2,7 +2,6 @@
 build-nodejs ::
 	wasm-pack build --target nodejs . --no-default-features -F wasm
 
-
 # Builds a JS Module for web with glue for the compiled WASM.
 build-web ::
 	wasm-pack build --target web . --no-default-features -F wasm
