@@ -1106,17 +1106,17 @@ async fn test_sign_tx_with_test_client() {
         &entropy_api,
         subxtAccountId32(pre_registered_user.into()),
         pre_registered_user.to_seed(),
-        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
     )
     .await
     .unwrap();
 
-    let message_should_succeed_hash = Hasher::keccak(MESSAGE_SHOULD_SUCCEED);
+    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
     let recoverable_signature = test_client::sign(
         &entropy_api,
         pre_registered_user.to_seed(),
-        MESSAGE_SHOULD_SUCCEED.to_vec(),
+        PREIMAGE_SHOULD_SUCCEED.to_vec(),
         None,
     )
     .await
@@ -1146,17 +1146,17 @@ async fn test_sign_tx_private_with_test_client() {
         &entropy_api,
         subxtAccountId32(pre_registered_user.into()),
         pre_registered_user.to_seed(),
-        BAREBONES_PROGRAM_WASM_BYTECODE.to_owned(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
     )
     .await
     .unwrap();
 
-    let message_should_succeed_hash = Hasher::keccak(MESSAGE_SHOULD_SUCCEED);
+    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
     let recoverable_signature = test_client::sign(
         &entropy_api,
         pre_registered_user.to_seed(),
-        MESSAGE_SHOULD_SUCCEED.to_vec(),
+        PREIMAGE_SHOULD_SUCCEED.to_vec(),
         keyshare_option.clone(),
     )
     .await
