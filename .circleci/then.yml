@@ -108,7 +108,7 @@ jobs:
             - run:
                 name: Build entropy-protocol nodejs package.
                 command: |
-                  cd crypto/entropy-protocol
+                  cd crypto/protocol
                   make build-nodejs
                   cd nodejs-test
                   yarn
