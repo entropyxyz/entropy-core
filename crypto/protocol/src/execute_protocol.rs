@@ -175,10 +175,8 @@ pub async fn execute_dkg(
 ) -> Result<KeyShare<KeyParams>, ProtocolExecutionErr> {
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
-    // TODO this will panic if we give an out of bounds my_idx
+    // TODO #499 this will panic if we give an out of bounds my_idx
     let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());
-    // let my_id = party_ids.get(*my_idx as usize).ok_or(ProtocolExecutionErr::BadKeyShare("Keyshare
-    // index is greater than the number of parties".to_string()))?;
 
     let id_to_index = party_ids
         .iter()
@@ -267,6 +265,7 @@ pub async fn execute_proactive_refresh(
 ) -> Result<KeyShare<KeyParams>, ProtocolExecutionErr> {
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
+    // TODO #499 this will panic if we give an out of bounds my_idx
     let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());
     let id_to_index = party_ids
         .iter()
