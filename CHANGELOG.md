@@ -16,6 +16,9 @@ At the moment this project **does not** adhere to
 ### Added
 -  Auxiliary data for program evaluation ([#475](https://github.com/entropyxyz/entropy-core/pull/475/))
 
+### Changed
+-  Change SocketAddr type for String ([#496](https://github.com/entropyxyz/entropy-core/pull/496/))
+
 ## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7..v0.0.8) - 2023-11-06
 
 ### Breaking Changes
