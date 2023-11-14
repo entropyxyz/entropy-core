@@ -27,6 +27,10 @@ lazy_static! {
     ];
 }
 
-pub const BAREBONES_PROGRAM_WASM_BYTECODE: &[u8] = include_bytes!("../template_barebones.wasm");
-pub const MESSAGE_SHOULD_SUCCEED: &[u8] = "asdfasdfasdfasdf".as_bytes();
-pub const MESSAGE_SHOULD_FAIL: &[u8] = "asdf".as_bytes();
+/// The following constants are values used for integration testing specific to the `example_barebones_with_auxilary.wasm` from the `constraints` repo.
+pub const TEST_PROGRAM_WASM_BYTECODE: &[u8] =
+    include_bytes!("../example_barebones_with_auxilary.wasm");
+pub const PREIMAGE_SHOULD_SUCCEED: &[u8] = "asdfasdfasdfasdf".as_bytes();
+pub const PREIMAGE_SHOULD_FAIL: &[u8] = "asdf".as_bytes();
+pub const AUXILARY_DATA_SHOULD_SUCCEED: &[u8] = "fdsafdsa".as_bytes();
+pub const AUXILARY_DATA_SHOULD_FAIL: Option<&[u8]> = None;

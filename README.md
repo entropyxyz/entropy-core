@@ -24,12 +24,13 @@ This repository provides a [Docker Compose](https://docs.docker.com/compose/) co
     ```sh
     docker compose up --detach # Detaching is optional.
     ```
-    ```sh
-    docker compose up --detach # Detaching is optional.
-    ```
 1. Once running, if you have `--detach`ed your terminal from the containers' output streams, you can view them again like so:
     ```sh
     docker compose logs --follow # Following is also optional.
+    ```
+1. If you need to communicate directly with the threshold signature scheme server from your Docker host machine, you may also need to include its address in your local `/etc/hosts` file:
+    ```sh
+    echo "127.0.0.1	alice-tss-server bob-tss-server" | sudo tee -a /etc/hosts
     ```
 
 ### Building from source
@@ -66,12 +67,26 @@ RUST_BACKTRACE=1 ./target/release/entropy -ldebug --dev --rpc-external
 
 ### Testing
 
-Testing is done via `cargo test`. When testing `server`, ensure the `entropy` **release** binary exists and is up to date; run `cargo build --release -p entropy` when in doubt.
+Testing is done via `cargo test`.
 
-Because of `clap`, running individual tests require using the `--test` flag as a program argument for the `server` binary when using `cargo test`. For example, to run the `test_new_party` test in `crypto/server/src/user/tests.rs`, you would run something similar to:
+An Entropy node binary is required in order to succesfully run the server tests.
+
+You can manually provide a binary using the `ENTROPY_NODE` environment variable.
 
 ```sh
-cargo test --release -p server --features unsafe -- --test user::tests::test_unsigned_tx_endpoint --nocapture
+ENTROPY_NODE="/path/to/entropy" cargo test -p server
+```
+
+Or, if no path is specified using `ENTROPY_NODE`, then the test suite will search in the `target`
+folder for a binary. A debug or release binary will be chosen based on how the test suite is built.
+
+For example, running `cargo test -p server --release` will expect a release binary of the Entropy
+node, which you can build in the following way: `cargo build -p entropy --release`.
+
+To run individual tests you can specify the test in the following way:
+
+```sh
+cargo test -p server --features unsafe -- test_sign_tx_no_chain --nocapture
 ```
 
 ### Connect with Polkadot-JS Apps Front-end
@@ -124,4 +139,4 @@ to interact with your chain. [Click here](https://polkadot.js.org/apps/#/explore
 
 ## Pulling Metadata
 
-Everytime a change to the chain's interface happens, metadata needs to be pulled. You'll need to install Subxt using `cargo install subxt-cli`. Then [run a development chain](#getting-started-with-docker) and then invoke [the `./scripts/pull_entropy_metadata.sh` script](./scripts/pull_entropy_metadata.sh). 
+Everytime a change to the chain's interface happens, metadata needs to be pulled. You'll need to install Subxt using `cargo install subxt-cli`. Then [run a development chain](#getting-started-with-docker) and then invoke [the `./scripts/pull_entropy_metadata.sh` script](./scripts/pull_entropy_metadata.sh).

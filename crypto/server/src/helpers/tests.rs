@@ -26,8 +26,8 @@ use crate::{
     get_signer,
     helpers::{
         launch::{
-            setup_latest_block_number, setup_mnemonic, Configuration, DEFAULT_BOB_MNEMONIC,
-            DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName,
+            DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         substrate::get_subgroup,
     },
@@ -36,29 +36,29 @@ use crate::{
     AppState,
 };
 
-pub async fn setup_client() {
+pub async fn setup_client() -> KvManager {
     let kv_store =
         KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap();
-    let _ = setup_mnemonic(&kv_store, true, false).await;
+    let _ = setup_mnemonic(&kv_store, &Some(ValidatorName::Alice)).await;
     let _ = setup_latest_block_number(&kv_store).await;
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let app_state = AppState { listener_state, configuration, kv_store };
+    let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
     let app = app(app_state).into_make_service();
     let listener = TcpListener::bind("0.0.0.0:3001").unwrap();
 
     tokio::spawn(async move {
         axum::Server::from_tcp(listener).unwrap().serve(app).await.unwrap();
     });
+    kv_store
 }
 
 pub async fn create_clients(
     key_number: String,
     values: Vec<Vec<u8>>,
     keys: Vec<String>,
-    is_alice: bool,
-    is_bob: bool,
+    validator_name: &Option<ValidatorName>,
 ) -> (IntoMakeService<Router>, KvManager) {
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
@@ -68,7 +68,7 @@ pub async fn create_clients(
 
     let kv_store =
         KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
-    let _ = setup_mnemonic(&kv_store, is_alice, is_bob).await;
+    let _ = setup_mnemonic(&kv_store, validator_name).await;
     let _ = setup_latest_block_number(&kv_store).await;
 
     for (i, value) in values.into_iter().enumerate() {
@@ -89,16 +89,16 @@ pub async fn spawn_testing_validators(
     extra_private_keys: bool,
 ) -> (Vec<String>, Vec<PartyId>, Option<KeyShare<KeyParams>>) {
     // spawn threshold servers
-    let ports = vec![3001i64, 3002];
+    let ports = [3001i64, 3002];
 
     let (alice_axum, alice_kv) =
-        create_clients("validator1".to_string(), vec![], vec![], true, false).await;
+        create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
     let alice_id = PartyId::new(SubxtAccountId32(
         *get_signer(&alice_kv).await.unwrap().account_id().clone().as_ref(),
     ));
 
     let (bob_axum, bob_kv) =
-        create_clients("validator2".to_string(), vec![], vec![], false, true).await;
+        create_clients("validator2".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
     let bob_id = PartyId::new(SubxtAccountId32(
         *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
     ));
@@ -182,13 +182,19 @@ pub async fn check_if_confirmation(
     let registering_query = entropy::storage().relayer().registering(signer.account_id());
     let registered_query = entropy::storage().relayer().registered(signer.account_id());
     let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
-    let is_registering = api.storage().at(block_hash.clone()).fetch(&registering_query).await;
+    let is_registering = api.storage().at(block_hash).fetch(&registering_query).await;
     // cleared from is_registering state
     assert!(is_registering.unwrap().is_none());
-    let is_registered =
-        api.storage().at(block_hash.clone()).fetch(&registered_query).await.unwrap();
+    let is_registered = api.storage().at(block_hash).fetch(&registered_query).await.unwrap();
     assert_eq!(is_registered.as_ref().unwrap().verifying_key.0.len(), 33usize);
     assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
+}
+
+pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32) {
+    let mut current_block = 0;
+    while current_block < block_run {
+        current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    }
 }
 
 #[tokio::test]

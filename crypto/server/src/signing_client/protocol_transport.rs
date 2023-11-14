@@ -41,7 +41,7 @@ pub async fn open_protocol_connections(
 
             // Send a SubscribeMessage in the payload of the final handshake message
             let subscribe_message_vec =
-                serde_json::to_vec(&SubscribeMessage::new(session_uid, signer))?;
+                bincode::serialize(&SubscribeMessage::new(session_uid, signer))?;
 
             let mut encrypted_connection = noise_handshake_initiator(
                 ws_stream,
@@ -57,7 +57,7 @@ pub async fn open_protocol_connections(
                 .recv()
                 .await
                 .map_err(|e| ProtocolErr::EncryptedConnection(e.to_string()))?;
-            let subscribe_response: Result<(), String> = serde_json::from_str(&response_message)?;
+            let subscribe_response: Result<(), String> = bincode::deserialize(&response_message)?;
             if let Err(error_message) = subscribe_response {
                 return Err(ProtocolErr::BadSubscribeMessage(error_message));
             }
@@ -110,10 +110,9 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(),
         Err(err) => (Err(format!("{err:?}")), None),
     };
     // Send them a response as to whether we are happy with their subscribe message
-    let subscribe_response_json =
-        serde_json::to_string(&subscribe_response).map_err(|_| WsError::ConnectionClosed)?;
+    let subscribe_response_vec = bincode::serialize(&subscribe_response)?;
     encrypted_connection
-        .send(subscribe_response_json)
+        .send(subscribe_response_vec)
         .await
         .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
 
@@ -126,11 +125,11 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(),
 
 /// Handle a subscribe message
 async fn handle_initial_incoming_ws_message(
-    serialized_subscribe_message: String,
+    serialized_subscribe_message: Vec<u8>,
     remote_public_key: X25519PublicKey,
     app_state: AppState,
 ) -> Result<(WsChannels, PartyId), SubscribeErr> {
-    let msg: SubscribeMessage = serde_json::from_str(&serialized_subscribe_message)?;
+    let msg: SubscribeMessage = bincode::deserialize(&serialized_subscribe_message)?;
     tracing::info!("Got ws connection, with message: {msg:?}");
 
     if !msg.verify() {

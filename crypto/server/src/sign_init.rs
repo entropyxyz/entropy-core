@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use subxt::utils::AccountId32;
 use synedrion::sessions::PrehashedMessage;
 
-use crate::{signing_client::ProtocolErr, user::api::UserTransactionRequest};
+use crate::{signing_client::ProtocolErr, user::api::UserSignatureRequest};
 
 /// Information passed to the Signing Client, to initiate the signing process.
 /// Most of this information comes from a `Message` struct which gets propagated when a user's
@@ -25,7 +25,7 @@ impl SignInit {
     /// Creates new signing object based on passed in data
     #[allow(dead_code)]
     pub fn new(
-        message: UserTransactionRequest,
+        message: UserSignatureRequest,
         sig_hash: String,
         tx_id: String,
         user: AccountId32,

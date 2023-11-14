@@ -59,7 +59,7 @@ pub enum ProtocolErr {
     BadSubscribeMessage(String),
     #[error("From Hex Error: {0}")]
     FromHex(#[from] hex::FromHexError),
-    #[error("Vec<u8> Conversion Error: {0}")]
+    #[error("Conversion Error: {0}")]
     Conversion(&'static str),
     #[error("Could not open ws connection: {0}")]
     ConnectionError(#[from] tokio_tungstenite::tungstenite::Error),
@@ -71,8 +71,6 @@ pub enum ProtocolErr {
     ProgramError(#[from] crate::user::errors::ProgramError),
     #[error("Invalid length for converting address")]
     AddressConversionError(String),
-    #[error("Socket Address Parse Error: {0}")]
-    SocketAddParseError(#[from] std::io::Error),
     #[error("Kv Fatal error")]
     KvSerialize(String),
     #[error("Validator Error: {0}")]
@@ -83,8 +81,10 @@ pub enum ProtocolErr {
     StringError(&'static str),
     #[error("Option Unwrap error: {0}")]
     OptionUnwrapError(String),
-    #[error("Proactive Refresh not called for")]
-    NoProactiveRefresh,
+    #[error("Proactive Refresh data incorrect")]
+    InvalidData,
+    #[error("Data is repeated")]
+    RepeatedData,
 }
 
 impl IntoResponse for ProtocolErr {
@@ -107,8 +107,8 @@ pub enum SubscribeErr {
     InvalidSignature(&'static str),
     #[error("Validation error: {0}")]
     Decryption(String),
-    #[error("Serde Json error: {0}")]
-    SerdeJson(#[from] serde_json::Error),
+    #[error("Serialization/Deserialization error: {0}")]
+    Serialization(#[from] bincode::Error),
     #[error("User Error: {0}")]
     UserError(String),
 }

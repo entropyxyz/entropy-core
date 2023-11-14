@@ -14,13 +14,13 @@ use crate::AppState;
 /// purposes only.
 pub struct UnsafeQuery {
     pub key: String,
-    pub value: String,
+    pub value: Vec<u8>,
 }
 
 #[cfg(test)]
 /// Struct representing the query type
 impl UnsafeQuery {
-    pub fn new(key: String, value: String) -> Self {
+    pub fn new(key: String, value: Vec<u8>) -> Self {
         UnsafeQuery { key, value }
     }
 
@@ -52,7 +52,7 @@ pub async fn put(State(app_state): State<AppState>, Json(key): Json<UnsafeQuery>
             }
             match app_state.kv_store.kv().reserve_key(key.key.clone()).await {
                 Ok(v) => {
-                    app_state.kv_store.kv().put(v, key.value.as_bytes().to_vec()).await.unwrap();
+                    app_state.kv_store.kv().put(v, key.value).await.unwrap();
                     StatusCode::OK
                 },
                 Err(v) => {

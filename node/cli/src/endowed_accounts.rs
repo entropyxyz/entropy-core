@@ -24,6 +24,7 @@ pub fn endowed_accounts_dev() -> Vec<AccountId> {
         get_account_id_from_seed::<sr25519::Public>("Two//stash"),
         hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"].into(),
         hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"].into(),
+        hex!["14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611"].into(),
     ]
 }
 

@@ -2367,11 +2367,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ec-core"
+version = "0.1.0"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.3.0#008fd64e95702084231194bfc62b45def44bccec"
+dependencies = [
+ "getrandom 0.2.10",
+ "serde",
+ "wit-bindgen",
+ "witgen",
+]
+
+[[package]]
 name = "ec-runtime"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.2.0#5ed3d8a3bfbce6aa39bb0dd372ebea6d8749e7c4"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.3.0#008fd64e95702084231194bfc62b45def44bccec"
 dependencies = [
- "ec-core",
+ "ec-core 0.1.0 (git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.3.0)",
  "thiserror",
  "wasmtime 12.0.1",
 ]
@@ -2510,6 +2521,7 @@ dependencies = [
  "clap 4.4.7",
  "clap_complete",
  "entropy-runtime",
+ "entropy-shared",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "frame-system",
@@ -2593,6 +2605,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "axum",
+ "bincode",
  "blake2",
  "entropy-shared",
  "futures",
@@ -2601,7 +2614,6 @@ dependencies = [
  "rand_core 0.6.4",
  "serde",
  "serde-big-array",
- "serde_json",
  "snow",
  "subxt",
  "subxt-signer",
@@ -12506,7 +12518,7 @@ name = "template-barebones"
 version = "0.1.0"
 source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.2.0#5ed3d8a3bfbce6aa39bb0dd372ebea6d8749e7c4"
 dependencies = [
- "ec-core",
+ "ec-core 0.1.0 (git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.2.0)",
 ]
 
 [[package]]

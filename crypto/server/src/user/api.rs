@@ -1,4 +1,4 @@
-use std::{net::ToSocketAddrs, str::FromStr, sync::Arc, time::SystemTime};
+use std::{str::FromStr, sync::Arc, time::SystemTime};
 
 use axum::{
     body::{Bytes, StreamBody},
@@ -10,9 +10,9 @@ use axum::{
 };
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
-use ec_runtime::{InitialState, Runtime};
+use ec_runtime::{Runtime, SignatureRequest};
 use entropy_protocol::ValidatorInfo;
-use entropy_shared::{types::KeyVisibility, OcwMessage, X25519PublicKey, SIGNING_PARTY_SIZE};
+use entropy_shared::{types::KeyVisibility, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE};
 use futures::{
     channel::mpsc,
     future::{join_all, FutureExt},
@@ -45,8 +45,9 @@ use crate::{
         entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
         get_api, get_rpc, EntropyConfig,
     },
-    get_and_store_values, get_random_server_info,
+    get_random_server_info,
     helpers::{
+        launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{create_unique_tx_id, do_signing, Hasher},
         substrate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
@@ -56,15 +57,18 @@ use crate::{
     },
     signing_client::{ListenerState, ProtocolErr},
     validation::{check_stale, SignedMessage},
+    validator::api::get_and_store_values,
     AppState, Configuration,
 };
 
 /// Represents an unparsed, transaction request coming from the client.
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
-pub struct UserTransactionRequest {
-    /// Hex-encoded raw data to be signed (eg. RLP-serialized Ethereum transaction)
-    pub transaction_request: String,
+pub struct UserSignatureRequest {
+    /// Hex-encoded raw data to be signed (eg. hex-encoded RLP-serialized Ethereum transaction)
+    pub message: String,
+    /// Hex-encoded auxilary data for program evaluation, will not be signed (eg. zero-knowledge proof, serialized struct, etc)
+    pub auxilary_data: Option<String>,
     /// Information from the validators in signing party
     pub validators_info: Vec<ValidatorInfo>,
     /// When the message was created and signed
@@ -114,16 +118,18 @@ pub async fn sign_tx(
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
-    let mut user_tx_req: UserTransactionRequest = serde_json::from_slice(&decrypted_message)?;
-    check_stale(user_tx_req.timestamp)?;
-    let raw_message = hex::decode(user_tx_req.transaction_request.clone())?;
-    let sig_hash = hex::encode(Hasher::keccak(&raw_message));
+    let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&decrypted_message)?;
+    check_stale(user_sig_req.timestamp)?;
+
+    let message = hex::decode(&user_sig_req.message)?;
+    let auxilary_data = user_sig_req.auxilary_data.as_ref().map(hex::decode).transpose()?;
+    let sig_hash = hex::encode(Hasher::keccak(&message));
     let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &sig_hash).await?;
-    check_signing_group(&subgroup_signers, &user_tx_req.validators_info, signer.account_id())?;
+    check_signing_group(&subgroup_signers, &user_sig_req.validators_info, signer.account_id())?;
 
     // Use the validator info from chain as we can be sure it is in the correct order and the
     // details are correct
-    user_tx_req.validators_info = subgroup_signers;
+    user_sig_req.validators_info = subgroup_signers;
 
     let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
 
@@ -135,16 +141,16 @@ pub async fn sign_tx(
     let program = get_program(&api, &rpc, &second_signing_address_conversion).await?;
 
     let mut runtime = Runtime::new();
-    let initial_state = InitialState { data: raw_message };
+    let signature_request = SignatureRequest { message, auxilary_data };
 
-    runtime.evaluate(&program, &initial_state)?;
+    runtime.evaluate(&program, &signature_request)?;
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 
     // Do the signing protocol in another task, so we can already respond
     tokio::spawn(async move {
         let signing_protocol_output = do_signing(
-            user_tx_req,
+            user_sig_req,
             sig_hash,
             &app_state,
             tx_id,
@@ -171,13 +177,13 @@ pub async fn sign_tx(
 }
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.
-/// The http request takes a parity scale encoded [OcwMessage] which tells us which validators are
+/// The http request takes a parity scale encoded [OcwMessageDkg] which tells us which validators are
 /// in the registration group and will perform a DKG.
 pub async fn new_user(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
-    let data = OcwMessage::decode(&mut encoded_data.as_ref())?;
+    let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
@@ -204,7 +210,7 @@ async fn setup_dkg(
     api: OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: PairSigner<EntropyConfig, sr25519::Pair>,
-    data: OcwMessage,
+    data: OcwMessageDkg,
     app_state: AppState,
 ) -> Result<(), UserErr> {
     let (subgroup, stash_address) = get_subgroup(&api, rpc, &signer).await?;
@@ -452,15 +458,7 @@ pub async fn get_current_subgroup_signers(
 
                 Ok::<_, UserErr>(ValidatorInfo {
                     x25519_public_key: server_info.x25519_public_key,
-                    ip_address: std::str::from_utf8(&server_info.endpoint)?
-                        .to_socket_addrs()?
-                        .next()
-                        .ok_or_else(|| {
-                            UserErr::OptionUnwrapError(format!(
-                                "Error parsing socket address: {:?}",
-                                server_info.endpoint
-                            ))
-                        })?,
+                    ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
                     tss_account: server_info.tss_account,
                 })
             }
@@ -499,19 +497,18 @@ pub fn check_signing_group(
 /// Validates new user endpoint
 /// Checks the chain for validity of data and block number of data matches current block
 pub async fn validate_new_user(
-    chain_data: &OcwMessage,
+    chain_data: &OcwMessageDkg,
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_manager: &KvManager,
 ) -> Result<(), UserErr> {
-    let last_block_number_recorded = kv_manager.kv().get("LATEST_BLOCK_NUMBER").await?;
+    let last_block_number_recorded = kv_manager.kv().get(LATEST_BLOCK_NUMBER_NEW_USER).await?;
     if u32::from_be_bytes(
         last_block_number_recorded
             .try_into()
-            .map_err(|_| UserErr::Conversion("Account Conversion"))?,
+            .map_err(|_| UserErr::Conversion("Block number conversion"))?,
     ) >= chain_data.block_number
     {
-        // change error
         return Err(UserErr::RepeatedData);
     }
 
@@ -544,8 +541,8 @@ pub async fn validate_new_user(
     if verifying_data_hash != chain_data_hash {
         return Err(UserErr::InvalidData);
     }
-    kv_manager.kv().delete("LATEST_BLOCK_NUMBER").await?;
-    let reservation = kv_manager.kv().reserve_key("LATEST_BLOCK_NUMBER".to_string()).await?;
+    kv_manager.kv().delete(LATEST_BLOCK_NUMBER_NEW_USER).await?;
+    let reservation = kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_NEW_USER.to_string()).await?;
     kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
     Ok(())
 }
