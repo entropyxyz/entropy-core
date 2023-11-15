@@ -140,10 +140,12 @@ pub async fn sign_tx(
 
     let program = get_program(&api, &rpc, &second_signing_address_conversion).await?;
 
-    let mut runtime = Runtime::new();
-    let signature_request = SignatureRequest { message, auxilary_data };
+    if !program.is_empty() {
+        let mut runtime = Runtime::new();
+        let signature_request = SignatureRequest { message, auxilary_data };
 
-    runtime.evaluate(&program, &signature_request)?;
+        runtime.evaluate(&program, &signature_request)?;
+    }
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 
