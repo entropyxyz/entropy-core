@@ -27,7 +27,7 @@ use crate::{
             DEFAULT_MNEMONIC, FORBIDDEN_KEYS,
         },
         substrate::get_subgroup,
-        tests::create_clients,
+        tests::{create_clients, initialize_test_logger},
     },
     validation::{
         derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage, TIME_BUFFER,
@@ -36,7 +36,9 @@ use crate::{
 
 #[tokio::test]
 async fn test_get_all_keys() {
+    initialize_test_logger();
     clean_tests();
+
     let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
@@ -67,7 +69,9 @@ async fn test_get_all_keys() {
 #[tokio::test]
 #[serial]
 async fn test_sync_kvdb() {
+    initialize_test_logger();
     clean_tests();
+
     let _ctx = test_context_stationary().await;
     let addrs = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
@@ -222,7 +226,9 @@ async fn test_sync_kvdb() {
 #[tokio::test]
 #[serial]
 async fn test_get_and_store_values() {
+    initialize_test_logger();
     clean_tests();
+
     let cxt = test_node_process_testing_state(false).await;
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
@@ -309,7 +315,9 @@ async fn test_get_random_server_info() {
 #[tokio::test]
 #[should_panic = "Account does not exist, add balance"]
 async fn test_check_balance_for_fees() {
+    initialize_test_logger();
     clean_tests();
+
     let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
@@ -331,7 +339,9 @@ async fn test_check_balance_for_fees() {
 
 #[tokio::test]
 async fn test_tell_chain_syncing_is_done() {
+    initialize_test_logger();
     clean_tests();
+
     let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string("//Alice", None).unwrap();
@@ -346,7 +356,9 @@ async fn test_tell_chain_syncing_is_done() {
 #[tokio::test]
 #[serial]
 async fn test_sync_validator() {
+    initialize_test_logger();
     clean_tests();
+
     let ctx = test_node_process_testing_state(true).await;
     let api = get_api(&ctx.ws_url).await.unwrap();
     let rpc = get_rpc(&ctx.ws_url).await.unwrap();

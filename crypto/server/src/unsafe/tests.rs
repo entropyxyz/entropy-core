@@ -3,11 +3,12 @@ use kvdb::clean_tests;
 use serial_test::serial;
 
 use super::api::UnsafeQuery;
-use crate::helpers::tests::setup_client;
+use crate::helpers::tests::{initialize_test_logger, setup_client};
 
 #[tokio::test]
 #[serial]
 async fn test_unsafe_get_endpoint() {
+    initialize_test_logger();
     setup_client().await;
     let client = reqwest::Client::new();
 
