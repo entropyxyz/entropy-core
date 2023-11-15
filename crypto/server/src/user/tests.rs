@@ -41,9 +41,9 @@ use synedrion::{
 };
 use testing_utils::{
     constants::{
-        initialize_test_logger, ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL,
-        AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED,
-        TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+        ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
+        PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS,
+        X25519_PUBLIC_KEYS,
     },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
@@ -65,8 +65,9 @@ use crate::{
         signing::{create_unique_tx_id, Hasher},
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
-            check_if_confirmation, create_clients, keyring_to_subxt_signer_and_x25519,
-            run_to_block, setup_client, spawn_testing_validators, update_programs,
+            check_if_confirmation, create_clients, initialize_test_logger,
+            keyring_to_subxt_signer_and_x25519, run_to_block, setup_client,
+            spawn_testing_validators, update_programs,
         },
         user::send_key,
     },

@@ -26,14 +26,6 @@ lazy_static! {
         .try_into()
         .unwrap(),
     ];
-
-    /// A shared reference to the logger used for tests.
-    ///
-    /// Since this only needs to be initialized once for the whole test suite we define it as a lazy
-    /// static.
-    pub static ref LOGGER: () = {
-        tracing_subscriber::fmt().init();
-    };
 }
 
 /// The following constants are values used for integration testing specific to the
@@ -44,10 +36,3 @@ pub const PREIMAGE_SHOULD_SUCCEED: &[u8] = "asdfasdfasdfasdf".as_bytes();
 pub const PREIMAGE_SHOULD_FAIL: &[u8] = "asdf".as_bytes();
 pub const AUXILARY_DATA_SHOULD_SUCCEED: &[u8] = "fdsafdsa".as_bytes();
 pub const AUXILARY_DATA_SHOULD_FAIL: Option<&[u8]> = None;
-
-/// Initialize the global loger used in tests.
-///
-/// The logger will only be initialized once, even if this function is called multiple times.
-pub fn initialize_test_logger() {
-    lazy_static::initialize(&LOGGER);
-}
