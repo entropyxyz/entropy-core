@@ -293,7 +293,9 @@ async fn test_get_and_store_values() {
 #[tokio::test]
 #[should_panic = "index out of bounds: the len is 1 but the index is 1"]
 async fn test_get_random_server_info() {
+    initialize_test_logger();
     clean_tests();
+
     let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
