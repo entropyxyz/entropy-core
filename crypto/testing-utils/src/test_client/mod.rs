@@ -136,20 +136,15 @@ pub async fn sign(
     let user_transaction_request_vec = serde_json::to_vec(&generic_msg)?;
     let validators_info_clone = validators_info.clone();
 
-    use sp_core_6::Pair;
-    let (keypair_sp_core_6, _) =
-        sp_core_6::sr25519::Pair::from_string_with_seed(&sig_req_seed.0, None)
-            .map_err(|_| anyhow!("Could not create sr25519 keypair"))?;
-
     // Make http requests to tss servers
     let submit_transaction_requests = validators_info
         .iter()
         .map(|validator_info| async {
             let validator_public_key: x25519_dalek::PublicKey =
                 validator_info.x25519_public_key.into();
-            let signed_message = SignedMessage::new(
-                &keypair_sp_core_6,
-                &sp_core_6::Bytes(user_transaction_request_vec.clone()),
+            let signed_message = SignedMessage::new_with_keypair_seed(
+                &sig_req_seed.seed()?,
+                user_transaction_request_vec.clone(),
                 &validator_public_key,
             )?;
             let signed_message_json = signed_message.to_json()?;
@@ -321,10 +316,10 @@ impl SeedString {
         Self(if seed_string.starts_with("//") { seed_string } else { format!("//{}", seed_string) })
     }
 
-    // fn seed(&self) -> anyhow::Result<[u8; 32]> {
-    //     let (_, seed_option) = sr25519::Pair::from_string_with_seed(&seed_string.0, None)?;
-    //     Ok(seed_option.ok_or(anyhow!("Could not get seed"))?)
-    // }
+    fn seed(&self) -> anyhow::Result<[u8; 32]> {
+        let (_, seed_option) = sr25519::Pair::from_string_with_seed(&self.0, None)?;
+        seed_option.ok_or(anyhow!("Could not get seed"))
+    }
 }
 
 impl TryFrom<SeedString> for sr25519::Pair {

@@ -52,7 +52,7 @@ enum CliCommand {
         /// Optional auxiliary data passed to the program, given as hex
         auxilary_data: Option<String>,
     },
-    /// Update to the 'barebones' program
+    /// Update the program for a particular account
     UpdateProgram {
         /// A name from which to generate a signature request keypair
         signature_request_account_name: String,
@@ -61,7 +61,7 @@ enum CliCommand {
         /// The path to a .wasm file containing the program (defaults to test program)
         program_file: Option<PathBuf>,
     },
-    /// Display some status information
+    /// Display a list of registered entropy accounts
     Status,
     /// Fund an account with sudo
     FundAccount {
@@ -133,6 +133,7 @@ async fn run_command() -> anyhow::Result<String> {
 
             let program = match program_file {
                 Some(file_name) => fs::read(file_name)?,
+                // This is temporary - if empty programs are allowed it can be None
                 None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 

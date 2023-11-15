@@ -12564,7 +12564,6 @@ dependencies = [
  "serde_json",
  "sha3",
  "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sp-core 6.0.0",
  "sp-keyring 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "subxt",
  "subxt-signer",
@@ -15025,7 +15024,7 @@ dependencies = [
 [[package]]
 name = "x25519-chacha20poly1305"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/x25519-chacha20poly1305.git?branch=main#41d7298c49aec46fcd13ffcb963fb16df46257e9"
+source = "git+https://github.com/entropyxyz/x25519-chacha20poly1305.git?branch=peg/signedmessage-with-sr25519-seed#e43b8d8ef49c84fa0f5303287ad03bd9229584f2"
 dependencies = [
  "bip39 0.6.0-beta.1",
  "blake2",
