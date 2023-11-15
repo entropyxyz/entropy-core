@@ -83,6 +83,8 @@ use crate::{
 #[serial]
 async fn test_get_signer_does_not_throw_err() {
     clean_tests();
+    initialize_test_logger();
+
     let kv_store = load_kv_store(&None, false).await;
     let mnemonic = setup_mnemonic(&kv_store, &None).await;
     assert!(mnemonic.is_ok());
@@ -93,6 +95,8 @@ async fn test_get_signer_does_not_throw_err() {
 #[serial]
 async fn test_sign_tx_no_chain() {
     clean_tests();
+    initialize_test_logger();
+
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
@@ -560,6 +564,8 @@ async fn test_store_share() {
 #[tokio::test]
 #[serial]
 async fn test_return_addresses_of_subgroup() {
+    initialize_test_logger();
+
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
@@ -572,6 +578,8 @@ async fn test_return_addresses_of_subgroup() {
 #[serial]
 async fn test_send_and_receive_keys() {
     clean_tests();
+    initialize_test_logger();
+
     let alice = AccountKeyring::Alice;
 
     let cxt = test_context_stationary().await;
@@ -665,6 +673,8 @@ async fn test_send_and_receive_keys() {
 #[serial]
 async fn test_recover_key() {
     clean_tests();
+    initialize_test_logger();
+
     let cxt = test_node_process_testing_state(false).await;
     setup_client().await;
     let (_, bob_kv) =
