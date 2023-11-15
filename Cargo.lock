@@ -10253,7 +10253,6 @@ dependencies = [
  "kvdb 0.1.0",
  "more-asserts",
  "num",
- "once_cell 1.18.0",
  "parity-scale-codec",
  "project-root",
  "rand_core 0.6.4",

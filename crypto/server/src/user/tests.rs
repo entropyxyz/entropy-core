@@ -41,9 +41,9 @@ use synedrion::{
 };
 use testing_utils::{
     constants::{
-        ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
-        PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS,
-        X25519_PUBLIC_KEYS,
+        initialize_test_logger, ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL,
+        AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED,
+        TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
@@ -350,6 +350,8 @@ async fn test_sign_tx_no_chain() {
 #[serial]
 async fn test_fail_signing_group() {
     clean_tests();
+    initialize_test_logger();
+
     let dave = AccountKeyring::Dave;
     let _ = spawn_testing_validators(None, false).await;
 
@@ -398,15 +400,6 @@ async fn test_fail_signing_group() {
 }
 
 // TODO negative validation tests on user/tx
-
-use once_cell::sync::Lazy;
-static LOGGER: Lazy<()> = Lazy::new(|| {
-    tracing_subscriber::fmt().init();
-});
-
-fn initialize_test_logger() {
-    Lazy::force(&LOGGER);
-}
 
 #[tokio::test]
 #[serial]

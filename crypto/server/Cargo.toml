@@ -73,7 +73,6 @@ project-root      ="0.2.2"
 sp-keyring        ="24.0.0"
 more-asserts      ="0.3.1"
 template-barebones={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.2.0" }
-once_cell = "1.18"
 
 [features]
 default=['std']

@@ -23,4 +23,4 @@ entropy-shared    ={ path="../shared" }
 
 # Logging
 tracing           ="0.1.37"
-tracing-subscriber={ version="0.3.17", features=["env-filter", "json"] }
+tracing-subscriber={ version="0.3.17", features=["env-filter"] }
