@@ -44,7 +44,9 @@ use crate as pallet_staking_extension;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE, REFRESHES_PRE_SESSION};
+    use entropy_shared::{
+        ValidatorInfo, X25519PublicKey, REFRESHES_PRE_SESSION, SIGNING_PARTY_SIZE,
+    };
     use frame_support::{
         dispatch::{DispatchResult, Vec},
         pallet_prelude::*,
@@ -143,10 +145,10 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn proactive_refresh)]
     pub type ProactiveRefresh<T: Config> = StorageValue<_, Vec<ValidatorInfo>, ValueQuery>;
-   
+
     #[pallet::storage]
     #[pallet::getter(fn refreshes_done)]
-	pub type RefreshesDone<T: Config> = StorageValue<_, u128, ValueQuery>;
+    pub type RefreshesDone<T: Config> = StorageValue<_, u128, ValueQuery>;
 
     #[pallet::genesis_config]
     #[derive(DefaultNoBound)]
