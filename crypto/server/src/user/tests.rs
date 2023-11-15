@@ -399,10 +399,21 @@ async fn test_fail_signing_group() {
 
 // TODO negative validation tests on user/tx
 
+use once_cell::sync::Lazy;
+static LOGGER: Lazy<()> = Lazy::new(|| {
+    tracing_subscriber::fmt().init();
+});
+
+fn initialize_test_logger() {
+    Lazy::force(&LOGGER);
+}
+
 #[tokio::test]
 #[serial]
 async fn test_store_share() {
     clean_tests();
+    initialize_test_logger();
+
     let alice = AccountKeyring::Alice;
     let alice_program = AccountKeyring::Charlie;
     let signing_address = alice.to_account_id().to_ss58check();
