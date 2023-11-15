@@ -128,7 +128,7 @@ pub async fn sign(
 
     let generic_msg = UserSignatureRequest {
         message: hex::encode(message),
-        auxilary_data: auxilary_data.map(|data| hex::encode(data)),
+        auxilary_data: auxilary_data.map(hex::encode),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
     };
