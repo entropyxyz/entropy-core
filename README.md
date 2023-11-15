@@ -33,6 +33,8 @@ This repository provides a [Docker Compose](https://docs.docker.com/compose/) co
     echo "127.0.0.1	alice-tss-server bob-tss-server" | sudo tee -a /etc/hosts
     ```
 
+Additional documentation on running a local network can be found [here](https://github.com/entropyxyz/meta/wiki/Local-devnet)
+
 ### Building from source
 
 To build from source, you will need some development tooling installed on your local machine.
