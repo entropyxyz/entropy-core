@@ -264,12 +264,30 @@ pub async fn validate_proactive_refresh(
 pub async fn partition_all_keys(
     refreshes_done: u128,
     all_keys: Vec<String>,
-) -> Result<Vec<String>, ProtocolErr> {    
+) -> Result<Vec<String>, ProtocolErr> {
     if REFRESHES_PRE_SESSION > all_keys.len() as u128 {
-       return Ok(all_keys);
+        return Ok(all_keys);
+    }
+    let mut refresh_keys: Vec<String> = vec![];
+    if refreshes_done + REFRESHES_PRE_SESSION <= all_keys.len() as u128 {
+        refresh_keys = all_keys
+            [refreshes_done as usize..refreshes_done as usize + REFRESHES_PRE_SESSION as usize]
+            .to_vec();
     }
 
-    let refresh_keys = &all_keys
-        [refreshes_done as usize..refreshes_done as usize + REFRESHES_PRE_SESSION as usize];
-    Ok(refresh_keys.to_vec())
+    let normalized_refreshes_done = refreshes_done % all_keys.len() as u128;
+    if normalized_refreshes_done + REFRESHES_PRE_SESSION <= all_keys.len() as u128 {
+        refresh_keys = all_keys[normalized_refreshes_done as usize
+            ..normalized_refreshes_done as usize + REFRESHES_PRE_SESSION as usize]
+            .to_vec();
+    }
+    if normalized_refreshes_done + REFRESHES_PRE_SESSION > all_keys.len() as u128 {
+        let leftover =
+            REFRESHES_PRE_SESSION as usize - (all_keys.len() - normalized_refreshes_done as usize);
+        refresh_keys = all_keys[normalized_refreshes_done as usize..all_keys.len()].to_vec();
+        let mut post_turnaround_keys = all_keys[0..leftover as usize].to_vec();
+        refresh_keys.append(&mut post_turnaround_keys);
+    }
+
+    Ok(refresh_keys)
 }

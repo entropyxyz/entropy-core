@@ -161,7 +161,6 @@ pub async fn get_refreshes_done(
         .await?
         .ok_or_else(|| ProtocolErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let refreshes_done_query = entropy::storage().staking_extension().refreshes_done();
-    let result =
-        api.storage().at(block_hash).fetch_or_default(&refreshes_done_query).await?;
+    let result = api.storage().at(block_hash).fetch_or_default(&refreshes_done_query).await?;
     Ok(result)
 }
