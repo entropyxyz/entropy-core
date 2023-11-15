@@ -1,5 +1,9 @@
 mod common;
-use std::{str::FromStr, time::SystemTime};
+use std::{
+    str::FromStr,
+    thread,
+    time::{Duration, SystemTime},
+};
 
 pub use crate::chain_api::{get_api, get_rpc};
 use anyhow::{anyhow, ensure};
@@ -94,13 +98,13 @@ pub async fn register(
     };
 
     // Wait until user is confirmed as registered
-    for _ in 0..20 {
+    for _ in 0..50 {
         let query_registered_status =
             api.storage().at_latest().await?.fetch(&registered_query).await;
         if let Some(registered_status) = query_registered_status? {
             return Ok((registered_status, keyshare_option));
         }
-        std::thread::sleep(std::time::Duration::from_millis(1000));
+        thread::sleep(Duration::from_millis(1000));
     }
     Err(anyhow!("Timed out waiting for register confirmation"))
 }
