@@ -1118,6 +1118,7 @@ async fn test_sign_tx_with_test_client() {
         pre_registered_user.to_seed(),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         None,
+        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
     )
     .await
     .unwrap();
@@ -1158,6 +1159,7 @@ async fn test_sign_tx_private_with_test_client() {
         pre_registered_user.to_seed(),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         keyshare_option.clone(),
+        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
     )
     .await
     .unwrap();

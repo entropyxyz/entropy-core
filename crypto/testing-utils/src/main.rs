@@ -1,5 +1,5 @@
 //! Simple CLI to test registering, updating programs and signing
-use std::time::Instant;
+use std::{fs, path::PathBuf, time::Instant};
 
 use anyhow::anyhow;
 use clap::{Parser, Subcommand};
@@ -7,7 +7,7 @@ use colored::Colorize;
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32 as SubxtAccountId32;
 use testing_utils::{
-    constants::TEST_PROGRAM_WASM_BYTECODE,
+    constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
         derive_static_secret, fund_account, get_accounts, get_api, get_rpc, register, sign,
         update_program, KeyVisibility,
@@ -40,6 +40,8 @@ enum CliCommand {
         /// Public, Private or Permissioned
         #[arg(value_enum)]
         key_visibility: Option<Visibility>,
+        /// A file containing an initial program for the account (defaults to test program)
+        program_file: Option<PathBuf>,
     },
     /// Ask the network to sign a given message
     Sign {
@@ -47,6 +49,8 @@ enum CliCommand {
         signature_request_account_name: String,
         /// A hex encoded message
         message_hex: String,
+        /// Optional auxiliary data passed to the program, given as hex
+        auxilary_data: Option<String>,
     },
     /// Update to the 'barebones' program
     UpdateProgram {
@@ -54,8 +58,8 @@ enum CliCommand {
         signature_request_account_name: String,
         /// A name from which to generate a program modification keypair
         program_account_name: String,
-        /// The path to a .wasm file containing the program (defaults to barebones program)
-        program_file: Option<std::path::PathBuf>,
+        /// The path to a .wasm file containing the program (defaults to test program)
+        program_file: Option<PathBuf>,
     },
     /// Display some status information
     Status,
@@ -70,7 +74,7 @@ enum CliCommand {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 enum Visibility {
-    /// Anyone can submit a signature request
+    /// Anyone can submit a signature request (default)
     Public,
     /// Only the user who registers can submit a signautre request
     Private,
@@ -108,6 +112,7 @@ async fn run_command() -> anyhow::Result<String> {
             signature_request_account_name,
             program_account_name,
             key_visibility,
+            program_file,
         } => {
             let sig_req_keypair = account_name_to_keypair(signature_request_account_name.clone())?;
             println!("Signature request account: {:?}", sig_req_keypair.public());
@@ -126,8 +131,10 @@ async fn run_command() -> anyhow::Result<String> {
                 _ => KeyVisibility::Public,
             };
 
-            // TODO we should take initial program as an argument
-            let initial_program = Vec::new();
+            let program = match program_file {
+                Some(file_name) => fs::read(file_name)?,
+                None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+            };
 
             let register_status = register(
                 &api,
@@ -135,15 +142,21 @@ async fn run_command() -> anyhow::Result<String> {
                 signature_request_account_name,
                 program_account,
                 key_visibility_converted,
-                initial_program,
+                program,
             )
             .await?;
             Ok(format!("{:?}", register_status))
         },
-        CliCommand::Sign { signature_request_account_name, message_hex } => {
+        CliCommand::Sign { signature_request_account_name, message_hex, auxilary_data } => {
             let message = hex::decode(message_hex)?;
+            let auxilary_data = if let Some(data) = auxilary_data {
+                Some(hex::decode(data)?)
+            } else {
+                // This is temporary for testing with the test program
+                Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec())
+            };
             let recoverable_signature =
-                sign(&api, signature_request_account_name, message, None).await?;
+                sign(&api, signature_request_account_name, message, None, auxilary_data).await?;
             Ok(format!("Message signed: {:?}", recoverable_signature))
         },
         CliCommand::UpdateProgram {
@@ -156,7 +169,7 @@ async fn run_command() -> anyhow::Result<String> {
             let sig_req_account = SubxtAccountId32(sig_req_keypair.public().0);
 
             let program = match program_file {
-                Some(file_name) => std::fs::read(file_name)?,
+                Some(file_name) => fs::read(file_name)?,
                 None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 

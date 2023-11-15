@@ -37,7 +37,6 @@ use x25519_chacha20poly1305::SignedMessage;
 use crate::chain_api::{
     entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *,
 };
-use crate::constants::AUXILARY_DATA_SHOULD_SUCCEED;
 
 /// Register an account
 pub async fn register(
@@ -115,6 +114,7 @@ pub async fn sign(
     sig_req_seed_string: String,
     message: Vec<u8>,
     private: Option<KeyShare<KeyParams>>,
+    auxilary_data: Option<Vec<u8>>,
 ) -> anyhow::Result<RecoverableSignature> {
     let sig_req_seed = SeedString::new(sig_req_seed_string);
     let sig_req_keypair: sr25519::Pair = sig_req_seed.clone().try_into()?;
@@ -128,8 +128,7 @@ pub async fn sign(
 
     let generic_msg = UserSignatureRequest {
         message: hex::encode(message),
-        // TODO this should be parsed in
-        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        auxilary_data: auxilary_data.map(|data| hex::encode(data)),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
     };
