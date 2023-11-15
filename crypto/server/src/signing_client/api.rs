@@ -16,7 +16,9 @@ use entropy_protocol::{
 };
 use parity_scale_codec::Encode;
 
-use entropy_shared::{KeyVisibility, OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::{
+    KeyVisibility, OcwMessageProactiveRefresh, REFRESHES_PRE_SESSION, SETUP_TIMEOUT_SECONDS,
+};
 use kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
     KvManager,
@@ -34,7 +36,9 @@ use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        substrate::{get_key_visibility, get_subgroup, return_all_addresses_of_subgroup},
+        substrate::{
+            get_key_visibility, get_refreshes_done, get_subgroup, return_all_addresses_of_subgroup,
+        },
         user::{check_in_registration_group, send_key},
         validator::{get_signer, get_subxt_signer},
     },
@@ -67,6 +71,10 @@ pub async fn proactive_refresh(
     // TODO batch the network keys into smaller groups per session
     let all_keys =
         get_all_keys(&api, &rpc).await.map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
+    let refreshes_done = get_refreshes_done(&api, &rpc).await?;
+    dbg!(all_keys.clone());
+    let proactive_refresh_keys = partition_all_keys(refreshes_done, all_keys).await?;
+    dbg!(proactive_refresh_keys.clone());
     let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
@@ -77,7 +85,7 @@ pub async fn proactive_refresh(
     let subxt_signer = get_subxt_signer(&app_state.kv_store)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-    for key in all_keys {
+    for key in proactive_refresh_keys {
         let sig_request_address = AccountId32::from_str(&key).map_err(ProtocolErr::StringError)?;
         let key_visibility =
             get_key_visibility(&api, &rpc, &sig_request_address.clone().into()).await.unwrap();
@@ -251,4 +259,17 @@ pub async fn validate_proactive_refresh(
         kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string()).await?;
     kv_manager.kv().put(reservation, latest_block_number.to_be_bytes().to_vec()).await?;
     Ok(())
+}
+
+pub async fn partition_all_keys(
+    refreshes_done: u128,
+    all_keys: Vec<String>,
+) -> Result<Vec<String>, ProtocolErr> {    
+    if REFRESHES_PRE_SESSION > all_keys.len() as u128 {
+       return Ok(all_keys);
+    }
+
+    let refresh_keys = &all_keys
+        [refreshes_done as usize..refreshes_done as usize + REFRESHES_PRE_SESSION as usize];
+    Ok(refresh_keys.to_vec())
 }
