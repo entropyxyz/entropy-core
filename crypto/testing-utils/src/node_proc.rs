@@ -113,7 +113,7 @@ impl TestNodeProcessBuilder {
 
             cmd.arg(format!("--port={p2p_port}"));
             cmd.arg(format!("--rpc-port={ws_port}"));
-            println!("ws port: {ws_port}");
+            tracing::info!("ws port: {ws_port}");
             ws_port
         } else {
             // the default Websockets port

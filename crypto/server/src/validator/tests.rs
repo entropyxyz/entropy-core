@@ -276,7 +276,7 @@ async fn test_get_and_store_values() {
     )
     .await;
     for (i, key) in keys.iter().enumerate() {
-        println!("!! -> -> RECEIVED KEY at IDX {i} of value {key:?}");
+        tracing::info!("!! -> -> RECEIVED KEY at IDX {i} of value {key:?}");
         let val = bob_kv.kv().get(key).await;
         assert!(val.is_ok());
         assert_eq!(val.unwrap(), values[i]);
@@ -386,7 +386,7 @@ async fn test_sync_validator() {
     sync_validator(true, false, "ws://127.0.0.1:9944", &charlie_kv).await;
 
     for (i, key) in keys.iter().enumerate() {
-        println!("!! -> -> RECEIVED KEY at IDX {i} of value {key:?}");
+        tracing::info!("!! -> -> RECEIVED KEY at IDX {i} of value {key:?}");
         let val = charlie_kv.kv().get(key).await;
         assert!(val.is_ok());
         assert_eq!(val.unwrap(), values[i]);
