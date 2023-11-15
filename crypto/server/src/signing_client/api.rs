@@ -72,9 +72,7 @@ pub async fn proactive_refresh(
     let all_keys =
         get_all_keys(&api, &rpc).await.map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
     let refreshes_done = get_refreshes_done(&api, &rpc).await?;
-    dbg!(all_keys.clone());
     let proactive_refresh_keys = partition_all_keys(refreshes_done, all_keys).await?;
-    dbg!(proactive_refresh_keys.clone());
     let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
