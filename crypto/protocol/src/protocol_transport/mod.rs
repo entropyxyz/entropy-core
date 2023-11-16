@@ -154,7 +154,7 @@ pub async fn open_ws_connection(
 /// Open a ws connection with JS
 #[cfg(feature = "wasm")]
 pub async fn open_ws_connection(
-    add: String,
+    address: String,
 ) -> Result<gloo_net::websocket::futures::WebSocket, UserRunningProtocolErr> {
     let ws_stream = gloo_net::websocket::futures::WebSocket::open(&add)
         .map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
