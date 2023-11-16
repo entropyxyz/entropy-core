@@ -144,7 +144,7 @@ pub async fn ws_to_channels<T: WsConnection>(
 /// Open a ws connection with tungstenite
 #[cfg(feature = "server")]
 pub async fn open_ws_connection(
-    add: String,
+    address: String,
 ) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, UserRunningProtocolErr> {
     let (ws_stream, _response) =
         connect_async(add).await.map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
