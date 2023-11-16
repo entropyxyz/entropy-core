@@ -141,7 +141,7 @@ pub async fn ws_to_channels<T: WsConnection>(
     }
 }
 
-/// Open a ws connection with tungstenite
+/// Open a ws connection in a native environment
 #[cfg(feature = "server")]
 pub async fn open_ws_connection(
     address: String,
@@ -151,7 +151,7 @@ pub async fn open_ws_connection(
     Ok(ws_stream)
 }
 
-/// Open a ws connection with JS
+/// Open a ws connection on wasm with the JS websocket API
 #[cfg(feature = "wasm")]
 pub async fn open_ws_connection(
     address: String,
