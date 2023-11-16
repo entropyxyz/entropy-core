@@ -152,6 +152,7 @@ pub async fn get_key_visibility(
     Ok(result.key_visibility.0)
 }
 
+/// Queries chain for the amount of proactive refreshes done so far
 pub async fn get_refreshes_done(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,

@@ -44,9 +44,7 @@ use crate as pallet_staking_extension;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{
-        ValidatorInfo, X25519PublicKey, REFRESHES_PRE_SESSION, SIGNING_PARTY_SIZE,
-    };
+    use entropy_shared::{ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, Vec},
         pallet_prelude::*,
@@ -142,10 +140,12 @@ pub mod pallet {
         ValueQuery,
     >;
 
+    /// A trigger for the proactive refresh OCW
     #[pallet::storage]
     #[pallet::getter(fn proactive_refresh)]
     pub type ProactiveRefresh<T: Config> = StorageValue<_, Vec<ValidatorInfo>, ValueQuery>;
 
+    /// Total amount of refreshes done on the network
     #[pallet::storage]
     #[pallet::getter(fn refreshes_done)]
     pub type RefreshesDone<T: Config> = StorageValue<_, u128, ValueQuery>;
@@ -356,6 +356,7 @@ pub mod pallet {
         pub fn new_session_handler(
             validators: &[<T as pallet_session::Config>::ValidatorId],
         ) -> Result<(), DispatchError> {
+            // TODO add back in refresh trigger and refreshed counter https://github.com/entropyxyz/entropy-core/issues/511
             // Init a 2D Vec where indices and values represent subgroups and validators,
             // respectively.
             let mut new_validators_set: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> =

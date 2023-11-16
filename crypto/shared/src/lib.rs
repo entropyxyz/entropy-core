@@ -19,4 +19,5 @@ pub const PRUNE_BLOCK: u32 = 14400;
 /// Timeout for validators to wait for other validators to join protocol committees
 pub const SETUP_TIMEOUT_SECONDS: u64 = 20;
 
+/// The amount of proactive refreshes we do per session
 pub const REFRESHES_PRE_SESSION: u128 = 10;
