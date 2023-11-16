@@ -5,6 +5,7 @@ mod protocol_message;
 pub mod protocol_transport;
 pub mod user;
 
+extern crate alloc;
 use std::fmt;
 
 use entropy_shared::X25519PublicKey;

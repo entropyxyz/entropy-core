@@ -84,7 +84,9 @@ pub async fn execute_signing_protocol(
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_idx = key_share.party_index();
-    let my_id = &party_ids[my_idx.as_usize()];
+    let my_id = party_ids.get(my_idx.as_usize()).ok_or(ProtocolExecutionErr::BadKeyShare(
+        "Keyshare index is greater than the number of parties".to_string(),
+    ))?;
 
     let id_to_index = party_ids
         .iter()
@@ -174,6 +176,7 @@ pub async fn execute_dkg(
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());
+
     let id_to_index = party_ids
         .iter()
         .enumerate()

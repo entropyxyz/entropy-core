@@ -15,12 +15,14 @@ pub enum ProtocolExecutionErr {
     SynedrionSession(synedrion::sessions::Error),
     #[error("Broadcast error: {0}")]
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
+    #[error("Bad keyshare error {0}")]
+    BadKeyShare(String),
 }
 
 /// An error when running a protocol session on the client side
 #[derive(Debug, Error)]
 pub enum UserRunningProtocolErr {
-    #[error("Encrypted Conection Error: ")]
+    #[error("Encrypted Connection Error: {0}")]
     EncryptedConnection(#[from] EncryptedConnectionErr),
     #[error("Protocol Execution Error {0}")]
     ProtocolExecution(#[from] ProtocolExecutionErr),
