@@ -199,6 +199,7 @@ async fn test_proactive_refresh_validation_fail() {
 
 #[tokio::test]
 async fn test_partition_all_keys() {
+    initialize_test_logger();
     let all_keys: Vec<String> = (1..=25).map(|num| num.to_string()).collect();
 
     let result_normal_10 = partition_all_keys(2u128, all_keys.clone()).await.unwrap();
