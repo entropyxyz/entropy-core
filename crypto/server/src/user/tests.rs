@@ -1106,7 +1106,7 @@ async fn test_wasm_sign_tx_user_participates() {
             .unwrap();
 
     // Submit transaction requests, and connect and participate in signing
-    let (mut test_user_res, user_sig_result) = future::join(
+    let (mut test_user_res, user_sig) = future::join(
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
         spawn_user_participates_in_signing_protocol(
             &users_keyshare_option.clone().unwrap(),
@@ -1119,7 +1119,6 @@ async fn test_wasm_sign_tx_user_participates() {
     .await;
 
     // Check that the signature the user gets matches the first of the server's signatures
-    let user_sig = user_sig_result.unwrap();
     let user_sig = if let Some(user_sig_stripped) = user_sig.strip_suffix("\n") {
         user_sig_stripped.to_string()
     } else {
@@ -1276,7 +1275,7 @@ async fn test_wasm_register_with_private_key_visibility() {
             .unwrap();
 
     // Call the `user/new` endpoint, and connect and participate in the protocol
-    let (new_user_response_result, keyshare_option) = future::join(
+    let (new_user_response_result, user_keyshare_json) = future::join(
         client
             .post("http://127.0.0.1:3002/user/new")
             .body(onchain_user_request.clone().encode())
@@ -1302,7 +1301,6 @@ async fn test_wasm_register_with_private_key_visibility() {
     let server_keyshare: KeyShare<KeyParams> =
         keyshare_deserialize(&server_keyshare_serialized).unwrap();
 
-    let user_keyshare_json = keyshare_option.unwrap();
     let user_keyshare: KeyShare<KeyParams> = serde_json::from_str(&user_keyshare_json).unwrap();
 
     let user_verifying_key = user_keyshare.verifying_key();
@@ -1380,7 +1378,7 @@ pub async fn spawn_user_participates_in_signing_protocol(
     validators_info: Vec<ValidatorInfo>,
     user_sig_req_seed: [u8; 32],
     x25519_private_key: &x25519_dalek::StaticSecret,
-) -> Option<String> {
+) -> String {
     let args = UserParticipatesInSigningProtocolArgs {
         sig_uid: sig_uid.to_string(),
         user_sig_req_seed: user_sig_req_seed.to_vec(),
@@ -1409,7 +1407,7 @@ pub async fn spawn_user_participates_in_signing_protocol(
         .output()
         .await
         .unwrap();
-    Some(String::from_utf8(output.stdout).unwrap())
+    String::from_utf8(output.stdout).unwrap()
 }
 
 /// For testing running the DKG protocol on wasm, spawn a process running nodejs and pass
@@ -1418,7 +1416,7 @@ pub async fn spawn_user_participates_in_dkg_protocol(
     validators_info: Vec<ValidatorInfo>,
     user_sig_req_seed: [u8; 32],
     x25519_private_key: &x25519_dalek::StaticSecret,
-) -> Option<String> {
+) -> String {
     let args = UserParticipatesInDkgProtocolArgs {
         user_sig_req_seed: user_sig_req_seed.to_vec(),
         validators_info: validators_info
@@ -1444,5 +1442,5 @@ pub async fn spawn_user_participates_in_dkg_protocol(
         .output()
         .await
         .unwrap();
-    Some(String::from_utf8(output.stdout).unwrap())
+    String::from_utf8(output.stdout).unwrap()
 }
