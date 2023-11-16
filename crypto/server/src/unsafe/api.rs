@@ -43,7 +43,7 @@ pub async fn unsafe_get(
     let value = app_state.kv_store.kv().get(&key.key.to_owned()).await;
     match value {
         Ok(v) => {
-            tracing::debug!("Read value: {:?} from KVDB", &v);
+            tracing::trace!("Read value: {:?} from KVDB", &v);
             v
         },
         Err(_) => {
