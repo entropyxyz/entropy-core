@@ -199,7 +199,15 @@ pub fn app(app_state: AppState) -> Router {
         .with_state(app_state)
         .layer(
             TraceLayer::new_for_http()
-                .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+                .make_span_with(|request: &axum::http::Request<axum::body::Body>| {
+                    tracing::info_span!(
+                        "http-request",
+                        uuid = %uuid::Uuid::new_v4(),
+                        uri = %request.uri(),
+                        method = %request.method(),
+                    )
+                })
+                .on_request(trace::DefaultOnRequest::new().level(Level::INFO))
                 .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
         )
         .layer(CorsLayer::new().allow_origin(Any).allow_methods([Method::GET, Method::POST]))
