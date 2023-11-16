@@ -147,7 +147,7 @@ pub async fn setup_mnemonic(
         }
 
         let phrase = mnemonic.phrase();
-        println!("[server-config]");
+        tracing::info!("[server-config]");
         let pair = mnemonic_to_pair(&mnemonic).expect("Issue deriving Mnemonic");
         let static_secret = derive_static_secret(&pair);
         let dh_public = x25519_dalek::PublicKey::from(&static_secret);
@@ -173,7 +173,7 @@ pub async fn setup_mnemonic(
             .put(dh_reservation, converted_dh_public.clone())
             .await
             .expect("failed to update dh");
-        println!("dh_public_key={dh_public:?}");
+        tracing::info!("dh_public_key={dh_public:?}");
 
         let formatted_dh_public = format!("{converted_dh_public:?}").replace('"', "");
         fs::write(".entropy/public_key", formatted_dh_public)
@@ -182,7 +182,7 @@ pub async fn setup_mnemonic(
         let p = <sr25519::Pair as Pair>::from_phrase(phrase, None)
             .expect("Issue getting pair from mnemonic");
         let id = AccountId32::new(p.0.public().0);
-        println!("account_id={id}");
+        tracing::info!("account_id={id}");
         fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
 
         // Update the value in the kvdb

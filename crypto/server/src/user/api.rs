@@ -24,7 +24,6 @@ use kvdb::kv_manager::{
     value::PartyInfo,
     KvManager,
 };
-use log::info;
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::{Decode, DecodeAll, Encode};
 use serde::{Deserialize, Serialize};

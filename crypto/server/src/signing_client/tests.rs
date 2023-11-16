@@ -3,7 +3,7 @@ use crate::{
     chain_api::{get_api, get_rpc},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        tests::{run_to_block, setup_client, spawn_testing_validators},
+        tests::{initialize_test_logger, run_to_block, setup_client, spawn_testing_validators},
     },
     r#unsafe::api::UnsafeQuery,
 };
@@ -22,6 +22,7 @@ use testing_utils::{
 #[tokio::test]
 #[serial]
 async fn test_proactive_refresh() {
+    initialize_test_logger();
     clean_tests();
     let eve = AccountKeyring::Eve;
     let dave = AccountKeyring::Dave;
@@ -160,7 +161,9 @@ pub async fn submit_transaction_requests(
 #[tokio::test]
 #[serial]
 async fn test_proactive_refresh_validation_fail() {
+    initialize_test_logger();
     clean_tests();
+
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();

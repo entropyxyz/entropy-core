@@ -46,7 +46,6 @@ entropy-protocol={ path="../protocol", features=["server"] }
 ec-runtime={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.3.0" }
 
 # Logging
-log               ="0.4.17"                                              # todo: remove, overlaps tracing
 tracing           ="0.1.37"
 tracing-subscriber={ version="0.3.17", features=["env-filter", "json"] }
 tower-http        ={ version="0.3.4", features=["trace", "cors"] }
@@ -73,6 +72,7 @@ project-root      ="0.2.2"
 sp-keyring        ="24.0.0"
 more-asserts      ="0.3.1"
 template-barebones={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.2.0" }
+lazy_static       ="1.4.0"
 
 [features]
 default=['std']

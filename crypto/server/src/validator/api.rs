@@ -58,7 +58,7 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
             let health = rpc.system_health().await.expect("Issue checking chain health");
             is_syncing = health.is_syncing;
             if is_syncing {
-                println!("chain syncing, retrying {is_syncing:?}");
+                tracing::info!("chain syncing, retrying {is_syncing:?}");
                 thread::sleep(sleep_time);
             }
         }
@@ -72,7 +72,7 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
         // if not in subgroup retry until you are
         let mut my_subgroup = get_subgroup(&api, &rpc, &signer).await;
         while my_subgroup.is_err() {
-            println!("you are not currently a validator, retrying");
+            tracing::info!("you are not currently a validator, retrying");
             thread::sleep(sleep_time);
             my_subgroup =
                 Ok(get_subgroup(&api, &rpc, &signer).await.expect("Failed to get subgroup."));
