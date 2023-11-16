@@ -146,8 +146,9 @@ pub async fn ws_to_channels<T: WsConnection>(
 pub async fn open_ws_connection(
     address: String,
 ) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, UserRunningProtocolErr> {
-    let (ws_stream, _response) =
-        connect_async(add).await.map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
+    let (ws_stream, _response) = connect_async(address)
+        .await
+        .map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
     Ok(ws_stream)
 }
 
@@ -156,7 +157,7 @@ pub async fn open_ws_connection(
 pub async fn open_ws_connection(
     address: String,
 ) -> Result<gloo_net::websocket::futures::WebSocket, UserRunningProtocolErr> {
-    let ws_stream = gloo_net::websocket::futures::WebSocket::open(&add)
+    let ws_stream = gloo_net::websocket::futures::WebSocket::open(&address)
         .map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
     Ok(ws_stream)
 }

@@ -175,7 +175,6 @@ pub async fn execute_dkg(
 ) -> Result<KeyShare<KeyParams>, ProtocolExecutionErr> {
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
-    // TODO #499 this will panic if we give an out of bounds my_idx
     let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());
 
     let id_to_index = party_ids
@@ -265,7 +264,6 @@ pub async fn execute_proactive_refresh(
 ) -> Result<KeyShare<KeyParams>, ProtocolExecutionErr> {
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
-    // TODO #499 this will panic if we give an out of bounds my_idx
     let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());
     let id_to_index = party_ids
         .iter()
