@@ -49,9 +49,15 @@ use crate::{
 };
 
 pub const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
-/// HTTP POST endpoint called by the off-chain worker (propagation pallet) during proactive refresh.
-/// The http request takes a parity scale encoded [ValidatorInfo] which tells us which validators
-/// are in the registration group and will perform a proactive_refresh.
+
+/// HTTP POST endpoint called by the a Substrate node during proactive refresh.
+///
+/// In particular, it is the Propogation pallet, with the use of an off-chain worker, which
+/// initiates this request.
+///
+/// The HTTP request takes a Parity SCALE encoded [ValidatorInfo] which indicates which validators
+/// are in the registration group and will perform a proactive refresh.
+#[tracing::instrument(skip_all)]
 pub async fn proactive_refresh(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
@@ -135,6 +141,7 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
     };
 }
 
+#[tracing::instrument(skip(signer, state), level = tracing::Level::DEBUG)]
 pub async fn do_proactive_refresh(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
@@ -144,6 +151,8 @@ pub async fn do_proactive_refresh(
     subxt_signer: &subxt_signer::sr25519::Keypair,
     old_key: KeyShare<KeyParams>,
 ) -> Result<KeyShare<KeyParams>, ProtocolErr> {
+    tracing::debug!("Preparing to perform proactive refresh");
+
     let session_uid = sig_request_account.to_string();
     let account_id = SubxtAccountId32(*signer.account_id().clone().as_ref());
     let mut converted_validator_info = vec![];
