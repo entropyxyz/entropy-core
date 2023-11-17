@@ -91,7 +91,7 @@ pub struct UserRegistrationInfo {
 /// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
 #[tracing::instrument(
     skip_all,
-    fields(signing_address = ?signed_msg.account_id().to_ss58check())
+    fields(signing_address = %signed_msg.account_id())
 )]
 pub async fn sign_tx(
     State(app_state): State<AppState>,
