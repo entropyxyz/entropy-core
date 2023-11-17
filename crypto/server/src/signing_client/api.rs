@@ -72,7 +72,7 @@ pub async fn proactive_refresh(
     let all_keys =
         get_all_keys(&api, &rpc).await.map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
     let refreshes_done = get_refreshes_done(&api, &rpc).await?;
-    let proactive_refresh_keys = partition_all_keys(refreshes_done, all_keys)?;
+    let proactive_refresh_keys = partition_all_keys(refreshes_done, all_keys);
     let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
@@ -262,15 +262,12 @@ pub async fn validate_proactive_refresh(
 /// Partitions all registered keys into a subset of the network (REFRESHES_PER_SESSION)
 /// Currently rotates between a moving batch of all keys
 /// https://github.com/entropyxyz/entropy-core/issues/510
-pub fn partition_all_keys(
-    refreshes_done: u32,
-    all_keys: Vec<String>,
-) -> Result<Vec<String>, ProtocolErr> {
+pub fn partition_all_keys(refreshes_done: u32, all_keys: Vec<String>) -> Vec<String> {
     let all_keys_length = all_keys.len() as u32;
 
     // just return all keys no need to partition network
     if REFRESHES_PER_SESSION > all_keys_length {
-        return Ok(all_keys);
+        return all_keys;
     }
 
     let mut refresh_keys: Vec<String> = vec![];
@@ -304,5 +301,5 @@ pub fn partition_all_keys(
         refresh_keys.append(&mut post_turnaround_keys);
     }
 
-    Ok(refresh_keys)
+    refresh_keys
 }
