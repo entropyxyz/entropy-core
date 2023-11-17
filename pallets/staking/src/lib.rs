@@ -44,9 +44,7 @@ use crate as pallet_staking_extension;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{
-        OcwMessageProactiveRefresh, ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE,
-    };
+    use entropy_shared::{ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, Vec},
         pallet_prelude::*,
