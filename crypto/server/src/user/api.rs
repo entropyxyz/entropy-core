@@ -176,13 +176,19 @@ pub async fn sign_tx(
 }
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.
-/// The http request takes a parity scale encoded [OcwMessageDkg] which tells us which validators are
-/// in the registration group and will perform a DKG.
+///
+/// The HTTP request takes a Parity SCALE encoded [OcwMessageDkg] which indicates which validators
+/// are in the validator group.
+///
+/// This will trigger the Distributed Key Generation (DKG) process.
+#[tracing::instrument(skip_all, fields(block_number))]
 pub async fn new_user(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
     let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
+    tracing::Span::current().record("block_number", &data.block_number);
+
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
@@ -197,14 +203,17 @@ pub async fn new_user(
         if let Err(err) = setup_dkg(api, &rpc, signer, data, app_state).await {
             // TODO here we would check the error and if it relates to a misbehaving node,
             // use the slashing mechanism
-            tracing::warn!("User registration failed {:?}", err);
+            tracing::error!("User registration failed {:?}", err);
         }
     });
 
     Ok(StatusCode::OK)
 }
 
-/// Setup and execute DKG. Called internally by the [new_user] function.
+/// Setup and execute DKG.
+///
+/// Called internally by the [new_user] function.
+#[tracing::instrument(skip_all, fields(data = ?data), level = tracing::Level::DEBUG)]
 async fn setup_dkg(
     api: OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
