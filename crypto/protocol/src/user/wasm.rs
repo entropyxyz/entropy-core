@@ -2,7 +2,6 @@
 use js_sys::Error;
 use subxt::utils::AccountId32;
 use subxt_signer::sr25519;
-use synedrion::KeyShare;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_derive::TryFromJsValue;
 
@@ -16,7 +15,7 @@ pub async fn run_dkg_protocol(
     validators_info_js: ValidatorInfoArray,
     user_signing_keypair_seed: Vec<u8>,
     x25519_private_key_vec: Vec<u8>,
-) -> Result<String, Error> {
+) -> Result<KeyShare, Error> {
     let validators_info = parse_validator_info(validators_info_js)?;
 
     let user_signing_keypair = {
@@ -41,7 +40,7 @@ pub async fn run_dkg_protocol(
     .await
     .map_err(|err| Error::new(&format!("{}", err)))?;
 
-    Ok(serde_json::to_string(&key_share).map_err(|err| Error::new(&err.to_string()))?)
+    Ok(KeyShare(key_share))
 }
 
 /// Run the signing protocol on the client side
@@ -49,7 +48,7 @@ pub async fn run_dkg_protocol(
 /// Returns a recoverable signature as a base64 encoded string
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub async fn run_signing_protocol(
-    key_share: String,
+    key_share: KeyShare,
     sig_uid: String,
     validators_info_js: ValidatorInfoArray,
     user_signing_keypair_seed: Vec<u8>,
@@ -80,11 +79,11 @@ pub async fn run_signing_protocol(
         x25519_private_key_raw.into()
     };
 
-    let key_share: KeyShare<KeyParams> =
-        serde_json::from_str(&key_share).map_err(|err| Error::new(&err.to_string()))?;
+    // let key_share: KeyShare<KeyParams> =
+    //     serde_json::from_str(&key_share).map_err(|err| Error::new(&err.to_string()))?;
 
     let signature = user_participates_in_signing_protocol(
-        &key_share,
+        &key_share.0,
         &sig_uid,
         validators_info,
         &user_signing_keypair,
@@ -176,4 +175,58 @@ fn parse_validator_info(
         validators_info.push(typed_elem.into_validator_info());
     }
     Ok(validators_info)
+}
+
+/// Synedrion key share wrapped for wasm
+#[derive(TryFromJsValue)]
+#[wasm_bindgen]
+#[derive(Clone)]
+pub struct KeyShare(synedrion::KeyShare<KeyParams>);
+
+#[wasm_bindgen]
+impl KeyShare {
+    /// Serialize the keyshare to a JSON string
+    #[wasm_bindgen(js_name = toString)]
+    pub fn to_string(&self) -> Result<String, Error> {
+        serde_json::to_string(&self.0).map_err(|err| Error::new(&err.to_string()))
+    }
+
+    /// Deserialize a keyshare from a JSON string
+    #[wasm_bindgen(js_name = fromString)]
+    pub fn from_string(keyshare_json: String) -> Result<KeyShare, Error> {
+        Ok(Self(serde_json::from_str(&keyshare_json).map_err(|err| Error::new(&err.to_string()))?))
+    }
+
+    /// Serialize the keyshare to a Uint8Array
+    #[wasm_bindgen(js_name = toBytes)]
+    pub fn to_bytes(&self) -> Result<Vec<u8>, Error> {
+        bincode::serialize(&self.0).map_err(|err| Error::new(&err.to_string()))
+    }
+
+    /// Deserialize a keyshare from a Uint8Array
+    #[wasm_bindgen(js_name = fromBytes)]
+    pub fn from_bytes(keyshare_serialized: Vec<u8>) -> Result<KeyShare, Error> {
+        Ok(Self(
+            bincode::deserialize(&keyshare_serialized)
+                .map_err(|err| Error::new(&err.to_string()))?,
+        ))
+    }
+
+    /// Get the verifying (public) key associated with this keyshare
+    #[wasm_bindgen(js_name = verifyingKey)]
+    pub fn verifying_key(&self) -> Vec<u8> {
+        self.0.verifying_key().to_encoded_point(true).as_bytes().to_vec()
+    }
+
+    /// Get the number of parties asssociated with this keyshare
+    #[wasm_bindgen(js_name = numParties)]
+    pub fn num_parties(&self) -> usize {
+        self.0.num_parties()
+    }
+
+    /// Get the party index of this keyshare (a number indentiying which party we are)
+    #[wasm_bindgen(js_name = partyIndex)]
+    pub fn party_index(&self) -> usize {
+        self.0.party_index().as_usize()
+    }
 }
