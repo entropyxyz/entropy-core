@@ -44,7 +44,9 @@ use crate as pallet_staking_extension;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE};
+    use entropy_shared::{
+        OcwMessageProactiveRefresh, ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE,
+    };
     use frame_support::{
         dispatch::{DispatchResult, Vec},
         pallet_prelude::*,
@@ -85,6 +87,12 @@ pub mod pallet {
         pub tss_account: AccountId,
         pub x25519_public_key: X25519PublicKey,
         pub endpoint: TssServerURL,
+    }
+    /// Info that is requiered to do a proactive refresh
+    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
+    pub struct RefreshInfo {
+        pub validators_info: Vec<ValidatorInfo>,
+        pub refreshes_done: u32,
     }
 
     #[pallet::pallet]
@@ -143,12 +151,7 @@ pub mod pallet {
     /// A trigger for the proactive refresh OCW
     #[pallet::storage]
     #[pallet::getter(fn proactive_refresh)]
-    pub type ProactiveRefresh<T: Config> = StorageValue<_, Vec<ValidatorInfo>, ValueQuery>;
-
-    /// Total amount of refreshes done on the network
-    #[pallet::storage]
-    #[pallet::getter(fn refreshes_done)]
-    pub type RefreshesDone<T: Config> = StorageValue<_, u32, ValueQuery>;
+    pub type ProactiveRefresh<T: Config> = StorageValue<_, RefreshInfo, ValueQuery>;
 
     #[pallet::genesis_config]
     #[derive(DefaultNoBound)]
@@ -181,8 +184,11 @@ pub mod pallet {
                     IsValidatorSynced::<T>::insert(validator_id, true);
                 }
             }
-
-            ProactiveRefresh::<T>::put(self.proactive_refresh_validators.clone());
+            let refresh_info = RefreshInfo {
+                validators_info: self.proactive_refresh_validators.clone(),
+                refreshes_done: 0,
+            };
+            ProactiveRefresh::<T>::put(refresh_info);
         }
     }
     // Errors inform users that something went wrong.

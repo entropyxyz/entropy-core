@@ -6,7 +6,6 @@ use subxt::{
 
 use crate::{
     chain_api::{entropy, EntropyConfig},
-    signing_client::ProtocolErr,
     user::UserErr,
 };
 
@@ -150,18 +149,4 @@ pub async fn get_key_visibility(
         .await?
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
     Ok(result.key_visibility.0)
-}
-
-/// Queries chain for the amount of proactive refreshes done so far
-pub async fn get_refreshes_done(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> Result<u32, ProtocolErr> {
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or_else(|| ProtocolErr::OptionUnwrapError("Error getting block hash".to_string()))?;
-    let refreshes_done_query = entropy::storage().staking_extension().refreshes_done();
-    let result = api.storage().at(block_hash).fetch_or_default(&refreshes_done_query).await?;
-    Ok(result)
 }

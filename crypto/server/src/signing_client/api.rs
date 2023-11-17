@@ -36,9 +36,7 @@ use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        substrate::{
-            get_key_visibility, get_refreshes_done, get_subgroup, return_all_addresses_of_subgroup,
-        },
+        substrate::{get_key_visibility, get_subgroup, return_all_addresses_of_subgroup},
         user::{check_in_registration_group, send_key},
         validator::{get_signer, get_subxt_signer},
     },
@@ -71,8 +69,7 @@ pub async fn proactive_refresh(
     // TODO batch the network keys into smaller groups per session
     let all_keys =
         get_all_keys(&api, &rpc).await.map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
-    let refreshes_done = get_refreshes_done(&api, &rpc).await?;
-    let proactive_refresh_keys = partition_all_keys(refreshes_done, all_keys);
+    let proactive_refresh_keys = partition_all_keys(ocw_data.refreshes_done, all_keys);
     let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
@@ -242,7 +239,7 @@ pub async fn validate_proactive_refresh(
         })?;
 
     let mut hasher_chain_data = Blake2s256::new();
-    hasher_chain_data.update(ocw_data.validators_info.encode());
+    hasher_chain_data.update(ocw_data.encode());
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
     hasher_verifying_data.update(proactive_info.encode());
@@ -259,9 +256,11 @@ pub async fn validate_proactive_refresh(
     Ok(())
 }
 
-/// Partitions all registered keys into a subset of the network (REFRESHES_PER_SESSION)
-/// Currently rotates between a moving batch of all keys
-/// https://github.com/entropyxyz/entropy-core/issues/510
+/// Partitions all registered keys into a subset of the network (REFRESHES_PRE_SESSION)
+/// Currently rotates between a moving batch of all keys.
+///
+/// See https://github.com/entropyxyz/entropy-core/issues/510 for some issues which exist
+/// around the scaling of this function.
 pub fn partition_all_keys(refreshes_done: u32, all_keys: Vec<String>) -> Vec<String> {
     let all_keys_length = all_keys.len() as u32;
 
