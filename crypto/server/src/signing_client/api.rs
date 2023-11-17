@@ -263,37 +263,44 @@ pub async fn validate_proactive_refresh(
 /// Currently rotates between a moving batch of all keys
 /// https://github.com/entropyxyz/entropy-core/issues/510
 pub fn partition_all_keys(
-    refreshes_done: u128,
+    refreshes_done: u32,
     all_keys: Vec<String>,
 ) -> Result<Vec<String>, ProtocolErr> {
-    let all_keys_length = all_keys.len() as u128;
-    let usized_refreshed_pre_session = REFRESHES_PRE_SESSION as usize;
+    let all_keys_length = all_keys.len() as u32;
+
     // just return all keys no need to partition network
     if REFRESHES_PRE_SESSION > all_keys_length {
         return Ok(all_keys);
     }
+
     let mut refresh_keys: Vec<String> = vec![];
     // handles early on refreshes before refreshes done > all keys
     if refreshes_done + REFRESHES_PRE_SESSION <= all_keys_length {
-        refresh_keys = all_keys
-            [refreshes_done as usize..refreshes_done as usize + usized_refreshed_pre_session]
-            .to_vec();
+        let lower = refreshes_done as usize;
+        let upper = (refreshes_done + REFRESHES_PRE_SESSION) as usize;
+        refresh_keys = all_keys[lower..upper].to_vec();
     }
+
     // normalize refreshes done down to a partition of the network
     let normalized_refreshes_done = refreshes_done % all_keys_length;
-    let normalized_refreshes_done_as_usize = normalized_refreshes_done as usize;
 
     if normalized_refreshes_done + REFRESHES_PRE_SESSION <= all_keys_length {
-        refresh_keys = all_keys[normalized_refreshes_done_as_usize
-            ..normalized_refreshes_done_as_usize + usized_refreshed_pre_session]
-            .to_vec();
+        let lower = normalized_refreshes_done as usize;
+        let upper = (normalized_refreshes_done + REFRESHES_PRE_SESSION) as usize;
+
+        refresh_keys = all_keys[lower..upper].to_vec();
     }
+
     // handles if number does not perfectly fit
     // loops around the partiton adding the beginning of the network to the end
     if normalized_refreshes_done + REFRESHES_PRE_SESSION > all_keys_length {
+        let lower = normalized_refreshes_done as usize;
+        let upper = all_keys.len();
+        refresh_keys = all_keys[lower..upper].to_vec();
+
         let leftover =
-            usized_refreshed_pre_session - (all_keys.len() - normalized_refreshes_done_as_usize);
-        refresh_keys = all_keys[normalized_refreshes_done_as_usize..all_keys.len()].to_vec();
+            (REFRESHES_PRE_SESSION - (all_keys_length - normalized_refreshes_done)) as usize;
+
         let mut post_turnaround_keys = all_keys[0..leftover].to_vec();
         refresh_keys.append(&mut post_turnaround_keys);
     }

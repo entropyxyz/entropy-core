@@ -197,26 +197,26 @@ async fn test_proactive_refresh_validation_fail() {
     clean_tests();
 }
 
-#[tokio::test]
-async fn test_partition_all_keys() {
+#[test]
+fn test_partition_all_keys() {
     initialize_test_logger();
     let all_keys: Vec<String> = (1..=25).map(|num| num.to_string()).collect();
 
-    let result_normal_10 = partition_all_keys(2u128, all_keys.clone()).unwrap();
+    let result_normal_10 = partition_all_keys(2, all_keys.clone()).unwrap();
     assert_eq!(result_normal_10, all_keys[2..12].to_vec());
 
-    let result_next_set = partition_all_keys(12u128, all_keys.clone()).unwrap();
+    let result_next_set = partition_all_keys(12, all_keys.clone()).unwrap();
     assert_eq!(result_next_set, all_keys[12..22].to_vec());
 
-    let wrap_around_partial = partition_all_keys(23u128, all_keys.clone()).unwrap();
+    let wrap_around_partial = partition_all_keys(23, all_keys.clone()).unwrap();
     let mut wrap_around_partial_vec = all_keys[23..25].to_vec();
     wrap_around_partial_vec.append(&mut all_keys[0..8].to_vec());
     assert_eq!(wrap_around_partial, wrap_around_partial_vec);
 
-    let result_larger = partition_all_keys(32u128, all_keys.clone()).unwrap();
+    let result_larger = partition_all_keys(32, all_keys.clone()).unwrap();
     assert_eq!(result_larger, all_keys[7..17].to_vec());
 
-    let wrap_around_partial_larger = partition_all_keys(42u128, all_keys.clone()).unwrap();
+    let wrap_around_partial_larger = partition_all_keys(42, all_keys.clone()).unwrap();
     let mut wrap_around_partial_larger_vec = all_keys[17..25].to_vec();
     wrap_around_partial_larger_vec.append(&mut all_keys[0..2].to_vec());
     assert_eq!(wrap_around_partial_larger, wrap_around_partial_larger_vec);
