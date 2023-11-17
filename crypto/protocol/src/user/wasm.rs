@@ -8,8 +8,7 @@ use wasm_bindgen_derive::TryFromJsValue;
 use super::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol};
 use crate::KeyParams;
 
-/// Run the DKG protocol on the client side
-/// This returns the keypair as a JSON encoded string
+/// Run the DKG protocol on the client side and return a keyshare
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub async fn run_dkg_protocol(
     validators_info_js: ValidatorInfoArray,
@@ -44,7 +43,6 @@ pub async fn run_dkg_protocol(
 }
 
 /// Run the signing protocol on the client side
-/// `key_share` is given as a JSON encoded [synedrion::KeyShare]
 /// Returns a recoverable signature as a base64 encoded string
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub async fn run_signing_protocol(
@@ -78,9 +76,6 @@ pub async fn run_signing_protocol(
             .map_err(|_| Error::new("x25519 private key must be 32 bytes"))?;
         x25519_private_key_raw.into()
     };
-
-    // let key_share: KeyShare<KeyParams> =
-    //     serde_json::from_str(&key_share).map_err(|err| Error::new(&err.to_string()))?;
 
     let signature = user_participates_in_signing_protocol(
         &key_share.0,
