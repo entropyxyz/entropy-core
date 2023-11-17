@@ -17,7 +17,7 @@ use entropy_protocol::{
 use parity_scale_codec::Encode;
 
 use entropy_shared::{
-    KeyVisibility, OcwMessageProactiveRefresh, REFRESHES_PRE_SESSION, SETUP_TIMEOUT_SECONDS,
+    KeyVisibility, OcwMessageProactiveRefresh, REFRESHES_PER_SESSION, SETUP_TIMEOUT_SECONDS,
 };
 use kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
@@ -259,7 +259,7 @@ pub async fn validate_proactive_refresh(
     Ok(())
 }
 
-/// Partitions all registered keys into a subset of the network (REFRESHES_PRE_SESSION)
+/// Partitions all registered keys into a subset of the network (REFRESHES_PER_SESSION)
 /// Currently rotates between a moving batch of all keys
 /// https://github.com/entropyxyz/entropy-core/issues/510
 pub fn partition_all_keys(
@@ -269,38 +269,37 @@ pub fn partition_all_keys(
     let all_keys_length = all_keys.len() as u32;
 
     // just return all keys no need to partition network
-    if REFRESHES_PRE_SESSION > all_keys_length {
+    if REFRESHES_PER_SESSION > all_keys_length {
         return Ok(all_keys);
     }
 
     let mut refresh_keys: Vec<String> = vec![];
+
     // handles early on refreshes before refreshes done > all keys
-    if refreshes_done + REFRESHES_PRE_SESSION <= all_keys_length {
+    if refreshes_done + REFRESHES_PER_SESSION <= all_keys_length {
         let lower = refreshes_done as usize;
-        let upper = (refreshes_done + REFRESHES_PRE_SESSION) as usize;
+        let upper = (refreshes_done + REFRESHES_PER_SESSION) as usize;
         refresh_keys = all_keys[lower..upper].to_vec();
     }
 
     // normalize refreshes done down to a partition of the network
     let normalized_refreshes_done = refreshes_done % all_keys_length;
 
-    if normalized_refreshes_done + REFRESHES_PRE_SESSION <= all_keys_length {
+    if normalized_refreshes_done + REFRESHES_PER_SESSION <= all_keys_length {
         let lower = normalized_refreshes_done as usize;
-        let upper = (normalized_refreshes_done + REFRESHES_PRE_SESSION) as usize;
-
+        let upper = (normalized_refreshes_done + REFRESHES_PER_SESSION) as usize;
         refresh_keys = all_keys[lower..upper].to_vec();
     }
 
     // handles if number does not perfectly fit
     // loops around the partiton adding the beginning of the network to the end
-    if normalized_refreshes_done + REFRESHES_PRE_SESSION > all_keys_length {
+    if normalized_refreshes_done + REFRESHES_PER_SESSION > all_keys_length {
         let lower = normalized_refreshes_done as usize;
         let upper = all_keys.len();
         refresh_keys = all_keys[lower..upper].to_vec();
 
         let leftover =
-            (REFRESHES_PRE_SESSION - (all_keys_length - normalized_refreshes_done)) as usize;
-
+            (REFRESHES_PER_SESSION - (all_keys_length - normalized_refreshes_done)) as usize;
         let mut post_turnaround_keys = all_keys[0..leftover].to_vec();
         refresh_keys.append(&mut post_turnaround_keys);
     }
