@@ -156,7 +156,7 @@ pub async fn get_key_visibility(
 pub async fn get_refreshes_done(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> Result<u128, ProtocolErr> {
+) -> Result<u32, ProtocolErr> {
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?

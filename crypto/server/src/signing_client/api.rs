@@ -17,7 +17,7 @@ use entropy_protocol::{
 use parity_scale_codec::Encode;
 
 use entropy_shared::{
-    KeyVisibility, OcwMessageProactiveRefresh, REFRESHES_PRE_SESSION, SETUP_TIMEOUT_SECONDS,
+    KeyVisibility, OcwMessageProactiveRefresh, REFRESHES_PER_SESSION, SETUP_TIMEOUT_SECONDS,
 };
 use kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
@@ -72,7 +72,7 @@ pub async fn proactive_refresh(
     let all_keys =
         get_all_keys(&api, &rpc).await.map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
     let refreshes_done = get_refreshes_done(&api, &rpc).await?;
-    let proactive_refresh_keys = partition_all_keys(refreshes_done, all_keys)?;
+    let proactive_refresh_keys = partition_all_keys(refreshes_done, all_keys);
     let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
@@ -259,44 +259,47 @@ pub async fn validate_proactive_refresh(
     Ok(())
 }
 
-/// Partitions all registered keys into a subset of the network (REFRESHES_PRE_SESSION)
+/// Partitions all registered keys into a subset of the network (REFRESHES_PER_SESSION)
 /// Currently rotates between a moving batch of all keys
 /// https://github.com/entropyxyz/entropy-core/issues/510
-pub fn partition_all_keys(
-    refreshes_done: u128,
-    all_keys: Vec<String>,
-) -> Result<Vec<String>, ProtocolErr> {
-    let all_keys_length = all_keys.len() as u128;
-    let usized_refreshed_pre_session = REFRESHES_PRE_SESSION as usize;
+pub fn partition_all_keys(refreshes_done: u32, all_keys: Vec<String>) -> Vec<String> {
+    let all_keys_length = all_keys.len() as u32;
+
     // just return all keys no need to partition network
-    if REFRESHES_PRE_SESSION > all_keys_length {
-        return Ok(all_keys);
+    if REFRESHES_PER_SESSION > all_keys_length {
+        return all_keys;
     }
+
     let mut refresh_keys: Vec<String> = vec![];
+
     // handles early on refreshes before refreshes done > all keys
-    if refreshes_done + REFRESHES_PRE_SESSION <= all_keys_length {
-        refresh_keys = all_keys
-            [refreshes_done as usize..refreshes_done as usize + usized_refreshed_pre_session]
-            .to_vec();
+    if refreshes_done + REFRESHES_PER_SESSION <= all_keys_length {
+        let lower = refreshes_done as usize;
+        let upper = (refreshes_done + REFRESHES_PER_SESSION) as usize;
+        refresh_keys = all_keys[lower..upper].to_vec();
     }
+
     // normalize refreshes done down to a partition of the network
     let normalized_refreshes_done = refreshes_done % all_keys_length;
-    let normalized_refreshes_done_as_usize = normalized_refreshes_done as usize;
 
-    if normalized_refreshes_done + REFRESHES_PRE_SESSION <= all_keys_length {
-        refresh_keys = all_keys[normalized_refreshes_done_as_usize
-            ..normalized_refreshes_done_as_usize + usized_refreshed_pre_session]
-            .to_vec();
+    if normalized_refreshes_done + REFRESHES_PER_SESSION <= all_keys_length {
+        let lower = normalized_refreshes_done as usize;
+        let upper = (normalized_refreshes_done + REFRESHES_PER_SESSION) as usize;
+        refresh_keys = all_keys[lower..upper].to_vec();
     }
+
     // handles if number does not perfectly fit
     // loops around the partiton adding the beginning of the network to the end
-    if normalized_refreshes_done + REFRESHES_PRE_SESSION > all_keys_length {
+    if normalized_refreshes_done + REFRESHES_PER_SESSION > all_keys_length {
+        let lower = normalized_refreshes_done as usize;
+        let upper = all_keys.len();
+        refresh_keys = all_keys[lower..upper].to_vec();
+
         let leftover =
-            usized_refreshed_pre_session - (all_keys.len() - normalized_refreshes_done_as_usize);
-        refresh_keys = all_keys[normalized_refreshes_done_as_usize..all_keys.len()].to_vec();
+            (REFRESHES_PER_SESSION - (all_keys_length - normalized_refreshes_done)) as usize;
         let mut post_turnaround_keys = all_keys[0..leftover].to_vec();
         refresh_keys.append(&mut post_turnaround_keys);
     }
 
-    Ok(refresh_keys)
+    refresh_keys
 }

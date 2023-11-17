@@ -148,7 +148,7 @@ pub mod pallet {
     /// Total amount of refreshes done on the network
     #[pallet::storage]
     #[pallet::getter(fn refreshes_done)]
-    pub type RefreshesDone<T: Config> = StorageValue<_, u128, ValueQuery>;
+    pub type RefreshesDone<T: Config> = StorageValue<_, u32, ValueQuery>;
 
     #[pallet::genesis_config]
     #[derive(DefaultNoBound)]
