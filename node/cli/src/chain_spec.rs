@@ -403,7 +403,7 @@ pub fn local_devnet_genesis(
                             "2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"
                         ]
                         .into(),
-                        endpoint: "bob-tss-server:3001".as_bytes().to_vec(),
+                        endpoint: "bob-tss-server:3002".as_bytes().to_vec(),
                         x25519_public_key: [
                             225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245,
                             89, 36, 170, 169, 181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136,
