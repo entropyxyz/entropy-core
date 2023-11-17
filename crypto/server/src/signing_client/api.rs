@@ -141,7 +141,7 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
     };
 }
 
-#[tracing::instrument(skip(signer, state), level = tracing::Level::DEBUG)]
+#[tracing::instrument(skip(signer, state, subxt_signer), level = tracing::Level::DEBUG)]
 pub async fn do_proactive_refresh(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
@@ -152,6 +152,7 @@ pub async fn do_proactive_refresh(
     old_key: KeyShare<KeyParams>,
 ) -> Result<KeyShare<KeyParams>, ProtocolErr> {
     tracing::debug!("Preparing to perform proactive refresh");
+    tracing::trace!("Signing with {:?}", &subxt_signer);
 
     let session_uid = sig_request_account.to_string();
     let account_id = SubxtAccountId32(*signer.account_id().clone().as_ref());
