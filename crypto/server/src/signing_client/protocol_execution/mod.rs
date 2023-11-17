@@ -9,7 +9,6 @@ pub use entropy_protocol::{
 use kvdb::kv_manager::KvManager;
 use subxt::utils::AccountId32;
 use synedrion::KeyShare;
-use tracing::{info, instrument};
 
 pub use self::context::SignContext;
 use crate::{
@@ -40,9 +39,13 @@ impl<'a> ThresholdSigningService<'a> {
 
     /// The Sign Context contains all relevant information for protocol execution, and is mostly
     /// stored in the kvdb, and is otherwise provided by the blockchain (`SignInit`).
-    #[instrument]
+    #[tracing::instrument(
+        skip_all,
+        fields(sign_init = ?sign_init),
+        level = tracing::Level::DEBUG
+    )]
     pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, ProtocolErr> {
-        info!("check_sign_init: {sign_init:?}");
+        tracing::debug!("Getting signing context");
         let key_share_vec = self.kv_manager.kv().get(&sign_init.substrate_key).await?;
         let key_share: KeyShare<KeyParams> = kvdb::kv_manager::helpers::deserialize(&key_share_vec)
             .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
@@ -50,7 +53,11 @@ impl<'a> ThresholdSigningService<'a> {
     }
 
     /// handle signing protocol execution.
-    #[instrument(skip(channels, threshold_signer))]
+    #[tracing::instrument(
+        skip_all,
+        fields(sign_init = ?ctx.sign_init),
+        level = tracing::Level::DEBUG
+    )]
     pub async fn execute_sign(
         &self,
         ctx: &SignContext,
@@ -58,7 +65,8 @@ impl<'a> ThresholdSigningService<'a> {
         threshold_signer: &subxt_signer::sr25519::Keypair,
         threshold_accounts: Vec<AccountId32>,
     ) -> Result<RecoverableSignature, ProtocolErr> {
-        info!("execute_sign: {ctx:?}");
+        tracing::trace!("Signing context {ctx:?}");
+
         let rsig = execute_signing_protocol(
             channels,
             &ctx.key_share,

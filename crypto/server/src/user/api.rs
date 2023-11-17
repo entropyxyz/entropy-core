@@ -89,6 +89,10 @@ pub struct UserRegistrationInfo {
 /// Called by a user to initiate the signing process for a message
 ///
 /// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
+#[tracing::instrument(
+    skip_all,
+    fields(signing_address = ?signed_msg.account_id().to_ss58check())
+)]
 pub async fn sign_tx(
     State(app_state): State<AppState>,
     Json(signed_msg): Json<SignedMessage>,
@@ -299,7 +303,6 @@ pub async fn receive_key(
     Json(signed_msg): Json<SignedMessage>,
 ) -> Result<StatusCode, UserErr> {
     let signing_address = signed_msg.account_id();
-
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
@@ -366,6 +369,7 @@ pub async fn receive_key(
 }
 
 /// Returns details of a given registering user including key key visibility and X25519 public key.
+#[tracing::instrument(skip_all, fields(who = ?who), level = tracing::Level::DEBUG)]
 pub async fn get_registering_user_details(
     api: &OnlineClient<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
