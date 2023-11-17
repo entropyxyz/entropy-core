@@ -33,14 +33,15 @@ try {
 
 switch(process.argv[2].toLowerCase()) {
     case 'register':
-        protocol.run_dkg_protocol(input.validators_info, input.user_sig_req_seed, input.x25519_private_key).then((output) => {
-          console.log(output)
+        protocol.run_dkg_protocol(input.validators_info, input.user_sig_req_seed, input.x25519_private_key).then((keyShare) => {
+          console.log(keyShare.toString())
         }).catch((err) => {
           console.error('ERR', err)
         })
         break
     case 'sign':
-        protocol.run_signing_protocol(input.key_share, input.sig_uid, input.validators_info, input.user_sig_req_seed, input.x25519_private_key).then((output) => {
+        let keyShare = protocol.KeyShare.fromString(input.key_share)
+        protocol.run_signing_protocol(keyShare, input.sig_uid, input.validators_info, input.user_sig_req_seed, input.x25519_private_key).then((output) => {
             console.log(output)
         }).catch((err) => {
             console.error('ERR', err)
