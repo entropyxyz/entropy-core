@@ -221,6 +221,8 @@ async fn setup_dkg(
     data: OcwMessageDkg,
     app_state: AppState,
 ) -> Result<(), UserErr> {
+    tracing::debug!("Preparing to execute DKG");
+
     let (subgroup, stash_address) = get_subgroup(&api, rpc, &signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup =
@@ -288,12 +290,16 @@ async fn setup_dkg(
 }
 
 /// HTTP POST endpoint to recieve a keyshare from another threshold server in the same
-/// signing subgroup. Takes a [UserRegistrationInfo] wrapped in a [SignedMessage].
+/// signing subgroup.
+///
+/// Takes a [UserRegistrationInfo] wrapped in a [SignedMessage].
+#[tracing::instrument(skip_all, fields(signing_address = %signed_msg.account_id()))]
 pub async fn receive_key(
     State(app_state): State<AppState>,
     Json(signed_msg): Json<SignedMessage>,
 ) -> Result<StatusCode, UserErr> {
     let signing_address = signed_msg.account_id();
+
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
