@@ -141,7 +141,11 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
     };
 }
 
-#[tracing::instrument(skip(signer, state, subxt_signer), level = tracing::Level::DEBUG)]
+#[tracing::instrument(
+    skip_all,
+    fields(validators_info, sig_request_account, my_subgroup),
+    level = tracing::Level::DEBUG
+)]
 pub async fn do_proactive_refresh(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
