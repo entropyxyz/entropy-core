@@ -191,7 +191,7 @@ pub async fn new_user(
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
     let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
-    tracing::Span::current().record("block_number", &data.block_number);
+    tracing::Span::current().record("block_number", data.block_number);
 
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
