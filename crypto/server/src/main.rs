@@ -89,7 +89,7 @@
 //! [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
 pub(crate) mod chain_api;
-pub(crate) mod health;
+pub(crate) mod misc;
 mod helpers;
 pub(crate) mod sign_init;
 mod signing_client;
@@ -97,7 +97,6 @@ mod r#unsafe;
 mod user;
 pub(crate) mod validation;
 mod validator;
-pub(crate) mod version;
 use std::{net::SocketAddr, str::FromStr};
 
 use axum::{
@@ -119,7 +118,7 @@ use self::{
     user::api::*,
 };
 use crate::{
-    health::api::healthz,
+    misc::api::{healthz, version},
     helpers::{
         launch::{
             init_tracing, load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration,
@@ -129,7 +128,6 @@ use crate::{
     },
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     validator::api::{sync_kvdb, sync_validator},
-    version::api::version,
 };
 
 #[derive(Clone)]
