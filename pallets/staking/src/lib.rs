@@ -86,6 +86,12 @@ pub mod pallet {
         pub x25519_public_key: X25519PublicKey,
         pub endpoint: TssServerURL,
     }
+    /// Info that is requiered to do a proactive refresh
+    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
+    pub struct RefreshInfo {
+        pub validators_info: Vec<ValidatorInfo>,
+        pub refreshes_done: u32,
+    }
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -140,9 +146,10 @@ pub mod pallet {
         ValueQuery,
     >;
 
+    /// A trigger for the proactive refresh OCW
     #[pallet::storage]
     #[pallet::getter(fn proactive_refresh)]
-    pub type ProactiveRefresh<T: Config> = StorageValue<_, Vec<ValidatorInfo>, ValueQuery>;
+    pub type ProactiveRefresh<T: Config> = StorageValue<_, RefreshInfo, ValueQuery>;
 
     #[pallet::genesis_config]
     #[derive(DefaultNoBound)]
@@ -175,8 +182,11 @@ pub mod pallet {
                     IsValidatorSynced::<T>::insert(validator_id, true);
                 }
             }
-
-            ProactiveRefresh::<T>::put(self.proactive_refresh_validators.clone());
+            let refresh_info = RefreshInfo {
+                validators_info: self.proactive_refresh_validators.clone(),
+                refreshes_done: 0,
+            };
+            ProactiveRefresh::<T>::put(refresh_info);
         }
     }
     // Errors inform users that something went wrong.
@@ -350,6 +360,7 @@ pub mod pallet {
         pub fn new_session_handler(
             validators: &[<T as pallet_session::Config>::ValidatorId],
         ) -> Result<(), DispatchError> {
+            // TODO add back in refresh trigger and refreshed counter https://github.com/entropyxyz/entropy-core/issues/511
             // Init a 2D Vec where indices and values represent subgroups and validators,
             // respectively.
             let mut new_validators_set: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> =
