@@ -48,7 +48,7 @@ pub struct Configuration {
 }
 
 impl Configuration {
-    pub(crate) fn new(endpoint: String) -> Configuration {
+    pub fn new(endpoint: String) -> Configuration {
         Configuration { endpoint }
     }
 }

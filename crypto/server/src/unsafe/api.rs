@@ -2,7 +2,6 @@ use std::str;
 
 use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
-#[cfg(test)]
 use serde_json::to_string;
 
 use crate::AppState;
@@ -17,7 +16,6 @@ pub struct UnsafeQuery {
     pub value: Vec<u8>,
 }
 
-#[cfg(test)]
 /// Struct representing the query type
 impl UnsafeQuery {
     pub fn new(key: String, value: Vec<u8>) -> Self {
