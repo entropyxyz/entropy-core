@@ -127,6 +127,7 @@ pub async fn proactive_refresh(
 }
 
 /// Handle an incoming websocket connection
+#[tracing::instrument(skip(app_state))]
 pub async fn ws_handler(
     State(app_state): State<AppState>,
     ws: WebSocketUpgrade,
