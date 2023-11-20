@@ -97,6 +97,7 @@ mod r#unsafe;
 mod user;
 pub(crate) mod validation;
 mod validator;
+pub(crate) mod version;
 use std::{net::SocketAddr, str::FromStr};
 
 use axum::{
@@ -128,6 +129,7 @@ use crate::{
     },
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     validator::api::{sync_kvdb, sync_validator},
+    version::api::version,
 };
 
 #[derive(Clone)]
@@ -179,6 +181,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/signer/proactive_refresh", post(proactive_refresh))
         .route("/validator/sync_kvdb", post(sync_kvdb))
         .route("/healthz", get(healthz))
+        .route("/version", get(version))
         .route("/ws", get(ws_handler));
 
     // Unsafe routes are for testing purposes only
