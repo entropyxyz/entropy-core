@@ -1,6 +1,6 @@
+use super::api::version;
 use axum::http::StatusCode;
 use serial_test::serial;
-use super::api::VERSION;
 
 use crate::helpers::tests::{initialize_test_logger, setup_client};
 
@@ -15,13 +15,15 @@ async fn health() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-
 #[tokio::test]
 #[serial]
-async fn version() {
+async fn version_test() {
     initialize_test_logger();
     setup_client().await;
     let client = reqwest::Client::new();
     let response = client.get("http://127.0.0.1:3001/version").send().await.unwrap();
-    assert_eq!(response.text().await.unwrap(), VERSION.to_string());
+    assert_eq!(
+        response.text().await.unwrap(),
+        format!("{}, {}", version::commit_date(), version::semver())
+    );
 }

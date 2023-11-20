@@ -89,8 +89,8 @@
 //! [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
 pub(crate) mod chain_api;
-pub(crate) mod misc;
 mod helpers;
+pub(crate) mod misc;
 pub(crate) mod sign_init;
 mod signing_client;
 mod r#unsafe;
@@ -118,7 +118,6 @@ use self::{
     user::api::*,
 };
 use crate::{
-    misc::api::{healthz, version},
     helpers::{
         launch::{
             init_tracing, load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration,
@@ -126,6 +125,7 @@ use crate::{
         },
         validator::get_signer,
     },
+    misc::api::{healthz, version},
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     validator::api::{sync_kvdb, sync_validator},
 };
