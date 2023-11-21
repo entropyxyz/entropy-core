@@ -1,26 +1,29 @@
+//! Integration tests which use a nodejs process to test wasm bindings to the entropy-protocol
+//! client functions
+mod helpers;
 use axum::http::StatusCode;
 use entropy_protocol::{KeyParams, ValidatorInfo};
 use entropy_shared::{KeyVisibility, OcwMessageDkg};
 use futures::future::join_all;
 use futures::future::{self};
-use kvdb::{clean_tests, kv_manager::helpers::deserialize as keyshare_deserialize};
+use kvdb::clean_tests;
 use parity_scale_codec::Encode;
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
-use sp_core::{crypto::Ss58Codec, Pair as OtherPair};
+use sp_core::crypto::{AccountId32, Ss58Codec};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use std::time::SystemTime;
+use std::{
+    thread,
+    time::{Duration, SystemTime},
+};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    ext::sp_core::{sr25519, sr25519::Signature, Bytes, Pair},
+    ext::sp_core::{sr25519::Signature, Bytes},
     tx::PairSigner,
     utils::{AccountId32 as subxtAccountId32, Static},
-    OnlineClient,
+    Config, OnlineClient,
 };
-use synedrion::{
-    k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
-    KeyShare,
-};
+use synedrion::KeyShare;
 use testing_utils::{
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
@@ -32,12 +35,18 @@ use testing_utils::{test_client::update_programs, tss_server_proc::spawn_testing
 use x25519_dalek::PublicKey;
 
 use server::{
-    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
-    common::{create_unique_tx_id, Hasher, UnsafeQuery, UserSignatureRequest},
-    launch::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
-    validation::{derive_static_secret, SignedMessage},
+    chain_api::{
+        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteredInfo},
+        get_api, get_rpc, EntropyConfig,
+    },
+    common::{
+        create_unique_tx_id,
+        validation::{derive_static_secret, SignedMessage},
+        Hasher, UserSignatureRequest,
+    },
 };
 
+/// Test demonstrating signing a message with private key visibility on wasm
 #[tokio::test]
 #[serial]
 async fn test_wasm_sign_tx_user_participates() {
@@ -149,8 +158,12 @@ async fn test_wasm_sign_tx_user_participates() {
     assert_eq!(user_sig, signing_result.unwrap().0);
 
     // Verify the remaining server results, which should be the same
-    verify_signature(test_user_res, message_should_succeed_hash, users_keyshare_option.clone())
-        .await;
+    helpers::verify_signature(
+        test_user_res,
+        message_should_succeed_hash,
+        users_keyshare_option.clone(),
+    )
+    .await;
 
     clean_tests();
 }
@@ -231,26 +244,13 @@ async fn test_wasm_register_with_private_key_visibility() {
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
 
-    let signing_address = one.to_account_id().to_ss58check();
-    let get_query = UnsafeQuery::new(signing_address, vec![]).to_json();
-    let server_keyshare_response = client
-        .post("http://127.0.0.1:3001/unsafe/get")
-        .header("Content-Type", "application/json")
-        .body(get_query.clone())
-        .send()
-        .await
-        .unwrap();
+    let registered_info = wait_for_register_confirmation(one.to_account_id(), api, rpc).await;
 
-    println!("user keyshare: {}", user_keyshare_json);
     let user_keyshare: KeyShare<KeyParams> = serde_json::from_str(&user_keyshare_json).unwrap();
+    let user_verifying_key =
+        user_keyshare.verifying_key().to_encoded_point(true).as_bytes().to_vec();
 
-    let server_keyshare_serialized = server_keyshare_response.bytes().await.unwrap();
-    let server_keyshare: KeyShare<KeyParams> =
-        keyshare_deserialize(&server_keyshare_serialized).unwrap();
-
-    let user_verifying_key = user_keyshare.verifying_key();
-    let server_verifying_key = server_keyshare.verifying_key();
-    assert_eq!(user_verifying_key, server_verifying_key);
+    assert_eq!(user_verifying_key, registered_info.verifying_key.0);
 
     clean_tests();
 }
@@ -280,7 +280,7 @@ struct ValidatorInfoParsed {
 
 /// For testing running the protocol on wasm, spawn a process running nodejs and pass
 /// the protocol runnning parameters as JSON as a command line argument
-pub async fn spawn_user_participates_in_signing_protocol(
+async fn spawn_user_participates_in_signing_protocol(
     key_share: &KeyShare<KeyParams>,
     sig_uid: &str,
     validators_info: Vec<ValidatorInfo>,
@@ -303,24 +303,12 @@ pub async fn spawn_user_participates_in_signing_protocol(
     };
     let json_params = serde_json::to_string(&args).unwrap();
 
-    let test_script_path = format!(
-        "{}/crypto/protocol/nodejs-test/index.js",
-        project_root::get_project_root().unwrap().to_string_lossy()
-    );
-
-    let output = tokio::process::Command::new("node")
-        .arg(test_script_path)
-        .arg("sign")
-        .arg(json_params)
-        .output()
-        .await
-        .unwrap();
-    String::from_utf8(output.stdout).unwrap()
+    spawn_node_process(json_params, "sign".to_string()).await
 }
 
 /// For testing running the DKG protocol on wasm, spawn a process running nodejs and pass
 /// the protocol runnning parameters as JSON as a command line argument
-pub async fn spawn_user_participates_in_dkg_protocol(
+async fn spawn_user_participates_in_dkg_protocol(
     validators_info: Vec<ValidatorInfo>,
     user_sig_req_seed: [u8; 32],
     x25519_private_key: &x25519_dalek::StaticSecret,
@@ -339,56 +327,27 @@ pub async fn spawn_user_participates_in_dkg_protocol(
     };
     let json_params = serde_json::to_string(&args).unwrap();
 
+    spawn_node_process(json_params, "register".to_string()).await
+}
+
+async fn spawn_node_process(json_params: String, command_for_script: String) -> String {
     let test_script_path = format!(
         "{}/crypto/protocol/nodejs-test/index.js",
         project_root::get_project_root().unwrap().to_string_lossy()
     );
     let output = tokio::process::Command::new("node")
         .arg(test_script_path)
-        .arg("register")
+        .arg(command_for_script)
         .arg(json_params)
         .output()
         .await
         .unwrap();
-    println!("stderr {}", String::from_utf8(output.stderr).unwrap());
-    String::from_utf8(output.stdout).unwrap()
-}
 
-pub async fn verify_signature(
-    test_user_res: Vec<Result<reqwest::Response, reqwest::Error>>,
-    message_should_succeed_hash: [u8; 32],
-    keyshare_option: Option<KeyShare<KeyParams>>,
-) {
-    let mut i = 0;
-    for res in test_user_res {
-        let mut res = res.unwrap();
-
-        assert_eq!(res.status(), 200);
-        let chunk = res.chunk().await.unwrap().unwrap();
-        let signing_result: Result<(String, Signature), String> =
-            serde_json::from_slice(&chunk).unwrap();
-        assert_eq!(signing_result.clone().unwrap().0.len(), 88);
-        let mut decoded_sig = base64::decode(signing_result.clone().unwrap().0).unwrap();
-        let recovery_digit = decoded_sig.pop().unwrap();
-        let signature = k256Signature::from_slice(&decoded_sig).unwrap();
-        let recover_id = RecoveryId::from_byte(recovery_digit).unwrap();
-        let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
-            &message_should_succeed_hash,
-            &signature,
-            recover_id,
-        )
-        .unwrap();
-        assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
-        let mnemonic = if i == 0 { DEFAULT_MNEMONIC } else { DEFAULT_BOB_MNEMONIC };
-        let sk = <sr25519::Pair as Pair>::from_string(mnemonic, None).unwrap();
-        let sig_recovery = <sr25519::Pair as Pair>::verify(
-            &signing_result.clone().unwrap().1,
-            base64::decode(signing_result.unwrap().0).unwrap(),
-            &sr25519::Public(sk.public().0),
-        );
-        assert!(sig_recovery);
-        i += 1;
+    let std_err = String::from_utf8(output.stderr).unwrap();
+    if !std_err.is_empty() {
+        tracing::warn!("Standard error from node process {}", std_err);
     }
+    String::from_utf8(output.stdout).unwrap()
 }
 
 pub async fn put_register_request_on_chain(
@@ -424,4 +383,22 @@ pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32)
     while current_block < block_run {
         current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     }
+}
+
+async fn wait_for_register_confirmation(
+    account_id: AccountId32,
+    api: OnlineClient<EntropyConfig>,
+    rpc: LegacyRpcMethods<EntropyConfig>,
+) -> RegisteredInfo {
+    let account_id: <EntropyConfig as Config>::AccountId = account_id.into();
+    let registered_query = entropy::storage().relayer().registered(account_id);
+    for _ in 0..30 {
+        let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+        let query_registered_status = api.storage().at(block_hash).fetch(&registered_query).await;
+        if let Some(user_info) = query_registered_status.unwrap() {
+            return user_info;
+        }
+        thread::sleep(Duration::from_millis(2000));
+    }
+    panic!("Timed out waiting for register confirmation");
 }

@@ -112,14 +112,12 @@ use tower_http::{
 use tracing::Level;
 use validator::api::get_random_server_info;
 
-use self::{
-    signing_client::{api::*, ListenerState},
-    user::api::*,
-};
 use crate::{
     health::api::healthz,
     launch::Configuration,
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
+    signing_client::{api::*, ListenerState},
+    user::api::*,
     validator::api::sync_kvdb,
 };
 pub use crate::{

@@ -1,3 +1,4 @@
+//! Client functionality used in itegration tests
 use subxt::{
     ext::sp_core::{sr25519, Pair},
     tx::PairSigner,
@@ -7,6 +8,7 @@ use subxt::{
 
 use server::chain_api::{entropy, EntropyConfig};
 
+/// Set or update the program associated with a given entropy account
 pub async fn update_programs(
     entropy_api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: &sr25519::Pair,
