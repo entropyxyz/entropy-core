@@ -16,7 +16,9 @@ use entropy_protocol::{
 };
 use parity_scale_codec::Encode;
 
-use entropy_shared::{KeyVisibility, OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::{
+    KeyVisibility, OcwMessageProactiveRefresh, REFRESHES_PER_SESSION, SETUP_TIMEOUT_SECONDS,
+};
 use kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
     KvManager,
@@ -73,6 +75,7 @@ pub async fn proactive_refresh(
     // TODO batch the network keys into smaller groups per session
     let all_keys =
         get_all_keys(&api, &rpc).await.map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
+    let proactive_refresh_keys = partition_all_keys(ocw_data.refreshes_done, all_keys);
     let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
@@ -83,7 +86,7 @@ pub async fn proactive_refresh(
     let subxt_signer = get_subxt_signer(&app_state.kv_store)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-    for key in all_keys {
+    for key in proactive_refresh_keys {
         let sig_request_address = AccountId32::from_str(&key).map_err(ProtocolErr::StringError)?;
         let key_visibility =
             get_key_visibility(&api, &rpc, &sig_request_address.clone().into()).await.unwrap();
@@ -251,7 +254,7 @@ pub async fn validate_proactive_refresh(
         })?;
 
     let mut hasher_chain_data = Blake2s256::new();
-    hasher_chain_data.update(ocw_data.validators_info.encode());
+    hasher_chain_data.update(ocw_data.encode());
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
     hasher_verifying_data.update(proactive_info.encode());
@@ -266,4 +269,51 @@ pub async fn validate_proactive_refresh(
         kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string()).await?;
     kv_manager.kv().put(reservation, latest_block_number.to_be_bytes().to_vec()).await?;
     Ok(())
+}
+
+/// Partitions all registered keys into a subset of the network (REFRESHES_PRE_SESSION)
+/// Currently rotates between a moving batch of all keys.
+///
+/// See https://github.com/entropyxyz/entropy-core/issues/510 for some issues which exist
+/// around the scaling of this function.
+pub fn partition_all_keys(refreshes_done: u32, all_keys: Vec<String>) -> Vec<String> {
+    let all_keys_length = all_keys.len() as u32;
+
+    // just return all keys no need to partition network
+    if REFRESHES_PER_SESSION > all_keys_length {
+        return all_keys;
+    }
+
+    let mut refresh_keys: Vec<String> = vec![];
+
+    // handles early on refreshes before refreshes done > all keys
+    if refreshes_done + REFRESHES_PER_SESSION <= all_keys_length {
+        let lower = refreshes_done as usize;
+        let upper = (refreshes_done + REFRESHES_PER_SESSION) as usize;
+        refresh_keys = all_keys[lower..upper].to_vec();
+    }
+
+    // normalize refreshes done down to a partition of the network
+    let normalized_refreshes_done = refreshes_done % all_keys_length;
+
+    if normalized_refreshes_done + REFRESHES_PER_SESSION <= all_keys_length {
+        let lower = normalized_refreshes_done as usize;
+        let upper = (normalized_refreshes_done + REFRESHES_PER_SESSION) as usize;
+        refresh_keys = all_keys[lower..upper].to_vec();
+    }
+
+    // handles if number does not perfectly fit
+    // loops around the partiton adding the beginning of the network to the end
+    if normalized_refreshes_done + REFRESHES_PER_SESSION > all_keys_length {
+        let lower = normalized_refreshes_done as usize;
+        let upper = all_keys.len();
+        refresh_keys = all_keys[lower..upper].to_vec();
+
+        let leftover =
+            (REFRESHES_PER_SESSION - (all_keys_length - normalized_refreshes_done)) as usize;
+        let mut post_turnaround_keys = all_keys[0..leftover].to_vec();
+        refresh_keys.append(&mut post_turnaround_keys);
+    }
+
+    refresh_keys
 }
