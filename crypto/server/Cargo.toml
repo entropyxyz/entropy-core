@@ -74,6 +74,9 @@ more-asserts      ="0.3.1"
 template-barebones={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.2.0" }
 lazy_static       ="1.4.0"
 
+[build-dependencies]
+vergen={ version="8.0.0", features=["build", "git", "gitcl", "rustc"] }
+
 [features]
 default=['std']
 std    =["sp-core/std"]
