@@ -1,3 +1,4 @@
+/// Gets version info created on build
 pub mod version {
     include!(concat!(env!("OUT_DIR"), "/version.rs"));
 }
