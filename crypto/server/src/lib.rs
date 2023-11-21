@@ -89,14 +89,15 @@
 //! [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
 pub mod chain_api;
-pub mod health;
-pub mod helpers;
-pub mod sign_init;
-pub mod signing_client;
-pub mod r#unsafe;
-pub mod user;
+pub mod common;
+pub(crate) mod health;
+pub(crate) mod helpers;
+pub(crate) mod sign_init;
+pub(crate) mod signing_client;
+pub(crate) mod r#unsafe;
+pub(crate) mod user;
 pub mod validation;
-pub mod validator;
+pub(crate) mod validator;
 
 use axum::{
     http::Method,
@@ -115,12 +116,15 @@ use self::{
     signing_client::{api::*, ListenerState},
     user::api::*,
 };
-pub use crate::helpers::validator::get_signer;
 use crate::{
     health::api::healthz,
-    helpers::launch::Configuration,
+    launch::Configuration,
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     validator::api::sync_kvdb,
+};
+pub use crate::{
+    helpers::{launch, validator::get_signer},
+    validator::api::sync_validator,
 };
 
 #[derive(Clone)]
@@ -128,6 +132,12 @@ pub struct AppState {
     pub listener_state: ListenerState,
     pub configuration: Configuration,
     pub kv_store: KvManager,
+}
+
+impl AppState {
+    pub fn new(configuration: Configuration, kv_store: KvManager) -> Self {
+        Self { listener_state: ListenerState::default(), configuration, kv_store }
+    }
 }
 
 pub fn app(app_state: AppState) -> Router {

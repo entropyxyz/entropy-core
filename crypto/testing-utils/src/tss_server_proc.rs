@@ -8,9 +8,10 @@ use subxt::utils::AccountId32 as SubxtAccountId32;
 use synedrion::KeyShare;
 
 use server::{
-    app, get_signer,
-    helpers::launch::{setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName},
-    signing_client::ListenerState,
+    app,
+    get_signer,
+    launch::{setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName},
+    // signing_client::ListenerState,
     AppState,
 };
 
@@ -37,31 +38,30 @@ pub fn initialize_test_logger() {
     lazy_static::initialize(&LOGGER);
 }
 
-pub async fn setup_client() -> KvManager {
-    let kv_store =
-        KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
-            .unwrap();
-    let _ = setup_mnemonic(&kv_store, &Some(ValidatorName::Alice)).await;
-    let _ = setup_latest_block_number(&kv_store).await;
-    let listener_state = ListenerState::default();
-    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
-    let app = app(app_state).into_make_service();
-    let listener = TcpListener::bind("0.0.0.0:3001").unwrap();
+// pub async fn setup_client() -> KvManager {
+//     let kv_store =
+//         KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
+//             .unwrap();
+//     let _ = setup_mnemonic(&kv_store, &Some(ValidatorName::Alice)).await;
+//     let _ = setup_latest_block_number(&kv_store).await;
+//     let listener_state = ListenerState::default();
+//     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
+//     let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
+//     let app = app(app_state).into_make_service();
+//     let listener = TcpListener::bind("0.0.0.0:3001").unwrap();
+//
+//     tokio::spawn(async move {
+//         axum::Server::from_tcp(listener).unwrap().serve(app).await.unwrap();
+//     });
+//     kv_store
+// }
 
-    tokio::spawn(async move {
-        axum::Server::from_tcp(listener).unwrap().serve(app).await.unwrap();
-    });
-    kv_store
-}
-
-pub async fn create_clients(
+async fn create_clients(
     key_number: String,
     values: Vec<Vec<u8>>,
     keys: Vec<String>,
     validator_name: &Option<ValidatorName>,
 ) -> (IntoMakeService<Router>, KvManager) {
-    let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
 
     let path = format!(".entropy/testing/test_db_{key_number}");
@@ -77,8 +77,7 @@ pub async fn create_clients(
         let _ = kv_store.clone().kv().put(reservation, value).await;
     }
 
-    let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
-
+    let app_state = AppState::new(configuration, kv_store.clone());
     let app = app(app_state).into_make_service();
 
     (app, kv_store)

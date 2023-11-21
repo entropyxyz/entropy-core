@@ -33,12 +33,8 @@ use x25519_dalek::PublicKey;
 
 use server::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
-    helpers::{
-        launch::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
-        signing::{create_unique_tx_id, Hasher},
-    },
-    r#unsafe::api::UnsafeQuery,
-    user::api::UserSignatureRequest,
+    common::{create_unique_tx_id, Hasher, UnsafeQuery, UserSignatureRequest},
+    launch::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC},
     validation::{derive_static_secret, SignedMessage},
 };
 
@@ -244,11 +240,13 @@ async fn test_wasm_register_with_private_key_visibility() {
         .send()
         .await
         .unwrap();
+
+    println!("user keyshare: {}", user_keyshare_json);
+    let user_keyshare: KeyShare<KeyParams> = serde_json::from_str(&user_keyshare_json).unwrap();
+
     let server_keyshare_serialized = server_keyshare_response.bytes().await.unwrap();
     let server_keyshare: KeyShare<KeyParams> =
         keyshare_deserialize(&server_keyshare_serialized).unwrap();
-
-    let user_keyshare: KeyShare<KeyParams> = serde_json::from_str(&user_keyshare_json).unwrap();
 
     let user_verifying_key = user_keyshare.verifying_key();
     let server_verifying_key = server_keyshare.verifying_key();
@@ -352,6 +350,7 @@ pub async fn spawn_user_participates_in_dkg_protocol(
         .output()
         .await
         .unwrap();
+    println!("stderr {}", String::from_utf8(output.stderr).unwrap());
     String::from_utf8(output.stdout).unwrap()
 }
 
