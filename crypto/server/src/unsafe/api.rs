@@ -58,8 +58,13 @@ pub async fn unsafe_get(
 /// # Note
 ///
 /// This should only be used for development purposes.
-#[tracing::instrument(name = "Updating key from KVDB", skip(app_state))]
+#[tracing::instrument(
+    name = "Updating key from KVDB",
+    skip_all,
+    fields(key = key.key),
+)]
 pub async fn put(State(app_state): State<AppState>, Json(key): Json<UnsafeQuery>) -> StatusCode {
+    tracing::trace!("Attempting to write value {:?} to database", &key.value);
     match app_state.kv_store.kv().exists(&key.key.to_owned()).await {
         Ok(v) => {
             if v {
@@ -74,7 +79,7 @@ pub async fn put(State(app_state): State<AppState>, Json(key): Json<UnsafeQuery>
                     StatusCode::OK
                 },
                 Err(v) => {
-                    tracing::warn!("Unable to reserve key {:?} from KVDB", v);
+                    tracing::warn!("Unable to reserve key {v:?} from KVDB");
                     StatusCode::INTERNAL_SERVER_ERROR
                 },
             }
