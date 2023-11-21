@@ -30,8 +30,14 @@ pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
 pub const FORBIDDEN_KEYS: [&str; 3] = ["MNEMONIC", "SHARED_SECRET", "DH_PUBLIC"];
 
+/// Initializes the tracing `Subscriber` for the process.
 pub fn init_tracing() {
-    tracing_subscriber::fmt().with_target(false).json().init();
+    // We set up the logger to only print out logs of `ERROR` or higher by default, otherwise
+    // we fall back to the user's `RUST_LOG` settings.
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .json()
+        .init();
 }
 
 // Deafult name for TSS server
