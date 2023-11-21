@@ -19,8 +19,6 @@ use std::{
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519::Signature, Bytes},
-    tx::PairSigner,
-    utils::{AccountId32 as subxtAccountId32, Static},
     Config, OnlineClient,
 };
 use synedrion::KeyShare;
@@ -30,8 +28,9 @@ use testing_utils::{
         TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::test_context_stationary,
+    test_client::{put_register_request_on_chain, update_program},
+    tss_server_proc::spawn_testing_validators,
 };
-use testing_utils::{test_client::update_programs, tss_server_proc::spawn_testing_validators};
 use x25519_dalek::PublicKey;
 
 use server::{
@@ -59,7 +58,7 @@ async fn test_wasm_sign_tx_user_participates() {
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    update_programs(&entropy_api, &one.pair(), &one.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+    update_program(&entropy_api, &one.pair(), &one.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
         .await;
 
     let validators_info = vec![
@@ -189,7 +188,7 @@ async fn test_wasm_register_with_private_key_visibility() {
 
     put_register_request_on_chain(
         &api,
-        &one,
+        one.pair(),
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
     )
@@ -350,35 +349,7 @@ async fn spawn_node_process(json_params: String, command_for_script: String) -> 
     String::from_utf8(output.stdout).unwrap()
 }
 
-pub async fn put_register_request_on_chain(
-    api: &OnlineClient<EntropyConfig>,
-    sig_req_keyring: &Sr25519Keyring,
-    program_modification_account: subxtAccountId32,
-    key_visibility: KeyVisibility,
-) {
-    let sig_req_account =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
-
-    let empty_program = vec![];
-    let registering_tx = entropy::tx().relayer().register(
-        program_modification_account,
-        Static(key_visibility),
-        empty_program,
-    );
-
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
-}
-
-pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32) {
+async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32) {
     let mut current_block = 0;
     while current_block < block_run {
         current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
