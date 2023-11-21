@@ -41,7 +41,7 @@ impl<'a> ThresholdSigningService<'a> {
     /// stored in the kvdb, and is otherwise provided by the blockchain (`SignInit`).
     #[tracing::instrument(
         skip_all,
-        fields(sign_init = ?sign_init),
+        fields(sign_init),
         level = tracing::Level::DEBUG
     )]
     pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, ProtocolErr> {

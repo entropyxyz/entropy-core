@@ -217,7 +217,11 @@ pub async fn new_user(
 /// Setup and execute DKG.
 ///
 /// Called internally by the [new_user] function.
-#[tracing::instrument(skip_all, fields(data = ?data), level = tracing::Level::DEBUG)]
+#[tracing::instrument(
+    skip_all,
+    fields(data),
+    level = tracing::Level::DEBUG
+)]
 async fn setup_dkg(
     api: OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -297,7 +301,10 @@ async fn setup_dkg(
 /// signing subgroup.
 ///
 /// Takes a [UserRegistrationInfo] wrapped in a [SignedMessage].
-#[tracing::instrument(skip_all, fields(signing_address = %signed_msg.account_id()))]
+#[tracing::instrument(
+    skip_all,
+    fields(signing_address = %signed_msg.account_id())
+)]
 pub async fn receive_key(
     State(app_state): State<AppState>,
     Json(signed_msg): Json<SignedMessage>,
@@ -369,7 +376,11 @@ pub async fn receive_key(
 }
 
 /// Returns details of a given registering user including key key visibility and X25519 public key.
-#[tracing::instrument(skip_all, fields(who = ?who), level = tracing::Level::DEBUG)]
+#[tracing::instrument(
+    skip_all,
+    fields(who),
+    level = tracing::Level::DEBUG
+)]
 pub async fn get_registering_user_details(
     api: &OnlineClient<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
