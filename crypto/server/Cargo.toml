@@ -75,7 +75,7 @@ template-barebones={ git="ssh://git@github.com/entropyxyz/constraints.git", tag=
 lazy_static       ="1.4.0"
 
 [build-dependencies]
-vergen="0.1.1"
+vergen={ version="8.0.0", features=["build", "git", "gitcl"] }
 
 [features]
 default=['std']

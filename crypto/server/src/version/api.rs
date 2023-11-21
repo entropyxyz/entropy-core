@@ -1,9 +1,4 @@
-/// Gets version info created on build
-pub mod version {
-    include!(concat!(env!("OUT_DIR"), "/version.rs"));
-}
-
 /// Returns the version and commit data
 pub async fn version() -> String {
-    format!("{}, {}", version::commit_date(), version::semver())
+    format!("{}, {}", env!("VERGEN_GIT_DESCRIBE"), env!("VERGEN_GIT_SHA"))
 }

@@ -1,4 +1,3 @@
-use super::api::version;
 use serial_test::serial;
 
 use crate::helpers::tests::{initialize_test_logger, setup_client};
@@ -12,6 +11,6 @@ async fn version_test() {
     let response = client.get("http://127.0.0.1:3001/version").send().await.unwrap();
     assert_eq!(
         response.text().await.unwrap(),
-        format!("{}, {}", version::commit_date(), version::semver())
+        format!("{}, {}", env!("VERGEN_GIT_DESCRIBE"), env!("VERGEN_GIT_SHA"))
     );
 }
