@@ -1,5 +1,5 @@
-pub mod instrumentation;
 pub mod launch;
+pub mod logger;
 pub mod signing;
 pub mod substrate;
 pub mod user;

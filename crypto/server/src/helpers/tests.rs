@@ -25,11 +25,11 @@ use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     get_signer,
     helpers::{
-        instrumentation::Logger,
         launch::{
             setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName,
             DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
+        logger::Logger,
         substrate::get_subgroup,
     },
     signing_client::ListenerState,

@@ -119,7 +119,7 @@ pub struct StartupArgs {
         long,
         default_value_t = Default::default(),
     )]
-    pub logger: crate::helpers::instrumentation::Logger,
+    pub logger: crate::helpers::logger::Logger,
 }
 
 pub async fn setup_mnemonic(
