@@ -18,7 +18,6 @@ use synedrion::{
     KeyShare, PartyIdx, RecoverableSignature,
 };
 use tokio::sync::mpsc;
-use tracing::instrument;
 
 use crate::{
     errors::ProtocolExecutionErr, protocol_message::ProtocolMessage,
@@ -73,7 +72,11 @@ impl PrehashVerifier<SignatureWrapper> for VerifierWrapper {
 }
 
 /// Execute threshold signing protocol.
-#[instrument(skip(chans, threshold_signer))]
+#[tracing::instrument(
+    skip_all,
+    fields(prehashed_message, threshold_accounts),
+    level = tracing::Level::DEBUG
+)]
 pub async fn execute_signing_protocol(
     mut chans: Channels,
     key_share: &KeyShare<KeyParams>,
@@ -81,6 +84,9 @@ pub async fn execute_signing_protocol(
     threshold_signer: &sr25519::Keypair,
     threshold_accounts: Vec<AccountId32>,
 ) -> Result<RecoverableSignature, ProtocolExecutionErr> {
+    tracing::debug!("Executing signing protocol");
+    tracing::trace!("Using key share {:?}", &key_share);
+
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_idx = key_share.party_index();
@@ -166,13 +172,19 @@ pub async fn execute_signing_protocol(
 }
 
 /// Execute dkg.
-#[instrument(skip(chans, threshold_signer))]
+#[tracing::instrument(
+    skip_all,
+    fields(threshold_accounts, my_idx),
+    level = tracing::Level::DEBUG
+)]
 pub async fn execute_dkg(
     mut chans: Channels,
     threshold_signer: &sr25519::Keypair,
     threshold_accounts: Vec<AccountId32>,
     my_idx: &u8,
 ) -> Result<KeyShare<KeyParams>, ProtocolExecutionErr> {
+    tracing::debug!("Executing DKG");
+
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());
@@ -254,7 +266,11 @@ pub async fn execute_dkg(
 }
 
 /// Execute proactive refresh.
-#[instrument(skip(chans, threshold_signer))]
+#[tracing::instrument(
+    skip_all,
+    fields(threshold_accounts, my_idx),
+    level = tracing::Level::DEBUG
+)]
 pub async fn execute_proactive_refresh(
     mut chans: Channels,
     threshold_signer: &sr25519::Keypair,
@@ -262,6 +278,10 @@ pub async fn execute_proactive_refresh(
     my_idx: &u8,
     old_key: KeyShare<KeyParams>,
 ) -> Result<KeyShare<KeyParams>, ProtocolExecutionErr> {
+    tracing::debug!("Executing proactive refresh");
+    tracing::trace!("Signing with {:?}", &threshold_signer);
+    tracing::trace!("Previous key {:?}", &old_key);
+
     let party_ids: Vec<PartyId> =
         threshold_accounts.clone().into_iter().map(PartyId::new).collect();
     let my_id = PartyId::new(threshold_accounts[*my_idx as usize].clone());

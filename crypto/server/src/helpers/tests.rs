@@ -46,6 +46,7 @@ lazy_static::lazy_static! {
         // fall back to the user's `RUST_LOG` settings.
         tracing_subscriber::fmt()
             .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+            .pretty()
             .init();
     };
 }
