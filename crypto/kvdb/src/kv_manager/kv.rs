@@ -5,8 +5,6 @@ use std::{fmt::Debug, path::PathBuf};
 
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::sync::{mpsc, oneshot};
-// logging
-use tracing::{info, warn};
 
 use super::{
     error::{InnerKvError, KvError::*, KvResult},
@@ -115,20 +113,20 @@ where
 /// Usage:
 ///  let my_db = get_kv_store(&"my_current_dir_db")?;
 ///  let my_db = get_kv_store(&"/tmp/my_tmp_bd")?;
+#[tracing::instrument(skip_all, fields(db_name))]
 pub fn get_kv_store(
     db_name: &str,
     password: Password,
 ) -> encrypted_sled::Result<encrypted_sled::Db> {
     // create/open DB
-    info!("START: decrypt kvstore");
+    tracing::debug!("Decrypting KV store");
     let kv = encrypted_sled::Db::open(db_name, password)?;
-    info!("DONE: decrypt kvstore");
 
     // log whether the DB was newly created or not
     if kv.was_recovered() {
-        info!("kv_manager found existing db [{}]", db_name);
+        tracing::debug!("Found exisiting database");
     } else {
-        info!("kv_manager cannot open existing db [{}]. creating new db", db_name);
+        tracing::debug!("No existing database found, creating a new one.");
     }
     Ok(kv)
 }
@@ -149,7 +147,7 @@ async fn kv_cmd_handler<V: 'static>(
                 let kv_resp = kv.remove(reservation.key);
                 match kv_resp {
                     Ok(_) => {},
-                    Err(err) => warn!("kv_remove failed: {}", err),
+                    Err(err) => tracing::warn!("Failed to remove key from database: {}", err),
                 }
             },
             Put { reservation, value, resp } => {
@@ -166,7 +164,6 @@ async fn kv_cmd_handler<V: 'static>(
             },
         }
     }
-    info!("kv_manager stop");
 }
 
 fn handle_response<T>(
@@ -180,9 +177,9 @@ fn handle_response<T>(
             let response = resp.send(kv_resp);
             match response {
                 Ok(_) => {},
-                Err(err) => warn!("receiver dropped: {:?}", err),
+                Err(err) => tracing::warn!("Receiver to dropped with: {:?}", err),
             }
         },
-        Err(err) => warn!("handle_func failed: {:?}", err),
+        Err(err) => tracing::error!("Failed to handle database query with: {:?}", err),
     }
 }

@@ -20,6 +20,7 @@ use crate::{
 };
 
 /// Start the signing protocol for a given message
+#[tracing::instrument(skip(app_state), level = tracing::Level::DEBUG)]
 pub async fn do_signing(
     message: UserSignatureRequest,
     sig_hash: String,
@@ -28,6 +29,8 @@ pub async fn do_signing(
     user_address: AccountId32,
     key_visibility: KeyVisibility,
 ) -> Result<RecoverableSignature, ProtocolErr> {
+    tracing::debug!("Preparing to perform signing");
+
     let state = &app_state.listener_state;
     let kv_manager = &app_state.kv_store;
 

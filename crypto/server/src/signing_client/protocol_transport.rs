@@ -20,6 +20,11 @@ use crate::{
 };
 
 /// Set up websocket connections to other members of the signing committee
+#[tracing::instrument(
+    skip_all,
+    fields(validator_info, session_uid, signer)
+    level = tracing::Level::DEBUG
+)]
 pub async fn open_protocol_connections(
     validators_info: &[ValidatorInfo],
     session_uid: &str,

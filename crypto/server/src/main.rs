@@ -144,8 +144,13 @@ async fn main() {
     let args = StartupArgs::parse();
     args.instrumentation.setup();
 
+    tracing::info!("Starting Threshold Signature Sever");
+    tracing::info!("Starting server on: `{}`", &args.threshold_url);
+
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(args.chain_endpoint);
+    tracing::info!("Connecting to Substrate node at: `{}`", &configuration.endpoint);
+
     let mut validator_name = None;
     if args.alice {
         validator_name = Some(ValidatorName::Alice);
@@ -162,10 +167,11 @@ async fn main() {
     };
     setup_mnemonic(&kv_store, &validator_name).await.expect("Issue creating Mnemonic");
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
+
     // Below deals with syncing the kvdb
     sync_validator(args.sync, args.dev, &configuration.endpoint, &kv_store).await;
     let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
-    tracing::info!("listening on {}", addr);
+
     axum::Server::bind(&addr)
         .serve(app(app_state).into_make_service())
         .await
@@ -189,7 +195,7 @@ pub fn app(app_state: AppState) -> Router {
     // are disabled by default.
     // To enable unsafe routes compile with --feature unsafe.
     if cfg!(feature = "unsafe") || cfg!(test) {
-        tracing::warn!("Server started in unsafe mode do not use in production!!!!!!!");
+        tracing::warn!("Server started in unsafe mode - do not use in production!");
         routes = routes
             .route("/unsafe/put", post(put))
             .route("/unsafe/get", post(unsafe_get))
@@ -201,7 +207,15 @@ pub fn app(app_state: AppState) -> Router {
         .with_state(app_state)
         .layer(
             TraceLayer::new_for_http()
-                .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+                .make_span_with(|request: &axum::http::Request<axum::body::Body>| {
+                    tracing::info_span!(
+                        "http-request",
+                        uuid = %uuid::Uuid::new_v4(),
+                        uri = %request.uri(),
+                        method = %request.method(),
+                    )
+                })
+                .on_request(trace::DefaultOnRequest::new().level(Level::INFO))
                 .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
         )
         .layer(CorsLayer::new().allow_origin(Any).allow_methods([Method::GET, Method::POST]))
