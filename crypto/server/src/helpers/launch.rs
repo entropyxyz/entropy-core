@@ -30,10 +30,6 @@ pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
 pub const FORBIDDEN_KEYS: [&str; 3] = ["MNEMONIC", "SHARED_SECRET", "DH_PUBLIC"];
 
-pub fn init_tracing() {
-    tracing_subscriber::fmt().with_target(false).json().init();
-}
-
 // Deafult name for TSS server
 // Will set mnemonic and db path
 #[derive(Debug, PartialEq)]
@@ -117,6 +113,9 @@ pub struct StartupArgs {
     /// TODO remove and force password
     #[arg(long = "nopassword")]
     pub no_password: bool,
+
+    #[clap(flatten)]
+    pub instrumentation: crate::helpers::instrumentation::Instrumentation,
 }
 
 pub async fn setup_mnemonic(

@@ -1,3 +1,4 @@
+pub mod instrumentation;
 pub mod launch;
 pub mod signing;
 pub mod substrate;

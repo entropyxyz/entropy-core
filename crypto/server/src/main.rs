@@ -122,8 +122,8 @@ use crate::{
     health::api::healthz,
     helpers::{
         launch::{
-            init_tracing, load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration,
-            StartupArgs, ValidatorName,
+            load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration, StartupArgs,
+            ValidatorName,
         },
         validator::get_signer,
     },
@@ -141,9 +141,8 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
-    init_tracing();
-
     let args = StartupArgs::parse();
+    args.instrumentation.setup();
 
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(args.chain_endpoint);

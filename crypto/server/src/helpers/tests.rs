@@ -25,6 +25,7 @@ use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     get_signer,
     helpers::{
+        instrumentation::{Instrumentation, Logger},
         launch::{
             setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName,
             DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
@@ -42,11 +43,8 @@ lazy_static::lazy_static! {
     /// Since this only needs to be initialized once for the whole test suite we define it as a lazy
     /// static.
     pub static ref LOGGER: () = {
-        // We set up the tests to only print out logs of `ERROR` or higher by default, otherwise we
-        // fall back to the user's `RUST_LOG` settings.
-        tracing_subscriber::fmt()
-            .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-            .init();
+        let instrumentation = Instrumentation { logger: Logger::Pretty };
+        instrumentation.setup();
     };
 }
 
