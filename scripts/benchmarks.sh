@@ -4,41 +4,25 @@ steps=50
 repeat=20
 entropyOutput=./runtime/src/weights/
 entropyChain=dev
-pallets=(
-  pallet_free_tx
-  pallet_programs
-  pallet_relayer
-  pallet_staking_extension
-  pallet_transaction_pause
-  pallet_bags_list
-  pallet_balances
-  pallet_bounties
-  pallet_collective
-  pallet_democracy
-  pallet_election_provider_multi_phase
-  pallet_elections_phragmen
-  pallet_im_online
-  pallet_indices
-  pallet_identity
-  pallet_membership
-  pallet_nomination_pools
-  pallet_multisig
-  pallet_preimage
-  pallet_proxy
-  pallet_recovery
-  pallet_sudo
-  pallet_scheduler
-  pallet_session
-  pallet_staking
-  frame_system
-  frame_election_provider_support
-  pallet_timestamp
-  pallet_tips
-  pallet_transaction_storage
-  pallet_treasury
-  pallet_utility
-  pallet_vesting
+# Manually exclude some pallets.
+excluded_pallets=(
+  "pallet_babe"
+  "pallet_grandpa"
+  "pallet_offences"
 )
+
+# Load all pallet names in an array.
+allPallets=($(
+  ./target/release/entropy benchmark pallet --list --chain=dev |\
+    tail -n+2 |\
+    cut -d',' -f1 |\
+    sort |\
+    uniq
+))
+
+pallets=($({ printf '%s\n' "${allPallets[@]}" "${excluded_pallets[@]}"; } | sort | uniq -u))
+
+echo "[+] Benchmarking ${#pallets[@]} Substrate pallets by excluding ${#excluded_pallets[@]} from ${#ALL_PALLETS[@]}."
 
 for p in ${pallets[@]}
 do
