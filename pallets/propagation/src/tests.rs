@@ -3,6 +3,7 @@ use std::sync::Arc;
 use codec::Encode;
 use entropy_shared::{KeyVisibility, ValidatorInfo};
 use frame_support::{assert_ok, traits::OnInitialize};
+use pallet_staking_extension::RefreshInfo;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
 use sp_keystore::{testing::MemoryKeystore, KeystoreExt};
@@ -47,10 +48,8 @@ fn knows_how_to_mock_several_http_calls() {
             sent: true,
             response: Some([].to_vec()),
             body: [
-                8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 4, 20, 32, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 40, 32, 8, 0, 0,
-                0, 0, 0, 0, 0,
+                4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 20, 16, 116, 101, 115, 116, 20, 16, 116, 101, 115, 116, 0, 0, 0, 0,
             ]
             .to_vec(),
             ..Default::default()
@@ -71,14 +70,18 @@ fn knows_how_to_mock_several_http_calls() {
         assert_eq!(Relayer::dkg(3).len(), 0);
 
         Propagation::post_proactive_refresh(6).unwrap();
-        pallet_staking_extension::ProactiveRefresh::<Test>::put(vec![ValidatorInfo {
-            x25519_public_key: [0u8; 32],
-            ip_address: "test".encode(),
-            tss_account: "test".encode(),
-        }]);
+        let ocw_message = RefreshInfo {
+            validators_info: vec![ValidatorInfo {
+                x25519_public_key: [0u8; 32],
+                ip_address: "test".encode(),
+                tss_account: "test".encode(),
+            }],
+            refreshes_done: 0,
+        };
+        pallet_staking_extension::ProactiveRefresh::<Test>::put(ocw_message);
         Propagation::post_proactive_refresh(6).unwrap();
         Propagation::on_initialize(6);
-        assert_eq!(Staking::proactive_refresh(), vec![]);
+        assert_eq!(Staking::proactive_refresh(), RefreshInfo::default());
     })
 }
 

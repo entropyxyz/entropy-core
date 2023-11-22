@@ -98,6 +98,7 @@ pub(crate) mod r#unsafe;
 pub(crate) mod user;
 pub mod validation;
 pub(crate) mod validator;
+pub(crate) mod version;
 
 use axum::{
     http::Method,
@@ -119,6 +120,7 @@ use crate::{
     signing_client::{api::*, ListenerState},
     user::api::*,
     validator::api::sync_kvdb,
+    version::api::version as get_version,
 };
 pub use crate::{
     helpers::{launch, validator::get_signer},
@@ -146,6 +148,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/signer/proactive_refresh", post(proactive_refresh))
         .route("/validator/sync_kvdb", post(sync_kvdb))
         .route("/healthz", get(healthz))
+        .route("/version", get(get_version))
         .route("/ws", get(ws_handler));
 
     // Unsafe routes are for testing purposes only
@@ -166,7 +169,15 @@ pub fn app(app_state: AppState) -> Router {
         .with_state(app_state)
         .layer(
             TraceLayer::new_for_http()
-                .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+                .make_span_with(|request: &axum::http::Request<axum::body::Body>| {
+                    tracing::info_span!(
+                        "http-request",
+                        uuid = %uuid::Uuid::new_v4(),
+                        uri = %request.uri(),
+                        method = %request.method(),
+                    )
+                })
+                .on_request(trace::DefaultOnRequest::new().level(Level::INFO))
                 .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
         )
         .layer(CorsLayer::new().allow_origin(Any).allow_methods([Method::GET, Method::POST]))

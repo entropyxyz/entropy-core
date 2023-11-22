@@ -47,6 +47,7 @@ pub const BATHC_SIZE_FOR_KEY_VALUE_GET: usize = 10;
 /// - getting all registered keys from chain
 /// - finding a server in their subgroup that is synced
 /// - getting all shards from said validator
+#[tracing::instrument(skip(kv_store))]
 pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &KvManager) {
     if sync {
         let api = get_api(endpoint).await.expect("Issue acquiring chain API");
@@ -58,7 +59,7 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
             let health = rpc.system_health().await.expect("Issue checking chain health");
             is_syncing = health.is_syncing;
             if is_syncing {
-                tracing::info!("chain syncing, retrying {is_syncing:?}");
+                tracing::info!("Syncing chain");
                 thread::sleep(sleep_time);
             }
         }
@@ -72,7 +73,7 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
         // if not in subgroup retry until you are
         let mut my_subgroup = get_subgroup(&api, &rpc, &signer).await;
         while my_subgroup.is_err() {
-            tracing::info!("you are not currently a validator, retrying");
+            tracing::warn!("The signing account is not in the validator set, retrying sync");
             thread::sleep(sleep_time);
             my_subgroup =
                 Ok(get_subgroup(&api, &rpc, &signer).await.expect("Failed to get subgroup."));
@@ -106,6 +107,7 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
 }
 
 /// Endpoint to allow a new node to sync their kvdb with a member of their subgroup
+#[tracing::instrument(skip_all, fields(signing_address = %signed_msg.account_id()))]
 pub async fn sync_kvdb(
     State(app_state): State<AppState>,
     Json(signed_msg): Json<SignedMessage>,

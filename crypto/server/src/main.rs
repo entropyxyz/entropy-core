@@ -14,10 +14,14 @@ use server::{
 #[tokio::main]
 async fn main() {
     init_tracing();
+    tracing::info!("Starting Threshold Signature Sever");
 
     let args = StartupArgs::parse();
+    tracing::info!("Starting server on: `{}`", &args.threshold_url);
 
     let configuration = Configuration::new(args.chain_endpoint);
+    tracing::info!("Connecting to Substrate node at: `{}`", &configuration.endpoint);
+
     let mut validator_name = None;
     if args.alice {
         validator_name = Some(ValidatorName::Alice);
@@ -30,10 +34,11 @@ async fn main() {
     let app_state = AppState::new(configuration.clone(), kv_store.clone());
     setup_mnemonic(&kv_store, &validator_name).await.expect("Issue creating Mnemonic");
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
+
     // Below deals with syncing the kvdb
     sync_validator(args.sync, args.dev, &configuration.endpoint, &kv_store).await;
     let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
-    tracing::info!("listening on {}", addr);
+
     axum::Server::bind(&addr)
         .serve(app(app_state).into_make_service())
         .await

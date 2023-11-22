@@ -126,8 +126,7 @@ pub mod pallet {
 
         pub fn post_proactive_refresh(_block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let refresh_info = pallet_staking_extension::Pallet::<T>::proactive_refresh();
-
-            if refresh_info.is_empty() {
+            if refresh_info.validators_info.is_empty() {
                 return Ok(());
             }
 
@@ -138,20 +137,12 @@ pub mod pallet {
             let url = str::from_utf8(&from_local)
                 .unwrap_or("http://localhost:3001/signer/proactive_refresh");
 
-            let (servers_info, _i) =
-                pallet_relayer::Pallet::<T>::get_validator_info().unwrap_or_default();
-            let validators_info = servers_info
-                .iter()
-                .map(|server_info| ValidatorInfo {
-                    x25519_public_key: server_info.x25519_public_key,
-                    ip_address: server_info.endpoint.clone(),
-                    tss_account: server_info.tss_account.encode(),
-                })
-                .collect::<Vec<_>>();
+            let req_body = OcwMessageProactiveRefresh {
+                validators_info: refresh_info.validators_info,
+                refreshes_done: refresh_info.refreshes_done,
+            };
+            log::warn!("propagation::post proactive refresh: {:?}", &[req_body.encode()]);
 
-            log::warn!("propagation::post proactive refresh: {:?}", &[validators_info.encode()]);
-
-            let req_body = OcwMessageProactiveRefresh { validators_info };
             // We construct the request
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!

@@ -10,7 +10,8 @@ ARG UBUNTU_VERSION=20.04
 # https://doc.rust-lang.org/rustc/codegen-options/index.html#strip
 ARG STRIP=symbols
 
-FROM docker.io/library/debian:${DEBIAN_CODENAME}-20230522-slim as build
+FROM --platform=$BUILDPLATFORM docker.io/library/debian:${DEBIAN_CODENAME}-20230522-slim as build
+ARG TARGETPLATFORM
 ARG PACKAGE
 ARG RUST_STABLE_VERSION
 ARG UBUNTU_VERSION
@@ -23,14 +24,23 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean; \
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     export DEBIAN_FRONTEND=noninteractive \
+    && dpkg --add-architecture arm64 \
     && apt-get update && apt-get install --yes --no-install-recommends \
         git bash curl ca-certificates openssh-client \
         pkg-config protobuf-compiler make clang \
-        openssl libssl-dev \
-    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-    | sh -s -- -y --no-modify-path --default-toolchain none \
-    && $HOME/.cargo/bin/rustup toolchain install "${RUST_STABLE_VERSION}" --profile minimal \
+        openssl libssl-dev libssl-dev:arm64 \
+        gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+# Install Rust and its componentry for the current build target.
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --no-modify-path --profile minimal \
+      --default-toolchain none \
     && $HOME/.cargo/bin/rustup default "${RUST_STABLE_VERSION}" \
+    && if [ "amd64" = ${TARGETPLATFORM#"linux/"} ]; then \
+        export RUST_PLATFORM=x86_64; \
+    else \
+        export RUST_PLATFORM=aarch64; \
+    fi; $HOME/.cargo/bin/rustup toolchain install "${RUST_STABLE_VERSION}-${RUST_PLATFORM}-unknown-linux-gnu" --profile minimal \
     && $HOME/.cargo/bin/rustup component add rust-src rustfmt clippy \
     && $HOME/.cargo/bin/rustup target add wasm32-unknown-unknown
 
@@ -70,10 +80,20 @@ RUN --mount=type=ssh \
     && mkdir -p ~/.ssh \
     && echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" \
         > ~/.ssh/known_hosts \
-    && CARGO_NET_GIT_FETCH_WITH_CLI=true \
-        $HOME/.cargo/bin/cargo rustc --release -p ${PACKAGE} -- \
-            -C strip=${STRIP} \
-    && install target/release/${PACKAGE} /usr/local/bin
+    && if [ "amd64" = ${TARGETPLATFORM#"linux/"} ]; then \
+        export RUST_PLATFORM=x86_64; \
+    else \
+        export RUST_PLATFORM=aarch64; \
+    fi; $HOME/.cargo/bin/rustup target add "${RUST_PLATFORM}-unknown-linux-gnu" \
+    && if [ "linux/arm64" = "${TARGETPLATFORM}" ]; then \
+        export PKG_CONFIG_SYSROOT_DIR="/usr/aarch64-linux-gnu"; \
+        export BINDGEN_EXTRA_CLANG_ARGS="-I/usr/aarch64-linux-gnu/include/"; \
+    fi; CARGO_NET_GIT_FETCH_WITH_CLI=true \
+        CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="cc" \
+        CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER="aarch64-linux-gnu-gcc" \
+        $HOME/.cargo/bin/cargo rustc --release -p "${PACKAGE}" --target "${RUST_PLATFORM}-unknown-linux-gnu" \
+            -- -C strip="${STRIP}" \
+    && install "target/${RUST_PLATFORM}-unknown-linux-gnu/release/${PACKAGE}" /usr/local/bin
 
 # Next stage will contain just our built binary, without dependencies.
 FROM docker.io/library/ubuntu:${UBUNTU_VERSION}
