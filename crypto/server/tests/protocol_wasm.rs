@@ -29,7 +29,7 @@ use testing_utils::{
     },
     substrate_context::test_context_stationary,
     test_client::{put_register_request_on_chain, update_program},
-    tss_server_process::{initialize_test_logger, spawn_testing_validators},
+    tss_server_process::spawn_testing_validators,
 };
 use x25519_dalek::PublicKey;
 
@@ -49,7 +49,6 @@ use server::{
 #[tokio::test]
 #[serial]
 async fn test_wasm_sign_tx_user_participates() {
-    initialize_test_logger();
     clean_tests();
     let one = AccountKeyring::Eve;
 
@@ -172,7 +171,6 @@ async fn test_wasm_sign_tx_user_participates() {
 #[tokio::test]
 #[serial]
 async fn test_wasm_register_with_private_key_visibility() {
-    initialize_test_logger();
     clean_tests();
 
     let one = AccountKeyring::One;

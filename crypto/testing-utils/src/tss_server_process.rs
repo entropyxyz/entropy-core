@@ -17,27 +17,6 @@ use server::{
 
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
-lazy_static::lazy_static! {
-    /// A shared reference to the logger used for tests.
-    ///
-    /// Since this only needs to be initialized once for the whole test suite we define it as a lazy
-    /// static.
-    pub static ref LOGGER: () = {
-        // We set up the tests to only print out logs of `ERROR` or higher by default, otherwise we
-        // fall back to the user's `RUST_LOG` settings.
-        tracing_subscriber::fmt()
-            .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-            .init();
-    };
-}
-
-/// Initialize the global loger used in tests.
-///
-/// The logger will only be initialized once, even if this function is called multiple times.
-pub fn initialize_test_logger() {
-    lazy_static::initialize(&LOGGER);
-}
-
 async fn create_clients(
     key_number: String,
     values: Vec<Vec<u8>>,
