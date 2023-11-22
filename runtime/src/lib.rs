@@ -567,8 +567,7 @@ impl onchain::Config for OnChainSeqPhragmen {
     type System = Runtime;
     type TargetsBound = MaxOnChainElectableTargets;
     type VotersBound = MaxOnChainElectingVoters;
-    // TODO
-    type WeightInfo = frame_election_provider_support::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::frame_election_provider_support::WeightInfo<Runtime>;
 }
 
 impl pallet_election_provider_multi_phase::MinerConfig for Runtime {
@@ -1032,7 +1031,7 @@ impl pallet_preimage::Config for Runtime {
 impl pallet_sudo::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = pallet_sudo::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_sudo::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1158,7 +1157,7 @@ impl pallet_identity::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Slashed = Treasury;
     type SubAccountDeposit = SubAccountDeposit;
-    type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_identity::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1176,7 +1175,7 @@ impl pallet_recovery::Config for Runtime {
     type RecoveryDeposit = RecoveryDeposit;
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = pallet_recovery::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_recovery::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1256,7 +1255,7 @@ impl pallet_nomination_pools::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Staking = Staking;
     type U256ToBalance = U256ToBalance;
-    type WeightInfo = ();
+    type WeightInfo = weights::pallet_nomination_pools::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1439,12 +1438,13 @@ mod benches {
       [pallet_programs, Programs]
       [pallet_democracy, Democracy]
       [pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
-      [pallet_election_provider_support_benchmarking, EPSBench::<Runtime>]
+      [frame_election_provider_support, EPSBench::<Runtime>]
       [pallet_elections_phragmen, Elections]
       [pallet_free_tx, FreeTx]
       [pallet_staking_extension, StakingExtension]
       [pallet_grandpa, Grandpa]
       [pallet_im_online, ImOnline]
+      [pallet_identity, Identity]
       [pallet_indices, Indices]
       [pallet_membership, TechnicalMembership]
       [pallet_nomination_pools, NominationPoolsBench::<Runtime>]
@@ -1452,8 +1452,10 @@ mod benches {
       [pallet_offences, OffencesBench::<Runtime>]
       [pallet_preimage, Preimage]
       [pallet_proxy, Proxy]
+      [pallet_recovery, Recovery]
       [pallet_relayer, Relayer]
       [pallet_scheduler, Scheduler]
+      [pallet_sudo, Sudo]
       [pallet_session, SessionBench::<Runtime>]
       [pallet_staking, Staking]
       [frame_system, SystemBench::<Runtime>]

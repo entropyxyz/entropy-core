@@ -10,7 +10,6 @@ pallets=(
   pallet_relayer
   pallet_staking_extension
   pallet_transaction_pause
-  pallet_balances
   pallet_bags_list
   pallet_balances
   pallet_bounties
@@ -20,15 +19,19 @@ pallets=(
   pallet_elections_phragmen
   pallet_im_online
   pallet_indices
+  pallet_identity
   pallet_membership
   pallet_nomination_pools
   pallet_multisig
   pallet_preimage
   pallet_proxy
+  pallet_recovery
+  pallet_sudo
   pallet_scheduler
   pallet_session
   pallet_staking
   frame_system
+  frame_election_provider_support
   pallet_timestamp
   pallet_tips
   pallet_transaction_storage
