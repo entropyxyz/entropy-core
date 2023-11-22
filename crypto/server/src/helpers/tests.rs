@@ -43,7 +43,7 @@ lazy_static::lazy_static! {
     /// Since this only needs to be initialized once for the whole test suite we define it as a lazy
     /// static.
     pub static ref LOGGER: () = {
-        Logger::Full.setup();
+        Logger::Pretty.setup();
     };
 }
 
