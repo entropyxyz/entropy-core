@@ -142,7 +142,7 @@ pub struct AppState {
 #[tokio::main]
 async fn main() {
     let args = StartupArgs::parse();
-    args.instrumentation.setup();
+    args.logger.setup();
 
     tracing::info!("Starting Threshold Signature Sever");
     tracing::info!("Starting server on: `{}`", &args.threshold_url);

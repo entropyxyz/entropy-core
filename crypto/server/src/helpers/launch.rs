@@ -97,7 +97,7 @@ pub struct StartupArgs {
     #[arg(short = 'u', long = "threshold-url", required = false, default_value = "127.0.0.1:3001")]
     pub threshold_url: String,
 
-    /// Wether to allow a validator key to be null.
+    /// Whether to allow a validator key to be null.
     #[arg(short = 'd', long = "dev")]
     pub dev: bool,
 
@@ -114,8 +114,12 @@ pub struct StartupArgs {
     #[arg(long = "nopassword")]
     pub no_password: bool,
 
-    #[clap(flatten)]
-    pub instrumentation: crate::helpers::instrumentation::Instrumentation,
+    /// The log output format that the application should use.
+    #[clap(
+        long,
+        default_value_t = Default::default(),
+    )]
+    pub logger: crate::helpers::instrumentation::Logger,
 }
 
 pub async fn setup_mnemonic(
