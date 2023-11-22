@@ -142,11 +142,15 @@ pub struct AppState {
 #[tokio::main]
 async fn main() {
     init_tracing();
+    tracing::info!("Starting Threshold Signature Sever");
 
     let args = StartupArgs::parse();
+    tracing::info!("Starting server on: `{}`", &args.threshold_url);
 
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(args.chain_endpoint);
+    tracing::info!("Connecting to Substrate node at: `{}`", &configuration.endpoint);
+
     let mut validator_name = None;
     if args.alice {
         validator_name = Some(ValidatorName::Alice);
