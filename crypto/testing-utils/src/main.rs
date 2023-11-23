@@ -163,7 +163,8 @@ async fn run_command() -> anyhow::Result<String> {
                 None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 
-            update_program(&api, sig_req_account, program_account_name, program).await?;
+            let program_account_keypair = account_name_to_keypair(program_account_name)?;
+            update_program(&api, sig_req_account, &program_account_keypair, program).await?;
             Ok("Program updated".to_string())
         },
         CliCommand::Status => {
