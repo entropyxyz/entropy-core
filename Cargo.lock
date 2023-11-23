@@ -12319,14 +12319,22 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 name = "testing-utils"
 version = "0.0.8"
 dependencies = [
+ "axum",
+ "entropy-protocol",
  "entropy-shared",
  "hex-literal",
+ "kvdb 0.1.0",
  "lazy_static",
  "parity-scale-codec",
  "project-root",
+ "rand_core 0.6.4",
+ "server",
  "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-keyring 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "subxt",
+ "subxt-signer",
+ "synedrion",
+ "tokio",
  "tracing",
  "tracing-subscriber 0.3.17",
  "which",
