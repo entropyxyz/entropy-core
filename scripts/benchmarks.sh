@@ -12,7 +12,7 @@ excluded_pallets=(
 )
 
 # Load all pallet names in an array.
-allPallets=($(
+all_pallets=($(
   ./target/release/entropy benchmark pallet --list --chain=dev |\
     tail -n+2 |\
     cut -d',' -f1 |\
