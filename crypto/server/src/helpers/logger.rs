@@ -1,3 +1,4 @@
+use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::prelude::*;
 
 /// The log output format that the application should use.
@@ -12,10 +13,12 @@ pub enum Logger {
 impl Logger {
     /// Configures and initializes the global `tracing` Subscriber.
     pub fn setup(&self) {
-        // We set up the logger to only print out logs of `ERROR` or higher by default, otherwise we
+        // We set up the logger to only print out logs of `INFO` or higher by default, otherwise we
         // fall back to the user's `RUST_LOG` settings.
         let stdout = tracing_subscriber::fmt::layer();
-        let env_filter = tracing_subscriber::EnvFilter::from_default_env();
+        let env_filter = tracing_subscriber::EnvFilter::builder()
+            .with_default_directive(LevelFilter::INFO.into())
+            .from_env_lossy();
         let registry = tracing_subscriber::registry().with(stdout).with(env_filter);
 
         match self {
