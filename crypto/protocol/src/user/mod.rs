@@ -1,18 +1,22 @@
-#![cfg(feature = "server")]
-
+#[cfg(feature = "wasm")]
+pub mod wasm;
 use entropy_shared::SIGNING_PARTY_SIZE;
-use futures::future;
+use futures::{future, Future};
 use subxt::utils::AccountId32;
 use subxt_signer::sr25519;
 use synedrion::KeyShare;
+#[cfg(feature = "server")]
+use tokio::spawn;
 use tokio::sync::{broadcast, mpsc};
-use tokio_tungstenite::connect_async;
+#[cfg(feature = "wasm")]
+use wasm_bindgen_futures::spawn_local as spawn;
 
 use crate::{
     errors::UserRunningProtocolErr,
     execute_protocol::{self, Channels},
     protocol_transport::{
-        noise::noise_handshake_initiator, ws_to_channels, Broadcaster, SubscribeMessage, WsChannels,
+        noise::noise_handshake_initiator, open_ws_connection, ws_to_channels, Broadcaster,
+        SubscribeMessage, ThreadSafeWsConnection, WsChannels,
     },
     KeyParams, PartyId, RecoverableSignature, ValidatorInfo,
 };
@@ -27,7 +31,9 @@ pub async fn user_participates_in_signing_protocol(
     sig_hash: [u8; 32],
     x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<RecoverableSignature, UserRunningProtocolErr> {
+    // Make WS connections to the given set of TSS servers
     let (channels, tss_accounts) = user_connects_to_validators(
+        open_ws_connection,
         sig_uid,
         validators_info,
         user_signing_keypair,
@@ -57,9 +63,11 @@ pub async fn user_participates_in_dkg_protocol(
     user_signing_keypair: &sr25519::Keypair,
     x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<KeyShare<KeyParams>, UserRunningProtocolErr> {
+    // Make WS connections to the given set of TSS servers
     let sig_req_account: AccountId32 = user_signing_keypair.public_key().0.into();
     let session_id = sig_req_account.to_string();
     let (channels, tss_accounts) = user_connects_to_validators(
+        open_ws_connection,
         &session_id,
         validators_info,
         user_signing_keypair,
@@ -78,13 +86,20 @@ pub async fn user_participates_in_dkg_protocol(
     Ok(keyshare)
 }
 
-async fn user_connects_to_validators(
+/// Connect to TSS servers using websockets and the noise protocol
+async fn user_connects_to_validators<F, Fut, W>(
+    open_ws_connection: F,
     session_id: &str,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Keypair,
     x25519_private_key: &x25519_dalek::StaticSecret,
-) -> Result<(Channels, Vec<AccountId32>), UserRunningProtocolErr> {
-    // Set up channels for communication between signing protocol and other signing parties
+) -> Result<(Channels, Vec<AccountId32>), UserRunningProtocolErr>
+where
+    F: Fn(String) -> Fut,
+    Fut: Future<Output = Result<W, UserRunningProtocolErr>>,
+    W: ThreadSafeWsConnection,
+{
+    // Set up channels for communication between the protocol and the other parties
     let (tx, _rx) = broadcast::channel(1000);
     let (tx_to_others, rx_to_others) = mpsc::channel(1000);
     let tx_ref = &tx;
@@ -93,14 +108,12 @@ async fn user_connects_to_validators(
     // Create a vec of futures which connect to the other parties over ws
     let connect_to_validators = validators_info
         .iter()
-        .map(|validator_info| async move {
+        .map(|validator_info| async {
             // Open a ws connection
             let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
-            let (ws_stream, _response) = connect_async(ws_endpoint)
-                .await
-                .map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
+            let ws_stream = open_ws_connection(ws_endpoint).await?;
 
-            // Send a SubscribeMessage in the payload of the final handshake message
+            // Prepare a SubscribeMessage for the payload of the final handshake message
             let subscribe_message_vec =
                 bincode::serialize(&SubscribeMessage::new(session_id, user_signing_keypair))?;
 
@@ -130,11 +143,11 @@ async fn user_connects_to_validators(
             let remote_party_id = PartyId::new(validator_info.tss_account.clone());
 
             // Handle protocol messages in another task
-            tokio::spawn(async move {
+            spawn(async move {
                 if let Err(err) =
                     ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await
                 {
-                    tracing::warn!("{:?}", err);
+                    tracing::warn!("WS message loop error: {:?}", err);
                 };
             });
 

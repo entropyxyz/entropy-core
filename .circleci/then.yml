@@ -27,6 +27,7 @@ commands:
                   sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
                   sudo apt-get update
                   sudo apt install -y libssl-dev clang libclang-dev tor && sudo systemctl start tor && sudo systemctl enable tor
+                  sudo apt install -y yarn
     install-rust:
         steps:
             - run:
@@ -36,6 +37,9 @@ commands:
                   source "$HOME/.cargo/env"
                   rustup update stable
                   rustup target add wasm32-unknown-unknown
+    install-wasm-pack:
+        steps:
+            - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
     install-dependencies-and-checkout:
         steps:
             # Needed to getch the currently private `synedrion` dependency
@@ -47,6 +51,7 @@ commands:
             - checkout
             - install-dependencies
             - install-rust
+            - install-wasm-pack
     new-cmd:
         steps:
             - run: echo test
@@ -100,6 +105,14 @@ jobs:
         steps:
             - increase-swap
             - install-dependencies-and-checkout
+            - run:
+                name: Build entropy-protocol nodejs package.
+                command: |
+                  cd crypto/protocol
+                  make build-nodejs
+                  cd nodejs-test
+                  yarn
+                  cd ../../..
             - run:
                 command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
                 no_output_timeout: 45m

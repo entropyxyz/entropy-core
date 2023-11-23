@@ -57,11 +57,11 @@ services:
       file: docker-compose-common.yaml
       service: tss-server
     ports:
-      - "127.0.0.1:3002:3001/tcp"
+      - "127.0.0.1:3002:3002/tcp"
     command:
       - "--bob"
       - "--threshold-url"
-      - "0.0.0.0:3001"
+      - "0.0.0.0:3002"
       - "--chain-endpoint"
       - "ws://bob-chain-node:9944"
 
@@ -86,4 +86,4 @@ services:
       - "--bootnodes"
       - "/dns4/alice-chain-node/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
       - "--tss-server-endpoint"
-      - "http://bob-tss-server:3001"
+      - "http://bob-tss-server:3002"

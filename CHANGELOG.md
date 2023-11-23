@@ -14,7 +14,11 @@ At the moment this project **does not** adhere to
 - In the JSON body of the `/sign_tx` endpoint, the `preimage` field has been renamed to `message`. It remains a hex-encoded `string`. [#475](https://github.com/entropyxyz/entropy-core/pull/475/) 
 
 ### Added
--  Auxiliary data for program evaluation ([#475](https://github.com/entropyxyz/entropy-core/pull/475/))
+-  Auxiliary data for program evaluation ([#475](https://github.com/entropyxyz/entropy-core/pull/475/)
+-  Add versioning to server ([#516](https://github.com/entropyxyz/entropy-core/pull/516/))
+
+### Changed
+-  Change SocketAddr type for String ([#496](https://github.com/entropyxyz/entropy-core/pull/496/))
 
 ## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7..v0.0.8) - 2023-11-06
 

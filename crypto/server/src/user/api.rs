@@ -24,7 +24,6 @@ use kvdb::kv_manager::{
     value::PartyInfo,
     KvManager,
 };
-use log::info;
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::{Decode, DecodeAll, Encode};
 use serde::{Deserialize, Serialize};
@@ -90,6 +89,10 @@ pub struct UserRegistrationInfo {
 /// Called by a user to initiate the signing process for a message
 ///
 /// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
+#[tracing::instrument(
+    skip_all,
+    fields(signing_address = %signed_msg.account_id())
+)]
 pub async fn sign_tx(
     State(app_state): State<AppState>,
     Json(signed_msg): Json<SignedMessage>,
@@ -177,13 +180,19 @@ pub async fn sign_tx(
 }
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.
-/// The http request takes a parity scale encoded [OcwMessageDkg] which tells us which validators are
-/// in the registration group and will perform a DKG.
+///
+/// The HTTP request takes a Parity SCALE encoded [OcwMessageDkg] which indicates which validators
+/// are in the validator group.
+///
+/// This will trigger the Distributed Key Generation (DKG) process.
+#[tracing::instrument(skip_all, fields(block_number))]
 pub async fn new_user(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
     let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
+    tracing::Span::current().record("block_number", data.block_number);
+
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
@@ -198,14 +207,21 @@ pub async fn new_user(
         if let Err(err) = setup_dkg(api, &rpc, signer, data, app_state).await {
             // TODO here we would check the error and if it relates to a misbehaving node,
             // use the slashing mechanism
-            tracing::warn!("User registration failed {:?}", err);
+            tracing::error!("User registration failed {:?}", err);
         }
     });
 
     Ok(StatusCode::OK)
 }
 
-/// Setup and execute DKG. Called internally by the [new_user] function.
+/// Setup and execute DKG.
+///
+/// Called internally by the [new_user] function.
+#[tracing::instrument(
+    skip_all,
+    fields(data),
+    level = tracing::Level::DEBUG
+)]
 async fn setup_dkg(
     api: OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -213,6 +229,8 @@ async fn setup_dkg(
     data: OcwMessageDkg,
     app_state: AppState,
 ) -> Result<(), UserErr> {
+    tracing::debug!("Preparing to execute DKG");
+
     let (subgroup, stash_address) = get_subgroup(&api, rpc, &signer).await?;
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup =
@@ -280,7 +298,13 @@ async fn setup_dkg(
 }
 
 /// HTTP POST endpoint to recieve a keyshare from another threshold server in the same
-/// signing subgroup. Takes a [UserRegistrationInfo] wrapped in a [SignedMessage].
+/// signing subgroup.
+///
+/// Takes a [UserRegistrationInfo] wrapped in a [SignedMessage].
+#[tracing::instrument(
+    skip_all,
+    fields(signing_address = %signed_msg.account_id())
+)]
 pub async fn receive_key(
     State(app_state): State<AppState>,
     Json(signed_msg): Json<SignedMessage>,
@@ -352,6 +376,11 @@ pub async fn receive_key(
 }
 
 /// Returns details of a given registering user including key key visibility and X25519 public key.
+#[tracing::instrument(
+    skip_all,
+    fields(who),
+    level = tracing::Level::DEBUG
+)]
 pub async fn get_registering_user_details(
     api: &OnlineClient<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,

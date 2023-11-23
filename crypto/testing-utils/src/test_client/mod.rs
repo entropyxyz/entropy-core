@@ -1,3 +1,7 @@
+//! Client functionality used in itegration tests
+use server::chain_api::{
+    entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, EntropyConfig,
+};
 mod common;
 use std::{
     str::FromStr,
@@ -25,7 +29,9 @@ use subxt::{
     backend::legacy::LegacyRpcMethods,
     tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static},
-    Config, OnlineClient,
+    Config,
+    OnlineClient,
+    // ext::sp_core::{sr25519, Pair},
 };
 use subxt_signer::SecretUri;
 use synedrion::{
@@ -33,10 +39,6 @@ use synedrion::{
     KeyShare,
 };
 use x25519_chacha20poly1305::SignedMessage;
-
-use crate::chain_api::{
-    entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, *,
-};
 
 /// Register an account
 pub async fn register(
@@ -216,7 +218,7 @@ pub async fn sign(
     Err(anyhow!("No results to return"))
 }
 
-/// Update a program
+/// Set or update the program associated with a given entropy account
 pub async fn update_program(
     api: &OnlineClient<EntropyConfig>,
     sig_req_account: SubxtAccountId32,
@@ -241,6 +243,33 @@ pub async fn update_program(
     Ok(())
 }
 
+// pub async fn update_program(
+//     entropy_api: &OnlineClient<EntropyConfig>,
+//     sig_req_account: &sr25519::Pair,
+//     program_modification_account: &sr25519::Pair,
+//     initial_program: Vec<u8>,
+// ) {
+//     // update/set their programs
+//     let update_program_tx = entropy::tx()
+//         .programs()
+//         .update_program(SubxtAccountId32::from(sig_req_account.public()), initial_program);
+//
+//     let program_modification_account =
+//         PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_account.clone());
+//
+//     entropy_api
+//         .tx()
+//         .sign_and_submit_then_watch_default(&update_program_tx, &program_modification_account)
+//         .await
+//         .unwrap()
+//         .wait_for_in_block()
+//         .await
+//         .unwrap()
+//         .wait_for_success()
+//         .await
+//         .unwrap();
+// }
+
 /// Get info on all registered accounts
 pub async fn get_accounts(
     api: &OnlineClient<EntropyConfig>,
@@ -261,38 +290,38 @@ pub async fn get_accounts(
     Ok(accounts)
 }
 
-// TODO this is not tested
-/// Fund a given account with sudo
-pub async fn fund_account(
-    api: &OnlineClient<EntropyConfig>,
-    root_keypair: sr25519::Pair,
-    account_to_fund: AccountId32,
-    amount: u128,
-) -> anyhow::Result<()> {
-    let root_account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(root_keypair);
-    let sudo_tx = entropy::tx().balances().force_set_balance(account_to_fund.into(), amount);
-    api.tx()
-        .sign_and_submit_then_watch_default(&sudo_tx, &root_account)
-        .await?
-        .wait_for_in_block()
-        .await?
-        .wait_for_success()
-        .await?;
-    Ok(())
-}
+// // TODO this is not tested
+// /// Fund a given account with sudo
+// pub async fn fund_account(
+//     api: &OnlineClient<EntropyConfig>,
+//     root_keypair: sr25519::Pair,
+//     account_to_fund: AccountId32,
+//     amount: u128,
+// ) -> anyhow::Result<()> {
+//     let root_account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(root_keypair);
+//     let sudo_tx = entropy::tx().balances().force_set_balance(account_to_fund.into(), amount);
+//     api.tx()
+//         .sign_and_submit_then_watch_default(&sudo_tx, &root_account)
+//         .await?
+//         .wait_for_in_block()
+//         .await?
+//         .wait_for_success()
+//         .await?;
+//     Ok(())
+// }
 
 // Submit a register transaction
 async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keypair: sr25519::Pair,
-    constraint_account: SubxtAccountId32,
+    program_modification_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
     initial_program: Vec<u8>,
 ) -> anyhow::Result<()> {
     let sig_req_account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keypair);
 
     let registering_tx = entropy::tx().relayer().register(
-        constraint_account,
+        program_modification_account,
         Static(key_visibility),
         initial_program,
     );

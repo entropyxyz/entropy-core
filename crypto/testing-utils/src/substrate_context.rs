@@ -106,7 +106,6 @@ impl SubstrateTestingContext {
 
 /// Constructs a new testing context for when we need multiple Substrate nodes.
 pub async fn testing_context() -> SubstrateTestingContext {
-    env_logger::try_init().ok();
     let node_proc: TestNodeProcess<EntropyConfig> = test_node_process().await;
     let api = node_proc.client().clone();
     SubstrateTestingContext { node_proc, api }
@@ -114,7 +113,6 @@ pub async fn testing_context() -> SubstrateTestingContext {
 
 /// Construct a new testing context for when we only need one Substrate node.
 pub async fn test_context_stationary() -> SubstrateTestingContext {
-    env_logger::try_init().ok();
     let node_proc: TestNodeProcess<EntropyConfig> = test_node_process_stationary().await;
     let api = node_proc.client().clone();
     SubstrateTestingContext { node_proc, api }

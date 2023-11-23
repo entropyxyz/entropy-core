@@ -30,8 +30,14 @@ pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
 pub const FORBIDDEN_KEYS: [&str; 3] = ["MNEMONIC", "SHARED_SECRET", "DH_PUBLIC"];
 
+/// Initializes the tracing `Subscriber` for the process.
 pub fn init_tracing() {
-    tracing_subscriber::fmt().with_target(false).json().init();
+    // We set up the logger to only print out logs of `ERROR` or higher by default, otherwise
+    // we fall back to the user's `RUST_LOG` settings.
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .json()
+        .init();
 }
 
 // Deafult name for TSS server
@@ -48,7 +54,7 @@ pub struct Configuration {
 }
 
 impl Configuration {
-    pub(crate) fn new(endpoint: String) -> Configuration {
+    pub fn new(endpoint: String) -> Configuration {
         Configuration { endpoint }
     }
 }
@@ -147,7 +153,6 @@ pub async fn setup_mnemonic(
         }
 
         let phrase = mnemonic.phrase();
-        println!("[server-config]");
         let pair = mnemonic_to_pair(&mnemonic).expect("Issue deriving Mnemonic");
         let static_secret = derive_static_secret(&pair);
         let dh_public = x25519_dalek::PublicKey::from(&static_secret);
@@ -173,7 +178,6 @@ pub async fn setup_mnemonic(
             .put(dh_reservation, converted_dh_public.clone())
             .await
             .expect("failed to update dh");
-        println!("dh_public_key={dh_public:?}");
 
         let formatted_dh_public = format!("{converted_dh_public:?}").replace('"', "");
         fs::write(".entropy/public_key", formatted_dh_public)
@@ -182,7 +186,7 @@ pub async fn setup_mnemonic(
         let p = <sr25519::Pair as Pair>::from_phrase(phrase, None)
             .expect("Issue getting pair from mnemonic");
         let id = AccountId32::new(p.0.public().0);
-        println!("account_id={id}");
+
         fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
 
         // Update the value in the kvdb
@@ -195,6 +199,8 @@ pub async fn setup_mnemonic(
             .put(reservation, phrase.as_bytes().to_vec())
             .await
             .expect("failed to update mnemonic");
+
+        tracing::debug!("Starting process with account ID: `{id}`");
     }
     Ok(())
 }

@@ -39,10 +39,10 @@ where
 
     /// Attempt to kill the running substrate process.
     pub fn kill(&mut self) -> Result<(), String> {
-        log::info!("Killing node process {}", self.proc.id());
+        tracing::info!("Killing node process {}", self.proc.id());
         if let Err(err) = self.proc.kill() {
             let err = format!("Error killing node process {}: {err}", self.proc.id());
-            log::error!("{}", err);
+            tracing::error!("{}", err);
             return Err(err);
         }
         Ok(())
@@ -113,7 +113,7 @@ impl TestNodeProcessBuilder {
 
             cmd.arg(format!("--port={p2p_port}"));
             cmd.arg(format!("--rpc-port={ws_port}"));
-            println!("ws port: {ws_port}");
+            tracing::info!("ws port: {ws_port}");
             ws_port
         } else {
             // the default Websockets port
@@ -131,7 +131,7 @@ impl TestNodeProcessBuilder {
         let mut wait_secs = 1;
         let client = loop {
             thread::sleep(time::Duration::from_secs(wait_secs));
-            log::info!(
+            tracing::info!(
                 "Connecting to contracts enabled node, attempt {}/{}",
                 attempts,
                 MAX_ATTEMPTS
@@ -155,7 +155,7 @@ impl TestNodeProcessBuilder {
                 let err = format!(
                     "Failed to connect to node rpc at {ws_url} after {attempts} attempts: {err}"
                 );
-                log::error!("{}", err);
+                tracing::error!("{}", err);
                 proc.kill()
                     .map_err(|e| format!("Error killing substrate process '{}': {e}", proc.id()))?;
                 Err(err)

@@ -1812,9 +1812,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-bigint"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf4c2f4e1afd912bc40bfd6fed5d9dc1f288e0ba01bfcc835cc5bc3eb13efe15"
+checksum = "740fe28e594155f10cfc383984cbefd529d7396050557148f79cb0f621204124"
 dependencies = [
  "generic-array 0.14.7",
  "rand_core 0.6.4",
@@ -1870,7 +1870,7 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97a4eeb0a8686cfc94242c8860628627206a2b24148d6ab8f5d41c708438582f"
 dependencies = [
- "crypto-bigint 0.5.2",
+ "crypto-bigint 0.5.3",
  "rand_core 0.6.4",
 ]
 
@@ -2486,7 +2486,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "968405c8fdc9b3bf4df0a6638858cc0b52462836ab6b1c87377785dd09cf1c0b"
 dependencies = [
  "base16ct 0.2.0",
- "crypto-bigint 0.5.2",
+ "crypto-bigint 0.5.3",
  "digest 0.10.7",
  "ff 0.13.0",
  "generic-array 0.14.7",
@@ -2605,15 +2605,19 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "axum",
+ "base64 0.13.1",
  "bincode",
  "blake2",
  "entropy-shared",
  "futures",
  "getrandom 0.2.10",
+ "gloo-net",
  "hex",
+ "js-sys",
  "rand_core 0.6.4",
  "serde",
  "serde-big-array",
+ "serde_json",
  "snow",
  "subxt",
  "subxt-signer",
@@ -2622,7 +2626,14 @@ dependencies = [
  "tokio",
  "tokio-tungstenite 0.19.0",
  "tracing",
+<<<<<<< HEAD
  "x25519-dalek 2.0.0",
+=======
+ "wasm-bindgen",
+ "wasm-bindgen-derive",
+ "wasm-bindgen-futures",
+ "x25519-dalek 2.0.0-pre.1",
+>>>>>>> master
 ]
 
 [[package]]
@@ -2758,19 +2769,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.32",
-]
-
-[[package]]
-name = "env_logger"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a12e6657c4c97ebab115a42dcee77225f7f482cdd841cf7088c657a42e9e00e7"
-dependencies = [
- "atty",
- "humantime",
- "log",
- "regex",
- "termcolor",
 ]
 
 [[package]]
@@ -2959,7 +2957,7 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "84f2e425d9790201ba4af4630191feac6dcc98765b118d4d18e91d23c2353866"
 dependencies = [
- "env_logger 0.10.0",
+ "env_logger",
  "log",
 ]
 
@@ -2969,7 +2967,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a3cc21c33af89af0930c8cae4ade5e6fdc17b5d2c97b3d2e2edb67a1cf683f3"
 dependencies = [
- "env_logger 0.10.0",
+ "env_logger",
  "log",
 ]
 
@@ -3527,6 +3525,10 @@ name = "futures-timer"
 version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e64b03909df88034c26dc1547e8970b91f98bdb65165d6a4e9110d94263dbb2c"
+dependencies = [
+ "gloo-timers",
+ "send_wrapper 0.4.0",
+]
 
 [[package]]
 name = "futures-util"
@@ -3672,6 +3674,52 @@ dependencies = [
  "fnv",
  "log",
  "regex",
+]
+
+[[package]]
+name = "gloo-net"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ac9e8288ae2c632fa9f8657ac70bfe38a1530f345282d7ba66a1f70b72b7dc4"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "futures-sink",
+ "gloo-utils",
+ "http",
+ "js-sys",
+ "pin-project",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "gloo-timers"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b995a66bb87bebce9a0f4a95aed01daca4872c050bfcb21653361c03bc35e5c"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "gloo-utils"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b5555354113b18c547c1d3a98fbf7fb32a9ff4f6fa112ce823a21641a0ba3aa"
+dependencies = [
+ "js-sys",
+ "serde",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -4218,6 +4266,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if",
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -4422,7 +4473,9 @@ version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "58d9851f8f5653e0433a898e9032bde4910b35d625bd9dcf33ef6e36e7c3d456"
 dependencies = [
+ "futures-channel",
  "futures-util",
+ "gloo-net",
  "http",
  "jsonrpsee-core 0.20.2",
  "pin-project",
@@ -4484,6 +4537,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -6026,6 +6080,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4161fcb6d602d4d2081af7c3a45852d875a03dd337a6bfdd6e06407b61342a43"
 dependencies = [
  "hermit-abi 0.3.2",
+ "libc",
+]
+
+[[package]]
+name = "num_threads"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2819ce041d2ee131036f4fc9d6ae7ae125a3a40e97ba64d04fe799ad9dabbb44"
+dependencies = [
  "libc",
 ]
 
@@ -10245,6 +10308,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
+name = "send_wrapper"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f638d531eccd6e23b980caf34876660d38e265409d8e99b397ab71eb3612fad0"
+
+[[package]]
+name = "send_wrapper"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd0b0ec5f1c1ca621c432a25813d8d60c88abe6d3e08a3eb9cf37d97a0fe3d73"
+
+[[package]]
 name = "serde"
 version = "1.0.188"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10408,7 +10483,7 @@ dependencies = [
  "hex",
  "hex-literal",
  "kvdb 0.1.0",
- "log",
+ "lazy_static",
  "more-asserts",
  "num",
  "parity-scale-codec",
@@ -10435,7 +10510,13 @@ dependencies = [
  "tower-http 0.3.5",
  "tracing",
  "tracing-subscriber 0.3.17",
+<<<<<<< HEAD
  "x25519-dalek 2.0.0",
+=======
+ "uuid",
+ "vergen",
+ "x25519-dalek 2.0.0-pre.1",
+>>>>>>> master
  "zeroize",
 ]
 
@@ -12290,6 +12371,7 @@ dependencies = [
  "either",
  "frame-metadata 16.0.0",
  "futures",
+ "getrandom 0.2.10",
  "hex",
  "impl-serde 0.4.0",
  "jsonrpsee 0.20.2",
@@ -12318,6 +12400,7 @@ version = "0.32.1"
 source = "git+https://github.com/paritytech/subxt.git?tag=v0.32.1#761fee0b07b977805c7e7af7d054e0c5a9b142b2"
 dependencies = [
  "frame-metadata 16.0.0",
+ "getrandom 0.2.10",
  "heck 0.4.1",
  "hex",
  "jsonrpsee 0.20.2",
@@ -12337,14 +12420,23 @@ version = "0.32.1"
 source = "git+https://github.com/paritytech/subxt.git?tag=v0.32.1#761fee0b07b977805c7e7af7d054e0c5a9b142b2"
 dependencies = [
  "futures",
+ "futures-timer",
  "futures-util",
+ "getrandom 0.2.10",
+ "instant",
+ "js-sys",
+ "send_wrapper 0.6.0",
  "serde",
  "serde_json",
+ "smoldot",
  "smoldot-light",
  "thiserror",
  "tokio",
  "tokio-stream",
  "tracing",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
@@ -12436,16 +12528,16 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 
 [[package]]
 name = "synedrion"
-version = "0.0.9"
-source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=v0.0.9#febe12002fab393222f156bd3bdf17900f412b4f"
+version = "0.0.11"
+source = "git+ssh://git@github.com/entropyxyz/synedrion.git?branch=fix-32bit#d536131c819f993e4627033f98d20307e0d47a5e"
 dependencies = [
  "base64 0.21.2",
- "crypto-bigint 0.5.2",
+ "cfg-if",
+ "crypto-bigint 0.5.3",
  "crypto-primes",
  "digest 0.10.7",
  "hex",
  "k256",
- "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "rmp-serde",
  "serde",
@@ -12540,6 +12632,7 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 name = "testing-utils"
 version = "0.0.8"
 dependencies = [
+<<<<<<< HEAD
  "anyhow",
  "base64 0.13.1",
  "blake2",
@@ -12552,8 +12645,15 @@ dependencies = [
  "futures",
  "generic-array 0.14.7",
  "hex",
+=======
+ "axum",
+ "entropy-protocol",
+ "entropy-shared",
+>>>>>>> master
  "hex-literal",
+ "kvdb 0.1.0",
  "lazy_static",
+<<<<<<< HEAD
  "log",
  "num",
  "parity-scale-codec",
@@ -12563,13 +12663,25 @@ dependencies = [
  "serde",
  "serde_json",
  "sha3",
+=======
+ "parity-scale-codec",
+ "project-root",
+ "rand_core 0.6.4",
+ "server",
+>>>>>>> master
  "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-keyring 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "subxt",
  "subxt-signer",
  "synedrion",
+<<<<<<< HEAD
  "thiserror",
  "tokio",
+=======
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.17",
+>>>>>>> master
  "which",
  "x25519-chacha20poly1305",
  "x25519-dalek 2.0.0",
@@ -12684,6 +12796,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59e399c068f43a5d116fedaf73b203fa4f9c519f17e2b34f63221d3792f81446"
 dependencies = [
  "itoa",
+ "libc",
+ "num_threads",
  "serde",
  "time-core",
  "time-macros",
@@ -13436,9 +13550,9 @@ checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 
 [[package]]
 name = "uuid"
-version = "1.4.0"
+version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d023da39d1fde5a8a3fe1f3e01ca9632ada0a63e9797de55a879d6e2236277be"
+checksum = "5e395fcf16a7a3d8127ec99782007af141946b4795001f876d54fb0d55978560"
 dependencies = [
  "getrandom 0.2.10",
 ]
@@ -13460,6 +13574,18 @@ name = "vec_map"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
+
+[[package]]
+name = "vergen"
+version = "8.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbc5ad0d9d26b2c49a5ab7da76c3e79d3ee37e7821799f8223fcb8f2f391a2e7"
+dependencies = [
+ "anyhow",
+ "rustc_version 0.4.0",
+ "rustversion",
+ "time 0.3.23",
+]
 
 [[package]]
 name = "version_check"
@@ -13548,6 +13674,28 @@ dependencies = [
  "quote",
  "syn 2.0.32",
  "wasm-bindgen-shared",
+]
+
+[[package]]
+name = "wasm-bindgen-derive"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1ab6c8bffb3f89584781211283fb57337d6902faab6eaee38f336977bdf177d"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+ "wasm-bindgen-derive-macro",
+]
+
+[[package]]
+name = "wasm-bindgen-derive-macro"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b87c28b31d27616bc69a891700ef0445d2cbaa0340fdacb145145256d5f5fcbb"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]

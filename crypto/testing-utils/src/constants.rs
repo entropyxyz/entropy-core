@@ -1,5 +1,6 @@
 use hex_literal::hex;
 use subxt::utils::AccountId32;
+
 lazy_static! {
     pub static ref ALICE_STASH_ADDRESS: AccountId32 = hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
     pub static ref RANDOM_ACCOUNT: AccountId32 = hex!["8676839ca1e196624106d17c56b1efbb90508a86d8053f7d4fcd21127a9f7565"].into();
@@ -27,7 +28,8 @@ lazy_static! {
     ];
 }
 
-/// The following constants are values used for integration testing specific to the `example_barebones_with_auxilary.wasm` from the `constraints` repo.
+/// The following constants are values used for integration testing specific to the
+/// `example_barebones_with_auxilary.wasm` from the `constraints` repo.
 pub const TEST_PROGRAM_WASM_BYTECODE: &[u8] =
     include_bytes!("../example_barebones_with_auxilary.wasm");
 pub const PREIMAGE_SHOULD_SUCCEED: &[u8] = "asdfasdfasdfasdf".as_bytes();

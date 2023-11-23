@@ -1,9 +1,9 @@
-use super::api::validate_proactive_refresh;
+use super::api::{partition_all_keys, validate_proactive_refresh};
 use crate::{
     chain_api::{get_api, get_rpc},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        tests::{run_to_block, setup_client, spawn_testing_validators},
+        tests::{initialize_test_logger, run_to_block, setup_client, spawn_testing_validators},
     },
     r#unsafe::api::UnsafeQuery,
 };
@@ -22,6 +22,7 @@ use testing_utils::{
 #[tokio::test]
 #[serial]
 async fn test_proactive_refresh() {
+    initialize_test_logger();
     clean_tests();
     let eve = AccountKeyring::Eve;
     let dave = AccountKeyring::Dave;
@@ -78,7 +79,7 @@ async fn test_proactive_refresh() {
         },
     ];
 
-    let mut ocw_message = OcwMessageProactiveRefresh { validators_info };
+    let mut ocw_message = OcwMessageProactiveRefresh { validators_info, refreshes_done: 0 };
 
     let test_fail_incorrect_data =
         submit_transaction_requests(validator_ips.clone(), ocw_message.clone()).await;
@@ -160,7 +161,9 @@ pub async fn submit_transaction_requests(
 #[tokio::test]
 #[serial]
 async fn test_proactive_refresh_validation_fail() {
+    initialize_test_logger();
     clean_tests();
+
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
@@ -179,7 +182,7 @@ async fn test_proactive_refresh_validation_fail() {
     ];
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    let ocw_message = OcwMessageProactiveRefresh { validators_info };
+    let ocw_message = OcwMessageProactiveRefresh { validators_info, refreshes_done: 0 };
     run_to_block(&rpc, block_number).await;
 
     // manipulates kvdb to get to repeated data error
@@ -192,4 +195,28 @@ async fn test_proactive_refresh_validation_fail() {
         validate_proactive_refresh(&api, &rpc, &kv, &ocw_message).await.map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
     clean_tests();
+}
+
+#[test]
+fn test_partition_all_keys() {
+    let all_keys: Vec<String> = (1..=25).map(|num| num.to_string()).collect();
+
+    let result_normal_10 = partition_all_keys(2, all_keys.clone());
+    assert_eq!(result_normal_10, all_keys[2..12].to_vec());
+
+    let result_next_set = partition_all_keys(12, all_keys.clone());
+    assert_eq!(result_next_set, all_keys[12..22].to_vec());
+
+    let wrap_around_partial = partition_all_keys(23, all_keys.clone());
+    let mut wrap_around_partial_vec = all_keys[23..25].to_vec();
+    wrap_around_partial_vec.append(&mut all_keys[0..8].to_vec());
+    assert_eq!(wrap_around_partial, wrap_around_partial_vec);
+
+    let result_larger = partition_all_keys(32, all_keys.clone());
+    assert_eq!(result_larger, all_keys[7..17].to_vec());
+
+    let wrap_around_partial_larger = partition_all_keys(42, all_keys.clone());
+    let mut wrap_around_partial_larger_vec = all_keys[17..25].to_vec();
+    wrap_around_partial_larger_vec.append(&mut all_keys[0..2].to_vec());
+    assert_eq!(wrap_around_partial_larger, wrap_around_partial_larger_vec);
 }

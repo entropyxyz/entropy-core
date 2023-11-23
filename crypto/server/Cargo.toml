@@ -22,17 +22,17 @@ zeroize            ="1.5.7"
 hex                ="*"
 reqwest-eventsource="0.4"
 serde_derive       ="1.0.147"
-
-synedrion={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="v0.0.9" }
+synedrion          ={ git="ssh://git@github.com/entropyxyz/synedrion.git", branch="fix-32bit" }
 
 # Async
 futures="0.3"
-tokio  ={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util"] }
+tokio  ={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
 
 # HTTP
 reqwest    ={ version="0.11", features=["json", "stream"] }
 axum       ={ version="0.6.18", features=["ws"] }
 axum-macros="0.3.7"
+
 # Substrate
 subxt             ={ package="subxt", git="https://github.com/paritytech/subxt.git", tag="v0.32.1" }
 parity-scale-codec="3.4.0"
@@ -47,10 +47,10 @@ entropy-protocol={ path="../protocol", features=["server"] }
 ec-runtime={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.3.0" }
 
 # Logging
-log               ="0.4.17"                                              # todo: remove, overlaps tracing
 tracing           ="0.1.37"
 tracing-subscriber={ version="0.3.17", features=["env-filter", "json"] }
 tower-http        ={ version="0.3.4", features=["trace", "cors"] }
+uuid              ={ version="1.5.0", features=["v4"] }
 
 # Misc
 tokio-tungstenite="0.19.0"
@@ -74,6 +74,10 @@ project-root      ="0.2.2"
 sp-keyring        ="24.0.0"
 more-asserts      ="0.3.1"
 template-barebones={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.2.0" }
+lazy_static       ="1.4.0"
+
+[build-dependencies]
+vergen={ version="8.0.0", features=["build", "git", "gitcl", "rustc"] }
 
 [features]
 default=['std']

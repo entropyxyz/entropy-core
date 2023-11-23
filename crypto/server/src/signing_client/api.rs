@@ -16,7 +16,9 @@ use entropy_protocol::{
 };
 use parity_scale_codec::Encode;
 
-use entropy_shared::{KeyVisibility, OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::{
+    KeyVisibility, OcwMessageProactiveRefresh, REFRESHES_PER_SESSION, SETUP_TIMEOUT_SECONDS,
+};
 use kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
     KvManager,
@@ -49,9 +51,15 @@ use crate::{
 };
 
 pub const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
-/// HTTP POST endpoint called by the off-chain worker (propagation pallet) during proactive refresh.
-/// The http request takes a parity scale encoded [ValidatorInfo] which tells us which validators
-/// are in the registration group and will perform a proactive_refresh.
+
+/// HTTP POST endpoint called by the a Substrate node during proactive refresh.
+///
+/// In particular, it is the Propogation pallet, with the use of an off-chain worker, which
+/// initiates this request.
+///
+/// The HTTP request takes a Parity SCALE encoded [ValidatorInfo] which indicates which validators
+/// are in the registration group and will perform a proactive refresh.
+#[tracing::instrument(skip_all)]
 pub async fn proactive_refresh(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
@@ -67,6 +75,7 @@ pub async fn proactive_refresh(
     // TODO batch the network keys into smaller groups per session
     let all_keys =
         get_all_keys(&api, &rpc).await.map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
+    let proactive_refresh_keys = partition_all_keys(ocw_data.refreshes_done, all_keys);
     let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
@@ -77,7 +86,7 @@ pub async fn proactive_refresh(
     let subxt_signer = get_subxt_signer(&app_state.kv_store)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-    for key in all_keys {
+    for key in proactive_refresh_keys {
         let sig_request_address = AccountId32::from_str(&key).map_err(ProtocolErr::StringError)?;
         let key_visibility =
             get_key_visibility(&api, &rpc, &sig_request_address.clone().into()).await.unwrap();
@@ -121,6 +130,7 @@ pub async fn proactive_refresh(
 }
 
 /// Handle an incoming websocket connection
+#[tracing::instrument(skip(app_state))]
 pub async fn ws_handler(
     State(app_state): State<AppState>,
     ws: WebSocketUpgrade,
@@ -135,6 +145,11 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
     };
 }
 
+#[tracing::instrument(
+    skip_all,
+    fields(validators_info, sig_request_account, my_subgroup),
+    level = tracing::Level::DEBUG
+)]
 pub async fn do_proactive_refresh(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
@@ -144,6 +159,9 @@ pub async fn do_proactive_refresh(
     subxt_signer: &subxt_signer::sr25519::Keypair,
     old_key: KeyShare<KeyParams>,
 ) -> Result<KeyShare<KeyParams>, ProtocolErr> {
+    tracing::debug!("Preparing to perform proactive refresh");
+    tracing::trace!("Signing with {:?}", &subxt_signer);
+
     let session_uid = sig_request_account.to_string();
     let account_id = SubxtAccountId32(*signer.account_id().clone().as_ref());
     let mut converted_validator_info = vec![];
@@ -236,7 +254,7 @@ pub async fn validate_proactive_refresh(
         })?;
 
     let mut hasher_chain_data = Blake2s256::new();
-    hasher_chain_data.update(ocw_data.validators_info.encode());
+    hasher_chain_data.update(ocw_data.encode());
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
     hasher_verifying_data.update(proactive_info.encode());
@@ -251,4 +269,51 @@ pub async fn validate_proactive_refresh(
         kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string()).await?;
     kv_manager.kv().put(reservation, latest_block_number.to_be_bytes().to_vec()).await?;
     Ok(())
+}
+
+/// Partitions all registered keys into a subset of the network (REFRESHES_PRE_SESSION)
+/// Currently rotates between a moving batch of all keys.
+///
+/// See https://github.com/entropyxyz/entropy-core/issues/510 for some issues which exist
+/// around the scaling of this function.
+pub fn partition_all_keys(refreshes_done: u32, all_keys: Vec<String>) -> Vec<String> {
+    let all_keys_length = all_keys.len() as u32;
+
+    // just return all keys no need to partition network
+    if REFRESHES_PER_SESSION > all_keys_length {
+        return all_keys;
+    }
+
+    let mut refresh_keys: Vec<String> = vec![];
+
+    // handles early on refreshes before refreshes done > all keys
+    if refreshes_done + REFRESHES_PER_SESSION <= all_keys_length {
+        let lower = refreshes_done as usize;
+        let upper = (refreshes_done + REFRESHES_PER_SESSION) as usize;
+        refresh_keys = all_keys[lower..upper].to_vec();
+    }
+
+    // normalize refreshes done down to a partition of the network
+    let normalized_refreshes_done = refreshes_done % all_keys_length;
+
+    if normalized_refreshes_done + REFRESHES_PER_SESSION <= all_keys_length {
+        let lower = normalized_refreshes_done as usize;
+        let upper = (normalized_refreshes_done + REFRESHES_PER_SESSION) as usize;
+        refresh_keys = all_keys[lower..upper].to_vec();
+    }
+
+    // handles if number does not perfectly fit
+    // loops around the partiton adding the beginning of the network to the end
+    if normalized_refreshes_done + REFRESHES_PER_SESSION > all_keys_length {
+        let lower = normalized_refreshes_done as usize;
+        let upper = all_keys.len();
+        refresh_keys = all_keys[lower..upper].to_vec();
+
+        let leftover =
+            (REFRESHES_PER_SESSION - (all_keys_length - normalized_refreshes_done)) as usize;
+        let mut post_turnaround_keys = all_keys[0..leftover].to_vec();
+        refresh_keys.append(&mut post_turnaround_keys);
+    }
+
+    refresh_keys
 }
