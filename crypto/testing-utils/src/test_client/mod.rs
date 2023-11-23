@@ -19,11 +19,10 @@ use entropy_protocol::{
 };
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 use futures::future::try_join_all;
-use log::info;
 use parity_scale_codec::Decode;
 use sp_core::{
     crypto::{AccountId32, Ss58Codec},
-    sr25519, Pair,
+    sr25519, Bytes, Pair,
 };
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -52,7 +51,6 @@ pub async fn register(
     let sig_req_seed = SeedString::new(sig_req_seed_string);
     let sig_req_keypair: sr25519::Pair = sig_req_seed.clone().try_into()?;
     let sig_req_subxt_keypair: subxt_signer::sr25519::Keypair = sig_req_seed.try_into()?;
-    info!("Signature request account: {}", hex::encode(sig_req_keypair.public().0));
 
     // Check if user is already registered
     let account_id32: AccountId32 = sig_req_keypair.public().into();
@@ -121,12 +119,12 @@ pub async fn sign(
     let sig_req_seed = SeedString::new(sig_req_seed_string);
     let sig_req_keypair: sr25519::Pair = sig_req_seed.clone().try_into()?;
     let sig_req_subxt_keypair: subxt_signer::sr25519::Keypair = sig_req_seed.clone().try_into()?;
-    info!("Signature request account: {}", hex::encode(sig_req_keypair.public().0));
+    tracing::debug!("Signature request account: {}", hex::encode(sig_req_keypair.public().0));
 
     let message_hash = Hasher::keccak(&message);
     let message_hash_hex = hex::encode(message_hash);
     let validators_info = get_current_subgroup_signers(api, &message_hash_hex).await?;
-    info!("Validators info {:?}", validators_info);
+    tracing::debug!("Validators info {:?}", validators_info);
 
     let generic_msg = UserSignatureRequest {
         message: hex::encode(message),
@@ -144,9 +142,9 @@ pub async fn sign(
         .map(|validator_info| async {
             let validator_public_key: x25519_dalek::PublicKey =
                 validator_info.x25519_public_key.into();
-            let signed_message = SignedMessage::new_with_keypair_seed(
-                &sig_req_seed.seed()?,
-                user_transaction_request_vec.clone(),
+            let signed_message = SignedMessage::new(
+                &sig_req_keypair,
+                &Bytes(user_transaction_request_vec.clone()),
                 &validator_public_key,
             )?;
             let signed_message_json = signed_message.to_json()?;
@@ -202,7 +200,7 @@ pub async fn sign(
             serde_json::from_slice(&chunk).unwrap();
         let (signature_base64, _signature_of_signature) =
             signing_result.map_err(|err| anyhow!(err))?;
-        info!("Signature: {}", signature_base64);
+        tracing::debug!("Signature: {}", signature_base64);
 
         let mut decoded_sig = base64::decode(signature_base64)?;
         let recovery_digit = decoded_sig.pop().ok_or(anyhow!("Cannot get recovery digit"))?;
@@ -211,7 +209,7 @@ pub async fn sign(
             RecoveryId::from_byte(recovery_digit).ok_or(anyhow!("Cannot create recovery id"))?;
         let recovery_key_from_sig =
             VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id).unwrap();
-        info!("Verifying Key {:?}", recovery_key_from_sig);
+        tracing::debug!("Verifying Key {:?}", recovery_key_from_sig);
 
         return Ok(RecoverableSignature { signature, recovery_id });
     }
@@ -222,16 +220,13 @@ pub async fn sign(
 pub async fn update_program(
     api: &OnlineClient<EntropyConfig>,
     sig_req_account: SubxtAccountId32,
-    program_seed_string: String,
+    program_modification_account: &sr25519::Pair,
     program: Vec<u8>,
 ) -> anyhow::Result<()> {
-    let program_seed = SeedString::new(program_seed_string);
-    let program_keypair: sr25519::Pair = program_seed.try_into()?;
-
     let update_program_tx = entropy::tx().programs().update_program(sig_req_account, program);
 
     let program_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_keypair.clone());
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_account.clone());
 
     api.tx()
         .sign_and_submit_then_watch_default(&update_program_tx, &program_modification_account)
@@ -242,33 +237,6 @@ pub async fn update_program(
         .await?;
     Ok(())
 }
-
-// pub async fn update_program(
-//     entropy_api: &OnlineClient<EntropyConfig>,
-//     sig_req_account: &sr25519::Pair,
-//     program_modification_account: &sr25519::Pair,
-//     initial_program: Vec<u8>,
-// ) {
-//     // update/set their programs
-//     let update_program_tx = entropy::tx()
-//         .programs()
-//         .update_program(SubxtAccountId32::from(sig_req_account.public()), initial_program);
-//
-//     let program_modification_account =
-//         PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_account.clone());
-//
-//     entropy_api
-//         .tx()
-//         .sign_and_submit_then_watch_default(&update_program_tx, &program_modification_account)
-//         .await
-//         .unwrap()
-//         .wait_for_in_block()
-//         .await
-//         .unwrap()
-//         .wait_for_success()
-//         .await
-//         .unwrap();
-// }
 
 /// Get info on all registered accounts
 pub async fn get_accounts(
@@ -290,28 +258,8 @@ pub async fn get_accounts(
     Ok(accounts)
 }
 
-// // TODO this is not tested
-// /// Fund a given account with sudo
-// pub async fn fund_account(
-//     api: &OnlineClient<EntropyConfig>,
-//     root_keypair: sr25519::Pair,
-//     account_to_fund: AccountId32,
-//     amount: u128,
-// ) -> anyhow::Result<()> {
-//     let root_account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(root_keypair);
-//     let sudo_tx = entropy::tx().balances().force_set_balance(account_to_fund.into(), amount);
-//     api.tx()
-//         .sign_and_submit_then_watch_default(&sudo_tx, &root_account)
-//         .await?
-//         .wait_for_in_block()
-//         .await?
-//         .wait_for_success()
-//         .await?;
-//     Ok(())
-// }
-
 // Submit a register transaction
-async fn put_register_request_on_chain(
+pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keypair: sr25519::Pair,
     program_modification_account: SubxtAccountId32,
@@ -345,10 +293,10 @@ impl SeedString {
         Self(if seed_string.starts_with("//") { seed_string } else { format!("//{}", seed_string) })
     }
 
-    fn seed(&self) -> anyhow::Result<[u8; 32]> {
-        let (_, seed_option) = sr25519::Pair::from_string_with_seed(&self.0, None)?;
-        seed_option.ok_or(anyhow!("Could not get seed"))
-    }
+    // fn seed(&self) -> anyhow::Result<[u8; 32]> {
+    //     let (_, seed_option) = sr25519::Pair::from_string_with_seed(&self.0, None)?;
+    //     seed_option.ok_or(anyhow!("Could not get seed"))
+    // }
 }
 
 impl TryFrom<SeedString> for sr25519::Pair {

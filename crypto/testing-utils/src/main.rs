@@ -1,7 +1,6 @@
 //! Simple CLI to test registering, updating programs and signing
 use std::{fs, path::PathBuf, time::Instant};
 
-use anyhow::anyhow;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use sp_core::{sr25519, Pair};
@@ -9,13 +8,10 @@ use subxt::utils::AccountId32 as SubxtAccountId32;
 use testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
-        derive_static_secret, fund_account, get_accounts, get_api, get_rpc, register, sign,
-        update_program, KeyVisibility,
+        derive_static_secret, get_accounts, get_api, get_rpc, register, sign, update_program,
+        KeyVisibility,
     },
 };
-
-// This is the name of the environment variable used to store the root seed
-const ENTROPY_DEVNET_ROOT_SEED: &str = "ENTROPY_DEVNET_ROOT_SEED";
 
 #[derive(Parser, Debug, Clone)]
 #[clap(version, about, long_about = None)]
@@ -63,13 +59,6 @@ enum CliCommand {
     },
     /// Display a list of registered entropy accounts
     Status,
-    /// Fund an account with sudo
-    FundAccount {
-        /// The account name to fund
-        account_to_fund: String,
-        /// How many Bits to give
-        amount: Option<u128>,
-    },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
@@ -200,24 +189,6 @@ async fn run_command() -> anyhow::Result<String> {
                 }
             }
             Ok("Got status".to_string())
-        },
-        CliCommand::FundAccount { account_to_fund, amount } => {
-            let root_keypair = {
-                let root_seed_hex = std::env::var(ENTROPY_DEVNET_ROOT_SEED).map_err(|_| {
-                    anyhow!(
-                        "Root seed must be stored in environment variable {}",
-                        ENTROPY_DEVNET_ROOT_SEED
-                    )
-                })?;
-                let root_seed_vec = hex::decode(root_seed_hex)?;
-                let root_seed: [u8; 32] = root_seed_vec.try_into().unwrap();
-                sr25519::Pair::from_seed(&root_seed)
-            };
-            let to_fund_keypair = account_name_to_keypair(account_to_fund)?;
-            let amount = amount.unwrap_or(100_000);
-
-            fund_account(&api, root_keypair, to_fund_keypair.public().into(), amount).await?;
-            Ok("Account funded".to_string())
         },
     }
 }

@@ -10,7 +10,7 @@ use kvdb::clean_tests;
 use parity_scale_codec::Encode;
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
-use sp_core::crypto::{AccountId32, Ss58Codec};
+use sp_core::crypto::{AccountId32, Pair, Ss58Codec};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{
     thread,
@@ -58,8 +58,14 @@ async fn test_wasm_sign_tx_user_participates() {
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    update_program(&entropy_api, &one.pair(), &one.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
-        .await;
+    update_program(
+        &entropy_api,
+        one.pair().public().0.into(),
+        &one.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+    )
+    .await
+    .unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -191,8 +197,10 @@ async fn test_wasm_register_with_private_key_visibility() {
         one.pair(),
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
+        Vec::new(),
     )
-    .await;
+    .await
+    .unwrap();
     run_to_block(&rpc, block_number + 1).await;
 
     // Simulate the propagation pallet making a `user/new` request to the second validator
