@@ -5,18 +5,18 @@ use clap::Parser;
 use server::{
     app,
     launch::{
-        init_tracing, load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration,
-        StartupArgs, ValidatorName,
+        load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration, StartupArgs,
+        ValidatorName,
     },
     sync_validator, AppState,
 };
 
 #[tokio::main]
 async fn main() {
-    init_tracing();
-    tracing::info!("Starting Threshold Signature Sever");
-
     let args = StartupArgs::parse();
+    args.logger.setup();
+
+    tracing::info!("Starting Threshold Signature Sever");
     tracing::info!("Starting server on: `{}`", &args.threshold_url);
 
     let configuration = Configuration::new(args.chain_endpoint);

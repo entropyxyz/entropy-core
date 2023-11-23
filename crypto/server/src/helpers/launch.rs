@@ -30,16 +30,6 @@ pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
 pub const FORBIDDEN_KEYS: [&str; 3] = ["MNEMONIC", "SHARED_SECRET", "DH_PUBLIC"];
 
-/// Initializes the tracing `Subscriber` for the process.
-pub fn init_tracing() {
-    // We set up the logger to only print out logs of `ERROR` or higher by default, otherwise
-    // we fall back to the user's `RUST_LOG` settings.
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .json()
-        .init();
-}
-
 // Deafult name for TSS server
 // Will set mnemonic and db path
 #[derive(Debug, PartialEq)]
@@ -107,7 +97,7 @@ pub struct StartupArgs {
     #[arg(short = 'u', long = "threshold-url", required = false, default_value = "127.0.0.1:3001")]
     pub threshold_url: String,
 
-    /// Wether to allow a validator key to be null.
+    /// Whether to allow a validator key to be null.
     #[arg(short = 'd', long = "dev")]
     pub dev: bool,
 
@@ -123,6 +113,13 @@ pub struct StartupArgs {
     /// TODO remove and force password
     #[arg(long = "nopassword")]
     pub no_password: bool,
+
+    /// The log output format that the application should use.
+    #[clap(
+        long,
+        default_value_t = Default::default(),
+    )]
+    pub logger: crate::helpers::logger::Logger,
 }
 
 pub async fn setup_mnemonic(
