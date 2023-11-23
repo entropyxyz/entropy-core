@@ -22,6 +22,9 @@ At the moment this project **does not** adhere to
 -  Change SocketAddr type for String ([#496](https://github.com/entropyxyz/entropy-core/pull/496/))
 -  Add `#[tracing::instrument]` macro to routes ([#515](https://github.com/entropyxyz/entropy-core/pull/515/))
 
+### Fixed
+- Return package version instead of rustc version ([#523](https://github.com/entropyxyz/entropy-core/pull/523/))
+
 ## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7..v0.0.8) - 2023-11-06
 
 ### Breaking Changes
