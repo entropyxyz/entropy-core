@@ -129,7 +129,7 @@ pub use crate::{
 
 #[derive(Clone)]
 pub struct AppState {
-    pub listener_state: ListenerState,
+    listener_state: ListenerState,
     pub configuration: Configuration,
     pub kv_store: KvManager,
 }
