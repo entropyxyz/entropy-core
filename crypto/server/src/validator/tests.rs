@@ -132,7 +132,7 @@ async fn test_sync_kvdb() {
     assert_eq!(result_2.status(), 500);
     assert_eq!(
         result_2.text().await.unwrap(),
-        "Validation Error: ChaCha20 decryption error: aead::Error"
+        "Encryption or signing error: ChaCha20 decryption error: aead::Error"
     );
 
     let enc_keys =
