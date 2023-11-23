@@ -19,12 +19,12 @@ impl Logger {
         let env_filter = tracing_subscriber::EnvFilter::builder()
             .with_default_directive(LevelFilter::INFO.into())
             .from_env_lossy();
-        let registry = tracing_subscriber::registry().with(stdout).with(env_filter);
+        let registry = tracing_subscriber::registry().with(env_filter);
 
         match self {
-            Logger::Full => registry.init(),
-            Logger::Pretty => registry.with(tracing_subscriber::fmt::layer().pretty()).init(),
-            Logger::Json => registry.with(tracing_subscriber::fmt::layer().json()).init(),
+            Logger::Full => registry.with(stdout).init(),
+            Logger::Pretty => registry.with(stdout.pretty()).init(),
+            Logger::Json => registry.with(stdout.json()).init(),
         }
     }
 }
