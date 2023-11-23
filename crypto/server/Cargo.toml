@@ -47,10 +47,11 @@ entropy-protocol={ path="../protocol", features=["server"] }
 ec-runtime={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.3.0" }
 
 # Logging
-tracing           ="0.1.37"
-tracing-subscriber={ version="0.3.17", features=["env-filter", "json"] }
-tower-http        ={ version="0.3.4", features=["trace", "cors"] }
-uuid              ={ version="1.5.0", features=["v4"] }
+tracing                 ="0.1.37"
+tracing-subscriber      ={ version="0.3.17", features=["env-filter", "json"] }
+tower-http              ={ version="0.3.4", features=["trace", "cors"] }
+tracing-bunyan-formatter="0.3.9"
+uuid                    ={ version="1.5.0", features=["v4"] }
 
 # Misc
 tokio-tungstenite="0.19.0"
