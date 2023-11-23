@@ -14,10 +14,8 @@ serde_json         ="1.0"
 anyhow             ="1.0.53"
 thiserror          ="1.0.47"
 blake2             ="0.10.4"
-x25519-dalek       ="2.0.0-pre.1"
-chacha20poly1305   ="0.10.1"
+x25519-dalek       ={ version="2.0.0", features=["static_secrets"] }
 rand_core          ="0.6.4"
-generic-array      ="0.14.6"
 zeroize            ="1.5.7"
 hex                ="*"
 reqwest-eventsource="0.4"
@@ -39,9 +37,10 @@ parity-scale-codec="3.4.0"
 sp-core           ={ version="21.0.0", default-features=false }
 
 # Entropy
-entropy-shared  ={ path="../shared" }
-kvdb            ={ path="../kvdb", default-features=false }
-entropy-protocol={ path="../protocol", features=["server"] }
+entropy-shared         ={ path="../shared" }
+kvdb                   ={ path="../kvdb", default-features=false }
+entropy-protocol       ={ path="../protocol", features=["server"] }
+x25519-chacha20poly1305={ git="https://github.com/entropyxyz/x25519-chacha20poly1305.git", branch="peg/unsafe-test-mode" }
 
 # Constraints
 ec-runtime={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.3.0" }
@@ -67,14 +66,17 @@ async-trait      ="0.1.73"
 subxt-signer     ="0.31.0"
 
 [dev-dependencies]
-testing-utils     ={ path="../testing-utils" }
-serial_test       ="0.8.0"
-hex-literal       ="0.3.4"
-project-root      ="0.2.2"
-sp-keyring        ="24.0.0"
-more-asserts      ="0.3.1"
+testing-utils={ path="../testing-utils" }
+serial_test="0.8.0"
+hex-literal="0.3.4"
+project-root="0.2.2"
+sp-keyring="24.0.0"
+more-asserts="0.3.1"
 template-barebones={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.2.0" }
-lazy_static       ="1.4.0"
+lazy_static="1.4.0"
+x25519-chacha20poly1305={ git="https://github.com/entropyxyz/x25519-chacha20poly1305.git", branch="peg/unsafe-test-mode", features=[
+  "unsafe",
+] }
 
 [build-dependencies]
 vergen={ version="8.0.0", features=["build", "git", "gitcl", "rustc"] }
