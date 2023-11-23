@@ -20,9 +20,9 @@ all_pallets=($(
     uniq
 ))
 
-pallets=($({ printf '%s\n' "${allPallets[@]}" "${excluded_pallets[@]}"; } | sort | uniq -u))
+pallets=($({ printf '%s\n' "${all_pallets[@]}" "${excluded_pallets[@]}"; } | sort | uniq -u))
 
-echo "[+] Benchmarking ${#pallets[@]} pallets by excluding ${#excluded_pallets[@]} from ${#ALL_PALLETS[@]}."
+echo "[+] Benchmarking ${#pallets[@]} pallets by excluding ${#excluded_pallets[@]} from ${#all_pallets[@]}."
 
 for p in ${pallets[@]}
 do
