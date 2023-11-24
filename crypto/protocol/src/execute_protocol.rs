@@ -33,11 +33,6 @@ struct SignerWrapper(sr25519::Pair);
 #[derive(Clone)]
 struct VerifierWrapper(sr25519::Public);
 
-// /// This is a raw signature from [sr25519::Signature]
-// // we cannot use Signature directly because it doesn't implement Serialize
-// #[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
-// pub struct SignatureWrapper(#[serde(with = "BigArray")] [u8; 64]);
-
 impl RandomizedPrehashSigner<sr25519::Signature> for SignerWrapper {
     fn sign_prehash_with_rng(
         &self,
