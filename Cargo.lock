@@ -2602,7 +2602,6 @@ dependencies = [
  "blake2",
  "entropy-shared",
  "futures",
- "generic-array 0.14.7",
  "getrandom 0.2.10",
  "gloo-net",
  "hex",
