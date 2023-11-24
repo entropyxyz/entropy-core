@@ -639,7 +639,8 @@ async fn test_send_and_receive_keys() {
         &server_public_key,
     )
     .unwrap()
-    .to_json();
+    .to_json()
+    .unwrap();
 
     // fails key already stored not in registering state
     let response_already_in_storage = client
