@@ -50,7 +50,7 @@ impl PrehashVerifier<sr25519::Signature> for VerifierWrapper {
         prehash: &[u8],
         signature: &sr25519::Signature,
     ) -> Result<(), signature::Error> {
-        if sr25519::Pair::verify(&signature, prehash, &self.0) {
+        if sr25519::Pair::verify(signature, prehash, &self.0) {
             Ok(())
         } else {
             Err(signature::Error::new())

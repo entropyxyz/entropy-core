@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_big_array::BigArray;
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
 
@@ -12,32 +11,23 @@ pub struct SubscribeMessage {
     pub session_id: String,
     /// Public key of connecting party
     // TODO i think we can use Public directly here
-    pub public_key: [u8; 32],
+    pub public_key: sr25519::Public,
     /// Signature to authenticate connecting party
     // TODO i think we can now use Signature directly as it implements serialize
-    #[serde(with = "BigArray")]
-    pub signature: [u8; 64],
+    pub signature: sr25519::Signature,
 }
 
 impl SubscribeMessage {
     pub fn new(session_id: &str, pair: &sr25519::Pair) -> Self {
         let signature = pair.sign(session_id.as_bytes());
-        Self {
-            session_id: session_id.to_owned(),
-            public_key: pair.public().0,
-            signature: signature.0,
-        }
+        Self { session_id: session_id.to_owned(), public_key: pair.public(), signature }
     }
 
     pub fn account_id(&self) -> AccountId32 {
-        self.public_key.into()
+        self.public_key.0.into()
     }
 
     pub fn verify(&self) -> bool {
-        sr25519::Pair::verify(
-            &sr25519::Signature(self.signature),
-            self.session_id.as_bytes(),
-            &sr25519::Public(self.public_key),
-        )
+        sr25519::Pair::verify(&self.signature, self.session_id.as_bytes(), &self.public_key)
     }
 }

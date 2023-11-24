@@ -161,7 +161,7 @@ async fn handle_initial_incoming_ws_message(
             listeners.get(&msg.session_id).ok_or(SubscribeErr::NoListener("no listener"))?;
 
         if !listener.validators.iter().any(|(validator_account_id, validator_x25519_pk)| {
-            validator_account_id == &msg.public_key && validator_x25519_pk == &remote_public_key
+            validator_account_id == &msg.account_id().0 && validator_x25519_pk == &remote_public_key
         }) {
             // Make the signing process fail, since one of the commitee has misbehaved
             listeners.remove(&msg.session_id);

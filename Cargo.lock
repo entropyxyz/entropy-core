@@ -2608,7 +2608,6 @@ dependencies = [
  "js-sys",
  "rand_core 0.6.4",
  "serde",
- "serde-big-array",
  "serde_json",
  "snow",
  "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -10192,15 +10191,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf9e0fcba69a370eed61bcf2b728575f726b50b55cba78064753d708ddc7549e"
 dependencies = [
  "serde_derive",
-]
-
-[[package]]
-name = "serde-big-array"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11fc7cc2c76d73e0f27ee52abbd64eec84d46f370c88371120433196934e4b7f"
-dependencies = [
- "serde",
 ]
 
 [[package]]
