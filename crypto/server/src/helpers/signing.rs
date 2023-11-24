@@ -78,7 +78,7 @@ pub async fn do_signing(
     open_protocol_connections(
         &sign_context.sign_init.validators_info,
         &sign_context.sign_init.sig_uid,
-        &signer,
+        signer,
         state,
         &x25519_secret_key,
     )
@@ -90,7 +90,7 @@ pub async fn do_signing(
     };
 
     let result =
-        signing_service.execute_sign(&sign_context, channels, &signer, tss_accounts).await?;
+        signing_service.execute_sign(&sign_context, channels, signer, tss_accounts).await?;
 
     Ok(result)
 }
