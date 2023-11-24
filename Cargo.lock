@@ -14791,8 +14791,8 @@ dependencies = [
 
 [[package]]
 name = "x25519-chacha20poly1305"
-version = "0.2.0"
-source = "git+https://github.com/entropyxyz/x25519-chacha20poly1305.git?branch=peg/unsafe-test-mode#53f51c1bc9541b3831196cbc7a4420db98055526"
+version = "0.2.1"
+source = "git+https://github.com/entropyxyz/x25519-chacha20poly1305.git?tag=v0.2.1#525913c7f69238a6cdb2204e8adf4a314e1a9af4"
 dependencies = [
  "bip39 0.6.0-beta.1",
  "blake2",
