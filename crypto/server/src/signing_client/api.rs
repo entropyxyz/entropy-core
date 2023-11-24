@@ -24,7 +24,7 @@ use kvdb::kv_manager::{
     KvManager,
 };
 use parity_scale_codec::Decode;
-use sp_core::crypto::AccountId32;
+use sp_core::{crypto::AccountId32, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, OnlineClient,
@@ -38,7 +38,7 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         substrate::{get_key_visibility, get_subgroup, return_all_addresses_of_subgroup},
         user::{check_in_registration_group, send_key},
-        validator::{get_signer, get_subxt_signer},
+        validator::get_signer,
     },
     signing_client::{
         protocol_transport::{handle_socket, open_protocol_connections},
@@ -83,9 +83,7 @@ pub async fn proactive_refresh(
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, my_subgroup)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-    let subxt_signer = get_subxt_signer(&app_state.kv_store)
-        .await
-        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+
     for key in proactive_refresh_keys {
         let sig_request_address = AccountId32::from_str(&key).map_err(ProtocolErr::StringError)?;
         let key_visibility =
@@ -108,7 +106,6 @@ pub async fn proactive_refresh(
                 &app_state.listener_state,
                 sig_request_address,
                 &my_subgroup,
-                &subxt_signer,
                 deserialized_old_key,
             )
             .await?;
@@ -156,14 +153,13 @@ pub async fn do_proactive_refresh(
     state: &ListenerState,
     sig_request_account: AccountId32,
     my_subgroup: &u8,
-    subxt_signer: &subxt_signer::sr25519::Keypair,
     old_key: KeyShare<KeyParams>,
 ) -> Result<KeyShare<KeyParams>, ProtocolErr> {
     tracing::debug!("Preparing to perform proactive refresh");
-    tracing::trace!("Signing with {:?}", &subxt_signer);
+    tracing::trace!("Signing with {:?}", &signer.signer().public());
 
     let session_uid = sig_request_account.to_string();
-    let account_id = SubxtAccountId32(*signer.account_id().clone().as_ref());
+    let account_id = SubxtAccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
     for validator_info in validators_info {
@@ -196,7 +192,7 @@ pub async fn do_proactive_refresh(
     open_protocol_connections(
         &converted_validator_info,
         &session_uid,
-        subxt_signer,
+        signer.signer(),
         state,
         &x25519_secret_key,
     )
@@ -207,7 +203,7 @@ pub async fn do_proactive_refresh(
         Channels(broadcast_out, rx_from_others)
     };
     let result =
-        execute_proactive_refresh(channels, subxt_signer, tss_accounts, my_subgroup, old_key)
+        execute_proactive_refresh(channels, signer.signer(), tss_accounts, my_subgroup, old_key)
             .await?;
     Ok(result)
 }

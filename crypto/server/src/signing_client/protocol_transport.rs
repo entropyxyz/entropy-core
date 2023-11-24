@@ -10,6 +10,7 @@ use entropy_protocol::{
 };
 use entropy_shared::X25519PublicKey;
 use futures::future;
+use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
 use tokio_tungstenite::connect_async;
 
@@ -28,7 +29,7 @@ use crate::{
 pub async fn open_protocol_connections(
     validators_info: &[ValidatorInfo],
     session_uid: &str,
-    signer: &subxt_signer::sr25519::Keypair,
+    signer: &sr25519::Pair,
     state: &ListenerState,
     x25519_secret_key: &x25519_dalek::StaticSecret,
 ) -> Result<(), ProtocolErr> {
@@ -37,7 +38,7 @@ pub async fn open_protocol_connections(
         .filter(|validators_info| {
             // Decide whether to initiate a connection by comparing accound ids
             // otherwise, we wait for them to connect to us
-            signer.public_key().0 > validators_info.tss_account.0
+            signer.public().0 > validators_info.tss_account.0
         })
         .map(|validator_info| async move {
             // Open a ws connection
