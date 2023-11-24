@@ -2,8 +2,8 @@
 pub mod wasm;
 use entropy_shared::SIGNING_PARTY_SIZE;
 use futures::{future, Future};
+use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
-use subxt_signer::sr25519;
 use synedrion::KeyShare;
 #[cfg(feature = "server")]
 use tokio::spawn;
@@ -27,7 +27,7 @@ pub async fn user_participates_in_signing_protocol(
     key_share: &KeyShare<KeyParams>,
     sig_uid: &str,
     validators_info: Vec<ValidatorInfo>,
-    user_signing_keypair: &sr25519::Keypair,
+    user_signing_keypair: &sr25519::Pair,
     sig_hash: [u8; 32],
     x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<RecoverableSignature, UserRunningProtocolErr> {
@@ -60,11 +60,11 @@ pub async fn user_participates_in_signing_protocol(
 /// in the DKG protocol.
 pub async fn user_participates_in_dkg_protocol(
     validators_info: Vec<ValidatorInfo>,
-    user_signing_keypair: &sr25519::Keypair,
+    user_signing_keypair: &sr25519::Pair,
     x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<KeyShare<KeyParams>, UserRunningProtocolErr> {
     // Make WS connections to the given set of TSS servers
-    let sig_req_account: AccountId32 = user_signing_keypair.public_key().0.into();
+    let sig_req_account: AccountId32 = user_signing_keypair.public().0.into();
     let session_id = sig_req_account.to_string();
     let (channels, tss_accounts) = user_connects_to_validators(
         open_ws_connection,
@@ -91,7 +91,7 @@ async fn user_connects_to_validators<F, Fut, W>(
     open_ws_connection: F,
     session_id: &str,
     validators_info: Vec<ValidatorInfo>,
-    user_signing_keypair: &sr25519::Keypair,
+    user_signing_keypair: &sr25519::Pair,
     x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<(Channels, Vec<AccountId32>), UserRunningProtocolErr>
 where
@@ -164,7 +164,7 @@ where
     let mut tss_accounts: Vec<AccountId32> =
         validators_info.iter().map(|v| v.tss_account.clone()).collect();
     // Add ourself to the list of partys as we will participate
-    tss_accounts.push(user_signing_keypair.public_key().0.into());
+    tss_accounts.push(user_signing_keypair.public().0.into());
 
     Ok((channels, tss_accounts))
 }
