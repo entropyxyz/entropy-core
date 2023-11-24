@@ -10,10 +10,8 @@ pub struct SubscribeMessage {
     /// Protocol session identifier
     pub session_id: String,
     /// Public key of connecting party
-    // TODO i think we can use Public directly here
     pub public_key: sr25519::Public,
     /// Signature to authenticate connecting party
-    // TODO i think we can now use Signature directly as it implements serialize
     pub signature: sr25519::Signature,
 }
 
