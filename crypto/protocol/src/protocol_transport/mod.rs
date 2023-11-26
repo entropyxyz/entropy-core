@@ -124,10 +124,8 @@ pub async fn ws_to_channels<T: WsConnection>(
             msg_result = ws_channels.broadcast.recv() => {
                 if let Ok(msg) = msg_result {
                     // Check that the message is for this peer
-                    if let Some(party_id) = &msg.to {
-                        if party_id != &remote_party_id {
-                            continue;
-                        }
+                    if msg.to != remote_party_id {
+                        continue;
                     }
                     let message_vec = bincode::serialize(&msg)?;
                     // TODO if this fails, the ws connection has been dropped during the protocol
