@@ -105,7 +105,6 @@ pub async fn proactive_refresh(
                 &signer,
                 &app_state.listener_state,
                 sig_request_address,
-                &my_subgroup,
                 deserialized_old_key,
             )
             .await?;
@@ -152,7 +151,6 @@ pub async fn do_proactive_refresh(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     state: &ListenerState,
     sig_request_account: AccountId32,
-    my_subgroup: &u8,
     old_key: KeyShare<KeyParams>,
 ) -> Result<KeyShare<KeyParams>, ProtocolErr> {
     tracing::debug!("Preparing to perform proactive refresh");
@@ -203,8 +201,7 @@ pub async fn do_proactive_refresh(
         Channels(broadcast_out, rx_from_others)
     };
     let result =
-        execute_proactive_refresh(channels, signer.signer(), tss_accounts, my_subgroup, old_key)
-            .await?;
+        execute_proactive_refresh(channels, signer.signer(), tss_accounts, old_key).await?;
     Ok(result)
 }
 

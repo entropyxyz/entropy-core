@@ -27,7 +27,6 @@ pub async fn do_dkg(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     state: &ListenerState,
     sig_request_account: AccountId32,
-    my_subgroup: &u8,
     key_visibility: KeyVisibility,
 ) -> Result<KeyShare<KeyParams>, UserErr> {
     let session_uid = sig_request_account.to_string();
@@ -87,7 +86,8 @@ pub async fn do_dkg(
         Channels(broadcast_out, rx_from_others)
     };
 
-    let result = execute_dkg(channels, signer.signer(), tss_accounts, my_subgroup).await?;
+    let result = execute_dkg(channels, signer.signer(), tss_accounts).await?;
+
     Ok(result)
 }
 

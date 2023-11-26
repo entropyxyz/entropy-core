@@ -1,6 +1,5 @@
 #[cfg(feature = "wasm")]
 pub mod wasm;
-use entropy_shared::SIGNING_PARTY_SIZE;
 use futures::{future, Future};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
@@ -75,13 +74,8 @@ pub async fn user_participates_in_dkg_protocol(
     )
     .await?;
 
-    // The user's subgroup id is SIGNING_PARTY_SIZE. They will always be alone in their subgroup
-    // as all other subgroup id's are < SIGNING_PARTY_SIZE
-    let user_subgroup = SIGNING_PARTY_SIZE as u8;
-
     let keyshare =
-        execute_protocol::execute_dkg(channels, user_signing_keypair, tss_accounts, &user_subgroup)
-            .await?;
+        execute_protocol::execute_dkg(channels, user_signing_keypair, tss_accounts).await?;
 
     Ok(keyshare)
 }
