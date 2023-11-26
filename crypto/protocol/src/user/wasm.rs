@@ -222,6 +222,6 @@ impl KeyShare {
     /// Get the party index of this keyshare (a number indentiying which party we are)
     #[wasm_bindgen(js_name = partyIndex)]
     pub fn party_index(&self) -> usize {
-        self.0.party_index().as_usize()
+        self.0.party_index()
     }
 }

@@ -24,7 +24,7 @@ entropy-protocol  ={ path="../protocol" }
 axum              ={ version="0.6.18" }
 rand_core         ="0.6.4"
 kvdb              ={ path="../kvdb", default-features=false }
-synedrion         ={ git="ssh://git@github.com/entropyxyz/synedrion.git", branch="fix-32bit" }
+synedrion         ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="release/v0.0.12" }
 server            ={ path="../server" }
 tokio             ={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
 subxt-signer      ="0.31.0"
