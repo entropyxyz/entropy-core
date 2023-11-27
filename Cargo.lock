@@ -10348,13 +10348,11 @@ dependencies = [
  "bip39 0.6.0-beta.1",
  "blake2",
  "bytes",
- "chacha20poly1305 0.10.1",
  "clap 4.4.8",
  "ec-runtime",
  "entropy-protocol",
  "entropy-shared",
  "futures",
- "generic-array 0.14.7",
  "hex",
  "hex-literal",
  "kvdb 0.1.0",
@@ -10387,6 +10385,7 @@ dependencies = [
  "tracing-subscriber 0.3.17",
  "uuid",
  "vergen",
+ "x25519-chacha20poly1305 0.2.1",
  "x25519-dalek 2.0.0",
  "zeroize",
 ]
@@ -12375,7 +12374,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber 0.3.17",
  "which",
- "x25519-chacha20poly1305",
+ "x25519-chacha20poly1305 0.2.0",
  "x25519-dalek 2.0.0",
  "zeroize",
 ]
@@ -13261,7 +13260,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbc5ad0d9d26b2c49a5ab7da76c3e79d3ee37e7821799f8223fcb8f2f391a2e7"
 dependencies = [
  "anyhow",
- "rustc_version 0.4.0",
  "rustversion",
  "time 0.3.23",
 ]
@@ -14828,6 +14826,29 @@ dependencies = [
 name = "x25519-chacha20poly1305"
 version = "0.2.0"
 source = "git+https://github.com/entropyxyz/x25519-chacha20poly1305.git?branch=peg/unsafe-test-mode#06d630a74a1125f552b14c988a4d82c719c93b2b"
+dependencies = [
+ "bip39 0.6.0-beta.1",
+ "blake2",
+ "chacha20poly1305 0.10.1",
+ "generic-array 0.14.7",
+ "getrandom 0.2.10",
+ "hex",
+ "js-sys",
+ "rand_core 0.6.4",
+ "schnorrkel 0.9.1",
+ "serde",
+ "serde_json",
+ "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror",
+ "wasm-bindgen",
+ "x25519-dalek 2.0.0",
+ "zeroize",
+]
+
+[[package]]
+name = "x25519-chacha20poly1305"
+version = "0.2.1"
+source = "git+https://github.com/entropyxyz/x25519-chacha20poly1305.git?tag=v0.2.1#525913c7f69238a6cdb2204e8adf4a314e1a9af4"
 dependencies = [
  "bip39 0.6.0-beta.1",
  "blake2",
