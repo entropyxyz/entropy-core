@@ -49,8 +49,11 @@ pub static LOGGER: OnceCell<()> = OnceCell::const_new();
 ///
 /// The logger will only be initialized once, even if this function is called multiple times.
 pub async fn initialize_test_logger() {
-    let instrumentation =
-        Instrumentation { logger: Logger::Pretty, loki: true, loki_endpoint: Default::default() };
+    let instrumentation = Instrumentation {
+        logger: Logger::Pretty,
+        loki: true,
+        loki_endpoint: "http://127.0.0.1:3100".into(),
+    };
 
     // let mut instrumentation = Instrumentation::default();
     // instrumentation.logger = Logger::Pretty;

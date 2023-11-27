@@ -19,6 +19,10 @@ async fn main() {
     tracing::info!("Starting Threshold Signature Sever");
     tracing::info!("Starting server on: `{}`", &args.threshold_url);
 
+    if args.logger.loki {
+        tracing::info!("Sending logs to Loki server at `{}`", &args.logger.loki_endpoint);
+    }
+
     let configuration = Configuration::new(args.chain_endpoint);
     tracing::info!("Connecting to Substrate node at: `{}`", &configuration.endpoint);
 

@@ -34,11 +34,11 @@ pub struct Instrumentation {
 
     /// Whether or not logs should be sent to a Loki server.
     #[clap(long)]
-    pub(crate) loki: bool,
+    pub loki: bool,
 
     /// The endpoint of the Loki server to send logs to.
     #[clap(long, default_value = "http://127.0.0.1:3100")]
-    pub(crate) loki_endpoint: String,
+    pub loki_endpoint: String,
 }
 
 impl Instrumentation {
@@ -90,7 +90,6 @@ impl Instrumentation {
             // This will spawn a background task which sends our logs to the provided Loki endpoint.
             tokio::spawn(task);
             layers.push(loki_layer.boxed());
-            tracing::info!("Sending logs to Loki server at `{}`", &self.loki_endpoint);
         }
 
         registry.with(layers).init();
