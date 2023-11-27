@@ -156,7 +156,7 @@ pub async fn do_proactive_refresh(
     old_key: KeyShare<KeyParams>,
 ) -> Result<KeyShare<KeyParams>, ProtocolErr> {
     tracing::debug!("Preparing to perform proactive refresh");
-    tracing::trace!("Signing with {:?}", &signer.signer().public());
+    tracing::debug!("Signing with {:?}", &signer.signer().public());
 
     let session_uid = sig_request_account.to_string();
     let account_id = SubxtAccountId32(signer.signer().public().0);

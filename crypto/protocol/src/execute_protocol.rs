@@ -266,7 +266,7 @@ pub async fn execute_proactive_refresh(
     old_key: KeyShare<KeyParams>,
 ) -> Result<KeyShare<KeyParams>, ProtocolExecutionErr> {
     tracing::debug!("Executing proactive refresh");
-    tracing::trace!("Signing with {:?}", &threshold_signer.public());
+    tracing::debug!("Signing with {:?}", &threshold_signer.public());
     tracing::trace!("Previous key {:?}", &old_key);
 
     let party_ids: Vec<PartyId> =
