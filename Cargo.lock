@@ -10373,6 +10373,7 @@ dependencies = [
  "tokio-tungstenite 0.19.0",
  "tower-http 0.3.5",
  "tracing",
+ "tracing-bunyan-formatter",
  "tracing-subscriber 0.3.17",
  "uuid",
  "vergen",
@@ -12789,6 +12790,24 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.32",
+]
+
+[[package]]
+name = "tracing-bunyan-formatter"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5c266b9ac83dedf0e0385ad78514949e6d89491269e7065bee51d2bb8ec7373"
+dependencies = [
+ "ahash 0.8.3",
+ "gethostname",
+ "log",
+ "serde",
+ "serde_json",
+ "time 0.3.23",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
+ "tracing-subscriber 0.3.17",
 ]
 
 [[package]]

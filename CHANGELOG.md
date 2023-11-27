@@ -17,6 +17,7 @@ At the moment this project **does not** adhere to
 -  Auxiliary data for program evaluation ([#475](https://github.com/entropyxyz/entropy-core/pull/475/))
 -  Add versioning to server ([#516](https://github.com/entropyxyz/entropy-core/pull/516/))
 -  Allow logger to be configured from CLI ([#520](https://github.com/entropyxyz/entropy-core/pull/520/))
+-  Add `bunyan` JSON formatter ([#524](https://github.com/entropyxyz/entropy-core/pull/524/))
 
 ### Changed
 -  Change SocketAddr type for String ([#496](https://github.com/entropyxyz/entropy-core/pull/496/))
