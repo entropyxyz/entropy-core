@@ -13,7 +13,10 @@ use testing_utils::{
     tss_server_process::spawn_testing_validators,
 };
 
-use server::{chain_api::get_api, common::Hasher};
+use server::{
+    chain_api::{get_api, get_rpc},
+    common::Hasher,
+};
 
 #[tokio::test]
 #[serial]
@@ -25,10 +28,11 @@ async fn integration_test_sign() {
     let (_validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), false).await;
     let substrate_context = test_context_stationary().await;
-    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     test_client::update_program(
-        &entropy_api,
+        &api,
         SubxtAccountId32(pre_registered_user.into()),
         &pre_registered_user.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
@@ -39,7 +43,8 @@ async fn integration_test_sign() {
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
     let recoverable_signature = test_client::sign(
-        &entropy_api,
+        &api,
+        &rpc,
         pre_registered_user.to_seed(),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         None,
@@ -66,10 +71,11 @@ async fn integration_test_sign_private() {
     let (_validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), true).await;
     let substrate_context = test_context_stationary().await;
-    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     test_client::update_program(
-        &entropy_api,
+        &api,
         SubxtAccountId32(pre_registered_user.into()),
         &pre_registered_user.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
@@ -80,7 +86,8 @@ async fn integration_test_sign_private() {
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
     let recoverable_signature = test_client::sign(
-        &entropy_api,
+        &api,
+        &rpc,
         pre_registered_user.to_seed(),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         keyshare_option.clone(),

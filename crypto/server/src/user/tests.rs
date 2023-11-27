@@ -53,7 +53,6 @@ use testing_utils::{
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
     },
-    test_client,
 };
 use tokio::{
     io::{AsyncRead, AsyncReadExt},

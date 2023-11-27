@@ -2,7 +2,6 @@
 use server::chain_api::{
     entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, EntropyConfig,
 };
-mod common;
 use std::{
     str::FromStr,
     thread,
@@ -11,15 +10,14 @@ use std::{
 
 pub use crate::chain_api::{get_api, get_rpc};
 use anyhow::{anyhow, ensure};
-pub use common::derive_static_secret;
-use common::{get_current_subgroup_signers, Hasher, UserSignatureRequest};
 use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, RecoverableSignature, ValidatorInfo,
 };
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
-use futures::future::try_join_all;
+use futures::future;
 use parity_scale_codec::Decode;
+use server::common::{get_current_subgroup_signers, Hasher, UserSignatureRequest};
 use sp_core::{
     crypto::{AccountId32, Ss58Codec},
     sr25519, Bytes, Pair,
@@ -37,6 +35,7 @@ use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     KeyShare,
 };
+pub use x25519_chacha20poly1305::derive_static_secret;
 use x25519_chacha20poly1305::SignedMessage;
 
 /// Register an account
@@ -111,6 +110,7 @@ pub async fn register(
 /// Request to sign a message
 pub async fn sign(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     sig_req_seed_string: String,
     message: Vec<u8>,
     private: Option<KeyShare<KeyParams>>,
@@ -123,7 +123,7 @@ pub async fn sign(
 
     let message_hash = Hasher::keccak(&message);
     let message_hash_hex = hex::encode(message_hash);
-    let validators_info = get_current_subgroup_signers(api, &message_hash_hex).await?;
+    let validators_info = get_current_subgroup_signers(api, rpc, &message_hash_hex).await?;
     tracing::debug!("Validators info {:?}", validators_info);
 
     let generic_msg = UserSignatureRequest {
@@ -135,8 +135,9 @@ pub async fn sign(
 
     let user_transaction_request_vec = serde_json::to_vec(&generic_msg)?;
     let validators_info_clone = validators_info.clone();
+    let client = reqwest::Client::new();
 
-    // Make http requests to tss servers
+    // Make http requests to TSS servers
     let submit_transaction_requests = validators_info
         .iter()
         .map(|validator_info| async {
@@ -151,7 +152,6 @@ pub async fn sign(
 
             let url = format!("http://{}/user/sign_tx", validator_info.ip_address);
 
-            let client = reqwest::Client::new();
             let res = client
                 .post(url)
                 .header("Content-Type", "application/json")
@@ -162,7 +162,7 @@ pub async fn sign(
         })
         .collect::<Vec<_>>();
 
-    // If we have a keyshare, connect to tss servers
+    // If we have a keyshare, connect to TSS servers
     let results = if let Some(keyshare) = private {
         let x25519_secret = derive_static_secret(&sig_req_keypair);
 
@@ -171,8 +171,8 @@ pub async fn sign(
             let account_id_ss58 = account_id32.to_ss58check();
             format!("{account_id_ss58}_{message_hash_hex}")
         };
-        let (validator_results, _own_result) = futures::future::join(
-            try_join_all(submit_transaction_requests),
+        let (validator_results, _own_result) = future::join(
+            future::try_join_all(submit_transaction_requests),
             user_participates_in_signing_protocol(
                 &keyshare,
                 &sig_uid,
@@ -185,7 +185,7 @@ pub async fn sign(
         .await;
         validator_results?
     } else {
-        try_join_all(submit_transaction_requests).await?
+        future::try_join_all(submit_transaction_requests).await?
     };
 
     // Get the first result

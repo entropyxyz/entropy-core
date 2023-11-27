@@ -146,7 +146,8 @@ async fn run_command() -> anyhow::Result<String> {
                 Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec())
             };
             let recoverable_signature =
-                sign(&api, signature_request_account_name, message, None, auxilary_data).await?;
+                sign(&api, &rpc, signature_request_account_name, message, None, auxilary_data)
+                    .await?;
             Ok(format!("Message signed: {:?}", recoverable_signature))
         },
         CliCommand::UpdateProgram {
