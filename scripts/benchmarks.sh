@@ -4,6 +4,7 @@ steps=50
 repeat=20
 entropyOutput=./runtime/src/weights/
 entropyChain=dev
+entropyTemplate=.maintain/frame-weight-template.hbs
 # Manually exclude some pallets.
 excluded_pallets=(
   "pallet_babe"
@@ -34,5 +35,6 @@ do
         --steps=$steps  \
         --repeat=$repeat \
         --header=./file_header.txt \
+        --template $entropyTemplate \
         --output=$entropyOutput
 done
