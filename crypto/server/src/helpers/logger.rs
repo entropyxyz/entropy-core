@@ -9,11 +9,12 @@ pub enum Logger {
     Full,
     Pretty,
     Json,
+    Loki,
 }
 
 impl Logger {
     /// Configures and initializes the global `tracing` Subscriber.
-    pub fn setup(&self) {
+    pub async fn setup(&self) {
         // We set up the logger to only print out logs of `INFO` or higher by default, otherwise we
         // fall back to the user's `RUST_LOG` settings.
         let stdout = tracing_subscriber::fmt::layer();
@@ -35,6 +36,29 @@ impl Logger {
                 let bunyan_layer = BunyanFormattingLayer::new(name, std::io::stdout);
                 registry.with(JsonStorageLayer).with(bunyan_layer).init()
             },
+            Logger::Loki => {
+                let name = format!(
+                    "{}@{}-{}",
+                    env!("CARGO_PKG_NAME"),
+                    env!("CARGO_PKG_VERSION"),
+                    env!("VERGEN_GIT_DESCRIBE")
+                );
+                let bunyan_layer = BunyanFormattingLayer::new(name, std::io::stdout);
+
+                let (loki_layer, task) = tracing_loki::builder()
+                    .label("process", "tss-server")
+                    .unwrap()
+                    // .extra_field("pid", format!("{}", std::process::id()))
+                    // .unwrap()
+                    .build_url(reqwest::Url::parse("http://localhost:3100").unwrap())
+                    .unwrap();
+
+                tokio::spawn(task);
+
+                registry.with(stdout).with(loki_layer).init();
+
+                tracing::info!("Spawned Loki");
+            },
         }
     }
 }
@@ -45,6 +69,7 @@ impl std::fmt::Display for Logger {
             Logger::Full => "full",
             Logger::Pretty => "pretty",
             Logger::Json => "json",
+            Logger::Loki => "loki",
         };
         write!(f, "{}", logger)
     }

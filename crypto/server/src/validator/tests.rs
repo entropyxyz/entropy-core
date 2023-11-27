@@ -69,7 +69,7 @@ async fn test_get_all_keys() {
 #[tokio::test]
 #[serial]
 async fn test_sync_kvdb() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let _ctx = test_context_stationary().await;

@@ -14,7 +14,7 @@ use server::{
 #[tokio::main]
 async fn main() {
     let args = StartupArgs::parse();
-    args.logger.setup();
+    args.logger.setup().await;
 
     tracing::info!("Starting Threshold Signature Sever");
     tracing::info!("Starting server on: `{}`", &args.threshold_url);

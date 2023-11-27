@@ -37,21 +37,26 @@ use crate::{
     AppState,
 };
 
-lazy_static::lazy_static! {
-    /// A shared reference to the logger used for tests.
-    ///
-    /// Since this only needs to be initialized once for the whole test suite we define it as a lazy
-    /// static.
-    pub static ref LOGGER: () = {
-        Logger::Pretty.setup();
-    };
-}
+// lazy_static::lazy_static! {
+//     /// A shared reference to the logger used for tests.
+//     ///
+//     /// Since this only needs to be initialized once for the whole test suite we define it as a lazy
+//     /// static.
+//     pub static ref LOGGER: () = {
+//         Logger::Loki.setup()
+//     };
+// }
+
+use tokio::sync::OnceCell;
+
+pub static LOGGER: OnceCell<()> = OnceCell::const_new();
 
 /// Initialize the global loger used in tests.
 ///
 /// The logger will only be initialized once, even if this function is called multiple times.
-pub fn initialize_test_logger() {
-    lazy_static::initialize(&LOGGER);
+pub async fn initialize_test_logger() {
+    *LOGGER.get_or_init(|| Logger::Loki.setup()).await
+    // lazy_static::initialize(&LOGGER.await);
 }
 
 pub async fn setup_client() -> KvManager {
