@@ -90,7 +90,7 @@ impl Instrumentation {
             // This will spawn a background task which sends our logs to the provided Loki endpoint.
             tokio::spawn(task);
             layers.push(loki_layer.boxed());
-            tracing::info!("Spawned Loki at `{}`", &self.loki_endpoint);
+            tracing::info!("Sending logs to Loki server at `{}`", &self.loki_endpoint);
         }
 
         registry.with(layers).init();
