@@ -52,7 +52,7 @@ use crate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
         user::{check_in_registration_group, do_dkg, send_key},
-        validator::{get_signer, get_subxt_signer},
+        validator::get_signer,
     },
     signing_client::{ListenerState, ProtocolErr},
     validation::{check_stale, SignedMessage},
@@ -235,7 +235,6 @@ async fn setup_dkg(
     let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
     let mut addresses_in_subgroup =
         return_all_addresses_of_subgroup(&api, rpc, my_subgroup).await?;
-    let subxt_signer = get_subxt_signer(&app_state.kv_store).await?;
 
     for sig_request_account in data.sig_request_accounts {
         let address_slice: &[u8; 32] = &sig_request_account
@@ -257,7 +256,6 @@ async fn setup_dkg(
             sig_request_address.clone(),
             &my_subgroup,
             *user_details.key_visibility,
-            &subxt_signer,
         )
         .await?;
         let serialized_key_share = key_serialize(&key_share)

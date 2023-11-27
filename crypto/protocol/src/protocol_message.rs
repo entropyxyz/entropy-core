@@ -1,11 +1,10 @@
 use std::str;
 
 use serde::{Deserialize, Serialize};
+use sp_core::sr25519;
 use synedrion::sessions::SignedMessage;
 
-use crate::{
-    execute_protocol::SignatureWrapper, protocol_transport::errors::ProtocolMessageErr, PartyId,
-};
+use crate::{protocol_transport::errors::ProtocolMessageErr, PartyId};
 
 /// A Message send during the signing or DKG protocol.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,7 +15,7 @@ pub struct ProtocolMessage {
     /// If `None`, it's a broadcast message sent to all parties
     pub to: Option<PartyId>,
     /// The signed protocol message
-    pub payload: SignedMessage<SignatureWrapper>,
+    pub payload: SignedMessage<sr25519::Signature>,
 }
 
 impl TryFrom<&[u8]> for ProtocolMessage {
@@ -29,14 +28,14 @@ impl TryFrom<&[u8]> for ProtocolMessage {
 }
 
 impl ProtocolMessage {
-    pub(crate) fn new_bcast(from: &PartyId, payload: SignedMessage<SignatureWrapper>) -> Self {
+    pub(crate) fn new_bcast(from: &PartyId, payload: SignedMessage<sr25519::Signature>) -> Self {
         Self { from: from.clone(), to: None, payload }
     }
 
     pub(crate) fn new_p2p(
         from: &PartyId,
         to: &PartyId,
-        payload: SignedMessage<SignatureWrapper>,
+        payload: SignedMessage<sr25519::Signature>,
     ) -> Self {
         Self { from: from.clone(), to: Some(to.clone()), payload }
     }

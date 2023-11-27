@@ -22,6 +22,7 @@ At the moment this project **does not** adhere to
 ### Changed
 -  Change SocketAddr type for String ([#496](https://github.com/entropyxyz/entropy-core/pull/496/))
 -  Add `#[tracing::instrument]` macro to routes ([#515](https://github.com/entropyxyz/entropy-core/pull/515/))
+-  Remove subxt-signer from server and entropy-protocol ([#526](https://github.com/entropyxyz/entropy-core/pull/526/))
 
 ### Fixed
 - Return package version instead of rustc version ([#523](https://github.com/entropyxyz/entropy-core/pull/523/))

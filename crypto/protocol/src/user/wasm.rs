@@ -1,7 +1,7 @@
 //! Wrappers around functions to run dkg and signing protocols for JS
 use js_sys::Error;
+use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
-use subxt_signer::sr25519;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_derive::TryFromJsValue;
 
@@ -21,7 +21,7 @@ pub async fn run_dkg_protocol(
         let seed: [u8; 32] = user_signing_keypair_seed
             .try_into()
             .map_err(|_| Error::new("User signing keypair seed must be 32 bytes"))?;
-        sr25519::Keypair::from_seed(seed).map_err(|err| Error::new(&err.to_string()))?
+        sr25519::Pair::from_seed(&seed)
     };
 
     let x25519_private_key: x25519_dalek::StaticSecret = {
@@ -67,7 +67,7 @@ pub async fn run_signing_protocol(
         let seed: [u8; 32] = user_signing_keypair_seed
             .try_into()
             .map_err(|_| Error::new("User signing keypair seed must be 32 bytes"))?;
-        sr25519::Keypair::from_seed(seed).map_err(|err| Error::new(&err.to_string()))?
+        sr25519::Pair::from_seed(&seed)
     };
 
     let x25519_private_key: x25519_dalek::StaticSecret = {
