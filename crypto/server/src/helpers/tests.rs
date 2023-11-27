@@ -19,6 +19,7 @@ use subxt::{
 };
 use synedrion::KeyShare;
 use testing_utils::substrate_context::testing_context;
+use tokio::sync::OnceCell;
 
 use crate::{
     app,
@@ -29,6 +30,7 @@ use crate::{
             setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName,
             DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
+        logger::Instrumentation,
         logger::Logger,
         substrate::get_subgroup,
     },
@@ -37,26 +39,23 @@ use crate::{
     AppState,
 };
 
-// lazy_static::lazy_static! {
-//     /// A shared reference to the logger used for tests.
-//     ///
-//     /// Since this only needs to be initialized once for the whole test suite we define it as a lazy
-//     /// static.
-//     pub static ref LOGGER: () = {
-//         Logger::Loki.setup()
-//     };
-// }
-
-use tokio::sync::OnceCell;
-
+/// A shared reference to the logger used for tests.
+///
+/// Since this only needs to be initialized once for the whole test suite we define it as a
+/// async-friendly static.
 pub static LOGGER: OnceCell<()> = OnceCell::const_new();
 
-/// Initialize the global loger used in tests.
+/// Initialize the global logger used in tests.
 ///
 /// The logger will only be initialized once, even if this function is called multiple times.
 pub async fn initialize_test_logger() {
-    *LOGGER.get_or_init(|| Logger::Loki.setup()).await
-    // lazy_static::initialize(&LOGGER.await);
+    let instrumentation =
+        Instrumentation { logger: Logger::Pretty, loki: true, loki_endpoint: Default::default() };
+
+    // let mut instrumentation = Instrumentation::default();
+    // instrumentation.logger = Logger::Pretty;
+
+    *LOGGER.get_or_init(|| instrumentation.setup()).await
 }
 
 pub async fn setup_client() -> KvManager {
