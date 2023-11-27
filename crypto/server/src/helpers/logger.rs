@@ -3,16 +3,45 @@ use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::prelude::*;
 
 /// The log output format that the application should use.
-#[derive(Clone, Default, Debug, clap::ValueEnum)]
+#[derive(clap::ValueEnum, Clone, Default, Debug)]
 pub enum Logger {
     #[default]
     Full,
     Pretty,
     Json,
-    Loki,
 }
 
-impl Logger {
+impl std::fmt::Display for Logger {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let logger = match self {
+            Logger::Full => "full",
+            Logger::Pretty => "pretty",
+            Logger::Json => "json",
+        };
+        write!(f, "{}", logger)
+    }
+}
+
+/// Overarching configuration settings around instrumentation and logging.
+#[derive(clap::Args, Clone, Debug, Default)]
+pub struct Instrumentation {
+    /// The log output format that the application should use.
+    #[clap(
+        long,
+        default_value_t = Default::default(),
+    )]
+    pub(crate) logger: Logger,
+
+    /// Whether or not logs should be sent to a Loki server.
+    #[clap(long)]
+    pub(crate) loki: bool,
+
+    /// The endpoint of the Loki server to send logs to.
+    #[clap(long, default_value = "http://127.0.0.1:3100")]
+    pub(crate) loki_endpoint: String,
+}
+
+impl Instrumentation {
     /// Configures and initializes the global `tracing` Subscriber.
     pub async fn setup(&self) {
         // We set up the logger to only print out logs of `INFO` or higher by default, otherwise we
@@ -23,9 +52,12 @@ impl Logger {
             .from_env_lossy();
         let registry = tracing_subscriber::registry().with(env_filter);
 
-        match self {
-            Logger::Full => registry.with(stdout).init(),
-            Logger::Pretty => registry.with(stdout.pretty()).init(),
+        // Depending on our configuration we'll end up with a dynamic number of layers
+        let mut layers = Vec::new();
+
+        match self.logger {
+            Logger::Full => layers.push(stdout.boxed()),
+            Logger::Pretty => layers.push(stdout.pretty().boxed()),
             Logger::Json => {
                 let name = format!(
                     "{}@{}-{}",
@@ -34,43 +66,33 @@ impl Logger {
                     env!("VERGEN_GIT_DESCRIBE")
                 );
                 let bunyan_layer = BunyanFormattingLayer::new(name, std::io::stdout);
-                registry.with(JsonStorageLayer).with(bunyan_layer).init()
+                layers.push(JsonStorageLayer.boxed());
+                layers.push(bunyan_layer.boxed());
             },
-            Logger::Loki => {
-                let name = format!(
-                    "{}@{}-{}",
-                    env!("CARGO_PKG_NAME"),
-                    env!("CARGO_PKG_VERSION"),
-                    env!("VERGEN_GIT_DESCRIBE")
-                );
-                let bunyan_layer = BunyanFormattingLayer::new(name, std::io::stdout);
+        }
 
-                let (loki_layer, task) = tracing_loki::builder()
-                    .label("process", "tss-server")
+        if self.loki {
+            let name = format!(
+                "{}@{}-{}",
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION"),
+                env!("VERGEN_GIT_DESCRIBE")
+            );
+
+            let (loki_layer, task) = tracing_loki::builder()
+                    .label("process", name)
                     .unwrap()
                     // .extra_field("pid", format!("{}", std::process::id()))
                     // .unwrap()
-                    .build_url(reqwest::Url::parse("http://localhost:3100").unwrap())
+                    .build_url(reqwest::Url::parse(&self.loki_endpoint).unwrap())
                     .unwrap();
 
-                tokio::spawn(task);
-
-                registry.with(stdout).with(loki_layer).init();
-
-                tracing::info!("Spawned Loki");
-            },
+            // This will spawn a background task which sends our logs to the provided Loki endpoint.
+            tokio::spawn(task);
+            layers.push(loki_layer.boxed());
+            tracing::info!("Spawned Loki at `{}`", &self.loki_endpoint);
         }
-    }
-}
 
-impl std::fmt::Display for Logger {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let logger = match self {
-            Logger::Full => "full",
-            Logger::Pretty => "pretty",
-            Logger::Json => "json",
-            Logger::Loki => "loki",
-        };
-        write!(f, "{}", logger)
+        registry.with(layers).init();
     }
 }
