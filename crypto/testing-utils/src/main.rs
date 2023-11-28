@@ -17,19 +17,19 @@ use testing_utils::{
 
 #[derive(Parser, Debug, Clone)]
 #[clap(version, about, long_about = None)]
-#[clap(about = "Test tool for Entropy devnet")]
+#[clap(about = "Test client for Entropy")]
 struct Cli {
     #[clap(subcommand)]
     command: CliCommand,
     /// The chain endpoint to use eg: "ws://blah:9944". Defaults to the ENTROPY_DEVNET environment
-    /// variable
+    /// variable, or else ws://localhost:9944
     #[arg(short, long)]
     chain_endpoint: Option<String>,
 }
 
 #[derive(Subcommand, Debug, Clone)]
 enum CliCommand {
-    /// Register with Entropy and create shares
+    /// Register with Entropy and create keyshares
     Register {
         /// A name from which to generate a signature request keypair
         signature_request_account_name: String,
@@ -241,6 +241,7 @@ impl TryFrom<SeedString> for sr25519::Pair {
     }
 }
 
+/// Represents a keyshare stored in a file, serialized using [bincode]
 struct KeyShareFile(String);
 
 impl KeyShareFile {

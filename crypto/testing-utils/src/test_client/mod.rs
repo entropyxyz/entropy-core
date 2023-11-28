@@ -37,11 +37,19 @@ use x25519_chacha20poly1305::SignedMessage;
 /// Register an account
 /// If successful, returns registration info including verfiying key
 /// If registering in private mode, a keyshare is also returned
+#[tracing::instrument(
+    skip_all,
+    fields(
+        signature_request_account = ?signature_request_keypair.public(),
+        program_account,
+        key_visibility,
+    )
+)]
 pub async fn register(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_keypair: sr25519::Pair,
-    constraint_account: SubxtAccountId32,
+    program_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
     initial_program: Vec<u8>,
 ) -> anyhow::Result<(RegisteredInfo, Option<KeyShare<KeyParams>>)> {
@@ -59,7 +67,7 @@ pub async fn register(
     put_register_request_on_chain(
         api,
         signature_request_keypair.clone(),
-        constraint_account,
+        program_account,
         key_visibility,
         initial_program,
     )
@@ -102,6 +110,15 @@ pub async fn register(
 }
 
 /// Request to sign a message
+#[tracing::instrument(
+    skip_all,
+    fields(
+        signature_request_account = ?signature_request_keypair.public(),
+        message,
+        private,
+        auxilary_data,
+    )
+)]
 pub async fn sign(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -110,11 +127,6 @@ pub async fn sign(
     private: Option<KeyShare<KeyParams>>,
     auxilary_data: Option<Vec<u8>>,
 ) -> anyhow::Result<RecoverableSignature> {
-    tracing::debug!(
-        "Signature request account: {}",
-        hex::encode(signature_request_keypair.public().0)
-    );
-
     let message_hash = Hasher::keccak(&message);
     let message_hash_hex = hex::encode(message_hash);
     let validators_info = get_current_subgroup_signers(api, rpc, &message_hash_hex).await?;
@@ -220,6 +232,13 @@ pub async fn sign(
 }
 
 /// Set or update the program associated with a given entropy account
+#[tracing::instrument(
+    skip_all,
+    fields(
+        signature_request_account,
+        program_modification_account = ?program_modification_keypair.public(),
+    )
+)]
 pub async fn update_program(
     api: &OnlineClient<EntropyConfig>,
     signature_request_account: SubxtAccountId32,
@@ -262,7 +281,7 @@ pub async fn get_accounts(
     Ok(accounts)
 }
 
-// Submit a register transaction
+/// Submit a register transaction
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     signature_request_keypair: sr25519::Pair,
@@ -287,6 +306,28 @@ pub async fn put_register_request_on_chain(
         .wait_for_success()
         .await?;
     Ok(())
+}
+
+/// Check that the verfiying key from a new signature matches that in the from the
+/// on-chain registration info for a given account
+pub async fn check_verifying_key(
+    api: &OnlineClient<EntropyConfig>,
+    public_key: sr25519::Public,
+    verifying_key: VerifyingKey,
+) -> anyhow::Result<()> {
+    let verifying_key_serialized = verifying_key.to_encoded_point(true).as_bytes().to_vec();
+
+    // Get the verifying key associated with this account
+    let registered_status = {
+        let account_id32: AccountId32 = public_key.into();
+        let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
+        let registered_query = entropy::storage().relayer().registered(account_id);
+        let query_registered_status =
+            api.storage().at_latest().await?.fetch(&registered_query).await;
+        query_registered_status?.ok_or(anyhow!("User not registered"))?
+    };
+
+    Ok(ensure!(registered_status.verifying_key.0 == verifying_key_serialized))
 }
 
 /// Get the commitee of tss servers who will perform DKG for a given block number
@@ -354,26 +395,4 @@ async fn select_validator_from_subgroup(
         }
     };
     Ok(address.clone())
-}
-
-/// Check that the verfiying key from a new signature matches that in the from the
-/// on-chain registration info for a given account
-pub async fn check_verifying_key(
-    api: &OnlineClient<EntropyConfig>,
-    public_key: sr25519::Public,
-    verifying_key: VerifyingKey,
-) -> anyhow::Result<()> {
-    let verifying_key_serialized = verifying_key.to_encoded_point(true).as_bytes().to_vec();
-
-    // Get the verifying key associated with this account
-    let registered_status = {
-        let account_id32: AccountId32 = public_key.into();
-        let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
-        let registered_query = entropy::storage().relayer().registered(account_id);
-        let query_registered_status =
-            api.storage().at_latest().await?.fetch(&registered_query).await;
-        query_registered_status?.ok_or(anyhow!("User not registered"))?
-    };
-
-    Ok(ensure!(registered_status.verifying_key.0 == verifying_key_serialized))
 }
