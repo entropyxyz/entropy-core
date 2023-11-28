@@ -45,7 +45,7 @@ async fn integration_test_sign() {
     let recoverable_signature = test_client::sign(
         &api,
         &rpc,
-        pre_registered_user.to_seed(),
+        pre_registered_user.pair(),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         None,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
@@ -88,7 +88,7 @@ async fn integration_test_sign_private() {
     let recoverable_signature = test_client::sign(
         &api,
         &rpc,
-        pre_registered_user.to_seed(),
+        pre_registered_user.pair(),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         keyshare_option.clone(),
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),

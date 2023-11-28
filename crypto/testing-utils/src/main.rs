@@ -103,17 +103,19 @@ async fn run_command() -> anyhow::Result<String> {
             key_visibility,
             program_file,
         } => {
-            let sig_req_keypair = account_name_to_keypair(signature_request_account_name.clone())?;
-            println!("Signature request account: {:?}", sig_req_keypair.public());
+            let signature_request_keypair: sr25519::Pair =
+                SeedString::new(signature_request_account_name).try_into()?;
+            println!("Signature request account: {:?}", signature_request_keypair.public());
 
-            let program_keypair = account_name_to_keypair(program_account_name)?;
+            let program_keypair: sr25519::Pair =
+                SeedString::new(program_account_name).try_into()?;
             let program_account = SubxtAccountId32(program_keypair.public().0);
             println!("Program account: {:?}", program_keypair.public());
 
             let key_visibility_converted = match key_visibility {
                 Some(Visibility::Permissioned) => KeyVisibility::Permissioned,
                 Some(Visibility::Private) => {
-                    let x25519_secret = derive_static_secret(&sig_req_keypair);
+                    let x25519_secret = derive_static_secret(&signature_request_keypair);
                     let x25519_public = x25519_dalek::PublicKey::from(&x25519_secret);
                     KeyVisibility::Private(x25519_public.to_bytes())
                 },
@@ -129,7 +131,7 @@ async fn run_command() -> anyhow::Result<String> {
             let register_status = register(
                 &api,
                 &rpc,
-                signature_request_account_name,
+                signature_request_keypair,
                 program_account,
                 key_visibility_converted,
                 program,
@@ -138,6 +140,10 @@ async fn run_command() -> anyhow::Result<String> {
             Ok(format!("{:?}", register_status))
         },
         CliCommand::Sign { signature_request_account_name, message_hex, auxilary_data } => {
+            let signature_request_keypair: sr25519::Pair =
+                SeedString::new(signature_request_account_name).try_into()?;
+            println!("Signature request account: {:?}", signature_request_keypair.public());
+
             let message = hex::decode(message_hex)?;
             let auxilary_data = if let Some(data) = auxilary_data {
                 Some(hex::decode(data)?)
@@ -146,8 +152,7 @@ async fn run_command() -> anyhow::Result<String> {
                 Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec())
             };
             let recoverable_signature =
-                sign(&api, &rpc, signature_request_account_name, message, None, auxilary_data)
-                    .await?;
+                sign(&api, &rpc, signature_request_keypair, message, None, auxilary_data).await?;
             Ok(format!("Message signed: {:?}", recoverable_signature))
         },
         CliCommand::UpdateProgram {
@@ -155,17 +160,19 @@ async fn run_command() -> anyhow::Result<String> {
             program_account_name,
             program_file,
         } => {
-            let sig_req_keypair = account_name_to_keypair(signature_request_account_name)?;
-            println!("Signature request account: {:?}", sig_req_keypair.public());
-            let sig_req_account = SubxtAccountId32(sig_req_keypair.public().0);
+            let signature_request_keypair: sr25519::Pair =
+                SeedString::new(signature_request_account_name).try_into()?;
+            println!("Signature request account: {:?}", signature_request_keypair.public());
+            let sig_req_account = SubxtAccountId32(signature_request_keypair.public().0);
 
             let program = match program_file {
                 Some(file_name) => fs::read(file_name)?,
                 None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 
-            let program_account_keypair = account_name_to_keypair(program_account_name)?;
-            update_program(&api, sig_req_account, &program_account_keypair, program).await?;
+            let program_keypair: sr25519::Pair =
+                SeedString::new(program_account_name).try_into()?;
+            update_program(&api, sig_req_account, &program_keypair, program).await?;
             Ok("Program updated".to_string())
         },
         CliCommand::Status => {
@@ -195,10 +202,21 @@ async fn run_command() -> anyhow::Result<String> {
     }
 }
 
-/// Generate an sr2119 keypair from a given seed string
-fn account_name_to_keypair(account_name: String) -> anyhow::Result<sr25519::Pair> {
-    let account_name =
-        if account_name.starts_with("//") { account_name } else { format!("//{}", account_name) };
-    let (sig_req_keypair, _) = sr25519::Pair::from_string_with_seed(&account_name, None)?;
-    Ok(sig_req_keypair)
+/// A string from which to generate a sr25519 keypair for test accounts
+#[derive(Clone)]
+struct SeedString(String);
+
+impl SeedString {
+    fn new(seed_string: String) -> Self {
+        Self(if seed_string.starts_with("//") { seed_string } else { format!("//{}", seed_string) })
+    }
+}
+
+impl TryFrom<SeedString> for sr25519::Pair {
+    type Error = anyhow::Error;
+
+    fn try_from(seed_string: SeedString) -> Result<Self, Self::Error> {
+        let (keypair, _) = sr25519::Pair::from_string_with_seed(&seed_string.0, None)?;
+        Ok(keypair)
+    }
 }

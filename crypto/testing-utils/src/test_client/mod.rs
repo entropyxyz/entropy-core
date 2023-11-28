@@ -3,7 +3,6 @@ use server::chain_api::{
     entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, EntropyConfig,
 };
 use std::{
-    str::FromStr,
     thread,
     time::{Duration, SystemTime},
 };
@@ -30,7 +29,6 @@ use subxt::{
     OnlineClient,
     // ext::sp_core::{sr25519, Pair},
 };
-use subxt_signer::SecretUri;
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     KeyShare,
@@ -42,17 +40,13 @@ use x25519_chacha20poly1305::SignedMessage;
 pub async fn register(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    sig_req_seed_string: String,
+    signature_request_keypair: sr25519::Pair,
     constraint_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
     initial_program: Vec<u8>,
 ) -> anyhow::Result<(RegisteredInfo, Option<KeyShare<KeyParams>>)> {
-    let sig_req_seed = SeedString::new(sig_req_seed_string);
-    let sig_req_keypair: sr25519::Pair = sig_req_seed.clone().try_into()?;
-    let sig_req_subxt_keypair: subxt_signer::sr25519::Keypair = sig_req_seed.try_into()?;
-
     // Check if user is already registered
-    let account_id32: AccountId32 = sig_req_keypair.public().into();
+    let account_id32: AccountId32 = signature_request_keypair.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
     let registered_query = entropy::storage().relayer().registered(account_id);
 
@@ -64,7 +58,7 @@ pub async fn register(
     // Send register transaction
     put_register_request_on_chain(
         api,
-        sig_req_keypair.clone(),
+        signature_request_keypair.clone(),
         constraint_account,
         key_visibility,
         initial_program,
@@ -74,7 +68,7 @@ pub async fn register(
     // If registering with private key visibility, participate in the DKG protocol
     let keyshare_option = match key_visibility {
         KeyVisibility::Private(_x25519_pk) => {
-            let x25519_secret = derive_static_secret(&sig_req_keypair);
+            let x25519_secret = derive_static_secret(&signature_request_keypair);
 
             let block_number = rpc
                 .chain_get_header(None)
@@ -86,7 +80,7 @@ pub async fn register(
             Some(
                 user_participates_in_dkg_protocol(
                     validators_info,
-                    &sig_req_subxt_keypair,
+                    &signature_request_keypair,
                     &x25519_secret,
                 )
                 .await?,
@@ -111,29 +105,29 @@ pub async fn register(
 pub async fn sign(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    sig_req_seed_string: String,
+    signature_request_keypair: sr25519::Pair,
     message: Vec<u8>,
     private: Option<KeyShare<KeyParams>>,
     auxilary_data: Option<Vec<u8>>,
 ) -> anyhow::Result<RecoverableSignature> {
-    let sig_req_seed = SeedString::new(sig_req_seed_string);
-    let sig_req_keypair: sr25519::Pair = sig_req_seed.clone().try_into()?;
-    let sig_req_subxt_keypair: subxt_signer::sr25519::Keypair = sig_req_seed.clone().try_into()?;
-    tracing::debug!("Signature request account: {}", hex::encode(sig_req_keypair.public().0));
+    tracing::debug!(
+        "Signature request account: {}",
+        hex::encode(signature_request_keypair.public().0)
+    );
 
     let message_hash = Hasher::keccak(&message);
     let message_hash_hex = hex::encode(message_hash);
     let validators_info = get_current_subgroup_signers(api, rpc, &message_hash_hex).await?;
     tracing::debug!("Validators info {:?}", validators_info);
 
-    let generic_msg = UserSignatureRequest {
+    let signature_request = UserSignatureRequest {
         message: hex::encode(message),
         auxilary_data: auxilary_data.map(hex::encode),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
     };
 
-    let user_transaction_request_vec = serde_json::to_vec(&generic_msg)?;
+    let signature_request_vec = serde_json::to_vec(&signature_request)?;
     let validators_info_clone = validators_info.clone();
     let client = reqwest::Client::new();
 
@@ -144,8 +138,8 @@ pub async fn sign(
             let validator_public_key: x25519_dalek::PublicKey =
                 validator_info.x25519_public_key.into();
             let signed_message = SignedMessage::new(
-                &sig_req_keypair,
-                &Bytes(user_transaction_request_vec.clone()),
+                &signature_request_keypair,
+                &Bytes(signature_request_vec.clone()),
                 &validator_public_key,
             )?;
             let signed_message_json = signed_message.to_json()?;
@@ -164,10 +158,10 @@ pub async fn sign(
 
     // If we have a keyshare, connect to TSS servers
     let results = if let Some(keyshare) = private {
-        let x25519_secret = derive_static_secret(&sig_req_keypair);
+        let x25519_secret = derive_static_secret(&signature_request_keypair);
 
         let sig_uid = {
-            let account_id32: AccountId32 = sig_req_keypair.public().into();
+            let account_id32: AccountId32 = signature_request_keypair.public().into();
             let account_id_ss58 = account_id32.to_ss58check();
             format!("{account_id_ss58}_{message_hash_hex}")
         };
@@ -177,7 +171,7 @@ pub async fn sign(
                 &keyshare,
                 &sig_uid,
                 validators_info_clone,
-                &sig_req_subxt_keypair,
+                &signature_request_keypair,
                 message_hash,
                 &x25519_secret,
             ),
@@ -198,11 +192,21 @@ pub async fn sign(
         let chunk = output.chunk().await?.ok_or(anyhow!("No response"))?;
         let signing_result: Result<(String, sr25519::Signature), String> =
             serde_json::from_slice(&chunk).unwrap();
-        let (signature_base64, _signature_of_signature) =
+        // TODO validate signature of signature
+        let (signature_base64, signature_of_signature) =
             signing_result.map_err(|err| anyhow!(err))?;
         tracing::debug!("Signature: {}", signature_base64);
-
         let mut decoded_sig = base64::decode(signature_base64)?;
+
+        let verified = sr25519::Pair::verify(
+            &signature_of_signature,
+            &decoded_sig,
+            &sr25519::Public(validators_info[0].tss_account.0),
+        );
+        if !verified {
+            return Err(anyhow!("Failed to verify response from TSS server"));
+        }
+
         let recovery_digit = decoded_sig.pop().ok_or(anyhow!("Cannot get recovery digit"))?;
         let signature = k256Signature::from_slice(&decoded_sig)?;
         let recovery_id =
@@ -213,20 +217,21 @@ pub async fn sign(
 
         return Ok(RecoverableSignature { signature, recovery_id });
     }
-    Err(anyhow!("No results to return"))
+    Err(anyhow!("Failed to get responses from TSS servers"))
 }
 
 /// Set or update the program associated with a given entropy account
 pub async fn update_program(
     api: &OnlineClient<EntropyConfig>,
-    sig_req_account: SubxtAccountId32,
-    program_modification_account: &sr25519::Pair,
+    signature_request_account: SubxtAccountId32,
+    program_modification_keypair: &sr25519::Pair,
     program: Vec<u8>,
 ) -> anyhow::Result<()> {
-    let update_program_tx = entropy::tx().programs().update_program(sig_req_account, program);
+    let update_program_tx =
+        entropy::tx().programs().update_program(signature_request_account, program);
 
     let program_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_account.clone());
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_keypair.clone());
 
     api.tx()
         .sign_and_submit_then_watch_default(&update_program_tx, &program_modification_account)
@@ -261,12 +266,13 @@ pub async fn get_accounts(
 // Submit a register transaction
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
-    sig_req_keypair: sr25519::Pair,
+    signature_request_keypair: sr25519::Pair,
     program_modification_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
     initial_program: Vec<u8>,
 ) -> anyhow::Result<()> {
-    let sig_req_account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keypair);
+    let signature_request_pair_signer =
+        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
 
     let registering_tx = entropy::tx().relayer().register(
         program_modification_account,
@@ -275,47 +281,13 @@ pub async fn put_register_request_on_chain(
     );
 
     api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
+        .sign_and_submit_then_watch_default(&registering_tx, &signature_request_pair_signer)
         .await?
         .wait_for_in_block()
         .await?
         .wait_for_success()
         .await?;
     Ok(())
-}
-
-/// A string from which to generate a sr25519 keypair for test accounts
-#[derive(Clone)]
-struct SeedString(String);
-
-impl SeedString {
-    fn new(seed_string: String) -> Self {
-        Self(if seed_string.starts_with("//") { seed_string } else { format!("//{}", seed_string) })
-    }
-
-    // fn seed(&self) -> anyhow::Result<[u8; 32]> {
-    //     let (_, seed_option) = sr25519::Pair::from_string_with_seed(&self.0, None)?;
-    //     seed_option.ok_or(anyhow!("Could not get seed"))
-    // }
-}
-
-impl TryFrom<SeedString> for sr25519::Pair {
-    type Error = anyhow::Error;
-
-    fn try_from(seed_string: SeedString) -> Result<Self, Self::Error> {
-        let (keypair, _) = sr25519::Pair::from_string_with_seed(&seed_string.0, None)?;
-        Ok(keypair)
-    }
-}
-
-impl TryFrom<SeedString> for subxt_signer::sr25519::Keypair {
-    type Error = anyhow::Error;
-
-    fn try_from(seed_string: SeedString) -> Result<Self, Self::Error> {
-        let uri = SecretUri::from_str(&seed_string.0)?;
-        let keypair = subxt_signer::sr25519::Keypair::from_uri(&uri)?;
-        Ok(keypair)
-    }
 }
 
 /// Get the commitee of tss servers who will perform DKG for a given block number

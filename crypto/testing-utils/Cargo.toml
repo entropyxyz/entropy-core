@@ -42,7 +42,6 @@ base64                 ="0.13.0"
 synedrion              ={ git="ssh://git@github.com/entropyxyz/synedrion.git", branch="fix-32bit" }
 x25519-chacha20poly1305={ git="https://github.com/entropyxyz/x25519-chacha20poly1305.git", branch="peg/unsafe-test-mode" }
 hex                    ="0.4.3"
-subxt-signer           ="0.31.0"
 
 # For test CLI
 clap   ={ version="4.4.6", features=["derive"] }
