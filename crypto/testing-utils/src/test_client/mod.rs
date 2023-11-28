@@ -1,22 +1,26 @@
 //! Simple test client
-use server::chain_api::{
-    entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, EntropyConfig,
-};
+pub use crate::chain_api::{get_api, get_rpc};
+pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
+pub use x25519_chacha20poly1305::derive_static_secret;
+
 use std::{
     thread,
     time::{Duration, SystemTime},
 };
 
-pub use crate::chain_api::{get_api, get_rpc};
 use anyhow::{anyhow, ensure};
 use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, RecoverableSignature, ValidatorInfo,
 };
-pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 use futures::future;
 use parity_scale_codec::Decode;
-use server::common::{get_current_subgroup_signers, Hasher, UserSignatureRequest};
+use server::{
+    chain_api::{
+        entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, EntropyConfig,
+    },
+    common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
+};
 use sp_core::{
     crypto::{AccountId32, Ss58Codec},
     sr25519, Bytes, Pair,
@@ -31,7 +35,6 @@ use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     KeyShare,
 };
-pub use x25519_chacha20poly1305::derive_static_secret;
 use x25519_chacha20poly1305::SignedMessage;
 
 /// Register an account
