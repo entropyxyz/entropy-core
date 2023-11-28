@@ -216,6 +216,8 @@ impl KeyShare {
     }
 }
 
+// Make a sr25519 keypair given a secret key, using sp-core compatible key generation if
+// in test mode, polkadot-js compatible otherwise
 fn sr25519_keypair_from_secret_key(secret_key: Vec<u8>) -> Result<sr25519::Pair, Error> {
     if secret_key.len() != 64 {
         return Err(Error::new("Secret key must be 64 bytes"));
