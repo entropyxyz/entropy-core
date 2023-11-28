@@ -109,7 +109,7 @@ jobs:
                 name: Build entropy-protocol nodejs package.
                 command: |
                   cd crypto/protocol
-                  make build-nodejs
+                  make build-nodejs-testing
                   cd nodejs-test
                   yarn
                   cd ../../..
