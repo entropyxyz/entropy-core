@@ -1,6 +1,6 @@
 //! Wrappers around functions to run dkg and signing protocols for JS
 use js_sys::Error;
-use sp_core::{sr25519, Pair};
+use sp_core::sr25519;
 use subxt::utils::AccountId32;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_derive::TryFromJsValue;
@@ -12,16 +12,19 @@ use crate::KeyParams;
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub async fn run_dkg_protocol(
     validators_info_js: ValidatorInfoArray,
-    user_signing_keypair_seed: Vec<u8>,
+    user_signing_secret_key: Vec<u8>,
     x25519_private_key_vec: Vec<u8>,
 ) -> Result<KeyShare, Error> {
     let validators_info = parse_validator_info(validators_info_js)?;
 
     let user_signing_keypair = {
-        let seed: [u8; 32] = user_signing_keypair_seed
-            .try_into()
-            .map_err(|_| Error::new("User signing keypair seed must be 32 bytes"))?;
-        sr25519::Pair::from_seed(&seed)
+        if user_signing_secret_key.len() != 64 {
+            return Err(Error::new("Secret key must be 64 bytes"));
+        }
+        let secret = schnorrkel::SecretKey::from_ed25519_bytes(user_signing_secret_key.as_slice())
+            .map_err(|err| Error::new(&err.to_string()))?;
+        let public = secret.to_public();
+        sr25519::Pair::from(schnorrkel::Keypair { secret, public })
     };
 
     let x25519_private_key: x25519_dalek::StaticSecret = {
@@ -49,7 +52,7 @@ pub async fn run_signing_protocol(
     key_share: KeyShare,
     sig_uid: String,
     validators_info_js: ValidatorInfoArray,
-    user_signing_keypair_seed: Vec<u8>,
+    user_signing_secret_key: Vec<u8>,
     x25519_private_key_vec: Vec<u8>,
 ) -> Result<String, Error> {
     let validators_info = parse_validator_info(validators_info_js)?;
@@ -64,10 +67,13 @@ pub async fn run_signing_protocol(
     };
 
     let user_signing_keypair = {
-        let seed: [u8; 32] = user_signing_keypair_seed
-            .try_into()
-            .map_err(|_| Error::new("User signing keypair seed must be 32 bytes"))?;
-        sr25519::Pair::from_seed(&seed)
+        if user_signing_secret_key.len() != 64 {
+            return Err(Error::new("Secret key must be 64 bytes"));
+        }
+        let secret = schnorrkel::SecretKey::from_ed25519_bytes(user_signing_secret_key.as_slice())
+            .map_err(|err| Error::new(&err.to_string()))?;
+        let public = secret.to_public();
+        sr25519::Pair::from(schnorrkel::Keypair { secret, public })
     };
 
     let x25519_private_key: x25519_dalek::StaticSecret = {
