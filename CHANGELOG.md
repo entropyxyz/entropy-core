@@ -19,6 +19,7 @@ At the moment this project **does not** adhere to
 -  Add versioning to server ([#516](https://github.com/entropyxyz/entropy-core/pull/516/))
 -  Allow logger to be configured from CLI ([#520](https://github.com/entropyxyz/entropy-core/pull/520/))
 -  Add `bunyan` JSON formatter ([#524](https://github.com/entropyxyz/entropy-core/pull/524/))
+-  Add Loki logging layer ([#528](https://github.com/entropyxyz/entropy-core/pull/528/))
 
 ### Changed
 -  Change SocketAddr type for String ([#496](https://github.com/entropyxyz/entropy-core/pull/496/))
