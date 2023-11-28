@@ -1,4 +1,4 @@
-//! Client functionality used in itegration tests
+//! Simple test client
 use server::chain_api::{
     entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, EntropyConfig,
 };
