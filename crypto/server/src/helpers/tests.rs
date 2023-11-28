@@ -225,7 +225,7 @@ pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32)
 #[tokio::test]
 #[serial]
 async fn test_get_signing_group() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
     let cxt = testing_context().await;
     setup_client().await;

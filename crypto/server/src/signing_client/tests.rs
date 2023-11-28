@@ -22,7 +22,7 @@ use testing_utils::{
 #[tokio::test]
 #[serial]
 async fn test_proactive_refresh() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
     let eve = AccountKeyring::Eve;
     let dave = AccountKeyring::Dave;
@@ -161,7 +161,7 @@ pub async fn submit_transaction_requests(
 #[tokio::test]
 #[serial]
 async fn test_proactive_refresh_validation_fail() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let cxt = test_context_stationary().await;

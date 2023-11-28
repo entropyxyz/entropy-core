@@ -36,7 +36,7 @@ use crate::{
 
 #[tokio::test]
 async fn test_get_all_keys() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let cxt = testing_context().await;
@@ -226,7 +226,7 @@ async fn test_sync_kvdb() {
 #[tokio::test]
 #[serial]
 async fn test_get_and_store_values() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let cxt = test_node_process_testing_state(false).await;
@@ -293,7 +293,7 @@ async fn test_get_and_store_values() {
 #[tokio::test]
 #[should_panic = "index out of bounds: the len is 1 but the index is 1"]
 async fn test_get_random_server_info() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let cxt = testing_context().await;
@@ -317,7 +317,7 @@ async fn test_get_random_server_info() {
 #[tokio::test]
 #[should_panic = "Account does not exist, add balance"]
 async fn test_check_balance_for_fees() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let cxt = testing_context().await;
@@ -341,7 +341,7 @@ async fn test_check_balance_for_fees() {
 
 #[tokio::test]
 async fn test_tell_chain_syncing_is_done() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let cxt = testing_context().await;
@@ -358,7 +358,7 @@ async fn test_tell_chain_syncing_is_done() {
 #[tokio::test]
 #[serial]
 async fn test_sync_validator() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let ctx = test_node_process_testing_state(true).await;
