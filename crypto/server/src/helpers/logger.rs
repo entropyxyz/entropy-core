@@ -1,3 +1,4 @@
+use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::prelude::*;
 
@@ -24,7 +25,16 @@ impl Logger {
         match self {
             Logger::Full => registry.with(stdout).init(),
             Logger::Pretty => registry.with(stdout.pretty()).init(),
-            Logger::Json => registry.with(stdout.json()).init(),
+            Logger::Json => {
+                let name = format!(
+                    "{}@{}-{}",
+                    env!("CARGO_PKG_NAME"),
+                    env!("CARGO_PKG_VERSION"),
+                    env!("VERGEN_GIT_DESCRIBE")
+                );
+                let bunyan_layer = BunyanFormattingLayer::new(name, std::io::stdout);
+                registry.with(JsonStorageLayer).with(bunyan_layer).init()
+            },
         }
     }
 }

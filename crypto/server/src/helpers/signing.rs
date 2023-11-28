@@ -2,12 +2,12 @@ use std::time::Duration;
 
 use entropy_protocol::RecoverableSignature;
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
+use sp_core::Pair;
 use subxt::utils::AccountId32;
 use tokio::time::timeout;
 
 use crate::{
     get_signer,
-    helpers::validator::get_subxt_signer,
     sign_init::SignInit,
     signing_client::{
         protocol_execution::{Channels, ThresholdSigningService},
@@ -37,13 +37,13 @@ pub async fn do_signing(
     let info =
         SignInit::new(message.clone(), sig_hash.clone(), tx_id.clone(), user_address.clone())?;
     let signing_service = ThresholdSigningService::new(state, kv_manager);
-    let signer = get_signer(kv_manager).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    let pair_signer =
+        get_signer(kv_manager).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    let signer = pair_signer.signer();
 
-    let x25519_secret_key = derive_static_secret(signer.signer());
-    let subxt_signer =
-        get_subxt_signer(kv_manager).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    let x25519_secret_key = derive_static_secret(signer);
 
-    let account_id = AccountId32(subxt_signer.public_key().0);
+    let account_id = AccountId32(signer.public().0);
 
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
@@ -78,7 +78,7 @@ pub async fn do_signing(
     open_protocol_connections(
         &sign_context.sign_init.validators_info,
         &sign_context.sign_init.sig_uid,
-        &subxt_signer,
+        signer,
         state,
         &x25519_secret_key,
     )
@@ -90,7 +90,7 @@ pub async fn do_signing(
     };
 
     let result =
-        signing_service.execute_sign(&sign_context, channels, &subxt_signer, tss_accounts).await?;
+        signing_service.execute_sign(&sign_context, channels, signer, tss_accounts).await?;
 
     Ok(result)
 }
