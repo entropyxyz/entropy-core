@@ -17,15 +17,7 @@ pub async fn run_dkg_protocol(
 ) -> Result<KeyShare, Error> {
     let validators_info = parse_validator_info(validators_info_js)?;
 
-    let user_signing_keypair = {
-        if user_signing_secret_key.len() != 64 {
-            return Err(Error::new("Secret key must be 64 bytes"));
-        }
-        let secret = schnorrkel::SecretKey::from_ed25519_bytes(user_signing_secret_key.as_slice())
-            .map_err(|err| Error::new(&err.to_string()))?;
-        let public = secret.to_public();
-        sr25519::Pair::from(schnorrkel::Keypair { secret, public })
-    };
+    let user_signing_keypair = sr25519_keypair_from_secret_key(user_signing_secret_key)?;
 
     let x25519_private_key: x25519_dalek::StaticSecret = {
         let x25519_private_key_raw: [u8; 32] = x25519_private_key_vec
@@ -66,15 +58,7 @@ pub async fn run_signing_protocol(
         sig_hash_vec.try_into().map_err(|_| Error::new("Message hash must be 32 bytes"))?
     };
 
-    let user_signing_keypair = {
-        if user_signing_secret_key.len() != 64 {
-            return Err(Error::new("Secret key must be 64 bytes"));
-        }
-        let secret = schnorrkel::SecretKey::from_ed25519_bytes(user_signing_secret_key.as_slice())
-            .map_err(|err| Error::new(&err.to_string()))?;
-        let public = secret.to_public();
-        sr25519::Pair::from(schnorrkel::Keypair { secret, public })
-    };
+    let user_signing_keypair = sr25519_keypair_from_secret_key(user_signing_secret_key)?;
 
     let x25519_private_key: x25519_dalek::StaticSecret = {
         let x25519_private_key_raw: [u8; 32] = x25519_private_key_vec
@@ -230,4 +214,20 @@ impl KeyShare {
     pub fn party_index(&self) -> usize {
         self.0.party_index().as_usize()
     }
+}
+
+fn sr25519_keypair_from_secret_key(secret_key: Vec<u8>) -> Result<sr25519::Pair, Error> {
+    if secret_key.len() != 64 {
+        return Err(Error::new("Secret key must be 64 bytes"));
+    }
+
+    let secret = if cfg!(feature = "wasm-test") {
+        schnorrkel::SecretKey::from_bytes(secret_key.as_slice())
+    } else {
+        schnorrkel::SecretKey::from_ed25519_bytes(secret_key.as_slice())
+    }
+    .map_err(|err| Error::new(&err.to_string()))?;
+
+    let public = secret.to_public();
+    Ok(sr25519::Pair::from(schnorrkel::Keypair { secret, public }))
 }
