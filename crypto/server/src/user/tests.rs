@@ -73,9 +73,8 @@ use crate::{
         signing::{create_unique_tx_id, Hasher},
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
-            check_if_confirmation, create_clients, initialize_test_logger,
-            keyring_to_subxt_signer_and_x25519, run_to_block, setup_client,
-            spawn_testing_validators, update_programs,
+            check_if_confirmation, create_clients, initialize_test_logger, run_to_block,
+            setup_client, spawn_testing_validators, update_programs,
         },
         user::send_key,
     },
@@ -208,12 +207,12 @@ async fn test_sign_tx_no_chain() {
         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
-        let (ferdie_keypair, ferdie_x25519_sk) =
-            keyring_to_subxt_signer_and_x25519(&AccountKeyring::Ferdie);
+        let ferdie_pair = AccountKeyring::Ferdie.pair();
+        let ferdie_x25519_sk = derive_static_secret(&ferdie_pair);
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
-            bincode::serialize(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
+            bincode::serialize(&SubscribeMessage::new(&sig_uid, &ferdie_pair)).unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
@@ -817,7 +816,7 @@ async fn test_sign_tx_user_participates() {
     ];
     generic_msg.timestamp = SystemTime::now();
 
-    let (one_keypair, one_x25519_sk) = keyring_to_subxt_signer_and_x25519(&one);
+    let one_x25519_sk = derive_static_secret(&one.pair());
 
     // Submit transaction requests, and connect and participate in signing
     let (test_user_res, sig_result) = future::join(
@@ -826,7 +825,7 @@ async fn test_sign_tx_user_participates() {
             &users_keyshare_option.clone().unwrap(),
             &sig_uid,
             validators_info.clone(),
-            &one_keypair,
+            &one.pair(),
             message_should_succeed_hash,
             &one_x25519_sk,
         ),
@@ -881,15 +880,12 @@ async fn test_sign_tx_user_participates() {
         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
-        let ferdie_keypair = subxt_signer::sr25519::Keypair::from_uri(
-            &subxt_signer::SecretUri::from_str(&AccountKeyring::Ferdie.to_seed()).unwrap(),
-        )
-        .unwrap();
-        let ferdie_x25519_sk = derive_static_secret(&AccountKeyring::Ferdie.pair());
+        let ferdie_pair = AccountKeyring::Ferdie.pair();
+        let ferdie_x25519_sk = derive_static_secret(&ferdie_pair);
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
-            bincode::serialize(&SubscribeMessage::new(&sig_uid, &ferdie_keypair)).unwrap();
+            bincode::serialize(&SubscribeMessage::new(&sig_uid, &ferdie_pair)).unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
@@ -1057,7 +1053,7 @@ async fn test_register_with_private_key_visibility() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-    let (one_keypair, one_x25519_sk) = keyring_to_subxt_signer_and_x25519(&one);
+    let one_x25519_sk = derive_static_secret(&one.pair());
     let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
 
     put_register_request_on_chain(
@@ -1103,7 +1099,7 @@ async fn test_register_with_private_key_visibility() {
             .post("http://127.0.0.1:3002/user/new")
             .body(onchain_user_request.clone().encode())
             .send(),
-        user_participates_in_dkg_protocol(validators_info.clone(), &one_keypair, &one_x25519_sk),
+        user_participates_in_dkg_protocol(validators_info.clone(), &one.pair(), &one_x25519_sk),
     )
     .await;
 

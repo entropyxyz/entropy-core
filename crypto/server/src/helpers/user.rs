@@ -6,12 +6,9 @@ use entropy_protocol::{
 };
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Encode;
-use sp_core::crypto::AccountId32;
+use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
 use subxt::{
-    backend::legacy::LegacyRpcMethods,
-    ext::sp_core::{sr25519, Bytes},
-    tx::PairSigner,
-    utils::AccountId32 as SubxtAccountId32,
+    backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
     OnlineClient,
 };
 use synedrion::KeyShare;
@@ -32,10 +29,9 @@ pub async fn do_dkg(
     sig_request_account: AccountId32,
     my_subgroup: &u8,
     key_visibility: KeyVisibility,
-    subxt_signer: &subxt_signer::sr25519::Keypair,
 ) -> Result<KeyShare<KeyParams>, UserErr> {
     let session_uid = sig_request_account.to_string();
-    let account_id = SubxtAccountId32(*signer.account_id().clone().as_ref());
+    let account_id = SubxtAccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
     for validator_info in validators_info {
@@ -80,7 +76,7 @@ pub async fn do_dkg(
     open_protocol_connections(
         &converted_validator_info,
         &session_uid,
-        subxt_signer,
+        signer.signer(),
         state,
         &x25519_secret_key,
     )
@@ -91,7 +87,7 @@ pub async fn do_dkg(
         Channels(broadcast_out, rx_from_others)
     };
 
-    let result = execute_dkg(channels, subxt_signer, tss_accounts, my_subgroup).await?;
+    let result = execute_dkg(channels, signer.signer(), tss_accounts, my_subgroup).await?;
     Ok(result)
 }
 

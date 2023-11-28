@@ -2607,12 +2607,12 @@ dependencies = [
  "hex",
  "js-sys",
  "rand_core 0.6.4",
+ "schnorrkel 0.9.1",
  "serde",
- "serde-big-array",
  "serde_json",
  "snow",
+ "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "subxt",
- "subxt-signer",
  "synedrion",
  "thiserror",
  "tokio",
@@ -10205,15 +10205,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde-big-array"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11fc7cc2c76d73e0f27ee52abbd64eec84d46f370c88371120433196934e4b7f"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "serde_bytes"
 version = "0.11.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10375,7 +10366,6 @@ dependencies = [
  "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-keyring 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "subxt",
- "subxt-signer",
  "synedrion",
  "template-barebones",
  "testing-utils",
@@ -12182,7 +12172,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e1e4cf3f57cb7ee062111a8f590670efb385e60cf5805054c4a7f377b2bc65d"
 dependencies = [
  "bip39 2.0.0",
- "getrandom 0.2.10",
  "hex",
  "hmac 0.12.1",
  "parity-scale-codec",

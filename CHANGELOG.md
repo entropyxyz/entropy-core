@@ -14,6 +14,7 @@ At the moment this project **does not** adhere to
 - In the JSON body of the `/sign_tx` endpoint, the `preimage` field has been renamed to `message`. It remains a hex-encoded `string`. [#475](https://github.com/entropyxyz/entropy-core/pull/475/)
 
 ### Added
+-  Wasm bindings for user to participate in DKG and signing protocols ([#414](https://github.com/entropyxyz/entropy-core/pull/414/))
 -  Auxiliary data for program evaluation ([#475](https://github.com/entropyxyz/entropy-core/pull/475/))
 -  Add versioning to server ([#516](https://github.com/entropyxyz/entropy-core/pull/516/))
 -  Allow logger to be configured from CLI ([#520](https://github.com/entropyxyz/entropy-core/pull/520/))
@@ -22,6 +23,7 @@ At the moment this project **does not** adhere to
 ### Changed
 -  Change SocketAddr type for String ([#496](https://github.com/entropyxyz/entropy-core/pull/496/))
 -  Add `#[tracing::instrument]` macro to routes ([#515](https://github.com/entropyxyz/entropy-core/pull/515/))
+-  Remove subxt-signer from server and entropy-protocol ([#526](https://github.com/entropyxyz/entropy-core/pull/526/))
 
 ### Fixed
 - Return package version instead of rustc version ([#523](https://github.com/entropyxyz/entropy-core/pull/523/))
