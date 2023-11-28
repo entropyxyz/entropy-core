@@ -10356,6 +10356,7 @@ dependencies = [
  "futures",
  "hex",
  "hex-literal",
+ "hostname",
  "kvdb 0.1.0",
  "lazy_static",
  "more-asserts",

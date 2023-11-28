@@ -72,20 +72,20 @@ impl Instrumentation {
         }
 
         if self.loki {
-            let name = format!(
-                "{}@{}-{}",
-                env!("CARGO_PKG_NAME"),
-                env!("CARGO_PKG_VERSION"),
-                env!("VERGEN_GIT_DESCRIBE")
-            );
-
+            let hostname = hostname::get().unwrap();
             let (loki_layer, task) = tracing_loki::builder()
-                    .label("process", name)
-                    .unwrap()
-                    // .extra_field("pid", format!("{}", std::process::id()))
-                    // .unwrap()
-                    .build_url(reqwest::Url::parse(&self.loki_endpoint).unwrap())
-                    .unwrap();
+                .label("appname", env!("CARGO_PKG_NAME"))
+                .unwrap()
+                .label("version", env!("CARGO_PKG_VERSION"))
+                .unwrap()
+                .label("hostname", hostname.to_str().unwrap_or_default())
+                .unwrap()
+                .extra_field("git-info", env!("VERGEN_GIT_DESCRIBE"))
+                .unwrap()
+                .extra_field("pid", format!("{}", std::process::id()))
+                .unwrap()
+                .build_url(reqwest::Url::parse(&self.loki_endpoint).unwrap())
+                .unwrap();
 
             // This will spawn a background task which sends our logs to the provided Loki endpoint.
             tokio::spawn(task);
