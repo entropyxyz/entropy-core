@@ -52,6 +52,7 @@ async fn integration_test_sign() {
     )
     .await
     .unwrap();
+
     let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
         &message_should_succeed_hash,
         &recoverable_signature.signature,
@@ -95,6 +96,7 @@ async fn integration_test_sign_private() {
     )
     .await
     .unwrap();
+
     let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
         &message_should_succeed_hash,
         &recoverable_signature.signature,

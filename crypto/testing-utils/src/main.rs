@@ -3,8 +3,10 @@ use std::{fs, path::PathBuf, time::Instant};
 
 use clap::{Parser, Subcommand};
 use colored::Colorize;
+use entropy_protocol::KeyParams;
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32 as SubxtAccountId32;
+use synedrion::KeyShare;
 use testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
@@ -128,16 +130,22 @@ async fn run_command() -> anyhow::Result<String> {
                 None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 
-            let register_status = register(
+            let (registered_info, keyshare_option) = register(
                 &api,
                 &rpc,
-                signature_request_keypair,
+                signature_request_keypair.clone(),
                 program_account,
                 key_visibility_converted,
                 program,
             )
             .await?;
-            Ok(format!("{:?}", register_status))
+
+            // If we got a keyshare, write it to a file
+            if let Some(keyshare) = keyshare_option {
+                KeyShareFile::new(signature_request_keypair.public()).write(keyshare)?;
+            }
+
+            Ok(format!("{:?}", registered_info))
         },
         CliCommand::Sign { signature_request_account_name, message_hex, auxilary_data } => {
             let signature_request_keypair: sr25519::Pair =
@@ -151,8 +159,20 @@ async fn run_command() -> anyhow::Result<String> {
                 // This is temporary for testing with the test program
                 Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec())
             };
-            let recoverable_signature =
-                sign(&api, &rpc, signature_request_keypair, message, None, auxilary_data).await?;
+
+            // If we have a keyshare file for this account, get it
+            let private_keyshare =
+                KeyShareFile::new(signature_request_keypair.public()).read().ok();
+
+            let recoverable_signature = sign(
+                &api,
+                &rpc,
+                signature_request_keypair,
+                message,
+                private_keyshare,
+                auxilary_data,
+            )
+            .await?;
             Ok(format!("Message signed: {:?}", recoverable_signature))
         },
         CliCommand::UpdateProgram {
@@ -218,5 +238,25 @@ impl TryFrom<SeedString> for sr25519::Pair {
     fn try_from(seed_string: SeedString) -> Result<Self, Self::Error> {
         let (keypair, _) = sr25519::Pair::from_string_with_seed(&seed_string.0, None)?;
         Ok(keypair)
+    }
+}
+
+struct KeyShareFile(String);
+
+impl KeyShareFile {
+    fn new(public_key: sr25519::Public) -> Self {
+        Self(format!("keyshare-{}", hex::encode(public_key.0)))
+    }
+
+    fn read(&self) -> anyhow::Result<KeyShare<KeyParams>> {
+        let keyshare_vec = fs::read(&self.0)?;
+        println!("Reading keyshare from file: {}", self.0);
+        Ok(bincode::deserialize(&keyshare_vec)?)
+    }
+
+    fn write(&self, keyshare: KeyShare<KeyParams>) -> anyhow::Result<()> {
+        println!("Writing keyshare to file: {}", self.0);
+        let keyshare_vec = bincode::serialize(&keyshare)?;
+        Ok(fs::write(&self.0, keyshare_vec)?)
     }
 }

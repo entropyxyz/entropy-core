@@ -35,6 +35,8 @@ pub use x25519_chacha20poly1305::derive_static_secret;
 use x25519_chacha20poly1305::SignedMessage;
 
 /// Register an account
+/// If successful, returns registration info including verfiying key
+/// If registering in private mode, a keyshare is also returned
 pub async fn register(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -194,35 +196,23 @@ pub async fn sign(
         let mut decoded_sig = base64::decode(signature_base64)?;
 
         // Verfiy the response signature from the TSS client
-        let verified = sr25519::Pair::verify(
-            &signature_of_signature,
-            &decoded_sig,
-            &sr25519::Public(validators_info[0].tss_account.0),
+        ensure!(
+            sr25519::Pair::verify(
+                &signature_of_signature,
+                &decoded_sig,
+                &sr25519::Public(validators_info[0].tss_account.0),
+            ),
+            "Failed to verify response from TSS server"
         );
-        ensure!(verified, "Failed to verify response from TSS server");
 
         let recovery_digit = decoded_sig.pop().ok_or(anyhow!("Cannot get recovery digit"))?;
         let signature = k256Signature::from_slice(&decoded_sig)?;
         let recovery_id =
             RecoveryId::from_byte(recovery_digit).ok_or(anyhow!("Cannot create recovery id"))?;
+
         let verifying_key_of_signature =
             VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id)?;
-        let verifying_key_of_signature_serialized =
-            verifying_key_of_signature.to_encoded_point(true).as_bytes().to_vec();
-        tracing::debug!("Verifying Key {:?}", verifying_key_of_signature_serialized);
-
-        // Get the verifying key associated with this account
-        let registered_status = {
-            let account_id32: AccountId32 = signature_request_keypair.public().into();
-            let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
-            let registered_query = entropy::storage().relayer().registered(account_id);
-            let query_registered_status =
-                api.storage().at_latest().await?.fetch(&registered_query).await;
-            query_registered_status?.ok_or(anyhow!("User not registered"))?
-        };
-
-        // Check that the verfiying key from the signature matches that from registration
-        ensure!(registered_status.verifying_key.0 == verifying_key_of_signature_serialized);
+        tracing::debug!("Verifying Key {:?}", verifying_key_of_signature);
 
         return Ok(RecoverableSignature { signature, recovery_id });
     }
@@ -364,4 +354,26 @@ async fn select_validator_from_subgroup(
         }
     };
     Ok(address.clone())
+}
+
+/// Check that the verfiying key from a new signature matches that in the from the
+/// on-chain registration info for a given account
+pub async fn check_verifying_key(
+    api: &OnlineClient<EntropyConfig>,
+    public_key: sr25519::Public,
+    verifying_key: VerifyingKey,
+) -> anyhow::Result<()> {
+    let verifying_key_serialized = verifying_key.to_encoded_point(true).as_bytes().to_vec();
+
+    // Get the verifying key associated with this account
+    let registered_status = {
+        let account_id32: AccountId32 = public_key.into();
+        let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
+        let registered_query = entropy::storage().relayer().registered(account_id);
+        let query_registered_status =
+            api.storage().at_latest().await?.fetch(&registered_query).await;
+        query_registered_status?.ok_or(anyhow!("User not registered"))?
+    };
+
+    Ok(ensure!(registered_status.verifying_key.0 == verifying_key_serialized))
 }

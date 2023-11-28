@@ -12283,6 +12283,7 @@ dependencies = [
  "anyhow",
  "axum",
  "base64 0.13.1",
+ "bincode",
  "blake2",
  "clap 4.4.8",
  "colored",
