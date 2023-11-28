@@ -25,9 +25,7 @@ use subxt::{
     backend::legacy::LegacyRpcMethods,
     tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static},
-    Config,
-    OnlineClient,
-    // ext::sp_core::{sr25519, Pair},
+    Config, OnlineClient,
 };
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
@@ -185,35 +183,46 @@ pub async fn sign(
     // Get the first result
     if let Some(res) = results.into_iter().next() {
         let mut output = res?;
-        if output.status() != 200 {
-            return Err(anyhow!("Signing failed: {}", output.text().await?));
-        }
+        ensure!(output.status() == 200, "Signing failed: {}", output.text().await?);
 
         let chunk = output.chunk().await?.ok_or(anyhow!("No response"))?;
         let signing_result: Result<(String, sr25519::Signature), String> =
             serde_json::from_slice(&chunk).unwrap();
-        // TODO validate signature of signature
         let (signature_base64, signature_of_signature) =
             signing_result.map_err(|err| anyhow!(err))?;
         tracing::debug!("Signature: {}", signature_base64);
         let mut decoded_sig = base64::decode(signature_base64)?;
 
+        // Verfiy the response signature from the TSS client
         let verified = sr25519::Pair::verify(
             &signature_of_signature,
             &decoded_sig,
             &sr25519::Public(validators_info[0].tss_account.0),
         );
-        if !verified {
-            return Err(anyhow!("Failed to verify response from TSS server"));
-        }
+        ensure!(verified, "Failed to verify response from TSS server");
 
         let recovery_digit = decoded_sig.pop().ok_or(anyhow!("Cannot get recovery digit"))?;
         let signature = k256Signature::from_slice(&decoded_sig)?;
         let recovery_id =
             RecoveryId::from_byte(recovery_digit).ok_or(anyhow!("Cannot create recovery id"))?;
-        let recovery_key_from_sig =
+        let verifying_key_of_signature =
             VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id).unwrap();
-        tracing::debug!("Verifying Key {:?}", recovery_key_from_sig);
+        let verifying_key_of_signature_serialized =
+            verifying_key_of_signature.to_encoded_point(true).as_bytes().to_vec();
+        tracing::debug!("Verifying Key {:?}", verifying_key_of_signature_serialized);
+
+        // Get the verifying key associated with this account
+        let registered_status = {
+            let account_id32: AccountId32 = signature_request_keypair.public().into();
+            let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
+            let registered_query = entropy::storage().relayer().registered(account_id);
+            let query_registered_status =
+                api.storage().at_latest().await?.fetch(&registered_query).await;
+            query_registered_status?.ok_or(anyhow!("User not registered"))?
+        };
+
+        // Check that the verfiying key from the signature matches that from registration
+        ensure!(registered_status.verifying_key.0 == verifying_key_of_signature_serialized);
 
         return Ok(RecoverableSignature { signature, recovery_id });
     }
