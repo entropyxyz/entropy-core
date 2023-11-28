@@ -45,7 +45,6 @@ pub mod pallet {
         traits::{ConstU32, IsSubType},
     };
     use frame_system::pallet_prelude::*;
-    use pallet_programs::{AllowedToModifyProgram, Pallet as ProgramsPallet};
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
@@ -75,17 +74,18 @@ pub mod pallet {
     pub struct RegisteringDetails<T: Config> {
         pub program_modification_account: T::AccountId,
         pub confirmations: Vec<u8>,
-        pub program: Vec<u8>,
+        pub program_pointer: T::Hash,
         pub key_visibility: KeyVisibility,
         pub verifying_key: Option<BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>>,
     }
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
-    pub struct RegisteredInfo {
+    pub struct RegisteredInfo<Hash> {
         pub key_visibility: KeyVisibility,
         // TODO better type
         pub verifying_key: BoundedVec<u8, ConstU32<33>>,
+        pub program_pointer: Hash,
     }
 
     #[pallet::genesis_config]
@@ -108,12 +108,11 @@ pub mod pallet {
                 };
                 Registered::<T>::insert(
                     account_info.0.clone(),
-                    RegisteredInfo { key_visibility, verifying_key: BoundedVec::default() },
-                );
-                AllowedToModifyProgram::<T>::insert(
-                    account_info.0.clone(),
-                    account_info.0.clone(),
-                    (),
+                    RegisteredInfo {
+                        key_visibility,
+                        verifying_key: BoundedVec::default(),
+                        program_pointer: T::Hash::default(),
+                    },
                 );
             }
         }
@@ -136,7 +135,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn registered)]
     pub type Registered<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, RegisteredInfo, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, RegisteredInfo<T::Hash>, OptionQuery>;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -172,6 +171,7 @@ pub mod pallet {
         NoSyncedValidators,
         MaxProgramLengthExceeded,
         NoVerifyingKey,
+        NotAuthorized,
     }
 
     #[pallet::call]
@@ -185,14 +185,15 @@ pub mod pallet {
         /// [`Self::confirm_register`] extrinsic before they can be considered as registered on the
         /// network.
         #[pallet::call_index(0)]
+        //TODO fix
         #[pallet::weight({
-            <T as Config>::WeightInfo::register(initial_program.len() as u32)
+            <T as Config>::WeightInfo::register(0u32)
         })]
         pub fn register(
             origin: OriginFor<T>,
             program_modification_account: T::AccountId,
             key_visibility: KeyVisibility,
-            initial_program: Vec<u8>,
+            program_pointer: T::Hash,
         ) -> DispatchResult {
             let sig_req_account = ensure_signed(origin)?;
 
@@ -202,19 +203,6 @@ pub mod pallet {
                 !Registering::<T>::contains_key(&sig_req_account),
                 Error::<T>::AlreadySubmitted
             );
-
-            ensure!(
-                initial_program.len() as u32
-                    <= <T as pallet_programs::Config>::MaxBytecodeLength::get(),
-                Error::<T>::MaxProgramLengthExceeded,
-            );
-
-            // We take a storage deposit here based off the program length. This can be returned to
-            // the user if they clear the program from storage using the Programs pallet.
-            ProgramsPallet::<T>::reserve_program_deposit(
-                &program_modification_account,
-                initial_program.len(),
-            )?;
 
             let block_number = <frame_system::Pallet<T>>::block_number();
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
@@ -228,7 +216,7 @@ pub mod pallet {
                 RegisteringDetails::<T> {
                     program_modification_account,
                     confirmations: vec![],
-                    program: initial_program,
+                    program_pointer,
                     key_visibility,
                     verifying_key: None,
                 },
@@ -249,14 +237,38 @@ pub mod pallet {
         })]
         pub fn prune_registration(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            let registering_info = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
-            // return program deposit
-            ProgramsPallet::<T>::unreserve_program_deposit(
-                &registering_info.program_modification_account,
-                registering_info.program.len(),
-            );
+            Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
             Registering::<T>::remove(&who);
             Self::deposit_event(Event::RegistrationCancelled(who));
+            Ok(())
+        }
+
+        #[pallet::call_index(2)]
+        // TODO fix bench
+        #[pallet::weight({
+     <T as Config>::WeightInfo::prune_registration()
+ })]
+        pub fn change_program_pointer(
+            origin: OriginFor<T>,
+            program_pointer: T::Hash,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            Registering::<T>::try_mutate_exists(
+                &who,
+                |maybe_registerd_details| -> Result<_, DispatchError> {
+                    let mut registerd_details =
+                        maybe_registerd_details.take().ok_or(Error::<T>::NotRegistered)?;
+                    ensure!(
+                        who == registerd_details.program_modification_account,
+                        Error::<T>::NotAuthorized
+                    );
+                    registerd_details.program_pointer = program_pointer;
+                    Ok(())
+                },
+            )?;
+            //  let registerd_details = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
+
+            //  Self::deposit_event(Event::RegistrationCancelled(who));
             Ok(())
         }
 
@@ -265,7 +277,7 @@ pub mod pallet {
         ///
         /// After a validator from each partition confirms they have a keyshare the user will be
         /// considered as registered on the network.
-        #[pallet::call_index(2)]
+        #[pallet::call_index(3)]
         #[pallet::weight({
             let weight =
                 <T as Config>::WeightInfo::confirm_register_registering(SIGNING_PARTY_SIZE as u32)
@@ -324,20 +336,10 @@ pub mod pallet {
                     RegisteredInfo {
                         key_visibility: registering_info.key_visibility,
                         verifying_key,
+                        program_pointer: registering_info.program_pointer,
                     },
                 );
                 Registering::<T>::remove(&sig_req_account);
-
-                AllowedToModifyProgram::<T>::insert(
-                    &registering_info.program_modification_account,
-                    sig_req_account.clone(),
-                    (),
-                );
-
-                ProgramsPallet::<T>::set_program_unchecked(
-                    &sig_req_account,
-                    registering_info.program,
-                )?;
 
                 let weight =
                     <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
