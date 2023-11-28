@@ -187,7 +187,7 @@ pub async fn sign(
 
         let chunk = output.chunk().await?.ok_or(anyhow!("No response"))?;
         let signing_result: Result<(String, sr25519::Signature), String> =
-            serde_json::from_slice(&chunk).unwrap();
+            serde_json::from_slice(&chunk)?;
         let (signature_base64, signature_of_signature) =
             signing_result.map_err(|err| anyhow!(err))?;
         tracing::debug!("Signature: {}", signature_base64);
@@ -206,7 +206,7 @@ pub async fn sign(
         let recovery_id =
             RecoveryId::from_byte(recovery_digit).ok_or(anyhow!("Cannot create recovery id"))?;
         let verifying_key_of_signature =
-            VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id).unwrap();
+            VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id)?;
         let verifying_key_of_signature_serialized =
             verifying_key_of_signature.to_encoded_point(true).as_bytes().to_vec();
         tracing::debug!("Verifying Key {:?}", verifying_key_of_signature_serialized);
