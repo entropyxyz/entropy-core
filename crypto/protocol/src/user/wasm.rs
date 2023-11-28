@@ -224,9 +224,9 @@ fn sr25519_keypair_from_secret_key(secret_key: Vec<u8>) -> Result<sr25519::Pair,
     }
 
     let secret = if cfg!(feature = "wasm-test") {
-        schnorrkel::SecretKey::from_ed25519_bytes(secret_key.as_slice())
-    } else {
         schnorrkel::SecretKey::from_bytes(secret_key.as_slice())
+    } else {
+        schnorrkel::SecretKey::from_ed25519_bytes(secret_key.as_slice())
     }
     .map_err(|err| Error::new(&err.to_string()))?;
 
