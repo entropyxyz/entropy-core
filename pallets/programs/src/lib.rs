@@ -134,7 +134,7 @@ pub mod pallet {
                 Error::<T>::ProgramLengthExceeded
             );
             ensure!(Self::bytecode(&program_hash).is_none(), Error::<T>::ProgramAlreadySet);
-    
+            
             Self::reserve_program_deposit(&program_modification_account, new_program_length)?;
 
             Bytecode::<T>::insert(
@@ -175,26 +175,6 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        // /// Write a program for a given signature-request account directly into storage.
-        // ///
-        // /// # Note
-        // ///
-        // /// This does not perform any checks against the submitter of the request and whether or
-        // /// not they are allowed to update a program for the given account.
-        // pub fn set_program_unchecked(
-        //     sig_req_account: &T::AccountId,
-        //     program: Vec<u8>,
-        // ) -> Result<(), Error<T>> {
-        //     ensure!(
-        //         program.len() as u32 <= T::MaxBytecodeLength::get(),
-        //         Error::<T>::ProgramLengthExceeded
-        //     );
-
-        //     Bytecode::<T>::insert(sig_req_account, program);
-
-        //     Ok(())
-        // }
-
         /// Takes some balance from an account as a storage deposit based off the length of the
         /// program they wish to store on-chain.
         ///
