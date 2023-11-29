@@ -18,7 +18,7 @@ use std::{
 };
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    ext::sp_core::{sr25519::Signature, Bytes},
+    ext::sp_core::{sr25519::Signature, Bytes, Pair},
     Config, OnlineClient,
 };
 use synedrion::KeyShare;
@@ -124,12 +124,6 @@ async fn test_wasm_sign_tx_user_participates() {
 
     let one_x25519_sk = derive_static_secret(&one.pair());
 
-    let eve_seed: [u8; 32] =
-        hex::decode("786ad0e2df456fe43dd1f91ebca22e235bc162e0bb8d53c633e8c85b2af68b7a")
-            .unwrap()
-            .try_into()
-            .unwrap();
-
     // Submit transaction requests, and connect and participate in signing
     let (mut test_user_res, user_sig) = future::join(
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
@@ -137,7 +131,7 @@ async fn test_wasm_sign_tx_user_participates() {
             &users_keyshare_option.clone().unwrap(),
             &sig_uid,
             validators_info.clone(),
-            eve_seed,
+            one.pair().to_raw_vec(),
             &one_x25519_sk,
         ),
     )
@@ -223,19 +217,17 @@ async fn test_wasm_register_with_private_key_visibility() {
         })
         .collect();
 
-    let one_seed: [u8; 32] =
-        hex::decode("3b3993c957ed9342cbb011eb9029c53fb253345114eff7da5951e98a41ba5ad5")
-            .unwrap()
-            .try_into()
-            .unwrap();
-
     // Call the `user/new` endpoint, and connect and participate in the protocol
     let (new_user_response_result, user_keyshare_json) = future::join(
         client
             .post("http://127.0.0.1:3002/user/new")
             .body(onchain_user_request.clone().encode())
             .send(),
-        spawn_user_participates_in_dkg_protocol(validators_info.clone(), one_seed, &one_x25519_sk),
+        spawn_user_participates_in_dkg_protocol(
+            validators_info.clone(),
+            one.pair().to_raw_vec(),
+            &one_x25519_sk,
+        ),
     )
     .await;
 
@@ -256,7 +248,7 @@ async fn test_wasm_register_with_private_key_visibility() {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct UserParticipatesInSigningProtocolArgs {
-    user_sig_req_seed: Vec<u8>,
+    user_sig_req_secret_key: Vec<u8>,
     x25519_private_key: Vec<u8>,
     sig_uid: String,
     key_share: String,
@@ -265,7 +257,7 @@ struct UserParticipatesInSigningProtocolArgs {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct UserParticipatesInDkgProtocolArgs {
-    user_sig_req_seed: Vec<u8>,
+    user_sig_req_secret_key: Vec<u8>,
     x25519_private_key: Vec<u8>,
     validators_info: Vec<ValidatorInfoParsed>,
 }
@@ -283,12 +275,12 @@ async fn spawn_user_participates_in_signing_protocol(
     key_share: &KeyShare<KeyParams>,
     sig_uid: &str,
     validators_info: Vec<ValidatorInfo>,
-    user_sig_req_seed: [u8; 32],
+    user_sig_req_secret_key: Vec<u8>,
     x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> String {
     let args = UserParticipatesInSigningProtocolArgs {
         sig_uid: sig_uid.to_string(),
-        user_sig_req_seed: user_sig_req_seed.to_vec(),
+        user_sig_req_secret_key,
         validators_info: validators_info
             .into_iter()
             .map(|validator_info| ValidatorInfoParsed {
@@ -309,11 +301,11 @@ async fn spawn_user_participates_in_signing_protocol(
 /// the protocol runnning parameters as JSON as a command line argument
 async fn spawn_user_participates_in_dkg_protocol(
     validators_info: Vec<ValidatorInfo>,
-    user_sig_req_seed: [u8; 32],
+    user_sig_req_secret_key: Vec<u8>,
     x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> String {
     let args = UserParticipatesInDkgProtocolArgs {
-        user_sig_req_seed: user_sig_req_seed.to_vec(),
+        user_sig_req_secret_key,
         validators_info: validators_info
             .into_iter()
             .map(|validator_info| ValidatorInfoParsed {

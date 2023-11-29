@@ -67,5 +67,8 @@ wasm=[
   "dep:schnorrkel",
 ]
 
+# Use sp-core compatible sr25519 keypairs on wasm, rather then polkadot JS. For testing only
+wasm-test=["wasm"]
+
 [lib]
 crate-type=["cdylib", "rlib"]

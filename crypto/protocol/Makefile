@@ -11,6 +11,10 @@ build-web ::
 build-bundler ::
 	wasm-pack build --target bundler . --no-default-features -F wasm
 
+# Builds a JS Module for nodejs with testing features
+build-nodejs-testing ::
+	wasm-pack build --target nodejs . --no-default-features -F wasm-test
+
 # Cleans out build artifacts.
 clean ::
 	rm -rf pkg/ nodejs-test/node_modules/
