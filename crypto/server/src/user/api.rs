@@ -140,7 +140,7 @@ pub async fn sign_tx(
     if !has_key {
         recover_key(&api, &rpc, &app_state.kv_store, &signer, signing_address).await?
     }
-
+    // TODO if no program at pointer fail (security what if someone pulls it)
     let program = get_program(&api, &rpc, &second_signing_address_conversion).await?;
 
     let mut runtime = Runtime::new();

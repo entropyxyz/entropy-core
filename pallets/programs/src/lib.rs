@@ -134,7 +134,7 @@ pub mod pallet {
                 Error::<T>::ProgramLengthExceeded
             );
             ensure!(Self::bytecode(&program_hash).is_none(), Error::<T>::ProgramAlreadySet);
-            
+
             Self::reserve_program_deposit(&program_modification_account, new_program_length)?;
 
             Bytecode::<T>::insert(

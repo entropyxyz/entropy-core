@@ -81,11 +81,12 @@ pub mod pallet {
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
-    pub struct RegisteredInfo<Hash> {
+    pub struct RegisteredInfo<Hash, AccountId> {
         pub key_visibility: KeyVisibility,
         // TODO better type
         pub verifying_key: BoundedVec<u8, ConstU32<33>>,
         pub program_pointer: Hash,
+        pub program_modification_account: AccountId,
     }
 
     #[pallet::genesis_config]
@@ -112,6 +113,7 @@ pub mod pallet {
                         key_visibility,
                         verifying_key: BoundedVec::default(),
                         program_pointer: T::Hash::default(),
+                        program_modification_account: account_info.0.clone(),
                     },
                 );
             }
@@ -134,8 +136,13 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn registered)]
-    pub type Registered<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, RegisteredInfo<T::Hash>, OptionQuery>;
+    pub type Registered<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        RegisteredInfo<T::Hash, T::AccountId>,
+        OptionQuery,
+    >;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -152,6 +159,8 @@ pub mod pallet {
         FailedRegistration(T::AccountId),
         /// An account cancelled their registration
         RegistrationCancelled(T::AccountId),
+        /// An account hash changed their program pointer [who, new_program_pointer]
+        ProgramPointerChanged(T::AccountId, T::Hash),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
@@ -209,7 +218,7 @@ pub mod pallet {
                 messages.push(sig_req_account.clone().encode());
                 Ok(())
             })?;
-
+            // TODO validate program pointer exists?
             // Put account into a registering state
             Registering::<T>::insert(
                 &sig_req_account,
@@ -250,7 +259,7 @@ pub mod pallet {
  })]
         pub fn change_program_pointer(
             origin: OriginFor<T>,
-            program_pointer: T::Hash,
+            new_program_pointer: T::Hash,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             Registering::<T>::try_mutate_exists(
@@ -262,13 +271,11 @@ pub mod pallet {
                         who == registerd_details.program_modification_account,
                         Error::<T>::NotAuthorized
                     );
-                    registerd_details.program_pointer = program_pointer;
+                    registerd_details.program_pointer = new_program_pointer;
                     Ok(())
                 },
             )?;
-            //  let registerd_details = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
-
-            //  Self::deposit_event(Event::RegistrationCancelled(who));
+            Self::deposit_event(Event::ProgramPointerChanged(who, new_program_pointer));
             Ok(())
         }
 
@@ -337,6 +344,7 @@ pub mod pallet {
                         key_visibility: registering_info.key_visibility,
                         verifying_key,
                         program_pointer: registering_info.program_pointer,
+                        program_modification_account: registering_info.program_modification_account,
                     },
                 );
                 Registering::<T>::remove(&sig_req_account);
