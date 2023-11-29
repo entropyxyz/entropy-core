@@ -13,7 +13,9 @@ use sp_runtime::{
 };
 
 use crate as pallet_relayer;
-use crate::{mock::*, Error, RegisteredInfo, RegisteringDetails, ValidateConfirmRegistered};
+use crate::{
+    mock::*, Error, Registered, RegisteredInfo, RegisteringDetails, ValidateConfirmRegistered,
+};
 
 /// consts used for testing
 const PROGRAM_MODIFICATION_ACCOUNT: u64 = 1u64;
@@ -153,6 +155,32 @@ fn it_confirms_registers_a_user() {
                 program_modification_account: 2
             }
         );
+    });
+}
+
+#[test]
+fn it_changes_a_program_pointer() {
+    new_test_ext().execute_with(|| {
+        let empty_program = vec![];
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+
+        let new_program = vec![10];
+        let new_program_hash = <Test as frame_system::Config>::Hashing::hash(&new_program);
+        let expected_verifying_key = BoundedVec::default();
+
+        let mut registered_info = RegisteredInfo {
+            key_visibility: KeyVisibility::Public,
+            verifying_key: expected_verifying_key,
+            program_pointer: program_hash,
+            program_modification_account: 2,
+        };
+
+        Registered::<Test>::insert(1, registered_info.clone());
+        assert_eq!(Relayer::registered(1).unwrap(), registered_info.clone());
+
+        assert_ok!(Relayer::change_program_pointer(RuntimeOrigin::signed(2), 1, new_program_hash,));
+        registered_info.program_pointer = new_program_hash;
+        assert_eq!(Relayer::registered(1).unwrap(), registered_info);
     });
 }
 

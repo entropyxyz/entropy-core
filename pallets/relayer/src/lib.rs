@@ -251,7 +251,7 @@ pub mod pallet {
             Self::deposit_event(Event::RegistrationCancelled(who));
             Ok(())
         }
-
+        /// Allows a user's program modification account to change their program pointer
         #[pallet::call_index(2)]
         // TODO fix bench
         #[pallet::weight({
@@ -259,22 +259,22 @@ pub mod pallet {
  })]
         pub fn change_program_pointer(
             origin: OriginFor<T>,
+            sig_request_account: T::AccountId,
             new_program_pointer: T::Hash,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            Registering::<T>::try_mutate_exists(
-                &who,
-                |maybe_registerd_details| -> Result<_, DispatchError> {
-                    let mut registerd_details =
-                        maybe_registerd_details.take().ok_or(Error::<T>::NotRegistered)?;
+            Registered::<T>::try_mutate(&sig_request_account, |maybe_registerd_details| {
+                if let Some(registerd_details) = maybe_registerd_details {
                     ensure!(
                         who == registerd_details.program_modification_account,
                         Error::<T>::NotAuthorized
                     );
                     registerd_details.program_pointer = new_program_pointer;
                     Ok(())
-                },
-            )?;
+                } else {
+                    Err(Error::<T>::NotRegistered)
+                }
+            })?;
             Self::deposit_event(Event::ProgramPointerChanged(who, new_program_pointer));
             Ok(())
         }
