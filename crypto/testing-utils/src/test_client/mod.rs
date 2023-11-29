@@ -87,7 +87,7 @@ pub async fn register(
                 .ok_or(anyhow!("Cannot get current block number"))?
                 .number;
 
-            let validators_info = get_dkg_committee(api, block_number).await?;
+            let validators_info = get_dkg_committee(api, block_number + 1).await?;
             Some(
                 user_participates_in_dkg_protocol(
                     validators_info,
