@@ -66,4 +66,4 @@ jobs:
             --title "${{ needs.build.outputs.git_ref_basename }}" \
             $(echo ${{ github.ref_name }} | grep --quiet -E '^test|v[0-9]\.[0-9]\.[0-9]-' && echo '--prerelease') \
             --verify-tag "${{ github.ref_name }}" \
-            {entropy,server}_${{ needs.git-ref-basename.outputs.git_ref_basename }}_${{ runner.os }}_${{ runner.arch }}/*
+            {entropy,server}_${{ needs.git-ref-basename.outputs.git_ref_basename }}/*
