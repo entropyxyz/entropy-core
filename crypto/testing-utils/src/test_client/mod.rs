@@ -268,7 +268,7 @@ pub async fn update_program(
 pub async fn get_accounts(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> anyhow::Result<Vec<(Vec<u8>, RegisteredInfo)>> {
+) -> anyhow::Result<Vec<(SubxtAccountId32, RegisteredInfo)>> {
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
     let keys = Vec::<()>::new();
@@ -278,8 +278,8 @@ pub async fn get_accounts(
     while let Some(Ok((storage_key, account))) = iter.next().await {
         let decoded = account.into_encoded();
         let registered_info = RegisteredInfo::decode(&mut decoded.as_ref())?;
-        let key = storage_key[storage_key.len() - 32..].to_vec();
-        accounts.push((key, registered_info))
+        let key: [u8; 32] = storage_key[storage_key.len() - 32..].try_into()?;
+        accounts.push((SubxtAccountId32(key), registered_info))
     }
     Ok(accounts)
 }

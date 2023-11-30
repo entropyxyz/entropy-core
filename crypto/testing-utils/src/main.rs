@@ -19,7 +19,7 @@ use testing_utils::{
 #[clap(
     version,
     about = "CLI tool for testing Entropy",
-    long_about = "This needs a running deployment of Entropy with at least two chain nodes and two TSS servers"
+    long_about = "This is a CLI test client.\nIt requires a running deployment of Entropy with at least two chain nodes and two TSS servers."
 )]
 struct Cli {
     #[clap(subcommand)]
@@ -34,41 +34,42 @@ struct Cli {
 enum CliCommand {
     /// Register with Entropy and create keyshares
     Register {
-        /// A name from which to generate a signature request keypair
+        /// A name from which to generate a signature request keypair, eg: "Alice"
         signature_request_account_name: String,
-        /// A name from which to generate a program modification keypair
+        /// A name from which to generate a program modification keypair, eg: "Bob"
         program_account_name: String,
-        /// Public, Private or Permissioned
-        #[arg(value_enum)]
-        key_visibility: Option<Visibility>,
-        /// A file containing an initial program for the account (defaults to test program)
+        /// The access mode of the Entropy account
+        #[arg(value_enum, default_value_t = Default::default())]
+        key_visibility: Visibility,
+        /// The path to a .wasm file containing the initial program for the account (defaults to test program)
         program_file: Option<PathBuf>,
     },
     /// Ask the network to sign a given message
     Sign {
-        /// A name from which to generate a keypair
+        /// A name from which to generate a keypair, eg: "Alice"
         signature_request_account_name: String,
-        /// A hex encoded message
-        message_hex: String,
+        /// The message to be signed
+        message: String,
         /// Optional auxiliary data passed to the program, given as hex
         auxilary_data: Option<String>,
     },
     /// Update the program for a particular account
     UpdateProgram {
-        /// A name from which to generate a signature request keypair
+        /// A name from which to generate a signature request keypair, eg: "Alice"
         signature_request_account_name: String,
-        /// A name from which to generate a program modification keypair
+        /// A name from which to generate a program modification keypair, eg: "Bob"
         program_account_name: String,
         /// The path to a .wasm file containing the program (defaults to test program)
         program_file: Option<PathBuf>,
     },
-    /// Display a list of registered entropy accounts
+    /// Display a list of registered Entropy accounts
     Status,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum, Default)]
 enum Visibility {
     /// Anyone can submit a signature request (default)
+    #[default]
     Public,
     /// Only the user who registers can submit a signature request
     Private,
@@ -118,13 +119,13 @@ async fn run_command() -> anyhow::Result<String> {
             println!("Program account: {:?}", program_keypair.public());
 
             let key_visibility_converted = match key_visibility {
-                Some(Visibility::Permissioned) => KeyVisibility::Permissioned,
-                Some(Visibility::Private) => {
+                Visibility::Permissioned => KeyVisibility::Permissioned,
+                Visibility::Private => {
                     let x25519_secret = derive_static_secret(&signature_request_keypair);
                     let x25519_public = x25519_dalek::PublicKey::from(&x25519_secret);
                     KeyVisibility::Private(x25519_public.to_bytes())
                 },
-                _ => KeyVisibility::Public,
+                Visibility::Public => KeyVisibility::Public,
             };
 
             let program = match program_file {
@@ -150,12 +151,11 @@ async fn run_command() -> anyhow::Result<String> {
 
             Ok(format!("{:?}", registered_info))
         },
-        CliCommand::Sign { signature_request_account_name, message_hex, auxilary_data } => {
+        CliCommand::Sign { signature_request_account_name, message, auxilary_data } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
             println!("Signature request account: {:?}", signature_request_keypair.public());
 
-            let message = hex::decode(message_hex)?;
             let auxilary_data = if let Some(data) = auxilary_data {
                 Some(hex::decode(data)?)
             } else {
@@ -171,7 +171,7 @@ async fn run_command() -> anyhow::Result<String> {
                 &api,
                 &rpc,
                 signature_request_keypair,
-                message,
+                message.as_bytes().to_vec(),
                 private_keyshare,
                 auxilary_data,
             )
@@ -211,10 +211,10 @@ async fn run_command() -> anyhow::Result<String> {
                     "Visibility:".purple(),
                     "Verifying key: ".cyan()
                 );
-                for (key, info) in accounts {
+                for (account_id, info) in accounts {
                     println!(
                         "{} {:<12} {}",
-                        hex::encode(key).green(),
+                        format!("{}", account_id).green(),
                         format!("{:?}", info.key_visibility).purple(),
                         hex::encode(info.verifying_key.0).cyan()
                     );
