@@ -8,15 +8,13 @@ use std::{
 
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use entropy_protocol::KeyParams;
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32 as SubxtAccountId32;
-use synedrion::KeyShare;
 use testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
         derive_static_secret, get_accounts, get_api, get_rpc, register, sign, update_program,
-        KeyVisibility,
+        KeyParams, KeyShare, KeyVisibility,
     },
 };
 

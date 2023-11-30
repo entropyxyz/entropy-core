@@ -1,6 +1,8 @@
 //! Simple test client
 pub use crate::chain_api::{get_api, get_rpc};
+pub use entropy_protocol::KeyParams;
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
+pub use synedrion::KeyShare;
 pub use x25519_chacha20poly1305::derive_static_secret;
 
 use std::{
@@ -11,7 +13,7 @@ use std::{
 use anyhow::{anyhow, ensure};
 use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
-    KeyParams, RecoverableSignature, ValidatorInfo,
+    RecoverableSignature, ValidatorInfo,
 };
 use futures::future;
 use parity_scale_codec::Decode;
@@ -31,10 +33,7 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, Static},
     Config, OnlineClient,
 };
-use synedrion::{
-    k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
-    KeyShare,
-};
+use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 use x25519_chacha20poly1305::SignedMessage;
 
 /// Register an account.

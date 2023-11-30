@@ -12277,16 +12277,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 
 [[package]]
+name = "test-cli"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "clap 4.4.8",
+ "colored",
+ "hex",
+ "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "subxt",
+ "testing-utils",
+ "tokio",
+ "x25519-dalek 2.0.0",
+]
+
+[[package]]
 name = "testing-utils"
 version = "0.0.8"
 dependencies = [
  "anyhow",
  "axum",
  "base64 0.13.1",
- "bincode",
  "blake2",
- "clap 4.4.8",
- "colored",
  "entropy-protocol",
  "entropy-shared",
  "futures",
