@@ -59,6 +59,9 @@ pub mod pallet {
         /// The maximum length of a program that may be stored on-chain.
         type MaxBytecodeLength: Get<u32>;
 
+        /// The maximum amount of owned programs.
+        type MaxOwnedPrograms: Get<u32>;
+
         /// The amount to charge, per byte, for storing a program on-chain.
         type ProgramDepositPerByte: Get<BalanceOf<Self>>;
 
@@ -87,6 +90,16 @@ pub mod pallet {
     pub type Bytecode<T: Config> =
         StorageMap<_, Blake2_128Concat, T::Hash, ProgramInfo<T::AccountId>, OptionQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn owned_programs)]
+    pub type OwnedPrograms<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        BoundedVec<T::Hash, T::MaxOwnedPrograms>,
+        ValueQuery,
+    >;
+
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
@@ -111,11 +124,11 @@ pub mod pallet {
     pub enum Error<T> {
         /// Program modification account doesn't have permission to modify this program.
         NotAuthorized,
-
         /// The program length is too long.
         ProgramLengthExceeded,
         NoProgramDefined,
         ProgramAlreadySet,
+        TooManyProgramsOwned,
     }
 
     #[pallet::call]
@@ -144,6 +157,15 @@ pub mod pallet {
                     program_modification_account: program_modification_account.clone(),
                 },
             );
+            OwnedPrograms::<T>::try_mutate(
+                &program_modification_account,
+                |owned_programs| -> Result<(), DispatchError> {
+                    owned_programs
+                        .try_push(program_hash)
+                        .map_err(|_| Error::<T>::TooManyProgramsOwned)?;
+                    Ok(())
+                },
+            )?;
             Self::deposit_event(Event::ProgramCreated {
                 program_modification_account,
                 program_hash,
@@ -166,6 +188,18 @@ pub mod pallet {
                 &old_program_info.program_modification_account,
                 old_program_info.bytecode.len(),
             );
+            OwnedPrograms::<T>::try_mutate(
+                &program_modification_account,
+                |owned_programs| -> Result<(), DispatchError> {
+                    let pos = owned_programs
+                        .binary_search(&program_hash)
+                        .ok()
+                        .ok_or(Error::<T>::NotAuthorized)?;
+                    owned_programs.remove(pos);
+                    Ok(())
+                },
+            )?;
+            Bytecode::<T>::remove(&program_hash);
             Self::deposit_event(Event::ProgramRemoved {
                 program_modification_account,
                 old_program_hash: program_hash,
