@@ -89,7 +89,7 @@ use crate::{
 #[tokio::test]
 #[serial]
 async fn test_get_signer_does_not_throw_err() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let kv_store = load_kv_store(&None, false).await;
@@ -101,7 +101,7 @@ async fn test_get_signer_does_not_throw_err() {
 #[tokio::test]
 #[serial]
 async fn test_sign_tx_no_chain() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let one = AccountKeyring::Dave;
@@ -361,7 +361,7 @@ async fn test_sign_tx_no_chain() {
 #[tokio::test]
 #[serial]
 async fn test_fail_signing_group() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let dave = AccountKeyring::Dave;
@@ -416,7 +416,7 @@ async fn test_fail_signing_group() {
 #[tokio::test]
 #[serial]
 async fn test_store_share() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let alice = AccountKeyring::Alice;
@@ -571,7 +571,7 @@ async fn test_store_share() {
 #[tokio::test]
 #[serial]
 async fn test_return_addresses_of_subgroup() {
-    initialize_test_logger();
+    initialize_test_logger().await;
 
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
@@ -584,7 +584,7 @@ async fn test_return_addresses_of_subgroup() {
 #[tokio::test]
 #[serial]
 async fn test_send_and_receive_keys() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let alice = AccountKeyring::Alice;
@@ -680,7 +680,7 @@ async fn test_send_and_receive_keys() {
 #[tokio::test]
 #[serial]
 async fn test_recover_key() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let cxt = test_node_process_testing_state(false).await;
@@ -740,7 +740,7 @@ pub async fn put_register_request_on_chain(
 #[tokio::test]
 #[serial]
 async fn test_sign_tx_user_participates() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let one = AccountKeyring::Eve;
@@ -1040,7 +1040,7 @@ async fn test_sign_tx_user_participates() {
 #[tokio::test]
 #[serial]
 async fn test_register_with_private_key_visibility() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     clean_tests();
 
     let one = AccountKeyring::One;

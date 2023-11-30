@@ -24,7 +24,7 @@ synedrion          ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="
 
 # Async
 futures="0.3"
-tokio  ={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
+tokio  ={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util", "process", "sync"] }
 
 # HTTP
 reqwest    ={ version="0.11", features=["json", "stream"] }
@@ -48,6 +48,7 @@ ec-runtime={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.4.0"
 # Logging
 tracing                 ="0.1.37"
 tracing-subscriber      ={ version="0.3.17", features=["env-filter", "json"] }
+tracing-loki            ="0.2"
 tower-http              ={ version="0.3.4", features=["trace", "cors"] }
 tracing-bunyan-formatter="0.3.9"
 uuid                    ={ version="1.5.0", features=["v4"] }
@@ -64,6 +65,7 @@ async-stream     ="0.3.5"
 snow             ="0.9.2"
 sha3             ="0.10.8"
 async-trait      ="0.1.73"
+hostname         ="0.3"
 
 [dev-dependencies]
 testing-utils={ path="../testing-utils" }
