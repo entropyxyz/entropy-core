@@ -1,5 +1,10 @@
 //! Simple CLI to test registering, updating programs and signing
-use std::{fs, path::PathBuf, time::Instant};
+use std::{
+    fmt::{self, Display},
+    fs,
+    path::PathBuf,
+    time::Instant,
+};
 
 use clap::{Parser, Subcommand};
 use colored::Colorize;
@@ -75,6 +80,22 @@ enum Visibility {
     Private,
     /// The program defines who may submit a signature request
     Permissioned,
+}
+
+impl From<KeyVisibility> for Visibility {
+    fn from(key_visibility: KeyVisibility) -> Self {
+        match key_visibility {
+            KeyVisibility::Public => Visibility::Public,
+            KeyVisibility::Private(_) => Visibility::Private,
+            KeyVisibility::Permissioned => Visibility::Permissioned,
+        }
+    }
+}
+
+impl Display for Visibility {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[tokio::main]
@@ -206,17 +227,18 @@ async fn run_command() -> anyhow::Result<String> {
             );
             if !accounts.is_empty() {
                 println!(
-                    "{:<64} {:<12} {}",
+                    "{:<48} {:<12} {}",
                     "Signature request account ID:".green(),
                     "Visibility:".purple(),
                     "Verifying key: ".cyan()
                 );
                 for (account_id, info) in accounts {
+                    let visibility: Visibility = info.key_visibility.0.into();
                     println!(
                         "{} {:<12} {}",
                         format!("{}", account_id).green(),
-                        format!("{:?}", info.key_visibility).purple(),
-                        hex::encode(info.verifying_key.0).cyan()
+                        format!("{}", visibility).purple(),
+                        format!("{:?}", info.verifying_key.0).cyan()
                     );
                 }
             }
