@@ -10,17 +10,13 @@ use kvdb::clean_tests;
 use parity_scale_codec::Encode;
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
-use sp_core::crypto::{AccountId32, Pair, Ss58Codec};
+use sp_core::crypto::{sr25519::Signature, AccountId32, Bytes, Pair, Ss58Codec};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{
     thread,
     time::{Duration, SystemTime},
 };
-use subxt::{
-    backend::legacy::LegacyRpcMethods,
-    ext::sp_core::{sr25519::Signature, Bytes, Pair},
-    Config, OnlineClient,
-};
+use subxt::{backend::legacy::LegacyRpcMethods, Config, OnlineClient};
 use synedrion::KeyShare;
 use testing_utils::{
     constants::{
