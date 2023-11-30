@@ -11,6 +11,17 @@ At the moment this project **does not** adhere to
 
 ## [0.0.9](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.8..release/v0.0.9) - 2023-11-30
 
+Some of the noteworthy changes related to this release are related to better integration in Web
+Assembly contexts, and improvements to logging for the Threshold Signature Server.
+
+Certain key components related to distributed key generation (DKG) are now able to be compiled to
+Wasm. This opens up the possiblity for users to participate in DKG themselves from the browser!
+
+There are changes around how logging in the `server` binary is done. When running the binary users
+can now choose the type of output they would like to see (e.g `--logger json`), and can even send
+their logs to a [Loki](https://grafana.com/oss/loki/) server (`--loki`) for aggregation and
+visualization.
+
 ### Breaking Changes
 
 - In [#475](https://github.com/entropyxyz/entropy-core/pull/475/), in the JSON body of the
@@ -22,6 +33,7 @@ At the moment this project **does not** adhere to
 - Auxiliary data for program evaluation ([#475](https://github.com/entropyxyz/entropy-core/pull/475/))
 - Add a keyshare type for wasm which wraps `synedrion::KeyShare` ([#512](https://github.com/entropyxyz/entropy-core/pull/512/))
 - Add versioning to server ([#516](https://github.com/entropyxyz/entropy-core/pull/516/))
+- Cross-compile for `linux/arm64` and push multi-platform Docker images. ([#518](https://github.com/entropyxyz/entropy-core/pull/518/))
 - Allow logger to be configured from CLI ([#520](https://github.com/entropyxyz/entropy-core/pull/520/))
 - Add `bunyan` JSON formatter ([#524](https://github.com/entropyxyz/entropy-core/pull/524/))
 - Add Loki logging layer ([#528](https://github.com/entropyxyz/entropy-core/pull/528/))
