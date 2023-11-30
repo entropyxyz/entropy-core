@@ -134,7 +134,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // We update this if the runtime behaviour has changed. When this happens we set the
     // `impl_version` to `0`.
     #[allow(clippy::zero_prefixed_literal)]
-    spec_version: 008,
+    spec_version: 009,
 
     // We only bump this if the runtime behaviour remains unchanged, but the implementations details
     // have changed.
