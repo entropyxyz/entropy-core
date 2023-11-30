@@ -11,11 +11,15 @@ use std::fmt;
 use entropy_shared::X25519PublicKey;
 pub use protocol_message::ProtocolMessage;
 use serde::{Deserialize, Serialize};
+use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
-use synedrion::k256::ecdsa::{RecoveryId, Signature};
+use synedrion::{
+    k256::ecdsa::{RecoveryId, Signature},
+    signature::{self, hazmat::PrehashVerifier},
+};
 
 /// Identifies a party participating in a protocol session
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PartyId(AccountId32);
 
 impl std::hash::Hash for PartyId {
@@ -27,6 +31,34 @@ impl std::hash::Hash for PartyId {
 impl PartyId {
     pub fn new(acc: AccountId32) -> Self {
         Self(acc)
+    }
+
+    fn to_public(&self) -> sr25519::Public {
+        // TODO (#376): assuming that `Public` and `AccountId32` represent the same 32 bytes.
+        // Ideally we should use only one of those throughout the code, probably `Public`.
+        sr25519::Public(self.0 .0)
+    }
+}
+
+impl From<sr25519::Public> for PartyId {
+    fn from(public_key: sr25519::Public) -> Self {
+        // TODO (#376): assuming that `Public` and `AccountId32` represent the same 32 bytes.
+        // Ideally we should use only one of those throughout the code, probably `Public`.
+        Self(AccountId32(public_key.0))
+    }
+}
+
+impl PrehashVerifier<sr25519::Signature> for PartyId {
+    fn verify_prehash(
+        &self,
+        prehash: &[u8],
+        signature: &sr25519::Signature,
+    ) -> Result<(), signature::Error> {
+        if sr25519::Pair::verify(signature, prehash, &self.to_public()) {
+            Ok(())
+        } else {
+            Err(signature::Error::new())
+        }
     }
 }
 

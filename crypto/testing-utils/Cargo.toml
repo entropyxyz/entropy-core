@@ -39,7 +39,7 @@ entropy-protocol       ={ path="../protocol" }
 reqwest                ={ version="0.11", features=["json", "stream"] }
 sha3                   ="0.10.8"
 base64                 ="0.13.0"
-synedrion              ={ git="ssh://git@github.com/entropyxyz/synedrion.git", branch="fix-32bit" }
+synedrion         ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="release/v0.0.12" }
 x25519-chacha20poly1305={ git="https://github.com/entropyxyz/x25519-chacha20poly1305.git", branch="peg/unsafe-test-mode" }
 hex                    ="0.4.3"
 

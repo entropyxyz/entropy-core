@@ -2357,18 +2357,7 @@ checksum = "68b0cf012f1230e43cd00ebb729c6bb58707ecfa8ad08b52ef3a4ccd2697fc30"
 [[package]]
 name = "ec-core"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.2.0#5ed3d8a3bfbce6aa39bb0dd372ebea6d8749e7c4"
-dependencies = [
- "getrandom 0.2.10",
- "serde",
- "wit-bindgen",
- "witgen",
-]
-
-[[package]]
-name = "ec-core"
-version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.3.0#008fd64e95702084231194bfc62b45def44bccec"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.4.0#52c1c84728e190950c83d05eecd3578cd9ca7235"
 dependencies = [
  "getrandom 0.2.10",
  "serde",
@@ -2379,9 +2368,9 @@ dependencies = [
 [[package]]
 name = "ec-runtime"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.3.0#008fd64e95702084231194bfc62b45def44bccec"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.4.0#52c1c84728e190950c83d05eecd3578cd9ca7235"
 dependencies = [
- "ec-core 0.1.0 (git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.3.0)",
+ "ec-core",
  "thiserror",
  "wasmtime 12.0.1",
 ]
@@ -2400,15 +2389,14 @@ dependencies = [
 
 [[package]]
 name = "ecdsa"
-version = "0.16.7"
+version = "0.16.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0997c976637b606099b9985693efa3581e84e41f5c11ba5255f88711058ad428"
+checksum = "ee27f32b5c5292967d2d4a9d7f1e0b0aed2c15daded5a60300e4abb9d8020bca"
 dependencies = [
  "der 0.7.7",
  "digest 0.10.7",
- "elliptic-curve 0.13.5",
+ "elliptic-curve 0.13.7",
  "rfc6979 0.4.0",
- "serdect",
  "signature 2.1.0",
  "spki 0.7.2",
 ]
@@ -2480,9 +2468,9 @@ dependencies = [
 
 [[package]]
 name = "elliptic-curve"
-version = "0.13.5"
+version = "0.13.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "968405c8fdc9b3bf4df0a6638858cc0b52462836ab6b1c87377785dd09cf1c0b"
+checksum = "e9775b22bc152ad86a0cf23f0f348b884b26add12bf741e7ffc4d4ab2ab4d205"
 dependencies = [
  "base16ct 0.2.0",
  "crypto-bigint 0.5.3",
@@ -2493,7 +2481,6 @@ dependencies = [
  "pkcs8 0.10.2",
  "rand_core 0.6.4",
  "sec1 0.7.3",
- "serdect",
  "subtle 2.4.1",
  "zeroize",
 ]
@@ -4624,15 +4611,14 @@ dependencies = [
 
 [[package]]
 name = "k256"
-version = "0.13.1"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cadb76004ed8e97623117f3df85b17aaa6626ab0b0831e6573f104df16cd1bcc"
+checksum = "3f01b677d82ef7a676aa37e099defd83a28e15687112cafdd112d60236b6115b"
 dependencies = [
  "cfg-if",
- "ecdsa 0.16.7",
- "elliptic-curve 0.13.5",
+ "ecdsa 0.16.9",
+ "elliptic-curve 0.13.7",
  "once_cell 1.18.0",
- "serdect",
  "sha2 0.10.7",
 ]
 
@@ -8460,28 +8446,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rmp"
-version = "0.8.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44519172358fd6d58656c86ab8e7fbc9e1490c3e8f14d35ed78ca0dd07403c9f"
-dependencies = [
- "byteorder",
- "num-traits",
- "paste 1.0.13",
-]
-
-[[package]]
-name = "rmp-serde"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5b13be192e0220b8afb7222aa5813cb62cc269ebb5cac346ca6487681d2913e"
-dependencies = [
- "byteorder",
- "rmp",
- "serde",
-]
-
-[[package]]
 name = "rocksdb"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10073,7 +10037,6 @@ dependencies = [
  "der 0.7.7",
  "generic-array 0.14.7",
  "pkcs8 0.10.2",
- "serdect",
  "subtle 2.4.1",
  "zeroize",
 ]
@@ -12176,10 +12139,11 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 
 [[package]]
 name = "synedrion"
-version = "0.0.11"
-source = "git+ssh://git@github.com/entropyxyz/synedrion.git?branch=fix-32bit#d536131c819f993e4627033f98d20307e0d47a5e"
+version = "0.0.12"
+source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=release/v0.0.12#aef04ad5cf40db30981354da554e2a529b96af30"
 dependencies = [
  "base64 0.21.2",
+ "bincode",
  "cfg-if",
  "crypto-bigint 0.5.3",
  "crypto-primes",
@@ -12187,7 +12151,6 @@ dependencies = [
  "hex",
  "k256",
  "rand_core 0.6.4",
- "rmp-serde",
  "serde",
  "sha2 0.10.7",
  "sha3",
@@ -12256,9 +12219,9 @@ dependencies = [
 [[package]]
 name = "template-barebones"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.2.0#5ed3d8a3bfbce6aa39bb0dd372ebea6d8749e7c4"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.4.0#52c1c84728e190950c83d05eecd3578cd9ca7235"
 dependencies = [
- "ec-core 0.1.0 (git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.2.0)",
+ "ec-core",
 ]
 
 [[package]]
