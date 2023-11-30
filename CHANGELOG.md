@@ -9,27 +9,52 @@ At the moment this project **does not** adhere to
 
 ## [Unreleased]
 
+## [0.0.9](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.8..release/v0.0.9) - 2023-11-30
+
+Some of the noteworthy changes related to this release are related to better integration in Web
+Assembly contexts, and improvements to logging for the Threshold Signature Server.
+
+Certain key components related to distributed key generation (DKG) are now able to be compiled to
+Wasm. This opens up the possiblity for users to participate in DKG themselves from the browser!
+
+There are changes around how logging in the `server` binary is done. When running the binary users
+can now choose the type of output they would like to see (e.g `--logger json`), and can even send
+their logs to a [Loki](https://grafana.com/oss/loki/) server (`--loki`) for aggregation and
+visualization.
+
 ### Breaking Changes
 
-- In the JSON body of the `/sign_tx` endpoint, the `preimage` field has been renamed to `message`. It remains a hex-encoded `string`. [#475](https://github.com/entropyxyz/entropy-core/pull/475/)
+- In [#475](https://github.com/entropyxyz/entropy-core/pull/475/), in the JSON body of the
+  `/sign_tx` endpoint the `preimage` field has been renamed to `message`. It remains a hex-encoded
+  `string`.
 
 ### Added
--  Wasm bindings for user to participate in DKG and signing protocols ([#414](https://github.com/entropyxyz/entropy-core/pull/414/))
--  Auxiliary data for program evaluation ([#475](https://github.com/entropyxyz/entropy-core/pull/475/))
--  Add versioning to server ([#516](https://github.com/entropyxyz/entropy-core/pull/516/))
--  Allow logger to be configured from CLI ([#520](https://github.com/entropyxyz/entropy-core/pull/520/))
--  Add `bunyan` JSON formatter ([#524](https://github.com/entropyxyz/entropy-core/pull/524/))
--  Add Loki logging layer ([#528](https://github.com/entropyxyz/entropy-core/pull/528/))
+- Wasm bindings for user to participate in DKG and signing protocols ([#414](https://github.com/entropyxyz/entropy-core/pull/414/))
+- Auxiliary data for program evaluation ([#475](https://github.com/entropyxyz/entropy-core/pull/475/))
+- Add a keyshare type for wasm which wraps `synedrion::KeyShare` ([#512](https://github.com/entropyxyz/entropy-core/pull/512/))
+- Add versioning to server ([#516](https://github.com/entropyxyz/entropy-core/pull/516/))
+- Cross-compile for `linux/arm64` and push multi-platform Docker images. ([#518](https://github.com/entropyxyz/entropy-core/pull/518/))
+- Allow logger to be configured from CLI ([#520](https://github.com/entropyxyz/entropy-core/pull/520/))
+- Add `bunyan` JSON formatter ([#524](https://github.com/entropyxyz/entropy-core/pull/524/))
+- Add Loki logging layer ([#528](https://github.com/entropyxyz/entropy-core/pull/528/))
 
 ### Changed
--  Change SocketAddr type for String ([#496](https://github.com/entropyxyz/entropy-core/pull/496/))
--  Add `#[tracing::instrument]` macro to routes ([#515](https://github.com/entropyxyz/entropy-core/pull/515/))
--  Remove subxt-signer from server and entropy-protocol ([#526](https://github.com/entropyxyz/entropy-core/pull/526/))
+- Validate proactive refresh endpoint ([#483](https://github.com/entropyxyz/entropy-core/pull/483/))
+- No proactive refresh on private key visibility ([#485](https://github.com/entropyxyz/entropy-core/pull/485/))
+- Use bincode rather than JSON for protocol and subscribe messages ([#492](https://github.com/entropyxyz/entropy-core/pull/492/))
+- Allow big protocol messages ([#495](https://github.com/entropyxyz/entropy-core/pull/495/))
+- Change `SocketAddr` type for `String` ([#496](https://github.com/entropyxyz/entropy-core/pull/496/))
+- Partition proactive refresh ([#504](https://github.com/entropyxyz/entropy-core/pull/504/))
+- Add `#[tracing::instrument]` macro to routes ([#515](https://github.com/entropyxyz/entropy-core/pull/515/))
+- Make `server` a library, and add integration test for testing protocol crate on wasm ([#517](https://github.com/entropyxyz/entropy-core/pull/517/))
+- Remove subxt-signer from server and entropy-protocol ([#526](https://github.com/entropyxyz/entropy-core/pull/526/))
+- `ec-runtime` now errors for zero-sized programs ([#529](https://github.com/entropyxyz/entropy-core/pull/529/))
+- `entropy-protocol` - polkadot-js compatible sr25519 key generation for wasm API ([#533](https://github.com/entropyxyz/entropy-core/pull/533/))
 
 ### Fixed
 - Return package version instead of rustc version ([#523](https://github.com/entropyxyz/entropy-core/pull/523/))
 
-## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7..v0.0.8) - 2023-11-06
+## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7..release/v0.0.8) - 2023-11-06
 
 ### Breaking Changes
 
