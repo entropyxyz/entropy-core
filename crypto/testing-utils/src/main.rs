@@ -66,7 +66,7 @@ enum CliCommand {
 enum Visibility {
     /// Anyone can submit a signature request (default)
     Public,
-    /// Only the user who registers can submit a signautre request
+    /// Only the user who registers can submit a signature request
     Private,
     /// The program defines who may submit a signature request
     Permissioned,
