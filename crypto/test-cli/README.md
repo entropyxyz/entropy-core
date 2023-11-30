@@ -86,3 +86,5 @@ account. It takes the 'account name' of the signature request account, and the p
 account, as well as the path to a .wasm file with the new program:
 
 `cargo run -p test-cli -- update-program Alice Bob my-new-program.wasm`
+
+Note that the program modification account must be funded for this to work.
