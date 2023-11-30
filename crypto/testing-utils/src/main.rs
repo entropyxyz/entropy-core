@@ -16,7 +16,11 @@ use testing_utils::{
 };
 
 #[derive(Parser, Debug, Clone)]
-#[clap(version, about = "CLI tool for testing Entropy")]
+#[clap(
+    version,
+    about = "CLI tool for testing Entropy",
+    long_about = "This needs a running deployment of Entropy with at least two chain nodes and two TSS servers"
+)]
 struct Cli {
     #[clap(subcommand)]
     command: CliCommand,
