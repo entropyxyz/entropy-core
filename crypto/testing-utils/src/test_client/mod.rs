@@ -37,9 +37,11 @@ use synedrion::{
 };
 use x25519_chacha20poly1305::SignedMessage;
 
-/// Register an account
-/// If successful, returns registration info including verfiying key
-/// If registering in private mode, a keyshare is also returned
+/// Register an account.
+///
+/// If successful, returns registration info including verfiying key.
+///
+/// If registering in private mode, a keyshare is also returned.
 #[tracing::instrument(
     skip_all,
     fields(
@@ -210,7 +212,7 @@ pub async fn sign(
         tracing::debug!("Signature: {}", signature_base64);
         let mut decoded_sig = base64::decode(signature_base64)?;
 
-        // Verfiy the response signature from the TSS client
+        // Verify the response signature from the TSS client
         ensure!(
             sr25519::Pair::verify(
                 &signature_of_signature,

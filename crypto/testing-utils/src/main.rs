@@ -29,8 +29,12 @@ use testing_utils::{
 struct Cli {
     #[clap(subcommand)]
     command: CliCommand,
-    /// The chain endpoint to use eg: "ws://blah:9944". Defaults to the ENTROPY_DEVNET environment
-    /// variable, or else ws://localhost:9944
+    /// The chain endpoint to use.
+    ///
+    /// The format should be in the form of `scheme://hostname:port`.
+    ///
+    /// Default to `ws://localhost:9944`. If a value exists for `ENTROPY_DEVNET`, that takes
+    /// priority.
     #[arg(short, long)]
     chain_endpoint: Option<String>,
 }
@@ -40,8 +44,12 @@ enum CliCommand {
     /// Register with Entropy and create keyshares
     Register {
         /// A name from which to generate a signature request keypair, eg: "Alice"
+        ///
+        /// Optionally may be preceeded with "//", eg: "//Alice"
         signature_request_account_name: String,
         /// A name from which to generate a program modification keypair, eg: "Bob"
+        ///
+        /// Optionally may be preceeded with "//" eg: "//Bob"
         program_account_name: String,
         /// The access mode of the Entropy account
         #[arg(value_enum, default_value_t = Default::default())]
@@ -52,6 +60,8 @@ enum CliCommand {
     /// Ask the network to sign a given message
     Sign {
         /// A name from which to generate a keypair, eg: "Alice"
+        ///
+        /// Optionally may be preceeded with "//", eg: "//Alice"
         signature_request_account_name: String,
         /// The message to be signed
         message: String,
@@ -61,8 +71,12 @@ enum CliCommand {
     /// Update the program for a particular account
     UpdateProgram {
         /// A name from which to generate a signature request keypair, eg: "Alice"
+        ///
+        /// Optionally may be preceeded with "//", eg: "//Alice"
         signature_request_account_name: String,
         /// A name from which to generate a program modification keypair, eg: "Bob"
+        ///
+        /// Optionally may be preceeded with "//", eg: "//Bob"
         program_account_name: String,
         /// The path to a .wasm file containing the program (defaults to test program)
         program_file: Option<PathBuf>,
