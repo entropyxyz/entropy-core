@@ -21,7 +21,6 @@ use server::{
 #[tokio::test]
 #[serial]
 async fn integration_test_sign() {
-    initialize_test_logger();
     clean_tests();
     let pre_registered_user = AccountKeyring::Dave;
 
@@ -66,7 +65,6 @@ async fn integration_test_sign() {
 #[tokio::test]
 #[serial]
 async fn integration_test_sign_private() {
-    initialize_test_logger();
     clean_tests();
     let pre_registered_user = AccountKeyring::Eve;
 
