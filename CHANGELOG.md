@@ -13,7 +13,9 @@ At the moment this project **does not** adhere to
 
 ### Breaking Changes
 
-- In the JSON body of the `/sign_tx` endpoint, the `preimage` field has been renamed to `message`. It remains a hex-encoded `string`. [#475](https://github.com/entropyxyz/entropy-core/pull/475/)
+- In [#475](https://github.com/entropyxyz/entropy-core/pull/475/), in the JSON body of the
+  `/sign_tx` endpoint the `preimage` field has been renamed to `message`. It remains a hex-encoded
+  `string`.
 
 ### Added
 - Wasm bindings for user to participate in DKG and signing protocols ([#414](https://github.com/entropyxyz/entropy-core/pull/414/))
