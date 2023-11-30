@@ -6,16 +6,12 @@ ARG RUST_STABLE_VERSION=1.73.0
 ARG DEBIAN_CODENAME=bullseye
 # Version of Ubuntu to deploy with.
 ARG UBUNTU_VERSION=20.04
-# Whether or not to `strip(1)` the binaries. See:
-# https://doc.rust-lang.org/rustc/codegen-options/index.html#strip
-ARG STRIP=symbols
 
 FROM --platform=$BUILDPLATFORM docker.io/library/debian:${DEBIAN_CODENAME}-20230522-slim as build
 ARG TARGETPLATFORM
 ARG PACKAGE
 ARG RUST_STABLE_VERSION
 ARG UBUNTU_VERSION
-ARG STRIP
 
 # Prepare and cache build dependencies, to speed up subsequent runs.
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; \
@@ -29,7 +25,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         git bash curl ca-certificates openssh-client \
         pkg-config protobuf-compiler make clang \
         openssl libssl-dev libssl-dev:arm64 \
-        gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+        binutils \
+        gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
 # Install Rust and its componentry for the current build target.
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
@@ -82,8 +79,10 @@ RUN --mount=type=ssh \
         > ~/.ssh/known_hosts \
     && if [ "amd64" = ${TARGETPLATFORM#"linux/"} ]; then \
         export RUST_PLATFORM=x86_64; \
+        export BINUTILS_PATH=/usr/bin; \
     else \
         export RUST_PLATFORM=aarch64; \
+        export BINUTILS_PATH=/usr/${RUST_PLATFORM}-linux-gnu/bin; \
     fi; $HOME/.cargo/bin/rustup target add "${RUST_PLATFORM}-unknown-linux-gnu" \
     && if [ "linux/arm64" = "${TARGETPLATFORM}" ]; then \
         export PKG_CONFIG_SYSROOT_DIR="/usr/aarch64-linux-gnu"; \
@@ -91,8 +90,8 @@ RUN --mount=type=ssh \
     fi; CARGO_NET_GIT_FETCH_WITH_CLI=true \
         CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="cc" \
         CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER="aarch64-linux-gnu-gcc" \
-        $HOME/.cargo/bin/cargo rustc --release -p "${PACKAGE}" --target "${RUST_PLATFORM}-unknown-linux-gnu" \
-            -- -C strip="${STRIP}" \
+        $HOME/.cargo/bin/cargo build --release -p "${PACKAGE}" --target "${RUST_PLATFORM}-unknown-linux-gnu" \
+    && ${BINUTILS_PATH}/strip "target/${RUST_PLATFORM}-unknown-linux-gnu/release/${PACKAGE}" \
     && install "target/${RUST_PLATFORM}-unknown-linux-gnu/release/${PACKAGE}" /usr/local/bin
 
 # Next stage will contain just our built binary, without dependencies.
