@@ -1,19 +1,19 @@
 [package]
-name      ="test-cli"
+name      ="entropy-test-cli"
 version   ='0.0.1'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
 repository='https://github.com/entropyxyz/entropy-core'
 edition   ='2021'
-publish   =false
+publish   =true
 
 [dependencies]
 testing-utils={ path="../testing-utils" }
 clap         ={ version="4.4.6", features=["derive"] }
 colored      ="2.0.4"
 subxt        ={ package="subxt", git="https://github.com/paritytech/subxt.git", tag="v0.32.1" }
-sp-core      ={ version="21.0.0", default-features=false }
+sp-core      ="21.0.0"
 anyhow       ="1.0.75"
 tokio        ={ version="1.16", features=["macros", "rt-multi-thread", "io-util", "process"] }
 hex          ="0.4.3"
