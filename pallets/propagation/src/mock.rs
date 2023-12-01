@@ -300,12 +300,14 @@ impl pallet_relayer::Config for Test {
 parameter_types! {
   pub const MaxBytecodeLength: u32 = 3;
   pub const ProgramDepositPerByte: u32 = 5;
+  pub const MaxOwnedPrograms: u32 = 5;
 }
 
 impl pallet_programs::Config for Test {
     type Currency = ();
     type MaxBytecodeLength = MaxBytecodeLength;
     type ProgramDepositPerByte = ProgramDepositPerByte;
+    type MaxOwnedPrograms = MaxOwnedPrograms;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
