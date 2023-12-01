@@ -187,14 +187,12 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Allows a user to signal that they want to register an account with the Entropy network.
         ///
-        /// The caller provides an initial program, if any, an account which is able to modify a
-        /// the program, and the program's permission level on the network.
+        /// The caller provides an initial program pointer.
         ///
         /// Note that a user needs to be confirmed by validators through the
         /// [`Self::confirm_register`] extrinsic before they can be considered as registered on the
         /// network.
         #[pallet::call_index(0)]
-        //TODO fix
         #[pallet::weight({
             <T as Config>::WeightInfo::register()
         })]
