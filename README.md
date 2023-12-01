@@ -1,5 +1,7 @@
 # Entropy Core
 
+This is a test of the CircleCI builds via a fork.
+
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/entropyxyz/entropy-core/tree/master.svg?style=svg&circle-token=bff4726b78a5f7c7771cb9ee8453cde0b8132d6f)](https://dl.circleci.com/status-badge/redirect/gh/entropyxyz/entropy-core/tree/master)
 
 This repo contains the Entropy blockchain node, the validator server (evaluates programs, stores threshold keyshares, and coordinates threshold-signing), and misc. testing utilities for the network.
