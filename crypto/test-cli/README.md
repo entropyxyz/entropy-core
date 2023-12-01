@@ -1,4 +1,3 @@
-
 # Entropy Test CLI
 
 This is a simple CLI for testing Entropy.
