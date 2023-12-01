@@ -39,7 +39,7 @@ pub mod pallet {
 
     use frame_support::{
         dispatch::Vec,
-        pallet_prelude::{ResultQuery, *},
+        pallet_prelude::*,
         traits::{Currency, ReservableCurrency},
     };
     use frame_system::{pallet_prelude::*, Config as SystemConfig};
@@ -146,12 +146,12 @@ pub mod pallet {
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
                 Error::<T>::ProgramLengthExceeded
             );
-            ensure!(Self::bytecode(&program_hash).is_none(), Error::<T>::ProgramAlreadySet);
+            ensure!(Self::bytecode(program_hash).is_none(), Error::<T>::ProgramAlreadySet);
 
             Self::reserve_program_deposit(&program_modification_account, new_program_length)?;
 
             Bytecode::<T>::insert(
-                &program_hash,
+                program_hash,
                 &ProgramInfo {
                     bytecode: new_program.clone(),
                     program_modification_account: program_modification_account.clone(),
@@ -179,7 +179,7 @@ pub mod pallet {
         pub fn remove_program(origin: OriginFor<T>, program_hash: T::Hash) -> DispatchResult {
             let program_modification_account = ensure_signed(origin)?;
             let old_program_info =
-                Self::bytecode(&program_hash).ok_or(Error::<T>::NoProgramDefined)?;
+                Self::bytecode(program_hash).ok_or(Error::<T>::NoProgramDefined)?;
             ensure!(
                 old_program_info.program_modification_account == program_modification_account,
                 Error::<T>::NotAuthorized
@@ -199,7 +199,7 @@ pub mod pallet {
                     Ok(())
                 },
             )?;
-            Bytecode::<T>::remove(&program_hash);
+            Bytecode::<T>::remove(program_hash);
             Self::deposit_event(Event::ProgramRemoved {
                 program_modification_account,
                 old_program_hash: program_hash,

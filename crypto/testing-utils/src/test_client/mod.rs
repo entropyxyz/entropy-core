@@ -1,14 +1,13 @@
 //! Client functionality used in itegration tests
 use entropy_shared::KeyVisibility;
+use server::chain_api::{entropy, EntropyConfig};
+use std::str::FromStr;
 use subxt::{
-    ext::sp_core::{sr25519, Pair},
+    ext::sp_core::sr25519,
     tx::PairSigner,
-    utils::{AccountId32 as SubxtAccountId32, Static},
+    utils::{AccountId32 as SubxtAccountId32, Static, H256},
     OnlineClient,
 };
-
-use server::chain_api::{entropy, EntropyConfig};
-
 /// Submit a register transaction
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
@@ -18,11 +17,13 @@ pub async fn put_register_request_on_chain(
 ) {
     let sig_req_account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_account);
 
-    let empty_program = vec![];
+    let empty_program_hash: H256 =
+        H256::from_str("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8")
+            .unwrap();
     let registering_tx = entropy::tx().relayer().register(
         program_modification_account,
         Static(key_visibility),
-        empty_program,
+        empty_program_hash,
     );
 
     api.tx()
@@ -40,14 +41,11 @@ pub async fn put_register_request_on_chain(
 /// Set or update the program associated with a given entropy account
 pub async fn update_program(
     entropy_api: &OnlineClient<EntropyConfig>,
-    sig_req_account: &sr25519::Pair,
     program_modification_account: &sr25519::Pair,
     initial_program: Vec<u8>,
 ) {
     // update/set their programs
-    let update_program_tx = entropy::tx()
-        .programs()
-        .update_program(SubxtAccountId32::from(sig_req_account.public()), initial_program);
+    let update_program_tx = entropy::tx().programs().set_program(initial_program);
 
     let program_modification_account =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_account.clone());

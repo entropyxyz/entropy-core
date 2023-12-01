@@ -19,6 +19,7 @@ use std::{
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519::Signature, Bytes},
+    utils::{AccountId32 as SubxtAccountId32, H256},
     Config, OnlineClient,
 };
 use synedrion::KeyShare;
@@ -58,8 +59,7 @@ async fn test_wasm_sign_tx_user_participates() {
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    update_program(&entropy_api, &one.pair(), &one.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
-        .await;
+    update_program(&entropy_api, &one.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
 
     let validators_info = vec![
         ValidatorInfo {
@@ -360,7 +360,7 @@ async fn wait_for_register_confirmation(
     account_id: AccountId32,
     api: OnlineClient<EntropyConfig>,
     rpc: LegacyRpcMethods<EntropyConfig>,
-) -> RegisteredInfo {
+) -> RegisteredInfo<H256, SubxtAccountId32> {
     let account_id: <EntropyConfig as Config>::AccountId = account_id.into();
     let registered_query = entropy::storage().relayer().registered(account_id);
     for _ in 0..30 {

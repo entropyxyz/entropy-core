@@ -37,7 +37,7 @@ use subxt::{
         sp_runtime::AccountId32,
     },
     tx::PairSigner,
-    utils::{AccountId32 as subxtAccountId32, Static},
+    utils::{AccountId32 as subxtAccountId32, Static, H256},
     Config, OnlineClient,
 };
 use synedrion::{
@@ -74,7 +74,7 @@ use crate::{
         substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, initialize_test_logger, run_to_block,
-            setup_client, spawn_testing_validators, update_programs,
+            setup_client, spawn_testing_validators, update_pointer, update_programs,
         },
         user::send_key,
     },
@@ -113,8 +113,8 @@ async fn test_sign_tx_no_chain() {
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    update_programs(&entropy_api, &one.pair(), &one.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
-        .await;
+    let program_hash =
+        update_programs(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
 
     let validators_info = vec![
         ValidatorInfo {
@@ -175,6 +175,16 @@ async fn test_sign_tx_no_chain() {
     ];
 
     generic_msg.timestamp = SystemTime::now();
+    // test points to no program
+    let test_no_program =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    for res in test_no_program {
+        assert_eq!(res.unwrap().text().await.unwrap(), "No program set");
+    }
+
+    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await;
+    generic_msg.timestamp = SystemTime::now();
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
@@ -189,6 +199,17 @@ async fn test_sign_tx_no_chain() {
 
     generic_msg.timestamp = SystemTime::now();
     // test failing cases
+    let test_program_pulled =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
+
+    for res in test_program_pulled {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "Not Registering error: Register Onchain first"
+        );
+    }
+
+    generic_msg.timestamp = SystemTime::now();
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
 
@@ -718,11 +739,13 @@ pub async fn put_register_request_on_chain(
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
-    let empty_program = vec![];
+    let empty_program_hash: H256 =
+        H256::from_str("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8")
+            .unwrap();
     let registering_tx = entropy::tx().relayer().register(
         program_modification_account,
         Static(key_visibility),
-        empty_program,
+        empty_program_hash,
     );
 
     api.tx()
@@ -752,8 +775,9 @@ async fn test_sign_tx_user_participates() {
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    update_programs(&entropy_api, &one.pair(), &one.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
-        .await;
+    let program_hash =
+        update_programs(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
+    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await;
 
     let validators_info = vec![
         ValidatorInfo {
