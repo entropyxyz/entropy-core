@@ -47,16 +47,8 @@ pub static LOGGER: OnceCell<()> = OnceCell::const_new();
 ///
 /// The logger will only be initialized once, even if this function is called multiple times.
 pub async fn initialize_test_logger() {
-    // TODO: Only use this while testing the PR, I'll get rid of it before merging
-    let instrumentation = Instrumentation {
-        logger: Logger::Pretty,
-        loki: true,
-        loki_endpoint: "http://127.0.0.1:3100".into(),
-    };
-
-    // TODO: This is what we'll use when running tests normally, not the Loki stuff
-    // let mut instrumentation = Instrumentation::default();
-    // instrumentation.logger = Logger::Pretty;
+    let mut instrumentation = Instrumentation::default();
+    instrumentation.logger = Logger::Pretty;
 
     *LOGGER.get_or_init(|| instrumentation.setup()).await
 }
