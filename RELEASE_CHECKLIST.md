@@ -29,7 +29,7 @@
 - [ ] Ensure `CHANGELOG` entries are up to date
     - Go through recent commit history and manually verify this
     - E.g, compare the previous release to the current `HEAD`
-        - https://github.com/entropyxyz/entropy-core/compare/vX.X.X...master
+        - https://github.com/entropyxyz/entropy-core/compare/release/vX.X.X...master
     - Ensure headers follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)'s conventions
     - Only document user facing changes (e.g, it's fine to ignore changes to CI)
     - It's especially important that changing affecting external tooling (e.g the Entropy SDK) are
