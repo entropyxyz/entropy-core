@@ -137,7 +137,7 @@ pub mod pallet {
         ///
         /// Note that the call must be sent from a program-modification account.
         #[pallet::call_index(0)]
-        #[pallet::weight({<T as Config>::WeightInfo::update_program()})]
+        #[pallet::weight({<T as Config>::WeightInfo::set_program()})]
         pub fn set_program(origin: OriginFor<T>, new_program: Vec<u8>) -> DispatchResult {
             let program_modification_account = ensure_signed(origin)?;
             let program_hash = T::Hashing::hash(&new_program);
@@ -175,8 +175,11 @@ pub mod pallet {
 
         #[pallet::call_index(1)]
         // TODO remove program bench
-        #[pallet::weight({<T as Config>::WeightInfo::update_program()})]
-        pub fn remove_program(origin: OriginFor<T>, program_hash: T::Hash) -> DispatchResult {
+        #[pallet::weight({<T as Config>::WeightInfo::remove_program( <T as Config>::MaxOwnedPrograms::get())})]
+        pub fn remove_program(
+            origin: OriginFor<T>,
+            program_hash: T::Hash,
+        ) -> DispatchResultWithPostInfo {
             let program_modification_account = ensure_signed(origin)?;
             let old_program_info =
                 Self::bytecode(program_hash).ok_or(Error::<T>::NoProgramDefined)?;
@@ -188,12 +191,14 @@ pub mod pallet {
                 &old_program_info.program_modification_account,
                 old_program_info.bytecode.len(),
             );
+            let mut owned_programs_length = 0;
             OwnedPrograms::<T>::try_mutate(
                 &program_modification_account,
                 |owned_programs| -> Result<(), DispatchError> {
+                    owned_programs_length = owned_programs.len();
                     let pos = owned_programs
-                        .binary_search(&program_hash)
-                        .ok()
+                        .iter()
+                        .position(|&h| h == program_hash)
                         .ok_or(Error::<T>::NotAuthorized)?;
                     owned_programs.remove(pos);
                     Ok(())
@@ -204,7 +209,7 @@ pub mod pallet {
                 program_modification_account,
                 old_program_hash: program_hash,
             });
-            Ok(())
+            Ok(Some(<T as Config>::WeightInfo::remove_program(owned_programs_length as u32)).into())
         }
     }
 

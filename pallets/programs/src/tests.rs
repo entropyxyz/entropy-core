@@ -111,7 +111,7 @@ fn remove_program() {
         );
 
         assert_ok!(ProgramsPallet::remove_program(
-            RcaruntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
+            RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
             program_hash.clone()
         ));
         assert!(ProgramsPallet::bytecode(program_hash).is_none(), "Program removed");
