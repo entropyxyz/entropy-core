@@ -41,13 +41,12 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Relayer::Dkg` (r:1 w:1)
 	/// Proof: `Relayer::Dkg` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[0, 1000000]`.
-	fn register(_p: u32, ) -> Weight {
+	fn register() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `133`
 		//  Estimated: `3598`
-		// Minimum execution time: 15_000_000 picoseconds.
-		Weight::from_parts(16_600_000, 0)
+		// Minimum execution time: 17_000_000 picoseconds.
+		Weight::from_parts(17_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 3598))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -58,7 +57,7 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `199`
 		//  Estimated: `3664`
-		// Minimum execution time: 10_000_000 picoseconds.
+		// Minimum execution time: 11_000_000 picoseconds.
 		Weight::from_parts(11_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 3664))
 			.saturating_add(T::DbWeight::get().reads(1))
@@ -70,8 +69,8 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `255`
 		//  Estimated: `3720`
-		// Minimum execution time: 11_000_000 picoseconds.
-		Weight::from_parts(12_000_000, 0)
+		// Minimum execution time: 12_000_000 picoseconds.
+		Weight::from_parts(13_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 3720))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -87,11 +86,11 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `16534`
 		//  Estimated: `19999`
-		// Minimum execution time: 26_000_000 picoseconds.
-		Weight::from_parts(27_750_000, 0)
+		// Minimum execution time: 28_000_000 picoseconds.
+		Weight::from_parts(26_166_666, 0)
 			.saturating_add(Weight::from_parts(0, 19999))
-			// Standard Error: 1_165_922
-			.saturating_add(Weight::from_parts(250_000, 0).saturating_mul(c.into()))
+			// Standard Error: 3_664_298
+			.saturating_add(Weight::from_parts(9_000_000, 0).saturating_mul(c.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -107,7 +106,7 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 		//  Measured:  `16536`
 		//  Estimated: `20001`
 		// Minimum execution time: 24_000_000 picoseconds.
-		Weight::from_parts(24_916_666, 0)
+		Weight::from_parts(27_333_333, 0)
 			.saturating_add(Weight::from_parts(0, 20001))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -121,13 +120,15 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 	/// Storage: `Relayer::Registered` (r:0 w:1)
 	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 2]`.
-	fn confirm_register_registered(_c: u32, ) -> Weight {
+	fn confirm_register_registered(c: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `16535`
 		//  Estimated: `20000`
 		// Minimum execution time: 26_000_000 picoseconds.
-		Weight::from_parts(27_916_666, 0)
+		Weight::from_parts(28_333_333, 0)
 			.saturating_add(Weight::from_parts(0, 20000))
+			// Standard Error: 603_807
+			.saturating_add(Weight::from_parts(500_000, 0).saturating_mul(c.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}

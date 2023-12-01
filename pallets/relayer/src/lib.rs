@@ -196,7 +196,7 @@ pub mod pallet {
         #[pallet::call_index(0)]
         //TODO fix
         #[pallet::weight({
-            <T as Config>::WeightInfo::register(0u32)
+            <T as Config>::WeightInfo::register()
         })]
         pub fn register(
             origin: OriginFor<T>,
@@ -253,7 +253,6 @@ pub mod pallet {
         }
         /// Allows a user's program modification account to change their program pointer
         #[pallet::call_index(2)]
-        // TODO fix bench
         #[pallet::weight({
      <T as Config>::WeightInfo::change_program_pointer()
  })]

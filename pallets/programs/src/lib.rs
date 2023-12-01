@@ -126,16 +126,19 @@ pub mod pallet {
         NotAuthorized,
         /// The program length is too long.
         ProgramLengthExceeded,
+        /// No program defined at hash.
         NoProgramDefined,
+        /// Program already set at hash.
         ProgramAlreadySet,
+        /// User owns too many programs.
         TooManyProgramsOwned,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Sets or clears the program for a given signature-request account.
+        /// Sets the program and uses hash as key.
         ///
-        /// Note that the call must be sent from a program-modification account.
+        /// Note that the call becomes the program-modification account.
         #[pallet::call_index(0)]
         #[pallet::weight({<T as Config>::WeightInfo::set_program()})]
         pub fn set_program(origin: OriginFor<T>, new_program: Vec<u8>) -> DispatchResult {
@@ -173,8 +176,10 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Removes a program at a specific hash
+        ///
+        /// Caller must be the program modification account for said program.
         #[pallet::call_index(1)]
-        // TODO remove program bench
         #[pallet::weight({<T as Config>::WeightInfo::remove_program( <T as Config>::MaxOwnedPrograms::get())})]
         pub fn remove_program(
             origin: OriginFor<T>,

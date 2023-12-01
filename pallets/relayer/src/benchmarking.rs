@@ -55,10 +55,7 @@ pub fn add_non_syncing_validators<T: Config>(
 
 benchmarks! {
   register {
-    // Since we're usually using `steps >> 1` when running benches this shouldn't take too long to
-    // run
-    let p in 0..<T as pallet_programs::Config>::MaxBytecodeLength::get();
-    let program = vec![0u8; p as usize];
+    let program = vec![0u8];
     let program_hash = T::Hashing::hash(&program);
 
     let program_modification_account: T::AccountId = whitelisted_caller();
