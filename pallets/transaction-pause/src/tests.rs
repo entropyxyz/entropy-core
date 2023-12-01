@@ -133,8 +133,7 @@ fn unpause_transaction_work() {
 fn paused_transaction_filter_work() {
     ExtBuilder.build().execute_with(|| {
         let whitelist_address_call =
-            &mock::RuntimeCall::ProgramsPallet(pallet_programs::Call::update_program {
-                sig_req_account: ALICE,
+            &mock::RuntimeCall::ProgramsPallet(pallet_programs::Call::set_program {
                 new_program: vec![],
             });
         assert!(!PausedTransactionFilter::<Runtime>::contains(BALANCE_TRANSFER));
@@ -147,7 +146,7 @@ fn paused_transaction_filter_work() {
         assert_ok!(TransactionPause::pause_transaction(
             RuntimeOrigin::signed(1),
             b"ProgramsPallet".to_vec(),
-            b"update_program".to_vec()
+            b"set_program".to_vec()
         ));
 
         assert!(PausedTransactionFilter::<Runtime>::contains(BALANCE_TRANSFER));
@@ -160,7 +159,7 @@ fn paused_transaction_filter_work() {
         assert_ok!(TransactionPause::unpause_transaction(
             RuntimeOrigin::signed(1),
             b"ProgramsPallet".to_vec(),
-            b"update_program".to_vec()
+            b"set_program".to_vec()
         ));
 
         assert!(!PausedTransactionFilter::<Runtime>::contains(BALANCE_TRANSFER));
