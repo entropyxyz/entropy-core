@@ -255,7 +255,7 @@ pub mod pallet {
         #[pallet::call_index(2)]
         // TODO fix bench
         #[pallet::weight({
-     <T as Config>::WeightInfo::prune_registration()
+     <T as Config>::WeightInfo::change_program_pointer()
  })]
         pub fn change_program_pointer(
             origin: OriginFor<T>,

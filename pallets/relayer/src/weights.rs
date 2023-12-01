@@ -39,6 +39,7 @@ use core::marker::PhantomData;
 pub trait WeightInfo {
 	fn register(p: u32, ) -> Weight;
 	fn prune_registration() -> Weight;
+	fn change_program_pointer() -> Weight;
 	fn confirm_register_registering(c: u32, ) -> Weight;
 	fn confirm_register_failed_registering(c: u32, ) -> Weight;
 	fn confirm_register_registered(c: u32, ) -> Weight;
@@ -75,6 +76,18 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		Weight::from_parts(15_000_000, 3632)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
+	/// Storage: `Relayer::Registered` (r:1 w:1)
+	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn change_program_pointer() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `255`
+		//  Estimated: `3720`
+		// Minimum execution time: 11_000_000 picoseconds.
+		Weight::from_parts(12_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3720))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
@@ -168,6 +181,18 @@ impl WeightInfo for () {
 		Weight::from_parts(15_000_000, 3632)
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
+	}
+	/// Storage: `Relayer::Registered` (r:1 w:1)
+	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn change_program_pointer() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `255`
+		//  Estimated: `3720`
+		// Minimum execution time: 11_000_000 picoseconds.
+		Weight::from_parts(12_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3720))
+			.saturating_add(RocksDbWeight::get().reads(1))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
