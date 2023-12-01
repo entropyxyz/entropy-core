@@ -49,7 +49,7 @@ To register an account with entropy you can use the register command with the 'a
 signature request account and program modification account you would like to register.
 
 'Account names' are a string from which to derive a substrate sr25519 keypair. They are the same as
-the account names the command line tool `subkey` uses. For example the name "Alice" or will give you
+the account names the command line tool `subkey` uses. For example the name "Alice" will give you
 the same keypair as `subkey inspect //Alice` will give you. You can use `subkey inspect` to find the
 seed, private key and account ID associated with a name you choose.
 
