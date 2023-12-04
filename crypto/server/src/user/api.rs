@@ -254,7 +254,6 @@ async fn setup_dkg(
             &signer,
             &app_state.listener_state,
             sig_request_address.clone(),
-            &my_subgroup,
             *user_details.key_visibility,
         )
         .await?;

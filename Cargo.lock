@@ -218,16 +218,15 @@ dependencies = [
 
 [[package]]
 name = "anstream"
-version = "0.3.2"
+version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ca84f3628370c59db74ee214b3263d58f9aadd9b4fe7e711fd87dc452b7f163"
+checksum = "2ab91ebe16eb252986481c5b62f6098f3b698a45e34b5b98200cf20dd2484a44"
 dependencies = [
  "anstyle",
  "anstyle-parse",
  "anstyle-query",
  "anstyle-wincon",
  "colorchoice",
- "is-terminal",
  "utf8parse",
 ]
 
@@ -257,9 +256,9 @@ dependencies = [
 
 [[package]]
 name = "anstyle-wincon"
-version = "1.0.1"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "180abfa45703aebe0093f79badacc01b8fd4ea2e35118747e5811127f926e188"
+checksum = "f0699d10d2f4d628a98ee7b57b289abbc98ff3bad977cb3152709d4bf2330628"
 dependencies = [
  "anstyle",
  "windows-sys 0.48.0",
@@ -267,9 +266,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.72"
+version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b13c32d80ecc7ab747b80c3784bce54ee8a7a0cc4fbda9bf4cda2cf6fe90854"
+checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 
 [[package]]
 name = "approx"
@@ -798,8 +797,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93f2635620bf0b9d4576eb7bb9a38a55df78bd1205d26fa994b25911a69f212f"
 dependencies = [
  "bitcoin_hashes",
- "serde",
- "unicode-normalization",
 ]
 
 [[package]]
@@ -1291,24 +1288,23 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.3.11"
+version = "4.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1640e5cc7fb47dbb8338fd471b105e7ed6c3cb2aeb00c2e067127ffd3764a05d"
+checksum = "2275f18819641850fa26c89acc84d465c1bf91ce57bc2748b28c420473352f64"
 dependencies = [
  "clap_builder",
  "clap_derive",
- "once_cell 1.18.0",
 ]
 
 [[package]]
 name = "clap_builder"
-version = "4.3.11"
+version = "4.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98c59138d527eeaf9b53f35a77fcc1fad9d883116070c63d5de1c7dc7b00c72b"
+checksum = "07cdf1b148b25c1e1f7a42225e30a0d99a615cd4637eae7365548dd4529b95bc"
 dependencies = [
  "anstream",
  "anstyle",
- "clap_lex 0.5.0",
+ "clap_lex 0.6.0",
  "strsim 0.10.0",
 ]
 
@@ -1323,9 +1319,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.3.2"
+version = "4.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8cd2b2a819ad6eec39e8f1d6b53001af1e5469f8c177579cdaeb313115b825f"
+checksum = "cf9804afaaf59a91e75b022a30fb7229a7901f60c755489cc61c9b423b836442"
 dependencies = [
  "heck 0.4.1",
  "proc-macro2",
@@ -1344,9 +1340,9 @@ dependencies = [
 
 [[package]]
 name = "clap_lex"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2da6da31387c7e4ef160ffab6d5e7f00c42626fe39aea70a7b0f1773f7dd6c1b"
+checksum = "702fc72eb24e5a1e48ce58027a675bc24edd52096d5397d4aea7c6dd9eca0bd1"
 
 [[package]]
 name = "cloudabi"
@@ -1372,6 +1368,17 @@ name = "colorchoice"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
+
+[[package]]
+name = "colored"
+version = "2.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2674ec482fbc38012cf31e6c42ba0177b431a0cb6f15fe40efa5aab1bda516f6"
+dependencies = [
+ "is-terminal",
+ "lazy_static",
+ "windows-sys 0.48.0",
+]
 
 [[package]]
 name = "comfy-table"
@@ -2350,18 +2357,7 @@ checksum = "68b0cf012f1230e43cd00ebb729c6bb58707ecfa8ad08b52ef3a4ccd2697fc30"
 [[package]]
 name = "ec-core"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.2.0#5ed3d8a3bfbce6aa39bb0dd372ebea6d8749e7c4"
-dependencies = [
- "getrandom 0.2.10",
- "serde",
- "wit-bindgen",
- "witgen",
-]
-
-[[package]]
-name = "ec-core"
-version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.3.0#008fd64e95702084231194bfc62b45def44bccec"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.4.0#52c1c84728e190950c83d05eecd3578cd9ca7235"
 dependencies = [
  "getrandom 0.2.10",
  "serde",
@@ -2372,9 +2368,9 @@ dependencies = [
 [[package]]
 name = "ec-runtime"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.3.0#008fd64e95702084231194bfc62b45def44bccec"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.4.0#52c1c84728e190950c83d05eecd3578cd9ca7235"
 dependencies = [
- "ec-core 0.1.0 (git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.3.0)",
+ "ec-core",
  "thiserror",
  "wasmtime 12.0.1",
 ]
@@ -2393,15 +2389,14 @@ dependencies = [
 
 [[package]]
 name = "ecdsa"
-version = "0.16.7"
+version = "0.16.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0997c976637b606099b9985693efa3581e84e41f5c11ba5255f88711058ad428"
+checksum = "ee27f32b5c5292967d2d4a9d7f1e0b0aed2c15daded5a60300e4abb9d8020bca"
 dependencies = [
  "der 0.7.7",
  "digest 0.10.7",
- "elliptic-curve 0.13.5",
+ "elliptic-curve 0.13.7",
  "rfc6979 0.4.0",
- "serdect",
  "signature 2.1.0",
  "spki 0.7.2",
 ]
@@ -2473,9 +2468,9 @@ dependencies = [
 
 [[package]]
 name = "elliptic-curve"
-version = "0.13.5"
+version = "0.13.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "968405c8fdc9b3bf4df0a6638858cc0b52462836ab6b1c87377785dd09cf1c0b"
+checksum = "e9775b22bc152ad86a0cf23f0f348b884b26add12bf741e7ffc4d4ab2ab4d205"
 dependencies = [
  "base16ct 0.2.0",
  "crypto-bigint 0.5.3",
@@ -2486,7 +2481,6 @@ dependencies = [
  "pkcs8 0.10.2",
  "rand_core 0.6.4",
  "sec1 0.7.3",
- "serdect",
  "subtle 2.4.1",
  "zeroize",
 ]
@@ -2508,9 +2502,9 @@ dependencies = [
 
 [[package]]
 name = "entropy"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
- "clap 4.3.11",
+ "clap 4.4.8",
  "clap_complete",
  "entropy-runtime",
  "entropy-shared",
@@ -2626,7 +2620,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-runtime"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -2725,6 +2719,22 @@ dependencies = [
  "serde",
  "serde_derive",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
+]
+
+[[package]]
+name = "entropy-test-cli"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "clap 4.4.8",
+ "colored",
+ "hex",
+ "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "subxt",
+ "testing-utils",
+ "tokio",
+ "x25519-dalek 2.0.0",
 ]
 
 [[package]]
@@ -3102,7 +3112,7 @@ dependencies = [
  "Inflector",
  "array-bytes 6.1.0",
  "chrono",
- "clap 4.3.11",
+ "clap 4.4.8",
  "comfy-table",
  "frame-benchmarking",
  "frame-support",
@@ -3825,7 +3835,7 @@ dependencies = [
 
 [[package]]
 name = "helpers"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "log",
 ]
@@ -4617,15 +4627,14 @@ dependencies = [
 
 [[package]]
 name = "k256"
-version = "0.13.1"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cadb76004ed8e97623117f3df85b17aaa6626ab0b0831e6573f104df16cd1bcc"
+checksum = "3f01b677d82ef7a676aa37e099defd83a28e15687112cafdd112d60236b6115b"
 dependencies = [
  "cfg-if",
- "ecdsa 0.16.7",
- "elliptic-curve 0.13.5",
+ "ecdsa 0.16.9",
+ "elliptic-curve 0.13.7",
  "once_cell 1.18.0",
- "serdect",
  "sha2 0.10.7",
 ]
 
@@ -5327,6 +5336,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
 
 [[package]]
+name = "loki-api"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f56d36f573486ba7f462b62cbae597fef7d5d93665e7047956b457531b8a1ced"
+dependencies = [
+ "prost",
+ "prost-types",
+]
+
+[[package]]
 name = "lru"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5861,7 +5880,7 @@ name = "node-inspect"
 version = "0.9.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2fd1233dc26dbb9f9bbc1d2cca2c03945d"
 dependencies = [
- "clap 4.3.11",
+ "clap 4.4.8",
  "parity-scale-codec",
  "sc-cli",
  "sc-client-api",
@@ -6440,7 +6459,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-free-tx"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -6712,7 +6731,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-programs"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -6731,7 +6750,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-propagation"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -6814,7 +6833,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-relayer"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -6897,7 +6916,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-slashing"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -6964,7 +6983,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-extension"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7054,7 +7073,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-transaction-pause"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8453,28 +8472,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rmp"
-version = "0.8.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44519172358fd6d58656c86ab8e7fbc9e1490c3e8f14d35ed78ca0dd07403c9f"
-dependencies = [
- "byteorder",
- "num-traits",
- "paste 1.0.13",
-]
-
-[[package]]
-name = "rmp-serde"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5b13be192e0220b8afb7222aa5813cb62cc269ebb5cac346ca6487681d2913e"
-dependencies = [
- "byteorder",
- "rmp",
- "serde",
-]
-
-[[package]]
 name = "rocksdb"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8893,7 +8890,7 @@ source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948
 dependencies = [
  "array-bytes 6.1.0",
  "chrono",
- "clap 4.3.11",
+ "clap 4.4.8",
  "fdlimit",
  "futures",
  "libp2p-identity",
@@ -9650,7 +9647,7 @@ name = "sc-storage-monitor"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2fd1233dc26dbb9f9bbc1d2cca2c03945d"
 dependencies = [
- "clap 4.3.11",
+ "clap 4.4.8",
  "fs4",
  "log",
  "sc-client-db",
@@ -9975,7 +9972,6 @@ dependencies = [
  "curve25519-dalek-ng",
  "merlin 3.0.0",
  "rand_core 0.6.4",
- "serde_bytes",
  "sha2 0.9.9",
  "subtle-ng",
  "zeroize",
@@ -10067,7 +10063,6 @@ dependencies = [
  "der 0.7.7",
  "generic-array 0.14.7",
  "pkcs8 0.10.2",
- "serdect",
  "subtle 2.4.1",
  "zeroize",
 ]
@@ -10078,16 +10073,7 @@ version = "0.24.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b1629c9c557ef9b293568b338dddfc8208c98a18c59d722a9d53f859d9c9b62"
 dependencies = [
- "secp256k1-sys 0.6.1",
-]
-
-[[package]]
-name = "secp256k1"
-version = "0.27.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25996b82292a7a57ed3508f052cfff8640d38d32018784acd714758b43da9c8f"
-dependencies = [
- "secp256k1-sys 0.8.1",
+ "secp256k1-sys",
 ]
 
 [[package]]
@@ -10095,15 +10081,6 @@ name = "secp256k1-sys"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "83080e2c2fc1006e625be82e5d1eb6a43b7fd9578b617fcc55814daf286bba4b"
-dependencies = [
- "cc",
-]
-
-[[package]]
-name = "secp256k1-sys"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70a129b9e9efbfb223753b9163c4ab3b13cff7fd9c7f010fbac25ab4099fa07e"
 dependencies = [
  "cc",
 ]
@@ -10192,15 +10169,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf9e0fcba69a370eed61bcf2b728575f726b50b55cba78064753d708ddc7549e"
 dependencies = [
  "serde_derive",
-]
-
-[[package]]
-name = "serde_bytes"
-version = "0.11.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab33ec92f677585af6d88c65593ae2375adde54efdbf16d597f2cbc7a6d368ff"
-dependencies = [
- "serde",
 ]
 
 [[package]]
@@ -10330,13 +10298,14 @@ dependencies = [
  "bip39 0.6.0-beta.1",
  "blake2",
  "bytes",
- "clap 4.3.11",
+ "clap 4.4.8",
  "ec-runtime",
  "entropy-protocol",
  "entropy-shared",
  "futures",
  "hex",
  "hex-literal",
+ "hostname",
  "kvdb 0.1.0",
  "lazy_static",
  "more-asserts",
@@ -10364,10 +10333,11 @@ dependencies = [
  "tower-http 0.3.5",
  "tracing",
  "tracing-bunyan-formatter",
+ "tracing-loki",
  "tracing-subscriber 0.3.17",
  "uuid",
  "vergen",
- "x25519-chacha20poly1305",
+ "x25519-chacha20poly1305 0.2.1",
  "x25519-dalek 2.0.0",
  "zeroize",
 ]
@@ -10962,7 +10932,7 @@ dependencies = [
  "regex",
  "scale-info",
  "schnorrkel 0.9.1",
- "secp256k1 0.24.3",
+ "secp256k1",
  "secrecy",
  "serde",
  "sp-core-hashing 9.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -11006,7 +10976,7 @@ dependencies = [
  "regex",
  "scale-info",
  "schnorrkel 0.9.1",
- "secp256k1 0.24.3",
+ "secp256k1",
  "secrecy",
  "serde",
  "sp-core-hashing 9.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
@@ -11142,7 +11112,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "rustversion",
- "secp256k1 0.24.3",
+ "secp256k1",
  "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-externalities 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-keystore 0.27.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -11167,7 +11137,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "rustversion",
- "secp256k1 0.24.3",
+ "secp256k1",
  "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-externalities 0.19.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-keystore 0.27.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
@@ -11936,7 +11906,7 @@ name = "substrate-frame-cli"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2fd1233dc26dbb9f9bbc1d2cca2c03945d"
 dependencies = [
- "clap 4.3.11",
+ "clap 4.4.8",
  "frame-support",
  "frame-system",
  "sc-cli",
@@ -12154,27 +12124,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "subxt-signer"
-version = "0.31.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e1e4cf3f57cb7ee062111a8f590670efb385e60cf5805054c4a7f377b2bc65d"
-dependencies = [
- "bip39 2.0.0",
- "hex",
- "hmac 0.12.1",
- "parity-scale-codec",
- "pbkdf2 0.12.2",
- "regex",
- "schnorrkel 0.10.2",
- "secp256k1 0.27.0",
- "secrecy",
- "sha2 0.10.7",
- "sp-core-hashing 9.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror",
- "zeroize",
-]
-
-[[package]]
 name = "syn"
 version = "1.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12218,10 +12167,11 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 
 [[package]]
 name = "synedrion"
-version = "0.0.11"
-source = "git+ssh://git@github.com/entropyxyz/synedrion.git?branch=fix-32bit#d536131c819f993e4627033f98d20307e0d47a5e"
+version = "0.0.12"
+source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=release/v0.0.12#aef04ad5cf40db30981354da554e2a529b96af30"
 dependencies = [
  "base64 0.21.2",
+ "bincode",
  "cfg-if",
  "crypto-bigint 0.5.3",
  "crypto-primes",
@@ -12229,7 +12179,6 @@ dependencies = [
  "hex",
  "k256",
  "rand_core 0.6.4",
- "rmp-serde",
  "serde",
  "sha2 0.10.7",
  "sha3",
@@ -12298,9 +12247,9 @@ dependencies = [
 [[package]]
 name = "template-barebones"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.2.0#5ed3d8a3bfbce6aa39bb0dd372ebea6d8749e7c4"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.4.0#52c1c84728e190950c83d05eecd3578cd9ca7235"
 dependencies = [
- "ec-core 0.1.0 (git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.2.0)",
+ "ec-core",
 ]
 
 [[package]]
@@ -12320,27 +12269,41 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 
 [[package]]
 name = "testing-utils"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
+ "anyhow",
  "axum",
+ "base64 0.13.1",
+ "blake2",
  "entropy-protocol",
  "entropy-shared",
+ "futures",
+ "generic-array 0.14.7",
+ "hex",
  "hex-literal",
  "kvdb 0.1.0",
  "lazy_static",
+ "num",
  "parity-scale-codec",
  "project-root",
  "rand_core 0.6.4",
+ "reqwest",
+ "serde",
+ "serde_json",
  "server",
+ "sha3",
  "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-keyring 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "subxt",
- "subxt-signer",
  "synedrion",
+ "thiserror",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.17",
  "which",
+ "x25519-chacha20poly1305 0.2.0",
+ "x25519-dalek 2.0.0",
+ "zeroize",
 ]
 
 [[package]]
@@ -12831,6 +12794,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-loki"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49bbc87d08020d7c2a9f4bb0b7d10da5381d3867f8ae57fcc54621b34567e963"
+dependencies = [
+ "loki-api",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "snap",
+ "tokio",
+ "tokio-stream",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
+ "tracing-serde",
+ "tracing-subscriber 0.3.17",
+ "url",
+]
+
+[[package]]
 name = "tracing-serde"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12964,7 +12948,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2fd1233dc26dbb9f9bbc1d2cca2c03945d"
 dependencies = [
  "async-trait",
- "clap 4.3.11",
+ "clap 4.4.8",
  "frame-remote-externalities",
  "frame-try-runtime",
  "hex",
@@ -14802,6 +14786,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05f360fc0b24296329c78fda852a1e9ae82de9cf7b27dae4b7f62f118f77b9ed"
 dependencies = [
  "tap",
+]
+
+[[package]]
+name = "x25519-chacha20poly1305"
+version = "0.2.0"
+source = "git+https://github.com/entropyxyz/x25519-chacha20poly1305.git?branch=peg/unsafe-test-mode#06d630a74a1125f552b14c988a4d82c719c93b2b"
+dependencies = [
+ "bip39 0.6.0-beta.1",
+ "blake2",
+ "chacha20poly1305 0.10.1",
+ "generic-array 0.14.7",
+ "getrandom 0.2.10",
+ "hex",
+ "js-sys",
+ "rand_core 0.6.4",
+ "schnorrkel 0.9.1",
+ "serde",
+ "serde_json",
+ "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror",
+ "wasm-bindgen",
+ "x25519-dalek 2.0.0",
+ "zeroize",
 ]
 
 [[package]]

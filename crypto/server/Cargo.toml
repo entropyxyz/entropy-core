@@ -20,11 +20,11 @@ zeroize            ="1.5.7"
 hex                ="*"
 reqwest-eventsource="0.4"
 serde_derive       ="1.0.147"
-synedrion          ={ git="ssh://git@github.com/entropyxyz/synedrion.git", branch="fix-32bit" }
+synedrion          ={ git="ssh://git@github.com/entropyxyz/synedrion.git", tag="release/v0.0.12" }
 
 # Async
 futures="0.3"
-tokio  ={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
+tokio  ={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util", "process", "sync"] }
 
 # HTTP
 reqwest    ={ version="0.11", features=["json", "stream"] }
@@ -43,11 +43,12 @@ entropy-protocol       ={ path="../protocol", features=["server"] }
 x25519-chacha20poly1305={ git="https://github.com/entropyxyz/x25519-chacha20poly1305.git", tag="v0.2.1" }
 
 # Constraints
-ec-runtime={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.3.0" }
+ec-runtime={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.4.0" }
 
 # Logging
 tracing                 ="0.1.37"
 tracing-subscriber      ={ version="0.3.17", features=["env-filter", "json"] }
+tracing-loki            ="0.2"
 tower-http              ={ version="0.3.4", features=["trace", "cors"] }
 tracing-bunyan-formatter="0.3.9"
 uuid                    ={ version="1.5.0", features=["v4"] }
@@ -64,6 +65,7 @@ async-stream     ="0.3.5"
 snow             ="0.9.2"
 sha3             ="0.10.8"
 async-trait      ="0.1.73"
+hostname         ="0.3"
 
 [dev-dependencies]
 testing-utils={ path="../testing-utils" }
@@ -72,7 +74,7 @@ hex-literal="0.3.4"
 project-root="0.2.2"
 sp-keyring="24.0.0"
 more-asserts="0.3.1"
-template-barebones={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.2.0" }
+template-barebones={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.4.0" }
 lazy_static="1.4.0"
 x25519-chacha20poly1305={ git="https://github.com/entropyxyz/x25519-chacha20poly1305.git", tag="v0.2.1", features=[
   "unsafe",

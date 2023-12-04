@@ -8,7 +8,7 @@ use crate::helpers::tests::{initialize_test_logger, setup_client};
 #[tokio::test]
 #[serial]
 async fn test_unsafe_get_endpoint() {
-    initialize_test_logger();
+    initialize_test_logger().await;
     setup_client().await;
     let client = reqwest::Client::new();
 

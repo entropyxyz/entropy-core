@@ -114,12 +114,9 @@ pub struct StartupArgs {
     #[arg(long = "nopassword")]
     pub no_password: bool,
 
-    /// The log output format that the application should use.
-    #[clap(
-        long,
-        default_value_t = Default::default(),
-    )]
-    pub logger: crate::helpers::logger::Logger,
+    /// The configuration settings around logging.
+    #[clap(flatten)]
+    pub logger: crate::helpers::logger::Instrumentation,
 }
 
 pub async fn setup_mnemonic(

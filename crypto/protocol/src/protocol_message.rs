@@ -12,8 +12,8 @@ use crate::{protocol_transport::errors::ProtocolMessageErr, PartyId};
 pub struct ProtocolMessage {
     /// Identifier of the author of this message
     pub from: PartyId,
-    /// If `None`, it's a broadcast message sent to all parties
-    pub to: Option<PartyId>,
+    /// Identifier of the destination of this message
+    pub to: PartyId,
     /// The signed protocol message
     pub payload: SignedMessage<sr25519::Signature>,
 }
@@ -28,15 +28,11 @@ impl TryFrom<&[u8]> for ProtocolMessage {
 }
 
 impl ProtocolMessage {
-    pub(crate) fn new_bcast(from: &PartyId, payload: SignedMessage<sr25519::Signature>) -> Self {
-        Self { from: from.clone(), to: None, payload }
-    }
-
-    pub(crate) fn new_p2p(
+    pub(crate) fn new(
         from: &PartyId,
         to: &PartyId,
         payload: SignedMessage<sr25519::Signature>,
     ) -> Self {
-        Self { from: from.clone(), to: Some(to.clone()), payload }
+        Self { from: from.clone(), to: to.clone(), payload }
     }
 }

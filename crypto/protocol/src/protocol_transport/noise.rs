@@ -178,9 +178,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_encrypted_connection() {
-        let alice_sk = x25519_dalek::StaticSecret::new(rand_core::OsRng);
+        let alice_sk = x25519_dalek::StaticSecret::random_from_rng(rand_core::OsRng);
 
-        let bob_sk = x25519_dalek::StaticSecret::new(rand_core::OsRng);
+        let bob_sk = x25519_dalek::StaticSecret::random_from_rng(rand_core::OsRng);
         let bob_pk = x25519_dalek::PublicKey::from(&bob_sk);
 
         let (alice_tx, alice_rx) = mpsc::channel(100);
@@ -209,9 +209,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_encrypted_connection_with_big_message() {
-        let alice_sk = x25519_dalek::StaticSecret::new(rand_core::OsRng);
+        let alice_sk = x25519_dalek::StaticSecret::random_from_rng(rand_core::OsRng);
 
-        let bob_sk = x25519_dalek::StaticSecret::new(rand_core::OsRng);
+        let bob_sk = x25519_dalek::StaticSecret::random_from_rng(rand_core::OsRng);
         let bob_pk = x25519_dalek::PublicKey::from(&bob_sk);
 
         let (alice_tx, alice_rx) = mpsc::channel(100);

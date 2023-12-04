@@ -71,3 +71,38 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
           push: true
+      - name: Create image export directory
+        id: export-dir
+        run: |
+          tmpdir=$(mktemp -d)
+          echo path=${tmpdir} >> $GITHUB_OUTPUT
+      - name: Export plain binaries from built images
+        uses: docker/build-push-action@v5
+        with:
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            PACKAGE=${{ inputs.docker_build_arg_package }}
+          secrets: |
+            credentials=${{ secrets.CI_MACHINE_USER_TOKEN }}
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          outputs: |
+            type=local,dest=${{ steps.export-dir.outputs.path }}
+      - name: Disambiguate binaries by platform
+        id: artifacts
+        run: |
+          dirname=${{ steps.export-dir.outputs.path }}
+          refname=${{ inputs.git_ref_basename }}
+          package=${{ inputs.docker_build_arg_package }}
+          artifact_dir=$(mktemp -d)
+          for platform in linux_amd64 linux_arm64; do
+            cp ${dirname}/${platform}/usr/local/bin/${package} ${artifact_dir}/${package}_${refname}_${platform}
+          done
+          echo dir="${artifact_dir}" >> $GITHUB_OUTPUT
+      - name: Upload ${{ inputs.docker_build_arg_package }} binary artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ inputs.docker_build_arg_package}}_${{ inputs.git_ref_basename }}
+          path: ${{ steps.artifacts.outputs.dir }}/${{ inputs.docker_build_arg_package }}*
+          if-no-files-found: error
+          retention-days: 5

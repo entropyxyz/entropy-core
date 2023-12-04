@@ -14,10 +14,14 @@ use server::{
 #[tokio::main]
 async fn main() {
     let args = StartupArgs::parse();
-    args.logger.setup();
+    args.logger.setup().await;
 
     tracing::info!("Starting Threshold Signature Sever");
     tracing::info!("Starting server on: `{}`", &args.threshold_url);
+
+    if args.logger.loki {
+        tracing::info!("Sending logs to Loki server at `{}`", &args.logger.loki_endpoint);
+    }
 
     let configuration = Configuration::new(args.chain_endpoint);
     tracing::info!("Connecting to Substrate node at: `{}`", &configuration.endpoint);
