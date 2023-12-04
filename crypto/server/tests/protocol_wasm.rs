@@ -12,8 +12,6 @@ use serde::{Deserialize, Serialize};
 use serial_test::serial;
 use sp_core::{
     crypto::{AccountId32, Pair, Ss58Codec},
-    sr25519::Signature,
-    Bytes,
 };
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{

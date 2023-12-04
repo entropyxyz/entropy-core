@@ -246,7 +246,6 @@ pub async fn sign(
 )]
 pub async fn update_program(
     api: &OnlineClient<EntropyConfig>,
-    signature_request_account: SubxtAccountId32,
     program_modification_keypair: &sr25519::Pair,
     program: Vec<u8>,
 ) -> anyhow::Result<()> {

@@ -228,7 +228,7 @@ async fn run_command() -> anyhow::Result<String> {
 
             let program_keypair: sr25519::Pair =
                 SeedString::new(program_account_name).try_into()?;
-            update_program(&api, sig_req_account, &program_keypair, program).await?;
+            update_program(&api, &program_keypair, program).await?;
             Ok("Program updated".to_string())
         },
         CliCommand::Status => {

@@ -33,7 +33,6 @@ async fn integration_test_sign() {
 
     test_client::update_program(
         &api,
-        SubxtAccountId32(pre_registered_user.into()),
         &pre_registered_user.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
     )
@@ -77,7 +76,6 @@ async fn integration_test_sign_private() {
 
     test_client::update_program(
         &api,
-        SubxtAccountId32(pre_registered_user.into()),
         &pre_registered_user.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
     )
