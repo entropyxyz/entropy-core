@@ -248,22 +248,48 @@ pub async fn update_program(
     api: &OnlineClient<EntropyConfig>,
     program_modification_keypair: &sr25519::Pair,
     program: Vec<u8>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<<EntropyConfig as Config>::Hash> {
     let update_program_tx = entropy::tx().programs().set_program(program);
-
     let program_modification_account =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_keypair.clone());
 
-    api.tx()
+    let in_block = api
+        .tx()
         .sign_and_submit_then_watch_default(&update_program_tx, &program_modification_account)
         .await?
         .wait_for_in_block()
         .await?
         .wait_for_success()
         .await?;
-    Ok(())
+
+    let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>().unwrap();
+    Ok(result_event.unwrap().program_hash)
 }
 
+/// Set or update pointer with a given entropy account
+pub async fn update_pointer(
+    entropy_api: &OnlineClient<EntropyConfig>,
+    signature_request_account: &sr25519::Pair,
+    pointer_modification_account: &sr25519::Pair,
+    program_hash: <EntropyConfig as Config>::Hash,
+) {
+    let update_pointer_tx = entropy::tx()
+        .relayer()
+        .change_program_pointer(signature_request_account.public().into(), program_hash);
+    let pointer_modification_account =
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(pointer_modification_account.clone());
+    entropy_api
+        .tx()
+        .sign_and_submit_then_watch_default(&update_pointer_tx, &pointer_modification_account)
+        .await
+        .unwrap()
+        .wait_for_in_block()
+        .await
+        .unwrap()
+        .wait_for_success()
+        .await
+        .unwrap();
+}
 /// Get info on all registered accounts
 pub async fn get_accounts(
     api: &OnlineClient<EntropyConfig>,
