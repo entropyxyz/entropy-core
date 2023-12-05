@@ -13,9 +13,9 @@ use serial_test::serial;
 use sp_core::crypto::{AccountId32, Pair, Ss58Codec};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{
+    str::FromStr,
     thread,
     time::{Duration, SystemTime},
-    str::FromStr
 };
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -182,15 +182,15 @@ async fn test_wasm_register_with_private_key_visibility() {
     let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
 
     let empty_program_hash: H256 =
-    H256::from_str("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8")
-        .unwrap();
+        H256::from_str("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8")
+            .unwrap();
 
     put_register_request_on_chain(
         &api,
         one.pair(),
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
-        empty_program_hash
+        empty_program_hash,
     )
     .await
     .unwrap();

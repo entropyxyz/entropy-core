@@ -17,7 +17,6 @@ use crate::{
     mock::*, Error, Registered, RegisteredInfo, RegisteringDetails, ValidateConfirmRegistered,
 };
 
-
 #[test]
 fn it_tests_get_validator_rotation() {
     new_test_ext().execute_with(|| {
