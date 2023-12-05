@@ -6,7 +6,6 @@ use crate::{mock::*, Error, ProgramInfo};
 
 /// consts used for testing
 const PROGRAM_MODIFICATION_ACCOUNT: u64 = 1u64;
-const SIG_REQ_ACCOUNT: u64 = 2u64;
 
 #[test]
 fn set_program() {

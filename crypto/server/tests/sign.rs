@@ -2,7 +2,6 @@ use kvdb::clean_tests;
 use serial_test::serial;
 use sp_core::crypto::Ss58Codec;
 use sp_keyring::AccountKeyring;
-use subxt::utils::AccountId32 as SubxtAccountId32;
 use synedrion::k256::ecdsa::VerifyingKey;
 use testing_utils::{
     constants::{

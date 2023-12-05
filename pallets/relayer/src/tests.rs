@@ -17,9 +17,6 @@ use crate::{
     mock::*, Error, Registered, RegisteredInfo, RegisteringDetails, ValidateConfirmRegistered,
 };
 
-/// consts used for testing
-const PROGRAM_MODIFICATION_ACCOUNT: u64 = 1u64;
-const SIG_REQ_ACCOUNT: u64 = 2u64;
 
 #[test]
 fn it_tests_get_validator_rotation() {

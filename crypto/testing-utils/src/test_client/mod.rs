@@ -8,7 +8,6 @@ pub use x25519_chacha20poly1305::derive_static_secret;
 use std::{
     thread,
     time::{Duration, SystemTime},
-    str::FromStr,
 };
 
 use anyhow::{anyhow, ensure};
@@ -42,6 +41,7 @@ use x25519_chacha20poly1305::SignedMessage;
 /// If successful, returns registration info including verfiying key.
 ///
 /// If registering in private mode, a keyshare is also returned.
+#[allow(clippy::type_complexity)]
 #[tracing::instrument(
     skip_all,
     fields(
@@ -56,7 +56,7 @@ pub async fn register(
     signature_request_keypair: sr25519::Pair,
     program_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
-    initial_program: Vec<u8>,
+    program_hash: H256,
 ) -> anyhow::Result<(RegisteredInfo<H256, SubxtAccountId32>, Option<KeyShare<KeyParams>>)> {
     // Check if user is already registered
     let account_id32: AccountId32 = signature_request_keypair.public().into();
@@ -74,7 +74,7 @@ pub async fn register(
         signature_request_keypair.clone(),
         program_account,
         key_visibility,
-        initial_program,
+        program_hash,
     )
     .await?;
 
@@ -249,8 +249,7 @@ pub async fn update_program(
     program_modification_keypair: &sr25519::Pair,
     program: Vec<u8>,
 ) -> anyhow::Result<()> {
-    let update_program_tx =
-        entropy::tx().programs().set_program(program);
+    let update_program_tx = entropy::tx().programs().set_program(program);
 
     let program_modification_account =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_keypair.clone());
@@ -291,18 +290,15 @@ pub async fn put_register_request_on_chain(
     signature_request_keypair: sr25519::Pair,
     program_modification_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
-    initial_program: Vec<u8>,
+    program_hash: H256,
 ) -> anyhow::Result<()> {
     let signature_request_pair_signer =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
 
-    let empty_program_hash: H256 =
-        H256::from_str("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8")
-            .unwrap();
     let registering_tx = entropy::tx().relayer().register(
         program_modification_account,
         Static(key_visibility),
-        empty_program_hash,
+        program_hash,
     );
 
     api.tx()

@@ -3,13 +3,14 @@ use std::{
     fmt::{self, Display},
     fs,
     path::PathBuf,
+    str::FromStr,
     time::Instant,
 };
 
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use sp_core::{sr25519, Pair};
-use subxt::utils::AccountId32 as SubxtAccountId32;
+use subxt::utils::{AccountId32 as SubxtAccountId32, H256};
 use testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
@@ -53,7 +54,7 @@ enum CliCommand {
         #[arg(value_enum, default_value_t = Default::default())]
         key_visibility: Visibility,
         /// The path to a .wasm file containing the initial program for the account (defaults to test program)
-        program_file: Option<PathBuf>,
+        program_hash: Option<H256>,
     },
     /// Ask the network to sign a given message
     Sign {
@@ -140,7 +141,7 @@ async fn run_command() -> anyhow::Result<String> {
             signature_request_account_name,
             program_account_name,
             key_visibility,
-            program_file,
+            program_hash,
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
@@ -160,11 +161,14 @@ async fn run_command() -> anyhow::Result<String> {
                 },
                 Visibility::Public => KeyVisibility::Public,
             };
-
-            let program = match program_file {
-                Some(file_name) => fs::read(file_name)?,
+            let empty_program_hash: H256 = H256::from_str(
+                "0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8",
+            )
+            .unwrap();
+            let program_hash_to_send = match program_hash {
+                Some(program_hash) => program_hash,
                 // This is temporary - if empty programs are allowed it can be None
-                None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+                None => empty_program_hash,
             };
 
             let (registered_info, keyshare_option) = register(
@@ -173,7 +177,7 @@ async fn run_command() -> anyhow::Result<String> {
                 signature_request_keypair.clone(),
                 program_account,
                 key_visibility_converted,
-                program,
+                program_hash_to_send,
             )
             .await?;
 
@@ -219,7 +223,6 @@ async fn run_command() -> anyhow::Result<String> {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
             println!("Signature request account: {:?}", signature_request_keypair.public());
-            let sig_req_account = SubxtAccountId32(signature_request_keypair.public().0);
 
             let program = match program_file {
                 Some(file_name) => fs::read(file_name)?,
