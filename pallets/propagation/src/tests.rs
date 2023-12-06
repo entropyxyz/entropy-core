@@ -3,6 +3,7 @@ use std::sync::Arc;
 use codec::Encode;
 use entropy_shared::{KeyVisibility, ValidatorInfo};
 use frame_support::{assert_ok, traits::OnInitialize};
+use pallet_programs::ProgramInfo;
 use pallet_staking_extension::RefreshInfo;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
@@ -60,6 +61,10 @@ fn knows_how_to_mock_several_http_calls() {
         Propagation::post_dkg(1).unwrap();
 
         System::set_block_number(3);
+        pallet_programs::Bytecode::<Test>::insert(
+            <Test as frame_system::Config>::Hash::default(),
+            ProgramInfo { bytecode: vec![], program_modification_account: 1 },
+        );
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2,
