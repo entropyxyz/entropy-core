@@ -22,6 +22,7 @@ use server::{
 async fn integration_test_sign() {
     clean_tests();
     let pre_registered_user = AccountKeyring::Dave;
+    let eve = AccountKeyring::Eve;
 
     let signing_address = pre_registered_user.clone().to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
@@ -30,13 +31,18 @@ async fn integration_test_sign() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    test_client::update_program(
+    let program_hash =
+        test_client::update_program(&api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+            .await
+            .unwrap();
+
+    test_client::update_pointer(
         &api,
         &pre_registered_user.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        &pre_registered_user.pair(),
+        program_hash,
     )
-    .await
-    .unwrap();
+    .await;
 
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
@@ -65,6 +71,7 @@ async fn integration_test_sign() {
 async fn integration_test_sign_private() {
     clean_tests();
     let pre_registered_user = AccountKeyring::Eve;
+    let dave = AccountKeyring::Dave;
 
     let signing_address = pre_registered_user.clone().to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
@@ -73,13 +80,18 @@ async fn integration_test_sign_private() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    test_client::update_program(
+    let program_hash =
+        test_client::update_program(&api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+            .await
+            .unwrap();
+
+    test_client::update_pointer(
         &api,
         &pre_registered_user.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        &pre_registered_user.pair(),
+        program_hash,
     )
-    .await
-    .unwrap();
+    .await;
 
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
