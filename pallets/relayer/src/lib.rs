@@ -181,6 +181,7 @@ pub mod pallet {
         MaxProgramLengthExceeded,
         NoVerifyingKey,
         NotAuthorized,
+        ProgramDoesNotExist,
     }
 
     #[pallet::call]
@@ -212,11 +213,14 @@ pub mod pallet {
             );
 
             let block_number = <frame_system::Pallet<T>>::block_number();
+            // check program exists
+            pallet_programs::Pallet::<T>::bytecode(program_pointer)
+                .ok_or(Error::<T>::ProgramDoesNotExist)?;
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(sig_req_account.clone().encode());
                 Ok(())
             })?;
-            // TODO validate program pointer exists?
+
             // Put account into a registering state
             Registering::<T>::insert(
                 &sig_req_account,

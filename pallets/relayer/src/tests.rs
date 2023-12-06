@@ -6,6 +6,7 @@ use frame_support::{
     traits::Currency,
     BoundedVec,
 };
+use pallet_programs::ProgramInfo;
 use pallet_relayer::Call as RelayerCall;
 use sp_runtime::{
     traits::{Hash, SignedExtension},
@@ -56,6 +57,10 @@ fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        pallet_programs::Bytecode::<Test>::insert(
+            program_hash,
+            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+        );
 
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
@@ -85,6 +90,10 @@ fn it_confirms_registers_a_user() {
 
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        pallet_programs::Bytecode::<Test>::insert(
+            program_hash,
+            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+        );
 
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
@@ -159,6 +168,10 @@ fn it_changes_a_program_pointer() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        pallet_programs::Bytecode::<Test>::insert(
+            program_hash,
+            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+        );
 
         let new_program = vec![10];
         let new_program_hash = <Test as frame_system::Config>::Hashing::hash(&new_program);
@@ -185,6 +198,11 @@ fn it_fails_on_non_matching_verifying_keys() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        pallet_programs::Bytecode::<Test>::insert(
+            program_hash,
+            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+        );
+
         let expected_verifying_key = BoundedVec::default();
         let unexpected_verifying_key = vec![10];
         assert_ok!(Relayer::register(
@@ -222,6 +240,10 @@ fn it_doesnt_allow_double_registering() {
         // register a user
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        pallet_programs::Bytecode::<Test>::insert(
+            program_hash,
+            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+        );
 
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
@@ -244,10 +266,33 @@ fn it_doesnt_allow_double_registering() {
 }
 
 #[test]
+fn it_fails_no_program() {
+    new_test_ext().execute_with(|| {
+        // register a user
+        let non_existing_program = vec![10];
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&non_existing_program);
+
+        assert_noop!(
+            Relayer::register(
+                RuntimeOrigin::signed(1),
+                2,
+                KeyVisibility::Permissioned,
+                program_hash
+            ),
+            Error::<Test>::ProgramDoesNotExist
+        );
+    });
+}
+
+#[test]
 fn it_tests_prune_registration() {
     new_test_ext().execute_with(|| {
         let inital_program = vec![10];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&inital_program);
+        pallet_programs::Bytecode::<Test>::insert(
+            program_hash,
+            ProgramInfo { bytecode: inital_program, program_modification_account: 1 },
+        );
 
         Balances::make_free_balance_be(&2, 100);
         // register a user
@@ -267,6 +312,11 @@ fn it_provides_free_txs_confirm_done() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        pallet_programs::Bytecode::<Test>::insert(
+            program_hash,
+            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+        );
+
         let expected_verifying_key = BoundedVec::default();
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(5),
@@ -330,6 +380,10 @@ fn it_provides_free_txs_confirm_done_fails_3() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        pallet_programs::Bytecode::<Test>::insert(
+            program_hash,
+            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+        );
 
         let expected_verifying_key = BoundedVec::default();
         assert_ok!(Relayer::register(
@@ -364,6 +418,10 @@ fn it_provides_free_txs_confirm_done_fails_4() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        pallet_programs::Bytecode::<Test>::insert(
+            program_hash,
+            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+        );
 
         let expected_verifying_key = BoundedVec::default();
         assert_ok!(Relayer::register(
@@ -391,6 +449,10 @@ fn it_provides_free_txs_confirm_done_fails_5() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        pallet_programs::Bytecode::<Test>::insert(
+            program_hash,
+            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+        );
 
         let expected_verifying_key = BoundedVec::default();
         assert_ok!(Relayer::register(
