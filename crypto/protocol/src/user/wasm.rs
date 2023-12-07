@@ -4,7 +4,6 @@ use sp_core::sr25519;
 use subxt::utils::AccountId32;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_derive::TryFromJsValue;
-use x25519chacha20poly1305::derive_static_secret;
 
 use super::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol};
 use crate::KeyParams;
@@ -18,15 +17,10 @@ pub async fn run_dkg_protocol(
     let validators_info = parse_validator_info(validators_info_js)?;
 
     let user_signing_keypair = sr25519_keypair_from_secret_key(user_signing_secret_key)?;
-    let x25519_private_key = derive_static_secret(user_signing_keypair);
 
-    let key_share = user_participates_in_dkg_protocol(
-        validators_info,
-        &user_signing_keypair,
-        &x25519_private_key,
-    )
-    .await
-    .map_err(|err| Error::new(&format!("{}", err)))?;
+    let key_share = user_participates_in_dkg_protocol(validators_info, &user_signing_keypair)
+        .await
+        .map_err(|err| Error::new(&format!("{}", err)))?;
 
     Ok(KeyShare(key_share))
 }
@@ -52,7 +46,6 @@ pub async fn run_signing_protocol(
     };
 
     let user_signing_keypair = sr25519_keypair_from_secret_key(user_signing_secret_key)?;
-    let x25519_private_key = derive_static_secret(user_signing_keypair);
 
     let signature = user_participates_in_signing_protocol(
         &key_share.0,
@@ -60,7 +53,6 @@ pub async fn run_signing_protocol(
         validators_info,
         &user_signing_keypair,
         sig_hash,
-        &x25519_private_key,
     )
     .await
     .map_err(|err| Error::new(&format!("{}", err)))?;
