@@ -11,6 +11,7 @@ use axum::{
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
 use ec_runtime::{Runtime, SignatureRequest};
+use entropy_protocol::SigningSessionInfo;
 use entropy_protocol::ValidatorInfo;
 use entropy_shared::{types::KeyVisibility, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE};
 use futures::{
@@ -47,7 +48,7 @@ use crate::{
     get_random_server_info,
     helpers::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
-        signing::{create_unique_tx_id, do_signing, Hasher},
+        signing::{do_signing, Hasher},
         substrate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
@@ -126,15 +127,19 @@ pub async fn sign_tx(
 
     let message = hex::decode(&user_sig_req.message)?;
     let auxilary_data = user_sig_req.auxilary_data.as_ref().map(hex::decode).transpose()?;
-    let sig_hash = hex::encode(Hasher::keccak(&message));
-    let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &sig_hash).await?;
+    let message_hash = Hasher::keccak(&message);
+    let message_hash_hex = hex::encode(message_hash);
+    let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &message_hash_hex).await?;
     check_signing_group(&subgroup_signers, &user_sig_req.validators_info, signer.account_id())?;
 
     // Use the validator info from chain as we can be sure it is in the correct order and the
     // details are correct
     user_sig_req.validators_info = subgroup_signers;
 
-    let tx_id = create_unique_tx_id(&signing_address, &sig_hash);
+    let signing_session_id = SigningSessionInfo {
+        account_id: SubxtAccountId32(*signed_msg.account_id().as_ref()),
+        message_hash,
+    };
 
     let has_key = check_for_key(&signing_address, &app_state.kv_store).await?;
     if !has_key {
@@ -154,9 +159,9 @@ pub async fn sign_tx(
     tokio::spawn(async move {
         let signing_protocol_output = do_signing(
             user_sig_req,
-            sig_hash,
+            message_hash_hex,
             &app_state,
-            tx_id,
+            signing_session_id,
             signing_address_subxt,
             key_visibility,
         )
@@ -241,13 +246,9 @@ async fn setup_dkg(
             .clone()
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
-        let sig_request_address = AccountId32::new(*address_slice);
-        let user_details = get_registering_user_details(
-            &api,
-            &SubxtAccountId32::from(sig_request_address.clone()),
-            rpc,
-        )
-        .await?;
+        let sig_request_address = SubxtAccountId32(*address_slice);
+        let user_details =
+            get_registering_user_details(&api, &sig_request_address.clone(), rpc).await?;
 
         let key_share = do_dkg(
             &data.validators_info,
@@ -284,7 +285,7 @@ async fn setup_dkg(
         // TODO: Error handling really complex needs to be thought about.
         confirm_registered(
             &api,
-            sig_request_address.into(),
+            sig_request_address,
             my_subgroup,
             &signer,
             key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec(),

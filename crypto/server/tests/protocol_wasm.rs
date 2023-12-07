@@ -39,7 +39,6 @@ use server::{
         get_api, get_rpc, EntropyConfig,
     },
     common::{
-        create_unique_tx_id,
         validation::{derive_static_secret, SignedMessage},
         Hasher, UserSignatureRequest,
     },
@@ -82,10 +81,6 @@ async fn test_wasm_sign_tx_user_participates() {
 
     let encoded_transaction_request: String = hex::encode(PREIMAGE_SHOULD_SUCCEED);
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-
-    let signing_address = one.to_account_id().to_ss58check();
-    let hash_as_hexstring = hex::encode(message_should_succeed_hash);
-    let sig_uid = create_unique_tx_id(&signing_address, &hash_as_hexstring);
 
     let mut generic_msg = UserSignatureRequest {
         message: encoded_transaction_request.clone(),
@@ -135,7 +130,7 @@ async fn test_wasm_sign_tx_user_participates() {
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
         spawn_user_participates_in_signing_protocol(
             &users_keyshare_option.clone().unwrap(),
-            &sig_uid,
+            &message_should_succeed_hash,
             validators_info.clone(),
             one.pair().to_raw_vec(),
             &one_x25519_sk,
@@ -258,7 +253,7 @@ async fn test_wasm_register_with_private_key_visibility() {
 struct UserParticipatesInSigningProtocolArgs {
     user_sig_req_secret_key: Vec<u8>,
     x25519_private_key: Vec<u8>,
-    sig_uid: String,
+    message_hash: Vec<u8>,
     key_share: String,
     validators_info: Vec<ValidatorInfoParsed>,
 }
@@ -281,13 +276,13 @@ struct ValidatorInfoParsed {
 /// the protocol runnning parameters as JSON as a command line argument
 async fn spawn_user_participates_in_signing_protocol(
     key_share: &KeyShare<KeyParams>,
-    sig_uid: &str,
+    message_hash: &[u8; 32],
     validators_info: Vec<ValidatorInfo>,
     user_sig_req_secret_key: Vec<u8>,
     x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> String {
     let args = UserParticipatesInSigningProtocolArgs {
-        sig_uid: sig_uid.to_string(),
+        message_hash: message_hash.to_vec(),
         user_sig_req_secret_key,
         validators_info: validators_info
             .into_iter()
