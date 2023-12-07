@@ -4,6 +4,7 @@ use sp_core::sr25519;
 use subxt::utils::AccountId32;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_derive::TryFromJsValue;
+use x25519chacha20poly1305::derive_static_secret;
 
 use super::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol};
 use crate::KeyParams;
@@ -13,18 +14,11 @@ use crate::KeyParams;
 pub async fn run_dkg_protocol(
     validators_info_js: ValidatorInfoArray,
     user_signing_secret_key: Vec<u8>,
-    x25519_private_key_vec: Vec<u8>,
 ) -> Result<KeyShare, Error> {
     let validators_info = parse_validator_info(validators_info_js)?;
 
     let user_signing_keypair = sr25519_keypair_from_secret_key(user_signing_secret_key)?;
-
-    let x25519_private_key: x25519_dalek::StaticSecret = {
-        let x25519_private_key_raw: [u8; 32] = x25519_private_key_vec
-            .try_into()
-            .map_err(|_| Error::new("x25519 private key must be 32 bytes"))?;
-        x25519_private_key_raw.into()
-    };
+    let x25519_private_key = derive_static_secret(user_signing_keypair);
 
     let key_share = user_participates_in_dkg_protocol(
         validators_info,
@@ -45,7 +39,6 @@ pub async fn run_signing_protocol(
     sig_uid: String,
     validators_info_js: ValidatorInfoArray,
     user_signing_secret_key: Vec<u8>,
-    x25519_private_key_vec: Vec<u8>,
 ) -> Result<String, Error> {
     let validators_info = parse_validator_info(validators_info_js)?;
 
@@ -59,13 +52,7 @@ pub async fn run_signing_protocol(
     };
 
     let user_signing_keypair = sr25519_keypair_from_secret_key(user_signing_secret_key)?;
-
-    let x25519_private_key: x25519_dalek::StaticSecret = {
-        let x25519_private_key_raw: [u8; 32] = x25519_private_key_vec
-            .try_into()
-            .map_err(|_| Error::new("x25519 private key must be 32 bytes"))?;
-        x25519_private_key_raw.into()
-    };
+    let x25519_private_key = derive_static_secret(user_signing_keypair);
 
     let signature = user_participates_in_signing_protocol(
         &key_share.0,
