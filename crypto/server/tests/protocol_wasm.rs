@@ -175,27 +175,27 @@ async fn test_wasm_register_with_private_key_visibility() {
 
     let one = AccountKeyring::One;
     let program_modification_account = AccountKeyring::Charlie;
+    let dave = AccountKeyring::Dave;
 
     let (validator_ips, _validator_ids, _users_keyshare_option) =
         spawn_testing_validators(None, false).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let program_hash =
+        update_program(&api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await.unwrap();
+
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
     let one_x25519_sk = derive_static_secret(&one.pair());
     let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
-
-    let empty_program_hash: H256 =
-        H256::from_str("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8")
-            .unwrap();
 
     put_register_request_on_chain(
         &api,
         one.pair(),
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
-        empty_program_hash,
+        program_hash,
     )
     .await
     .unwrap();
