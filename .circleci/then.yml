@@ -42,11 +42,6 @@ commands:
             - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
     install-dependencies-and-checkout:
         steps:
-            # Needed to getch the currently private `synedrion` dependency
-            # (this is its deploy key added to CircleCI)
-            - add_ssh_keys:
-                fingerprints:
-                    - "ba:7e:d1:60:52:9d:52:6f:f9:1b:b0:14:72:8a:bf:b8"
             - install-dependencies
             - checkout
             - install-dependencies

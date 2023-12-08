@@ -14,4 +14,3 @@ workflows:
                     pallets/.* pallets true
                     runtime/.* runtime true
                 name: check-updated-files
-

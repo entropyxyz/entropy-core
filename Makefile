@@ -74,23 +74,16 @@ vercel-install-api-docs :: vercel-rustup rust
 		# Write out SSH deploy keys to prepare cloning private repositories.
 		mkdir -p /root/.ssh
 		printenv github_ssh_deploy_key_constraints >> /root/.ssh/github_constraints
-		printenv github_ssh_deploy_key_synedrion >> /root/.ssh/github_synedrion
 		echo "Host github.com*" > /root/.ssh/config
 		echo "  Hostname github.com" >> /root/.ssh/config
 		echo "	StrictHostKeyChecking no" >> /root/.ssh/config
 		echo "Host github.com_constraints" >> /root/.ssh/config
 		echo "	IdentityFile /root/.ssh/github_constraints" >> /root/.ssh/config
-		echo "Host github.com_synedrion" >> /root/.ssh/config
-		echo "	IdentityFile /root/.ssh/github_synedrion" >> /root/.ssh/config
 		chmod 600 \
-			/root/.ssh/github_synedrion \
 			/root/.ssh/github_constraints
 		git config --global \
 			'url.ssh://git@github.com_constraints/entropyxyz/constraints.git.insteadOf' \
 			ssh://git@github.com/entropyxyz/constraints.git
-		git config --global \
-			'url.ssh://git@github.com_synedrion/entropyxyz/synedrion.git.insteadOf' \
-			ssh://git@github.com/entropyxyz/synedrion.git
 
 # The Vercel project's `buildCommand` is defined here.
 vercel-build-api-docs ::
