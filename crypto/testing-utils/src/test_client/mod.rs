@@ -77,8 +77,6 @@ pub async fn register(
     // If registering with private key visibility, participate in the DKG protocol
     let keyshare_option = match key_visibility {
         KeyVisibility::Private(_x25519_pk) => {
-            let x25519_secret = derive_static_secret(&signature_request_keypair);
-
             let block_number = rpc
                 .chain_get_header(None)
                 .await?
@@ -87,12 +85,8 @@ pub async fn register(
 
             let validators_info = get_dkg_committee(api, block_number + 1).await?;
             Some(
-                user_participates_in_dkg_protocol(
-                    validators_info,
-                    &signature_request_keypair,
-                    &x25519_secret,
-                )
-                .await?,
+                user_participates_in_dkg_protocol(validators_info, &signature_request_keypair)
+                    .await?,
             )
         },
         _ => None,
@@ -171,8 +165,6 @@ pub async fn sign(
 
     // If we have a keyshare, connect to TSS servers
     let results = if let Some(keyshare) = private {
-        let x25519_secret = derive_static_secret(&signature_request_keypair);
-
         let (validator_results, _own_result) = future::join(
             future::try_join_all(submit_transaction_requests),
             user_participates_in_signing_protocol(
@@ -180,7 +172,6 @@ pub async fn sign(
                 validators_info_clone,
                 &signature_request_keypair,
                 message_hash,
-                &x25519_secret,
             ),
         )
         .await;
