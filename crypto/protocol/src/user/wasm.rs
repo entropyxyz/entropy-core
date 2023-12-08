@@ -13,26 +13,14 @@ use crate::KeyParams;
 pub async fn run_dkg_protocol(
     validators_info_js: ValidatorInfoArray,
     user_signing_secret_key: Vec<u8>,
-    x25519_private_key_vec: Vec<u8>,
 ) -> Result<KeyShare, Error> {
     let validators_info = parse_validator_info(validators_info_js)?;
 
     let user_signing_keypair = sr25519_keypair_from_secret_key(user_signing_secret_key)?;
 
-    let x25519_private_key: x25519_dalek::StaticSecret = {
-        let x25519_private_key_raw: [u8; 32] = x25519_private_key_vec
-            .try_into()
-            .map_err(|_| Error::new("x25519 private key must be 32 bytes"))?;
-        x25519_private_key_raw.into()
-    };
-
-    let key_share = user_participates_in_dkg_protocol(
-        validators_info,
-        &user_signing_keypair,
-        &x25519_private_key,
-    )
-    .await
-    .map_err(|err| Error::new(&format!("{}", err)))?;
+    let key_share = user_participates_in_dkg_protocol(validators_info, &user_signing_keypair)
+        .await
+        .map_err(|err| Error::new(&format!("{}", err)))?;
 
     Ok(KeyShare(key_share))
 }
@@ -45,7 +33,6 @@ pub async fn run_signing_protocol(
     sig_uid: String,
     validators_info_js: ValidatorInfoArray,
     user_signing_secret_key: Vec<u8>,
-    x25519_private_key_vec: Vec<u8>,
 ) -> Result<String, Error> {
     let validators_info = parse_validator_info(validators_info_js)?;
 
@@ -60,20 +47,12 @@ pub async fn run_signing_protocol(
 
     let user_signing_keypair = sr25519_keypair_from_secret_key(user_signing_secret_key)?;
 
-    let x25519_private_key: x25519_dalek::StaticSecret = {
-        let x25519_private_key_raw: [u8; 32] = x25519_private_key_vec
-            .try_into()
-            .map_err(|_| Error::new("x25519 private key must be 32 bytes"))?;
-        x25519_private_key_raw.into()
-    };
-
     let signature = user_participates_in_signing_protocol(
         &key_share.0,
         &sig_uid,
         validators_info,
         &user_signing_keypair,
         sig_hash,
-        &x25519_private_key,
     )
     .await
     .map_err(|err| Error::new(&format!("{}", err)))?;
