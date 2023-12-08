@@ -5,8 +5,10 @@ the Entropy signing and DKG protocols on the client side.
 
 Exposed to JS:
 
-- `run_dkg_protocol` - `run_signing_protocol` - `ValidatorInfo` -
-`KeyShare`
+- `run_dkg_protocol`
+- `run_signing_protocol`
+- `ValidatorInfo`
+- `KeyShare`
 
 ## Registering in private access mode
 
