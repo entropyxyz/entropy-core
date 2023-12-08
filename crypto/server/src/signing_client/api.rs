@@ -182,11 +182,10 @@ pub async fn do_proactive_refresh(
     let (rx_ready, rx_from_others, listener) =
         Listener::new(converted_validator_info.clone(), &account_id, None);
     state
-   .listeners
-   .lock()
-   .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
-   // TODO: using signature ID as session ID. Correct?
-   .insert(session_id.clone(), listener);
+        .listeners
+        .lock()
+        .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
+        .insert(session_id.clone(), listener);
     let x25519_secret_key = derive_static_secret(signer.signer());
 
     open_protocol_connections(
