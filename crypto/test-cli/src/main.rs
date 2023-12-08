@@ -53,7 +53,7 @@ enum CliCommand {
         /// The access mode of the Entropy account
         #[arg(value_enum, default_value_t = Default::default())]
         key_visibility: Visibility,
-        /// The path to a .wasm file containing the initial program for the account (defaults to test program)
+        /// The hash of the initial program for the account
         program_hash: Option<H256>,
     },
     /// Ask the network to sign a given message
