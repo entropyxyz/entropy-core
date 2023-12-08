@@ -12,7 +12,9 @@ use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
 use ec_runtime::{Runtime, SignatureRequest};
 use entropy_protocol::ValidatorInfo;
-use entropy_shared::{types::KeyVisibility, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE};
+use entropy_shared::{
+    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE,
+};
 use futures::{
     channel::mpsc,
     future::{join_all, FutureExt},
@@ -51,7 +53,7 @@ use crate::{
         substrate::{
             get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
         },
-        user::{check_in_registration_group, do_dkg, send_key},
+        user::{check_in_registration_group, compute_hash, do_dkg, send_key},
         validator::get_signer,
     },
     signing_client::{ListenerState, ProtocolErr},
@@ -72,6 +74,8 @@ pub struct UserSignatureRequest {
     pub validators_info: Vec<ValidatorInfo>,
     /// When the message was created and signed
     pub timestamp: SystemTime,
+    /// Hashing algorithm to be used for signing
+    pub hash: HashingAlgorithm,
 }
 
 /// Type for validators to send user key's back and forth
@@ -126,7 +130,18 @@ pub async fn sign_tx(
 
     let message = hex::decode(&user_sig_req.message)?;
     let auxilary_data = user_sig_req.auxilary_data.as_ref().map(hex::decode).transpose()?;
-    let sig_hash = hex::encode(Hasher::keccak(&message));
+
+    let program = get_program(&api, &rpc, &second_signing_address_conversion).await?;
+    let mut runtime = Runtime::new();
+    let signature_request = SignatureRequest { message, auxilary_data };
+    runtime.evaluate(&program, &signature_request)?;
+
+    let sig_hash = hex::encode(compute_hash(
+        &user_sig_req.hash,
+        &mut runtime,
+        program.as_slice(),
+        signature_request.message.as_slice(),
+    )?);
     let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &sig_hash).await?;
     check_signing_group(&subgroup_signers, &user_sig_req.validators_info, signer.account_id())?;
 
@@ -140,13 +155,6 @@ pub async fn sign_tx(
     if !has_key {
         recover_key(&api, &rpc, &app_state.kv_store, &signer, signing_address).await?
     }
-
-    let program = get_program(&api, &rpc, &second_signing_address_conversion).await?;
-
-    let mut runtime = Runtime::new();
-    let signature_request = SignatureRequest { message, auxilary_data };
-
-    runtime.evaluate(&program, &signature_request)?;
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 

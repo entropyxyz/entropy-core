@@ -3,7 +3,7 @@
 mod helpers;
 use axum::http::StatusCode;
 use entropy_protocol::{KeyParams, ValidatorInfo};
-use entropy_shared::{KeyVisibility, OcwMessageDkg};
+use entropy_shared::{KeyVisibility, OcwMessageDkg, HashingAlgorithm};
 use futures::future::join_all;
 use futures::future::{self};
 use kvdb::clean_tests;
@@ -52,7 +52,7 @@ async fn test_wasm_sign_tx_user_participates() {
     clean_tests();
     let one = AccountKeyring::Eve;
 
-    let signing_address = one.clone().to_account_id().to_ss58check();
+    let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, users_keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), true).await;
     let substrate_context = test_context_stationary().await;
@@ -92,6 +92,7 @@ async fn test_wasm_sign_tx_user_participates() {
         auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
+        hash: HashingAlgorithm::Keccak
     };
 
     let submit_transaction_requests =
@@ -144,7 +145,7 @@ async fn test_wasm_sign_tx_user_participates() {
     .await;
 
     // Check that the signature the user gets matches the first of the server's signatures
-    let user_sig = if let Some(user_sig_stripped) = user_sig.strip_suffix("\n") {
+    let user_sig = if let Some(user_sig_stripped) = user_sig.strip_suffix('\n') {
         user_sig_stripped.to_string()
     } else {
         user_sig

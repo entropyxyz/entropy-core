@@ -106,6 +106,30 @@
 		{
 			"type": "lldb",
 			"request": "launch",
+			"name": "Debug 'user::tests::test_fail_signing_group'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=server",
+					"--package=server",
+					"--features=unsafe"
+				],
+				"filter": {
+					"name": "server",
+					"kind": "bin"
+				}
+			},
+			"args": [
+				"--test",
+				"user::tests::test_fail_signing_group",
+				"--nocapture"
+			],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
 			"name": "Debug unit tests in library 'entropy-shared'",
 			"cargo": {
 				"args": [

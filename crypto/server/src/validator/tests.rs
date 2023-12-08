@@ -377,7 +377,7 @@ async fn test_sync_validator() {
         &Some(ValidatorName::Alice),
     )
     .await;
-    let listener_alice = TcpListener::bind(format!("0.0.0.0:3001")).unwrap();
+    let listener_alice = TcpListener::bind("0.0.0.0:3001".to_string()).unwrap();
 
     tokio::spawn(async move {
         axum::Server::from_tcp(listener_alice).unwrap().serve(alice_axum).await.unwrap();
@@ -391,7 +391,7 @@ async fn test_sync_validator() {
         &Some(ValidatorName::Charlie),
     )
     .await;
-    let listener_charlie = TcpListener::bind(format!("0.0.0.0:3002")).unwrap();
+    let listener_charlie = TcpListener::bind("0.0.0.0:3002".to_string()).unwrap();
 
     tokio::spawn(async move {
         axum::Server::from_tcp(listener_charlie).unwrap().serve(charlie_axum).await.unwrap();

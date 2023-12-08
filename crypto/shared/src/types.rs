@@ -74,3 +74,16 @@ pub struct OcwMessageProactiveRefresh {
     pub validators_info: Vec<ValidatorInfo>,
     pub refreshes_done: u32,
 }
+
+/// 256-bit hashing algorithms for deriving the point to be signed.
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "std", serde(rename = "hash"))]
+#[cfg_attr(feature = "std", serde(rename_all = "lowercase"))]
+pub enum HashingAlgorithm {
+    Sha1,
+    Sha2,
+    Sha3,
+    Keccak,
+    Custom,
+}

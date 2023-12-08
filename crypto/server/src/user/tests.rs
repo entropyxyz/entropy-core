@@ -13,7 +13,7 @@ use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, PartyId, ValidatorInfo,
 };
-use entropy_shared::{KeyVisibility, OcwMessageDkg};
+use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
 use futures::{
     future::{self, join_all},
     join, Future, SinkExt, StreamExt,
@@ -139,6 +139,7 @@ async fn test_sign_tx_no_chain() {
         auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         validators_info,
         timestamp: SystemTime::now(),
+        hash: HashingAlgorithm::Keccak,
     };
 
     let submit_transaction_requests =
@@ -388,7 +389,9 @@ async fn test_fail_signing_group() {
         auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         validators_info,
         timestamp: SystemTime::now(),
+        hash: HashingAlgorithm::Keccak,
     };
+
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let signed_message = SignedMessage::new(
         &dave.pair(),
@@ -780,6 +783,7 @@ async fn test_sign_tx_user_participates() {
         auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
+        hash: HashingAlgorithm::Keccak,
     };
 
     let submit_transaction_requests =
