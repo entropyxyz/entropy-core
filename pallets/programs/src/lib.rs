@@ -110,7 +110,7 @@ pub mod pallet {
             /// The program modification account which updated the program.
             program_modification_account: T::AccountId,
 
-            /// The new program bytecode.
+            /// The new program hash.
             program_hash: T::Hash,
         },
         ProgramRemoved {
