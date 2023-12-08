@@ -263,7 +263,7 @@ pub async fn update_program(
         .await?;
 
     let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>()?;
-    Ok(result_event.unwrap().program_hash)
+    Ok(result_event?.program_hash)
 }
 
 /// Set or update pointer with a given entropy account
