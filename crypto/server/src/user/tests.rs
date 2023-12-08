@@ -847,8 +847,6 @@ async fn test_sign_tx_user_participates() {
     ];
     generic_msg.timestamp = SystemTime::now();
 
-    let one_x25519_sk = derive_static_secret(&one.pair());
-
     // Submit transaction requests, and connect and participate in signing
     let (test_user_res, sig_result) = future::join(
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
@@ -858,7 +856,6 @@ async fn test_sign_tx_user_participates() {
             validators_info.clone(),
             &one.pair(),
             message_should_succeed_hash,
-            &one_x25519_sk,
         ),
     )
     .await;
@@ -1134,7 +1131,7 @@ async fn test_register_with_private_key_visibility() {
             .post("http://127.0.0.1:3002/user/new")
             .body(onchain_user_request.clone().encode())
             .send(),
-        user_participates_in_dkg_protocol(validators_info.clone(), &one.pair(), &one_x25519_sk),
+        user_participates_in_dkg_protocol(validators_info.clone(), &one.pair()),
     )
     .await;
 

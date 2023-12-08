@@ -127,8 +127,6 @@ async fn test_wasm_sign_tx_user_participates() {
     ];
     generic_msg.timestamp = SystemTime::now();
 
-    let one_x25519_sk = derive_static_secret(&one.pair());
-
     // Submit transaction requests, and connect and participate in signing
     let (mut test_user_res, user_sig) = future::join(
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
@@ -137,7 +135,6 @@ async fn test_wasm_sign_tx_user_participates() {
             &sig_uid,
             validators_info.clone(),
             one.pair().to_raw_vec(),
-            &one_x25519_sk,
         ),
     )
     .await;
@@ -234,11 +231,7 @@ async fn test_wasm_register_with_private_key_visibility() {
             .post("http://127.0.0.1:3002/user/new")
             .body(onchain_user_request.clone().encode())
             .send(),
-        spawn_user_participates_in_dkg_protocol(
-            validators_info.clone(),
-            one.pair().to_raw_vec(),
-            &one_x25519_sk,
-        ),
+        spawn_user_participates_in_dkg_protocol(validators_info.clone(), one.pair().to_raw_vec()),
     )
     .await;
 
@@ -260,7 +253,6 @@ async fn test_wasm_register_with_private_key_visibility() {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct UserParticipatesInSigningProtocolArgs {
     user_sig_req_secret_key: Vec<u8>,
-    x25519_private_key: Vec<u8>,
     sig_uid: String,
     key_share: String,
     validators_info: Vec<ValidatorInfoParsed>,
@@ -269,7 +261,6 @@ struct UserParticipatesInSigningProtocolArgs {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct UserParticipatesInDkgProtocolArgs {
     user_sig_req_secret_key: Vec<u8>,
-    x25519_private_key: Vec<u8>,
     validators_info: Vec<ValidatorInfoParsed>,
 }
 
@@ -287,7 +278,6 @@ async fn spawn_user_participates_in_signing_protocol(
     sig_uid: &str,
     validators_info: Vec<ValidatorInfo>,
     user_sig_req_secret_key: Vec<u8>,
-    x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> String {
     let args = UserParticipatesInSigningProtocolArgs {
         sig_uid: sig_uid.to_string(),
@@ -301,7 +291,6 @@ async fn spawn_user_participates_in_signing_protocol(
             })
             .collect(),
         key_share: serde_json::to_string(key_share).unwrap(),
-        x25519_private_key: x25519_private_key.to_bytes().to_vec(),
     };
     let json_params = serde_json::to_string(&args).unwrap();
 
@@ -313,7 +302,6 @@ async fn spawn_user_participates_in_signing_protocol(
 async fn spawn_user_participates_in_dkg_protocol(
     validators_info: Vec<ValidatorInfo>,
     user_sig_req_secret_key: Vec<u8>,
-    x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> String {
     let args = UserParticipatesInDkgProtocolArgs {
         user_sig_req_secret_key,
@@ -325,7 +313,6 @@ async fn spawn_user_participates_in_dkg_protocol(
                 tss_account: *validator_info.tss_account.as_ref(),
             })
             .collect(),
-        x25519_private_key: x25519_private_key.to_bytes().to_vec(),
     };
     let json_params = serde_json::to_string(&args).unwrap();
 

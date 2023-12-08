@@ -9,6 +9,7 @@ use tokio::spawn;
 use tokio::sync::{broadcast, mpsc};
 #[cfg(feature = "wasm")]
 use wasm_bindgen_futures::spawn_local as spawn;
+use x25519_chacha20poly1305::derive_static_secret;
 
 use crate::{
     errors::UserRunningProtocolErr,
@@ -28,7 +29,6 @@ pub async fn user_participates_in_signing_protocol(
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
     sig_hash: [u8; 32],
-    x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<RecoverableSignature, UserRunningProtocolErr> {
     // Make WS connections to the given set of TSS servers
     let (channels, tss_accounts) = user_connects_to_validators(
@@ -36,7 +36,6 @@ pub async fn user_participates_in_signing_protocol(
         sig_uid,
         validators_info,
         user_signing_keypair,
-        x25519_private_key,
     )
     .await?;
 
@@ -60,7 +59,6 @@ pub async fn user_participates_in_signing_protocol(
 pub async fn user_participates_in_dkg_protocol(
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
-    x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<KeyShare<KeyParams>, UserRunningProtocolErr> {
     // Make WS connections to the given set of TSS servers
     let sig_req_account: AccountId32 = user_signing_keypair.public().0.into();
@@ -70,7 +68,6 @@ pub async fn user_participates_in_dkg_protocol(
         &session_id,
         validators_info,
         user_signing_keypair,
-        x25519_private_key,
     )
     .await?;
 
@@ -86,13 +83,13 @@ async fn user_connects_to_validators<F, Fut, W>(
     session_id: &str,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
-    x25519_private_key: &x25519_dalek::StaticSecret,
 ) -> Result<(Channels, Vec<AccountId32>), UserRunningProtocolErr>
 where
     F: Fn(String) -> Fut,
     Fut: Future<Output = Result<W, UserRunningProtocolErr>>,
     W: ThreadSafeWsConnection,
 {
+    let x25519_private_key = derive_static_secret(user_signing_keypair);
     // Set up channels for communication between the protocol and the other parties
     let (tx, _rx) = broadcast::channel(1000);
     let (tx_to_others, rx_to_others) = mpsc::channel(1000);
@@ -113,7 +110,7 @@ where
 
             let mut encrypted_connection = noise_handshake_initiator(
                 ws_stream,
-                x25519_private_key,
+                &x25519_private_key,
                 validator_info.x25519_public_key,
                 subscribe_message_vec,
             )
