@@ -3,7 +3,7 @@
 mod helpers;
 use axum::http::StatusCode;
 use entropy_protocol::{KeyParams, ValidatorInfo};
-use entropy_shared::{KeyVisibility, OcwMessageDkg, HashingAlgorithm};
+use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
 use futures::future::join_all;
 use futures::future::{self};
 use kvdb::clean_tests;
@@ -92,7 +92,7 @@ async fn test_wasm_sign_tx_user_participates() {
         auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
-        hash: HashingAlgorithm::Keccak
+        hash: HashingAlgorithm::Keccak,
     };
 
     let submit_transaction_requests =
