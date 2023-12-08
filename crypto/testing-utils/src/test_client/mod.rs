@@ -262,7 +262,7 @@ pub async fn update_program(
         .wait_for_success()
         .await?;
 
-    let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>().unwrap();
+    let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>()?;
     Ok(result_event.unwrap().program_hash)
 }
 
