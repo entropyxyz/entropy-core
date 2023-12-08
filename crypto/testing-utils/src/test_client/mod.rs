@@ -272,7 +272,7 @@ pub async fn update_pointer(
     signature_request_account: &sr25519::Pair,
     pointer_modification_account: &sr25519::Pair,
     program_hash: <EntropyConfig as Config>::Hash,
-) {
+) -> anyhow::Result<()> {
     let update_pointer_tx = entropy::tx()
         .relayer()
         .change_program_pointer(signature_request_account.public().into(), program_hash);
@@ -281,14 +281,12 @@ pub async fn update_pointer(
     entropy_api
         .tx()
         .sign_and_submit_then_watch_default(&update_pointer_tx, &pointer_modification_account)
-        .await
-        .unwrap()
+        .await?
         .wait_for_in_block()
-        .await
-        .unwrap()
+        .await?
         .wait_for_success()
-        .await
-        .unwrap();
+        .await?;
+    Ok(())
 }
 /// Get info on all registered accounts
 pub async fn get_accounts(
