@@ -13,7 +13,6 @@ use serial_test::serial;
 use sp_core::crypto::{AccountId32, Pair, Ss58Codec};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{
-    str::FromStr,
     thread,
     time::{Duration, SystemTime},
 };
