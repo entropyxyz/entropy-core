@@ -36,7 +36,7 @@ async fn integration_test_sign() {
             .await
             .unwrap();
 
-    test_client::update_pointer(
+    let _ = test_client::update_pointer(
         &api,
         &pre_registered_user.pair(),
         &pre_registered_user.pair(),
@@ -85,7 +85,7 @@ async fn integration_test_sign_private() {
             .await
             .unwrap();
 
-    test_client::update_pointer(
+    let _ = test_client::update_pointer(
         &api,
         &pre_registered_user.pair(),
         &pre_registered_user.pair(),

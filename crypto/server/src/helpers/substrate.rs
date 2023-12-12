@@ -17,6 +17,8 @@ use subxt::{
     utils::{AccountId32, H256},
     Config, OnlineClient,
 };
+#[cfg(test)]
+use testing_utils::constants::EMPTY_PROGRAM_HASH;
 
 /// gets the subgroup of the working validator
 pub async fn get_subgroup(
@@ -117,9 +119,7 @@ pub async fn make_register(
     assert!(is_registering_1.is_none());
 
     // register the user
-    let empty_program_hash: H256 =
-        H256::from_str("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8")
-            .unwrap();
+    let empty_program_hash: H256 = H256::from_str(EMPTY_PROGRAM_HASH).unwrap();
     let registering_tx = entropy::tx().relayer().register(
         program_modification_account.clone(),
         Static(key_visibility),

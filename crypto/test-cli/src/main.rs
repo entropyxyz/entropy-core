@@ -12,7 +12,7 @@ use colored::Colorize;
 use sp_core::{sr25519, Pair};
 use subxt::utils::{AccountId32 as SubxtAccountId32, H256};
 use testing_utils::{
-    constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
+    constants::{AUXILARY_DATA_SHOULD_SUCCEED, EMPTY_PROGRAM_HASH, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
         derive_static_secret, get_accounts, get_api, get_rpc, register, sign, update_program,
         KeyParams, KeyShare, KeyVisibility,
@@ -161,10 +161,7 @@ async fn run_command() -> anyhow::Result<String> {
                 },
                 Visibility::Public => KeyVisibility::Public,
             };
-            let empty_program_hash: H256 = H256::from_str(
-                "0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8",
-            )
-            .unwrap();
+            let empty_program_hash: H256 = H256::from_str(EMPTY_PROGRAM_HASH).unwrap();
             let program_hash_to_send = match program_hash {
                 Some(program_hash) => program_hash,
                 // This is temporary - if empty programs are allowed it can be None
