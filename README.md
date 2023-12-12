@@ -96,18 +96,6 @@ cargo test -p server --features unsafe -- test_sign_tx_no_chain --nocapture
 Once the node template is running locally, you can connect it with **Polkadot-JS Apps** front-end
 to interact with your chain. [Click here](https://polkadot.js.org/apps/#/explorer?rpc=ws://localhost:9944) connecting the Apps to your local node template.
 
-## Testnet
-
-- Currently our network requires 2 binaries (`entropy` and `server`)
-- `cargo build --release` will build both
-- To run both you can reference /scripts/sdk-entropy-node.sh for the chain and /scripts/sdk-alice-tss.sh for the threshold client
-
-### Changing Defaults
-
-- All defaults are ready to go out the box but can be changed if needed with varying degrees of difficult
-- To change chain address away from default `ws://127.0.0.1:9944` you need to inform the sig client which can be done with the env variable `export ENDPOINT=`
-- To change the default of the sig client from `http://127.0.0.1:3001/sign` you need to tell the chain after it is running by making an rpc call. Example code can be found [here](https://github.com/entropyxyz/util-scripts/blob/master/setEndpoint.ts). You also need to maintain the route as `/sign`
-
 ## Threshold Keys
 
 - Keys for internal testnet use only, not secure, here for convenience do not use them for anything real
