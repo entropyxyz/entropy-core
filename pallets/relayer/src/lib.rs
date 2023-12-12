@@ -256,18 +256,19 @@ pub mod pallet {
             Self::deposit_event(Event::RegistrationCancelled(who));
             Ok(())
         }
+
         /// Allows a user's program modification account to change their program pointer
         #[pallet::call_index(2)]
         #[pallet::weight({
-     <T as Config>::WeightInfo::change_program_pointer()
- })]
+             <T as Config>::WeightInfo::change_program_pointer()
+         })]
         pub fn change_program_pointer(
             origin: OriginFor<T>,
             sig_request_account: T::AccountId,
             new_program_pointer: T::Hash,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            Registered::<T>::try_mutate(&sig_request_account, |maybe_registerd_details| {
+            Registered::<T>::try_mutate(&sig_request_account, |maybe_registered_details| {
                 if let Some(registerd_details) = maybe_registerd_details {
                     ensure!(
                         who == registerd_details.program_modification_account,
