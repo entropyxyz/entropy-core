@@ -5,7 +5,7 @@ use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
 use synedrion::{
     sessions::{
-        make_interactive_signing_session, make_key_refresh_session, make_keygen_and_aux_session,
+        make_interactive_signing_session, make_key_gen_session, make_key_refresh_session,
         FinalizeOutcome, PrehashedMessage, Session,
     },
     signature::{self, hazmat::RandomizedPrehashSigner},
@@ -79,11 +79,11 @@ async fn execute_protocol_generic<Res: ProtocolResult>(
                 // TODO: this can happen in a spawned task.
                 // The artefact will be sent back to the host task
                 // to be added to the accumulator.
-                let (message, artefact) = session.make_direct_message(&mut OsRng, destination)?;
+                let (message, artifact) = session.make_direct_message(&mut OsRng, destination)?;
                 tx.send(ProtocolMessage::new(&my_id, destination, message))?;
 
                 // This will happen in a host task
-                accum.add_artefact(artefact)?;
+                accum.add_artifact(artifact)?;
             }
         }
 
@@ -186,7 +186,7 @@ pub async fn execute_dkg(
     // and be the same for all participants.
     let shared_randomness = b"123456";
 
-    let session = make_keygen_and_aux_session(&mut OsRng, shared_randomness, pair, &party_ids)
+    let session = make_key_gen_session(&mut OsRng, shared_randomness, pair, &party_ids)
         .map_err(ProtocolExecutionErr::SessionCreation)?;
 
     Ok(execute_protocol_generic(chans, session).await?)
