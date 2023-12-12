@@ -88,7 +88,7 @@ pub mod pallet {
     /// Stores the program bytecode for a given signature-request account.
     #[pallet::storage]
     #[pallet::getter(fn bytecode)]
-    pub type Bytecode<T: Config> =
+    pub type Programs<T: Config> =
         StorageMap<_, Blake2_128Concat, T::Hash, ProgramInfo<T::AccountId>, OptionQuery>;
 
     /// Maps an account to all the programs it owns
