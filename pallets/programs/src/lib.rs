@@ -140,7 +140,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Sets the program and uses hash as key.
         ///
-        /// Note that the call becomes the program-modification account.
+        /// Note that the caller becomes the program-modification account.
         #[pallet::call_index(0)]
         #[pallet::weight({<T as Config>::WeightInfo::set_program()})]
         pub fn set_program(origin: OriginFor<T>, new_program: Vec<u8>) -> DispatchResult {
