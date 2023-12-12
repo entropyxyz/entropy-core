@@ -12169,7 +12169,7 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 [[package]]
 name = "synedrion"
 version = "0.0.12"
-source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=release/v0.0.12#aef04ad5cf40db30981354da554e2a529b96af30"
+source = "git+https://github.com/entropyxyz/synedrion.git?tag=release/v0.0.12#aef04ad5cf40db30981354da554e2a529b96af30"
 dependencies = [
  "base64 0.21.2",
  "bincode",

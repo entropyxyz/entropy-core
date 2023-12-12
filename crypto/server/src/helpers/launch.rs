@@ -1,7 +1,5 @@
 //! Utilities for starting and running the server.
 
-use std::{fs, path::PathBuf};
-
 use bip39::{Language, Mnemonic, MnemonicType};
 use clap::Parser;
 use kvdb::{
@@ -9,6 +7,7 @@ use kvdb::{
     kv_manager::{error::KvError, KvManager},
 };
 use serde::Deserialize;
+use std::{fs, path::PathBuf, str};
 use subxt::ext::sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use crate::validation::{derive_static_secret, mnemonic_to_pair};
@@ -49,7 +48,10 @@ impl Configuration {
     }
 }
 
-pub async fn load_kv_store(validator_name: &Option<ValidatorName>, no_password: bool) -> KvManager {
+pub async fn load_kv_store(
+    validator_name: &Option<ValidatorName>,
+    password_path: Option<PathBuf>,
+) -> KvManager {
     let mut root: PathBuf = PathBuf::from(kvdb::get_db_path(false));
     if cfg!(test) {
         return KvManager::new(
@@ -65,11 +67,13 @@ pub async fn load_kv_store(validator_name: &Option<ValidatorName>, no_password: 
     if validator_name == &Some(ValidatorName::Alice) {
         return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     };
-    // TODO remove and force password
-    if no_password {
-        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
-    }
-    let password = PasswordMethod::Prompt.execute().unwrap();
+
+    let password = if let Some(password_path) = password_path {
+        hex::encode(fs::read(password_path).expect("error reading password file")).into()
+    } else {
+        PasswordMethod::Prompt.execute().unwrap()
+    };
+
     // this step takes a long time due to password-based decryption
     KvManager::new(root, password).unwrap()
 }
@@ -110,13 +114,13 @@ pub struct StartupArgs {
     #[arg(long = "nocapture")]
     pub nocapture: bool,
 
-    /// TODO remove and force password
-    #[arg(long = "nopassword")]
-    pub no_password: bool,
-
     /// The configuration settings around logging.
     #[clap(flatten)]
     pub logger: crate::helpers::logger::Instrumentation,
+
+    #[arg(short = 'f', long = "password_file")]
+    /// The path to a password file
+    pub password_file: Option<PathBuf>,
 }
 
 pub async fn setup_mnemonic(
