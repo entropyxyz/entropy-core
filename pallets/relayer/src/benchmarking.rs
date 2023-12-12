@@ -97,12 +97,15 @@ benchmarks! {
     let sig_req_account: T::AccountId = whitelisted_caller();
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
-      <Registered<T>>::insert(&sig_req_account, RegisteredInfo {
-        program_modification_account: sig_req_account.clone(),
-        program_pointer: program_hash,
-        verifying_key: BoundedVec::default(),
-        key_visibility: KeyVisibility::Public,
-    });
+    <Registered<T>>::insert(
+        &sig_req_account,
+        RegisteredInfo {
+            program_modification_account: sig_req_account.clone(),
+            program_pointer: program_hash,
+            verifying_key: BoundedVec::default(),
+            key_visibility: KeyVisibility::Public,
+        },
+    );
   }: _(RawOrigin::Signed(sig_req_account.clone()), sig_req_account.clone(), new_program_hash.clone())
   verify {
     assert_last_event::<T>(Event::ProgramPointerChanged(sig_req_account.clone(), new_program_hash).into());
