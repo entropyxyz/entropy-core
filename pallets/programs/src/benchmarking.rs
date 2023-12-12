@@ -54,10 +54,11 @@ benchmarks! {
     let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
     let _ = CurrencyOf::<T>::make_free_balance_be(&program_modification_account, value);
     <Programs<T>>::insert(program_hash.clone(), ProgramInfo {bytecode: program, program_modification_account: program_modification_account.clone()});
-    let mut program_hashes = vec![program_hash.clone()];
-    for _ in 1..p {
-       program_hashes.push(random_hash);
-    }
+    let mut program_hashes = vec![random_hash.clone(); p as usize];
+    // remove one to make room for the targetted removal program hash
+    program_hashes.pop();
+    program_hashes.push(program_hash);
+
     let bounded_program_hashes: BoundedVec<T::Hash, T::MaxOwnedPrograms> = BoundedVec::try_from(program_hashes).unwrap();
     <OwnedPrograms<T>>::insert(program_modification_account.clone(), bounded_program_hashes);
   }: _(RawOrigin::Signed(program_modification_account.clone()), program_hash.clone())

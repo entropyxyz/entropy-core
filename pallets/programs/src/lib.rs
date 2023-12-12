@@ -87,7 +87,7 @@ pub mod pallet {
 
     /// Stores the program bytecode for a given signature-request account.
     #[pallet::storage]
-    #[pallet::getter(fn bytecode)]
+    #[pallet::getter(fn programs)]
     pub type Programs<T: Config> =
         StorageMap<_, Blake2_128Concat, T::Hash, ProgramInfo<T::AccountId>, OptionQuery>;
 
@@ -105,7 +105,7 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// The bytecode of a program was updated.
+        /// The bytecode of a program was created.
         ProgramCreated {
             /// The program modification account which updated the program.
             program_modification_account: T::AccountId,
@@ -113,6 +113,7 @@ pub mod pallet {
             /// The new program hash.
             program_hash: T::Hash,
         },
+        /// The bytecode of a program was removed.
         ProgramRemoved {
             /// The program modification account which removed the program.
             program_modification_account: T::AccountId,
@@ -151,7 +152,7 @@ pub mod pallet {
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
                 Error::<T>::ProgramLengthExceeded
             );
-            ensure!(Self::bytecode(program_hash).is_none(), Error::<T>::ProgramAlreadySet);
+            ensure!(!Programs::<T>::contains_key(program_hash), Error::<T>::ProgramAlreadySet);
 
             Self::reserve_program_deposit(&program_modification_account, new_program_length)?;
 
@@ -189,7 +190,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let program_modification_account = ensure_signed(origin)?;
             let old_program_info =
-                Self::bytecode(program_hash).ok_or(Error::<T>::NoProgramDefined)?;
+                Self::programs(program_hash).ok_or(Error::<T>::NoProgramDefined)?;
             ensure!(
                 old_program_info.program_modification_account == program_modification_account,
                 Error::<T>::NotAuthorized

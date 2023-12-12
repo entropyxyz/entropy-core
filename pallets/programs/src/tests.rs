@@ -34,7 +34,7 @@ fn set_program() {
             program_modification_account: PROGRAM_MODIFICATION_ACCOUNT,
         };
         assert_eq!(
-            ProgramsPallet::bytecode(program_hash).unwrap(),
+            ProgramsPallet::programs(program_hash).unwrap(),
             program_result,
             "Program gets set"
         );
@@ -100,7 +100,17 @@ fn remove_program() {
             vec![program_hash],
             "Program gets set to owner"
         );
-        assert!(ProgramsPallet::bytecode(program_hash).is_some(), "Program gets set");
+        assert!(ProgramsPallet::programs(program_hash).is_some(), "Program gets set");
+        assert_eq!(
+            ProgramsPallet::programs(program_hash).unwrap().bytecode,
+            program,
+            "Program bytecode gets set"
+        );
+        assert_eq!(
+            ProgramsPallet::programs(program_hash).unwrap().program_modification_account,
+            PROGRAM_MODIFICATION_ACCOUNT,
+            "Program modification account gets set"
+        );
         assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 90, "Deposit charged");
 
         // not authorized
@@ -113,7 +123,7 @@ fn remove_program() {
             RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
             program_hash.clone()
         ));
-        assert!(ProgramsPallet::bytecode(program_hash).is_none(), "Program removed");
+        assert!(ProgramsPallet::programs(program_hash).is_none(), "Program removed");
         assert_eq!(
             ProgramsPallet::owned_programs(PROGRAM_MODIFICATION_ACCOUNT),
             vec![],

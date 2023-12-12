@@ -214,7 +214,7 @@ pub mod pallet {
 
             let block_number = <frame_system::Pallet<T>>::block_number();
             // check program exists
-            pallet_programs::Pallet::<T>::bytecode(program_pointer)
+            pallet_programs::Pallet::<T>::programs(program_pointer)
                 .ok_or(Error::<T>::ProgramDoesNotExist)?;
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(sig_req_account.clone().encode());
