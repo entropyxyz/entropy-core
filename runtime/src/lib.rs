@@ -1285,7 +1285,7 @@ parameter_types! {
   // 1mb max
   pub const MaxBytecodeLength: u32 = 1_000_000;
   pub const ProgramDepositPerByte: Balance = MILLICENTS;
-  pub const MaxOwnedPrograms: u32 = 25;
+  pub const MaxOwnedPrograms: u32 = 250;
 }
 
 impl pallet_programs::Config for Runtime {
