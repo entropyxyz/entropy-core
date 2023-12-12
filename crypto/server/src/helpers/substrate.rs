@@ -5,11 +5,7 @@ use crate::{
     },
     user::UserErr,
 };
-#[cfg(test)]
-use entropy_shared::KeyVisibility;
 use entropy_shared::SIGNING_PARTY_SIZE;
-#[cfg(test)]
-use std::str::FromStr;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::sr25519,
