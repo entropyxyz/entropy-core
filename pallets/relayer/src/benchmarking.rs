@@ -59,7 +59,7 @@ benchmarks! {
     let program = vec![0u8];
     let program_hash = T::Hashing::hash(&program);
     let program_modification_account: T::AccountId = whitelisted_caller();
-    Bytecode::<T>::insert(program_hash, ProgramInfo {bytecode: program, program_modification_account: program_modification_account.clone()});
+    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, program_modification_account: program_modification_account.clone()});
     let sig_req_account: T::AccountId = whitelisted_caller();
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);

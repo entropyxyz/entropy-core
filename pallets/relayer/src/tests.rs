@@ -57,7 +57,7 @@ fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        pallet_programs::Bytecode::<Test>::insert(
+        pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
         );
@@ -90,7 +90,7 @@ fn it_confirms_registers_a_user() {
 
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        pallet_programs::Bytecode::<Test>::insert(
+        pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
         );
@@ -168,7 +168,7 @@ fn it_changes_a_program_pointer() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        pallet_programs::Bytecode::<Test>::insert(
+        pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
         );
@@ -198,7 +198,7 @@ fn it_fails_on_non_matching_verifying_keys() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        pallet_programs::Bytecode::<Test>::insert(
+        pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
         );
@@ -240,7 +240,7 @@ fn it_doesnt_allow_double_registering() {
         // register a user
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        pallet_programs::Bytecode::<Test>::insert(
+        pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
         );
@@ -289,7 +289,7 @@ fn it_tests_prune_registration() {
     new_test_ext().execute_with(|| {
         let inital_program = vec![10];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&inital_program);
-        pallet_programs::Bytecode::<Test>::insert(
+        pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: inital_program, program_modification_account: 1 },
         );
@@ -312,7 +312,7 @@ fn it_provides_free_txs_confirm_done() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        pallet_programs::Bytecode::<Test>::insert(
+        pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
         );
@@ -380,7 +380,7 @@ fn it_provides_free_txs_confirm_done_fails_3() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        pallet_programs::Bytecode::<Test>::insert(
+        pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
         );
@@ -418,7 +418,7 @@ fn it_provides_free_txs_confirm_done_fails_4() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        pallet_programs::Bytecode::<Test>::insert(
+        pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
         );
@@ -449,7 +449,7 @@ fn it_provides_free_txs_confirm_done_fails_5() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        pallet_programs::Bytecode::<Test>::insert(
+        pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
         );

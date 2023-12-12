@@ -155,7 +155,7 @@ pub mod pallet {
 
             Self::reserve_program_deposit(&program_modification_account, new_program_length)?;
 
-            Bytecode::<T>::insert(
+            Programs::<T>::insert(
                 program_hash,
                 &ProgramInfo {
                     bytecode: new_program.clone(),
@@ -211,7 +211,7 @@ pub mod pallet {
                     Ok(())
                 },
             )?;
-            Bytecode::<T>::remove(program_hash);
+            Programs::<T>::remove(program_hash);
             Self::deposit_event(Event::ProgramRemoved {
                 program_modification_account,
                 old_program_hash: program_hash,

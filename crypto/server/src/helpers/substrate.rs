@@ -86,7 +86,7 @@ pub async fn get_program(
         .chain_get_block_hash(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
-    let bytecode_address = entropy::storage().programs().bytecode(program_pointer);
+    let bytecode_address = entropy::storage().programs().programs(program_pointer);
 
     Ok(substrate_api
         .storage()
