@@ -71,7 +71,7 @@ use crate::{
             DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::{create_unique_tx_id, Hasher},
-        substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
+        substrate::{get_subgroup, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, initialize_test_logger, run_to_block,
             setup_client, spawn_testing_validators, update_pointer, update_programs,

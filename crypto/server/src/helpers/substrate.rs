@@ -99,50 +99,6 @@ pub async fn get_program(
         .bytecode)
 }
 
-/// Puts a user in the Registering state on-chain and waits for that transaction to be included in a
-/// block
-#[cfg(test)]
-pub async fn make_register(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    sig_req_keyring: sr25519::Pair,
-    program_modification_account: &AccountId32,
-    key_visibility: KeyVisibility,
-) {
-    use subxt::utils::Static;
-
-    let sig_req_account = PairSigner::<EntropyConfig, sr25519::Pair>::new(sig_req_keyring);
-
-    let registering_query = entropy::storage().relayer().registering(sig_req_account.account_id());
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
-    let is_registering_1 = api.storage().at(block_hash).fetch(&registering_query).await.unwrap();
-    assert!(is_registering_1.is_none());
-
-    // register the user
-    let empty_program_hash: H256 = H256::from_str(EMPTY_PROGRAM_HASH).unwrap();
-    let registering_tx = entropy::tx().relayer().register(
-        program_modification_account.clone(),
-        Static(key_visibility),
-        empty_program_hash,
-    );
-
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
-
-    let block_hash_2 = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
-
-    let query_registering_status = api.storage().at(block_hash_2).fetch(&registering_query).await;
-    assert!(query_registering_status.unwrap().is_some());
-}
-
 /// Returns a registered user's key visibility
 pub async fn get_registered_details(
     api: &OnlineClient<EntropyConfig>,
