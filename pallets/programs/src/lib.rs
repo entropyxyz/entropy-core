@@ -117,7 +117,7 @@ pub mod pallet {
             /// The program modification account which removed the program.
             program_modification_account: T::AccountId,
 
-            /// The program bytecode removed.
+            /// The hash of the removed program.
             old_program_hash: T::Hash,
         },
     }
