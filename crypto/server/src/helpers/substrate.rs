@@ -17,8 +17,6 @@ use subxt::{
     utils::{AccountId32, H256},
     Config, OnlineClient,
 };
-#[cfg(test)]
-use testing_utils::constants::EMPTY_PROGRAM_HASH;
 
 /// gets the subgroup of the working validator
 pub async fn get_subgroup(

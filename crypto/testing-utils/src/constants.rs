@@ -36,5 +36,3 @@ pub const PREIMAGE_SHOULD_SUCCEED: &[u8] = "asdfasdfasdfasdf".as_bytes();
 pub const PREIMAGE_SHOULD_FAIL: &[u8] = "asdf".as_bytes();
 pub const AUXILARY_DATA_SHOULD_SUCCEED: &[u8] = "fdsafdsa".as_bytes();
 pub const AUXILARY_DATA_SHOULD_FAIL: Option<&[u8]> = None;
-pub const EMPTY_PROGRAM_HASH: &str =
-    "0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8";

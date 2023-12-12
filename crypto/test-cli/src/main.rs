@@ -3,7 +3,6 @@ use std::{
     fmt::{self, Display},
     fs,
     path::PathBuf,
-    str::FromStr,
     time::Instant,
 };
 
@@ -12,7 +11,7 @@ use colored::Colorize;
 use sp_core::{sr25519, Pair};
 use subxt::utils::{AccountId32 as SubxtAccountId32, H256};
 use testing_utils::{
-    constants::{AUXILARY_DATA_SHOULD_SUCCEED, EMPTY_PROGRAM_HASH, TEST_PROGRAM_WASM_BYTECODE},
+    constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
         derive_static_secret, get_accounts, get_api, get_rpc, register, sign, update_program,
         KeyParams, KeyShare, KeyVisibility,
@@ -54,7 +53,7 @@ enum CliCommand {
         #[arg(value_enum, default_value_t = Default::default())]
         key_visibility: Visibility,
         /// The hash of the initial program for the account
-        program_hash: Option<H256>,
+        program_hash: H256,
     },
     /// Ask the network to sign a given message
     Sign {
@@ -161,12 +160,6 @@ async fn run_command() -> anyhow::Result<String> {
                 },
                 Visibility::Public => KeyVisibility::Public,
             };
-            let empty_program_hash: H256 = H256::from_str(EMPTY_PROGRAM_HASH).unwrap();
-            let program_hash_to_send = match program_hash {
-                Some(program_hash) => program_hash,
-                // This is temporary - if empty programs are allowed it can be None
-                None => empty_program_hash,
-            };
 
             let (registered_info, keyshare_option) = register(
                 &api,
@@ -174,7 +167,7 @@ async fn run_command() -> anyhow::Result<String> {
                 signature_request_keypair.clone(),
                 program_account,
                 key_visibility_converted,
-                program_hash_to_send,
+                program_hash,
             )
             .await?;
 
