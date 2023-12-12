@@ -269,7 +269,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             Registered::<T>::try_mutate(&sig_request_account, |maybe_registered_details| {
-                if let Some(registerd_details) = maybe_registerd_details {
+                if let Some(registerd_details) = maybe_registered_details {
                     ensure!(
                         who == registerd_details.program_modification_account,
                         Error::<T>::NotAuthorized
