@@ -12168,8 +12168,9 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 
 [[package]]
 name = "synedrion"
-version = "0.0.12"
-source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=release/v0.0.12#aef04ad5cf40db30981354da554e2a529b96af30"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "719bd87aad0150020e25ba8a91e1766c6c67aa2f1b94ce71dba13a3a1bf16b6d"
 dependencies = [
  "base64 0.21.2",
  "bincode",
