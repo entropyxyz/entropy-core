@@ -3,6 +3,7 @@ use std::sync::Arc;
 use codec::Encode;
 use entropy_shared::{KeyVisibility, ValidatorInfo};
 use frame_support::{assert_ok, traits::OnInitialize};
+use pallet_programs::ProgramInfo;
 use pallet_staking_extension::RefreshInfo;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
@@ -60,8 +61,22 @@ fn knows_how_to_mock_several_http_calls() {
         Propagation::post_dkg(1).unwrap();
 
         System::set_block_number(3);
-        assert_ok!(Relayer::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, vec![],));
-        assert_ok!(Relayer::register(RuntimeOrigin::signed(2), 3, KeyVisibility::Public, vec![],));
+        pallet_programs::Programs::<Test>::insert(
+            <Test as frame_system::Config>::Hash::default(),
+            ProgramInfo { bytecode: vec![], program_modification_account: 1 },
+        );
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(1),
+            2,
+            KeyVisibility::Public,
+            <Test as frame_system::Config>::Hash::default(),
+        ));
+        assert_ok!(Relayer::register(
+            RuntimeOrigin::signed(2),
+            3,
+            KeyVisibility::Public,
+            <Test as frame_system::Config>::Hash::default(),
+        ));
         // full send
         Propagation::post_dkg(4).unwrap();
         // test pruning
