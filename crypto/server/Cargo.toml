@@ -20,7 +20,7 @@ zeroize            ="1.5.7"
 hex                ="*"
 reqwest-eventsource="0.4"
 serde_derive       ="1.0.147"
-synedrion          ={ git="https://github.com/entropyxyz/synedrion.git", tag="release/v0.0.12" }
+synedrion          ="0.1"
 
 # Async
 futures="0.3"

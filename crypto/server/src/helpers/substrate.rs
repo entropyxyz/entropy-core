@@ -1,12 +1,17 @@
-use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
-use subxt::{
-    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32,
-    Config, OnlineClient,
-};
-
 use crate::{
-    chain_api::{entropy, EntropyConfig},
+    chain_api::{
+        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteredInfo},
+        EntropyConfig,
+    },
     user::UserErr,
+};
+use entropy_shared::SIGNING_PARTY_SIZE;
+use subxt::{
+    backend::legacy::LegacyRpcMethods,
+    ext::sp_core::sr25519,
+    tx::PairSigner,
+    utils::{AccountId32, H256},
+    Config, OnlineClient,
 };
 
 /// gets the subgroup of the working validator
@@ -71,72 +76,29 @@ pub async fn return_all_addresses_of_subgroup(
 pub async fn get_program(
     substrate_api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    sig_req_account: &<EntropyConfig as Config>::AccountId,
+    program_pointer: &<EntropyConfig as Config>::Hash,
 ) -> Result<Vec<u8>, UserErr> {
-    let bytecode_address = entropy::storage().programs().bytecode(sig_req_account);
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
+    let bytecode_address = entropy::storage().programs().programs(program_pointer);
 
-    substrate_api
+    Ok(substrate_api
         .storage()
         .at(block_hash)
         .fetch(&bytecode_address)
         .await?
-        .ok_or(UserErr::NoProgramDefined)
-}
-
-/// Puts a user in the Registering state on-chain and waits for that transaction to be included in a
-/// block
-#[cfg(test)]
-pub async fn make_register(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    sig_req_keyring: sr25519::Pair,
-    program_modification_account: &AccountId32,
-    key_visibility: KeyVisibility,
-) {
-    use subxt::utils::Static;
-
-    let sig_req_account = PairSigner::<EntropyConfig, sr25519::Pair>::new(sig_req_keyring);
-
-    let registering_query = entropy::storage().relayer().registering(sig_req_account.account_id());
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
-    let is_registering_1 = api.storage().at(block_hash).fetch(&registering_query).await.unwrap();
-    assert!(is_registering_1.is_none());
-
-    // register the user
-    let empty_program = vec![];
-    let registering_tx = entropy::tx().relayer().register(
-        program_modification_account.clone(),
-        Static(key_visibility),
-        empty_program,
-    );
-
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
-
-    let block_hash_2 = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
-
-    let query_registering_status = api.storage().at(block_hash_2).fetch(&registering_query).await;
-    assert!(query_registering_status.unwrap().is_some());
+        .ok_or(UserErr::NoProgramDefined)?
+        .bytecode)
 }
 
 /// Returns a registered user's key visibility
-pub async fn get_key_visibility(
+pub async fn get_registered_details(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
-) -> Result<KeyVisibility, UserErr> {
+) -> Result<RegisteredInfo<H256, AccountId32>, UserErr> {
     let registered_info_query = entropy::storage().relayer().registered(who);
     let block_hash = rpc
         .chain_get_block_hash(None)
@@ -148,5 +110,5 @@ pub async fn get_key_visibility(
         .fetch(&registered_info_query)
         .await?
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
-    Ok(result.key_visibility.0)
+    Ok(result)
 }
