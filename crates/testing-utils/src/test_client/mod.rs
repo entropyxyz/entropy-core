@@ -15,14 +15,14 @@ use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     RecoverableSignature, ValidatorInfo,
 };
-use futures::future;
-use parity_scale_codec::Decode;
-use server::{
+use entropy_tss::{
     chain_api::{
         entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, EntropyConfig,
     },
     common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
 };
+use futures::future;
+use parity_scale_codec::Decode;
 use sp_core::{
     crypto::{AccountId32, Ss58Codec},
     sr25519, Bytes, Pair,

@@ -7,17 +7,17 @@ use crate::{
     },
     r#unsafe::api::UnsafeQuery,
 };
-use entropy_shared::OcwMessageProactiveRefresh;
-use futures::future::join_all;
 use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
+use entropy_shared::OcwMessageProactiveRefresh;
+use entropy_testing_utils::{
+    constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
+    substrate_context::{test_context_stationary, test_node_process_testing_state},
+};
+use futures::future::join_all;
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::crypto::Ss58Codec;
 use sp_keyring::AccountKeyring;
-use testing_utils::{
-    constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
-    substrate_context::{test_context_stationary, test_node_process_testing_state},
-};
 
 #[tokio::test]
 #[serial]

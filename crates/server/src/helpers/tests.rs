@@ -9,6 +9,7 @@ use entropy_kvdb::{
 };
 use entropy_protocol::{KeyParams, PartyId};
 use entropy_shared::KeyVisibility;
+use entropy_testing_utils::substrate_context::testing_context;
 use rand_core::OsRng;
 use serial_test::serial;
 use subxt::{
@@ -19,7 +20,6 @@ use subxt::{
     OnlineClient,
 };
 use synedrion::KeyShare;
-use testing_utils::substrate_context::testing_context;
 use tokio::sync::OnceCell;
 
 use crate::{
@@ -126,9 +126,9 @@ pub async fn spawn_testing_validators(
         let number_of_shares = if extra_private_keys { 3 } else { 2 };
         let shares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, number_of_shares, None);
         let validator_1_threshold_keyshare: Vec<u8> =
-            kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
+            entropy_kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
         let validator_2_threshold_keyshare: Vec<u8> =
-            kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
+            entropy_kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
         // add key share to kvdbs
         let alice_reservation =
             alice_kv.kv().reserve_key(sig_req_keyring.clone().unwrap()).await.unwrap();

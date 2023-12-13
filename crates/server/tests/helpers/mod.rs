@@ -1,6 +1,6 @@
 //! Helper functions for integration tests
 use entropy_protocol::KeyParams;
-use server::launch::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC};
+use entropy_tss::launch::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC};
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     KeyShare,

@@ -8,15 +8,15 @@ use std::{
 
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use sp_core::{sr25519, Pair};
-use subxt::utils::AccountId32 as SubxtAccountId32;
-use testing_utils::{
+use entropy_testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
         derive_static_secret, get_accounts, get_api, get_rpc, register, sign, update_program,
         KeyParams, KeyShare, KeyVisibility,
     },
 };
+use sp_core::{sr25519, Pair};
+use subxt::utils::AccountId32 as SubxtAccountId32;
 
 #[derive(Parser, Debug, Clone)]
 #[clap(

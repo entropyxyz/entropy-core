@@ -13,7 +13,7 @@ use sp_keyring::AccountKeyring;
 use subxt::utils::AccountId32 as SubxtAccountId32;
 use synedrion::k256::ecdsa::VerifyingKey;
 
-use server::{
+use entropy_tss::{
     chain_api::{get_api, get_rpc},
     common::Hasher,
 };

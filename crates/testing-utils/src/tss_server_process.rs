@@ -1,13 +1,13 @@
 use std::{net::TcpListener, time::Duration};
 
 use axum::{routing::IntoMakeService, Router};
-use entropy_protocol::{KeyParams, PartyId};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
+use entropy_protocol::{KeyParams, PartyId};
 use rand_core::OsRng;
 use subxt::utils::AccountId32 as SubxtAccountId32;
 use synedrion::KeyShare;
 
-use server::{
+use entropy_tss::{
     app,
     get_signer,
     launch::{setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName},
@@ -68,9 +68,9 @@ pub async fn spawn_testing_validators(
         let number_of_shares = if extra_private_keys { 3 } else { 2 };
         let shares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, number_of_shares, None);
         let validator_1_threshold_keyshare: Vec<u8> =
-            kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
+            entropy_kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
         let validator_2_threshold_keyshare: Vec<u8> =
-            kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
+            entropy_kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
         // add key share to kvdbs
         let alice_reservation =
             alice_kv.kv().reserve_key(sig_req_keyring.clone().unwrap()).await.unwrap();

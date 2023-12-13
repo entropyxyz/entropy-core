@@ -1,18 +1,18 @@
 use std::{net::TcpListener, time::SystemTime};
 
 use bip39::{Language, Mnemonic};
-use entropy_shared::MIN_BALANCE;
 use entropy_kvdb::clean_tests;
-use serial_test::serial;
-use sp_core::{sr25519, Pair};
-use sp_keyring::AccountKeyring;
-use subxt::{ext::sp_core::Bytes, tx::PairSigner};
-use testing_utils::{
+use entropy_shared::MIN_BALANCE;
+use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, testing_context,
     },
 };
+use serial_test::serial;
+use sp_core::{sr25519, Pair};
+use sp_keyring::AccountKeyring;
+use subxt::{ext::sp_core::Bytes, tx::PairSigner};
 use x25519_dalek::PublicKey;
 
 use super::api::{

@@ -8,22 +8,32 @@ use std::{
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic, MnemonicType};
+use entropy_kvdb::{
+    clean_tests,
+    encrypted_sled::PasswordMethod,
+    kv_manager::{helpers::deserialize as keyshare_deserialize, value::KvManager},
+};
 use entropy_protocol::{
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, PartyId, ValidatorInfo,
 };
 use entropy_shared::{KeyVisibility, OcwMessageDkg};
+use entropy_testing_utils::{
+    constants::{
+        ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
+        PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS,
+        X25519_PUBLIC_KEYS,
+    },
+    substrate_context::{
+        test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
+    },
+};
 use futures::{
     future::{self, join_all},
     join, Future, SinkExt, StreamExt,
 };
 use hex_literal::hex;
-use entropy_kvdb::{
-    clean_tests,
-    encrypted_sled::PasswordMethod,
-    kv_manager::{helpers::deserialize as keyshare_deserialize, value::KvManager},
-};
 use more_asserts as ma;
 use parity_scale_codec::Encode;
 use serde::{Deserialize, Serialize};
@@ -43,16 +53,6 @@ use subxt::{
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     KeyShare,
-};
-use testing_utils::{
-    constants::{
-        ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
-        PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS,
-        X25519_PUBLIC_KEYS,
-    },
-    substrate_context::{
-        test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
-    },
 };
 use tokio::{
     io::{AsyncRead, AsyncReadExt},

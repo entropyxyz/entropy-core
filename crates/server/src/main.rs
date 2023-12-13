@@ -2,7 +2,7 @@ use std::{net::SocketAddr, str::FromStr};
 
 use clap::Parser;
 
-use server::{
+use entropy_tss::{
     app,
     launch::{
         load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration, StartupArgs,

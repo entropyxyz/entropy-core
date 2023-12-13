@@ -2,11 +2,20 @@
 //! client functions
 mod helpers;
 use axum::http::StatusCode;
+use entropy_kvdb::clean_tests;
 use entropy_protocol::{KeyParams, ValidatorInfo};
 use entropy_shared::{KeyVisibility, OcwMessageDkg};
+use entropy_testing_utils::{
+    constants::{
+        AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
+        TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+    },
+    substrate_context::test_context_stationary,
+    test_client::{put_register_request_on_chain, update_program},
+    tss_server_process::spawn_testing_validators,
+};
 use futures::future::join_all;
 use futures::future::{self};
-use entropy_kvdb::clean_tests;
 use parity_scale_codec::Encode;
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
@@ -22,18 +31,9 @@ use std::{
 };
 use subxt::{backend::legacy::LegacyRpcMethods, Config, OnlineClient};
 use synedrion::KeyShare;
-use testing_utils::{
-    constants::{
-        AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
-        TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
-    },
-    substrate_context::test_context_stationary,
-    test_client::{put_register_request_on_chain, update_program},
-    tss_server_process::spawn_testing_validators,
-};
 use x25519_dalek::PublicKey;
 
-use server::{
+use entropy_tss::{
     chain_api::{
         entropy::{self, runtime_types::pallet_relayer::pallet::RegisteredInfo},
         get_api, get_rpc, EntropyConfig,
