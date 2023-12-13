@@ -1,5 +1,5 @@
 use synedrion::{
-    sessions, InteractiveSigningResult, KeyRefreshResult, KeygenAndAuxResult, ProtocolResult,
+    sessions, InteractiveSigningResult, KeyGenResult, KeyRefreshResult, ProtocolResult,
 };
 use thiserror::Error;
 
@@ -46,8 +46,8 @@ impl From<GenericProtocolError<InteractiveSigningResult<KeyParams>>> for Protoco
     }
 }
 
-impl From<GenericProtocolError<KeygenAndAuxResult<KeyParams>>> for ProtocolExecutionErr {
-    fn from(err: GenericProtocolError<KeygenAndAuxResult<KeyParams>>) -> Self {
+impl From<GenericProtocolError<KeyGenResult<KeyParams>>> for ProtocolExecutionErr {
+    fn from(err: GenericProtocolError<KeyGenResult<KeyParams>>) -> Self {
         match err {
             GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyGenProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
@@ -76,7 +76,7 @@ pub enum ProtocolExecutionErr {
     #[error("Synedrion signing session error {0}")]
     SigningProtocolError(Box<sessions::Error<InteractiveSigningResult<KeyParams>, PartyId>>),
     #[error("Synedrion keygen session error {0}")]
-    KeyGenProtocolError(Box<sessions::Error<KeygenAndAuxResult<KeyParams>, PartyId>>),
+    KeyGenProtocolError(Box<sessions::Error<KeyGenResult<KeyParams>, PartyId>>),
     #[error("Synedrion key refresh session error {0}")]
     KeyRefreshProtocolError(Box<sessions::Error<KeyRefreshResult<KeyParams>, PartyId>>),
     #[error("Broadcast error: {0}")]
