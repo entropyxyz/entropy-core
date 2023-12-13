@@ -8,7 +8,7 @@ use frame_support::{
     BoundedVec,
 };
 use frame_system::{EventRecord, RawOrigin};
-use pallet_programs::{Bytecode, ProgramInfo};
+use pallet_programs::{ProgramInfo, Programs};
 use pallet_staking_extension::{
     benchmarking::create_validators, IsValidatorSynced, ServerInfo, SigningGroups,
     ThresholdServers, ThresholdToStash,
