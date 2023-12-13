@@ -1,5 +1,5 @@
 [package]
-name      ="testing-utils"
+name      ="entropy-testing-utils"
 version   ='0.0.9'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
@@ -17,11 +17,11 @@ which             ="4.0.2"
 parity-scale-codec="3.0.0"
 lazy_static       ="1.4.0"
 hex-literal       ="0.3.4"
-entropy-shared    ={ path="../shared" }
 tokio             ={ version="1.16", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
 axum              ={ version="0.6.18" }
-kvdb              ={ path="../kvdb", default-features=false }
-server            ={ path="../server" }
+entropy-shared    ={ path="../shared" }
+entropy-kvdb      ={ path="../kvdb", default-features=false }
+entropy-tss       ={ path="../server" }
 
 # For test client
 anyhow                 ="1.0.75"

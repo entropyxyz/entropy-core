@@ -1,11 +1,12 @@
 [package]
-name      ="server"
-version   ="0.1.0"
-authors   =['Entropy Cryptography <engineering@entropy.xyz>']
-homepage  ='https://entropy.xyz/'
-license   ='AGPL-3.0-or-later'
-repository='https://github.com/entropyxyz/entropy-core'
-edition   ='2021'
+name       ="entropy-tss"
+version    ="0.1.0"
+authors    =['Entropy Cryptography <engineering@entropy.xyz>']
+homepage   ='https://entropy.xyz/'
+description='Entropy threshold signing server'
+license    ='AGPL-3.0-or-later'
+repository ='https://github.com/entropyxyz/entropy-core'
+edition    ='2021'
 
 [dependencies]
 # Common
@@ -38,7 +39,7 @@ sp-core           ={ version="21.0.0", default-features=false }
 
 # Entropy
 entropy-shared         ={ path="../shared" }
-kvdb                   ={ path="../kvdb", default-features=false }
+entropy-kvdb           ={ path="../kvdb", default-features=false }
 entropy-protocol       ={ path="../protocol", features=["server"] }
 x25519-chacha20poly1305={ git="https://github.com/entropyxyz/x25519-chacha20poly1305.git", tag="v0.2.1" }
 
@@ -68,7 +69,7 @@ async-trait      ="0.1.73"
 hostname         ="0.3"
 
 [dev-dependencies]
-testing-utils={ path="../testing-utils" }
+entropy-testing-utils={ path="../testing-utils" }
 serial_test="0.8.0"
 hex-literal="0.3.4"
 project-root="0.2.2"
