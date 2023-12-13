@@ -19,7 +19,7 @@ use parity_scale_codec::Encode;
 use entropy_shared::{
     KeyVisibility, OcwMessageProactiveRefresh, REFRESHES_PER_SESSION, SETUP_TIMEOUT_SECONDS,
 };
-use kvdb::kv_manager::{
+use entropy_kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
     KvManager,
 };

@@ -1,5 +1,5 @@
 use bip39::{Language, Mnemonic};
-use kvdb::kv_manager::KvManager;
+use entropy_kvdb::kv_manager::KvManager;
 use subxt::{
     ext::sp_core::{sr25519, Pair},
     tx::PairSigner,

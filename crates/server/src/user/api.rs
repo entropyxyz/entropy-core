@@ -11,18 +11,18 @@ use axum::{
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
 use ec_runtime::{Runtime, SignatureRequest};
+use entropy_kvdb::kv_manager::{
+    error::{InnerKvError, KvError},
+    helpers::serialize as key_serialize,
+    value::PartyInfo,
+    KvManager,
+};
 use entropy_protocol::ValidatorInfo;
 use entropy_shared::{types::KeyVisibility, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE};
 use futures::{
     channel::mpsc,
     future::{join_all, FutureExt},
     Stream,
-};
-use kvdb::kv_manager::{
-    error::{InnerKvError, KvError},
-    helpers::serialize as key_serialize,
-    value::PartyInfo,
-    KvManager,
 };
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::{Decode, DecodeAll, Encode};

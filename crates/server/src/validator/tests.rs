@@ -2,7 +2,7 @@ use std::{net::TcpListener, time::SystemTime};
 
 use bip39::{Language, Mnemonic};
 use entropy_shared::MIN_BALANCE;
-use kvdb::clean_tests;
+use entropy_kvdb::clean_tests;
 use serial_test::serial;
 use sp_core::{sr25519, Pair};
 use sp_keyring::AccountKeyring;

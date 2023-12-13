@@ -2,7 +2,7 @@ use std::{net::TcpListener, time::Duration};
 
 use axum::{routing::IntoMakeService, Router};
 use entropy_protocol::{KeyParams, PartyId};
-use kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
+use entropy_kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use rand_core::OsRng;
 use subxt::utils::AccountId32 as SubxtAccountId32;
 use synedrion::KeyShare;

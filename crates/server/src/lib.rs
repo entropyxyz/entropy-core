@@ -105,7 +105,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use kvdb::kv_manager::KvManager;
+use entropy_kvdb::kv_manager::KvManager;
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::{self, TraceLayer},

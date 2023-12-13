@@ -4,7 +4,7 @@ use std::{fs, path::PathBuf};
 
 use bip39::{Language, Mnemonic, MnemonicType};
 use clap::Parser;
-use kvdb::{
+use entropy_kvdb::{
     encrypted_sled::PasswordMethod,
     kv_manager::{error::KvError, KvManager},
 };
@@ -50,10 +50,10 @@ impl Configuration {
 }
 
 pub async fn load_kv_store(validator_name: &Option<ValidatorName>, no_password: bool) -> KvManager {
-    let mut root: PathBuf = PathBuf::from(kvdb::get_db_path(false));
+    let mut root: PathBuf = PathBuf::from(entropy_kvdb::get_db_path(false));
     if cfg!(test) {
         return KvManager::new(
-            kvdb::get_db_path(true).into(),
+            entropy_kvdb::get_db_path(true).into(),
             PasswordMethod::NoPassword.execute().unwrap(),
         )
         .unwrap();

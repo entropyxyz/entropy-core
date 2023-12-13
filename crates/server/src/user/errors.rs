@@ -35,7 +35,7 @@ pub enum UserErr {
     #[error("Input Validation error: {0}")]
     InputValidation(&'static str),
     #[error("Kv error: {0}")]
-    Kv(#[from] kvdb::kv_manager::error::KvError),
+    Kv(#[from] entropy_kvdb::kv_manager::error::KvError),
     #[error("Substrate error: {0}")]
     Substrate(#[from] subxt::error::DispatchError),
     #[error("Generic Substrate error: {0}")]

@@ -19,7 +19,7 @@ use std::{
     io::{BufWriter, Write},
 };
 
-use kvdb::kv_manager::value::{KvValue, PartyInfo};
+use entropy_kvdb::kv_manager::value::{KvValue, PartyInfo};
 use serde::{Deserialize, Serialize};
 use subxt::ext::sp_runtime::AccountId32;
 

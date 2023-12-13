@@ -9,7 +9,7 @@ use crate::{
 };
 use entropy_shared::OcwMessageProactiveRefresh;
 use futures::future::join_all;
-use kvdb::{clean_tests, kv_manager::helpers::serialize};
+use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::crypto::Ss58Codec;

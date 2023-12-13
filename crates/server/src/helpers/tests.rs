@@ -4,9 +4,11 @@
 use std::{net::TcpListener, time::Duration};
 
 use axum::{routing::IntoMakeService, Router};
+use entropy_kvdb::{
+    clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager,
+};
 use entropy_protocol::{KeyParams, PartyId};
 use entropy_shared::KeyVisibility;
-use kvdb::{clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use rand_core::OsRng;
 use serial_test::serial;
 use subxt::{

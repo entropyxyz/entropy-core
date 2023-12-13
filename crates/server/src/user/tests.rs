@@ -19,7 +19,7 @@ use futures::{
     join, Future, SinkExt, StreamExt,
 };
 use hex_literal::hex;
-use kvdb::{
+use entropy_kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
     kv_manager::{helpers::deserialize as keyshare_deserialize, value::KvManager},

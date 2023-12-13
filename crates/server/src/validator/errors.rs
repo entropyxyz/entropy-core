@@ -21,7 +21,7 @@ pub enum ValidatorErr {
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("Kv error: {0}")]
-    Kv(#[from] kvdb::kv_manager::error::KvError),
+    Kv(#[from] entropy_kvdb::kv_manager::error::KvError),
     #[error("User Error: {0}")]
     UserErr(#[from] crate::user::UserErr),
     #[error("Validation Error: {0}")]

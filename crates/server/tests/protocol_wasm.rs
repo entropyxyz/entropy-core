@@ -6,7 +6,7 @@ use entropy_protocol::{KeyParams, ValidatorInfo};
 use entropy_shared::{KeyVisibility, OcwMessageDkg};
 use futures::future::join_all;
 use futures::future::{self};
-use kvdb::clean_tests;
+use entropy_kvdb::clean_tests;
 use parity_scale_codec::Encode;
 use serde::{Deserialize, Serialize};
 use serial_test::serial;

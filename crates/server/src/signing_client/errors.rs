@@ -5,8 +5,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use entropy_kvdb::kv_manager::error::InnerKvError;
 use entropy_protocol::errors::ProtocolExecutionErr;
-use kvdb::kv_manager::error::InnerKvError;
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
@@ -18,7 +18,7 @@ pub enum ProtocolErr {
     #[error("Protocol Execution Error {0}")]
     ProtocolExecution(#[from] ProtocolExecutionErr),
     #[error("Kv error: {0}")]
-    Kv(#[from] kvdb::kv_manager::error::KvError),
+    Kv(#[from] entropy_kvdb::kv_manager::error::KvError),
     #[error("Inner Kv error: {0}")]
     InnerKv(#[from] InnerKvError),
     #[error("Codec decoding error: {0}")]
