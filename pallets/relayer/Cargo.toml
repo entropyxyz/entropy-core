@@ -61,7 +61,7 @@ version         ='24.0.0'
 
 [dependencies]
 
-entropy-shared          ={ path="../../crypto/shared", default-features=false, features=["wasm-no-std"] }
+entropy-shared          ={ path="../../crates/shared", default-features=false, features=["wasm-no-std"] }
 sp-std                  ={ package="sp-std", git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0", default-features=false }
 pallet-authorship       ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
 log                     ={ version="0.4.0", default-features=false }

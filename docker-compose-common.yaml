@@ -15,13 +15,13 @@ x-common-build-auth: &common-build-auth
 services:
   # Threshold Signature Scheme server
   tss-server:
-    image: entropyxyz/server
+    image: entropyxyz/entropy-tss
     build:
       <<: *common-build-auth
       args:
-        PACKAGE: server
+        PACKAGE: entropy-tss
       tags:
-        - entropyxyz/server
+        - entropyxyz/entropy-tss
 
   # Sometimes also called simply a "chain," or a "validator."
   chain-node:

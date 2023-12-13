@@ -63,7 +63,7 @@ sc-network-sync                   ={ version="0.10.0-dev", git='https://github.c
 sc-storage-monitor                ={ version="0.1.0", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 pallet-asset-tx-payment           ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 sc-offchain                       ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
-entropy-shared                    ={ path="../../crypto/shared", default-features=false, features=["wasm-no-std"] }
+entropy-shared                    ={ path="../../crates/shared", default-features=false, features=["wasm-no-std"] }
 
 [build-dependencies]
 clap                        ={ version="4.2.5", optional=true }
