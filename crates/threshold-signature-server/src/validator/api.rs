@@ -1,6 +1,6 @@
 use axum::{extract::State, Json};
-use entropy_shared::MIN_BALANCE;
 use entropy_kvdb::kv_manager::KvManager;
+use entropy_shared::MIN_BALANCE;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::{AccountId32, Ss58Codec};

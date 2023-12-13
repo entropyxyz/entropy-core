@@ -16,12 +16,12 @@ use entropy_protocol::{
 };
 use parity_scale_codec::Encode;
 
-use entropy_shared::{
-    KeyVisibility, OcwMessageProactiveRefresh, REFRESHES_PER_SESSION, SETUP_TIMEOUT_SECONDS,
-};
 use entropy_kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
     KvManager,
+};
+use entropy_shared::{
+    KeyVisibility, OcwMessageProactiveRefresh, REFRESHES_PER_SESSION, SETUP_TIMEOUT_SECONDS,
 };
 use parity_scale_codec::Decode;
 use sp_core::{crypto::AccountId32, Pair};
