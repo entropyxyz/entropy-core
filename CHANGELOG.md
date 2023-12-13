@@ -11,6 +11,16 @@ At the moment this project **does not** adhere to
 
 -  Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
 
+### Breaking Changes
+
+- When executing the signing protocol on the client-side, a `sig-uid` no longer needs to be given as
+  an argument ([#549](https://github.com/entropyxyz/entropy-core/pull/549))
+
+### Changed
+
+- Protocol sessions are now identified by a `SessionID` type rather than a `String`
+  ([#549](https://github.com/entropyxyz/entropy-core/pull/549))
+
 ## [0.0.9](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.8..release/v0.0.9) - 2023-11-30
 
 Some of the noteworthy changes related to this release are related to better integration in Web
