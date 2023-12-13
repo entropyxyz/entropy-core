@@ -11,7 +11,7 @@ use entropy_testing_utils::{
         TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::test_context_stationary,
-    test_client::{put_register_request_on_chain, update_program},
+    test_client::{put_register_request_on_chain, update_pointer, update_program},
     tss_server_process::spawn_testing_validators,
 };
 use futures::future::join_all;
@@ -19,17 +19,18 @@ use futures::future::{self};
 use parity_scale_codec::Encode;
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
-use sp_core::{
-    crypto::{AccountId32, Pair, Ss58Codec},
-    sr25519::Signature,
-    Bytes,
-};
+use sp_core::crypto::{AccountId32, Pair, Ss58Codec};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{
     thread,
     time::{Duration, SystemTime},
 };
-use subxt::{backend::legacy::LegacyRpcMethods, Config, OnlineClient};
+use subxt::{
+    backend::legacy::LegacyRpcMethods,
+    ext::sp_core::{sr25519::Signature, Bytes},
+    utils::{AccountId32 as SubxtAccountId32, H256},
+    Config, OnlineClient,
+};
 use synedrion::KeyShare;
 use x25519_dalek::PublicKey;
 
@@ -51,6 +52,7 @@ use entropy_tss::{
 async fn test_wasm_sign_tx_user_participates() {
     clean_tests();
     let one = AccountKeyring::Eve;
+    let dave = AccountKeyring::Dave;
 
     let signing_address = one.clone().to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, users_keyshare_option) =
@@ -58,14 +60,11 @@ async fn test_wasm_sign_tx_user_participates() {
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    update_program(
-        &entropy_api,
-        one.pair().public().0.into(),
-        &one.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-    )
-    .await
-    .unwrap();
+    let program_hash =
+        update_program(&entropy_api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+            .await
+            .unwrap();
+    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await.unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -172,12 +171,16 @@ async fn test_wasm_register_with_private_key_visibility() {
 
     let one = AccountKeyring::One;
     let program_modification_account = AccountKeyring::Charlie;
+    let dave = AccountKeyring::Dave;
 
     let (validator_ips, _validator_ids, _users_keyshare_option) =
         spawn_testing_validators(None, false).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let program_hash =
+        update_program(&api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await.unwrap();
+
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
     let one_x25519_sk = derive_static_secret(&one.pair());
@@ -188,7 +191,7 @@ async fn test_wasm_register_with_private_key_visibility() {
         one.pair(),
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
-        Vec::new(),
+        program_hash,
     )
     .await
     .unwrap();
@@ -347,7 +350,7 @@ async fn wait_for_register_confirmation(
     account_id: AccountId32,
     api: OnlineClient<EntropyConfig>,
     rpc: LegacyRpcMethods<EntropyConfig>,
-) -> RegisteredInfo {
+) -> RegisteredInfo<H256, SubxtAccountId32> {
     let account_id: <EntropyConfig as Config>::AccountId = account_id.into();
     let registered_query = entropy::storage().relayer().registered(account_id);
     for _ in 0..30 {

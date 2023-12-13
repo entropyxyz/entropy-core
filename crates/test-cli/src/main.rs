@@ -16,7 +16,9 @@ use entropy_testing_utils::{
     },
 };
 use sp_core::{sr25519, Pair};
+use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32 as SubxtAccountId32;
+use subxt::utils::{AccountId32 as SubxtAccountId32, H256};
 
 #[derive(Parser, Debug, Clone)]
 #[clap(
@@ -52,8 +54,8 @@ enum CliCommand {
         /// The access mode of the Entropy account
         #[arg(value_enum, default_value_t = Default::default())]
         key_visibility: Visibility,
-        /// The path to a .wasm file containing the initial program for the account (defaults to test program)
-        program_file: Option<PathBuf>,
+        /// The hash of the initial program for the account
+        program_hash: H256,
     },
     /// Ask the network to sign a given message
     Sign {
@@ -140,7 +142,7 @@ async fn run_command() -> anyhow::Result<String> {
             signature_request_account_name,
             program_account_name,
             key_visibility,
-            program_file,
+            program_hash,
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
@@ -161,19 +163,13 @@ async fn run_command() -> anyhow::Result<String> {
                 Visibility::Public => KeyVisibility::Public,
             };
 
-            let program = match program_file {
-                Some(file_name) => fs::read(file_name)?,
-                // This is temporary - if empty programs are allowed it can be None
-                None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-            };
-
             let (registered_info, keyshare_option) = register(
                 &api,
                 &rpc,
                 signature_request_keypair.clone(),
                 program_account,
                 key_visibility_converted,
-                program,
+                program_hash,
             )
             .await?;
 
@@ -219,7 +215,6 @@ async fn run_command() -> anyhow::Result<String> {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
             println!("Signature request account: {:?}", signature_request_keypair.public());
-            let sig_req_account = SubxtAccountId32(signature_request_keypair.public().0);
 
             let program = match program_file {
                 Some(file_name) => fs::read(file_name)?,
@@ -228,7 +223,7 @@ async fn run_command() -> anyhow::Result<String> {
 
             let program_keypair: sr25519::Pair =
                 SeedString::new(program_account_name).try_into()?;
-            update_program(&api, sig_req_account, &program_keypair, program).await?;
+            update_program(&api, &program_keypair, program).await?;
             Ok("Program updated".to_string())
         },
         CliCommand::Status => {
