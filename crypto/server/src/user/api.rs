@@ -50,7 +50,7 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{do_signing, Hasher},
         substrate::{
-            get_key_visibility, get_program, get_subgroup, return_all_addresses_of_subgroup,
+            get_program, get_registered_details, get_subgroup, return_all_addresses_of_subgroup,
         },
         user::{check_in_registration_group, do_dkg, send_key},
         validator::get_signer,
@@ -107,16 +107,16 @@ pub async fn sign_tx(
 
     let signing_address_arr: [u8; 32] = *signing_address_converted.as_ref();
     let signing_address_subxt = SubxtAccountId32(signing_address_arr);
-    // TODO go back over to simplify accountID type
-    let second_signing_address_conversion = SubxtAccountId32::from_str(&signing_address)
-        .map_err(|_| UserErr::StringError("Account Conversion"))?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-
-    let key_visibility = get_key_visibility(&api, &rpc, &second_signing_address_conversion).await?;
-
-    if key_visibility != KeyVisibility::Public && !signed_msg.verify() {
+    let user_details = get_registered_details(
+        &api,
+        &rpc,
+        &SubxtAccountId32::from(signing_address_converted.clone()),
+    )
+    .await?;
+    if user_details.key_visibility.0 != KeyVisibility::Public && !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
     let decrypted_message =
@@ -146,7 +146,7 @@ pub async fn sign_tx(
         recover_key(&api, &rpc, &app_state.kv_store, &signer, signing_address).await?
     }
 
-    let program = get_program(&api, &rpc, &second_signing_address_conversion).await?;
+    let program = get_program(&api, &rpc, &user_details.program_pointer).await?;
 
     let mut runtime = Runtime::new();
     let signature_request = SignatureRequest { message, auxilary_data };
@@ -163,7 +163,7 @@ pub async fn sign_tx(
             &app_state,
             signing_session_id,
             signing_address_subxt,
-            key_visibility,
+            user_details.key_visibility.0,
         )
         .await
         .map(|signature| {

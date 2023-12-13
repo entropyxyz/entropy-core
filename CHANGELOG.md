@@ -13,6 +13,7 @@ At the moment this project **does not** adhere to
 
 ### Breaking Changes
 
+- In [#536](https://github.com/entropyxyz/entropy-core/pull/536/), the registered struct no longer holds a program but rather a hash of a program that is set in the set_program function
 - When executing the signing protocol on the client-side, a `sig-uid` no longer needs to be given as
   an argument ([#549](https://github.com/entropyxyz/entropy-core/pull/549))
 
@@ -20,6 +21,10 @@ At the moment this project **does not** adhere to
 
 - Protocol sessions are now identified by a `SessionID` type rather than a `String`
   ([#549](https://github.com/entropyxyz/entropy-core/pull/549))
+
+### Added
+
+- Pointer for Programs ([#536](https://github.com/entropyxyz/entropy-core/pull/536/))
 
 ## [0.0.9](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.8..release/v0.0.9) - 2023-11-30
 

@@ -39,11 +39,11 @@ pub mod pallet {
 
     use frame_support::{
         dispatch::Vec,
-        pallet_prelude::{ResultQuery, *},
+        pallet_prelude::*,
         traits::{Currency, ReservableCurrency},
     };
     use frame_system::{pallet_prelude::*, Config as SystemConfig};
-    use sp_runtime::{sp_std::str, Saturating};
+    use sp_runtime::{sp_std::str, traits::Hash, Saturating};
     use sp_std::vec;
 
     pub use crate::weights::WeightInfo;
@@ -59,6 +59,9 @@ pub mod pallet {
         /// The maximum length of a program that may be stored on-chain.
         type MaxBytecodeLength: Get<u32>;
 
+        /// The maximum amount of owned programs.
+        type MaxOwnedPrograms: Get<u32>;
+
         /// The amount to charge, per byte, for storing a program on-chain.
         type ProgramDepositPerByte: Get<BalanceOf<Self>>;
 
@@ -73,39 +76,50 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    /// A mapping for checking whether a program-modification account is allowed to update a
-    /// program on behalf of a signature-request account.
-    ///
-    /// If the program-modification account and signature-request account pair is found in storage
-    /// then program modification is allowed.
-    #[pallet::storage]
-    #[pallet::getter(fn sig_req_accounts)]
-    pub type AllowedToModifyProgram<T: Config> = StorageDoubleMap<
-        _,
-        Blake2_128Concat,
-        T::AccountId, // Program-modification account
-        Blake2_128Concat,
-        T::AccountId, // Signature-request account
-        (),
-        ResultQuery<Error<T>::NotAuthorized>,
-    >;
+    /// Information on the program, they bytecode and the account allowed to modify it
+    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    pub struct ProgramInfo<AccountId> {
+        /// The bytecode of the program.
+        pub bytecode: Vec<u8>,
+        /// Owners of the program
+        pub program_modification_account: AccountId,
+    }
 
     /// Stores the program bytecode for a given signature-request account.
     #[pallet::storage]
-    #[pallet::getter(fn bytecode)]
-    pub type Bytecode<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u8>, OptionQuery>;
+    #[pallet::getter(fn programs)]
+    pub type Programs<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::Hash, ProgramInfo<T::AccountId>, OptionQuery>;
+
+    /// Maps an account to all the programs it owns
+    #[pallet::storage]
+    #[pallet::getter(fn owned_programs)]
+    pub type OwnedPrograms<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        BoundedVec<T::Hash, T::MaxOwnedPrograms>,
+        ValueQuery,
+    >;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// The bytecode of a program was updated.
-        ProgramUpdated {
+        /// The bytecode of a program was created.
+        ProgramCreated {
             /// The program modification account which updated the program.
             program_modification_account: T::AccountId,
 
-            /// The new program bytecode.
-            new_program: Vec<u8>,
+            /// The new program hash.
+            program_hash: T::Hash,
+        },
+        /// The bytecode of a program was removed.
+        ProgramRemoved {
+            /// The program modification account which removed the program.
+            program_modification_account: T::AccountId,
+
+            /// The hash of the removed program.
+            old_program_hash: T::Hash,
         },
     }
 
@@ -113,75 +127,101 @@ pub mod pallet {
     pub enum Error<T> {
         /// Program modification account doesn't have permission to modify this program.
         NotAuthorized,
-
         /// The program length is too long.
         ProgramLengthExceeded,
+        /// No program defined at hash.
+        NoProgramDefined,
+        /// Program already set at hash.
+        ProgramAlreadySet,
+        /// User owns too many programs.
+        TooManyProgramsOwned,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Sets or clears the program for a given signature-request account.
+        /// Sets the program and uses hash as key.
         ///
-        /// Note that the call must be sent from a program-modification account.
+        /// Note that the caller becomes the program-modification account.
         #[pallet::call_index(0)]
-        #[pallet::weight({<T as Config>::WeightInfo::update_program()})]
-        pub fn update_program(
-            origin: OriginFor<T>,
-            sig_req_account: T::AccountId,
-            new_program: Vec<u8>,
-        ) -> DispatchResult {
+        #[pallet::weight({<T as Config>::WeightInfo::set_program()})]
+        pub fn set_program(origin: OriginFor<T>, new_program: Vec<u8>) -> DispatchResult {
             let program_modification_account = ensure_signed(origin)?;
+            let program_hash = T::Hashing::hash(&new_program);
             let new_program_length = new_program.len();
             ensure!(
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
                 Error::<T>::ProgramLengthExceeded
             );
+            ensure!(!Programs::<T>::contains_key(program_hash), Error::<T>::ProgramAlreadySet);
 
-            ensure!(
-                AllowedToModifyProgram::<T>::contains_key(
-                    &program_modification_account,
-                    &sig_req_account
-                ),
-                Error::<T>::NotAuthorized
+            Self::reserve_program_deposit(&program_modification_account, new_program_length)?;
+
+            Programs::<T>::insert(
+                program_hash,
+                &ProgramInfo {
+                    bytecode: new_program.clone(),
+                    program_modification_account: program_modification_account.clone(),
+                },
             );
-            let old_program_length = Self::bytecode(&sig_req_account).unwrap_or_default().len();
-
-            Self::update_program_storage_deposit(
+            OwnedPrograms::<T>::try_mutate(
                 &program_modification_account,
-                old_program_length,
-                new_program_length,
+                |owned_programs| -> Result<(), DispatchError> {
+                    owned_programs
+                        .try_push(program_hash)
+                        .map_err(|_| Error::<T>::TooManyProgramsOwned)?;
+                    Ok(())
+                },
             )?;
-
-            Bytecode::<T>::insert(&sig_req_account, &new_program);
-            Self::deposit_event(Event::ProgramUpdated {
+            Self::deposit_event(Event::ProgramCreated {
                 program_modification_account,
-                new_program,
+                program_hash,
             });
             Ok(())
+        }
+
+        /// Removes a program at a specific hash
+        ///
+        /// Caller must be the program modification account for said program.
+        #[pallet::call_index(1)]
+        #[pallet::weight({<T as Config>::WeightInfo::remove_program( <T as Config>::MaxOwnedPrograms::get())})]
+        pub fn remove_program(
+            origin: OriginFor<T>,
+            program_hash: T::Hash,
+        ) -> DispatchResultWithPostInfo {
+            let program_modification_account = ensure_signed(origin)?;
+            let old_program_info =
+                Self::programs(program_hash).ok_or(Error::<T>::NoProgramDefined)?;
+            ensure!(
+                old_program_info.program_modification_account == program_modification_account,
+                Error::<T>::NotAuthorized
+            );
+            Self::unreserve_program_deposit(
+                &old_program_info.program_modification_account,
+                old_program_info.bytecode.len(),
+            );
+            let mut owned_programs_length = 0;
+            OwnedPrograms::<T>::try_mutate(
+                &program_modification_account,
+                |owned_programs| -> Result<(), DispatchError> {
+                    owned_programs_length = owned_programs.len();
+                    let pos = owned_programs
+                        .iter()
+                        .position(|&h| h == program_hash)
+                        .ok_or(Error::<T>::NotAuthorized)?;
+                    owned_programs.remove(pos);
+                    Ok(())
+                },
+            )?;
+            Programs::<T>::remove(program_hash);
+            Self::deposit_event(Event::ProgramRemoved {
+                program_modification_account,
+                old_program_hash: program_hash,
+            });
+            Ok(Some(<T as Config>::WeightInfo::remove_program(owned_programs_length as u32)).into())
         }
     }
 
     impl<T: Config> Pallet<T> {
-        /// Write a program for a given signature-request account directly into storage.
-        ///
-        /// # Note
-        ///
-        /// This does not perform any checks against the submitter of the request and whether or
-        /// not they are allowed to update a program for the given account.
-        pub fn set_program_unchecked(
-            sig_req_account: &T::AccountId,
-            program: Vec<u8>,
-        ) -> Result<(), Error<T>> {
-            ensure!(
-                program.len() as u32 <= T::MaxBytecodeLength::get(),
-                Error::<T>::ProgramLengthExceeded
-            );
-
-            Bytecode::<T>::insert(sig_req_account, program);
-
-            Ok(())
-        }
-
         /// Takes some balance from an account as a storage deposit based off the length of the
         /// program they wish to store on-chain.
         ///
