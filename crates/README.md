@@ -10,10 +10,10 @@ The major actors in this repo are:
 
 The utility crates in this repo are:
 
-- [`centralized-keygen`](https://github.com/entropyxyz/entropy-core/tree/master/crypto/centralized-keygen) - A convenience wrapper around methods from the threshold signing protocol
-- [`kvdb`](https://github.com/entropyxyz/entropy-core/tree/master/crypto/kvdb) - An encrypted key-value datastore
-- [`entropy-shared`](https://github.com/entropyxyz/entropy-core/tree/master/crypto/shared) - Common no-std types, which Substrate requires
-- [`testing-utils`](https://github.com/entropyxyz/entropy-core/tree/master/crypto/testing-utils) - Testing utility methods shared across the workspace
+- [`centralized-keygen`](https://github.com/entropyxyz/entropy-core/tree/master/crates/centralized-keygen) - A convenience wrapper around methods from the threshold signing protocol
+- [`kvdb`](https://github.com/entropyxyz/entropy-core/tree/master/crates/kvdb) - An encrypted key-value datastore
+- [`entropy-shared`](https://github.com/entropyxyz/entropy-core/tree/master/crates/shared) - Common no-std types, which Substrate requires
+- [`testing-utils`](https://github.com/entropyxyz/entropy-core/tree/master/crates/testing-utils) - Testing utility methods shared across the workspace
 
 Constraints have now moved to [entropyxyz/constraints](https://github.com/entropyxyz/constraints).
 

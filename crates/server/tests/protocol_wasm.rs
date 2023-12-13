@@ -318,7 +318,7 @@ async fn spawn_user_participates_in_dkg_protocol(
 
 async fn spawn_node_process(json_params: String, command_for_script: String) -> String {
     let test_script_path = format!(
-        "{}/crypto/protocol/nodejs-test/index.js",
+        "{}/crates/protocol/nodejs-test/index.js",
         project_root::get_project_root().unwrap().to_string_lossy()
     );
     let output = tokio::process::Command::new("node")
