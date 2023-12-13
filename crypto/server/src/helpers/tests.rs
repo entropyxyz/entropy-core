@@ -14,7 +14,7 @@ use subxt::{
     ext::sp_core::{sr25519, Pair},
     tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static},
-    OnlineClient,
+    Config, OnlineClient,
 };
 use synedrion::KeyShare;
 use testing_utils::substrate_context::testing_context;
@@ -164,19 +164,16 @@ pub async fn spawn_testing_validators(
 
 pub async fn update_programs(
     entropy_api: &OnlineClient<EntropyConfig>,
-    sig_req_keyring: &sr25519::Pair,
     program_modification_account: &sr25519::Pair,
     initial_program: Vec<u8>,
-) {
+) -> <EntropyConfig as Config>::Hash {
     // update/set their programs
-    let update_program_tx = entropy::tx()
-        .programs()
-        .update_program(SubxtAccountId32::from(sig_req_keyring.public()), initial_program);
+    let update_program_tx = entropy::tx().programs().set_program(initial_program);
 
     let program_modification_account =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_account.clone());
 
-    entropy_api
+    let in_block = entropy_api
         .tx()
         .sign_and_submit_then_watch_default(&update_program_tx, &program_modification_account)
         .await
@@ -187,6 +184,9 @@ pub async fn update_programs(
         .wait_for_success()
         .await
         .unwrap();
+
+    let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>().unwrap();
+    result_event.unwrap().program_hash
 }
 
 /// Verify that a Registering account has all confirmation, and that it is registered.

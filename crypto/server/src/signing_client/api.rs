@@ -36,7 +36,7 @@ use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        substrate::{get_key_visibility, get_subgroup, return_all_addresses_of_subgroup},
+        substrate::{get_registered_details, get_subgroup, return_all_addresses_of_subgroup},
         user::{check_in_registration_group, send_key},
         validator::get_signer,
     },
@@ -87,7 +87,11 @@ pub async fn proactive_refresh(
     for key in proactive_refresh_keys {
         let sig_request_address = AccountId32::from_str(&key).map_err(ProtocolErr::StringError)?;
         let key_visibility =
-            get_key_visibility(&api, &rpc, &sig_request_address.clone().into()).await.unwrap();
+            get_registered_details(&api, &rpc, &sig_request_address.clone().into())
+                .await
+                .map_err(|e| ProtocolErr::UserError(e.to_string()))?
+                .key_visibility
+                .0;
         if key_visibility != KeyVisibility::Public && key_visibility != KeyVisibility::Permissioned
         {
             return Ok(StatusCode::ACCEPTED);

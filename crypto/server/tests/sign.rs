@@ -2,7 +2,6 @@ use kvdb::clean_tests;
 use serial_test::serial;
 use sp_core::crypto::Ss58Codec;
 use sp_keyring::AccountKeyring;
-use subxt::utils::AccountId32 as SubxtAccountId32;
 use synedrion::k256::ecdsa::VerifyingKey;
 use testing_utils::{
     constants::{
@@ -23,6 +22,7 @@ use server::{
 async fn integration_test_sign() {
     clean_tests();
     let pre_registered_user = AccountKeyring::Dave;
+    let eve = AccountKeyring::Eve;
 
     let signing_address = pre_registered_user.clone().to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
@@ -31,11 +31,16 @@ async fn integration_test_sign() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    test_client::update_program(
+    let program_hash =
+        test_client::update_program(&api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+            .await
+            .unwrap();
+
+    test_client::update_pointer(
         &api,
-        SubxtAccountId32(pre_registered_user.into()),
         &pre_registered_user.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        &pre_registered_user.pair(),
+        program_hash,
     )
     .await
     .unwrap();
@@ -67,6 +72,7 @@ async fn integration_test_sign() {
 async fn integration_test_sign_private() {
     clean_tests();
     let pre_registered_user = AccountKeyring::Eve;
+    let dave = AccountKeyring::Dave;
 
     let signing_address = pre_registered_user.clone().to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
@@ -75,11 +81,16 @@ async fn integration_test_sign_private() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    test_client::update_program(
+    let program_hash =
+        test_client::update_program(&api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+            .await
+            .unwrap();
+
+    test_client::update_pointer(
         &api,
-        SubxtAccountId32(pre_registered_user.into()),
         &pre_registered_user.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        &pre_registered_user.pair(),
+        program_hash,
     )
     .await
     .unwrap();

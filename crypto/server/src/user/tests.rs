@@ -37,7 +37,7 @@ use subxt::{
         sp_runtime::AccountId32,
     },
     tx::PairSigner,
-    utils::{AccountId32 as subxtAccountId32, Static},
+    utils::{AccountId32 as subxtAccountId32, Static, H256},
     Config, OnlineClient,
 };
 use synedrion::{
@@ -53,6 +53,7 @@ use testing_utils::{
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
     },
+    test_client::update_pointer,
 };
 use tokio::{
     io::{AsyncRead, AsyncReadExt},
@@ -71,7 +72,7 @@ use crate::{
             DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::{create_unique_tx_id, Hasher},
-        substrate::{get_subgroup, make_register, return_all_addresses_of_subgroup},
+        substrate::{get_subgroup, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, initialize_test_logger, run_to_block,
             setup_client, spawn_testing_validators, update_programs,
@@ -113,8 +114,8 @@ async fn test_sign_tx_no_chain() {
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    update_programs(&entropy_api, &one.pair(), &one.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
-        .await;
+    let program_hash =
+        update_programs(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
 
     let validators_info = vec![
         ValidatorInfo {
@@ -175,6 +176,16 @@ async fn test_sign_tx_no_chain() {
     ];
 
     generic_msg.timestamp = SystemTime::now();
+    // test points to no program
+    let test_no_program =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    for res in test_no_program {
+        assert_eq!(res.unwrap().text().await.unwrap(), "No program set");
+    }
+
+    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await.unwrap();
+    generic_msg.timestamp = SystemTime::now();
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
@@ -189,6 +200,17 @@ async fn test_sign_tx_no_chain() {
 
     generic_msg.timestamp = SystemTime::now();
     // test failing cases
+    let test_program_pulled =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
+
+    for res in test_program_pulled {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "Not Registering error: Register Onchain first"
+        );
+    }
+
+    generic_msg.timestamp = SystemTime::now();
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
 
@@ -421,6 +443,8 @@ async fn test_store_share() {
 
     let alice = AccountKeyring::Alice;
     let alice_program = AccountKeyring::Charlie;
+    let program_manager = AccountKeyring::Dave;
+
     let signing_address = alice.to_account_id().to_ss58check();
 
     let cxt = test_context_stationary().await;
@@ -442,6 +466,8 @@ async fn test_store_share() {
         .unwrap();
 
     let original_key_shard = response_key.text().await.unwrap();
+    let program_hash =
+        update_programs(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
 
     let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let validators_info = vec![
@@ -464,6 +490,7 @@ async fn test_store_share() {
         &alice,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
+        program_hash,
     )
     .await;
 
@@ -532,6 +559,7 @@ async fn test_store_share() {
         &alice_program,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
+        program_hash,
     )
     .await;
     onchain_user_request.block_number = block_number;
@@ -588,6 +616,7 @@ async fn test_send_and_receive_keys() {
     clean_tests();
 
     let alice = AccountKeyring::Alice;
+    let program_manager = AccountKeyring::Dave;
 
     let cxt = test_context_stationary().await;
     setup_client().await;
@@ -652,12 +681,14 @@ async fn test_send_and_receive_keys() {
 
     assert_eq!(response_already_in_storage.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(response_already_in_storage.text().await.unwrap(), "User already registered");
-
+    let program_hash =
+        update_programs(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
     put_register_request_on_chain(
         &api,
         &alice.clone(),
         alice.to_account_id().into(),
         KeyVisibility::Public,
+        program_hash,
     )
     .await;
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
@@ -714,15 +745,15 @@ pub async fn put_register_request_on_chain(
     sig_req_keyring: &Sr25519Keyring,
     program_modification_account: subxtAccountId32,
     key_visibility: KeyVisibility,
+    program_hash: H256,
 ) {
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
-    let empty_program = vec![];
     let registering_tx = entropy::tx().relayer().register(
         program_modification_account,
         Static(key_visibility),
-        empty_program,
+        program_hash,
     );
 
     api.tx()
@@ -752,8 +783,9 @@ async fn test_sign_tx_user_participates() {
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    update_programs(&entropy_api, &one.pair(), &one.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
-        .await;
+    let program_hash =
+        update_programs(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
+    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await.unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -1042,12 +1074,15 @@ async fn test_register_with_private_key_visibility() {
 
     let one = AccountKeyring::One;
     let program_modification_account = AccountKeyring::Charlie;
+    let program_manager = AccountKeyring::Dave;
 
     let (validator_ips, _validator_ids, _users_keyshare_option) =
         spawn_testing_validators(None, false).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let program_hash =
+        update_programs(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
     let one_x25519_sk = derive_static_secret(&one.pair());
@@ -1058,6 +1093,7 @@ async fn test_register_with_private_key_visibility() {
         &one,
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
+        program_hash,
     )
     .await;
     run_to_block(&rpc, block_number + 1).await;
