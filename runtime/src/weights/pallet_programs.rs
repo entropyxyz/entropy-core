@@ -17,9 +17,9 @@
 // --wasm-execution=compiled
 // --pallet=pallet_programs
 // --extrinsic=*
-// --steps=5
-// --repeat=2
-// --header=./file_header.txt
+// --steps=50
+// --repeat=20
+// --header=.maintain/ignore_clippy_header.txt
 // --template
 // .maintain/frame-weight-template.hbs
 // --output=./runtime/src/weights/
