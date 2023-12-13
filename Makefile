@@ -24,7 +24,7 @@ mkdir ::
 		mkdir -p /var/run/entropy
 
 link ::
-		cp target/release/entropy target/release/server /var/run/entropy/
+		cp target/release/entropy target/release/entropy-tss /var/run/entropy/
 		cp service/* /etc/systemd/system/
 		chown entropy:entropy -R /var/run/entropy
 
