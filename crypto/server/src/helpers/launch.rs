@@ -69,7 +69,11 @@ pub async fn load_kv_store(
     };
 
     let password = if let Some(password_path) = password_path {
-        hex::encode(fs::read(password_path).expect("error reading password file")).into()
+        unsafe {
+            str::from_utf8_unchecked(&fs::read(password_path).expect("error reading password file"))
+                .to_string()
+                .into()
+        }
     } else {
         PasswordMethod::Prompt.execute().unwrap()
     };
