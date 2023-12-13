@@ -36,13 +36,14 @@ async fn integration_test_sign() {
             .await
             .unwrap();
 
-    let _ = test_client::update_pointer(
+    test_client::update_pointer(
         &api,
         &pre_registered_user.pair(),
         &pre_registered_user.pair(),
         program_hash,
     )
-    .await;
+    .await
+    .unwrap();
 
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
@@ -85,13 +86,14 @@ async fn integration_test_sign_private() {
             .await
             .unwrap();
 
-    let _ = test_client::update_pointer(
+    test_client::update_pointer(
         &api,
         &pre_registered_user.pair(),
         &pre_registered_user.pair(),
         program_hash,
     )
-    .await;
+    .await
+    .unwrap();
 
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 

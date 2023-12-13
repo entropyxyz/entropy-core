@@ -64,7 +64,7 @@ async fn test_wasm_sign_tx_user_participates() {
         update_program(&entropy_api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
             .await
             .unwrap();
-    let _ = update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await;
+    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await.unwrap();
 
     let validators_info = vec![
         ValidatorInfo {

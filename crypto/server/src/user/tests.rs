@@ -53,6 +53,7 @@ use testing_utils::{
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
     },
+    test_client::update_pointer,
 };
 use tokio::{
     io::{AsyncRead, AsyncReadExt},
@@ -74,7 +75,7 @@ use crate::{
         substrate::{get_subgroup, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, initialize_test_logger, run_to_block,
-            setup_client, spawn_testing_validators, update_pointer, update_programs,
+            setup_client, spawn_testing_validators, update_programs,
         },
         user::send_key,
     },
@@ -183,7 +184,7 @@ async fn test_sign_tx_no_chain() {
         assert_eq!(res.unwrap().text().await.unwrap(), "No program set");
     }
 
-    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await;
+    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await.unwrap();
     generic_msg.timestamp = SystemTime::now();
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -784,7 +785,7 @@ async fn test_sign_tx_user_participates() {
 
     let program_hash =
         update_programs(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
-    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await;
+    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await.unwrap();
 
     let validators_info = vec![
         ValidatorInfo {

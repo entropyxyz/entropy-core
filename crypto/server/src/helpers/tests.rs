@@ -189,30 +189,6 @@ pub async fn update_programs(
     result_event.unwrap().program_hash
 }
 
-pub async fn update_pointer(
-    entropy_api: &OnlineClient<EntropyConfig>,
-    sig_req_keyring: &sr25519::Pair,
-    pointer_modification_account: &sr25519::Pair,
-    program_hash: <EntropyConfig as Config>::Hash,
-) {
-    let update_pointer_tx = entropy::tx()
-        .relayer()
-        .change_program_pointer(sig_req_keyring.public().into(), program_hash);
-    let pointer_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(pointer_modification_account.clone());
-    entropy_api
-        .tx()
-        .sign_and_submit_then_watch_default(&update_pointer_tx, &pointer_modification_account)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
-}
-
 /// Verify that a Registering account has all confirmation, and that it is registered.
 pub async fn check_if_confirmation(
     api: &OnlineClient<EntropyConfig>,
