@@ -16,8 +16,6 @@ use entropy_testing_utils::{
     },
 };
 use sp_core::{sr25519, Pair};
-use sp_core::{sr25519, Pair};
-use subxt::utils::AccountId32 as SubxtAccountId32;
 use subxt::utils::{AccountId32 as SubxtAccountId32, H256};
 
 #[derive(Parser, Debug, Clone)]
