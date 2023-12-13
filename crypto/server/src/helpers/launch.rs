@@ -118,8 +118,8 @@ pub struct StartupArgs {
     #[clap(flatten)]
     pub logger: crate::helpers::logger::Instrumentation,
 
-    #[arg(short = 'f', long = "password_file")]
     /// The path to a password file
+    #[arg(short = 'f', long = "password_file")]
     pub password_file: Option<PathBuf>,
 }
 
