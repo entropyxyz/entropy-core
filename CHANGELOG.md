@@ -9,7 +9,14 @@ At the moment this project **does not** adhere to
 
 ## [Unreleased]
 
--  Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
+### Breaking Changes
+- In [#XXX](TODO) several crates were renamed in order to ensure consistent naming across the repo.
+  The most impactful of these is that the `server` binary is now the `entropy-tss` binary. From this
+  it follows that the Docker images previously published under `entropyxyz/server` are now being
+  published under `entropyxyz/entropy-tss`.
+
+### Added
+- Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
 
 ## [0.0.9](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.8..release/v0.0.9) - 2023-11-30
 
