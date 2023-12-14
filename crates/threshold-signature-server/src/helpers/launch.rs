@@ -126,22 +126,23 @@ pub async fn setup_mnemonic(
     // Check if a mnemonic exists in the kvdb.
     let exists_result = kv.kv().exists(FORBIDDEN_KEYS[0]).await.expect("issue querying DB");
     if !exists_result {
-        // If using a test configuration then set to the default mnemonic.
-        let mnemonic = if cfg!(test) {
-            Mnemonic::parse_in_normalized(Language::English, DEFAULT_MNEMONIC)
-        } else {
-            match validator_name {
-                Some(some_validator_name) => Mnemonic::parse_in_normalized(
-                    Language::English,
-                    match some_validator_name {
-                        ValidatorName::Alice => DEFAULT_ALICE_MNEMONIC,
-                        ValidatorName::Bob => DEFAULT_BOB_MNEMONIC,
-                        ValidatorName::Charlie => DEFAULT_CHARLIE_MNEMONIC,
-                    },
-                ),
-                // Generate a new mnemonic
-                None => new_mnemonic(),
-            }
+        let mnemonic = match validator_name {
+            Some(some_validator_name) => Mnemonic::parse_in_normalized(
+                Language::English,
+                match some_validator_name {
+                    ValidatorName::Alice => DEFAULT_ALICE_MNEMONIC,
+                    ValidatorName::Bob => DEFAULT_BOB_MNEMONIC,
+                    ValidatorName::Charlie => DEFAULT_CHARLIE_MNEMONIC,
+                },
+            ),
+            None => {
+                // If using a test configuration then set to the default mnemonic
+                if cfg!(test) {
+                    Mnemonic::parse_in_normalized(Language::English, DEFAULT_MNEMONIC)
+                } else {
+                    new_mnemonic()
+                }
+            },
         }
         .expect("Issue creating Mnemonic");
 
