@@ -20,8 +20,7 @@ At the moment this project **does not** adhere to
 
 ### Changed
 - Crate name refactor ([#561](https://github.com/entropyxyz/entropy-core/pull/561))
-- Changed BIP39 implementation used in `entropy-tss` from https://github.com/infincia/bip39-rs
-  to https://docs.rs/bip39 ([#562](https://github.com/entropyxyz/entropy-core/pull/562))
+- Change bip39 implementation ([#562](https://github.com/entropyxyz/entropy-core/pull/562))
 
 ### Breaking Changes
 
