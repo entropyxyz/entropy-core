@@ -69,9 +69,8 @@ pub async fn load_kv_store(
     };
 
     let password = if let Some(password_path) = password_path {
-        str::from_utf8(&fs::read(password_path).expect("error reading password file"))
+        String::from_utf8(fs::read(password_path).expect("error reading password file"))
             .expect("failed to convert password to string")
-            .to_string()
             .into()
     } else {
         PasswordMethod::Prompt.execute().unwrap()
