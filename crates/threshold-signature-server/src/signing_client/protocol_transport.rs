@@ -16,8 +16,10 @@ use tokio_tungstenite::connect_async;
 
 use super::ProtocolErr;
 use crate::{
-    get_signer, signing_client::SubscribeErr, validation::derive_static_secret, AppState,
-    ListenerState, SUBSCRIBE_TIMEOUT_SECONDS,
+    get_signer,
+    signing_client::{SessionId, SubscribeErr},
+    validation::derive_static_secret,
+    AppState, ListenerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
 
 /// Set up websocket connections to other members of the signing committee
@@ -28,7 +30,7 @@ use crate::{
 )]
 pub async fn open_protocol_connections(
     validators_info: &[ValidatorInfo],
-    session_uid: &str,
+    session_id: &SessionId,
     signer: &sr25519::Pair,
     state: &ListenerState,
     x25519_secret_key: &x25519_dalek::StaticSecret,
@@ -47,7 +49,7 @@ pub async fn open_protocol_connections(
 
             // Send a SubscribeMessage in the payload of the final handshake message
             let subscribe_message_vec =
-                bincode::serialize(&SubscribeMessage::new(session_uid, signer))?;
+                bincode::serialize(&SubscribeMessage::new(session_id.clone(), signer)?)?;
 
             let mut encrypted_connection = noise_handshake_initiator(
                 ws_stream,
@@ -69,7 +71,7 @@ pub async fn open_protocol_connections(
             }
 
             // Setup channels
-            let ws_channels = get_ws_channels(state, session_uid, &validator_info.tss_account)?;
+            let ws_channels = get_ws_channels(state, session_id, &validator_info.tss_account)?;
 
             let remote_party_id = PartyId::new(validator_info.tss_account.clone());
 
@@ -138,7 +140,7 @@ async fn handle_initial_incoming_ws_message(
     let msg: SubscribeMessage = bincode::deserialize(&serialized_subscribe_message)?;
     tracing::info!("Got ws connection, with message: {msg:?}");
 
-    if !msg.verify() {
+    if !msg.verify()? {
         return Err(SubscribeErr::InvalidSignature("Invalid signature."));
     }
 
@@ -182,20 +184,20 @@ async fn handle_initial_incoming_ws_message(
 /// the signing protocol
 fn get_ws_channels(
     state: &ListenerState,
-    sig_uid: &str,
+    session_id: &SessionId,
     tss_account: &AccountId32,
 ) -> Result<WsChannels, SubscribeErr> {
     let mut listeners =
         state.listeners.lock().map_err(|e| SubscribeErr::LockError(e.to_string()))?;
     let listener = listeners
-        .get_mut(sig_uid)
+        .get_mut(session_id)
         .ok_or(SubscribeErr::NoListener("No listener when getting ws channels"))?;
     let ws_channels = listener.subscribe(tss_account)?;
 
     if ws_channels.is_final {
         // all subscribed, wake up the waiting listener to execute the protocol
         let listener =
-            listeners.remove(sig_uid).ok_or(SubscribeErr::NoListener("listener remove"))?;
+            listeners.remove(session_id).ok_or(SubscribeErr::NoListener("listener remove"))?;
         let (tx, broadcaster) = listener.into_broadcaster();
         let _ = tx.send(Ok(broadcaster));
     };

@@ -18,22 +18,25 @@ use crate::{
         noise::noise_handshake_initiator, open_ws_connection, ws_to_channels, Broadcaster,
         SubscribeMessage, ThreadSafeWsConnection, WsChannels,
     },
-    KeyParams, PartyId, RecoverableSignature, ValidatorInfo,
+    KeyParams, PartyId, RecoverableSignature, SessionId, SigningSessionInfo, ValidatorInfo,
 };
 
 /// Called when KeyVisibility is private - the user connects to relevant validators
 /// and participates in the signing protocol
 pub async fn user_participates_in_signing_protocol(
     key_share: &KeyShare<KeyParams>,
-    sig_uid: &str,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
-    sig_hash: [u8; 32],
+    message_hash: [u8; 32],
 ) -> Result<RecoverableSignature, UserRunningProtocolErr> {
+    let session_id = SessionId::Sign(SigningSessionInfo {
+        account_id: AccountId32(user_signing_keypair.public().0),
+        message_hash,
+    });
     // Make WS connections to the given set of TSS servers
     let (channels, tss_accounts) = user_connects_to_validators(
         open_ws_connection,
-        sig_uid,
+        &session_id,
         validators_info,
         user_signing_keypair,
     )
@@ -43,7 +46,7 @@ pub async fn user_participates_in_signing_protocol(
     let rsig = execute_protocol::execute_signing_protocol(
         channels,
         key_share,
-        &sig_hash,
+        &message_hash,
         user_signing_keypair,
         tss_accounts,
     )
@@ -62,7 +65,7 @@ pub async fn user_participates_in_dkg_protocol(
 ) -> Result<KeyShare<KeyParams>, UserRunningProtocolErr> {
     // Make WS connections to the given set of TSS servers
     let sig_req_account: AccountId32 = user_signing_keypair.public().0.into();
-    let session_id = sig_req_account.to_string();
+    let session_id = SessionId::Dkg(sig_req_account);
     let (channels, tss_accounts) = user_connects_to_validators(
         open_ws_connection,
         &session_id,
@@ -80,7 +83,7 @@ pub async fn user_participates_in_dkg_protocol(
 /// Connect to TSS servers using websockets and the noise protocol
 async fn user_connects_to_validators<F, Fut, W>(
     open_ws_connection: F,
-    session_id: &str,
+    session_id: &SessionId,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
 ) -> Result<(Channels, Vec<AccountId32>), UserRunningProtocolErr>
@@ -105,8 +108,10 @@ where
             let ws_stream = open_ws_connection(ws_endpoint).await?;
 
             // Prepare a SubscribeMessage for the payload of the final handshake message
-            let subscribe_message_vec =
-                bincode::serialize(&SubscribeMessage::new(session_id, user_signing_keypair))?;
+            let subscribe_message_vec = bincode::serialize(&SubscribeMessage::new(
+                session_id.clone(),
+                user_signing_keypair,
+            )?)?;
 
             let mut encrypted_connection = noise_handshake_initiator(
                 ws_stream,

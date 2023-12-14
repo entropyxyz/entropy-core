@@ -47,7 +47,11 @@ impl<'a> ThresholdSigningService<'a> {
     )]
     pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, ProtocolErr> {
         tracing::debug!("Getting signing context");
-        let key_share_vec = self.kv_manager.kv().get(&sign_init.substrate_key).await?;
+        let key_share_vec = self
+            .kv_manager
+            .kv()
+            .get(&sign_init.signing_session_info.account_id.to_string())
+            .await?;
         let key_share: KeyShare<KeyParams> =
             entropy_kvdb::kv_manager::helpers::deserialize(&key_share_vec)
                 .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
@@ -72,7 +76,7 @@ impl<'a> ThresholdSigningService<'a> {
         let rsig = execute_signing_protocol(
             channels,
             &ctx.key_share,
-            &ctx.sign_init.msg,
+            &ctx.sign_init.signing_session_info.message_hash,
             threshold_signer,
             threshold_accounts,
         )

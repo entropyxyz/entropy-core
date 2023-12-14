@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use entropy_protocol::RecoverableSignature;
+use entropy_protocol::{RecoverableSignature, SessionId, SigningSessionInfo};
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
 use sp_core::Pair;
 use subxt::utils::AccountId32;
@@ -22,10 +22,10 @@ use crate::{
 /// Start the signing protocol for a given message
 #[tracing::instrument(skip(app_state), level = tracing::Level::DEBUG)]
 pub async fn do_signing(
-    message: UserSignatureRequest,
+    user_signature_request: UserSignatureRequest,
     sig_hash: String,
     app_state: &AppState,
-    tx_id: String,
+    signing_session_info: SigningSessionInfo,
     user_address: AccountId32,
     key_visibility: KeyVisibility,
 ) -> Result<RecoverableSignature, ProtocolErr> {
@@ -34,8 +34,7 @@ pub async fn do_signing(
     let state = &app_state.listener_state;
     let kv_manager = &app_state.kv_store;
 
-    let info =
-        SignInit::new(message.clone(), sig_hash.clone(), tx_id.clone(), user_address.clone())?;
+    let info = SignInit::new(user_signature_request.clone(), signing_session_info.clone());
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let pair_signer =
         get_signer(kv_manager).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
@@ -48,7 +47,7 @@ pub async fn do_signing(
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
 
-    let mut tss_accounts: Vec<AccountId32> = message
+    let mut tss_accounts: Vec<AccountId32> = user_signature_request
         .validators_info
         .iter()
         .map(|validator_info| validator_info.tss_account.clone())
@@ -66,18 +65,19 @@ pub async fn do_signing(
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(message.validators_info, &account_id, user_details_option);
+        Listener::new(user_signature_request.validators_info, &account_id, user_details_option);
+
+    let session_id = SessionId::Sign(sign_context.sign_init.signing_session_info.clone());
 
     state
         .listeners
         .lock()
-		.map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
-        // TODO: using signature ID as session ID. Correct?
-        .insert(sign_context.sign_init.sig_uid.clone(), listener);
+        .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
+        .insert(session_id.clone(), listener);
 
     open_protocol_connections(
         &sign_context.sign_init.validators_info,
-        &sign_context.sign_init.sig_uid,
+        &session_id,
         signer,
         state,
         &x25519_secret_key,
@@ -93,11 +93,6 @@ pub async fn do_signing(
         signing_service.execute_sign(&sign_context, channels, signer, tss_accounts).await?;
 
     Ok(result)
-}
-
-/// Creates a unique tx Id by concatenating the user's signing key and message digest
-pub fn create_unique_tx_id(account: &String, sig_hash: &String) -> String {
-    format!("{account}_{sig_hash}")
 }
 
 /// Produces a specific hash on a given message

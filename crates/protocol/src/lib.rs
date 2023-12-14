@@ -6,7 +6,10 @@ pub mod protocol_transport;
 pub mod user;
 
 extern crate alloc;
-use std::fmt;
+use std::{
+    fmt,
+    hash::{Hash, Hasher},
+};
 
 use entropy_shared::X25519PublicKey;
 pub use protocol_message::ProtocolMessage;
@@ -129,4 +132,42 @@ pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
     pub ip_address: String,
     pub tss_account: AccountId32,
+}
+
+/// An identifier to specify and particular protocol session
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub enum SessionId {
+    /// A distributed key generation protocol session for registering
+    Dkg(AccountId32),
+    /// A proactive refresh session
+    ProactiveRefresh(AccountId32),
+    /// A signing session
+    Sign(SigningSessionInfo),
+}
+
+/// Information to identify a particular signing protocol session
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct SigningSessionInfo {
+    /// The signature request account ID
+    pub account_id: AccountId32,
+    /// Hash of the message to be signed
+    pub message_hash: [u8; 32],
+}
+
+// This is needed because subxt's AccountId32 does not implement Hash
+impl Hash for SessionId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            SessionId::Dkg(account_id) => {
+                account_id.0.hash(state);
+            },
+            SessionId::ProactiveRefresh(account_id) => {
+                account_id.0.hash(state);
+            },
+            SessionId::Sign(signing_session_info) => {
+                signing_session_info.account_id.0.hash(state);
+                signing_session_info.message_hash.hash(state);
+            },
+        }
+    }
 }
