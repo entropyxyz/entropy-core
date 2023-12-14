@@ -48,7 +48,10 @@ impl Configuration {
     }
 }
 
-pub async fn load_kv_store(validator_name: &Option<ValidatorName>, password_path: Option<PathBuf>) -> KvManager {
+pub async fn load_kv_store(
+    validator_name: &Option<ValidatorName>,
+    password_path: Option<PathBuf>,
+) -> KvManager {
     let mut root: PathBuf = PathBuf::from(entropy_kvdb::get_db_path(false));
     if cfg!(test) {
         return KvManager::new(
