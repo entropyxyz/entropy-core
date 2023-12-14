@@ -11,22 +11,21 @@ allow = [
     "BSD-2-Clause",
     "BSD-3-Clause",
     "CC0-1.0",
-    # This allows us to use Substrate crates
-    "GPL-3.0 WITH Classpath-exception-2.0",
+    "GPL-3.0 WITH Classpath-exception-2.0", # For Substrate crates
     "ISC",
     "MIT",
     "MIT-0",
 
     # TODO: Not sure if this should actually be allowed since its classified as `copyleft`
+    # https://www.gnu.org/licenses/license-list.html#MPL-2.0
     "MPL-2.0",
 ]
 
 # Lint level for licenses considered copyleft
 copyleft = "deny"
 
+# Each entry is the crate and version constraint, and its specific allow list
 exceptions = [
-    # Each entry is the crate and version constraint, and its specific allow list
-
     # TODO: All these crates are from our own workspace, there should be a better way to indicate that
     # these are allowed
     { allow = ["AGPL-3.0"], name = "entropy" },
