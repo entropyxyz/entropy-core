@@ -27,7 +27,7 @@ At the moment this project **does not** adhere to
 
 ### Added
 - Pointer for Programs ([#536](https://github.com/entropyxyz/entropy-core/pull/536/))
--  Add password file option ([#555](https://github.com/entropyxyz/entropy-core/pull/555))
+- Add password file option ([#555](https://github.com/entropyxyz/entropy-core/pull/555))
 
 ## [0.0.9](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.8..release/v0.0.9) - 2023-11-30
 
