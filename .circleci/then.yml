@@ -113,8 +113,7 @@ jobs:
                     pushd node
                     cargo build --all-targets --release -j $(nproc)
                     cargo test --all-targets --release
-                    cd crates/protocol/nodejs-test
-                    yarn test
+                    yarn --cwd ../crates/protocol/nodejs-test test
                 no_output_timeout: 45m
     build-and-release:
         machine:
