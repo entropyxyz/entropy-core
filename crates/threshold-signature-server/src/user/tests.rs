@@ -93,7 +93,7 @@ async fn test_get_signer_does_not_throw_err() {
     initialize_test_logger().await;
     clean_tests();
 
-    let kv_store = load_kv_store(&None, false).await;
+    let kv_store = load_kv_store(&None, None).await;
     let mnemonic = setup_mnemonic(&kv_store, &None).await;
     assert!(mnemonic.is_ok());
     get_signer(&kv_store).await.unwrap();

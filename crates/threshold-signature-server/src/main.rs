@@ -33,7 +33,7 @@ async fn main() {
     if args.bob {
         validator_name = Some(ValidatorName::Bob);
     }
-    let kv_store = load_kv_store(&validator_name, args.no_password).await;
+    let kv_store = load_kv_store(&validator_name, args.password_file).await;
 
     let app_state = AppState::new(configuration.clone(), kv_store.clone());
     setup_mnemonic(&kv_store, &validator_name).await.expect("Issue creating Mnemonic");
