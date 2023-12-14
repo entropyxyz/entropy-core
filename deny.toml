@@ -1,0 +1,87 @@
+[licenses]
+# The lint level for crates which do not have a detectable license
+unlicensed = "deny"
+
+# List of explicitly allowed licenses
+# See https://spdx.org/licenses/ for list of possible licenses
+# [possible values: any SPDX 3.11 short identifier (+ optional exception)].
+allow = [
+    "Apache-2.0 WITH LLVM-exception",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "CC0-1.0",
+    # This allows us to use Substrate crates
+    "GPL-3.0 WITH Classpath-exception-2.0",
+    "ISC",
+    "MIT",
+    "MIT-0",
+
+    # TODO: Not sure if this should actually be allowed since its classified as `copyleft`
+    "MPL-2.0",
+]
+
+# deny = ["GPL-2.0", "GPL-3.0"]
+
+# Lint level for licenses considered copyleft
+copyleft = "deny"
+
+exceptions = [
+    # Each entry is the crate and version constraint, and its specific allow list
+
+    # TODO: All these crates are from our own workspace, there should be a better way to indicate that
+    # these are allowed
+    { allow = ["AGPL-3.0"], name = "entropy" },
+    { allow = ["AGPL-3.0"], name = "entropy-kvdb" },
+    { allow = ["AGPL-3.0"], name = "entropy-protocol" },
+    { allow = ["AGPL-3.0"], name = "entropy-runtime" },
+    { allow = ["AGPL-3.0"], name = "entropy-shared" },
+    { allow = ["AGPL-3.0"], name = "entropy-test-cli" },
+    { allow = ["AGPL-3.0"], name = "entropy-testing-utils" },
+    { allow = ["AGPL-3.0"], name = "entropy-tss" },
+    { allow = ["AGPL-3.0"], name = "synedrion" },
+    { allow = ["AGPL-3.0"], name = "pallet-free-tx" },
+    { allow = ["AGPL-3.0"], name = "pallet-programs" },
+    { allow = ["AGPL-3.0"], name = "pallet-propagation" },
+    { allow = ["AGPL-3.0"], name = "pallet-relayer" },
+    { allow = ["AGPL-3.0"], name = "pallet-slashing" },
+    { allow = ["AGPL-3.0"], name = "pallet-staking-extension" },
+    { allow = ["AGPL-3.0"], name = "pallet-transaction-pause" },
+
+    { allow = ["AGPL-3.0"], name = "ec-core" },
+    { allow = ["AGPL-3.0"], name = "ec-runtime" },
+
+    # These are the only crates using these licenses, put them here instead of globally allowing
+    # them
+    { allow = [ "Unicode-DFS-2016", ], name = "unicode-ident" },
+    { allow = [ "OpenSSL", ], name = "ring" },
+]
+
+# Some crates don't have (easily) machine readable licensing information,
+# adding a clarification entry for it allows you to manually specify the
+# licensing information
+[[licenses.clarify]]
+# The name of the crate the clarification applies to
+name = "ring"
+# The SPDX expression for the license requirements of the crate
+expression = "MIT AND ISC AND OpenSSL"
+# One or more files in the crate's source used as the "source of truth" for
+# the license expression. If the contents match, the clarification will be used
+# when running the license check, otherwise the clarification will be ignored
+# and the crate will be checked normally, which may produce warnings or errors
+# depending on the rest of your configuration
+license-files = [
+    # Each entry is a crate relative path, and the (opaque) hash of its contents
+    { path = "LICENSE", hash = 0xbd0eed23 },
+]
+
+# TODO: We need to remove this once we get licenses up for these crates
+[[licenses.clarify]]
+name = "ec-core"
+expression = "AGPL-3.0"
+license-files = []
+
+[[licenses.clarify]]
+name = "ec-runtime"
+expression = "AGPL-3.0"
+license-files = []
