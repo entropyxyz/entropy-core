@@ -2,15 +2,11 @@ use std::time::Duration;
 
 use entropy_protocol::{
     execute_protocol::{execute_dkg, Channels},
-    KeyParams, ValidatorInfo,
+    KeyParams, SessionId, ValidatorInfo,
 };
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
-use parity_scale_codec::Encode;
-use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
-use subxt::{
-    backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
-    OnlineClient,
-};
+use sp_core::{sr25519, Bytes, Pair};
+use subxt::{backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32, OnlineClient};
 use synedrion::KeyShare;
 use tokio::time::timeout;
 use x25519_dalek::PublicKey;
@@ -29,8 +25,8 @@ pub async fn do_dkg(
     sig_request_account: AccountId32,
     key_visibility: KeyVisibility,
 ) -> Result<KeyShare<KeyParams>, UserErr> {
-    let session_uid = sig_request_account.to_string();
-    let account_id = SubxtAccountId32(signer.signer().public().0);
+    let session_id = SessionId::Dkg(sig_request_account.clone());
+    let account_id = AccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
     for validator_info in validators_info {
@@ -39,7 +35,7 @@ pub async fn do_dkg(
             .clone()
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
-        let tss_account = SubxtAccountId32(*address_slice);
+        let tss_account = AccountId32(*address_slice);
         let validator_info = ValidatorInfo {
             x25519_public_key: validator_info.x25519_public_key,
             ip_address: std::str::from_utf8(&validator_info.ip_address)?.to_string(),
@@ -53,10 +49,8 @@ pub async fn do_dkg(
     // their ID to the listener
     let user_details_option =
         if let KeyVisibility::Private(users_x25519_public_key) = key_visibility {
-            let account_id_arr: [u8; 32] = *sig_request_account.as_ref();
-            let user_account_id = SubxtAccountId32(account_id_arr);
-            tss_accounts.push(user_account_id.clone());
-            Some((user_account_id, users_x25519_public_key))
+            tss_accounts.push(sig_request_account.clone());
+            Some((sig_request_account, users_x25519_public_key))
         } else {
             None
         };
@@ -65,16 +59,15 @@ pub async fn do_dkg(
     let (rx_ready, rx_from_others, listener) =
         Listener::new(converted_validator_info.clone(), &account_id, user_details_option);
     state
-	.listeners
-	.lock()
-	.map_err(|_| UserErr::SessionError("Error getting lock".to_string()))?
-	// TODO: using signature ID as session ID. Correct?
-	.insert(session_uid.clone(), listener);
+        .listeners
+        .lock()
+        .map_err(|_| UserErr::SessionError("Error getting lock".to_string()))?
+        .insert(session_id.clone(), listener);
 
     let x25519_secret_key = derive_static_secret(signer.signer());
     open_protocol_connections(
         &converted_validator_info,
-        &session_uid,
+        &session_id,
         signer.signer(),
         state,
         &x25519_secret_key,
@@ -95,8 +88,8 @@ pub async fn do_dkg(
 pub async fn send_key(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    stash_address: &SubxtAccountId32,
-    addresses_in_subgroup: &mut Vec<SubxtAccountId32>,
+    stash_address: &AccountId32,
+    addresses_in_subgroup: &mut Vec<AccountId32>,
     user_registration_info: UserRegistrationInfo,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
 ) -> Result<(), UserErr> {
@@ -141,11 +134,11 @@ pub async fn send_key(
 /// Checks if a validator is in the current selected registration committee
 pub fn check_in_registration_group(
     validators_info: &[entropy_shared::ValidatorInfo],
-    validator_address: &SubxtAccountId32,
+    validator_address: &AccountId32,
 ) -> Result<(), UserErr> {
     let is_proper_signer = validators_info
         .iter()
-        .any(|validator_info| validator_info.tss_account == validator_address.encode());
+        .any(|validator_info| validator_info.tss_account == validator_address.0.to_vec());
     if !is_proper_signer {
         return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
     }

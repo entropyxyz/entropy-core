@@ -23,10 +23,7 @@ use entropy_tss::{
 };
 use futures::future;
 use parity_scale_codec::Decode;
-use sp_core::{
-    crypto::{AccountId32, Ss58Codec},
-    sr25519, Bytes, Pair,
-};
+use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     tx::PairSigner,
@@ -169,16 +166,10 @@ pub async fn sign(
 
     // If we have a keyshare, connect to TSS servers
     let results = if let Some(keyshare) = private {
-        let sig_uid = {
-            let account_id32: AccountId32 = signature_request_keypair.public().into();
-            let account_id_ss58 = account_id32.to_ss58check();
-            format!("{account_id_ss58}_{message_hash_hex}")
-        };
         let (validator_results, _own_result) = future::join(
             future::try_join_all(submit_transaction_requests),
             user_participates_in_signing_protocol(
                 &keyshare,
-                &sig_uid,
                 validators_info_clone,
                 &signature_request_keypair,
                 message_hash,

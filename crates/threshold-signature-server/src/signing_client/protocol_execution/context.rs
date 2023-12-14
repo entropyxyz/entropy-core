@@ -18,6 +18,6 @@ impl SignContext {
     }
 
     pub fn msg_to_sign(&self) -> &PrehashedMessage {
-        &self.sign_init.msg
+        &self.sign_init.signing_session_info.message_hash
     }
 }

@@ -16,7 +16,7 @@ use entropy_kvdb::{
 use entropy_protocol::{
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
-    KeyParams, PartyId, ValidatorInfo,
+    KeyParams, PartyId, SessionId, SigningSessionInfo, ValidatorInfo,
 };
 use entropy_shared::{KeyVisibility, OcwMessageDkg};
 use entropy_testing_utils::{
@@ -71,7 +71,7 @@ use crate::{
             load_kv_store, setup_mnemonic, Configuration, ValidatorName, DEFAULT_BOB_MNEMONIC,
             DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
-        signing::{create_unique_tx_id, Hasher},
+        signing::Hasher,
         substrate::{get_subgroup, return_all_addresses_of_subgroup},
         tests::{
             check_if_confirmation, create_clients, initialize_test_logger, run_to_block,
@@ -93,7 +93,7 @@ async fn test_get_signer_does_not_throw_err() {
     initialize_test_logger().await;
     clean_tests();
 
-    let kv_store = load_kv_store(&None, false).await;
+    let kv_store = load_kv_store(&None, None).await;
     let mnemonic = setup_mnemonic(&kv_store, &None).await;
     assert!(mnemonic.is_ok());
     get_signer(&kv_store).await.unwrap();
@@ -130,10 +130,11 @@ async fn test_sign_tx_no_chain() {
         },
     ];
 
-    let image = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-    let hash_as_string = hex::encode(image);
-    let signing_address = one.to_account_id().to_ss58check();
-    let sig_uid = create_unique_tx_id(&signing_address, &hash_as_string);
+    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let session_id = SessionId::Sign(SigningSessionInfo {
+        account_id: subxtAccountId32(one.pair().public().0),
+        message_hash,
+    });
 
     let mut generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
@@ -189,14 +190,14 @@ async fn test_sign_tx_no_chain() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    verify_signature(test_user_res, image, keyshare_option.clone()).await;
+    verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
 
     generic_msg.timestamp = SystemTime::now();
     generic_msg.validators_info = generic_msg.validators_info.into_iter().rev().collect::<Vec<_>>();
     let test_user_res_order =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    verify_signature(test_user_res_order, image, keyshare_option.clone()).await;
+    verify_signature(test_user_res_order, message_hash, keyshare_option.clone()).await;
 
     generic_msg.timestamp = SystemTime::now();
     // test failing cases
@@ -234,7 +235,7 @@ async fn test_sign_tx_no_chain() {
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
-            bincode::serialize(&SubscribeMessage::new(&sig_uid, &ferdie_pair)).unwrap();
+            bincode::serialize(&SubscribeMessage::new(session_id, &ferdie_pair).unwrap()).unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
@@ -803,9 +804,10 @@ async fn test_sign_tx_user_participates() {
     let encoded_transaction_request: String = hex::encode(PREIMAGE_SHOULD_SUCCEED);
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
-    let signing_address = one.to_account_id().to_ss58check();
-    let hash_as_hexstring = hex::encode(message_should_succeed_hash);
-    let sig_uid = create_unique_tx_id(&signing_address, &hash_as_hexstring);
+    let session_id = SessionId::Sign(SigningSessionInfo {
+        account_id: subxtAccountId32(one.pair().public().0),
+        message_hash: message_should_succeed_hash,
+    });
 
     let mut generic_msg = UserSignatureRequest {
         message: encoded_transaction_request.clone(),
@@ -853,7 +855,6 @@ async fn test_sign_tx_user_participates() {
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
         user_participates_in_signing_protocol(
             &users_keyshare_option.clone().unwrap(),
-            &sig_uid,
             validators_info.clone(),
             &one.pair(),
             message_should_succeed_hash,
@@ -914,7 +915,7 @@ async fn test_sign_tx_user_participates() {
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
-            bincode::serialize(&SubscribeMessage::new(&sig_uid, &ferdie_pair)).unwrap();
+            bincode::serialize(&SubscribeMessage::new(session_id, &ferdie_pair).unwrap()).unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(

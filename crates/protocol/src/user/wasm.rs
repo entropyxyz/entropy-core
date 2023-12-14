@@ -30,29 +30,22 @@ pub async fn run_dkg_protocol(
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub async fn run_signing_protocol(
     key_share: KeyShare,
-    sig_uid: String,
+    message_hash: Vec<u8>,
     validators_info_js: ValidatorInfoArray,
     user_signing_secret_key: Vec<u8>,
 ) -> Result<String, Error> {
     let validators_info = parse_validator_info(validators_info_js)?;
 
-    // sig_hash is the suffix of the sig_uid
-    let sig_hash: [u8; 32] = {
-        // 49 is the length of an ss58 encoded account id + 1 for the separator
-        let sig_hash_hex = &sig_uid[49..];
-        let sig_hash_vec =
-            hex::decode(sig_hash_hex).map_err(|_| Error::new("Cannot parse sig_uid"))?;
-        sig_hash_vec.try_into().map_err(|_| Error::new("Message hash must be 32 bytes"))?
-    };
+    let message_hash: [u8; 32] =
+        message_hash.try_into().map_err(|_| Error::new("x25519 private key must be 32 bytes"))?;
 
     let user_signing_keypair = sr25519_keypair_from_secret_key(user_signing_secret_key)?;
 
     let signature = user_participates_in_signing_protocol(
         &key_share.0,
-        &sig_uid,
         validators_info,
         &user_signing_keypair,
-        sig_hash,
+        message_hash,
     )
     .await
     .map_err(|err| Error::new(&format!("{}", err)))?;

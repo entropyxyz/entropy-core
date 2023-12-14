@@ -12,7 +12,7 @@ use axum::{
 use blake2::{Blake2s256, Digest};
 use entropy_protocol::{
     execute_protocol::{execute_proactive_refresh, Channels},
-    KeyParams, ValidatorInfo,
+    KeyParams, SessionId, ValidatorInfo,
 };
 use parity_scale_codec::Encode;
 
@@ -85,13 +85,14 @@ pub async fn proactive_refresh(
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
 
     for key in proactive_refresh_keys {
-        let sig_request_address = AccountId32::from_str(&key).map_err(ProtocolErr::StringError)?;
-        let key_visibility =
-            get_registered_details(&api, &rpc, &sig_request_address.clone().into())
-                .await
-                .map_err(|e| ProtocolErr::UserError(e.to_string()))?
-                .key_visibility
-                .0;
+        let sig_request_account_sp_core =
+            AccountId32::from_str(&key).map_err(ProtocolErr::StringError)?;
+        let sig_request_account = SubxtAccountId32(*sig_request_account_sp_core.as_ref());
+        let key_visibility = get_registered_details(&api, &rpc, &sig_request_account.clone())
+            .await
+            .map_err(|e| ProtocolErr::UserError(e.to_string()))?
+            .key_visibility
+            .0;
         if key_visibility != KeyVisibility::Public && key_visibility != KeyVisibility::Permissioned
         {
             return Ok(StatusCode::ACCEPTED);
@@ -108,7 +109,7 @@ pub async fn proactive_refresh(
                 &ocw_data.validators_info,
                 &signer,
                 &app_state.listener_state,
-                sig_request_address,
+                sig_request_account,
                 deserialized_old_key,
             )
             .await?;
@@ -154,13 +155,13 @@ pub async fn do_proactive_refresh(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     state: &ListenerState,
-    sig_request_account: AccountId32,
+    sig_request_account: SubxtAccountId32,
     old_key: KeyShare<KeyParams>,
 ) -> Result<KeyShare<KeyParams>, ProtocolErr> {
     tracing::debug!("Preparing to perform proactive refresh");
     tracing::debug!("Signing with {:?}", &signer.signer().public());
 
-    let session_uid = sig_request_account.to_string();
+    let session_id = SessionId::ProactiveRefresh(sig_request_account);
     let account_id = SubxtAccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
@@ -184,16 +185,15 @@ pub async fn do_proactive_refresh(
     let (rx_ready, rx_from_others, listener) =
         Listener::new(converted_validator_info.clone(), &account_id, None);
     state
-   .listeners
-   .lock()
-   .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
-   // TODO: using signature ID as session ID. Correct?
-   .insert(session_uid.clone(), listener);
+        .listeners
+        .lock()
+        .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
+        .insert(session_id.clone(), listener);
     let x25519_secret_key = derive_static_secret(signer.signer());
 
     open_protocol_connections(
         &converted_validator_info,
-        &session_uid,
+        &session_id,
         signer.signer(),
         state,
         &x25519_secret_key,
