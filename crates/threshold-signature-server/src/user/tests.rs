@@ -7,7 +7,7 @@ use std::{
 };
 
 use axum::http::StatusCode;
-use bip39::{Language, Mnemonic, MnemonicType};
+use bip39::{Language, Mnemonic};
 use entropy_kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
