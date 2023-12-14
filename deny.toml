@@ -28,7 +28,7 @@ copyleft = "deny"
 exceptions = [
     # TODO: All these crates are from our own workspace, there should be a better way to indicate that
     # these are allowed
-    { allow = ["AGPL-3.0"], name = "entropy" },
+    # { allow = ["AGPL-3.0"], name = "entropy" },
     { allow = ["AGPL-3.0"], name = "entropy-kvdb" },
     { allow = ["AGPL-3.0"], name = "entropy-protocol" },
     { allow = ["AGPL-3.0"], name = "entropy-runtime" },
