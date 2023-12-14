@@ -20,10 +20,12 @@ At the moment this project **does not** adhere to
 
 ### Changed
 - Crate name refactor ([#561](https://github.com/entropyxyz/entropy-core/pull/561))
+- Changed BIP39 implementation used in `entropy-tss` from https://github.com/infincia/bip39-rs
+  to https://docs.rs/bip39 ([#562](https://github.com/entropyxyz/entropy-core/pull/562))
 
 ### Breaking Changes
 
-- In [#536](https://github.com/entropyxyz/entropy-core/pull/536/), the registered struct no longer holds a program but rather a hash of a program that is set in the set_program function 
+- In [#536](https://github.com/entropyxyz/entropy-core/pull/536/), the registered struct no longer holds a program but rather a hash of a program that is set in the set_program function
 
 ### Added
 - Pointer for Programs ([#536](https://github.com/entropyxyz/entropy-core/pull/536/))
