@@ -21,8 +21,6 @@ allow = [
     "MPL-2.0",
 ]
 
-# deny = ["GPL-2.0", "GPL-3.0"]
-
 # Lint level for licenses considered copyleft
 copyleft = "deny"
 
@@ -39,6 +37,7 @@ exceptions = [
     { allow = ["AGPL-3.0"], name = "entropy-test-cli" },
     { allow = ["AGPL-3.0"], name = "entropy-testing-utils" },
     { allow = ["AGPL-3.0"], name = "entropy-tss" },
+    { allow = ["AGPL-3.0"], name = "helpers" },
     { allow = ["AGPL-3.0"], name = "synedrion" },
     { allow = ["AGPL-3.0"], name = "pallet-free-tx" },
     { allow = ["AGPL-3.0"], name = "pallet-programs" },
@@ -53,8 +52,8 @@ exceptions = [
 
     # These are the only crates using these licenses, put them here instead of globally allowing
     # them
-    { allow = [ "Unicode-DFS-2016", ], name = "unicode-ident" },
-    { allow = [ "OpenSSL", ], name = "ring" },
+    { allow = ["Unicode-DFS-2016"], name = "unicode-ident" },
+    { allow = ["OpenSSL"], name = "ring" },
 ]
 
 # Some crates don't have (easily) machine readable licensing information,
@@ -63,8 +62,10 @@ exceptions = [
 [[licenses.clarify]]
 # The name of the crate the clarification applies to
 name = "ring"
+
 # The SPDX expression for the license requirements of the crate
 expression = "MIT AND ISC AND OpenSSL"
+
 # One or more files in the crate's source used as the "source of truth" for
 # the license expression. If the contents match, the clarification will be used
 # when running the license check, otherwise the clarification will be ignored
