@@ -1273,11 +1273,13 @@ impl pallet_slashing::Config for Runtime {
 
 parameter_types! {
   pub const SigningPartySize: usize = SIGNING_PARTY_SIZE;
+  pub const MaxProgramHashes: u32 = 5;
 }
 
 impl pallet_relayer::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
+    type MaxProgramHashes = MaxProgramHashes;
     type WeightInfo = weights::pallet_relayer::WeightInfo<Runtime>;
 }
 

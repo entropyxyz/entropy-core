@@ -289,11 +289,13 @@ impl pallet_authorship::Config for Test {
 
 parameter_types! {
   pub const SigningPartySize: usize = 2;
+  pub const MaxProgramHashes: u32 = 5;
 }
 
 impl pallet_relayer::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
+    type MaxProgramHashes = MaxProgramHashes;
     type WeightInfo = ();
 }
 

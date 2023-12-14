@@ -212,6 +212,21 @@ fn it_changes_a_program_pointer() {
         ));
         registered_info.program_pointers = new_program_hashes;
         assert_eq!(Relayer::registered(1).unwrap(), registered_info);
+
+        let unreigistered_program = vec![13];
+        let unreigistered_program_hash =
+            <Test as frame_system::Config>::Hashing::hash(&unreigistered_program);
+        let unreigistered_program_hashes =
+            BoundedVec::try_from(vec![new_program_hash, unreigistered_program_hash]).unwrap();
+
+        assert_noop!(
+            Relayer::change_program_pointer(
+                RuntimeOrigin::signed(2),
+                1,
+                unreigistered_program_hashes.clone(),
+            ),
+            Error::<Test>::ProgramDoesNotExist
+        );
     });
 }
 
