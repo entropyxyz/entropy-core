@@ -1,5 +1,5 @@
+use entropy_protocol::sign_and_encrypt::SignedMessageErr;
 use thiserror::Error;
-use x25519_chacha20poly1305::SignedMessageErr;
 
 #[derive(Debug, Error)]
 pub enum ValidationErr {

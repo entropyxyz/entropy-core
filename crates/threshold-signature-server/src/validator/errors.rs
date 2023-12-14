@@ -43,7 +43,7 @@ pub enum ValidatorErr {
     #[error("Invalid length for converting address")]
     AddressConversionError(String),
     #[error("Encryption or signing error: {0}")]
-    Json(#[from] x25519_chacha20poly1305::SignedMessageErr),
+    Json(#[from] entropy_protocol::sign_and_encrypt::SignedMessageErr),
 }
 
 impl IntoResponse for ValidatorErr {

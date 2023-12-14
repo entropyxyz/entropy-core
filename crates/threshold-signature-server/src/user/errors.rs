@@ -115,7 +115,7 @@ pub enum UserErr {
     #[error("Protocol Execution Error {0}")]
     ProtocolExecution(#[from] ProtocolExecutionErr),
     #[error("Encryption or signing error: {0}")]
-    Json(#[from] x25519_chacha20poly1305::SignedMessageErr),
+    Json(#[from] entropy_protocol::sign_and_encrypt::SignedMessageErr),
 }
 
 impl IntoResponse for UserErr {

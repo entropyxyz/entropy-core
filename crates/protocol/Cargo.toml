@@ -72,6 +72,9 @@ wasm=[
   "dep:schnorrkel",
 ]
 
+# Extra functionality only intended for use in development
+unsafe=[]
+
 # Use sp-core compatible sr25519 keypairs on wasm, rather then polkadot JS. For testing only
 wasm-test=["wasm"]
 
