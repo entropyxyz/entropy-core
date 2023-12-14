@@ -14,6 +14,7 @@ At the moment this project **does not** adhere to
   The most impactful of these is that the `server` binary is now the `entropy-tss` binary. From this
   it follows that the Docker images previously published under `entropyxyz/server` are now being
   published under `entropyxyz/entropy-tss`.
+- In [#536](https://github.com/entropyxyz/entropy-core/pull/536/), the registered struct no longer holds a program but rather a hash of a program that is set in the set_program function
 
 ### Added
 - Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
@@ -21,10 +22,6 @@ At the moment this project **does not** adhere to
 ### Changed
 - Crate name refactor ([#561](https://github.com/entropyxyz/entropy-core/pull/561))
 - Change bip39 implementation ([#562](https://github.com/entropyxyz/entropy-core/pull/562))
-
-### Breaking Changes
-
-- In [#536](https://github.com/entropyxyz/entropy-core/pull/536/), the registered struct no longer holds a program but rather a hash of a program that is set in the set_program function
 
 ### Added
 - Pointer for Programs ([#536](https://github.com/entropyxyz/entropy-core/pull/536/))
