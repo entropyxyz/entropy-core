@@ -2616,8 +2616,10 @@ dependencies = [
  "base64 0.13.1",
  "bincode",
  "blake2",
+ "chacha20poly1305 0.10.1",
  "entropy-shared",
  "futures",
+ "generic-array 0.14.7",
  "getrandom 0.2.10",
  "gloo-net",
  "hex",
@@ -2628,6 +2630,7 @@ dependencies = [
  "serde_json",
  "snow",
  "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sp-keyring 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "subxt",
  "synedrion",
  "thiserror",
@@ -2637,8 +2640,8 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-derive",
  "wasm-bindgen-futures",
- "x25519-chacha20poly1305 0.2.1",
  "x25519-dalek 2.0.0",
+ "zeroize",
 ]
 
 [[package]]
