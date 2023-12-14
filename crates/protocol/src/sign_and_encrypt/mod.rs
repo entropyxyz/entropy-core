@@ -138,7 +138,7 @@ impl SignedMessage {
         hasher.update(&self.msg.0);
         hasher.update(self.recip);
         let hash = hasher.finalize().to_vec();
-        <sr25519::Pair as Pair>::verify(&self.sig, &hash, &sr25519::Public(self.pk))
+        <sr25519::Pair as Pair>::verify(&self.sig, hash, &sr25519::Public(self.pk))
     }
 
     /// Returns a serialized json string of self.
