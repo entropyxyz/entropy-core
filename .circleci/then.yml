@@ -72,13 +72,13 @@ commands:
                 }'"
 
 jobs:
-    crypto-server:
+    threshold-signature-server:
         machine:
             image: ubuntu-2204:2022.10.2
             resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
-            - run: cd crypto/server && cargo test --release
+            - run: cd crates/threshold-signature-server && cargo test --release
     fmt-lint-all:
         machine:
             image: ubuntu-2204:2022.10.2
@@ -103,7 +103,7 @@ jobs:
             - run:
                 name: Build entropy-protocol nodejs package.
                 command: |
-                  cd crypto/protocol
+                  cd crates/protocol
                   make build-nodejs-testing
                   cd nodejs-test
                   yarn
@@ -122,7 +122,7 @@ jobs:
             - release
 
 parameters:
-    crypto:
+    crates:
         default: false
         type: boolean
     node:
@@ -150,4 +150,4 @@ workflows:
                 - << pipeline.parameters.node >>
                 - << pipeline.parameters.pallets >>
                 - << pipeline.parameters.runtime >>
-                - pipeline.parameters.crypto
+                - pipeline.parameters.crates

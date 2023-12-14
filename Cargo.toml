@@ -1,4 +1,6 @@
-[profile.release]
+[workspace]
+resolver="2"
+members =['crates/*', 'node/*', 'pallets/*', 'runtime']
 
 [profile.vercel]
 inherits     ='release'
@@ -7,7 +9,3 @@ strip        =true
 opt-level    ='z'
 lto          =true
 codegen-units=1
-
-[workspace]
-resolver="2"
-members =['crypto/*', 'node/*', 'pallets/*', 'runtime']

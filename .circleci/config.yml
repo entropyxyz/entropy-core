@@ -10,7 +10,7 @@ workflows:
                 config-path: .circleci/then.yml
                 mapping: |
                     node/.* node true
-                    crypto/.* crypto true
+                    crates/.* crates true
                     pallets/.* pallets true
                     runtime/.* runtime true
                 name: check-updated-files

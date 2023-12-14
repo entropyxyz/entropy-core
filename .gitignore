@@ -16,6 +16,7 @@ target/doc/*
 .DS_Store
 *.swp
 .idea
+.vscode
 
 # The cache for chain data in container.
 .local
