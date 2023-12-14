@@ -1,6 +1,9 @@
 use crate::{
     chain_api::{
-        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteredInfo},
+        entropy::{
+            self, runtime_types::bounded_collections::bounded_vec::BoundedVec,
+            runtime_types::pallet_relayer::pallet::RegisteredInfo,
+        },
         EntropyConfig,
     },
     user::UserErr,
@@ -76,13 +79,18 @@ pub async fn return_all_addresses_of_subgroup(
 pub async fn get_program(
     substrate_api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    program_pointer: &<EntropyConfig as Config>::Hash,
+    program_pointer: &BoundedVec<<EntropyConfig as Config>::Hash>,
 ) -> Result<Vec<u8>, UserErr> {
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
-    let bytecode_address = entropy::storage().programs().programs(program_pointer);
+    // temp for testing
+    if program_pointer.0.len() == 0 {
+        return Err(UserErr::NoProgramDefined);
+    }
+
+    let bytecode_address = entropy::storage().programs().programs(program_pointer.0[0]);
 
     Ok(substrate_api
         .storage()
@@ -98,7 +106,7 @@ pub async fn get_registered_details(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
-) -> Result<RegisteredInfo<H256, AccountId32>, UserErr> {
+) -> Result<RegisteredInfo, UserErr> {
     let registered_info_query = entropy::storage().relayer().registered(who);
     let block_hash = rpc
         .chain_get_block_hash(None)

@@ -145,8 +145,7 @@ pub async fn sign_tx(
     if !has_key {
         recover_key(&api, &rpc, &app_state.kv_store, &signer, signing_address).await?
     }
-
-    let program = get_program(&api, &rpc, &user_details.program_pointer).await?;
+    let program = get_program(&api, &rpc, &user_details.program_pointers).await?;
 
     let mut runtime = Runtime::new();
     let signature_request = SignatureRequest { message, auxilary_data };

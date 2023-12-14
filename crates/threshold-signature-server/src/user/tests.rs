@@ -20,6 +20,7 @@ use entropy_protocol::{
 };
 use entropy_shared::{KeyVisibility, OcwMessageDkg};
 use entropy_testing_utils::{
+    chain_api::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec as OtherBoundedVec,
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
         PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS,
@@ -64,7 +65,10 @@ use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::UserInputPartyInfo;
 use crate::{
-    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
+    chain_api::{
+        entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec, get_api,
+        get_rpc, EntropyConfig,
+    },
     get_signer,
     helpers::{
         launch::{
@@ -185,7 +189,10 @@ async fn test_sign_tx_no_chain() {
         assert_eq!(res.unwrap().text().await.unwrap(), "No program set");
     }
 
-    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await.unwrap();
+    update_pointer(&entropy_api, &one.pair(), &one.pair(), OtherBoundedVec(vec![program_hash]))
+        .await
+        .unwrap();
+
     generic_msg.timestamp = SystemTime::now();
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -491,7 +498,7 @@ async fn test_store_share() {
         &alice,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
-        program_hash,
+        BoundedVec(vec![program_hash]),
     )
     .await;
 
@@ -560,7 +567,7 @@ async fn test_store_share() {
         &alice_program,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
-        program_hash,
+        BoundedVec(vec![program_hash]),
     )
     .await;
     onchain_user_request.block_number = block_number;
@@ -689,7 +696,7 @@ async fn test_send_and_receive_keys() {
         &alice.clone(),
         alice.to_account_id().into(),
         KeyVisibility::Public,
-        program_hash,
+        BoundedVec(vec![program_hash]),
     )
     .await;
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
@@ -746,7 +753,7 @@ pub async fn put_register_request_on_chain(
     sig_req_keyring: &Sr25519Keyring,
     program_modification_account: subxtAccountId32,
     key_visibility: KeyVisibility,
-    program_hash: H256,
+    program_hashes: BoundedVec<H256>,
 ) {
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
@@ -754,7 +761,7 @@ pub async fn put_register_request_on_chain(
     let registering_tx = entropy::tx().relayer().register(
         program_modification_account,
         Static(key_visibility),
-        program_hash,
+        program_hashes,
     );
 
     api.tx()
@@ -786,7 +793,9 @@ async fn test_sign_tx_user_participates() {
 
     let program_hash =
         update_programs(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
-    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await.unwrap();
+    update_pointer(&entropy_api, &one.pair(), &one.pair(), OtherBoundedVec(vec![program_hash]))
+        .await
+        .unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -1094,7 +1103,7 @@ async fn test_register_with_private_key_visibility() {
         &one,
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
-        program_hash,
+        BoundedVec(vec![program_hash]),
     )
     .await;
     run_to_block(&rpc, block_number + 1).await;

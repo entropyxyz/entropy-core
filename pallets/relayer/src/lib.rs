@@ -76,22 +76,22 @@ pub mod pallet {
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
-    pub struct RegisteringDetails<AccountId, ProgramPointers> {
-        pub program_modification_account: AccountId,
+    pub struct RegisteringDetails<T: Config> {
+        pub program_modification_account: T::AccountId,
         pub confirmations: Vec<u8>,
-        pub program_pointers: ProgramPointers,
+        pub program_pointers: BoundedVec<T::Hash, T::MaxProgramHashes>,
         pub key_visibility: KeyVisibility,
         pub verifying_key: Option<BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>>,
     }
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
-    pub struct RegisteredInfo<AccountId, ProgramPointers> {
+    pub struct RegisteredInfo<T: Config> {
         pub key_visibility: KeyVisibility,
         // TODO better type
         pub verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
-        pub program_pointers: ProgramPointers,
-        pub program_modification_account: AccountId,
+        pub program_pointers: BoundedVec<T::Hash, T::MaxProgramHashes>,
+        pub program_modification_account: T::AccountId,
     }
 
     #[pallet::genesis_config]
@@ -131,13 +131,8 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn registering)]
-    pub type Registering<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        T::AccountId,
-        RegisteringDetails<T::AccountId, ProgramPointers<T::Hash, T::MaxProgramHashes>>,
-        OptionQuery,
-    >;
+    pub type Registering<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails<T>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn dkg)]
@@ -146,13 +141,8 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn registered)]
-    pub type Registered<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        T::AccountId,
-        RegisteredInfo<T::AccountId, ProgramPointers<T::Hash, T::MaxProgramHashes>>,
-        OptionQuery,
-    >;
+    pub type Registered<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, RegisteredInfo<T>, OptionQuery>;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -239,7 +229,7 @@ pub mod pallet {
             // Put account into a registering state
             Registering::<T>::insert(
                 &sig_req_account,
-                RegisteringDetails::<T::AccountId, BoundedVec<T::Hash, T::MaxProgramHashes>> {
+                RegisteringDetails::<T> {
                     program_modification_account,
                     confirmations: vec![],
                     program_pointers,

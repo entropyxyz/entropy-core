@@ -6,6 +6,7 @@ use entropy_kvdb::clean_tests;
 use entropy_protocol::{KeyParams, ValidatorInfo};
 use entropy_shared::{KeyVisibility, OcwMessageDkg};
 use entropy_testing_utils::{
+    chain_api::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
         TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
@@ -63,7 +64,9 @@ async fn test_wasm_sign_tx_user_participates() {
         update_program(&entropy_api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
             .await
             .unwrap();
-    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await.unwrap();
+    update_pointer(&entropy_api, &one.pair(), &one.pair(), BoundedVec(vec![program_hash]))
+        .await
+        .unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -186,7 +189,7 @@ async fn test_wasm_register_with_private_key_visibility() {
         one.pair(),
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
-        program_hash,
+        BoundedVec(vec![program_hash]),
     )
     .await
     .unwrap();
@@ -345,7 +348,7 @@ async fn wait_for_register_confirmation(
     account_id: AccountId32,
     api: OnlineClient<EntropyConfig>,
     rpc: LegacyRpcMethods<EntropyConfig>,
-) -> RegisteredInfo<H256, SubxtAccountId32> {
+) -> RegisteredInfo {
     let account_id: <EntropyConfig as Config>::AccountId = account_id.into();
     let registered_query = entropy::storage().relayer().registered(account_id);
     for _ in 0..30 {
