@@ -20,6 +20,7 @@ At the moment this project **does not** adhere to
 
 ### Changed
 - Crate name refactor ([#561](https://github.com/entropyxyz/entropy-core/pull/561))
+- Only run wasm integration tests when a feature is enabled ([#565](https://github.com/entropyxyz/entropy-core/pull/565))
 
 ### Breaking Changes
 
