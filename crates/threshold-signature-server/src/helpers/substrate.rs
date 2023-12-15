@@ -1,19 +1,13 @@
 use crate::{
     chain_api::{
-        entropy::{
-            self, runtime_types::bounded_collections::bounded_vec::BoundedVec,
-            runtime_types::pallet_relayer::pallet::RegisteredInfo,
-        },
+        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteredInfo},
         EntropyConfig,
     },
     user::UserErr,
 };
 use entropy_shared::SIGNING_PARTY_SIZE;
 use subxt::{
-    backend::legacy::LegacyRpcMethods,
-    ext::sp_core::sr25519,
-    tx::PairSigner,
-    utils::{AccountId32, H256},
+    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32,
     Config, OnlineClient,
 };
 
@@ -79,25 +73,21 @@ pub async fn return_all_addresses_of_subgroup(
 pub async fn get_program(
     substrate_api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    program_pointer: &BoundedVec<<EntropyConfig as Config>::Hash>,
+    program_pointer: &<EntropyConfig as Config>::Hash,
 ) -> Result<Vec<u8>, UserErr> {
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
-    // temp for testing
-    if program_pointer.0.len() == 0 {
-        return Err(UserErr::NoProgramDefined);
-    }
 
-    let bytecode_address = entropy::storage().programs().programs(program_pointer.0[0]);
+    let bytecode_address = entropy::storage().programs().programs(program_pointer);
 
     Ok(substrate_api
         .storage()
         .at(block_hash)
         .fetch(&bytecode_address)
         .await?
-        .ok_or(UserErr::NoProgramDefined)?
+        .ok_or(UserErr::NoProgramDefined(program_pointer.to_string()))?
         .bytecode)
 }
 

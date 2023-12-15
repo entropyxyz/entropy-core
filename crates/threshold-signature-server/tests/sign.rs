@@ -39,6 +39,7 @@ async fn integration_test_sign() {
 
     test_client::update_pointer(
         &api,
+        &rpc,
         &pre_registered_user.pair(),
         &pre_registered_user.pair(),
         BoundedVec(vec![program_hash]),
@@ -89,6 +90,7 @@ async fn integration_test_sign_private() {
 
     test_client::update_pointer(
         &api,
+        &rpc,
         &pre_registered_user.pair(),
         &pre_registered_user.pair(),
         BoundedVec(vec![program_hash]),

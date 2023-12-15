@@ -145,12 +145,16 @@ pub async fn sign_tx(
     if !has_key {
         recover_key(&api, &rpc, &app_state.kv_store, &signer, signing_address).await?
     }
-    let program = get_program(&api, &rpc, &user_details.program_pointers).await?;
 
     let mut runtime = Runtime::new();
     let signature_request = SignatureRequest { message, auxilary_data };
-
-    runtime.evaluate(&program, &signature_request)?;
+    if user_details.program_pointers.0.is_empty() {
+        return Err(UserErr::NoProgramPointerDefined());
+    }
+    for program_pointer in &user_details.program_pointers.0 {
+        let program = get_program(&api, &rpc, &program_pointer).await?;
+        runtime.evaluate(&program, &signature_request)?;
+    }
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 

@@ -117,6 +117,7 @@ async fn test_sign_tx_no_chain() {
         spawn_testing_validators(Some(signing_address.clone()), false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
         update_programs(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
@@ -186,12 +187,17 @@ async fn test_sign_tx_no_chain() {
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
     for res in test_no_program {
-        assert_eq!(res.unwrap().text().await.unwrap(), "No program set");
+        assert_eq!(res.unwrap().text().await.unwrap(), "No program pointer defined for account");
     }
-
-    update_pointer(&entropy_api, &one.pair(), &one.pair(), OtherBoundedVec(vec![program_hash]))
-        .await
-        .unwrap();
+    update_pointer(
+        &entropy_api,
+        &rpc,
+        &one.pair(),
+        &one.pair(),
+        OtherBoundedVec(vec![program_hash]),
+    )
+    .await
+    .unwrap();
 
     generic_msg.timestamp = SystemTime::now();
     let test_user_res =
@@ -790,12 +796,19 @@ async fn test_sign_tx_user_participates() {
         spawn_testing_validators(Some(signing_address.clone()), true).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
         update_programs(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
-    update_pointer(&entropy_api, &one.pair(), &one.pair(), OtherBoundedVec(vec![program_hash]))
-        .await
-        .unwrap();
+    update_pointer(
+        &entropy_api,
+        &rpc,
+        &one.pair(),
+        &one.pair(),
+        OtherBoundedVec(vec![program_hash]),
+    )
+    .await
+    .unwrap();
 
     let validators_info = vec![
         ValidatorInfo {

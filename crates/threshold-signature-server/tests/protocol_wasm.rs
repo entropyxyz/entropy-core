@@ -29,7 +29,6 @@ use std::{
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519::Signature, Bytes},
-    utils::{AccountId32 as SubxtAccountId32, H256},
     Config, OnlineClient,
 };
 use synedrion::KeyShare;
@@ -59,12 +58,13 @@ async fn test_wasm_sign_tx_user_participates() {
         spawn_testing_validators(Some(signing_address.clone()), true).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
         update_program(&entropy_api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
             .await
             .unwrap();
-    update_pointer(&entropy_api, &one.pair(), &one.pair(), BoundedVec(vec![program_hash]))
+    update_pointer(&entropy_api, &rpc, &one.pair(), &one.pair(), BoundedVec(vec![program_hash]))
         .await
         .unwrap();
 
