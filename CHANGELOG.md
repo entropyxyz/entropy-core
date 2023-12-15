@@ -9,7 +9,30 @@ At the moment this project **does not** adhere to
 
 ## [Unreleased]
 
--  Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
+### Breaking Changes
+- In [#561](https://github.com/entropyxyz/entropy-core/pull/561) several crates were renamed in order to ensure consistent naming across the repo.
+  The most impactful of these is that the `server` binary is now the `entropy-tss` binary. From this
+  it follows that the Docker images previously published under `entropyxyz/server` are now being
+  published under `entropyxyz/entropy-tss`.
+- In [#536](https://github.com/entropyxyz/entropy-core/pull/536/), the registered struct no longer holds a program but rather a hash of a program that is set in the set_program function
+- When executing the signing protocol on the client-side, a `sig-uid` no longer needs to be given as
+  an argument ([#549](https://github.com/entropyxyz/entropy-core/pull/549))
+- Wasm API to entropy-protocol uses camelCase function names ([#566](https://github.com/entropyxyz/entropy-core/pull/566))
+
+### Added
+- Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
+
+### Changed
+- Crate name refactor ([#561](https://github.com/entropyxyz/entropy-core/pull/561))
+- Only run wasm integration tests when a feature is enabled ([#565](https://github.com/entropyxyz/entropy-core/pull/565))
+- Protocol sessions are now identified by a `SessionID` type rather than a `String`
+  ([#549](https://github.com/entropyxyz/entropy-core/pull/549))
+- Change bip39 implementation ([#562](https://github.com/entropyxyz/entropy-core/pull/562))
+
+### Added
+
+- Pointer for Programs ([#536](https://github.com/entropyxyz/entropy-core/pull/536/))
+- Add password file option ([#555](https://github.com/entropyxyz/entropy-core/pull/555))
 
 ## [0.0.9](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.8..release/v0.0.9) - 2023-11-30
 

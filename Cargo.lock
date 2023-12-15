@@ -797,6 +797,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93f2635620bf0b9d4576eb7bb9a38a55df78bd1205d26fa994b25911a69f212f"
 dependencies = [
  "bitcoin_hashes",
+ "serde",
+ "unicode-normalization",
+ "zeroize",
 ]
 
 [[package]]
@@ -2597,6 +2600,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "entropy-kvdb"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "chacha20poly1305 0.9.1",
+ "entropy-protocol",
+ "hex",
+ "rand 0.8.5",
+ "rpassword 5.0.1",
+ "scrypt",
+ "serde",
+ "serial_test 0.6.0",
+ "sled",
+ "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synedrion",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "zeroize",
+]
+
+[[package]]
 name = "entropy-protocol"
 version = "0.1.0"
 dependencies = [
@@ -2626,6 +2651,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-derive",
  "wasm-bindgen-futures",
+ "x25519-chacha20poly1305 0.2.1",
  "x25519-dalek 2.0.0",
 ]
 
@@ -2740,12 +2766,111 @@ dependencies = [
  "bincode",
  "clap 4.4.8",
  "colored",
+ "entropy-testing-utils",
  "hex",
  "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "subxt",
- "testing-utils",
  "tokio",
  "x25519-dalek 2.0.0",
+]
+
+[[package]]
+name = "entropy-testing-utils"
+version = "0.0.9"
+dependencies = [
+ "anyhow",
+ "axum",
+ "base64 0.13.1",
+ "blake2",
+ "entropy-kvdb",
+ "entropy-protocol",
+ "entropy-shared",
+ "entropy-tss",
+ "futures",
+ "generic-array 0.14.7",
+ "hex",
+ "hex-literal",
+ "lazy_static",
+ "num",
+ "parity-scale-codec",
+ "project-root",
+ "rand_core 0.6.4",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha3",
+ "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sp-keyring 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "subxt",
+ "synedrion",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.17",
+ "which",
+ "x25519-chacha20poly1305 0.2.0",
+ "x25519-dalek 2.0.0",
+ "zeroize",
+]
+
+[[package]]
+name = "entropy-tss"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-stream",
+ "async-trait",
+ "axum",
+ "axum-macros",
+ "base64 0.13.1",
+ "bincode",
+ "bip39 2.0.0",
+ "blake2",
+ "bytes",
+ "clap 4.4.8",
+ "ec-runtime",
+ "entropy-kvdb",
+ "entropy-protocol",
+ "entropy-shared",
+ "entropy-testing-utils",
+ "futures",
+ "hex",
+ "hex-literal",
+ "hostname",
+ "lazy_static",
+ "more-asserts",
+ "num",
+ "parity-scale-codec",
+ "project-root",
+ "rand_core 0.6.4",
+ "reqwest",
+ "reqwest-eventsource",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "serial_test 0.8.0",
+ "sha1",
+ "sha2 0.10.8",
+ "sha3",
+ "snow",
+ "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sp-keyring 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "subxt",
+ "synedrion",
+ "template-barebones",
+ "thiserror",
+ "tokio",
+ "tokio-tungstenite 0.19.0",
+ "tower-http 0.3.5",
+ "tracing",
+ "tracing-bunyan-formatter",
+ "tracing-loki",
+ "tracing-subscriber 0.3.17",
+ "uuid",
+ "vergen",
+ "x25519-chacha20poly1305 0.2.1",
+ "x25519-dalek 2.0.0",
+ "zeroize",
 ]
 
 [[package]]
@@ -4660,28 +4785,6 @@ dependencies = [
 
 [[package]]
 name = "kvdb"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "chacha20poly1305 0.9.1",
- "entropy-protocol",
- "hex",
- "rand 0.8.5",
- "rpassword 5.0.1",
- "scrypt",
- "serde",
- "serial_test 0.6.0",
- "sled",
- "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "synedrion",
- "thiserror",
- "tokio",
- "tracing",
- "zeroize",
-]
-
-[[package]]
-name = "kvdb"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e7d770dcb02bf6835887c3a979b5107a04ff4bbde97a5f0928d27404a155add9"
@@ -4695,7 +4798,7 @@ version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf7a85fe66f9ff9cd74e169fdd2c94c6e1e74c412c99a73b4df3200b5d3760b2"
 dependencies = [
- "kvdb 0.13.0",
+ "kvdb",
  "parking_lot 0.12.1",
 ]
 
@@ -4705,7 +4808,7 @@ version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b644c70b92285f66bfc2032922a79000ea30af7bc2ab31902992a5dcb9b434f6"
 dependencies = [
- "kvdb 0.13.0",
+ "kvdb",
  "num_cpus",
  "parking_lot 0.12.1",
  "regex",
@@ -8965,7 +9068,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2fd1233dc26dbb9f9bbc1d2cca2c03945d"
 dependencies = [
  "hash-db",
- "kvdb 0.13.0",
+ "kvdb",
  "kvdb-memorydb",
  "kvdb-rocksdb",
  "linked-hash-map",
@@ -10296,66 +10399,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-stream",
- "async-trait",
- "axum",
- "axum-macros",
- "base64 0.13.1",
- "bincode",
- "bip39 0.6.0-beta.1",
- "blake2",
- "bytes",
- "clap 4.4.8",
- "ec-runtime",
- "entropy-protocol",
- "entropy-shared",
- "futures",
- "hex",
- "hex-literal",
- "hostname",
- "kvdb 0.1.0",
- "lazy_static",
- "more-asserts",
- "num",
- "parity-scale-codec",
- "project-root",
- "rand_core 0.6.4",
- "reqwest",
- "reqwest-eventsource",
- "serde",
- "serde_derive",
- "serde_json",
- "serial_test 0.8.0",
- "sha1",
- "sha2 0.10.8",
- "sha3",
- "snow",
- "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sp-keyring 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "subxt",
- "synedrion",
- "template-barebones",
- "testing-utils",
- "thiserror",
- "tokio",
- "tokio-tungstenite 0.19.0",
- "tower-http 0.3.5",
- "tracing",
- "tracing-bunyan-formatter",
- "tracing-loki",
- "tracing-subscriber 0.3.17",
- "uuid",
- "vergen",
- "x25519-chacha20poly1305 0.2.1",
- "x25519-dalek 2.0.0",
- "zeroize",
-]
-
-[[package]]
 name = "sha-1"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11049,7 +11092,7 @@ name = "sp-database"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2fd1233dc26dbb9f9bbc1d2cca2c03945d"
 dependencies = [
- "kvdb 0.13.0",
+ "kvdb",
  "parking_lot 0.12.1",
 ]
 
@@ -12180,8 +12223,9 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 
 [[package]]
 name = "synedrion"
-version = "0.0.12"
-source = "git+ssh://git@github.com/entropyxyz/synedrion.git?tag=release/v0.0.12#aef04ad5cf40db30981354da554e2a529b96af30"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "719bd87aad0150020e25ba8a91e1766c6c67aa2f1b94ce71dba13a3a1bf16b6d"
 dependencies = [
  "base64 0.21.2",
  "bincode",
@@ -12279,45 +12323,6 @@ name = "termtree"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
-
-[[package]]
-name = "testing-utils"
-version = "0.0.9"
-dependencies = [
- "anyhow",
- "axum",
- "base64 0.13.1",
- "blake2",
- "entropy-protocol",
- "entropy-shared",
- "futures",
- "generic-array 0.14.7",
- "hex",
- "hex-literal",
- "kvdb 0.1.0",
- "lazy_static",
- "num",
- "parity-scale-codec",
- "project-root",
- "rand_core 0.6.4",
- "reqwest",
- "serde",
- "serde_json",
- "server",
- "sha3",
- "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sp-keyring 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "subxt",
- "synedrion",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-subscriber 0.3.17",
- "which",
- "x25519-chacha20poly1305 0.2.0",
- "x25519-dalek 2.0.0",
- "zeroize",
-]
 
 [[package]]
 name = "textwrap"

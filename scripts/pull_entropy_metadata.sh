@@ -1,4 +1,2 @@
 #!/bin/bash
-subxt metadata -f bytes > ./crypto/server/entropy_metadata.scale
-
-
+subxt metadata -f bytes > ./crates/server/entropy_metadata.scale

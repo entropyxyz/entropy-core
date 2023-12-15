@@ -37,40 +37,79 @@ use core::marker::PhantomData;
 
 /// Weight functions needed for pallet_programs.
 pub trait WeightInfo {
-	fn update_program() -> Weight;
+	fn set_program() -> Weight;
+	fn remove_program(p: u32) -> Weight;
 }
 
 /// Weights for pallet_programs using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	/// Storage: `Programs::AllowedToModifyProgram` (r:1 w:0)
-	/// Proof: `Programs::AllowedToModifyProgram` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Programs::Bytecode` (r:1 w:1)
 	/// Proof: `Programs::Bytecode` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn update_program() -> Weight {
+	/// Storage: `Programs::OwnedPrograms` (r:1 w:1)
+	/// Proof: `Programs::OwnedPrograms` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn set_program() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `336`
-		//  Estimated: `3801`
-		// Minimum execution time: 29_000_000 picoseconds.
-		Weight::from_parts(29_000_000, 3801)
-			.saturating_add(T::DbWeight::get().reads(2_u64))
-			.saturating_add(T::DbWeight::get().writes(1_u64))
+		//  Measured:  `142`
+		//  Estimated: `3607`
+		// Minimum execution time: 26_000_000 picoseconds.
+		Weight::from_parts(27_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3607))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
+	}
+	/// Storage: `Programs::Bytecode` (r:1 w:1)
+	/// Proof: `Programs::Bytecode` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Programs::OwnedPrograms` (r:1 w:1)
+	/// Proof: `Programs::OwnedPrograms` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `p` is `[0, 25]`.
+	fn remove_program(p: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `326 + p * (32 ±0)`
+		//  Estimated: `3809 + p * (31 ±0)`
+		// Minimum execution time: 26_000_000 picoseconds.
+		Weight::from_parts(26_938_669, 0)
+			.saturating_add(Weight::from_parts(0, 3809))
+			// Standard Error: 47_904
+			.saturating_add(Weight::from_parts(136_174, 0).saturating_mul(p.into()))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
+			.saturating_add(Weight::from_parts(0, 31).saturating_mul(p.into()))
 	}
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-	/// Storage: `Programs::AllowedToModifyProgram` (r:1 w:0)
-	/// Proof: `Programs::AllowedToModifyProgram` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Programs::Bytecode` (r:1 w:1)
 	/// Proof: `Programs::Bytecode` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn update_program() -> Weight {
+	/// Storage: `Programs::OwnedPrograms` (r:1 w:1)
+	/// Proof: `Programs::OwnedPrograms` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn set_program() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `336`
-		//  Estimated: `3801`
-		// Minimum execution time: 29_000_000 picoseconds.
-		Weight::from_parts(29_000_000, 3801)
-			.saturating_add(RocksDbWeight::get().reads(2_u64))
-			.saturating_add(RocksDbWeight::get().writes(1_u64))
+		//  Measured:  `142`
+		//  Estimated: `3607`
+		// Minimum execution time: 26_000_000 picoseconds.
+		Weight::from_parts(27_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3607))
+			.saturating_add(RocksDbWeight::get().reads(2))
+			.saturating_add(RocksDbWeight::get().writes(2))
+	}
+	/// Storage: `Programs::Bytecode` (r:1 w:1)
+	/// Proof: `Programs::Bytecode` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Programs::OwnedPrograms` (r:1 w:1)
+	/// Proof: `Programs::OwnedPrograms` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `p` is `[0, 25]`.
+	fn remove_program(p: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `326 + p * (32 ±0)`
+		//  Estimated: `3809 + p * (31 ±0)`
+		// Minimum execution time: 26_000_000 picoseconds.
+		Weight::from_parts(26_938_669, 0)
+			.saturating_add(Weight::from_parts(0, 3809))
+			// Standard Error: 47_904
+			.saturating_add(Weight::from_parts(136_174, 0).saturating_mul(p.into()))
+			.saturating_add(RocksDbWeight::get().reads(2))
+			.saturating_add(RocksDbWeight::get().writes(2))
+			.saturating_add(Weight::from_parts(0, 31).saturating_mul(p.into()))
 	}
 }

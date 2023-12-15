@@ -76,37 +76,25 @@ An Entropy node binary is required in order to succesfully run the server tests.
 You can manually provide a binary using the `ENTROPY_NODE` environment variable.
 
 ```sh
-ENTROPY_NODE="/path/to/entropy" cargo test -p server
+ENTROPY_NODE="/path/to/entropy" cargo test -p entropy-tss
 ```
 
 Or, if no path is specified using `ENTROPY_NODE`, then the test suite will search in the `target`
 folder for a binary. A debug or release binary will be chosen based on how the test suite is built.
 
-For example, running `cargo test -p server --release` will expect a release binary of the Entropy
+For example, running `cargo test -p entropy-tss --release` will expect a release binary of the Entropy
 node, which you can build in the following way: `cargo build -p entropy --release`.
 
 To run individual tests you can specify the test in the following way:
 
 ```sh
-cargo test -p server --features unsafe -- test_sign_tx_no_chain --nocapture
+cargo test -p entropy-tss --features unsafe -- test_sign_tx_no_chain --nocapture
 ```
 
 ### Connect with Polkadot-JS Apps Front-end
 
 Once the node template is running locally, you can connect it with **Polkadot-JS Apps** front-end
 to interact with your chain. [Click here](https://polkadot.js.org/apps/#/explorer?rpc=ws://localhost:9944) connecting the Apps to your local node template.
-
-## Testnet
-
-- Currently our network requires 2 binaries (`entropy` and `server`)
-- `cargo build --release` will build both
-- To run both you can reference /scripts/sdk-entropy-node.sh for the chain and /scripts/sdk-alice-tss.sh for the threshold client
-
-### Changing Defaults
-
-- All defaults are ready to go out the box but can be changed if needed with varying degrees of difficult
-- To change chain address away from default `ws://127.0.0.1:9944` you need to inform the sig client which can be done with the env variable `export ENDPOINT=`
-- To change the default of the sig client from `http://127.0.0.1:3001/sign` you need to tell the chain after it is running by making an rpc call. Example code can be found [here](https://github.com/entropyxyz/util-scripts/blob/master/setEndpoint.ts). You also need to maintain the route as `/sign`
 
 ## Threshold Keys
 

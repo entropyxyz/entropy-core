@@ -19,7 +19,7 @@
 // --extrinsic=*
 // --steps=50
 // --repeat=20
-// --header=./file_header.txt
+// --header=.maintain/ignore_clippy_header.txt
 // --template
 // .maintain/frame-weight-template.hbs
 // --output=./runtime/src/weights/
