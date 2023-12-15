@@ -21,35 +21,30 @@ allow=[
 # Lint level for licenses considered copyleft
 copyleft="deny"
 
+# If true, ignores workspace crates that aren't published, or are only
+# published to private registries.
+# To see how to mark a crate as unpublished (to the official registry),
+# visit https://doc.rust-lang.org/cargo/reference/manifest.html#the-publish-field.
+private = { ignore = true }
+
 # Each entry is the crate and version constraint, and its specific allow list
 exceptions=[
-  # TODO: All these crates are from our own workspace, there should be a better way to indicate that
-  # these are allowed
-  { allow=["AGPL-3.0"], name="entropy" },
+  # We allow crates that we publish from our own workspace here
   { allow=["AGPL-3.0"], name="entropy-kvdb" },
   { allow=["AGPL-3.0"], name="entropy-protocol" },
-  { allow=["AGPL-3.0"], name="entropy-runtime" },
   { allow=["AGPL-3.0"], name="entropy-shared" },
   { allow=["AGPL-3.0"], name="entropy-test-cli" },
-  { allow=["AGPL-3.0"], name="entropy-testing-utils" },
   { allow=["AGPL-3.0"], name="entropy-tss" },
-  { allow=["AGPL-3.0"], name="helpers" },
-  { allow=["AGPL-3.0"], name="synedrion" },
-  { allow=["AGPL-3.0"], name="pallet-free-tx" },
-  { allow=["AGPL-3.0"], name="pallet-programs" },
-  { allow=["AGPL-3.0"], name="pallet-propagation" },
-  { allow=["AGPL-3.0"], name="pallet-relayer" },
-  { allow=["AGPL-3.0"], name="pallet-slashing" },
-  { allow=["AGPL-3.0"], name="pallet-staking-extension" },
-  { allow=["AGPL-3.0"], name="pallet-transaction-pause" },
 
+  # Other Entropy crates
   { allow=["AGPL-3.0"], name="ec-core" },
   { allow=["AGPL-3.0"], name="ec-runtime" },
+  { allow=["AGPL-3.0"], name="synedrion" },
 
   # These are the only crates using these licenses, put them here instead of globally allowing
   # them
-  { allow=["Unicode-DFS-2016"], name="unicode-ident" },
   { allow=["OpenSSL"], name="ring" },
+  { allow=["Unicode-DFS-2016"], name="unicode-ident" },
 ]
 
 # Some crates don't have (easily) machine readable licensing information,
