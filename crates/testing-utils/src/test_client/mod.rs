@@ -278,7 +278,7 @@ pub async fn update_pointer(
         .create_partial_signed_with_nonce(&update_pointer_tx, nonce.into(), Default::default())
         .unwrap();
     let signer_payload = partial_tx.signer_payload();
-    let signature = pointer_modification_account.sign(&signer_payload).into();
+    let signature = pointer_modification_account.sign(&signer_payload);
 
     let tx = partial_tx.sign_with_address_and_signature(&account_id.into(), &signature);
 

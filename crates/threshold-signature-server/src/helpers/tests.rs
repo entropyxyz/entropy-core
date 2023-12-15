@@ -216,7 +216,7 @@ pub async fn remove_program(
         .create_partial_signed_with_nonce(&remove_program_tx, nonce.into(), Default::default())
         .unwrap();
     let signer_payload = partial_tx.signer_payload();
-    let signature = program_modification_account.sign(&signer_payload).into();
+    let signature = program_modification_account.sign(&signer_payload);
 
     let tx = partial_tx.sign_with_address_and_signature(&account_id.into(), &signature);
     tx.submit_and_watch()

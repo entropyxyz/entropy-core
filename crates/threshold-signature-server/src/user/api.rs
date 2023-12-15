@@ -152,7 +152,7 @@ pub async fn sign_tx(
         return Err(UserErr::NoProgramPointerDefined());
     }
     for program_pointer in &user_details.program_pointers.0 {
-        let program = get_program(&api, &rpc, &program_pointer).await?;
+        let program = get_program(&api, &rpc, program_pointer).await?;
         runtime.evaluate(&program, &signature_request)?;
     }
 
