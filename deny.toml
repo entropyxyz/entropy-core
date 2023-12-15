@@ -15,9 +15,6 @@ allow=[
   "ISC",
   "MIT",
   "MIT-0",
-
-  # TODO: Not sure if this should actually be allowed since its classified as `copyleft`
-  # https://www.gnu.org/licenses/license-list.html#MPL-2.0
   "MPL-2.0",
 ]
 
