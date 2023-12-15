@@ -12,10 +12,11 @@ use entropy_shared::KeyVisibility;
 use entropy_testing_utils::substrate_context::testing_context;
 use rand_core::OsRng;
 use serial_test::serial;
+use sp_core::crypto::AccountId32;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519, Pair},
-    tx::PairSigner,
+    tx::{PairSigner, Signer},
     utils::{AccountId32 as SubxtAccountId32, Static},
     Config, OnlineClient,
 };
@@ -164,6 +165,7 @@ pub async fn spawn_testing_validators(
     (ips, ids, user_keyshare_option)
 }
 
+/// Adds a program to the chain
 pub async fn update_programs(
     entropy_api: &OnlineClient<EntropyConfig>,
     program_modification_account: &sr25519::Pair,
@@ -189,6 +191,43 @@ pub async fn update_programs(
 
     let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>().unwrap();
     result_event.unwrap().program_hash
+}
+
+/// Removes the program at the program hash
+pub async fn remove_program(
+    entropy_api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    program_modification_account: &sr25519::Pair,
+    program_hash: <EntropyConfig as Config>::Hash,
+) {
+    // update/set their programs
+    let remove_program_tx = entropy::tx().programs().remove_program(program_hash);
+    let account_id32: AccountId32 = program_modification_account.public().into();
+    let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
+
+    let program_modification_account =
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_account.clone());
+
+    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    let nonce_call = entropy::apis().account_nonce_api().account_nonce(account_id.clone());
+    let nonce = entropy_api.runtime_api().at(block_hash).call(nonce_call).await.unwrap();
+    let partial_tx = entropy_api
+        .tx()
+        .create_partial_signed_with_nonce(&remove_program_tx, nonce.into(), Default::default())
+        .unwrap();
+    let signer_payload = partial_tx.signer_payload();
+    let signature = program_modification_account.sign(&signer_payload).into();
+
+    let tx = partial_tx.sign_with_address_and_signature(&account_id.into(), &signature);
+    tx.submit_and_watch()
+        .await
+        .unwrap()
+        .wait_for_in_block()
+        .await
+        .unwrap()
+        .wait_for_success()
+        .await
+        .unwrap();
 }
 
 /// Verify that a Registering account has all confirmation, and that it is registered.

@@ -78,8 +78,8 @@ use crate::{
         signing::Hasher,
         substrate::{get_subgroup, return_all_addresses_of_subgroup},
         tests::{
-            check_if_confirmation, create_clients, initialize_test_logger, run_to_block,
-            setup_client, spawn_testing_validators, update_programs,
+            check_if_confirmation, create_clients, initialize_test_logger, remove_program,
+            run_to_block, setup_client, spawn_testing_validators, update_programs,
         },
         user::send_key,
     },
@@ -194,7 +194,7 @@ async fn test_sign_tx_no_chain() {
         &rpc,
         &one.pair(),
         &one.pair(),
-        OtherBoundedVec(vec![program_hash]),
+        OtherBoundedVec(vec![program_hash, program_hash]),
     )
     .await
     .unwrap();
@@ -211,18 +211,6 @@ async fn test_sign_tx_no_chain() {
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
     verify_signature(test_user_res_order, message_hash, keyshare_option.clone()).await;
-
-    generic_msg.timestamp = SystemTime::now();
-    // test failing cases
-    let test_program_pulled =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
-
-    for res in test_program_pulled {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "Not Registering error: Register Onchain first"
-        );
-    }
 
     generic_msg.timestamp = SystemTime::now();
     let test_user_res_not_registered =
@@ -319,6 +307,20 @@ async fn test_sign_tx_no_chain() {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
             "Runtime error: Runtime(Error::Evaluation(\"This program requires that `auxilary_data` be `Some`.\"))"
+        );
+    }
+
+    // program gets removed and errors
+    remove_program(&entropy_api, &rpc, &two.pair(), program_hash).await;
+    generic_msg.timestamp = SystemTime::now();
+    // test failing cases
+    let test_program_pulled =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    for res in test_program_pulled {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            format!("No program set at: {program_hash}")
         );
     }
 
