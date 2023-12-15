@@ -1,3 +1,5 @@
+//! chacha20poly1305 encryption with x25519 key agreement, bundled together with
+//! sr25519 signing.
 #[cfg(feature = "wasm")]
 pub mod wasm;
 
@@ -26,10 +28,8 @@ pub fn derive_static_secret(sk: &sr25519::Pair) -> StaticSecret {
     result
 }
 
-/// Used for signing, encrypting and often sending arbitrary Bytes.
-/// sr25519 is the signature scheme.
-/// Use SignedMessage::new(secret_key, message) to construct
-/// a new signed message.
+/// A sr25519 signed and chacha20poly1305 encrypted payload, together with metadata
+/// identifying the author and recipient.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SignedMessage {
     /// The encrypted message.
