@@ -17,6 +17,7 @@ At the moment this project **does not** adhere to
 - In [#536](https://github.com/entropyxyz/entropy-core/pull/536/), the registered struct no longer holds a program but rather a hash of a program that is set in the set_program function
 - When executing the signing protocol on the client-side, a `sig-uid` no longer needs to be given as
   an argument ([#549](https://github.com/entropyxyz/entropy-core/pull/549))
+- Wasm API to entropy-protocol uses camelCase function names ([#566](https://github.com/entropyxyz/entropy-core/pull/566))
 
 ### Added
 - Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
