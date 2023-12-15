@@ -25,7 +25,7 @@ copyleft="deny"
 # published to private registries.
 # To see how to mark a crate as unpublished (to the official registry),
 # visit https://doc.rust-lang.org/cargo/reference/manifest.html#the-publish-field.
-private = { ignore = true }
+private={ ignore=true }
 
 # Each entry is the crate and version constraint, and its specific allow list
 exceptions=[
