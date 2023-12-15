@@ -4,6 +4,7 @@ use bip39::Mnemonic;
 pub use entropy_protocol::sign_and_encrypt::{
     derive_static_secret, SignedMessage, SignedMessageErr,
 };
+use rand_core::{OsRng, RngCore};
 use subxt::ext::sp_core::{sr25519, Pair};
 
 pub mod errors;
@@ -14,7 +15,7 @@ pub const TIME_BUFFER: Duration = Duration::from_secs(25);
 
 /// Derives a sr25519::Pair from a Mnemonic
 pub fn mnemonic_to_pair(m: &Mnemonic) -> Result<sr25519::Pair, ValidationErr> {
-    Ok(<sr25519::Pair as Pair>::from_phrase(m.phrase(), None)
+    Ok(<sr25519::Pair as Pair>::from_phrase(&m.to_string(), None)
         .map_err(|_| ValidationErr::SecretString("Secret String Error"))?
         .0)
 }
@@ -27,10 +28,12 @@ pub fn check_stale(message_time: SystemTime) -> Result<(), ValidationErr> {
     }
     Ok(())
 }
-#[cfg(test)]
+
 /// Creates a new random Mnemonic.
-pub fn new_mnemonic() -> Mnemonic {
-    Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English)
+pub fn new_mnemonic() -> Result<Mnemonic, bip39::Error> {
+    let mut entropy = [0u8; 32];
+    OsRng.fill_bytes(&mut entropy);
+    Mnemonic::from_entropy(&entropy)
 }
 
 #[cfg(test)]
