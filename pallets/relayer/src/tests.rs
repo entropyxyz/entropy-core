@@ -117,7 +117,7 @@ fn it_confirms_registers_a_user() {
             Error::<Test>::NotInSigningGroup
         );
 
-        assert_eq!(Relayer::registered(1), None);
+        assert!(Relayer::registered(1).is_none());
 
         assert_ok!(Relayer::confirm_register(
             RuntimeOrigin::signed(1),
@@ -136,13 +136,7 @@ fn it_confirms_registers_a_user() {
             Error::<Test>::AlreadyConfirmed
         );
 
-        let registering_info = RegisteringDetails::<
-            <Test as frame_system::Config>::AccountId,
-            ProgramPointers<
-                <Test as frame_system::Config>::Hash,
-                <Test as pallet_relayer::Config>::MaxProgramHashes,
-            >,
-        > {
+        let registering_info = RegisteringDetails::<Test> {
             confirmations: vec![0],
             program_pointers: program_hashes.clone(),
             key_visibility: KeyVisibility::Private([0; 32]),
@@ -202,8 +196,8 @@ fn it_changes_a_program_pointer() {
             program_modification_account: 2,
         };
 
-        Registered::<Test>::insert(1, registered_info.clone());
-        assert_eq!(Relayer::registered(1).unwrap(), registered_info.clone());
+        Registered::<Test>::insert(1, &registered_info);
+        assert_eq!(Relayer::registered(1).unwrap(), registered_info);
 
         assert_ok!(Relayer::change_program_pointer(
             RuntimeOrigin::signed(2),

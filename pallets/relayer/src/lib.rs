@@ -67,14 +67,13 @@ pub mod pallet {
         /// The amount if signing parties that exist onchain
         type SigningPartySize: Get<usize>;
         /// Max amount of programs associated for one account
-        #[pallet::constant]
         type MaxProgramHashes: Get<u32>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
     pub type ProgramPointers<Hash, MaxProgramHashes> = BoundedVec<Hash, MaxProgramHashes>;
 
-    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
         pub program_modification_account: T::AccountId,
@@ -84,7 +83,7 @@ pub mod pallet {
         pub verifying_key: Option<BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>>,
     }
 
-    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteredInfo<T: Config> {
         pub key_visibility: KeyVisibility,
