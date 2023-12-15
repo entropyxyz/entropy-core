@@ -67,8 +67,8 @@ license-files=[
   { path="LICENSE", hash=0xbd0eed23 },
 ]
 
-# TODO: Once https://github.com/entropyxyz/constraints/pull/45 is merge and released we can remove
-# this.
+# TODO (#567): Once we use a release of the Constraints crates which includes the license
+# information we can get rid of this.
 [[licenses.clarify]]
 name         ="ec-core"
 expression   ="AGPL-3.0"
