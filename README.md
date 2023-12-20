@@ -140,5 +140,7 @@ There are some exceptions however:
   `MIT`.
 - The original code of the `runtime` and `node` crates come from Parity's [`Substrate`](https://github.com/paritytech/polkadot-sdk/tree/master/substrate) project, which
   is licensed under `GPL-3.0-or-later WITH Classpath-exception-2.0`.
+- The original code of the `transaction-pause` pallet comes from the [`Acala`](https://github.com/AcalaNetwork/Acala) project, which is
+  is licensed under `GPL-3.0-or-later WITH Classpath-exception-2.0`.
 
 Modifications made by Entropy to these crates are licensed under `AGPL-3.0`.
