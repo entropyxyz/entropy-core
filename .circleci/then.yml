@@ -109,7 +109,9 @@ jobs:
                   yarn
                   cd ../../..
             - run:
-                command: pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
+                command: |
+                    pushd node && cargo build --all-targets --release -j $(nproc) && cargo test --all-targets --release
+                    cargo test -p entropy-tss --release -F wasm_test test_wasm
                 no_output_timeout: 45m
     build-and-release:
         machine:

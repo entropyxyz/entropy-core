@@ -17,16 +17,16 @@
 
 use std::{fs, path::PathBuf};
 
-use bip39::{Language, Mnemonic, MnemonicType};
+use bip39::{Language, Mnemonic};
 use clap::Parser;
 use entropy_kvdb::{
     encrypted_sled::PasswordMethod,
     kv_manager::{error::KvError, KvManager},
 };
 use serde::Deserialize;
-use subxt::ext::sp_core::{crypto::AccountId32, sr25519, Pair};
+use subxt::ext::sp_core::{crypto::AccountId32, Pair};
 
-use crate::validation::{derive_static_secret, mnemonic_to_pair};
+use crate::validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic};
 
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
@@ -64,7 +64,10 @@ impl Configuration {
     }
 }
 
-pub async fn load_kv_store(validator_name: &Option<ValidatorName>, no_password: bool) -> KvManager {
+pub async fn load_kv_store(
+    validator_name: &Option<ValidatorName>,
+    password_path: Option<PathBuf>,
+) -> KvManager {
     let mut root: PathBuf = PathBuf::from(entropy_kvdb::get_db_path(false));
     if cfg!(test) {
         return KvManager::new(
@@ -80,11 +83,15 @@ pub async fn load_kv_store(validator_name: &Option<ValidatorName>, no_password: 
     if validator_name == &Some(ValidatorName::Alice) {
         return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     };
-    // TODO remove and force password
-    if no_password {
-        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
-    }
-    let password = PasswordMethod::Prompt.execute().unwrap();
+
+    let password = if let Some(password_path) = password_path {
+        String::from_utf8(fs::read(password_path).expect("error reading password file"))
+            .expect("failed to convert password to string")
+            .into()
+    } else {
+        PasswordMethod::Prompt.execute().unwrap()
+    };
+
     // this step takes a long time due to password-based decryption
     KvManager::new(root, password).unwrap()
 }
@@ -125,13 +132,13 @@ pub struct StartupArgs {
     #[arg(long = "nocapture")]
     pub nocapture: bool,
 
-    /// TODO remove and force password
-    #[arg(long = "nopassword")]
-    pub no_password: bool,
-
     /// The configuration settings around logging.
     #[clap(flatten)]
     pub logger: crate::helpers::logger::Instrumentation,
+
+    /// The path to a password file
+    #[arg(short = 'f', long = "password_file")]
+    pub password_file: Option<PathBuf>,
 }
 
 pub async fn setup_mnemonic(
@@ -141,27 +148,27 @@ pub async fn setup_mnemonic(
     // Check if a mnemonic exists in the kvdb.
     let exists_result = kv.kv().exists(FORBIDDEN_KEYS[0]).await.expect("issue querying DB");
     if !exists_result {
-        // Generate a new mnemonic
-        let mut mnemonic = Mnemonic::new(MnemonicType::Words24, Language::English);
-        // If using a test configuration then set to the default mnemonic.
-        if cfg!(test) {
-            mnemonic = Mnemonic::from_phrase(DEFAULT_MNEMONIC, Language::English)
-                .expect("Issue creating Mnemonic");
+        let mnemonic = match validator_name {
+            Some(some_validator_name) => Mnemonic::parse_in_normalized(
+                Language::English,
+                match some_validator_name {
+                    ValidatorName::Alice => DEFAULT_ALICE_MNEMONIC,
+                    ValidatorName::Bob => DEFAULT_BOB_MNEMONIC,
+                    ValidatorName::Charlie => DEFAULT_CHARLIE_MNEMONIC,
+                },
+            ),
+            None => {
+                // If using a test configuration then set to the default mnemonic
+                if cfg!(test) {
+                    Mnemonic::parse_in_normalized(Language::English, DEFAULT_MNEMONIC)
+                } else {
+                    new_mnemonic()
+                }
+            },
         }
-        if validator_name == &Some(ValidatorName::Alice) {
-            mnemonic = Mnemonic::from_phrase(DEFAULT_ALICE_MNEMONIC, Language::English)
-                .expect("Issue creating Mnemonic");
-        }
-        if validator_name == &Some(ValidatorName::Bob) {
-            mnemonic = Mnemonic::from_phrase(DEFAULT_BOB_MNEMONIC, Language::English)
-                .expect("Issue creating Mnemonic");
-        }
-        if validator_name == &Some(ValidatorName::Charlie) {
-            mnemonic = Mnemonic::from_phrase(DEFAULT_CHARLIE_MNEMONIC, Language::English)
-                .expect("Issue creating Mnemonic");
-        }
+        .expect("Issue creating Mnemonic");
 
-        let phrase = mnemonic.phrase();
+        let phrase = mnemonic.to_string();
         let pair = mnemonic_to_pair(&mnemonic).expect("Issue deriving Mnemonic");
         let static_secret = derive_static_secret(&pair);
         let dh_public = x25519_dalek::PublicKey::from(&static_secret);
@@ -192,9 +199,7 @@ pub async fn setup_mnemonic(
         fs::write(".entropy/public_key", formatted_dh_public)
             .expect("Failed to write public key file");
 
-        let p = <sr25519::Pair as Pair>::from_phrase(phrase, None)
-            .expect("Issue getting pair from mnemonic");
-        let id = AccountId32::new(p.0.public().0);
+        let id = AccountId32::new(pair.public().0);
 
         fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
 

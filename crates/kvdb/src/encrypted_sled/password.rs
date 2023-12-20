@@ -34,6 +34,12 @@ impl AsRef<[u8]> for Password {
     }
 }
 
+impl From<String> for Password {
+    fn from(string: String) -> Self {
+        Self(string)
+    }
+}
+
 pub struct PasswordSalt([u8; 32]);
 
 impl AsRef<[u8]> for PasswordSalt {

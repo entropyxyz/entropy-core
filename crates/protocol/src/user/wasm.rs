@@ -24,7 +24,7 @@ use super::{user_participates_in_dkg_protocol, user_participates_in_signing_prot
 use crate::KeyParams;
 
 /// Run the DKG protocol on the client side and return a keyshare
-#[cfg_attr(feature = "wasm", wasm_bindgen)]
+#[cfg_attr(feature = "wasm", wasm_bindgen(js_name = runDkgProtocol))]
 pub async fn run_dkg_protocol(
     validators_info_js: ValidatorInfoArray,
     user_signing_secret_key: Vec<u8>,
@@ -42,7 +42,7 @@ pub async fn run_dkg_protocol(
 
 /// Run the signing protocol on the client side
 /// Returns a recoverable signature as a base64 encoded string
-#[cfg_attr(feature = "wasm", wasm_bindgen)]
+#[cfg_attr(feature = "wasm", wasm_bindgen(js_name = runSigningProtocol))]
 pub async fn run_signing_protocol(
     key_share: KeyShare,
     message_hash: Vec<u8>,
@@ -77,7 +77,7 @@ extern "C" {
 /// Details of a validator intended for use on JS
 /// This differs from [crate::ValidatorInfo] only in that the fields must be private
 #[derive(TryFromJsValue)]
-#[wasm_bindgen]
+#[wasm_bindgen(inspectable)]
 #[derive(Clone)]
 pub struct ValidatorInfo {
     x25519_public_key: [u8; 32],
@@ -151,7 +151,7 @@ fn parse_validator_info(
 
 /// Synedrion key share wrapped for wasm
 #[derive(TryFromJsValue)]
-#[wasm_bindgen]
+#[wasm_bindgen(inspectable)]
 #[derive(Clone)]
 pub struct KeyShare(synedrion::KeyShare<KeyParams>);
 

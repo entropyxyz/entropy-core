@@ -94,9 +94,10 @@ async fn test_sync_kvdb() {
         "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
     ];
 
-    let b_usr_sk =
-        mnemonic_to_pair(&Mnemonic::from_phrase(DEFAULT_BOB_MNEMONIC, Language::English).unwrap())
-            .unwrap();
+    let b_usr_sk = mnemonic_to_pair(
+        &Mnemonic::parse_in_normalized(Language::English, DEFAULT_BOB_MNEMONIC).unwrap(),
+    )
+    .unwrap();
     let b_usr_ss = derive_static_secret(&b_usr_sk);
     let recip = PublicKey::from(&b_usr_ss);
     let values = vec![vec![10], vec![11], vec![12]];
@@ -127,7 +128,7 @@ async fn test_sync_kvdb() {
     assert_eq!(result.status(), 200);
 
     let a_usr_sk = mnemonic_to_pair(
-        &Mnemonic::from_phrase(DEFAULT_ALICE_MNEMONIC, Language::English).unwrap(),
+        &Mnemonic::parse_in_normalized(Language::English, DEFAULT_ALICE_MNEMONIC).unwrap(),
     )
     .unwrap();
     let a_usr_ss = derive_static_secret(&a_usr_sk);
@@ -165,7 +166,7 @@ async fn test_sync_kvdb() {
     assert_eq!(result_3.text().await.unwrap(), "Validator not in subgroup");
 
     // check random key fails not in subgroup
-    let random_usr_sk = mnemonic_to_pair(&new_mnemonic()).unwrap();
+    let random_usr_sk = mnemonic_to_pair(&new_mnemonic().unwrap()).unwrap();
 
     let enc_keys =
         SignedMessage::new(&random_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip)
