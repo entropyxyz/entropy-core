@@ -1,0 +1,25 @@
+name: Srtool build
+
+on: push
+
+jobs:
+  srtool:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chain: ["entropy"]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Srtool build
+        id: srtool_build
+        uses: chevdor/srtool-actions@v0.8.0
+        with:
+          chain: ${{ matrix.chain }}
+          runtime_dir: runtime
+      - name: Summary
+        run: |
+          echo Summary:
+          echo - version: ${{ steps.srtool_build.outputs.version }}
+          echo - info: ${{ steps.srtool_build.outputs.info }}
+          echo - prop: ${{ steps.srtool_build.outputs.proposal_hash }}
+          echo - json: ${{ steps.srtool_build.outputs.json }}
