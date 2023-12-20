@@ -16,6 +16,7 @@ jobs:
         with:
           chain: ${{ matrix.chain }}
           runtime_dir: runtime
+          workdir: node/cli
       - name: Summary
         run: |
           echo Summary:
