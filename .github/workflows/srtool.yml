@@ -14,7 +14,7 @@ jobs:
         id: srtool_build
         uses: chevdor/srtool-actions@v0.8.0
         env:
-          BUILD_OPTS: "--exclude entropy-tss entropy-kvdb entropy-protocol entropy-testing-utils entropy-test-cli"
+          BUILD_OPTS: "--exclude entropy-tss --exclude entropy-kvdb --exclude entropy-protocol --exclude entropy-testing-utils --exclude entropy-test-cli"
         with:
           chain: ${{ matrix.chain }}
           runtime_dir: runtime
