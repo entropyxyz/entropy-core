@@ -10,14 +10,11 @@ jobs:
         chain: ["entropy"]
     steps:
       - uses: actions/checkout@v3
-      - name: Prepare for Srtool
-        run: |
-            mv crates crates_dont_build
-            mkdir crates
-            mv crates_dont_build/shared crates/.
       - name: Srtool build
         id: srtool_build
         uses: chevdor/srtool-actions@v0.8.0
+        env:
+          BUILD_OPTS: "--exclude entropy-tss entropy-kvdb entropy-protocol entropy-testing-utils entropy-test-cli"
         with:
           chain: ${{ matrix.chain }}
           runtime_dir: runtime
