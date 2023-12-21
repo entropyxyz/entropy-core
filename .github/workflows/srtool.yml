@@ -10,6 +10,11 @@ jobs:
         chain: ["entropy"]
     steps:
       - uses: actions/checkout@v3
+      - name: Prepare for Srtool
+        run: |
+            mv crates crates_dont_build
+            mkdir crates
+            mv crates_dont_build/shared crates/.
       - name: Srtool build
         id: srtool_build
         uses: chevdor/srtool-actions@v0.8.0
