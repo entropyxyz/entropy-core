@@ -1,5 +1,8 @@
+#![cfg(feature = "wasm_test")]
 //! Integration tests which use a nodejs process to test wasm bindings to the entropy-protocol
-//! client functions
+//! client functions.
+//!
+//! These tests require additional build steps and are not run by default.
 mod helpers;
 use axum::http::StatusCode;
 use entropy_kvdb::clean_tests;
