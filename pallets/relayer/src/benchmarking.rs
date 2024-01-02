@@ -56,15 +56,17 @@ pub fn add_non_syncing_validators<T: Config>(
 
 benchmarks! {
   register {
+    let p in 0 .. T::MaxProgramHashes::get();
     let program = vec![0u8];
     let program_hash = T::Hashing::hash(&program);
-    let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
+    let program_hashes = vec![program_hash; p as usize];
+    let bounded_program_hashes = BoundedVec::try_from(program_hashes).unwrap();
     let program_modification_account: T::AccountId = whitelisted_caller();
     Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, program_modification_account: program_modification_account.clone()});
     let sig_req_account: T::AccountId = whitelisted_caller();
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
-  }: _(RawOrigin::Signed(sig_req_account.clone()), program_modification_account, KeyVisibility::Public, program_hashes)
+  }: _(RawOrigin::Signed(sig_req_account.clone()), program_modification_account, KeyVisibility::Public, bounded_program_hashes)
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
     assert!(Registering::<T>::contains_key(sig_req_account));
@@ -91,13 +93,15 @@ benchmarks! {
   }
 
   change_program_pointer {
+    let p in 0 .. T::MaxProgramHashes::get();
     let program_modification_account: T::AccountId = whitelisted_caller();
     let program = vec![0u8];
     let program_hash = T::Hashing::hash(&program);
     let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
     let new_program = vec![1u8];
     let new_program_hash = T::Hashing::hash(&new_program);
-    let new_program_hashes = BoundedVec::try_from(vec![new_program_hash]).unwrap();
+    let new_program_hashes = vec![new_program_hash; p as usize];
+    let new_bounded_program_hashes = BoundedVec::try_from(new_program_hashes).unwrap();
     let sig_req_account: T::AccountId = whitelisted_caller();
     Programs::<T>::insert(new_program_hash, ProgramInfo {bytecode: new_program, program_modification_account: program_modification_account.clone()});
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
@@ -111,9 +115,9 @@ benchmarks! {
             key_visibility: KeyVisibility::Public,
         },
     );
-  }: _(RawOrigin::Signed(sig_req_account.clone()), sig_req_account.clone(), new_program_hashes.clone())
+  }: _(RawOrigin::Signed(sig_req_account.clone()), sig_req_account.clone(), new_bounded_program_hashes.clone())
   verify {
-    assert_last_event::<T>(Event::ProgramPointerChanged(sig_req_account.clone(), new_program_hashes).into());
+    assert_last_event::<T>(Event::ProgramPointerChanged(sig_req_account.clone(), new_bounded_program_hashes).into());
   }
 
   confirm_register_registering {

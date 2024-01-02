@@ -15,8 +15,7 @@ use sp_runtime::{
 
 use crate as pallet_relayer;
 use crate::{
-    mock::*, Error, ProgramPointers, Registered, RegisteredInfo, RegisteringDetails,
-    ValidateConfirmRegistered,
+    mock::*, Error, Registered, RegisteredInfo, RegisteringDetails, ValidateConfirmRegistered,
 };
 
 #[test]
