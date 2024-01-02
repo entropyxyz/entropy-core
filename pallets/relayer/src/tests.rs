@@ -99,7 +99,7 @@ fn it_confirms_registers_a_user() {
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Private([0; 32]),
-            program_hash.clone(),
+            program_hash,
         ));
 
         assert_noop!(
@@ -135,7 +135,7 @@ fn it_confirms_registers_a_user() {
 
         let registering_info = RegisteringDetails::<Test> {
             confirmations: vec![0],
-            program_pointer: program_hash.clone(),
+            program_pointer: program_hash,
             key_visibility: KeyVisibility::Private([0; 32]),
             verifying_key: Some(expected_verifying_key.clone()),
             program_modification_account: 2,
@@ -249,7 +249,7 @@ fn it_doesnt_allow_double_registering() {
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Permissioned,
-            program_hash.clone(),
+            program_hash,
         ));
 
         // error if they try to submit another request, even with a different program key

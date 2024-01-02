@@ -6,7 +6,7 @@ use entropy_protocol::{
     KeyParams, SessionId, ValidatorInfo,
 };
 use entropy_shared::{HashingAlgorithm, KeyVisibility, SETUP_TIMEOUT_SECONDS};
-use parity_scale_codec::Encode;
+
 use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::{Digest as Sha256Digest, Sha256};
 use sha3::{Digest as Sha3Digest, Keccak256, Sha3_256};

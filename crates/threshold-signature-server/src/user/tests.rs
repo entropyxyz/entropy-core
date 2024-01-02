@@ -413,7 +413,6 @@ async fn test_fail_signing_group() {
         update_programs(&entropy_api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
     update_pointer(&entropy_api, &dave.pair(), &dave.pair(), program_hash).await.unwrap();
 
-
     let generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
         auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
@@ -429,8 +428,6 @@ async fn test_fail_signing_group() {
         &server_public_key,
     )
     .unwrap();
-
-
 
     let mock_client = reqwest::Client::new();
     let response = mock_client
