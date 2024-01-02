@@ -18,6 +18,7 @@ At the moment this project **does not** adhere to
 - When executing the signing protocol on the client-side, a `sig-uid` no longer needs to be given as
   an argument ([#549](https://github.com/entropyxyz/entropy-core/pull/549))
 - Wasm API to entropy-protocol uses camelCase function names ([#566](https://github.com/entropyxyz/entropy-core/pull/566))
+- Register and change program pointer interface changed to accept a vecotor of programs ([#568](https://github.com/entropyxyz/entropy-core/pull/568))
 
 ### Added
 - Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
@@ -28,6 +29,7 @@ At the moment this project **does not** adhere to
 - Protocol sessions are now identified by a `SessionID` type rather than a `String`
   ([#549](https://github.com/entropyxyz/entropy-core/pull/549))
 - Change bip39 implementation ([#562](https://github.com/entropyxyz/entropy-core/pull/562))
+- Additive programs ([#568](https://github.com/entropyxyz/entropy-core/pull/568))
 
 ### Added
 
