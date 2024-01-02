@@ -220,6 +220,15 @@ fn it_changes_a_program_pointer() {
             ),
             Error::<Test>::ProgramDoesNotExist
         );
+
+        assert_noop!(
+            Relayer::change_program_pointer(
+                RuntimeOrigin::signed(2),
+                1,
+                BoundedVec::try_from(vec![]).unwrap(),
+            ),
+            Error::<Test>::NoProgramSet
+        );
     });
 }
 
@@ -315,6 +324,21 @@ fn it_fails_no_program() {
                 program_hashes
             ),
             Error::<Test>::ProgramDoesNotExist
+        );
+    });
+}
+
+#[test]
+fn it_fails_empty_program_list() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            Relayer::register(
+                RuntimeOrigin::signed(1),
+                2,
+                KeyVisibility::Permissioned,
+                BoundedVec::try_from(vec![]).unwrap(),
+            ),
+            Error::<Test>::NoProgramSet
         );
     });
 }

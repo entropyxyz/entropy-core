@@ -181,6 +181,7 @@ pub mod pallet {
         NoVerifyingKey,
         NotAuthorized,
         ProgramDoesNotExist,
+        NoProgramSet,
     }
 
     #[pallet::call]
@@ -210,7 +211,7 @@ pub mod pallet {
                 !Registering::<T>::contains_key(&sig_req_account),
                 Error::<T>::AlreadySubmitted
             );
-
+            ensure!(!program_pointers.is_empty(), Error::<T>::NoProgramSet);
             let block_number = <frame_system::Pallet<T>>::block_number();
             // check programs exists
             for program_pointer in &program_pointers {
@@ -269,6 +270,7 @@ pub mod pallet {
             new_program_pointers: ProgramPointers<T::Hash, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+            ensure!(!new_program_pointers.is_empty(), Error::<T>::NoProgramSet);
             // check programs exists
             for program_pointer in &new_program_pointers {
                 ensure!(
