@@ -389,9 +389,11 @@ async fn test_fail_signing_group() {
     clean_tests();
 
     let dave = AccountKeyring::Dave;
+    let eve = AccountKeyring::Eve;
     let _ = spawn_testing_validators(None, false).await;
 
-    let _substrate_context = test_node_process_testing_state(false).await;
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -406,6 +408,11 @@ async fn test_fail_signing_group() {
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
     ];
+
+    let program_hash =
+        update_programs(&entropy_api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
+    update_pointer(&entropy_api, &dave.pair(), &dave.pair(), program_hash).await.unwrap();
+
 
     let generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
@@ -422,6 +429,8 @@ async fn test_fail_signing_group() {
         &server_public_key,
     )
     .unwrap();
+
+
 
     let mock_client = reqwest::Client::new();
     let response = mock_client
