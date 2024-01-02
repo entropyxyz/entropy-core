@@ -194,14 +194,14 @@ pub mod pallet {
         /// network.
         #[pallet::call_index(0)]
         #[pallet::weight({
-            <T as Config>::WeightInfo::register()
+            <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
         })]
         pub fn register(
             origin: OriginFor<T>,
             program_modification_account: T::AccountId,
             key_visibility: KeyVisibility,
             program_pointers: ProgramPointers<T::Hash, T::MaxProgramHashes>,
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let sig_req_account = ensure_signed(origin)?;
 
             // Ensure account isn't already registered or has existing programs
@@ -231,7 +231,7 @@ pub mod pallet {
                 RegisteringDetails::<T> {
                     program_modification_account,
                     confirmations: vec![],
-                    program_pointers,
+                    program_pointers: program_pointers.clone(),
                     key_visibility,
                     verifying_key: None,
                 },
@@ -242,7 +242,7 @@ pub mod pallet {
 
             Self::deposit_event(Event::SignalRegister(sig_req_account));
 
-            Ok(())
+            Ok(Some(<T as Config>::WeightInfo::register(program_pointers.len() as u32)).into())
         }
 
         /// Allows a user to remove themselves from registering state if it has been longer than prune block
@@ -261,13 +261,13 @@ pub mod pallet {
         /// Allows a user's program modification account to change their program pointer
         #[pallet::call_index(2)]
         #[pallet::weight({
-             <T as Config>::WeightInfo::change_program_pointer()
+             <T as Config>::WeightInfo::change_program_pointer(<T as Config>::MaxProgramHashes::get())
          })]
         pub fn change_program_pointer(
             origin: OriginFor<T>,
             sig_request_account: T::AccountId,
             new_program_pointers: ProgramPointers<T::Hash, T::MaxProgramHashes>,
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             // check programs exists
             for program_pointer in &new_program_pointers {
@@ -289,8 +289,11 @@ pub mod pallet {
                         Err(Error::<T>::NotRegistered)
                     }
                 })?;
-            Self::deposit_event(Event::ProgramPointerChanged(who, program_pointers));
-            Ok(())
+            Self::deposit_event(Event::ProgramPointerChanged(who, program_pointers.clone()));
+            Ok(Some(<T as Config>::WeightInfo::change_program_pointer(
+                program_pointers.len() as u32
+            ))
+            .into())
         }
 
         /// Allows validators to confirm that they have received a key-share from a user that is
