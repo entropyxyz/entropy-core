@@ -1,9 +1,27 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #![cfg(feature = "wasm_test")]
+
 //! Integration tests which use a nodejs process to test wasm bindings to the entropy-protocol
 //! client functions.
 //!
 //! These tests require additional build steps and are not run by default.
+
 mod helpers;
+
 use axum::http::StatusCode;
 use entropy_kvdb::clean_tests;
 use entropy_protocol::{KeyParams, ValidatorInfo};
