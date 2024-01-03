@@ -18,28 +18,12 @@ use entropy_testing_utils::{
     tss_server_process::spawn_testing_validators,
 };
 use futures::future::join_all;
-use futures::future::join_all;
 use futures::future::{self};
-use futures::future::{self};
-use kvdb::clean_tests;
-use parity_scale_codec::Encode;
 use parity_scale_codec::Encode;
 use serde::{Deserialize, Serialize};
-use serde::{Deserialize, Serialize};
-use serial_test::serial;
 use serial_test::serial;
 use sp_core::crypto::{AccountId32, Pair, Ss58Codec};
-use sp_core::{
-    crypto::{AccountId32, Pair, Ss58Codec},
-    sr25519::Signature,
-    Bytes,
-};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use std::{
-    thread,
-    time::{Duration, SystemTime},
-};
 use std::{
     thread,
     time::{Duration, SystemTime},
@@ -50,8 +34,6 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, H256},
     Config, OnlineClient,
 };
-use subxt::{backend::legacy::LegacyRpcMethods, Config, OnlineClient};
-use synedrion::KeyShare;
 use synedrion::KeyShare;
 use x25519_dalek::PublicKey;
 
