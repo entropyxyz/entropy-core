@@ -1188,9 +1188,11 @@ async fn test_fail_inifinite_program() {
 
     let test_infinite_loop =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-
+    let mut i = 1;
     for res in test_infinite_loop {
-        assert!(res.is_err());
+        // TODO find a better way to get the proper error message, should be wasm timeout message
+        assert_eq!(res.unwrap_err().to_string(), format!("error sending request for url (http://127.0.0.1:300{i}/user/sign_tx): connection closed before message completed").to_string());
+        i += 1;
     }
 }
 
