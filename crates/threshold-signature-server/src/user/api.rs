@@ -137,6 +137,23 @@ pub async fn sign_tx(
     let signature_request = SignatureRequest { message, auxilary_data };
     runtime.evaluate(&program, &signature_request)?;
 
+    // We decided to do Keccak for subgroup selection for frontend compatability
+    let message_hash_keccak = compute_hash(
+        &HashingAlgorithm::Keccak,
+        &mut runtime,
+        program.as_slice(),
+        signature_request.message.as_slice(),
+    )?;
+    let message_hash_keccak_hex = hex::encode(message_hash_keccak);
+
+    let subgroup_signers =
+        get_current_subgroup_signers(&api, &rpc, &message_hash_keccak_hex).await?;
+    check_signing_group(&subgroup_signers, &user_sig_req.validators_info, signer.account_id())?;
+
+    // Use the validator info from chain as we can be sure it is in the correct order and the
+    // details are correct
+    user_sig_req.validators_info = subgroup_signers;
+
     let message_hash = compute_hash(
         &user_sig_req.hash,
         &mut runtime,
@@ -144,12 +161,6 @@ pub async fn sign_tx(
         signature_request.message.as_slice(),
     )?;
     let message_hash_hex = hex::encode(message_hash);
-    let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &message_hash_hex).await?;
-    check_signing_group(&subgroup_signers, &user_sig_req.validators_info, signer.account_id())?;
-
-    // Use the validator info from chain as we can be sure it is in the correct order and the
-    // details are correct
-    user_sig_req.validators_info = subgroup_signers;
 
     let signing_session_id = SigningSessionInfo {
         account_id: SubxtAccountId32(*signed_msg.account_id().as_ref()),
