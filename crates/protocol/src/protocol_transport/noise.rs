@@ -205,7 +205,7 @@ mod tests {
             noise_handshake_initiator(
                 MockWsConnection::new(alice_tx, bob_rx),
                 &alice_sk,
-                bob_pk.as_bytes().clone(),
+                *bob_pk.as_bytes(),
                 Vec::new(),
             ),
             noise_handshake_responder(MockWsConnection::new(bob_tx, alice_rx), &bob_sk),
@@ -236,7 +236,7 @@ mod tests {
             noise_handshake_initiator(
                 MockWsConnection::new(alice_tx, bob_rx),
                 &alice_sk,
-                bob_pk.as_bytes().clone(),
+                *bob_pk.as_bytes(),
                 Vec::new(),
             ),
             noise_handshake_responder(MockWsConnection::new(bob_tx, alice_rx), &bob_sk),

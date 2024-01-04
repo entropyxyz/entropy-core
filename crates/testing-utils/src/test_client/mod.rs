@@ -16,6 +16,7 @@
 //! Simple test client
 pub use crate::chain_api::{get_api, get_rpc};
 pub use entropy_protocol::KeyParams;
+use entropy_shared::HashingAlgorithm;
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 pub use synedrion::KeyShare;
 pub use x25519_chacha20poly1305::derive_static_secret;
@@ -148,6 +149,7 @@ pub async fn sign(
         auxilary_data: auxilary_data.map(hex::encode),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
+        hash: HashingAlgorithm::Keccak,
     };
 
     let signature_request_vec = serde_json::to_vec(&signature_request)?;

@@ -884,9 +884,9 @@ dependencies = [
 
 [[package]]
 name = "blake3"
-version = "1.4.1"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "199c42ab6972d92c9f8995f086273d25c42fc0f7b2a1fcefba465c1352d25ba5"
+checksum = "0231f06152bf547e9c2b5194f247cd97aacf6dcd8b15d8e5ec0663f64580da87"
 dependencies = [
  "arrayref",
  "arrayvec 0.7.4",
@@ -2369,11 +2369,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ec-core"
+version = "0.1.0"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.5.0#60ef356c5196d307e2406d811448841dd610be62"
+dependencies = [
+ "getrandom 0.2.10",
+ "serde",
+ "wit-bindgen",
+ "witgen",
+]
+
+[[package]]
 name = "ec-runtime"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.4.0#52c1c84728e190950c83d05eecd3578cd9ca7235"
+source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.5.0#60ef356c5196d307e2406d811448841dd610be62"
 dependencies = [
- "ec-core",
+ "ec-core 0.1.0 (git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.5.0)",
  "thiserror",
  "wasmtime 12.0.1",
 ]
@@ -2838,6 +2849,8 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serial_test 0.8.0",
+ "sha1",
+ "sha2 0.10.8",
  "sha3",
  "snow",
  "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4758,7 +4771,7 @@ dependencies = [
  "ecdsa 0.16.9",
  "elliptic-curve 0.13.7",
  "once_cell 1.18.0",
- "sha2 0.10.7",
+ "sha2 0.10.8",
 ]
 
 [[package]]
@@ -4978,7 +4991,7 @@ dependencies = [
  "multihash",
  "quick-protobuf",
  "rand 0.8.5",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "thiserror",
  "zeroize",
 ]
@@ -5003,7 +5016,7 @@ dependencies = [
  "log",
  "quick-protobuf",
  "rand 0.8.5",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "smallvec 1.11.0",
  "thiserror",
  "uint",
@@ -5061,7 +5074,7 @@ dependencies = [
  "once_cell 1.18.0",
  "quick-protobuf",
  "rand 0.8.5",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "snow",
  "static_assertions",
  "thiserror",
@@ -5799,7 +5812,7 @@ dependencies = [
  "core2",
  "digest 0.10.7",
  "multihash-derive",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "sha3",
  "unsigned-varint",
 ]
@@ -6283,7 +6296,7 @@ checksum = "51f44edd08f51e2ade572f141051021c5af22677e42b7dd28a88155151c33594"
 dependencies = [
  "ecdsa 0.14.8",
  "elliptic-curve 0.12.3",
- "sha2 0.10.7",
+ "sha2 0.10.8",
 ]
 
 [[package]]
@@ -6294,7 +6307,7 @@ checksum = "dfc8c5bf642dde52bb9e87c0ecd8ca5a76faac2eeed98dedb7c717997e1080aa"
 dependencies = [
  "ecdsa 0.14.8",
  "elliptic-curve 0.12.3",
- "sha2 0.10.7",
+ "sha2 0.10.8",
 ]
 
 [[package]]
@@ -7591,7 +7604,7 @@ checksum = "a01f71cb40bd8bb94232df14b946909e14660e33fc05db3e50ae2a82d7ea0ca0"
 dependencies = [
  "once_cell 1.18.0",
  "pest",
- "sha2 0.10.7",
+ "sha2 0.10.8",
 ]
 
 [[package]]
@@ -10105,7 +10118,7 @@ dependencies = [
  "password-hash",
  "pbkdf2 0.12.2",
  "salsa20",
- "sha2 0.10.7",
+ "sha2 0.10.8",
 ]
 
 [[package]]
@@ -10400,9 +10413,9 @@ dependencies = [
 
 [[package]]
 name = "sha1"
-version = "0.10.5"
+version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f04293dc80c3993519f2d7f6f511707ee7094fe0c6d3406feb330cdb3540eba3"
+checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
 dependencies = [
  "cfg-if",
  "cpufeatures",
@@ -10436,9 +10449,9 @@ dependencies = [
 
 [[package]]
 name = "sha2"
-version = "0.10.7"
+version = "0.10.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "479fb9d862239e610720565ca91403019f2f00410f1864c5aa7479b950a76ed8"
+checksum = "793db75ad2bcafc3ffa7c68b215fee268f537982cd901d132f89c6343f3a3dc8"
 dependencies = [
  "cfg-if",
  "cpufeatures",
@@ -10631,7 +10644,7 @@ dependencies = [
  "schnorrkel 0.10.2",
  "serde",
  "serde_json",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "siphasher",
  "slab",
  "smallvec 1.11.0",
@@ -10691,7 +10704,7 @@ dependencies = [
  "rand_core 0.6.4",
  "ring 0.17.5",
  "rustc_version 0.4.0",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "subtle 2.4.1",
 ]
 
@@ -11045,7 +11058,7 @@ dependencies = [
  "blake2b_simd",
  "byteorder",
  "digest 0.10.7",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "sha3",
  "sp-std 8.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "twox-hash",
@@ -11059,7 +11072,7 @@ dependencies = [
  "blake2b_simd",
  "byteorder",
  "digest 0.10.7",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "sha3",
  "twox-hash",
 ]
@@ -12224,7 +12237,7 @@ dependencies = [
  "k256",
  "rand_core 0.6.4",
  "serde",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "sha3",
  "signature 2.1.0",
 ]
@@ -12293,7 +12306,7 @@ name = "template-barebones"
 version = "0.1.0"
 source = "git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.4.0#52c1c84728e190950c83d05eecd3578cd9ca7235"
 dependencies = [
- "ec-core",
+ "ec-core 0.1.0 (git+ssh://git@github.com/entropyxyz/constraints.git?tag=v0.4.0)",
 ]
 
 [[package]]
@@ -12453,7 +12466,7 @@ dependencies = [
  "pbkdf2 0.11.0",
  "rand 0.8.5",
  "rustc-hash",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "thiserror",
  "unicode-normalization",
  "wasm-bindgen",
@@ -13054,7 +13067,7 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "digest 0.10.7",
- "rand 0.8.5",
+ "rand 0.6.5",
  "static_assertions",
 ]
 
@@ -13694,7 +13707,7 @@ dependencies = [
  "log",
  "rustix 0.36.15",
  "serde",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "toml 0.5.11",
  "windows-sys 0.45.0",
  "zstd 0.11.2+zstd.1.5.2",
@@ -13714,7 +13727,7 @@ dependencies = [
  "log",
  "rustix 0.38.19",
  "serde",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "toml 0.5.11",
  "windows-sys 0.48.0",
  "zstd 0.11.2+zstd.1.5.2",
@@ -14168,7 +14181,7 @@ dependencies = [
  "sdp",
  "serde",
  "serde_json",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "stun",
  "thiserror",
  "time 0.3.23",
@@ -14231,7 +14244,7 @@ dependencies = [
  "sec1 0.3.0",
  "serde",
  "sha1",
- "sha2 0.10.7",
+ "sha2 0.10.8",
  "signature 1.6.4",
  "subtle 2.4.1",
  "thiserror",

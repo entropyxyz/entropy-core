@@ -39,7 +39,7 @@ async fn integration_test_sign() {
     let pre_registered_user = AccountKeyring::Dave;
     let eve = AccountKeyring::Eve;
 
-    let signing_address = pre_registered_user.clone().to_account_id().to_ss58check();
+    let signing_address = pre_registered_user.to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), false).await;
     let substrate_context = test_context_stationary().await;
@@ -89,7 +89,7 @@ async fn integration_test_sign_private() {
     let pre_registered_user = AccountKeyring::Eve;
     let dave = AccountKeyring::Dave;
 
-    let signing_address = pre_registered_user.clone().to_account_id().to_ss58check();
+    let signing_address = pre_registered_user.to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), true).await;
     let substrate_context = test_context_stationary().await;

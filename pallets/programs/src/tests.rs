@@ -99,7 +99,7 @@ fn remove_program() {
         assert_noop!(
             ProgramsPallet::remove_program(
                 RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
-                program_hash.clone()
+                program_hash
             ),
             Error::<Test>::NoProgramDefined
         );
@@ -130,13 +130,13 @@ fn remove_program() {
 
         // not authorized
         assert_noop!(
-            ProgramsPallet::remove_program(RuntimeOrigin::signed(2), program_hash.clone()),
+            ProgramsPallet::remove_program(RuntimeOrigin::signed(2), program_hash),
             Error::<Test>::NotAuthorized
         );
 
         assert_ok!(ProgramsPallet::remove_program(
             RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
-            program_hash.clone()
+            program_hash
         ));
         assert!(ProgramsPallet::programs(program_hash).is_none(), "Program removed");
         assert_eq!(

@@ -21,6 +21,7 @@ At the moment this project **does not** adhere to
 
 ### Added
 - Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
+- Custom Hashing Algorithms [#553](https://github.com/entropyxyz/entropy-core/pull/553/)
 
 ### Changed
 - Crate name refactor ([#561](https://github.com/entropyxyz/entropy-core/pull/561))
@@ -28,6 +29,7 @@ At the moment this project **does not** adhere to
 - Protocol sessions are now identified by a `SessionID` type rather than a `String`
   ([#549](https://github.com/entropyxyz/entropy-core/pull/549))
 - Change bip39 implementation ([#562](https://github.com/entropyxyz/entropy-core/pull/562))
+- Additional `hash` field in `/sign_tx` JSON body indicates which hashing algorithm to use for signing ([#553](https://github.com/entropyxyz/entropy-core/pull/553))
 
 ### Added
 
