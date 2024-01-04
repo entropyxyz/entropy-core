@@ -424,6 +424,7 @@ async fn test_fail_signing_group() {
 
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -441,7 +442,15 @@ async fn test_fail_signing_group() {
 
     let program_hash =
         update_programs(&entropy_api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
-    update_pointer(&entropy_api, &dave.pair(), &dave.pair(), program_hash).await.unwrap();
+    update_pointer(
+        &entropy_api,
+        &rpc,
+        &dave.pair(),
+        &dave.pair(),
+        OtherBoundedVec(vec![program_hash]),
+    )
+    .await
+    .unwrap();
 
     let generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
