@@ -1,10 +1,30 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 use std::time::Duration;
 
+use ec_runtime::Runtime;
 use entropy_protocol::{
     execute_protocol::{execute_dkg, Channels},
     KeyParams, SessionId, ValidatorInfo,
 };
-use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::{HashingAlgorithm, KeyVisibility, SETUP_TIMEOUT_SECONDS};
+
+use sha1::{Digest as Sha1Digest, Sha1};
+use sha2::{Digest as Sha256Digest, Sha256};
+use sha3::{Digest as Sha3Digest, Keccak256, Sha3_256};
 use sp_core::{sr25519, Bytes, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32, OnlineClient};
 use synedrion::KeyShare;
@@ -143,4 +163,48 @@ pub fn check_in_registration_group(
         return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
     }
     Ok(())
+}
+
+/// Generate the a hash of `message` to be signed based on the `hash` algorithm
+pub fn compute_hash(
+    hashing_algorithm: &HashingAlgorithm,
+    runtime: &mut Runtime,
+    program: &[u8],
+    message: &[u8],
+) -> Result<[u8; 32], UserErr> {
+    match hashing_algorithm {
+        HashingAlgorithm::Sha1 => {
+            let mut hasher = <Sha1 as Sha1Digest>::new();
+            hasher.update(message);
+            let result = hasher.finalize();
+            let mut hash = [0u8; 32];
+            hash.copy_from_slice(&result);
+            Ok(hash)
+        },
+        HashingAlgorithm::Sha2 => {
+            let mut hasher = <Sha256 as Sha256Digest>::new();
+            hasher.update(message);
+            let result = hasher.finalize();
+            let mut hash = [0u8; 32];
+            hash.copy_from_slice(&result);
+            Ok(hash)
+        },
+        HashingAlgorithm::Sha3 => {
+            let mut hasher = <Sha3_256 as Sha3Digest>::new();
+            hasher.update(message);
+            let result = hasher.finalize();
+            let mut hash = [0u8; 32];
+            hash.copy_from_slice(&result);
+            Ok(hash)
+        },
+        HashingAlgorithm::Keccak => {
+            let mut hasher = <Keccak256 as Sha3Digest>::new();
+            hasher.update(message);
+            let result = hasher.finalize();
+            let mut hash = [0u8; 32];
+            hash.copy_from_slice(&result);
+            Ok(hash)
+        },
+        HashingAlgorithm::Custom => runtime.custom_hash(program, message).map_err(|e| e.into()),
+    }
 }

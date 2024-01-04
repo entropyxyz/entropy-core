@@ -130,3 +130,17 @@ to interact with your chain. [Click here](https://polkadot.js.org/apps/#/explore
 ## Pulling Metadata
 
 Everytime a change to the chain's interface happens, metadata needs to be pulled. You'll need to install Subxt using `cargo install subxt-cli`. Then [run a development chain](#getting-started-with-docker) and then invoke [the `./scripts/pull_entropy_metadata.sh` script](./scripts/pull_entropy_metadata.sh).
+
+## Licensing
+
+For the most part, the code in this repository is licensed under [AGPL-3.0](./LICENSE).
+
+There are some exceptions however:
+- The original code of the `kvdb` crate comes from Alexar's [`tofnd`](https://github.com/axelarnetwork/tofnd) project, which is licensed under
+  `MIT`.
+- The original code of the `runtime` and `node` crates come from Parity's [`Substrate`](https://github.com/paritytech/polkadot-sdk/tree/master/substrate) project, which
+  is licensed under `GPL-3.0-or-later WITH Classpath-exception-2.0`.
+- The original code of the `transaction-pause` pallet comes from the [`Acala`](https://github.com/AcalaNetwork/Acala) project, which is
+  is licensed under `GPL-3.0-or-later WITH Classpath-exception-2.0`.
+
+Modifications made by Entropy to these crates are licensed under `AGPL-3.0`.

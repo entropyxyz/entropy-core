@@ -1,6 +1,22 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 //! Simple test client
 pub use crate::chain_api::{get_api, get_rpc};
 pub use entropy_protocol::KeyParams;
+use entropy_shared::HashingAlgorithm;
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 pub use synedrion::KeyShare;
 pub use x25519_chacha20poly1305::derive_static_secret;
@@ -134,6 +150,7 @@ pub async fn sign(
         auxilary_data: auxilary_data.map(hex::encode),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
+        hash: HashingAlgorithm::Keccak,
     };
 
     let signature_request_vec = serde_json::to_vec(&signature_request)?;
