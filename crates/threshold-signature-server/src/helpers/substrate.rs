@@ -22,10 +22,7 @@ use crate::{
 };
 use entropy_shared::SIGNING_PARTY_SIZE;
 use subxt::{
-    backend::legacy::LegacyRpcMethods,
-    ext::sp_core::sr25519,
-    tx::PairSigner,
-    utils::{AccountId32, H256},
+    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32,
     Config, OnlineClient,
 };
 
@@ -97,6 +94,7 @@ pub async fn get_program(
         .chain_get_block_hash(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
+
     let bytecode_address = entropy::storage().programs().programs(program_pointer);
 
     Ok(substrate_api
@@ -104,7 +102,7 @@ pub async fn get_program(
         .at(block_hash)
         .fetch(&bytecode_address)
         .await?
-        .ok_or(UserErr::NoProgramDefined)?
+        .ok_or(UserErr::NoProgramDefined(program_pointer.to_string()))?
         .bytecode)
 }
 
@@ -113,7 +111,7 @@ pub async fn get_registered_details(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
-) -> Result<RegisteredInfo<H256, AccountId32>, UserErr> {
+) -> Result<RegisteredInfo, UserErr> {
     let registered_info_query = entropy::storage().relayer().registered(who);
     let block_hash = rpc
         .chain_get_block_hash(None)
