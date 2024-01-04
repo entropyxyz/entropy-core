@@ -164,7 +164,7 @@ pub async fn sign_tx(
         &rpc,
         &HashingAlgorithm::Keccak,
         &mut runtime,
-        &vec![],
+        &[],
         signature_request.message.as_slice(),
     )
     .await?;

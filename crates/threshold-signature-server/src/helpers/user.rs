@@ -174,7 +174,7 @@ pub async fn compute_hash(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     hashing_algorithm: &HashingAlgorithm,
     runtime: &mut Runtime,
-    program_pointers: &Vec<<EntropyConfig as Config>::Hash>,
+    program_pointers: &[<EntropyConfig as Config>::Hash],
     message: &[u8],
 ) -> Result<[u8; 32], UserErr> {
     match hashing_algorithm {
@@ -211,7 +211,7 @@ pub async fn compute_hash(
             Ok(hash)
         },
         HashingAlgorithm::Custom(i) => {
-            let program = get_program(&api, &rpc, &program_pointers[*i]).await?;
+            let program = get_program(api, rpc, &program_pointers[*i]).await?;
             runtime.custom_hash(program.as_slice(), message).map_err(|e| e.into())
         },
     }
