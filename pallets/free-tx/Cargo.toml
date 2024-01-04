@@ -1,5 +1,5 @@
 [package]
-name      ='pallet-free-tx'
+name      ='pallet-entropy-free-tx'
 version   ='0.0.9'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
@@ -21,19 +21,19 @@ sp-std            ={ git="https://github.com/paritytech/substrate", branch="polk
 log               ={ version="0.4.0", default-features=false }
 
 [dev-dependencies]
-sp-core                        ={ version="21.0.0", git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
-sp-io                          ={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
-pallet-balances                ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-pallet-session                 ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-pallet-timestamp               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-pallet-bags-list               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-pallet-staking-reward-curve    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-sp-npos-elections              ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-frame-election-provider-support={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-pallet-staking-extension       ={ version="0.0.9", default-features=false, path="../staking" }
-pallet-relayer                 ={ version="0.0.9", default-features=false, path="../relayer" }
-pallet-authorship              ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-sp-tracing                     ={ version="10.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
+sp-core                         ={ version="21.0.0", git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
+sp-io                           ={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
+pallet-balances                 ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
+pallet-session                  ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
+pallet-timestamp                ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
+pallet-bags-list                ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
+pallet-staking-reward-curve     ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
+sp-npos-elections               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
+frame-election-provider-support ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
+pallet-entropy-staking-extension={ version="0.0.9", default-features=false, path="../staking" }
+pallet-entropy-registry         ={ version="0.0.9", default-features=false, path="../registry" }
+pallet-authorship               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
+sp-tracing                      ={ version="10.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
 
 [features]
 default=["std"]

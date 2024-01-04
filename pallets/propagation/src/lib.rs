@@ -44,8 +44,8 @@ pub mod pallet {
     pub trait Config:
         frame_system::Config
         + pallet_authorship::Config
-        + pallet_relayer::Config
-        + pallet_staking_extension::Config
+        + pallet_entropy_registry::Config
+        + pallet_entropy_staking_extension::Config
     {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
     }
@@ -61,8 +61,8 @@ pub mod pallet {
         }
 
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
-            pallet_relayer::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
-            pallet_staking_extension::ProactiveRefresh::<T>::take();
+            pallet_entropy_registry::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
+            pallet_entropy_staking_extension::ProactiveRefresh::<T>::take();
             T::DbWeight::get().writes(2)
         }
     }
@@ -85,7 +85,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         pub fn post_dkg(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let messages =
-                pallet_relayer::Pallet::<T>::dkg(block_number.saturating_sub(1u32.into()));
+                pallet_entropy_registry::Pallet::<T>::dkg(block_number.saturating_sub(1u32.into()));
 
             let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
@@ -97,7 +97,7 @@ pub mod pallet {
             let converted_block_number: u32 =
                 BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
             let (servers_info, _i) =
-                pallet_relayer::Pallet::<T>::get_validator_info().unwrap_or_default();
+                pallet_entropy_registry::Pallet::<T>::get_validator_info().unwrap_or_default();
             let validators_info = servers_info
                 .iter()
                 .map(|server_info| ValidatorInfo {

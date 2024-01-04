@@ -30,7 +30,7 @@ use sp_runtime::{
 };
 use sp_staking::{EraIndex, SessionIndex};
 
-use crate as pallet_relayer;
+use crate as pallet_entropy_registry;
 
 const NULL_ARR: [u8; 32] = [0; 32];
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -46,13 +46,13 @@ frame_support::construct_runtime!(
     Balances: pallet_balances,
     Authorship: pallet_authorship,
     Timestamp: pallet_timestamp,
-    Relayer: pallet_relayer,
-    Staking: pallet_staking_extension,
+    Registry: pallet_entropy_registry,
+    Staking: pallet_entropy_staking_extension,
     FrameStaking: pallet_staking,
     Session: pallet_session,
     Historical: pallet_session_historical,
     BagsList: pallet_bags_list,
-    Programs: pallet_programs,
+    Programs: pallet_entropy_programs,
   }
 );
 
@@ -304,7 +304,7 @@ parameter_types! {
   pub const SigningPartySize: usize = 2;
 }
 
-impl pallet_relayer::Config for Test {
+impl pallet_entropy_registry::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
     type WeightInfo = ();

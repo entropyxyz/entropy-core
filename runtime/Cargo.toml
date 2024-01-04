@@ -100,13 +100,13 @@ pallet-nomination-pools-benchmarking={ version="1.0.0", default-features=false, 
 pallet-nomination-pools-runtime-api={ version="1.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
 pallet-vesting={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
 
-pallet-relayer          ={ version='0.0.9', default-features=false, path='../pallets/relayer' }
-pallet-slashing         ={ version='0.0.9', default-features=false, path='../pallets/slashing' }
-pallet-programs         ={ version='0.0.9', default-features=false, path='../pallets/programs' }
-pallet-staking-extension={ version='0.0.9', default-features=false, path='../pallets/staking' }
-pallet-transaction-pause={ version='0.0.9', default-features=false, path='../pallets/transaction-pause' }
-pallet-free-tx          ={ version='0.0.9', default-features=false, path='../pallets/free-tx' }
-pallet-propagation      ={ version='0.0.9', default-features=false, path='../pallets/propagation' }
+pallet-entropy-registry         ={ version='0.0.9', default-features=false, path='../pallets/registry' }
+pallet-entropy-slashing         ={ version='0.0.9', default-features=false, path='../pallets/slashing' }
+pallet-entropy-programs         ={ version='0.0.9', default-features=false, path='../pallets/programs' }
+pallet-entropy-staking-extension={ version='0.0.9', default-features=false, path='../pallets/staking' }
+pallet-entropy-transaction-pause={ version='0.0.9', default-features=false, path='../pallets/transaction-pause' }
+pallet-entropy-free-tx          ={ version='0.0.9', default-features=false, path='../pallets/free-tx' }
+pallet-entropy-propagation      ={ version='0.0.9', default-features=false, path='../pallets/propagation' }
 
 entropy-shared={ path="../crates/shared", default-features=false, features=["wasm-no-std"] }
 
@@ -139,16 +139,16 @@ std=[
   "pallet-im-online/std",
   "pallet-indices/std",
   "sp-inherents/std",
-  "pallet-relayer/std",
+  "pallet-entropy-registry/std",
   "pallet-lottery/std",
   "pallet-membership/std",
   "pallet-multisig/std",
   "pallet-identity/std",
-  "pallet-propagation/std",
+  "pallet-entropy-propagation/std",
   "pallet-scheduler/std",
   "pallet-preimage/std",
   "pallet-referenda/std",
-  "pallet-slashing/std",
+  "pallet-entropy-slashing/std",
   "node-primitives/std",
   "sp-offchain/std",
   "pallet-offences/std",
@@ -163,7 +163,7 @@ std=[
   "sp-runtime/std",
   "sp-staking/std",
   "pallet-staking/std",
-  "pallet-staking-extension/std",
+  "pallet-entropy-staking-extension/std",
   "sp-keyring",
   "sp-session/std",
   "pallet-sudo/std",
@@ -175,7 +175,7 @@ std=[
   "pallet-timestamp/std",
   "pallet-tips/std",
   "pallet-transaction-pause/std",
-  "pallet-free-tx/std",
+  "pallet-entropy-free-tx/std",
   "pallet-transaction-payment-rpc-runtime-api/std",
   "pallet-transaction-payment/std",
   "pallet-transaction-storage/std",
@@ -226,14 +226,14 @@ runtime-benchmarks=[
   "pallet-proxy/runtime-benchmarks",
   "pallet-referenda/runtime-benchmarks",
   "pallet-recovery/runtime-benchmarks",
-  "pallet-relayer/runtime-benchmarks",
+  "pallet-entropy-registry/runtime-benchmarks",
   "pallet-sudo/runtime-benchmarks",
   "pallet-scheduler/runtime-benchmarks",
   "pallet-society/runtime-benchmarks",
   "pallet-staking/runtime-benchmarks",
   "pallet-timestamp/runtime-benchmarks",
   "pallet-tips/runtime-benchmarks",
-  "pallet-transaction-pause/runtime-benchmarks",
+  "pallet-entropy-transaction-pause/runtime-benchmarks",
   "pallet-transaction-storage/runtime-benchmarks",
   "pallet-treasury/runtime-benchmarks",
   "pallet-utility/runtime-benchmarks",

@@ -1,5 +1,5 @@
 [package]
-name      ="pallet-transaction-pause"
+name      ="pallet-entropy-transaction-pause"
 version   ='0.0.9'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'

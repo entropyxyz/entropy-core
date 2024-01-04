@@ -19,8 +19,8 @@ use frame_support::{
     traits::{ConstU32, FindAuthor, OneSessionHandler},
 };
 use frame_system as system;
+use pallet_entropy_staking_extension::ServerInfo;
 use pallet_session::historical as pallet_session_historical;
-use pallet_staking_extension::ServerInfo;
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
@@ -30,7 +30,7 @@ use sp_runtime::{
 };
 use sp_staking::{EraIndex, SessionIndex};
 
-use crate as pallet_propagation;
+use crate as pallet_entropy_propagation;
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
@@ -47,10 +47,10 @@ frame_support::construct_runtime!(
     Balances: pallet_balances,
     Timestamp: pallet_timestamp,
     Authorship: pallet_authorship,
-    Relayer: pallet_relayer,
-    Programs: pallet_programs,
-    Propagation: pallet_propagation,
-    Staking: pallet_staking_extension,
+    Registry: pallet_entropy_registry,
+    Programs: pallet_entropy_programs,
+    Propagation: pallet_entropy_propagation,
+    Staking: pallet_entropy_staking_extension,
     FrameStaking: pallet_staking,
     Session: pallet_session,
     Historical: pallet_session_historical,
@@ -306,7 +306,7 @@ parameter_types! {
   pub const SigningPartySize: usize = 2;
 }
 
-impl pallet_relayer::Config for Test {
+impl pallet_entropy_registry::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
     type WeightInfo = ();

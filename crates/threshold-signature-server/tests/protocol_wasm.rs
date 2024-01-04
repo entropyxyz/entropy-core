@@ -57,7 +57,7 @@ use x25519_dalek::PublicKey;
 
 use entropy_tss::{
     chain_api::{
-        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteredInfo},
+        entropy::{self, runtime_types::pallet_entropy_registry::pallet::RegisteredInfo},
         get_api, get_rpc, EntropyConfig,
     },
     common::{
@@ -369,7 +369,7 @@ async fn wait_for_register_confirmation(
     rpc: LegacyRpcMethods<EntropyConfig>,
 ) -> RegisteredInfo<H256, SubxtAccountId32> {
     let account_id: <EntropyConfig as Config>::AccountId = account_id.into();
-    let registered_query = entropy::storage().relayer().registered(account_id);
+    let registered_query = entropy::storage().registry().registered(account_id);
     for _ in 0..30 {
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
         let query_registered_status = api.storage().at(block_hash).fetch(&registered_query).await;

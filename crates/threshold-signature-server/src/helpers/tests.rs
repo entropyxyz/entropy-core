@@ -213,8 +213,8 @@ pub async fn check_if_confirmation(
     key: &sr25519::Pair,
 ) {
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
-    let registering_query = entropy::storage().relayer().registering(signer.account_id());
-    let registered_query = entropy::storage().relayer().registered(signer.account_id());
+    let registering_query = entropy::storage().registry().registering(signer.account_id());
+    let registered_query = entropy::storage().registry().registered(signer.account_id());
     let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
     let is_registering = api.storage().at(block_hash).fetch(&registering_query).await;
     // cleared from is_registering state

@@ -20,6 +20,7 @@ use entropy_shared::{KeyVisibility, ValidatorInfo};
 use frame_support::{assert_ok, traits::OnInitialize};
 use pallet_programs::ProgramInfo;
 use pallet_staking_extension::RefreshInfo;
+use scale_info::Registry;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
 use sp_keystore::{testing::MemoryKeystore, KeystoreExt};
@@ -80,13 +81,13 @@ fn knows_how_to_mock_several_http_calls() {
             <Test as frame_system::Config>::Hash::default(),
             ProgramInfo { bytecode: vec![], program_modification_account: 1 },
         );
-        assert_ok!(Relayer::register(
+        assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Public,
             <Test as frame_system::Config>::Hash::default(),
         ));
-        assert_ok!(Relayer::register(
+        assert_ok!(Registry::register(
             RuntimeOrigin::signed(2),
             3,
             KeyVisibility::Public,
@@ -95,9 +96,9 @@ fn knows_how_to_mock_several_http_calls() {
         // full send
         Propagation::post_dkg(4).unwrap();
         // test pruning
-        assert_eq!(Relayer::dkg(3).len(), 2);
+        assert_eq!(Registry::dkg(3).len(), 2);
         Propagation::on_initialize(5);
-        assert_eq!(Relayer::dkg(3).len(), 0);
+        assert_eq!(Registry::dkg(3).len(), 0);
 
         Propagation::post_proactive_refresh(6).unwrap();
         let ocw_message = RefreshInfo {

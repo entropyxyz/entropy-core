@@ -1086,7 +1086,7 @@ where
             frame_system::CheckWeight::<Runtime>::new(),
             pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
             pallet_free_tx::ValidateElectricityPayment::<Runtime>::new(),
-            pallet_relayer::ValidateConfirmRegistered::<Runtime>::new(),
+            pallet_entropy_registry::ValidateConfirmRegistered::<Runtime>::new(),
         );
         let raw_payload = SignedPayload::new(call, extra)
             .map_err(|e| {
@@ -1288,10 +1288,10 @@ parameter_types! {
   pub const SigningPartySize: usize = SIGNING_PARTY_SIZE;
 }
 
-impl pallet_relayer::Config for Runtime {
+impl pallet_entropy_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
-    type WeightInfo = weights::pallet_relayer::WeightInfo<Runtime>;
+    type WeightInfo = weights::pallet_entropy_registry::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1380,12 +1380,12 @@ construct_runtime!(
     NominationPools: pallet_nomination_pools = 50,
 
     // custom pallets
-    Relayer: pallet_relayer = 51,
-    Slashing: pallet_slashing = 52,
-    Programs: pallet_programs = 53,
-    TransactionPause: pallet_transaction_pause = 54,
-    FreeTx: pallet_free_tx = 55,
-    Propagation: pallet_propagation = 56,
+    Registry: pallet_entropy_registry = 51,
+    Slashing: pallet_entropy_slashing = 52,
+    Programs: pallet_entropy_programs = 53,
+    TransactionPause: pallet_entropy_transaction_pause = 54,
+    FreeTx: pallet_entropy_free_tx = 55,
+    Propagation: pallet_entropy_propagation = 56,
 
 
   }
@@ -1414,8 +1414,8 @@ pub type SignedExtra = (
     frame_system::CheckNonce<Runtime>,
     frame_system::CheckWeight<Runtime>,
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
-    pallet_free_tx::ValidateElectricityPayment<Runtime>,
-    pallet_relayer::ValidateConfirmRegistered<Runtime>,
+    pallet_entropy_free_tx::ValidateElectricityPayment<Runtime>,
+    pallet_entropy_registry::ValidateConfirmRegistered<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
@@ -1450,13 +1450,13 @@ mod benches {
       [pallet_balances, Balances]
       [pallet_bounties, Bounties]
       [pallet_collective, Council]
-      [pallet_programs, Programs]
+      [pallet_entropy_programs, Programs]
       [pallet_democracy, Democracy]
       [pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
       [frame_election_provider_support, EPSBench::<Runtime>]
       [pallet_elections_phragmen, Elections]
-      [pallet_free_tx, FreeTx]
-      [pallet_staking_extension, StakingExtension]
+      [pallet_entropy_free_tx, FreeTx]
+      [pallet_entropy_staking_extension, StakingExtension]
       [pallet_grandpa, Grandpa]
       [pallet_im_online, ImOnline]
       [pallet_identity, Identity]
@@ -1468,7 +1468,7 @@ mod benches {
       [pallet_preimage, Preimage]
       [pallet_proxy, Proxy]
       [pallet_recovery, Recovery]
-      [pallet_relayer, Relayer]
+      [pallet_entropy_registry, Registry]
       [pallet_scheduler, Scheduler]
       [pallet_sudo, Sudo]
       [pallet_session, SessionBench::<Runtime>]
@@ -1476,7 +1476,7 @@ mod benches {
       [frame_system, SystemBench::<Runtime>]
       [pallet_timestamp, Timestamp]
       [pallet_tips, Tips]
-      [pallet_transaction_pause, TransactionPause]
+      [pallet_entropy_transaction_pause, TransactionPause]
       [pallet_transaction_storage, TransactionStorage]
       [pallet_treasury, Treasury]
       [pallet_utility, Utility]

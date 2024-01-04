@@ -21,14 +21,14 @@ use frame_support::{
     traits::Currency,
     BoundedVec,
 };
-use pallet_programs::ProgramInfo;
-use pallet_relayer::Call as RelayerCall;
+use pallet_entropy_programs::ProgramInfo;
+use pallet_entropy_registry::Call as RegistryCall;
 use sp_runtime::{
     traits::{Hash, SignedExtension},
     transaction_validity::{TransactionValidity, ValidTransaction},
 };
 
-use crate as pallet_relayer;
+use crate as pallet_entropy_registry;
 use crate::{
     mock::*, Error, Registered, RegisteredInfo, RegisteringDetails, ValidateConfirmRegistered,
 };
@@ -36,33 +36,33 @@ use crate::{
 #[test]
 fn it_tests_get_validator_rotation() {
     new_test_ext().execute_with(|| {
-        let result_1 = Relayer::get_validator_rotation(0, 0).unwrap();
-        let result_2 = Relayer::get_validator_rotation(1, 0).unwrap();
+        let result_1 = Registry::get_validator_rotation(0, 0).unwrap();
+        let result_2 = Registry::get_validator_rotation(1, 0).unwrap();
         assert_eq!(result_1.0, 1);
         assert_eq!(result_2.0, 2);
 
-        let result_3 = Relayer::get_validator_rotation(0, 1).unwrap();
-        let result_4 = Relayer::get_validator_rotation(1, 1).unwrap();
+        let result_3 = Registry::get_validator_rotation(0, 1).unwrap();
+        let result_4 = Registry::get_validator_rotation(1, 1).unwrap();
         assert_eq!(result_3.0, 5);
         assert_eq!(result_4.0, 6);
 
-        let result_5 = Relayer::get_validator_rotation(0, 100).unwrap();
-        let result_6 = Relayer::get_validator_rotation(1, 100).unwrap();
+        let result_5 = Registry::get_validator_rotation(0, 100).unwrap();
+        let result_6 = Registry::get_validator_rotation(1, 100).unwrap();
         assert_eq!(result_5.0, 1);
         assert_eq!(result_6.0, 6);
 
-        let result_7 = Relayer::get_validator_rotation(0, 101).unwrap();
-        let result_8 = Relayer::get_validator_rotation(1, 101).unwrap();
+        let result_7 = Registry::get_validator_rotation(0, 101).unwrap();
+        let result_8 = Registry::get_validator_rotation(1, 101).unwrap();
         assert_eq!(result_7.0, 5);
         assert_eq!(result_8.0, 7);
 
         pallet_staking_extension::IsValidatorSynced::<Test>::insert(7, false);
 
-        let result_9 = Relayer::get_validator_rotation(1, 101).unwrap();
+        let result_9 = Registry::get_validator_rotation(1, 101).unwrap();
         assert_eq!(result_9.0, 6);
 
         // really big number does not crash
-        let result_10 = Relayer::get_validator_rotation(0, 1000000000000000000).unwrap();
+        let result_10 = Registry::get_validator_rotation(0, 1000000000000000000).unwrap();
         assert_eq!(result_10.0, 1);
     });
 }
@@ -77,13 +77,13 @@ fn it_registers_a_user() {
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
         );
 
-        assert_ok!(Relayer::register(
+        assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
             program_hash,
         ));
-        assert_eq!(Relayer::dkg(0), vec![1u64.encode()]);
+        assert_eq!(Registry::dkg(0), vec![1u64.encode()]);
     });
 }
 
@@ -92,14 +92,14 @@ fn it_confirms_registers_a_user() {
     new_test_ext().execute_with(|| {
         let expected_verifying_key = BoundedVec::default();
         assert_noop!(
-            Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
+            Registry::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
             Error::<Test>::NoThresholdKey
         );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
 
         assert_noop!(
-            Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
+            Registry::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
             Error::<Test>::NotRegistering
         );
 
@@ -110,7 +110,7 @@ fn it_confirms_registers_a_user() {
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
         );
 
-        assert_ok!(Relayer::register(
+        assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Private([0; 32]),
@@ -118,20 +118,20 @@ fn it_confirms_registers_a_user() {
         ));
 
         assert_noop!(
-            Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 3, BoundedVec::default()),
+            Registry::confirm_register(RuntimeOrigin::signed(1), 1, 3, BoundedVec::default()),
             Error::<Test>::InvalidSubgroup
         );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
 
         assert_noop!(
-            Relayer::confirm_register(RuntimeOrigin::signed(2), 1, 0, BoundedVec::default()),
+            Registry::confirm_register(RuntimeOrigin::signed(2), 1, 0, BoundedVec::default()),
             Error::<Test>::NotInSigningGroup
         );
 
-        assert_eq!(Relayer::registered(1), None);
+        assert_eq!(Registry::registered(1), None);
 
-        assert_ok!(Relayer::confirm_register(
+        assert_ok!(Registry::confirm_register(
             RuntimeOrigin::signed(1),
             1,
             0,
@@ -139,7 +139,7 @@ fn it_confirms_registers_a_user() {
         ));
 
         assert_noop!(
-            Relayer::confirm_register(
+            Registry::confirm_register(
                 RuntimeOrigin::signed(1),
                 1,
                 0,
@@ -156,18 +156,18 @@ fn it_confirms_registers_a_user() {
             program_modification_account: 2,
         };
 
-        assert_eq!(Relayer::registering(1), Some(registering_info));
+        assert_eq!(Registry::registering(1), Some(registering_info));
 
-        assert_ok!(Relayer::confirm_register(
+        assert_ok!(Registry::confirm_register(
             RuntimeOrigin::signed(2),
             1,
             1,
             expected_verifying_key.clone()
         ));
 
-        assert_eq!(Relayer::registering(1), None);
+        assert_eq!(Registry::registering(1), None);
         assert_eq!(
-            Relayer::registered(1).unwrap(),
+            Registry::registered(1).unwrap(),
             RegisteredInfo {
                 key_visibility: KeyVisibility::Private([0; 32]),
                 verifying_key: expected_verifying_key,
@@ -200,11 +200,13 @@ fn it_changes_a_program_pointer() {
         };
 
         Registered::<Test>::insert(1, registered_info.clone());
-        assert_eq!(Relayer::registered(1).unwrap(), registered_info.clone());
+        assert_eq!(Registry::registered(1).unwrap(), registered_info.clone());
 
-        assert_ok!(Relayer::change_program_pointer(RuntimeOrigin::signed(2), 1, new_program_hash,));
+        assert_ok!(
+            Registry::change_program_pointer(RuntimeOrigin::signed(2), 1, new_program_hash,)
+        );
         registered_info.program_pointer = new_program_hash;
-        assert_eq!(Relayer::registered(1).unwrap(), registered_info);
+        assert_eq!(Registry::registered(1).unwrap(), registered_info);
     });
 }
 
@@ -220,7 +222,7 @@ fn it_fails_on_non_matching_verifying_keys() {
 
         let expected_verifying_key = BoundedVec::default();
         let unexpected_verifying_key = vec![10];
-        assert_ok!(Relayer::register(
+        assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Private([0; 32]),
@@ -229,7 +231,7 @@ fn it_fails_on_non_matching_verifying_keys() {
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
 
-        assert_ok!(Relayer::confirm_register(
+        assert_ok!(Registry::confirm_register(
             RuntimeOrigin::signed(1),
             1,
             0,
@@ -237,7 +239,7 @@ fn it_fails_on_non_matching_verifying_keys() {
         ));
 
         // uses different verifying key
-        assert_ok!(Relayer::confirm_register(
+        assert_ok!(Registry::confirm_register(
             RuntimeOrigin::signed(2),
             1,
             1,
@@ -245,8 +247,8 @@ fn it_fails_on_non_matching_verifying_keys() {
         ));
 
         // not registered or registering
-        assert_eq!(Relayer::registering(1), None);
-        assert_eq!(Relayer::registered(1), None);
+        assert_eq!(Registry::registering(1), None);
+        assert_eq!(Registry::registered(1), None);
     })
 }
 #[test]
@@ -260,7 +262,7 @@ fn it_doesnt_allow_double_registering() {
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
         );
 
-        assert_ok!(Relayer::register(
+        assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Permissioned,
@@ -269,7 +271,7 @@ fn it_doesnt_allow_double_registering() {
 
         // error if they try to submit another request, even with a different program key
         assert_noop!(
-            Relayer::register(
+            Registry::register(
                 RuntimeOrigin::signed(1),
                 2,
                 KeyVisibility::Permissioned,
@@ -288,7 +290,7 @@ fn it_fails_no_program() {
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&non_existing_program);
 
         assert_noop!(
-            Relayer::register(
+            Registry::register(
                 RuntimeOrigin::signed(1),
                 2,
                 KeyVisibility::Permissioned,
@@ -311,15 +313,15 @@ fn it_tests_prune_registration() {
 
         Balances::make_free_balance_be(&2, 100);
         // register a user
-        assert_ok!(Relayer::register(
+        assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Permissioned,
             program_hash,
         ));
-        assert!(Relayer::registering(1).is_some(), "Make sure there is registering state");
-        assert_ok!(Relayer::prune_registration(RuntimeOrigin::signed(1)));
-        assert_eq!(Relayer::registering(1), None, "Make sure registering is pruned");
+        assert!(Registry::registering(1).is_some(), "Make sure there is registering state");
+        assert_ok!(Registry::prune_registration(RuntimeOrigin::signed(1)));
+        assert_eq!(Registry::registering(1), None, "Make sure registering is pruned");
     });
 }
 #[test]
@@ -333,14 +335,14 @@ fn it_provides_free_txs_confirm_done() {
         );
 
         let expected_verifying_key = BoundedVec::default();
-        assert_ok!(Relayer::register(
+        assert_ok!(Registry::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
             program_hash,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
-        let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
+        let c = RuntimeCall::Registry(RegistryCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
             verifying_key: expected_verifying_key,
@@ -358,7 +360,7 @@ fn it_provides_free_txs_confirm_done_fails_1() {
     new_test_ext().execute_with(|| {
         let expected_verifying_key = BoundedVec::default();
         let p = ValidateConfirmRegistered::<Test>::new();
-        let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
+        let c = RuntimeCall::Registry(RegistryCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
             verifying_key: expected_verifying_key,
@@ -376,7 +378,7 @@ fn it_provides_free_txs_confirm_done_fails_2() {
     new_test_ext().execute_with(|| {
         let expected_verifying_key = BoundedVec::default();
         let p = ValidateConfirmRegistered::<Test>::new();
-        let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
+        let c = RuntimeCall::Registry(RegistryCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
             verifying_key: expected_verifying_key,
@@ -401,21 +403,21 @@ fn it_provides_free_txs_confirm_done_fails_3() {
         );
 
         let expected_verifying_key = BoundedVec::default();
-        assert_ok!(Relayer::register(
+        assert_ok!(Registry::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
             program_hash,
         ));
 
-        assert_ok!(Relayer::confirm_register(
+        assert_ok!(Registry::confirm_register(
             RuntimeOrigin::signed(7),
             5,
             0,
             expected_verifying_key.clone()
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
-        let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
+        let c = RuntimeCall::Registry(RegistryCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
             verifying_key: expected_verifying_key,
@@ -439,14 +441,14 @@ fn it_provides_free_txs_confirm_done_fails_4() {
         );
 
         let expected_verifying_key = BoundedVec::default();
-        assert_ok!(Relayer::register(
+        assert_ok!(Registry::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
             program_hash,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
-        let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
+        let c = RuntimeCall::Registry(RegistryCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 5,
             verifying_key: expected_verifying_key,
@@ -470,14 +472,14 @@ fn it_provides_free_txs_confirm_done_fails_5() {
         );
 
         let expected_verifying_key = BoundedVec::default();
-        assert_ok!(Relayer::register(
+        assert_ok!(Registry::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
             program_hash,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
-        let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
+        let c = RuntimeCall::Registry(RegistryCall::confirm_register {
             sig_req_account: 5,
             signing_subgroup: 0,
             verifying_key: expected_verifying_key,

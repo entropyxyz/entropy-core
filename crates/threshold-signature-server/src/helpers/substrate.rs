@@ -15,7 +15,7 @@
 
 use crate::{
     chain_api::{
-        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteredInfo},
+        entropy::{self, runtime_types::pallet_entropy_registry::pallet::RegisteredInfo},
         EntropyConfig,
     },
     user::UserErr,
@@ -114,7 +114,7 @@ pub async fn get_registered_details(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
 ) -> Result<RegisteredInfo<H256, AccountId32>, UserErr> {
-    let registered_info_query = entropy::storage().relayer().registered(who);
+    let registered_info_query = entropy::storage().registry().registered(who);
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?

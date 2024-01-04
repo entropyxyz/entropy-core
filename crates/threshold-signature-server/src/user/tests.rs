@@ -533,7 +533,7 @@ async fn test_store_share() {
 
     // Wait until user is confirmed as registered
     let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
-    let registered_query = entropy::storage().relayer().registered(alice_account_id);
+    let registered_query = entropy::storage().registry().registered(alice_account_id);
     for _ in 0..10 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
@@ -775,7 +775,7 @@ pub async fn put_register_request_on_chain(
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
-    let registering_tx = entropy::tx().relayer().register(
+    let registering_tx = entropy::tx().registry().register(
         program_modification_account,
         Static(key_visibility),
         program_hash,

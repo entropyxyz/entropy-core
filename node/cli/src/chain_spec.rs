@@ -36,7 +36,7 @@ pub use entropy_runtime::RuntimeGenesisConfig;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, Block, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
-    ImOnlineConfig, IndicesConfig, MaxNominations, RelayerConfig, SessionConfig, SessionKeys,
+    ImOnlineConfig, IndicesConfig, MaxNominations, RegistryConfig, SessionConfig, SessionKeys,
     StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeConfig,
 };
@@ -287,7 +287,7 @@ pub fn testnet_genesis(
         grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        relayer: RelayerConfig {
+        registry: RegistryConfig {
             registered_accounts: vec![
                 (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
                 (
@@ -460,7 +460,7 @@ pub fn local_devnet_genesis(
         grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        relayer: RelayerConfig {
+        registry: RegistryConfig {
             registered_accounts: vec![
                 (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
                 (
@@ -587,7 +587,7 @@ pub fn devnet_genesis(
         grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        relayer: RelayerConfig { registered_accounts: vec![] },
+        registry: RegistryConfig { registered_accounts: vec![] },
         vesting: Default::default(),
         transaction_storage: Default::default(),
         transaction_payment: Default::default(),
@@ -792,7 +792,7 @@ pub fn testing(
         grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        relayer: RelayerConfig {
+        registry: RegistryConfig {
             registered_accounts: vec![
                 (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
                 (

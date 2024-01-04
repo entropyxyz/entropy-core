@@ -33,7 +33,8 @@ use entropy_protocol::{
 };
 use entropy_tss::{
     chain_api::{
-        entropy, entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, EntropyConfig,
+        entropy, entropy::runtime_types::pallet_entropy_registry::pallet::RegisteredInfo,
+        EntropyConfig,
     },
     common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
 };
@@ -74,7 +75,7 @@ pub async fn register(
     // Check if user is already registered
     let account_id32: AccountId32 = signature_request_keypair.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
-    let registered_query = entropy::storage().relayer().registered(account_id);
+    let registered_query = entropy::storage().registry().registered(account_id);
 
     let query_registered_status = api.storage().at_latest().await?.fetch(&registered_query).await;
     if let Some(registered_status) = query_registered_status? {
@@ -273,7 +274,7 @@ pub async fn update_pointer(
     program_hash: <EntropyConfig as Config>::Hash,
 ) -> anyhow::Result<()> {
     let update_pointer_tx = entropy::tx()
-        .relayer()
+        .registry()
         .change_program_pointer(signature_request_account.public().into(), program_hash);
     let pointer_modification_account =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(pointer_modification_account.clone());
@@ -295,7 +296,7 @@ pub async fn get_accounts(
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
     let keys = Vec::<()>::new();
-    let storage_address = subxt::dynamic::storage("Relayer", "Registered", keys);
+    let storage_address = subxt::dynamic::storage("Registry", "Registered", keys);
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut accounts = Vec::new();
     while let Some(Ok((storage_key, account))) = iter.next().await {
@@ -318,7 +319,7 @@ pub async fn put_register_request_on_chain(
     let signature_request_pair_signer =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
 
-    let registering_tx = entropy::tx().relayer().register(
+    let registering_tx = entropy::tx().registry().register(
         program_modification_account,
         Static(key_visibility),
         program_hash,
@@ -347,7 +348,7 @@ pub async fn check_verifying_key(
     let registered_status = {
         let account_id32: AccountId32 = public_key.into();
         let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
-        let registered_query = entropy::storage().relayer().registered(account_id);
+        let registered_query = entropy::storage().registry().registered(account_id);
         let query_registered_status =
             api.storage().at_latest().await?.fetch(&registered_query).await;
         query_registered_status?.ok_or(anyhow!("User not registered"))?

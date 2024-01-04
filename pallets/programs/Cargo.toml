@@ -1,5 +1,5 @@
 [package]
-name      ='pallet-programs'
+name      ='pallet-entropy-programs'
 version   ='0.0.9'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
