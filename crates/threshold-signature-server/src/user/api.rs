@@ -34,7 +34,10 @@ use entropy_kvdb::kv_manager::{
 };
 use entropy_protocol::SigningSessionInfo;
 use entropy_protocol::ValidatorInfo;
-use entropy_shared::{types::KeyVisibility, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE};
+use entropy_shared::{
+    types::KeyVisibility, OcwMessageDkg, X25519PublicKey, MAX_INSTRUCTIONS_PER_PROGRAM,
+    SIGNING_PARTY_SIZE,
+};
 use futures::{
     channel::mpsc,
     future::{join_all, FutureExt},
@@ -163,7 +166,9 @@ pub async fn sign_tx(
 
     let program = get_program(&api, &rpc, &user_details.program_pointer).await?;
 
-    let mut runtime = Runtime::new(ec_runtime::Config { max_instructions_per_program: 10_000 });
+    let mut runtime = Runtime::new(ec_runtime::Config {
+        max_instructions_per_program: MAX_INSTRUCTIONS_PER_PROGRAM,
+    });
     let signature_request = SignatureRequest { message, auxilary_data };
 
     runtime.evaluate(&program, &signature_request)?;
