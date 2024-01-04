@@ -1,3 +1,18 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 use codec::Encode;
 use entropy_shared::KeyVisibility;
 use frame_support::{
@@ -99,7 +114,7 @@ fn it_confirms_registers_a_user() {
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Private([0; 32]),
-            program_hash.clone(),
+            program_hash,
         ));
 
         assert_noop!(
@@ -135,7 +150,7 @@ fn it_confirms_registers_a_user() {
 
         let registering_info = RegisteringDetails::<Test> {
             confirmations: vec![0],
-            program_pointer: program_hash.clone(),
+            program_pointer: program_hash,
             key_visibility: KeyVisibility::Private([0; 32]),
             verifying_key: Some(expected_verifying_key.clone()),
             program_modification_account: 2,
@@ -249,7 +264,7 @@ fn it_doesnt_allow_double_registering() {
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Permissioned,
-            program_hash.clone(),
+            program_hash,
         ));
 
         // error if they try to submit another request, even with a different program key

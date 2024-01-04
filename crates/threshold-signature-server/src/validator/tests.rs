@@ -1,3 +1,18 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 use std::{net::TcpListener, time::SystemTime};
 
 use bip39::{Language, Mnemonic};
@@ -378,7 +393,7 @@ async fn test_sync_validator() {
         &Some(ValidatorName::Alice),
     )
     .await;
-    let listener_alice = TcpListener::bind(format!("0.0.0.0:3001")).unwrap();
+    let listener_alice = TcpListener::bind("0.0.0.0:3001".to_string()).unwrap();
 
     tokio::spawn(async move {
         axum::Server::from_tcp(listener_alice).unwrap().serve(alice_axum).await.unwrap();
@@ -392,7 +407,7 @@ async fn test_sync_validator() {
         &Some(ValidatorName::Charlie),
     )
     .await;
-    let listener_charlie = TcpListener::bind(format!("0.0.0.0:3002")).unwrap();
+    let listener_charlie = TcpListener::bind("0.0.0.0:3002".to_string()).unwrap();
 
     tokio::spawn(async move {
         axum::Server::from_tcp(listener_charlie).unwrap().serve(charlie_axum).await.unwrap();

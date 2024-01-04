@@ -8,6 +8,13 @@ commands:
                   cargo fmt --check
                   taplo fmt --check
                   cargo clippy -- -D warnings
+    check-licenses:
+        steps:
+            - run:
+                name: Check licenses (`cargo-deny`).
+                command: |
+                  cargo install --locked cargo-deny
+                  cargo deny --all-features check license
     increase-swap:
         steps:
             - run:
@@ -86,6 +93,7 @@ jobs:
         steps:
             - install-dependencies-and-checkout
             - fmt-lint
+            - check-licenses
     node-benchmark:
         machine:
             image: ubuntu-2204:2022.10.2

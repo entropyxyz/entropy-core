@@ -1,3 +1,18 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 use std::{
     env, fs,
     path::PathBuf,
@@ -18,7 +33,7 @@ use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, PartyId, SessionId, SigningSessionInfo, ValidatorInfo,
 };
-use entropy_shared::{KeyVisibility, OcwMessageDkg};
+use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
 use entropy_testing_utils::{
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
@@ -141,6 +156,7 @@ async fn test_sign_tx_no_chain() {
         auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         validators_info,
         timestamp: SystemTime::now(),
+        hash: HashingAlgorithm::Keccak,
     };
 
     let submit_transaction_requests =
@@ -388,9 +404,11 @@ async fn test_fail_signing_group() {
     clean_tests();
 
     let dave = AccountKeyring::Dave;
+    let eve = AccountKeyring::Eve;
     let _ = spawn_testing_validators(None, false).await;
 
-    let _substrate_context = test_node_process_testing_state(false).await;
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -406,12 +424,18 @@ async fn test_fail_signing_group() {
         },
     ];
 
+    let program_hash =
+        update_programs(&entropy_api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await;
+    update_pointer(&entropy_api, &dave.pair(), &dave.pair(), program_hash).await.unwrap();
+
     let generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
         auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         validators_info,
         timestamp: SystemTime::now(),
+        hash: HashingAlgorithm::Keccak,
     };
+
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
     let signed_message = SignedMessage::new(
         &dave.pair(),
@@ -814,6 +838,7 @@ async fn test_sign_tx_user_participates() {
         auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
+        hash: HashingAlgorithm::Keccak,
     };
 
     let submit_transaction_requests =
