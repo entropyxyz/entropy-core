@@ -863,12 +863,12 @@ pub fn testing_config() -> ChainSpec {
 }
 
 /// Development config (single validator Alice)
-pub fn devnet_config() -> ChainSpec {
+pub fn testnet_config() -> ChainSpec {
     ChainSpec::from_genesis(
-        "EntropyDevnet",
-        "EDev",
+        "EntropyTestnet",
+        "ETest",
         ChainType::Live,
-        admin::devnet_config_genesis,
+        admin::testnet_config_genesis,
         vec![],
         Some(
             TelemetryEndpoints::new(vec![(STAGING_TELEMETRY_URL.to_string(), 0)])
