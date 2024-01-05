@@ -23,6 +23,7 @@ use std::{
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic};
+use ec_runtime::{Runtime, SignatureRequest};
 use entropy_kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
@@ -38,11 +39,12 @@ use entropy_testing_utils::{
     chain_api::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec as OtherBoundedVec,
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
-        PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS,
-        X25519_PUBLIC_KEYS,
+        PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_CUSTOM_HASH,
+        TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::{
-        test_context_stationary, test_node_process_testing_state, SubstrateTestingContext,
+        test_context_stationary, test_node_process_testing_state, testing_context,
+        SubstrateTestingContext,
     },
     test_client::update_pointer,
 };
@@ -96,7 +98,7 @@ use crate::{
             check_if_confirmation, create_clients, initialize_test_logger, remove_program,
             run_to_block, setup_client, spawn_testing_validators, update_programs,
         },
-        user::send_key,
+        user::{compute_hash, send_key},
     },
     new_user,
     r#unsafe::api::UnsafeQuery,
@@ -1200,6 +1202,34 @@ async fn test_register_with_private_key_visibility() {
 
     assert!(keyshare_result.is_ok());
     clean_tests();
+}
+
+#[tokio::test]
+async fn test_compute_hash() {
+    initialize_test_logger().await;
+    clean_tests();
+    let one = AccountKeyring::Dave;
+    let substrate_context = testing_context().await;
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+
+    let mut runtime = Runtime::new();
+    let program_hash =
+        update_programs(&api, &one.pair(), TEST_PROGRAM_CUSTOM_HASH.to_owned()).await;
+
+    let message_hash = compute_hash(
+        &api,
+        &rpc,
+        &HashingAlgorithm::Custom(0),
+        &mut runtime,
+        &[program_hash],
+        PREIMAGE_SHOULD_SUCCEED,
+    )
+    .await
+    .unwrap();
+    // custom hash program uses blake 3 to hash
+    let expected_hash = blake3::hash(PREIMAGE_SHOULD_SUCCEED).as_bytes().to_vec();
+    assert_eq!(message_hash.to_vec(), expected_hash);
 }
 
 pub async fn verify_signature(
