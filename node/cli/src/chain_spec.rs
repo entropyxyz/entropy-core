@@ -865,8 +865,8 @@ pub fn testing_config() -> ChainSpec {
 /// Development config (single validator Alice)
 pub fn testnet_config() -> ChainSpec {
     ChainSpec::from_genesis(
-        "EntropyDevnet",
-        "EDev",
+        "EntropyTestnet",
+        "ETest",
         ChainType::Live,
         admin::testnet_config_genesis,
         vec![],
