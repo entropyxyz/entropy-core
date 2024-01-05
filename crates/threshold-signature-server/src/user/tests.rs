@@ -342,6 +342,10 @@ async fn test_sign_tx_no_chain() {
 
     // program gets removed and errors
     remove_program(&entropy_api, &rpc, &two.pair(), program_hash).await;
+    generic_msg.auxilary_data = Some(vec![
+        Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+    ]);
     generic_msg.timestamp = SystemTime::now();
     // test failing cases
     let test_program_pulled =
