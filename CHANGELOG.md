@@ -18,6 +18,7 @@ At the moment this project **does not** adhere to
 - When executing the signing protocol on the client-side, a `sig-uid` no longer needs to be given as
   an argument ([#549](https://github.com/entropyxyz/entropy-core/pull/549))
 - Wasm API to entropy-protocol uses camelCase function names ([#566](https://github.com/entropyxyz/entropy-core/pull/566))
+- Wasm API to functions formerly in the x25515chacha20poly1305 repo also now have camelCase function names ([#563](https://github.com/entropyxyz/entropy-core/pull/563))
 
 ### Added
 - Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
