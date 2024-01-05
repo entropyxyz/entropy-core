@@ -79,29 +79,33 @@ pub mod pallet {
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+        /// The amount if signing parties that exist onchain
         type SigningPartySize: Get<usize>;
+        /// Max amount of programs associated for one account
+        type MaxProgramHashes: Get<u32>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
+    pub type ProgramPointers<Hash, MaxProgramHashes> = BoundedVec<Hash, MaxProgramHashes>;
 
-    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
         pub program_modification_account: T::AccountId,
         pub confirmations: Vec<u8>,
-        pub program_pointer: T::Hash,
+        pub program_pointers: BoundedVec<T::Hash, T::MaxProgramHashes>,
         pub key_visibility: KeyVisibility,
         pub verifying_key: Option<BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>>,
     }
 
-    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
-    pub struct RegisteredInfo<Hash, AccountId> {
+    pub struct RegisteredInfo<T: Config> {
         pub key_visibility: KeyVisibility,
         // TODO better type
-        pub verifying_key: BoundedVec<u8, ConstU32<33>>,
-        pub program_pointer: Hash,
-        pub program_modification_account: AccountId,
+        pub verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
+        pub program_pointers: BoundedVec<T::Hash, T::MaxProgramHashes>,
+        pub program_modification_account: T::AccountId,
     }
 
     #[pallet::genesis_config]
@@ -127,7 +131,7 @@ pub mod pallet {
                     RegisteredInfo {
                         key_visibility,
                         verifying_key: BoundedVec::default(),
-                        program_pointer: T::Hash::default(),
+                        program_pointers: BoundedVec::default(),
                         program_modification_account: account_info.0.clone(),
                     },
                 );
@@ -151,13 +155,8 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn registered)]
-    pub type Registered<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        T::AccountId,
-        RegisteredInfo<T::Hash, T::AccountId>,
-        OptionQuery,
-    >;
+    pub type Registered<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, RegisteredInfo<T>, OptionQuery>;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -174,8 +173,8 @@ pub mod pallet {
         FailedRegistration(T::AccountId),
         /// An account cancelled their registration
         RegistrationCancelled(T::AccountId),
-        /// An account hash changed their program pointer [who, new_program_pointer]
-        ProgramPointerChanged(T::AccountId, T::Hash),
+        /// An account hash changed their program pointers [who, new_program_pointers]
+        ProgramPointerChanged(T::AccountId, ProgramPointers<T::Hash, T::MaxProgramHashes>),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
@@ -197,6 +196,7 @@ pub mod pallet {
         NoVerifyingKey,
         NotAuthorized,
         ProgramDoesNotExist,
+        NoProgramSet,
     }
 
     #[pallet::call]
@@ -210,14 +210,14 @@ pub mod pallet {
         /// network.
         #[pallet::call_index(0)]
         #[pallet::weight({
-            <T as Config>::WeightInfo::register()
+            <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
         })]
         pub fn register(
             origin: OriginFor<T>,
             program_modification_account: T::AccountId,
             key_visibility: KeyVisibility,
-            program_pointer: T::Hash,
-        ) -> DispatchResult {
+            program_pointers: ProgramPointers<T::Hash, T::MaxProgramHashes>,
+        ) -> DispatchResultWithPostInfo {
             let sig_req_account = ensure_signed(origin)?;
 
             // Ensure account isn't already registered or has existing programs
@@ -226,13 +226,15 @@ pub mod pallet {
                 !Registering::<T>::contains_key(&sig_req_account),
                 Error::<T>::AlreadySubmitted
             );
-
+            ensure!(!program_pointers.is_empty(), Error::<T>::NoProgramSet);
             let block_number = <frame_system::Pallet<T>>::block_number();
-            // check program exists
-            ensure!(
-                pallet_programs::Programs::<T>::contains_key(program_pointer),
-                Error::<T>::ProgramDoesNotExist
-            );
+            // check programs exists
+            for program_pointer in &program_pointers {
+                ensure!(
+                    pallet_programs::Programs::<T>::contains_key(program_pointer),
+                    Error::<T>::ProgramDoesNotExist
+                );
+            }
 
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(sig_req_account.clone().encode());
@@ -245,7 +247,7 @@ pub mod pallet {
                 RegisteringDetails::<T> {
                     program_modification_account,
                     confirmations: vec![],
-                    program_pointer,
+                    program_pointers: program_pointers.clone(),
                     key_visibility,
                     verifying_key: None,
                 },
@@ -256,7 +258,7 @@ pub mod pallet {
 
             Self::deposit_event(Event::SignalRegister(sig_req_account));
 
-            Ok(())
+            Ok(Some(<T as Config>::WeightInfo::register(program_pointers.len() as u32)).into())
         }
 
         /// Allows a user to remove themselves from registering state if it has been longer than prune block
@@ -275,28 +277,40 @@ pub mod pallet {
         /// Allows a user's program modification account to change their program pointer
         #[pallet::call_index(2)]
         #[pallet::weight({
-             <T as Config>::WeightInfo::change_program_pointer()
+             <T as Config>::WeightInfo::change_program_pointer(<T as Config>::MaxProgramHashes::get())
          })]
         pub fn change_program_pointer(
             origin: OriginFor<T>,
             sig_request_account: T::AccountId,
-            new_program_pointer: T::Hash,
-        ) -> DispatchResult {
+            new_program_pointers: ProgramPointers<T::Hash, T::MaxProgramHashes>,
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Registered::<T>::try_mutate(&sig_request_account, |maybe_registered_details| {
-                if let Some(registerd_details) = maybe_registered_details {
-                    ensure!(
-                        who == registerd_details.program_modification_account,
-                        Error::<T>::NotAuthorized
-                    );
-                    registerd_details.program_pointer = new_program_pointer;
-                    Ok(())
-                } else {
-                    Err(Error::<T>::NotRegistered)
-                }
-            })?;
-            Self::deposit_event(Event::ProgramPointerChanged(who, new_program_pointer));
-            Ok(())
+            ensure!(!new_program_pointers.is_empty(), Error::<T>::NoProgramSet);
+            // check programs exists
+            for program_pointer in &new_program_pointers {
+                ensure!(
+                    pallet_programs::Programs::<T>::contains_key(program_pointer),
+                    Error::<T>::ProgramDoesNotExist
+                );
+            }
+            let program_pointers =
+                Registered::<T>::try_mutate(&sig_request_account, |maybe_registered_details| {
+                    if let Some(registerd_details) = maybe_registered_details {
+                        ensure!(
+                            who == registerd_details.program_modification_account,
+                            Error::<T>::NotAuthorized
+                        );
+                        registerd_details.program_pointers = new_program_pointers.clone();
+                        Ok(new_program_pointers)
+                    } else {
+                        Err(Error::<T>::NotRegistered)
+                    }
+                })?;
+            Self::deposit_event(Event::ProgramPointerChanged(who, program_pointers.clone()));
+            Ok(Some(<T as Config>::WeightInfo::change_program_pointer(
+                program_pointers.len() as u32
+            ))
+            .into())
         }
 
         /// Allows validators to confirm that they have received a key-share from a user that is
@@ -363,7 +377,7 @@ pub mod pallet {
                     RegisteredInfo {
                         key_visibility: registering_info.key_visibility,
                         verifying_key,
-                        program_pointer: registering_info.program_pointer,
+                        program_pointers: registering_info.program_pointers,
                         program_modification_account: registering_info.program_modification_account,
                     },
                 );

@@ -147,18 +147,27 @@ pub async fn sign_tx(
     let message = hex::decode(&user_sig_req.message)?;
     let auxilary_data = user_sig_req.auxilary_data.as_ref().map(hex::decode).transpose()?;
 
-    let program = get_program(&api, &rpc, &user_details.program_pointer).await?;
     let mut runtime = Runtime::new();
     let signature_request = SignatureRequest { message, auxilary_data };
-    runtime.evaluate(&program, &signature_request)?;
 
+    if user_details.program_pointers.0.is_empty() {
+        return Err(UserErr::NoProgramPointerDefined());
+    }
+
+    for program_pointer in &user_details.program_pointers.0 {
+        let program = get_program(&api, &rpc, program_pointer).await?;
+        runtime.evaluate(&program, &signature_request)?;
+    }
     // We decided to do Keccak for subgroup selection for frontend compatability
     let message_hash_keccak = compute_hash(
+        &api,
+        &rpc,
         &HashingAlgorithm::Keccak,
         &mut runtime,
-        program.as_slice(),
+        &[],
         signature_request.message.as_slice(),
-    )?;
+    )
+    .await?;
     let message_hash_keccak_hex = hex::encode(message_hash_keccak);
 
     let subgroup_signers =
@@ -170,11 +179,14 @@ pub async fn sign_tx(
     user_sig_req.validators_info = subgroup_signers;
 
     let message_hash = compute_hash(
+        &api,
+        &rpc,
         &user_sig_req.hash,
         &mut runtime,
-        program.as_slice(),
+        &user_details.program_pointers.0,
         signature_request.message.as_slice(),
-    )?;
+    )
+    .await?;
     let message_hash_hex = hex::encode(message_hash);
 
     let signing_session_id = SigningSessionInfo {
