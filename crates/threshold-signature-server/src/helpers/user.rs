@@ -15,19 +15,27 @@
 
 use std::time::Duration;
 
+use ec_runtime::Runtime;
 use entropy_protocol::{
     execute_protocol::{execute_dkg, Channels},
     KeyParams, SessionId, ValidatorInfo,
 };
-use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::{HashingAlgorithm, KeyVisibility, SETUP_TIMEOUT_SECONDS};
+
+use sha1::{Digest as Sha1Digest, Sha1};
+use sha2::{Digest as Sha256Digest, Sha256};
+use sha3::{Digest as Sha3Digest, Keccak256, Sha3_256};
 use sp_core::{sr25519, Bytes, Pair};
-use subxt::{backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32, OnlineClient};
+use subxt::{
+    backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32, Config, OnlineClient,
+};
 use synedrion::KeyShare;
 use tokio::time::timeout;
 use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{entropy, EntropyConfig},
+    helpers::substrate::get_program,
     signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
     user::{api::UserRegistrationInfo, errors::UserErr},
     validation::{derive_static_secret, SignedMessage},
@@ -158,4 +166,53 @@ pub fn check_in_registration_group(
         return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
     }
     Ok(())
+}
+
+/// Generate the a hash of `message` to be signed based on the `hash` algorithm
+pub async fn compute_hash(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    hashing_algorithm: &HashingAlgorithm,
+    runtime: &mut Runtime,
+    program_pointers: &[<EntropyConfig as Config>::Hash],
+    message: &[u8],
+) -> Result<[u8; 32], UserErr> {
+    match hashing_algorithm {
+        HashingAlgorithm::Sha1 => {
+            let mut hasher = <Sha1 as Sha1Digest>::new();
+            hasher.update(message);
+            let result = hasher.finalize();
+            let mut hash = [0u8; 32];
+            hash.copy_from_slice(&result);
+            Ok(hash)
+        },
+        HashingAlgorithm::Sha2 => {
+            let mut hasher = <Sha256 as Sha256Digest>::new();
+            hasher.update(message);
+            let result = hasher.finalize();
+            let mut hash = [0u8; 32];
+            hash.copy_from_slice(&result);
+            Ok(hash)
+        },
+        HashingAlgorithm::Sha3 => {
+            let mut hasher = <Sha3_256 as Sha3Digest>::new();
+            hasher.update(message);
+            let result = hasher.finalize();
+            let mut hash = [0u8; 32];
+            hash.copy_from_slice(&result);
+            Ok(hash)
+        },
+        HashingAlgorithm::Keccak => {
+            let mut hasher = <Keccak256 as Sha3Digest>::new();
+            hasher.update(message);
+            let result = hasher.finalize();
+            let mut hash = [0u8; 32];
+            hash.copy_from_slice(&result);
+            Ok(hash)
+        },
+        HashingAlgorithm::Custom(i) => {
+            let program = get_program(api, rpc, &program_pointers[*i]).await?;
+            runtime.custom_hash(program.as_slice(), message).map_err(|e| e.into())
+        },
+    }
 }

@@ -35,8 +35,8 @@ use entropy_kvdb::kv_manager::{
 use entropy_protocol::SigningSessionInfo;
 use entropy_protocol::ValidatorInfo;
 use entropy_shared::{
-    types::KeyVisibility, OcwMessageDkg, X25519PublicKey, MAX_INSTRUCTIONS_PER_PROGRAM,
-    SIGNING_PARTY_SIZE,
+    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey,
+    MAX_INSTRUCTIONS_PER_PROGRAM, SIGNING_PARTY_SIZE,
 };
 use futures::{
     channel::mpsc,
@@ -70,7 +70,7 @@ use crate::{
         substrate::{
             get_program, get_registered_details, get_subgroup, return_all_addresses_of_subgroup,
         },
-        user::{check_in_registration_group, do_dkg, send_key},
+        user::{check_in_registration_group, compute_hash, do_dkg, send_key},
         validator::get_signer,
     },
     signing_client::{ListenerState, ProtocolErr},
@@ -91,6 +91,8 @@ pub struct UserSignatureRequest {
     pub validators_info: Vec<ValidatorInfo>,
     /// When the message was created and signed
     pub timestamp: SystemTime,
+    /// Hashing algorithm to be used for signing
+    pub hash: HashingAlgorithm,
 }
 
 /// Type for validators to send user key's back and forth
@@ -145,14 +147,48 @@ pub async fn sign_tx(
 
     let message = hex::decode(&user_sig_req.message)?;
     let auxilary_data = user_sig_req.auxilary_data.as_ref().map(hex::decode).transpose()?;
-    let message_hash = Hasher::keccak(&message);
-    let message_hash_hex = hex::encode(message_hash);
-    let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &message_hash_hex).await?;
+
+    let mut runtime = Runtime::default();
+    let signature_request = SignatureRequest { message, auxilary_data };
+
+    if user_details.program_pointers.0.is_empty() {
+        return Err(UserErr::NoProgramPointerDefined());
+    }
+
+    for program_pointer in &user_details.program_pointers.0 {
+        let program = get_program(&api, &rpc, program_pointer).await?;
+        runtime.evaluate(&program, &signature_request)?;
+    }
+    // We decided to do Keccak for subgroup selection for frontend compatability
+    let message_hash_keccak = compute_hash(
+        &api,
+        &rpc,
+        &HashingAlgorithm::Keccak,
+        &mut runtime,
+        &[],
+        signature_request.message.as_slice(),
+    )
+    .await?;
+    let message_hash_keccak_hex = hex::encode(message_hash_keccak);
+
+    let subgroup_signers =
+        get_current_subgroup_signers(&api, &rpc, &message_hash_keccak_hex).await?;
     check_signing_group(&subgroup_signers, &user_sig_req.validators_info, signer.account_id())?;
 
     // Use the validator info from chain as we can be sure it is in the correct order and the
     // details are correct
     user_sig_req.validators_info = subgroup_signers;
+
+    let message_hash = compute_hash(
+        &api,
+        &rpc,
+        &user_sig_req.hash,
+        &mut runtime,
+        &user_details.program_pointers.0,
+        signature_request.message.as_slice(),
+    )
+    .await?;
+    let message_hash_hex = hex::encode(message_hash);
 
     let signing_session_id = SigningSessionInfo {
         account_id: SubxtAccountId32(*signed_msg.account_id().as_ref()),
@@ -164,11 +200,9 @@ pub async fn sign_tx(
         recover_key(&api, &rpc, &app_state.kv_store, &signer, signing_address).await?
     }
 
-    let program = get_program(&api, &rpc, &user_details.program_pointer).await?;
+    let program = get_program(&api, &rpc, &user_details.program_pointers).await?;
 
-    let mut runtime = Runtime::new(ec_runtime::Config {
-        fuel: MAX_INSTRUCTIONS_PER_PROGRAM,
-    });
+    let mut runtime = Runtime::new(ec_runtime::Config { fuel: MAX_INSTRUCTIONS_PER_PROGRAM });
     let signature_request = SignatureRequest { message, auxilary_data };
 
     runtime.evaluate(&program, &signature_request)?;

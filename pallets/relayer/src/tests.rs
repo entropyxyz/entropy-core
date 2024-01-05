@@ -72,6 +72,7 @@ fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
         pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
@@ -81,7 +82,7 @@ fn it_registers_a_user() {
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            program_hash,
+            program_hashes,
         ));
         assert_eq!(Relayer::dkg(0), vec![1u64.encode()]);
     });
@@ -105,6 +106,7 @@ fn it_confirms_registers_a_user() {
 
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
         pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
@@ -114,7 +116,7 @@ fn it_confirms_registers_a_user() {
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Private([0; 32]),
-            program_hash.clone(),
+            program_hashes.clone(),
         ));
 
         assert_noop!(
@@ -129,7 +131,7 @@ fn it_confirms_registers_a_user() {
             Error::<Test>::NotInSigningGroup
         );
 
-        assert_eq!(Relayer::registered(1), None);
+        assert!(Relayer::registered(1).is_none());
 
         assert_ok!(Relayer::confirm_register(
             RuntimeOrigin::signed(1),
@@ -150,7 +152,7 @@ fn it_confirms_registers_a_user() {
 
         let registering_info = RegisteringDetails::<Test> {
             confirmations: vec![0],
-            program_pointer: program_hash.clone(),
+            program_pointers: program_hashes.clone(),
             key_visibility: KeyVisibility::Private([0; 32]),
             verifying_key: Some(expected_verifying_key.clone()),
             program_modification_account: 2,
@@ -171,7 +173,7 @@ fn it_confirms_registers_a_user() {
             RegisteredInfo {
                 key_visibility: KeyVisibility::Private([0; 32]),
                 verifying_key: expected_verifying_key,
-                program_pointer: program_hash,
+                program_pointers: program_hashes,
                 program_modification_account: 2
             }
         );
@@ -183,6 +185,8 @@ fn it_changes_a_program_pointer() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
+
         pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
@@ -190,21 +194,56 @@ fn it_changes_a_program_pointer() {
 
         let new_program = vec![10];
         let new_program_hash = <Test as frame_system::Config>::Hashing::hash(&new_program);
+        let new_program_hashes = BoundedVec::try_from(vec![new_program_hash]).unwrap();
+
+        pallet_programs::Programs::<Test>::insert(
+            new_program_hash,
+            ProgramInfo { bytecode: new_program, program_modification_account: 1 },
+        );
+
         let expected_verifying_key = BoundedVec::default();
 
         let mut registered_info = RegisteredInfo {
             key_visibility: KeyVisibility::Public,
             verifying_key: expected_verifying_key,
-            program_pointer: program_hash,
+            program_pointers: program_hashes,
             program_modification_account: 2,
         };
 
-        Registered::<Test>::insert(1, registered_info.clone());
-        assert_eq!(Relayer::registered(1).unwrap(), registered_info.clone());
-
-        assert_ok!(Relayer::change_program_pointer(RuntimeOrigin::signed(2), 1, new_program_hash,));
-        registered_info.program_pointer = new_program_hash;
+        Registered::<Test>::insert(1, &registered_info);
         assert_eq!(Relayer::registered(1).unwrap(), registered_info);
+
+        assert_ok!(Relayer::change_program_pointer(
+            RuntimeOrigin::signed(2),
+            1,
+            new_program_hashes.clone(),
+        ));
+        registered_info.program_pointers = new_program_hashes;
+        assert_eq!(Relayer::registered(1).unwrap(), registered_info);
+
+        let unreigistered_program = vec![13];
+        let unreigistered_program_hash =
+            <Test as frame_system::Config>::Hashing::hash(&unreigistered_program);
+        let unreigistered_program_hashes =
+            BoundedVec::try_from(vec![new_program_hash, unreigistered_program_hash]).unwrap();
+
+        assert_noop!(
+            Relayer::change_program_pointer(
+                RuntimeOrigin::signed(2),
+                1,
+                unreigistered_program_hashes.clone(),
+            ),
+            Error::<Test>::ProgramDoesNotExist
+        );
+
+        assert_noop!(
+            Relayer::change_program_pointer(
+                RuntimeOrigin::signed(2),
+                1,
+                BoundedVec::try_from(vec![]).unwrap(),
+            ),
+            Error::<Test>::NoProgramSet
+        );
     });
 }
 
@@ -213,6 +252,8 @@ fn it_fails_on_non_matching_verifying_keys() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
+
         pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
@@ -224,7 +265,7 @@ fn it_fails_on_non_matching_verifying_keys() {
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Private([0; 32]),
-            program_hash,
+            program_hashes,
         ));
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
@@ -255,6 +296,8 @@ fn it_doesnt_allow_double_registering() {
         // register a user
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
+
         pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
@@ -264,7 +307,7 @@ fn it_doesnt_allow_double_registering() {
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Permissioned,
-            program_hash.clone(),
+            program_hashes.clone(),
         ));
 
         // error if they try to submit another request, even with a different program key
@@ -273,7 +316,7 @@ fn it_doesnt_allow_double_registering() {
                 RuntimeOrigin::signed(1),
                 2,
                 KeyVisibility::Permissioned,
-                program_hash
+                program_hashes
             ),
             Error::<Test>::AlreadySubmitted
         );
@@ -286,15 +329,31 @@ fn it_fails_no_program() {
         // register a user
         let non_existing_program = vec![10];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&non_existing_program);
+        let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
 
         assert_noop!(
             Relayer::register(
                 RuntimeOrigin::signed(1),
                 2,
                 KeyVisibility::Permissioned,
-                program_hash
+                program_hashes
             ),
             Error::<Test>::ProgramDoesNotExist
+        );
+    });
+}
+
+#[test]
+fn it_fails_empty_program_list() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            Relayer::register(
+                RuntimeOrigin::signed(1),
+                2,
+                KeyVisibility::Permissioned,
+                BoundedVec::try_from(vec![]).unwrap(),
+            ),
+            Error::<Test>::NoProgramSet
         );
     });
 }
@@ -304,6 +363,8 @@ fn it_tests_prune_registration() {
     new_test_ext().execute_with(|| {
         let inital_program = vec![10];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&inital_program);
+        let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
+
         pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: inital_program, program_modification_account: 1 },
@@ -315,7 +376,7 @@ fn it_tests_prune_registration() {
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Permissioned,
-            program_hash,
+            program_hashes,
         ));
         assert!(Relayer::registering(1).is_some(), "Make sure there is registering state");
         assert_ok!(Relayer::prune_registration(RuntimeOrigin::signed(1)));
@@ -327,6 +388,8 @@ fn it_provides_free_txs_confirm_done() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
+
         pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
@@ -337,7 +400,7 @@ fn it_provides_free_txs_confirm_done() {
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            program_hash,
+            program_hashes,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
@@ -395,6 +458,8 @@ fn it_provides_free_txs_confirm_done_fails_3() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
+
         pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
@@ -405,7 +470,7 @@ fn it_provides_free_txs_confirm_done_fails_3() {
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            program_hash,
+            program_hashes,
         ));
 
         assert_ok!(Relayer::confirm_register(
@@ -433,6 +498,8 @@ fn it_provides_free_txs_confirm_done_fails_4() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
+
         pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
@@ -443,7 +510,7 @@ fn it_provides_free_txs_confirm_done_fails_4() {
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            program_hash,
+            program_hashes,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {
@@ -464,6 +531,8 @@ fn it_provides_free_txs_confirm_done_fails_5() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
+
         pallet_programs::Programs::<Test>::insert(
             program_hash,
             ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
@@ -474,7 +543,7 @@ fn it_provides_free_txs_confirm_done_fails_5() {
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
             KeyVisibility::Public,
-            program_hash,
+            program_hashes,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Relayer(RelayerCall::confirm_register {

@@ -43,7 +43,7 @@ use crate::chain_spec::{
     testing, testnet_genesis,
 };
 
-pub fn devnet_config_genesis() -> RuntimeGenesisConfig {
+pub fn testnet_config_genesis() -> RuntimeGenesisConfig {
     #[rustfmt::skip]
 	// stash, controller, session-key
 	// generated with secret:

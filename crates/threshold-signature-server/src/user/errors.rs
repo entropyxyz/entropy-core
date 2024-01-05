@@ -119,8 +119,10 @@ pub enum UserErr {
     KvSerialize(String),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
-    #[error("No program set")]
-    NoProgramDefined,
+    #[error("No program set at: {0}")]
+    NoProgramDefined(String),
+    #[error("No program pointer defined for account")]
+    NoProgramPointerDefined(),
     #[error("Runtime error: {0:?}")]
     RuntimeError(#[from] ProgramRuntimeError),
     #[error("Parse transaction_request error")]
@@ -130,7 +132,7 @@ pub enum UserErr {
     #[error("Protocol Execution Error {0}")]
     ProtocolExecution(#[from] ProtocolExecutionErr),
     #[error("Encryption or signing error: {0}")]
-    Json(#[from] x25519_chacha20poly1305::SignedMessageErr),
+    Json(#[from] entropy_protocol::sign_and_encrypt::SignedMessageErr),
 }
 
 impl IntoResponse for UserErr {

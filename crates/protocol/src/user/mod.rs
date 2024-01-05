@@ -24,7 +24,6 @@ use tokio::spawn;
 use tokio::sync::{broadcast, mpsc};
 #[cfg(feature = "wasm")]
 use wasm_bindgen_futures::spawn_local as spawn;
-use x25519_chacha20poly1305::derive_static_secret;
 
 use crate::{
     errors::UserRunningProtocolErr,
@@ -33,6 +32,7 @@ use crate::{
         noise::noise_handshake_initiator, open_ws_connection, ws_to_channels, Broadcaster,
         SubscribeMessage, ThreadSafeWsConnection, WsChannels,
     },
+    sign_and_encrypt::derive_static_secret,
     KeyParams, PartyId, RecoverableSignature, SessionId, SigningSessionInfo, ValidatorInfo,
 };
 
