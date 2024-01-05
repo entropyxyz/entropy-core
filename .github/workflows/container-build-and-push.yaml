@@ -12,7 +12,7 @@ on:
       docker_build_arg_package:
         description: >
           Value of `PACKAGE` to pass to `--build-args`. Expected to
-          be one of `entropy` or `server`.
+          be one of `entropy` or `entropy-tss`.
         type: string
         required: true
       git_ref_basename:
