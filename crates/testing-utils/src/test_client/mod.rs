@@ -15,11 +15,13 @@
 
 //! Simple test client
 pub use crate::chain_api::{get_api, get_rpc};
-pub use entropy_protocol::KeyParams;
+pub use entropy_protocol::{
+    sign_and_encrypt::{derive_static_secret, SignedMessage},
+    KeyParams,
+};
 use entropy_shared::HashingAlgorithm;
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 pub use synedrion::KeyShare;
-pub use x25519_chacha20poly1305::derive_static_secret;
 
 use std::{
     thread,
@@ -48,7 +50,6 @@ use subxt::{
     Config, OnlineClient,
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
-use x25519_chacha20poly1305::SignedMessage;
 
 /// Register an account.
 ///

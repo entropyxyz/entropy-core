@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use entropy_protocol::sign_and_encrypt::SignedMessageErr;
 use thiserror::Error;
-use x25519_chacha20poly1305::SignedMessageErr;
 
 #[derive(Debug, Error)]
 pub enum ValidationErr {

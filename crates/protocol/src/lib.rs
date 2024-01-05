@@ -18,6 +18,7 @@ pub mod errors;
 pub mod execute_protocol;
 mod protocol_message;
 pub mod protocol_transport;
+pub mod sign_and_encrypt;
 pub mod user;
 
 extern crate alloc;
