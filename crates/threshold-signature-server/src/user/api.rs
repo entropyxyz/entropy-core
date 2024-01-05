@@ -167,7 +167,7 @@ pub async fn sign_tx(
     let program = get_program(&api, &rpc, &user_details.program_pointer).await?;
 
     let mut runtime = Runtime::new(ec_runtime::Config {
-        max_instructions_per_program: MAX_INSTRUCTIONS_PER_PROGRAM,
+        fuel: MAX_INSTRUCTIONS_PER_PROGRAM,
     });
     let signature_request = SignatureRequest { message, auxilary_data };
 

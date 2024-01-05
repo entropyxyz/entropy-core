@@ -1142,7 +1142,7 @@ pub async fn verify_signature(
 
 #[tokio::test]
 #[serial]
-async fn test_fail_inifinite_program() {
+async fn test_fail_infinite_program() {
     initialize_test_logger().await;
     clean_tests();
 
@@ -1189,7 +1189,7 @@ async fn test_fail_inifinite_program() {
     let test_infinite_loop =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
     for res in test_infinite_loop {
-        assert_eq!(res.unwrap().text().await.unwrap(), "Runtime error: Bindings(\"error while executing at wasm backtrace:\\n    0:  0x18a - <unknown>!evaluate\")");
+        assert_eq!(res.unwrap().text().await.unwrap(), "Runtime error: OutOfFuel");
     }
 }
 

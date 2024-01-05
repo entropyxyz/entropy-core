@@ -38,4 +38,4 @@ pub const SETUP_TIMEOUT_SECONDS: u64 = 20;
 pub const REFRESHES_PER_SESSION: u32 = 10;
 
 /// Max instructions per wasm program
-pub const MAX_INSTRUCTIONS_PER_PROGRAM: u32 = 10_000;
+pub const MAX_INSTRUCTIONS_PER_PROGRAM: u64 = 10_000;
