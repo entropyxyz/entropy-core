@@ -152,21 +152,21 @@ pub async fn sign_tx(
         return Err(UserErr::NoProgramPointerDefined());
     }
     // handle aux data padding, if it is not explicit by client for ease send through None
-    let mut auxiliary_data_vec;
+    let mut auxilary_data_vec;
     if let Some(auxilary_data) = user_sig_req.clone().auxilary_data {
         if auxilary_data.len() < user_details.program_pointers.0.len() {
-            auxiliary_data_vec = auxilary_data;
-            auxiliary_data_vec.resize(user_details.program_pointers.0.len(), None)
+            auxilary_data_vec = auxilary_data;
+            auxilary_data_vec.resize(user_details.program_pointers.0.len(), None)
         } else {
-            auxiliary_data_vec = auxilary_data;
+            auxilary_data_vec = auxilary_data;
         }
     } else {
-        auxiliary_data_vec = vec![None; user_details.program_pointers.0.len()];
+        auxilary_data_vec = vec![None; user_details.program_pointers.0.len()];
     }
 
     for (i, program_pointer) in user_details.program_pointers.0.iter().enumerate() {
         let program = get_program(&api, &rpc, program_pointer).await?;
-        let auxilary_data = auxiliary_data_vec[i].as_ref().map(hex::decode).transpose()?;
+        let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
         let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
         runtime.evaluate(&program, &signature_request)?;
     }
