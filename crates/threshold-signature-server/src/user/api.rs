@@ -154,8 +154,7 @@ pub async fn sign_tx(
     // handle aux data padding, if it is not explicit by client for ease send through None
     let mut auxiliary_data_vec;
     if let Some(auxilary_data) = user_sig_req.clone().auxilary_data {
-        if auxilary_data.len() < user_details.program_pointers.0.len()
-        {
+        if auxilary_data.len() < user_details.program_pointers.0.len() {
             auxiliary_data_vec = auxilary_data;
             auxiliary_data_vec.resize(user_details.program_pointers.0.len(), None)
         } else {
