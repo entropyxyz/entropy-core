@@ -158,7 +158,10 @@ async fn test_sign_tx_no_chain() {
 
     let mut generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
-        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        auxilary_data: Some(vec![
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        ]),
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
@@ -326,6 +329,20 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
+    // The test program is written to fail when `auxilary_data` is `None` but only on the second program
+    generic_msg.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
+    generic_msg.timestamp = SystemTime::now();
+
+    let test_user_failed_aux_data =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    for res in test_user_failed_aux_data {
+        assert_eq!(
+             res.unwrap().text().await.unwrap(),
+             "Runtime error: Runtime(Error::Evaluation(\"This program requires that `auxilary_data` be `Some`.\"))"
+         );
+    }
+
     // program gets removed and errors
     remove_program(&entropy_api, &rpc, &two.pair(), program_hash).await;
     generic_msg.timestamp = SystemTime::now();
@@ -454,7 +471,7 @@ async fn test_fail_signing_group() {
 
     let generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
-        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        auxilary_data: Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]),
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
@@ -868,7 +885,7 @@ async fn test_sign_tx_user_participates() {
 
     let mut generic_msg = UserSignatureRequest {
         message: encoded_transaction_request.clone(),
-        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        auxilary_data: Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
@@ -1210,7 +1227,6 @@ pub async fn verify_signature(
     let mut i = 0;
     for res in test_user_res {
         let mut res = res.unwrap();
-
         assert_eq!(res.status(), 200);
         let chunk = res.chunk().await.unwrap().unwrap();
         let signing_result: Result<(String, Signature), String> =
