@@ -151,12 +151,11 @@ pub async fn sign_tx(
     if user_details.program_pointers.0.is_empty() {
         return Err(UserErr::NoProgramPointerDefined());
     }
-    // handle aux data padding, if it is not explicit by client for ease send through None
-    let mut auxilary_data_vec;
+    // handle aux data padding, if it is not explicit by client for ease send through None, error if incorrect length
+    let auxilary_data_vec;
     if let Some(auxilary_data) = user_sig_req.clone().auxilary_data {
         if auxilary_data.len() < user_details.program_pointers.0.len() {
-            auxilary_data_vec = auxilary_data;
-            auxilary_data_vec.resize(user_details.program_pointers.0.len(), None)
+            return Err(UserErr::MismatchAuxData);
         } else {
             auxilary_data_vec = auxilary_data;
         }

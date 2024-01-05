@@ -337,10 +337,7 @@ async fn test_sign_tx_no_chain() {
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
     for res in test_user_failed_aux_data {
-        assert_eq!(
-             res.unwrap().text().await.unwrap(),
-             "Runtime error: Runtime(Error::Evaluation(\"This program requires that `auxilary_data` be `Some`.\"))"
-         );
+        assert_eq!(res.unwrap().text().await.unwrap(), "Auxilary data is mismatched");
     }
 
     // program gets removed and errors
