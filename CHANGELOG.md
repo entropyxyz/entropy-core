@@ -20,7 +20,7 @@ At the moment this project **does not** adhere to
 - Wasm API to entropy-protocol uses camelCase function names ([#566](https://github.com/entropyxyz/entropy-core/pull/566))
 - Wasm API to functions formerly in the x25515chacha20poly1305 repo also now have camelCase function names ([#563](https://github.com/entropyxyz/entropy-core/pull/563))
 - Register and change program pointer interface changed to accept a vecotor of programs. As well pass an index for which containts the hashing code if it custom hashing ([#568](https://github.com/entropyxyz/entropy-core/pull/568))
-
+- If a user is sending additive data through it now needs to be in a vector and the index needs to match up with where the program pointer is in the program pointer vector. ([#577](https://github.com/entropyxyz/entropy-core/pull/577))
 ### Added
 - Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
 - Include contents of x25515chacha20poly1305 repo in entropy-protocol ([#563](https://github.com/entropyxyz/entropy-core/pull/563))
@@ -34,6 +34,7 @@ At the moment this project **does not** adhere to
 - Change bip39 implementation ([#562](https://github.com/entropyxyz/entropy-core/pull/562))
 - Additive programs ([#568](https://github.com/entropyxyz/entropy-core/pull/568))
 - Additional `hash` field in `/sign_tx` JSON body indicates which hashing algorithm to use for signing ([#553](https://github.com/entropyxyz/entropy-core/pull/553))
+- Additive aux data ([#577](https://github.com/entropyxyz/entropy-core/pull/577))
 
 ### Added
 

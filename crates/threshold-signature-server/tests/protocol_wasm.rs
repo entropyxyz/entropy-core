@@ -107,7 +107,10 @@ async fn test_wasm_sign_tx_user_participates() {
 
     let mut generic_msg = UserSignatureRequest {
         message: encoded_transaction_request.clone(),
-        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        auxilary_data: Some(vec![
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        ]),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
