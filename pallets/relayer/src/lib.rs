@@ -228,12 +228,19 @@ pub mod pallet {
             );
             ensure!(!program_pointers.is_empty(), Error::<T>::NoProgramSet);
             let block_number = <frame_system::Pallet<T>>::block_number();
-            // check programs exists
+            // chnage program ref counter
             for program_pointer in &program_pointers {
-                ensure!(
-                    pallet_programs::Programs::<T>::contains_key(program_pointer),
-                    Error::<T>::ProgramDoesNotExist
-                );
+                pallet_programs::Programs::<T>::try_mutate(
+                    program_pointer,
+                    |maybe_program_info| {
+                        if let Some(program_info) = maybe_program_info {
+                            program_info.ref_counter = program_info.ref_counter.saturating_add(1);
+                            Ok(())
+                        } else {
+                            Err(Error::<T>::NoProgramSet)
+                        }
+                    },
+                )?;
             }
 
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
@@ -268,7 +275,14 @@ pub mod pallet {
         })]
         pub fn prune_registration(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
+            let registering_info = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
+            for program_pointer in registering_info.program_pointers {
+                pallet_programs::Programs::<T>::mutate(program_pointer, |maybe_program_info| {
+                    if let Some(program_info) = maybe_program_info {
+                        program_info.ref_counter = program_info.ref_counter.saturating_sub(1);
+                    }
+                });
+            }
             Registering::<T>::remove(&who);
             Self::deposit_event(Event::RegistrationCancelled(who));
             Ok(())
@@ -286,12 +300,19 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             ensure!(!new_program_pointers.is_empty(), Error::<T>::NoProgramSet);
-            // check programs exists
+            // change program ref counter
             for program_pointer in &new_program_pointers {
-                ensure!(
-                    pallet_programs::Programs::<T>::contains_key(program_pointer),
-                    Error::<T>::ProgramDoesNotExist
-                );
+                pallet_programs::Programs::<T>::try_mutate(
+                    program_pointer,
+                    |maybe_program_info| {
+                        if let Some(program_info) = maybe_program_info {
+                            program_info.ref_counter = program_info.ref_counter.saturating_add(1);
+                            Ok(())
+                        } else {
+                            Err(Error::<T>::NoProgramSet)
+                        }
+                    },
+                )?;
             }
             let program_pointers =
                 Registered::<T>::try_mutate(&sig_request_account, |maybe_registered_details| {
@@ -300,6 +321,18 @@ pub mod pallet {
                             who == registerd_details.program_modification_account,
                             Error::<T>::NotAuthorized
                         );
+                        // decrement ref counter of not used programs
+                        for program_pointer in &registerd_details.program_pointers {
+                            pallet_programs::Programs::<T>::mutate(
+                                program_pointer,
+                                |maybe_program_info| {
+                                    if let Some(program_info) = maybe_program_info {
+                                        program_info.ref_counter =
+                                            program_info.ref_counter.saturating_sub(1);
+                                    }
+                                },
+                            );
+                        }
                         registerd_details.program_pointers = new_program_pointers.clone();
                         Ok(new_program_pointers)
                     } else {
