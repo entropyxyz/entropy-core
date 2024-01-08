@@ -42,8 +42,8 @@ entropy-shared  ={ path="../shared" }
 entropy-kvdb    ={ path="../kvdb", default-features=false }
 entropy-protocol={ path="../protocol", features=["server"] }
 
-# Constraints
-ec-runtime={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.5.0" }
+# Programs
+entropy-programs-runtime={ git="ssh://git@github.com/entropyxyz/programs.git", tag="v0.5.0" }
 
 # Logging
 tracing                 ="0.1.37"
@@ -76,7 +76,7 @@ hex-literal          ="0.3.4"
 project-root         ="0.2.2"
 sp-keyring           ="24.0.0"
 more-asserts         ="0.3.1"
-template-barebones   ={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.4.0" }
+template-barebones   ={ git="ssh://git@github.com/entropyxyz/programs.git", tag="v0.5.0" }
 lazy_static          ="1.4.0"
 entropy-protocol     ={ path="../protocol", features=["unsafe"] }
 blake3               ="1.5.0"

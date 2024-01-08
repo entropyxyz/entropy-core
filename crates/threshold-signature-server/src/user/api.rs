@@ -25,13 +25,13 @@ use axum::{
 };
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
-use ec_runtime::{Runtime, SignatureRequest};
 use entropy_kvdb::kv_manager::{
     error::{InnerKvError, KvError},
     helpers::serialize as key_serialize,
     value::PartyInfo,
     KvManager,
 };
+use entropy_programs_runtime::{Runtime, SignatureRequest};
 use entropy_protocol::SigningSessionInfo;
 use entropy_protocol::ValidatorInfo;
 use entropy_shared::{

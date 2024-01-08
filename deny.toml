@@ -37,8 +37,8 @@ exceptions=[
   { allow=["AGPL-3.0"], name="entropy-tss" },
 
   # Other Entropy crates
-  { allow=["AGPL-3.0"], name="ec-core" },
-  { allow=["AGPL-3.0"], name="ec-runtime" },
+  { allow=["AGPL-3.0"], name="entropy-programs-core" },
+  { allow=["AGPL-3.0"], name="entropy-programs-runtime" },
   { allow=["AGPL-3.0"], name="synedrion" },
 
   # These are the only crates using these licenses, put them here instead of globally allowing
@@ -70,11 +70,11 @@ license-files=[
 # TODO (#567): Once we use a release of the Constraints crates which includes the license
 # information we can get rid of this.
 [[licenses.clarify]]
-name         ="ec-core"
+name         ="entropy-programs-core"
 expression   ="AGPL-3.0"
 license-files=[]
 
 [[licenses.clarify]]
-name         ="ec-runtime"
+name         ="entropy-programs-runtime"
 expression   ="AGPL-3.0"
 license-files=[]
