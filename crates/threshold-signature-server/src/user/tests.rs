@@ -160,7 +160,10 @@ async fn test_sign_tx_no_chain() {
 
     let mut generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
-        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        auxilary_data: Some(vec![
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        ]),
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
@@ -300,8 +303,23 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
+    // The test program is written to fail when `auxilary_data` is `None` but only on the second program
+    generic_msg.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
+    generic_msg.timestamp = SystemTime::now();
+
+    let test_user_failed_aux_data =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    for res in test_user_failed_aux_data {
+        assert_eq!(res.unwrap().text().await.unwrap(), "Auxilary data is mismatched");
+    }
+
     // program gets removed and errors
     remove_program(&entropy_api, &rpc, &two.pair(), program_hash).await;
+    generic_msg.auxilary_data = Some(vec![
+        Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+    ]);
     generic_msg.timestamp = SystemTime::now();
     // test failing cases
     let test_program_pulled =
@@ -428,7 +446,7 @@ async fn test_fail_signing_group() {
 
     let generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
-        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        auxilary_data: Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]),
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
@@ -842,7 +860,7 @@ async fn test_sign_tx_user_participates() {
 
     let mut generic_msg = UserSignatureRequest {
         message: encoded_transaction_request.clone(),
-        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        auxilary_data: Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
@@ -1184,7 +1202,6 @@ pub async fn verify_signature(
     let mut i = 0;
     for res in test_user_res {
         let mut res = res.unwrap();
-
         assert_eq!(res.status(), 200);
         let chunk = res.chunk().await.unwrap().unwrap();
         let signing_result: Result<(String, Signature), String> =
@@ -1227,10 +1244,19 @@ async fn test_fail_infinite_program() {
         spawn_testing_validators(Some(signing_address.clone()), false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
         update_programs(&entropy_api, &two.pair(), TEST_INFINITE_LOOP_BYTECODE.to_owned()).await;
-    update_pointer(&entropy_api, &one.pair(), &one.pair(), program_hash).await.unwrap();
+    update_pointer(
+        &entropy_api,
+        &rpc,
+        &one.pair(),
+        &one.pair(),
+        OtherBoundedVec(vec![program_hash]),
+    )
+    .await
+    .unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -1247,7 +1273,10 @@ async fn test_fail_infinite_program() {
 
     let mut generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
-        auxilary_data: Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        auxilary_data: Some(vec![
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        ]),
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,

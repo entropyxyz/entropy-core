@@ -148,7 +148,7 @@ pub async fn sign(
 
     let signature_request = UserSignatureRequest {
         message: hex::encode(message),
-        auxilary_data: auxilary_data.map(hex::encode),
+        auxilary_data: Some(vec![auxilary_data.map(hex::encode)]),
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,

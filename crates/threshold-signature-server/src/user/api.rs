@@ -86,7 +86,7 @@ pub struct UserSignatureRequest {
     /// Hex-encoded raw data to be signed (eg. hex-encoded RLP-serialized Ethereum transaction)
     pub message: String,
     /// Hex-encoded auxilary data for program evaluation, will not be signed (eg. zero-knowledge proof, serialized struct, etc)
-    pub auxilary_data: Option<String>,
+    pub auxilary_data: Option<Vec<Option<String>>>,
     /// Information from the validators in signing party
     pub validators_info: Vec<ValidatorInfo>,
     /// When the message was created and signed
@@ -146,29 +146,34 @@ pub async fn sign_tx(
     check_stale(user_sig_req.timestamp)?;
 
     let message = hex::decode(&user_sig_req.message)?;
-    let auxilary_data = user_sig_req.auxilary_data.as_ref().map(hex::decode).transpose()?;
-
-    let mut runtime = Runtime::default();
-    let signature_request = SignatureRequest { message, auxilary_data };
 
     if user_details.program_pointers.0.is_empty() {
         return Err(UserErr::NoProgramPointerDefined());
     }
+    // handle aux data padding, if it is not explicit by client for ease send through None, error if incorrect length
+    let auxilary_data_vec;
+    if let Some(auxilary_data) = user_sig_req.clone().auxilary_data {
+        if auxilary_data.len() < user_details.program_pointers.0.len() {
+            return Err(UserErr::MismatchAuxData);
+        } else {
+            auxilary_data_vec = auxilary_data;
+        }
+    } else {
+        auxilary_data_vec = vec![None; user_details.program_pointers.0.len()];
+    }
 
-    for program_pointer in &user_details.program_pointers.0 {
+    let mut runtime = Runtime::new(ec_runtime::Config { fuel: MAX_INSTRUCTIONS_PER_PROGRAM });
+
+    for (i, program_pointer) in user_details.program_pointers.0.iter().enumerate() {
         let program = get_program(&api, &rpc, program_pointer).await?;
+        let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
+        let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
         runtime.evaluate(&program, &signature_request)?;
     }
     // We decided to do Keccak for subgroup selection for frontend compatability
-    let message_hash_keccak = compute_hash(
-        &api,
-        &rpc,
-        &HashingAlgorithm::Keccak,
-        &mut runtime,
-        &[],
-        signature_request.message.as_slice(),
-    )
-    .await?;
+    let message_hash_keccak =
+        compute_hash(&api, &rpc, &HashingAlgorithm::Keccak, &mut runtime, &[], message.as_slice())
+            .await?;
     let message_hash_keccak_hex = hex::encode(message_hash_keccak);
 
     let subgroup_signers =
@@ -185,7 +190,7 @@ pub async fn sign_tx(
         &user_sig_req.hash,
         &mut runtime,
         &user_details.program_pointers.0,
-        signature_request.message.as_slice(),
+        message.as_slice(),
     )
     .await?;
     let message_hash_hex = hex::encode(message_hash);
@@ -199,13 +204,6 @@ pub async fn sign_tx(
     if !has_key {
         recover_key(&api, &rpc, &app_state.kv_store, &signer, signing_address).await?
     }
-
-    let program = get_program(&api, &rpc, &user_details.program_pointers).await?;
-
-    let mut runtime = Runtime::new(ec_runtime::Config { fuel: MAX_INSTRUCTIONS_PER_PROGRAM });
-    let signature_request = SignatureRequest { message, auxilary_data };
-
-    runtime.evaluate(&program, &signature_request)?;
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 

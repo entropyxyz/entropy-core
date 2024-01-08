@@ -133,6 +133,8 @@ pub enum UserErr {
     ProtocolExecution(#[from] ProtocolExecutionErr),
     #[error("Encryption or signing error: {0}")]
     Json(#[from] entropy_protocol::sign_and_encrypt::SignedMessageErr),
+    #[error("Auxilary data is mismatched")]
+    MismatchAuxData,
 }
 
 impl IntoResponse for UserErr {
