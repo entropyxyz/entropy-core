@@ -82,8 +82,8 @@ vercel-install-api-docs :: vercel-rustup rust
 		chmod 600 \
 			/root/.ssh/github_constraints
 		git config --global \
-			'url.ssh://git@github.com_constraints/entropyxyz/constraints.git.insteadOf' \
-			ssh://git@github.com/entropyxyz/constraints.git
+			'url.ssh://git@github.com_constraints/entropyxyz/programs.git.insteadOf' \
+			ssh://git@github.com/entropyxyz/programs.git
 
 # The Vercel project's `buildCommand` is defined here.
 vercel-build-api-docs ::
