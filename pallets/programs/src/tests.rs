@@ -17,7 +17,7 @@ use frame_support::{assert_noop, assert_ok, traits::Currency};
 use pallet_balances::Error as BalancesError;
 use sp_runtime::traits::Hash;
 
-use crate::{mock::*, Error, ProgramInfo};
+use crate::{mock::*, Error, ProgramInfo, Programs};
 
 /// consts used for testing
 const PROGRAM_MODIFICATION_ACCOUNT: u64 = 1u64;
@@ -47,6 +47,7 @@ fn set_program() {
         let program_result = ProgramInfo {
             bytecode: program.clone(),
             program_modification_account: PROGRAM_MODIFICATION_ACCOUNT,
+            ref_counter: 0u128,
         };
         assert_eq!(
             ProgramsPallet::programs(program_hash).unwrap(),
@@ -146,5 +147,30 @@ fn remove_program() {
         );
         // refunded
         assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 100, "User gets refunded");
+    });
+}
+
+#[test]
+fn remove_program_fails_ref_count() {
+    new_test_ext().execute_with(|| {
+        let program = vec![10u8, 11u8];
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&program);
+
+        Programs::<Test>::insert(
+            program_hash,
+            ProgramInfo {
+                bytecode: program,
+                program_modification_account: PROGRAM_MODIFICATION_ACCOUNT,
+                ref_counter: 1u128,
+            },
+        );
+
+        assert_noop!(
+            ProgramsPallet::remove_program(
+                RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
+                program_hash
+            ),
+            Error::<Test>::ProgramInUse
+        );
     });
 }

@@ -68,7 +68,7 @@ benchmarks! {
 
     let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
     let _ = CurrencyOf::<T>::make_free_balance_be(&program_modification_account, value);
-    <Programs<T>>::insert(program_hash.clone(), ProgramInfo {bytecode: program, program_modification_account: program_modification_account.clone()});
+    <Programs<T>>::insert(program_hash.clone(), ProgramInfo {bytecode: program, program_modification_account: program_modification_account.clone(), ref_counter: 0u128});
     let mut program_hashes = vec![random_hash.clone(); p as usize];
     // remove one to make room for the targetted removal program hash
     program_hashes.pop();
