@@ -35,7 +35,6 @@ At the moment this project **does not** adhere to
 - Additive programs ([#568](https://github.com/entropyxyz/entropy-core/pull/568))
 - Additional `hash` field in `/sign_tx` JSON body indicates which hashing algorithm to use for signing ([#553](https://github.com/entropyxyz/entropy-core/pull/553))
 - Additive aux data ([#577](https://github.com/entropyxyz/entropy-core/pull/577))
-- Updates for renamed programs crates / repo (#[579](https://github.com/entropyxyz/entropy-core/pull/579))
 
 ### Added
 
