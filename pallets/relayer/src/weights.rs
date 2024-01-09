@@ -52,8 +52,8 @@ use core::marker::PhantomData;
 /// Weight functions needed for pallet_relayer.
 pub trait WeightInfo {
 	fn register(p: u32) -> Weight;
-	fn prune_registration() -> Weight;
-	fn change_program_pointer(p: u32) -> Weight;
+	fn prune_registration(p: u32) -> Weight;
+	fn change_program_pointer(n: u32, o:u32) -> Weight;
 	fn confirm_register_registering(c: u32, ) -> Weight;
 	fn confirm_register_failed_registering(c: u32, ) -> Weight;
 	fn confirm_register_registered(c: u32, ) -> Weight;
@@ -66,53 +66,55 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Relayer::Registering` (r:1 w:1)
 	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Programs::Programs` (r:1 w:0)
+	/// Storage: `Programs::Programs` (r:1 w:1)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Relayer::Dkg` (r:1 w:1)
 	/// Proof: `Relayer::Dkg` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[0, 5]`.
+	/// The range of component `p` is `[1, 5]`.
 	fn register(p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `380`
-		//  Estimated: `3845 + p * (37 ±15)`
-		// Minimum execution time: 16_000_000 picoseconds.
-		Weight::from_parts(17_898_648, 0)
-			.saturating_add(Weight::from_parts(0, 3845))
-			// Standard Error: 173_337
-			.saturating_add(Weight::from_parts(1_182_432, 0).saturating_mul(p.into()))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(2))
-			.saturating_add(Weight::from_parts(0, 37).saturating_mul(p.into()))
+		//  Measured:  `401`
+		//  Estimated: `3866`
+		// Minimum execution time: 21_000_000 picoseconds.
+		Weight::from_parts(19_100_000, 0)
+			.saturating_add(Weight::from_parts(0, 3866))
+			// Standard Error: 134_629
+			.saturating_add(Weight::from_parts(2_000_000, 0).saturating_mul(p.into()))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	/// Storage: `Relayer::Registering` (r:1 w:1)
 	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn prune_registration() -> Weight {
+	/// Storage: `Programs::Programs` (r:1 w:1)
+	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `p` is `[1, 5]`.
+	fn prune_registration(_p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `200`
-		//  Estimated: `3665`
-		// Minimum execution time: 11_000_000 picoseconds.
-		Weight::from_parts(12_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 3665))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		//  Measured:  `468`
+		//  Estimated: `3933`
+		// Minimum execution time: 15_000_000 picoseconds.
+		Weight::from_parts(16_500_000, 0)
+			.saturating_add(Weight::from_parts(0, 3933))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
 	}
-	/// Storage: `Programs::Programs` (r:1 w:0)
+	/// Storage: `Programs::Programs` (r:2 w:2)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Relayer::Registered` (r:1 w:1)
 	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[0, 5]`.
-	fn change_program_pointer(p: u32, ) -> Weight {
+	/// The range of component `n` is `[1, 5]`.
+	/// The range of component `o` is `[1, 5]`.
+	fn change_program_pointer(n: u32, _o: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `503`
-		//  Estimated: `3968 + p * (37 ±15)`
-		// Minimum execution time: 11_000_000 picoseconds.
-		Weight::from_parts(12_898_648, 0)
-			.saturating_add(Weight::from_parts(0, 3968))
-			// Standard Error: 211_722
-			.saturating_add(Weight::from_parts(1_682_432, 0).saturating_mul(p.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
-			.saturating_add(Weight::from_parts(0, 37).saturating_mul(p.into()))
+		//  Measured:  `633`
+		//  Estimated: `6573`
+		// Minimum execution time: 23_000_000 picoseconds.
+		Weight::from_parts(21_750_000, 0)
+			.saturating_add(Weight::from_parts(0, 6573))
+			// Standard Error: 140_236
+			.saturating_add(Weight::from_parts(1_980_952, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
@@ -126,7 +128,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		//  Measured:  `16535`
 		//  Estimated: `20000`
 		// Minimum execution time: 25_000_000 picoseconds.
-		Weight::from_parts(26_000_000, 0)
+		Weight::from_parts(25_583_333, 0)
 			.saturating_add(Weight::from_parts(0, 20000))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -143,9 +145,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		//  Measured:  `16537`
 		//  Estimated: `20002`
 		// Minimum execution time: 24_000_000 picoseconds.
-		Weight::from_parts(25_250_000, 0)
+		Weight::from_parts(24_083_333, 0)
 			.saturating_add(Weight::from_parts(0, 20002))
-			// Standard Error: 780_624
+			// Standard Error: 954_703
 			.saturating_add(Weight::from_parts(1_750_000, 0).saturating_mul(c.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -164,7 +166,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		//  Measured:  `16536`
 		//  Estimated: `20001`
 		// Minimum execution time: 26_000_000 picoseconds.
-		Weight::from_parts(27_500_000, 0)
+		Weight::from_parts(26_833_333, 0)
 			.saturating_add(Weight::from_parts(0, 20001))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -177,53 +179,55 @@ impl WeightInfo for () {
 	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Relayer::Registering` (r:1 w:1)
 	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Programs::Programs` (r:1 w:0)
+	/// Storage: `Programs::Programs` (r:1 w:1)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Relayer::Dkg` (r:1 w:1)
 	/// Proof: `Relayer::Dkg` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[0, 5]`.
+	/// The range of component `p` is `[1, 5]`.
 	fn register(p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `380`
-		//  Estimated: `3845 + p * (37 ±15)`
-		// Minimum execution time: 16_000_000 picoseconds.
-		Weight::from_parts(17_898_648, 0)
-			.saturating_add(Weight::from_parts(0, 3845))
-			// Standard Error: 173_337
-			.saturating_add(Weight::from_parts(1_182_432, 0).saturating_mul(p.into()))
-			.saturating_add(RocksDbWeight::get().reads(3))
-			.saturating_add(RocksDbWeight::get().writes(2))
-			.saturating_add(Weight::from_parts(0, 37).saturating_mul(p.into()))
+		//  Measured:  `401`
+		//  Estimated: `3866`
+		// Minimum execution time: 21_000_000 picoseconds.
+		Weight::from_parts(19_100_000, 0)
+			.saturating_add(Weight::from_parts(0, 3866))
+			// Standard Error: 134_629
+			.saturating_add(Weight::from_parts(2_000_000, 0).saturating_mul(p.into()))
+			.saturating_add(RocksDbWeight::get().reads(4))
+			.saturating_add(RocksDbWeight::get().writes(3))
 	}
 	/// Storage: `Relayer::Registering` (r:1 w:1)
 	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn prune_registration() -> Weight {
+	/// Storage: `Programs::Programs` (r:1 w:1)
+	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `p` is `[1, 5]`.
+	fn prune_registration(_p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `200`
-		//  Estimated: `3665`
-		// Minimum execution time: 11_000_000 picoseconds.
-		Weight::from_parts(12_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 3665))
-			.saturating_add(RocksDbWeight::get().reads(1))
-			.saturating_add(RocksDbWeight::get().writes(1))
+		//  Measured:  `468`
+		//  Estimated: `3933`
+		// Minimum execution time: 15_000_000 picoseconds.
+		Weight::from_parts(16_500_000, 0)
+			.saturating_add(Weight::from_parts(0, 3933))
+			.saturating_add(RocksDbWeight::get().reads(2))
+			.saturating_add(RocksDbWeight::get().writes(2))
 	}
-	/// Storage: `Programs::Programs` (r:1 w:0)
+	/// Storage: `Programs::Programs` (r:2 w:2)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Relayer::Registered` (r:1 w:1)
 	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[0, 5]`.
-	fn change_program_pointer(p: u32, ) -> Weight {
+	/// The range of component `n` is `[1, 5]`.
+	/// The range of component `o` is `[1, 5]`.
+	fn change_program_pointer(n: u32, _o: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `503`
-		//  Estimated: `3968 + p * (37 ±15)`
-		// Minimum execution time: 11_000_000 picoseconds.
-		Weight::from_parts(12_898_648, 0)
-			.saturating_add(Weight::from_parts(0, 3968))
-			// Standard Error: 211_722
-			.saturating_add(Weight::from_parts(1_682_432, 0).saturating_mul(p.into()))
-			.saturating_add(RocksDbWeight::get().reads(1))
-			.saturating_add(RocksDbWeight::get().writes(1))
-			.saturating_add(Weight::from_parts(0, 37).saturating_mul(p.into()))
+		//  Measured:  `633`
+		//  Estimated: `6573`
+		// Minimum execution time: 23_000_000 picoseconds.
+		Weight::from_parts(21_750_000, 0)
+			.saturating_add(Weight::from_parts(0, 6573))
+			// Standard Error: 140_236
+			.saturating_add(Weight::from_parts(1_980_952, 0).saturating_mul(n.into()))
+			.saturating_add(RocksDbWeight::get().reads(3))
+			.saturating_add(RocksDbWeight::get().writes(3))
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
@@ -237,7 +241,7 @@ impl WeightInfo for () {
 		//  Measured:  `16535`
 		//  Estimated: `20000`
 		// Minimum execution time: 25_000_000 picoseconds.
-		Weight::from_parts(26_000_000, 0)
+		Weight::from_parts(25_583_333, 0)
 			.saturating_add(Weight::from_parts(0, 20000))
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(1))
@@ -254,9 +258,9 @@ impl WeightInfo for () {
 		//  Measured:  `16537`
 		//  Estimated: `20002`
 		// Minimum execution time: 24_000_000 picoseconds.
-		Weight::from_parts(25_250_000, 0)
+		Weight::from_parts(24_083_333, 0)
 			.saturating_add(Weight::from_parts(0, 20002))
-			// Standard Error: 780_624
+			// Standard Error: 954_703
 			.saturating_add(Weight::from_parts(1_750_000, 0).saturating_mul(c.into()))
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(1))
@@ -275,7 +279,7 @@ impl WeightInfo for () {
 		//  Measured:  `16536`
 		//  Estimated: `20001`
 		// Minimum execution time: 26_000_000 picoseconds.
-		Weight::from_parts(27_500_000, 0)
+		Weight::from_parts(26_833_333, 0)
 			.saturating_add(Weight::from_parts(0, 20001))
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(2))

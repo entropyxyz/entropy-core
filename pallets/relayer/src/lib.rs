@@ -55,7 +55,7 @@ pub mod weights;
 pub mod pallet {
     use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
     use frame_support::{
-        dispatch::{DispatchResult, DispatchResultWithPostInfo, Pays, Vec},
+        dispatch::{DispatchResultWithPostInfo, Pays, Vec},
         pallet_prelude::*,
         traits::{ConstU32, IsSubType},
     };
@@ -271,27 +271,28 @@ pub mod pallet {
         /// Allows a user to remove themselves from registering state if it has been longer than prune block
         #[pallet::call_index(1)]
         #[pallet::weight({
-            <T as Config>::WeightInfo::prune_registration()
+            <T as Config>::WeightInfo::prune_registration(<T as Config>::MaxProgramHashes::get())
         })]
-        pub fn prune_registration(origin: OriginFor<T>) -> DispatchResult {
+        pub fn prune_registration(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let registering_info = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
-            for program_pointer in registering_info.program_pointers {
+            for program_pointer in &registering_info.program_pointers {
                 pallet_programs::Programs::<T>::mutate(program_pointer, |maybe_program_info| {
                     if let Some(program_info) = maybe_program_info {
                         program_info.ref_counter = program_info.ref_counter.saturating_sub(1);
                     }
                 });
             }
+            let program_length = registering_info.program_pointers.len();
             Registering::<T>::remove(&who);
             Self::deposit_event(Event::RegistrationCancelled(who));
-            Ok(())
+            Ok(Some(<T as Config>::WeightInfo::register(program_length as u32)).into())
         }
 
         /// Allows a user's program modification account to change their program pointer
         #[pallet::call_index(2)]
         #[pallet::weight({
-             <T as Config>::WeightInfo::change_program_pointer(<T as Config>::MaxProgramHashes::get())
+             <T as Config>::WeightInfo::change_program_pointer(<T as Config>::MaxProgramHashes::get(), <T as Config>::MaxProgramHashes::get())
          })]
         pub fn change_program_pointer(
             origin: OriginFor<T>,
@@ -314,6 +315,7 @@ pub mod pallet {
                     },
                 )?;
             }
+            let mut old_programs_length = 0;
             let program_pointers =
                 Registered::<T>::try_mutate(&sig_request_account, |maybe_registered_details| {
                     if let Some(registerd_details) = maybe_registered_details {
@@ -333,6 +335,7 @@ pub mod pallet {
                                 },
                             );
                         }
+                        old_programs_length = registerd_details.program_pointers.len();
                         registerd_details.program_pointers = new_program_pointers.clone();
                         Ok(new_program_pointers)
                     } else {
@@ -341,7 +344,8 @@ pub mod pallet {
                 })?;
             Self::deposit_event(Event::ProgramPointerChanged(who, program_pointers.clone()));
             Ok(Some(<T as Config>::WeightInfo::change_program_pointer(
-                program_pointers.len() as u32
+                program_pointers.len() as u32,
+                old_programs_length as u32,
             ))
             .into())
         }

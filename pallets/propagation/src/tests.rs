@@ -78,7 +78,7 @@ fn knows_how_to_mock_several_http_calls() {
         System::set_block_number(3);
         pallet_programs::Programs::<Test>::insert(
             <Test as frame_system::Config>::Hash::default(),
-            ProgramInfo { bytecode: vec![], program_modification_account: 1 },
+            ProgramInfo { bytecode: vec![], program_modification_account: 1, ref_counter: 0 },
         );
         let program_hashes =
             BoundedVec::try_from(vec![<Test as frame_system::Config>::Hash::default()]).unwrap();
