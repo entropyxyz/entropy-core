@@ -3,8 +3,14 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "AGPL-3.0-only",
+  "scripts": {
+    "test": "tape *.test.js"
+  },
   "dependencies": {
     "entropy-protocol": "file:../pkg",
     "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "tape": "^5.7.2"
   }
 }

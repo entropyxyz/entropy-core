@@ -1,8 +1,23 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 use std::sync::Arc;
 
 use codec::Encode;
 use entropy_shared::{KeyVisibility, ValidatorInfo};
-use frame_support::{assert_ok, traits::OnInitialize};
+use frame_support::{assert_ok, traits::OnInitialize, BoundedVec};
 use pallet_programs::ProgramInfo;
 use pallet_staking_extension::RefreshInfo;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
@@ -65,17 +80,19 @@ fn knows_how_to_mock_several_http_calls() {
             <Test as frame_system::Config>::Hash::default(),
             ProgramInfo { bytecode: vec![], program_modification_account: 1 },
         );
+        let program_hashes =
+            BoundedVec::try_from(vec![<Test as frame_system::Config>::Hash::default()]).unwrap();
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Public,
-            <Test as frame_system::Config>::Hash::default(),
+            program_hashes.clone(),
         ));
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(2),
             3,
             KeyVisibility::Public,
-            <Test as frame_system::Config>::Hash::default(),
+            program_hashes,
         ));
         // full send
         Propagation::post_dkg(4).unwrap();

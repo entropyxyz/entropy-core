@@ -1,3 +1,18 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 //! Noise handshake and encrypted channel for protocol messages
 //!
 //! We use the XK handshake pattern.
@@ -190,7 +205,7 @@ mod tests {
             noise_handshake_initiator(
                 MockWsConnection::new(alice_tx, bob_rx),
                 &alice_sk,
-                bob_pk.as_bytes().clone(),
+                *bob_pk.as_bytes(),
                 Vec::new(),
             ),
             noise_handshake_responder(MockWsConnection::new(bob_tx, alice_rx), &bob_sk),
@@ -221,7 +236,7 @@ mod tests {
             noise_handshake_initiator(
                 MockWsConnection::new(alice_tx, bob_rx),
                 &alice_sk,
-                bob_pk.as_bytes().clone(),
+                *bob_pk.as_bytes(),
                 Vec::new(),
             ),
             noise_handshake_responder(MockWsConnection::new(bob_tx, alice_rx), &bob_sk),

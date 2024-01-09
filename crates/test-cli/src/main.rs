@@ -1,3 +1,18 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 //! Simple CLI to test registering, updating programs and signing
 use std::{
     fmt::{self, Display},
@@ -9,6 +24,7 @@ use std::{
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use entropy_testing_utils::{
+    chain_api::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
         derive_static_secret, get_accounts, get_api, get_rpc, register, sign, update_program,
@@ -53,7 +69,7 @@ enum CliCommand {
         #[arg(value_enum, default_value_t = Default::default())]
         key_visibility: Visibility,
         /// The hash of the initial program for the account
-        program_hash: H256,
+        program_hashes: Vec<H256>,
     },
     /// Ask the network to sign a given message
     Sign {
@@ -140,7 +156,7 @@ async fn run_command() -> anyhow::Result<String> {
             signature_request_account_name,
             program_account_name,
             key_visibility,
-            program_hash,
+            program_hashes,
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
@@ -167,7 +183,7 @@ async fn run_command() -> anyhow::Result<String> {
                 signature_request_keypair.clone(),
                 program_account,
                 key_visibility_converted,
-                program_hash,
+                BoundedVec(program_hashes),
             )
             .await?;
 

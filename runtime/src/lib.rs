@@ -1,6 +1,19 @@
-// This file is part of Substrate.
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// Copyright (C) 2018-2021 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
 
 // This program is free software: you can redistribute it and/or modify
@@ -1273,11 +1286,13 @@ impl pallet_slashing::Config for Runtime {
 
 parameter_types! {
   pub const SigningPartySize: usize = SIGNING_PARTY_SIZE;
+  pub const MaxProgramHashes: u32 = 5;
 }
 
 impl pallet_relayer::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
+    type MaxProgramHashes = MaxProgramHashes;
     type WeightInfo = weights::pallet_relayer::WeightInfo<Runtime>;
 }
 

@@ -1,3 +1,18 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 //! Types that is shared by clients and substrate nodes,
 //! i.e. messages sent from one to the other and structs contained in those messages
@@ -21,3 +36,6 @@ pub const SETUP_TIMEOUT_SECONDS: u64 = 20;
 
 /// The amount of proactive refreshes we do per session
 pub const REFRESHES_PER_SESSION: u32 = 10;
+
+/// Max instructions per wasm program
+pub const MAX_INSTRUCTIONS_PER_PROGRAM: u64 = 10_000;

@@ -1,3 +1,18 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #![allow(dead_code)]
 #[cfg(not(feature = "wasm"))]
 use codec::alloc::vec::Vec;
@@ -73,4 +88,17 @@ pub struct OcwMessageDkg {
 pub struct OcwMessageProactiveRefresh {
     pub validators_info: Vec<ValidatorInfo>,
     pub refreshes_done: u32,
+}
+
+/// 256-bit hashing algorithms for deriving the point to be signed.
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "std", serde(rename = "hash"))]
+#[cfg_attr(feature = "std", serde(rename_all = "lowercase"))]
+pub enum HashingAlgorithm {
+    Sha1,
+    Sha2,
+    Sha3,
+    Keccak,
+    Custom(usize),
 }

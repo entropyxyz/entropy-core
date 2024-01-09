@@ -1,3 +1,18 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 //! Errors used in User creation
 
 use std::{io::Cursor, string::FromUtf8Error};
@@ -7,7 +22,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use ec_runtime::RuntimeError as ProgramRuntimeError;
+use entropy_programs_runtime::RuntimeError as ProgramRuntimeError;
 use entropy_protocol::errors::ProtocolExecutionErr;
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
@@ -104,8 +119,10 @@ pub enum UserErr {
     KvSerialize(String),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
-    #[error("No program set")]
-    NoProgramDefined,
+    #[error("No program set at: {0}")]
+    NoProgramDefined(String),
+    #[error("No program pointer defined for account")]
+    NoProgramPointerDefined(),
     #[error("Runtime error: {0:?}")]
     RuntimeError(#[from] ProgramRuntimeError),
     #[error("Parse transaction_request error")]
@@ -115,7 +132,9 @@ pub enum UserErr {
     #[error("Protocol Execution Error {0}")]
     ProtocolExecution(#[from] ProtocolExecutionErr),
     #[error("Encryption or signing error: {0}")]
-    Json(#[from] x25519_chacha20poly1305::SignedMessageErr),
+    Json(#[from] entropy_protocol::sign_and_encrypt::SignedMessageErr),
+    #[error("Auxilary data is mismatched")]
+    MismatchAuxData,
 }
 
 impl IntoResponse for UserErr {
