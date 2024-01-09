@@ -31,11 +31,12 @@ use entropy_kvdb::kv_manager::{
     value::PartyInfo,
     KvManager,
 };
-use entropy_programs_runtime::{Runtime, SignatureRequest};
+use entropy_programs_runtime::{Config as EPRConfig, Runtime, SignatureRequest};
 use entropy_protocol::SigningSessionInfo;
 use entropy_protocol::ValidatorInfo;
 use entropy_shared::{
-    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE,
+    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey,
+    MAX_INSTRUCTIONS_PER_PROGRAM, SIGNING_PARTY_SIZE,
 };
 use futures::{
     channel::mpsc,
@@ -146,8 +147,6 @@ pub async fn sign_tx(
 
     let message = hex::decode(&user_sig_req.message)?;
 
-    let mut runtime = Runtime::default();
-
     if user_details.program_pointers.0.is_empty() {
         return Err(UserErr::NoProgramPointerDefined());
     }
@@ -162,6 +161,8 @@ pub async fn sign_tx(
     } else {
         auxilary_data_vec = vec![None; user_details.program_pointers.0.len()];
     }
+
+    let mut runtime = Runtime::new(EPRConfig { fuel: MAX_INSTRUCTIONS_PER_PROGRAM });
 
     for (i, program_pointer) in user_details.program_pointers.0.iter().enumerate() {
         let program = get_program(&api, &rpc, program_pointer).await?;
