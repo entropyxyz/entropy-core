@@ -43,7 +43,7 @@ entropy-kvdb    ={ path="../kvdb", default-features=false }
 entropy-protocol={ path="../protocol", features=["server"] }
 
 # Constraints
-ec-runtime={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.5.0" }
+ec-runtime={ git="ssh://git@github.com/entropyxyz/constraints.git", tag="v0.6.0" }
 
 # Logging
 tracing                 ="0.1.37"
