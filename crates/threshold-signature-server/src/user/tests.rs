@@ -1231,7 +1231,7 @@ async fn test_compute_hash() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let mut runtime = Runtime::new();
+    let mut runtime = Runtime::default();
     let program_hash =
         update_programs(&api, &one.pair(), TEST_PROGRAM_CUSTOM_HASH.to_owned()).await;
 
