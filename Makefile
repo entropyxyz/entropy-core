@@ -71,19 +71,6 @@ vercel-install-api-docs :: vercel-rustup rust
 			https://github.com/protocolbuffers/protobuf/releases/download/v23.4/protoc-23.4-linux-x86_64.zip \
 			> /tmp/protoc.zip
 		unzip -od /usr /tmp/protoc.zip bin/protoc && rm -f /tmp/protoc.zip
-		# Write out SSH deploy keys to prepare cloning private repositories.
-		mkdir -p /root/.ssh
-		printenv github_ssh_deploy_key_constraints >> /root/.ssh/github_constraints
-		echo "Host github.com*" > /root/.ssh/config
-		echo "  Hostname github.com" >> /root/.ssh/config
-		echo "	StrictHostKeyChecking no" >> /root/.ssh/config
-		echo "Host github.com_constraints" >> /root/.ssh/config
-		echo "	IdentityFile /root/.ssh/github_constraints" >> /root/.ssh/config
-		chmod 600 \
-			/root/.ssh/github_constraints
-		git config --global \
-			'url.ssh://git@github.com_constraints/entropyxyz/constraints.git.insteadOf' \
-			ssh://git@github.com/entropyxyz/constraints.git
 
 # The Vercel project's `buildCommand` is defined here.
 vercel-build-api-docs ::

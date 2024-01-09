@@ -23,12 +23,12 @@ use std::{
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic};
-use ec_runtime::{Runtime, SignatureRequest};
 use entropy_kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
     kv_manager::{helpers::deserialize as keyshare_deserialize, value::KvManager},
 };
+use entropy_programs_runtime::{Runtime, SignatureRequest};
 use entropy_protocol::{
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
@@ -39,8 +39,8 @@ use entropy_testing_utils::{
     chain_api::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec as OtherBoundedVec,
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
-        PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_CUSTOM_HASH,
-        TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+        PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_INFINITE_LOOP_BYTECODE,
+        TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, testing_context,
@@ -169,34 +169,6 @@ async fn test_sign_tx_no_chain() {
         hash: HashingAlgorithm::Keccak,
     };
 
-    let submit_transaction_requests =
-        |validator_urls_and_keys: Vec<(String, [u8; 32])>,
-         signature_request: UserSignatureRequest,
-         keyring: Sr25519Keyring| async move {
-            let mock_client = reqwest::Client::new();
-            join_all(
-                validator_urls_and_keys
-                    .iter()
-                    .map(|validator_tuple| async {
-                        let server_public_key = PublicKey::from(validator_tuple.1);
-                        let signed_message = SignedMessage::new(
-                            &keyring.pair(),
-                            &Bytes(serde_json::to_vec(&signature_request.clone()).unwrap()),
-                            &server_public_key,
-                        )
-                        .unwrap();
-                        let url = format!("http://{}/user/sign_tx", validator_tuple.0.clone());
-                        mock_client
-                            .post(url)
-                            .header("Content-Type", "application/json")
-                            .body(serde_json::to_string(&signed_message).unwrap())
-                            .send()
-                            .await
-                    })
-                    .collect::<Vec<_>>(),
-            )
-            .await
-        };
     let validator_ips_and_keys = vec![
         (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
@@ -894,34 +866,6 @@ async fn test_sign_tx_user_participates() {
         hash: HashingAlgorithm::Keccak,
     };
 
-    let submit_transaction_requests =
-        |validator_urls_and_keys: Vec<(String, [u8; 32])>,
-         generic_msg: UserSignatureRequest,
-         keyring: Sr25519Keyring| async move {
-            let mock_client = reqwest::Client::new();
-            join_all(
-                validator_urls_and_keys
-                    .iter()
-                    .map(|validator_tuple| async {
-                        let server_public_key = PublicKey::from(validator_tuple.1);
-                        let signed_message = SignedMessage::new(
-                            &keyring.pair(),
-                            &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-                            &server_public_key,
-                        )
-                        .unwrap();
-                        let url = format!("http://{}/user/sign_tx", validator_tuple.0.clone());
-                        mock_client
-                            .post(url)
-                            .header("Content-Type", "application/json")
-                            .body(serde_json::to_string(&signed_message).unwrap())
-                            .send()
-                            .await
-                    })
-                    .collect::<Vec<_>>(),
-            )
-            .await
-        };
     let validator_ips_and_keys = vec![
         (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
@@ -1231,7 +1175,7 @@ async fn test_compute_hash() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let mut runtime = Runtime::new();
+    let mut runtime = Runtime::default();
     let program_hash =
         update_programs(&api, &one.pair(), TEST_PROGRAM_CUSTOM_HASH.to_owned()).await;
 
@@ -1284,4 +1228,100 @@ pub async fn verify_signature(
         assert!(sig_recovery);
         i += 1;
     }
+}
+
+#[tokio::test]
+#[serial]
+async fn test_fail_infinite_program() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let one = AccountKeyring::Dave;
+    let two = AccountKeyring::Two;
+
+    let signing_address = one.to_account_id().to_ss58check();
+    let (validator_ips, _validator_ids, _) =
+        spawn_testing_validators(Some(signing_address.clone()), false).await;
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+
+    let program_hash =
+        update_programs(&entropy_api, &two.pair(), TEST_INFINITE_LOOP_BYTECODE.to_owned()).await;
+    update_pointer(
+        &entropy_api,
+        &rpc,
+        &one.pair(),
+        &one.pair(),
+        OtherBoundedVec(vec![program_hash]),
+    )
+    .await
+    .unwrap();
+
+    let validators_info = vec![
+        ValidatorInfo {
+            ip_address: "localhost:3001".to_string(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone(),
+        },
+        ValidatorInfo {
+            ip_address: "127.0.0.1:3002".to_string(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone(),
+        },
+    ];
+
+    let mut generic_msg = UserSignatureRequest {
+        message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        auxilary_data: Some(vec![
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        ]),
+        validators_info,
+        timestamp: SystemTime::now(),
+        hash: HashingAlgorithm::Keccak,
+    };
+
+    let validator_ips_and_keys = vec![
+        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
+        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
+    ];
+
+    generic_msg.timestamp = SystemTime::now();
+
+    let test_infinite_loop =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+    for res in test_infinite_loop {
+        assert_eq!(res.unwrap().text().await.unwrap(), "Runtime error: OutOfFuel");
+    }
+}
+
+pub async fn submit_transaction_requests(
+    validator_urls_and_keys: Vec<(String, [u8; 32])>,
+    signature_request: UserSignatureRequest,
+    keyring: Sr25519Keyring,
+) -> Vec<std::result::Result<reqwest::Response, reqwest::Error>> {
+    let mock_client = reqwest::Client::new();
+    join_all(
+        validator_urls_and_keys
+            .iter()
+            .map(|validator_tuple| async {
+                let server_public_key = PublicKey::from(validator_tuple.1);
+                let signed_message = SignedMessage::new(
+                    &keyring.pair(),
+                    &Bytes(serde_json::to_vec(&signature_request.clone()).unwrap()),
+                    &server_public_key,
+                )
+                .unwrap();
+                let url = format!("http://{}/user/sign_tx", validator_tuple.0.clone());
+                mock_client
+                    .post(url)
+                    .header("Content-Type", "application/json")
+                    .body(serde_json::to_string(&signed_message).unwrap())
+                    .send()
+                    .await
+            })
+            .collect::<Vec<_>>(),
+    )
+    .await
 }

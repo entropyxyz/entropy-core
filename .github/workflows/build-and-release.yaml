@@ -31,12 +31,12 @@ jobs:
       DOCKER_HUB_CI_TOKEN: ${{ secrets.DOCKER_HUB_CI_TOKEN }}
       CI_MACHINE_USER_TOKEN: ${{ secrets.CI_MACHINE_USER_TOKEN }}
 
-  build-server:
+  build-entropy-tss:
     uses: ./.github/workflows/container-build-and-push.yaml
     needs:
       - git-ref-basename
     with:
-      docker_build_arg_package: server
+      docker_build_arg_package: entropy-tss
       git_ref_basename: ${{ needs.git-ref-basename.outputs.git_ref_basename }}
     secrets:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
@@ -49,7 +49,7 @@ jobs:
     needs:
       - git-ref-basename
       - build-entropy
-      - build-server
+      - build-entropy-tss
     permissions:
       contents: write
     runs-on: ubuntu-22.04
@@ -66,4 +66,4 @@ jobs:
             --title "${{ needs.build.outputs.git_ref_basename }}" \
             $(echo ${{ github.ref_name }} | grep --quiet -E '^test|v[0-9]\.[0-9]\.[0-9]-' && echo '--prerelease') \
             --verify-tag "${{ github.ref_name }}" \
-            {entropy,server}_${{ needs.git-ref-basename.outputs.git_ref_basename }}/*
+            {entropy,entropy-tss}_${{ needs.git-ref-basename.outputs.git_ref_basename }}/*

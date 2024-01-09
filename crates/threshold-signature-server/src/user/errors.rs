@@ -22,7 +22,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use ec_runtime::RuntimeError as ProgramRuntimeError;
+use entropy_programs_runtime::RuntimeError as ProgramRuntimeError;
 use entropy_protocol::errors::ProtocolExecutionErr;
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
