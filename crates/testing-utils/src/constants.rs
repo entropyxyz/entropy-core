@@ -47,7 +47,7 @@ lazy_static! {
 /// `example_barebones_with_auxilary.wasm` from the `constraints` repo.
 pub const TEST_PROGRAM_WASM_BYTECODE: &[u8] =
     include_bytes!("../example_barebones_with_auxilary.wasm");
-/// `infinite_loop.wasm` from the `constraints` repo.
+/// `infinite_loop.wasm` from the `programs` repo.
 pub const TEST_INFINITE_LOOP_BYTECODE: &[u8] = include_bytes!("../infinite_loop.wasm");
 /// `example_custom_hash.wasm` from the `constraints` repo.
 pub const TEST_PROGRAM_CUSTOM_HASH: &[u8] = include_bytes!("../example_custom_hash.wasm");
