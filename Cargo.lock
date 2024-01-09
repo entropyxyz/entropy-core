@@ -2316,17 +2316,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68b0cf012f1230e43cd00ebb729c6bb58707ecfa8ad08b52ef3a4ccd2697fc30"
 
 [[package]]
-name = "ec-core"
-version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/programs.git?tag=v0.5.0#60ef356c5196d307e2406d811448841dd610be62"
-dependencies = [
- "getrandom 0.2.10",
- "serde",
- "wit-bindgen",
- "witgen",
-]
-
-[[package]]
 name = "ecdsa"
 version = "0.14.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2561,7 +2550,7 @@ dependencies = [
 [[package]]
 name = "entropy-programs-core"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/programs.git#eaa9fbc560bbbdfbadf712fff1bf68acce26c128"
+source = "git+https://github.com/entropyxyz/programs.git?rev=eaa9fbc5#eaa9fbc560bbbdfbadf712fff1bf68acce26c128"
 dependencies = [
  "getrandom 0.2.10",
  "serde",
@@ -2572,7 +2561,7 @@ dependencies = [
 [[package]]
 name = "entropy-programs-runtime"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/programs.git#eaa9fbc560bbbdfbadf712fff1bf68acce26c128"
+source = "git+https://github.com/entropyxyz/programs.git?rev=eaa9fbc5#eaa9fbc560bbbdfbadf712fff1bf68acce26c128"
 dependencies = [
  "entropy-programs-core",
  "thiserror",
@@ -12022,9 +12011,9 @@ dependencies = [
 [[package]]
 name = "template-barebones"
 version = "0.1.0"
-source = "git+ssh://git@github.com/entropyxyz/programs.git?tag=v0.5.0#60ef356c5196d307e2406d811448841dd610be62"
+source = "git+https://github.com/entropyxyz/programs.git?rev=eaa9fbc5#eaa9fbc560bbbdfbadf712fff1bf68acce26c128"
 dependencies = [
- "ec-core",
+ "entropy-programs-core",
 ]
 
 [[package]]

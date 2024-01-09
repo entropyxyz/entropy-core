@@ -146,7 +146,7 @@ pub async fn sign_tx(
 
     let message = hex::decode(&user_sig_req.message)?;
 
-    let mut runtime = Runtime::new();
+    let mut runtime = Runtime::default();
 
     if user_details.program_pointers.0.is_empty() {
         return Err(UserErr::NoProgramPointerDefined());
