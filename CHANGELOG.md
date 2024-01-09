@@ -39,6 +39,9 @@ At the moment this project **does not** adhere to
 - Additional `hash` field in `/sign_tx` JSON body indicates which hashing algorithm to use for signing ([#553](https://github.com/entropyxyz/entropy-core/pull/553))
 - Additive aux data ([#577](https://github.com/entropyxyz/entropy-core/pull/577))
 
+### Removed
+- Remove pallet-helpers ([#581](https://github.com/entropyxyz/entropy-core/pull/581/))
+
 ## [0.0.9](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.8..release/v0.0.9) - 2023-11-30
 
 Some of the noteworthy changes related to this release are related to better integration in Web
