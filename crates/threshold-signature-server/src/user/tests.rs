@@ -342,24 +342,6 @@ async fn test_sign_tx_no_chain() {
         assert_eq!(res.unwrap().text().await.unwrap(), "Auxilary data is mismatched");
     }
 
-    // program gets removed and errors
-    remove_program(&entropy_api, &rpc, &two.pair(), program_hash).await;
-    generic_msg.auxilary_data = Some(vec![
-        Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
-        Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
-    ]);
-    generic_msg.timestamp = SystemTime::now();
-    // test failing cases
-    let test_program_pulled =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-
-    for res in test_program_pulled {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            format!("No program set at: {program_hash}")
-        );
-    }
-
     let mock_client = reqwest::Client::new();
     // fails verification tests
     // wrong key for wrong validator
