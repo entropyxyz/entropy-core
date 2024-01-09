@@ -23,12 +23,12 @@ use std::{
 
 use axum::http::StatusCode;
 use bip39::{Language, Mnemonic};
-use ec_runtime::{Runtime, SignatureRequest};
 use entropy_kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
     kv_manager::{helpers::deserialize as keyshare_deserialize, value::KvManager},
 };
+use entropy_programs_runtime::{Runtime, SignatureRequest};
 use entropy_protocol::{
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},

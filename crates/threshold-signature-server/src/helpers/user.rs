@@ -15,7 +15,7 @@
 
 use std::time::Duration;
 
-use ec_runtime::Runtime;
+use entropy_programs_runtime::Runtime;
 use entropy_protocol::{
     execute_protocol::{execute_dkg, Channels},
     KeyParams, SessionId, ValidatorInfo,

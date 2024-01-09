@@ -25,13 +25,13 @@ use axum::{
 };
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
-use ec_runtime::{Runtime, SignatureRequest};
 use entropy_kvdb::kv_manager::{
     error::{InnerKvError, KvError},
     helpers::serialize as key_serialize,
     value::PartyInfo,
     KvManager,
 };
+use entropy_programs_runtime::{Config as EPRConfig, Runtime, SignatureRequest};
 use entropy_protocol::SigningSessionInfo;
 use entropy_protocol::ValidatorInfo;
 use entropy_shared::{
@@ -162,7 +162,7 @@ pub async fn sign_tx(
         auxilary_data_vec = vec![None; user_details.program_pointers.0.len()];
     }
 
-    let mut runtime = Runtime::new(ec_runtime::Config { fuel: MAX_INSTRUCTIONS_PER_PROGRAM });
+    let mut runtime = Runtime::new(EPRConfig { fuel: MAX_INSTRUCTIONS_PER_PROGRAM });
 
     for (i, program_pointer) in user_details.program_pointers.0.iter().enumerate() {
         let program = get_program(&api, &rpc, program_pointer).await?;

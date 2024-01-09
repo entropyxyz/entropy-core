@@ -15,7 +15,7 @@ The utility crates in this repo are:
 - [`entropy-shared`](https://github.com/entropyxyz/entropy-core/tree/master/crates/shared) - Common no-std types, which Substrate requires
 - [`testing-utils`](https://github.com/entropyxyz/entropy-core/tree/master/crates/testing-utils) - Testing utility methods shared across the workspace
 
-Constraints have now moved to [entropyxyz/constraints](https://github.com/entropyxyz/constraints).
+Programs have now moved to [entropyxyz/programs](https://github.com/entropyxyz/programs).
 
 ## Documentation of major APIs
 
