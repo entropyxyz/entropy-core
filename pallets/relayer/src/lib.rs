@@ -228,7 +228,7 @@ pub mod pallet {
             );
             ensure!(!program_pointers.is_empty(), Error::<T>::NoProgramSet);
             let block_number = <frame_system::Pallet<T>>::block_number();
-            // chnage program ref counter
+            // Change program ref counter
             for program_pointer in &program_pointers {
                 pallet_programs::Programs::<T>::try_mutate(
                     program_pointer,
