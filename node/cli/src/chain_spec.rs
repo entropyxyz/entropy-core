@@ -45,7 +45,6 @@ use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 pub use node_primitives::{AccountId, Balance, Signature};
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
-use pallet_staking_extension::ServerInfo;
 use sc_chain_spec::{ChainSpecExtension, Properties};
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;

@@ -190,7 +190,7 @@ pub mod pallet {
             for (validator_stash, server_info_tuple) in &self.threshold_servers {
                 let server_info = ServerInfo {
                     tss_account: server_info_tuple.0.clone(),
-                    x25519_public_key: server_info_tuple.1.clone(),
+                    x25519_public_key: server_info_tuple.1,
                     endpoint: server_info_tuple.2.clone(),
                 };
 
