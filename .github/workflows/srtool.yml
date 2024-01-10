@@ -19,7 +19,7 @@ jobs:
       - name: Summary
         run: |
           echo '${{ steps.srtool_build.outputs.json }}' | jq . > ${{ matrix.chain }}-srtool-digest.json
-          cat ${{ matrix.chain }}-srtool-digest.json
+          python3 -c 'import sys, yaml, json; print(yaml.dump(json.loads(sys.stdin.read())))' < ${{ matrix.chain }}-srtool-digest.json
           echo "Runtime location: ${{ steps.srtool_build.outputs.wasm }}"
       # - name: Archive Runtime
       #   uses: actions/upload-artifact@v2
