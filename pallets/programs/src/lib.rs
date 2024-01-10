@@ -98,6 +98,8 @@ pub mod pallet {
         pub bytecode: Vec<u8>,
         /// Owners of the program
         pub program_modification_account: AccountId,
+        /// Accounts that use this program
+        pub ref_counter: u128,
     }
 
     /// Stores the program bytecode for a given signature-request account.
@@ -150,6 +152,8 @@ pub mod pallet {
         ProgramAlreadySet,
         /// User owns too many programs.
         TooManyProgramsOwned,
+        /// Program is being used by an account
+        ProgramInUse,
     }
 
     #[pallet::call]
@@ -176,6 +180,7 @@ pub mod pallet {
                 &ProgramInfo {
                     bytecode: new_program.clone(),
                     program_modification_account: program_modification_account.clone(),
+                    ref_counter: 0u128,
                 },
             );
             OwnedPrograms::<T>::try_mutate(
@@ -210,6 +215,7 @@ pub mod pallet {
                 old_program_info.program_modification_account == program_modification_account,
                 Error::<T>::NotAuthorized
             );
+            ensure!(old_program_info.ref_counter == 0, Error::<T>::ProgramInUse);
             Self::unreserve_program_deposit(
                 &old_program_info.program_modification_account,
                 old_program_info.bytecode.len(),

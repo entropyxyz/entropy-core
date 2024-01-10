@@ -75,7 +75,11 @@ fn it_registers_a_user() {
         let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
         pallet_programs::Programs::<Test>::insert(
             program_hash,
-            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+            ProgramInfo {
+                bytecode: empty_program,
+                program_modification_account: 1,
+                ref_counter: 0,
+            },
         );
 
         assert_ok!(Relayer::register(
@@ -85,6 +89,11 @@ fn it_registers_a_user() {
             program_hashes,
         ));
         assert_eq!(Relayer::dkg(0), vec![1u64.encode()]);
+        assert_eq!(
+            pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
+            1,
+            "ref counter is incremented"
+        );
     });
 }
 
@@ -109,7 +118,11 @@ fn it_confirms_registers_a_user() {
         let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
         pallet_programs::Programs::<Test>::insert(
             program_hash,
-            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+            ProgramInfo {
+                bytecode: empty_program,
+                program_modification_account: 1,
+                ref_counter: 0,
+            },
         );
 
         assert_ok!(Relayer::register(
@@ -189,7 +202,11 @@ fn it_changes_a_program_pointer() {
 
         pallet_programs::Programs::<Test>::insert(
             program_hash,
-            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+            ProgramInfo {
+                bytecode: empty_program,
+                program_modification_account: 1,
+                ref_counter: 1,
+            },
         );
 
         let new_program = vec![10];
@@ -198,7 +215,7 @@ fn it_changes_a_program_pointer() {
 
         pallet_programs::Programs::<Test>::insert(
             new_program_hash,
-            ProgramInfo { bytecode: new_program, program_modification_account: 1 },
+            ProgramInfo { bytecode: new_program, program_modification_account: 1, ref_counter: 1 },
         );
 
         let expected_verifying_key = BoundedVec::default();
@@ -220,6 +237,16 @@ fn it_changes_a_program_pointer() {
         ));
         registered_info.program_pointers = new_program_hashes;
         assert_eq!(Relayer::registered(1).unwrap(), registered_info);
+        assert_eq!(
+            pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
+            0,
+            "ref counter is decremented"
+        );
+        assert_eq!(
+            pallet_programs::Programs::<Test>::get(new_program_hash).unwrap().ref_counter,
+            2,
+            "ref counter is incremented"
+        );
 
         let unreigistered_program = vec![13];
         let unreigistered_program_hash =
@@ -233,7 +260,7 @@ fn it_changes_a_program_pointer() {
                 1,
                 unreigistered_program_hashes.clone(),
             ),
-            Error::<Test>::ProgramDoesNotExist
+            Error::<Test>::NoProgramSet
         );
 
         assert_noop!(
@@ -256,7 +283,11 @@ fn it_fails_on_non_matching_verifying_keys() {
 
         pallet_programs::Programs::<Test>::insert(
             program_hash,
-            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+            ProgramInfo {
+                bytecode: empty_program,
+                program_modification_account: 1,
+                ref_counter: 0,
+            },
         );
 
         let expected_verifying_key = BoundedVec::default();
@@ -300,7 +331,11 @@ fn it_doesnt_allow_double_registering() {
 
         pallet_programs::Programs::<Test>::insert(
             program_hash,
-            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+            ProgramInfo {
+                bytecode: empty_program,
+                program_modification_account: 1,
+                ref_counter: 0,
+            },
         );
 
         assert_ok!(Relayer::register(
@@ -338,7 +373,7 @@ fn it_fails_no_program() {
                 KeyVisibility::Permissioned,
                 program_hashes
             ),
-            Error::<Test>::ProgramDoesNotExist
+            Error::<Test>::NoProgramSet
         );
     });
 }
@@ -367,7 +402,11 @@ fn it_tests_prune_registration() {
 
         pallet_programs::Programs::<Test>::insert(
             program_hash,
-            ProgramInfo { bytecode: inital_program, program_modification_account: 1 },
+            ProgramInfo {
+                bytecode: inital_program,
+                program_modification_account: 1,
+                ref_counter: 1,
+            },
         );
 
         Balances::make_free_balance_be(&2, 100);
@@ -378,9 +417,19 @@ fn it_tests_prune_registration() {
             KeyVisibility::Permissioned,
             program_hashes,
         ));
+        assert_eq!(
+            pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
+            2,
+            "ref counter is increment"
+        );
         assert!(Relayer::registering(1).is_some(), "Make sure there is registering state");
         assert_ok!(Relayer::prune_registration(RuntimeOrigin::signed(1)));
         assert_eq!(Relayer::registering(1), None, "Make sure registering is pruned");
+        assert_eq!(
+            pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
+            1,
+            "ref counter is decremented"
+        );
     });
 }
 #[test]
@@ -392,7 +441,11 @@ fn it_provides_free_txs_confirm_done() {
 
         pallet_programs::Programs::<Test>::insert(
             program_hash,
-            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+            ProgramInfo {
+                bytecode: empty_program,
+                program_modification_account: 1,
+                ref_counter: 0,
+            },
         );
 
         let expected_verifying_key = BoundedVec::default();
@@ -462,7 +515,11 @@ fn it_provides_free_txs_confirm_done_fails_3() {
 
         pallet_programs::Programs::<Test>::insert(
             program_hash,
-            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+            ProgramInfo {
+                bytecode: empty_program,
+                program_modification_account: 1,
+                ref_counter: 0,
+            },
         );
 
         let expected_verifying_key = BoundedVec::default();
@@ -502,7 +559,11 @@ fn it_provides_free_txs_confirm_done_fails_4() {
 
         pallet_programs::Programs::<Test>::insert(
             program_hash,
-            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+            ProgramInfo {
+                bytecode: empty_program,
+                program_modification_account: 1,
+                ref_counter: 0,
+            },
         );
 
         let expected_verifying_key = BoundedVec::default();
@@ -535,7 +596,11 @@ fn it_provides_free_txs_confirm_done_fails_5() {
 
         pallet_programs::Programs::<Test>::insert(
             program_hash,
-            ProgramInfo { bytecode: empty_program, program_modification_account: 1 },
+            ProgramInfo {
+                bytecode: empty_program,
+                program_modification_account: 1,
+                ref_counter: 0,
+            },
         );
 
         let expected_verifying_key = BoundedVec::default();
