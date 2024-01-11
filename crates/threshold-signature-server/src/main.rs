@@ -20,8 +20,8 @@ use clap::Parser;
 use entropy_tss::{
     app,
     launch::{
-        load_kv_store, setup_latest_block_number, setup_mnemonic, Configuration, StartupArgs,
-        ValidatorName,
+        load_kv_store, setup_latest_block_number, setup_mnemonic, setup_only, Configuration,
+        StartupArgs, ValidatorName,
     },
     sync_validator, AppState,
 };
@@ -57,6 +57,10 @@ async fn main() {
     // Below deals with syncing the kvdb
     sync_validator(args.sync, args.dev, &configuration.endpoint, &kv_store).await;
     let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
+
+    if args.setup_only {
+        setup_only(&kv_store).await;
+    }
 
     axum::Server::bind(&addr)
         .serve(app(app_state).into_make_service())
