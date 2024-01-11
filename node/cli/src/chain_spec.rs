@@ -223,6 +223,7 @@ pub fn testnet_genesis(
                 (
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     (
+                        // Seed phrase: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
                         hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"]
                             .into(),
                         [
@@ -236,6 +237,7 @@ pub fn testnet_genesis(
                 (
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                     (
+                        // Seed phrase: "where sight patient orphan general short empower hope party hurt month voice"
                         hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"]
                             .into(),
                         [
@@ -661,6 +663,7 @@ pub fn testing(
                 (
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     (
+                        // Seed phrase: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
                         hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"]
                             .into(),
                         [
@@ -674,6 +677,7 @@ pub fn testing(
                 (
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                     (
+                        // Seed phrase: "where sight patient orphan general short empower hope party hurt month voice"
                         hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"]
                             .into(),
                         [
@@ -685,6 +689,7 @@ pub fn testing(
                     ),
                 ),
                 (
+                    // Seed phrase: "lake carry still awful point mention bike category tornado plate brass lock"
                     get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
                     (
                         hex!["14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611"]
