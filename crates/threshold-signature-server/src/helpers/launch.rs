@@ -144,7 +144,7 @@ pub struct StartupArgs {
     pub password_file: Option<PathBuf>,
 
     /// Whether or not to print stdout during testing
-    #[arg(short = 'o', long = "setup-only")]
+    #[arg(long = "setup-only")]
     pub setup_only: bool,
 }
 
@@ -267,8 +267,9 @@ pub async fn setup_only(kv: &KvManager) {
 
     let dh_public_key = kv.kv().get(FORBIDDEN_KEYS[2]).await.expect("Issue getting dh public key");
     let formatted = format!("{dh_public_key:?}").replace('"', "");
-    println!("{:?}", id);
-    println!("{:?}", formatted);
+
+    println!("{}", id);
+    println!("{}", formatted);
 
     panic!("setup only");
 }
