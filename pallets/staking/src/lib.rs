@@ -166,14 +166,16 @@ pub mod pallet {
     #[pallet::getter(fn proactive_refresh)]
     pub type ProactiveRefresh<T: Config> = StorageValue<_, RefreshInfo, ValueQuery>;
 
+    /// A type used to simplify the genesis configuration definition.
+    pub type ThresholdServersConfig<T> = (
+        <T as pallet_session::Config>::ValidatorId,
+        (<T as frame_system::Config>::AccountId, X25519PublicKey, TssServerURL),
+    );
+
     #[pallet::genesis_config]
     #[derive(DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
-        #[allow(clippy::type_complexity)]
-        pub threshold_servers: Vec<(
-            <T as pallet_session::Config>::ValidatorId,
-            (T::AccountId, X25519PublicKey, TssServerURL),
-        )>,
+        pub threshold_servers: Vec<ThresholdServersConfig<T>>,
         pub signing_groups: Vec<(u8, Vec<<T as pallet_session::Config>::ValidatorId>)>,
         pub proactive_refresh_validators: Vec<ValidatorInfo>,
     }
