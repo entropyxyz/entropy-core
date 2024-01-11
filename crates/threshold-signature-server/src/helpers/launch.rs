@@ -257,15 +257,18 @@ pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
 }
 
 pub async fn setup_only(kv: &KvManager) {
-    let mnemonic = kv.kv().get(FORBIDDEN_KEYS[0]).await.unwrap();
-    let pair =
-        <sr25519::Pair as Pair>::from_phrase(&String::from_utf8(mnemonic).unwrap(), None).unwrap();
+    let mnemonic = kv.kv().get(FORBIDDEN_KEYS[0]).await.expect("Issue getting mnemonic");
+    let pair = <sr25519::Pair as Pair>::from_phrase(
+        &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
+        None,
+    )
+    .expect("Issue converting mnemonic to pair");
     let id = AccountId32::new(pair.0.public().into()).to_ss58check();
 
-    let dh_public_key = kv.kv().get(FORBIDDEN_KEYS[2]).await.unwrap();
+    let dh_public_key = kv.kv().get(FORBIDDEN_KEYS[2]).await.expect("Issue getting dh public key");
     let formatted = format!("{dh_public_key:?}").replace('"', "");
     println!("{:?}", id);
     println!("{:?}", formatted);
 
-    std::process::exit(1);
+    panic!("setup only");
 }
