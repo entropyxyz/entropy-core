@@ -394,6 +394,7 @@ pub fn local_devnet_genesis(
                 (
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     (
+                        // Seed phrase: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
                         hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"]
                             .into(),
                         [
@@ -407,6 +408,7 @@ pub fn local_devnet_genesis(
                 (
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                     (
+                        // Seed phrase: "where sight patient orphan general short empower hope party hurt month voice"
                         hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"]
                             .into(),
                         [
