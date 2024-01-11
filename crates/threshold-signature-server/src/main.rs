@@ -60,10 +60,10 @@ async fn main() {
 
     if args.setup_only {
         setup_only(&kv_store).await;
+    } else {
+        axum::Server::bind(&addr)
+            .serve(app(app_state).into_make_service())
+            .await
+            .expect("failed to launch axum server.");
     }
-
-    axum::Server::bind(&addr)
-        .serve(app(app_state).into_make_service())
-        .await
-        .expect("failed to launch axum server.");
 }

@@ -270,6 +270,4 @@ pub async fn setup_only(kv: &KvManager) {
 
     println!("{}", id);
     println!("{}", formatted);
-
-    panic!("setup only");
 }
