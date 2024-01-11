@@ -166,13 +166,16 @@ pub mod pallet {
     #[pallet::getter(fn proactive_refresh)]
     pub type ProactiveRefresh<T: Config> = StorageValue<_, RefreshInfo, ValueQuery>;
 
+    /// A type used to simplify the genesis configuration definition.
+    pub type ThresholdServersConfig<T> = (
+        <T as pallet_session::Config>::ValidatorId,
+        (<T as frame_system::Config>::AccountId, X25519PublicKey, TssServerURL),
+    );
+
     #[pallet::genesis_config]
     #[derive(DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
-        #[allow(clippy::type_complexity)]
-        #[serde(skip)]
-        pub threshold_servers:
-            Vec<(<T as pallet_session::Config>::ValidatorId, ServerInfo<T::AccountId>)>,
+        pub threshold_servers: Vec<ThresholdServersConfig<T>>,
         pub signing_groups: Vec<(u8, Vec<<T as pallet_session::Config>::ValidatorId>)>,
         pub proactive_refresh_validators: Vec<ValidatorInfo>,
     }
@@ -184,9 +187,15 @@ pub mod pallet {
                 .threshold_servers
                 .clone()
                 .into_iter()
-                .map(|x| assert!(x.1.endpoint.len() as u32 <= T::MaxEndpointLength::get()));
+                .map(|x| assert!(x.1 .2.len() as u32 <= T::MaxEndpointLength::get()));
 
-            for (validator_stash, server_info) in &self.threshold_servers {
+            for (validator_stash, server_info_tuple) in &self.threshold_servers {
+                let server_info = ServerInfo {
+                    tss_account: server_info_tuple.0.clone(),
+                    x25519_public_key: server_info_tuple.1,
+                    endpoint: server_info_tuple.2.clone(),
+                };
+
                 ThresholdServers::<T>::insert(validator_stash, server_info.clone());
                 ThresholdToStash::<T>::insert(&server_info.tss_account, validator_stash);
             }

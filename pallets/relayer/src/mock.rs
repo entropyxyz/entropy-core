@@ -20,7 +20,6 @@ use frame_support::{
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
-use pallet_staking_extension::ServerInfo;
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
@@ -332,11 +331,12 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
         threshold_servers: vec![
-            (5, ServerInfo { tss_account: 7, x25519_public_key: NULL_ARR, endpoint: vec![20] }),
-            (6, ServerInfo { tss_account: 8, x25519_public_key: NULL_ARR, endpoint: vec![40] }),
-            (1, ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![10] }),
-            (2, ServerInfo { tss_account: 4, x25519_public_key: NULL_ARR, endpoint: vec![11] }),
-            (7, ServerInfo { tss_account: 4, x25519_public_key: NULL_ARR, endpoint: vec![50] }),
+            // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL))
+            (5, (7, NULL_ARR, vec![20])),
+            (6, (8, NULL_ARR, vec![40])),
+            (1, (3, NULL_ARR, vec![10])),
+            (2, (4, NULL_ARR, vec![11])),
+            (7, (4, NULL_ARR, vec![50])),
         ],
         // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
         signing_groups: vec![(0, vec![1, 5]), (1, vec![2, 6, 7])],

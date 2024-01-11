@@ -39,8 +39,8 @@ use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::UncheckedInto, sr25519};
 
 use crate::chain_spec::{
-    authority_keys_from_seed, devnet_genesis, get_account_id_from_seed, local_devnet_genesis,
-    testing, testnet_genesis,
+    authority_keys_from_seed, get_account_id_from_seed, local_devnet_genesis, testing,
+    testnet_genesis,
 };
 
 pub fn testnet_config_genesis() -> RuntimeGenesisConfig {
@@ -144,7 +144,7 @@ pub fn testnet_config_genesis() -> RuntimeGenesisConfig {
     let root_key: AccountId =
         hex!["6a16ded05ff7a50716e1ca943f0467c60b4b71c2a7fd7f75b6333b8af80b6e6f"].into();
 
-    devnet_genesis(initial_authorities, vec![], root_key)
+    testnet_genesis(initial_authorities, vec![], root_key)
 }
 
 pub fn staging_testnet_config_genesis() -> RuntimeGenesisConfig {
