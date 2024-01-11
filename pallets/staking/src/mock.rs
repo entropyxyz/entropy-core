@@ -23,8 +23,6 @@ use frame_support::{
 };
 use frame_system as system;
 use pallet_session::{historical as pallet_session_historical, ShouldEndSession};
-// use pallet_session::historical as pallet_session_historical;
-use pallet_staking_extension::ServerInfo;
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
@@ -369,10 +367,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         balances: vec![(1, 100), (2, 100), (3, 100), (4, 100)],
     };
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
-        threshold_servers: vec![
-            (5, ServerInfo { tss_account: 7, x25519_public_key: NULL_ARR, endpoint: vec![20] }),
-            (6, ServerInfo { tss_account: 8, x25519_public_key: NULL_ARR, endpoint: vec![40] }),
-        ],
+        // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL))
+        threshold_servers: vec![(5, (7, NULL_ARR, vec![20])), (6, (8, NULL_ARR, vec![40]))],
         // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
         signing_groups: vec![(0, vec![1]), (1, vec![2])],
         proactive_refresh_validators: vec![],
