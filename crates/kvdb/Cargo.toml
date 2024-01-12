@@ -19,7 +19,7 @@ sp-core={ version="21.0.0", default-features=false }
 
 # Crypto
 zeroize         ={ version="1.4", features=["zeroize_derive"], default-features=false }
-rpassword       ={ version="5.0", default-features=false }
+rpassword       ={ version="7.3.1", default-features=false }
 scrypt          ={ version="0.11.0", default-features=false, features=["std"] }
 chacha20poly1305={ version="0.9", features=["alloc"], default-features=false }
 synedrion       ="0.1"

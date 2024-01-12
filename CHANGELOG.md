@@ -41,6 +41,9 @@ At the moment this project **does not** adhere to
 - Additional `hash` field in `/sign_tx` JSON body indicates which hashing algorithm to use for signing ([#553](https://github.com/entropyxyz/entropy-core/pull/553))
 - Additive aux data ([#577](https://github.com/entropyxyz/entropy-core/pull/577))
 
+### Fixed
+- Fix inconsistency between interactive and file based passwords ([#589](https://github.com/entropyxyz/entropy-core/pull/589))
+
 ### Removed
 - Remove pallet-helpers ([#581](https://github.com/entropyxyz/entropy-core/pull/581/))
 
