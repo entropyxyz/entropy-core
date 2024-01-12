@@ -266,7 +266,7 @@ pub async fn setup_only(kv: &KvManager) {
     let id = AccountId32::new(pair.0.public().into()).to_ss58check();
 
     let dh_public_key = kv.kv().get(FORBIDDEN_KEYS[2]).await.expect("Issue getting dh public key");
-    let formatted = format!("{dh_public_key:?}").replace('"', "");
+    let dh_public_key = format!("{dh_public_key:?}").replace('"', "");
 
     println!("{}", id);
     println!("{}", formatted);
