@@ -271,5 +271,5 @@ pub async fn setup_only(kv: &KvManager) {
     let dh_public_key = format!("{dh_public_key:?}").replace('"', "");
 
     println!("{}", id);
-    println!("{}", formatted);
+    println!("{}", dh_public_key);
 }
