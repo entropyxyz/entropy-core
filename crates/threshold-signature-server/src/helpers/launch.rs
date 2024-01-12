@@ -56,6 +56,14 @@ pub enum ValidatorName {
     Bob,
     Charlie,
 }
+
+/// Output for --setup-only flag
+#[derive(Deserialize, Debug, Clone)]
+pub struct SetupOnlyOutput {
+    pub dh_public_key: String,
+    pub account_id: String,
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct Configuration {
     pub endpoint: String,
@@ -265,11 +273,12 @@ pub async fn setup_only(kv: &KvManager) {
         None,
     )
     .expect("Issue converting mnemonic to pair");
-    let id = AccountId32::new(pair.0.public().into()).to_ss58check();
+    let account_id = AccountId32::new(pair.0.public().into()).to_ss58check();
 
     let dh_public_key = kv.kv().get(FORBIDDEN_KEYS[2]).await.expect("Issue getting dh public key");
     let dh_public_key = format!("{dh_public_key:?}").replace('"', "");
 
-    println!("{}", id);
-    println!("{}", dh_public_key);
+    let output = SetupOnlyOutput { dh_public_key, account_id };
+
+    println!("{:#?}", output);
 }
