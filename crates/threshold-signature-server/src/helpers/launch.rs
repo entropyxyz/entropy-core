@@ -143,7 +143,9 @@ pub struct StartupArgs {
     #[arg(short = 'f', long = "password-file")]
     pub password_file: Option<PathBuf>,
 
-    /// Whether or not to print stdout during testing
+    /// Only set up the key-value store without spinning up the server.
+    ///
+    /// Returns the AccountID and Diffie-Hellman Public Keys associated with this server.
     #[arg(long = "setup-only")]
     pub setup_only: bool,
 }
