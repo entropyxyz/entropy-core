@@ -29,6 +29,7 @@ At the moment this project **does not** adhere to
 - Include contents of x25515chacha20poly1305 repo in entropy-protocol ([#563](https://github.com/entropyxyz/entropy-core/pull/563))
 - Custom Hashing Algorithms ([#553](https://github.com/entropyxyz/entropy-core/pull/553/))
 - Add ref counter to programs ([#585](https://github.com/entropyxyz/entropy-core/pull/585/))
+- Add `--setup-only` flag ([#588](https://github.com/entropyxyz/entropy-core/pull/588/))
 - Add --version flag and about field to TSS ([#590](https://github.com/entropyxyz/entropy-core/pull/590/))
 
 ### Changed
@@ -40,6 +41,9 @@ At the moment this project **does not** adhere to
 - Additive programs ([#568](https://github.com/entropyxyz/entropy-core/pull/568))
 - Additional `hash` field in `/sign_tx` JSON body indicates which hashing algorithm to use for signing ([#553](https://github.com/entropyxyz/entropy-core/pull/553))
 - Additive aux data ([#577](https://github.com/entropyxyz/entropy-core/pull/577))
+
+### Fixed
+- Fix inconsistency between interactive and file based passwords ([#589](https://github.com/entropyxyz/entropy-core/pull/589))
 
 ### Removed
 - Remove pallet-helpers ([#581](https://github.com/entropyxyz/entropy-core/pull/581/))

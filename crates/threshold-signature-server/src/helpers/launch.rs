@@ -24,7 +24,10 @@ use entropy_kvdb::{
     kv_manager::{error::KvError, KvManager},
 };
 use serde::Deserialize;
-use subxt::ext::sp_core::{crypto::AccountId32, Pair};
+use subxt::ext::sp_core::{
+    crypto::{AccountId32, Ss58Codec},
+    sr25519, Pair,
+};
 
 use crate::validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic};
 
@@ -53,6 +56,14 @@ pub enum ValidatorName {
     Bob,
     Charlie,
 }
+
+/// Output for --setup-only flag
+#[derive(Deserialize, Debug, Clone)]
+pub struct SetupOnlyOutput {
+    pub dh_public_key: String,
+    pub account_id: String,
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct Configuration {
     pub endpoint: String,
@@ -85,8 +96,10 @@ pub async fn load_kv_store(
     };
 
     let password = if let Some(password_path) = password_path {
-        String::from_utf8(fs::read(password_path).expect("error reading password file"))
+        std::str::from_utf8(&fs::read(password_path).expect("error reading password file"))
             .expect("failed to convert password to string")
+            .trim()
+            .to_string()
             .into()
     } else {
         PasswordMethod::Prompt.execute().unwrap()
@@ -140,6 +153,12 @@ pub struct StartupArgs {
     /// The path to a password file
     #[arg(short = 'f', long = "password-file")]
     pub password_file: Option<PathBuf>,
+
+    /// Only set up the key-value store without spinning up the server.
+    ///
+    /// Returns the AccountID and Diffie-Hellman Public Keys associated with this server.
+    #[arg(long = "setup-only")]
+    pub setup_only: bool,
 }
 
 pub async fn setup_mnemonic(
@@ -248,4 +267,21 @@ pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
             .expect("failed to update latest block number");
     }
     Ok(())
+}
+
+pub async fn setup_only(kv: &KvManager) {
+    let mnemonic = kv.kv().get(FORBIDDEN_KEYS[0]).await.expect("Issue getting mnemonic");
+    let pair = <sr25519::Pair as Pair>::from_phrase(
+        &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
+        None,
+    )
+    .expect("Issue converting mnemonic to pair");
+    let account_id = AccountId32::new(pair.0.public().into()).to_ss58check();
+
+    let dh_public_key = kv.kv().get(FORBIDDEN_KEYS[2]).await.expect("Issue getting dh public key");
+    let dh_public_key = format!("{dh_public_key:?}").replace('"', "");
+
+    let output = SetupOnlyOutput { dh_public_key, account_id };
+
+    println!("{:#?}", output);
 }
