@@ -29,6 +29,7 @@ At the moment this project **does not** adhere to
 - Include contents of x25515chacha20poly1305 repo in entropy-protocol ([#563](https://github.com/entropyxyz/entropy-core/pull/563))
 - Custom Hashing Algorithms [#553](https://github.com/entropyxyz/entropy-core/pull/553/)
 - Add ref counter to programs [#585](https://github.com/entropyxyz/entropy-core/pull/585/)
+- Add `--setup-only` flag ([#588](https://github.com/entropyxyz/entropy-core/pull/588/))
 
 ### Changed
 - Crate name refactor ([#561](https://github.com/entropyxyz/entropy-core/pull/561))
