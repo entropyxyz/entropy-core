@@ -41,7 +41,7 @@ At the moment this project **does not** adhere to
 - Additive aux data ([#577](https://github.com/entropyxyz/entropy-core/pull/577))
 
 ### Fixed
-- Fix inconsitency between interactive and file based passwords ([#589](https://github.com/entropyxyz/entropy-core/pull/589))
+- Fix inconsistency between interactive and file based passwords ([#589](https://github.com/entropyxyz/entropy-core/pull/589))
 
 ### Removed
 - Remove pallet-helpers ([#581](https://github.com/entropyxyz/entropy-core/pull/581/))
