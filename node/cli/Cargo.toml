@@ -19,6 +19,7 @@ name='entropy'
 jsonrpc-core                      ='18.0.0'
 serde_json                        ='1.0.0'
 log                               ="0.4.17"
+lazy_static                       = { version = "1.4.0", features = ["spin_no_std"] }
 clap                              ={ version="4.0.9", features=["derive"], optional=true }
 codec                             ={ package="parity-scale-codec", version="3.0.0" }
 structopt                         ='0.3.8'

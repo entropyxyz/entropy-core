@@ -67,6 +67,15 @@ type AccountPublic = <Signature as Verify>::Signer;
 const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 const DEFAULT_PROTOCOL_ID: &str = "Entropy"; // TODO finalize
 
+lazy_static::lazy_static! {
+    // TODO: Make this an AccountId32
+    pub static ref ALICE_TSS_ACCOUNT_ID: [u8; 32] =
+            hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"];
+
+    pub static ref BOB_TSS_ACCOUNT_ID: [u8; 32] =
+            hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"];
+}
+
 // TODO: finalize
 fn entropy_props() -> Properties {
     json!({"tokenDecimals": 10, "tokenSymbol": "BITS" }).as_object().unwrap().clone()
@@ -224,13 +233,8 @@ pub fn testnet_genesis(
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     (
                         // Seed phrase: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
-                        hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"]
-                            .into(),
-                        [
-                            10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155,
-                            124, 195, 141, 148, 249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247,
-                            58, 34,
-                        ],
+                        (*ALICE_TSS_ACCOUNT_ID).into(),
+                        *entropy_shared::ALICE_X25519_PUBLIC_KEY,
                         "127.0.0.1:3001".as_bytes().to_vec(),
                     ),
                 ),
@@ -238,13 +242,8 @@ pub fn testnet_genesis(
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                     (
                         // Seed phrase: "where sight patient orphan general short empower hope party hurt month voice"
-                        hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"]
-                            .into(),
-                        [
-                            225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245,
-                            89, 36, 170, 169, 181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136,
-                            102, 10,
-                        ],
+                        (*BOB_TSS_ACCOUNT_ID).into(),
+                        *entropy_shared::BOB_X25519_PUBLIC_KEY,
                         "127.0.0.1:3002".as_bytes().to_vec(),
                     ),
                 ),

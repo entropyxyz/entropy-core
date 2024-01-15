@@ -39,3 +39,24 @@ pub const REFRESHES_PER_SESSION: u32 = 10;
 
 /// Max instructions per wasm program
 pub const MAX_INSTRUCTIONS_PER_PROGRAM: u64 = 10_000;
+
+// TODO: This should only be used for non-production things...
+lazy_static::lazy_static! {
+
+    // Used `DEFAULT_ALICE_MNEMONIC` to generate this
+    // Mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
+    pub static ref ALICE_X25519_PUBLIC_KEY: [u8; 32] = [
+            10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124, 195, 141, 148,
+            249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247, 58, 34,
+
+    ];
+
+    // Used `DEFAULT_BOB_MNEMONIC` to generate this
+    // Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
+    pub static ref BOB_X25519_PUBLIC_KEY: [u8; 32] = [
+            225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245, 89, 36, 170, 169,
+            181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136, 102, 10,
+
+    ];
+
+}
