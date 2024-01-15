@@ -34,6 +34,7 @@
 #![allow(dead_code)]
 
 pub mod dev;
+pub mod testnet;
 
 pub use entropy_runtime::RuntimeGenesisConfig;
 use entropy_runtime::{
@@ -834,25 +835,6 @@ pub fn testing_config() -> ChainSpec {
         None,
         None,
         None,
-        Default::default(),
-    )
-}
-
-/// Development config (single validator Alice)
-pub fn testnet_config() -> ChainSpec {
-    ChainSpec::from_genesis(
-        "EntropyTestnet",
-        "ETest",
-        ChainType::Live,
-        admin::testnet_config_genesis,
-        vec![],
-        Some(
-            TelemetryEndpoints::new(vec![(STAGING_TELEMETRY_URL.to_string(), 0)])
-                .expect("Staging telemetry url is valid; qed"),
-        ),
-        Some(DEFAULT_PROTOCOL_ID),
-        None,
-        Some(entropy_props()),
         Default::default(),
     )
 }

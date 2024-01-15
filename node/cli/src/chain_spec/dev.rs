@@ -36,24 +36,22 @@ pub fn development_config() -> crate::chain_spec::ChainSpec {
         "Development",
         "dev",
         ChainType::Development,
-        development_config_genesis,
+        || {
+            development_genesis_config(
+                vec![
+                    crate::chain_spec::authority_keys_from_seed("Alice"),
+                    crate::chain_spec::authority_keys_from_seed("Bob"),
+                ],
+                vec![],
+                crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Alice"),
+            )
+        },
         vec![],
         None,
         None,
         None,
         None,
         Default::default(),
-    )
-}
-
-pub fn development_config_genesis() -> RuntimeGenesisConfig {
-    development_genesis_config(
-        vec![
-            crate::chain_spec::authority_keys_from_seed("Alice"),
-            crate::chain_spec::authority_keys_from_seed("Bob"),
-        ],
-        vec![],
-        crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Alice"),
     )
 }
 
