@@ -24,7 +24,9 @@ use std::{
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use entropy_testing_utils::{
-    chain_api::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+    chain_api::{
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec, EntropyConfig,
+    },
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
         derive_static_secret, get_accounts, get_api, get_rpc, register, sign, store_program,
@@ -32,7 +34,10 @@ use entropy_testing_utils::{
     },
 };
 use sp_core::{sr25519, Pair};
-use subxt::utils::{AccountId32 as SubxtAccountId32, H256};
+use subxt::{
+    utils::{AccountId32 as SubxtAccountId32, H256},
+    OnlineClient,
+};
 
 #[derive(Parser, Debug, Clone)]
 #[clap(
@@ -68,8 +73,8 @@ enum CliCommand {
         /// The access mode of the Entropy account
         #[arg(value_enum, default_value_t = Default::default())]
         key_visibility: Visibility,
-        /// The hashes of the initial program for the account
-        program_hashes: Vec<H256>,
+        /// Either hex-encoded hashes, or paths to wasm files to store
+        programs: Vec<String>,
     },
     /// Ask the network to sign a given message
     Sign {
@@ -92,8 +97,8 @@ enum CliCommand {
         ///
         /// Optionally may be preceeded with "//", eg: "//Bob"
         program_account_name: String,
-        /// The hashes of the new programs for the account
-        program_hashes: Vec<H256>,
+        /// Either hex-encoded program hashes, or paths to wasm files to store
+        programs: Vec<String>,
     },
     /// Store a given program on chain
     StoreProgram {
@@ -165,7 +170,7 @@ async fn run_command() -> anyhow::Result<String> {
             signature_request_account_name,
             program_account_name,
             key_visibility,
-            program_hashes,
+            programs,
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
@@ -185,6 +190,11 @@ async fn run_command() -> anyhow::Result<String> {
                 },
                 Visibility::Public => KeyVisibility::Public,
             };
+
+            let mut program_hashes = Vec::new();
+            for program in programs {
+                program_hashes.push(Program::new(&api, &program_keypair, program).await?.0)
+            }
 
             let (registered_info, keyshare_option) = register(
                 &api,
@@ -245,7 +255,7 @@ async fn run_command() -> anyhow::Result<String> {
         CliCommand::UpdatePrograms {
             signature_request_account_name,
             program_account_name,
-            program_hashes,
+            programs,
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
@@ -254,6 +264,11 @@ async fn run_command() -> anyhow::Result<String> {
             let program_keypair: sr25519::Pair =
                 SeedString::new(program_account_name).try_into()?;
             println!("Program account: {:?}", program_keypair.public());
+
+            let mut program_hashes = Vec::new();
+            for program in programs {
+                program_hashes.push(Program::new(&api, &program_keypair, program).await?.0)
+            }
 
             update_programs(
                 &api,
@@ -331,5 +346,36 @@ impl KeyShareFile {
         println!("Writing keyshare to file: {}", self.0);
         let keyshare_vec = bincode::serialize(&keyshare)?;
         Ok(fs::write(&self.0, keyshare_vec)?)
+    }
+}
+
+struct Program(H256);
+
+impl Program {
+    async fn new(
+        api: &OnlineClient<EntropyConfig>,
+        keypair: &sr25519::Pair,
+        hash_or_filename: String,
+    ) -> anyhow::Result<Self> {
+        match hex::decode(hash_or_filename.clone()) {
+            Ok(hash) => {
+                let hash_32_res: Result<[u8; 32], _> = hash.try_into();
+                match hash_32_res {
+                    Ok(hash_32) => Ok(Self(H256(hash_32))),
+                    Err(_) => Self::from_filename(api, keypair, hash_or_filename).await,
+                }
+            },
+            Err(_) => Self::from_filename(api, keypair, hash_or_filename).await,
+        }
+    }
+
+    async fn from_filename(
+        api: &OnlineClient<EntropyConfig>,
+        keypair: &sr25519::Pair,
+        filename: String,
+    ) -> anyhow::Result<Self> {
+        let program_bytecode = fs::read(filename)?;
+        let hash = store_program(api, keypair, program_bytecode).await?;
+        Ok(Self(hash))
     }
 }
