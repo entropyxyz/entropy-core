@@ -27,8 +27,8 @@ use entropy_testing_utils::{
     chain_api::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
-        derive_static_secret, get_accounts, get_api, get_rpc, register, sign, update_program,
-        KeyParams, KeyShare, KeyVisibility,
+        derive_static_secret, get_accounts, get_api, get_rpc, register, sign, store_program,
+        update_programs, KeyParams, KeyShare, KeyVisibility,
     },
 };
 use sp_core::{sr25519, Pair};
@@ -68,7 +68,7 @@ enum CliCommand {
         /// The access mode of the Entropy account
         #[arg(value_enum, default_value_t = Default::default())]
         key_visibility: Visibility,
-        /// The hash of the initial program for the account
+        /// The hashes of the initial program for the account
         program_hashes: Vec<H256>,
     },
     /// Ask the network to sign a given message
@@ -83,7 +83,7 @@ enum CliCommand {
         auxilary_data: Option<String>,
     },
     /// Update the program for a particular account
-    UpdateProgram {
+    UpdatePrograms {
         /// A name from which to generate a signature request keypair, eg: "Alice"
         ///
         /// Optionally may be preceeded with "//", eg: "//Alice"
@@ -92,7 +92,16 @@ enum CliCommand {
         ///
         /// Optionally may be preceeded with "//", eg: "//Bob"
         program_account_name: String,
-        /// The path to a .wasm file containing the program (defaults to test program)
+        /// The hashes of the new programs for the account
+        program_hashes: Vec<H256>,
+    },
+    /// Store a given program on chain
+    StoreProgram {
+        /// A name from which to generate a keypair, eg: "Alice"
+        ///
+        /// Optionally may be preceeded with "//", eg: "//Alice"
+        account_name: String,
+        /// The path to a .wasm file containing the program (defaults to a test program)
         program_file: Option<PathBuf>,
     },
     /// Display a list of registered Entropy accounts
@@ -221,24 +230,41 @@ async fn run_command() -> anyhow::Result<String> {
             .await?;
             Ok(format!("Message signed: {:?}", recoverable_signature))
         },
-        CliCommand::UpdateProgram {
-            signature_request_account_name,
-            program_account_name,
-            program_file,
-        } => {
-            let signature_request_keypair: sr25519::Pair =
-                SeedString::new(signature_request_account_name).try_into()?;
-            println!("Signature request account: {:?}", signature_request_keypair.public());
+        CliCommand::StoreProgram { account_name, program_file } => {
+            let keypair: sr25519::Pair = SeedString::new(account_name).try_into()?;
+            println!("Storing program using account: {:?}", keypair.public());
 
             let program = match program_file {
                 Some(file_name) => fs::read(file_name)?,
                 None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 
+            let hash = store_program(&api, &keypair, program).await?;
+            Ok(format!("Program updated {hash}"))
+        },
+        CliCommand::UpdatePrograms {
+            signature_request_account_name,
+            program_account_name,
+            program_hashes,
+        } => {
+            let signature_request_keypair: sr25519::Pair =
+                SeedString::new(signature_request_account_name).try_into()?;
+            println!("Signature request account: {:?}", signature_request_keypair.public());
+
             let program_keypair: sr25519::Pair =
                 SeedString::new(program_account_name).try_into()?;
-            update_program(&api, &program_keypair, program).await?;
-            Ok("Program updated".to_string())
+            println!("Program account: {:?}", program_keypair.public());
+
+            update_programs(
+                &api,
+                &rpc,
+                &signature_request_keypair,
+                &program_keypair,
+                BoundedVec(program_hashes),
+            )
+            .await?;
+
+            Ok("Programs updated".to_string())
         },
         CliCommand::Status => {
             let accounts = get_accounts(&api, &rpc).await?;

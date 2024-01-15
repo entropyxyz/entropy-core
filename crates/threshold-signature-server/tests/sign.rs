@@ -48,11 +48,11 @@ async fn integration_test_sign() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
-        test_client::update_program(&api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+        test_client::store_program(&api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
             .await
             .unwrap();
 
-    test_client::update_pointer(
+    test_client::update_programs(
         &api,
         &rpc,
         &pre_registered_user.pair(),
@@ -99,11 +99,11 @@ async fn integration_test_sign_private() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
-        test_client::update_program(&api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+        test_client::store_program(&api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
             .await
             .unwrap();
 
-    test_client::update_pointer(
+    test_client::update_programs(
         &api,
         &rpc,
         &pre_registered_user.pair(),

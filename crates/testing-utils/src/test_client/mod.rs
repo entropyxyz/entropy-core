@@ -237,7 +237,7 @@ pub async fn sign(
     Err(anyhow!("Failed to get responses from TSS servers"))
 }
 
-/// Set or update the program associated with a given entropy account
+/// Store a program on chain making and return it's hash
 #[tracing::instrument(
     skip_all,
     fields(
@@ -245,7 +245,7 @@ pub async fn sign(
         program_modification_account = ?program_modification_keypair.public(),
     )
 )]
-pub async fn update_program(
+pub async fn store_program(
     api: &OnlineClient<EntropyConfig>,
     program_modification_keypair: &sr25519::Pair,
     program: Vec<u8>,
@@ -267,8 +267,8 @@ pub async fn update_program(
     Ok(result_event.ok_or(anyhow!("Error getting program created event"))?.program_hash)
 }
 
-/// Set or update pointer with a given entropy account
-pub async fn update_pointer(
+/// Update the program pointers associated with a given entropy account
+pub async fn update_programs(
     entropy_api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_account: &sr25519::Pair,
