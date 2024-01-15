@@ -33,6 +33,14 @@ use sp_runtime::Perbill;
 
 use crate::endowed_accounts::endowed_accounts_dev;
 
+pub fn testnet_local_initial_authorities(
+) -> Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> {
+    vec![
+        crate::chain_spec::authority_keys_from_seed("Alice"),
+        crate::chain_spec::authority_keys_from_seed("Bob"),
+    ]
+}
+
 pub fn testnet_initial_authorities(
 ) -> Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> {
     // stash, controller, session-key
@@ -124,6 +132,33 @@ pub fn testnet_initial_authorities(
     ]
 }
 
+pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
+    crate::chain_spec::ChainSpec::from_genesis(
+        "EntropyTestnetLocal",
+        "ETestLocal",
+        ChainType::Live,
+        || {
+            testnet_genesis_config(
+                testnet_local_initial_authorities(),
+                vec![],
+                crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Alice"),
+            )
+        },
+        vec![],
+        Some(
+            TelemetryEndpoints::new(vec![(
+                crate::chain_spec::STAGING_TELEMETRY_URL.to_string(),
+                0,
+            )])
+            .expect("Staging telemetry url is valid; qed"),
+        ),
+        Some(crate::chain_spec::DEFAULT_PROTOCOL_ID),
+        None,
+        Some(crate::chain_spec::entropy_props()), // TODO: Maybe move into this module
+        Default::default(),
+    )
+}
+
 /// Development config (single validator Alice)
 pub fn testnet_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
@@ -165,8 +200,6 @@ pub fn testnet_genesis_config(
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
 ) -> RuntimeGenesisConfig {
-    // --- Config Below this ---
-
     let mut endowed_accounts = endowed_accounts_dev();
     // endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
