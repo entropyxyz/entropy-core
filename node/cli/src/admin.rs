@@ -249,14 +249,6 @@ pub fn staging_testnet_config_genesis() -> RuntimeGenesisConfig {
     testnet_genesis(initial_authorities, vec![], root_key)
 }
 
-pub fn development_config_genesis() -> RuntimeGenesisConfig {
-    testnet_genesis(
-        vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
-        vec![],
-        get_account_id_from_seed::<sr25519::Public>("Alice"),
-    )
-}
-
 pub fn local_devnet_config_genesis() -> RuntimeGenesisConfig {
     local_devnet_genesis(
         vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],

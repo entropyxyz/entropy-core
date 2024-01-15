@@ -32,6 +32,9 @@
 //! Substrate chain configurations.
 
 #![allow(dead_code)]
+
+pub mod dev;
+
 pub use entropy_runtime::RuntimeGenesisConfig;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
@@ -800,22 +803,6 @@ pub fn testing(
         transaction_payment: Default::default(),
         nomination_pools: Default::default(),
     }
-}
-
-/// Development config (single validator Alice)
-pub fn development_config() -> ChainSpec {
-    ChainSpec::from_genesis(
-        "Development",
-        "dev",
-        ChainType::Development,
-        admin::development_config_genesis,
-        vec![],
-        None,
-        None,
-        None,
-        None,
-        Default::default(),
-    )
 }
 
 /// Local devnet configuration, used when invoked with the
