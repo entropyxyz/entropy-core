@@ -24,7 +24,10 @@ use std::{
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use entropy_testing_utils::{
-    chain_api::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+    chain_api::{
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+        entropy::runtime_types::pallet_relayer::pallet::ProgramData,
+    },
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
         derive_static_secret, get_accounts, get_api, get_rpc, register, sign, update_program,
@@ -70,6 +73,8 @@ enum CliCommand {
         key_visibility: Visibility,
         /// The hash of the initial program for the account
         program_hashes: Vec<H256>,
+        /// The program configs of the initial programs for the account
+        program_configs: Vec<Vec<u8>>,
     },
     /// Ask the network to sign a given message
     Sign {
@@ -94,6 +99,8 @@ enum CliCommand {
         program_account_name: String,
         /// The path to a .wasm file containing the program (defaults to test program)
         program_file: Option<PathBuf>,
+        /// The path to a file containing the program config (defaults to empty)
+        program_config_file: Option<PathBuf>,
     },
     /// Display a list of registered Entropy accounts
     Status,
@@ -157,6 +164,7 @@ async fn run_command() -> anyhow::Result<String> {
             program_account_name,
             key_visibility,
             program_hashes,
+            program_configs,
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
@@ -176,6 +184,14 @@ async fn run_command() -> anyhow::Result<String> {
                 },
                 Visibility::Public => KeyVisibility::Public,
             };
+            let mut programs_info = vec![];
+
+            for i in 0..program_hashes.len() {
+                programs_info.push(ProgramData {
+                    program_pointer: program_hashes[i],
+                    program_config: program_configs[i].clone(),
+                });
+            }
 
             let (registered_info, keyshare_option) = register(
                 &api,
@@ -183,7 +199,7 @@ async fn run_command() -> anyhow::Result<String> {
                 signature_request_keypair.clone(),
                 program_account,
                 key_visibility_converted,
-                BoundedVec(program_hashes),
+                BoundedVec(programs_info),
             )
             .await?;
 
@@ -225,6 +241,7 @@ async fn run_command() -> anyhow::Result<String> {
             signature_request_account_name,
             program_account_name,
             program_file,
+            program_config_file,
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
@@ -235,9 +252,14 @@ async fn run_command() -> anyhow::Result<String> {
                 None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 
+            let program_config = match program_config_file {
+                Some(file_name) => fs::read(file_name)?,
+                None => vec![],
+            };
+
             let program_keypair: sr25519::Pair =
                 SeedString::new(program_account_name).try_into()?;
-            update_program(&api, &program_keypair, program).await?;
+            update_program(&api, &program_keypair, program, program_config).await?;
             Ok("Program updated".to_string())
         },
         CliCommand::Status => {

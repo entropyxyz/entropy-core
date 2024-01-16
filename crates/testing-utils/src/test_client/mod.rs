@@ -36,9 +36,8 @@ use entropy_protocol::{
 use entropy_tss::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, EntropyConfig,
         entropy::runtime_types::pallet_relayer::pallet::ProgramData,
-
+        entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, EntropyConfig,
     },
     common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
 };
@@ -48,7 +47,7 @@ use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     tx::{PairSigner, Signer},
-    utils::{AccountId32 as SubxtAccountId32, Static, H256},
+    utils::{AccountId32 as SubxtAccountId32, Static},
     Config, OnlineClient,
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
@@ -251,7 +250,7 @@ pub async fn update_program(
     api: &OnlineClient<EntropyConfig>,
     program_modification_keypair: &sr25519::Pair,
     program: Vec<u8>,
-    program_config: Vec<u8>
+    program_config: Vec<u8>,
 ) -> anyhow::Result<<EntropyConfig as Config>::Hash> {
     let update_program_tx = entropy::tx().programs().set_program(program, program_config);
     let program_modification_account =
