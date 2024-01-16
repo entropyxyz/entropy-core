@@ -34,7 +34,7 @@
 #![allow(dead_code)]
 
 pub mod dev;
-pub mod testing;
+pub mod integration_tests;
 pub mod testnet;
 
 pub use entropy_runtime::RuntimeGenesisConfig;

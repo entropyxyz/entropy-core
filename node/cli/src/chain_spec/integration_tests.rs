@@ -32,13 +32,13 @@ use sp_core::sr25519;
 use sp_runtime::Perbill;
 
 /// Testing config (single validator Alice)
-pub fn testing_config() -> crate::chain_spec::ChainSpec {
+pub fn integration_tests_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
         "Testing",
         "test",
         ChainType::Development,
         || {
-            testing_genesis_config(
+            integration_tests_genesis_config(
                 vec![
                     crate::chain_spec::authority_keys_from_seed("Alice"),
                     crate::chain_spec::authority_keys_from_seed("Bob"),
@@ -57,7 +57,7 @@ pub fn testing_config() -> crate::chain_spec::ChainSpec {
 }
 
 /// Helper function to create RuntimeGenesisConfig for testing
-pub fn testing_genesis_config(
+pub fn integration_tests_genesis_config(
     initial_authorities: Vec<(
         AccountId,
         AccountId,
