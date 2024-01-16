@@ -36,7 +36,6 @@
 mod chain_spec;
 #[macro_use]
 mod service;
-mod admin;
 mod benchmarking;
 mod cli;
 mod command;
