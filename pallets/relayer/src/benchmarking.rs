@@ -73,15 +73,20 @@ benchmarks! {
   register {
     let p in 1 .. T::MaxProgramHashes::get();
     let program = vec![0u8];
+    let program_type_definition = vec![1u8];
     let program_hash = T::Hashing::hash(&program);
-    let program_hashes = vec![program_hash; p as usize];
-    let bounded_program_hashes = BoundedVec::try_from(program_hashes).unwrap();
-    let program_modification_account: T::AccountId = whitelisted_caller();
-    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, program_modification_account: program_modification_account.clone(), ref_counter: 0});
+    let programs_info = BoundedVec::try_from(vec![ProgramData {
+      program_pointer: program_hash,
+      program_config: vec![],
+  };  p as usize])
+  .unwrap();
+
+  let program_modification_account: T::AccountId = whitelisted_caller();
+    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, program_type_definition, program_modification_account: program_modification_account.clone(), ref_counter: 0});
     let sig_req_account: T::AccountId = whitelisted_caller();
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
-  }: _(RawOrigin::Signed(sig_req_account.clone()), program_modification_account, KeyVisibility::Public, bounded_program_hashes)
+  }: _(RawOrigin::Signed(sig_req_account.clone()), program_modification_account, KeyVisibility::Public, programs_info)
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
     assert!(Registering::<T>::contains_key(sig_req_account));
@@ -91,16 +96,20 @@ benchmarks! {
     let p in 1 .. T::MaxProgramHashes::get();
     let program_modification_account: T::AccountId = whitelisted_caller();
     let program = vec![0u8];
+    let program_type_definition = vec![1u8];
     let program_hash = T::Hashing::hash(&program);
-    let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
-    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, program_modification_account: program_modification_account.clone(), ref_counter: 1});
+    let programs_info = BoundedVec::try_from(vec![ProgramData {
+      program_pointer: program_hash,
+      program_config: vec![],
+  }]).unwrap();
+    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, program_type_definition, program_modification_account: program_modification_account.clone(), ref_counter: 1});
     let sig_req_account: T::AccountId = whitelisted_caller();
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
       <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         program_modification_account: sig_req_account.clone(),
         confirmations: vec![],
-        program_pointers: program_hashes,
+        programs_data: programs_info,
         key_visibility: KeyVisibility::Public,
         verifying_key: Some(BoundedVec::default())
     });
@@ -112,39 +121,52 @@ benchmarks! {
   change_program_pointer {
     let n in 1 .. T::MaxProgramHashes::get();
     let o in 1 .. T::MaxProgramHashes::get();
+
     let program_modification_account: T::AccountId = whitelisted_caller();
     let program = vec![0u8];
+    let program_type_definition = vec![1u8];
     let program_hash = T::Hashing::hash(&program);
-    let program_hashes = vec![program_hash; o as usize];
-    let bounded_program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
+    let programs_info = BoundedVec::try_from(vec![ProgramData {
+      program_pointer: program_hash,
+      program_config: vec![],
+  };  o as usize])
+  .unwrap();
     let new_program = vec![1u8];
     let new_program_hash = T::Hashing::hash(&new_program);
-    let new_program_hashes = vec![new_program_hash; n as usize];
-    let new_bounded_program_hashes = BoundedVec::try_from(new_program_hashes).unwrap();
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, program_modification_account: program_modification_account.clone(), ref_counter: 0});
-    Programs::<T>::insert(new_program_hash, ProgramInfo {bytecode: new_program, program_modification_account: program_modification_account.clone(), ref_counter: o as u128});
+    let new_programs_info = BoundedVec::try_from(vec![ProgramData {
+      program_pointer: new_program_hash,
+      program_config: vec![],
+  };  n as usize])
+  .unwrap();
+  let sig_req_account: T::AccountId = whitelisted_caller();
+    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, program_type_definition: program_type_definition.clone(), program_modification_account: program_modification_account.clone(), ref_counter: 0});
+    Programs::<T>::insert(new_program_hash, ProgramInfo {bytecode: new_program, program_type_definition, program_modification_account: program_modification_account.clone(), ref_counter: o as u128});
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
     <Registered<T>>::insert(
         &sig_req_account,
         RegisteredInfo {
             program_modification_account: sig_req_account.clone(),
-            program_pointers: bounded_program_hashes,
+            programs_data: programs_info,
             verifying_key: BoundedVec::default(),
             key_visibility: KeyVisibility::Public,
         },
     );
-  }: _(RawOrigin::Signed(sig_req_account.clone()), sig_req_account.clone(), new_bounded_program_hashes.clone())
+  }: _(RawOrigin::Signed(sig_req_account.clone()), sig_req_account.clone(), new_programs_info.clone())
   verify {
-    assert_last_event::<T>(Event::ProgramPointerChanged(sig_req_account.clone(), new_bounded_program_hashes).into());
+    assert_last_event::<T>(Event::ProgramPointerChanged(sig_req_account.clone(), new_programs_info).into());
   }
 
   confirm_register_registering {
     let c in 0 .. SIG_PARTIES as u32;
     let program = vec![0u8];
+    let program_type_definition = vec![1u8];
+
     let program_hash = T::Hashing::hash(&program);
-    let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
+    let programs_info = BoundedVec::try_from(vec![ProgramData {
+      program_pointer: program_hash,
+      program_config: vec![],
+  }]).unwrap();
     let sig_req_account: T::AccountId = whitelisted_caller();
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
@@ -158,7 +180,7 @@ benchmarks! {
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         program_modification_account: sig_req_account.clone(),
         confirmations: vec![],
-        program_pointers: program_hashes,
+        programs_data: programs_info,
         key_visibility: KeyVisibility::Public,
         verifying_key: None
     });
@@ -172,9 +194,13 @@ benchmarks! {
   confirm_register_failed_registering {
     let c in 0 .. SIG_PARTIES as u32;
     let program = vec![0u8];
-    let program_hash = T::Hashing::hash(&program);
-    let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
+    let program_type_definition = vec![1u8];
 
+    let program_hash = T::Hashing::hash(&program);
+    let programs_info = BoundedVec::try_from(vec![ProgramData {
+      program_pointer: program_hash,
+      program_config: vec![],
+  }]).unwrap();
     let sig_req_account: T::AccountId = whitelisted_caller();
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
@@ -190,7 +216,7 @@ benchmarks! {
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         program_modification_account: sig_req_account.clone(),
         confirmations: confirmation,
-        program_pointers: program_hashes,
+        programs_data: programs_info,
         key_visibility: KeyVisibility::Public,
         verifying_key: Some(BoundedVec::default())
     });
@@ -205,8 +231,12 @@ benchmarks! {
 confirm_register_registered {
     let c in 0 .. SIG_PARTIES as u32;
     let program = vec![0u8];
+    let program_type_definition = vec![1u8];
     let program_hash = T::Hashing::hash(&program);
-    let program_hashes = BoundedVec::try_from(vec![program_hash]).unwrap();
+    let programs_info = BoundedVec::try_from(vec![ProgramData {
+      program_pointer: program_hash,
+      program_config: vec![],
+  }]).unwrap();
     let sig_req_account: T::AccountId = whitelisted_caller();
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
@@ -221,7 +251,7 @@ confirm_register_registered {
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         program_modification_account: sig_req_account.clone(),
         confirmations: confirmation,
-        program_pointers: program_hashes,
+        programs_data: programs_info,
         key_visibility: KeyVisibility::Public,
         verifying_key: None
     });
