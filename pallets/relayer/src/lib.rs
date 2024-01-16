@@ -92,7 +92,7 @@ pub mod pallet {
     #[scale_info(skip_type_params(T))]
     pub struct ProgramData<T: Config> {
         pub program_pointer: T::Hash,
-        pub program_config: Vec<String>,
+        pub program_config: Vec<u8>,
     }
 
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo)]
