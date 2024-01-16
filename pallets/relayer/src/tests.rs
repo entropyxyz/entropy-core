@@ -255,7 +255,7 @@ fn it_changes_a_program_pointer() {
         Registered::<Test>::insert(1, &registered_info);
         assert_eq!(Relayer::registered(1).unwrap(), registered_info);
 
-        assert_ok!(Relayer::change_program_pointer(
+        assert_ok!(Relayer::change_program_data(
             RuntimeOrigin::signed(2),
             1,
             new_programs_info.clone(),
@@ -282,7 +282,7 @@ fn it_changes_a_program_pointer() {
         ])
         .unwrap();
         assert_noop!(
-            Relayer::change_program_pointer(
+            Relayer::change_program_data(
                 RuntimeOrigin::signed(2),
                 1,
                 unregistered_programs_info.clone(),
@@ -291,7 +291,7 @@ fn it_changes_a_program_pointer() {
         );
 
         assert_noop!(
-            Relayer::change_program_pointer(
+            Relayer::change_program_data(
                 RuntimeOrigin::signed(2),
                 1,
                 BoundedVec::try_from(vec![]).unwrap(),

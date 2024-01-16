@@ -298,9 +298,9 @@ pub mod pallet {
         /// Allows a user's program modification account to change their program pointer
         #[pallet::call_index(2)]
         #[pallet::weight({
-             <T as Config>::WeightInfo::change_program_pointer(<T as Config>::MaxProgramHashes::get(), <T as Config>::MaxProgramHashes::get())
+             <T as Config>::WeightInfo::change_program_data(<T as Config>::MaxProgramHashes::get(), <T as Config>::MaxProgramHashes::get())
          })]
-        pub fn change_program_pointer(
+        pub fn change_program_data(
             origin: OriginFor<T>,
             sig_request_account: T::AccountId,
             new_programs_data: BoundedVec<ProgramData<T>, T::MaxProgramHashes>,
@@ -349,7 +349,7 @@ pub mod pallet {
                     }
                 })?;
             Self::deposit_event(Event::ProgramPointerChanged(who, programs_data.clone()));
-            Ok(Some(<T as Config>::WeightInfo::change_program_pointer(
+            Ok(Some(<T as Config>::WeightInfo::change_program_data(
                 programs_data.len() as u32,
                 old_programs_length as u32,
             ))

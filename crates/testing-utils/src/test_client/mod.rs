@@ -282,7 +282,7 @@ pub async fn update_pointer(
 
     let update_pointer_tx = entropy::tx()
         .relayer()
-        .change_program_pointer(signature_request_account.public().into(), program_data);
+        .change_program_data(signature_request_account.public().into(), program_data);
 
     let account_id32: AccountId32 = pointer_modification_account.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();

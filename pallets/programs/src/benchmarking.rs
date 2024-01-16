@@ -15,7 +15,7 @@
 
 //! Benchmarking setup for pallet-propgation
 
-use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
+use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec};
 use frame_support::{
     traits::{Currency, Get},
     BoundedVec,

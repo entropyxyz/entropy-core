@@ -53,7 +53,7 @@ use core::marker::PhantomData;
 pub trait WeightInfo {
 	fn register(p: u32) -> Weight;
 	fn prune_registration(p: u32) -> Weight;
-	fn change_program_pointer(n: u32, o:u32) -> Weight;
+	fn change_program_data(n: u32, o:u32) -> Weight;
 	fn confirm_register_registering(c: u32, ) -> Weight;
 	fn confirm_register_failed_registering(c: u32, ) -> Weight;
 	fn confirm_register_registered(c: u32, ) -> Weight;
@@ -104,7 +104,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `n` is `[1, 5]`.
 	/// The range of component `o` is `[1, 5]`.
-	fn change_program_pointer(n: u32, _o: u32, ) -> Weight {
+	fn change_program_data(n: u32, _o: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `633`
 		//  Estimated: `6573`
@@ -217,7 +217,7 @@ impl WeightInfo for () {
 	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `n` is `[1, 5]`.
 	/// The range of component `o` is `[1, 5]`.
-	fn change_program_pointer(n: u32, _o: u32, ) -> Weight {
+	fn change_program_data(n: u32, _o: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `633`
 		//  Estimated: `6573`

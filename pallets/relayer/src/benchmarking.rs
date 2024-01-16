@@ -118,7 +118,7 @@ benchmarks! {
     assert_last_event::<T>(Event::RegistrationCancelled(sig_req_account.clone()).into());
   }
 
-  change_program_pointer {
+  change_program_data {
     let n in 1 .. T::MaxProgramHashes::get();
     let o in 1 .. T::MaxProgramHashes::get();
 
