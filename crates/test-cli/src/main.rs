@@ -21,6 +21,7 @@ use std::{
     time::Instant,
 };
 
+use blake2::{Blake2s256, Digest};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use entropy_testing_utils::{
@@ -269,7 +270,7 @@ async fn run_command() -> anyhow::Result<String> {
             for program in programs {
                 program_hashes.push(Program::new(&api, &program_keypair, program).await?.0)
             }
-
+            println!("program hashes: {:?}", program_hashes);
             update_programs(
                 &api,
                 &rpc,
@@ -362,20 +363,31 @@ impl Program {
                 let hash_32_res: Result<[u8; 32], _> = hash.try_into();
                 match hash_32_res {
                     Ok(hash_32) => Ok(Self(H256(hash_32))),
-                    Err(_) => Self::from_filename(api, keypair, hash_or_filename).await,
+                    Err(_) => Self::from_file(api, keypair, hash_or_filename).await,
                 }
             },
-            Err(_) => Self::from_filename(api, keypair, hash_or_filename).await,
+            Err(_) => Self::from_file(api, keypair, hash_or_filename).await,
         }
     }
 
-    async fn from_filename(
+    /// Given a path to a .wasm file, read it, store the program if it doesn't already exist, and
+    /// return the hash.
+    async fn from_file(
         api: &OnlineClient<EntropyConfig>,
         keypair: &sr25519::Pair,
         filename: String,
     ) -> anyhow::Result<Self> {
         let program_bytecode = fs::read(filename)?;
-        let hash = store_program(api, keypair, program_bytecode).await?;
+        let hash = match store_program(api, keypair, program_bytecode.clone()).await {
+            Ok(hash) => hash,
+            Err(error) => {
+                println!("Program is already stored {error}");
+                let mut hasher = Blake2s256::new();
+                hasher.update(&program_bytecode);
+                let hash_generic_array = hasher.finalize();
+                H256(hash_generic_array.into())
+            },
+        };
         Ok(Self(hash))
     }
 }
