@@ -67,36 +67,19 @@ impl SubstrateCli for Cli {
         2022
     }
 
-    // dev -> one node, Alice
-    //
-    // testnet-dev, one node, Alice
-    // testnet-local, two nodes, Alice + Bob
-    // testnet-staging -> four nodes, secret seeds <-- This is what we're doing now basically
-    // testnet -> production spec, four nodes, secret seed <-- Maybe merge with above
-    //
     // | --chain         | Description |
     // |-----------------|-----------  |
     // | dev             | Single node, Alice, Development Configuration |
-    // | testnet-dev     | Single node, Alice, Testnet Configuration  |
     // | testnet-local   | Two Nodes, Alice and Bob, Testnet Configuration  |
-    // | testnet-staging |  Four Nodes, Own Seed, Testnet Configuration   |
+    // | testnet |  Four Nodes, Own Seed, Testnet Configuration   |
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
-            "dev" => Box::new(chain_spec::dev::development_config()),
+            "" | "dev" => Box::new(chain_spec::dev::development_config()),
             "testnet-local" => Box::new(chain_spec::testnet::testnet_local_config()),
             "testnet" => Box::new(chain_spec::testnet::testnet_config()),
-            _ => unimplemented!(),
-            // "testnet-dev" => Box::new(chain_spec::testnet_config()),
-            // "testnet-local" => Box::new(chain_spec::testnet_config()),
-            // "testnet" => Box::new(chain_spec::testnet_config()),
-
-            // "test" => Box::new(chain_spec::testing_config()),
-            // "local-devnet" => Box::new(chain_spec::local_devnet_config()),
-            // "" | "local" => Box::new(chain_spec::local_testnet_config()),
-            // "testnet" => Box::new(chain_spec::testnet_config()),
-            // path => {
-            //     Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?)
-            // },
+            path => {
+                Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?)
+            },
         })
     }
 }
