@@ -131,6 +131,9 @@ pub mod pallet {
 
             /// The new program hash.
             program_hash: T::Hash,
+
+            /// The new program type definition
+            program_type_definition: Vec<u8>,
         },
         /// The bytecode of a program was removed.
         ProgramRemoved {
@@ -188,7 +191,7 @@ pub mod pallet {
                 program_hash,
                 &ProgramInfo {
                     bytecode: new_program.clone(),
-                    program_type_definition,
+                    program_type_definition: program_type_definition.clone(),
                     program_modification_account: program_modification_account.clone(),
                     ref_counter: 0u128,
                 },
@@ -205,6 +208,7 @@ pub mod pallet {
             Self::deposit_event(Event::ProgramCreated {
                 program_modification_account,
                 program_hash,
+                program_type_definition,
             });
             Ok(())
         }

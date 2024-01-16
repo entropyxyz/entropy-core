@@ -41,19 +41,25 @@ benchmarks! {
 
   set_program {
     let program = vec![10];
-    let program_hash = T::Hashing::hash(&program);
+    let program_type_definition = vec![11];
+    let mut hash_input: Vec<u8> = vec![];
+    hash_input.extend(&program);
+    hash_input.extend(&program_type_definition);
+
+    let program_hash = T::Hashing::hash(&hash_input);
     let program_modification_account: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();
 
     let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
     let _ = CurrencyOf::<T>::make_free_balance_be(&program_modification_account, value);
 
-  }: _(RawOrigin::Signed(program_modification_account.clone()), program.clone())
+  }: _(RawOrigin::Signed(program_modification_account.clone()), program.clone(), program_type_definition.clone())
   verify {
     assert_last_event::<T>(
         Event::<T>::ProgramCreated {
             program_modification_account,
-            program_hash
+            program_hash,
+            program_type_definition
         }.into()
     );
   }
@@ -61,14 +67,19 @@ benchmarks! {
   remove_program {
     let p in 0..T::MaxOwnedPrograms::get();
     let program = vec![10];
-    let program_hash = T::Hashing::hash(&program);
+    let program_type_definition = vec![11];
+    let mut hash_input: Vec<u8> = vec![];
+    hash_input.extend(&program);
+    hash_input.extend(&program_type_definition);
+
+    let program_hash = T::Hashing::hash(&hash_input);
     let random_program = vec![11];
     let random_hash =  T::Hashing::hash(&random_program);
     let program_modification_account: T::AccountId = whitelisted_caller();
 
     let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
     let _ = CurrencyOf::<T>::make_free_balance_be(&program_modification_account, value);
-    <Programs<T>>::insert(program_hash.clone(), ProgramInfo {bytecode: program, program_modification_account: program_modification_account.clone(), ref_counter: 0u128});
+    <Programs<T>>::insert(program_hash.clone(), ProgramInfo {bytecode: program, program_type_definition, program_modification_account: program_modification_account.clone(), ref_counter: 0u128});
     let mut program_hashes = vec![random_hash.clone(); p as usize];
     // remove one to make room for the targetted removal program hash
     program_hashes.pop();
