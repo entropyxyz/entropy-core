@@ -27,7 +27,10 @@ use entropy_kvdb::clean_tests;
 use entropy_protocol::{KeyParams, ValidatorInfo};
 use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
 use entropy_testing_utils::{
-    chain_api::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+    chain_api::{
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+        entropy::runtime_types::pallet_relayer::pallet::ProgramData,
+    },
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
         TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
@@ -82,12 +85,18 @@ async fn test_wasm_sign_tx_user_participates() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
-        update_program(&entropy_api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+        update_program(&entropy_api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
             .await
             .unwrap();
-    update_pointer(&entropy_api, &rpc, &one.pair(), &one.pair(), BoundedVec(vec![program_hash]))
-        .await
-        .unwrap();
+    update_pointer(
+        &entropy_api,
+        &rpc,
+        &one.pair(),
+        &one.pair(),
+        caBoundedVec(vec![ProgramData { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await
+    .unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -202,7 +211,9 @@ async fn test_wasm_register_with_private_key_visibility() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let program_hash =
-        update_program(&api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned()).await.unwrap();
+        update_program(&api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+            .await
+            .unwrap();
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
@@ -214,7 +225,7 @@ async fn test_wasm_register_with_private_key_visibility() {
         one.pair(),
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
-        BoundedVec(vec![program_hash]),
+        BoundedVec(vec![ProgramData {program:pointer program_hash, program_config: vec![]}]),
     )
     .await
     .unwrap();
