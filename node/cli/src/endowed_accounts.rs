@@ -42,10 +42,3 @@ pub fn endowed_accounts_dev() -> Vec<AccountId> {
         hex!["14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611"].into(),
     ]
 }
-
-pub fn endowed_accounts_devnet() -> Vec<AccountId> {
-    vec![
-        // random placeholder
-        // hex!["a617f1a88de5efbaefaafdf4d02818e00b6bb45c673c2dedca447b62dad2a26d"].into(),
-    ]
-}
