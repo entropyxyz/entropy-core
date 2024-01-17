@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::chain_spec::get_account_id_from_seed;
 use crate::endowed_accounts::endowed_accounts_dev;
 
 use entropy_runtime::{
@@ -44,7 +45,7 @@ pub fn integration_tests_config() -> crate::chain_spec::ChainSpec {
                     crate::chain_spec::authority_keys_from_seed("Bob"),
                 ],
                 vec![],
-                crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Alice"),
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
             )
         },
         vec![],
@@ -134,7 +135,7 @@ pub fn integration_tests_genesis_config(
         staking_extension: StakingExtensionConfig {
             threshold_servers: vec![
                 (
-                    crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     (
                         crate::chain_spec::tss_account_id::ALICE.clone(),
                         crate::chain_spec::tss_x25519_public_key::ALICE,
@@ -142,7 +143,7 @@ pub fn integration_tests_genesis_config(
                     ),
                 ),
                 (
-                    crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                     (
                         crate::chain_spec::tss_account_id::BOB.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB,
@@ -150,9 +151,7 @@ pub fn integration_tests_genesis_config(
                     ),
                 ),
                 (
-                    crate::chain_spec::get_account_id_from_seed::<sr25519::Public>(
-                        "Charlie//stash",
-                    ),
+                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
                     (
                         crate::chain_spec::tss_account_id::CHARLIE.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB, // TODO (Nando): Should be Charlie
@@ -160,7 +159,7 @@ pub fn integration_tests_genesis_config(
                     ),
                 ),
                 (
-                    crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     (
                         crate::chain_spec::tss_account_id::DAVE.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB, // TODO (Nando): Should be Dave
@@ -172,20 +171,11 @@ pub fn integration_tests_genesis_config(
                 (
                     0,
                     vec![
-                        crate::chain_spec::get_account_id_from_seed::<sr25519::Public>(
-                            "Alice//stash",
-                        ),
-                        crate::chain_spec::get_account_id_from_seed::<sr25519::Public>(
-                            "Charlie//stash",
-                        ),
+                        get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                        get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
                     ],
                 ),
-                (
-                    1,
-                    vec![crate::chain_spec::get_account_id_from_seed::<sr25519::Public>(
-                        "Bob//stash",
-                    )],
-                ),
+                (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
             proactive_refresh_validators: vec![
                 entropy_shared::ValidatorInfo {
@@ -237,16 +227,16 @@ pub fn integration_tests_genesis_config(
         treasury: Default::default(),
         relayer: RelayerConfig {
             registered_accounts: vec![
-                (crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
+                (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
                 (
-                    crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Eve"),
+                    get_account_id_from_seed::<sr25519::Public>("Eve"),
                     1,
                     Some([
                         28, 63, 144, 84, 78, 147, 195, 214, 190, 234, 111, 101, 117, 133, 9, 198,
                         96, 96, 76, 140, 152, 251, 255, 28, 167, 38, 157, 185, 192, 42, 201, 82,
                     ]),
                 ),
-                (crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Ferdie"), 2, None),
+                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 2, None),
             ],
         },
         vesting: Default::default(),
