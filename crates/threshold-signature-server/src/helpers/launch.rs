@@ -110,6 +110,7 @@ pub async fn load_kv_store(
 }
 
 #[derive(Parser, Debug, Clone)]
+#[command(about, version)]
 pub struct StartupArgs {
     /// Wether to sync the keystore.
     #[arg(short = 's', long = "sync")]
