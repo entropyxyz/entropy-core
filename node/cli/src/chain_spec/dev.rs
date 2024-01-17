@@ -49,6 +49,37 @@ pub fn development_config() -> crate::chain_spec::ChainSpec {
                 ],
                 vec![],
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
+                vec!["127.0.0.1:3001", "127.0.0.1:3002"],
+            )
+        },
+        vec![],
+        None,
+        None,
+        None,
+        None,
+        Default::default(),
+    )
+}
+
+/// The configuration used for a local development network spun up with the `docker-compose` setup
+/// provided in this repository.
+///
+/// Since Entropy requires at least two signing groups to work properly we spin up this network with
+/// two validators, Alice and Bob.
+pub fn devnet_local_config() -> crate::chain_spec::ChainSpec {
+    crate::chain_spec::ChainSpec::from_genesis(
+        "DevelopmentNetwork",
+        "DevnetLocal",
+        ChainType::Development,
+        || {
+            development_genesis_config(
+                vec![
+                    crate::chain_spec::authority_keys_from_seed("Alice"),
+                    crate::chain_spec::authority_keys_from_seed("Bob"),
+                ],
+                vec![],
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                vec!["alice-tss-server:3001", "bob-tss-server:3002"],
             )
         },
         vec![],
@@ -71,6 +102,7 @@ pub fn development_genesis_config(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
+    threshold_server_endpoints: Vec<&str>,
 ) -> RuntimeGenesisConfig {
     let mut endowed_accounts = endowed_accounts_dev();
     // endow all authorities and nominators.
@@ -141,7 +173,7 @@ pub fn development_genesis_config(
                     (
                         crate::chain_spec::tss_account_id::ALICE.clone(),
                         crate::chain_spec::tss_x25519_public_key::ALICE,
-                        "127.0.0.1:3001".as_bytes().to_vec(),
+                        threshold_server_endpoints[0].as_bytes().to_vec(),
                     ),
                 ),
                 (
@@ -149,7 +181,7 @@ pub fn development_genesis_config(
                     (
                         crate::chain_spec::tss_account_id::BOB.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB,
-                        "127.0.0.1:3002".as_bytes().to_vec(),
+                        threshold_server_endpoints[1].as_bytes().to_vec(),
                     ),
                 ),
             ],

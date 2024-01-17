@@ -70,12 +70,14 @@ impl SubstrateCli for Cli {
     // | --chain           | Description |
     // |-----------------  |----------- |
     // | dev               | Two nodes, Two threshold servers, Alice and Bob, Development Configuration |
+    // | devnet-local      | Two nodes, Two threshold servers, Alice and Bob, Development Configuration, Docker Compatible |
     // | integration-tests | Two nodes, Four threshold servers, Alice and Bob, Development Configuration |
     // | testnet-local     | Two Nodes, Two threshold servers, Alice and Bob, Testnet Configuration |
     // | testnet           | Four nodes, Two threshold servers, Own Seed, Testnet Configuration |
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
             "" | "dev" => Box::new(chain_spec::dev::development_config()),
+            "devnet-local" => Box::new(chain_spec::dev::devnet_local_config()),
             "integration-tests" => {
                 Box::new(chain_spec::integration_tests::integration_tests_config())
             },
