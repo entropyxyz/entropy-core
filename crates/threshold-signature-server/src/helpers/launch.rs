@@ -155,7 +155,7 @@ pub struct StartupArgs {
     #[arg(short = 'f', long = "password-file")]
     pub password_file: Option<PathBuf>,
 
-    /// Set up the key-value store (KVDB), or ensure one already exists, print setup information to stdout, then exit. If no key-value store already exists, supply the `--password-file` option for fully non-interactive operation.
+    /// Set up the key-value store (KVDB), or ensure one already exists, print setup information to stdout, then exit. Supply the `--password-file` option for fully non-interactive operation.
     ///
     /// Returns the AccountID and Diffie-Hellman Public Keys associated with this server.
     #[arg(long = "setup-only")]
