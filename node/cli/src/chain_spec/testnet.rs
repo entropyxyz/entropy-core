@@ -133,6 +133,8 @@ pub fn testnet_initial_authorities(
     ]
 }
 
+/// The local testnet configuration uses the same general setup as the testnet, with the exception
+/// that it is using two well-known accounts (Alice and Bob) as the authorities.
 pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
         "EntropyTestnetLocal",
@@ -160,7 +162,12 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
     )
 }
 
-/// Development config (single validator Alice)
+/// The testnet configuration uses four validator nodes with private keys controlled by the deployer
+/// of the network (so Entropy in this case).
+///
+/// If you want to run your own version you can either:
+///  - Update all the accounts here using keys you control, or
+///  - Run the `testnet-local` config, which uses well-known keys
 pub fn testnet_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
         "EntropyTestnet",
@@ -188,7 +195,6 @@ pub fn testnet_config() -> crate::chain_spec::ChainSpec {
     )
 }
 
-/// Helper function to create RuntimeGenesisConfig for testing
 pub fn testnet_genesis_config(
     initial_authorities: Vec<(
         AccountId,

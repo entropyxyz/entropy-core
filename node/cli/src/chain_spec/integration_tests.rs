@@ -32,11 +32,16 @@ use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::sr25519;
 use sp_runtime::Perbill;
 
-/// Testing config (single validator Alice)
+/// The configuration used for the Threshold Signature Scheme server integration tests.
+///
+/// Since Entropy requires at least two signing groups to work properly we spin up this network with
+/// two validators, Alice and Bob.
+///
+/// There are also some changes around the proactive refresh validators.
 pub fn integration_tests_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
         "Testing",
-        "test",
+        "integration-tests",
         ChainType::Development,
         || {
             integration_tests_genesis_config(
@@ -154,7 +159,10 @@ pub fn integration_tests_genesis_config(
                     get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
                     (
                         crate::chain_spec::tss_account_id::CHARLIE.clone(),
-                        crate::chain_spec::tss_x25519_public_key::CHARLIE,
+                        crate::chain_spec::tss_x25519_public_key::CHARLIE, // TODO (Nando) ... I
+                        // wonder if this needs
+                        // to be a validator
+                        // actually...
                         "127.0.0.1:3002".as_bytes().to_vec(),
                     ),
                 ),

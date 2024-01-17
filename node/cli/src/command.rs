@@ -67,11 +67,12 @@ impl SubstrateCli for Cli {
         2022
     }
 
-    // | --chain         | Description |
-    // |-----------------|-----------  |
-    // | dev             | Single node, Alice, Development Configuration |
-    // | testnet-local   | Two Nodes, Alice and Bob, Testnet Configuration  |
-    // | testnet |  Four Nodes, Own Seed, Testnet Configuration   |
+    // | --chain           | Description |
+    // |-----------------  |-----------  |
+    // | dev               | Two nodes, Two threshold servers, Alice and Bob, Development Configuration |
+    // | integration-tests | Two nodes, Four threshold servers, Alice and Bob, Development Configuration |
+    // | testnet-local     | Two Nodes, Two threhold servers, Alice and Bob, Testnet Configuration |
+    // | testnet           | Four nodes, Two threshold servers, Own Seed, Testnet Configuration |
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
             "" | "dev" => Box::new(chain_spec::dev::development_config()),

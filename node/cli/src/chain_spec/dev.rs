@@ -32,7 +32,10 @@ use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::sr25519;
 use sp_runtime::Perbill;
 
-/// Development config (single validator Alice)
+/// The configuration used for development.
+///
+/// Since Entropy requires at least two signing groups to work properly we spin up this network with
+/// two validators, Alice and Bob.
 pub fn development_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
         "Development",
