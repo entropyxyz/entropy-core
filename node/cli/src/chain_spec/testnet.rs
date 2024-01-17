@@ -329,10 +329,7 @@ pub fn testnet_genesis_config(
                 (
                     get_account_id_from_seed::<sr25519::Public>("Eve"),
                     1,
-                    Some([
-                        28, 63, 144, 84, 78, 147, 195, 214, 190, 234, 111, 101, 117, 133, 9, 198,
-                        96, 96, 76, 140, 152, 251, 255, 28, 167, 38, 157, 185, 192, 42, 201, 82,
-                    ]),
+                    Some(crate::chain_spec::tss_x25519_public_key::EVE),
                 ),
                 (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 2, None),
             ],

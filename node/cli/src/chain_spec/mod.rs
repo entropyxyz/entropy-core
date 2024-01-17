@@ -76,7 +76,7 @@ pub mod tss_account_id {
     pub static ref CHARLIE: sp_runtime::AccountId32  =
             super::hex!["14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611"].into();
 
-    /// Not sure what mneminic is used to derive the following `AccountId`.
+    /// Not sure what mnemonic is used to derive the following `AccountId`.
     /// Mnemonic: "????"
     pub static ref DAVE: sp_runtime::AccountId32  =
             super::hex!["5212c5f562f4a43b89caadfeb9f5896dd4084700afa72aa55ca306d689523f3a"].into();
@@ -106,6 +106,13 @@ pub mod tss_x25519_public_key {
     pub const CHARLIE: [u8; 32] = [
         245, 222, 99, 201, 89, 227, 119, 236, 142, 217, 74, 171, 58, 162, 140, 165, 7, 104, 210,
         36, 196, 227, 208, 254, 175, 100, 226, 50, 239, 84, 141, 13,
+    ];
+
+    /// Not sure what mnemonic is used to derive the following public key.
+    /// Mnemonic: "????"
+    pub const EVE: [u8; 32] = [
+        28, 63, 144, 84, 78, 147, 195, 214, 190, 234, 111, 101, 117, 133, 9, 198, 96, 96, 76, 140,
+        152, 251, 255, 28, 167, 38, 157, 185, 192, 42, 201, 82,
     ];
 }
 
