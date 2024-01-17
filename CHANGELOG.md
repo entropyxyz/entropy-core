@@ -21,6 +21,7 @@ At the moment this project **does not** adhere to
 - Wasm API to functions formerly in the x25515chacha20poly1305 repo also now have camelCase function names ([#563](https://github.com/entropyxyz/entropy-core/pull/563))
 - Register and change program pointer interface changed to accept a vecotor of programs. As well pass an index for which containts the hashing code if it custom hashing ([#568](https://github.com/entropyxyz/entropy-core/pull/568))
 - If a user is sending additive data through it now needs to be in a vector and the index needs to match up with where the program pointer is in the program pointer vector. ([#577](https://github.com/entropyxyz/entropy-core/pull/577))
+- A user now needs to add a program config, which gets packaged with their program pointer to create program info. This changes both register and change_program_info (previously change_program_pointer). As well set_program now also takes program_type_definition. ([#593](https://github.com/entropyxyz/entropy-core/pull/593))
 
 ### Added
 - Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
@@ -30,6 +31,7 @@ At the moment this project **does not** adhere to
 - Custom Hashing Algorithms [#553](https://github.com/entropyxyz/entropy-core/pull/553/)
 - Add ref counter to programs [#585](https://github.com/entropyxyz/entropy-core/pull/585/)
 - Add `--setup-only` flag ([#588](https://github.com/entropyxyz/entropy-core/pull/588/))
+- Program config storage ([#593](https://github.com/entropyxyz/entropy-core/pull/593))
 
 ### Changed
 - Crate name refactor ([#561](https://github.com/entropyxyz/entropy-core/pull/561))
