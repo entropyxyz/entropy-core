@@ -133,8 +133,11 @@ pub fn testnet_initial_authorities(
     ]
 }
 
-/// The local testnet configuration uses the same general setup as the testnet, with the exception
-/// that it is using two well-known accounts (Alice and Bob) as the authorities.
+/// The configuration used for a local testnet network spun up using the `docker-compose` setup
+/// provided in this repository.
+///
+/// Its configuration matches the same setup as the `testnet`, with the exception that is uses
+/// two well-known accounts (Alice and Bob) as the authorities.
 pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
         "EntropyTestnetLocal",
@@ -145,6 +148,7 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
                 testnet_local_initial_authorities(),
                 vec![],
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
+                vec!["alice-tss-server:3001", "bob-tss-server:3002"],
             )
         },
         vec![],
@@ -178,6 +182,7 @@ pub fn testnet_config() -> crate::chain_spec::ChainSpec {
                 testnet_initial_authorities(),
                 vec![],
                 hex!["6a16ded05ff7a50716e1ca943f0467c60b4b71c2a7fd7f75b6333b8af80b6e6f"].into(),
+                vec!["127.0.0.1:3001", "127.0.0.1:3002"],
             )
         },
         vec![],
@@ -206,6 +211,7 @@ pub fn testnet_genesis_config(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
+    threshold_server_endpoints: Vec<&str>,
 ) -> RuntimeGenesisConfig {
     let mut endowed_accounts = endowed_accounts_dev();
     // endow all authorities and nominators.
@@ -276,7 +282,7 @@ pub fn testnet_genesis_config(
                     (
                         crate::chain_spec::tss_account_id::ALICE.clone(),
                         crate::chain_spec::tss_x25519_public_key::ALICE,
-                        "127.0.0.1:3001".as_bytes().to_vec(),
+                        threshold_server_endpoints[0].as_bytes().to_vec(),
                     ),
                 ),
                 (
@@ -284,7 +290,7 @@ pub fn testnet_genesis_config(
                     (
                         crate::chain_spec::tss_account_id::BOB.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB,
-                        "127.0.0.1:3002".as_bytes().to_vec(),
+                        threshold_server_endpoints[1].as_bytes().to_vec(),
                     ),
                 ),
             ],
