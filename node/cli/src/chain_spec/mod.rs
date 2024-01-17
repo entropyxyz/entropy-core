@@ -53,8 +53,6 @@ use sp_runtime::traits::{IdentifyAccount, Verify};
 type AccountPublic = <Signature as Verify>::Signer;
 
 const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
-
-// TODO (Nando): We might be able to get rid of this...
 const DEFAULT_PROTOCOL_ID: &str = "Entropy"; // TODO finalize
 
 /// The `AccountId` represending a Threshold Signature Scheme servers (TSS).
@@ -104,8 +102,7 @@ pub mod tss_x25519_public_key {
     ];
 }
 
-// TODO: finalize
-fn entropy_props() -> Properties {
+fn entropy_properties() -> Properties {
     json!({"tokenDecimals": 10, "tokenSymbol": "BITS" }).as_object().unwrap().clone()
 }
 

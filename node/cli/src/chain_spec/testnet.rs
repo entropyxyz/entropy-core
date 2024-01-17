@@ -154,7 +154,7 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
         ),
         Some(crate::chain_spec::DEFAULT_PROTOCOL_ID),
         None,
-        Some(crate::chain_spec::entropy_props()), // TODO (Nando): Maybe move into this module
+        Some(crate::chain_spec::entropy_properties()),
         Default::default(),
     )
 }
@@ -182,7 +182,7 @@ pub fn testnet_config() -> crate::chain_spec::ChainSpec {
         ),
         Some(crate::chain_spec::DEFAULT_PROTOCOL_ID),
         None,
-        Some(crate::chain_spec::entropy_props()), // TODO (Nando): Maybe move into this module
+        Some(crate::chain_spec::entropy_properties()),
         Default::default(),
     )
 }
