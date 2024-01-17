@@ -2701,7 +2701,6 @@ name = "entropy-shared"
 version = "0.1.0"
 dependencies = [
  "frame-support",
- "lazy_static",
  "node-primitives",
  "parity-scale-codec",
  "scale-info",

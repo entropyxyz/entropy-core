@@ -135,18 +135,16 @@ pub fn development_genesis_config(
                 (
                     crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     (
-                        // Seed phrase: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
                         (*crate::chain_spec::ALICE_TSS_ACCOUNT_ID).into(),
-                        *entropy_shared::ALICE_X25519_PUBLIC_KEY,
+                        crate::chain_spec::tss_x25519_public_key::ALICE,
                         "127.0.0.1:3001".as_bytes().to_vec(),
                     ),
                 ),
                 (
                     crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                     (
-                        // Seed phrase: "where sight patient orphan general short empower hope party hurt month voice"
                         (*crate::chain_spec::BOB_TSS_ACCOUNT_ID).into(),
-                        *entropy_shared::BOB_X25519_PUBLIC_KEY,
+                        crate::chain_spec::tss_x25519_public_key::BOB,
                         "127.0.0.1:3002".as_bytes().to_vec(),
                     ),
                 ),

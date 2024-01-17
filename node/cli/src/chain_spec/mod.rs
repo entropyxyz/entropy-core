@@ -31,8 +31,6 @@
 
 //! Substrate chain configurations.
 
-#![allow(dead_code)]
-
 pub mod dev;
 pub mod integration_tests;
 pub mod testnet;
@@ -54,15 +52,45 @@ use sp_runtime::traits::{IdentifyAccount, Verify};
 type AccountPublic = <Signature as Verify>::Signer;
 
 const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
+
+// TODO (Nando): We might be able to get rid of this...
 const DEFAULT_PROTOCOL_ID: &str = "Entropy"; // TODO finalize
 
 lazy_static::lazy_static! {
     // TODO: Make this an AccountId32
+
+    // The `DEFAULT_ALICE_MNEMONIC` is used to derive the following account and key.
+    // Mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
+
+    /// Beep boop
     pub static ref ALICE_TSS_ACCOUNT_ID: [u8; 32] =
             hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"];
 
+    // The `DEFAULT_BOB_MNEMONIC` is used to derive the following account and key.
+    // Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
+
+    /// Beep
     pub static ref BOB_TSS_ACCOUNT_ID: [u8; 32] =
             hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"];
+
+}
+
+/// The X25519 public key used by the Threshold Signature Scheme servers (TSS) to encrypt messages
+/// between TSS servers.
+pub mod tss_x25519_public_key {
+    /// The `DEFAULT_ALICE_MNEMONIC` is used to derive the public key.
+    /// Mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
+    pub const ALICE: [u8; 32] = [
+        10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124, 195, 141, 148,
+        249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247, 58, 34,
+    ];
+
+    /// The `DEFAULT_BOB_MNEMONIC` is used to derive the public key.
+    /// Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
+    pub const BOB: [u8; 32] = [
+        225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245, 89, 36, 170, 169,
+        181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136, 102, 10,
+    ];
 }
 
 // TODO: finalize
