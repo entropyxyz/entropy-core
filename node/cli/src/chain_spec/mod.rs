@@ -36,7 +36,7 @@ pub mod integration_tests;
 pub mod testnet;
 
 pub use entropy_runtime::RuntimeGenesisConfig;
-pub use node_primitives::{AccountId, Balance, Signature};
+pub use node_primitives::{AccountId, Signature};
 
 use entropy_runtime::{Block, SessionKeys};
 use grandpa_primitives::AuthorityId as GrandpaId;
