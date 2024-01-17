@@ -13,16 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub use entropy_runtime::RuntimeGenesisConfig;
+use crate::endowed_accounts::endowed_accounts_dev;
+
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-    IndicesConfig, MaxNominations, RelayerConfig, SessionConfig, StakerStatus, StakingConfig,
-    StakingExtensionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
+    IndicesConfig, MaxNominations, RelayerConfig, RuntimeGenesisConfig, SessionConfig,
+    StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeConfig,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
-pub use node_primitives::{AccountId, Balance, Signature};
+use node_primitives::{AccountId, Balance};
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
@@ -30,8 +32,6 @@ use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::UncheckedInto, sr25519};
 use sp_runtime::Perbill;
-
-use crate::endowed_accounts::endowed_accounts_dev;
 
 pub fn testnet_local_initial_authorities(
 ) -> Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> {

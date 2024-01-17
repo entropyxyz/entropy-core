@@ -36,10 +36,11 @@ pub mod integration_tests;
 pub mod testnet;
 
 pub use entropy_runtime::RuntimeGenesisConfig;
+pub use node_primitives::{AccountId, Balance, Signature};
+
 use entropy_runtime::{Block, SessionKeys};
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
-pub use node_primitives::{AccountId, Balance, Signature};
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_chain_spec::{ChainSpecExtension, Properties};
 use serde::{Deserialize, Serialize};
