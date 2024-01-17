@@ -100,6 +100,13 @@ pub mod tss_x25519_public_key {
         225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245, 89, 36, 170, 169,
         181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136, 102, 10,
     ];
+
+    /// The `DEFAULT_CHARLIE_MNEMONIC` is used to derive the public key.
+    /// Mnemonic: "lake carry still awful point mention bike category tornado plate brass lock"
+    pub const CHARLIE: [u8; 32] = [
+        245, 222, 99, 201, 89, 227, 119, 236, 142, 217, 74, 171, 58, 162, 140, 165, 7, 104, 210,
+        36, 196, 227, 208, 254, 175, 100, 226, 50, 239, 84, 141, 13,
+    ];
 }
 
 fn entropy_properties() -> Properties {
