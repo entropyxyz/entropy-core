@@ -22,7 +22,6 @@ use entropy_runtime::{
     StakingExtensionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
-use hex_literal::hex;
 pub use node_primitives::{AccountId, Balance, Signature};
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
@@ -194,10 +193,7 @@ pub fn integration_tests_genesis_config(
                     )
                     .into(),
                     ip_address: "127.0.0.1:3001".as_bytes().to_vec(),
-                    x25519_public_key: [
-                        10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124,
-                        195, 141, 148, 249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247, 58, 34,
-                    ],
+                    x25519_public_key: crate::chain_spec::tss_x25519_public_key::ALICE,
                 },
                 entropy_shared::ValidatorInfo {
                     tss_account: <sp_runtime::AccountId32 as AsRef<[u8; 32]>>::as_ref(
@@ -205,10 +201,7 @@ pub fn integration_tests_genesis_config(
                     )
                     .into(),
                     ip_address: "127.0.0.1:3002".as_bytes().to_vec(),
-                    x25519_public_key: [
-                        225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245, 89,
-                        36, 170, 169, 181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136, 102, 10,
-                    ],
+                    x25519_public_key: crate::chain_spec::tss_x25519_public_key::BOB,
                 },
             ],
         },
