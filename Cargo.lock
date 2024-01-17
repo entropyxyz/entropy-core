@@ -2714,6 +2714,7 @@ version = "0.0.1"
 dependencies = [
  "anyhow",
  "bincode",
+ "blake2",
  "clap 4.4.8",
  "colored",
  "entropy-testing-utils",

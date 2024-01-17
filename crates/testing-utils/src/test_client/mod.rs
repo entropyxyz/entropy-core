@@ -35,8 +35,12 @@ use entropy_protocol::{
 };
 use entropy_tss::{
     chain_api::{
-        entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, EntropyConfig,
+        entropy,
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+        entropy::runtime_types::{
+            pallet_programs::pallet::ProgramInfo, pallet_relayer::pallet::RegisteredInfo,
+        },
+        EntropyConfig,
     },
     common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
 };
@@ -321,6 +325,27 @@ pub async fn get_accounts(
         accounts.push((SubxtAccountId32(key), registered_info))
     }
     Ok(accounts)
+}
+
+/// Get info on all stored programs
+pub async fn get_programs(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> anyhow::Result<Vec<ProgramInfo<<EntropyConfig as Config>::AccountId>>> {
+    let block_hash =
+        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
+    let keys = Vec::<()>::new();
+    let storage_address = subxt::dynamic::storage("Programs", "Programs", keys);
+    let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
+    let mut programs: Vec<ProgramInfo<<EntropyConfig as Config>::AccountId>> = Vec::new();
+    while let Some(Ok((storage_key, program))) = iter.next().await {
+        let decoded = program.into_encoded();
+        let program_info: ProgramInfo<<EntropyConfig as Config>::AccountId> =
+            ProgramInfo::decode(&mut decoded.as_ref())?;
+        // let key: [u8; 32] = storage_key[storage_key.len() - 32..].try_into()?;
+        programs.push(program_info);
+    }
+    Ok(programs)
 }
 
 /// Submit a register transaction

@@ -91,7 +91,7 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    /// Information on the program, they bytecode and the account allowed to modify it
+    /// Information on the program, the bytecode and the account allowed to modify it
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     pub struct ProgramInfo<AccountId> {
         /// The bytecode of the program.
