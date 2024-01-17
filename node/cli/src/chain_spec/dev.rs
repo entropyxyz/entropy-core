@@ -60,7 +60,6 @@ pub fn development_config() -> crate::chain_spec::ChainSpec {
     )
 }
 
-/// Helper function to create RuntimeGenesisConfig for development
 pub fn development_genesis_config(
     initial_authorities: Vec<(
         AccountId,
