@@ -174,7 +174,7 @@ pub async fn compute_hash(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     hashing_algorithm: &HashingAlgorithm,
     runtime: &mut Runtime,
-    programs_data: &Vec<ProgramData>,
+    programs_data: &[ProgramData],
     message: &[u8],
 ) -> Result<[u8; 32], UserErr> {
     match hashing_algorithm {

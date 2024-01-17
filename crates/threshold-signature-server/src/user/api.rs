@@ -171,15 +171,9 @@ pub async fn sign_tx(
         runtime.evaluate(&program, &signature_request)?;
     }
     // We decided to do Keccak for subgroup selection for frontend compatability
-    let message_hash_keccak = compute_hash(
-        &api,
-        &rpc,
-        &HashingAlgorithm::Keccak,
-        &mut runtime,
-        &vec![],
-        message.as_slice(),
-    )
-    .await?;
+    let message_hash_keccak =
+        compute_hash(&api, &rpc, &HashingAlgorithm::Keccak, &mut runtime, &[], message.as_slice())
+            .await?;
     let message_hash_keccak_hex = hex::encode(message_hash_keccak);
 
     let subgroup_signers =
