@@ -312,14 +312,16 @@ async fn run_command() -> anyhow::Result<String> {
 
             if !programs.is_empty() {
                 println!(
-                    "{:<48} {:<12} {}",
+                    "{:<11} {:<48} {:<12} {}",
+                    "Hash".blue(),
                     "Stored by:".green(),
                     "Times used:".purple(),
                     "Size in bytes: ".cyan()
                 );
-                for program_info in programs {
+                for (hash, program_info) in programs {
                     println!(
-                        "{} {:<12} {}",
+                        "{} {} {:<12} {}",
+                        hash,
                         program_info.program_modification_account,
                         program_info.ref_counter,
                         program_info.bytecode.len(),

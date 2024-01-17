@@ -331,19 +331,20 @@ pub async fn get_accounts(
 pub async fn get_programs(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> anyhow::Result<Vec<ProgramInfo<<EntropyConfig as Config>::AccountId>>> {
+) -> anyhow::Result<Vec<(H256, ProgramInfo<<EntropyConfig as Config>::AccountId>)>> {
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
     let keys = Vec::<()>::new();
     let storage_address = subxt::dynamic::storage("Programs", "Programs", keys);
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
-    let mut programs: Vec<ProgramInfo<<EntropyConfig as Config>::AccountId>> = Vec::new();
+    // let mut programs: Vec<ProgramInfo<<EntropyConfig as Config>::AccountId>> = Vec::new();
+    let mut programs = Vec::new();
     while let Some(Ok((storage_key, program))) = iter.next().await {
         let decoded = program.into_encoded();
         let program_info: ProgramInfo<<EntropyConfig as Config>::AccountId> =
             ProgramInfo::decode(&mut decoded.as_ref())?;
-        // let key: [u8; 32] = storage_key[storage_key.len() - 32..].try_into()?;
-        programs.push(program_info);
+        let hash: [u8; 32] = storage_key[storage_key.len() - 32..].try_into()?;
+        programs.push((H256(hash), program_info));
     }
     Ok(programs)
 }
