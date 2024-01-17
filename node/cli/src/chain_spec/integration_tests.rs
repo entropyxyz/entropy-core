@@ -159,10 +159,7 @@ pub fn integration_tests_genesis_config(
                     get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
                     (
                         crate::chain_spec::tss_account_id::CHARLIE.clone(),
-                        crate::chain_spec::tss_x25519_public_key::CHARLIE, // TODO (Nando) ... I
-                        // wonder if this needs
-                        // to be a validator
-                        // actually...
+                        crate::chain_spec::tss_x25519_public_key::CHARLIE,
                         "127.0.0.1:3002".as_bytes().to_vec(),
                     ),
                 ),
