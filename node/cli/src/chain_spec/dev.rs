@@ -135,7 +135,7 @@ pub fn development_genesis_config(
                 (
                     crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     (
-                        (*crate::chain_spec::ALICE_TSS_ACCOUNT_ID).into(),
+                        crate::chain_spec::tss_account_id::ALICE.clone(),
                         crate::chain_spec::tss_x25519_public_key::ALICE,
                         "127.0.0.1:3001".as_bytes().to_vec(),
                     ),
@@ -143,7 +143,7 @@ pub fn development_genesis_config(
                 (
                     crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                     (
-                        (*crate::chain_spec::BOB_TSS_ACCOUNT_ID).into(),
+                        crate::chain_spec::tss_account_id::BOB.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB,
                         "127.0.0.1:3002".as_bytes().to_vec(),
                     ),

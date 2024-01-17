@@ -136,7 +136,7 @@ pub fn integration_tests_genesis_config(
                 (
                     crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     (
-                        (*crate::chain_spec::ALICE_TSS_ACCOUNT_ID).into(),
+                        crate::chain_spec::tss_account_id::ALICE.clone(),
                         crate::chain_spec::tss_x25519_public_key::ALICE,
                         "127.0.0.1:3001".as_bytes().to_vec(),
                     ),
@@ -144,19 +144,17 @@ pub fn integration_tests_genesis_config(
                 (
                     crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                     (
-                        (*crate::chain_spec::BOB_TSS_ACCOUNT_ID).into(),
+                        crate::chain_spec::tss_account_id::BOB.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB,
                         "127.0.0.1:3002".as_bytes().to_vec(),
                     ),
                 ),
                 (
-                    // Seed phrase: "lake carry still awful point mention bike category tornado plate brass lock"
                     crate::chain_spec::get_account_id_from_seed::<sr25519::Public>(
                         "Charlie//stash",
                     ),
                     (
-                        hex!["14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611"]
-                            .into(),
+                        crate::chain_spec::tss_account_id::CHARLIE.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB, // TODO (Nando): Should be Charlie
                         "127.0.0.1:3002".as_bytes().to_vec(),
                     ),
@@ -164,8 +162,7 @@ pub fn integration_tests_genesis_config(
                 (
                     crate::chain_spec::get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     (
-                        hex!["5212c5f562f4a43b89caadfeb9f5896dd4084700afa72aa55ca306d689523f3a"]
-                            .into(),
+                        crate::chain_spec::tss_account_id::DAVE.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB, // TODO (Nando): Should be Dave
                         "127.0.0.1:3002".as_bytes().to_vec(),
                     ),
@@ -192,9 +189,9 @@ pub fn integration_tests_genesis_config(
             ],
             proactive_refresh_validators: vec![
                 entropy_shared::ValidatorInfo {
-                    tss_account: hex![
-                        "e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"
-                    ]
+                    tss_account: <sp_runtime::AccountId32 as AsRef<[u8; 32]>>::as_ref(
+                        &crate::chain_spec::tss_account_id::ALICE.clone(),
+                    )
                     .into(),
                     ip_address: "127.0.0.1:3001".as_bytes().to_vec(),
                     x25519_public_key: [
@@ -203,9 +200,9 @@ pub fn integration_tests_genesis_config(
                     ],
                 },
                 entropy_shared::ValidatorInfo {
-                    tss_account: hex![
-                        "2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"
-                    ]
+                    tss_account: <sp_runtime::AccountId32 as AsRef<[u8; 32]>>::as_ref(
+                        &crate::chain_spec::tss_account_id::BOB.clone(),
+                    )
                     .into(),
                     ip_address: "127.0.0.1:3002".as_bytes().to_vec(),
                     x25519_public_key: [

@@ -56,23 +56,33 @@ const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 // TODO (Nando): We might be able to get rid of this...
 const DEFAULT_PROTOCOL_ID: &str = "Entropy"; // TODO finalize
 
-lazy_static::lazy_static! {
-    // TODO: Make this an AccountId32
+/// The `AccountId` represending a Threshold Signature Scheme servers (TSS).
+///
+/// This gets stored on-chain to and is used to identify a particular TSS.
+pub mod tss_account_id {
+    lazy_static::lazy_static! {
 
-    // The `DEFAULT_ALICE_MNEMONIC` is used to derive the following account and key.
-    // Mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
+    /// The `DEFAULT_ALICE_MNEMONIC` is used to derive the following `AccountId`.
+    /// Mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
+    pub static ref ALICE: sp_runtime::AccountId32 =
+            super::hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"].into();
 
-    /// Beep boop
-    pub static ref ALICE_TSS_ACCOUNT_ID: [u8; 32] =
-            hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"];
+    /// The `DEFAULT_BOB_MNEMONIC` is used to derive the following `AccountId`.
+    /// Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
+    pub static ref BOB: sp_runtime::AccountId32  =
+            super::hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"].into();
 
-    // The `DEFAULT_BOB_MNEMONIC` is used to derive the following account and key.
-    // Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
+    /// The `DEFAULT_CHARLIE_MNEMONIC` is used to derive the following `AccountId`.
+    /// Mnemonic: "lake carry still awful point mention bike category tornado plate brass lock"
+    pub static ref CHARLIE: sp_runtime::AccountId32  =
+            super::hex!["14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611"].into();
 
-    /// Beep
-    pub static ref BOB_TSS_ACCOUNT_ID: [u8; 32] =
-            hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"];
+    /// Not sure what mneminic is used to derive the following `AccountId`.
+    /// Mnemonic: "????"
+    pub static ref DAVE: sp_runtime::AccountId32  =
+            super::hex!["5212c5f562f4a43b89caadfeb9f5896dd4084700afa72aa55ca306d689523f3a"].into();
 
+    }
 }
 
 /// The X25519 public key used by the Threshold Signature Scheme servers (TSS) to encrypt messages
