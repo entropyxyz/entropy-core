@@ -103,7 +103,7 @@ pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
 pub async fn test_node_process_testing_state(
     force_authoring: bool,
 ) -> TestNodeProcess<EntropyConfig> {
-    test_node(AccountKeyring::Alice, "--chain=test".to_string(), force_authoring).await
+    test_node(AccountKeyring::Alice, "--chain=integration-tests".to_string(), force_authoring).await
 }
 
 /// Spins up Substrate node and a connected `subxt` client.
