@@ -24,6 +24,7 @@ At the moment this project **does not** adhere to
 - In [#592](https://github.com/entropyxyz/entropy-core/pull/592), the `local-devnet` chain-type was
   renamed to `devnet-local`. Additionally, the default chain type when none is specified is now
   `dev` instead of `local`.
+- A user now needs to add a program config, which gets packaged with their program pointer to create program info. This changes both register and change_program_info (previously change_program_pointer). As well set_program now also takes program_type_definition. ([#593](https://github.com/entropyxyz/entropy-core/pull/593))
 
 ### Added
 - Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
@@ -34,6 +35,7 @@ At the moment this project **does not** adhere to
 - Add ref counter to programs ([#585](https://github.com/entropyxyz/entropy-core/pull/585/))
 - Add `--setup-only` flag ([#588](https://github.com/entropyxyz/entropy-core/pull/588/))
 - Add --version flag and about field to TSS ([#590](https://github.com/entropyxyz/entropy-core/pull/590/))
+- Program config storage ([#593](https://github.com/entropyxyz/entropy-core/pull/593))
 
 ### Changed
 - Crate name refactor ([#561](https://github.com/entropyxyz/entropy-core/pull/561))

@@ -88,12 +88,19 @@ pub mod pallet {
     }
     pub type ProgramPointers<Hash, MaxProgramHashes> = BoundedVec<Hash, MaxProgramHashes>;
 
+    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo)]
+    #[scale_info(skip_type_params(T))]
+    pub struct ProgramInstance<T: Config> {
+        pub program_pointer: T::Hash,
+        pub program_config: Vec<u8>,
+    }
+
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
         pub program_modification_account: T::AccountId,
         pub confirmations: Vec<u8>,
-        pub program_pointers: BoundedVec<T::Hash, T::MaxProgramHashes>,
+        pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub key_visibility: KeyVisibility,
         pub verifying_key: Option<BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>>,
     }
@@ -104,7 +111,7 @@ pub mod pallet {
         pub key_visibility: KeyVisibility,
         // TODO better type
         pub verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
-        pub program_pointers: BoundedVec<T::Hash, T::MaxProgramHashes>,
+        pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub program_modification_account: T::AccountId,
     }
 
@@ -131,7 +138,7 @@ pub mod pallet {
                     RegisteredInfo {
                         key_visibility,
                         verifying_key: BoundedVec::default(),
-                        program_pointers: BoundedVec::default(),
+                        programs_data: BoundedVec::default(),
                         program_modification_account: account_info.0.clone(),
                     },
                 );
@@ -173,8 +180,8 @@ pub mod pallet {
         FailedRegistration(T::AccountId),
         /// An account cancelled their registration
         RegistrationCancelled(T::AccountId),
-        /// An account hash changed their program pointers [who, new_program_pointers]
-        ProgramPointerChanged(T::AccountId, ProgramPointers<T::Hash, T::MaxProgramHashes>),
+        /// An account hash changed their program info [who, new_program_instance]
+        ProgramInfoChanged(T::AccountId, BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
@@ -216,7 +223,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             program_modification_account: T::AccountId,
             key_visibility: KeyVisibility,
-            program_pointers: ProgramPointers<T::Hash, T::MaxProgramHashes>,
+            programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
             let sig_req_account = ensure_signed(origin)?;
 
@@ -226,12 +233,12 @@ pub mod pallet {
                 !Registering::<T>::contains_key(&sig_req_account),
                 Error::<T>::AlreadySubmitted
             );
-            ensure!(!program_pointers.is_empty(), Error::<T>::NoProgramSet);
+            ensure!(!programs_data.is_empty(), Error::<T>::NoProgramSet);
             let block_number = <frame_system::Pallet<T>>::block_number();
             // Change program ref counter
-            for program_pointer in &program_pointers {
+            for program_instance in &programs_data {
                 pallet_programs::Programs::<T>::try_mutate(
-                    program_pointer,
+                    program_instance.program_pointer,
                     |maybe_program_info| {
                         if let Some(program_info) = maybe_program_info {
                             program_info.ref_counter = program_info.ref_counter.saturating_add(1);
@@ -254,18 +261,14 @@ pub mod pallet {
                 RegisteringDetails::<T> {
                     program_modification_account,
                     confirmations: vec![],
-                    program_pointers: program_pointers.clone(),
+                    programs_data: programs_data.clone(),
                     key_visibility,
                     verifying_key: None,
                 },
             );
-
-            // TODO add dkg creators for dkg and prep offchain worker for dkg
-            // also maybe need a second storage slot to delete after worker message has been sent
-
             Self::deposit_event(Event::SignalRegister(sig_req_account));
 
-            Ok(Some(<T as Config>::WeightInfo::register(program_pointers.len() as u32)).into())
+            Ok(Some(<T as Config>::WeightInfo::register(programs_data.len() as u32)).into())
         }
 
         /// Allows a user to remove themselves from registering state if it has been longer than prune block
@@ -276,14 +279,17 @@ pub mod pallet {
         pub fn prune_registration(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let registering_info = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
-            for program_pointer in &registering_info.program_pointers {
-                pallet_programs::Programs::<T>::mutate(program_pointer, |maybe_program_info| {
-                    if let Some(program_info) = maybe_program_info {
-                        program_info.ref_counter = program_info.ref_counter.saturating_sub(1);
-                    }
-                });
+            for program_instance in &registering_info.programs_data {
+                pallet_programs::Programs::<T>::mutate(
+                    program_instance.program_pointer,
+                    |maybe_program_info| {
+                        if let Some(program_info) = maybe_program_info {
+                            program_info.ref_counter = program_info.ref_counter.saturating_sub(1);
+                        }
+                    },
+                );
             }
-            let program_length = registering_info.program_pointers.len();
+            let program_length = registering_info.programs_data.len();
             Registering::<T>::remove(&who);
             Self::deposit_event(Event::RegistrationCancelled(who));
             Ok(Some(<T as Config>::WeightInfo::register(program_length as u32)).into())
@@ -292,19 +298,19 @@ pub mod pallet {
         /// Allows a user's program modification account to change their program pointer
         #[pallet::call_index(2)]
         #[pallet::weight({
-             <T as Config>::WeightInfo::change_program_pointer(<T as Config>::MaxProgramHashes::get(), <T as Config>::MaxProgramHashes::get())
+             <T as Config>::WeightInfo::change_program_instance(<T as Config>::MaxProgramHashes::get(), <T as Config>::MaxProgramHashes::get())
          })]
-        pub fn change_program_pointer(
+        pub fn change_program_instance(
             origin: OriginFor<T>,
             sig_request_account: T::AccountId,
-            new_program_pointers: ProgramPointers<T::Hash, T::MaxProgramHashes>,
+            new_program_instance: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            ensure!(!new_program_pointers.is_empty(), Error::<T>::NoProgramSet);
+            ensure!(!new_program_instance.is_empty(), Error::<T>::NoProgramSet);
             // change program ref counter
-            for program_pointer in &new_program_pointers {
+            for program_instance in &new_program_instance {
                 pallet_programs::Programs::<T>::try_mutate(
-                    program_pointer,
+                    program_instance.program_pointer,
                     |maybe_program_info| {
                         if let Some(program_info) = maybe_program_info {
                             program_info.ref_counter = program_info.ref_counter.saturating_add(1);
@@ -316,7 +322,7 @@ pub mod pallet {
                 )?;
             }
             let mut old_programs_length = 0;
-            let program_pointers =
+            let programs_data =
                 Registered::<T>::try_mutate(&sig_request_account, |maybe_registered_details| {
                     if let Some(registerd_details) = maybe_registered_details {
                         ensure!(
@@ -324,9 +330,9 @@ pub mod pallet {
                             Error::<T>::NotAuthorized
                         );
                         // decrement ref counter of not used programs
-                        for program_pointer in &registerd_details.program_pointers {
+                        for program_instance in &registerd_details.programs_data {
                             pallet_programs::Programs::<T>::mutate(
-                                program_pointer,
+                                program_instance.program_pointer,
                                 |maybe_program_info| {
                                     if let Some(program_info) = maybe_program_info {
                                         program_info.ref_counter =
@@ -335,16 +341,16 @@ pub mod pallet {
                                 },
                             );
                         }
-                        old_programs_length = registerd_details.program_pointers.len();
-                        registerd_details.program_pointers = new_program_pointers.clone();
-                        Ok(new_program_pointers)
+                        old_programs_length = registerd_details.programs_data.len();
+                        registerd_details.programs_data = new_program_instance.clone();
+                        Ok(new_program_instance)
                     } else {
                         Err(Error::<T>::NotRegistered)
                     }
                 })?;
-            Self::deposit_event(Event::ProgramPointerChanged(who, program_pointers.clone()));
-            Ok(Some(<T as Config>::WeightInfo::change_program_pointer(
-                program_pointers.len() as u32,
+            Self::deposit_event(Event::ProgramInfoChanged(who, programs_data.clone()));
+            Ok(Some(<T as Config>::WeightInfo::change_program_instance(
+                programs_data.len() as u32,
                 old_programs_length as u32,
             ))
             .into())
@@ -414,7 +420,7 @@ pub mod pallet {
                     RegisteredInfo {
                         key_visibility: registering_info.key_visibility,
                         verifying_key,
-                        program_pointers: registering_info.program_pointers,
+                        programs_data: registering_info.programs_data,
                         program_modification_account: registering_info.program_modification_account,
                     },
                 );

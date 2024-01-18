@@ -135,6 +135,7 @@ fn paused_transaction_filter_work() {
         let whitelist_address_call =
             &mock::RuntimeCall::ProgramsPallet(pallet_programs::Call::set_program {
                 new_program: vec![],
+                program_type_definition: vec![],
             });
         assert!(!PausedTransactionFilter::<Runtime>::contains(BALANCE_TRANSFER));
         assert!(!PausedTransactionFilter::<Runtime>::contains(whitelist_address_call));

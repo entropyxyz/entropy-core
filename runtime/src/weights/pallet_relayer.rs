@@ -87,7 +87,7 @@ impl<T: frame_system::Config> pallet_relayer::WeightInfo for WeightInfo<T> {
 	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `n` is `[1, 5]`.
 	/// The range of component `o` is `[1, 5]`.
-	fn change_program_pointer(n: u32, _o: u32, ) -> Weight {
+	fn change_program_instance(n: u32, _o: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `633`
 		//  Estimated: `6573`
