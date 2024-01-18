@@ -287,7 +287,6 @@ parameter_types! {
   pub const ElectionLookahead: u64 = 0;
   pub const StakingUnsignedPriority: u64 = u64::MAX / 2;
   pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
-  pub static MaxNominations: u32 = 16;
 }
 
 pub struct StakingBenchmarkingConfig;
