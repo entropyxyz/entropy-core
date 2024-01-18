@@ -307,10 +307,10 @@ impl pallet_staking::Config for Test {
     type EventListeners = ();
     type GenesisElectionProvider = Self::ElectionProvider;
     type HistoryDepth = ConstU32<84>;
-    type NominationsQuota = pallet_staking::FixedNominationsQuota<16>;
     type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
+    type NominationsQuota = pallet_staking::FixedNominationsQuota<16>;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
     type Reward = ();
     type RewardRemainder = ();
