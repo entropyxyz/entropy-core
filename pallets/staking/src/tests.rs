@@ -166,7 +166,7 @@ fn it_deletes_when_no_bond_left() {
         lock = Balances::locks(2);
         assert_eq!(lock[0].amount, 100);
         assert_eq!(lock.len(), 1);
-        println!(":{:?}", FrameStaking::ledger(1));
+        println!(":{:?}", FrameStaking::ledger(1.into()));
         MockSessionManager::new_session(0);
 
         assert_ok!(Staking::withdraw_unbonded(RuntimeOrigin::signed(2), 0,));

@@ -16,7 +16,10 @@
 use core::convert::{TryFrom, TryInto};
 use std::cell::RefCell;
 
-use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
+use frame_election_provider_support::{
+    bounds::{ElectionBounds, ElectionBoundsBuilder},
+    onchain, SequentialPhragmen, VoteWeight,
+};
 use frame_support::{
     parameter_types,
     traits::{ConstU32, Get, Hooks, OneSessionHandler},
@@ -220,14 +223,17 @@ sp_runtime::impl_opaque_keys! {
   }
 }
 
+parameter_types! {
+    pub static ElectionsBounds: ElectionBounds = ElectionBoundsBuilder::default().build();
+}
+
 pub struct OnChainSeqPhragmen;
 impl onchain::Config for OnChainSeqPhragmen {
     type DataProvider = FrameStaking;
     type MaxWinners = ConstU32<100>;
     type Solver = SequentialPhragmen<AccountId, Perbill>;
     type System = Test;
-    type TargetsBound = ConstU32<{ u32::MAX }>;
-    type VotersBound = ConstU32<{ u32::MAX }>;
+    type Bounds = ElectionsBounds;
     type WeightInfo = ();
 }
 
@@ -301,7 +307,7 @@ impl pallet_staking::Config for Test {
     type EventListeners = ();
     type GenesisElectionProvider = Self::ElectionProvider;
     type HistoryDepth = ConstU32<84>;
-    type MaxNominations = MaxNominations;
+    type NominationsQuota = pallet_staking::FixedNominationsQuota<16>;
     type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
@@ -356,7 +362,6 @@ impl pallet_staking_extension::Config for Test {
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
     type RuntimeEvent = RuntimeEvent;
-    // type ValidatorId = AccountId;
     type WeightInfo = ();
 }
 
