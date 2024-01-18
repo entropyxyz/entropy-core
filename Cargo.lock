@@ -2562,7 +2562,7 @@ dependencies = [
 [[package]]
 name = "entropy-programs-core"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/programs.git?branch=program-config#ce38a6db6a931eece4dcf586e37862c06f2b4e73"
+source = "git+https://github.com/entropyxyz/programs.git?tag=v0.8.0#12e6b655c9af3aa1eecb6dea7f70a6ed1d43d0de"
 dependencies = [
  "getrandom 0.2.10",
  "serde",
@@ -2573,9 +2573,9 @@ dependencies = [
 [[package]]
 name = "entropy-programs-runtime"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/programs.git?branch=program-config#ce38a6db6a931eece4dcf586e37862c06f2b4e73"
+source = "git+https://github.com/entropyxyz/programs.git?tag=v0.8.0#12e6b655c9af3aa1eecb6dea7f70a6ed1d43d0de"
 dependencies = [
- "entropy-programs-core 0.1.0 (git+https://github.com/entropyxyz/programs.git?branch=program-config)",
+ "entropy-programs-core 0.1.0 (git+https://github.com/entropyxyz/programs.git?tag=v0.8.0)",
  "thiserror",
  "wasmtime 12.0.1",
 ]

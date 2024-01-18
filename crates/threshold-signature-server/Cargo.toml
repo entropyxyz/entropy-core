@@ -43,7 +43,7 @@ entropy-kvdb    ={ path="../kvdb", default-features=false }
 entropy-protocol={ path="../protocol", features=["server"] }
 
 # Programs
-entropy-programs-runtime={ git="https://github.com/entropyxyz/programs.git", branch="program-config" }
+entropy-programs-runtime={ git="https://github.com/entropyxyz/programs.git", tag="v0.8.0" }
 
 # Logging
 tracing                 ="0.1.37"
