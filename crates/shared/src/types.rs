@@ -18,7 +18,7 @@
 use codec::alloc::vec::Vec;
 use codec::{Decode, Encode, MaxEncodedLen};
 #[cfg(feature = "wasm-no-std")]
-use frame_support::RuntimeDebug;
+use sp_runtime::RuntimeDebug;
 // TODO (Nando)
 // #[cfg(not(feature = "wasm"))]
 // use node_primitives::BlockNumber;
@@ -54,8 +54,8 @@ pub enum KeyVisibility {
     Eq,
     PartialEq,
     TypeInfo,
-    frame_support::Serialize,
-    frame_support::Deserialize,
+    sp_runtime::Serialize,
+    sp_runtime::Deserialize,
 )]
 pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
@@ -83,8 +83,8 @@ pub struct OcwMessageDkg {
     Eq,
     PartialEq,
     TypeInfo,
-    frame_support::Serialize,
-    frame_support::Deserialize,
+    sp_runtime::Serialize,
+    sp_runtime::Deserialize,
 )]
 pub struct OcwMessageProactiveRefresh {
     pub validators_info: Vec<ValidatorInfo>,
