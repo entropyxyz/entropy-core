@@ -21,6 +21,9 @@ At the moment this project **does not** adhere to
 - Wasm API to functions formerly in the x25515chacha20poly1305 repo also now have camelCase function names ([#563](https://github.com/entropyxyz/entropy-core/pull/563))
 - Register and change program pointer interface changed to accept a vecotor of programs. As well pass an index for which containts the hashing code if it custom hashing ([#568](https://github.com/entropyxyz/entropy-core/pull/568))
 - If a user is sending additive data through it now needs to be in a vector and the index needs to match up with where the program pointer is in the program pointer vector. ([#577](https://github.com/entropyxyz/entropy-core/pull/577))
+- In [#592](https://github.com/entropyxyz/entropy-core/pull/592), the `local-devnet` chain-type was
+  renamed to `devnet-local`. Additionally, the default chain type when none is specified is now
+  `dev` instead of `local`.
 - A user now needs to add a program config, which gets packaged with their program pointer to create program info. This changes both register and change_program_info (previously change_program_pointer). As well set_program now also takes program_type_definition. ([#593](https://github.com/entropyxyz/entropy-core/pull/593))
 
 ### Added
@@ -43,6 +46,7 @@ At the moment this project **does not** adhere to
 - Additive programs ([#568](https://github.com/entropyxyz/entropy-core/pull/568))
 - Additional `hash` field in `/sign_tx` JSON body indicates which hashing algorithm to use for signing ([#553](https://github.com/entropyxyz/entropy-core/pull/553))
 - Additive aux data ([#577](https://github.com/entropyxyz/entropy-core/pull/577))
+- Refactor Rust-based chain specs ([#592](https://github.com/entropyxyz/entropy-core/pull/592))
 
 ### Fixed
 - Fix inconsistency between interactive and file based passwords ([#589](https://github.com/entropyxyz/entropy-core/pull/589))
