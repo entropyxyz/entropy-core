@@ -55,7 +55,7 @@ pub mod weights;
 pub mod pallet {
     use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
     use frame_support::{
-        dispatch::{DispatchResultWithPostInfo, Pays, Vec},
+        dispatch::{DispatchResultWithPostInfo, Pays},
         pallet_prelude::*,
         traits::{ConstU32, IsSubType},
     };
@@ -63,7 +63,7 @@ pub mod pallet {
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
-    use sp_std::{fmt::Debug, vec};
+    use sp_std::{fmt::Debug, vec::Vec};
 
     pub use crate::weights::WeightInfo;
 
