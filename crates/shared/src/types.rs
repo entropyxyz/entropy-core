@@ -19,8 +19,9 @@ use codec::alloc::vec::Vec;
 use codec::{Decode, Encode, MaxEncodedLen};
 #[cfg(feature = "wasm-no-std")]
 use frame_support::RuntimeDebug;
-#[cfg(not(feature = "wasm"))]
-use node_primitives::BlockNumber;
+// TODO (Nando)
+// #[cfg(not(feature = "wasm"))]
+// use node_primitives::BlockNumber;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -67,7 +68,7 @@ pub struct ValidatorInfo {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct OcwMessageDkg {
-    pub block_number: BlockNumber,
+    pub block_number: u32, // TODO (Nando): BlockNumber,
     pub sig_request_accounts: Vec<Vec<u8>>,
     pub validators_info: Vec<ValidatorInfo>,
 }
