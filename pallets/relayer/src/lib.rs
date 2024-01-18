@@ -180,8 +180,8 @@ pub mod pallet {
         FailedRegistration(T::AccountId),
         /// An account cancelled their registration
         RegistrationCancelled(T::AccountId),
-        /// An account hash changed their program pointers [who, new_programs_data]
-        ProgramPointerChanged(T::AccountId, BoundedVec<ProgramData<T>, T::MaxProgramHashes>),
+        /// An account hash changed their program info [who, new_programs_data]
+        ProgramInfoChanged(T::AccountId, BoundedVec<ProgramData<T>, T::MaxProgramHashes>),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
@@ -348,7 +348,7 @@ pub mod pallet {
                         Err(Error::<T>::NotRegistered)
                     }
                 })?;
-            Self::deposit_event(Event::ProgramPointerChanged(who, programs_data.clone()));
+            Self::deposit_event(Event::ProgramInfoChanged(who, programs_data.clone()));
             Ok(Some(<T as Config>::WeightInfo::change_program_data(
                 programs_data.len() as u32,
                 old_programs_length as u32,

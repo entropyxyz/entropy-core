@@ -154,7 +154,7 @@ benchmarks! {
     );
   }: _(RawOrigin::Signed(sig_req_account.clone()), sig_req_account.clone(), new_programs_info.clone())
   verify {
-    assert_last_event::<T>(Event::ProgramPointerChanged(sig_req_account.clone(), new_programs_info).into());
+    assert_last_event::<T>(Event::ProgramInfoChanged(sig_req_account.clone(), new_programs_info).into());
   }
 
   confirm_register_registering {
