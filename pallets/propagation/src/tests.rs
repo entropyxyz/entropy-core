@@ -19,7 +19,7 @@ use codec::Encode;
 use entropy_shared::{KeyVisibility, ValidatorInfo};
 use frame_support::{assert_ok, traits::OnInitialize, BoundedVec};
 use pallet_programs::ProgramInfo;
-use pallet_relayer::ProgramData;
+use pallet_relayer::ProgramInstance;
 use pallet_staking_extension::RefreshInfo;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
@@ -87,7 +87,7 @@ fn knows_how_to_mock_several_http_calls() {
             },
         );
 
-        let programs_info = BoundedVec::try_from(vec![ProgramData {
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: <Test as frame_system::Config>::Hash::default(),
             program_config: vec![],
         }])

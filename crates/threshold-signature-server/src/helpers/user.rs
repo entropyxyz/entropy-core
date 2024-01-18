@@ -33,7 +33,7 @@ use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{
-        entropy, entropy::runtime_types::pallet_relayer::pallet::ProgramData, EntropyConfig,
+        entropy, entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, EntropyConfig,
     },
     helpers::substrate::get_program,
     signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
@@ -174,7 +174,7 @@ pub async fn compute_hash(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     hashing_algorithm: &HashingAlgorithm,
     runtime: &mut Runtime,
-    programs_data: &[ProgramData],
+    programs_data: &[ProgramInstance],
     message: &[u8],
 ) -> Result<[u8; 32], UserErr> {
     match hashing_algorithm {

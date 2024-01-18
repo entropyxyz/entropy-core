@@ -30,7 +30,7 @@ use sp_runtime::{
 
 use crate as pallet_relayer;
 use crate::{
-    mock::*, Error, ProgramData, Registered, RegisteredInfo, RegisteringDetails,
+    mock::*, Error, ProgramInstance, Registered, RegisteredInfo, RegisteringDetails,
     ValidateConfirmRegistered,
 };
 
@@ -73,7 +73,7 @@ fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramData {
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }])
@@ -121,7 +121,7 @@ fn it_confirms_registers_a_user() {
 
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramData {
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }])
@@ -209,7 +209,7 @@ fn it_changes_a_program_pointer() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramData {
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }])
@@ -227,7 +227,7 @@ fn it_changes_a_program_pointer() {
 
         let new_program = vec![10];
         let new_program_hash = <Test as frame_system::Config>::Hashing::hash(&new_program);
-        let new_programs_info = BoundedVec::try_from(vec![ProgramData {
+        let new_programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: new_program_hash,
             program_config: vec![],
         }])
@@ -255,7 +255,7 @@ fn it_changes_a_program_pointer() {
         Registered::<Test>::insert(1, &registered_info);
         assert_eq!(Relayer::registered(1).unwrap(), registered_info);
 
-        assert_ok!(Relayer::change_program_data(
+        assert_ok!(Relayer::change_program_instance(
             RuntimeOrigin::signed(2),
             1,
             new_programs_info.clone(),
@@ -277,12 +277,12 @@ fn it_changes_a_program_pointer() {
         let unreigistered_program_hash =
             <Test as frame_system::Config>::Hashing::hash(&unreigistered_program);
         let unregistered_programs_info = BoundedVec::try_from(vec![
-            ProgramData { program_pointer: new_program_hash, program_config: vec![] },
-            ProgramData { program_pointer: unreigistered_program_hash, program_config: vec![] },
+            ProgramInstance { program_pointer: new_program_hash, program_config: vec![] },
+            ProgramInstance { program_pointer: unreigistered_program_hash, program_config: vec![] },
         ])
         .unwrap();
         assert_noop!(
-            Relayer::change_program_data(
+            Relayer::change_program_instance(
                 RuntimeOrigin::signed(2),
                 1,
                 unregistered_programs_info.clone(),
@@ -291,7 +291,7 @@ fn it_changes_a_program_pointer() {
         );
 
         assert_noop!(
-            Relayer::change_program_data(
+            Relayer::change_program_instance(
                 RuntimeOrigin::signed(2),
                 1,
                 BoundedVec::try_from(vec![]).unwrap(),
@@ -306,7 +306,7 @@ fn it_fails_on_non_matching_verifying_keys() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramData {
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }])
@@ -359,7 +359,7 @@ fn it_doesnt_allow_double_registering() {
         // register a user
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramData {
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }])
@@ -401,7 +401,7 @@ fn it_fails_no_program() {
         // register a user
         let non_existing_program = vec![10];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&non_existing_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramData {
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }])
@@ -439,7 +439,7 @@ fn it_tests_prune_registration() {
     new_test_ext().execute_with(|| {
         let inital_program = vec![10];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&inital_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramData {
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }])
@@ -483,7 +483,7 @@ fn it_provides_free_txs_confirm_done() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramData {
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }])
@@ -562,7 +562,7 @@ fn it_provides_free_txs_confirm_done_fails_3() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramData {
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }])
@@ -611,7 +611,7 @@ fn it_provides_free_txs_confirm_done_fails_4() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramData {
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }])
@@ -653,7 +653,7 @@ fn it_provides_free_txs_confirm_done_fails_5() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramData {
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }])

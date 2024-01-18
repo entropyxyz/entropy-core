@@ -38,7 +38,7 @@ use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec as OtherBoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramData as OtherProgramData,
+        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance as OtherProgramInstance,
     },
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
@@ -87,7 +87,7 @@ use super::UserInputPartyInfo;
 use crate::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramData, get_api, get_rpc,
+        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, get_api, get_rpc,
         EntropyConfig,
     },
     get_signer,
@@ -193,8 +193,8 @@ async fn test_sign_tx_no_chain() {
         &one.pair(),
         &one.pair(),
         OtherBoundedVec(vec![
-            OtherProgramData { program_pointer: program_hash, program_config: vec![] },
-            OtherProgramData { program_pointer: program_hash, program_config: vec![] },
+            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
         ]),
     )
     .await
@@ -430,7 +430,7 @@ async fn test_fail_signing_group() {
         &rpc,
         &dave.pair(),
         &dave.pair(),
-        OtherBoundedVec(vec![OtherProgramData {
+        OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }]),
@@ -530,7 +530,7 @@ async fn test_store_share() {
         &alice,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
-        BoundedVec(vec![ProgramData { program_pointer: program_hash, program_config: vec![] }]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
 
@@ -599,7 +599,7 @@ async fn test_store_share() {
         &alice_program,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
-        BoundedVec(vec![ProgramData { program_pointer: program_hash, program_config: vec![] }]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
     onchain_user_request.block_number = block_number;
@@ -733,7 +733,7 @@ async fn test_send_and_receive_keys() {
         &alice.clone(),
         alice.to_account_id().into(),
         KeyVisibility::Public,
-        BoundedVec(vec![ProgramData { program_pointer: program_hash, program_config: vec![] }]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
@@ -790,7 +790,7 @@ pub async fn put_register_request_on_chain(
     sig_req_keyring: &Sr25519Keyring,
     program_modification_account: subxtAccountId32,
     key_visibility: KeyVisibility,
-    program_data: BoundedVec<ProgramData>,
+    program_instance: BoundedVec<ProgramInstance>,
 ) {
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
@@ -798,7 +798,7 @@ pub async fn put_register_request_on_chain(
     let registering_tx = entropy::tx().relayer().register(
         program_modification_account,
         Static(key_visibility),
-        program_data,
+        program_instance,
     );
 
     api.tx()
@@ -837,7 +837,7 @@ async fn test_sign_tx_user_participates() {
         &rpc,
         &one.pair(),
         &one.pair(),
-        OtherBoundedVec(vec![OtherProgramData {
+        OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }]),
@@ -1129,7 +1129,7 @@ async fn test_register_with_private_key_visibility() {
         &one,
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
-        BoundedVec(vec![ProgramData { program_pointer: program_hash, program_config: vec![] }]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
     run_to_block(&rpc, block_number + 1).await;
@@ -1197,7 +1197,7 @@ async fn test_compute_hash() {
         &rpc,
         &HashingAlgorithm::Custom(0),
         &mut runtime,
-        &vec![ProgramData { program_pointer: program_hash, program_config: vec![] }],
+        &vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
         PREIMAGE_SHOULD_SUCCEED,
     )
     .await
@@ -1267,7 +1267,7 @@ async fn test_fail_infinite_program() {
         &rpc,
         &one.pair(),
         &one.pair(),
-        OtherBoundedVec(vec![OtherProgramData {
+        OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }]),

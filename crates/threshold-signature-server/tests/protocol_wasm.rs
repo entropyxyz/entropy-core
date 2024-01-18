@@ -29,7 +29,7 @@ use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramData,
+        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance,
     },
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
@@ -93,7 +93,7 @@ async fn test_wasm_sign_tx_user_participates() {
         &rpc,
         &one.pair(),
         &one.pair(),
-        BoundedVec(vec![ProgramData { program_pointer: program_hash, program_config: vec![] }]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await
     .unwrap();
@@ -225,7 +225,7 @@ async fn test_wasm_register_with_private_key_visibility() {
         one.pair(),
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
-        BoundedVec(vec![ProgramData { program_pointer: program_hash, program_config: vec![] }]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await
     .unwrap();

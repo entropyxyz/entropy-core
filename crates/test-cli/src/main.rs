@@ -26,7 +26,7 @@ use colored::Colorize;
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramData,
+        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance,
     },
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
@@ -187,7 +187,7 @@ async fn run_command() -> anyhow::Result<String> {
             let mut programs_info = vec![];
 
             for i in 0..program_hashes.len() {
-                programs_info.push(ProgramData {
+                programs_info.push(ProgramInstance {
                     program_pointer: program_hashes[i],
                     program_config: program_configs[i].clone(),
                 });

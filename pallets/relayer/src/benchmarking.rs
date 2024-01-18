@@ -75,7 +75,7 @@ benchmarks! {
     let program = vec![0u8];
     let program_type_definition = vec![1u8];
     let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramData {
+    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
       program_pointer: program_hash,
       program_config: vec![],
   };  p as usize])
@@ -98,7 +98,7 @@ benchmarks! {
     let program = vec![0u8];
     let program_type_definition = vec![1u8];
     let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramData {
+    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
       program_pointer: program_hash,
       program_config: vec![],
   }]).unwrap();
@@ -118,7 +118,7 @@ benchmarks! {
     assert_last_event::<T>(Event::RegistrationCancelled(sig_req_account.clone()).into());
   }
 
-  change_program_data {
+  change_program_instance {
     let n in 1 .. T::MaxProgramHashes::get();
     let o in 1 .. T::MaxProgramHashes::get();
 
@@ -126,14 +126,14 @@ benchmarks! {
     let program = vec![0u8];
     let program_type_definition = vec![1u8];
     let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramData {
+    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
       program_pointer: program_hash,
       program_config: vec![],
   };  o as usize])
   .unwrap();
     let new_program = vec![1u8];
     let new_program_hash = T::Hashing::hash(&new_program);
-    let new_programs_info = BoundedVec::try_from(vec![ProgramData {
+    let new_programs_info = BoundedVec::try_from(vec![ProgramInstance {
       program_pointer: new_program_hash,
       program_config: vec![],
   };  n as usize])
@@ -163,7 +163,7 @@ benchmarks! {
     let program_type_definition = vec![1u8];
 
     let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramData {
+    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
       program_pointer: program_hash,
       program_config: vec![],
   }]).unwrap();
@@ -197,7 +197,7 @@ benchmarks! {
     let program_type_definition = vec![1u8];
 
     let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramData {
+    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
       program_pointer: program_hash,
       program_config: vec![],
   }]).unwrap();
@@ -233,7 +233,7 @@ confirm_register_registered {
     let program = vec![0u8];
     let program_type_definition = vec![1u8];
     let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramData {
+    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
       program_pointer: program_hash,
       program_config: vec![],
   }]).unwrap();

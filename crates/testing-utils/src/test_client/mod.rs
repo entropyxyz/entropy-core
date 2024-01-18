@@ -36,7 +36,7 @@ use entropy_protocol::{
 use entropy_tss::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramData,
+        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance,
         entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, EntropyConfig,
     },
     common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
@@ -72,7 +72,7 @@ pub async fn register(
     signature_request_keypair: sr25519::Pair,
     program_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
-    programs_data: BoundedVec<ProgramData>,
+    programs_data: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<(RegisteredInfo, Option<KeyShare<KeyParams>>)> {
     // Check if user is already registered
     let account_id32: AccountId32 = signature_request_keypair.public().into();
@@ -275,14 +275,14 @@ pub async fn update_pointer(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_account: &sr25519::Pair,
     pointer_modification_account: &sr25519::Pair,
-    program_data: BoundedVec<ProgramData>,
+    program_instance: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<()> {
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
 
     let update_pointer_tx = entropy::tx()
         .relayer()
-        .change_program_data(signature_request_account.public().into(), program_data);
+        .change_program_instance(signature_request_account.public().into(), program_instance);
 
     let account_id32: AccountId32 = pointer_modification_account.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
@@ -331,7 +331,7 @@ pub async fn put_register_request_on_chain(
     signature_request_keypair: sr25519::Pair,
     program_modification_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
-    program_data: BoundedVec<ProgramData>,
+    program_instance: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<()> {
     let signature_request_pair_signer =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
@@ -339,7 +339,7 @@ pub async fn put_register_request_on_chain(
     let registering_tx = entropy::tx().relayer().register(
         program_modification_account,
         Static(key_visibility),
-        program_data,
+        program_instance,
     );
 
     api.tx()

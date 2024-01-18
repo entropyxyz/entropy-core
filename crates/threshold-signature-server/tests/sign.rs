@@ -17,7 +17,7 @@ use entropy_kvdb::clean_tests;
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramData,
+        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance,
     },
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
@@ -64,7 +64,7 @@ async fn integration_test_sign() {
         &rpc,
         &pre_registered_user.pair(),
         &pre_registered_user.pair(),
-        BoundedVec(vec![ProgramData { program_pointer: program_hash, program_config: vec![] }]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await
     .unwrap();
@@ -119,7 +119,7 @@ async fn integration_test_sign_private() {
         &rpc,
         &pre_registered_user.pair(),
         &pre_registered_user.pair(),
-        BoundedVec(vec![ProgramData { program_pointer: program_hash, program_config: vec![] }]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await
     .unwrap();
