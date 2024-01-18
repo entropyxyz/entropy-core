@@ -2560,11 +2560,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "entropy-programs-core"
+version = "0.1.0"
+source = "git+https://github.com/entropyxyz/programs.git?branch=program-config#ce38a6db6a931eece4dcf586e37862c06f2b4e73"
+dependencies = [
+ "getrandom 0.2.10",
+ "serde",
+ "wit-bindgen",
+ "witgen",
+]
+
+[[package]]
 name = "entropy-programs-runtime"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/programs.git?tag=v0.7.0#eaa9fbc560bbbdfbadf712fff1bf68acce26c128"
+source = "git+https://github.com/entropyxyz/programs.git?branch=program-config#ce38a6db6a931eece4dcf586e37862c06f2b4e73"
 dependencies = [
- "entropy-programs-core",
+ "entropy-programs-core 0.1.0 (git+https://github.com/entropyxyz/programs.git?branch=program-config)",
  "thiserror",
  "wasmtime 12.0.1",
 ]
@@ -12000,7 +12011,7 @@ name = "template-barebones"
 version = "0.1.0"
 source = "git+https://github.com/entropyxyz/programs.git?tag=v0.7.0#eaa9fbc560bbbdfbadf712fff1bf68acce26c128"
 dependencies = [
- "entropy-programs-core",
+ "entropy-programs-core 0.1.0 (git+https://github.com/entropyxyz/programs.git?tag=v0.7.0)",
 ]
 
 [[package]]
