@@ -2870,7 +2870,7 @@ dependencies = [
  "pallet-society",
  "pallet-staking 4.0.0-dev",
  "pallet-staking-extension",
- "pallet-staking-reward-curve",
+ "pallet-staking-reward-curve 4.0.0-dev",
  "pallet-sudo",
  "pallet-timestamp 4.0.0-dev",
  "pallet-tips",
@@ -6944,7 +6944,7 @@ dependencies = [
  "pallet-session 4.0.0-dev",
  "pallet-staking 4.0.0-dev",
  "pallet-staking-extension",
- "pallet-staking-reward-curve",
+ "pallet-staking-reward-curve 4.0.0-dev",
  "pallet-timestamp 4.0.0-dev",
  "parity-scale-codec",
  "scale-info",
@@ -7239,7 +7239,7 @@ dependencies = [
  "pallet-session 4.0.0-dev",
  "pallet-staking 4.0.0-dev",
  "pallet-staking-extension",
- "pallet-staking-reward-curve",
+ "pallet-staking-reward-curve 4.0.0-dev",
  "pallet-timestamp 4.0.0-dev",
  "parity-scale-codec",
  "parking_lot 0.11.2",
@@ -7319,7 +7319,7 @@ dependencies = [
  "pallet-session 4.0.0-dev",
  "pallet-staking 4.0.0-dev",
  "pallet-staking-extension",
- "pallet-staking-reward-curve",
+ "pallet-staking-reward-curve 4.0.0-dev",
  "pallet-timestamp 4.0.0-dev",
  "parity-scale-codec",
  "scale-info",
@@ -7421,7 +7421,7 @@ dependencies = [
  "pallet-balances 4.0.0-dev",
  "pallet-session 4.0.0-dev",
  "pallet-staking 4.0.0-dev",
- "pallet-staking-reward-curve",
+ "pallet-staking-reward-curve 4.0.0-dev",
  "pallet-timestamp 4.0.0-dev",
  "parity-scale-codec",
  "scale-info",
@@ -7512,7 +7512,7 @@ dependencies = [
  "pallet-balances 25.0.0",
  "pallet-session 25.0.0",
  "pallet-staking 25.0.0",
- "pallet-staking-reward-curve",
+ "pallet-staking-reward-curve 10.0.0",
  "pallet-timestamp 24.0.0",
  "parity-scale-codec",
  "scale-info",
@@ -7529,6 +7529,18 @@ dependencies = [
 name = "pallet-staking-reward-curve"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2fd1233dc26dbb9f9bbc1d2cca2c03945d"
+dependencies = [
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.43",
+]
+
+[[package]]
+name = "pallet-staking-reward-curve"
+version = "10.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df8878e29f3d001ac1b1b714621f462e41a9d1fa8f385657f955e8a1ec0684d7"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
