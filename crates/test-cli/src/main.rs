@@ -21,7 +21,6 @@ use std::{
     time::Instant,
 };
 
-use blake2::{Blake2s256, Digest};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use entropy_testing_utils::{
@@ -34,7 +33,8 @@ use entropy_testing_utils::{
         store_program, update_programs, KeyParams, KeyShare, KeyVisibility,
     },
 };
-use sp_core::{sr25519, Pair};
+use sp_core::{sr25519, Hasher, Pair};
+use sp_runtime::traits::BlakeTwo256;
 use subxt::{
     utils::{AccountId32 as SubxtAccountId32, H256},
     OnlineClient,
@@ -270,7 +270,7 @@ async fn run_command() -> anyhow::Result<String> {
             for program in programs {
                 program_hashes.push(Program::new(&api, &program_keypair, program).await?.0)
             }
-            println!("program hashes: {:?}", program_hashes);
+
             update_programs(
                 &api,
                 &rpc,
@@ -290,18 +290,27 @@ async fn run_command() -> anyhow::Result<String> {
             );
             if !accounts.is_empty() {
                 println!(
-                    "{:<48} {:<12} {}",
+                    "{:<48} {:<12} {} Programs:",
                     "Signature request account ID:".green(),
                     "Visibility:".purple(),
-                    "Verifying key: ".cyan()
+                    "Verifying key: ".cyan(),
                 );
                 for (account_id, info) in accounts {
                     let visibility: Visibility = info.key_visibility.0.into();
                     println!(
-                        "{} {:<12} {}",
+                        "{} {:<12} {} {}",
                         format!("{}", account_id).green(),
                         format!("{}", visibility).purple(),
-                        format!("{:?}", info.verifying_key.0).cyan()
+                        format!("{:?}", info.verifying_key.0).cyan(),
+                        format!(
+                            "{:?}",
+                            info.program_pointers
+                                .0
+                                .iter()
+                                .map(|pointer| format!("{}", pointer))
+                                .collect::<Vec<_>>()
+                        )
+                        .white(),
                     );
                 }
             }
@@ -402,16 +411,17 @@ impl Program {
         filename: String,
     ) -> anyhow::Result<Self> {
         let program_bytecode = fs::read(filename)?;
-        let hash = match store_program(api, keypair, program_bytecode.clone()).await {
-            Ok(hash) => hash,
+        match store_program(api, keypair, program_bytecode.clone()).await {
+            Ok(hash) => Ok(Self(hash)),
             Err(error) => {
-                println!("Program is already stored {error}");
-                let mut hasher = Blake2s256::new();
-                hasher.update(&program_bytecode);
-                let hash_generic_array = hasher.finalize();
-                H256(hash_generic_array.into())
+                if error.to_string().ends_with("ProgramAlreadySet") {
+                    println!("Program is already stored - using existing one");
+                    let hash = BlakeTwo256::hash(&program_bytecode);
+                    Ok(Self(H256(hash.into())))
+                } else {
+                    Err(error)
+                }
             },
-        };
-        Ok(Self(hash))
+        }
     }
 }
