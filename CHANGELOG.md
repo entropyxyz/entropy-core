@@ -25,6 +25,7 @@ At the moment this project **does not** adhere to
   renamed to `devnet-local`. Additionally, the default chain type when none is specified is now
   `dev` instead of `local`.
 - A user now needs to add a program config, which gets packaged with their program pointer to create program info. This changes both register and change_program_info (previously change_program_pointer). As well set_program now also takes program_type_definition. ([#593](https://github.com/entropyxyz/entropy-core/pull/593))
+- Changed program_type_definition to configuration_interface. ([#597](https://github.com/entropyxyz/entropy-core/pull/597))
 
 ### Added
 - Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
