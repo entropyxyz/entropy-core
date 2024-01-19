@@ -440,6 +440,7 @@ parameter_types! {
   pub const ExpectedBlockTime: Moment = MILLISECS_PER_BLOCK;
   pub const ReportLongevity: u64 =
     BondingDuration::get() as u64 * SessionsPerEra::get() as u64 * EpochDuration::get();
+
 }
 
 impl pallet_babe::Config for Runtime {
@@ -452,6 +453,7 @@ impl pallet_babe::Config for Runtime {
     type KeyOwnerProof =
         <Historical as KeyOwnerProofSystem<(KeyTypeId, pallet_babe::AuthorityId)>>::Proof;
     type MaxAuthorities = MaxAuthorities;
+    type MaxNominators = MaxNominatorRewardedPerValidator;
     type WeightInfo = ();
 }
 
