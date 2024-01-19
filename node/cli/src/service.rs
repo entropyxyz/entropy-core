@@ -35,10 +35,10 @@
 
 use std::sync::Arc;
 
+use entropy_runtime::Block;
 use entropy_runtime::RuntimeApi;
 use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
 use futures::prelude::*;
-use node_primitives::Block;
 use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_babe::{self, SlotProportion};
 use sc_executor::NativeElseWasmExecutor;

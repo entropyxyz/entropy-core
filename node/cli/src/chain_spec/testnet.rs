@@ -23,9 +23,9 @@ use entropy_runtime::{
     StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeConfig,
 };
+use entropy_runtime::{AccountId, Balance};
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
-use node_primitives::{AccountId, Balance};
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;

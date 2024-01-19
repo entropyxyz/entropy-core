@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub use node_primitives::AccountId;
+use entropy_runtime::AccountId;
 use sp_core::sr25519;
 
 use crate::chain_spec::get_account_id_from_seed;

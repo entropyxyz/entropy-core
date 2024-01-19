@@ -32,8 +32,7 @@
 
 use std::{sync::Arc, time::Duration};
 
-use entropy_runtime::{self as runtime, BalancesCall, SystemCall};
-use node_primitives::{AccountId, Balance};
+use entropy_runtime::{self as runtime, AccountId, Balance, BalancesCall, SystemCall};
 use sc_cli::Result;
 use sc_client_api::BlockBackend;
 use sp_core::{Encode, Pair};
