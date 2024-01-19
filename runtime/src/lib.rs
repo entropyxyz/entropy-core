@@ -49,10 +49,14 @@ use frame_support::{
     parameter_types,
     sp_runtime::RuntimeDebug,
     traits::{
-        fungible::HoldConsideration, ConstU16, ConstU32, Contains, Currency, EitherOfDiverse,
-        EqualPrivilegeOnly, Imbalance, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice,
-        LockIdentifier, OnUnbalanced, WithdrawReasons,
-        tokens::{nonfungibles_v2::Inspect, pay::PayAssetFromAccount, GetSalary, PayFromAccount, UnityAssetBalanceConversion},
+        fungible::HoldConsideration,
+        tokens::{
+            nonfungibles_v2::Inspect, pay::PayAssetFromAccount, GetSalary, PayFromAccount,
+            UnityAssetBalanceConversion,
+        },
+        ConstU16, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
+        InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, OnUnbalanced,
+        WithdrawReasons,
     },
     weights::{
         constants::{
@@ -147,17 +151,20 @@ pub type Signature = sp_runtime::MultiSignature;
 /// to the public key of our transaction signing scheme.
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
+/// The type for looking up accounts. We don't expect more than 4 billion of them.
+pub type AccountIndex = u32;
+
 /// Balance of an account.
 pub type Balance = u128;
+
+/// Type used for expressing timestamp.
+pub type Moment = u64;
 
 /// Index of a transaction in the chain.
 pub type Nonce = u32;
 
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
-
-pub type Moment = u64;
-pub type AccountIndex = u32;
 
 /// Runtime version.
 #[sp_version::runtime_version]
@@ -802,7 +809,8 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
     type RewardHandler = ();
     type RuntimeEvent = RuntimeEvent;
     type SignedDepositBase =
-		  GeometricDepositBase<Balance, SignedFixedDeposit, SignedDepositIncreaseFactor>;    type SignedDepositByte = SignedDepositByte;
+        GeometricDepositBase<Balance, SignedFixedDeposit, SignedDepositIncreaseFactor>;
+    type SignedDepositByte = SignedDepositByte;
     type SignedDepositWeight = ();
     type SignedMaxRefunds = ConstU32<3>;
     type SignedMaxSubmissions = ConstU32<10>;
@@ -1461,6 +1469,7 @@ pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
+
 /// The SignedExtension to the basic transaction logic.
 ///
 /// When you change this, you **MUST** modify [`sign`] in `bin/node/testing/src/keyring.rs`!
