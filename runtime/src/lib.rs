@@ -77,6 +77,7 @@ use pallet_election_provider_multi_phase::SolutionAccuracyOf;
 use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
+use pallet_identity::simple::IdentityInfo;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_session::historical as pallet_session_historical;
 #[cfg(any(feature = "std", test))]
@@ -1207,6 +1208,7 @@ parameter_types! {
 impl pallet_identity::Config for Runtime {
     type BasicDeposit = BasicDeposit;
     type Currency = Balances;
+    type IdentityInformation = IdentityInfo<MaxAdditionalFields>;
     type FieldDeposit = FieldDeposit;
     type ForceOrigin = EnsureRootOrHalfCouncil;
     type MaxAdditionalFields = MaxAdditionalFields;
