@@ -168,8 +168,8 @@ pub fn new_partial(
     )?;
 
     let slot_duration = babe_link.config().slot_duration();
-    let (import_queue, babe_worker_handle) =
-        sc_consensus_babe::import_queue(sc_consensus_babe::ImportQueueParams {
+    let (import_queue, babe_worker_handle) = sc_consensus_babe::import_queue(
+        sc_consensus_babe::ImportQueueParams {
             link: babe_link.clone(),
             block_import: block_import.clone(),
             justification_import: Some(Box::new(justification_import)),
@@ -179,10 +179,10 @@ pub fn new_partial(
                 let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
                 let slot =
-				sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-					*timestamp,
-					slot_duration,
-				);
+                sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                    *timestamp,
+                    slot_duration,
+                );
 
                 Ok((slot, timestamp))
             },
@@ -190,7 +190,8 @@ pub fn new_partial(
             registry: config.prometheus_registry(),
             telemetry: telemetry.as_ref().map(|x| x.handle()),
             offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool.clone()),
-        })?;
+        },
+    )?;
 
     let import_setup = (block_import, grandpa_link, babe_link);
 
@@ -436,10 +437,10 @@ pub fn new_full_base(
                     let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
                     let slot =
-						sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-							*timestamp,
-							slot_duration,
-						);
+                        sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                            *timestamp,
+                            slot_duration,
+                        );
 
                     let storage_proof =
                         sp_transaction_storage_proof::registration::new_data_provider(
