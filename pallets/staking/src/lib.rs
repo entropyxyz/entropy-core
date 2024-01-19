@@ -61,15 +61,10 @@ use crate as pallet_staking_extension;
 pub mod pallet {
     use entropy_shared::{ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE};
     use frame_support::{
-        dispatch::DispatchResult, //, Vec},
-        pallet_prelude::*,
-        traits::Currency,
-        DefaultNoBound,
+        dispatch::DispatchResult, pallet_prelude::*, traits::Currency, DefaultNoBound,
     };
     use frame_system::pallet_prelude::*;
     use sp_staking::StakingAccount;
-
-    // TODO (Nando): Not sure why we can't pull this from `frame_support`
     use sp_std::vec::Vec;
 
     use super::*;

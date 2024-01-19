@@ -15,13 +15,14 @@
 
 //! Benchmarking setup for pallet-propgation
 
-use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller};
+use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     traits::{Currency, Get},
     BoundedVec,
 };
 use frame_system::{EventRecord, RawOrigin};
 use sp_runtime::{traits::Hash, Saturating};
+use sp_std::vec;
 
 use super::*;
 #[allow(unused)]
