@@ -15,7 +15,10 @@
 
 use entropy_kvdb::clean_tests;
 use entropy_testing_utils::{
-    chain_api::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+    chain_api::{
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance,
+    },
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
     },
@@ -47,17 +50,21 @@ async fn integration_test_sign() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_hash =
-        test_client::store_program(&api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
-            .await
-            .unwrap();
+    let program_pointer = test_client::store_program(
+        &api,
+        &eve.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
 
     test_client::update_programs(
         &api,
         &rpc,
         &pre_registered_user.pair(),
         &pre_registered_user.pair(),
-        BoundedVec(vec![program_hash]),
+        BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
     .await
     .unwrap();
@@ -98,17 +105,21 @@ async fn integration_test_sign_private() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_hash =
-        test_client::store_program(&api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
-            .await
-            .unwrap();
+    let program_pointer = test_client::store_program(
+        &api,
+        &dave.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
 
     test_client::update_programs(
         &api,
         &rpc,
         &pre_registered_user.pair(),
         &pre_registered_user.pair(),
-        BoundedVec(vec![program_hash]),
+        BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
     .await
     .unwrap();

@@ -25,7 +25,10 @@ use clap::{Parser, Subcommand};
 use colored::Colorize;
 use entropy_testing_utils::{
     chain_api::{
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec, EntropyConfig,
+        entropy::runtime_types::{
+            bounded_collections::bounded_vec::BoundedVec, pallet_relayer::pallet::ProgramInstance,
+        },
+        EntropyConfig,
     },
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
@@ -76,6 +79,8 @@ enum CliCommand {
         key_visibility: Visibility,
         /// Either hex-encoded hashes, or paths to wasm files to store
         programs: Vec<String>,
+        /// The program configs of the initial programs for the account
+        program_configs: Vec<Vec<u8>>,
     },
     /// Ask the network to sign a given message
     Sign {
@@ -100,6 +105,8 @@ enum CliCommand {
         program_account_name: String,
         /// Either hex-encoded program hashes, or paths to wasm files to store
         programs: Vec<String>,
+        /// The program configs of the updated programs
+        program_configs: Vec<Vec<u8>>,
     },
     /// Store a given program on chain
     StoreProgram {
@@ -109,6 +116,8 @@ enum CliCommand {
         account_name: String,
         /// The path to a .wasm file containing the program (defaults to a test program)
         program_file: Option<PathBuf>,
+        /// The path to a file containing the program config (defaults to empty)
+        program_config_file: Option<PathBuf>,
     },
     /// Display a list of registered Entropy accounts
     Status,
@@ -172,6 +181,7 @@ async fn run_command() -> anyhow::Result<String> {
             program_account_name,
             key_visibility,
             programs,
+            program_configs,
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
@@ -191,10 +201,15 @@ async fn run_command() -> anyhow::Result<String> {
                 },
                 Visibility::Public => KeyVisibility::Public,
             };
+            let mut programs_info = vec![];
 
-            let mut program_hashes = Vec::new();
-            for program in programs {
-                program_hashes.push(Program::new(&api, &program_keypair, program).await?.0)
+            for i in 0..programs.len() {
+                programs_info.push(ProgramInstance {
+                    program_pointer: Program::new(&api, &program_keypair, programs[i].clone())
+                        .await?
+                        .0,
+                    program_config: program_configs[i].clone(),
+                });
             }
 
             let (registered_info, keyshare_option) = register(
@@ -203,7 +218,7 @@ async fn run_command() -> anyhow::Result<String> {
                 signature_request_keypair.clone(),
                 program_account,
                 key_visibility_converted,
-                BoundedVec(program_hashes),
+                BoundedVec(programs_info),
             )
             .await?;
 
@@ -241,7 +256,7 @@ async fn run_command() -> anyhow::Result<String> {
             .await?;
             Ok(format!("Message signed: {:?}", recoverable_signature))
         },
-        CliCommand::StoreProgram { account_name, program_file } => {
+        CliCommand::StoreProgram { account_name, program_file, program_config_file } => {
             let keypair: sr25519::Pair = SeedString::new(account_name).try_into()?;
             println!("Storing program using account: {:?}", keypair.public());
 
@@ -250,13 +265,19 @@ async fn run_command() -> anyhow::Result<String> {
                 None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 
-            let hash = store_program(&api, &keypair, program).await?;
+            let program_config = match program_config_file {
+                Some(file_name) => fs::read(file_name)?,
+                None => vec![],
+            };
+
+            let hash = store_program(&api, &keypair, program, program_config).await?;
             Ok(format!("Program updated {hash}"))
         },
         CliCommand::UpdatePrograms {
             signature_request_account_name,
             program_account_name,
             programs,
+            program_configs,
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
@@ -266,9 +287,14 @@ async fn run_command() -> anyhow::Result<String> {
                 SeedString::new(program_account_name).try_into()?;
             println!("Program account: {:?}", program_keypair.public());
 
-            let mut program_hashes = Vec::new();
-            for program in programs {
-                program_hashes.push(Program::new(&api, &program_keypair, program).await?.0)
+            let mut programs_info = Vec::new();
+            for i in 0..programs.len() {
+                programs_info.push(ProgramInstance {
+                    program_pointer: Program::new(&api, &program_keypair, programs[i].clone())
+                        .await?
+                        .0,
+                    program_config: program_configs[i].clone(),
+                });
             }
 
             update_programs(
@@ -276,7 +302,7 @@ async fn run_command() -> anyhow::Result<String> {
                 &rpc,
                 &signature_request_keypair,
                 &program_keypair,
-                BoundedVec(program_hashes),
+                BoundedVec(programs_info),
             )
             .await?;
 
@@ -304,10 +330,13 @@ async fn run_command() -> anyhow::Result<String> {
                         format!("{:?}", info.verifying_key.0).cyan(),
                         format!(
                             "{:?}",
-                            info.program_pointers
+                            info.programs_data
                                 .0
                                 .iter()
-                                .map(|pointer| format!("{}", pointer))
+                                .map(|program_instance| format!(
+                                    "{}",
+                                    program_instance.program_pointer
+                                ))
                                 .collect::<Vec<_>>()
                         )
                         .white(),
@@ -411,7 +440,7 @@ impl Program {
         filename: String,
     ) -> anyhow::Result<Self> {
         let program_bytecode = fs::read(filename)?;
-        match store_program(api, keypair, program_bytecode.clone()).await {
+        match store_program(api, keypair, program_bytecode.clone(), vec![]).await {
             Ok(hash) => Ok(Self(hash)),
             Err(error) => {
                 if error.to_string().ends_with("ProgramAlreadySet") {

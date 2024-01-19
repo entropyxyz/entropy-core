@@ -36,7 +36,10 @@ use entropy_protocol::{
 };
 use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
 use entropy_testing_utils::{
-    chain_api::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec as OtherBoundedVec,
+    chain_api::{
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec as OtherBoundedVec,
+        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance as OtherProgramInstance,
+    },
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
         PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_INFINITE_LOOP_BYTECODE,
@@ -83,8 +86,9 @@ use x25519_dalek::{PublicKey, StaticSecret};
 use super::UserInputPartyInfo;
 use crate::{
     chain_api::{
-        entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec, get_api,
-        get_rpc, EntropyConfig,
+        entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, get_api, get_rpc,
+        EntropyConfig,
     },
     get_signer,
     helpers::{
@@ -137,7 +141,7 @@ async fn test_sign_tx_no_chain() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
-        store_program(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+        store_program(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
             .await
             .unwrap();
 
@@ -189,7 +193,10 @@ async fn test_sign_tx_no_chain() {
         &rpc,
         &one.pair(),
         &one.pair(),
-        OtherBoundedVec(vec![program_hash, program_hash]),
+        OtherBoundedVec(vec![
+            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+        ]),
     )
     .await
     .unwrap();
@@ -417,7 +424,7 @@ async fn test_fail_signing_group() {
     ];
 
     let program_hash =
-        store_program(&entropy_api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+        store_program(&entropy_api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
             .await
             .unwrap();
 
@@ -426,7 +433,10 @@ async fn test_fail_signing_group() {
         &rpc,
         &dave.pair(),
         &dave.pair(),
-        OtherBoundedVec(vec![program_hash]),
+        OtherBoundedVec(vec![OtherProgramInstance {
+            program_pointer: program_hash,
+            program_config: vec![],
+        }]),
     )
     .await
     .unwrap();
@@ -495,7 +505,7 @@ async fn test_store_share() {
 
     let original_key_shard = response_key.text().await.unwrap();
     let program_hash =
-        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
             .await
             .unwrap();
 
@@ -520,7 +530,7 @@ async fn test_store_share() {
         &alice,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
-        BoundedVec(vec![program_hash]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
 
@@ -589,7 +599,7 @@ async fn test_store_share() {
         &alice_program,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
-        BoundedVec(vec![program_hash]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
     onchain_user_request.block_number = block_number;
@@ -711,8 +721,9 @@ async fn test_send_and_receive_keys() {
 
     assert_eq!(response_already_in_storage.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(response_already_in_storage.text().await.unwrap(), "User already registered");
+
     let program_hash =
-        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
             .await
             .unwrap();
 
@@ -721,7 +732,7 @@ async fn test_send_and_receive_keys() {
         &alice.clone(),
         alice.to_account_id().into(),
         KeyVisibility::Public,
-        BoundedVec(vec![program_hash]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
@@ -778,7 +789,7 @@ pub async fn put_register_request_on_chain(
     sig_req_keyring: &Sr25519Keyring,
     program_modification_account: subxtAccountId32,
     key_visibility: KeyVisibility,
-    program_hashes: BoundedVec<H256>,
+    program_instance: BoundedVec<ProgramInstance>,
 ) {
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
@@ -786,7 +797,7 @@ pub async fn put_register_request_on_chain(
     let registering_tx = entropy::tx().relayer().register(
         program_modification_account,
         Static(key_visibility),
-        program_hashes,
+        program_instance,
     );
 
     api.tx()
@@ -818,7 +829,7 @@ async fn test_sign_tx_user_participates() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
-        store_program(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+        store_program(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
             .await
             .unwrap();
 
@@ -827,7 +838,10 @@ async fn test_sign_tx_user_participates() {
         &rpc,
         &one.pair(),
         &one.pair(),
-        OtherBoundedVec(vec![program_hash]),
+        OtherBoundedVec(vec![OtherProgramInstance {
+            program_pointer: program_hash,
+            program_config: vec![],
+        }]),
     )
     .await
     .unwrap();
@@ -1099,8 +1113,9 @@ async fn test_register_with_private_key_visibility() {
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+
     let program_hash =
-        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned())
+        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
             .await
             .unwrap();
 
@@ -1114,7 +1129,7 @@ async fn test_register_with_private_key_visibility() {
         &one,
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
-        BoundedVec(vec![program_hash]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
     run_to_block(&rpc, block_number + 1).await;
@@ -1175,14 +1190,16 @@ async fn test_compute_hash() {
 
     let mut runtime = Runtime::default();
     let program_hash =
-        store_program(&api, &one.pair(), TEST_PROGRAM_CUSTOM_HASH.to_owned()).await.unwrap();
+        store_program(&api, &one.pair(), TEST_PROGRAM_CUSTOM_HASH.to_owned(), vec![])
+            .await
+            .unwrap();
 
     let message_hash = compute_hash(
         &api,
         &rpc,
         &HashingAlgorithm::Custom(0),
         &mut runtime,
-        &[program_hash],
+        &vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
         PREIMAGE_SHOULD_SUCCEED,
     )
     .await
@@ -1245,7 +1262,7 @@ async fn test_fail_infinite_program() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
-        store_program(&entropy_api, &two.pair(), TEST_INFINITE_LOOP_BYTECODE.to_owned())
+        store_program(&entropy_api, &two.pair(), TEST_INFINITE_LOOP_BYTECODE.to_owned(), vec![])
             .await
             .unwrap();
 
@@ -1254,7 +1271,10 @@ async fn test_fail_infinite_program() {
         &rpc,
         &one.pair(),
         &one.pair(),
-        OtherBoundedVec(vec![program_hash]),
+        OtherBoundedVec(vec![OtherProgramInstance {
+            program_pointer: program_hash,
+            program_config: vec![],
+        }]),
     )
     .await
     .unwrap();

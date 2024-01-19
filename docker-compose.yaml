@@ -8,7 +8,7 @@
 # a more canonical set of environments and configuration files.
 ---
 version: "3.8"
-name: entropy-local-devnet
+name: entropy-devnet-local
 
 secrets:
   credentials:
@@ -38,7 +38,7 @@ services:
       - "127.0.0.1:9944:9944/tcp"   # "RPC Port."
     command:
       - "--chain"
-      - "local-devnet"
+      - "devnet-local"
       - "--alice"               # Shortcut for `--name Alice --validator`
       - "--base-path"
       - ".entropy/alice"
@@ -74,7 +74,7 @@ services:
       - "127.0.0.1:9945:9944/tcp"
     command:
       - "--chain"
-      - "local-devnet"
+      - "devnet-local"
       - "--bob"                 # Shortcut for `--name Bob --validator`
       - "--base-path"
       - ".entropy/bob"
