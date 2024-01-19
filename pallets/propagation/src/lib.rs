@@ -35,6 +35,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use sp_runtime::{
         offchain::{http, Duration},
+        sp_std::vec,
         sp_std::{str, vec::Vec},
     };
 

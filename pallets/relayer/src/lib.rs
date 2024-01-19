@@ -63,6 +63,7 @@ pub mod pallet {
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
+    use sp_std::vec;
     use sp_std::{fmt::Debug, vec::Vec};
 
     pub use crate::weights::WeightInfo;
