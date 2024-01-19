@@ -1187,6 +1187,7 @@ impl pallet_grandpa::Config for Runtime {
         pallet_grandpa::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
     type MaxAuthorities = MaxAuthorities;
+    type MaxNominators = MaxNominatorRewardedPerValidator;
     type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
