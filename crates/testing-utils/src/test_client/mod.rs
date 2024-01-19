@@ -90,6 +90,7 @@ pub async fn register(
     // Send register transaction
     put_register_request_on_chain(
         api,
+        rpc,
         signature_request_keypair.clone(),
         program_account,
         key_visibility,
@@ -295,10 +296,11 @@ pub async fn update_programs(
     let pointer_modification_account =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(pointer_modification_account.clone());
 
-    let partial_tx = entropy_api
-        .tx()
-        .create_partial_signed_with_nonce(&update_pointer_tx, nonce.into(), Default::default())
-        .unwrap();
+    let partial_tx = entropy_api.tx().create_partial_signed_with_nonce(
+        &update_pointer_tx,
+        nonce.into(),
+        Default::default(),
+    )?;
     let signer_payload = partial_tx.signer_payload();
     let signature = pointer_modification_account.sign(&signer_payload);
 
@@ -352,11 +354,15 @@ pub async fn get_programs(
 /// Submit a register transaction
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_keypair: sr25519::Pair,
     program_modification_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
     program_hashes: BoundedVec<H256>,
 ) -> anyhow::Result<()> {
+    let account_id32: AccountId32 = signature_request_keypair.public().into();
+    let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
+
     let signature_request_pair_signer =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
 
@@ -366,13 +372,23 @@ pub async fn put_register_request_on_chain(
         program_hashes,
     );
 
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &signature_request_pair_signer)
-        .await?
-        .wait_for_in_block()
-        .await?
-        .wait_for_success()
-        .await?;
+    let block_hash =
+        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
+
+    let nonce_call = entropy::apis().account_nonce_api().account_nonce(account_id.clone());
+    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
+
+    let partial_tx = api.tx().create_partial_signed_with_nonce(
+        &registering_tx,
+        nonce.into(),
+        Default::default(),
+    )?;
+    let signer_payload = partial_tx.signer_payload();
+    let signature = signature_request_pair_signer.sign(&signer_payload);
+
+    let tx = partial_tx.sign_with_address_and_signature(&account_id.into(), &signature);
+
+    tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;
     Ok(())
 }
 
