@@ -182,12 +182,14 @@ pub mod opaque {
     /// Opaque block identifier type.
     pub type BlockId = generic::BlockId<Block>;
 
-    // impl_opaque_keys! {
-    //     pub struct SessionKeys {
-    //         pub aura: Aura,
-    //         pub grandpa: Grandpa,
-    //     }
-    // }
+    impl_opaque_keys! {
+        pub struct SessionKeys {
+            pub grandpa: Grandpa,
+            pub babe: Babe,
+            pub im_online: ImOnline,
+            pub authority_discovery: AuthorityDiscovery,
+        }
+    }
 }
 
 /// Runtime version.
