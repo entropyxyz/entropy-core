@@ -46,6 +46,7 @@ pub mod pallet {
         offence::{Kind, Offence, ReportOffence},
         SessionIndex,
     };
+    use sp_std::vec;
     use sp_std::vec::Vec;
 
     #[pallet::config]
