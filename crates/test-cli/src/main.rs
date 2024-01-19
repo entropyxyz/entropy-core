@@ -77,10 +77,11 @@ enum CliCommand {
         /// The access mode of the Entropy account
         #[arg(value_enum, default_value_t = Default::default())]
         key_visibility: Visibility,
-        /// Either hex-encoded hashes, or paths to wasm files to store
+        /// Either hex-encoded hashes, or paths to wasm files to store.
+        ///
+        /// If there is also a file of the same name and a .config extension,
+        /// it will also be read and used as the configuration for that program
         programs: Vec<String>,
-        /// The program configs of the initial programs for the account
-        program_configs: Vec<Vec<u8>>,
     },
     /// Ask the network to sign a given message
     Sign {
@@ -103,10 +104,11 @@ enum CliCommand {
         ///
         /// Optionally may be preceeded with "//", eg: "//Bob"
         program_account_name: String,
-        /// Either hex-encoded program hashes, or paths to wasm files to store
+        /// Either hex-encoded program hashes, or paths to wasm files to store.
+        ///
+        /// If there is also a file of the same name and a .config extension,
+        /// it will also be read and used as the configuration for that program
         programs: Vec<String>,
-        /// The program configs of the updated programs
-        program_configs: Vec<Vec<u8>>,
     },
     /// Store a given program on chain
     StoreProgram {
@@ -181,7 +183,6 @@ async fn run_command() -> anyhow::Result<String> {
             program_account_name,
             key_visibility,
             programs,
-            program_configs,
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
@@ -203,13 +204,9 @@ async fn run_command() -> anyhow::Result<String> {
             };
             let mut programs_info = vec![];
 
-            for i in 0..programs.len() {
-                programs_info.push(ProgramInstance {
-                    program_pointer: Program::new(&api, &program_keypair, programs[i].clone())
-                        .await?
-                        .0,
-                    program_config: program_configs[i].clone(),
-                });
+            for program in programs {
+                programs_info
+                    .push(Program::from_hash_or_filename(&api, &program_keypair, program).await?.0);
             }
 
             let (registered_info, keyshare_option) = register(
@@ -277,7 +274,6 @@ async fn run_command() -> anyhow::Result<String> {
             signature_request_account_name,
             program_account_name,
             programs,
-            program_configs,
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
@@ -288,13 +284,9 @@ async fn run_command() -> anyhow::Result<String> {
             println!("Program account: {:?}", program_keypair.public());
 
             let mut programs_info = Vec::new();
-            for i in 0..programs.len() {
-                programs_info.push(ProgramInstance {
-                    program_pointer: Program::new(&api, &program_keypair, programs[i].clone())
-                        .await?
-                        .0,
-                    program_config: program_configs[i].clone(),
-                });
+            for program in programs {
+                programs_info
+                    .push(Program::from_hash_or_filename(&api, &program_keypair, program).await?.0);
             }
 
             update_programs(
@@ -412,10 +404,14 @@ impl KeyShareFile {
     }
 }
 
-struct Program(H256);
+struct Program(ProgramInstance);
 
 impl Program {
-    async fn new(
+    fn new(program_pointer: H256, program_config: Vec<u8>) -> Self {
+        Self(ProgramInstance { program_pointer, program_config })
+    }
+
+    async fn from_hash_or_filename(
         api: &OnlineClient<EntropyConfig>,
         keypair: &sr25519::Pair,
         hash_or_filename: String,
@@ -424,7 +420,7 @@ impl Program {
             Ok(hash) => {
                 let hash_32_res: Result<[u8; 32], _> = hash.try_into();
                 match hash_32_res {
-                    Ok(hash_32) => Ok(Self(H256(hash_32))),
+                    Ok(hash_32) => Ok(Self::new(H256(hash_32), vec![])),
                     Err(_) => Self::from_file(api, keypair, hash_or_filename).await,
                 }
             },
@@ -439,14 +435,16 @@ impl Program {
         keypair: &sr25519::Pair,
         filename: String,
     ) -> anyhow::Result<Self> {
-        let program_bytecode = fs::read(filename)?;
+        let program_bytecode = fs::read(&filename)?;
+        // If there is a file with the same name with the '.config' extension, read it
+        let configuration = fs::read(filename + ".config").unwrap_or_default();
         match store_program(api, keypair, program_bytecode.clone(), vec![]).await {
-            Ok(hash) => Ok(Self(hash)),
+            Ok(hash) => Ok(Self::new(hash, configuration)),
             Err(error) => {
                 if error.to_string().ends_with("ProgramAlreadySet") {
                     println!("Program is already stored - using existing one");
                     let hash = BlakeTwo256::hash(&program_bytecode);
-                    Ok(Self(H256(hash.into())))
+                    Ok(Self::new(H256(hash.into()), configuration))
                 } else {
                     Err(error)
                 }
