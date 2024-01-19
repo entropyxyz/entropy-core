@@ -981,6 +981,7 @@ parameter_types! {
   pub const TipCountdown: BlockNumber = DAYS;
   pub const TipFindersFee: Percent = Percent::from_percent(20);
   pub const TipReportDepositBase: Balance = DOLLARS;
+  pub const MaxTipAmount: Balance = 500 * DOLLARS;
   pub const DataDepositPerByte: Balance = CENTS;
   pub const BountyDepositBase: Balance = DOLLARS;
   pub const BountyDepositPayoutDelay: BlockNumber = DAYS;
@@ -1038,6 +1039,7 @@ impl pallet_bounties::Config for Runtime {
 impl pallet_tips::Config for Runtime {
     type DataDepositPerByte = DataDepositPerByte;
     type MaximumReasonLength = MaximumReasonLength;
+    type MaxTipAmount = MaxTipAmount;
     type RuntimeEvent = RuntimeEvent;
     type TipCountdown = TipCountdown;
     type TipFindersFee = TipFindersFee;
