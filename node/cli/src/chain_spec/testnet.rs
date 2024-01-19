@@ -147,7 +147,7 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
                 testnet_local_initial_authorities(),
                 vec![],
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
-                vec!["alice-tss-server:3001", "bob-tss-server:3002"],
+                testnet_local_initial_tss_servers(),
             )
         },
         vec![],
@@ -163,6 +163,54 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
         Some(crate::chain_spec::entropy_properties()),
         Default::default(),
     )
+}
+
+type TssAccountId = sp_runtime::AccountId32;
+type TssX25519PublicKey = [u8; 32];
+type TssEndpoint = String;
+
+pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
+    let alice = (
+        crate::chain_spec::tss_account_id::ALICE.clone(),
+        crate::chain_spec::tss_x25519_public_key::ALICE,
+        "alice-tss-server:3001".to_string(),
+    );
+
+    let bob = (
+        crate::chain_spec::tss_account_id::BOB.clone(),
+        crate::chain_spec::tss_x25519_public_key::BOB,
+        "bob-tss-server:3002".to_string(),
+    );
+
+    vec![alice, bob]
+}
+
+pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
+    let alice = (
+        crate::chain_spec::tss_account_id::ALICE.clone(),
+        crate::chain_spec::tss_x25519_public_key::ALICE,
+        "0.0.0.0:3001".to_string(),
+    );
+
+    let bob = (
+        crate::chain_spec::tss_account_id::BOB.clone(),
+        crate::chain_spec::tss_x25519_public_key::BOB,
+        "0.0.0.0:3001".to_string(),
+    );
+
+    let charlie = (
+        crate::chain_spec::tss_account_id::CHARLIE.clone(),
+        crate::chain_spec::tss_x25519_public_key::BOB,
+        "0.0.0.0:3001".to_string(),
+    );
+
+    let deve = (
+        crate::chain_spec::tss_account_id::DAVE.clone(),
+        crate::chain_spec::tss_x25519_public_key::EVE,
+        "0.0.0.0:3001".to_string(),
+    );
+
+    vec![alice, bob, charlie, deve]
 }
 
 /// The testnet configuration uses four validator nodes with private keys controlled by the deployer
@@ -181,7 +229,7 @@ pub fn testnet_config() -> crate::chain_spec::ChainSpec {
                 testnet_initial_authorities(),
                 vec![],
                 hex!["6a16ded05ff7a50716e1ca943f0467c60b4b71c2a7fd7f75b6333b8af80b6e6f"].into(),
-                vec!["127.0.0.1:3001", "127.0.0.1:3002"],
+                testnet_initial_tss_servers(), // vec!["127.0.0.1:3001", "127.0.0.1:3002"],
             )
         },
         vec![],
@@ -210,8 +258,13 @@ pub fn testnet_genesis_config(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
-    threshold_server_endpoints: Vec<&str>,
+    initial_tss_servers: Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)>,
 ) -> RuntimeGenesisConfig {
+    assert!(
+        initial_authorities.len() == initial_tss_servers.len(),
+        "Each validator node needs to have an accompanying threshold server."
+    );
+
     let mut endowed_accounts = endowed_accounts_dev();
     // endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
@@ -281,24 +334,13 @@ pub fn testnet_genesis_config(
             ..Default::default()
         },
         staking_extension: StakingExtensionConfig {
-            threshold_servers: vec![
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    (
-                        crate::chain_spec::tss_account_id::ALICE.clone(),
-                        crate::chain_spec::tss_x25519_public_key::ALICE,
-                        threshold_server_endpoints[0].as_bytes().to_vec(),
-                    ),
-                ),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    (
-                        crate::chain_spec::tss_account_id::BOB.clone(),
-                        crate::chain_spec::tss_x25519_public_key::BOB,
-                        threshold_server_endpoints[1].as_bytes().to_vec(),
-                    ),
-                ),
-            ],
+            threshold_servers: initial_authorities
+                .iter()
+                .zip(initial_tss_servers.iter())
+                .map(|(auth, tss)| {
+                    (auth.1.clone(), (tss.0.clone(), tss.1, tss.2.as_bytes().to_vec()))
+                })
+                .collect::<Vec<_>>(),
             signing_groups: vec![
                 (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
