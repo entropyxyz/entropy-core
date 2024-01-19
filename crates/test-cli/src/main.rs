@@ -308,7 +308,7 @@ async fn run_command() -> anyhow::Result<String> {
             );
             if !accounts.is_empty() {
                 println!(
-                    "{:<48} {:<12} {} Programs:",
+                    "{:<48} {:<12} {:<66} Programs:",
                     "Signature request account ID:".green(),
                     "Visibility:".purple(),
                     "Verifying key: ".cyan(),
@@ -319,7 +319,7 @@ async fn run_command() -> anyhow::Result<String> {
                         "{} {:<12} {} {}",
                         format!("{}", account_id).green(),
                         format!("{}", visibility).purple(),
-                        format!("{:?}", info.verifying_key.0).cyan(),
+                        format!("{:<66}", hex::encode(info.verifying_key.0)).cyan(),
                         format!(
                             "{:?}",
                             info.programs_data
@@ -342,19 +342,21 @@ async fn run_command() -> anyhow::Result<String> {
 
             if !programs.is_empty() {
                 println!(
-                    "{:<11} {:<48} {:<12} {}",
+                    "{:<11} {:<48} {:<11} {:<14} {}",
                     "Hash".blue(),
                     "Stored by:".green(),
                     "Times used:".purple(),
-                    "Size in bytes: ".cyan()
+                    "Size in bytes:".cyan(),
+                    "Configurable?".yellow(),
                 );
                 for (hash, program_info) in programs {
                     println!(
-                        "{} {} {:<12} {}",
+                        "{} {} {:>11} {:>14} {}",
                         hash,
                         program_info.program_modification_account,
                         program_info.ref_counter,
                         program_info.bytecode.len(),
+                        !program_info.program_type_definition.is_empty(),
                     );
                 }
             }
