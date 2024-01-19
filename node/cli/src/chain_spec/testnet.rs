@@ -271,8 +271,11 @@ pub fn testnet_genesis_config(
         staking: StakingConfig {
             validator_count: initial_authorities.len() as u32,
             minimum_validator_count: 0,
-            // TODO (Nando): We'll want to fill these out
-            invulnerables: vec![],
+            // For our initial testnet deployment we make it so that the validator stash accounts
+            // cannot get slashed.
+            //
+            // We'll remove this in later stages of testing.
+            invulnerables: initial_authorities.iter().map(|x| x.1.clone()).collect::<Vec<_>>(),
             slash_reward_fraction: Perbill::from_percent(10),
             stakers,
             ..Default::default()
