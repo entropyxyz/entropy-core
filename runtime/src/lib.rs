@@ -39,7 +39,8 @@
 use codec::{Decode, Encode, MaxEncodedLen};
 use entropy_shared::SIGNING_PARTY_SIZE;
 use frame_election_provider_support::{
-    onchain, BalancingConfig, ElectionDataProvider, ExtendedBalance, SequentialPhragmen, VoteWeight,
+    bounds::ElectionBoundsBuilder, generate_solution_type, onchain, BalancingConfig,
+    ElectionDataProvider, ExtendedBalance, NposSolution, SequentialPhragmen, VoteWeight,
 };
 use frame_support::{
     construct_runtime,
@@ -497,6 +498,7 @@ impl pallet_balances::Config for Runtime {
     type ReserveIdentifier = [u8; 8];
     type RuntimeEvent = RuntimeEvent;
     type RuntimeHoldReason = RuntimeHoldReason;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
     type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
 }
 
@@ -604,8 +606,7 @@ impl onchain::Config for OnChainSeqPhragmen {
         pallet_election_provider_multi_phase::SolutionAccuracyOf<Runtime>,
     >;
     type System = Runtime;
-    type TargetsBound = MaxOnChainElectableTargets;
-    type VotersBound = MaxOnChainElectingVoters;
+    type Bounds = ElectionBounds;
     type WeightInfo = weights::frame_election_provider_support::WeightInfo<Runtime>;
 }
 
@@ -616,7 +617,7 @@ impl pallet_election_provider_multi_phase::MinerConfig for Runtime {
 	<<Self as pallet_election_provider_multi_phase::Config>::DataProvider as ElectionDataProvider>::MaxVotesPerVoter;
     type MaxWeight = MinerMaxWeight;
     type MaxWinners = MaxActiveValidators;
-    type Solution = NposSolution16;
+    type Solution = NposCompactSolution16;
 
     // The unsigned submissions have to respect the weight of the submit_unsigned call, thus their
     // weight estimate function is wired to this call's weight.
@@ -651,7 +652,7 @@ impl pallet_staking::Config for Runtime {
     type EventListeners = NominationPools;
     type GenesisElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
     type HistoryDepth = HistoryDepth;
-    type MaxNominations = MaxNominations;
+    type NominationsQuota = pallet_staking::FixedNominationsQuota<{ MaxNominations::get() }>;
     type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
@@ -706,25 +707,35 @@ parameter_types! {
         .get(DispatchClass::Normal);
 }
 
-frame_election_provider_support::generate_solution_type!(
-  #[compact]
-  pub struct NposSolution16::<
-    VoterIndex = u32,
-    TargetIndex = u16,
-    Accuracy = sp_runtime::PerU16,
-    MaxVoters = MaxElectingVoters,
-  >(16)
+generate_solution_type!(
+    #[compact]
+    pub struct NposCompactSolution16::<
+        VoterIndex = u32,
+        TargetIndex = u16,
+        Accuracy = sp_runtime::PerU16,
+        MaxVoters = MaxElectingVoters,
+    >(16)
 );
 
 parameter_types! {
-  pub MaxNominations: u32 = <NposSolution16 as frame_election_provider_support::NposSolution>::LIMIT as u32;
+  // 16
+  pub const MaxNominations: u32 = <NposCompactSolution16 as frame_election_provider_support::NposSolution>::LIMIT as u32;
+
   pub MaxElectingVoters: u32 = 10_000;
   pub MaxOnChainElectingVoters: u32 = 5000;
   pub MaxElectableTargets: u16 = 10_000;
-    pub MaxOnChainElectableTargets: u16 = 1250;
-    // The maximum winners that can be elected by the Election pallet which is equivalent to the
-    // maximum active validators the staking pallet can have.
-    pub MaxActiveValidators: u32 = 1000;
+  pub MaxOnChainElectableTargets: u16 = 1250;
+
+  // The maximum winners that can be elected by the Election pallet which is equivalent to the
+  // maximum active validators the staking pallet can have.
+  pub MaxActiveValidators: u32 = 1000;
+
+  /// We take the top 10_000 nominators as electing voters and all of the validators as electable
+  /// targets. Whilst this is the case, we cannot and shall not increase the size of the
+  /// validator intentions.
+  pub ElectionBounds: frame_election_provider_support::bounds::ElectionBounds =
+      ElectionBoundsBuilder::default().voters_count(MaxElectingVoters::get().into()).build();
+
 }
 /// The numbers configured here could always be more than the the maximum limits of staking pallet
 /// to ensure election snapshot will not run out of memory. For now, we set them to smaller values
@@ -769,6 +780,7 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
     type BenchmarkingConfig = ElectionProviderBenchmarkConfig;
     type BetterSignedThreshold = ();
     type BetterUnsignedThreshold = BetterUnsignedThreshold;
+    type ElectionBounds = ElectionBounds;
     type Currency = Balances;
     // nothing to do upon rewards
     type DataProvider = Staking;
@@ -776,8 +788,6 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
     type Fallback = onchain::OnChainExecution<OnChainSeqPhragmen>;
     type ForceOrigin = EnsureRootOrHalfCouncil;
     type GovernanceFallback = onchain::OnChainExecution<OnChainSeqPhragmen>;
-    type MaxElectableTargets = MaxElectableTargets;
-    type MaxElectingVoters = MaxElectingVoters;
     type MaxWinners = MaxActiveValidators;
     type MinerConfig = Self;
     type MinerTxPriority = MultiPhaseUnsignedPriority;
