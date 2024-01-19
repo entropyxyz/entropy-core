@@ -31,13 +31,11 @@ mod tests;
 pub mod pallet {
     use codec::Encode;
     use entropy_shared::{OcwMessageDkg, OcwMessageProactiveRefresh, ValidatorInfo};
-    use frame_support::{dispatch::Vec, pallet_prelude::*, sp_runtime::traits::Saturating};
+    use frame_support::{pallet_prelude::*, sp_runtime::traits::Saturating};
     use frame_system::pallet_prelude::*;
-    use scale_info::prelude::vec;
-    use sp_core;
     use sp_runtime::{
         offchain::{http, Duration},
-        sp_std::str,
+        sp_std::{str, vec::Vec},
     };
 
     #[pallet::config]

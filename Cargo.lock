@@ -2714,7 +2714,7 @@ dependencies = [
  "sp-blockchain",
  "sp-consensus",
  "sp-consensus-aura",
- "sp-consensus-babe",
+ "sp-consensus-babe 0.10.0-dev",
  "sp-consensus-grandpa",
  "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-inherents 4.0.0-dev",
@@ -2832,7 +2832,7 @@ dependencies = [
  "pallet-assets",
  "pallet-authority-discovery",
  "pallet-authorship 4.0.0-dev",
- "pallet-babe",
+ "pallet-babe 4.0.0-dev",
  "pallet-bags-list 4.0.0-dev",
  "pallet-balances 4.0.0-dev",
  "pallet-bounties",
@@ -2886,7 +2886,7 @@ dependencies = [
  "sp-api 4.0.0-dev",
  "sp-authority-discovery",
  "sp-block-builder",
- "sp-consensus-babe",
+ "sp-consensus-babe 0.10.0-dev",
  "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-inherents 4.0.0-dev",
  "sp-io 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
@@ -6725,13 +6725,38 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-application-crypto 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-consensus-babe",
+ "sp-consensus-babe 0.10.0-dev",
  "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-io 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-session 4.0.0-dev",
  "sp-staking 4.0.0-dev",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
+]
+
+[[package]]
+name = "pallet-babe"
+version = "25.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b12430ca4b79b27231acb1ff3f99d33d6503fbeba40bfc8380e42d59b6d52b0"
+dependencies = [
+ "frame-benchmarking 25.0.0",
+ "frame-support 25.0.0",
+ "frame-system 25.0.0",
+ "log",
+ "pallet-authorship 25.0.0",
+ "pallet-session 25.0.0",
+ "pallet-timestamp 24.0.0",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-application-crypto 27.0.0",
+ "sp-consensus-babe 0.29.0",
+ "sp-core 25.0.0",
+ "sp-io 27.0.0",
+ "sp-runtime 28.0.0",
+ "sp-session 24.0.0",
+ "sp-staking 23.0.0",
+ "sp-std 12.0.0",
 ]
 
 [[package]]
@@ -7169,7 +7194,7 @@ dependencies = [
  "frame-support 4.0.0-dev",
  "frame-system 4.0.0-dev",
  "log",
- "pallet-babe",
+ "pallet-babe 4.0.0-dev",
  "pallet-balances 4.0.0-dev",
  "pallet-grandpa",
  "pallet-im-online",
@@ -7224,33 +7249,33 @@ name = "pallet-propagation"
 version = "0.0.9"
 dependencies = [
  "entropy-shared",
- "frame-benchmarking 4.0.0-dev",
- "frame-election-provider-support 4.0.0-dev",
- "frame-support 4.0.0-dev",
- "frame-system 4.0.0-dev",
+ "frame-benchmarking 25.0.0",
+ "frame-election-provider-support 25.0.0",
+ "frame-support 25.0.0",
+ "frame-system 25.0.0",
  "lite-json",
  "log",
- "pallet-authorship 4.0.0-dev",
- "pallet-babe",
- "pallet-bags-list 4.0.0-dev",
- "pallet-balances 4.0.0-dev",
+ "pallet-authorship 25.0.0",
+ "pallet-babe 25.0.0",
+ "pallet-bags-list 24.0.0",
+ "pallet-balances 25.0.0",
  "pallet-programs",
  "pallet-relayer",
- "pallet-session 4.0.0-dev",
- "pallet-staking 4.0.0-dev",
+ "pallet-session 25.0.0",
+ "pallet-staking 25.0.0",
  "pallet-staking-extension",
- "pallet-staking-reward-curve 4.0.0-dev",
- "pallet-timestamp 4.0.0-dev",
+ "pallet-staking-reward-curve 10.0.0",
+ "pallet-timestamp 24.0.0",
  "parity-scale-codec",
  "parking_lot 0.11.2",
  "scale-info",
- "sp-application-crypto 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-io 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-keystore 0.27.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-npos-elections 4.0.0-dev",
- "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-staking 4.0.0-dev",
+ "sp-application-crypto 27.0.0",
+ "sp-core 25.0.0",
+ "sp-io 27.0.0",
+ "sp-keystore 0.31.0",
+ "sp-npos-elections 23.0.0",
+ "sp-runtime 28.0.0",
+ "sp-staking 23.0.0",
 ]
 
 [[package]]
@@ -9421,7 +9446,7 @@ dependencies = [
  "sp-blockchain",
  "sp-consensus",
  "sp-consensus-aura",
- "sp-consensus-slots",
+ "sp-consensus-slots 0.10.0-dev",
  "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-inherents 4.0.0-dev",
  "sp-keystore 0.27.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
@@ -9456,8 +9481,8 @@ dependencies = [
  "sp-block-builder",
  "sp-blockchain",
  "sp-consensus",
- "sp-consensus-babe",
- "sp-consensus-slots",
+ "sp-consensus-babe 0.10.0-dev",
+ "sp-consensus-slots 0.10.0-dev",
  "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-inherents 4.0.0-dev",
  "sp-keystore 0.27.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
@@ -9481,7 +9506,7 @@ dependencies = [
  "sp-application-crypto 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-blockchain",
  "sp-consensus",
- "sp-consensus-babe",
+ "sp-consensus-babe 0.10.0-dev",
  "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-keystore 0.27.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
@@ -9578,7 +9603,7 @@ dependencies = [
  "sp-arithmetic 16.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-blockchain",
  "sp-consensus",
- "sp-consensus-slots",
+ "sp-consensus-slots 0.10.0-dev",
  "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-inherents 4.0.0-dev",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
@@ -11242,7 +11267,7 @@ dependencies = [
  "scale-info",
  "sp-api 4.0.0-dev",
  "sp-application-crypto 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-consensus-slots",
+ "sp-consensus-slots 0.10.0-dev",
  "sp-inherents 4.0.0-dev",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
@@ -11260,12 +11285,32 @@ dependencies = [
  "serde",
  "sp-api 4.0.0-dev",
  "sp-application-crypto 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-consensus-slots",
+ "sp-consensus-slots 0.10.0-dev",
  "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-inherents 4.0.0-dev",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-timestamp 4.0.0-dev",
+]
+
+[[package]]
+name = "sp-consensus-babe"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "268f9b2e36d4e136c09ad87876cdcfd7ff734cb5917f333fefebff248f95a24f"
+dependencies = [
+ "async-trait",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-api 23.0.0",
+ "sp-application-crypto 27.0.0",
+ "sp-consensus-slots 0.29.0",
+ "sp-core 25.0.0",
+ "sp-inherents 23.0.0",
+ "sp-runtime 28.0.0",
+ "sp-std 12.0.0",
+ "sp-timestamp 23.0.0",
 ]
 
 [[package]]
@@ -11296,6 +11341,19 @@ dependencies = [
  "serde",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-timestamp 4.0.0-dev",
+]
+
+[[package]]
+name = "sp-consensus-slots"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "895b0c176d4eead833ddee5251d3cccbaeb0191ca3f33f84b11d347bebc6e21f"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-std 12.0.0",
+ "sp-timestamp 23.0.0",
 ]
 
 [[package]]
@@ -13786,7 +13844,7 @@ dependencies = [
  "serde_json",
  "sp-api 4.0.0-dev",
  "sp-consensus-aura",
- "sp-consensus-babe",
+ "sp-consensus-babe 0.10.0-dev",
  "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-debug-derive 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-externalities 0.19.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
