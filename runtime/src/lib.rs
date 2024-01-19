@@ -46,6 +46,7 @@ use frame_support::{
     dispatch::DispatchClass,
     pallet_prelude::Get,
     parameter_types,
+    sp_runtime::RuntimeDebug,
     traits::{
         ConstU16, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
         InstanceFilter, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, WithdrawReasons,
@@ -56,7 +57,7 @@ use frame_support::{
         },
         IdentityFee, Weight,
     },
-    PalletId, RuntimeDebug,
+    PalletId,
 };
 #[cfg(any(feature = "std", test))]
 pub use frame_system::Call as SystemCall;
@@ -64,8 +65,10 @@ use frame_system::{
     limits::{BlockLength, BlockWeights},
     EnsureRoot, EnsureSigned,
 };
-pub use node_primitives::{AccountId, Signature};
-use node_primitives::{AccountIndex, Balance, BlockNumber, Hash, Moment, Nonce};
+
+// TODO (Nando)
+// pub use node_primitives::{AccountId, Signature};
+// use node_primitives::{AccountIndex, Balance, BlockNumber, Hash, Moment, Nonce};
 #[cfg(any(feature = "std", test))]
 pub use pallet_balances::Call as BalancesCall;
 use pallet_election_provider_multi_phase::SolutionAccuracyOf;
@@ -112,6 +115,7 @@ mod weights;
 pub mod constants;
 use constants::{currency::*, time::*};
 use sp_runtime::generic::Era;
+use sp_runtime::traits::{IdentifyAccount, Verify};
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -126,6 +130,30 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
          the flag disabled.",
     )
 }
+
+// TODO(Nando): Look into using these to replace `node_primitives`
+
+/// An index to a block.
+pub type BlockNumber = u32;
+
+/// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
+pub type Signature = sp_runtime::MultiSignature;
+
+/// Some way of identifying an account on the chain. We intentionally make it equivalent
+/// to the public key of our transaction signing scheme.
+pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
+
+/// Balance of an account.
+pub type Balance = u128;
+
+/// Index of a transaction in the chain.
+pub type Nonce = u32;
+
+/// A hash of some data used by the chain.
+pub type Hash = sp_core::H256;
+
+pub type Moment = u64;
+pub type AccountIndex = u32;
 
 /// Runtime version.
 #[sp_version::runtime_version]
@@ -293,8 +321,6 @@ impl frame_system::Config for Runtime {
     type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
     type Version = Version;
 }
-
-impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
 
 impl pallet_utility::Config for Runtime {
     type PalletsOrigin = OriginCaller;
@@ -1366,7 +1392,6 @@ construct_runtime!(
     AuthorityDiscovery: pallet_authority_discovery =34,
     Offences: pallet_offences = 35,
     Historical: pallet_session_historical = 36,
-    RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip = 37,
     Identity: pallet_identity = 38,
 
     Recovery: pallet_recovery = 40,
