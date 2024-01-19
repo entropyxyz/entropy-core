@@ -109,8 +109,42 @@ pub fn create_full<C, P, SC, B>(
     deps: FullDeps<C, P, SC, B>,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
-    C: ProvideRuntimeApi<Block>
-        + sc_client_api::BlockBackend<Block>
+    // C: ProvideRuntimeApi<Block>
+    //  + sc_client_api::BlockBackend<Block>
+    //  + HeaderBackend<Block>
+    //  + AuxStore
+    //  + HeaderMetadata<Block, Error = BlockChainError>
+    //  + Sync
+    //  + Send
+    //  + 'static,
+    //
+    // TODO(Nando): The copmiler spat this out, just using to get a bit further into compilation.
+    //
+    // Don't think this is necessarily correct. May need to look into the type changes after
+    // switching out `node_primitives`
+    C: ProvideRuntimeApi<
+            sp_runtime::generic::Block<
+                sp_runtime::generic::Header<u32, sp_runtime::traits::BlakeTwo256>,
+                sp_runtime::generic::UncheckedExtrinsic<
+                    sp_runtime::MultiAddress<sp_runtime::AccountId32, u32>,
+                    entropy_runtime::RuntimeCall,
+                    sp_runtime::MultiSignature,
+                    (
+                        frame_system::CheckSpecVersion<entropy_runtime::Runtime>,
+                        frame_system::CheckTxVersion<entropy_runtime::Runtime>,
+                        frame_system::CheckGenesis<entropy_runtime::Runtime>,
+                        frame_system::CheckMortality<entropy_runtime::Runtime>,
+                        frame_system::CheckNonce<entropy_runtime::Runtime>,
+                        frame_system::CheckWeight<entropy_runtime::Runtime>,
+                        pallet_transaction_payment::ChargeTransactionPayment<
+                            entropy_runtime::Runtime,
+                        >,
+                        pallet_free_tx::ValidateElectricityPayment<entropy_runtime::Runtime>,
+                        pallet_relayer::ValidateConfirmRegistered<entropy_runtime::Runtime>,
+                    ),
+                >,
+            >,
+        > + sc_client_api::BlockBackend<Block>
         + HeaderBackend<Block>
         + AuxStore
         + HeaderMetadata<Block, Error = BlockChainError>
