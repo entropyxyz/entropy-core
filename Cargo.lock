@@ -2922,6 +2922,7 @@ dependencies = [
  "sp-session",
  "sp-staking",
  "sp-std 12.0.0",
+ "sp-storage 17.0.0",
  "sp-transaction-pool",
  "sp-version",
  "static_assertions",
