@@ -64,6 +64,10 @@ type FullGrandpaBlockImport =
 /// The transaction pool type defintion.
 pub type TransactionPool = sc_transaction_pool::FullPool<Block, FullClient>;
 
+/// The minimum period of blocks on which justifications will be
+/// imported and generated.
+const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
+
 // Our native executor instance.
 pub struct ExecutorDispatch;
 
@@ -149,6 +153,7 @@ pub fn new_partial(
 
     let (grandpa_block_import, grandpa_link) = grandpa::block_import(
         client.clone(),
+        GRANDPA_JUSTIFICATION_PERIOD,
         #[allow(clippy::redundant_clone)]
         &(client.clone() as Arc<_>),
         select_chain.clone(),
