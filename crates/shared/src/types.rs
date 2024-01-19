@@ -24,6 +24,7 @@ use node_primitives::BlockNumber;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "std")]
 use strum_macros::EnumIter;
 
 /// X25519 public key used by the client in non-interactive ECDH to authenticate/encrypt
@@ -92,8 +93,8 @@ pub struct OcwMessageProactiveRefresh {
 }
 
 /// 256-bit hashing algorithms for deriving the point to be signed.
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, Eq, PartialEq, EnumIter)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize, EnumIter))]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "std", serde(rename = "hash"))]
 #[cfg_attr(feature = "std", serde(rename_all = "lowercase"))]
 pub enum HashingAlgorithm {

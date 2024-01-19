@@ -37,6 +37,7 @@ At the moment this project **does not** adhere to
 - Add `--setup-only` flag ([#588](https://github.com/entropyxyz/entropy-core/pull/588/))
 - Add --version flag and about field to TSS ([#590](https://github.com/entropyxyz/entropy-core/pull/590/))
 - Program config storage ([#593](https://github.com/entropyxyz/entropy-core/pull/593))
+- Add a hashes endpoint ([#600](https://github.com/entropyxyz/entropy-core/pull/600))
 
 ### Changed
 - Crate name refactor ([#561](https://github.com/entropyxyz/entropy-core/pull/561))
