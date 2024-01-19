@@ -34,19 +34,19 @@ mod benchmarking;
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::{
-        dispatch::{DispatchResult, Vec},
+        dispatch::DispatchResult,
         pallet_prelude::*,
         sp_runtime::{Perbill, RuntimeDebug},
         traits::{ValidatorSet, ValidatorSetWithIdentification},
     };
     use frame_system::pallet_prelude::*;
-    use scale_info::prelude::vec;
     use sp_application_crypto::RuntimeAppPublic;
     use sp_runtime::{sp_std::str, traits::Convert};
     use sp_staking::{
         offence::{Kind, Offence, ReportOffence},
         SessionIndex,
     };
+    use sp_std::vec::Vec;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
