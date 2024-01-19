@@ -1308,6 +1308,7 @@ impl pallet_nomination_pools::Config for Runtime {
     type MaxUnbonding = ConstU32<8>;
     type PalletId = NominationPoolsPalletId;
     type PostUnbondingPoolsWindow = PostUnbondPoolsWindow;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
     type RewardCounter = FixedU128;
     type RuntimeEvent = RuntimeEvent;
     type Staking = Staking;
