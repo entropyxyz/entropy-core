@@ -52,6 +52,7 @@ use frame_support::{
         fungible::HoldConsideration, ConstU16, ConstU32, Contains, Currency, EitherOfDiverse,
         EqualPrivilegeOnly, Imbalance, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice,
         LockIdentifier, OnUnbalanced, WithdrawReasons,
+        tokens::{nonfungibles_v2::Inspect, pay::PayAssetFromAccount, GetSalary, PayFromAccount, UnityAssetBalanceConversion},
     },
     weights::{
         constants::{
@@ -73,7 +74,7 @@ use frame_system::{
 // use node_primitives::{AccountIndex, Balance, BlockNumber, Hash, Moment, Nonce};
 #[cfg(any(feature = "std", test))]
 pub use pallet_balances::Call as BalancesCall;
-use pallet_election_provider_multi_phase::SolutionAccuracyOf;
+use pallet_election_provider_multi_phase::{GeometricDepositBase, SolutionAccuracyOf};
 use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -494,7 +495,7 @@ impl pallet_balances::Config for Runtime {
     type Balance = Balance;
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
-    type FreezeIdentifier = ();
+    type FreezeIdentifier = RuntimeFreezeReason;
     type MaxFreezes = ();
     type MaxHolds = ConstU32<2>;
     type MaxLocks = MaxLocks;
@@ -693,7 +694,8 @@ parameter_types! {
 
     // signed config
     pub const SignedRewardBase: Balance = DOLLARS;
-    pub const SignedDepositBase: Balance = DOLLARS;
+    pub const SignedFixedDeposit: Balance = DOLLARS;
+    pub const SignedDepositIncreaseFactor: Percent = Percent::from_percent(10);
     pub const SignedDepositByte: Balance = CENTS;
 
     pub BetterUnsignedThreshold: Perbill = Perbill::from_rational(1u32, 10_000);
@@ -799,8 +801,8 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
     // burn slashes
     type RewardHandler = ();
     type RuntimeEvent = RuntimeEvent;
-    type SignedDepositBase = SignedDepositBase;
-    type SignedDepositByte = SignedDepositByte;
+    type SignedDepositBase =
+		  GeometricDepositBase<Balance, SignedFixedDeposit, SignedDepositIncreaseFactor>;    type SignedDepositByte = SignedDepositByte;
     type SignedDepositWeight = ();
     type SignedMaxRefunds = ConstU32<3>;
     type SignedMaxSubmissions = ConstU32<10>;
@@ -987,6 +989,7 @@ parameter_types! {
   pub const BountyDepositBase: Balance = DOLLARS;
   pub const BountyDepositPayoutDelay: BlockNumber = DAYS;
   pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
+  pub TreasuryAccount: AccountId = Treasury::account_id();
   pub const BountyUpdatePeriod: BlockNumber = 14 * DAYS;
   pub const MaximumReasonLength: u32 = 16384;
   pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
@@ -995,6 +998,7 @@ parameter_types! {
   pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
   pub const CuratorDepositMin: Balance = DOLLARS;
   pub const CuratorDepositMax: Balance = 100 * DOLLARS;
+  pub const SpendPayoutPeriod: BlockNumber = 30 * DAYS;
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -1019,6 +1023,12 @@ impl pallet_treasury::Config for Runtime {
     type SpendFunds = Bounties;
     type SpendOrigin = frame_support::traits::NeverEnsureOrigin<u128>;
     type SpendPeriod = SpendPeriod;
+    type AssetKind = ();
+    type Beneficiary = AccountId;
+    type BeneficiaryLookup = Indices;
+    type BalanceConverter = UnityAssetBalanceConversion;
+    type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
+    type PayoutPeriod = SpendPayoutPeriod;
     type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
 }
 

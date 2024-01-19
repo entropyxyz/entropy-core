@@ -2671,7 +2671,7 @@ dependencies = [
  "pallet-asset-tx-payment",
  "pallet-balances 4.0.0-dev",
  "pallet-free-tx",
- "pallet-im-online 4.0.0-dev",
+ "pallet-im-online",
  "pallet-relayer",
  "pallet-staking-extension",
  "pallet-transaction-payment 4.0.0-dev",
@@ -2830,7 +2830,7 @@ dependencies = [
  "log",
  "pallet-assets",
  "pallet-authority-discovery",
- "pallet-authorship 25.0.0",
+ "pallet-authorship",
  "pallet-babe",
  "pallet-bags-list",
  "pallet-balances 25.0.0",
@@ -2844,7 +2844,7 @@ dependencies = [
  "pallet-free-tx",
  "pallet-grandpa",
  "pallet-identity",
- "pallet-im-online 24.0.0",
+ "pallet-im-online",
  "pallet-indices",
  "pallet-membership",
  "pallet-multisig",
@@ -6680,20 +6680,6 @@ dependencies = [
 
 [[package]]
 name = "pallet-authorship"
-version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2fd1233dc26dbb9f9bbc1d2cca2c03945d"
-dependencies = [
- "frame-support 4.0.0-dev",
- "frame-system 4.0.0-dev",
- "impl-trait-for-tuples",
- "parity-scale-codec",
- "scale-info",
- "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
-]
-
-[[package]]
-name = "pallet-authorship"
 version = "25.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2d38eab59f7d15fe43c81fc3cd92f4c1f895ca6d0efb74fc2a6d6d7d3d34d413"
@@ -6717,7 +6703,7 @@ dependencies = [
  "frame-support 25.0.0",
  "frame-system 25.0.0",
  "log",
- "pallet-authorship 25.0.0",
+ "pallet-authorship",
  "pallet-session",
  "pallet-timestamp",
  "parity-scale-codec",
@@ -6928,7 +6914,7 @@ dependencies = [
  "frame-support 25.0.0",
  "frame-system 25.0.0",
  "log",
- "pallet-authorship 25.0.0",
+ "pallet-authorship",
  "pallet-bags-list",
  "pallet-balances 25.0.0",
  "pallet-relayer",
@@ -6958,7 +6944,7 @@ dependencies = [
  "frame-support 25.0.0",
  "frame-system 25.0.0",
  "log",
- "pallet-authorship 25.0.0",
+ "pallet-authorship",
  "pallet-session",
  "parity-scale-codec",
  "scale-info",
@@ -6991,25 +6977,6 @@ dependencies = [
 
 [[package]]
 name = "pallet-im-online"
-version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2fd1233dc26dbb9f9bbc1d2cca2c03945d"
-dependencies = [
- "frame-support 4.0.0-dev",
- "frame-system 4.0.0-dev",
- "log",
- "pallet-authorship 4.0.0-dev",
- "parity-scale-codec",
- "scale-info",
- "sp-application-crypto 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-io 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-staking 4.0.0-dev",
- "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
-]
-
-[[package]]
-name = "pallet-im-online"
 version = "24.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59eb1c68cc6b4700ad1d2a81ba847ff7b37406aa0326b7716825155d3f985762"
@@ -7018,7 +6985,7 @@ dependencies = [
  "frame-support 25.0.0",
  "frame-system 25.0.0",
  "log",
- "pallet-authorship 25.0.0",
+ "pallet-authorship",
  "parity-scale-codec",
  "scale-info",
  "sp-application-crypto 27.0.0",
@@ -7167,7 +7134,7 @@ dependencies = [
  "pallet-babe",
  "pallet-balances 25.0.0",
  "pallet-grandpa",
- "pallet-im-online 24.0.0",
+ "pallet-im-online",
  "pallet-offences",
  "pallet-session",
  "pallet-staking",
@@ -7226,7 +7193,7 @@ dependencies = [
  "frame-system 25.0.0",
  "lite-json",
  "log",
- "pallet-authorship 25.0.0",
+ "pallet-authorship",
  "pallet-babe",
  "pallet-bags-list",
  "pallet-balances 25.0.0",
@@ -7311,7 +7278,7 @@ dependencies = [
  "frame-support 25.0.0",
  "frame-system 25.0.0",
  "log",
- "pallet-authorship 25.0.0",
+ "pallet-authorship",
  "pallet-bags-list",
  "pallet-balances 25.0.0",
  "pallet-programs",
@@ -7427,7 +7394,7 @@ dependencies = [
  "frame-support 25.0.0",
  "frame-system 25.0.0",
  "log",
- "pallet-authorship 25.0.0",
+ "pallet-authorship",
  "pallet-session",
  "parity-scale-codec",
  "rand_chacha 0.2.2",

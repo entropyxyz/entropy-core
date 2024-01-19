@@ -25,7 +25,7 @@ codec                             ={ package="parity-scale-codec", version="3.0.
 structopt                         ='0.3.8'
 grandpa-primitives                ={ version="4.0.0-dev", package="sp-consensus-grandpa", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 hex-literal                       ="0.3.1"
-pallet-im-online                  ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
+pallet-im-online = { default-features = false , version = "24.0.0" }
 sc-chain-spec                     ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
 serde                             ={ version="1.0.126", features=["derive"] }
 sp-authority-discovery            ={ version="4.0.0-dev", git='https://github.com/paritytech/substrate', branch="polkadot-v1.0.0" }
