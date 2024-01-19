@@ -19,9 +19,8 @@ use crate::endowed_accounts::endowed_accounts_dev;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-    IndicesConfig, MaxNominations, RelayerConfig, RuntimeGenesisConfig, SessionConfig,
-    StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig,
+    IndicesConfig, MaxNominations, RuntimeGenesisConfig, SessionConfig, StakerStatus,
+    StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
@@ -270,6 +269,7 @@ pub fn testnet_genesis_config(
         staking: StakingConfig {
             validator_count: initial_authorities.len() as u32,
             minimum_validator_count: 0,
+            // TODO (Nando): We'll want to fill these out
             invulnerables: vec![],
             slash_reward_fraction: Perbill::from_percent(10),
             stakers,
@@ -329,17 +329,7 @@ pub fn testnet_genesis_config(
         grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        relayer: RelayerConfig {
-            registered_accounts: vec![
-                (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    1,
-                    Some(crate::chain_spec::tss_x25519_public_key::EVE),
-                ),
-                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 2, None),
-            ],
-        },
+        relayer: Default::default(),
         vesting: Default::default(),
         transaction_storage: Default::default(),
         transaction_payment: Default::default(),
