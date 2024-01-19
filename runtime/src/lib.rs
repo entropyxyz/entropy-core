@@ -49,8 +49,9 @@ use frame_support::{
     parameter_types,
     sp_runtime::RuntimeDebug,
     traits::{
-        ConstU16, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
-        InstanceFilter, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, WithdrawReasons,
+        fungible::HoldConsideration, ConstU16, ConstU32, Contains, Currency, EitherOfDiverse,
+        EqualPrivilegeOnly, Imbalance, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice,
+        LockIdentifier, OnUnbalanced, WithdrawReasons,
     },
     weights::{
         constants::{
@@ -1062,15 +1063,19 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-  pub const PreimageMaxSize: u32 = 4096 * 1024;
-  pub const PreimageBaseDeposit: Balance = DOLLARS;
-  // One cent: $10,000 / MB
-  pub const PreimageByteDeposit: Balance = CENTS;
+    pub const PreimageBaseDeposit: Balance = deposit(2, 64);
+    pub const PreimageByteDeposit: Balance = deposit(0, 1);
+    pub const PreimageHoldReason: RuntimeHoldReason =
+        RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
 
 impl pallet_preimage::Config for Runtime {
-    type BaseDeposit = PreimageBaseDeposit;
-    type ByteDeposit = PreimageByteDeposit;
+    type Consideration = HoldConsideration<
+        AccountId,
+        Balances,
+        PreimageHoldReason,
+        LinearStoragePrice<PreimageBaseDeposit, PreimageByteDeposit, Balance>,
+    >;
     type Currency = Balances;
     type ManagerOrigin = EnsureRoot<AccountId>;
     type RuntimeEvent = RuntimeEvent;
