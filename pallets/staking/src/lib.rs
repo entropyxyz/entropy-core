@@ -67,6 +67,7 @@ pub mod pallet {
         DefaultNoBound,
     };
     use frame_system::pallet_prelude::*;
+    use sp_staking::StakingAccount;
 
     // TODO (Nando): Not sure why we can't pull this from `frame_support`
     use sp_std::vec::Vec;
@@ -258,9 +259,9 @@ pub mod pallet {
                 Error::<T>::EndpointTooLong
             );
 
-            pallet_staking::Pallet::<T>::ledger(who.clone().into())
+            pallet_staking::Pallet::<T>::ledger(StakingAccount::Stash(who.clone()))
                 .map_err(|_| Error::<T>::NoBond)?;
-            let ledger = pallet_staking::Pallet::<T>::ledger(who.clone().into())
+            let ledger = pallet_staking::Pallet::<T>::ledger(StakingAccount::Stash(who.clone()))
                 .map_err(|_| Error::<T>::NoBond)?;
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
@@ -314,8 +315,9 @@ pub mod pallet {
             num_slashing_spans: u32,
         ) -> DispatchResultWithPostInfo {
             let controller = ensure_signed(origin.clone())?;
-            let ledger = pallet_staking::Pallet::<T>::ledger(controller.clone().into())
-                .map_err(|_| Error::<T>::NoThresholdKey)?;
+            let ledger =
+                pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
+                    .map_err(|_| Error::<T>::NoThresholdKey)?;
 
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
@@ -382,8 +384,9 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         pub fn get_stash(controller: &T::AccountId) -> Result<T::AccountId, DispatchError> {
-            let ledger = pallet_staking::Pallet::<T>::ledger(controller.clone().into())
-                .map_err(|_| Error::<T>::NotController)?;
+            let ledger =
+                pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
+                    .map_err(|_| Error::<T>::NotController)?;
             Ok(ledger.stash)
         }
 
