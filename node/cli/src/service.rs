@@ -35,7 +35,7 @@
 
 use std::sync::Arc;
 
-use entropy_runtime::Block;
+use entropy_runtime::opaque::Block;
 use entropy_runtime::RuntimeApi;
 use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
 use futures::prelude::*;
