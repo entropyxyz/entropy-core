@@ -211,6 +211,7 @@ async fn test_wasm_register_with_private_key_visibility() {
 
     put_register_request_on_chain(
         &api,
+        &rpc,
         one.pair(),
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
