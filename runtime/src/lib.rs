@@ -1064,6 +1064,8 @@ impl pallet_treasury::Config for Runtime {
     type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
     type PayoutPeriod = SpendPayoutPeriod;
     type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 impl pallet_bounties::Config for Runtime {
