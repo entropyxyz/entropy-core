@@ -25,92 +25,90 @@ hex-literal={ version="0.3.4", optional=true }
 log={ version="0.4.14", default-features=false }
 
 # primitives
-sp-authority-discovery     = { default-features = false , version = "23.0.0" }
-sp-consensus-babe     = { default-features = false , version = "0.29.0" }
-sp-block-builder= { default-features = false , version = "23.0.0" }
-sp-inherents= { default-features = false , version = "23.0.0" }
+sp-authority-discovery={ default-features=false, version="23.0.0" }
+sp-consensus-babe     ={ default-features=false, version="0.29.0" }
+sp-block-builder      ={ default-features=false, version="23.0.0" }
+sp-inherents          ={ default-features=false, version="23.0.0" }
 
 # TODO (Nando)
 # node-primitives       ={ version="2.0.0", default-features=false, git='https://github.com/paritytech/polkadot-sdk.git', branch="polkadot-v1.3.0" }
 
-sp-offchain= { default-features = false , version = "23.0.0" }
-sp-core = { default-features = false , version = "25.0.0" }
-sp-std = { default-features = false , version = "12.0.0" }
-sp-api = { default-features = false , version = "23.0.0" }
-sp-runtime = { default-features = false , version = "28.0.0" }
-sp-staking = { default-features = false , version = "23.0.0" }
-sp-keyring = { default-features = false , version = "28.0.0", optional = true }
-sp-session = { default-features = false , version = "24.0.0" }
-sp-storage = { default-features = false , version = "17.0.0", optional = true }
+sp-offchain={ default-features=false, version="23.0.0" }
+sp-core    ={ default-features=false, version="25.0.0" }
+sp-std     ={ default-features=false, version="12.0.0" }
+sp-api     ={ default-features=false, version="23.0.0" }
+sp-runtime ={ default-features=false, version="28.0.0" }
+sp-staking ={ default-features=false, version="23.0.0" }
+sp-keyring ={ default-features=false, version="28.0.0", optional=true }
+sp-session ={ default-features=false, version="24.0.0" }
+sp-storage ={ default-features=false, version="17.0.0", optional=true }
 
-sp-transaction-pool ={ default-features = false , version = "23.0.0" }
-sp-version = { default-features = false , version = "26.0.0" }
-sp-npos-elections = { default-features = false , version = "23.0.0" }
-sp-io = { default-features = false , version = "27.0.0" }
+sp-transaction-pool={ default-features=false, version="23.0.0" }
+sp-version         ={ default-features=false, version="26.0.0" }
+sp-npos-elections  ={ default-features=false, version="23.0.0" }
+sp-io              ={ default-features=false, version="27.0.0" }
 
 # frame dependencies
-frame-benchmarking = { default-features = false, optional = true , version = "25.0.0" }
-frame-election-provider-support = { default-features = false , version = "25.0.0" }
-frame-executive = { default-features = false , version = "25.0.0" }
-frame-support = { default-features = false , version = "25.0.0" }
-frame-system-benchmarking = { default-features = false, optional = true , version = "25.0.0" }
-frame-system-rpc-runtime-api = { default-features = false , version = "23.0.0" }
-frame-system = { default-features = false , version = "25.0.0" }
-frame-try-runtime = { default-features = false, optional = true , version = "0.31.0" }
+frame-benchmarking             ={ default-features=false, optional=true, version="25.0.0" }
+frame-election-provider-support={ default-features=false, version="25.0.0" }
+frame-executive                ={ default-features=false, version="25.0.0" }
+frame-support                  ={ default-features=false, version="25.0.0" }
+frame-system-benchmarking      ={ default-features=false, optional=true, version="25.0.0" }
+frame-system-rpc-runtime-api   ={ default-features=false, version="23.0.0" }
+frame-system                   ={ default-features=false, version="25.0.0" }
+frame-try-runtime              ={ default-features=false, optional=true, version="0.31.0" }
 
-pallet-assets={ default-features = false , version = "26.0.0" }
-pallet-authority-discovery = { default-features = false , version = "25.0.0" }
-pallet-authorship = { default-features = false , version = "25.0.0" }
-pallet-babe = { default-features = false , version = "25.0.0" }
-pallet-bags-list = { default-features = false , version = "24.0.0" }
-pallet-balances = { default-features = false , version = "25.0.0" }
-pallet-bounties = { default-features = false , version = "24.0.0" }
-pallet-collective = { default-features = false , version = "25.0.0" }
-pallet-conviction-voting = { default-features = false , version = "25.0.0" }
-pallet-democracy = { default-features = false , version = "25.0.0" }
-pallet-election-provider-multi-phase = { default-features = false , version = "24.0.0" }
-pallet-election-provider-support-benchmarking = { default-features = false, optional = true , version = "24.0.0" }
-pallet-elections-phragmen = { default-features = false , version = "26.0.0" }
-pallet-grandpa = { default-features = false , version = "25.0.0" }
-pallet-im-online = { default-features = false , version = "24.0.0" }
-pallet-indices = { default-features = false , version = "25.0.0" }
+pallet-assets                                ={ default-features=false, version="26.0.0" }
+pallet-authority-discovery                   ={ default-features=false, version="25.0.0" }
+pallet-authorship                            ={ default-features=false, version="25.0.0" }
+pallet-babe                                  ={ default-features=false, version="25.0.0" }
+pallet-bags-list                             ={ default-features=false, version="24.0.0" }
+pallet-balances                              ={ default-features=false, version="25.0.0" }
+pallet-bounties                              ={ default-features=false, version="24.0.0" }
+pallet-collective                            ={ default-features=false, version="25.0.0" }
+pallet-conviction-voting                     ={ default-features=false, version="25.0.0" }
+pallet-democracy                             ={ default-features=false, version="25.0.0" }
+pallet-election-provider-multi-phase         ={ default-features=false, version="24.0.0" }
+pallet-election-provider-support-benchmarking={ default-features=false, optional=true, version="24.0.0" }
+pallet-elections-phragmen                    ={ default-features=false, version="26.0.0" }
+pallet-grandpa                               ={ default-features=false, version="25.0.0" }
+pallet-im-online                             ={ default-features=false, version="24.0.0" }
+pallet-indices                               ={ default-features=false, version="25.0.0" }
 
+pallet-identity={ default-features=false, version="25.0.0" }
 
-pallet-identity = { default-features = false , version = "25.0.0" }
+pallet-membership           ={ default-features=false, version="25.0.0" }
+pallet-multisig             ={ default-features=false, version="25.0.0" }
+pallet-offences             ={ default-features=false, version="24.0.0" }
+pallet-offences-benchmarking={ default-features=false, optional=true, version="25.0.0" }
 
-pallet-membership = { default-features = false , version = "25.0.0" }
-pallet-multisig = { default-features = false , version = "25.0.0" }
-pallet-offences = { default-features = false , version = "24.0.0" }
-pallet-offences-benchmarking = { default-features = false, optional = true , version = "25.0.0" }
-
-pallet-preimage = { default-features = false , version = "25.0.0" }
-pallet-proxy = { default-features = false , version = "25.0.0" }
-pallet-referenda = { default-features = false , version = "25.0.0" }
-pallet-recovery = { default-features = false , version = "25.0.0" }
+pallet-preimage ={ default-features=false, version="25.0.0" }
+pallet-proxy    ={ default-features=false, version="25.0.0" }
+pallet-referenda={ default-features=false, version="25.0.0" }
+pallet-recovery ={ default-features=false, version="25.0.0" }
 
 # TODO (Nando): Do we need this feature?
-pallet-session = { default-features = false , version = "25.0.0", features=["historical"] }
+pallet-session={ default-features=false, version="25.0.0", features=["historical"] }
 
-pallet-session-benchmarking = { default-features = false, optional = true , version = "25.0.0" }
-pallet-staking = { default-features = false , version = "25.0.0" }
-pallet-staking-reward-curve = { default-features = false, version = "10.0.0" }
-pallet-scheduler = { default-features = false , version = "26.0.0" }
+pallet-session-benchmarking={ default-features=false, optional=true, version="25.0.0" }
+pallet-staking             ={ default-features=false, version="25.0.0" }
+pallet-staking-reward-curve={ default-features=false, version="10.0.0" }
+pallet-scheduler           ={ default-features=false, version="26.0.0" }
 
-pallet-sudo = { default-features = false, optional = true, version = "25.0.0" }
-pallet-timestamp = { default-features = false , version = "24.0.0" }
-pallet-tips = { default-features = false , version = "24.0.0" }
-pallet-treasury = { default-features = false , version = "24.0.0" }
-pallet-utility = { default-features = false , version = "25.0.0" }
+pallet-sudo     ={ default-features=false, optional=true, version="25.0.0" }
+pallet-timestamp={ default-features=false, version="24.0.0" }
+pallet-tips     ={ default-features=false, version="24.0.0" }
+pallet-treasury ={ default-features=false, version="24.0.0" }
+pallet-utility  ={ default-features=false, version="25.0.0" }
 
-pallet-transaction-payment = { default-features = false , version = "25.0.0" }
-pallet-transaction-payment-rpc-runtime-api = { default-features = false , version = "25.0.0" }
-pallet-transaction-storage={ default-features = false , version = "24.0.0" }
+pallet-transaction-payment                ={ default-features=false, version="25.0.0" }
+pallet-transaction-payment-rpc-runtime-api={ default-features=false, version="25.0.0" }
+pallet-transaction-storage                ={ default-features=false, version="24.0.0" }
 
-pallet-nomination-pools = { default-features = false , version = "22.0.0" }
-pallet-nomination-pools-runtime-api = { default-features = false , version = "20.0.0" }
-pallet-nomination-pools-benchmarking = { default-features = false, optional = true , version = "23.0.0" }
-pallet-vesting = { default-features = false , version = "25.0.0" }
-
+pallet-nomination-pools             ={ default-features=false, version="22.0.0" }
+pallet-nomination-pools-runtime-api ={ default-features=false, version="20.0.0" }
+pallet-nomination-pools-benchmarking={ default-features=false, optional=true, version="23.0.0" }
+pallet-vesting                      ={ default-features=false, version="25.0.0" }
 
 pallet-relayer          ={ version='0.0.9', default-features=false, path='../pallets/relayer' }
 pallet-slashing         ={ version='0.0.9', default-features=false, path='../pallets/slashing' }
