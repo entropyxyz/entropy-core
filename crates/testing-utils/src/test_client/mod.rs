@@ -243,7 +243,7 @@ pub async fn sign(
     Err(anyhow!("Failed to get responses from TSS servers"))
 }
 
-/// Store a program on chain making and return it's hash
+/// Store a program on chain and return it's hash
 #[tracing::instrument(
     skip_all,
     fields(
@@ -331,7 +331,7 @@ pub async fn get_accounts(
     Ok(accounts)
 }
 
-/// Get info on all stored programs
+/// Get details of all stored programs
 pub async fn get_programs(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -341,7 +341,6 @@ pub async fn get_programs(
     let keys = Vec::<()>::new();
     let storage_address = subxt::dynamic::storage("Programs", "Programs", keys);
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
-    // let mut programs: Vec<ProgramInfo<<EntropyConfig as Config>::AccountId>> = Vec::new();
     let mut programs = Vec::new();
     while let Some(Ok((storage_key, program))) = iter.next().await {
         let decoded = program.into_encoded();

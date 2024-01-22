@@ -268,7 +268,7 @@ async fn run_command() -> anyhow::Result<String> {
             };
 
             let hash = store_program(&api, &keypair, program, program_config).await?;
-            Ok(format!("Program updated {hash}"))
+            Ok(format!("Program stored {hash}"))
         },
         CliCommand::UpdatePrograms {
             signature_request_account_name,
