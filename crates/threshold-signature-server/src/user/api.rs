@@ -293,9 +293,10 @@ async fn setup_dkg(
     let mut addresses_in_subgroup =
         return_all_addresses_of_subgroup(&api, rpc, my_subgroup).await?;
 
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    let block_hash = rpc.chain_get_block_hash(None).await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
-    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await.unwrap();
+    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
 
     for (i, sig_request_account) in data.sig_request_accounts.into_iter().enumerate() {
         let address_slice: &[u8; 32] = &sig_request_account
