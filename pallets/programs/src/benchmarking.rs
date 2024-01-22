@@ -22,8 +22,7 @@ use frame_support::{
 };
 use frame_system::{EventRecord, RawOrigin};
 use sp_runtime::{traits::Hash, Saturating};
-use sp_std::std::Vec;
-use sp_std::vec;
+use sp_std::{vec, vec::Vec};
 
 use super::*;
 #[allow(unused)]
