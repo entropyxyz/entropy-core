@@ -109,8 +109,7 @@ pallet-transaction-pause={ version='0.0.9', path='../pallets/transaction-pause',
 entropy-shared={ path="../crates/shared", default-features=false, features=["wasm-no-std"] }
 
 [build-dependencies]
-# TODO (Nando): ?
-substrate-wasm-builder={ version="5.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0", optional=true }
+substrate-wasm-builder={ version="14.0.0", optional=true }
 
 [features]
 default=["std"]
