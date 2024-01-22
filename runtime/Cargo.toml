@@ -14,50 +14,46 @@ targets=["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 
-# third-party dependencies
+# Third-party dependencies
 codec={ package="parity-scale-codec", version="3.6.3", default-features=false, features=[
   "derive",
   "max-encoded-len",
 ] }
-scale-info={ version="2.1", default-features=false, features=["derive"] }
-static_assertions="1.1.0"
 hex-literal={ version="0.3.4", optional=true }
 log={ version="0.4.14", default-features=false }
+scale-info={ version="2.1", default-features=false, features=["derive"] }
+static_assertions="1.1.0"
 
-# primitives
+# Substrate Primitives
+sp-api                ={ default-features=false, version="23.0.0" }
 sp-authority-discovery={ default-features=false, version="23.0.0" }
-sp-consensus-babe     ={ default-features=false, version="0.29.0" }
 sp-block-builder      ={ default-features=false, version="23.0.0" }
+sp-consensus-babe     ={ default-features=false, version="0.29.0" }
+sp-core               ={ default-features=false, version="25.0.0" }
 sp-inherents          ={ default-features=false, version="23.0.0" }
+sp-io                 ={ default-features=false, version="27.0.0" }
+sp-keyring            ={ default-features=false, version="28.0.0", optional=true }
+sp-npos-elections     ={ default-features=false, version="23.0.0" }
+sp-offchain           ={ default-features=false, version="23.0.0" }
+sp-runtime            ={ default-features=false, version="28.0.0" }
+sp-session            ={ default-features=false, version="24.0.0" }
+sp-staking            ={ default-features=false, version="23.0.0" }
+sp-std                ={ default-features=false, version="12.0.0" }
+sp-storage            ={ default-features=false, version="17.0.0", optional=true }
+sp-transaction-pool   ={ default-features=false, version="23.0.0" }
+sp-version            ={ default-features=false, version="26.0.0" }
 
-# TODO (Nando)
-# node-primitives       ={ version="2.0.0", default-features=false, git='https://github.com/paritytech/polkadot-sdk.git', branch="polkadot-v1.3.0" }
-
-sp-offchain={ default-features=false, version="23.0.0" }
-sp-core    ={ default-features=false, version="25.0.0" }
-sp-std     ={ default-features=false, version="12.0.0" }
-sp-api     ={ default-features=false, version="23.0.0" }
-sp-runtime ={ default-features=false, version="28.0.0" }
-sp-staking ={ default-features=false, version="23.0.0" }
-sp-keyring ={ default-features=false, version="28.0.0", optional=true }
-sp-session ={ default-features=false, version="24.0.0" }
-sp-storage ={ default-features=false, version="17.0.0", optional=true }
-
-sp-transaction-pool={ default-features=false, version="23.0.0" }
-sp-version         ={ default-features=false, version="26.0.0" }
-sp-npos-elections  ={ default-features=false, version="23.0.0" }
-sp-io              ={ default-features=false, version="27.0.0" }
-
-# frame dependencies
+# FRAME Dependencies
 frame-benchmarking             ={ default-features=false, optional=true, version="25.0.0" }
 frame-election-provider-support={ default-features=false, version="25.0.0" }
 frame-executive                ={ default-features=false, version="25.0.0" }
 frame-support                  ={ default-features=false, version="25.0.0" }
+frame-system                   ={ default-features=false, version="25.0.0" }
 frame-system-benchmarking      ={ default-features=false, optional=true, version="25.0.0" }
 frame-system-rpc-runtime-api   ={ default-features=false, version="23.0.0" }
-frame-system                   ={ default-features=false, version="25.0.0" }
 frame-try-runtime              ={ default-features=false, optional=true, version="0.31.0" }
 
+# Substrate Pallets
 pallet-assets                                ={ default-features=false, version="26.0.0" }
 pallet-authority-discovery                   ={ default-features=false, version="25.0.0" }
 pallet-authorship                            ={ default-features=false, version="25.0.0" }
@@ -72,171 +68,165 @@ pallet-election-provider-multi-phase         ={ default-features=false, version=
 pallet-election-provider-support-benchmarking={ default-features=false, optional=true, version="24.0.0" }
 pallet-elections-phragmen                    ={ default-features=false, version="26.0.0" }
 pallet-grandpa                               ={ default-features=false, version="25.0.0" }
+pallet-identity                              ={ default-features=false, version="25.0.0" }
 pallet-im-online                             ={ default-features=false, version="24.0.0" }
 pallet-indices                               ={ default-features=false, version="25.0.0" }
+pallet-membership                            ={ default-features=false, version="25.0.0" }
+pallet-multisig                              ={ default-features=false, version="25.0.0" }
+pallet-nomination-pools                      ={ default-features=false, version="22.0.0" }
+pallet-nomination-pools-benchmarking         ={ default-features=false, optional=true, version="23.0.0" }
+pallet-nomination-pools-runtime-api          ={ default-features=false, version="20.0.0" }
+pallet-offences                              ={ default-features=false, version="24.0.0" }
+pallet-offences-benchmarking                 ={ default-features=false, optional=true, version="25.0.0" }
+pallet-preimage                              ={ default-features=false, version="25.0.0" }
+pallet-proxy                                 ={ default-features=false, version="25.0.0" }
+pallet-recovery                              ={ default-features=false, version="25.0.0" }
+pallet-referenda                             ={ default-features=false, version="25.0.0" }
+pallet-scheduler                             ={ default-features=false, version="26.0.0" }
+pallet-session-benchmarking                  ={ default-features=false, optional=true, version="25.0.0" }
+pallet-session                               ={ default-features=false, version="25.0.0", features=["historical"] }
+pallet-staking                               ={ default-features=false, version="25.0.0" }
+pallet-staking-reward-curve                  ={ default-features=false, version="10.0.0" }
+pallet-sudo                                  ={ default-features=false, optional=true, version="25.0.0" }
+pallet-timestamp                             ={ default-features=false, version="24.0.0" }
+pallet-tips                                  ={ default-features=false, version="24.0.0" }
+pallet-transaction-payment                   ={ default-features=false, version="25.0.0" }
+pallet-transaction-payment-rpc-runtime-api   ={ default-features=false, version="25.0.0" }
+pallet-transaction-storage                   ={ default-features=false, version="24.0.0" }
+pallet-treasury                              ={ default-features=false, version="24.0.0" }
+pallet-utility                               ={ default-features=false, version="25.0.0" }
+pallet-vesting                               ={ default-features=false, version="25.0.0" }
 
-pallet-identity={ default-features=false, version="25.0.0" }
-
-pallet-membership           ={ default-features=false, version="25.0.0" }
-pallet-multisig             ={ default-features=false, version="25.0.0" }
-pallet-offences             ={ default-features=false, version="24.0.0" }
-pallet-offences-benchmarking={ default-features=false, optional=true, version="25.0.0" }
-
-pallet-preimage ={ default-features=false, version="25.0.0" }
-pallet-proxy    ={ default-features=false, version="25.0.0" }
-pallet-referenda={ default-features=false, version="25.0.0" }
-pallet-recovery ={ default-features=false, version="25.0.0" }
-
-# TODO (Nando): Do we need this feature?
-pallet-session={ default-features=false, version="25.0.0", features=["historical"] }
-
-pallet-session-benchmarking={ default-features=false, optional=true, version="25.0.0" }
-pallet-staking             ={ default-features=false, version="25.0.0" }
-pallet-staking-reward-curve={ default-features=false, version="10.0.0" }
-pallet-scheduler           ={ default-features=false, version="26.0.0" }
-
-pallet-sudo     ={ default-features=false, optional=true, version="25.0.0" }
-pallet-timestamp={ default-features=false, version="24.0.0" }
-pallet-tips     ={ default-features=false, version="24.0.0" }
-pallet-treasury ={ default-features=false, version="24.0.0" }
-pallet-utility  ={ default-features=false, version="25.0.0" }
-
-pallet-transaction-payment                ={ default-features=false, version="25.0.0" }
-pallet-transaction-payment-rpc-runtime-api={ default-features=false, version="25.0.0" }
-pallet-transaction-storage                ={ default-features=false, version="24.0.0" }
-
-pallet-nomination-pools             ={ default-features=false, version="22.0.0" }
-pallet-nomination-pools-runtime-api ={ default-features=false, version="20.0.0" }
-pallet-nomination-pools-benchmarking={ default-features=false, optional=true, version="23.0.0" }
-pallet-vesting                      ={ default-features=false, version="25.0.0" }
-
+# Entropy Pallets
+pallet-free-tx          ={ version='0.0.9', default-features=false, path='../pallets/free-tx' }
+pallet-programs         ={ version='0.0.9', default-features=false, path='../pallets/programs' }
+pallet-propagation      ={ version='0.0.9', default-features=false, path='../pallets/propagation' }
 pallet-relayer          ={ version='0.0.9', default-features=false, path='../pallets/relayer' }
 pallet-slashing         ={ version='0.0.9', default-features=false, path='../pallets/slashing' }
-pallet-programs         ={ version='0.0.9', default-features=false, path='../pallets/programs' }
 pallet-staking-extension={ version='0.0.9', default-features=false, path='../pallets/staking' }
 pallet-transaction-pause={ version='0.0.9', default-features=false, path='../pallets/transaction-pause' }
-pallet-free-tx          ={ version='0.0.9', default-features=false, path='../pallets/free-tx' }
-pallet-propagation      ={ version='0.0.9', default-features=false, path='../pallets/propagation' }
 
 entropy-shared={ path="../crates/shared", default-features=false, features=["wasm-no-std"] }
 
 [build-dependencies]
+# TODO (Nando): ?
 substrate-wasm-builder={ version="5.0.0-dev", git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0", optional=true }
 
 [features]
 default=["std"]
 with-tracing=["frame-executive/with-tracing"]
 std=[
-  "sp-authority-discovery/std",
+  "codec/std",
+  "frame-benchmarking/std",
+  "frame-executive/std",
+  "frame-support/std",
+  "frame-system-rpc-runtime-api/std",
+  "frame-system/std",
+  "frame-try-runtime/std",
+  "log/std",
   "pallet-assets/std",
   "pallet-authority-discovery/std",
   "pallet-authorship/std",
-  "sp-consensus-babe/std",
   "pallet-babe/std",
   "pallet-bags-list/std",
   "pallet-balances/std",
   "pallet-bounties/std",
-  "sp-block-builder/std",
-  "codec/std",
-  "scale-info/std",
   "pallet-collective/std",
-  "pallet-programs/std",
   "pallet-conviction-voting/std",
   "pallet-democracy/std",
+  "pallet-election-provider-multi-phase/std",
   "pallet-elections-phragmen/std",
-  "frame-executive/std",
+  "pallet-free-tx/std",
   "pallet-grandpa/std",
+  "pallet-identity/std",
   "pallet-im-online/std",
   "pallet-indices/std",
-  "sp-inherents/std",
-  "pallet-relayer/std",
   "pallet-membership/std",
   "pallet-multisig/std",
-  "pallet-identity/std",
-  "pallet-propagation/std",
-  "pallet-scheduler/std",
-  "pallet-preimage/std",
-  "pallet-referenda/std",
-  "pallet-slashing/std",
-  # TODO (Nando)
-  # "node-primitives/std",
-  "sp-offchain/std",
-  "pallet-offences/std",
-  "pallet-proxy/std",
-  "sp-core/std",
-  "pallet-nomination-pools/std",
-  "pallet-nomination-pools-runtime-api/std",
   "pallet-nomination-pools-benchmarking?/std",
-  "sp-std/std",
+  "pallet-nomination-pools-runtime-api/std",
+  "pallet-nomination-pools/std",
+  "pallet-offences/std",
+  "pallet-preimage/std",
+  "pallet-programs/std",
+  "pallet-propagation/std",
+  "pallet-proxy/std",
+  "pallet-recovery/std",
+  "pallet-referenda/std",
+  "pallet-relayer/std",
+  "pallet-scheduler/std",
   "pallet-session/std",
-  "sp-api/std",
-  "sp-runtime/std",
-  "sp-staking/std",
-  "pallet-staking/std",
+  "pallet-slashing/std",
   "pallet-staking-extension/std",
-  "sp-keyring",
-  "sp-session/std",
+  "pallet-staking/std",
   "pallet-sudo/std",
-  "frame-support/std",
-  "frame-benchmarking/std",
-  "frame-system-rpc-runtime-api/std",
-  "frame-system/std",
-  "pallet-election-provider-multi-phase/std",
   "pallet-timestamp/std",
   "pallet-tips/std",
   "pallet-transaction-pause/std",
-  "pallet-free-tx/std",
   "pallet-transaction-payment-rpc-runtime-api/std",
   "pallet-transaction-payment/std",
   "pallet-transaction-storage/std",
   "pallet-treasury/std",
-  "sp-transaction-pool/std",
   "pallet-utility/std",
-  "sp-version/std",
-  "pallet-recovery/std",
   "pallet-vesting/std",
-  "log/std",
-  "frame-try-runtime/std",
-  "sp-npos-elections/std",
+  "scale-info/std",
+  "sp-api/std",
+  "sp-authority-discovery/std",
+  "sp-block-builder/std",
+  "sp-consensus-babe/std",
+  "sp-core/std",
+  "sp-inherents/std",
   "sp-io/std",
+  "sp-keyring",
+  "sp-npos-elections/std",
+  "sp-offchain/std",
+  "sp-runtime/std",
+  "sp-session/std",
+  "sp-staking/std",
+  "sp-std/std",
+  "sp-transaction-pool/std",
+  "sp-version/std",
   "substrate-wasm-builder",
 ]
 runtime-benchmarks=[
   "frame-benchmarking/runtime-benchmarks",
   "frame-election-provider-support/runtime-benchmarks",
   "frame-support/runtime-benchmarks",
+  "frame-system-benchmarking/runtime-benchmarks",
   "frame-system/runtime-benchmarks",
-  "pallet-election-provider-multi-phase/runtime-benchmarks",
-  "pallet-election-provider-support-benchmarking/runtime-benchmarks",
-  "sp-runtime/runtime-benchmarks",
+  "hex-literal",
   "pallet-assets/runtime-benchmarks",
   "pallet-babe/runtime-benchmarks",
-  "pallet-balances/runtime-benchmarks",
   "pallet-bags-list/runtime-benchmarks",
+  "pallet-balances/runtime-benchmarks",
   "pallet-bounties/runtime-benchmarks",
   "pallet-collective/runtime-benchmarks",
-  "pallet-programs/runtime-benchmarks",
-  "pallet-nomination-pools-benchmarking/runtime-benchmarks",
   "pallet-conviction-voting/runtime-benchmarks",
   "pallet-democracy/runtime-benchmarks",
+  "pallet-election-provider-multi-phase/runtime-benchmarks",
+  "pallet-election-provider-support-benchmarking/runtime-benchmarks",
   "pallet-elections-phragmen/runtime-benchmarks",
   "pallet-free-tx/runtime-benchmarks",
-  "pallet-staking-extension/runtime-benchmarks",
   "pallet-grandpa/runtime-benchmarks",
+  "pallet-identity/runtime-benchmarks",
   "pallet-identity/runtime-benchmarks",
   "pallet-im-online/runtime-benchmarks",
   "pallet-indices/runtime-benchmarks",
-  "pallet-identity/runtime-benchmarks",
   "pallet-membership/runtime-benchmarks",
   "pallet-multisig/runtime-benchmarks",
+  "pallet-nomination-pools-benchmarking/runtime-benchmarks",
+  "pallet-offences-benchmarking/runtime-benchmarks",
   "pallet-preimage/runtime-benchmarks",
+  "pallet-programs/runtime-benchmarks",
   "pallet-proxy/runtime-benchmarks",
-  "pallet-referenda/runtime-benchmarks",
   "pallet-recovery/runtime-benchmarks",
+  "pallet-referenda/runtime-benchmarks",
   "pallet-relayer/runtime-benchmarks",
-  "pallet-sudo/runtime-benchmarks",
   "pallet-scheduler/runtime-benchmarks",
+  "pallet-session-benchmarking/runtime-benchmarks",
+  "pallet-staking-extension/runtime-benchmarks",
   "pallet-staking/runtime-benchmarks",
+  "pallet-sudo/runtime-benchmarks",
   "pallet-timestamp/runtime-benchmarks",
   "pallet-tips/runtime-benchmarks",
   "pallet-transaction-pause/runtime-benchmarks",
@@ -244,49 +234,46 @@ runtime-benchmarks=[
   "pallet-treasury/runtime-benchmarks",
   "pallet-utility/runtime-benchmarks",
   "pallet-vesting/runtime-benchmarks",
-  "pallet-offences-benchmarking/runtime-benchmarks",
-  "pallet-session-benchmarking/runtime-benchmarks",
-  "frame-system-benchmarking/runtime-benchmarks",
-  "hex-literal",
+  "sp-runtime/runtime-benchmarks",
   "sp-storage",
 ]
 try-runtime=[
   "frame-executive/try-runtime",
-  "frame-try-runtime",
   "frame-system/try-runtime",
+  "frame-try-runtime",
   "pallet-assets/try-runtime",
   "pallet-authority-discovery/try-runtime",
   "pallet-authorship/try-runtime",
   "pallet-babe/try-runtime",
-  "pallet-nomination-pools/try-runtime",
   "pallet-balances/try-runtime",
   "pallet-bounties/try-runtime",
   "pallet-collective/try-runtime",
   "pallet-conviction-voting/try-runtime",
   "pallet-democracy/try-runtime",
+  "pallet-election-provider-multi-phase/try-runtime",
   "pallet-elections-phragmen/try-runtime",
   "pallet-free-tx/try-runtime",
   "pallet-grandpa/try-runtime",
+  "pallet-identity/try-runtime",
   "pallet-im-online/try-runtime",
   "pallet-indices/try-runtime",
   "pallet-membership/try-runtime",
   "pallet-multisig/try-runtime",
-  "pallet-identity/try-runtime",
-  "pallet-scheduler/try-runtime",
+  "pallet-nomination-pools/try-runtime",
   "pallet-offences/try-runtime",
   "pallet-preimage/try-runtime",
-  "pallet-proxy/try-runtime",
   "pallet-propagation/try-runtime",
+  "pallet-proxy/try-runtime",
+  "pallet-recovery/try-runtime",
   "pallet-referenda/try-runtime",
+  "pallet-scheduler/try-runtime",
   "pallet-session/try-runtime",
   "pallet-staking/try-runtime",
   "pallet-sudo/try-runtime",
-  "pallet-election-provider-multi-phase/try-runtime",
   "pallet-timestamp/try-runtime",
   "pallet-tips/try-runtime",
   "pallet-transaction-payment/try-runtime",
   "pallet-treasury/try-runtime",
   "pallet-utility/try-runtime",
-  "pallet-recovery/try-runtime",
   "pallet-vesting/try-runtime",
 ]
