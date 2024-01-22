@@ -14,16 +14,15 @@ targets=['x86_64-unknown-linux-gnu']
 [dependencies]
 codec     ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
 scale-info={ version="2.1", default-features=false, features=["derive"] }
-
-frame-benchmarking={ default-features=false, optional=true, version="25.0.0" }
-frame-support     ={ default-features=false, version="25.0.0" }
-frame-system      ={ default-features=false, version="25.0.0" }
-
 log       ={ version="0.4.0", default-features=false }
-sp-staking={ version="23.0.0", default-features=false }
-sp-io     ={ default-features=false, version="27.0.0" }
-sp-runtime={ version="28.0.0", default-features=false }
-sp-std    ={ package="sp-std", version="12.0.0", default-features=false }
+
+frame-benchmarking={ version="25.0.0", default-features=false, optional=true }
+frame-support     ={ version="25.0.0", default-features=false }
+frame-system      ={ version="25.0.0", default-features=false }
+sp-io             ={ version="27.0.0", default-features=false }
+sp-runtime        ={ version="28.0.0", default-features=false }
+sp-staking        ={ version="23.0.0", default-features=false }
+sp-std            ={ version="12.0.0", default-features=false }
 
 entropy-shared={ path="../../crates/shared", default-features=false, features=["wasm-no-std"] }
 
@@ -35,13 +34,13 @@ sp-core        ={ version="25.0.0", default-features=false }
 default=['std']
 runtime-benchmarks=['frame-benchmarking']
 std=[
-  'codec/std',
-  'log/std',
   "scale-info/std",
-  'frame-support/std',
-  'frame-system/std',
-  'frame-benchmarking/std',
   "sp-io/std",
   "sp-runtime/std",
+  'codec/std',
+  'frame-benchmarking/std',
+  'frame-support/std',
+  'frame-system/std',
+  'log/std',
 ]
 try-runtime=['frame-support/try-runtime']

@@ -14,48 +14,47 @@ targets=['x86_64-unknown-linux-gnu']
 [dependencies]
 codec     ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
 scale-info={ version="2.1", default-features=false, features=["derive"] }
+log       ={ version="0.4.0", default-features=false }
 
-frame-benchmarking={ default-features=false, optional=true, version="25.0.0" }
-frame-support     ={ default-features=false, version="25.0.0" }
-frame-system      ={ default-features=false, version="25.0.0" }
+frame-benchmarking={ version="25.0.0", default-features=false, optional=true }
+frame-support     ={ version="25.0.0", default-features=false }
+frame-system      ={ version="25.0.0", default-features=false }
+pallet-authorship ={ version="25.0.0", default-features=false }
+pallet-session    ={ version="25.0.0", default-features=false }
+pallet-staking    ={ version="25.0.0", default-features=false }
+sp-core           ={ version="25.0.0", default-features=false }
+sp-runtime        ={ version="28.0.0", default-features=false }
+sp-std            ={ version="12.0.0", default-features=false }
 
-sp-std           ={ package="sp-std", version="12.0.0", default-features=false }
-sp-core          ={ version="25.0.0", default-features=false }
-sp-runtime       ={ version="28.0.0", default-features=false }
-pallet-authorship={ default-features=false, version="25.0.0" }
-log              ={ version="0.4.0", default-features=false }
-pallet-session   ={ version="25.0.0", default-features=false }
-pallet-staking   ={ version="25.0.0", default-features=false }
-
+entropy-shared          ={ path="../../crates/shared", features=["wasm-no-std"], default-features=false }
 pallet-programs         ={ version="0.0.9", path="../programs", default-features=false }
-pallet-staking-extension={ version="0.0.9", default-features=false, path="../staking" }
-entropy-shared          ={ path="../../crates/shared", default-features=false, features=["wasm-no-std"] }
+pallet-staking-extension={ version="0.0.9", path="../staking", default-features=false }
 
 [dev-dependencies]
-pallet-balances                ={ default-features=false, version="25.0.0" }
-pallet-timestamp               ={ default-features=false, version="24.0.0" }
-pallet-bags-list               ={ default-features=false, version="24.0.0" }
+frame-election-provider-support={ version="25.0.0", default-features=false }
+pallet-bags-list               ={ version="24.0.0", default-features=false }
+pallet-balances                ={ version="25.0.0", default-features=false }
 pallet-staking-reward-curve    ={ version="10.0.0" }
+pallet-timestamp               ={ version="24.0.0", default-features=false }
+sp-io                          ={ version="27.0.0", default-features=false }
+sp-npos-elections              ={ version="23.0.0", default-features=false }
 sp-staking                     ={ version="23.0.0", default-features=false }
-sp-npos-elections              ={ default-features=false, version="23.0.0" }
-frame-election-provider-support={ default-features=false, version="25.0.0" }
-sp-io                          ={ default-features=false, version="27.0.0" }
 
 [features]
 
 std=[
+  "sp-npos-elections/std",
+  "sp-runtime/std",
+  "sp-std/std",
   'codec/std',
-  'log/std',
-  'scale-info/std',
+  'frame-benchmarking/std',
   'frame-support/std',
   'frame-system/std',
-  'frame-benchmarking/std',
+  'log/std',
   'pallet-balances/std',
   'pallet-programs/std',
   'pallet-staking-extension/std',
-  "sp-std/std",
-  "sp-runtime/std",
-  "sp-npos-elections/std",
+  'scale-info/std',
 ]
 default=['std']
 runtime-benchmarks=[
