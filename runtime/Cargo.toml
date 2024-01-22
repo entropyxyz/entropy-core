@@ -25,86 +25,86 @@ scale-info={ version="2.1", default-features=false, features=["derive"] }
 static_assertions="1.1.0"
 
 # Substrate Primitives
-sp-api                ={ default-features=false, version="23.0.0" }
-sp-authority-discovery={ default-features=false, version="23.0.0" }
-sp-block-builder      ={ default-features=false, version="23.0.0" }
-sp-consensus-babe     ={ default-features=false, version="0.29.0" }
-sp-core               ={ default-features=false, version="25.0.0" }
-sp-inherents          ={ default-features=false, version="23.0.0" }
-sp-io                 ={ default-features=false, version="27.0.0" }
-sp-keyring            ={ default-features=false, version="28.0.0", optional=true }
-sp-npos-elections     ={ default-features=false, version="23.0.0" }
-sp-offchain           ={ default-features=false, version="23.0.0" }
-sp-runtime            ={ default-features=false, version="28.0.0" }
-sp-session            ={ default-features=false, version="24.0.0" }
-sp-staking            ={ default-features=false, version="23.0.0" }
-sp-std                ={ default-features=false, version="12.0.0" }
-sp-storage            ={ default-features=false, version="17.0.0", optional=true }
-sp-transaction-pool   ={ default-features=false, version="23.0.0" }
-sp-version            ={ default-features=false, version="26.0.0" }
+sp-api                ={ version="23.0.0", default-features=false }
+sp-authority-discovery={ version="23.0.0", default-features=false }
+sp-block-builder      ={ version="23.0.0", default-features=false }
+sp-consensus-babe     ={ version="0.29.0", default-features=false }
+sp-core               ={ version="25.0.0", default-features=false }
+sp-inherents          ={ version="23.0.0", default-features=false }
+sp-io                 ={ version="27.0.0", default-features=false }
+sp-keyring            ={ version="28.0.0", default-features=false, optional=true }
+sp-npos-elections     ={ version="23.0.0", default-features=false }
+sp-offchain           ={ version="23.0.0", default-features=false }
+sp-runtime            ={ version="28.0.0", default-features=false }
+sp-session            ={ version="24.0.0", default-features=false }
+sp-staking            ={ version="23.0.0", default-features=false }
+sp-std                ={ version="12.0.0", default-features=false }
+sp-storage            ={ version="17.0.0", default-features=false, optional=true }
+sp-transaction-pool   ={ version="23.0.0", default-features=false }
+sp-version            ={ version="26.0.0", default-features=false }
 
 # FRAME Dependencies
-frame-benchmarking             ={ default-features=false, optional=true, version="25.0.0" }
-frame-election-provider-support={ default-features=false, version="25.0.0" }
-frame-executive                ={ default-features=false, version="25.0.0" }
-frame-support                  ={ default-features=false, version="25.0.0" }
-frame-system                   ={ default-features=false, version="25.0.0" }
-frame-system-benchmarking      ={ default-features=false, optional=true, version="25.0.0" }
-frame-system-rpc-runtime-api   ={ default-features=false, version="23.0.0" }
-frame-try-runtime              ={ default-features=false, optional=true, version="0.31.0" }
+frame-benchmarking             ={ version="25.0.0", default-features=false, optional=true }
+frame-election-provider-support={ version="25.0.0", default-features=false }
+frame-executive                ={ version="25.0.0", default-features=false }
+frame-support                  ={ version="25.0.0", default-features=false }
+frame-system                   ={ version="25.0.0", default-features=false }
+frame-system-benchmarking      ={ version="25.0.0", default-features=false, optional=true }
+frame-system-rpc-runtime-api   ={ version="23.0.0", default-features=false }
+frame-try-runtime              ={ version="0.31.0", default-features=false, optional=true }
 
 # Substrate Pallets
-pallet-assets                                ={ default-features=false, version="26.0.0" }
-pallet-authority-discovery                   ={ default-features=false, version="25.0.0" }
-pallet-authorship                            ={ default-features=false, version="25.0.0" }
-pallet-babe                                  ={ default-features=false, version="25.0.0" }
-pallet-bags-list                             ={ default-features=false, version="24.0.0" }
-pallet-balances                              ={ default-features=false, version="25.0.0" }
-pallet-bounties                              ={ default-features=false, version="24.0.0" }
-pallet-collective                            ={ default-features=false, version="25.0.0" }
-pallet-conviction-voting                     ={ default-features=false, version="25.0.0" }
-pallet-democracy                             ={ default-features=false, version="25.0.0" }
-pallet-election-provider-multi-phase         ={ default-features=false, version="24.0.0" }
-pallet-election-provider-support-benchmarking={ default-features=false, optional=true, version="24.0.0" }
-pallet-elections-phragmen                    ={ default-features=false, version="26.0.0" }
-pallet-grandpa                               ={ default-features=false, version="25.0.0" }
-pallet-identity                              ={ default-features=false, version="25.0.0" }
-pallet-im-online                             ={ default-features=false, version="24.0.0" }
-pallet-indices                               ={ default-features=false, version="25.0.0" }
-pallet-membership                            ={ default-features=false, version="25.0.0" }
-pallet-multisig                              ={ default-features=false, version="25.0.0" }
-pallet-nomination-pools                      ={ default-features=false, version="22.0.0" }
-pallet-nomination-pools-benchmarking         ={ default-features=false, optional=true, version="23.0.0" }
-pallet-nomination-pools-runtime-api          ={ default-features=false, version="20.0.0" }
-pallet-offences                              ={ default-features=false, version="24.0.0" }
-pallet-offences-benchmarking                 ={ default-features=false, optional=true, version="25.0.0" }
-pallet-preimage                              ={ default-features=false, version="25.0.0" }
-pallet-proxy                                 ={ default-features=false, version="25.0.0" }
-pallet-recovery                              ={ default-features=false, version="25.0.0" }
-pallet-referenda                             ={ default-features=false, version="25.0.0" }
-pallet-scheduler                             ={ default-features=false, version="26.0.0" }
-pallet-session-benchmarking                  ={ default-features=false, optional=true, version="25.0.0" }
-pallet-session                               ={ default-features=false, version="25.0.0", features=["historical"] }
-pallet-staking                               ={ default-features=false, version="25.0.0" }
-pallet-staking-reward-curve                  ={ default-features=false, version="10.0.0" }
-pallet-sudo                                  ={ default-features=false, optional=true, version="25.0.0" }
-pallet-timestamp                             ={ default-features=false, version="24.0.0" }
-pallet-tips                                  ={ default-features=false, version="24.0.0" }
-pallet-transaction-payment                   ={ default-features=false, version="25.0.0" }
-pallet-transaction-payment-rpc-runtime-api   ={ default-features=false, version="25.0.0" }
-pallet-transaction-storage                   ={ default-features=false, version="24.0.0" }
-pallet-treasury                              ={ default-features=false, version="24.0.0" }
-pallet-utility                               ={ default-features=false, version="25.0.0" }
-pallet-vesting                               ={ default-features=false, version="25.0.0" }
+pallet-assets                                ={ version="26.0.0", default-features=false }
+pallet-authority-discovery                   ={ version="25.0.0", default-features=false }
+pallet-authorship                            ={ version="25.0.0", default-features=false }
+pallet-babe                                  ={ version="25.0.0", default-features=false }
+pallet-bags-list                             ={ version="24.0.0", default-features=false }
+pallet-balances                              ={ version="25.0.0", default-features=false }
+pallet-bounties                              ={ version="24.0.0", default-features=false }
+pallet-collective                            ={ version="25.0.0", default-features=false }
+pallet-conviction-voting                     ={ version="25.0.0", default-features=false }
+pallet-democracy                             ={ version="25.0.0", default-features=false }
+pallet-election-provider-multi-phase         ={ version="24.0.0", default-features=false }
+pallet-election-provider-support-benchmarking={ version="24.0.0", default-features=false, optional=true }
+pallet-elections-phragmen                    ={ version="26.0.0", default-features=false }
+pallet-grandpa                               ={ version="25.0.0", default-features=false }
+pallet-identity                              ={ version="25.0.0", default-features=false }
+pallet-im-online                             ={ version="24.0.0", default-features=false }
+pallet-indices                               ={ version="25.0.0", default-features=false }
+pallet-membership                            ={ version="25.0.0", default-features=false }
+pallet-multisig                              ={ version="25.0.0", default-features=false }
+pallet-nomination-pools                      ={ version="22.0.0", default-features=false }
+pallet-nomination-pools-benchmarking         ={ version="23.0.0", default-features=false, optional=true }
+pallet-nomination-pools-runtime-api          ={ version="20.0.0", default-features=false }
+pallet-offences                              ={ version="24.0.0", default-features=false }
+pallet-offences-benchmarking                 ={ version="25.0.0", default-features=false, optional=true }
+pallet-preimage                              ={ version="25.0.0", default-features=false }
+pallet-proxy                                 ={ version="25.0.0", default-features=false }
+pallet-recovery                              ={ version="25.0.0", default-features=false }
+pallet-referenda                             ={ version="25.0.0", default-features=false }
+pallet-scheduler                             ={ version="26.0.0", default-features=false }
+pallet-session-benchmarking                  ={ version="25.0.0", default-features=false, optional=true }
+pallet-session                               ={ version="25.0.0", default-features=false, features=["historical"] }
+pallet-staking                               ={ version="25.0.0", default-features=false }
+pallet-staking-reward-curve                  ={ version="10.0.0", default-features=false }
+pallet-sudo                                  ={ version="25.0.0", default-features=false, optional=true }
+pallet-timestamp                             ={ version="24.0.0", default-features=false }
+pallet-tips                                  ={ version="24.0.0", default-features=false }
+pallet-transaction-payment                   ={ version="25.0.0", default-features=false }
+pallet-transaction-payment-rpc-runtime-api   ={ version="25.0.0", default-features=false }
+pallet-transaction-storage                   ={ version="24.0.0", default-features=false }
+pallet-treasury                              ={ version="24.0.0", default-features=false }
+pallet-utility                               ={ version="25.0.0", default-features=false }
+pallet-vesting                               ={ version="25.0.0", default-features=false }
 
 # Entropy Pallets
-pallet-free-tx          ={ version='0.0.9', default-features=false, path='../pallets/free-tx' }
-pallet-programs         ={ version='0.0.9', default-features=false, path='../pallets/programs' }
-pallet-propagation      ={ version='0.0.9', default-features=false, path='../pallets/propagation' }
-pallet-relayer          ={ version='0.0.9', default-features=false, path='../pallets/relayer' }
-pallet-slashing         ={ version='0.0.9', default-features=false, path='../pallets/slashing' }
-pallet-staking-extension={ version='0.0.9', default-features=false, path='../pallets/staking' }
-pallet-transaction-pause={ version='0.0.9', default-features=false, path='../pallets/transaction-pause' }
+pallet-free-tx          ={ version='0.0.9', path='../pallets/free-tx', default-features=false }
+pallet-programs         ={ version='0.0.9', path='../pallets/programs', default-features=false }
+pallet-propagation      ={ version='0.0.9', path='../pallets/propagation', default-features=false }
+pallet-relayer          ={ version='0.0.9', path='../pallets/relayer', default-features=false }
+pallet-slashing         ={ version='0.0.9', path='../pallets/slashing', default-features=false }
+pallet-staking-extension={ version='0.0.9', path='../pallets/staking', default-features=false }
+pallet-transaction-pause={ version='0.0.9', path='../pallets/transaction-pause', default-features=false }
 
 entropy-shared={ path="../crates/shared", default-features=false, features=["wasm-no-std"] }
 
