@@ -147,28 +147,28 @@ pub async fn sign_tx(
 
     let message = hex::decode(&user_sig_req.message)?;
 
-    if user_details.program_pointers.0.is_empty() {
+    if user_details.programs_data.0.is_empty() {
         return Err(UserErr::NoProgramPointerDefined());
     }
     // handle aux data padding, if it is not explicit by client for ease send through None, error if incorrect length
     let auxilary_data_vec;
     if let Some(auxilary_data) = user_sig_req.clone().auxilary_data {
-        if auxilary_data.len() < user_details.program_pointers.0.len() {
+        if auxilary_data.len() < user_details.programs_data.0.len() {
             return Err(UserErr::MismatchAuxData);
         } else {
             auxilary_data_vec = auxilary_data;
         }
     } else {
-        auxilary_data_vec = vec![None; user_details.program_pointers.0.len()];
+        auxilary_data_vec = vec![None; user_details.programs_data.0.len()];
     }
 
     let mut runtime = Runtime::new(ProgramConfig { fuel: MAX_INSTRUCTIONS_PER_PROGRAM });
 
-    for (i, program_pointer) in user_details.program_pointers.0.iter().enumerate() {
-        let program = get_program(&api, &rpc, program_pointer).await?;
+    for (i, program_info) in user_details.programs_data.0.iter().enumerate() {
+        let program = get_program(&api, &rpc, &program_info.program_pointer).await?;
         let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
         let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
-        runtime.evaluate(&program, &signature_request)?;
+        runtime.evaluate(&program, &signature_request, Some(&program_info.program_config))?;
     }
     // We decided to do Keccak for subgroup selection for frontend compatability
     let message_hash_keccak =
@@ -189,7 +189,7 @@ pub async fn sign_tx(
         &rpc,
         &user_sig_req.hash,
         &mut runtime,
-        &user_details.program_pointers.0,
+        &user_details.programs_data.0,
         message.as_slice(),
     )
     .await?;

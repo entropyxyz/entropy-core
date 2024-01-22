@@ -24,6 +24,7 @@ use entropy_kvdb::{
     kv_manager::{error::KvError, KvManager},
 };
 use serde::Deserialize;
+use serde_json::json;
 use subxt::ext::sp_core::{
     crypto::{AccountId32, Ss58Codec},
     sr25519, Pair,
@@ -154,7 +155,7 @@ pub struct StartupArgs {
     #[arg(short = 'f', long = "password-file")]
     pub password_file: Option<PathBuf>,
 
-    /// Only set up the key-value store without spinning up the server.
+    /// Set up the key-value store (KVDB), or ensure one already exists, print setup information to stdout, then exit. Supply the `--password-file` option for fully non-interactive operation.
     ///
     /// Returns the AccountID and Diffie-Hellman Public Keys associated with this server.
     #[arg(long = "setup-only")]
@@ -280,8 +281,10 @@ pub async fn setup_only(kv: &KvManager) {
 
     let dh_public_key = kv.kv().get(FORBIDDEN_KEYS[2]).await.expect("Issue getting dh public key");
     let dh_public_key = format!("{dh_public_key:?}").replace('"', "");
+    let output = json!({
+        "account_id": account_id,
+        "dh_public_key": dh_public_key,
+    });
 
-    let output = SetupOnlyOutput { dh_public_key, account_id };
-
-    println!("{:#?}", output);
+    println!("{}", output);
 }

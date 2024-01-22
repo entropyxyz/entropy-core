@@ -1526,8 +1526,8 @@ version = "7.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ab77dbd8adecaf3f0db40581631b995f312a8a5ae3aa9993188bb8f23d83a5b"
 dependencies = [
- "strum",
- "strum_macros",
+ "strum 0.24.1",
+ "strum_macros 0.24.3",
  "unicode-width",
 ]
 
@@ -2796,11 +2796,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "entropy-programs-core"
+version = "0.1.0"
+source = "git+https://github.com/entropyxyz/programs.git?tag=v0.8.0#12e6b655c9af3aa1eecb6dea7f70a6ed1d43d0de"
+dependencies = [
+ "getrandom 0.2.10",
+ "serde",
+ "wit-bindgen",
+ "witgen",
+]
+
+[[package]]
 name = "entropy-programs-runtime"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/programs.git?tag=v0.7.0#eaa9fbc560bbbdfbadf712fff1bf68acce26c128"
+source = "git+https://github.com/entropyxyz/programs.git?tag=v0.8.0#12e6b655c9af3aa1eecb6dea7f70a6ed1d43d0de"
 dependencies = [
- "entropy-programs-core",
+ "entropy-programs-core 0.1.0 (git+https://github.com/entropyxyz/programs.git?tag=v0.8.0)",
  "thiserror",
  "wasmtime 12.0.1",
 ]
@@ -2939,6 +2950,8 @@ dependencies = [
  "serde_derive",
  "sp-runtime 28.0.0",
  "sp-std 12.0.0",
+ "strum 0.25.0",
+ "strum_macros 0.25.3",
 ]
 
 [[package]]
@@ -3038,6 +3051,7 @@ dependencies = [
  "snow",
  "sp-core 21.0.0",
  "sp-keyring 24.0.0",
+ "strum 0.25.0",
  "subxt",
  "synedrion",
  "template-barebones",
@@ -6737,7 +6751,7 @@ dependencies = [
  "sp-npos-elections",
  "sp-runtime 28.0.0",
  "sp-std 12.0.0",
- "strum",
+ "strum 0.24.1",
 ]
 
 [[package]]
@@ -11306,7 +11320,7 @@ dependencies = [
  "lazy_static",
  "sp-core 21.0.0",
  "sp-runtime 24.0.0",
- "strum",
+ "strum 0.24.1",
 ]
 
 [[package]]
@@ -11318,7 +11332,7 @@ dependencies = [
  "lazy_static",
  "sp-core 25.0.0",
  "sp-runtime 28.0.0",
- "strum",
+ "strum 0.24.1",
 ]
 
 [[package]]
@@ -11916,7 +11930,7 @@ checksum = "08615eea740067d9899969bc2891c68a19c315cb1f66640af9a9ecb91b13bcab"
 dependencies = [
  "lazy_static",
  "maplit",
- "strum",
+ "strum 0.24.1",
 ]
 
 [[package]]
@@ -12059,8 +12073,14 @@ version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "063e6045c0e62079840579a7e47a355ae92f60eb74daaf156fb1e84ba164e63f"
 dependencies = [
- "strum_macros",
+ "strum_macros 0.24.3",
 ]
+
+[[package]]
+name = "strum"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "290d54ea6f91c969195bdbcd7442c8c2a2ba87da8bf60a7ee86a235d4bc1e125"
 
 [[package]]
 name = "strum_macros"
@@ -12073,6 +12093,19 @@ dependencies = [
  "quote",
  "rustversion",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.25.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23dc1fa9ac9c169a78ba62f0b841814b7abae11bdd047b9c58f893439e309ea0"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 2.0.43",
 ]
 
 [[package]]
@@ -12172,7 +12205,7 @@ dependencies = [
  "filetime",
  "parity-wasm",
  "sp-maybe-compressed-blob",
- "strum",
+ "strum 0.24.1",
  "tempfile",
  "toml 0.7.6",
  "walkdir",
@@ -12436,7 +12469,7 @@ name = "template-barebones"
 version = "0.1.0"
 source = "git+https://github.com/entropyxyz/programs.git?tag=v0.7.0#eaa9fbc560bbbdfbadf712fff1bf68acce26c128"
 dependencies = [
- "entropy-programs-core",
+ "entropy-programs-core 0.1.0 (git+https://github.com/entropyxyz/programs.git?tag=v0.7.0)",
 ]
 
 [[package]]
@@ -13632,8 +13665,8 @@ checksum = "fc942673e7684671f0c5708fc18993569d184265fd5223bb51fc8e5b9b6cfd52"
 dependencies = [
  "anyhow",
  "libc",
- "strum",
- "strum_macros",
+ "strum 0.24.1",
+ "strum_macros 0.24.3",
  "tempfile",
  "thiserror",
  "wasm-opt-cxx-sys",

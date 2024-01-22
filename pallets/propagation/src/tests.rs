@@ -19,6 +19,7 @@ use codec::Encode;
 use entropy_shared::{KeyVisibility, ValidatorInfo};
 use frame_support::{assert_ok, traits::OnInitialize, BoundedVec};
 use pallet_programs::ProgramInfo;
+use pallet_relayer::ProgramInstance;
 use pallet_staking_extension::RefreshInfo;
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
@@ -78,21 +79,30 @@ fn knows_how_to_mock_several_http_calls() {
         System::set_block_number(3);
         pallet_programs::Programs::<Test>::insert(
             <Test as frame_system::Config>::Hash::default(),
-            ProgramInfo { bytecode: vec![], program_modification_account: 1, ref_counter: 0 },
+            ProgramInfo {
+                bytecode: vec![],
+                configuration_interface: vec![],
+                program_modification_account: 1,
+                ref_counter: 0,
+            },
         );
-        let program_hashes =
-            BoundedVec::try_from(vec![<Test as frame_system::Config>::Hash::default()]).unwrap();
+
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
+            program_pointer: <Test as frame_system::Config>::Hash::default(),
+            program_config: vec![],
+        }])
+        .unwrap();
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Public,
-            program_hashes.clone(),
+            programs_info.clone(),
         ));
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(2),
             3,
             KeyVisibility::Public,
-            program_hashes,
+            programs_info,
         ));
         // full send
         Propagation::post_dkg(4).unwrap();

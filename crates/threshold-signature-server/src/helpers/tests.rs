@@ -185,9 +185,10 @@ pub async fn update_programs(
     entropy_api: &OnlineClient<EntropyConfig>,
     program_modification_account: &sr25519::Pair,
     initial_program: Vec<u8>,
+    program_config: Vec<u8>,
 ) -> <EntropyConfig as Config>::Hash {
     // update/set their programs
-    let update_program_tx = entropy::tx().programs().set_program(initial_program);
+    let update_program_tx = entropy::tx().programs().set_program(initial_program, program_config);
 
     let program_modification_account =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_account.clone());

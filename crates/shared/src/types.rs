@@ -21,6 +21,8 @@ use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "wasm-no-std")]
 use sp_runtime::RuntimeDebug;
+#[cfg(feature = "std")]
+use strum_macros::EnumIter;
 
 /// X25519 public key used by the client in non-interactive ECDH to authenticate/encrypt
 /// interactions with the threshold server (eg distributing threshold shares).
@@ -92,7 +94,7 @@ pub struct OcwMessageProactiveRefresh {
 }
 
 /// 256-bit hashing algorithms for deriving the point to be signed.
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize, EnumIter))]
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "std", serde(rename = "hash"))]
 #[cfg_attr(feature = "std", serde(rename_all = "lowercase"))]
