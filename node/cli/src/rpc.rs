@@ -62,7 +62,6 @@ use sp_consensus::SelectChain;
 use sp_consensus_babe::BabeApi;
 use sp_keystore::KeystorePtr;
 
-// Nando: This should be an opaque block, as it was in `node_primitives`
 use entropy_runtime::{opaque::Block, AccountId, Balance, BlockNumber, Hash, Nonce};
 
 /// Extra dependencies for BABE.

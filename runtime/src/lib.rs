@@ -73,9 +73,6 @@ use frame_system::{
     EnsureRoot, EnsureSigned,
 };
 
-// TODO (Nando)
-// pub use node_primitives::{AccountId, Signature};
-// use node_primitives::{AccountIndex, Balance, BlockNumber, Hash, Moment, Nonce};
 #[cfg(any(feature = "std", test))]
 pub use pallet_balances::Call as BalancesCall;
 use pallet_election_provider_multi_phase::{GeometricDepositBase, SolutionAccuracyOf};
@@ -138,8 +135,6 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
          the flag disabled.",
     )
 }
-
-// TODO(Nando): Look into using these to replace `node_primitives`
 
 /// An index to a block.
 pub type BlockNumber = u32;
