@@ -1,5 +1,4 @@
 // Copyright (C) 2023 Entropy Cryptography Inc.
-//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -17,18 +16,19 @@
 #[cfg(not(feature = "wasm"))]
 use codec::alloc::vec::Vec;
 use codec::{Decode, Encode, MaxEncodedLen};
-#[cfg(feature = "wasm-no-std")]
-use sp_runtime::RuntimeDebug;
-// TODO (Nando)
-// #[cfg(not(feature = "wasm"))]
-// use node_primitives::BlockNumber;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm-no-std")]
+use sp_runtime::RuntimeDebug;
 
 /// X25519 public key used by the client in non-interactive ECDH to authenticate/encrypt
 /// interactions with the threshold server (eg distributing threshold shares).
 pub type X25519PublicKey = [u8; 32];
+
+/// This should match the type found in `entropy-runtime`. We define it ourselves manually here
+/// since we don't want to pull that whole crate it just for a `u32`.
+type BlockNumber = u32;
 
 /// Defines an application's accessibility
 /// Public -> Anyone can request a signature
@@ -68,7 +68,7 @@ pub struct ValidatorInfo {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct OcwMessageDkg {
-    pub block_number: u32, // TODO (Nando): BlockNumber,
+    pub block_number: BlockNumber,
     pub sig_request_accounts: Vec<Vec<u8>>,
     pub validators_info: Vec<ValidatorInfo>,
 }
