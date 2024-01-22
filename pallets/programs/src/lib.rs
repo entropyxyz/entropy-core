@@ -58,7 +58,7 @@ pub mod pallet {
     };
     use frame_system::{pallet_prelude::*, Config as SystemConfig};
     use sp_runtime::{sp_std::str, traits::Hash, Saturating};
-    use sp_std::vec::Vec;
+    use sp_std::{vec, vec::Vec};
 
     pub use crate::weights::WeightInfo;
 
