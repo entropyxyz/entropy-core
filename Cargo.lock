@@ -1357,8 +1357,8 @@ version = "7.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ab77dbd8adecaf3f0db40581631b995f312a8a5ae3aa9993188bb8f23d83a5b"
 dependencies = [
- "strum",
- "strum_macros",
+ "strum 0.24.1",
+ "strum_macros 0.24.3",
  "unicode-width",
 ]
 
@@ -2718,6 +2718,8 @@ dependencies = [
  "serde",
  "serde_derive",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
+ "strum 0.25.0",
+ "strum_macros 0.25.3",
 ]
 
 [[package]]
@@ -2817,6 +2819,7 @@ dependencies = [
  "snow",
  "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-keyring 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "strum 0.25.0",
  "subxt",
  "synedrion",
  "template-barebones",
@@ -6421,7 +6424,7 @@ dependencies = [
  "sp-npos-elections",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "strum",
+ "strum 0.24.1",
 ]
 
 [[package]]
@@ -10926,7 +10929,7 @@ dependencies = [
  "lazy_static",
  "sp-core 21.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-runtime 24.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "strum",
+ "strum 0.24.1",
 ]
 
 [[package]]
@@ -10937,7 +10940,7 @@ dependencies = [
  "lazy_static",
  "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "strum",
+ "strum 0.24.1",
 ]
 
 [[package]]
@@ -11489,7 +11492,7 @@ checksum = "08615eea740067d9899969bc2891c68a19c315cb1f66640af9a9ecb91b13bcab"
 dependencies = [
  "lazy_static",
  "maplit",
- "strum",
+ "strum 0.24.1",
 ]
 
 [[package]]
@@ -11615,8 +11618,14 @@ version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "063e6045c0e62079840579a7e47a355ae92f60eb74daaf156fb1e84ba164e63f"
 dependencies = [
- "strum_macros",
+ "strum_macros 0.24.3",
 ]
+
+[[package]]
+name = "strum"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "290d54ea6f91c969195bdbcd7442c8c2a2ba87da8bf60a7ee86a235d4bc1e125"
 
 [[package]]
 name = "strum_macros"
@@ -11629,6 +11638,19 @@ dependencies = [
  "quote",
  "rustversion",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.25.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23dc1fa9ac9c169a78ba62f0b841814b7abae11bdd047b9c58f893439e309ea0"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 2.0.32",
 ]
 
 [[package]]
@@ -11753,7 +11775,7 @@ dependencies = [
  "filetime",
  "parity-wasm",
  "sp-maybe-compressed-blob",
- "strum",
+ "strum 0.24.1",
  "tempfile",
  "toml 0.7.6",
  "walkdir",
@@ -13161,8 +13183,8 @@ checksum = "87fef6d0d508f08334e0ab0e6877feb4c0ecb3956bcf2cb950699b22fedf3e9c"
 dependencies = [
  "anyhow",
  "libc",
- "strum",
- "strum_macros",
+ "strum 0.24.1",
+ "strum_macros 0.24.3",
  "tempfile",
  "thiserror",
  "wasm-opt-cxx-sys",
