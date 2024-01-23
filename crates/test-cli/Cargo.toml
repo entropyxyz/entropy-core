@@ -11,7 +11,7 @@ edition   ='2021'
 entropy-testing-utils={ path="../testing-utils" }
 clap                 ={ version="4.4.6", features=["derive"] }
 colored              ="2.0.4"
-subxt                ={ package="subxt", git="https://github.com/paritytech/subxt.git", tag="v0.32.1" }
+subxt                ={ version="0.32.1" }
 sp-core              ="21.0.0"
 anyhow               ="1.0.75"
 tokio                ={ version="1.16", features=["macros", "rt-multi-thread", "io-util", "process"] }

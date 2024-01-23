@@ -9,7 +9,7 @@ edition   ='2021'
 publish   =false
 
 [dependencies]
-subxt             ={ package="subxt", git="https://github.com/paritytech/subxt.git", tag="v0.32.1" }
+subxt             ={ version="0.32.1" }
 sp-keyring        ="24.0.0"
 project-root      ="0.2.2"
 sp-core           ={ version="21.0.0", default-features=false }
