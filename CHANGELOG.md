@@ -11,6 +11,23 @@ At the moment this project **does not** adhere to
 
 ## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-23
 
+A lot of the changes introduced in this release are program related.
+
+The workflow around having to upload a program during registration is gone. Instead users can
+register with programs which have previously been uploaded on-chain by providing the hash of the
+program they want to use.
+
+When registering a user can also customize the behaviour of their chosen program through the new
+program configuration feature.
+
+If a single program doesn't provide enough functionality, now users can register with multiple
+programs. During signature generation all of these programs will be executed. Only if all of them
+run succesfully then a signature is produced.
+
+Finally, users are now able to indicate which hashing algorithm they would like to use during the
+signing step. We provide some common ones out of the box, but custom user-provided hashing
+algorithms are also supported.
+
 ### Breaking Changes
 - In [#561](https://github.com/entropyxyz/entropy-core/pull/561) several crates were renamed in
   order to ensure consistent naming across the repo. The most impactful of these is that the
