@@ -1,6 +1,6 @@
 [package]
 name      ='pallet-free-tx'
-version   ='0.0.9'
+version   ='0.0.10'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -34,8 +34,8 @@ sp-io                          ={ version="27.0.0", default-features=false }
 sp-npos-elections              ={ version="23.0.0", default-features=false }
 sp-tracing                     ={ version="14.0.0", default-features=false }
 
-pallet-staking-extension={ version="0.0.9", path="../staking", default-features=false }
-pallet-relayer          ={ version="0.0.9", path="../relayer", default-features=false }
+pallet-staking-extension={ version="0.0.10", path="../staking", default-features=false }
+pallet-relayer          ={ version="0.0.10", path="../relayer", default-features=false }
 
 [features]
 default=["std"]
