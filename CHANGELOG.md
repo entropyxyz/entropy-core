@@ -9,7 +9,7 @@ At the moment this project **does not** adhere to
 
 ## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...master)
 
-## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9..release/v0.0.10) - 2024-01-23
+## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-23
 
 ### Breaking Changes
 - In [#561](https://github.com/entropyxyz/entropy-core/pull/561) several crates were renamed in
@@ -73,7 +73,7 @@ At the moment this project **does not** adhere to
 ### Removed
 - Remove pallet-helpers ([#581](https://github.com/entropyxyz/entropy-core/pull/581/))
 
-## [0.0.9](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.8..release/v0.0.9) - 2023-11-30
+## [0.0.9](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.8...release/v0.0.9) - 2023-11-30
 
 Some of the noteworthy changes related to this release are related to better integration in Web
 Assembly contexts, and improvements to logging for the Threshold Signature Server.
@@ -118,7 +118,7 @@ visualization.
 ### Fixed
 - Return package version instead of rustc version ([#523](https://github.com/entropyxyz/entropy-core/pull/523/))
 
-## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7..release/v0.0.8) - 2023-11-06
+## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7...release/v0.0.8) - 2023-11-06
 
 ### Breaking Changes
 
