@@ -26,6 +26,7 @@ At the moment this project **does not** adhere to
   `dev` instead of `local`.
 - A user now needs to add a program config, which gets packaged with their program pointer to create program info. This changes both register and change_program_info (previously change_program_pointer). As well set_program now also takes program_type_definition. ([#593](https://github.com/entropyxyz/entropy-core/pull/593))
 - Changed program_type_definition to configuration_interface. ([#597](https://github.com/entropyxyz/entropy-core/pull/597))
+- Changed program_modification_account to program_deploy_key. ([#604](https://github.com/entropyxyz/entropy-core/pull/604))
 
 ### Added
 - Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
@@ -50,6 +51,7 @@ At the moment this project **does not** adhere to
 - Additive aux data ([#577](https://github.com/entropyxyz/entropy-core/pull/577))
 - Refactor Rust-based chain specs ([#592](https://github.com/entropyxyz/entropy-core/pull/592))
 - Fix test CLI for additive program pointers and update / refactor tests ([#591](https://github.com/entropyxyz/entropy-core/pull/591))
+- Change to program deploy key ([#604](https://github.com/entropyxyz/entropy-core/pull/604))
 
 ### Fixed
 - Fix inconsistency between interactive and file based passwords ([#589](https://github.com/entropyxyz/entropy-core/pull/589))
