@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...master)
 
 ### Breaking Changes
 - In [#561](https://github.com/entropyxyz/entropy-core/pull/561) several crates were renamed in order to ensure consistent naming across the repo.
