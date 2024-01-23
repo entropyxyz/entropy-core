@@ -99,7 +99,7 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
-        pub program_modification_account: T::AccountId,
+        pub program_deploy_key: T::AccountId,
         pub confirmations: Vec<u8>,
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub key_visibility: KeyVisibility,
@@ -113,7 +113,7 @@ pub mod pallet {
         // TODO better type
         pub verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
-        pub program_modification_account: T::AccountId,
+        pub program_deploy_key: T::AccountId,
     }
 
     #[pallet::genesis_config]
@@ -140,7 +140,7 @@ pub mod pallet {
                         key_visibility,
                         verifying_key: BoundedVec::default(),
                         programs_data: BoundedVec::default(),
-                        program_modification_account: account_info.0.clone(),
+                        program_deploy_key: account_info.0.clone(),
                     },
                 );
             }
@@ -222,7 +222,7 @@ pub mod pallet {
         })]
         pub fn register(
             origin: OriginFor<T>,
-            program_modification_account: T::AccountId,
+            program_deploy_key: T::AccountId,
             key_visibility: KeyVisibility,
             programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
@@ -260,7 +260,7 @@ pub mod pallet {
             Registering::<T>::insert(
                 &sig_req_account,
                 RegisteringDetails::<T> {
-                    program_modification_account,
+                    program_deploy_key,
                     confirmations: vec![],
                     programs_data: programs_data.clone(),
                     key_visibility,
@@ -327,7 +327,7 @@ pub mod pallet {
                 Registered::<T>::try_mutate(&sig_request_account, |maybe_registered_details| {
                     if let Some(registerd_details) = maybe_registered_details {
                         ensure!(
-                            who == registerd_details.program_modification_account,
+                            who == registerd_details.program_deploy_key,
                             Error::<T>::NotAuthorized
                         );
                         // decrement ref counter of not used programs
@@ -422,7 +422,7 @@ pub mod pallet {
                         key_visibility: registering_info.key_visibility,
                         verifying_key,
                         programs_data: registering_info.programs_data,
-                        program_modification_account: registering_info.program_modification_account,
+                        program_deploy_key: registering_info.program_deploy_key,
                     },
                 );
                 Registering::<T>::remove(&sig_req_account);

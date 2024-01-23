@@ -368,7 +368,7 @@ async fn run_command() -> anyhow::Result<String> {
                     println!(
                         "{} {} {:>11} {:>14} {}",
                         hash,
-                        program_info.program_modification_account,
+                        program_info.program_deploy_key,
                         program_info.ref_counter,
                         program_info.bytecode.len(),
                         !program_info.configuration_interface.is_empty(),

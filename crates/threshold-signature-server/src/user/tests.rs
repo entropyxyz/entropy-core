@@ -787,7 +787,7 @@ async fn test_recover_key() {
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: &Sr25519Keyring,
-    program_modification_account: subxtAccountId32,
+    program_deploy_key: subxtAccountId32,
     key_visibility: KeyVisibility,
     program_instance: BoundedVec<ProgramInstance>,
 ) {
@@ -795,7 +795,7 @@ pub async fn put_register_request_on_chain(
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
     let registering_tx = entropy::tx().relayer().register(
-        program_modification_account,
+        program_deploy_key,
         Static(key_visibility),
         program_instance,
     );
@@ -1105,7 +1105,7 @@ async fn test_register_with_private_key_visibility() {
     clean_tests();
 
     let one = AccountKeyring::One;
-    let program_modification_account = AccountKeyring::Charlie;
+    let program_deploy_key = AccountKeyring::Charlie;
     let program_manager = AccountKeyring::Dave;
 
     let (validator_ips, _validator_ids, _users_keyshare_option) =
@@ -1127,7 +1127,7 @@ async fn test_register_with_private_key_visibility() {
     put_register_request_on_chain(
         &api,
         &one,
-        program_modification_account.to_account_id().into(),
+        program_deploy_key.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )

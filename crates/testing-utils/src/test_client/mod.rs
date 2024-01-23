@@ -248,7 +248,7 @@ pub async fn sign(
     skip_all,
     fields(
         signature_request_account,
-        program_modification_account = ?program_modification_keypair.public(),
+        program_deploy_key = ?program_modification_keypair.public(),
     )
 )]
 pub async fn store_program(
@@ -258,12 +258,12 @@ pub async fn store_program(
     configuration_interface: Vec<u8>,
 ) -> anyhow::Result<<EntropyConfig as Config>::Hash> {
     let update_program_tx = entropy::tx().programs().set_program(program, configuration_interface);
-    let program_modification_account =
+    let program_deploy_key =
         PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_keypair.clone());
 
     let in_block = api
         .tx()
-        .sign_and_submit_then_watch_default(&update_program_tx, &program_modification_account)
+        .sign_and_submit_then_watch_default(&update_program_tx, &program_deploy_key)
         .await?
         .wait_for_in_block()
         .await?
@@ -357,7 +357,7 @@ pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_keypair: sr25519::Pair,
-    program_modification_account: SubxtAccountId32,
+    program_deploy_key: SubxtAccountId32,
     key_visibility: KeyVisibility,
     program_instance: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<()> {
@@ -368,7 +368,7 @@ pub async fn put_register_request_on_chain(
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
 
     let registering_tx = entropy::tx().relayer().register(
-        program_modification_account,
+        program_deploy_key,
         Static(key_visibility),
         program_instance,
     );
