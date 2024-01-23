@@ -1333,13 +1333,10 @@ async fn test_mutiple_confirm_done() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
-    let program_hash = update_programs(
-        &api,
-        &program_manager.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-    )
-    .await;
+    let program_hash =
+        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+            .await
+            .unwrap();
 
     put_register_request_on_chain(
         &api,
