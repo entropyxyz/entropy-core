@@ -53,13 +53,12 @@ pub mod weights;
 pub mod pallet {
 
     use frame_support::{
-        dispatch::Vec,
         pallet_prelude::*,
         traits::{Currency, ReservableCurrency},
     };
     use frame_system::{pallet_prelude::*, Config as SystemConfig};
     use sp_runtime::{sp_std::str, traits::Hash, Saturating};
-    use sp_std::vec;
+    use sp_std::{vec, vec::Vec};
 
     pub use crate::weights::WeightInfo;
 

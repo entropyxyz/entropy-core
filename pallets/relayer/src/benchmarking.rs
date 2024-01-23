@@ -15,9 +15,7 @@
 
 //! Benchmarking setup for pallet-propgation
 use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE as SIG_PARTIES};
-use frame_benchmarking::{
-    account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec,
-};
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     traits::{Currency, Get},
     BoundedVec,
@@ -29,6 +27,7 @@ use pallet_staking_extension::{
     ThresholdServers, ThresholdToStash,
 };
 use sp_runtime::traits::Hash;
+use sp_std::{vec, vec::Vec};
 
 use super::*;
 #[allow(unused)]

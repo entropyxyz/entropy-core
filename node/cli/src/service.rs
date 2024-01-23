@@ -35,15 +35,15 @@
 
 use std::sync::Arc;
 
+use entropy_runtime::opaque::Block;
 use entropy_runtime::RuntimeApi;
 use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
 use futures::prelude::*;
-use node_primitives::Block;
 use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_babe::{self, SlotProportion};
 use sc_executor::NativeElseWasmExecutor;
 use sc_network::{event::Event, NetworkEventStream, NetworkService};
-use sc_network_common::sync::warp::WarpSyncParams;
+use sc_network_sync::warp::WarpSyncParams;
 use sc_network_sync::SyncingService;
 use sc_offchain::OffchainDb;
 use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};
@@ -63,6 +63,10 @@ type FullGrandpaBlockImport =
 
 /// The transaction pool type defintion.
 pub type TransactionPool = sc_transaction_pool::FullPool<Block, FullClient>;
+
+/// The minimum period of blocks on which justifications will be
+/// imported and generated.
+const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
 
 // Our native executor instance.
 pub struct ExecutorDispatch;
@@ -93,7 +97,7 @@ pub fn new_partial(
         FullClient,
         FullBackend,
         FullSelectChain,
-        sc_consensus::DefaultImportQueue<Block, FullClient>,
+        sc_consensus::DefaultImportQueue<Block>,
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
             impl Fn(
@@ -149,6 +153,7 @@ pub fn new_partial(
 
     let (grandpa_block_import, grandpa_link) = grandpa::block_import(
         client.clone(),
+        GRANDPA_JUSTIFICATION_PERIOD,
         #[allow(clippy::redundant_clone)]
         &(client.clone() as Arc<_>),
         select_chain.clone(),
@@ -163,8 +168,8 @@ pub fn new_partial(
     )?;
 
     let slot_duration = babe_link.config().slot_duration();
-    let (import_queue, babe_worker_handle) =
-        sc_consensus_babe::import_queue(sc_consensus_babe::ImportQueueParams {
+    let (import_queue, babe_worker_handle) = sc_consensus_babe::import_queue(
+        sc_consensus_babe::ImportQueueParams {
             link: babe_link.clone(),
             block_import: block_import.clone(),
             justification_import: Some(Box::new(justification_import)),
@@ -174,10 +179,10 @@ pub fn new_partial(
                 let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
                 let slot =
-				sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-					*timestamp,
-					slot_duration,
-				);
+                sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                    *timestamp,
+                    slot_duration,
+                );
 
                 Ok((slot, timestamp))
             },
@@ -185,7 +190,8 @@ pub fn new_partial(
             registry: config.prometheus_registry(),
             telemetry: telemetry.as_ref().map(|x| x.handle()),
             offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool.clone()),
-        })?;
+        },
+    )?;
 
     let import_setup = (block_import, grandpa_link, babe_link);
 
@@ -319,6 +325,7 @@ pub fn new_full_base(
             import_queue,
             block_announce_validator_builder: None,
             warp_sync_params: Some(WarpSyncParams::WithProvider(warp_sync)),
+            block_relay: None,
         })?;
 
     if config.offchain_worker.enabled {
@@ -430,10 +437,10 @@ pub fn new_full_base(
                     let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
                     let slot =
-						sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-							*timestamp,
-							slot_duration,
-						);
+                        sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                            *timestamp,
+                            slot_duration,
+                        );
 
                     let storage_proof =
                         sp_transaction_storage_proof::registration::new_data_provider(
@@ -498,7 +505,7 @@ pub fn new_full_base(
     let config = grandpa::Config {
         // FIXME #1578 make this available through chainspec
         gossip_duration: std::time::Duration::from_millis(333),
-        justification_period: 512,
+        justification_generation_period: GRANDPA_JUSTIFICATION_PERIOD,
         name: Some(name),
         observer_enabled: false,
         keystore,

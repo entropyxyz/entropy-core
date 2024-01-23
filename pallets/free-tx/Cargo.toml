@@ -9,31 +9,33 @@ edition   ='2021'
 publish   =false
 
 [dependencies]
-codec             ={ package="parity-scale-codec", version="3.6.3", default-features=false }
-scale-info        ={ version="2.1.1", default-features=false, features=["derive"] }
-sp-runtime        ={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0", default-features=false }
-sp-staking        ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-frame-benchmarking={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0", optional=true, default-features=false }
-frame-support     ={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0", default-features=false }
-frame-system      ={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0", default-features=false }
-pallet-staking    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-sp-std            ={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0", default-features=false }
-log               ={ version="0.4.0", default-features=false }
+codec     ={ package="parity-scale-codec", version="3.6.3", default-features=false }
+scale-info={ version="2.1.1", default-features=false, features=["derive"] }
+log       ={ version="0.4.0", default-features=false }
+
+frame-benchmarking={ version="25.0.0", default-features=false, optional=true }
+frame-support     ={ version="25.0.0", default-features=false }
+frame-system      ={ version="25.0.0", default-features=false }
+pallet-staking    ={ version="25.0.0", default-features=false }
+sp-runtime        ={ version="28.0.0", default-features=false }
+sp-staking        ={ version="23.0.0", default-features=false }
+sp-std            ={ version="12.0.0", default-features=false }
 
 [dev-dependencies]
-sp-core                        ={ version="21.0.0", git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
-sp-io                          ={ git="https://github.com/paritytech/substrate", branch="polkadot-v1.0.0" }
-pallet-balances                ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-pallet-session                 ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-pallet-timestamp               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-pallet-bags-list               ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-pallet-staking-reward-curve    ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-sp-npos-elections              ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-frame-election-provider-support={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-pallet-staking-extension       ={ version="0.0.9", default-features=false, path="../staking" }
-pallet-relayer                 ={ version="0.0.9", default-features=false, path="../relayer" }
-pallet-authorship              ={ version="4.0.0-dev", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
-sp-tracing                     ={ version="10.0.0", default-features=false, git='https://github.com/paritytech/substrate.git', branch="polkadot-v1.0.0" }
+frame-election-provider-support={ version="25.0.0", default-features=false }
+pallet-authorship              ={ version="25.0.0", default-features=false }
+pallet-bags-list               ={ version="24.0.0", default-features=false }
+pallet-balances                ={ version="25.0.0", default-features=false }
+pallet-session                 ={ version="25.0.0", default-features=false }
+pallet-staking-reward-curve    ={ version="10.0.0" }
+pallet-timestamp               ={ version="24.0.0", default-features=false }
+sp-core                        ={ version="25.0.0", default-features=false }
+sp-io                          ={ version="27.0.0", default-features=false }
+sp-npos-elections              ={ version="23.0.0", default-features=false }
+sp-tracing                     ={ version="14.0.0", default-features=false }
+
+pallet-staking-extension={ version="0.0.9", path="../staking", default-features=false }
+pallet-relayer          ={ version="0.0.9", path="../relayer", default-features=false }
 
 [features]
 default=["std"]
@@ -43,14 +45,15 @@ runtime-benchmarks=[
   'frame-system/runtime-benchmarks',
 ]
 std=[
-  "scale-info/std",
-  "sp-runtime/std",
   "frame-support/std",
   "frame-system/std",
-  "sp-staking/std",
-  "pallet-staking/std",
-  'pallet-staking-extension/std',
-  "pallet-balances/std",
   "log/std",
+  "pallet-balances/std",
+  "pallet-relayer/std",
+  "pallet-staking-extension/std",
+  "pallet-staking/std",
+  "scale-info/std",
+  "sp-runtime/std",
+  "sp-staking/std",
 ]
 try-runtime=["frame-support/try-runtime"]

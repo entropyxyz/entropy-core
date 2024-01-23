@@ -36,14 +36,14 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::{
-        dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
+        dispatch::{GetDispatchInfo, PostDispatchInfo},
         pallet_prelude::*,
         traits::IsSubType,
     };
     use frame_system::{pallet_prelude::*, RawOrigin};
     use scale_info::TypeInfo;
     use sp_runtime::{
-        traits::{DispatchInfoOf, SignedExtension},
+        traits::{DispatchInfoOf, Dispatchable, SignedExtension},
         transaction_validity::{InvalidTransaction, TransactionValidityError},
     };
     use sp_staking::EraIndex;
