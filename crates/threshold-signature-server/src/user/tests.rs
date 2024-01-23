@@ -787,7 +787,7 @@ async fn test_recover_key() {
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     sig_req_keyring: &Sr25519Keyring,
-    program_deploy_key: subxtAccountId32,
+    program_modification_account: subxtAccountId32,
     key_visibility: KeyVisibility,
     program_instance: BoundedVec<ProgramInstance>,
 ) {
@@ -795,7 +795,7 @@ pub async fn put_register_request_on_chain(
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
     let registering_tx = entropy::tx().relayer().register(
-        program_deploy_key,
+        program_modification_account,
         Static(key_visibility),
         program_instance,
     );

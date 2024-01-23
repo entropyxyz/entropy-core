@@ -179,7 +179,7 @@ fn it_confirms_registers_a_user() {
             programs_data: programs_info.clone(),
             key_visibility: KeyVisibility::Private([0; 32]),
             verifying_key: Some(expected_verifying_key.clone()),
-            program_deploy_key: 2,
+            program_modification_account: 2,
         };
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
@@ -198,7 +198,7 @@ fn it_confirms_registers_a_user() {
                 key_visibility: KeyVisibility::Private([0; 32]),
                 verifying_key: expected_verifying_key,
                 programs_data: programs_info.clone(),
-                program_deploy_key: 2
+                program_modification_account: 2
             }
         );
     });
@@ -249,7 +249,7 @@ fn it_changes_a_program_pointer() {
             key_visibility: KeyVisibility::Public,
             verifying_key: expected_verifying_key,
             programs_data: programs_info,
-            program_deploy_key: 2,
+            program_modification_account: 2,
         };
 
         Registered::<Test>::insert(1, &registered_info);
