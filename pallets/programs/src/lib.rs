@@ -97,7 +97,7 @@ pub mod pallet {
         pub bytecode: Vec<u8>,
         /// The type definition of the program
         pub configuration_interface: Vec<u8>,
-        /// Owner of the program
+        /// Deployer of the program
         pub program_deploy_key: AccountId,
         /// Accounts that use this program
         pub ref_counter: u128,
