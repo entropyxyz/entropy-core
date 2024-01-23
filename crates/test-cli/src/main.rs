@@ -371,7 +371,7 @@ async fn run_command() -> anyhow::Result<String> {
                         program_info.program_modification_account,
                         program_info.ref_counter,
                         program_info.bytecode.len(),
-                        !program_info.program_type_definition.is_empty(),
+                        !program_info.configuration_interface.is_empty(),
                     );
                 }
             }
