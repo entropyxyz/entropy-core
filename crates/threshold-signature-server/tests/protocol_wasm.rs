@@ -203,7 +203,7 @@ async fn test_wasm_register_with_private_key_visibility() {
     clean_tests();
 
     let one = AccountKeyring::One;
-    let program_deploy_key = AccountKeyring::Charlie;
+    let program_modification_account = AccountKeyring::Charlie;
     let dave = AccountKeyring::Dave;
 
     let (validator_ips, _validator_ids, _users_keyshare_option) =
@@ -225,7 +225,7 @@ async fn test_wasm_register_with_private_key_visibility() {
         &api,
         &rpc,
         one.pair(),
-        program_deploy_key.to_account_id().into(),
+        program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )

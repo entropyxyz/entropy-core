@@ -1105,7 +1105,7 @@ async fn test_register_with_private_key_visibility() {
     clean_tests();
 
     let one = AccountKeyring::One;
-    let program_deploy_key = AccountKeyring::Charlie;
+    let program_modification_account = AccountKeyring::Charlie;
     let program_manager = AccountKeyring::Dave;
 
     let (validator_ips, _validator_ids, _users_keyshare_option) =
@@ -1127,7 +1127,7 @@ async fn test_register_with_private_key_visibility() {
     put_register_request_on_chain(
         &api,
         &one,
-        program_deploy_key.to_account_id().into(),
+        program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
