@@ -180,35 +180,6 @@ pub async fn spawn_testing_validators(
     (ips, ids, user_keyshare_option)
 }
 
-/// Adds a program to the chain
-pub async fn update_programs(
-    entropy_api: &OnlineClient<EntropyConfig>,
-    program_modification_account: &sr25519::Pair,
-    initial_program: Vec<u8>,
-    program_config: Vec<u8>,
-) -> <EntropyConfig as Config>::Hash {
-    // update/set their programs
-    let update_program_tx = entropy::tx().programs().set_program(initial_program, program_config);
-
-    let program_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_account.clone());
-
-    let in_block = entropy_api
-        .tx()
-        .sign_and_submit_then_watch_default(&update_program_tx, &program_modification_account)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
-
-    let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>().unwrap();
-    result_event.unwrap().program_hash
-}
-
 /// Removes the program at the program hash
 pub async fn remove_program(
     entropy_api: &OnlineClient<EntropyConfig>,

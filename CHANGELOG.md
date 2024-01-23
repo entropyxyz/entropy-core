@@ -49,6 +49,7 @@ At the moment this project **does not** adhere to
 - Additional `hash` field in `/sign_tx` JSON body indicates which hashing algorithm to use for signing ([#553](https://github.com/entropyxyz/entropy-core/pull/553))
 - Additive aux data ([#577](https://github.com/entropyxyz/entropy-core/pull/577))
 - Refactor Rust-based chain specs ([#592](https://github.com/entropyxyz/entropy-core/pull/592))
+- Fix test CLI for additive program pointers and update / refactor tests ([#591](https://github.com/entropyxyz/entropy-core/pull/591))
 
 ### Fixed
 - Fix inconsistency between interactive and file based passwords ([#589](https://github.com/entropyxyz/entropy-core/pull/589))

@@ -49,7 +49,7 @@ use entropy_testing_utils::{
         test_context_stationary, test_node_process_testing_state, testing_context,
         SubstrateTestingContext,
     },
-    test_client::update_pointer,
+    test_client::{store_program, update_programs},
 };
 use futures::{
     future::{self, join_all},
@@ -100,7 +100,7 @@ use crate::{
         substrate::{get_subgroup, return_all_addresses_of_subgroup},
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
-            remove_program, run_to_block, setup_client, spawn_testing_validators, update_programs,
+            remove_program, run_to_block, setup_client, spawn_testing_validators,
         },
         user::{compute_hash, send_key},
     },
@@ -141,8 +141,9 @@ async fn test_sign_tx_no_chain() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
-        update_programs(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await;
+        store_program(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+            .await
+            .unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -187,7 +188,7 @@ async fn test_sign_tx_no_chain() {
     for res in test_no_program {
         assert_eq!(res.unwrap().text().await.unwrap(), "No program pointer defined for account");
     }
-    update_pointer(
+    update_programs(
         &entropy_api,
         &rpc,
         &one.pair(),
@@ -423,9 +424,11 @@ async fn test_fail_signing_group() {
     ];
 
     let program_hash =
-        update_programs(&entropy_api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await;
-    update_pointer(
+        store_program(&entropy_api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+            .await
+            .unwrap();
+
+    update_programs(
         &entropy_api,
         &rpc,
         &dave.pair(),
@@ -501,13 +504,10 @@ async fn test_store_share() {
         .unwrap();
 
     let original_key_shard = response_key.text().await.unwrap();
-    let program_hash = update_programs(
-        &api,
-        &program_manager.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-    )
-    .await;
+    let program_hash =
+        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+            .await
+            .unwrap();
 
     let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let validators_info = vec![
@@ -721,13 +721,12 @@ async fn test_send_and_receive_keys() {
 
     assert_eq!(response_already_in_storage.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(response_already_in_storage.text().await.unwrap(), "User already registered");
-    let program_hash = update_programs(
-        &api,
-        &program_manager.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-    )
-    .await;
+
+    let program_hash =
+        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+            .await
+            .unwrap();
+
     put_register_request_on_chain(
         &api,
         &alice.clone(),
@@ -830,9 +829,11 @@ async fn test_sign_tx_user_participates() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
-        update_programs(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await;
-    update_pointer(
+        store_program(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+            .await
+            .unwrap();
+
+    update_programs(
         &entropy_api,
         &rpc,
         &one.pair(),
@@ -1112,13 +1113,12 @@ async fn test_register_with_private_key_visibility() {
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-    let program_hash = update_programs(
-        &api,
-        &program_manager.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-    )
-    .await;
+
+    let program_hash =
+        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+            .await
+            .unwrap();
+
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
     let one_x25519_sk = derive_static_secret(&one.pair());
@@ -1190,7 +1190,9 @@ async fn test_compute_hash() {
 
     let mut runtime = Runtime::default();
     let program_hash =
-        update_programs(&api, &one.pair(), TEST_PROGRAM_CUSTOM_HASH.to_owned(), vec![]).await;
+        store_program(&api, &one.pair(), TEST_PROGRAM_CUSTOM_HASH.to_owned(), vec![])
+            .await
+            .unwrap();
 
     let message_hash = compute_hash(
         &api,
@@ -1260,9 +1262,11 @@ async fn test_fail_infinite_program() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
-        update_programs(&entropy_api, &two.pair(), TEST_INFINITE_LOOP_BYTECODE.to_owned(), vec![])
-            .await;
-    update_pointer(
+        store_program(&entropy_api, &two.pair(), TEST_INFINITE_LOOP_BYTECODE.to_owned(), vec![])
+            .await
+            .unwrap();
+
+    update_programs(
         &entropy_api,
         &rpc,
         &one.pair(),
@@ -1329,13 +1333,10 @@ async fn test_mutiple_confirm_done() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
-    let program_hash = update_programs(
-        &api,
-        &program_manager.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-    )
-    .await;
+    let program_hash =
+        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+            .await
+            .unwrap();
 
     put_register_request_on_chain(
         &api,
