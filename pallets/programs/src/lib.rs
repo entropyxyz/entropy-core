@@ -97,7 +97,7 @@ pub mod pallet {
         /// The bytecode of the program.
         pub bytecode: Vec<u8>,
         /// The type definition of the program
-        pub program_type_definition: Vec<u8>,
+        pub configuration_interface: Vec<u8>,
         /// Owners of the program
         pub program_modification_account: AccountId,
         /// Accounts that use this program
@@ -133,7 +133,7 @@ pub mod pallet {
             program_hash: T::Hash,
 
             /// The new program type definition
-            program_type_definition: Vec<u8>,
+            configuration_interface: Vec<u8>,
         },
         /// The bytecode of a program was removed.
         ProgramRemoved {
@@ -171,14 +171,14 @@ pub mod pallet {
         pub fn set_program(
             origin: OriginFor<T>,
             new_program: Vec<u8>,
-            program_type_definition: Vec<u8>,
+            configuration_interface: Vec<u8>,
         ) -> DispatchResult {
             let program_modification_account = ensure_signed(origin)?;
             let mut hash_input = vec![];
             hash_input.extend(&new_program);
-            hash_input.extend(&program_type_definition);
+            hash_input.extend(&configuration_interface);
             let program_hash = T::Hashing::hash(&hash_input);
-            let new_program_length = new_program.len() + program_type_definition.len();
+            let new_program_length = new_program.len() + configuration_interface.len();
             ensure!(
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
                 Error::<T>::ProgramLengthExceeded
@@ -191,7 +191,7 @@ pub mod pallet {
                 program_hash,
                 &ProgramInfo {
                     bytecode: new_program.clone(),
-                    program_type_definition: program_type_definition.clone(),
+                    configuration_interface: configuration_interface.clone(),
                     program_modification_account: program_modification_account.clone(),
                     ref_counter: 0u128,
                 },
@@ -208,7 +208,7 @@ pub mod pallet {
             Self::deposit_event(Event::ProgramCreated {
                 program_modification_account,
                 program_hash,
-                program_type_definition,
+                configuration_interface,
             });
             Ok(())
         }
@@ -232,7 +232,7 @@ pub mod pallet {
             ensure!(old_program_info.ref_counter == 0, Error::<T>::ProgramInUse);
             Self::unreserve_program_deposit(
                 &old_program_info.program_modification_account,
-                old_program_info.bytecode.len() + old_program_info.program_type_definition.len(),
+                old_program_info.bytecode.len() + old_program_info.configuration_interface.len(),
             );
             let mut owned_programs_length = 0;
             OwnedPrograms::<T>::try_mutate(

@@ -81,7 +81,10 @@
 //! messages. This is opened by other threshold servers when the signing procotol is initiated.
 //! - [`/validator/sync_kvdb`](crate::validator::api::sync_kvdb()) - POST - Called by another
 //! threshold server when joining to get the key-shares from a member of their sub-group.
-//!
+//! - [`/version`](crate::node_info::api::version()) - Get - get the node version info
+//! - [`/heathlz`](crate::health::api::healthz()) - Get - get if the node is running
+//! - [`/hashes`](crate::node_info::api::heahes()) - Get - get the hashes supported by the node
+
 //! ### For testing / development
 //!
 //! [Unsafe](crate::unsafe::api) has additional routes which are for testing and development
@@ -107,13 +110,13 @@ pub mod chain_api;
 pub mod common;
 pub(crate) mod health;
 pub(crate) mod helpers;
+pub(crate) mod node_info;
 pub(crate) mod sign_init;
 pub(crate) mod signing_client;
 pub(crate) mod r#unsafe;
 pub(crate) mod user;
 pub mod validation;
 pub(crate) mod validator;
-pub(crate) mod version;
 
 use axum::{
     http::Method,
@@ -131,11 +134,11 @@ use validator::api::get_random_server_info;
 use crate::{
     health::api::healthz,
     launch::Configuration,
+    node_info::api::{hashes, version as get_version},
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     signing_client::{api::*, ListenerState},
     user::api::*,
     validator::api::sync_kvdb,
-    version::api::version as get_version,
 };
 pub use crate::{
     helpers::{launch, validator::get_signer},
@@ -164,6 +167,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/validator/sync_kvdb", post(sync_kvdb))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
+        .route("/hashes", get(hashes))
         .route("/ws", get(ws_handler));
 
     // Unsafe routes are for testing purposes only

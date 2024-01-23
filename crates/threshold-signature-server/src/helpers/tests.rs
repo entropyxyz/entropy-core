@@ -235,6 +235,20 @@ pub async fn check_if_confirmation(
     assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
 }
 
+/// Verify that an account got one confirmation.
+pub async fn check_has_confirmation(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    key: &sr25519::Pair,
+) {
+    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
+    let registering_query = entropy::storage().relayer().registering(signer.account_id());
+    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    // cleared from is_registering state
+    let is_registering = api.storage().at(block_hash).fetch(&registering_query).await.unwrap();
+    assert_eq!(is_registering.unwrap().confirmations.len(), 1);
+}
+
 pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32) {
     let mut current_block = 0;
     while current_block < block_run {

@@ -99,15 +99,15 @@ use crate::{
         signing::Hasher,
         substrate::{get_subgroup, return_all_addresses_of_subgroup},
         tests::{
-            check_if_confirmation, create_clients, initialize_test_logger, remove_program,
-            run_to_block, setup_client, spawn_testing_validators,
+            check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
+            remove_program, run_to_block, setup_client, spawn_testing_validators,
         },
         user::{compute_hash, send_key},
     },
     new_user,
     r#unsafe::api::UnsafeQuery,
     signing_client::ListenerState,
-    user::api::{recover_key, UserRegistrationInfo, UserSignatureRequest},
+    user::api::{confirm_registered, recover_key, UserRegistrationInfo, UserSignatureRequest},
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
 };
@@ -1315,6 +1315,61 @@ async fn test_fail_infinite_program() {
     for res in test_infinite_loop {
         assert_eq!(res.unwrap().text().await.unwrap(), "Runtime error: OutOfFuel");
     }
+}
+
+#[tokio::test]
+#[serial]
+async fn test_mutiple_confirm_done() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let alice = AccountKeyring::Alice;
+    let bob = AccountKeyring::Bob;
+
+    let alice_program = AccountKeyring::Charlie;
+    let program_manager = AccountKeyring::Dave;
+
+    let cxt = test_context_stationary().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
+    let program_hash = update_programs(
+        &api,
+        &program_manager.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await;
+
+    put_register_request_on_chain(
+        &api,
+        &alice,
+        alice_program.to_account_id().into(),
+        KeyVisibility::Public,
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await;
+
+    put_register_request_on_chain(
+        &api,
+        &bob,
+        alice_program.to_account_id().into(),
+        KeyVisibility::Public,
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await;
+    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
+    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+
+    confirm_registered(&api, alice.to_account_id().into(), 0u8, &signer_alice, vec![0u8], 0u32)
+        .await
+        .unwrap();
+    confirm_registered(&api, bob.to_account_id().into(), 0u8, &signer_alice, vec![0u8], 1u32)
+        .await
+        .unwrap();
+    check_has_confirmation(&api, &rpc, &alice.pair()).await;
+    check_has_confirmation(&api, &rpc, &bob.pair()).await;
+    clean_tests();
 }
 
 pub async fn submit_transaction_requests(

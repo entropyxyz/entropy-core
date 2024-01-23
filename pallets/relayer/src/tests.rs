@@ -82,7 +82,7 @@ fn it_registers_a_user() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                program_type_definition: empty_program.clone(),
+                configuration_interface: empty_program.clone(),
                 program_modification_account: 1,
                 ref_counter: 0,
             },
@@ -130,7 +130,7 @@ fn it_confirms_registers_a_user() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                program_type_definition: empty_program.clone(),
+                configuration_interface: empty_program.clone(),
                 program_modification_account: 1,
                 ref_counter: 0,
             },
@@ -219,7 +219,7 @@ fn it_changes_a_program_pointer() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                program_type_definition: empty_program.clone(),
+                configuration_interface: empty_program.clone(),
                 program_modification_account: 1,
                 ref_counter: 1,
             },
@@ -237,7 +237,7 @@ fn it_changes_a_program_pointer() {
             new_program_hash,
             ProgramInfo {
                 bytecode: new_program,
-                program_type_definition: empty_program.clone(),
+                configuration_interface: empty_program.clone(),
                 program_modification_account: 1,
                 ref_counter: 1,
             },
@@ -316,7 +316,7 @@ fn it_fails_on_non_matching_verifying_keys() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                program_type_definition: empty_program.clone(),
+                configuration_interface: empty_program.clone(),
                 program_modification_account: 1,
                 ref_counter: 0,
             },
@@ -369,7 +369,7 @@ fn it_doesnt_allow_double_registering() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                program_type_definition: empty_program.clone(),
+                configuration_interface: empty_program.clone(),
                 program_modification_account: 1,
                 ref_counter: 0,
             },
@@ -449,7 +449,7 @@ fn it_tests_prune_registration() {
             program_hash,
             ProgramInfo {
                 bytecode: inital_program.clone(),
-                program_type_definition: inital_program.clone(),
+                configuration_interface: inital_program.clone(),
                 program_modification_account: 1,
                 ref_counter: 1,
             },
@@ -493,7 +493,7 @@ fn it_provides_free_txs_confirm_done() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                program_type_definition: empty_program.clone(),
+                configuration_interface: empty_program.clone(),
                 program_modification_account: 1,
                 ref_counter: 0,
             },
@@ -572,7 +572,7 @@ fn it_provides_free_txs_confirm_done_fails_3() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                program_type_definition: empty_program.clone(),
+                configuration_interface: empty_program.clone(),
                 program_modification_account: 1,
                 ref_counter: 0,
             },
@@ -621,7 +621,7 @@ fn it_provides_free_txs_confirm_done_fails_4() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                program_type_definition: empty_program.clone(),
+                configuration_interface: empty_program.clone(),
                 program_modification_account: 1,
                 ref_counter: 0,
             },
@@ -663,7 +663,7 @@ fn it_provides_free_txs_confirm_done_fails_5() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                program_type_definition: empty_program.clone(),
+                configuration_interface: empty_program.clone(),
                 program_modification_account: 1,
                 ref_counter: 0,
             },

@@ -81,7 +81,7 @@ fn knows_how_to_mock_several_http_calls() {
             <Test as frame_system::Config>::Hash::default(),
             ProgramInfo {
                 bytecode: vec![],
-                program_type_definition: vec![],
+                configuration_interface: vec![],
                 program_modification_account: 1,
                 ref_counter: 0,
             },

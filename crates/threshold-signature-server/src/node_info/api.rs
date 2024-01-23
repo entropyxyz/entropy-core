@@ -12,9 +12,17 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+use axum::Json;
+use entropy_shared::types::HashingAlgorithm;
+use strum::IntoEnumIterator;
 /// Returns the version and commit data
 #[tracing::instrument]
 pub async fn version() -> String {
     format!("{}-{}", env!("CARGO_PKG_VERSION"), env!("VERGEN_GIT_DESCRIBE"))
+}
+
+#[tracing::instrument]
+pub async fn hashes() -> Json<Vec<HashingAlgorithm>> {
+    let hashing_algos = HashingAlgorithm::iter().collect::<Vec<_>>();
+    Json(hashing_algos)
 }
