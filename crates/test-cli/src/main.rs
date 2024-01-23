@@ -21,21 +21,28 @@ use std::{
     time::Instant,
 };
 
+use anyhow::ensure;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use entropy_testing_utils::{
     chain_api::{
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance,
+        entropy::runtime_types::{
+            bounded_collections::bounded_vec::BoundedVec, pallet_relayer::pallet::ProgramInstance,
+        },
+        EntropyConfig,
     },
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
-        derive_static_secret, get_accounts, get_api, get_rpc, register, sign, update_program,
-        KeyParams, KeyShare, KeyVisibility,
+        derive_static_secret, get_accounts, get_api, get_programs, get_rpc, register, sign,
+        store_program, update_programs, KeyParams, KeyShare, KeyVisibility,
     },
 };
-use sp_core::{sr25519, Pair};
-use subxt::utils::{AccountId32 as SubxtAccountId32, H256};
+use sp_core::{sr25519, Hasher, Pair};
+use sp_runtime::traits::BlakeTwo256;
+use subxt::{
+    utils::{AccountId32 as SubxtAccountId32, H256},
+    OnlineClient,
+};
 
 #[derive(Parser, Debug, Clone)]
 #[clap(
@@ -71,10 +78,18 @@ enum CliCommand {
         /// The access mode of the Entropy account
         #[arg(value_enum, default_value_t = Default::default())]
         key_visibility: Visibility,
-        /// The hash of the initial program for the account
-        program_hashes: Vec<H256>,
-        /// The program configs of the initial programs for the account
-        program_configs: Vec<Vec<u8>>,
+        /// Either hex-encoded hashes of existing programs, or paths to wasm files to store.
+        ///
+        /// Specifying program configurations
+        ///
+        /// If there exists a file in the current directory of the same name or hex hash and
+        /// a '.json' extension, it will be read and used as the configuration for that program.
+        ///
+        /// If the path to a wasm file is given, and there is a file with the same name with a
+        /// '.config-interface' extension, it will be stored as that program's configuration
+        /// interface. If no such file exists, it is assumed the program has no configuration
+        /// interface.
+        programs: Vec<String>,
     },
     /// Ask the network to sign a given message
     Sign {
@@ -88,7 +103,7 @@ enum CliCommand {
         auxilary_data: Option<String>,
     },
     /// Update the program for a particular account
-    UpdateProgram {
+    UpdatePrograms {
         /// A name from which to generate a signature request keypair, eg: "Alice"
         ///
         /// Optionally may be preceeded with "//", eg: "//Alice"
@@ -97,10 +112,29 @@ enum CliCommand {
         ///
         /// Optionally may be preceeded with "//", eg: "//Bob"
         program_account_name: String,
-        /// The path to a .wasm file containing the program (defaults to test program)
+        /// Either hex-encoded program hashes, or paths to wasm files to store.
+        ///
+        /// Specifying program configurations
+        ///
+        /// If there exists a file in the current directory of the same name or hex hash and
+        /// a '.json' extension, it will be read and used as the configuration for that program.
+        ///
+        /// If the path to a wasm file is given, and there is a file with the same name with a
+        /// '.config-interface' extension, it will be stored as that program's configuration
+        /// interface. If no such file exists, it is assumed the program has no configuration
+        /// interface.
+        programs: Vec<String>,
+    },
+    /// Store a given program on chain
+    StoreProgram {
+        /// A name from which to generate a keypair, eg: "Alice"
+        ///
+        /// Optionally may be preceeded with "//", eg: "//Alice"
+        account_name: String,
+        /// The path to a .wasm file containing the program (defaults to a test program)
         program_file: Option<PathBuf>,
-        /// The path to a file containing the program config (defaults to empty)
-        program_config_file: Option<PathBuf>,
+        /// The path to a file containing the program configuration interface (defaults to empty)
+        program_interface_file: Option<PathBuf>,
     },
     /// Display a list of registered Entropy accounts
     Status,
@@ -163,8 +197,7 @@ async fn run_command() -> anyhow::Result<String> {
             signature_request_account_name,
             program_account_name,
             key_visibility,
-            program_hashes,
-            program_configs,
+            programs,
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
@@ -186,11 +219,9 @@ async fn run_command() -> anyhow::Result<String> {
             };
             let mut programs_info = vec![];
 
-            for i in 0..program_hashes.len() {
-                programs_info.push(ProgramInstance {
-                    program_pointer: program_hashes[i],
-                    program_config: program_configs[i].clone(),
-                });
+            for program in programs {
+                programs_info
+                    .push(Program::from_hash_or_filename(&api, &program_keypair, program).await?.0);
             }
 
             let (registered_info, keyshare_option) = register(
@@ -237,30 +268,52 @@ async fn run_command() -> anyhow::Result<String> {
             .await?;
             Ok(format!("Message signed: {:?}", recoverable_signature))
         },
-        CliCommand::UpdateProgram {
-            signature_request_account_name,
-            program_account_name,
-            program_file,
-            program_config_file,
-        } => {
-            let signature_request_keypair: sr25519::Pair =
-                SeedString::new(signature_request_account_name).try_into()?;
-            println!("Signature request account: {:?}", signature_request_keypair.public());
+        CliCommand::StoreProgram { account_name, program_file, program_interface_file } => {
+            let keypair: sr25519::Pair = SeedString::new(account_name).try_into()?;
+            println!("Storing program using account: {:?}", keypair.public());
 
             let program = match program_file {
                 Some(file_name) => fs::read(file_name)?,
                 None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 
-            let program_config = match program_config_file {
+            let program_interface = match program_interface_file {
                 Some(file_name) => fs::read(file_name)?,
                 None => vec![],
             };
 
+            let hash = store_program(&api, &keypair, program, program_interface).await?;
+            Ok(format!("Program stored {hash}"))
+        },
+        CliCommand::UpdatePrograms {
+            signature_request_account_name,
+            program_account_name,
+            programs,
+        } => {
+            let signature_request_keypair: sr25519::Pair =
+                SeedString::new(signature_request_account_name).try_into()?;
+            println!("Signature request account: {:?}", signature_request_keypair.public());
+
             let program_keypair: sr25519::Pair =
                 SeedString::new(program_account_name).try_into()?;
-            update_program(&api, &program_keypair, program, program_config).await?;
-            Ok("Program updated".to_string())
+            println!("Program account: {:?}", program_keypair.public());
+
+            let mut programs_info = Vec::new();
+            for program in programs {
+                programs_info
+                    .push(Program::from_hash_or_filename(&api, &program_keypair, program).await?.0);
+            }
+
+            update_programs(
+                &api,
+                &rpc,
+                &signature_request_keypair,
+                &program_keypair,
+                BoundedVec(programs_info),
+            )
+            .await?;
+
+            Ok("Programs updated".to_string())
         },
         CliCommand::Status => {
             let accounts = get_accounts(&api, &rpc).await?;
@@ -270,21 +323,59 @@ async fn run_command() -> anyhow::Result<String> {
             );
             if !accounts.is_empty() {
                 println!(
-                    "{:<48} {:<12} {}",
+                    "{:<48} {:<12} {:<66} Programs:",
                     "Signature request account ID:".green(),
                     "Visibility:".purple(),
-                    "Verifying key: ".cyan()
+                    "Verifying key: ".cyan(),
                 );
                 for (account_id, info) in accounts {
                     let visibility: Visibility = info.key_visibility.0.into();
                     println!(
-                        "{} {:<12} {}",
+                        "{} {:<12} {} {}",
                         format!("{}", account_id).green(),
                         format!("{}", visibility).purple(),
-                        format!("{:?}", info.verifying_key.0).cyan()
+                        format!("{:<66}", hex::encode(info.verifying_key.0)).cyan(),
+                        format!(
+                            "{:?}",
+                            info.programs_data
+                                .0
+                                .iter()
+                                .map(|program_instance| format!(
+                                    "{}",
+                                    program_instance.program_pointer
+                                ))
+                                .collect::<Vec<_>>()
+                        )
+                        .white(),
                     );
                 }
             }
+
+            let programs = get_programs(&api, &rpc).await?;
+
+            println!("\nThere are {} stored programs\n", programs.len().to_string().green());
+
+            if !programs.is_empty() {
+                println!(
+                    "{:<11} {:<48} {:<11} {:<14} {}",
+                    "Hash".blue(),
+                    "Stored by:".green(),
+                    "Times used:".purple(),
+                    "Size in bytes:".cyan(),
+                    "Configurable?".yellow(),
+                );
+                for (hash, program_info) in programs {
+                    println!(
+                        "{} {} {:>11} {:>14} {}",
+                        hash,
+                        program_info.program_modification_account,
+                        program_info.ref_counter,
+                        program_info.bytecode.len(),
+                        !program_info.configuration_interface.is_empty(),
+                    );
+                }
+            }
+
             Ok("Got status".to_string())
         },
     }
@@ -327,5 +418,82 @@ impl KeyShareFile {
         println!("Writing keyshare to file: {}", self.0);
         let keyshare_vec = bincode::serialize(&keyshare)?;
         Ok(fs::write(&self.0, keyshare_vec)?)
+    }
+}
+
+struct Program(ProgramInstance);
+
+impl Program {
+    fn new(program_pointer: H256, program_config: Vec<u8>) -> Self {
+        Self(ProgramInstance { program_pointer, program_config })
+    }
+
+    async fn from_hash_or_filename(
+        api: &OnlineClient<EntropyConfig>,
+        keypair: &sr25519::Pair,
+        hash_or_filename: String,
+    ) -> anyhow::Result<Self> {
+        match hex::decode(hash_or_filename.clone()) {
+            Ok(hash) => {
+                let hash_32_res: Result<[u8; 32], _> = hash.try_into();
+                match hash_32_res {
+                    Ok(hash_32) => {
+                        // If there is a file called <hash as hex>.json use that as the
+                        // configuration:
+                        let configuration = {
+                            let mut configuration_file = PathBuf::from(&hash_or_filename);
+                            configuration_file.set_extension("json");
+                            fs::read(&configuration_file).unwrap_or_default()
+                        };
+                        Ok(Self::new(H256(hash_32), configuration))
+                    },
+                    Err(_) => Self::from_file(api, keypair, hash_or_filename).await,
+                }
+            },
+            Err(_) => Self::from_file(api, keypair, hash_or_filename).await,
+        }
+    }
+
+    /// Given a path to a .wasm file, read it, store the program if it doesn't already exist, and
+    /// return the hash.
+    async fn from_file(
+        api: &OnlineClient<EntropyConfig>,
+        keypair: &sr25519::Pair,
+        filename: String,
+    ) -> anyhow::Result<Self> {
+        let program_bytecode = fs::read(&filename)?;
+
+        // If there is a file with the same name with the '.config-interface' extension, read it
+        let configuration_interface = {
+            let mut configuration_interface_file = PathBuf::from(&filename);
+            configuration_interface_file.set_extension("config-interface");
+            fs::read(&configuration_interface_file).unwrap_or_default()
+        };
+
+        // If there is a file with the same name with the '.json' extension, read it
+        let configuration = {
+            let mut configuration_file = PathBuf::from(&filename);
+            configuration_file.set_extension("json");
+            fs::read(&configuration_file).unwrap_or_default()
+        };
+
+        ensure!(
+            (configuration_interface.is_empty() && configuration.is_empty())
+                || (!configuration_interface.is_empty() && !configuration.is_empty()),
+            "If giving a configuration interface you must also give a configuration"
+        );
+
+        match store_program(api, keypair, program_bytecode.clone(), configuration_interface).await {
+            Ok(hash) => Ok(Self::new(hash, configuration)),
+            Err(error) => {
+                if error.to_string().ends_with("ProgramAlreadySet") {
+                    println!("Program is already stored - using existing one");
+                    let hash = BlakeTwo256::hash(&program_bytecode);
+                    Ok(Self::new(H256(hash.into()), configuration))
+                } else {
+                    Err(error)
+                }
+            },
+        }
     }
 }
