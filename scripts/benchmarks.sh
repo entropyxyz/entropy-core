@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eux
+
 steps=50
 repeat=20
 entropyOutput=./runtime/src/weights/
@@ -15,7 +17,7 @@ excluded_pallets=(
 
 # Load all pallet names in an array.
 all_pallets=($(
-  ./target/release/entropy benchmark pallet --list --chain=dev |\
+  cargo run -p entropy --release --features runtime-benchmarks -- benchmark pallet --list --chain=dev |\
     tail -n+2 |\
     cut -d',' -f1 |\
     sort |\
@@ -28,7 +30,7 @@ echo "[+] Benchmarking ${#pallets[@]} pallets by excluding ${#excluded_pallets[@
 
 for p in ${pallets[@]}
 do
-    ./target/release/entropy benchmark pallet \
+    cargo run -p entropy --release --features runtime-benchmarks -- benchmark pallet \
         --chain $entropyChain \
         --wasm-execution=compiled \
         --pallet=$p  \
