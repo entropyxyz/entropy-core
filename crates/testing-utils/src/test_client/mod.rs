@@ -248,18 +248,18 @@ pub async fn sign(
     skip_all,
     fields(
         signature_request_account,
-        program_deploy_key = ?program_modification_keypair.public(),
+        program_deploy_key = ?program_deploy_keypair.public(),
     )
 )]
 pub async fn store_program(
     api: &OnlineClient<EntropyConfig>,
-    program_modification_keypair: &sr25519::Pair,
+    program_deploy_keypair: &sr25519::Pair,
     program: Vec<u8>,
     configuration_interface: Vec<u8>,
 ) -> anyhow::Result<<EntropyConfig as Config>::Hash> {
     let update_program_tx = entropy::tx().programs().set_program(program, configuration_interface);
     let program_deploy_key =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_keypair.clone());
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_deploy_keypair.clone());
 
     let in_block = api
         .tx()
@@ -279,7 +279,7 @@ pub async fn update_programs(
     entropy_api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_account: &sr25519::Pair,
-    pointer_modification_account: &sr25519::Pair,
+    program_deploy_key: &sr25519::Pair,
     program_instance: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<()> {
     let block_hash =
@@ -289,14 +289,14 @@ pub async fn update_programs(
         .relayer()
         .change_program_instance(signature_request_account.public().into(), program_instance);
 
-    let account_id32: AccountId32 = pointer_modification_account.public().into();
+    let account_id32: AccountId32 = program_deploy_key.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
 
     let nonce_call = entropy::apis().account_nonce_api().account_nonce(account_id.clone());
     let nonce = entropy_api.runtime_api().at(block_hash).call(nonce_call).await?;
 
-    let pointer_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(pointer_modification_account.clone());
+    let program_deploy_key =
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_deploy_key.clone());
 
     let partial_tx = entropy_api.tx().create_partial_signed_with_nonce(
         &update_pointer_tx,
@@ -304,7 +304,7 @@ pub async fn update_programs(
         Default::default(),
     )?;
     let signer_payload = partial_tx.signer_payload();
-    let signature = pointer_modification_account.sign(&signer_payload);
+    let signature = program_deploy_key.sign(&signer_payload);
 
     let tx = partial_tx.sign_with_address_and_signature(&account_id.into(), &signature);
 
