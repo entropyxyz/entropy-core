@@ -21,6 +21,7 @@ use std::{
     time::Instant,
 };
 
+use anyhow::ensure;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use entropy_testing_utils::{
@@ -77,10 +78,17 @@ enum CliCommand {
         /// The access mode of the Entropy account
         #[arg(value_enum, default_value_t = Default::default())]
         key_visibility: Visibility,
-        /// Either hex-encoded hashes, or paths to wasm files to store.
+        /// Either hex-encoded hashes of existing programs, or paths to wasm files to store.
         ///
-        /// If there is also a file of the same name and a .config extension,
-        /// it will also be read and used as the configuration for that program
+        /// Specifying program configurations
+        ///
+        /// If there exists a file in the current directory of the same name or hex hash and
+        /// a '.json' extension, it will be read and used as the configuration for that program.
+        ///
+        /// If the path to a wasm file is given, and there is a file with the same name with a
+        /// '.config-interface' extension, it will be stored as that program's configuration
+        /// interface. If no such file exists, it is assumed the program has no configuration
+        /// interface.
         programs: Vec<String>,
     },
     /// Ask the network to sign a given message
@@ -106,8 +114,15 @@ enum CliCommand {
         program_account_name: String,
         /// Either hex-encoded program hashes, or paths to wasm files to store.
         ///
-        /// If there is also a file of the same name and a .config extension,
-        /// it will also be read and used as the configuration for that program
+        /// Specifying program configurations
+        ///
+        /// If there exists a file in the current directory of the same name or hex hash and
+        /// a '.json' extension, it will be read and used as the configuration for that program.
+        ///
+        /// If the path to a wasm file is given, and there is a file with the same name with a
+        /// '.config-interface' extension, it will be stored as that program's configuration
+        /// interface. If no such file exists, it is assumed the program has no configuration
+        /// interface.
         programs: Vec<String>,
     },
     /// Store a given program on chain
@@ -118,8 +133,8 @@ enum CliCommand {
         account_name: String,
         /// The path to a .wasm file containing the program (defaults to a test program)
         program_file: Option<PathBuf>,
-        /// The path to a file containing the program config (defaults to empty)
-        program_config_file: Option<PathBuf>,
+        /// The path to a file containing the program configuration interface (defaults to empty)
+        program_interface_file: Option<PathBuf>,
     },
     /// Display a list of registered Entropy accounts
     Status,
@@ -253,7 +268,7 @@ async fn run_command() -> anyhow::Result<String> {
             .await?;
             Ok(format!("Message signed: {:?}", recoverable_signature))
         },
-        CliCommand::StoreProgram { account_name, program_file, program_config_file } => {
+        CliCommand::StoreProgram { account_name, program_file, program_interface_file } => {
             let keypair: sr25519::Pair = SeedString::new(account_name).try_into()?;
             println!("Storing program using account: {:?}", keypair.public());
 
@@ -262,12 +277,12 @@ async fn run_command() -> anyhow::Result<String> {
                 None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 
-            let program_config = match program_config_file {
+            let program_interface = match program_interface_file {
                 Some(file_name) => fs::read(file_name)?,
                 None => vec![],
             };
 
-            let hash = store_program(&api, &keypair, program, program_config).await?;
+            let hash = store_program(&api, &keypair, program, program_interface).await?;
             Ok(format!("Program stored {hash}"))
         },
         CliCommand::UpdatePrograms {
@@ -422,7 +437,16 @@ impl Program {
             Ok(hash) => {
                 let hash_32_res: Result<[u8; 32], _> = hash.try_into();
                 match hash_32_res {
-                    Ok(hash_32) => Ok(Self::new(H256(hash_32), vec![])),
+                    Ok(hash_32) => {
+                        // If there is a file called <hash as hex>.json use that as the
+                        // configuration:
+                        let configuration = {
+                            let mut configuration_file = PathBuf::from(&hash_or_filename);
+                            configuration_file.set_extension("json");
+                            fs::read(&configuration_file).unwrap_or_default()
+                        };
+                        Ok(Self::new(H256(hash_32), configuration))
+                    },
                     Err(_) => Self::from_file(api, keypair, hash_or_filename).await,
                 }
             },
@@ -438,9 +462,28 @@ impl Program {
         filename: String,
     ) -> anyhow::Result<Self> {
         let program_bytecode = fs::read(&filename)?;
-        // If there is a file with the same name with the '.config' extension, read it
-        let configuration = fs::read(filename + ".config").unwrap_or_default();
-        match store_program(api, keypair, program_bytecode.clone(), vec![]).await {
+
+        // If there is a file with the same name with the '.config-interface' extension, read it
+        let configuration_interface = {
+            let mut configuration_interface_file = PathBuf::from(&filename);
+            configuration_interface_file.set_extension("config-interface");
+            fs::read(&configuration_interface_file).unwrap_or_default()
+        };
+
+        // If there is a file with the same name with the '.json' extension, read it
+        let configuration = {
+            let mut configuration_file = PathBuf::from(&filename);
+            configuration_file.set_extension("json");
+            fs::read(&configuration_file).unwrap_or_default()
+        };
+
+        ensure!(
+            (configuration_interface.is_empty() && configuration.is_empty())
+                || (!configuration_interface.is_empty() && !configuration.is_empty()),
+            "If giving a configuration interface you must also give a configuration"
+        );
+
+        match store_program(api, keypair, program_bytecode.clone(), configuration_interface).await {
             Ok(hash) => Ok(Self::new(hash, configuration)),
             Err(error) => {
                 if error.to_string().ends_with("ProgramAlreadySet") {
