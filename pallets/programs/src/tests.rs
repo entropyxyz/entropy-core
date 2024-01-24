@@ -54,7 +54,7 @@ fn set_program() {
         let program_result = ProgramInfo {
             bytecode: program.clone(),
             configuration_interface: configuration_interface.clone(),
-            program_deploy_key: PROGRAM_MODIFICATION_ACCOUNT,
+            deployer: PROGRAM_MODIFICATION_ACCOUNT,
             ref_counter: 0u128,
         };
         assert_eq!(
@@ -139,7 +139,7 @@ fn remove_program() {
             "Program bytecode gets set"
         );
         assert_eq!(
-            ProgramsPallet::programs(program_hash).unwrap().program_deploy_key,
+            ProgramsPallet::programs(program_hash).unwrap().deployer,
             PROGRAM_MODIFICATION_ACCOUNT,
             "Program modification account gets set"
         );
@@ -178,7 +178,7 @@ fn remove_program_fails_ref_count() {
             ProgramInfo {
                 bytecode: program,
                 configuration_interface,
-                program_deploy_key: PROGRAM_MODIFICATION_ACCOUNT,
+                deployer: PROGRAM_MODIFICATION_ACCOUNT,
                 ref_counter: 1u128,
             },
         );
