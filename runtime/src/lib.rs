@@ -49,7 +49,7 @@ use frame_support::{
     parameter_types,
     sp_runtime::RuntimeDebug,
     traits::{
-        fungible::HoldConsideration,
+        fungible::{HoldConsideration},
         tokens::{
             nonfungibles_v2::Inspect, pay::PayAssetFromAccount, GetSalary, PayFromAccount,
             UnityAssetBalanceConversion,
@@ -70,9 +70,8 @@ use frame_support::{
 pub use frame_system::Call as SystemCall;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureRoot, EnsureSigned,
+    EnsureRoot, EnsureSigned, EnsureWithSuccess
 };
-
 #[cfg(any(feature = "std", test))]
 pub use pallet_balances::Call as BalancesCall;
 use pallet_election_provider_multi_phase::{GeometricDepositBase, SolutionAccuracyOf};
@@ -1007,7 +1006,8 @@ impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
 
 parameter_types! {
   pub const ProposalBond: Permill = Permill::from_percent(5);
-  pub const ProposalBondMinimum: Balance = DOLLARS;
+	pub const ProposalBondMinimum: Balance = 100 * DOLLARS;
+  pub const ProposalBondMaximum: Balance = 500 * DOLLARS;
   pub const SpendPeriod: BlockNumber = DAYS;
   pub const Burn: Permill = Permill::from_percent(50);
   pub const TipCountdown: BlockNumber = DAYS;
@@ -1028,6 +1028,7 @@ parameter_types! {
   pub const CuratorDepositMin: Balance = DOLLARS;
   pub const CuratorDepositMax: Balance = 100 * DOLLARS;
   pub const SpendPayoutPeriod: BlockNumber = 30 * DAYS;
+  pub const MaxBalance: Balance = Balance::max_value();
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -1039,10 +1040,10 @@ impl pallet_treasury::Config for Runtime {
     type BurnDestination = ();
     type Currency = Balances;
     type MaxApprovals = MaxApprovals;
-    type OnSlash = ();
+    type OnSlash = Treasury;
     type PalletId = TreasuryPalletId;
     type ProposalBond = ProposalBond;
-    type ProposalBondMaximum = ();
+    type ProposalBondMaximum = ProposalBondMaximum;
     type ProposalBondMinimum = ProposalBondMinimum;
     type RejectOrigin = EitherOfDiverse<
         EnsureRoot<AccountId>,
@@ -1050,7 +1051,7 @@ impl pallet_treasury::Config for Runtime {
     >;
     type RuntimeEvent = RuntimeEvent;
     type SpendFunds = Bounties;
-    type SpendOrigin = frame_support::traits::NeverEnsureOrigin<u128>;
+    type SpendOrigin = EnsureWithSuccess<EnsureRoot<AccountId>, AccountId, MaxBalance>;
     type SpendPeriod = SpendPeriod;
     type AssetKind = ();
     type Beneficiary = AccountId;
