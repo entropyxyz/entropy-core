@@ -184,16 +184,15 @@ pub async fn spawn_testing_validators(
 pub async fn remove_program(
     entropy_api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    program_modification_account: &sr25519::Pair,
+    deployer: &sr25519::Pair,
     program_hash: <EntropyConfig as Config>::Hash,
 ) {
     // update/set their programs
     let remove_program_tx = entropy::tx().programs().remove_program(program_hash);
-    let account_id32: AccountId32 = program_modification_account.public().into();
+    let account_id32: AccountId32 = deployer.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
 
-    let program_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_account.clone());
+    let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer.clone());
 
     let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
     let nonce_call = entropy::apis().account_nonce_api().account_nonce(account_id.clone());
@@ -203,7 +202,7 @@ pub async fn remove_program(
         .create_partial_signed_with_nonce(&remove_program_tx, nonce.into(), Default::default())
         .unwrap();
     let signer_payload = partial_tx.signer_payload();
-    let signature = program_modification_account.sign(&signer_payload);
+    let signature = deployer.sign(&signer_payload);
 
     let tx = partial_tx.sign_with_address_and_signature(&account_id.into(), &signature);
     tx.submit_and_watch()
