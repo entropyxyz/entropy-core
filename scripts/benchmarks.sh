@@ -30,7 +30,7 @@ echo "[+] Benchmarking ${#pallets[@]} pallets by excluding ${#excluded_pallets[@
 
 for p in ${pallets[@]}
 do
-    cargo run -p entropy --release --features runtime-benchmarks -- benchmark pallet \
+    ./target/release/entropy benchmark pallet \
         --chain $entropyChain \
         --wasm-execution=compiled \
         --pallet=$p  \
