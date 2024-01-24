@@ -1,6 +1,6 @@
 [package]
 name      ='pallet-propagation'
-version   ='0.0.9'
+version   ='0.0.10'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -28,9 +28,9 @@ sp-runtime           ={ version="28.0.0", default-features=false }
 sp-staking           ={ version="23.0.0", default-features=false }
 
 entropy-shared          ={ path="../../crates/shared", default-features=false, features=["wasm-no-std"] }
-pallet-relayer          ={ version="0.0.9", path="../relayer", default-features=false }
-pallet-programs         ={ version="0.0.9", path="../programs", default-features=false }
-pallet-staking-extension={ version="0.0.9", path="../staking", default-features=false }
+pallet-relayer          ={ version="0.0.10", path="../relayer", default-features=false }
+pallet-programs         ={ version="0.0.10", path="../programs", default-features=false }
+pallet-staking-extension={ version="0.0.10", path="../staking", default-features=false }
 
 [dev-dependencies]
 parking_lot="0.11.2"

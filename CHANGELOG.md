@@ -7,26 +7,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...master)
+
+## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-23
+
+A lot of the changes introduced in this release are program related.
+
+The workflow around having to upload a program during registration is gone. Instead users can
+register with programs which have previously been uploaded on-chain by providing the hash of the
+program they want to use.
+
+When registering a user can also customize the behaviour of their chosen program through the new
+program configuration feature.
+
+If a single program doesn't provide enough functionality, now users can register with multiple
+programs. During signature generation all of these programs will be executed. Only if all of them
+run succesfully then a signature is produced.
+
+Finally, users are now able to indicate which hashing algorithm they would like to use during the
+signing step. We provide some common ones out of the box, but custom user-provided hashing
+algorithms are also supported.
 
 ### Breaking Changes
-- In [#561](https://github.com/entropyxyz/entropy-core/pull/561) several crates were renamed in order to ensure consistent naming across the repo.
-  The most impactful of these is that the `server` binary is now the `entropy-tss` binary. From this
-  it follows that the Docker images previously published under `entropyxyz/server` are now being
-  published under `entropyxyz/entropy-tss`.
-- In [#536](https://github.com/entropyxyz/entropy-core/pull/536/), the registered struct no longer holds a program but rather a hash of a program that is set in the set_program function
-- When executing the signing protocol on the client-side, a `sig-uid` no longer needs to be given as
-  an argument ([#549](https://github.com/entropyxyz/entropy-core/pull/549))
-- Wasm API to entropy-protocol uses camelCase function names ([#566](https://github.com/entropyxyz/entropy-core/pull/566))
-- Wasm API to functions formerly in the x25515chacha20poly1305 repo also now have camelCase function names ([#563](https://github.com/entropyxyz/entropy-core/pull/563))
-- Register and change program pointer interface changed to accept a vecotor of programs. As well pass an index for which containts the hashing code if it custom hashing ([#568](https://github.com/entropyxyz/entropy-core/pull/568))
-- If a user is sending additive data through it now needs to be in a vector and the index needs to match up with where the program pointer is in the program pointer vector. ([#577](https://github.com/entropyxyz/entropy-core/pull/577))
-- In [#592](https://github.com/entropyxyz/entropy-core/pull/592), the `local-devnet` chain-type was
+- In [#561](https://github.com/entropyxyz/entropy-core/pull/561) several crates were renamed in
+  order to ensure consistent naming across the repo. The most impactful of these is that the
+  `server` binary is now the `entropy-tss` binary. From this it follows that the Docker images
+  previously published under `entropyxyz/server` are now being published under
+  `entropyxyz/entropy-tss`.
+- In [#536](https://github.com/entropyxyz/entropy-core/pull/536/) the registration interface was
+  changed to accept a pointer to a program. Programs are now expected to be uploaded using the
+  `Programs::set_program` extrinsic.
+- In [#549](https://github.com/entropyxyz/entropy-core/pull/549), when executing the signing
+  protocol on the client-side, a `sig-uid` no longer needs to be given as an argument
+- In [#566](https://github.com/entropyxyz/entropy-core/pull/566) the Wasm API to `entropy-protocol`
+  was changed to use `camelCase` function names.
+- In [#563](https://github.com/entropyxyz/entropy-core/pull/563) the Wasm API to functions formerly
+  in the [`x25515chacha20poly1305` repository](https://github.com/entropyxyz/x25519-chacha20poly1305/)
+  was changed to use `camelCase` function names.
+- In [#568](https://github.com/entropyxyz/entropy-core/pull/568) the registration and program update
+  interfaces were changes to accept a vector of program hashes.
+- In [#577](https://github.com/entropyxyz/entropy-core/pull/577)
+- the auxilary program data is now expected to be in a vector. This order of the auxilary data
+  should match the order of the programs that are being registered.
+- In [#592](https://github.com/entropyxyz/entropy-core/pull/592) the `local-devnet` chain-type was
   renamed to `devnet-local`. Additionally, the default chain type when none is specified is now
   `dev` instead of `local`.
-- A user now needs to add a program config, which gets packaged with their program pointer to create program info. This changes both register and change_program_info (previously change_program_pointer). As well set_program now also takes program_type_definition. ([#593](https://github.com/entropyxyz/entropy-core/pull/593))
-- Changed program_type_definition to configuration_interface. ([#597](https://github.com/entropyxyz/entropy-core/pull/597))
-- Changed program_modification_account in programs_info of programs pallet to deployer. ([#604](https://github.com/entropyxyz/entropy-core/pull/604))
+- In [#593](https://github.com/entropyxyz/entropy-core/pull/593) the programs interface was changed
+  to accept a program configuration interface. This allows an uploaded program to be configured
+  differently by different users.
+- In [#604](https://github.com/entropyxyz/entropy-core/pull/604), the `program_modification_account`
+  term used in the Programs pallet was changed to `deployer`. This better reflects the purpose of
+  this account.
 
 ### Added
 - Test CLI which calls the same code as in integration tests ([#417](https://github.com/entropyxyz/entropy-core/pull/417))
@@ -59,7 +90,7 @@ At the moment this project **does not** adhere to
 ### Removed
 - Remove pallet-helpers ([#581](https://github.com/entropyxyz/entropy-core/pull/581/))
 
-## [0.0.9](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.8..release/v0.0.9) - 2023-11-30
+## [0.0.9](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.8...release/v0.0.9) - 2023-11-30
 
 Some of the noteworthy changes related to this release are related to better integration in Web
 Assembly contexts, and improvements to logging for the Threshold Signature Server.
@@ -104,7 +135,7 @@ visualization.
 ### Fixed
 - Return package version instead of rustc version ([#523](https://github.com/entropyxyz/entropy-core/pull/523/))
 
-## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7..release/v0.0.8) - 2023-11-06
+## [0.0.8](https://github.com/entropyxyz/entropy-core/compare/v0.0.7...release/v0.0.8) - 2023-11-06
 
 ### Breaking Changes
 
