@@ -22,6 +22,7 @@ use entropy_runtime::{
     IndicesConfig, MaxNominations, RuntimeGenesisConfig, SessionConfig, StakerStatus,
     StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
 };
+use entropy_shared::X25519PublicKey as TssX25519PublicKey;
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use node_primitives::{AccountId, Balance};
@@ -32,6 +33,14 @@ use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::UncheckedInto, sr25519};
 use sp_runtime::Perbill;
+
+/// The AccountID of a Threshold Signature server. This is to meant to be registered on-chain.
+type TssAccountId = sp_runtime::AccountId32;
+
+/// The endpoint at which to reach a Threshold Signature server.
+///
+/// The format should be in the form of `scheme://hostname:port`.
+type TssEndpoint = String;
 
 pub fn testnet_local_initial_authorities(
 ) -> Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> {
@@ -135,7 +144,7 @@ pub fn testnet_initial_authorities(
 /// The configuration used for a local testnet network spun up using the `docker-compose` setup
 /// provided in this repository.
 ///
-/// Its configuration matches the same setup as the `testnet`, with the exception that is uses
+/// This configuration matches the same setup as the `testnet`, with the exception that is uses
 /// two well-known accounts (Alice and Bob) as the authorities.
 pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
@@ -165,10 +174,6 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
     )
 }
 
-type TssAccountId = sp_runtime::AccountId32;
-type TssX25519PublicKey = [u8; 32];
-type TssEndpoint = String;
-
 pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
     let alice = (
         crate::chain_spec::tss_account_id::ALICE.clone(),
@@ -185,6 +190,11 @@ pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519Public
     vec![alice, bob]
 }
 
+/// In practice it's a little hard for us to fill this out with correct information since we need
+/// to spin up all the TSS servers we want at genesis and grab the keys and IPs to then put in
+/// here.
+///
+/// Placeholders have been left here instead for illustrative purposes.
 pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
     let alice = (
         crate::chain_spec::tss_account_id::ALICE.clone(),
@@ -229,7 +239,7 @@ pub fn testnet_config() -> crate::chain_spec::ChainSpec {
                 testnet_initial_authorities(),
                 vec![],
                 hex!["6a16ded05ff7a50716e1ca943f0467c60b4b71c2a7fd7f75b6333b8af80b6e6f"].into(),
-                testnet_initial_tss_servers(), // vec!["127.0.0.1:3001", "127.0.0.1:3002"],
+                testnet_initial_tss_servers(),
             )
         },
         vec![],
