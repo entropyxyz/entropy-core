@@ -68,8 +68,8 @@ pub fn development_config() -> crate::chain_spec::ChainSpec {
 /// two validators, Alice and Bob.
 pub fn devnet_local_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
-        "DevelopmentNetwork",
-        "DevnetLocal",
+        "Devnet Local",
+        "devnet_local",
         ChainType::Development,
         || {
             development_genesis_config(
