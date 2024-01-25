@@ -305,6 +305,7 @@ pub fn testnet_genesis_config(
 
     const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 1000;
+    const SIGNING_GROUPS: usize = 2;
 
     RuntimeGenesisConfig {
         system: SystemConfig { code: wasm_binary_unwrap().to_vec(), ..Default::default() },
@@ -351,10 +352,12 @@ pub fn testnet_genesis_config(
                     (auth.1.clone(), (tss.0.clone(), tss.1, tss.2.as_bytes().to_vec()))
                 })
                 .collect::<Vec<_>>(),
-            signing_groups: vec![
-                (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
-                (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
-            ],
+            // We place all Stash accounts into the specified number of signing groups
+            signing_groups: initial_authorities.iter().map(|x| x.1.clone()).collect::<Vec<_>>()[..]
+                .chunks((initial_authorities.len() + SIGNING_GROUPS - 1) / SIGNING_GROUPS)
+                .enumerate()
+                .map(|(i, v)| (i as u8, v.to_vec()))
+                .collect::<Vec<_>>(),
             proactive_refresh_validators: vec![],
         },
         democracy: DemocracyConfig::default(),
