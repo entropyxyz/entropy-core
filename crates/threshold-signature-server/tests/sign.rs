@@ -50,7 +50,7 @@ async fn integration_test_sign() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_hash = test_client::update_program(
+    let program_pointer = test_client::store_program(
         &api,
         &eve.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
@@ -59,12 +59,12 @@ async fn integration_test_sign() {
     .await
     .unwrap();
 
-    test_client::update_pointer(
+    test_client::update_programs(
         &api,
         &rpc,
         &pre_registered_user.pair(),
         &pre_registered_user.pair(),
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+        BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
     .await
     .unwrap();
@@ -105,7 +105,7 @@ async fn integration_test_sign_private() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_hash = test_client::update_program(
+    let program_pointer = test_client::store_program(
         &api,
         &dave.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
@@ -114,12 +114,12 @@ async fn integration_test_sign_private() {
     .await
     .unwrap();
 
-    test_client::update_pointer(
+    test_client::update_programs(
         &api,
         &rpc,
         &pre_registered_user.pair(),
         &pre_registered_user.pair(),
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+        BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
     .await
     .unwrap();

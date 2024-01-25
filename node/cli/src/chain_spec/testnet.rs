@@ -22,10 +22,10 @@ use entropy_runtime::{
     IndicesConfig, MaxNominations, RuntimeGenesisConfig, SessionConfig, StakerStatus,
     StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
 };
+use entropy_runtime::{AccountId, Balance};
 use entropy_shared::X25519PublicKey as TssX25519PublicKey;
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
-use node_primitives::{AccountId, Balance};
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;

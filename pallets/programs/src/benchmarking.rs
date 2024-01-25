@@ -15,13 +15,14 @@
 
 //! Benchmarking setup for pallet-propgation
 
-use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec};
+use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     traits::{Currency, Get},
     BoundedVec,
 };
 use frame_system::{EventRecord, RawOrigin};
 use sp_runtime::{traits::Hash, Saturating};
+use sp_std::{vec, vec::Vec};
 
 use super::*;
 #[allow(unused)]
@@ -47,17 +48,17 @@ benchmarks! {
     hash_input.extend(&configuration_interface);
 
     let program_hash = T::Hashing::hash(&hash_input);
-    let program_modification_account: T::AccountId = whitelisted_caller();
+    let deployer: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();
 
     let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
-    let _ = CurrencyOf::<T>::make_free_balance_be(&program_modification_account, value);
+    let _ = CurrencyOf::<T>::make_free_balance_be(&deployer, value);
 
-  }: _(RawOrigin::Signed(program_modification_account.clone()), program.clone(), configuration_interface.clone())
+  }: _(RawOrigin::Signed(deployer.clone()), program.clone(), configuration_interface.clone())
   verify {
     assert_last_event::<T>(
         Event::<T>::ProgramCreated {
-            program_modification_account,
+            deployer,
             program_hash,
             configuration_interface
         }.into()
@@ -75,23 +76,23 @@ benchmarks! {
     let program_hash = T::Hashing::hash(&hash_input);
     let random_program = vec![11];
     let random_hash =  T::Hashing::hash(&random_program);
-    let program_modification_account: T::AccountId = whitelisted_caller();
+    let deployer: T::AccountId = whitelisted_caller();
 
     let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
-    let _ = CurrencyOf::<T>::make_free_balance_be(&program_modification_account, value);
-    <Programs<T>>::insert(program_hash.clone(), ProgramInfo {bytecode: program, configuration_interface, program_modification_account: program_modification_account.clone(), ref_counter: 0u128});
+    let _ = CurrencyOf::<T>::make_free_balance_be(&deployer, value);
+    <Programs<T>>::insert(program_hash.clone(), ProgramInfo {bytecode: program, configuration_interface, deployer: deployer.clone(), ref_counter: 0u128});
     let mut program_hashes = vec![random_hash.clone(); p as usize];
     // remove one to make room for the targetted removal program hash
     program_hashes.pop();
     program_hashes.push(program_hash);
 
     let bounded_program_hashes: BoundedVec<T::Hash, T::MaxOwnedPrograms> = BoundedVec::try_from(program_hashes).unwrap();
-    <OwnedPrograms<T>>::insert(program_modification_account.clone(), bounded_program_hashes);
-  }: _(RawOrigin::Signed(program_modification_account.clone()), program_hash.clone())
+    <OwnedPrograms<T>>::insert(deployer.clone(), bounded_program_hashes);
+  }: _(RawOrigin::Signed(deployer.clone()), program_hash.clone())
   verify {
     assert_last_event::<T>(
         Event::<T>::ProgramRemoved {
-            program_modification_account,
+            deployer,
             old_program_hash: program_hash
         }.into()
     );

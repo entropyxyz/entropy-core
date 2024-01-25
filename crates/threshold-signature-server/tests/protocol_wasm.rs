@@ -36,7 +36,7 @@ use entropy_testing_utils::{
         TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::test_context_stationary,
-    test_client::{put_register_request_on_chain, update_pointer, update_program},
+    test_client::{put_register_request_on_chain, store_program, update_programs},
     tss_server_process::spawn_testing_validators,
 };
 use futures::future::join_all;
@@ -84,16 +84,17 @@ async fn test_wasm_sign_tx_user_participates() {
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_hash =
-        update_program(&entropy_api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+    let program_pointer =
+        store_program(&entropy_api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
             .await
             .unwrap();
-    update_pointer(
+
+    update_programs(
         &entropy_api,
         &rpc,
         &one.pair(),
         &one.pair(),
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+        BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
     .await
     .unwrap();
@@ -210,8 +211,8 @@ async fn test_wasm_register_with_private_key_visibility() {
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-    let program_hash =
-        update_program(&api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+    let program_pointer =
+        store_program(&api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
             .await
             .unwrap();
 
@@ -222,10 +223,11 @@ async fn test_wasm_register_with_private_key_visibility() {
 
     put_register_request_on_chain(
         &api,
+        &rpc,
         one.pair(),
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+        BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
     .await
     .unwrap();

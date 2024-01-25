@@ -15,7 +15,10 @@
 
 use core::convert::{TryFrom, TryInto};
 
-use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
+use frame_election_provider_support::{
+    bounds::{ElectionBounds, ElectionBoundsBuilder},
+    onchain, SequentialPhragmen, VoteWeight,
+};
 use frame_support::{
     ord_parameter_types, parameter_types,
     traits::{ConstU32, Get, Hooks, OneSessionHandler},
@@ -118,6 +121,7 @@ impl pallet_balances::Config for Test {
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
     type RuntimeEvent = RuntimeEvent;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
     type RuntimeHoldReason = RuntimeHoldReason;
     type WeightInfo = ();
 }
@@ -158,14 +162,17 @@ sp_runtime::impl_opaque_keys! {
   }
 }
 
+parameter_types! {
+    pub static ElectionsBounds: ElectionBounds = ElectionBoundsBuilder::default().build();
+}
+
 pub struct OnChainSeqPhragmen;
 impl onchain::Config for OnChainSeqPhragmen {
     type DataProvider = FrameStaking;
     type MaxWinners = ConstU32<100>;
     type Solver = SequentialPhragmen<AccountId, Perbill>;
     type System = Test;
-    type TargetsBound = ConstU32<{ u32::MAX }>;
-    type VotersBound = ConstU32<{ u32::MAX }>;
+    type Bounds = ElectionsBounds;
     type WeightInfo = ();
 }
 
@@ -218,7 +225,6 @@ parameter_types! {
   pub const ElectionLookahead: u64 = 0;
   pub const StakingUnsignedPriority: u64 = u64::MAX / 2;
   pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
-  pub static MaxNominations: u32 = 16;
 }
 
 pub struct StakingBenchmarkingConfig;
@@ -239,10 +245,10 @@ impl pallet_staking::Config for Test {
     type EventListeners = ();
     type GenesisElectionProvider = Self::ElectionProvider;
     type HistoryDepth = ConstU32<84>;
-    type MaxNominations = MaxNominations;
     type MaxNominatorRewardedPerValidator = ConstU32<64>;
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
+    type NominationsQuota = pallet_staking::FixedNominationsQuota<16>;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
     type Reward = ();
     type RewardRemainder = ();

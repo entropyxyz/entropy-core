@@ -82,7 +82,7 @@ fn knows_how_to_mock_several_http_calls() {
             ProgramInfo {
                 bytecode: vec![],
                 configuration_interface: vec![],
-                program_modification_account: 1,
+                deployer: 1,
                 ref_counter: 0,
             },
         );

@@ -83,7 +83,7 @@ fn it_registers_a_user() {
             ProgramInfo {
                 bytecode: empty_program.clone(),
                 configuration_interface: empty_program.clone(),
-                program_modification_account: 1,
+                deployer: 1,
                 ref_counter: 0,
             },
         );
@@ -131,7 +131,7 @@ fn it_confirms_registers_a_user() {
             ProgramInfo {
                 bytecode: empty_program.clone(),
                 configuration_interface: empty_program.clone(),
-                program_modification_account: 1,
+                deployer: 1,
                 ref_counter: 0,
             },
         );
@@ -220,7 +220,7 @@ fn it_changes_a_program_pointer() {
             ProgramInfo {
                 bytecode: empty_program.clone(),
                 configuration_interface: empty_program.clone(),
-                program_modification_account: 1,
+                deployer: 1,
                 ref_counter: 1,
             },
         );
@@ -238,7 +238,7 @@ fn it_changes_a_program_pointer() {
             ProgramInfo {
                 bytecode: new_program,
                 configuration_interface: empty_program.clone(),
-                program_modification_account: 1,
+                deployer: 1,
                 ref_counter: 1,
             },
         );
@@ -317,7 +317,7 @@ fn it_fails_on_non_matching_verifying_keys() {
             ProgramInfo {
                 bytecode: empty_program.clone(),
                 configuration_interface: empty_program.clone(),
-                program_modification_account: 1,
+                deployer: 1,
                 ref_counter: 0,
             },
         );
@@ -370,7 +370,7 @@ fn it_doesnt_allow_double_registering() {
             ProgramInfo {
                 bytecode: empty_program.clone(),
                 configuration_interface: empty_program.clone(),
-                program_modification_account: 1,
+                deployer: 1,
                 ref_counter: 0,
             },
         );
@@ -450,7 +450,7 @@ fn it_tests_prune_registration() {
             ProgramInfo {
                 bytecode: inital_program.clone(),
                 configuration_interface: inital_program.clone(),
-                program_modification_account: 1,
+                deployer: 1,
                 ref_counter: 1,
             },
         );
@@ -494,7 +494,7 @@ fn it_provides_free_txs_confirm_done() {
             ProgramInfo {
                 bytecode: empty_program.clone(),
                 configuration_interface: empty_program.clone(),
-                program_modification_account: 1,
+                deployer: 1,
                 ref_counter: 0,
             },
         );
@@ -573,7 +573,7 @@ fn it_provides_free_txs_confirm_done_fails_3() {
             ProgramInfo {
                 bytecode: empty_program.clone(),
                 configuration_interface: empty_program.clone(),
-                program_modification_account: 1,
+                deployer: 1,
                 ref_counter: 0,
             },
         );
@@ -622,7 +622,7 @@ fn it_provides_free_txs_confirm_done_fails_4() {
             ProgramInfo {
                 bytecode: empty_program.clone(),
                 configuration_interface: empty_program.clone(),
-                program_modification_account: 1,
+                deployer: 1,
                 ref_counter: 0,
             },
         );
@@ -664,7 +664,7 @@ fn it_provides_free_txs_confirm_done_fails_5() {
             ProgramInfo {
                 bytecode: empty_program.clone(),
                 configuration_interface: empty_program.clone(),
-                program_modification_account: 1,
+                deployer: 1,
                 ref_counter: 0,
             },
         );

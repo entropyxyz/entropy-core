@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use serial_test::serial;
-
 use crate::helpers::tests::{initialize_test_logger, setup_client};
+use entropy_shared::types::HashingAlgorithm;
+use serial_test::serial;
 
 #[tokio::test]
 #[serial]
@@ -27,5 +27,25 @@ async fn version_test() {
     assert_eq!(
         response.text().await.unwrap(),
         format!("{}-{}", env!("CARGO_PKG_VERSION"), env!("VERGEN_GIT_DESCRIBE"))
+    );
+}
+
+#[tokio::test]
+#[serial]
+async fn hashes_test() {
+    initialize_test_logger().await;
+    setup_client().await;
+    let response = reqwest::get("http://127.0.0.1:3001/hashes").await.unwrap();
+
+    let algorithms: Vec<HashingAlgorithm> = response.json().await.unwrap();
+    assert_eq!(
+        algorithms,
+        vec![
+            HashingAlgorithm::Sha1,
+            HashingAlgorithm::Sha2,
+            HashingAlgorithm::Sha3,
+            HashingAlgorithm::Keccak,
+            HashingAlgorithm::Custom(0),
+        ]
     );
 }

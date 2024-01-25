@@ -15,9 +15,7 @@
 
 //! Benchmarking setup for pallet-propgation
 use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE as SIG_PARTIES};
-use frame_benchmarking::{
-    account, benchmarks, impl_benchmark_test_suite, vec, whitelisted_caller, Vec,
-};
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     traits::{Currency, Get},
     BoundedVec,
@@ -29,6 +27,7 @@ use pallet_staking_extension::{
     ThresholdServers, ThresholdToStash,
 };
 use sp_runtime::traits::Hash;
+use sp_std::{vec, vec::Vec};
 
 use super::*;
 #[allow(unused)]
@@ -82,7 +81,7 @@ benchmarks! {
   .unwrap();
 
   let program_modification_account: T::AccountId = whitelisted_caller();
-    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, configuration_interface, program_modification_account: program_modification_account.clone(), ref_counter: 0});
+    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, configuration_interface, deployer: program_modification_account.clone(), ref_counter: 0});
     let sig_req_account: T::AccountId = whitelisted_caller();
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
@@ -102,7 +101,7 @@ benchmarks! {
       program_pointer: program_hash,
       program_config: vec![],
   }]).unwrap();
-    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, configuration_interface, program_modification_account: program_modification_account.clone(), ref_counter: 1});
+    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, configuration_interface, deployer: program_modification_account.clone(), ref_counter: 1});
     let sig_req_account: T::AccountId = whitelisted_caller();
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
@@ -139,8 +138,8 @@ benchmarks! {
   };  n as usize])
   .unwrap();
   let sig_req_account: T::AccountId = whitelisted_caller();
-    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, configuration_interface: configuration_interface.clone(), program_modification_account: program_modification_account.clone(), ref_counter: 0});
-    Programs::<T>::insert(new_program_hash, ProgramInfo {bytecode: new_program, configuration_interface, program_modification_account: program_modification_account.clone(), ref_counter: o as u128});
+    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, configuration_interface: configuration_interface.clone(), deployer: program_modification_account.clone(), ref_counter: 0});
+    Programs::<T>::insert(new_program_hash, ProgramInfo {bytecode: new_program, configuration_interface, deployer: program_modification_account.clone(), ref_counter: o as u128});
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
     <Registered<T>>::insert(

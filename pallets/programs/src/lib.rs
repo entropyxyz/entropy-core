@@ -17,8 +17,7 @@
 //!
 //! ## Overview
 //!
-//! This pallet stores the WebAssembly (Wasm) program bytecode on-chain and allows users to change
-//! it as required.
+//! This pallet stores the WebAssembly (Wasm) program bytecode on-chain at the hash of the program code and interface
 //!
 //! A program is a piece of logic which is run by the network when a signing operation is requested.
 //! The succesful execution of a program indicates to validators on the network that they should
@@ -32,8 +31,8 @@
 //!
 //! #### Public
 //!
-//! `update_program` - Allows a program-modification account to change the program associated with
-//! a particular signature-request account.
+//! `set_program` - Allows a deployer account to create a program.
+//! `remove_program` - Allows a deployer to remove a program if not in use.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
@@ -53,13 +52,12 @@ pub mod weights;
 pub mod pallet {
 
     use frame_support::{
-        dispatch::Vec,
         pallet_prelude::*,
         traits::{Currency, ReservableCurrency},
     };
     use frame_system::{pallet_prelude::*, Config as SystemConfig};
     use sp_runtime::{sp_std::str, traits::Hash, Saturating};
-    use sp_std::vec;
+    use sp_std::{vec, vec::Vec};
 
     pub use crate::weights::WeightInfo;
 
@@ -91,20 +89,21 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    /// Information on the program, they bytecode and the account allowed to modify it
+    /// Information on the program
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     pub struct ProgramInfo<AccountId> {
         /// The bytecode of the program.
         pub bytecode: Vec<u8>,
         /// The type definition of the program
         pub configuration_interface: Vec<u8>,
-        /// Owners of the program
-        pub program_modification_account: AccountId,
+        /// Deployer of the program
+        pub deployer: AccountId,
         /// Accounts that use this program
         pub ref_counter: u128,
     }
 
-    /// Stores the program bytecode for a given signature-request account.
+    /// Stores the program info for a given program hash.
+    /// A program hash is a combination of the bytecode and configuration_interface
     #[pallet::storage]
     #[pallet::getter(fn programs)]
     pub type Programs<T: Config> =
@@ -126,8 +125,8 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// The bytecode of a program was created.
         ProgramCreated {
-            /// The program modification account which updated the program.
-            program_modification_account: T::AccountId,
+            /// The deployer account which created the program.
+            deployer: T::AccountId,
 
             /// The new program hash.
             program_hash: T::Hash,
@@ -137,8 +136,8 @@ pub mod pallet {
         },
         /// The bytecode of a program was removed.
         ProgramRemoved {
-            /// The program modification account which removed the program.
-            program_modification_account: T::AccountId,
+            /// The depoyer account which removed the program.
+            deployer: T::AccountId,
 
             /// The hash of the removed program.
             old_program_hash: T::Hash,
@@ -163,9 +162,9 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Sets the program and uses hash as key.
+        /// Sets the program and uses hash of program and configuration_interface as key.
         ///
-        /// Note that the caller becomes the program-modification account.
+        /// Note that the caller becomes the deployer account.
         #[pallet::call_index(0)]
         #[pallet::weight({<T as Config>::WeightInfo::set_program()})]
         pub fn set_program(
@@ -173,7 +172,7 @@ pub mod pallet {
             new_program: Vec<u8>,
             configuration_interface: Vec<u8>,
         ) -> DispatchResult {
-            let program_modification_account = ensure_signed(origin)?;
+            let deployer = ensure_signed(origin)?;
             let mut hash_input = vec![];
             hash_input.extend(&new_program);
             hash_input.extend(&configuration_interface);
@@ -185,19 +184,19 @@ pub mod pallet {
             );
             ensure!(!Programs::<T>::contains_key(program_hash), Error::<T>::ProgramAlreadySet);
 
-            Self::reserve_program_deposit(&program_modification_account, new_program_length)?;
+            Self::reserve_program_deposit(&deployer, new_program_length)?;
 
             Programs::<T>::insert(
                 program_hash,
                 &ProgramInfo {
                     bytecode: new_program.clone(),
                     configuration_interface: configuration_interface.clone(),
-                    program_modification_account: program_modification_account.clone(),
+                    deployer: deployer.clone(),
                     ref_counter: 0u128,
                 },
             );
             OwnedPrograms::<T>::try_mutate(
-                &program_modification_account,
+                &deployer,
                 |owned_programs| -> Result<(), DispatchError> {
                     owned_programs
                         .try_push(program_hash)
@@ -206,7 +205,7 @@ pub mod pallet {
                 },
             )?;
             Self::deposit_event(Event::ProgramCreated {
-                program_modification_account,
+                deployer,
                 program_hash,
                 configuration_interface,
             });
@@ -215,28 +214,25 @@ pub mod pallet {
 
         /// Removes a program at a specific hash
         ///
-        /// Caller must be the program modification account for said program.
+        /// Caller must be the deployer account for said program.
         #[pallet::call_index(1)]
         #[pallet::weight({<T as Config>::WeightInfo::remove_program( <T as Config>::MaxOwnedPrograms::get())})]
         pub fn remove_program(
             origin: OriginFor<T>,
             program_hash: T::Hash,
         ) -> DispatchResultWithPostInfo {
-            let program_modification_account = ensure_signed(origin)?;
+            let deployer = ensure_signed(origin)?;
             let old_program_info =
                 Self::programs(program_hash).ok_or(Error::<T>::NoProgramDefined)?;
-            ensure!(
-                old_program_info.program_modification_account == program_modification_account,
-                Error::<T>::NotAuthorized
-            );
+            ensure!(old_program_info.deployer == deployer, Error::<T>::NotAuthorized);
             ensure!(old_program_info.ref_counter == 0, Error::<T>::ProgramInUse);
             Self::unreserve_program_deposit(
-                &old_program_info.program_modification_account,
+                &old_program_info.deployer,
                 old_program_info.bytecode.len() + old_program_info.configuration_interface.len(),
             );
             let mut owned_programs_length = 0;
             OwnedPrograms::<T>::try_mutate(
-                &program_modification_account,
+                &deployer,
                 |owned_programs| -> Result<(), DispatchError> {
                     owned_programs_length = owned_programs.len();
                     let pos = owned_programs
@@ -248,10 +244,7 @@ pub mod pallet {
                 },
             )?;
             Programs::<T>::remove(program_hash);
-            Self::deposit_event(Event::ProgramRemoved {
-                program_modification_account,
-                old_program_hash: program_hash,
-            });
+            Self::deposit_event(Event::ProgramRemoved { deployer, old_program_hash: program_hash });
             Ok(Some(<T as Config>::WeightInfo::remove_program(owned_programs_length as u32)).into())
         }
     }

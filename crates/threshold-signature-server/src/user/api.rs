@@ -50,8 +50,8 @@ use sp_core::crypto::AccountId32;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{crypto::Ss58Codec, sr25519, sr25519::Signature, Pair},
-    tx::PairSigner,
-    utils::AccountId32 as SubxtAccountId32,
+    tx::{PairSigner, Signer},
+    utils::{AccountId32 as SubxtAccountId32, MultiAddress},
     Config, OnlineClient,
 };
 use tracing::instrument;
@@ -293,7 +293,14 @@ async fn setup_dkg(
     let mut addresses_in_subgroup =
         return_all_addresses_of_subgroup(&api, rpc, my_subgroup).await?;
 
-    for sig_request_account in data.sig_request_accounts {
+    let block_hash = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
+    let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
+    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
+
+    for (i, sig_request_account) in data.sig_request_accounts.into_iter().enumerate() {
         let address_slice: &[u8; 32] = &sig_request_account
             .clone()
             .try_into()
@@ -334,6 +341,7 @@ async fn setup_dkg(
             &signer,
         )
         .await?;
+
         // TODO: Error handling really complex needs to be thought about.
         confirm_registered(
             &api,
@@ -341,6 +349,7 @@ async fn setup_dkg(
             my_subgroup,
             &signer,
             key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec(),
+            nonce + i as u32,
         )
         .await?;
     }
@@ -474,6 +483,7 @@ pub async fn confirm_registered(
     subgroup: u8,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     verifying_key: Vec<u8>,
+    nonce: u32,
 ) -> Result<(), subxt::error::Error> {
     // TODO error handling + return error
     // TODO fire and forget, or wait for in block maybe Ddos error
@@ -484,14 +494,14 @@ pub async fn confirm_registered(
         subgroup,
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
     );
-    let _ = api
-        .tx()
-        .sign_and_submit_then_watch_default(&registration_tx, signer)
-        .await?
-        .wait_for_in_block()
-        .await?
-        .wait_for_success()
-        .await?;
+    let tx = api.tx().create_signed_with_nonce(
+        &registration_tx,
+        signer,
+        nonce.into(),
+        Default::default(),
+    )?;
+
+    let _ = tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;
     Ok(())
 }
 /// Gets the current signing committee

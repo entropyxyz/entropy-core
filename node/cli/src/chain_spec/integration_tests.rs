@@ -23,8 +23,8 @@ use entropy_runtime::{
     StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeConfig,
 };
+use entropy_runtime::{AccountId, Balance};
 use grandpa_primitives::AuthorityId as GrandpaId;
-use node_primitives::{AccountId, Balance};
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;

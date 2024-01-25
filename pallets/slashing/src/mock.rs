@@ -15,7 +15,10 @@
 
 use std::cell::RefCell;
 
-use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
+use frame_election_provider_support::{
+    bounds::{ElectionBounds, ElectionBoundsBuilder},
+    onchain, SequentialPhragmen, VoteWeight,
+};
 use frame_support::{
     parameter_types,
     traits::{ConstU32, OneSessionHandler},
@@ -192,14 +195,17 @@ impl pallet_bags_list::Config for Test {
     type WeightInfo = ();
 }
 
+parameter_types! {
+    pub static ElectionsBounds: ElectionBounds = ElectionBoundsBuilder::default().build();
+}
+
 pub struct OnChainSeqPhragmen;
 impl onchain::Config for OnChainSeqPhragmen {
     type DataProvider = Staking;
     type MaxWinners = ConstU32<100>;
     type Solver = SequentialPhragmen<AccountId, Perbill>;
     type System = Test;
-    type TargetsBound = ConstU32<{ u32::MAX }>;
-    type VotersBound = ConstU32<{ u32::MAX }>;
+    type Bounds = ElectionsBounds;
     type WeightInfo = ();
 }
 
@@ -221,10 +227,10 @@ impl pallet_staking::Config for Test {
     type EventListeners = ();
     type GenesisElectionProvider = Self::ElectionProvider;
     type HistoryDepth = ConstU32<84>;
-    type MaxNominations = MaxNominations;
     type MaxNominatorRewardedPerValidator = ConstU32<64>;
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
+    type NominationsQuota = pallet_staking::FixedNominationsQuota<16>;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
     type Reward = ();
     type RewardRemainder = ();
@@ -256,6 +262,7 @@ impl pallet_balances::Config for Test {
     type ReserveIdentifier = [u8; 8];
     type RuntimeEvent = RuntimeEvent;
     type RuntimeHoldReason = RuntimeHoldReason;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
     type WeightInfo = ();
 }
 

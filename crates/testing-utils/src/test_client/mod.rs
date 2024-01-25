@@ -35,9 +35,13 @@ use entropy_protocol::{
 };
 use entropy_tss::{
     chain_api::{
-        entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance,
-        entropy::runtime_types::pallet_relayer::pallet::RegisteredInfo, EntropyConfig,
+        entropy,
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+        entropy::runtime_types::{
+            pallet_programs::pallet::ProgramInfo,
+            pallet_relayer::pallet::{ProgramInstance, RegisteredInfo},
+        },
+        EntropyConfig,
     },
     common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
 };
@@ -47,7 +51,7 @@ use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     tx::{PairSigner, Signer},
-    utils::{AccountId32 as SubxtAccountId32, Static},
+    utils::{AccountId32 as SubxtAccountId32, Static, H256},
     Config, OnlineClient,
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
@@ -87,6 +91,7 @@ pub async fn register(
     // Send register transaction
     put_register_request_on_chain(
         api,
+        rpc,
         signature_request_keypair.clone(),
         program_account,
         key_visibility,
@@ -238,27 +243,26 @@ pub async fn sign(
     Err(anyhow!("Failed to get responses from TSS servers"))
 }
 
-/// Set or update the program associated with a given entropy account
+/// Store a program on chain and return it's hash
 #[tracing::instrument(
     skip_all,
     fields(
         signature_request_account,
-        program_modification_account = ?program_modification_keypair.public(),
+        deployer = ?deployerpair.public(),
     )
 )]
-pub async fn update_program(
+pub async fn store_program(
     api: &OnlineClient<EntropyConfig>,
-    program_modification_keypair: &sr25519::Pair,
+    deployerpair: &sr25519::Pair,
     program: Vec<u8>,
     configuration_interface: Vec<u8>,
 ) -> anyhow::Result<<EntropyConfig as Config>::Hash> {
     let update_program_tx = entropy::tx().programs().set_program(program, configuration_interface);
-    let program_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_keypair.clone());
+    let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployerpair.clone());
 
     let in_block = api
         .tx()
-        .sign_and_submit_then_watch_default(&update_program_tx, &program_modification_account)
+        .sign_and_submit_then_watch_default(&update_program_tx, &deployer)
         .await?
         .wait_for_in_block()
         .await?
@@ -269,12 +273,12 @@ pub async fn update_program(
     Ok(result_event.ok_or(anyhow!("Error getting program created event"))?.program_hash)
 }
 
-/// Set or update pointer with a given entropy account
-pub async fn update_pointer(
+/// Update the program pointers associated with a given entropy account
+pub async fn update_programs(
     entropy_api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_account: &sr25519::Pair,
-    pointer_modification_account: &sr25519::Pair,
+    deployer: &sr25519::Pair,
     program_instance: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<()> {
     let block_hash =
@@ -284,21 +288,21 @@ pub async fn update_pointer(
         .relayer()
         .change_program_instance(signature_request_account.public().into(), program_instance);
 
-    let account_id32: AccountId32 = pointer_modification_account.public().into();
+    let account_id32: AccountId32 = deployer.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
 
     let nonce_call = entropy::apis().account_nonce_api().account_nonce(account_id.clone());
     let nonce = entropy_api.runtime_api().at(block_hash).call(nonce_call).await?;
 
-    let pointer_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(pointer_modification_account.clone());
+    let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer.clone());
 
-    let partial_tx = entropy_api
-        .tx()
-        .create_partial_signed_with_nonce(&update_pointer_tx, nonce.into(), Default::default())
-        .unwrap();
+    let partial_tx = entropy_api.tx().create_partial_signed_with_nonce(
+        &update_pointer_tx,
+        nonce.into(),
+        Default::default(),
+    )?;
     let signer_payload = partial_tx.signer_payload();
-    let signature = pointer_modification_account.sign(&signer_payload);
+    let signature = deployer.sign(&signer_payload);
 
     let tx = partial_tx.sign_with_address_and_signature(&account_id.into(), &signature);
 
@@ -325,30 +329,62 @@ pub async fn get_accounts(
     Ok(accounts)
 }
 
+/// Get details of all stored programs
+pub async fn get_programs(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> anyhow::Result<Vec<(H256, ProgramInfo<<EntropyConfig as Config>::AccountId>)>> {
+    let block_hash =
+        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
+    let keys = Vec::<()>::new();
+    let storage_address = subxt::dynamic::storage("Programs", "Programs", keys);
+    let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
+    let mut programs = Vec::new();
+    while let Some(Ok((storage_key, program))) = iter.next().await {
+        let decoded = program.into_encoded();
+        let program_info: ProgramInfo<<EntropyConfig as Config>::AccountId> =
+            ProgramInfo::decode(&mut decoded.as_ref())?;
+        let hash: [u8; 32] = storage_key[storage_key.len() - 32..].try_into()?;
+        programs.push((H256(hash), program_info));
+    }
+    Ok(programs)
+}
+
 /// Submit a register transaction
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_keypair: sr25519::Pair,
-    program_modification_account: SubxtAccountId32,
+    deployer: SubxtAccountId32,
     key_visibility: KeyVisibility,
     program_instance: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<()> {
+    let account_id32: AccountId32 = signature_request_keypair.public().into();
+    let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
+
     let signature_request_pair_signer =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
 
-    let registering_tx = entropy::tx().relayer().register(
-        program_modification_account,
-        Static(key_visibility),
-        program_instance,
-    );
+    let registering_tx =
+        entropy::tx().relayer().register(deployer, Static(key_visibility), program_instance);
 
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &signature_request_pair_signer)
-        .await?
-        .wait_for_in_block()
-        .await?
-        .wait_for_success()
-        .await?;
+    let block_hash =
+        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
+
+    let nonce_call = entropy::apis().account_nonce_api().account_nonce(account_id.clone());
+    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
+
+    let partial_tx = api.tx().create_partial_signed_with_nonce(
+        &registering_tx,
+        nonce.into(),
+        Default::default(),
+    )?;
+    let signer_payload = partial_tx.signer_payload();
+    let signature = signature_request_pair_signer.sign(&signer_payload);
+
+    let tx = partial_tx.sign_with_address_and_signature(&account_id.into(), &signature);
+
+    tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;
     Ok(())
 }
 

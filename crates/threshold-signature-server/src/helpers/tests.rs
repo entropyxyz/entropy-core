@@ -180,49 +180,19 @@ pub async fn spawn_testing_validators(
     (ips, ids, user_keyshare_option)
 }
 
-/// Adds a program to the chain
-pub async fn update_programs(
-    entropy_api: &OnlineClient<EntropyConfig>,
-    program_modification_account: &sr25519::Pair,
-    initial_program: Vec<u8>,
-    program_config: Vec<u8>,
-) -> <EntropyConfig as Config>::Hash {
-    // update/set their programs
-    let update_program_tx = entropy::tx().programs().set_program(initial_program, program_config);
-
-    let program_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_account.clone());
-
-    let in_block = entropy_api
-        .tx()
-        .sign_and_submit_then_watch_default(&update_program_tx, &program_modification_account)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
-
-    let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>().unwrap();
-    result_event.unwrap().program_hash
-}
-
 /// Removes the program at the program hash
 pub async fn remove_program(
     entropy_api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    program_modification_account: &sr25519::Pair,
+    deployer: &sr25519::Pair,
     program_hash: <EntropyConfig as Config>::Hash,
 ) {
     // update/set their programs
     let remove_program_tx = entropy::tx().programs().remove_program(program_hash);
-    let account_id32: AccountId32 = program_modification_account.public().into();
+    let account_id32: AccountId32 = deployer.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
 
-    let program_modification_account =
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(program_modification_account.clone());
+    let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer.clone());
 
     let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
     let nonce_call = entropy::apis().account_nonce_api().account_nonce(account_id.clone());
@@ -232,7 +202,7 @@ pub async fn remove_program(
         .create_partial_signed_with_nonce(&remove_program_tx, nonce.into(), Default::default())
         .unwrap();
     let signer_payload = partial_tx.signer_payload();
-    let signature = program_modification_account.sign(&signer_payload);
+    let signature = deployer.sign(&signer_payload);
 
     let tx = partial_tx.sign_with_address_and_signature(&account_id.into(), &signature);
     tx.submit_and_watch()
@@ -262,6 +232,20 @@ pub async fn check_if_confirmation(
     let is_registered = api.storage().at(block_hash).fetch(&registered_query).await.unwrap();
     assert_eq!(is_registered.as_ref().unwrap().verifying_key.0.len(), 33usize);
     assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
+}
+
+/// Verify that an account got one confirmation.
+pub async fn check_has_confirmation(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    key: &sr25519::Pair,
+) {
+    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
+    let registering_query = entropy::storage().relayer().registering(signer.account_id());
+    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
+    // cleared from is_registering state
+    let is_registering = api.storage().at(block_hash).fetch(&registering_query).await.unwrap();
+    assert_eq!(is_registering.unwrap().confirmations.len(), 1);
 }
 
 pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32) {
