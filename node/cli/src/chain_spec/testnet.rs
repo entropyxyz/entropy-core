@@ -148,8 +148,8 @@ pub fn testnet_initial_authorities(
 /// two well-known accounts (Alice and Bob) as the authorities.
 pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
-        "EntropyTestnetLocal",
-        "ETestLocal",
+        "Entropy Testnet Local",
+        "entropy_testnet_local",
         ChainType::Live,
         || {
             testnet_genesis_config(
@@ -231,8 +231,8 @@ pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, T
 ///  - Run the `testnet-local` config, which uses well-known keys
 pub fn testnet_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
-        "EntropyTestnet",
-        "ETest",
+        "Entropy Testnet",
+        "entropy_testnet",
         ChainType::Live,
         || {
             testnet_genesis_config(
