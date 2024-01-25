@@ -9,7 +9,7 @@ At the moment this project **does not** adhere to
 
 ## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...master)
 
-## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-23
+## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-24
 
 A lot of the changes introduced in this release are program related.
 
@@ -37,6 +37,17 @@ algorithms are also supported.
 - In [#536](https://github.com/entropyxyz/entropy-core/pull/536/) the registration interface was
   changed to accept a pointer to a program. Programs are now expected to be uploaded using the
   `Programs::set_program` extrinsic.
+    - The `Programs::update_program` extrinsic has been removed and replaced with `set_program` and
+      `remove_program`
+    - The `Relayer::register` extrinsic now takes a list of `program_pointer` instead of an
+      `initial_program`
+    - The `Relayer::AllowedToModifyProgram` storage struct and accompanying getter,
+      `sig_req_accounts`, was removed
+    - The `Programs::Bytecode` storage struct and accompanying getter, `bytecode`, was removed and
+      replaced with the `Programs` storage struct
+    - The `Programs::ProgramUpdated` event was removed and replaced with the `ProgramCreated` and
+      `ProgramRemoved` events
+    - A new Programs configuration parameter, `MaxOwnedPrograms`, was added
 - In [#549](https://github.com/entropyxyz/entropy-core/pull/549), when executing the signing
   protocol on the client-side, a `sig-uid` no longer needs to be given as an argument
 - In [#566](https://github.com/entropyxyz/entropy-core/pull/566) the Wasm API to `entropy-protocol`
@@ -46,6 +57,8 @@ algorithms are also supported.
   was changed to use `camelCase` function names.
 - In [#568](https://github.com/entropyxyz/entropy-core/pull/568) the registration and program update
   interfaces were changes to accept a vector of program hashes.
+    - A new Relayer configuration parameter, `MaxProgramHashes`, was added
+    - The `Relayer::Registered` storage struct was changed to contain a list of `program_pointers`
 - In [#577](https://github.com/entropyxyz/entropy-core/pull/577)
 - the auxilary program data is now expected to be in a vector. This order of the auxilary data
   should match the order of the programs that are being registered.
