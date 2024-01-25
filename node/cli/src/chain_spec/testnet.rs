@@ -353,7 +353,11 @@ pub fn testnet_genesis_config(
                 })
                 .collect::<Vec<_>>(),
             // We place all Stash accounts into the specified number of signing groups
-            signing_groups: initial_authorities.iter().map(|x| x.1.clone()).collect::<Vec<_>>()[..]
+            signing_groups: initial_authorities
+                .iter()
+                .map(|x| x.1.clone())
+                .collect::<Vec<_>>()
+                .as_slice()
                 .chunks((initial_authorities.len() + SIGNING_GROUPS - 1) / SIGNING_GROUPS)
                 .enumerate()
                 .map(|(i, v)| (i as u8, v.to_vec()))
