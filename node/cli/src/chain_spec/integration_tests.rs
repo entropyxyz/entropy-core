@@ -40,8 +40,8 @@ use sp_runtime::Perbill;
 /// There are also some changes around the proactive refresh validators.
 pub fn integration_tests_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
-        "Testing",
-        "integration-tests",
+        "Integration Tests",
+        "integration_tests",
         ChainType::Development,
         || {
             integration_tests_genesis_config(

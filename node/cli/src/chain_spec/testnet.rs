@@ -19,11 +19,11 @@ use crate::endowed_accounts::endowed_accounts_dev;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-    IndicesConfig, MaxNominations, RelayerConfig, RuntimeGenesisConfig, SessionConfig,
-    StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig,
+    IndicesConfig, MaxNominations, RuntimeGenesisConfig, SessionConfig, StakerStatus,
+    StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
+use entropy_shared::X25519PublicKey as TssX25519PublicKey;
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -33,6 +33,14 @@ use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::UncheckedInto, sr25519};
 use sp_runtime::Perbill;
+
+/// The AccountID of a Threshold Signature server. This is to meant to be registered on-chain.
+type TssAccountId = sp_runtime::AccountId32;
+
+/// The endpoint at which to reach a Threshold Signature server.
+///
+/// The format should be in the form of `scheme://hostname:port`.
+type TssEndpoint = String;
 
 pub fn testnet_local_initial_authorities(
 ) -> Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> {
@@ -136,19 +144,19 @@ pub fn testnet_initial_authorities(
 /// The configuration used for a local testnet network spun up using the `docker-compose` setup
 /// provided in this repository.
 ///
-/// Its configuration matches the same setup as the `testnet`, with the exception that is uses
+/// This configuration matches the same setup as the `testnet`, with the exception that is uses
 /// two well-known accounts (Alice and Bob) as the authorities.
 pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
-        "EntropyTestnetLocal",
-        "ETestLocal",
+        "Entropy Testnet Local",
+        "entropy_testnet_local",
         ChainType::Live,
         || {
             testnet_genesis_config(
                 testnet_local_initial_authorities(),
                 vec![],
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
-                vec!["alice-tss-server:3001", "bob-tss-server:3002"],
+                testnet_local_initial_tss_servers(),
             )
         },
         vec![],
@@ -166,6 +174,55 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
     )
 }
 
+pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
+    let alice = (
+        crate::chain_spec::tss_account_id::ALICE.clone(),
+        crate::chain_spec::tss_x25519_public_key::ALICE,
+        "alice-tss-server:3001".to_string(),
+    );
+
+    let bob = (
+        crate::chain_spec::tss_account_id::BOB.clone(),
+        crate::chain_spec::tss_x25519_public_key::BOB,
+        "bob-tss-server:3002".to_string(),
+    );
+
+    vec![alice, bob]
+}
+
+/// In practice it's a little hard for us to fill this out with correct information since we need
+/// to spin up all the TSS servers we want at genesis and grab the keys and IPs to then put in
+/// here.
+///
+/// Placeholders have been left here instead for illustrative purposes.
+pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
+    let alice = (
+        crate::chain_spec::tss_account_id::ALICE.clone(),
+        crate::chain_spec::tss_x25519_public_key::ALICE,
+        "0.0.0.0:3001".to_string(),
+    );
+
+    let bob = (
+        crate::chain_spec::tss_account_id::BOB.clone(),
+        crate::chain_spec::tss_x25519_public_key::BOB,
+        "0.0.0.0:3001".to_string(),
+    );
+
+    let charlie = (
+        crate::chain_spec::tss_account_id::CHARLIE.clone(),
+        crate::chain_spec::tss_x25519_public_key::BOB,
+        "0.0.0.0:3001".to_string(),
+    );
+
+    let deve = (
+        crate::chain_spec::tss_account_id::DAVE.clone(),
+        crate::chain_spec::tss_x25519_public_key::EVE,
+        "0.0.0.0:3001".to_string(),
+    );
+
+    vec![alice, bob, charlie, deve]
+}
+
 /// The testnet configuration uses four validator nodes with private keys controlled by the deployer
 /// of the network (so Entropy in this case).
 ///
@@ -174,15 +231,15 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
 ///  - Run the `testnet-local` config, which uses well-known keys
 pub fn testnet_config() -> crate::chain_spec::ChainSpec {
     crate::chain_spec::ChainSpec::from_genesis(
-        "EntropyTestnet",
-        "ETest",
+        "Entropy Testnet",
+        "entropy_testnet",
         ChainType::Live,
         || {
             testnet_genesis_config(
                 testnet_initial_authorities(),
                 vec![],
                 hex!["6a16ded05ff7a50716e1ca943f0467c60b4b71c2a7fd7f75b6333b8af80b6e6f"].into(),
-                vec!["127.0.0.1:3001", "127.0.0.1:3002"],
+                testnet_initial_tss_servers(),
             )
         },
         vec![],
@@ -211,8 +268,13 @@ pub fn testnet_genesis_config(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
-    threshold_server_endpoints: Vec<&str>,
+    initial_tss_servers: Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)>,
 ) -> RuntimeGenesisConfig {
+    assert!(
+        initial_authorities.len() == initial_tss_servers.len(),
+        "Each validator node needs to have an accompanying threshold server."
+    );
+
     let mut endowed_accounts = endowed_accounts_dev();
     // endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
@@ -243,6 +305,7 @@ pub fn testnet_genesis_config(
 
     const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 1000;
+    const SIGNING_GROUPS: usize = 2;
 
     RuntimeGenesisConfig {
         system: SystemConfig { code: wasm_binary_unwrap().to_vec(), ..Default::default() },
@@ -255,8 +318,10 @@ pub fn testnet_genesis_config(
                 .iter()
                 .map(|x| {
                     (
-                        x.0.clone(),
-                        x.0.clone(),
+                        // Note: We use the stash address here twice intentionally. Not sure why
+                        // though...
+                        x.1.clone(),
+                        x.1.clone(),
                         crate::chain_spec::session_keys(
                             x.2.clone(),
                             x.3.clone(),
@@ -270,34 +335,33 @@ pub fn testnet_genesis_config(
         staking: StakingConfig {
             validator_count: initial_authorities.len() as u32,
             minimum_validator_count: 0,
-            invulnerables: vec![],
+            // For our initial testnet deployment we make it so that the validator stash accounts
+            // cannot get slashed.
+            //
+            // We'll remove this in later stages of testing.
+            invulnerables: initial_authorities.iter().map(|x| x.1.clone()).collect::<Vec<_>>(),
             slash_reward_fraction: Perbill::from_percent(10),
             stakers,
             ..Default::default()
         },
         staking_extension: StakingExtensionConfig {
-            threshold_servers: vec![
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    (
-                        crate::chain_spec::tss_account_id::ALICE.clone(),
-                        crate::chain_spec::tss_x25519_public_key::ALICE,
-                        threshold_server_endpoints[0].as_bytes().to_vec(),
-                    ),
-                ),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    (
-                        crate::chain_spec::tss_account_id::BOB.clone(),
-                        crate::chain_spec::tss_x25519_public_key::BOB,
-                        threshold_server_endpoints[1].as_bytes().to_vec(),
-                    ),
-                ),
-            ],
-            signing_groups: vec![
-                (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
-                (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
-            ],
+            threshold_servers: initial_authorities
+                .iter()
+                .zip(initial_tss_servers.iter())
+                .map(|(auth, tss)| {
+                    (auth.1.clone(), (tss.0.clone(), tss.1, tss.2.as_bytes().to_vec()))
+                })
+                .collect::<Vec<_>>(),
+            // We place all Stash accounts into the specified number of signing groups
+            signing_groups: initial_authorities
+                .iter()
+                .map(|x| x.1.clone())
+                .collect::<Vec<_>>()
+                .as_slice()
+                .chunks((initial_authorities.len() + SIGNING_GROUPS - 1) / SIGNING_GROUPS)
+                .enumerate()
+                .map(|(i, v)| (i as u8, v.to_vec()))
+                .collect::<Vec<_>>(),
             proactive_refresh_validators: vec![],
         },
         democracy: DemocracyConfig::default(),
@@ -329,17 +393,7 @@ pub fn testnet_genesis_config(
         grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        relayer: RelayerConfig {
-            registered_accounts: vec![
-                (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    1,
-                    Some(crate::chain_spec::tss_x25519_public_key::EVE),
-                ),
-                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 2, None),
-            ],
-        },
+        relayer: Default::default(),
         vesting: Default::default(),
         transaction_storage: Default::default(),
         transaction_payment: Default::default(),
