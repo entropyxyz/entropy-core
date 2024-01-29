@@ -120,6 +120,24 @@ pub fn testnet_initial_authorities(
             hex!["647adc12dcd07d13e831b1378d25b5881ce33bc0b0b148f02bb1e3502e328e7a"]
                 .unchecked_into(),
         ),
+        (
+            // 5HLBgTCNugSig3oCpfogq3L7x1UDuAiZWpuSmzpHuiQr6RRo
+            hex!["e8fb830439ac929cadee5fed899defe6b574af2dbce4189dc50db5d7c14e6c4a"].into(),
+            // 5GLPy6NDacLpKUdJ6U3bSiKFRGGrqLhpudwvaFFTnNXLpeE3
+            hex!["bce8a3c75b84d1ab4020766d049c02cac37b2e42e6aa75b8577ea99e03e4b208"].into(),
+            // 5EEuKvYG9cwTPTLHnrACGGBKXQKvyDLHnuVyW7cQU2Mdif6a
+            hex!["603f8839abf317dc0054efdfc392a1087a25f8c45e0970c5fd772cf5100e4333"]
+                .unchecked_into(),
+            // 5FhJeoatmY44TPP4oFyykS68cp92owtQW61yQ2itMUXC5brA
+            hex!["a09eaab2e4c3da616a2e746dc7a1ac4b38bfb7b2ec52231ebea1086ec0e2167a"]
+                .unchecked_into(),
+            // 5EX1CwbxF8BWq16FW1PYz9PM24Z41TSD1gVWzrxwWWoKp3y6
+            hex!["6c87404dcac860f6b673f8e1b2c099ed13286be8508063413fa6ffb4d5af361c"]
+                .unchecked_into(),
+            // 5G5mruyipeqWb3cnsL1nfEdaYToK8nvGcq9Cm2xweRJzMBzs
+            hex!["b1c1a89e34bdbf0bc2bae462c92e43d97c97e686fbf18b581c94c28a67b5bcb3"]
+                .unchecked_into(),
+        ),
     ]
 }
 
@@ -196,7 +214,13 @@ pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, T
         "0.0.0.0:3001".to_string(),
     );
 
-    vec![alice, bob, charlie]
+    let deve = (
+        crate::chain_spec::tss_account_id::DAVE.clone(),
+        crate::chain_spec::tss_x25519_public_key::EVE,
+        "0.0.0.0:3001".to_string(),
+    );
+
+    vec![alice, bob, charlie, deve]
 }
 
 /// The testnet configuration uses four validator nodes with private keys controlled by the deployer
