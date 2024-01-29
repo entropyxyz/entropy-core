@@ -214,7 +214,7 @@ pub fn testnet_config() -> crate::chain_spec::ChainSpec {
             testnet_genesis_config(
                 testnet_initial_authorities(),
                 vec![],
-                hex!["6a16ded05ff7a50716e1ca943f0467c60b4b71c2a7fd7f75b6333b8af80b6e6f"].into(),
+                hex!["b848e84ef81dfeabef80caed10d7d34cc10e98e71fd00c5777b81177a510d871"].into(),
                 testnet_initial_tss_servers(),
             )
         },
