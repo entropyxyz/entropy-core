@@ -1,25 +1,12 @@
 #!/usr/bin/env bash
-set -e
+set -eux
 
-echo "controller"
-subkey generate
-echo
+secretPhrase=$(cargo run -p entropy -- key generate --output-type json | jq -r .secretPhrase)
 
-echo "stash"
-subkey generate
-echo
+./target/debug/entropy key inspect "$secretPhrase//controller" --output-type json
+./target/debug/entropy key inspect "$secretPhrase//stash" --output-type json
+./target/debug/entropy key inspect "$secretPhrase//babe" --output-type json
+./target/debug/entropy key inspect "$secretPhrase//imon" --output-type json
+./target/debug/entropy key inspect "$secretPhrase//audi" --output-type json
 
-echo "grandpa"
-subkey -e generate
-echo
-
-echo "babe"
-subkey generate
-echo
-
-echo "im-online"
-subkey generate
-echo
-
-echo "authority discovery"
-subkey generate
+./target/debug/entropy key inspect "$secretPhrase//gran" --scheme ed25519 --output-type json
