@@ -18,7 +18,7 @@ jobs:
           runtime_dir: runtime
       - name: Summary
         run: |
-          echo '${{ steps.srtool_build.outputs.json }}' | jq 'del(.context .info .runtimes.compact.subwasm .runtimes.compressed.subwasm)' | python3 -c 'import sys, yaml, json; print(yaml.dump(json.loads(sys.stdin.read())))'
+          echo '${{ steps.srtool_build.outputs.json }}' | jq 'del(.context, .info, .runtimes.compact.subwasm, .runtimes.compressed.subwasm)' | python3 -c 'import sys, yaml, json; print(yaml.dump(json.loads(sys.stdin.read())))'
           echo "Runtime location: ${{ steps.srtool_build.outputs.wasm }}"
       # - name: Archive Runtime
       #   uses: actions/upload-artifact@v2
