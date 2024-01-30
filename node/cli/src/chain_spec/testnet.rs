@@ -196,31 +196,49 @@ pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519Public
 ///
 /// Placeholders have been left here instead for illustrative purposes.
 pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
-    let alice = (
-        crate::chain_spec::tss_account_id::ALICE.clone(),
-        crate::chain_spec::tss_x25519_public_key::ALICE,
+    use std::str::FromStr;
+
+    let node_1a = (
+        TssAccountId::from_str("5EC2p79LfGKWEgY6YDGRzqSVwqFWnd2kndY1ABWTbAtp2zFC")
+            .expect("Address should be valid."),
+        [
+            100, 151, 169, 160, 23, 148, 150, 198, 79, 84, 246, 123, 121, 218, 218, 81, 244, 106,
+            253, 36, 65, 194, 62, 152, 230, 184, 70, 119, 249, 202, 181, 58,
+        ],
         "0.0.0.0:3001".to_string(),
     );
 
-    let bob = (
-        crate::chain_spec::tss_account_id::BOB.clone(),
-        crate::chain_spec::tss_x25519_public_key::BOB,
+    let node_1b = (
+        TssAccountId::from_str("5DZnLJfveAjRiYU6UMYie3bNTLzowLu3YrwJkaMu94VMFX47")
+            .expect("Address should be valid."),
+        [
+            85, 148, 71, 92, 127, 93, 61, 77, 253, 118, 162, 20, 84, 184, 191, 43, 176, 250, 245,
+            53, 185, 9, 230, 7, 167, 77, 232, 240, 108, 58, 127, 8,
+        ],
         "0.0.0.0:3001".to_string(),
     );
 
-    let charlie = (
-        crate::chain_spec::tss_account_id::CHARLIE.clone(),
-        crate::chain_spec::tss_x25519_public_key::BOB,
+    let node_1c = (
+        TssAccountId::from_str("5Fmnt2chPDfE6eUY4djfb9V9aFbbGPhdQ8UmeJbxLn42oR9a")
+            .expect("Address should be valid."),
+        [
+            230, 255, 3, 85, 202, 18, 119, 146, 239, 9, 229, 2, 244, 250, 239, 16, 90, 182, 192,
+            237, 190, 193, 222, 203, 183, 168, 6, 184, 30, 97, 115, 121,
+        ],
         "0.0.0.0:3001".to_string(),
     );
 
-    let deve = (
-        crate::chain_spec::tss_account_id::DAVE.clone(),
-        crate::chain_spec::tss_x25519_public_key::EVE,
+    let node_2a = (
+        TssAccountId::from_str("5CLgNaBBW2hFEgUkWnB2eYQik2HkeLDAA5oMfCrR75B9kdWy")
+            .expect("Address should be valid."),
+        [
+            154, 171, 43, 100, 141, 250, 83, 95, 55, 165, 22, 243, 64, 187, 132, 7, 143, 199, 236,
+            253, 85, 134, 94, 244, 15, 147, 193, 144, 12, 69, 134, 62,
+        ],
         "0.0.0.0:3001".to_string(),
     );
 
-    vec![alice, bob, charlie, deve]
+    vec![node_1a, node_1b, node_1c, node_2a]
 }
 
 /// The testnet configuration uses four validator nodes with private keys controlled by the deployer
