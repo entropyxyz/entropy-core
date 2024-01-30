@@ -67,6 +67,10 @@ pub fn testnet_initial_authorities(
             // stash -> Sr25519
             // 5FbwUrncUnFpa7wQKrxexXpEGZzM7ivDHwJNFQUQmjY38Cco
             hex!["9c872b973d78eb5d440b65f34b1b035b9f9b6a0f1462a048b93958a17d933c46"].into(),
+            // grandpa -> ed25519
+            // 5E1buCEBSvt1fssmxjfF4ZD28Q7iAyVf6sVZpi8oDHyQLwSK
+            hex!["561aadf25fe061ef0181777ea6e12f5f442073470b6c8f7c64d59db1f8693b75"]
+                .unchecked_into(),
             // babe -> Sr25519
             // 5F6kuqyMq38QPJhMjfUsoF5o8EjSkdPXKdQeAiAqEdGgFQdY
             hex!["86457973f03814d240c0818857229acadd1b517d848b6e826028c5279cd2bb1e"]
@@ -79,16 +83,15 @@ pub fn testnet_initial_authorities(
             // 5H4KA7kqNxEQUStzDmjC1w1311ZGaTC1RE2m7riQa4j8FAND
             hex!["dce0c14c4f48c018d9d8c55135b8cb2e4312256beabd75bd0a45c0b56bf7b12f"]
                 .unchecked_into(),
-            // grandpa -> ed25519
-            // 5E1buCEBSvt1fssmxjfF4ZD28Q7iAyVf6sVZpi8oDHyQLwSK
-            hex!["561aadf25fe061ef0181777ea6e12f5f442073470b6c8f7c64d59db1f8693b75"]
-                .unchecked_into(),
         ),
         (
             // 5GWBLjvgQucinSSf5WvEDVhLRkBMCwMFavmwirfomw4RPaMV
             hex!["c45e969c3d0ffb54a8543c62418473e702e705fa97225c319831ac3c8cb7a659"].into(),
             // 5He4vcqwSEoJSDMDBVmWE7n9HmGs81rMNzviGY6uzL8RWYPu
             hex!["f69f2fea697d7c9499efebc0295b2c85f11ca3405b9da6afb590b29ca94cfe2f"].into(),
+            // 5DNVknZup4smom1tGmo1G4QXkzY7EU4aMjcekGES9CtkRQLr
+            hex!["39cde9e9d96ef78dac973ca27e15961a6e6228eb07572b808f42718bd9677baa"]
+                .unchecked_into(),
             // 5CHzj2XgRDXzSHZWQtWVcoWsYprEtUiLzJFiKhXZZzKih1qk
             hex!["0a22f94dd19755ede64eb09562ad30370349027fc258a70ff596bf139115e47f"]
                 .unchecked_into(),
@@ -98,15 +101,15 @@ pub fn testnet_initial_authorities(
             // 5EqpxZBuooBFWWv8871fKYJR9h7F4DFCVgZ539gPUF8gkbKp
             hex!["7ae26a776162f3b851ccd1c7d59d1bbe17a811307c267f164831a6ef804a5437"]
                 .unchecked_into(),
-            // 5DNVknZup4smom1tGmo1G4QXkzY7EU4aMjcekGES9CtkRQLr
-            hex!["39cde9e9d96ef78dac973ca27e15961a6e6228eb07572b808f42718bd9677baa"]
-                .unchecked_into(),
         ),
         (
             // 5H4NWR22bsQ6XuvjVcAnP7isutFrEXrnQ7sXGBzRNSzrfcGt
             hex!["dcec0833a062f351d32df4644cd68a96ee70d3d98b85f31e81d50357920b7c63"].into(),
             // 5Cca9Cv3giBxcG934caj6Tk2NWqRXK2nKFQ7zQhLT1xSx82Z
             hex!["184de1e2f1d451fcf187041794f2fd54827c397e3c932673b49b7c4d91e77b22"].into(),
+            // 5ELT9DsaGzwgZpMYsshQojhixkKDaG12CKtGbSc1kYTazrQQ
+            hex!["647adc12dcd07d13e831b1378d25b5881ce33bc0b0b148f02bb1e3502e328e7a"]
+                .unchecked_into(),
             // 5GNRmLL5iE2kwHU5aAKamZgB8Y2ZjN4hxf2BRGnbsE4VUGwG
             hex!["be752e4027a49766ccbaf48154f06aedd1fd9f1f5b0bb95c2364de2cf4df8901"]
                 .unchecked_into(),
@@ -116,15 +119,15 @@ pub fn testnet_initial_authorities(
             // 5GGard7xFFyRGFH1jRUYZfKmWALgkUFrYgh21gBQVCUjKrGn
             hex!["ba004fdb6740987e88c43a0f3147b23b2f005509bd4fa0ef795dfe5e16581806"]
                 .unchecked_into(),
-            // 5ELT9DsaGzwgZpMYsshQojhixkKDaG12CKtGbSc1kYTazrQQ
-            hex!["647adc12dcd07d13e831b1378d25b5881ce33bc0b0b148f02bb1e3502e328e7a"]
-                .unchecked_into(),
         ),
         (
             // 5HLBgTCNugSig3oCpfogq3L7x1UDuAiZWpuSmzpHuiQr6RRo
             hex!["e8fb830439ac929cadee5fed899defe6b574af2dbce4189dc50db5d7c14e6c4a"].into(),
             // 5GLPy6NDacLpKUdJ6U3bSiKFRGGrqLhpudwvaFFTnNXLpeE3
             hex!["bce8a3c75b84d1ab4020766d049c02cac37b2e42e6aa75b8577ea99e03e4b208"].into(),
+            // 5G5mruyipeqWb3cnsL1nfEdaYToK8nvGcq9Cm2xweRJzMBzs
+            hex!["b1c1a89e34bdbf0bc2bae462c92e43d97c97e686fbf18b581c94c28a67b5bcb3"]
+                .unchecked_into(),
             // 5EEuKvYG9cwTPTLHnrACGGBKXQKvyDLHnuVyW7cQU2Mdif6a
             hex!["603f8839abf317dc0054efdfc392a1087a25f8c45e0970c5fd772cf5100e4333"]
                 .unchecked_into(),
@@ -133,9 +136,6 @@ pub fn testnet_initial_authorities(
                 .unchecked_into(),
             // 5EX1CwbxF8BWq16FW1PYz9PM24Z41TSD1gVWzrxwWWoKp3y6
             hex!["6c87404dcac860f6b673f8e1b2c099ed13286be8508063413fa6ffb4d5af361c"]
-                .unchecked_into(),
-            // 5G5mruyipeqWb3cnsL1nfEdaYToK8nvGcq9Cm2xweRJzMBzs
-            hex!["b1c1a89e34bdbf0bc2bae462c92e43d97c97e686fbf18b581c94c28a67b5bcb3"]
                 .unchecked_into(),
         ),
     ]
