@@ -336,10 +336,10 @@ pub fn testnet_genesis_config(
                 .iter()
                 .map(|x| {
                     (
-                        // Note: We use the stash address here twice intentionally. Not sure why
+                        // Note: We use the controller address here twice intentionally. Not sure why
                         // though...
-                        x.1.clone(),
-                        x.1.clone(),
+                        x.0.clone(),
+                        x.0.clone(),
                         crate::chain_spec::session_keys(
                             x.2.clone(),
                             x.3.clone(),
