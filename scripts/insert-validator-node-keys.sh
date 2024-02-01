@@ -4,8 +4,11 @@
 #
 # This assumes that you're using our Docker images running on infrastructure provisioned by our
 # Terraform code. Otherwise the volume mounts won't work.
-#                                                                                                                                 │    │
-# Expected usage: ./insert-keys.sh "secret seed ... phrase"
+#
+# The derivation paths here (so the `//name` bit) should match that of the
+# `generate-validator-node-keys.sh` script.
+#
+# Expected usage: ./insert-validator-node-keys.sh "secret seed ... phrase"
 
 set -eu
 

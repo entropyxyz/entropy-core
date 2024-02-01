@@ -2,6 +2,9 @@
 #
 # A script used to generate all the keys needed for validators.
 #
+# The derivation paths here (so the `//name` bit) should match that of the
+# `insert-validator-node-keys` script.
+#
 # **This should not be used anywhere sensitive, it prints out your new seed phrase!**
 
 set -eu
