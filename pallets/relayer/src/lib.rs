@@ -236,20 +236,6 @@ pub mod pallet {
             );
             ensure!(!programs_data.is_empty(), Error::<T>::NoProgramSet);
             let block_number = <frame_system::Pallet<T>>::block_number();
-            // Change program ref counter
-            for program_instance in &programs_data {
-                pallet_programs::Programs::<T>::try_mutate(
-                    program_instance.program_pointer,
-                    |maybe_program_info| {
-                        if let Some(program_info) = maybe_program_info {
-                            program_info.ref_counter = program_info.ref_counter.saturating_add(1);
-                            Ok(())
-                        } else {
-                            Err(Error::<T>::NoProgramSet)
-                        }
-                    },
-                )?;
-            }
 
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(sig_req_account.clone().encode());
@@ -416,6 +402,23 @@ pub mod pallet {
                     )
                     .into());
                 }
+
+                // Change program ref counter
+                for program_instance in &registering_info.programs_data {
+                    pallet_programs::Programs::<T>::try_mutate(
+                        program_instance.program_pointer,
+                        |maybe_program_info| {
+                            if let Some(program_info) = maybe_program_info {
+                                program_info.ref_counter =
+                                    program_info.ref_counter.saturating_add(1);
+                                Ok(())
+                            } else {
+                                Err(Error::<T>::NoProgramSet)
+                            }
+                        },
+                    )?;
+                }
+
                 Registered::<T>::insert(
                     &sig_req_account,
                     RegisteredInfo {
