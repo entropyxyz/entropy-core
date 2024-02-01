@@ -4,16 +4,17 @@
 #
 # This assumes that you're using our Docker images running on infrastructure provisioned by our
 # Terraform code. Otherwise the volume mounts won't work.
-#
+#                                                                                                                                 │    │
 # Expected usage: ./insert-keys.sh "secret seed ... phrase"
 
 set -eux
 
 secretPhrase=$1
 
-keyInsert="./target/debug/entropy key insert \
-    --base-path /tmp/entropy_local \
-    --chain testnet-local"
+keyInsert="docker run -it --init -v /srv/entropy/data/:/srv/entropy/ \
+    entropyxyz/entropy key insert \
+    --base-path /srv/entropy \
+    --chain /srv/entropy/entropy-testnet.json"
 
 declare -A keyTypes=(
   ["babe"]="Sr25519"
