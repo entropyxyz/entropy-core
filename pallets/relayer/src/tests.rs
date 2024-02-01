@@ -97,8 +97,8 @@ fn it_registers_a_user() {
         assert_eq!(Relayer::dkg(0), vec![1u64.encode()]);
         assert_eq!(
             pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
-            1,
-            "ref counter is incremented"
+            0,
+            "ref counter is not incremented"
         );
     });
 }
@@ -200,6 +200,12 @@ fn it_confirms_registers_a_user() {
                 programs_data: programs_info.clone(),
                 program_modification_account: 2
             }
+        );
+
+        assert_eq!(
+            pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
+            1,
+            "ref counter is incremented"
         );
     });
 }
@@ -465,8 +471,8 @@ fn it_tests_prune_registration() {
         ));
         assert_eq!(
             pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
-            2,
-            "ref counter is increment"
+            1,
+            "ref counter stays the same"
         );
         assert!(Relayer::registering(1).is_some(), "Make sure there is registering state");
         assert_ok!(Relayer::prune_registration(RuntimeOrigin::signed(1)));
@@ -474,7 +480,7 @@ fn it_tests_prune_registration() {
         assert_eq!(
             pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
             1,
-            "ref counter is decremented"
+            "ref counter stays the same"
         );
     });
 }

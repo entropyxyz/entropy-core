@@ -274,16 +274,6 @@ pub mod pallet {
         pub fn prune_registration(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let registering_info = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
-            for program_instance in &registering_info.programs_data {
-                pallet_programs::Programs::<T>::mutate(
-                    program_instance.program_pointer,
-                    |maybe_program_info| {
-                        if let Some(program_info) = maybe_program_info {
-                            program_info.ref_counter = program_info.ref_counter.saturating_sub(1);
-                        }
-                    },
-                );
-            }
             let program_length = registering_info.programs_data.len();
             Registering::<T>::remove(&who);
             Self::deposit_event(Event::RegistrationCancelled(who));
