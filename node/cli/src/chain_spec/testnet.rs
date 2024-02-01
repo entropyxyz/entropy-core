@@ -284,10 +284,19 @@ pub fn testnet_genesis_config(
     });
 
     // stakers: all validators and nominators.
+    //
+    // The validators assigned here must match those in the Session genesis config.
     let mut rng = rand::thread_rng();
     let stakers = initial_authorities
         .iter()
-        .map(|x| (x.0.clone(), x.1.clone(), STASH, StakerStatus::Validator))
+        .map(|x| {
+            (
+                x.0.clone(), // Stash account
+                x.1.clone(), // Controller account, unused
+                STASH,
+                StakerStatus::Validator,
+            )
+        })
         .chain(initial_nominators.iter().map(|x| {
             use rand::{seq::SliceRandom, Rng};
             let limit = (MaxNominations::get() as usize).min(initial_authorities.len());
@@ -318,10 +327,15 @@ pub fn testnet_genesis_config(
                 .iter()
                 .map(|x| {
                     (
-                        // Note: We use the controller address here twice intentionally. Not sure why
+                        // The `ValidatorId` used here must match the `stakers` from the Staking
+                        // genesis config.
+                        //
+                        // Note: We use the stash address here twice intentionally. Not sure why
                         // though...
-                        x.0.clone(),
-                        x.0.clone(),
+                        x.0.clone(), // This is the `T::AccountId`
+                        x.0.clone(), // This is the `T::ValidatorId`
+                        // The exact number and type of session keys are configured as a runtime
+                        // parameter
                         crate::chain_spec::session_keys(
                             x.2.clone(),
                             x.3.clone(),
