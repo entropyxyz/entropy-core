@@ -31,7 +31,7 @@ use entropy_testing_utils::{
         },
         EntropyConfig,
     },
-    constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
+    constants::TEST_PROGRAM_WASM_BYTECODE,
     test_client::{
         derive_static_secret, get_accounts, get_api, get_programs, get_rpc, register, sign,
         store_program, update_programs, KeyParams, KeyShare, KeyVisibility,
@@ -246,12 +246,8 @@ async fn run_command() -> anyhow::Result<String> {
                 SeedString::new(signature_request_account_name).try_into()?;
             println!("Signature request account: {:?}", signature_request_keypair.public());
 
-            let auxilary_data = if let Some(data) = auxilary_data {
-                Some(hex::decode(data)?)
-            } else {
-                // This is temporary for testing with the test program
-                Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec())
-            };
+            let auxilary_data =
+                if let Some(data) = auxilary_data { Some(hex::decode(data)?) } else { None };
 
             // If we have a keyshare file for this account, get it
             let private_keyshare =
