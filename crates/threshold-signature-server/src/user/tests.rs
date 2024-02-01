@@ -87,6 +87,8 @@ use super::UserInputPartyInfo;
 use crate::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+        entropy::runtime_types::entropy_runtime::RuntimeCall,
+        entropy::runtime_types::pallet_balances::pallet::Call as BalancesCall,
         entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, get_api, get_rpc,
         EntropyConfig,
     },
@@ -1366,6 +1368,73 @@ async fn test_mutiple_confirm_done() {
         .unwrap();
     check_has_confirmation(&api, &rpc, &alice.pair()).await;
     check_has_confirmation(&api, &rpc, &bob.pair()).await;
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_confirm_done_free() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let alice = AccountKeyring::Alice;
+    let bob = AccountKeyring::Bob;
+
+    let alice_program = AccountKeyring::Charlie;
+    let program_manager = AccountKeyring::Dave;
+
+    let cxt = test_context_stationary().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
+    let program_hash =
+        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+            .await
+            .unwrap();
+
+    put_register_request_on_chain(
+        &api,
+        &alice_program,
+        alice_program.to_account_id().into(),
+        KeyVisibility::Public,
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await;
+
+    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
+    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+
+    // drain account of balance
+    let call = RuntimeCall::Balances(BalancesCall::force_set_balance {
+        who: (*signer_alice.account_id()).clone().into(),
+        new_free: 0u128,
+    });
+    let drain_tx = entropy::tx().sudo().sudo(call);
+
+    let signature_request_pair_signer =
+        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(alice.into());
+    api.tx()
+        .sign_and_submit_then_watch_default(&drain_tx, &signature_request_pair_signer)
+        .await
+        .unwrap()
+        .wait_for_in_block()
+        .await
+        .unwrap()
+        .wait_for_success()
+        .await
+        .unwrap();
+
+    confirm_registered(
+        &api,
+        alice_program.to_account_id().into(),
+        0u8,
+        &signer_alice,
+        vec![0u8],
+        0u32,
+    )
+    .await
+    .unwrap();
+    check_has_confirmation(&api, &rpc, &alice.pair()).await;
     clean_tests();
 }
 
