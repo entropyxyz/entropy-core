@@ -9,6 +9,9 @@ At the moment this project **does not** adhere to
 
 ## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...master)
 
+### Changed
+- Only increment the programs ref counter once registration is confirmed ([#615](https://github.com/entropyxyz/entropy-core/pull/615))
+
 ## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-24
 
 A lot of the changes introduced in this release are program related.
