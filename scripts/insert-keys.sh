@@ -1,28 +1,31 @@
 #!/usr/bin/env bash
+#
+# A helper for inserting keys into a validator's keystore.
+#
+# This assumes that you're using our Docker images running on infrastructure provisioned by our
+# Terraform code. Otherwise the volume mounts won't work.
+#
+# Expected usage: ./insert-keys.sh "secret seed ... phrase"
+
 set -eux
 
 secretPhrase=$1
 
-docker run -it --init -v /srv/entropy/data/:/srv/entropy/ entropyxyz/entropy key insert --base-path /srv/entropy \
-  --chain /srv/entropy/entropy-testnet.json \
-  --scheme Sr25519 \
-  --suri "$secretPhrase//babe" \
-  --key-type babe
+keyInsert="./target/debug/entropy key insert \
+    --base-path /tmp/entropy_local \
+    --chain testnet-local"
 
-docker run -it --init -v /srv/entropy/data/:/srv/entropy/ entropyxyz/entropy key insert --base-path /srv/entropy \
-  --chain /srv/entropy/entropy-testnet.json \
-  --scheme Sr25519 \
-  --suri "$secretPhrase//imon" \
-  --key-type imon
+declare -A keyTypes=(
+  ["babe"]="Sr25519"
+  ["imon"]="Sr25519"
+  ["audi"]="Sr25519"
+  ["gran"]="Ed25519"
+)
 
-docker run -it --init -v /srv/entropy/data/:/srv/entropy/ entropyxyz/entropy key insert --base-path /srv/entropy \
-  --chain /srv/entropy/entropy-testnet.json \
-  --scheme Sr25519 \
-  --suri "$secretPhrase//audi" \
-  --key-type audi
-
-docker run -it --init -v /srv/entropy/data/:/srv/entropy/ entropyxyz/entropy key insert --base-path /srv/entropy \
-  --chain /srv/entropy/entropy-testnet.json \
-  --scheme Ed25519 \
-  --suri "$secretPhrase//gran" \
-  --key-type gran
+for name in "${!keyTypes[@]}"; do
+  scheme="${keyTypes[$name]}"
+  $keyInsert \
+    --scheme $scheme \
+    --suri "$secretPhrase//$name" \
+    --key-type $name
+done
