@@ -42,3 +42,6 @@ test_db_3002
 .entropy
 
 ./scripts/copy-releases-to-sdk.sh
+
+# Keyshare files from the test CLI
+crates/test-cli/keyshare-*
