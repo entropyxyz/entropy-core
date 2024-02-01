@@ -237,6 +237,14 @@ pub mod pallet {
             ensure!(!programs_data.is_empty(), Error::<T>::NoProgramSet);
             let block_number = <frame_system::Pallet<T>>::block_number();
 
+            // Check that programs exist
+            for program_instance in &programs_data {
+                ensure!(
+                    pallet_programs::Programs::<T>::get(program_instance.program_pointer).is_some(),
+                    Error::<T>::NoProgramSet
+                );
+            }
+
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(sig_req_account.clone().encode());
                 Ok(())
