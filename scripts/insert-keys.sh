@@ -7,7 +7,7 @@
 #                                                                                                                                 │    │
 # Expected usage: ./insert-keys.sh "secret seed ... phrase"
 
-set -eux
+set -eu
 
 secretPhrase=$1
 
