@@ -56,7 +56,7 @@ pub fn testnet_local_initial_authorities(
 /// be found in this repository.
 ///
 /// The format of the derivation paths is as follows: `$secretPhrase//$keyType`, where `keyType`
-/// can be one of: `controller`, `stash`, `gran`, `babe`, `imon`, or `audi`.
+/// can be one of: `stash`, `controller`, `gran`, `babe`, `imon`, or `audi`.
 ///
 /// Note that the latter four keys are what are known as "session keys", and their exact type and
 /// number is configurable in the runtime.
@@ -64,12 +64,12 @@ pub fn testnet_initial_authorities(
 ) -> Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> {
     vec![
         (
-            // controller -> Sr25519
-            // 5GC6HbDfosvHUuCDkr8nAG81LBFNMgToMRfnFpa7GFD4td7q
-            hex!["b693281e3001566f5e4c395f2f9a3389e425cd349d17d897435235ffeca55a3a"].into(),
             // stash -> Sr25519
             // 5FbwUrncUnFpa7wQKrxexXpEGZzM7ivDHwJNFQUQmjY38Cco
             hex!["9c872b973d78eb5d440b65f34b1b035b9f9b6a0f1462a048b93958a17d933c46"].into(),
+            // controller -> Sr25519
+            // 5GC6HbDfosvHUuCDkr8nAG81LBFNMgToMRfnFpa7GFD4td7q
+            hex!["b693281e3001566f5e4c395f2f9a3389e425cd349d17d897435235ffeca55a3a"].into(),
             // grandpa -> Ed25519
             // 5E1buCEBSvt1fssmxjfF4ZD28Q7iAyVf6sVZpi8oDHyQLwSK
             hex!["561aadf25fe061ef0181777ea6e12f5f442073470b6c8f7c64d59db1f8693b75"]
@@ -88,10 +88,10 @@ pub fn testnet_initial_authorities(
                 .unchecked_into(),
         ),
         (
-            // 5GWBLjvgQucinSSf5WvEDVhLRkBMCwMFavmwirfomw4RPaMV
-            hex!["c45e969c3d0ffb54a8543c62418473e702e705fa97225c319831ac3c8cb7a659"].into(),
             // 5He4vcqwSEoJSDMDBVmWE7n9HmGs81rMNzviGY6uzL8RWYPu
             hex!["f69f2fea697d7c9499efebc0295b2c85f11ca3405b9da6afb590b29ca94cfe2f"].into(),
+            // 5GWBLjvgQucinSSf5WvEDVhLRkBMCwMFavmwirfomw4RPaMV
+            hex!["c45e969c3d0ffb54a8543c62418473e702e705fa97225c319831ac3c8cb7a659"].into(),
             // 5DNVknZup4smom1tGmo1G4QXkzY7EU4aMjcekGES9CtkRQLr
             hex!["39cde9e9d96ef78dac973ca27e15961a6e6228eb07572b808f42718bd9677baa"]
                 .unchecked_into(),
@@ -106,10 +106,10 @@ pub fn testnet_initial_authorities(
                 .unchecked_into(),
         ),
         (
-            // 5H4NWR22bsQ6XuvjVcAnP7isutFrEXrnQ7sXGBzRNSzrfcGt
-            hex!["dcec0833a062f351d32df4644cd68a96ee70d3d98b85f31e81d50357920b7c63"].into(),
             // 5Cca9Cv3giBxcG934caj6Tk2NWqRXK2nKFQ7zQhLT1xSx82Z
             hex!["184de1e2f1d451fcf187041794f2fd54827c397e3c932673b49b7c4d91e77b22"].into(),
+            // 5H4NWR22bsQ6XuvjVcAnP7isutFrEXrnQ7sXGBzRNSzrfcGt
+            hex!["dcec0833a062f351d32df4644cd68a96ee70d3d98b85f31e81d50357920b7c63"].into(),
             // 5ELT9DsaGzwgZpMYsshQojhixkKDaG12CKtGbSc1kYTazrQQ
             hex!["647adc12dcd07d13e831b1378d25b5881ce33bc0b0b148f02bb1e3502e328e7a"]
                 .unchecked_into(),
@@ -124,10 +124,10 @@ pub fn testnet_initial_authorities(
                 .unchecked_into(),
         ),
         (
-            // 5HLBgTCNugSig3oCpfogq3L7x1UDuAiZWpuSmzpHuiQr6RRo
-            hex!["e8fb830439ac929cadee5fed899defe6b574af2dbce4189dc50db5d7c14e6c4a"].into(),
             // 5GLPy6NDacLpKUdJ6U3bSiKFRGGrqLhpudwvaFFTnNXLpeE3
             hex!["bce8a3c75b84d1ab4020766d049c02cac37b2e42e6aa75b8577ea99e03e4b208"].into(),
+            // 5HLBgTCNugSig3oCpfogq3L7x1UDuAiZWpuSmzpHuiQr6RRo
+            hex!["e8fb830439ac929cadee5fed899defe6b574af2dbce4189dc50db5d7c14e6c4a"].into(),
             // 5G5mruyipeqWb3cnsL1nfEdaYToK8nvGcq9Cm2xweRJzMBzs
             hex!["b1c1a89e34bdbf0bc2bae462c92e43d97c97e686fbf18b581c94c28a67b5bcb3"]
                 .unchecked_into(),
@@ -383,7 +383,7 @@ pub fn testnet_genesis_config(
             // cannot get slashed.
             //
             // We'll remove this in later stages of testing.
-            invulnerables: initial_authorities.iter().map(|x| x.1.clone()).collect::<Vec<_>>(),
+            invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect::<Vec<_>>(),
             slash_reward_fraction: Perbill::from_percent(10),
             stakers,
             ..Default::default()
@@ -399,7 +399,7 @@ pub fn testnet_genesis_config(
             // We place all Stash accounts into the specified number of signing groups
             signing_groups: initial_authorities
                 .iter()
-                .map(|x| x.1.clone())
+                .map(|x| x.0.clone())
                 .collect::<Vec<_>>()
                 .as_slice()
                 .chunks((initial_authorities.len() + SIGNING_GROUPS - 1) / SIGNING_GROUPS)
