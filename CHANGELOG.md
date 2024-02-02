@@ -9,6 +9,9 @@ At the moment this project **does not** adhere to
 
 ## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...master)
 
+### Added
+- Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
+
 ## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-24
 
 A lot of the changes introduced in this release are program related.
@@ -83,7 +86,6 @@ algorithms are also supported.
 - Add --version flag and about field to TSS ([#590](https://github.com/entropyxyz/entropy-core/pull/590/))
 - Program config storage ([#593](https://github.com/entropyxyz/entropy-core/pull/593))
 - Add a hashes endpoint ([#600](https://github.com/entropyxyz/entropy-core/pull/600))
-- Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
 
 ### Changed
 - Crate name refactor ([#561](https://github.com/entropyxyz/entropy-core/pull/561))
