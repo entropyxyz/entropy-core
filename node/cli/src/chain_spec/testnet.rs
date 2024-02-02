@@ -50,92 +50,95 @@ pub fn testnet_local_initial_authorities(
     ]
 }
 
+/// Generates the keys for the initial testnet authorities.
+///
+/// These public keys were generated using the `generate-validator-node-keys.sh` script which can
+/// be found in this repository.
+///
+/// The format of the derivation paths is as follows: `$secretPhrase//$keyType`, where `keyType`
+/// can be one of: `controller`, `stash`, `gran`, `babe`, `imon`, or `audi`.
+///
+/// Note that the latter four keys are what are known as "session keys", and their exact type and
+/// number is configurable in the runtime.
 pub fn testnet_initial_authorities(
 ) -> Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> {
-    // stash, controller, session-key
-    // generated with secret:
-    // for i in 1 2 3 4 ; do for j in stash controller; do subkey inspect "$secret"/fir/$j/$i; done; done
-    //
-    // and
-    //
-    // for i in 1 2 3 4 ; do for j in session; do subkey --ed25519 inspect "$secret"//fir//$j//$i; done; done
     vec![
         (
             // controller -> Sr25519
-            // 5DUp9KHrDi8k8R4e2rPZhbxudUzEuNtxwUvfbCYtCZRA4no6
-            hex!["3e9f4983e0cd02803c0d2e0fd58ea8d89e0a279e829a1aa9fdc1162a1a53e359"].into(),
+            // 5GC6HbDfosvHUuCDkr8nAG81LBFNMgToMRfnFpa7GFD4td7q
+            hex!["b693281e3001566f5e4c395f2f9a3389e425cd349d17d897435235ffeca55a3a"].into(),
             // stash -> Sr25519
-            // 5FNHcKqJzVGfSCFNAsw3YfPdHioKN7Usdtd32vBEkU1LjVV7
-            hex!["921d7e7421fa0120839c5f4f29b651421720d79e3885856abb127ed8d5744d22"].into(),
-            // grandpa -> ed25519
-            // 5H9kQJyK9THVhvgcKBSGWGidjSezNTdUn5p5Jc2c75kV6Txk
-            hex!["e105f69f91ddfa8499434c6cf03f0208ee26bf57446f70558ef6bc5bfbdcd258"]
+            // 5FbwUrncUnFpa7wQKrxexXpEGZzM7ivDHwJNFQUQmjY38Cco
+            hex!["9c872b973d78eb5d440b65f34b1b035b9f9b6a0f1462a048b93958a17d933c46"].into(),
+            // grandpa -> Ed25519
+            // 5E1buCEBSvt1fssmxjfF4ZD28Q7iAyVf6sVZpi8oDHyQLwSK
+            hex!["561aadf25fe061ef0181777ea6e12f5f442073470b6c8f7c64d59db1f8693b75"]
                 .unchecked_into(),
             // babe -> Sr25519
-            // 5D7MndGJ3BVvm7sAcuVuXffVuDfTrSjS4cSieVJcQeqLfycR
-            hex!["2e4268b609fac59c448d755d3b63ef30d897c6f7e0eeb3eeff3e7d0e0d93cc12"]
+            // 5F6kuqyMq38QPJhMjfUsoF5o8EjSkdPXKdQeAiAqEdGgFQdY
+            hex!["86457973f03814d240c0818857229acadd1b517d848b6e826028c5279cd2bb1e"]
                 .unchecked_into(),
             // im online -> Sr25519
-            // 5F4RQ5dTKKyvmkuVuKTTUUqDFm9oRe8gZRpmU8fhDtpxH4ar
-            hex!["847d4be0524b7eac945860cfd1bcd8d40e6cfcfbc7634251ddcdb89c54d4356d"]
+            // 5GbrYiuSkFAKh2BE5WR8in76WRFWpN2oZ9tGzfJ9TZqSLnvd
+            hex!["c8b2cbe76eaede0dd05ef3f7ae68c3c61458ddd5d93e816515aa2bdfb7802256"]
                 .unchecked_into(),
             // authority discovery -> Sr25519
-            // 5FBo1QLcDGzH9zZcpE59dFJjWnqqpXnT6ZcwF6y2fGByGNKf
-            hex!["8a1cc1b2c4cd82693fc73714a4ef9937c1a413f612e0f46e095b3cf60f928f73"]
+            // 5H4KA7kqNxEQUStzDmjC1w1311ZGaTC1RE2m7riQa4j8FAND
+            hex!["dce0c14c4f48c018d9d8c55135b8cb2e4312256beabd75bd0a45c0b56bf7b12f"]
                 .unchecked_into(),
         ),
         (
-            // 5Gen3ZR6zY4bo55KwioD6bE57GVv8QnBEzL7b5t9rFUZXGE2
-            hex!["caed5ff7554fd17349372086115af48ffa4329ad92eb33b62f8ef3de425f4c42"].into(),
-            // 5CY72U7tqHNGspa2jE9MpJomDtBnzNSC73yq3dB8tsGohH3F
-            hex!["14e59e9d3c8b718545a9fc6994a83eb49f801c38d7cc268ad05dbe281cd5ed63"].into(),
-            // 5EkndhZ94fKCnx2zQ2o88rjGGupzhiKraHkEuxhwvDtQDzi5
-            hex!["770a5ca4319c336b603afc1561529bb9be2ef91a1d54ab3cc1f3b86ee89525c9"]
+            // 5GWBLjvgQucinSSf5WvEDVhLRkBMCwMFavmwirfomw4RPaMV
+            hex!["c45e969c3d0ffb54a8543c62418473e702e705fa97225c319831ac3c8cb7a659"].into(),
+            // 5He4vcqwSEoJSDMDBVmWE7n9HmGs81rMNzviGY6uzL8RWYPu
+            hex!["f69f2fea697d7c9499efebc0295b2c85f11ca3405b9da6afb590b29ca94cfe2f"].into(),
+            // 5DNVknZup4smom1tGmo1G4QXkzY7EU4aMjcekGES9CtkRQLr
+            hex!["39cde9e9d96ef78dac973ca27e15961a6e6228eb07572b808f42718bd9677baa"]
                 .unchecked_into(),
-            // 5FZJsJ3zojt8fqiiR1LE1YtwmGfuVHicLrfBWfQ5ioH5hAsd
-            hex!["9a856db37bedb9376c143bf6b033737205a7f04c7e13102fdd902d94d9130c56"]
+            // 5CHzj2XgRDXzSHZWQtWVcoWsYprEtUiLzJFiKhXZZzKih1qk
+            hex!["0a22f94dd19755ede64eb09562ad30370349027fc258a70ff596bf139115e47f"]
                 .unchecked_into(),
-            // 5CDmK3XPvYij5UBeCWXQwrfkboKmAHL3YLfZZeUf2AHHmXsv
-            hex!["06e8d69f5e46f672f07ab84387dd81cf7f592ada2153aaab7f1be723bf37bb3b"]
+            // 5CwEFpcmgxqp69H9LG2BWb8nkQSst59WZy7ihXum49Hc8wDK
+            hex!["26889a5f3113a398450e0043be96cd61b2a5706b549a57f168ae482a2c152f74"]
                 .unchecked_into(),
-            // 5CXJMPeb9xXHgRQYRj9kV3UpvacAc2qNEydrZH9WjyD191kp
-            hex!["1448807387ae3a70de2c86ce09a00f7f856344459413027520f48414f6cff972"]
-                .unchecked_into(),
-        ),
-        (
-            // 5DwWZzE82vNXbLdo8hpnjxrwVSmhBRjVZczQBcyH3Z2oRWKX
-            hex!["52fbc068cc0917950befb99cc3f9077d4a2fb0bdaefeaf19a49a88481a11b412"].into(),
-            // 5CD3xHo9rp1gGNnnpVgRtVTN55bRHKbaYbDDSr32T9usNLsE
-            hex!["065d9d92615eb51aca8d14b06a84d7bf6700f0914095f9c4a8b0e0b62160ea42"].into(),
-            // 5FdoJSe3oGSDFU8ebnmQpKr4FUeM9tgtsRMaNWYbT42AzVLV
-            hex!["9df22049a7c64c3728f798ec667949930c6835d8f63ef3d47322096ab5e341a1"]
-                .unchecked_into(),
-            // 5DJ2e2NVmZe2H81MFp3zLQSy1CQmHTmpidB8GCSo3gow2oeh
-            hex!["3665a6484210be60c355d1521644c87348f9a0c0c8621d3ea58de3a907508417"]
-                .unchecked_into(),
-            // 5EFsfWeGvDLmdv6oKmkK9FtieSuTTFzQg8p4bZqxwC5k8q5n
-            hex!["60fd2e8b6823646393021617820571411e09260b059203743182d565235aef03"]
-                .unchecked_into(),
-            // 5EeXANUui1gHckcw7zF3AdmwXyFBzRcicC5wU36CY4cHdNGF
-            hex!["7242cf0d47e22380f5d16e4d283cd2fc33d1d7526cb4fbbf9787b564f1ce9679"]
+            // 5EqpxZBuooBFWWv8871fKYJR9h7F4DFCVgZ539gPUF8gkbKp
+            hex!["7ae26a776162f3b851ccd1c7d59d1bbe17a811307c267f164831a6ef804a5437"]
                 .unchecked_into(),
         ),
         (
-            // 5FLc2mJXwzfPsWAtaLAK9f1RUirr3hBRP9btADeYrSY6TSkn
-            hex!["90d503d66e6f555429433573bf0998f60e4916b3e80f16fed334f11470533d4b"].into(),
-            // 5CXuG9z2XcHwdqTAG451tNvcr9PSrVfEXtCkzkRwPnFLBE7Y
-            hex!["14be04b5670df7ca712ce3e67d620fd0846f87fa34de72bb2f80c9f0c881b401"].into(),
-            // 5DZ4Sq7C6fDPRgm4im5H6wyhL3SbUqCWAfRB9gMc1hFAgHrb
-            hex!["41dc69dafec1016f5d4168975a6c7615017703f6d8b5fdeeca4952ed91fabf67"]
+            // 5H4NWR22bsQ6XuvjVcAnP7isutFrEXrnQ7sXGBzRNSzrfcGt
+            hex!["dcec0833a062f351d32df4644cd68a96ee70d3d98b85f31e81d50357920b7c63"].into(),
+            // 5Cca9Cv3giBxcG934caj6Tk2NWqRXK2nKFQ7zQhLT1xSx82Z
+            hex!["184de1e2f1d451fcf187041794f2fd54827c397e3c932673b49b7c4d91e77b22"].into(),
+            // 5ELT9DsaGzwgZpMYsshQojhixkKDaG12CKtGbSc1kYTazrQQ
+            hex!["647adc12dcd07d13e831b1378d25b5881ce33bc0b0b148f02bb1e3502e328e7a"]
                 .unchecked_into(),
-            // 5FWy2dvHo4B2CnkwumMQgM5hVUV3mgviB16WQ1DWqFcZM8bi
-            hex!["98bc276917d57ead1874841aa956f9fa28a8c9a21a3f03eb982186fead6a2467"]
+            // 5GNRmLL5iE2kwHU5aAKamZgB8Y2ZjN4hxf2BRGnbsE4VUGwG
+            hex!["be752e4027a49766ccbaf48154f06aedd1fd9f1f5b0bb95c2364de2cf4df8901"]
                 .unchecked_into(),
-            // 5FvBb7ZaSny6h8G9HCdKEZH79o7BfjVxKjsfMNc7vgoMFZ3f
-            hex!["aa71142ae23a5c60f33a064462c44c5425c48c7345f12dc9ad00a56580e8835b"]
+            // 5HNeUG6K22VLNnCStbHW6KRAg3z6ybMoDy1VYbk8V1xUiG9t
+            hex!["eadc2f6319b1f666513812631e5ba365c6a5741302eb45a451089f1a26d97a00"]
                 .unchecked_into(),
-            // 5ELz6TfwTwbwAsXoEycB5oTQCcMPLipEqDRsjVw7GYot2pNh
-            hex!["64e30dfddf0e622b1db1e6ad27f3724b349ed9369862b84ec9a1a262c724603e"]
+            // 5GGard7xFFyRGFH1jRUYZfKmWALgkUFrYgh21gBQVCUjKrGn
+            hex!["ba004fdb6740987e88c43a0f3147b23b2f005509bd4fa0ef795dfe5e16581806"]
+                .unchecked_into(),
+        ),
+        (
+            // 5HLBgTCNugSig3oCpfogq3L7x1UDuAiZWpuSmzpHuiQr6RRo
+            hex!["e8fb830439ac929cadee5fed899defe6b574af2dbce4189dc50db5d7c14e6c4a"].into(),
+            // 5GLPy6NDacLpKUdJ6U3bSiKFRGGrqLhpudwvaFFTnNXLpeE3
+            hex!["bce8a3c75b84d1ab4020766d049c02cac37b2e42e6aa75b8577ea99e03e4b208"].into(),
+            // 5G5mruyipeqWb3cnsL1nfEdaYToK8nvGcq9Cm2xweRJzMBzs
+            hex!["b1c1a89e34bdbf0bc2bae462c92e43d97c97e686fbf18b581c94c28a67b5bcb3"]
+                .unchecked_into(),
+            // 5EEuKvYG9cwTPTLHnrACGGBKXQKvyDLHnuVyW7cQU2Mdif6a
+            hex!["603f8839abf317dc0054efdfc392a1087a25f8c45e0970c5fd772cf5100e4333"]
+                .unchecked_into(),
+            // 5FhJeoatmY44TPP4oFyykS68cp92owtQW61yQ2itMUXC5brA
+            hex!["a09eaab2e4c3da616a2e746dc7a1ac4b38bfb7b2ec52231ebea1086ec0e2167a"]
+                .unchecked_into(),
+            // 5EX1CwbxF8BWq16FW1PYz9PM24Z41TSD1gVWzrxwWWoKp3y6
+            hex!["6c87404dcac860f6b673f8e1b2c099ed13286be8508063413fa6ffb4d5af361c"]
                 .unchecked_into(),
         ),
     ]
@@ -190,37 +193,64 @@ pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519Public
     vec![alice, bob]
 }
 
-/// In practice it's a little hard for us to fill this out with correct information since we need
-/// to spin up all the TSS servers we want at genesis and grab the keys and IPs to then put in
+/// Information about the initial set of Threshold Signature Signing servers.
+///
+/// In practice it's a little annoying for us to fill this out with correct information since we
+/// need to spin up all the TSS servers we want at genesis and grab the keys and IPs to then put in
 /// here.
 ///
-/// Placeholders have been left here instead for illustrative purposes.
+/// However, this can be done by:
+/// - First, spinning up the machines you expect to be running at genesis
+/// - Then, running each TSS server with the `--setup-only` flag to get the `TssAccountId` and
+/// `TssX25519PublicKey`
+/// - Finally, writing all that information back here, and generating the chainspec from that.
+///
+/// Note that if the KVDB of the TSS is deleted at any point during this process you will end up
+/// with different `AccountID`s and `PublicKey`s.
 pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
-    let alice = (
-        crate::chain_spec::tss_account_id::ALICE.clone(),
-        crate::chain_spec::tss_x25519_public_key::ALICE,
-        "0.0.0.0:3001".to_string(),
+    use std::str::FromStr;
+
+    let node_1a = (
+        TssAccountId::from_str("5EC2p79LfGKWEgY6YDGRzqSVwqFWnd2kndY1ABWTbAtp2zFC")
+            .expect("Address should be valid."),
+        [
+            100, 151, 169, 160, 23, 148, 150, 198, 79, 84, 246, 123, 121, 218, 218, 81, 244, 106,
+            253, 36, 65, 194, 62, 152, 230, 184, 70, 119, 249, 202, 181, 58,
+        ],
+        "3.88.15.234:3001".to_string(),
     );
 
-    let bob = (
-        crate::chain_spec::tss_account_id::BOB.clone(),
-        crate::chain_spec::tss_x25519_public_key::BOB,
-        "0.0.0.0:3001".to_string(),
+    let node_1b = (
+        TssAccountId::from_str("5DZnLJfveAjRiYU6UMYie3bNTLzowLu3YrwJkaMu94VMFX47")
+            .expect("Address should be valid."),
+        [
+            85, 148, 71, 92, 127, 93, 61, 77, 253, 118, 162, 20, 84, 184, 191, 43, 176, 250, 245,
+            53, 185, 9, 230, 7, 167, 77, 232, 240, 108, 58, 127, 8,
+        ],
+        "44.195.79.158:3001".to_string(),
     );
 
-    let charlie = (
-        crate::chain_spec::tss_account_id::CHARLIE.clone(),
-        crate::chain_spec::tss_x25519_public_key::BOB,
-        "0.0.0.0:3001".to_string(),
+    let node_1c = (
+        TssAccountId::from_str("5Fmnt2chPDfE6eUY4djfb9V9aFbbGPhdQ8UmeJbxLn42oR9a")
+            .expect("Address should be valid."),
+        [
+            230, 255, 3, 85, 202, 18, 119, 146, 239, 9, 229, 2, 244, 250, 239, 16, 90, 182, 192,
+            237, 190, 193, 222, 203, 183, 168, 6, 184, 30, 97, 115, 121,
+        ],
+        "44.212.62.84:3001".to_string(),
     );
 
-    let deve = (
-        crate::chain_spec::tss_account_id::DAVE.clone(),
-        crate::chain_spec::tss_x25519_public_key::EVE,
-        "0.0.0.0:3001".to_string(),
+    let node_2a = (
+        TssAccountId::from_str("5CLgNaBBW2hFEgUkWnB2eYQik2HkeLDAA5oMfCrR75B9kdWy")
+            .expect("Address should be valid."),
+        [
+            154, 171, 43, 100, 141, 250, 83, 95, 55, 165, 22, 243, 64, 187, 132, 7, 143, 199, 236,
+            253, 85, 134, 94, 244, 15, 147, 193, 144, 12, 69, 134, 62,
+        ],
+        "3.81.159.35:3001".to_string(),
     );
 
-    vec![alice, bob, charlie, deve]
+    vec![node_1a, node_1b, node_1c, node_2a]
 }
 
 /// The testnet configuration uses four validator nodes with private keys controlled by the deployer
@@ -238,7 +268,7 @@ pub fn testnet_config() -> crate::chain_spec::ChainSpec {
             testnet_genesis_config(
                 testnet_initial_authorities(),
                 vec![],
-                hex!["6a16ded05ff7a50716e1ca943f0467c60b4b71c2a7fd7f75b6333b8af80b6e6f"].into(),
+                hex!["b848e84ef81dfeabef80caed10d7d34cc10e98e71fd00c5777b81177a510d871"].into(),
                 testnet_initial_tss_servers(),
             )
         },
