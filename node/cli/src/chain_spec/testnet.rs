@@ -427,7 +427,7 @@ pub fn testnet_genesis_config(
         elections: ElectionsConfig {
             members: endowed_accounts
                 .iter()
-                .take((num_endowed_accounts + 1) / 2)
+                .take((num_endowed_accounts + 1) / 3)
                 .cloned()
                 .map(|member| (member, STASH))
                 .collect(),
@@ -436,7 +436,7 @@ pub fn testnet_genesis_config(
         technical_committee: TechnicalCommitteeConfig {
             members: endowed_accounts
                 .iter()
-                .take((num_endowed_accounts + 1) / 2)
+                .take((num_endowed_accounts + 1) / 3)
                 .cloned()
                 .collect(),
             phantom: Default::default(),
