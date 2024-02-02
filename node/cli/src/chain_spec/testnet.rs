@@ -306,6 +306,7 @@ pub fn testnet_genesis_config(
     );
 
     let mut endowed_accounts = endowed_accounts_dev();
+    endowed_accounts.push(root_key.clone());
 
     // We endow the:
     // - Initial TSS server accounts
