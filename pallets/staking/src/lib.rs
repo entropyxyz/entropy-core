@@ -449,7 +449,7 @@ pub mod pallet {
                 pallet_staking_extension::SigningGroups::<T>::remove(sg as u8);
                 pallet_staking_extension::SigningGroups::<T>::insert(sg as u8, vs);
             }
-            Self::deposit_event(Event::ValidatorsSubgroupsRotated(
+            Self::deposit_event(Event::ValidatorSubgroupsRotated(
                 curr_validators_set.clone(),
                 new_validators_set.clone(),
             ));

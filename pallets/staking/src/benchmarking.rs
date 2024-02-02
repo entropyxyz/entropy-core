@@ -198,7 +198,7 @@ benchmarks! {
         let new_subgroup = SigningGroups::<T>::get(signing_group as u8).unwrap();
         new_subgroups.push(new_subgroup)
       };
-        assert_last_event::<T>(Event::<T>::ValidatorsSubgroupsRotated(current_subgroups,  new_subgroups).into());
+        assert_last_event::<T>(Event::<T>::ValidatorSubgroupsRotated(current_subgroups,  new_subgroups).into());
         assert!(new_validators.contains(&one_current_validator[0]));
     }
 }
