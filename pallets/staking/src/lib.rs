@@ -240,7 +240,7 @@ pub mod pallet {
         /// Validator sync status changed [who, sync_status]
         ValidatorSyncStatus(<T as pallet_session::Config>::ValidatorId, bool),
         /// Validators subgroups rotated [old, new]
-        ValidatorsSubgroupsRotated(
+        ValidatorSubgroupsRotated(
             Vec<Vec<<T as pallet_session::Config>::ValidatorId>>,
             Vec<Vec<<T as pallet_session::Config>::ValidatorId>>,
         ),
