@@ -48,7 +48,7 @@ jobs:
     if: github.event_name != 'schedule'
     needs:
       - git-ref-basename
-      - build-entropy
+        # - build-entropy
       - build-entropy-tss
     permissions:
       contents: write
