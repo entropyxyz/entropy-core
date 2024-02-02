@@ -320,7 +320,7 @@ pub fn testnet_genesis_config(
     initial_tss_servers
         .iter()
         .map(|tss| &tss.0)
-        .chain(initial_authorities.iter().map(|x| &x.0).into_iter())
+        .chain(initial_authorities.iter().map(|x| &x.0))
         .chain(initial_nominators.iter())
         .for_each(|x| {
             if !endowed_accounts.contains(x) {
