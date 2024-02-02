@@ -1342,6 +1342,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "chain-api"
+version = "0.1.0"
+dependencies = [
+ "entropy-shared",
+ "parity-scale-codec",
+ "subxt",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2960,6 +2969,7 @@ version = "0.0.1"
 dependencies = [
  "anyhow",
  "bincode",
+ "chain-api",
  "clap 4.4.8",
  "colored",
  "entropy-testing-utils",
@@ -2979,6 +2989,7 @@ dependencies = [
  "axum",
  "base64 0.13.1",
  "blake2 0.10.6",
+ "chain-api",
  "entropy-kvdb",
  "entropy-protocol",
  "entropy-shared",
@@ -3024,6 +3035,7 @@ dependencies = [
  "blake2 0.10.6",
  "blake3",
  "bytes",
+ "chain-api",
  "clap 4.4.8",
  "entropy-kvdb",
  "entropy-programs-runtime",

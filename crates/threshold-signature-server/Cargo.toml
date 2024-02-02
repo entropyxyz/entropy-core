@@ -42,6 +42,7 @@ sp-core           ={ version="21.0.0", default-features=false }
 entropy-shared  ={ path="../shared" }
 entropy-kvdb    ={ path="../kvdb", default-features=false }
 entropy-protocol={ path="../protocol", features=["server"] }
+chain-api  ={ path="../chain-api" }
 
 # Programs
 entropy-programs-runtime={ git="https://github.com/entropyxyz/programs.git", tag="v0.8.0" }

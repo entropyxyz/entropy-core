@@ -37,10 +37,9 @@ use subxt::{
 };
 use synedrion::KeyShare;
 use tokio::sync::OnceCell;
-
+use     chain_api::{entropy, get_api, get_rpc, EntropyConfig};
 use crate::{
     app,
-    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     get_signer,
     helpers::{
         launch::{

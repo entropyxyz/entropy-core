@@ -19,8 +19,8 @@ use subxt::{
     ext::sp_core::{sr25519, Pair},
     tx::PairSigner,
 };
-
-use crate::{chain_api::EntropyConfig, user::UserErr};
+use chain_api::EntropyConfig;
+use crate::{user::UserErr};
 
 /// Returns PairSigner for this nodes threshold server.
 /// The PairSigner is stored as an encrypted mnemonic in the kvdb and

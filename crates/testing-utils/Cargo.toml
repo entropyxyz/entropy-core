@@ -22,6 +22,7 @@ axum              ={ version="0.6.18" }
 entropy-shared    ={ path="../shared" }
 entropy-kvdb      ={ path="../kvdb", default-features=false }
 entropy-tss       ={ path="../threshold-signature-server" }
+chain-api={ path="../chain-api" }
 
 # For test client
 anyhow          ="1.0.75"

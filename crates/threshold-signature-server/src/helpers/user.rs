@@ -30,11 +30,11 @@ use subxt::{backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId3
 use synedrion::KeyShare;
 use tokio::time::timeout;
 use x25519_dalek::PublicKey;
+use chain_api::{
+    entropy, entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, EntropyConfig,
+};
 
 use crate::{
-    chain_api::{
-        entropy, entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, EntropyConfig,
-    },
     helpers::substrate::get_program,
     signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
     user::{api::UserRegistrationInfo, errors::UserErr},

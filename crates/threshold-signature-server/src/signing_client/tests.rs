@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::api::{partition_all_keys, validate_proactive_refresh};
+use chain_api::{get_api, get_rpc};
 use crate::{
-    chain_api::{get_api, get_rpc},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         tests::{initialize_test_logger, run_to_block, setup_client, spawn_testing_validators},

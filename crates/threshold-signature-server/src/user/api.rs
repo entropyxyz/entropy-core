@@ -58,11 +58,11 @@ use tracing::instrument;
 use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, ProgramError, UserErr, UserInputPartyInfo};
+use chain_api::{
+    entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
+    get_api, get_rpc, EntropyConfig,
+};
 use crate::{
-    chain_api::{
-        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
-        get_api, get_rpc, EntropyConfig,
-    },
     get_random_server_info,
     helpers::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,

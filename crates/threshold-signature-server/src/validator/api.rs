@@ -29,11 +29,11 @@ use subxt::{
 };
 use x25519_dalek::PublicKey;
 
+use chain_api::{
+    entropy::{self, runtime_types::pallet_staking_extension::pallet::ServerInfo},
+    get_api, get_rpc, EntropyConfig,
+};
 use crate::{
-    chain_api::{
-        entropy::{self, runtime_types::pallet_staking_extension::pallet::ServerInfo},
-        get_api, get_rpc, EntropyConfig,
-    },
     get_signer,
     helpers::{
         launch::FORBIDDEN_KEYS,

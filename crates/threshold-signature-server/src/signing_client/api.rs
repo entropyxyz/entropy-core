@@ -46,9 +46,8 @@ use subxt::{
 };
 use synedrion::KeyShare;
 use tokio::time::timeout;
-
+use chain_api::{entropy, get_api, get_rpc, EntropyConfig};
 use crate::{
-    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         substrate::{get_registered_details, get_subgroup, return_all_addresses_of_subgroup},

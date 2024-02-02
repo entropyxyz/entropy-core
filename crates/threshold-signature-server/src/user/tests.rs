@@ -36,10 +36,6 @@ use entropy_protocol::{
 };
 use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
 use entropy_testing_utils::{
-    chain_api::{
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec as OtherBoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance as OtherProgramInstance,
-    },
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
         PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_INFINITE_LOOP_BYTECODE,
@@ -84,14 +80,14 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::UserInputPartyInfo;
+use chain_api::{
+    entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+    entropy::runtime_types::entropy_runtime::RuntimeCall,
+    entropy::runtime_types::pallet_balances::pallet::Call as BalancesCall,
+    entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, get_api, get_rpc,
+    EntropyConfig,
+};
 use crate::{
-    chain_api::{
-        entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::entropy_runtime::RuntimeCall,
-        entropy::runtime_types::pallet_balances::pallet::Call as BalancesCall,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, get_api, get_rpc,
-        EntropyConfig,
-    },
     get_signer,
     helpers::{
         launch::{
@@ -195,9 +191,9 @@ async fn test_sign_tx_no_chain() {
         &rpc,
         &one.pair(),
         &one.pair(),
-        OtherBoundedVec(vec![
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+        BoundedVec(vec![
+            ProgramInstance { program_pointer: program_hash, program_config: vec![] },
+            ProgramInstance { program_pointer: program_hash, program_config: vec![] },
         ]),
     )
     .await
@@ -435,7 +431,7 @@ async fn test_fail_signing_group() {
         &rpc,
         &dave.pair(),
         &dave.pair(),
-        OtherBoundedVec(vec![OtherProgramInstance {
+        BoundedVec(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }]),
@@ -840,7 +836,7 @@ async fn test_sign_tx_user_participates() {
         &rpc,
         &one.pair(),
         &one.pair(),
-        OtherBoundedVec(vec![OtherProgramInstance {
+        BoundedVec(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }]),
@@ -1273,7 +1269,7 @@ async fn test_fail_infinite_program() {
         &rpc,
         &one.pair(),
         &one.pair(),
-        OtherBoundedVec(vec![OtherProgramInstance {
+        BoundedVec(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
         }]),

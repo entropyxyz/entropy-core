@@ -24,13 +24,13 @@ use std::{
 use anyhow::ensure;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use entropy_testing_utils::{
-    chain_api::{
-        entropy::runtime_types::{
-            bounded_collections::bounded_vec::BoundedVec, pallet_relayer::pallet::ProgramInstance,
-        },
-        EntropyConfig,
+use chain_api::{
+    entropy::runtime_types::{
+        bounded_collections::bounded_vec::BoundedVec, pallet_relayer::pallet::ProgramInstance,
     },
+    EntropyConfig,
+};
+use entropy_testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     test_client::{
         derive_static_secret, get_accounts, get_api, get_programs, get_rpc, register, sign,

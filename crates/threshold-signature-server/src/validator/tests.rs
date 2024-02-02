@@ -34,8 +34,8 @@ use super::api::{
     check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info,
     sync_validator, tell_chain_syncing_is_done, Keys,
 };
+use chain_api::{entropy, get_api, get_rpc, EntropyConfig};
 use crate::{
-    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::{
             ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,

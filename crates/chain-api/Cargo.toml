@@ -1,0 +1,15 @@
+[package]
+name       ="chain-api"
+version    ="0.1.0"
+authors    =['Entropy Cryptography <engineering@entropy.xyz>']
+homepage   ='https://entropy.xyz/'
+description='Entropy threshold signature scheme (TSS) server'
+license    ='AGPL-3.0-or-later'
+repository ='https://github.com/entropyxyz/entropy-core'
+edition    ='2021'
+
+[dependencies]
+# Substrate
+subxt             ={ version="0.32.1" }
+parity-scale-codec="3.4.0"
+entropy-shared  ={ path="../shared" }

@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Simple test client
-pub use crate::chain_api::{get_api, get_rpc};
+pub use chain_api::{get_api, get_rpc};
 pub use entropy_protocol::{
     sign_and_encrypt::{derive_static_secret, SignedMessage},
     KeyParams,
@@ -33,16 +33,16 @@ use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     RecoverableSignature, ValidatorInfo,
 };
-use entropy_tss::{
-    chain_api::{
-        entropy,
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::{
-            pallet_programs::pallet::ProgramInfo,
-            pallet_relayer::pallet::{ProgramInstance, RegisteredInfo},
-        },
-        EntropyConfig,
+use chain_api::{
+    entropy,
+    entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+    entropy::runtime_types::{
+        pallet_programs::pallet::ProgramInfo,
+        pallet_relayer::pallet::{ProgramInstance, RegisteredInfo},
     },
+    EntropyConfig,
+};
+use entropy_tss::{
     common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
 };
 use futures::future;

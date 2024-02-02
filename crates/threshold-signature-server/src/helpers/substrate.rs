@@ -12,12 +12,11 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+use chain_api::{
+    entropy::{self, runtime_types::pallet_relayer::pallet::RegisteredInfo},
+    EntropyConfig,
+};
 use crate::{
-    chain_api::{
-        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteredInfo},
-        EntropyConfig,
-    },
     user::UserErr,
 };
 use entropy_shared::SIGNING_PARTY_SIZE;
