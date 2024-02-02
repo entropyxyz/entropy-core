@@ -50,15 +50,18 @@ pub fn testnet_local_initial_authorities(
     ]
 }
 
+/// Generates the keys for the initial testnet authorities.
+///
+/// These public keys were generated using the `generate-validator-node-keys.sh` script which can
+/// be found in this repository.
+///
+/// The format of the derivation paths is as follows: `$secretPhrase//$keyType`, where `keyType`
+/// can be one of: `controller`, `stash`, `gran`, `babe`, `imon`, or `audi`.
+///
+/// Note that the latter four keys are what are known as "session keys", and their exact type and
+/// number is configurable in the runtime.
 pub fn testnet_initial_authorities(
 ) -> Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> {
-    // stash, controller, session-key
-    // generated with secret:
-    // for i in 1 2 3 4 ; do for j in stash controller; do subkey inspect "$secret"/fir/$j/$i; done; done
-    //
-    // and
-    //
-    // for i in 1 2 3 4 ; do for j in session; do subkey --ed25519 inspect "$secret"//fir//$j//$i; done; done
     vec![
         (
             // controller -> Sr25519
@@ -67,7 +70,7 @@ pub fn testnet_initial_authorities(
             // stash -> Sr25519
             // 5FbwUrncUnFpa7wQKrxexXpEGZzM7ivDHwJNFQUQmjY38Cco
             hex!["9c872b973d78eb5d440b65f34b1b035b9f9b6a0f1462a048b93958a17d933c46"].into(),
-            // grandpa -> ed25519
+            // grandpa -> Ed25519
             // 5E1buCEBSvt1fssmxjfF4ZD28Q7iAyVf6sVZpi8oDHyQLwSK
             hex!["561aadf25fe061ef0181777ea6e12f5f442073470b6c8f7c64d59db1f8693b75"]
                 .unchecked_into(),
@@ -190,11 +193,20 @@ pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519Public
     vec![alice, bob]
 }
 
-/// In practice it's a little hard for us to fill this out with correct information since we need
-/// to spin up all the TSS servers we want at genesis and grab the keys and IPs to then put in
+/// Information about the initial set of Threshold Signature Signing servers.
+///
+/// In practice it's a little annoying for us to fill this out with correct information since we
+/// need to spin up all the TSS servers we want at genesis and grab the keys and IPs to then put in
 /// here.
 ///
-/// Placeholders have been left here instead for illustrative purposes.
+/// However, this can be done by:
+/// - First, spinning up the machines you expect to be running at genesis
+/// - Then, running each TSS server with the `--setup-only` flag to get the `TssAccountId` and
+/// `TssX25519PublicKey`
+/// - Finally, writing all that information back here, and generating the chainspec from that.
+///
+/// Note that if the KVDB of the TSS is deleted at any point during this process you will end up
+/// with different `AccountID`s and `PublicKey`s.
 pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
     use std::str::FromStr;
 
