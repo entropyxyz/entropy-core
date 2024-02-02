@@ -306,12 +306,21 @@ pub fn testnet_genesis_config(
     );
 
     let mut endowed_accounts = endowed_accounts_dev();
-    // endow all authorities and nominators.
-    initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
-        if !endowed_accounts.contains(x) {
-            endowed_accounts.push(x.clone())
-        }
-    });
+
+    // We endow the:
+    // - Initial TSS server accounts
+    // - Initial the validator stash accounts
+    // - Initial nominator accounts
+    initial_tss_servers
+        .iter()
+        .map(|tss| &tss.0)
+        .chain(initial_authorities.iter().map(|x| &x.0).into_iter())
+        .chain(initial_nominators.iter())
+        .for_each(|x| {
+            if !endowed_accounts.contains(x) {
+                endowed_accounts.push(x.clone())
+            }
+        });
 
     // stakers: all validators and nominators.
     //
