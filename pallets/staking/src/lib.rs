@@ -239,6 +239,11 @@ pub mod pallet {
         NodeInfoRemoved(T::AccountId),
         /// Validator sync status changed [who, sync_status]
         ValidatorSyncStatus(<T as pallet_session::Config>::ValidatorId, bool),
+        /// Validators subgroups rotated [old, new]
+        ValidatorSubgroupsRotated(
+            Vec<Vec<<T as pallet_session::Config>::ValidatorId>>,
+            Vec<Vec<<T as pallet_session::Config>::ValidatorId>>,
+        ),
     }
 
     #[pallet::call]
@@ -425,7 +430,6 @@ pub mod pallet {
                     unplaced_validators_set.push(new_validator.clone());
                 }
             }
-
             // Evenly distribute new validators.
             while let Some(curr) = unplaced_validators_set.pop() {
                 let mut min_sg_len = u64::MAX;
@@ -445,6 +449,10 @@ pub mod pallet {
                 pallet_staking_extension::SigningGroups::<T>::remove(sg as u8);
                 pallet_staking_extension::SigningGroups::<T>::insert(sg as u8, vs);
             }
+            Self::deposit_event(Event::ValidatorSubgroupsRotated(
+                curr_validators_set.clone(),
+                new_validators_set.clone(),
+            ));
             frame_system::Pallet::<T>::register_extra_weight_unchecked(
                 <T as pallet::Config>::WeightInfo::new_session_handler_helper(
                     curr_validators_set.len() as u32,
