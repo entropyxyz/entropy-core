@@ -90,7 +90,7 @@ RUN --mount=type=ssh \
     fi; CARGO_NET_GIT_FETCH_WITH_CLI=true \
         CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="cc" \
         CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER="aarch64-linux-gnu-gcc" \
-        $HOME/.cargo/bin/cargo build --release -p "${PACKAGE}" --target "${RUST_PLATFORM}-unknown-linux-gnu" \
+        $HOME/.cargo/bin/cargo build --release -p "${PACKAGE}" --target "${RUST_PLATFORM}-unknown-linux-gnu" --features unsafe \
     && ${BINUTILS_PATH}/strip "target/${RUST_PLATFORM}-unknown-linux-gnu/release/${PACKAGE}" \
     && install "target/${RUST_PLATFORM}-unknown-linux-gnu/release/${PACKAGE}" /usr/local/bin
 
