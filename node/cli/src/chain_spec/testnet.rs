@@ -306,7 +306,12 @@ pub fn testnet_genesis_config(
     );
 
     let mut endowed_accounts = endowed_accounts_dev();
-    endowed_accounts.push(root_key.clone());
+
+    // Ensure that the `testnet-local` config doesn't have a duplicate balance since `Alice` is
+    // both a validator and root.
+    if !endowed_accounts.contains(&root_key) {
+        endowed_accounts.push(root_key.clone());
+    }
 
     // We endow the:
     // - Initial TSS server accounts
