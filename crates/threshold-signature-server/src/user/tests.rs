@@ -42,8 +42,9 @@ use entropy_testing_utils::{
     },
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
-        PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_INFINITE_LOOP_BYTECODE,
-        TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+        PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION,
+        TEST_INFINITE_LOOP_BYTECODE, TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE,
+        TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, testing_context,
@@ -392,6 +393,90 @@ async fn test_sign_tx_no_chain() {
     // fails lower down in stack because no sig needed on pub account
     // fails when tries to decode the nonsense message
     assert_ne!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_program_with_config() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let one = AccountKeyring::Dave;
+    let two = AccountKeyring::Two;
+
+    let signing_address = one.to_account_id().to_ss58check();
+    let (validator_ips, _validator_ids, keyshare_option) =
+        spawn_testing_validators(Some(signing_address.clone()), false).await;
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+
+    let program_hash =
+        store_program(&entropy_api, &two.pair(), TEST_BASIC_TRANSACTION.to_owned(), vec![])
+            .await
+            .unwrap();
+
+    let validators_info = vec![
+        ValidatorInfo {
+            ip_address: "localhost:3001".to_string(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone(),
+        },
+        ValidatorInfo {
+            ip_address: "127.0.0.1:3002".to_string(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone(),
+        },
+    ];
+
+    // this message is an ethereum tx rlp encoded with a proper allow listed address
+    let message = "0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080";
+
+    let message_hash = Hasher::keccak(message.as_bytes());
+
+    let mut generic_msg = UserSignatureRequest {
+        message: hex::encode(message).to_string(),
+        auxilary_data: Some(vec![
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        ]),
+        validators_info,
+        timestamp: SystemTime::now(),
+        hash: HashingAlgorithm::Keccak,
+    };
+
+    let validator_ips_and_keys = vec![
+        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
+        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
+    ];
+    let config = r#"
+        {
+            "allowlisted_addresses": [
+                "772b9a9e8aa1c9db861c6611a82d251db4fac990"
+            ]
+        }
+    "#
+    .as_bytes();
+
+    update_programs(
+        &entropy_api,
+        &rpc,
+        &one.pair(),
+        &one.pair(),
+        OtherBoundedVec(vec![
+            OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
+            OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
+        ]),
+    )
+    .await
+    .unwrap();
+
+    generic_msg.timestamp = SystemTime::now();
+    let test_user_res =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
     clean_tests();
 }
 

@@ -15,6 +15,7 @@
 
 //! Benchmarking setup for pallet-propgation
 #![allow(unused_imports)]
+use entropy_shared::SIGNING_PARTY_SIZE;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     assert_ok, ensure,
@@ -178,7 +179,11 @@ benchmarks! {
     let current_validators = create_validators::<T>(c, SEED);
     let new_validators = create_validators::<T>(n, SEED_2);
     let _ =Staking::<T>::new_session_handler(&current_validators);
-
+    let mut current_subgroups: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> = vec![];
+    for signing_group in 0..SIGNING_PARTY_SIZE {
+      let current_subgroup = SigningGroups::<T>::get(signing_group as u8).unwrap();
+      current_subgroups.push(current_subgroup)
+    };
 }: {
     let _ = Staking::<T>::new_session_handler(&new_validators);
 } verify {
@@ -188,6 +193,12 @@ benchmarks! {
             assert!(!new_validators.contains(&one_current_validator[0]));
         }
     } else {
+      let mut new_subgroups: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> = vec![];
+      for signing_group in 0..SIGNING_PARTY_SIZE {
+        let new_subgroup = SigningGroups::<T>::get(signing_group as u8).unwrap();
+        new_subgroups.push(new_subgroup)
+      };
+        assert_last_event::<T>(Event::<T>::ValidatorSubgroupsRotated(current_subgroups,  new_subgroups).into());
         assert!(new_validators.contains(&one_current_validator[0]));
     }
 }
