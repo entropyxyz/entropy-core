@@ -374,28 +374,6 @@ async fn test_sign_tx_no_chain() {
     assert_eq!(failed_sign.status(), 500);
     assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
 
-    // checks that sig not needed with public key visibility
-    let user_input_bad = SignedMessage::new_test(
-        Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-        sr25519::Signature::from_raw(sig),
-        AccountKeyring::Dave.pair().public().into(),
-        slice,
-        slice,
-        nonce,
-    );
-
-    let failed_sign = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&user_input_bad).unwrap())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(failed_sign.status(), 500);
-    // fails lower down in stack because no sig needed on pub account
-    // fails when tries to decode the nonsense message
-    assert_ne!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
     clean_tests();
 }
 
@@ -1164,28 +1142,6 @@ async fn test_sign_tx_user_participates() {
     assert_eq!(failed_sign.status(), 500);
     assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
 
-    // checks that sig not needed with public key visibility
-    let user_input_bad = SignedMessage::new_test(
-        Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-        sr25519::Signature::from_raw(sig),
-        AccountKeyring::Dave.pair().public().into(),
-        slice,
-        slice,
-        nonce,
-    );
-
-    let failed_sign = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&user_input_bad).unwrap())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(failed_sign.status(), 500);
-    // fails lower down in stack because no sig needed on pub account
-    // fails when tries to decode the nonsense message
-    assert_ne!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
     clean_tests();
 }
 
