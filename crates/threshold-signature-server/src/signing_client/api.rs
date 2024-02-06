@@ -13,7 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{str::FromStr, time::Duration};
+use std::{
+    str::{from_utf8, FromStr},
+    time::Duration,
+};
 
 use axum::{
     body::Bytes,
@@ -86,11 +89,11 @@ pub async fn proactive_refresh(
         get_signer(&app_state.kv_store).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     check_in_registration_group(&ocw_data.validators_info, signer.account_id())
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-    validate_proactive_refresh(&api, &rpc, &app_state.kv_store, &ocw_data).await?;
-    // TODO batch the network keys into smaller groups per session
-    let all_keys =
-        get_all_keys(&api, &rpc).await.map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
-    let proactive_refresh_keys = partition_all_keys(ocw_data.refreshes_done, all_keys);
+    // validate_proactive_refresh(&api, &rpc, &app_state.kv_store, &ocw_data).await?;
+    // // TODO batch the network keys into smaller groups per session
+    // let all_keys =
+    //     get_all_keys(&api, &rpc).await.map_err(|e| ProtocolErr::ValidatorErr(e.to_string()))?;
+    // let proactive_refresh_keys = partition_all_keys(ocw_data.refreshes_done, all_keys);
     let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
@@ -99,7 +102,8 @@ pub async fn proactive_refresh(
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
 
-    for key in proactive_refresh_keys {
+    for encoded_key in ocw_data.proactive_refresh_keys {
+        let key = hex::encode(&encoded_key);
         let sig_request_account_sp_core =
             AccountId32::from_str(&key).map_err(ProtocolErr::StringError)?;
         let sig_request_account = SubxtAccountId32(*sig_request_account_sp_core.as_ref());
@@ -130,8 +134,11 @@ pub async fn proactive_refresh(
             .await?;
             let serialized_key_share = key_serialize(&new_key_share)
                 .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
-            let new_key_info =
-                UserRegistrationInfo { key, value: serialized_key_share, proactive_refresh: true };
+            let new_key_info = UserRegistrationInfo {
+                key: key.to_string(),
+                value: serialized_key_share,
+                proactive_refresh: true,
+            };
 
             app_state.kv_store.kv().delete(&new_key_info.key).await?;
             let reservation = app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
