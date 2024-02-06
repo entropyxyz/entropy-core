@@ -160,9 +160,11 @@ async fn test_sign_tx_no_chain() {
     ];
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let signature_request_account = subxtAccountId32(one.pair().public().0);
     let session_id = SessionId::Sign(SigningSessionInfo {
-        account_id: subxtAccountId32(one.pair().public().0),
+        account_id: signature_request_account.clone(),
         message_hash,
+        request_author: signature_request_account.clone(),
     });
 
     let mut generic_msg = UserSignatureRequest {
@@ -174,6 +176,7 @@ async fn test_sign_tx_no_chain() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
+        signature_request_account,
     };
 
     let validator_ips_and_keys = vec![
@@ -444,6 +447,7 @@ async fn test_program_with_config() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
+        signature_request_account: subxtAccountId32(one.pair().public().0),
     };
 
     let validator_ips_and_keys = vec![
@@ -532,6 +536,7 @@ async fn test_fail_signing_group() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
+        signature_request_account: subxtAccountId32(dave.pair().public().0),
     };
 
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
@@ -947,9 +952,11 @@ async fn test_sign_tx_user_participates() {
     let encoded_transaction_request: String = hex::encode(PREIMAGE_SHOULD_SUCCEED);
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
+    let signature_request_account = subxtAccountId32(one.pair().public().0);
     let session_id = SessionId::Sign(SigningSessionInfo {
-        account_id: subxtAccountId32(one.pair().public().0),
+        account_id: signature_request_account.clone(),
         message_hash: message_should_succeed_hash,
+        request_author: signature_request_account.clone(),
     });
 
     let mut generic_msg = UserSignatureRequest {
@@ -958,6 +965,7 @@ async fn test_sign_tx_user_participates() {
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
+        signature_request_account,
     };
 
     let validator_ips_and_keys = vec![
@@ -1386,6 +1394,7 @@ async fn test_fail_infinite_program() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
+        signature_request_account: subxtAccountId32(one.pair().public().0),
     };
 
     let validator_ips_and_keys = vec![

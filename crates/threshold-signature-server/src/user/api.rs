@@ -93,6 +93,9 @@ pub struct UserSignatureRequest {
     pub timestamp: SystemTime,
     /// Hashing algorithm to be used for signing
     pub hash: HashingAlgorithm,
+    /// The associated signature request account. Only in public access mode may this differ from
+    /// the account used to sign the request
+    pub signature_request_account: SubxtAccountId32,
 }
 
 /// Type for validators to send user key's back and forth
@@ -136,14 +139,21 @@ pub async fn sign_tx(
         &SubxtAccountId32::from(signing_address_converted.clone()),
     )
     .await?;
-    if user_details.key_visibility.0 != KeyVisibility::Public && !signed_msg.verify() {
+    if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
+
     let decrypted_message =
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
     let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&decrypted_message)?;
     check_stale(user_sig_req.timestamp)?;
+
+    if user_details.key_visibility.0 != KeyVisibility::Public
+        && user_sig_req.signature_request_account != signing_address_subxt
+    {
+        return Err(UserErr::AuthorizationError);
+    }
 
     let message = hex::decode(&user_sig_req.message)?;
 
@@ -196,8 +206,9 @@ pub async fn sign_tx(
     let message_hash_hex = hex::encode(message_hash);
 
     let signing_session_id = SigningSessionInfo {
-        account_id: SubxtAccountId32(*signed_msg.account_id().as_ref()),
+        account_id: user_sig_req.signature_request_account.clone(),
         message_hash,
+        request_author: signing_address_subxt.clone(),
     };
 
     let has_key = check_for_key(&signing_address, &app_state.kv_store).await?;
@@ -214,7 +225,6 @@ pub async fn sign_tx(
             message_hash_hex,
             &app_state,
             signing_session_id,
-            signing_address_subxt,
             user_details.key_visibility.0,
         )
         .await
