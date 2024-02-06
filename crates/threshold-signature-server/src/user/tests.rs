@@ -219,6 +219,7 @@ async fn test_sign_tx_no_chain() {
     verify_signature(test_user_res_order, message_hash, keyshare_option.clone()).await;
 
     generic_msg.timestamp = SystemTime::now();
+    generic_msg.signature_request_account = subxtAccountId32(two.pair().public().0);
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
 
@@ -971,6 +972,8 @@ async fn test_sign_tx_user_participates() {
         .await;
 
     generic_msg.timestamp = SystemTime::now();
+    generic_msg.signature_request_account = subxtAccountId32(two.pair().public().0);
+
     // test failing cases
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
