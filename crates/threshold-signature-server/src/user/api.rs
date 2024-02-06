@@ -131,14 +131,6 @@ pub async fn sign_tx(
     let signing_address_arr: [u8; 32] = *signing_address_converted.as_ref();
     let signing_address_subxt = SubxtAccountId32(signing_address_arr);
 
-    let api = get_api(&app_state.configuration.endpoint).await?;
-    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-    let user_details = get_registered_details(
-        &api,
-        &rpc,
-        &SubxtAccountId32::from(signing_address_converted.clone()),
-    )
-    .await?;
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
     }
@@ -148,6 +140,11 @@ pub async fn sign_tx(
 
     let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&decrypted_message)?;
     check_stale(user_sig_req.timestamp)?;
+
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
+    let user_details =
+        get_registered_details(&api, &rpc, &user_sig_req.signature_request_account).await?;
 
     if user_details.key_visibility.0 != KeyVisibility::Public
         && user_sig_req.signature_request_account != signing_address_subxt
