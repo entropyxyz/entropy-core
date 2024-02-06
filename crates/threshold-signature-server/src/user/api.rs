@@ -52,7 +52,7 @@ use subxt::{
     ext::sp_core::{crypto::Ss58Codec, sr25519, sr25519::Signature, Pair},
     tx::{PairSigner, Signer},
     utils::{AccountId32 as SubxtAccountId32, MultiAddress},
-    Config, OnlineClient,
+    Config, OnlineClient, config::DefaultExtrinsicParamsBuilder
 };
 use tracing::instrument;
 use zeroize::Zeroize;
@@ -60,7 +60,7 @@ use zeroize::Zeroize;
 use super::{ParsedUserInputPartyInfo, ProgramError, UserErr, UserInputPartyInfo};
 use chain_api::{
     entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
-    get_api, get_rpc, EntropyConfig,
+    get_api, get_rpc, EntropyConfig, custom_params
 };
 use crate::{
     get_random_server_info,
@@ -494,11 +494,13 @@ pub async fn confirm_registered(
         subgroup,
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
     );
+    let tx_config = DefaultExtrinsicParamsBuilder::new();
+
     let tx = api.tx().create_signed_with_nonce(
         &registration_tx,
         signer,
         nonce.into(),
-        Default::default(),
+        custom_params(tx_config),
     )?;
 
     let _ = tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;

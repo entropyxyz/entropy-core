@@ -25,13 +25,13 @@ use subxt::{
     ext::sp_core::{sr25519, Bytes},
     tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32,
-    OnlineClient,
+    OnlineClient, config::DefaultExtrinsicParamsBuilder,
 };
 use x25519_dalek::PublicKey;
 
 use chain_api::{
     entropy::{self, runtime_types::pallet_staking_extension::pallet::ServerInfo},
-    get_api, get_rpc, EntropyConfig,
+    get_api, get_rpc, EntropyConfig, custom_params
 };
 use crate::{
     get_signer,
@@ -290,9 +290,11 @@ pub async fn tell_chain_syncing_is_done(
     signer: &PairSigner<EntropyConfig, subxt::ext::sp_core::sr25519::Pair>,
 ) -> Result<(), ValidatorErr> {
     let synced_tx = entropy::tx().staking_extension().declare_synced(true);
+
+    let tx_config = DefaultExtrinsicParamsBuilder::new();
     let _ = api
         .tx()
-        .sign_and_submit_then_watch_default(&synced_tx, signer)
+        .sign_and_submit_then_watch(&synced_tx, signer, custom_params(tx_config))
         .await?
         .wait_for_in_block()
         .await?

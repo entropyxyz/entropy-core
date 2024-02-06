@@ -58,7 +58,8 @@ impl Config for EntropyConfig {
             signed_extensions::CheckMortality<Self>,
             signed_extensions::ChargeAssetTxPayment,
             signed_extensions::ChargeTransactionPayment,
-            ValidateConfirmRegistered,
+            ValidateElectricityPayment,
+            ValidateConfirmRegistered
         ),
     >;
 }
@@ -89,8 +90,34 @@ impl<T: Config> ExtrinsicParams<T> for ValidateConfirmRegistered {
 // Encode whatever the extension needs to provide when asked:
 impl ExtrinsicParamsEncoder for ValidateConfirmRegistered {
     fn encode_extra_to(&self, _v: &mut Vec<u8>) {
-       
     }
+}
+
+// Our custom signed extension doesn't do much:
+pub struct ValidateElectricityPayment;
+
+// Give the extension a name; this allows `AnyOf` to look it
+// up in the chain metadata in order to know when and if to use it.
+impl<T: Config> signed_extensions::SignedExtension<T> for ValidateElectricityPayment {
+    const NAME: &'static str = "ValidateElectricityPayment";
+}
+
+// Gather together any params we need for our signed extension, here none.
+impl<T: Config> ExtrinsicParams<T> for ValidateElectricityPayment {
+    type OtherParams = ();
+    type Error = std::convert::Infallible;
+
+    fn new<Client: OfflineClientT<T>>(
+        _nonce: u64,
+        _client: Client,
+        _other_params: Self::OtherParams,
+    ) -> Result<Self, Self::Error> {
+        Ok(ValidateElectricityPayment)
+    }
+}
+
+// Encode whatever the extension needs to provide when asked:
+impl ExtrinsicParamsEncoder for ValidateElectricityPayment {
     fn encode_additional_to(&self, v: &mut Vec<u8>) {
         true.encode_to(v)
     }
@@ -101,11 +128,11 @@ impl ExtrinsicParamsEncoder for ValidateConfirmRegistered {
 // "hijack" the default param builder, but add the `OtherParams` (`()`) for our
 // new signed extension at the end, to make the types line up. IN reality you may wish
 // to construct an entirely new interface to provide the relevant `OtherParams`.
-pub fn custom(
+pub fn custom_params(
     params: DefaultExtrinsicParamsBuilder<EntropyConfig>,
 ) -> <<EntropyConfig as Config>::ExtrinsicParams as ExtrinsicParams<EntropyConfig>>::OtherParams {
     let (a, b, c, d, e, f, g) = params.build();
-    (a, b, c, d, e, f, g, ())
+    (a, b, c, d, e, f, g, (), ())
 }
 
 /// Creates an api instance to talk to chain

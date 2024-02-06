@@ -33,11 +33,11 @@ use subxt::{
     ext::sp_core::{sr25519, Pair},
     tx::{PairSigner, Signer},
     utils::{AccountId32 as SubxtAccountId32, Static},
-    Config, OnlineClient,
+    Config, OnlineClient, config::DefaultExtrinsicParamsBuilder
 };
 use synedrion::KeyShare;
 use tokio::sync::OnceCell;
-use     chain_api::{entropy, get_api, get_rpc, EntropyConfig};
+use     chain_api::{entropy, get_api, get_rpc, EntropyConfig, custom_params};
 use crate::{
     app,
     get_signer,
@@ -196,9 +196,11 @@ pub async fn remove_program(
     let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
     let nonce_call = entropy::apis().account_nonce_api().account_nonce(account_id.clone());
     let nonce = entropy_api.runtime_api().at(block_hash).call(nonce_call).await.unwrap();
+    let tx_config = DefaultExtrinsicParamsBuilder::new();
+
     let partial_tx = entropy_api
         .tx()
-        .create_partial_signed_with_nonce(&remove_program_tx, nonce.into(), Default::default())
+        .create_partial_signed_with_nonce(&remove_program_tx, nonce.into(), custom_params(tx_config))
         .unwrap();
     let signer_payload = partial_tx.signer_payload();
     let signature = deployer.sign(&signer_payload);

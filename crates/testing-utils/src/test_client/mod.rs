@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Simple test client
-pub use chain_api::{get_api, get_rpc};
+pub use chain_api::{get_api, get_rpc, custom_params};
 pub use entropy_protocol::{
     sign_and_encrypt::{derive_static_secret, SignedMessage},
     KeyParams,
@@ -52,7 +52,7 @@ use subxt::{
     backend::legacy::LegacyRpcMethods,
     tx::{PairSigner, Signer},
     utils::{AccountId32 as SubxtAccountId32, Static, H256},
-    Config, OnlineClient,
+    Config, OnlineClient, config::{DefaultExtrinsicParamsBuilder},
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 
@@ -259,10 +259,11 @@ pub async fn store_program(
 ) -> anyhow::Result<<EntropyConfig as Config>::Hash> {
     let update_program_tx = entropy::tx().programs().set_program(program, configuration_interface);
     let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployerpair.clone());
-
+    
+    let tx_config = DefaultExtrinsicParamsBuilder::new();
     let in_block = api
         .tx()
-        .sign_and_submit_then_watch_default(&update_program_tx, &deployer)
+        .sign_and_submit_then_watch(&update_program_tx, &deployer, custom_params(tx_config))
         .await?
         .wait_for_in_block()
         .await?
@@ -295,11 +296,12 @@ pub async fn update_programs(
     let nonce = entropy_api.runtime_api().at(block_hash).call(nonce_call).await?;
 
     let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer.clone());
+    let tx_config = DefaultExtrinsicParamsBuilder::new();
 
     let partial_tx = entropy_api.tx().create_partial_signed_with_nonce(
         &update_pointer_tx,
         nonce.into(),
-        Default::default(),
+        custom_params(tx_config),
     )?;
     let signer_payload = partial_tx.signer_payload();
     let signature = deployer.sign(&signer_payload);
@@ -373,11 +375,12 @@ pub async fn put_register_request_on_chain(
 
     let nonce_call = entropy::apis().account_nonce_api().account_nonce(account_id.clone());
     let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
+    let tx_config = DefaultExtrinsicParamsBuilder::new();
 
     let partial_tx = api.tx().create_partial_signed_with_nonce(
         &registering_tx,
         nonce.into(),
-        Default::default(),
+        custom_params(tx_config),
     )?;
     let signer_payload = partial_tx.signer_payload();
     let signature = signature_request_pair_signer.sign(&signer_payload);

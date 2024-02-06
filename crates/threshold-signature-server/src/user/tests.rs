@@ -66,7 +66,7 @@ use subxt::{
     },
     tx::PairSigner,
     utils::{AccountId32 as subxtAccountId32, Static, H256},
-    Config, OnlineClient,
+    Config, OnlineClient, config::DefaultExtrinsicParamsBuilder
 };
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
@@ -85,7 +85,7 @@ use chain_api::{
     entropy::runtime_types::entropy_runtime::RuntimeCall,
     entropy::runtime_types::pallet_balances::pallet::Call as BalancesCall,
     entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, get_api, get_rpc,
-    EntropyConfig,
+    EntropyConfig, custom_params,
 };
 use crate::{
     get_signer,
@@ -488,7 +488,14 @@ async fn test_store_share() {
         spawn_testing_validators(Some(signing_address.clone()), false).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
-
+    let signed_extensions: Vec<String> = api
+        .metadata()
+        .extrinsic()
+        .signed_extensions()
+        .iter()
+        .map(|e| e.identifier().to_string())
+        .collect();
+    dbg!(signed_extensions);
     let client = reqwest::Client::new();
     let get_query = UnsafeQuery::new(signing_address, vec![]).to_json();
 
@@ -798,8 +805,9 @@ pub async fn put_register_request_on_chain(
         program_instance,
     );
 
+    let tx_config = DefaultExtrinsicParamsBuilder::new();
     api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
+        .sign_and_submit_then_watch(&registering_tx, &sig_req_account, custom_params(tx_config))
         .await
         .unwrap()
         .wait_for_in_block()
@@ -1409,8 +1417,10 @@ async fn test_confirm_done_free() {
 
     let signature_request_pair_signer =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(alice.into());
+    
+    let tx_config = DefaultExtrinsicParamsBuilder::new();
     api.tx()
-        .sign_and_submit_then_watch_default(&drain_tx, &signature_request_pair_signer)
+        .sign_and_submit_then_watch(&drain_tx, &signature_request_pair_signer, custom_params(tx_config))
         .await
         .unwrap()
         .wait_for_in_block()
