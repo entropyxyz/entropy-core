@@ -123,13 +123,13 @@ pub async fn sign_tx(
 ) -> Result<(StatusCode, StreamBody<impl Stream<Item = Result<String, serde_json::Error>>>), UserErr>
 {
     let signer = get_signer(&app_state.kv_store).await?;
-    let signing_address = signed_msg.account_id().to_ss58check();
+    let request_author_ss58 = signed_msg.account_id().to_ss58check();
 
-    let signing_address_converted =
-        AccountId32::from_str(&signing_address).map_err(UserErr::StringError)?;
+    let request_author_account_id =
+        AccountId32::from_str(&request_author_ss58).map_err(UserErr::StringError)?;
 
-    let signing_address_arr: [u8; 32] = *signing_address_converted.as_ref();
-    let signing_address_subxt = SubxtAccountId32(signing_address_arr);
+    let request_author_arr: [u8; 32] = *request_author_account_id.as_ref();
+    let request_author_subxt = SubxtAccountId32(request_author_arr);
 
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
@@ -147,7 +147,7 @@ pub async fn sign_tx(
         get_registered_details(&api, &rpc, &user_sig_req.signature_request_account).await?;
 
     if user_details.key_visibility.0 != KeyVisibility::Public
-        && user_sig_req.signature_request_account != signing_address_subxt
+        && user_sig_req.signature_request_account != request_author_subxt
     {
         return Err(UserErr::AuthorizationError);
     }
@@ -205,12 +205,15 @@ pub async fn sign_tx(
     let signing_session_id = SigningSessionInfo {
         account_id: user_sig_req.signature_request_account.clone(),
         message_hash,
-        request_author: signing_address_subxt.clone(),
+        request_author: request_author_subxt.clone(),
     };
 
-    let has_key = check_for_key(&signing_address, &app_state.kv_store).await?;
+    let signature_request_account_ss58 =
+        AccountId32::new(user_sig_req.signature_request_account.0).to_ss58check();
+    let has_key = check_for_key(&signature_request_account_ss58, &app_state.kv_store).await?;
     if !has_key {
-        recover_key(&api, &rpc, &app_state.kv_store, &signer, signing_address).await?
+        recover_key(&api, &rpc, &app_state.kv_store, &signer, signature_request_account_ss58)
+            .await?
     }
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
