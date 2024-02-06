@@ -53,6 +53,7 @@ use std::{
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519::Signature, Bytes},
+    utils::AccountId32 as SubxtAccountId32,
     Config, OnlineClient,
 };
 use synedrion::KeyShare;
@@ -124,6 +125,7 @@ async fn test_wasm_sign_tx_user_participates() {
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
+        signature_request_account: SubxtAccountId32(one.pair().public().0),
     };
 
     let submit_transaction_requests =
