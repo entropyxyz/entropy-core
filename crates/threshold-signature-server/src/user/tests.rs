@@ -176,7 +176,7 @@ async fn test_sign_tx_no_chain() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_request_account,
+        signature_request_account: signature_request_account.clone(),
     };
 
     let validator_ips_and_keys = vec![
@@ -267,6 +267,7 @@ async fn test_sign_tx_no_chain() {
     });
 
     generic_msg.timestamp = SystemTime::now();
+    generic_msg.signature_request_account = signature_request_account;
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
         generic_msg.clone(),
@@ -944,7 +945,7 @@ async fn test_sign_tx_user_participates() {
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_request_account,
+        signature_request_account: signature_request_account.clone(),
     };
 
     let validator_ips_and_keys = vec![
@@ -986,6 +987,7 @@ async fn test_sign_tx_user_participates() {
     }
 
     generic_msg.timestamp = SystemTime::now();
+    generic_msg.signature_request_account = signature_request_account;
     let mut generic_msg_bad_validators = generic_msg.clone();
     generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
 
