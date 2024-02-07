@@ -104,6 +104,7 @@ pub enum ProtocolErr {
 
 impl IntoResponse for ProtocolErr {
     fn into_response(self) -> Response {
+        tracing::error!("{:?}", format!("{self}"));
         let body = format!("{self}").into_bytes();
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
     }
@@ -130,6 +131,7 @@ pub enum SubscribeErr {
 
 impl IntoResponse for SubscribeErr {
     fn into_response(self) -> Response {
+        tracing::error!("{:?}", format!("{self}"));
         let body = format!("{self}").into_bytes();
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
     }

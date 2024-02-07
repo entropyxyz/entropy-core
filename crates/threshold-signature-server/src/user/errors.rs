@@ -139,6 +139,7 @@ pub enum UserErr {
 
 impl IntoResponse for UserErr {
     fn into_response(self) -> Response {
+        tracing::error!("{:?}", format!("{self}"));
         let body = format!("{self}").into_bytes();
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
     }
