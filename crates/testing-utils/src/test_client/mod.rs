@@ -132,7 +132,13 @@ pub async fn register(
 /// Request to sign a message
 #[tracing::instrument(
     skip_all,
-    fields(signature_request_account, message, private, auxilary_data,)
+    fields(
+        user_account = ?user_keypair.public(),
+        signature_request_account,
+        message,
+        private,
+        auxilary_data,
+    )
 )]
 pub async fn sign(
     api: &OnlineClient<EntropyConfig>,
