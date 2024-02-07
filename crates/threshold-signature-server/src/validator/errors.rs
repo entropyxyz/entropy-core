@@ -63,6 +63,7 @@ pub enum ValidatorErr {
 
 impl IntoResponse for ValidatorErr {
     fn into_response(self) -> Response {
+        tracing::error!("Error message {:?}", format!("{self}"));
         let body = format!("{self}").into_bytes();
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
     }
