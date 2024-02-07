@@ -47,6 +47,7 @@ use crate::{
     validation::{
         derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage, TIME_BUFFER,
     },
+    validator::errors::ValidatorErr,
 };
 
 #[tokio::test]
@@ -307,7 +308,6 @@ async fn test_get_and_store_values() {
 }
 
 #[tokio::test]
-#[should_panic = "index out of bounds: the len is 1 but the index is 1"]
 async fn test_get_random_server_info() {
     initialize_test_logger().await;
     clean_tests();
@@ -325,8 +325,12 @@ async fn test_get_random_server_info() {
             .await
             .unwrap();
     assert_eq!("127.0.0.1:3001".as_bytes().to_vec(), result.endpoint);
-    // panics here because no other validators in subgroup
-    get_random_server_info(&api, &rpc, my_subgroup.unwrap(), validator_address).await.unwrap();
+    // Returns error here because no other validators in subgroup
+    let error = get_random_server_info(&api, &rpc, my_subgroup.unwrap(), validator_address)
+        .await
+        .unwrap_err();
+    assert_eq!(error.to_string(), ValidatorErr::SubgroupError("Index out of bounds").to_string());
+
     clean_tests();
 }
 
