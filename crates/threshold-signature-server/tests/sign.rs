@@ -167,7 +167,8 @@ async fn integration_test_sign_private() {
     .unwrap();
     assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
 
-    // Attempt to sign with an account who is not the account owner (but does have the owner's keyshare), and check that it fails
+    // Attempt to sign with an account who is not the account owner (but does have the owner's
+    // keyshare), and check that it fails
     let request_author_who_is_not_owner = AccountKeyring::One;
     let sign_error = test_client::sign(
         &api,
