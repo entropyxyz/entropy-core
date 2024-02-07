@@ -96,6 +96,7 @@ algorithms are also supported.
 - Add --version flag and about field to TSS ([#590](https://github.com/entropyxyz/entropy-core/pull/590/))
 - Program config storage ([#593](https://github.com/entropyxyz/entropy-core/pull/593))
 - Add a hashes endpoint ([#600](https://github.com/entropyxyz/entropy-core/pull/600))
+- Public access mode ([#623](https://github.com/entropyxyz/entropy-core/pull/623))
 
 ### Changed
 - Crate name refactor ([#561](https://github.com/entropyxyz/entropy-core/pull/561))
