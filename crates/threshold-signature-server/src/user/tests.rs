@@ -160,9 +160,11 @@ async fn test_sign_tx_no_chain() {
     ];
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let signature_request_account = subxtAccountId32(one.pair().public().0);
     let session_id = SessionId::Sign(SigningSessionInfo {
-        account_id: subxtAccountId32(one.pair().public().0),
+        account_id: signature_request_account.clone(),
         message_hash,
+        request_author: signature_request_account.clone(),
     });
 
     let mut generic_msg = UserSignatureRequest {
@@ -174,6 +176,7 @@ async fn test_sign_tx_no_chain() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
+        signature_request_account: signature_request_account.clone(),
     };
 
     let validator_ips_and_keys = vec![
@@ -216,6 +219,7 @@ async fn test_sign_tx_no_chain() {
     verify_signature(test_user_res_order, message_hash, keyshare_option.clone()).await;
 
     generic_msg.timestamp = SystemTime::now();
+    generic_msg.signature_request_account = subxtAccountId32(two.pair().public().0);
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
 
@@ -263,6 +267,7 @@ async fn test_sign_tx_no_chain() {
     });
 
     generic_msg.timestamp = SystemTime::now();
+    generic_msg.signature_request_account = signature_request_account;
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
         generic_msg.clone(),
@@ -371,28 +376,6 @@ async fn test_sign_tx_no_chain() {
     assert_eq!(failed_sign.status(), 500);
     assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
 
-    // checks that sig not needed with public key visibility
-    let user_input_bad = SignedMessage::new_test(
-        Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-        sr25519::Signature::from_raw(sig),
-        AccountKeyring::Dave.pair().public().into(),
-        slice,
-        slice,
-        nonce,
-    );
-
-    let failed_sign = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&user_input_bad).unwrap())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(failed_sign.status(), 500);
-    // fails lower down in stack because no sig needed on pub account
-    // fails when tries to decode the nonsense message
-    assert_ne!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
     clean_tests();
 }
 
@@ -444,6 +427,7 @@ async fn test_program_with_config() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
+        signature_request_account: subxtAccountId32(one.pair().public().0),
     };
 
     let validator_ips_and_keys = vec![
@@ -532,6 +516,7 @@ async fn test_fail_signing_group() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
+        signature_request_account: subxtAccountId32(dave.pair().public().0),
     };
 
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
@@ -947,9 +932,11 @@ async fn test_sign_tx_user_participates() {
     let encoded_transaction_request: String = hex::encode(PREIMAGE_SHOULD_SUCCEED);
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
+    let signature_request_account = subxtAccountId32(one.pair().public().0);
     let session_id = SessionId::Sign(SigningSessionInfo {
-        account_id: subxtAccountId32(one.pair().public().0),
+        account_id: signature_request_account.clone(),
         message_hash: message_should_succeed_hash,
+        request_author: signature_request_account.clone(),
     });
 
     let mut generic_msg = UserSignatureRequest {
@@ -958,6 +945,7 @@ async fn test_sign_tx_user_participates() {
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
+        signature_request_account: signature_request_account.clone(),
     };
 
     let validator_ips_and_keys = vec![
@@ -985,6 +973,8 @@ async fn test_sign_tx_user_participates() {
         .await;
 
     generic_msg.timestamp = SystemTime::now();
+    generic_msg.signature_request_account = subxtAccountId32(two.pair().public().0);
+
     // test failing cases
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
@@ -997,6 +987,7 @@ async fn test_sign_tx_user_participates() {
     }
 
     generic_msg.timestamp = SystemTime::now();
+    generic_msg.signature_request_account = signature_request_account;
     let mut generic_msg_bad_validators = generic_msg.clone();
     generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
 
@@ -1156,28 +1147,6 @@ async fn test_sign_tx_user_participates() {
     assert_eq!(failed_sign.status(), 500);
     assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
 
-    // checks that sig not needed with public key visibility
-    let user_input_bad = SignedMessage::new_test(
-        Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-        sr25519::Signature::from_raw(sig),
-        AccountKeyring::Dave.pair().public().into(),
-        slice,
-        slice,
-        nonce,
-    );
-
-    let failed_sign = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&user_input_bad).unwrap())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(failed_sign.status(), 500);
-    // fails lower down in stack because no sig needed on pub account
-    // fails when tries to decode the nonsense message
-    assert_ne!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
     clean_tests();
 }
 
@@ -1386,6 +1355,7 @@ async fn test_fail_infinite_program() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
+        signature_request_account: subxtAccountId32(one.pair().public().0),
     };
 
     let validator_ips_and_keys = vec![

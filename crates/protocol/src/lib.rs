@@ -168,6 +168,9 @@ pub struct SigningSessionInfo {
     pub account_id: AccountId32,
     /// Hash of the message to be signed
     pub message_hash: [u8; 32],
+    /// Account ID of the request author (in public access mode this may differ from the signature
+    /// request account)
+    pub request_author: AccountId32,
 }
 
 // This is needed because subxt's AccountId32 does not implement Hash
@@ -183,6 +186,7 @@ impl Hash for SessionId {
             SessionId::Sign(signing_session_info) => {
                 signing_session_info.account_id.0.hash(state);
                 signing_session_info.message_hash.hash(state);
+                signing_session_info.request_author.0.hash(state);
             },
         }
     }

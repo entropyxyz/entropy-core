@@ -41,7 +41,6 @@ pub async fn do_signing(
     sig_hash: String,
     app_state: &AppState,
     signing_session_info: SigningSessionInfo,
-    user_address: AccountId32,
     key_visibility: KeyVisibility,
 ) -> Result<RecoverableSignature, ProtocolErr> {
     tracing::debug!("Preparing to perform signing");
@@ -72,8 +71,8 @@ pub async fn do_signing(
     // the listener
     let user_details_option = if let KeyVisibility::Private(user_x25519_public_key) = key_visibility
     {
-        tss_accounts.push(user_address.clone());
-        Some((user_address, user_x25519_public_key))
+        tss_accounts.push(info.signing_session_info.account_id.clone());
+        Some((info.signing_session_info.account_id.clone(), user_x25519_public_key))
     } else {
         None
     };
