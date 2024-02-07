@@ -16,6 +16,7 @@
 use crate::chain_spec::get_account_id_from_seed;
 use crate::endowed_accounts::endowed_accounts_dev;
 
+use codec::Encode;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
@@ -184,24 +185,30 @@ pub fn integration_tests_genesis_config(
                 ),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
-            proactive_refresh_validators: vec![
-                entropy_shared::ValidatorInfo {
-                    tss_account: <sp_runtime::AccountId32 as AsRef<[u8; 32]>>::as_ref(
-                        &crate::chain_spec::tss_account_id::ALICE.clone(),
-                    )
-                    .into(),
-                    ip_address: "127.0.0.1:3001".as_bytes().to_vec(),
-                    x25519_public_key: crate::chain_spec::tss_x25519_public_key::ALICE,
-                },
-                entropy_shared::ValidatorInfo {
-                    tss_account: <sp_runtime::AccountId32 as AsRef<[u8; 32]>>::as_ref(
-                        &crate::chain_spec::tss_account_id::BOB.clone(),
-                    )
-                    .into(),
-                    ip_address: "127.0.0.1:3002".as_bytes().to_vec(),
-                    x25519_public_key: crate::chain_spec::tss_x25519_public_key::BOB,
-                },
-            ],
+            proactive_refresh_data: (
+                vec![
+                    entropy_shared::ValidatorInfo {
+                        tss_account: <sp_runtime::AccountId32 as AsRef<[u8; 32]>>::as_ref(
+                            &crate::chain_spec::tss_account_id::ALICE.clone(),
+                        )
+                        .into(),
+                        ip_address: "127.0.0.1:3001".as_bytes().to_vec(),
+                        x25519_public_key: crate::chain_spec::tss_x25519_public_key::ALICE,
+                    },
+                    entropy_shared::ValidatorInfo {
+                        tss_account: <sp_runtime::AccountId32 as AsRef<[u8; 32]>>::as_ref(
+                            &crate::chain_spec::tss_account_id::BOB.clone(),
+                        )
+                        .into(),
+                        ip_address: "127.0.0.1:3002".as_bytes().to_vec(),
+                        x25519_public_key: crate::chain_spec::tss_x25519_public_key::BOB,
+                    },
+                ],
+                vec![
+                    get_account_id_from_seed::<sr25519::Public>("Dave").encode(),
+                    get_account_id_from_seed::<sr25519::Public>("Eve").encode(),
+                ],
+            ),
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {

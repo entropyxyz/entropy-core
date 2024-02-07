@@ -154,7 +154,7 @@ pub mod pallet {
             let req_body = OcwMessageProactiveRefresh {
                 validators_info: refresh_info.validators_info,
                 refreshes_done: refresh_info.refreshes_done,
-                proactive_refresh_keys: refresh_info.proactive_refresh_keys
+                proactive_refresh_keys: refresh_info.proactive_refresh_keys,
             };
             log::warn!("propagation::post proactive refresh: {:?}", &[req_body.encode()]);
 

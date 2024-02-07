@@ -189,7 +189,7 @@ pub fn development_genesis_config(
                 (0, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")]),
                 (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
-            proactive_refresh_validators: vec![],
+            proactive_refresh_data: (vec![], vec![]),
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {

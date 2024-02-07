@@ -421,7 +421,7 @@ pub fn testnet_genesis_config(
                 .enumerate()
                 .map(|(i, v)| (i as u8, v.to_vec()))
                 .collect::<Vec<_>>(),
-            proactive_refresh_validators: vec![],
+            proactive_refresh_data: (vec![], vec![]),
         },
         democracy: DemocracyConfig::default(),
         elections: ElectionsConfig {

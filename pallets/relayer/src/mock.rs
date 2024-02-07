@@ -346,7 +346,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         ],
         // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
         signing_groups: vec![(0, vec![1, 5]), (1, vec![2, 6, 7])],
-        proactive_refresh_validators: vec![],
+        proactive_refresh_data: vec![],
     };
 
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
