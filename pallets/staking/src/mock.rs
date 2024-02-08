@@ -376,7 +376,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         threshold_servers: vec![(5, (7, NULL_ARR, vec![20])), (6, (8, NULL_ARR, vec![40]))],
         // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
         signing_groups: vec![(0, vec![1]), (1, vec![2])],
-        proactive_refresh_data: vec![],
+        proactive_refresh_data: (vec![], vec![]),
     };
 
     pallet_balances.assimilate_storage(&mut t).unwrap();

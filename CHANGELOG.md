@@ -15,6 +15,7 @@ At the moment this project **does not** adhere to
   contain an additional field, `signature_request_account: AccountId32`. In private and permissioned
   modes, this must be identical to the account used to sign the `SignedMessage` containing the
   signature request. In public access mode this may be an Entropy account owned by someone else.
+- In 'Partition network' [#629](https://github.com/entropyxyz/entropy-core/pull/629) in the chainspec ```proactive_refresh_validators``` is now ```proactive_refresh_data``` and takes a tuple of Vec<> (both should be empty for production)
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
@@ -22,6 +23,7 @@ At the moment this project **does not** adhere to
 
 ### Changed
  - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
+  - Partition network ([#629](https://github.com/entropyxyz/entropy-core/pull/629))
 
 ## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-24
 
