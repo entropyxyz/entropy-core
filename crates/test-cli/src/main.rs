@@ -208,12 +208,12 @@ async fn run_command() -> anyhow::Result<String> {
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
-            println!("Signature request account: {:?}", signature_request_keypair.public());
+            println!("Signature request account: {}", signature_request_keypair.public());
 
             let program_keypair: sr25519::Pair =
                 SeedString::new(program_account_name).try_into()?;
             let program_account = SubxtAccountId32(program_keypair.public().0);
-            println!("Program account: {:?}", program_keypair.public());
+            println!("Program account: {}", program_keypair.public());
 
             let key_visibility_converted = match key_visibility {
                 Visibility::Permissioned => KeyVisibility::Permissioned,
@@ -255,13 +255,17 @@ async fn run_command() -> anyhow::Result<String> {
             auxilary_data,
         } => {
             let user_keypair: sr25519::Pair = SeedString::new(user_account_name).try_into()?;
-            println!("User account: {:?}", user_keypair.public());
+            println!("User account: {}", user_keypair.public());
 
             let auxilary_data =
                 if let Some(data) = auxilary_data { Some(hex::decode(data)?) } else { None };
 
             let signature_request_account = match signature_request_account {
-                Some(s) => Some(parse_account_id(s)?),
+                Some(s) => {
+                    let account = parse_account_id(s)?;
+                    println!("Signature request account: {}", account);
+                    Some(account)
+                },
                 None => None,
             };
 
@@ -282,7 +286,7 @@ async fn run_command() -> anyhow::Result<String> {
         },
         CliCommand::StoreProgram { deployer_name, program_file, program_interface_file } => {
             let keypair: sr25519::Pair = SeedString::new(deployer_name).try_into()?;
-            println!("Storing program using account: {:?}", keypair.public());
+            println!("Storing program using account: {}", keypair.public());
 
             let program = match program_file {
                 Some(file_name) => fs::read(file_name)?,
@@ -304,11 +308,11 @@ async fn run_command() -> anyhow::Result<String> {
         } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
-            println!("Signature request account: {:?}", signature_request_keypair.public());
+            println!("Signature request account: {}", signature_request_keypair.public());
 
             let program_keypair: sr25519::Pair =
                 SeedString::new(program_account_name).try_into()?;
-            println!("Program account: {:?}", program_keypair.public());
+            println!("Program account: {}", program_keypair.public());
 
             let mut programs_info = Vec::new();
             for program in programs {
