@@ -205,3 +205,46 @@ fn it_declares_synced() {
         assert!(Staking::is_validator_synced(5));
     });
 }
+
+#[test]
+fn tests_new_session_handler() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+
+        MockSessionManager::new_session(0);
+        // stays the same
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+
+        MockSessionManager::new_session(1);
+        // diffrent order incoming stays the same
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+
+        MockSessionManager::new_session(2);
+        // 3 replaces 2 1 does not move
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
+
+        MockSessionManager::new_session(3);
+        // 2 leaves 1 does not move
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        assert_eq!(Staking::signing_groups(1), Some(vec![]));
+
+        MockSessionManager::new_session(4);
+        // 3 and 4 replace 1
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![4]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
+
+        MockSessionManager::new_session(5);
+        // 4 gone 1 and 2 in
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![2, 1]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
+
+        MockSessionManager::new_session(6);
+        // 4 and 5 join
+        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1, 2, 4]);
+        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3, 5]);
+    });
+}
