@@ -18,6 +18,7 @@ use std::{
     fmt::{self, Display},
     fs,
     path::PathBuf,
+    str::FromStr,
     time::Instant,
 };
 
@@ -37,7 +38,7 @@ use entropy_testing_utils::{
         store_program, update_programs, KeyParams, KeyShare, KeyVisibility,
     },
 };
-use sp_core::{sr25519, Hasher, Pair};
+use sp_core::{crypto::AccountId32, sr25519, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use subxt::{
     utils::{AccountId32 as SubxtAccountId32, H256},
@@ -96,7 +97,13 @@ enum CliCommand {
         /// A name from which to generate a keypair, eg: "Alice"
         ///
         /// Optionally may be preceeded with "//", eg: "//Alice"
-        signature_request_account_name: String,
+        user_account_name: String,
+        /// The account ID you wish to sign with, if different from your user account (public access
+        /// mode)
+        ///
+        /// This may be given as hex, ss58, or a name from which to generate a keypair
+        #[arg(short, long)]
+        signature_request_account: Option<String>,
         /// The message to be signed
         message: String,
         /// Optional auxiliary data passed to the program, given as hex
@@ -130,7 +137,7 @@ enum CliCommand {
         /// A name from which to generate a keypair, eg: "Alice"
         ///
         /// Optionally may be preceeded with "//", eg: "//Alice"
-        account_name: String,
+        deployer_name: String,
         /// The path to a .wasm file containing the program (defaults to a test program)
         program_file: Option<PathBuf>,
         /// The path to a file containing the program configuration interface (defaults to empty)
@@ -241,23 +248,31 @@ async fn run_command() -> anyhow::Result<String> {
 
             Ok(format!("{:?}", registered_info))
         },
-        CliCommand::Sign { signature_request_account_name, message, auxilary_data } => {
-            let signature_request_keypair: sr25519::Pair =
-                SeedString::new(signature_request_account_name).try_into()?;
-            println!("Signature request account: {:?}", signature_request_keypair.public());
+        CliCommand::Sign {
+            user_account_name,
+            signature_request_account,
+            message,
+            auxilary_data,
+        } => {
+            let user_keypair: sr25519::Pair = SeedString::new(user_account_name).try_into()?;
+            println!("User account: {:?}", user_keypair.public());
 
             let auxilary_data =
                 if let Some(data) = auxilary_data { Some(hex::decode(data)?) } else { None };
 
+            let signature_request_account = match signature_request_account {
+                Some(s) => Some(parse_account_id(s)?),
+                None => None,
+            };
+
             // If we have a keyshare file for this account, get it
-            let private_keyshare =
-                KeyShareFile::new(signature_request_keypair.public()).read().ok();
+            let private_keyshare = KeyShareFile::new(user_keypair.public()).read().ok();
 
             let recoverable_signature = sign(
                 &api,
                 &rpc,
-                signature_request_keypair,
-                None,
+                user_keypair,
+                signature_request_account,
                 message.as_bytes().to_vec(),
                 private_keyshare,
                 auxilary_data,
@@ -265,8 +280,8 @@ async fn run_command() -> anyhow::Result<String> {
             .await?;
             Ok(format!("Message signed: {:?}", recoverable_signature))
         },
-        CliCommand::StoreProgram { account_name, program_file, program_interface_file } => {
-            let keypair: sr25519::Pair = SeedString::new(account_name).try_into()?;
+        CliCommand::StoreProgram { deployer_name, program_file, program_interface_file } => {
+            let keypair: sr25519::Pair = SeedString::new(deployer_name).try_into()?;
             println!("Storing program using account: {:?}", keypair.public());
 
             let program = match program_file {
@@ -492,5 +507,21 @@ impl Program {
                 }
             },
         }
+    }
+}
+
+/// Parse an account ID from a user provided string. This may be either hex, ss58, or a name used to
+/// derive a keypair
+fn parse_account_id(input: String) -> anyhow::Result<SubxtAccountId32> {
+    ensure!(!input.is_empty(), "Cannot parse emptry string as account ID");
+
+    // We use sp-core's AccountId32 here because it will parse account IDs given as either hex or
+    // ss58
+    match AccountId32::from_str(&input) {
+        Ok(account_id) => Ok(SubxtAccountId32(*account_id.as_ref())),
+        Err(_) => {
+            let keypair: sr25519::Pair = SeedString::new(input).try_into()?;
+            Ok(SubxtAccountId32(keypair.public().0))
+        },
     }
 }
