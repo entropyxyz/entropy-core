@@ -202,25 +202,26 @@ pub async fn get_random_server_info(
     // find kvdb that isn't syncing and get their URL
     let mut server_to_query = 0;
     let server_info = loop {
-        let server_info_query = entropy::storage()
-            .staking_extension()
-            .threshold_servers(&signing_group_addresses[server_to_query]);
+        let address_to_query = signing_group_addresses
+            .get(server_to_query)
+            .ok_or(ValidatorErr::SubgroupError("Index out of bounds"))?;
+        let server_info_query =
+            entropy::storage().staking_extension().threshold_servers(address_to_query);
         let server_info = api
             .storage()
             .at(block_hash)
             .fetch(&server_info_query)
             .await?
             .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server Info Fetch Error"))?;
-        let server_state_query = entropy::storage()
-            .staking_extension()
-            .is_validator_synced(&signing_group_addresses[server_to_query]);
+        let server_state_query =
+            entropy::storage().staking_extension().is_validator_synced(address_to_query);
         let server_sync_state = api
             .storage()
             .at(block_hash)
             .fetch(&server_state_query)
             .await?
             .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
-        if my_stash_address != signing_group_addresses[server_to_query] && server_sync_state {
+        if &my_stash_address != address_to_query && server_sync_state {
             break server_info;
         }
         server_to_query += 1;

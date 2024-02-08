@@ -29,6 +29,7 @@ use entropy_testing_utils::{
 use serial_test::serial;
 use sp_core::crypto::Ss58Codec;
 use sp_keyring::AccountKeyring;
+use subxt::utils::AccountId32 as SubxtAccountId32;
 use synedrion::k256::ecdsa::VerifyingKey;
 
 use entropy_tss::{
@@ -38,12 +39,13 @@ use entropy_tss::{
 
 #[tokio::test]
 #[serial]
-async fn integration_test_sign() {
+async fn integration_test_sign_public() {
     clean_tests();
-    let pre_registered_user = AccountKeyring::Dave;
-    let eve = AccountKeyring::Eve;
+    let pre_registered_public_user = AccountKeyring::Dave;
+    let request_author = AccountKeyring::One;
+    let deployer = AccountKeyring::Eve;
 
-    let signing_address = pre_registered_user.to_account_id().to_ss58check();
+    let signing_address = pre_registered_public_user.to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(signing_address.clone()), false).await;
     let substrate_context = test_context_stationary().await;
@@ -52,7 +54,7 @@ async fn integration_test_sign() {
 
     let program_pointer = test_client::store_program(
         &api,
-        &eve.pair(),
+        &deployer.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
     )
@@ -62,8 +64,8 @@ async fn integration_test_sign() {
     test_client::update_programs(
         &api,
         &rpc,
-        &pre_registered_user.pair(),
-        &pre_registered_user.pair(),
+        &pre_registered_public_user.pair(),
+        &pre_registered_public_user.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
     .await
@@ -74,7 +76,8 @@ async fn integration_test_sign() {
     let recoverable_signature = test_client::sign(
         &api,
         &rpc,
-        pre_registered_user.pair(),
+        request_author.pair(),
+        Some(SubxtAccountId32(pre_registered_public_user.public().0)),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         None,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
@@ -93,21 +96,21 @@ async fn integration_test_sign() {
 
 #[tokio::test]
 #[serial]
-async fn integration_test_sign_private() {
+async fn integration_test_sign_permissioned() {
     clean_tests();
-    let pre_registered_user = AccountKeyring::Eve;
-    let dave = AccountKeyring::Dave;
+    let pre_registered_user = AccountKeyring::Ferdie;
+    let deployer = AccountKeyring::Eve;
 
     let signing_address = pre_registered_user.to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(signing_address.clone()), true).await;
+        spawn_testing_validators(Some(signing_address.clone()), false).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_pointer = test_client::store_program(
         &api,
-        &dave.pair(),
+        &deployer.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
     )
@@ -130,6 +133,82 @@ async fn integration_test_sign_private() {
         &api,
         &rpc,
         pre_registered_user.pair(),
+        None,
+        PREIMAGE_SHOULD_SUCCEED.to_vec(),
+        None,
+        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
+    )
+    .await
+    .unwrap();
+
+    let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+        &message_should_succeed_hash,
+        &recoverable_signature.signature,
+        recoverable_signature.recovery_id,
+    )
+    .unwrap();
+    assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
+
+    // Attempt to sign with an account who is not the account owner, and check that it fails
+    let request_author_who_is_not_owner = AccountKeyring::One;
+    let sign_error = test_client::sign(
+        &api,
+        &rpc,
+        request_author_who_is_not_owner.pair(),
+        Some(SubxtAccountId32(pre_registered_user.public().0)),
+        PREIMAGE_SHOULD_SUCCEED.to_vec(),
+        None,
+        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
+    )
+    .await
+    .unwrap_err();
+
+    assert_eq!(
+        format!("{}", sign_error.root_cause()),
+        "Signing failed: Signature request not allowed - this account is not public"
+    );
+}
+
+#[tokio::test]
+#[serial]
+async fn integration_test_sign_private() {
+    clean_tests();
+    let pre_registered_user = AccountKeyring::Eve;
+    let deployer = AccountKeyring::Dave;
+
+    let signing_address = pre_registered_user.to_account_id().to_ss58check();
+    let (_validator_ips, _validator_ids, keyshare_option) =
+        spawn_testing_validators(Some(signing_address.clone()), true).await;
+    let substrate_context = test_context_stationary().await;
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+
+    let program_pointer = test_client::store_program(
+        &api,
+        &deployer.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
+
+    test_client::update_programs(
+        &api,
+        &rpc,
+        &pre_registered_user.pair(),
+        &pre_registered_user.pair(),
+        BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
+    )
+    .await
+    .unwrap();
+
+    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+
+    let recoverable_signature = test_client::sign(
+        &api,
+        &rpc,
+        pre_registered_user.pair(),
+        None,
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         keyshare_option.clone(),
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
@@ -144,4 +223,24 @@ async fn integration_test_sign_private() {
     )
     .unwrap();
     assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
+
+    // Attempt to sign with an account who is not the account owner (but does have the owner's
+    // keyshare), and check that it fails
+    let request_author_who_is_not_owner = AccountKeyring::One;
+    let sign_error = test_client::sign(
+        &api,
+        &rpc,
+        request_author_who_is_not_owner.pair(),
+        Some(SubxtAccountId32(pre_registered_user.public().0)),
+        PREIMAGE_SHOULD_SUCCEED.to_vec(),
+        keyshare_option.clone(),
+        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
+    )
+    .await
+    .unwrap_err();
+
+    assert_eq!(
+        format!("{}", sign_error.root_cause()),
+        "Signing failed: Signature request not allowed - this account is not public"
+    );
 }

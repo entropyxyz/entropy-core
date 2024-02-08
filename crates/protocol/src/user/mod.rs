@@ -47,6 +47,7 @@ pub async fn user_participates_in_signing_protocol(
     let session_id = SessionId::Sign(SigningSessionInfo {
         account_id: AccountId32(user_signing_keypair.public().0),
         message_hash,
+        request_author: AccountId32(user_signing_keypair.public().0),
     });
     // Make WS connections to the given set of TSS servers
     let (channels, tss_accounts) = user_connects_to_validators(

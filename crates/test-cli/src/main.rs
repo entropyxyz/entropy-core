@@ -257,6 +257,7 @@ async fn run_command() -> anyhow::Result<String> {
                 &api,
                 &rpc,
                 signature_request_keypair,
+                None,
                 message.as_bytes().to_vec(),
                 private_keyshare,
                 auxilary_data,

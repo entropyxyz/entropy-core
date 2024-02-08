@@ -135,10 +135,13 @@ pub enum UserErr {
     Json(#[from] entropy_protocol::sign_and_encrypt::SignedMessageErr),
     #[error("Auxilary data is mismatched")]
     MismatchAuxData,
+    #[error("Signature request not allowed - this account is not public")]
+    AuthorizationError,
 }
 
 impl IntoResponse for UserErr {
     fn into_response(self) -> Response {
+        tracing::error!("{:?}", format!("{self}"));
         let body = format!("{self}").into_bytes();
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
     }

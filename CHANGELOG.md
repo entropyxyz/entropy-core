@@ -9,8 +9,16 @@ At the moment this project **does not** adhere to
 
 ## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...master)
 
+### Breaking Changes
+- In 'Public Access Mode' [#623](https://github.com/entropyxyz/entropy-core/pull/623) the
+  `UserSignatureRequest` given when requesting a signature with the 'sign_tx' http endpoint must now
+  contain an additional field, `signature_request_account: AccountId32`. In private and permissioned
+  modes, this must be identical to the account used to sign the `SignedMessage` containing the
+  signature request. In public access mode this may be an Entropy account owned by someone else.
+
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
+-  Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
 
 ### Changed
  - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
@@ -89,6 +97,7 @@ algorithms are also supported.
 - Add --version flag and about field to TSS ([#590](https://github.com/entropyxyz/entropy-core/pull/590/))
 - Program config storage ([#593](https://github.com/entropyxyz/entropy-core/pull/593))
 - Add a hashes endpoint ([#600](https://github.com/entropyxyz/entropy-core/pull/600))
+- Public access mode ([#623](https://github.com/entropyxyz/entropy-core/pull/623))
 
 ### Changed
 - Crate name refactor ([#561](https://github.com/entropyxyz/entropy-core/pull/561))

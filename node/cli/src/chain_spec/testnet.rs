@@ -211,43 +211,43 @@ pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, T
     use std::str::FromStr;
 
     let node_1a = (
-        TssAccountId::from_str("5EC2p79LfGKWEgY6YDGRzqSVwqFWnd2kndY1ABWTbAtp2zFC")
+        TssAccountId::from_str("5EjwRRgCiHd7aaPzFjNGma9FN3kvvgQT6e5VNroptUGFGxBu")
             .expect("Address should be valid."),
         [
-            100, 151, 169, 160, 23, 148, 150, 198, 79, 84, 246, 123, 121, 218, 218, 81, 244, 106,
-            253, 36, 65, 194, 62, 152, 230, 184, 70, 119, 249, 202, 181, 58,
+            82, 228, 47, 129, 124, 56, 118, 161, 246, 72, 156, 57, 62, 188, 129, 124, 13, 238, 54,
+            198, 84, 61, 178, 36, 191, 56, 41, 39, 173, 70, 9, 67,
         ],
-        "3.88.15.234:3001".to_string(),
+        "100.26.207.49:3001".to_string(),
     );
 
     let node_1b = (
-        TssAccountId::from_str("5DZnLJfveAjRiYU6UMYie3bNTLzowLu3YrwJkaMu94VMFX47")
+        TssAccountId::from_str("5GipHsBvjCbJgg5EZMUnMix8nzEr2GezFYdGJEmqCZ23hqtb")
             .expect("Address should be valid."),
         [
-            85, 148, 71, 92, 127, 93, 61, 77, 253, 118, 162, 20, 84, 184, 191, 43, 176, 250, 245,
-            53, 185, 9, 230, 7, 167, 77, 232, 240, 108, 58, 127, 8,
+            121, 253, 31, 146, 191, 150, 181, 175, 110, 217, 172, 227, 186, 191, 133, 80, 95, 135,
+            10, 107, 31, 67, 10, 98, 215, 34, 26, 10, 188, 59, 71, 100,
         ],
-        "44.195.79.158:3001".to_string(),
+        "34.200.237.166:3001".to_string(),
     );
 
     let node_1c = (
-        TssAccountId::from_str("5Fmnt2chPDfE6eUY4djfb9V9aFbbGPhdQ8UmeJbxLn42oR9a")
+        TssAccountId::from_str("5FexGJegpjWcEGP3UQyabUsfQEs48tCFMzKjhhtaVsbinCJM")
             .expect("Address should be valid."),
         [
-            230, 255, 3, 85, 202, 18, 119, 146, 239, 9, 229, 2, 244, 250, 239, 16, 90, 182, 192,
-            237, 190, 193, 222, 203, 183, 168, 6, 184, 30, 97, 115, 121,
+            245, 229, 104, 210, 55, 224, 110, 176, 133, 186, 130, 253, 2, 112, 205, 166, 94, 104,
+            36, 157, 25, 170, 72, 247, 152, 130, 139, 244, 4, 67, 162, 0,
         ],
-        "44.212.62.84:3001".to_string(),
+        "184.72.189.154:3001".to_string(),
     );
 
     let node_2a = (
-        TssAccountId::from_str("5CLgNaBBW2hFEgUkWnB2eYQik2HkeLDAA5oMfCrR75B9kdWy")
+        TssAccountId::from_str("5FX122MC2ChptKi9setzqjtPYX5krarK9bsY8SkXddaX2Ub8")
             .expect("Address should be valid."),
         [
-            154, 171, 43, 100, 141, 250, 83, 95, 55, 165, 22, 243, 64, 187, 132, 7, 143, 199, 236,
-            253, 85, 134, 94, 244, 15, 147, 193, 144, 12, 69, 134, 62,
+            164, 83, 190, 36, 18, 54, 59, 116, 203, 177, 95, 170, 9, 187, 102, 128, 189, 5, 41,
+            196, 3, 154, 37, 23, 133, 28, 168, 221, 37, 204, 186, 61,
         ],
-        "3.81.159.35:3001".to_string(),
+        "184.73.19.95:3001".to_string(),
     );
 
     vec![node_1a, node_1b, node_1c, node_2a]

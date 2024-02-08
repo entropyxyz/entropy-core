@@ -14,7 +14,7 @@ set -eu
 
 secretPhrase=$1
 
-keyInsert="docker run -it --init -v /srv/entropy/data/:/srv/entropy/ \
+keyInsert="docker run -it --init -v /srv/entropy/:/srv/entropy/ \
     entropyxyz/entropy key insert \
     --base-path /srv/entropy \
     --chain /srv/entropy/entropy-testnet.json"

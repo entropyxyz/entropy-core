@@ -133,7 +133,8 @@ pub async fn register(
 #[tracing::instrument(
     skip_all,
     fields(
-        signature_request_account = ?signature_request_keypair.public(),
+        user_account = ?user_keypair.public(),
+        signature_request_account,
         message,
         private,
         auxilary_data,
@@ -142,7 +143,8 @@ pub async fn register(
 pub async fn sign(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    signature_request_keypair: sr25519::Pair,
+    user_keypair: sr25519::Pair,
+    signature_request_account: Option<SubxtAccountId32>,
     message: Vec<u8>,
     private: Option<KeyShare<KeyParams>>,
     auxilary_data: Option<Vec<u8>>,
@@ -151,6 +153,8 @@ pub async fn sign(
     let message_hash_hex = hex::encode(message_hash);
     let validators_info = get_current_subgroup_signers(api, rpc, &message_hash_hex).await?;
     tracing::debug!("Validators info {:?}", validators_info);
+    let signature_request_account =
+        signature_request_account.unwrap_or(SubxtAccountId32(user_keypair.public().0));
 
     let signature_request = UserSignatureRequest {
         message: hex::encode(message),
@@ -158,6 +162,7 @@ pub async fn sign(
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
+        signature_request_account,
     };
 
     let signature_request_vec = serde_json::to_vec(&signature_request)?;
@@ -171,7 +176,7 @@ pub async fn sign(
             let validator_public_key: x25519_dalek::PublicKey =
                 validator_info.x25519_public_key.into();
             let signed_message = SignedMessage::new(
-                &signature_request_keypair,
+                &user_keypair,
                 &Bytes(signature_request_vec.clone()),
                 &validator_public_key,
             )?;
@@ -196,7 +201,7 @@ pub async fn sign(
             user_participates_in_signing_protocol(
                 &keyshare,
                 validators_info_clone,
-                &signature_request_keypair,
+                &user_keypair,
                 message_hash,
             ),
         )
