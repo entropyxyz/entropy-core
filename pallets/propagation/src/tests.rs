@@ -67,6 +67,7 @@ fn knows_how_to_mock_several_http_calls() {
             body: [
                 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 20, 16, 116, 101, 115, 116, 20, 16, 116, 101, 115, 116, 0, 0, 0, 0,
+                8, 16, 1, 0, 0, 0, 16, 2, 0, 0, 0,
             ]
             .to_vec(),
             ..Default::default()
@@ -119,6 +120,7 @@ fn knows_how_to_mock_several_http_calls() {
                 tss_account: "test".encode(),
             }],
             refreshes_done: 0,
+            proactive_refresh_keys: vec![1.encode(), 2.encode()],
         };
         pallet_staking_extension::ProactiveRefresh::<Test>::put(ocw_message);
         Propagation::post_proactive_refresh(6).unwrap();
