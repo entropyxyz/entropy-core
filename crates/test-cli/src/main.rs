@@ -520,7 +520,7 @@ impl Program {
 /// This may be given as a hex public key, SS58 account ID, or a name from which to generate
 /// a keypair (e.g `//Alice`)
 fn parse_account_id(input: String) -> anyhow::Result<SubxtAccountId32> {
-    ensure!(!input.is_empty(), "Cannot parse emptry string as account ID");
+    ensure!(!input.is_empty(), "Cannot parse empty string as account ID");
 
     // We use sp-core's AccountId32 here because it will parse account IDs given as either hex or
     // ss58
