@@ -15,7 +15,10 @@ At the moment this project **does not** adhere to
   contain an additional field, `signature_request_account: AccountId32`. In private and permissioned
   modes, this must be identical to the account used to sign the `SignedMessage` containing the
   signature request. In public access mode this may be an Entropy account owned by someone else.
-- In 'Partition network' [#629](https://github.com/entropyxyz/entropy-core/pull/629) in the chainspec ```proactive_refresh_validators``` is now ```proactive_refresh_data``` and takes a tuple of Vec<> (both should be empty for production)
+- In 'Partition network' [#629](https://github.com/entropyxyz/entropy-core/pull/629) the
+  `StakingExtensionConfig::proactive_refresh_validators` field used by the chain spec is now
+  `StakingExtensionConfigproactive_refresh_data` and takes a tuple of `Vec`. Both should be empty at
+  genesis for production.
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
