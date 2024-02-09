@@ -262,7 +262,7 @@ async fn run_command() -> anyhow::Result<String> {
 
             let signature_request_account = match signature_request_account {
                 Some(s) => {
-                    let account = parse_account_id(s)?;
+                    let account = parse_account_id(&s)?;
                     println!("Signature request account: {}", account);
                     Some(account)
                 },
@@ -516,7 +516,7 @@ impl Program {
 
 /// Parse an account ID from a user provided string. This may be either hex, ss58, or a name used to
 /// derive a keypair
-fn parse_account_id(input: String) -> anyhow::Result<SubxtAccountId32> {
+fn parse_account_id(input: &str) -> anyhow::Result<SubxtAccountId32> {
     ensure!(!input.is_empty(), "Cannot parse emptry string as account ID");
 
     // We use sp-core's AccountId32 here because it will parse account IDs given as either hex or
@@ -524,7 +524,7 @@ fn parse_account_id(input: String) -> anyhow::Result<SubxtAccountId32> {
     match AccountId32::from_str(&input) {
         Ok(account_id) => Ok(SubxtAccountId32(*account_id.as_ref())),
         Err(_) => {
-            let keypair: sr25519::Pair = SeedString::new(input).try_into()?;
+            let keypair: sr25519::Pair = SeedString::new(input.to_string()).try_into()?;
             Ok(SubxtAccountId32(keypair.public().0))
         },
     }
