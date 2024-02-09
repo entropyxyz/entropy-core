@@ -98,10 +98,11 @@ enum CliCommand {
         ///
         /// Optionally may be preceeded with "//", eg: "//Alice"
         user_account_name: String,
-        /// The account ID you wish to sign with, if different from your user account (public access
-        /// mode)
+        /// The account ID you wish to sign with, if different from `user_account_name` (e.g if
+        /// using public access mode).
         ///
-        /// This may be given as hex, ss58, or a name from which to generate a keypair
+        /// This may be given as a hex public key, SS58 account ID, or a name from which to generate
+        /// a keypair (e.g `//Alice`)
         #[arg(short, long)]
         signature_request_account: Option<String>,
         /// The message to be signed
@@ -514,8 +515,10 @@ impl Program {
     }
 }
 
-/// Parse an account ID from a user provided string. This may be either hex, ss58, or a name used to
-/// derive a keypair
+/// Parse an account ID from a user provided string.
+///
+/// This may be given as a hex public key, SS58 account ID, or a name from which to generate
+/// a keypair (e.g `//Alice`)
 fn parse_account_id(input: &str) -> anyhow::Result<SubxtAccountId32> {
     ensure!(!input.is_empty(), "Cannot parse emptry string as account ID");
 
