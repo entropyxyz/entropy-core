@@ -183,8 +183,8 @@ async fn test_proactive_refresh_validation_fail() {
     initialize_test_logger().await;
     clean_tests();
 
-    let eve = AccountKeyring::Eve;
     let dave = AccountKeyring::Dave;
+    let eve = AccountKeyring::Eve;
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
