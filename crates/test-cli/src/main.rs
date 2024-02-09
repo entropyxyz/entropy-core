@@ -524,7 +524,7 @@ fn parse_account_id(input: &str) -> anyhow::Result<SubxtAccountId32> {
 
     // We use sp-core's AccountId32 here because it will parse account IDs given as either hex or
     // ss58
-    match AccountId32::from_str(&input) {
+    match AccountId32::from_str(input) {
         Ok(account_id) => Ok(SubxtAccountId32(*account_id.as_ref())),
         Err(_) => {
             let keypair: sr25519::Pair = SeedString::new(input.to_string()).try_into()?;
