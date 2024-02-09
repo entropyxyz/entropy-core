@@ -104,7 +104,6 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
     pub struct RefreshInfo {
         pub validators_info: Vec<ValidatorInfo>,
-        pub refreshes_done: u32,
         pub proactive_refresh_keys: Vec<Vec<u8>>,
     }
 
@@ -208,7 +207,6 @@ pub mod pallet {
             }
             let refresh_info = RefreshInfo {
                 validators_info: self.proactive_refresh_data.0.clone(),
-                refreshes_done: 0,
                 proactive_refresh_keys: self.proactive_refresh_data.1.clone(),
             };
             ProactiveRefresh::<T>::put(refresh_info);

@@ -90,7 +90,6 @@ pub struct OcwMessageDkg {
 )]
 pub struct OcwMessageProactiveRefresh {
     pub validators_info: Vec<ValidatorInfo>,
-    pub refreshes_done: u32,
     pub proactive_refresh_keys: Vec<Vec<u8>>,
 }
 

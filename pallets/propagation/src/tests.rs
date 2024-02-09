@@ -119,7 +119,6 @@ fn knows_how_to_mock_several_http_calls() {
                 ip_address: "test".encode(),
                 tss_account: "test".encode(),
             }],
-            refreshes_done: 0,
             proactive_refresh_keys: vec![1.encode(), 2.encode()],
         };
         pallet_staking_extension::ProactiveRefresh::<Test>::put(ocw_message);
