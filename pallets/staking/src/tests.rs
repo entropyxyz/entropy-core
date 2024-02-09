@@ -209,6 +209,7 @@ fn it_declares_synced() {
 #[test]
 fn tests_new_session_handler() {
     new_test_ext().execute_with(|| {
+        // Inputs to this test are passed from MockSessionManager in the mock.rs file
         assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
         assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
 
