@@ -260,9 +260,9 @@ pub async fn store_program(
     api: &OnlineClient<EntropyConfig>,
     deployerpair: &sr25519::Pair,
     program: Vec<u8>,
-    configuration_interface: Vec<u8>,
+    interface_description: Vec<u8>,
 ) -> anyhow::Result<<EntropyConfig as Config>::Hash> {
-    let update_program_tx = entropy::tx().programs().set_program(program, configuration_interface);
+    let update_program_tx = entropy::tx().programs().set_program(program, interface_description);
     let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployerpair.clone());
 
     let in_block = api

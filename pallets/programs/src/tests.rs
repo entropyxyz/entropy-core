@@ -27,11 +27,11 @@ fn set_program() {
     new_test_ext().execute_with(|| {
         let program = vec![10u8, 11u8];
         let program_2 = vec![12u8, 13u8];
-        let configuration_interface = vec![14u8];
+        let interface_description = vec![14u8];
         let too_long = vec![1u8, 2u8, 3u8, 4u8, 5u8];
         let mut hash_input: Vec<u8> = vec![];
         hash_input.extend(&program);
-        hash_input.extend(&configuration_interface);
+        hash_input.extend(&interface_description);
 
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&hash_input);
         // can't pay deposit
@@ -39,7 +39,7 @@ fn set_program() {
             ProgramsPallet::set_program(
                 RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
                 program.clone(),
-                configuration_interface.clone()
+                interface_description.clone()
             ),
             BalancesError::<Test>::InsufficientBalance
         );
@@ -49,11 +49,11 @@ fn set_program() {
         assert_ok!(ProgramsPallet::set_program(
             RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
             program.clone(),
-            configuration_interface.clone()
+            interface_description.clone()
         ));
         let program_result = ProgramInfo {
             bytecode: program.clone(),
-            configuration_interface: configuration_interface.clone(),
+            interface_description: interface_description.clone(),
             deployer: PROGRAM_MODIFICATION_ACCOUNT,
             ref_counter: 0u128,
         };
@@ -75,7 +75,7 @@ fn set_program() {
             ProgramsPallet::set_program(
                 RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
                 program.clone(),
-                configuration_interface.clone()
+                interface_description.clone()
             ),
             Error::<Test>::ProgramAlreadySet
         );
@@ -85,7 +85,7 @@ fn set_program() {
             ProgramsPallet::set_program(
                 RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
                 program_2.clone(),
-                configuration_interface.clone()
+                interface_description.clone()
             ),
             Error::<Test>::TooManyProgramsOwned
         );
@@ -94,7 +94,7 @@ fn set_program() {
             ProgramsPallet::set_program(
                 RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
                 too_long,
-                configuration_interface
+                interface_description
             ),
             Error::<Test>::ProgramLengthExceeded
         );
@@ -105,10 +105,10 @@ fn set_program() {
 fn remove_program() {
     new_test_ext().execute_with(|| {
         let program = vec![10u8, 11u8];
-        let configuration_interface = vec![14u8];
+        let interface_description = vec![14u8];
         let mut hash_input: Vec<u8> = vec![];
         hash_input.extend(&program);
-        hash_input.extend(&configuration_interface);
+        hash_input.extend(&interface_description);
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&hash_input);
 
         // no program
@@ -125,7 +125,7 @@ fn remove_program() {
         assert_ok!(ProgramsPallet::set_program(
             RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
             program.clone(),
-            configuration_interface.clone()
+            interface_description.clone()
         ));
         assert_eq!(
             ProgramsPallet::owned_programs(PROGRAM_MODIFICATION_ACCOUNT),
@@ -171,13 +171,13 @@ fn remove_program_fails_ref_count() {
     new_test_ext().execute_with(|| {
         let program = vec![10u8, 11u8];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&program);
-        let configuration_interface = vec![14u8];
+        let interface_description = vec![14u8];
 
         Programs::<Test>::insert(
             program_hash,
             ProgramInfo {
                 bytecode: program,
-                configuration_interface,
+                interface_description,
                 deployer: PROGRAM_MODIFICATION_ACCOUNT,
                 ref_counter: 1u128,
             },

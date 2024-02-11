@@ -388,7 +388,7 @@ async fn run_command() -> anyhow::Result<String> {
                         program_info.deployer,
                         program_info.ref_counter,
                         program_info.bytecode.len(),
-                        !program_info.configuration_interface.is_empty(),
+                        !program_info.interface_description.is_empty(),
                     );
                 }
             }
@@ -481,10 +481,10 @@ impl Program {
         let program_bytecode = fs::read(&filename)?;
 
         // If there is a file with the same name with the '.config-interface' extension, read it
-        let configuration_interface = {
-            let mut configuration_interface_file = PathBuf::from(&filename);
-            configuration_interface_file.set_extension("config-interface");
-            fs::read(&configuration_interface_file).unwrap_or_default()
+        let interface_description = {
+            let mut interface_description_file = PathBuf::from(&filename);
+            interface_description_file.set_extension("config-interface");
+            fs::read(&interface_description_file).unwrap_or_default()
         };
 
         // If there is a file with the same name with the '.json' extension, read it
@@ -495,12 +495,12 @@ impl Program {
         };
 
         ensure!(
-            (configuration_interface.is_empty() && configuration.is_empty())
-                || (!configuration_interface.is_empty() && !configuration.is_empty()),
+            (interface_description.is_empty() && configuration.is_empty())
+                || (!interface_description.is_empty() && !configuration.is_empty()),
             "If giving a configuration interface you must also give a configuration"
         );
 
-        match store_program(api, keypair, program_bytecode.clone(), configuration_interface).await {
+        match store_program(api, keypair, program_bytecode.clone(), interface_description).await {
             Ok(hash) => Ok(Self::new(hash, configuration)),
             Err(error) => {
                 if error.to_string().ends_with("ProgramAlreadySet") {
