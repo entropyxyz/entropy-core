@@ -87,7 +87,7 @@ enum CliCommand {
         /// a '.json' extension, it will be read and used as the configuration for that program.
         ///
         /// If the path to a wasm file is given, and there is a file with the same name with a
-        /// '.config-interface' extension, it will be stored as that program's configuration
+        /// '.interface-description' extension, it will be stored as that program's configuration
         /// interface. If no such file exists, it is assumed the program has no configuration
         /// interface.
         programs: Vec<String>,
@@ -128,7 +128,7 @@ enum CliCommand {
         /// a '.json' extension, it will be read and used as the configuration for that program.
         ///
         /// If the path to a wasm file is given, and there is a file with the same name with a
-        /// '.config-interface' extension, it will be stored as that program's configuration
+        /// '.interface-description' extension, it will be stored as that program's configuration
         /// interface. If no such file exists, it is assumed the program has no configuration
         /// interface.
         programs: Vec<String>,
