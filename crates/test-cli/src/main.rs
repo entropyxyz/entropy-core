@@ -497,7 +497,7 @@ impl Program {
         ensure!(
             (interface_description.is_empty() && configuration.is_empty())
                 || (!interface_description.is_empty() && !configuration.is_empty()),
-            "If giving a configuration interface you must also give a configuration"
+            "If giving an interface description you must also give a configuration"
         );
 
         match store_program(api, keypair, program_bytecode.clone(), interface_description).await {
