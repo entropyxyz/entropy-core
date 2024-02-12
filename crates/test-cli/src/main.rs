@@ -483,7 +483,7 @@ impl Program {
         // If there is a file with the same name with the '.interface-description' extension, read it
         let interface_description = {
             let mut interface_description_file = PathBuf::from(&filename);
-            interface_description_file.set_extension("config-interface");
+            interface_description_file.set_extension("interface-description");
             fs::read(&interface_description_file).unwrap_or_default()
         };
 
