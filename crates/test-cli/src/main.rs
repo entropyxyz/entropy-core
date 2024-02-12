@@ -480,7 +480,7 @@ impl Program {
     ) -> anyhow::Result<Self> {
         let program_bytecode = fs::read(&filename)?;
 
-        // If there is a file with the same name with the '.config-interface' extension, read it
+        // If there is a file with the same name with the '.interface-description' extension, read it
         let interface_description = {
             let mut interface_description_file = PathBuf::from(&filename);
             interface_description_file.set_extension("config-interface");
