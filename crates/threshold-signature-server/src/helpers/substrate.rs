@@ -29,6 +29,7 @@ use subxt::{
     tx::{PairSigner, Signer, TxPayload},
     utils::AccountId32,
     Config, OnlineClient,
+    blocks::ExtrinsicEvents,
 };
 
 /// gets the subgroup of the working validator
@@ -136,13 +137,13 @@ pub async fn send_tx<Call: TxPayload>(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     call: &Call,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<ExtrinsicEvents<EntropyConfig>> {
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
     let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
     let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
 
     let tx = api.tx().create_signed_with_nonce(call, signer, nonce.into(), Default::default())?;
-    let _ = tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;
-    Ok(())
+    let result = tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;
+    Ok(result)
 }

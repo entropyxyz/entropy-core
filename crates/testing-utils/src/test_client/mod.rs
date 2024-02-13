@@ -43,6 +43,7 @@ use entropy_tss::{
         },
         EntropyConfig,
     },
+    helpers::substrate::send_tx, 
     common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
 };
 use futures::future;
@@ -258,6 +259,7 @@ pub async fn sign(
 )]
 pub async fn store_program(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     deployerpair: &sr25519::Pair,
     program: Vec<u8>,
     configuration_interface: Vec<u8>,
@@ -265,15 +267,7 @@ pub async fn store_program(
     let update_program_tx = entropy::tx().programs().set_program(program, configuration_interface);
     let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployerpair.clone());
 
-    let in_block = api
-        .tx()
-        .sign_and_submit_then_watch_default(&update_program_tx, &deployer)
-        .await?
-        .wait_for_in_block()
-        .await?
-        .wait_for_success()
-        .await?;
-
+    let in_block = send_tx(api, rpc, &deployer, &update_program_tx).await?;
     let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>()?;
     Ok(result_event.ok_or(anyhow!("Error getting program created event"))?.program_hash)
 }

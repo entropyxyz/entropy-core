@@ -42,7 +42,7 @@ use sp_core::{crypto::AccountId32, sr25519, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use subxt::{
     utils::{AccountId32 as SubxtAccountId32, H256},
-    OnlineClient,
+    OnlineClient, backend::legacy::LegacyRpcMethods,
 };
 
 #[derive(Parser, Debug, Clone)]
@@ -299,7 +299,7 @@ async fn run_command() -> anyhow::Result<String> {
                 None => vec![],
             };
 
-            let hash = store_program(&api, &keypair, program, program_interface).await?;
+            let hash = store_program(&api, &rpc, &keypair, program, program_interface).await?;
             Ok(format!("Program stored {hash}"))
         },
         CliCommand::UpdatePrograms {
@@ -475,6 +475,7 @@ impl Program {
     /// return the hash.
     async fn from_file(
         api: &OnlineClient<EntropyConfig>,
+        rpc: &LegacyRpcMethods<EntropyConfig>,
         keypair: &sr25519::Pair,
         filename: String,
     ) -> anyhow::Result<Self> {
@@ -500,7 +501,7 @@ impl Program {
             "If giving a configuration interface you must also give a configuration"
         );
 
-        match store_program(api, keypair, program_bytecode.clone(), configuration_interface).await {
+        match store_program(api, rpc, keypair, program_bytecode.clone(), configuration_interface).await {
             Ok(hash) => Ok(Self::new(hash, configuration)),
             Err(error) => {
                 if error.to_string().ends_with("ProgramAlreadySet") {

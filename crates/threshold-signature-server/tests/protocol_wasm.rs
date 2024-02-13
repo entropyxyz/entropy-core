@@ -85,10 +85,15 @@ async fn test_wasm_sign_tx_user_participates() {
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_pointer =
-        store_program(&entropy_api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_pointer = store_program(
+        &entropy_api,
+        &rpc,
+        &dave.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
 
     update_programs(
         &entropy_api,
@@ -214,7 +219,7 @@ async fn test_wasm_register_with_private_key_visibility() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let program_pointer =
-        store_program(&api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+        store_program(&api, &rpc, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
             .await
             .unwrap();
 
