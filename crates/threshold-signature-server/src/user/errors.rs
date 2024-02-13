@@ -139,6 +139,8 @@ pub enum UserErr {
     AuthorizationError,
     #[error("anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
+    #[error("Chain Fetch: {0}")]
+    ChainFetch(&'static str),
 }
 
 impl IntoResponse for UserErr {

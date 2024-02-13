@@ -231,7 +231,7 @@ async fn test_sign_tx_no_chain() {
     for res in test_user_res_not_registered {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Not Registering error: Register Onchain first"
+            "Chain Fetch: Not Registering error: Register Onchain first"
         );
     }
 
@@ -1001,7 +1001,7 @@ async fn test_sign_tx_user_participates() {
     for res in test_user_res_not_registered {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Not Registering error: Register Onchain first"
+            "Chain Fetch: Not Registering error: Register Onchain first"
         );
     }
 

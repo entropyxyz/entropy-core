@@ -119,16 +119,9 @@ pub async fn get_registered_details(
     who: &<EntropyConfig as Config>::AccountId,
 ) -> Result<RegisteredInfo, UserErr> {
     let registered_info_query = entropy::storage().relayer().registered(who);
-    let block_hash = rpc
-        .chain_get_block_hash(None)
+    let result = get_data_from_chain(api, rpc, &registered_info_query)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
-    let result = api
-        .storage()
-        .at(block_hash)
-        .fetch(&registered_info_query)
-        .await?
-        .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
+        .ok_or_else(|| UserErr::ChainFetch("Not Registering error: Register Onchain first"))?;
     Ok(result)
 }
 
@@ -160,10 +153,10 @@ pub async fn send_tx<Call: TxPayload>(
 pub async fn get_data_from_chain<'address, Address>(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    storage_call: &Address,
+    storage_call: &'address Address,
 ) -> anyhow::Result<Option<Address::Target>>
 where
-    Address: StorageAddress<IsFetchable = Yes, IsDefaultable = Yes> + 'address,
+    Address: StorageAddress<IsFetchable = Yes> + 'address,
 {
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
