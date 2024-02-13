@@ -43,15 +43,15 @@ use entropy_tss::{
         },
         EntropyConfig,
     },
-    helpers::substrate::send_tx, 
     common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
+    helpers::substrate::send_tx,
 };
 use futures::future;
 use parity_scale_codec::Decode;
 use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    tx::{PairSigner},
+    tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static, H256},
     Config, OnlineClient,
 };

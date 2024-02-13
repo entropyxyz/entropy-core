@@ -41,8 +41,9 @@ use entropy_testing_utils::{
 use sp_core::{crypto::AccountId32, sr25519, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use subxt::{
+    backend::legacy::LegacyRpcMethods,
     utils::{AccountId32 as SubxtAccountId32, H256},
-    OnlineClient, backend::legacy::LegacyRpcMethods,
+    OnlineClient,
 };
 
 #[derive(Parser, Debug, Clone)]
@@ -228,8 +229,9 @@ async fn run_command() -> anyhow::Result<String> {
             let mut programs_info = vec![];
 
             for program in programs {
-                programs_info
-                    .push(Program::from_hash_or_filename(&api, &program_keypair, program).await?.0);
+                programs_info.push(
+                    Program::from_hash_or_filename(&api, &rpc, &program_keypair, program).await?.0,
+                );
             }
 
             let (registered_info, keyshare_option) = register(
@@ -317,8 +319,9 @@ async fn run_command() -> anyhow::Result<String> {
 
             let mut programs_info = Vec::new();
             for program in programs {
-                programs_info
-                    .push(Program::from_hash_or_filename(&api, &program_keypair, program).await?.0);
+                programs_info.push(
+                    Program::from_hash_or_filename(&api, &rpc, &program_keypair, program).await?.0,
+                );
             }
 
             update_programs(
@@ -447,6 +450,7 @@ impl Program {
 
     async fn from_hash_or_filename(
         api: &OnlineClient<EntropyConfig>,
+        rpc: &LegacyRpcMethods<EntropyConfig>,
         keypair: &sr25519::Pair,
         hash_or_filename: String,
     ) -> anyhow::Result<Self> {
@@ -464,10 +468,10 @@ impl Program {
                         };
                         Ok(Self::new(H256(hash_32), configuration))
                     },
-                    Err(_) => Self::from_file(api, keypair, hash_or_filename).await,
+                    Err(_) => Self::from_file(api, rpc, keypair, hash_or_filename).await,
                 }
             },
-            Err(_) => Self::from_file(api, keypair, hash_or_filename).await,
+            Err(_) => Self::from_file(api, rpc, keypair, hash_or_filename).await,
         }
     }
 
@@ -501,7 +505,9 @@ impl Program {
             "If giving a configuration interface you must also give a configuration"
         );
 
-        match store_program(api, rpc, keypair, program_bytecode.clone(), configuration_interface).await {
+        match store_program(api, rpc, keypair, program_bytecode.clone(), configuration_interface)
+            .await
+        {
             Ok(hash) => Ok(Self::new(hash, configuration)),
             Err(error) => {
                 if error.to_string().ends_with("ProgramAlreadySet") {

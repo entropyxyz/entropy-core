@@ -351,7 +351,7 @@ async fn setup_dkg(
         // TODO: Error handling really complex needs to be thought about.
         confirm_registered(
             &api,
-            &rpc,
+            rpc,
             sig_request_address,
             my_subgroup,
             &signer,

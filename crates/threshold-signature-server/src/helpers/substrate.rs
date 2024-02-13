@@ -26,6 +26,7 @@ use subxt::{
     backend::legacy::LegacyRpcMethods,
     blocks::ExtrinsicEvents,
     ext::sp_core::sr25519,
+    storage::address::{StorageAddress, Yes},
     tx::{PairSigner, TxPayload},
     utils::AccountId32,
     Config, OnlineClient,
@@ -131,7 +132,7 @@ pub async fn get_registered_details(
     Ok(result)
 }
 
-/// Send a tx to the entropy chain 
+/// Send a tx to the entropy chain
 /// takes an option for nonce, grabs nonce from chain if input is none
 pub async fn send_tx<Call: TxPayload>(
     api: &OnlineClient<EntropyConfig>,
@@ -153,5 +154,21 @@ pub async fn send_tx<Call: TxPayload>(
 
     let tx = api.tx().create_signed_with_nonce(call, signer, nonce.into(), Default::default())?;
     let result = tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;
+    Ok(result)
+}
+
+pub async fn get_data_from_chain<'address, Address>(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    storage_call: &Address,
+) -> anyhow::Result<Option<Address::Target>>
+where
+    Address: StorageAddress<IsFetchable = Yes, IsDefaultable = Yes> + 'address,
+{
+    let block_hash =
+        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
+
+    let result = api.storage().at(block_hash).fetch(storage_call).await?;
+
     Ok(result)
 }
