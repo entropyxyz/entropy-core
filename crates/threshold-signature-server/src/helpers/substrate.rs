@@ -24,12 +24,12 @@ use anyhow::anyhow;
 use entropy_shared::SIGNING_PARTY_SIZE;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
+    blocks::ExtrinsicEvents,
     ext::sp_core::sr25519,
     runtime_api::RuntimeApiPayload,
     tx::{PairSigner, Signer, TxPayload},
     utils::AccountId32,
     Config, OnlineClient,
-    blocks::ExtrinsicEvents,
 };
 
 /// gets the subgroup of the working validator

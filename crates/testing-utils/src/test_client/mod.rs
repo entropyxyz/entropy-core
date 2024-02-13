@@ -254,18 +254,18 @@ pub async fn sign(
     skip_all,
     fields(
         signature_request_account,
-        deployer = ?deployerpair.public(),
+        deployer = ?deployer_pair.public(),
     )
 )]
 pub async fn store_program(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    deployerpair: &sr25519::Pair,
+    deployer_pair: &sr25519::Pair,
     program: Vec<u8>,
     configuration_interface: Vec<u8>,
 ) -> anyhow::Result<<EntropyConfig as Config>::Hash> {
     let update_program_tx = entropy::tx().programs().set_program(program, configuration_interface);
-    let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployerpair.clone());
+    let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer_pair.clone());
 
     let in_block = send_tx(api, rpc, &deployer, &update_program_tx).await?;
     let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>()?;
@@ -277,35 +277,14 @@ pub async fn update_programs(
     entropy_api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_account: &sr25519::Pair,
-    deployer: &sr25519::Pair,
+    deployer_pair: &sr25519::Pair,
     program_instance: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<()> {
-    let block_hash =
-        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
-
     let update_pointer_tx = entropy::tx()
         .relayer()
         .change_program_instance(signature_request_account.public().into(), program_instance);
-
-    let account_id32: AccountId32 = deployer.public().into();
-    let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
-
-    let nonce_call = entropy::apis().account_nonce_api().account_nonce(account_id.clone());
-    let nonce = entropy_api.runtime_api().at(block_hash).call(nonce_call).await?;
-
-    let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer.clone());
-
-    let partial_tx = entropy_api.tx().create_partial_signed_with_nonce(
-        &update_pointer_tx,
-        nonce.into(),
-        Default::default(),
-    )?;
-    let signer_payload = partial_tx.signer_payload();
-    let signature = deployer.sign(&signer_payload);
-
-    let tx = partial_tx.sign_with_address_and_signature(&account_id.into(), &signature);
-
-    tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;
+    let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer_pair.clone());
+    send_tx(entropy_api, rpc, &deployer, &update_pointer_tx).await?;
     Ok(())
 }
 /// Get info on all registered accounts
@@ -358,32 +337,13 @@ pub async fn put_register_request_on_chain(
     key_visibility: KeyVisibility,
     program_instance: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<()> {
-    let account_id32: AccountId32 = signature_request_keypair.public().into();
-    let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
-
     let signature_request_pair_signer =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
 
     let registering_tx =
         entropy::tx().relayer().register(deployer, Static(key_visibility), program_instance);
 
-    let block_hash =
-        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
-
-    let nonce_call = entropy::apis().account_nonce_api().account_nonce(account_id.clone());
-    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
-
-    let partial_tx = api.tx().create_partial_signed_with_nonce(
-        &registering_tx,
-        nonce.into(),
-        Default::default(),
-    )?;
-    let signer_payload = partial_tx.signer_payload();
-    let signature = signature_request_pair_signer.sign(&signer_payload);
-
-    let tx = partial_tx.sign_with_address_and_signature(&account_id.into(), &signature);
-
-    tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;
+    send_tx(api, rpc, &signature_request_pair_signer, &registering_tx).await?;
     Ok(())
 }
 
