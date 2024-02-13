@@ -23,7 +23,7 @@ use std::{str::FromStr, thread, time::Duration, time::SystemTime};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519, Bytes},
-    tx::PairSigner,
+    tx::{PairSigner, TxPayload},
     utils::AccountId32 as SubxtAccountId32,
     OnlineClient,
 };
@@ -37,7 +37,7 @@ use crate::{
     get_signer,
     helpers::{
         launch::FORBIDDEN_KEYS,
-        substrate::{get_subgroup, return_all_addresses_of_subgroup},
+        substrate::{get_subgroup, return_all_addresses_of_subgroup, send_tx},
     },
     validation::{check_stale, SignedMessage},
     validator::errors::ValidatorErr,
@@ -117,7 +117,9 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
         )
         .await
         .expect("failed to get and store all values");
-        tell_chain_syncing_is_done(&api, &signer).await.expect("failed to finish chain sync.");
+        tell_chain_syncing_is_done(&api, &rpc, &signer)
+            .await
+            .expect("failed to finish chain sync.");
     }
 }
 
@@ -288,17 +290,11 @@ pub async fn get_and_store_values(
 /// Sends a transaction telling the chain it is fully synced
 pub async fn tell_chain_syncing_is_done(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, subxt::ext::sp_core::sr25519::Pair>,
 ) -> Result<(), ValidatorErr> {
     let synced_tx = entropy::tx().staking_extension().declare_synced(true);
-    let _ = api
-        .tx()
-        .sign_and_submit_then_watch_default(&synced_tx, signer)
-        .await?
-        .wait_for_in_block()
-        .await?
-        .wait_for_success()
-        .await?;
+    let _ = send_tx(api, rpc, signer, &synced_tx).await?;
     Ok(())
 }
 

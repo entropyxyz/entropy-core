@@ -366,11 +366,12 @@ async fn test_tell_chain_syncing_is_done() {
 
     let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
     let p_alice = <sr25519::Pair as Pair>::from_string("//Alice", None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
 
     // expect this to fail in the proper way
-    let result = tell_chain_syncing_is_done(&api, &signer_alice).await;
+    let result = tell_chain_syncing_is_done(&api, &rpc, &signer_alice).await;
     assert!(result.is_err());
     clean_tests();
 }

@@ -59,6 +59,8 @@ pub enum ValidatorErr {
     AddressConversionError(String),
     #[error("Encryption or signing error: {0}")]
     Json(#[from] entropy_protocol::sign_and_encrypt::SignedMessageErr),
+    #[error("anyhow error: {0}")]
+    Anyhow(#[from] anyhow::Error),
 }
 
 impl IntoResponse for ValidatorErr {

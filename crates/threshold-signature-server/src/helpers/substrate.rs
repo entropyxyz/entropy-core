@@ -20,9 +20,14 @@ use crate::{
     },
     user::UserErr,
 };
+use anyhow::anyhow;
 use entropy_shared::SIGNING_PARTY_SIZE;
 use subxt::{
-    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32,
+    backend::legacy::LegacyRpcMethods,
+    ext::sp_core::sr25519,
+    runtime_api::RuntimeApiPayload,
+    tx::{PairSigner, Signer, TxPayload},
+    utils::AccountId32,
     Config, OnlineClient,
 };
 
@@ -124,4 +129,20 @@ pub async fn get_registered_details(
         .await?
         .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
     Ok(result)
+}
+
+pub async fn send_tx<Call: TxPayload>(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    call: &Call,
+) -> anyhow::Result<()> {
+    let block_hash =
+        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
+    let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
+    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
+
+    let tx = api.tx().create_signed_with_nonce(call, signer, nonce.into(), Default::default())?;
+    let _ = tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;
+    Ok(())
 }
