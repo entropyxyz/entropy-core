@@ -76,8 +76,6 @@ pub struct OcwMessageDkg {
 }
 
 /// Offchain worker message for initiating a proactive refresh
-/// validators_info: Information of the validators to participate
-/// proactive_refresh_keys: accounts to take part in the proactive refresh
 #[cfg(not(feature = "wasm"))]
 #[derive(
     Clone,
@@ -91,7 +89,9 @@ pub struct OcwMessageDkg {
     sp_runtime::Deserialize,
 )]
 pub struct OcwMessageProactiveRefresh {
+    /// Information of the validators to participate
     pub validators_info: Vec<ValidatorInfo>,
+    /// Accounts to take part in the proactive refresh
     pub proactive_refresh_keys: Vec<Vec<u8>>,
 }
 
