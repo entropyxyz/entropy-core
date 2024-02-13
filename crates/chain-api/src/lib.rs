@@ -58,7 +58,7 @@ impl Config for EntropyConfig {
             signed_extensions::CheckMortality<Self>,
             signed_extensions::ChargeAssetTxPayment,
             signed_extensions::ChargeTransactionPayment,
-            ValidateElectricityPayment,
+            // ValidateElectricityPayment,
             ValidateConfirmRegistered
         ),
     >;
@@ -132,7 +132,7 @@ pub fn custom_params(
     params: DefaultExtrinsicParamsBuilder<EntropyConfig>,
 ) -> <<EntropyConfig as Config>::ExtrinsicParams as ExtrinsicParams<EntropyConfig>>::OtherParams {
     let (a, b, c, d, e, f, g) = params.build();
-    (a, b, c, d, e, f, g, (), ())
+    (a, b, c, d, e, f, g, ())
 }
 
 /// Creates an api instance to talk to chain

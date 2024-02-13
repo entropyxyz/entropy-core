@@ -1440,7 +1440,7 @@ async fn test_confirm_done_free() {
     )
     .await
     .unwrap();
-    check_has_confirmation(&api, &rpc, &alice.pair()).await;
+    check_has_confirmation(&api, &rpc, &alice_program.pair()).await;
     clean_tests();
 }
 
