@@ -28,7 +28,7 @@ use subxt::{
     ext::sp_core::sr25519,
     storage::address::{StorageAddress, Yes},
     tx::{PairSigner, TxPayload},
-    utils::AccountId32,
+    utils::{AccountId32, H256},
     Config, OnlineClient,
 };
 
@@ -40,28 +40,19 @@ pub async fn get_subgroup(
 ) -> Result<(Option<u8>, AccountId32), UserErr> {
     let mut subgroup: Option<u8> = None;
     let threshold_address = signer.account_id();
+    let block_hash = rpc.chain_get_block_hash(None).await?;
     let stash_address_query =
         entropy::storage().staking_extension().threshold_to_stash(threshold_address);
-    let block_hash = rpc
-        .chain_get_block_hash(None)
+    let stash_address = get_data_from_chain(api, rpc, &stash_address_query, block_hash)
         .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
-
-    let stash_address = api
-        .storage()
-        .at(block_hash)
-        .fetch(&stash_address_query)
-        .await?
-        .ok_or_else(|| UserErr::SubgroupError("Stash Fetch Error"))?;
+        .ok_or_else(|| UserErr::ChainFetch("Stash Fetch Error"))?;
     for i in 0..SIGNING_PARTY_SIZE {
         let signing_group_addresses_query =
             entropy::storage().staking_extension().signing_groups(i as u8);
-        let signing_group_addresses = api
-            .storage()
-            .at(block_hash)
-            .fetch(&signing_group_addresses_query)
-            .await?
-            .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+        let signing_group_addresses =
+            get_data_from_chain(api, rpc, &signing_group_addresses_query, block_hash)
+                .await?
+                .ok_or_else(|| UserErr::ChainFetch("Subgroup Error"))?;
         if signing_group_addresses.contains(&stash_address) {
             subgroup = Some(i as u8);
             break;
@@ -119,7 +110,7 @@ pub async fn get_registered_details(
     who: &<EntropyConfig as Config>::AccountId,
 ) -> Result<RegisteredInfo, UserErr> {
     let registered_info_query = entropy::storage().relayer().registered(who);
-    let result = get_data_from_chain(api, rpc, &registered_info_query)
+    let result = get_data_from_chain(api, rpc, &registered_info_query, None)
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Not Registering error: Register Onchain first"))?;
     Ok(result)
@@ -154,12 +145,16 @@ pub async fn get_data_from_chain<'address, Address>(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     storage_call: &'address Address,
+    block_hash_option: Option<H256>,
 ) -> anyhow::Result<Option<Address::Target>>
 where
     Address: StorageAddress<IsFetchable = Yes> + 'address,
 {
-    let block_hash =
-        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
+    let block_hash = if let Some(block_hash) = block_hash_option {
+        block_hash
+    } else {
+        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?
+    };
 
     let result = api.storage().at(block_hash).fetch(storage_call).await?;
 
