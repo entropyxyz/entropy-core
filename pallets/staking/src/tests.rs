@@ -209,43 +209,40 @@ fn it_declares_synced() {
 #[test]
 fn tests_new_session_handler() {
     new_test_ext().execute_with(|| {
-        // Inputs to this test are passed from MockSessionManager in the mock.rs file
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+        let first_signing_group = || Staking::signing_groups(0).unwrap();
+        let second_signing_group = || Staking::signing_groups(1).unwrap();
 
-        MockSessionManager::new_session(0);
-        // stays the same
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+        // In our mock genesis we have Validator 1 and 2 in two different signing groups
+        assert_eq!(first_signing_group(), vec![1]);
+        assert_eq!(second_signing_group(), vec![2]);
 
-        MockSessionManager::new_session(1);
-        // diffrent order incoming stays the same
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
+        // If we set validators 1 and 2 in a new session, we expect them to be assigned to two
+        // different signing groups
+        assert_ok!(Staking::new_session_handler(&[1, 2]));
+        assert_eq!(first_signing_group(), vec![1]);
+        assert_eq!(second_signing_group(), vec![2]);
 
-        MockSessionManager::new_session(2);
-        // 3 replaces 2 1 does not move
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
+        // If we set validators 1 and 2 in a new session, in a different order as before, we expect
+        // them to be assigned to the same signing group
+        assert_ok!(Staking::new_session_handler(&[2, 1]));
+        assert_eq!(first_signing_group(), vec![1]);
+        assert_eq!(second_signing_group(), vec![2]);
 
-        MockSessionManager::new_session(3);
-        // 2 leaves 1 does not move
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
+        // If we have a session with a single validator, we expect to have an empty signing group
+        assert_ok!(Staking::new_session_handler(&[1]));
+        assert_eq!(first_signing_group(), vec![1]);
         assert_eq!(Staking::signing_groups(1), Some(vec![]));
 
-        MockSessionManager::new_session(4);
-        // 3 and 4 replace 1
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![4]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
+        // If we have a session with more validators than signing groups, we expect that they will
+        // be assigned across the different signing groups
+        assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
+        assert_eq!(first_signing_group(), vec![1, 2]);
+        assert_eq!(second_signing_group(), vec![3]);
 
-        MockSessionManager::new_session(5);
-        // 4 gone 1 and 2 in
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![2, 1]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3]);
-
-        MockSessionManager::new_session(6);
-        // 4 and 5 join
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1, 2, 4]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![3, 5]);
+        // If we have a session with more validators than signing groups, we expect that they will
+        // be assigned across the different signing groups
+        assert_ok!(Staking::new_session_handler(&[1, 2, 3, 4, 5]));
+        assert_eq!(first_signing_group(), vec![1, 2, 4]);
+        assert_eq!(second_signing_group(), vec![3, 5]);
     });
 }
