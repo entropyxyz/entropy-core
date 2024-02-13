@@ -69,6 +69,7 @@ use crate::{
         signing::{do_signing, Hasher},
         substrate::{
             get_program, get_registered_details, get_subgroup, return_all_addresses_of_subgroup,
+            send_tx,
         },
         user::{check_in_registration_group, compute_hash, do_dkg, send_key},
         validator::get_signer,
@@ -350,6 +351,7 @@ async fn setup_dkg(
         // TODO: Error handling really complex needs to be thought about.
         confirm_registered(
             &api,
+            &rpc,
             sig_request_address,
             my_subgroup,
             &signer,
@@ -484,12 +486,13 @@ pub async fn is_registering(
 /// Confirms that a address has finished registering on chain.
 pub async fn confirm_registered(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     who: SubxtAccountId32,
     subgroup: u8,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     verifying_key: Vec<u8>,
     nonce: u32,
-) -> Result<(), subxt::error::Error> {
+) -> Result<(), UserErr> {
     // TODO error handling + return error
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
@@ -499,14 +502,7 @@ pub async fn confirm_registered(
         subgroup,
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
     );
-    let tx = api.tx().create_signed_with_nonce(
-        &registration_tx,
-        signer,
-        nonce.into(),
-        Default::default(),
-    )?;
-
-    let _ = tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;
+    send_tx(api, rpc, signer, &registration_tx, Some(nonce)).await?;
     Ok(())
 }
 /// Gets the current signing committee

@@ -26,8 +26,7 @@ use subxt::{
     backend::legacy::LegacyRpcMethods,
     blocks::ExtrinsicEvents,
     ext::sp_core::sr25519,
-    runtime_api::RuntimeApiPayload,
-    tx::{PairSigner, Signer, TxPayload},
+    tx::{PairSigner, TxPayload},
     utils::AccountId32,
     Config, OnlineClient,
 };
@@ -132,16 +131,25 @@ pub async fn get_registered_details(
     Ok(result)
 }
 
+/// Send a tx to the entropy chain 
+/// takes an option for nonce, grabs nonce from chain if input is none
 pub async fn send_tx<Call: TxPayload>(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     call: &Call,
+    nonce_option: Option<u32>,
 ) -> anyhow::Result<ExtrinsicEvents<EntropyConfig>> {
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
-    let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
-    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
+
+    let nonce = if let Some(nonce) = nonce_option {
+        nonce
+    } else {
+        let nonce_call =
+            entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
+        api.runtime_api().at(block_hash).call(nonce_call).await?
+    };
 
     let tx = api.tx().create_signed_with_nonce(call, signer, nonce.into(), Default::default())?;
     let result = tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;

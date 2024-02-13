@@ -23,7 +23,7 @@ use std::{str::FromStr, thread, time::Duration, time::SystemTime};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519, Bytes},
-    tx::{PairSigner, TxPayload},
+    tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32,
     OnlineClient,
 };
@@ -294,7 +294,7 @@ pub async fn tell_chain_syncing_is_done(
     signer: &PairSigner<EntropyConfig, subxt::ext::sp_core::sr25519::Pair>,
 ) -> Result<(), ValidatorErr> {
     let synced_tx = entropy::tx().staking_extension().declare_synced(true);
-    let _ = send_tx(api, rpc, signer, &synced_tx).await?;
+    let _ = send_tx(api, rpc, signer, &synced_tx, None).await?;
     Ok(())
 }
 

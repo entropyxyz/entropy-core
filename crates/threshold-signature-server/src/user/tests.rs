@@ -98,7 +98,7 @@ use crate::{
             DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::Hasher,
-        substrate::{get_subgroup, return_all_addresses_of_subgroup},
+        substrate::{get_subgroup, return_all_addresses_of_subgroup, send_tx},
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
             remove_program, run_to_block, setup_client, spawn_testing_validators,
@@ -612,6 +612,7 @@ async fn test_store_share() {
 
     put_register_request_on_chain(
         &api,
+        &rpc,
         &alice,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
@@ -681,6 +682,7 @@ async fn test_store_share() {
     block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     put_register_request_on_chain(
         &api,
+        &rpc,
         &alice_program,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
@@ -819,6 +821,7 @@ async fn test_send_and_receive_keys() {
 
     put_register_request_on_chain(
         &api,
+        &rpc,
         &alice.clone(),
         alice.to_account_id().into(),
         KeyVisibility::Public,
@@ -876,6 +879,7 @@ async fn test_recover_key() {
 
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     sig_req_keyring: &Sr25519Keyring,
     program_modification_account: subxtAccountId32,
     key_visibility: KeyVisibility,
@@ -889,17 +893,7 @@ pub async fn put_register_request_on_chain(
         Static(key_visibility),
         program_instance,
     );
-
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
+    send_tx(api, rpc, &sig_req_account, &registering_tx, None).await.unwrap();
 }
 
 #[tokio::test]
@@ -1210,6 +1204,7 @@ async fn test_register_with_private_key_visibility() {
 
     put_register_request_on_chain(
         &api,
+        &rpc,
         &one,
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
@@ -1435,6 +1430,7 @@ async fn test_mutiple_confirm_done() {
 
     put_register_request_on_chain(
         &api,
+        &rpc,
         &alice,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
@@ -1444,6 +1440,7 @@ async fn test_mutiple_confirm_done() {
 
     put_register_request_on_chain(
         &api,
+        &rpc,
         &bob,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
@@ -1453,10 +1450,18 @@ async fn test_mutiple_confirm_done() {
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
 
-    confirm_registered(&api, alice.to_account_id().into(), 0u8, &signer_alice, vec![0u8], 0u32)
-        .await
-        .unwrap();
-    confirm_registered(&api, bob.to_account_id().into(), 0u8, &signer_alice, vec![0u8], 1u32)
+    confirm_registered(
+        &api,
+        &rpc,
+        alice.to_account_id().into(),
+        0u8,
+        &signer_alice,
+        vec![0u8],
+        0u32,
+    )
+    .await
+    .unwrap();
+    confirm_registered(&api, &rpc, bob.to_account_id().into(), 0u8, &signer_alice, vec![0u8], 1u32)
         .await
         .unwrap();
     check_has_confirmation(&api, &rpc, &alice.pair()).await;

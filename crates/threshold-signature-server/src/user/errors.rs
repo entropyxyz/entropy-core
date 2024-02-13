@@ -137,6 +137,8 @@ pub enum UserErr {
     MismatchAuxData,
     #[error("Signature request not allowed - this account is not public")]
     AuthorizationError,
+    #[error("anyhow error: {0}")]
+    Anyhow(#[from] anyhow::Error),
 }
 
 impl IntoResponse for UserErr {
