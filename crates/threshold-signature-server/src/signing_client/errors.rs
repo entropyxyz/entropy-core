@@ -100,6 +100,8 @@ pub enum ProtocolErr {
     InvalidData,
     #[error("Data is repeated")]
     RepeatedData,
+    #[error("Chain Fetch: {0}")]
+    ChainFetch(&'static str),
 }
 
 impl IntoResponse for ProtocolErr {
