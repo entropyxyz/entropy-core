@@ -37,7 +37,7 @@ use crate::{
     get_signer,
     helpers::{
         launch::FORBIDDEN_KEYS,
-        substrate::{get_subgroup, return_all_addresses_of_subgroup, send_tx},
+        substrate::{get_data_from_chain, get_subgroup, return_all_addresses_of_subgroup, send_tx},
     },
     validation::{check_stale, SignedMessage},
     validator::errors::ValidatorErr,
@@ -188,18 +188,13 @@ pub async fn get_random_server_info(
     my_subgroup: u8,
     my_stash_address: subxt::utils::AccountId32,
 ) -> Result<ServerInfo<subxt::utils::AccountId32>, ValidatorErr> {
+    let block_hash = rpc.chain_get_block_hash(None).await?;
     let signing_group_addresses_query =
         entropy::storage().staking_extension().signing_groups(my_subgroup);
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Error getting block hash"))?;
-    let signing_group_addresses = api
-        .storage()
-        .at(block_hash)
-        .fetch(&signing_group_addresses_query)
-        .await?
-        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Querying Signing Groups Error"))?;
+    let signing_group_addresses =
+        get_data_from_chain(api, rpc, &signing_group_addresses_query, block_hash)
+            .await?
+            .ok_or_else(|| ValidatorErr::ChainFetch("Querying Signing Groups Error"))?;
     // TODO: Just gets first person in subgroup, maybe do this randomly?
     // find kvdb that isn't syncing and get their URL
     let mut server_to_query = 0;
@@ -209,20 +204,14 @@ pub async fn get_random_server_info(
             .ok_or(ValidatorErr::SubgroupError("Index out of bounds"))?;
         let server_info_query =
             entropy::storage().staking_extension().threshold_servers(address_to_query);
-        let server_info = api
-            .storage()
-            .at(block_hash)
-            .fetch(&server_info_query)
+        let server_info = get_data_from_chain(api, rpc, &server_info_query, block_hash)
             .await?
-            .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server Info Fetch Error"))?;
+            .ok_or_else(|| ValidatorErr::ChainFetch("Server Info Fetch Error"))?;
         let server_state_query =
             entropy::storage().staking_extension().is_validator_synced(address_to_query);
-        let server_sync_state = api
-            .storage()
-            .at(block_hash)
-            .fetch(&server_state_query)
+        let server_sync_state = get_data_from_chain(api, rpc, &server_state_query, block_hash)
             .await?
-            .ok_or_else(|| ValidatorErr::OptionUnwrapError("Server State Fetch Error"))?;
+            .ok_or_else(|| ValidatorErr::ChainFetch("Server State Fetch Error"))?;
         if &my_stash_address != address_to_query && server_sync_state {
             break server_info;
         }
@@ -306,14 +295,9 @@ pub async fn check_balance_for_fees(
     min_balance: u128,
 ) -> Result<bool, ValidatorErr> {
     let balance_query = entropy::storage().system().account(address);
-    let block_hash = rpc
-        .chain_get_block_hash(None)
+    let account_info = get_data_from_chain(api, rpc, &balance_query, None)
         .await?
-        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Error getting block hash"))?;
-    let account_info =
-        api.storage().at(block_hash).fetch(&balance_query).await?.ok_or_else(|| {
-            ValidatorErr::OptionUnwrapError("Account does not exist, add balance")
-        })?;
+        .ok_or_else(|| ValidatorErr::ChainFetch("Account does not exist, add balance"))?;
     let balance = account_info.data.free;
     let mut is_min_balance = false;
     if balance >= min_balance {
@@ -344,17 +328,9 @@ pub async fn check_in_subgroup(
         .map_err(|_| ValidatorErr::StringError("Account Conversion"))?;
     let stash_address_query =
         entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
-    let block_hash = rpc
-        .chain_get_block_hash(None)
+    let stash_address = get_data_from_chain(api, rpc, &stash_address_query, None)
         .await?
-        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Error getting block hash"))?;
-
-    let stash_address = api
-        .storage()
-        .at(block_hash)
-        .fetch(&stash_address_query)
-        .await?
-        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Stash Fetch Error"))?;
+        .ok_or_else(|| ValidatorErr::ChainFetch("Stash Fetch Error"))?;
 
     let in_subgroup = addresses_in_subgroup.contains(&stash_address);
     if !in_subgroup {

@@ -98,7 +98,7 @@ use crate::{
             DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::Hasher,
-        substrate::{get_subgroup, return_all_addresses_of_subgroup, send_tx, get_data_from_chain},
+        substrate::{get_data_from_chain, get_subgroup, return_all_addresses_of_subgroup, send_tx},
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
             remove_program, run_to_block, setup_client, spawn_testing_validators,

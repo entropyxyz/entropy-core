@@ -41,7 +41,7 @@ use crate::{
             ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
             DEFAULT_MNEMONIC, FORBIDDEN_KEYS,
         },
-        substrate::get_subgroup,
+        substrate::{get_data_from_chain, get_subgroup},
         tests::{create_clients, initialize_test_logger},
     },
     validation::{
@@ -183,7 +183,7 @@ async fn test_sync_kvdb() {
 
     assert_eq!(result_3.status(), 500);
     // fails on lookup for stash key
-    assert_eq!(result_3.text().await.unwrap(), "Option Unwrap error: Stash Fetch Error");
+    assert_eq!(result_3.text().await.unwrap(), "Chain Fetch: Stash Fetch Error");
 
     keys.keys = vec![FORBIDDEN_KEYS[0].to_string()];
     let enc_forbidden =
@@ -430,8 +430,7 @@ async fn test_sync_validator() {
     let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
     let synced_query =
         entropy::storage().staking_extension().is_validator_synced(signer_charlie.account_id());
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
-    let is_synced = api.storage().at(block_hash).fetch(&synced_query).await.unwrap().unwrap();
+    let is_synced = get_data_from_chain(&api, &rpc, &synced_query, None).await.unwrap().unwrap();
     assert!(is_synced);
 
     clean_tests();

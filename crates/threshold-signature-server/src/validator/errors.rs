@@ -61,6 +61,8 @@ pub enum ValidatorErr {
     Json(#[from] entropy_protocol::sign_and_encrypt::SignedMessageErr),
     #[error("anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
+    #[error("Chain Fetch: {0}")]
+    ChainFetch(&'static str),
 }
 
 impl IntoResponse for ValidatorErr {
