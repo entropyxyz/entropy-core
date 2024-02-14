@@ -104,7 +104,7 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
     pub struct RefreshInfo {
         pub validators_info: Vec<ValidatorInfo>,
-        pub refreshes_done: u32,
+        pub proactive_refresh_keys: Vec<Vec<u8>>,
     }
 
     #[pallet::pallet]
@@ -176,7 +176,8 @@ pub mod pallet {
     pub struct GenesisConfig<T: Config> {
         pub threshold_servers: Vec<ThresholdServersConfig<T>>,
         pub signing_groups: Vec<(u8, Vec<<T as pallet_session::Config>::ValidatorId>)>,
-        pub proactive_refresh_validators: Vec<ValidatorInfo>,
+        /// validator info and accounts to take part in proactive refresh
+        pub proactive_refresh_data: (Vec<ValidatorInfo>, Vec<Vec<u8>>),
     }
 
     #[pallet::genesis_build]
@@ -206,8 +207,8 @@ pub mod pallet {
                 }
             }
             let refresh_info = RefreshInfo {
-                validators_info: self.proactive_refresh_validators.clone(),
-                refreshes_done: 0,
+                validators_info: self.proactive_refresh_data.0.clone(),
+                proactive_refresh_keys: self.proactive_refresh_data.1.clone(),
             };
             ProactiveRefresh::<T>::put(refresh_info);
         }
