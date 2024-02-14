@@ -19,6 +19,7 @@ At the moment this project **does not** adhere to
   `StakingExtensionConfig::proactive_refresh_validators` field used by the chain spec is now
   `StakingExtensionConfigproactive_refresh_data` and takes a tuple of `Vec`. Both should be empty at
   genesis for production.
+- In [#631](https://github.com/entropyxyz/entropy-core/pull/631), the `ProgramInfo.config_interface` field was renamed to `interface_description` to be more semantically accurate. This field will now be used to describe the interface for both the auxilary and configuration data of the program.
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
