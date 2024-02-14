@@ -89,8 +89,10 @@ pub struct OcwMessageDkg {
     sp_runtime::Deserialize,
 )]
 pub struct OcwMessageProactiveRefresh {
+    /// Information of the validators to participate
     pub validators_info: Vec<ValidatorInfo>,
-    pub refreshes_done: u32,
+    /// Accounts to take part in the proactive refresh
+    pub proactive_refresh_keys: Vec<Vec<u8>>,
 }
 
 /// 256-bit hashing algorithms for deriving the point to be signed.

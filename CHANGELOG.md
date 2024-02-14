@@ -15,6 +15,10 @@ At the moment this project **does not** adhere to
   contain an additional field, `signature_request_account: AccountId32`. In private and permissioned
   modes, this must be identical to the account used to sign the `SignedMessage` containing the
   signature request. In public access mode this may be an Entropy account owned by someone else.
+- In 'Add proactive refresh keys on-chain' [#629](https://github.com/entropyxyz/entropy-core/pull/629) the
+  `StakingExtensionConfig::proactive_refresh_validators` field used by the chain spec is now
+  `StakingExtensionConfigproactive_refresh_data` and takes a tuple of `Vec`. Both should be empty at
+  genesis for production.
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
@@ -22,6 +26,7 @@ At the moment this project **does not** adhere to
 
 ### Changed
  - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
+  - Add proactive refresh keys on-chain ([#629](https://github.com/entropyxyz/entropy-core/pull/629))
 
 ## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-24
 
