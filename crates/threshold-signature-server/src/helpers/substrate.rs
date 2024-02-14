@@ -68,36 +68,22 @@ pub async fn return_all_addresses_of_subgroup(
     subgroup: u8,
 ) -> Result<Vec<AccountId32>, UserErr> {
     let subgroup_addresses_query = entropy::storage().staking_extension().signing_groups(subgroup);
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
-    let subgroup_addresses = api
-        .storage()
-        .at(block_hash)
-        .fetch(&subgroup_addresses_query)
+    let subgroup_addresses = get_data_from_chain(api, rpc, &subgroup_addresses_query, None)
         .await?
         .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
+
     Ok(subgroup_addresses)
 }
 
 /// Queries the user's program from the chain
 pub async fn get_program(
-    substrate_api: &OnlineClient<EntropyConfig>,
+    api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     program_pointer: &<EntropyConfig as Config>::Hash,
 ) -> Result<Vec<u8>, UserErr> {
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
-
     let bytecode_address = entropy::storage().programs().programs(program_pointer);
 
-    Ok(substrate_api
-        .storage()
-        .at(block_hash)
-        .fetch(&bytecode_address)
+    Ok(get_data_from_chain(api, rpc, &bytecode_address, None)
         .await?
         .ok_or(UserErr::NoProgramDefined(program_pointer.to_string()))?
         .bytecode)
