@@ -21,10 +21,11 @@ use crate::{
     user::UserErr,
 };
 use anyhow::anyhow;
-use entropy_shared::SIGNING_PARTY_SIZE;
+use entropy_shared::{MORTALITY_BLOCKS, SIGNING_PARTY_SIZE};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     blocks::ExtrinsicEvents,
+    config::PolkadotExtrinsicParamsBuilder as Params,
     ext::sp_core::sr25519,
     storage::address::{StorageAddress, Yes},
     tx::{PairSigner, TxPayload},
@@ -122,7 +123,9 @@ pub async fn send_tx<Call: TxPayload>(
         api.runtime_api().at(block_hash).call(nonce_call).await?
     };
 
-    let tx = api.tx().create_signed_with_nonce(call, signer, nonce.into(), Default::default())?;
+    let latest_block = api.blocks().at_latest().await?;
+    let tx_params = Params::new().mortal(latest_block.header(), MORTALITY_BLOCKS).build();
+    let tx = api.tx().create_signed_with_nonce(call, signer, nonce.into(), tx_params)?;
     let result = tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;
     Ok(result)
 }
