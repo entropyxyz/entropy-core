@@ -44,7 +44,7 @@ use entropy_tss::{
         EntropyConfig,
     },
     common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
-    helpers::substrate::send_tx,
+    helpers::substrate::{send_tx, get_data_from_chain},
 };
 use futures::future;
 use parity_scale_codec::Decode;
@@ -83,8 +83,9 @@ pub async fn register(
     let account_id32: AccountId32 = signature_request_keypair.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
     let registered_query = entropy::storage().relayer().registered(account_id);
-
-    let query_registered_status = api.storage().at_latest().await?.fetch(&registered_query).await;
+    
+    let query_registered_status = get_data_from_chain(api, rpc, &registered_query, None)
+        .await;
     if let Some(registered_status) = query_registered_status? {
         return Err(anyhow!("Already registered {:?}", registered_status));
     }
@@ -109,7 +110,7 @@ pub async fn register(
                 .ok_or(anyhow!("Cannot get current block number"))?
                 .number;
 
-            let validators_info = get_dkg_committee(api, block_number + 1).await?;
+            let validators_info = get_dkg_committee(api, rpc, block_number + 1).await?;
             Some(
                 user_participates_in_dkg_protocol(validators_info, &signature_request_keypair)
                     .await?,
@@ -120,8 +121,8 @@ pub async fn register(
 
     // Wait until user is confirmed as registered
     for _ in 0..50 {
-        let query_registered_status =
-            api.storage().at_latest().await?.fetch(&registered_query).await;
+        let query_registered_status = get_data_from_chain(api, rpc, &registered_query, None)
+            .await;
         if let Some(registered_status) = query_registered_status? {
             return Ok((registered_status, keyshare_option));
         }
@@ -351,6 +352,7 @@ pub async fn put_register_request_on_chain(
 /// on-chain registration info for a given account
 pub async fn check_verifying_key(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     public_key: sr25519::Public,
     verifying_key: VerifyingKey,
 ) -> anyhow::Result<()> {
@@ -361,8 +363,8 @@ pub async fn check_verifying_key(
         let account_id32: AccountId32 = public_key.into();
         let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
         let registered_query = entropy::storage().relayer().registered(account_id);
-        let query_registered_status =
-            api.storage().at_latest().await?.fetch(&registered_query).await;
+        let query_registered_status = get_data_from_chain(api, rpc, &registered_query, None)
+        .await;
         query_registered_status?.ok_or(anyhow!("User not registered"))?
     };
 
@@ -372,20 +374,17 @@ pub async fn check_verifying_key(
 /// Get the commitee of tss servers who will perform DKG for a given block number
 async fn get_dkg_committee(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     block_number: u32,
 ) -> anyhow::Result<Vec<ValidatorInfo>> {
     let mut validators_info: Vec<ValidatorInfo> = vec![];
 
     for i in 0..SIGNING_PARTY_SIZE {
-        let account_id = select_validator_from_subgroup(api, i as u8, block_number).await?;
+        let account_id = select_validator_from_subgroup(api, rpc, i as u8, block_number).await?;
 
         let threshold_address_query =
             entropy::storage().staking_extension().threshold_servers(account_id);
-        let server_info = api
-            .storage()
-            .at_latest()
-            .await?
-            .fetch(&threshold_address_query)
+        let server_info = get_data_from_chain(api, rpc, &threshold_address_query, None)
             .await?
             .ok_or(anyhow!("Stash Fetch Error"))?;
         let validator_info = ValidatorInfo {
@@ -402,17 +401,14 @@ async fn get_dkg_committee(
 /// not synced
 async fn select_validator_from_subgroup(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     signing_group: u8,
     block_number: u32,
 ) -> anyhow::Result<SubxtAccountId32> {
     let subgroup_info_query = entropy::storage().staking_extension().signing_groups(signing_group);
-    let mut subgroup_addresses = api
-        .storage()
-        .at_latest()
-        .await?
-        .fetch(&subgroup_info_query)
-        .await?
-        .ok_or(anyhow!("Subgroup Fetch Error"))?;
+    let mut subgroup_addresses = get_data_from_chain(api, rpc, &subgroup_info_query, None)
+    .await?
+    .ok_or(anyhow!("Subgroup Fetch Error"))?;
 
     let address = loop {
         ensure!(!subgroup_addresses.is_empty(), "No synced validators");
@@ -420,11 +416,7 @@ async fn select_validator_from_subgroup(
         let address = &subgroup_addresses[selection as usize];
         let is_validator_syned_query =
             entropy::storage().staking_extension().is_validator_synced(address);
-        let is_synced = api
-            .storage()
-            .at_latest()
-            .await?
-            .fetch(&is_validator_syned_query)
+        let is_synced = get_data_from_chain(api, rpc, &is_validator_syned_query, None)
             .await?
             .ok_or(anyhow!("Cannot query whether validator is synced"))?;
         if !is_synced {
