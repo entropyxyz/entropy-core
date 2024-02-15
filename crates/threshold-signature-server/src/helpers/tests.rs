@@ -48,7 +48,7 @@ use crate::{
         },
         logger::Instrumentation,
         logger::Logger,
-        substrate::{get_subgroup, query_chain, send_tx},
+        substrate::{get_subgroup, query_chain, submit_transaction},
     },
     signing_client::ListenerState,
     AppState,
@@ -190,7 +190,7 @@ pub async fn remove_program(
     let remove_program_tx = entropy::tx().programs().remove_program(program_hash);
     let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer.clone());
 
-    send_tx(entropy_api, rpc, &deployer, &remove_program_tx, None).await.unwrap();
+    submit_transaction(entropy_api, rpc, &deployer, &remove_program_tx, None).await.unwrap();
 }
 
 /// Verify that a Registering account has all confirmation, and that it is registered.

@@ -44,7 +44,7 @@ use entropy_tss::{
         EntropyConfig,
     },
     common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
-    helpers::substrate::{query_chain, send_tx},
+    helpers::substrate::{query_chain, submit_transaction},
 };
 use futures::future;
 use parity_scale_codec::Decode;
@@ -267,7 +267,7 @@ pub async fn store_program(
     let update_program_tx = entropy::tx().programs().set_program(program, configuration_interface);
     let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer_pair.clone());
 
-    let in_block = send_tx(api, rpc, &deployer, &update_program_tx, None).await?;
+    let in_block = submit_transaction(api, rpc, &deployer, &update_program_tx, None).await?;
     let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>()?;
     Ok(result_event.ok_or(anyhow!("Error getting program created event"))?.program_hash)
 }
@@ -284,7 +284,7 @@ pub async fn update_programs(
         .relayer()
         .change_program_instance(signature_request_account.public().into(), program_instance);
     let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer_pair.clone());
-    send_tx(entropy_api, rpc, &deployer, &update_pointer_tx, None).await?;
+    submit_transaction(entropy_api, rpc, &deployer, &update_pointer_tx, None).await?;
     Ok(())
 }
 /// Get info on all registered accounts
@@ -343,7 +343,7 @@ pub async fn put_register_request_on_chain(
     let registering_tx =
         entropy::tx().relayer().register(deployer, Static(key_visibility), program_instance);
 
-    send_tx(api, rpc, &signature_request_pair_signer, &registering_tx, None).await?;
+    submit_transaction(api, rpc, &signature_request_pair_signer, &registering_tx, None).await?;
     Ok(())
 }
 

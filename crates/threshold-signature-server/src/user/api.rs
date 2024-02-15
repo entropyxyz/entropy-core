@@ -69,7 +69,7 @@ use crate::{
         signing::{do_signing, Hasher},
         substrate::{
             get_program, get_registered_details, get_subgroup, query_chain,
-            return_all_addresses_of_subgroup, send_tx,
+            return_all_addresses_of_subgroup, submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg, send_key},
         validator::get_signer,
@@ -484,7 +484,7 @@ pub async fn confirm_registered(
         subgroup,
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
     );
-    send_tx(api, rpc, signer, &registration_tx, Some(nonce)).await?;
+    submit_transaction(api, rpc, signer, &registration_tx, Some(nonce)).await?;
     Ok(())
 }
 /// Gets the current signing committee

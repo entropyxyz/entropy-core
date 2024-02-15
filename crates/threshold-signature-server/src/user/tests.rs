@@ -98,7 +98,9 @@ use crate::{
             DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::Hasher,
-        substrate::{get_subgroup, query_chain, return_all_addresses_of_subgroup, send_tx},
+        substrate::{
+            get_subgroup, query_chain, return_all_addresses_of_subgroup, submit_transaction,
+        },
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
             remove_program, run_to_block, setup_client, spawn_testing_validators,
@@ -893,7 +895,7 @@ pub async fn put_register_request_on_chain(
         Static(key_visibility),
         program_instance,
     );
-    send_tx(api, rpc, &sig_req_account, &registering_tx, None).await.unwrap();
+    submit_transaction(api, rpc, &sig_req_account, &registering_tx, None).await.unwrap();
 }
 
 #[tokio::test]

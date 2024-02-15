@@ -37,7 +37,9 @@ use crate::{
     get_signer,
     helpers::{
         launch::FORBIDDEN_KEYS,
-        substrate::{get_subgroup, query_chain, return_all_addresses_of_subgroup, send_tx},
+        substrate::{
+            get_subgroup, query_chain, return_all_addresses_of_subgroup, submit_transaction,
+        },
     },
     validation::{check_stale, SignedMessage},
     validator::errors::ValidatorErr,
@@ -282,7 +284,7 @@ pub async fn tell_chain_syncing_is_done(
     signer: &PairSigner<EntropyConfig, subxt::ext::sp_core::sr25519::Pair>,
 ) -> Result<(), ValidatorErr> {
     let synced_tx = entropy::tx().staking_extension().declare_synced(true);
-    let _ = send_tx(api, rpc, signer, &synced_tx, None).await?;
+    let _ = submit_transaction(api, rpc, signer, &synced_tx, None).await?;
     Ok(())
 }
 
