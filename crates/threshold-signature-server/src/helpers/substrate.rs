@@ -131,8 +131,9 @@ pub async fn send_tx<Call: TxPayload>(
     Ok(result)
 }
 
-/// Gets data from the entropy chain
-/// takes an option for block hash, grabs block hash from chain if input is none
+/// Gets data from the Entropy chain
+///
+/// Optionally takes a block hash, otherwise the latest block hash from the chain is used
 pub async fn get_data_from_chain<'address, Address>(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
