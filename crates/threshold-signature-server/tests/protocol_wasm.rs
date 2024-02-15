@@ -68,6 +68,7 @@ use entropy_tss::{
         validation::{derive_static_secret, SignedMessage},
         Hasher, UserSignatureRequest,
     },
+    helpers::substrate::query_chain,
 };
 
 /// Test demonstrating signing a message with private key visibility on wasm
@@ -85,10 +86,15 @@ async fn test_wasm_sign_tx_user_participates() {
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_pointer =
-        store_program(&entropy_api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_pointer = store_program(
+        &entropy_api,
+        &rpc,
+        &dave.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
 
     update_programs(
         &entropy_api,
@@ -214,7 +220,7 @@ async fn test_wasm_register_with_private_key_visibility() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let program_pointer =
-        store_program(&api, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+        store_program(&api, &rpc, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
             .await
             .unwrap();
 
@@ -390,10 +396,9 @@ async fn wait_for_register_confirmation(
     rpc: LegacyRpcMethods<EntropyConfig>,
 ) -> RegisteredInfo {
     let account_id: <EntropyConfig as Config>::AccountId = account_id.into();
-    let registered_query = entropy::storage().relayer().registered(account_id);
     for _ in 0..30 {
-        let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
-        let query_registered_status = api.storage().at(block_hash).fetch(&registered_query).await;
+        let registered_query = entropy::storage().relayer().registered(account_id.clone());
+        let query_registered_status = query_chain(&api, &rpc, registered_query, None).await;
         if let Some(user_info) = query_registered_status.unwrap() {
             return user_info;
         }

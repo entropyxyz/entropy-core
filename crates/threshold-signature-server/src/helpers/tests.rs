@@ -27,11 +27,10 @@ use entropy_shared::KeyVisibility;
 use entropy_testing_utils::substrate_context::testing_context;
 use rand_core::OsRng;
 use serial_test::serial;
-use sp_core::crypto::AccountId32;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519, Pair},
-    tx::{PairSigner, Signer},
+    tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static},
     Config, OnlineClient,
 };
@@ -49,7 +48,7 @@ use crate::{
         },
         logger::Instrumentation,
         logger::Logger,
-        substrate::get_subgroup,
+        substrate::{get_subgroup, query_chain, submit_transaction},
     },
     signing_client::ListenerState,
     AppState,
@@ -189,31 +188,9 @@ pub async fn remove_program(
 ) {
     // update/set their programs
     let remove_program_tx = entropy::tx().programs().remove_program(program_hash);
-    let account_id32: AccountId32 = deployer.public().into();
-    let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
-
     let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer.clone());
 
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
-    let nonce_call = entropy::apis().account_nonce_api().account_nonce(account_id.clone());
-    let nonce = entropy_api.runtime_api().at(block_hash).call(nonce_call).await.unwrap();
-    let partial_tx = entropy_api
-        .tx()
-        .create_partial_signed_with_nonce(&remove_program_tx, nonce.into(), Default::default())
-        .unwrap();
-    let signer_payload = partial_tx.signer_payload();
-    let signature = deployer.sign(&signer_payload);
-
-    let tx = partial_tx.sign_with_address_and_signature(&account_id.into(), &signature);
-    tx.submit_and_watch()
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
+    submit_transaction(entropy_api, rpc, &deployer, &remove_program_tx, None).await.unwrap();
 }
 
 /// Verify that a Registering account has all confirmation, and that it is registered.
@@ -225,11 +202,11 @@ pub async fn check_if_confirmation(
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
     let registering_query = entropy::storage().relayer().registering(signer.account_id());
     let registered_query = entropy::storage().relayer().registered(signer.account_id());
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
-    let is_registering = api.storage().at(block_hash).fetch(&registering_query).await;
+    let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
+    let is_registering = query_chain(api, rpc, registering_query, block_hash).await;
     // cleared from is_registering state
     assert!(is_registering.unwrap().is_none());
-    let is_registered = api.storage().at(block_hash).fetch(&registered_query).await.unwrap();
+    let is_registered = query_chain(api, rpc, registered_query, block_hash).await.unwrap();
     assert_eq!(is_registered.as_ref().unwrap().verifying_key.0.len(), 33usize);
     assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
 }
@@ -242,9 +219,8 @@ pub async fn check_has_confirmation(
 ) {
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
     let registering_query = entropy::storage().relayer().registering(signer.account_id());
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
     // cleared from is_registering state
-    let is_registering = api.storage().at(block_hash).fetch(&registering_query).await.unwrap();
+    let is_registering = query_chain(api, rpc, registering_query, None).await.unwrap();
     assert_eq!(is_registering.unwrap().confirmations.len(), 1);
 }
 

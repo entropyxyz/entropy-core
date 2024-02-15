@@ -54,6 +54,7 @@ async fn integration_test_sign_public() {
 
     let program_pointer = test_client::store_program(
         &api,
+        &rpc,
         &deployer.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
@@ -110,6 +111,7 @@ async fn integration_test_sign_permissioned() {
 
     let program_pointer = test_client::store_program(
         &api,
+        &rpc,
         &deployer.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
@@ -185,6 +187,7 @@ async fn integration_test_sign_private() {
 
     let program_pointer = test_client::store_program(
         &api,
+        &rpc,
         &deployer.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],

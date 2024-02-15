@@ -68,7 +68,8 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{do_signing, Hasher},
         substrate::{
-            get_program, get_registered_details, get_subgroup, return_all_addresses_of_subgroup,
+            get_program, get_registered_details, get_subgroup, query_chain,
+            return_all_addresses_of_subgroup, submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg, send_key},
         validator::get_signer,
@@ -350,6 +351,7 @@ async fn setup_dkg(
         // TODO: Error handling really complex needs to be thought about.
         confirm_registered(
             &api,
+            rpc,
             sig_request_address,
             my_subgroup,
             &signer,
@@ -393,20 +395,14 @@ pub async fn receive_key(
 
     let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
         .map_err(|_| UserErr::StringError("Account Conversion"))?;
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
 
     // check message is from the person sending the message (get stash key from threshold key)
     let stash_address_query =
         entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
-    let stash_address = api
-        .storage()
-        .at(block_hash)
-        .fetch(&stash_address_query)
+    let stash_address = query_chain(&api, &rpc, stash_address_query, None)
         .await?
-        .ok_or_else(|| UserErr::SubgroupError("Stash Fetch Error"))?;
+        .ok_or_else(|| UserErr::ChainFetch("Stash Fetch Error"))?;
+
     if !addresses_in_subgroup.contains(&stash_address) {
         return Err(UserErr::NotInSubgroup);
     }
@@ -450,18 +446,10 @@ pub async fn get_registering_user_details(
     who: &<EntropyConfig as Config>::AccountId,
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> Result<RegisteringDetails, UserErr> {
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let registering_info_query = entropy::storage().relayer().registering(who);
-    let register_info = api
-        .storage()
-        .at(block_hash)
-        .fetch(&registering_info_query)
+    let register_info = query_chain(api, rpc, registering_info_query, None)
         .await?
-        .ok_or_else(|| UserErr::NotRegistering("Register Onchain first"))?;
-
+        .ok_or_else(|| UserErr::ChainFetch("Register Onchain first"))?;
     Ok(register_info)
 }
 
@@ -471,12 +459,8 @@ pub async fn is_registering(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
 ) -> Result<bool, UserErr> {
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let registering_info_query = entropy::storage().relayer().registering(who);
-    let register_info = api.storage().at(block_hash).fetch(&registering_info_query).await?;
+    let register_info = query_chain(api, rpc, registering_info_query, None).await?;
 
     Ok(register_info.is_some())
 }
@@ -484,12 +468,13 @@ pub async fn is_registering(
 /// Confirms that a address has finished registering on chain.
 pub async fn confirm_registered(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     who: SubxtAccountId32,
     subgroup: u8,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     verifying_key: Vec<u8>,
     nonce: u32,
-) -> Result<(), subxt::error::Error> {
+) -> Result<(), UserErr> {
     // TODO error handling + return error
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
@@ -499,14 +484,7 @@ pub async fn confirm_registered(
         subgroup,
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
     );
-    let tx = api.tx().create_signed_with_nonce(
-        &registration_tx,
-        signer,
-        nonce.into(),
-        Default::default(),
-    )?;
-
-    let _ = tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;
+    submit_transaction(api, rpc, signer, &registration_tx, Some(nonce)).await?;
     Ok(())
 }
 /// Gets the current signing committee
@@ -519,22 +497,17 @@ pub async fn get_current_subgroup_signers(
 ) -> Result<Vec<ValidatorInfo>, UserErr> {
     let mut subgroup_signers = vec![];
     let number = Arc::new(BigInt::from_str_radix(sig_hash, 16)?);
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
+    let block_hash = rpc.chain_get_block_hash(None).await?;
+
     let futures = (0..SIGNING_PARTY_SIZE)
         .map(|i| {
             let owned_number = Arc::clone(&number);
             async move {
                 let subgroup_info_query =
                     entropy::storage().staking_extension().signing_groups(i as u8);
-                let subgroup_info = api
-                    .storage()
-                    .at(block_hash)
-                    .fetch(&subgroup_info_query)
+                let subgroup_info = query_chain(api, rpc, subgroup_info_query, block_hash)
                     .await?
-                    .ok_or(UserErr::SubgroupError("Subgroup Fetch Error"))?;
+                    .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
 
                 let index_of_signer_big = &*owned_number % subgroup_info.len();
                 let index_of_signer =
@@ -543,12 +516,9 @@ pub async fn get_current_subgroup_signers(
                 let threshold_address_query = entropy::storage()
                     .staking_extension()
                     .threshold_servers(subgroup_info[index_of_signer].clone());
-                let server_info = api
-                    .storage()
-                    .at(block_hash)
-                    .fetch(&threshold_address_query)
+                let server_info = query_chain(api, rpc, threshold_address_query, block_hash)
                     .await?
-                    .ok_or(UserErr::SubgroupError("Stash Fetch Error"))?;
+                    .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
 
                 Ok::<_, UserErr>(ValidatorInfo {
                     x25519_public_key: server_info.x25519_public_key,
@@ -622,13 +592,8 @@ pub async fn validate_new_user(
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
 
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let verifying_data_query = entropy::storage().relayer().dkg(chain_data.block_number);
-    let verifying_data = api.storage().at(block_hash).fetch(&verifying_data_query).await?;
-
+    let verifying_data = query_chain(api, rpc, verifying_data_query, None).await?;
     hasher_verifying_data.update(verifying_data.encode());
 
     let verifying_data_hash = hasher_verifying_data.finalize();

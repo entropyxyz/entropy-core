@@ -109,7 +109,7 @@
 pub mod chain_api;
 pub mod common;
 pub(crate) mod health;
-pub(crate) mod helpers;
+pub mod helpers;
 pub(crate) mod node_info;
 pub(crate) mod sign_init;
 pub(crate) mod signing_client;
