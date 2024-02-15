@@ -106,7 +106,7 @@ pub async fn get_registered_details(
 /// Send a transaction to the Entropy chain
 ///
 /// Optionally takes a nonce, otherwise it grabs the latest nonce from the chain
-pub async fn send_tx<Call: TxPayload>(
+pub async fn submit_transaction<Call: TxPayload>(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
