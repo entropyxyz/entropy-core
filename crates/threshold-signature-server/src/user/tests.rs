@@ -634,12 +634,12 @@ async fn test_store_share() {
 
     // Wait until user is confirmed as registered
     let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
-    let registered_query = entropy::storage().relayer().registered(alice_account_id);
     for _ in 0..10 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
+        let registered_query = entropy::storage().relayer().registered(alice_account_id.clone());
         let query_registered_status =
-            get_data_from_chain(&api, &rpc, &registered_query, block_hash).await;
+            get_data_from_chain(&api, &rpc, registered_query, block_hash).await;
         if query_registered_status.unwrap().is_some() {
             break;
         }

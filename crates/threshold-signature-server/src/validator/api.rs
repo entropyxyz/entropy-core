@@ -192,7 +192,7 @@ pub async fn get_random_server_info(
     let signing_group_addresses_query =
         entropy::storage().staking_extension().signing_groups(my_subgroup);
     let signing_group_addresses =
-        get_data_from_chain(api, rpc, &signing_group_addresses_query, block_hash)
+        get_data_from_chain(api, rpc, signing_group_addresses_query, block_hash)
             .await?
             .ok_or_else(|| ValidatorErr::ChainFetch("Querying Signing Groups Error"))?;
     // TODO: Just gets first person in subgroup, maybe do this randomly?
@@ -204,12 +204,12 @@ pub async fn get_random_server_info(
             .ok_or(ValidatorErr::SubgroupError("Index out of bounds"))?;
         let server_info_query =
             entropy::storage().staking_extension().threshold_servers(address_to_query);
-        let server_info = get_data_from_chain(api, rpc, &server_info_query, block_hash)
+        let server_info = get_data_from_chain(api, rpc, server_info_query, block_hash)
             .await?
             .ok_or_else(|| ValidatorErr::ChainFetch("Server Info Fetch Error"))?;
         let server_state_query =
             entropy::storage().staking_extension().is_validator_synced(address_to_query);
-        let server_sync_state = get_data_from_chain(api, rpc, &server_state_query, block_hash)
+        let server_sync_state = get_data_from_chain(api, rpc, server_state_query, block_hash)
             .await?
             .ok_or_else(|| ValidatorErr::ChainFetch("Server State Fetch Error"))?;
         if &my_stash_address != address_to_query && server_sync_state {
@@ -295,7 +295,7 @@ pub async fn check_balance_for_fees(
     min_balance: u128,
 ) -> Result<bool, ValidatorErr> {
     let balance_query = entropy::storage().system().account(address);
-    let account_info = get_data_from_chain(api, rpc, &balance_query, None)
+    let account_info = get_data_from_chain(api, rpc, balance_query, None)
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Account does not exist, add balance"))?;
     let balance = account_info.data.free;
@@ -328,7 +328,7 @@ pub async fn check_in_subgroup(
         .map_err(|_| ValidatorErr::StringError("Account Conversion"))?;
     let stash_address_query =
         entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
-    let stash_address = get_data_from_chain(api, rpc, &stash_address_query, None)
+    let stash_address = get_data_from_chain(api, rpc, stash_address_query, None)
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Stash Fetch Error"))?;
 

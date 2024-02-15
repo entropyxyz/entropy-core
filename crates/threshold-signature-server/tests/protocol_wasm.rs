@@ -398,8 +398,7 @@ async fn wait_for_register_confirmation(
     let account_id: <EntropyConfig as Config>::AccountId = account_id.into();
     let registered_query = entropy::storage().relayer().registered(account_id);
     for _ in 0..30 {
-        let query_registered_status =
-            get_data_from_chain(&api, &rpc, &registered_query, None).await;
+        let query_registered_status = get_data_from_chain(&api, &rpc, registered_query, None).await;
         if let Some(user_info) = query_registered_status.unwrap() {
             return user_info;
         }

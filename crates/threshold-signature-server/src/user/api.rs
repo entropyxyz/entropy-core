@@ -399,7 +399,7 @@ pub async fn receive_key(
     // check message is from the person sending the message (get stash key from threshold key)
     let stash_address_query =
         entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
-    let stash_address = get_data_from_chain(&api, &rpc, &stash_address_query, None)
+    let stash_address = get_data_from_chain(&api, &rpc, stash_address_query, None)
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Stash Fetch Error"))?;
 
@@ -447,7 +447,7 @@ pub async fn get_registering_user_details(
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> Result<RegisteringDetails, UserErr> {
     let registering_info_query = entropy::storage().relayer().registering(who);
-    let register_info = get_data_from_chain(api, rpc, &registering_info_query, None)
+    let register_info = get_data_from_chain(api, rpc, registering_info_query, None)
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Register Onchain first"))?;
     Ok(register_info)
@@ -460,7 +460,7 @@ pub async fn is_registering(
     who: &<EntropyConfig as Config>::AccountId,
 ) -> Result<bool, UserErr> {
     let registering_info_query = entropy::storage().relayer().registering(who);
-    let register_info = get_data_from_chain(api, rpc, &registering_info_query, None).await?;
+    let register_info = get_data_from_chain(api, rpc, registering_info_query, None).await?;
 
     Ok(register_info.is_some())
 }
@@ -505,7 +505,7 @@ pub async fn get_current_subgroup_signers(
             async move {
                 let subgroup_info_query =
                     entropy::storage().staking_extension().signing_groups(i as u8);
-                let subgroup_info = get_data_from_chain(api, rpc, &subgroup_info_query, block_hash)
+                let subgroup_info = get_data_from_chain(api, rpc, subgroup_info_query, block_hash)
                     .await?
                     .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
 
@@ -517,7 +517,7 @@ pub async fn get_current_subgroup_signers(
                     .staking_extension()
                     .threshold_servers(subgroup_info[index_of_signer].clone());
                 let server_info =
-                    get_data_from_chain(api, rpc, &threshold_address_query, block_hash)
+                    get_data_from_chain(api, rpc, threshold_address_query, block_hash)
                         .await?
                         .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
 
@@ -594,7 +594,7 @@ pub async fn validate_new_user(
     let mut hasher_verifying_data = Blake2s256::new();
 
     let verifying_data_query = entropy::storage().relayer().dkg(chain_data.block_number);
-    let verifying_data = get_data_from_chain(api, rpc, &verifying_data_query, None).await?;
+    let verifying_data = get_data_from_chain(api, rpc, verifying_data_query, None).await?;
     hasher_verifying_data.update(verifying_data.encode());
 
     let verifying_data_hash = hasher_verifying_data.finalize();
