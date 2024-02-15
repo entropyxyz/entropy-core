@@ -103,8 +103,9 @@ pub async fn get_registered_details(
     Ok(result)
 }
 
-/// Send a tx to the entropy chain
-/// takes an option for nonce, grabs nonce from chain if input is none
+/// Send a transaction to the Entropy chain
+///
+/// Optionally takes a nonce, otherwise it grabs the latest nonce from the chain
 pub async fn send_tx<Call: TxPayload>(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
