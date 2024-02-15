@@ -35,7 +35,7 @@ use crate::{
     chain_api::{
         entropy, entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, EntropyConfig,
     },
-    helpers::substrate::{get_data_from_chain, get_program},
+    helpers::substrate::{get_program, query_chain},
     signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
     user::{api::UserRegistrationInfo, errors::UserErr},
     validation::{derive_static_secret, SignedMessage},
@@ -126,7 +126,7 @@ pub async fn send_key(
 
     for validator in addresses_in_subgroup {
         let server_info_query = entropy::storage().staking_extension().threshold_servers(validator);
-        let server_info = get_data_from_chain(api, rpc, server_info_query, block_hash)
+        let server_info = query_chain(api, rpc, server_info_query, block_hash)
             .await?
             .ok_or_else(|| UserErr::ChainFetch("Server Info Fetch Error"))?;
         let signed_message = SignedMessage::new(

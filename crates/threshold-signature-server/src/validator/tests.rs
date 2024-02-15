@@ -41,7 +41,7 @@ use crate::{
             ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
             DEFAULT_MNEMONIC, FORBIDDEN_KEYS,
         },
-        substrate::{get_data_from_chain, get_subgroup},
+        substrate::{get_subgroup, query_chain},
         tests::{create_clients, initialize_test_logger},
     },
     validation::{
@@ -430,7 +430,7 @@ async fn test_sync_validator() {
     let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
     let synced_query =
         entropy::storage().staking_extension().is_validator_synced(signer_charlie.account_id());
-    let is_synced = get_data_from_chain(&api, &rpc, synced_query, None).await.unwrap().unwrap();
+    let is_synced = query_chain(&api, &rpc, synced_query, None).await.unwrap().unwrap();
     assert!(is_synced);
 
     clean_tests();

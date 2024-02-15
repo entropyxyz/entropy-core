@@ -98,7 +98,7 @@ use crate::{
             DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::Hasher,
-        substrate::{get_data_from_chain, get_subgroup, return_all_addresses_of_subgroup, send_tx},
+        substrate::{get_subgroup, query_chain, return_all_addresses_of_subgroup, send_tx},
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
             remove_program, run_to_block, setup_client, spawn_testing_validators,
@@ -638,8 +638,7 @@ async fn test_store_share() {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
         let registered_query = entropy::storage().relayer().registered(alice_account_id.clone());
-        let query_registered_status =
-            get_data_from_chain(&api, &rpc, registered_query, block_hash).await;
+        let query_registered_status = query_chain(&api, &rpc, registered_query, block_hash).await;
         if query_registered_status.unwrap().is_some() {
             break;
         }

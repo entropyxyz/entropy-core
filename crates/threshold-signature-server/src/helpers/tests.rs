@@ -48,7 +48,7 @@ use crate::{
         },
         logger::Instrumentation,
         logger::Logger,
-        substrate::{get_data_from_chain, get_subgroup, send_tx},
+        substrate::{get_subgroup, query_chain, send_tx},
     },
     signing_client::ListenerState,
     AppState,
@@ -203,10 +203,10 @@ pub async fn check_if_confirmation(
     let registering_query = entropy::storage().relayer().registering(signer.account_id());
     let registered_query = entropy::storage().relayer().registered(signer.account_id());
     let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
-    let is_registering = get_data_from_chain(api, rpc, registering_query, block_hash).await;
+    let is_registering = query_chain(api, rpc, registering_query, block_hash).await;
     // cleared from is_registering state
     assert!(is_registering.unwrap().is_none());
-    let is_registered = get_data_from_chain(api, rpc, registered_query, block_hash).await.unwrap();
+    let is_registered = query_chain(api, rpc, registered_query, block_hash).await.unwrap();
     assert_eq!(is_registered.as_ref().unwrap().verifying_key.0.len(), 33usize);
     assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
 }
@@ -220,7 +220,7 @@ pub async fn check_has_confirmation(
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
     let registering_query = entropy::storage().relayer().registering(signer.account_id());
     // cleared from is_registering state
-    let is_registering = get_data_from_chain(api, rpc, registering_query, None).await.unwrap();
+    let is_registering = query_chain(api, rpc, registering_query, None).await.unwrap();
     assert_eq!(is_registering.unwrap().confirmations.len(), 1);
 }
 

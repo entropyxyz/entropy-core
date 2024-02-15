@@ -52,8 +52,7 @@ use crate::{
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         substrate::{
-            get_data_from_chain, get_registered_details, get_subgroup,
-            return_all_addresses_of_subgroup,
+            get_registered_details, get_subgroup, query_chain, return_all_addresses_of_subgroup,
         },
         user::{check_in_registration_group, send_key},
         validator::get_signer,
@@ -259,7 +258,7 @@ pub async fn validate_proactive_refresh(
     }
 
     let proactive_info_query = entropy::storage().staking_extension().proactive_refresh();
-    let proactive_info = get_data_from_chain(api, rpc, proactive_info_query, None)
+    let proactive_info = query_chain(api, rpc, proactive_info_query, None)
         .await?
         .ok_or_else(|| ProtocolErr::ChainFetch("Error getting Proactive Refresh data"))?;
     let mut hasher_chain_data = Blake2s256::new();
