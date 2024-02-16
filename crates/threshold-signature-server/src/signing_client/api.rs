@@ -105,11 +105,13 @@ pub async fn proactive_refresh(
             .map_err(|e| ProtocolErr::UserError(e.to_string()))?
             .key_visibility
             .0;
+
+        // Check key visibility and don't do proactive refresh if it is private as this would require the user to be online
         if key_visibility != KeyVisibility::Public && key_visibility != KeyVisibility::Permissioned
         {
             return Ok(StatusCode::ACCEPTED);
         }
-        // TODO: check key visibility don't do private (requires user to be online)
+
         // key should always exist, figure out how to handle
         let exists_result = app_state.kv_store.kv().exists(&key).await?;
         if exists_result {
