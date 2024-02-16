@@ -13,11 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{mock::*, Error, ServerInfo, ThresholdToStash};
-use frame_support::{assert_noop, assert_ok};
-use pallet_session::SessionManager;
-
-const NULL_ARR: [u8; 32] = [0; 32];
+use crate::mock::*;
+use frame_support::assert_ok;
 
 #[test]
 fn tests_new_session_handler() {

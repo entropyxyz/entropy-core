@@ -53,13 +53,9 @@ pub mod benchmarking;
 pub mod weights;
 use core::convert::TryFrom;
 
-use sp_staking::SessionIndex;
-
-use crate as pallet_staking_extension;
-
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE};
+    use entropy_shared::{ValidatorInfo, X25519PublicKey};
     use frame_support::{
         dispatch::DispatchResult, pallet_prelude::*, traits::Currency, DefaultNoBound,
     };
@@ -392,5 +388,3 @@ pub mod pallet {
         }
     }
 }
-
-  

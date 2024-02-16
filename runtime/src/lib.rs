@@ -716,15 +716,15 @@ impl pallet_staking_extension::Config for Runtime {
 }
 
 parameter_types! {
-    pub const ProactiveRefreshChecks: u32 = 100;
-    pub const MaxProactiveRefreshes: u32 = 10;
-  }
-  impl pallet_session_handler::Config for Runtime {
-      type ProactiveRefreshChecks = ProactiveRefreshChecks;
-      type MaxProactiveRefreshes = MaxProactiveRefreshes;
-      type RuntimeEvent = RuntimeEvent;
-      type WeightInfo = weights::pallet_session_handler::WeightInfo<Runtime>;
-  }
+  pub const ProactiveRefreshChecks: u32 = 100;
+  pub const MaxProactiveRefreshes: u32 = 10;
+}
+impl pallet_session_handler::Config for Runtime {
+    type ProactiveRefreshChecks = ProactiveRefreshChecks;
+    type MaxProactiveRefreshes = MaxProactiveRefreshes;
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = weights::pallet_session_handler::WeightInfo<Runtime>;
+}
 
 parameter_types! {
     // phase durations. 1/4 of the last session for each.

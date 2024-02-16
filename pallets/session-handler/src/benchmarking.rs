@@ -31,7 +31,6 @@ use super::*;
 #[allow(unused_imports)]
 use crate::Pallet as SessionHandler;
 
-const NULL_ARR: [u8; 32] = [0; 32];
 const SEED: u32 = 0;
 const SEED_2: u32 = 1;
 

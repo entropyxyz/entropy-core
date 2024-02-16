@@ -35,7 +35,6 @@
 use core::convert::TryInto;
 
 pub use pallet::*;
-use pallet_staking::ValidatorPrefs;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
@@ -51,20 +50,13 @@ mod tests;
 pub mod benchmarking;
 
 pub mod weights;
-use core::convert::TryFrom;
 
 use sp_staking::SessionIndex;
-
-use crate as pallet_session_handler;
 
 #[frame_support::pallet]
 pub mod pallet {
     use entropy_shared::{ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE};
-    use frame_support::{
-        dispatch::DispatchResult, pallet_prelude::*, traits::Currency, DefaultNoBound,
-    };
-    use frame_system::pallet_prelude::*;
-    use sp_staking::StakingAccount;
+    use frame_support::{pallet_prelude::*, traits::Currency};
     use sp_std::vec::Vec;
 
     use super::*;

@@ -104,7 +104,7 @@ pallet-propagation      ={ version='0.0.10', path='../pallets/propagation', defa
 pallet-relayer          ={ version='0.0.10', path='../pallets/relayer', default-features=false }
 pallet-slashing         ={ version='0.0.10', path='../pallets/slashing', default-features=false }
 pallet-staking-extension={ version='0.0.10', path='../pallets/staking', default-features=false }
-pallet-session-handler={ version='0.0.10', path='../pallets/session-handler', default-features=false }
+pallet-session-handler  ={ version='0.0.10', path='../pallets/session-handler', default-features=false }
 pallet-transaction-pause={ version='0.0.10', path='../pallets/transaction-pause', default-features=false }
 
 entropy-shared={ path="../crates/shared", default-features=false, features=["wasm-no-std"] }
