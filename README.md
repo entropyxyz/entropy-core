@@ -2,9 +2,14 @@
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/entropyxyz/entropy-core/tree/master.svg?style=svg&circle-token=bff4726b78a5f7c7771cb9ee8453cde0b8132d6f)](https://dl.circleci.com/status-badge/redirect/gh/entropyxyz/entropy-core/tree/master)
 
-This repo contains the Entropy blockchain node, the validator server (evaluates programs, stores threshold keyshares, and coordinates threshold-signing), and misc. testing utilities for the network.
+This repo contains the Entropy blockchain node, the [Threshold Signature Server](https://docs-api-entropy-core.vercel.app/entropy_tss) (evaluates programs, stores threshold keyshares, and coordinates threshold-signing), and misc. testing utilities for the network.
 
 Our blockchain node is written with [Substrate](https://substrate.io/) using [Substrate's node template](https://github.com/substrate-developer-hub/substrate-node-template).
+
+## Documentation
+
+- [API documentation](https://docs-api-entropy-core.vercel.app/entropy)
+- [High level documentation for Entropy](https://entropy-docs.vercel.app)
 
 ## Getting Started
 
@@ -96,9 +101,15 @@ cargo test -p entropy-tss --features unsafe -- test_sign_tx_no_chain --nocapture
 Once the node template is running locally, you can connect it with **Polkadot-JS Apps** front-end
 to interact with your chain. [Click here](https://polkadot.js.org/apps/#/explorer?rpc=ws://localhost:9944) connecting the Apps to your local node template.
 
+### Command line interface
+
+A [simple command line interface client](https://github.com/entropyxyz/entropy-core/tree/master/crates/test-cli) is included in this repository for test purposes. This can be used with both the local docker-compose network and network deployments.
+
+It is however only intended for use with test networks and has no secure private key storage. For a fully featured command line client see [entropyxyz/cli](https://github.com/entropyxyz/cli).
+
 ## Threshold Keys
 
-- Keys for internal testnet use only, not secure, here for convenience do not use them for anything real
+- Keys for internal devnet use only (used in tests and for the local network built with docker-compose). These are not secure, they are here for convenience, do not use them for anything real.
 
 #### Alice
 
