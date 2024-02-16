@@ -13,23 +13,21 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::{mock::*, Error, ServerInfo, ThresholdToStash};
 use frame_support::{assert_noop, assert_ok};
 use pallet_session::SessionManager;
-
-use crate::{mock::*, Error, ServerInfo, ThresholdToStash};
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
 #[test]
 fn tests_new_session_handler() {
     new_test_ext().execute_with(|| {
-        let first_signing_group = || SessionHandler::signing_groups(0).unwrap();
-        let second_signing_group = || SessionHandler::signing_groups(1).unwrap();
+        let first_signing_group = || Staking::signing_groups(0).unwrap();
+        let second_signing_group = || Staking::signing_groups(1).unwrap();
 
-        // In our mock genesis we have Validator 1 and 2 in two different signing groups
+        // Setup a base of Validator 1 and 2 in two different signing groups
         assert_eq!(first_signing_group(), vec![1]);
         assert_eq!(second_signing_group(), vec![2]);
-
         // If we set validators 1 and 2 in a new session, we expect them to be assigned to two
         // different signing groups
         assert_ok!(SessionHandler::new_session_handler(&[1, 2]));
@@ -45,7 +43,7 @@ fn tests_new_session_handler() {
         // If we have a session with a single validator, we expect to have an empty signing group
         assert_ok!(SessionHandler::new_session_handler(&[1]));
         assert_eq!(first_signing_group(), vec![1]);
-        assert_eq!(SessionHandler::signing_groups(1), Some(vec![]));
+        assert_eq!(Staking::signing_groups(1), Some(vec![]));
 
         // If we have a session with more validators than signing groups, we expect that they will
         // be assigned across the different signing groups

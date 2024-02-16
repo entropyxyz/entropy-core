@@ -55,7 +55,7 @@ use core::convert::TryFrom;
 
 use sp_staking::SessionIndex;
 
-use crate as pallet_staking_extension;
+use crate as pallet_session_handler;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -71,11 +71,16 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config:
-        pallet_session::Config + frame_system::Config + pallet_staking::Config + pallet_relayer::Config
+        pallet_session::Config
+        + frame_system::Config
+        + pallet_staking_extension::Config
+        + pallet_relayer::Config
     {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// How many accounts will be checked to see if proactive refresh should be done
         type ProactiveRefreshChecks: Get<u32>;
+        /// Caps the max proactive refreshes per session
+        type MaxProactiveRefreshes: Get<u32>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
@@ -177,7 +182,7 @@ pub mod pallet {
         /// validator info and accounts to take part in proactive refresh
         pub proactive_refresh_data: (Vec<ValidatorInfo>, Vec<Vec<u8>>),
         #[serde(skip)]
-		pub _config: sp_std::marker::PhantomData<T>,
+        pub _config: sp_std::marker::PhantomData<T>,
     }
 
     #[pallet::genesis_build]
@@ -287,11 +292,11 @@ pub mod pallet {
         }
 
         pub fn partition_network_for_proactive_refresh() -> Result<(), DispatchError> {
-            	// let mut s: Vec<_> = pallet_assets::pallet::Asset::<Test>::iter().map(|x| x.0).collect();
 
-            let accounts = pallet_relayer::pallet::Registered::<T>::iter();
+           let accounts = pallet_relayer::pallet::Registered::<T>::iter();
             // get all accounts
             // go through the to max checks accounts pulling out any prior index
+            // max checks or max proactice refreshes hit first
             // check to make sure they are not private accounts, collect all no private
             // increment the index
             // mark last index position checked

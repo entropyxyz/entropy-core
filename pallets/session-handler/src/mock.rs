@@ -13,39 +13,33 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use core::convert::{TryFrom, TryInto};
-use std::cell::RefCell;
-
 use frame_election_provider_support::{
     bounds::{ElectionBounds, ElectionBoundsBuilder},
     onchain, SequentialPhragmen, VoteWeight,
 };
 use frame_support::{
     parameter_types,
-    traits::{ConstU32, Get, Hooks, OneSessionHandler, FindAuthor},
+    traits::{ConstU32, FindAuthor, OneSessionHandler},
 };
 use frame_system as system;
-use pallet_session::{historical as pallet_session_historical, ShouldEndSession};
+use pallet_session::historical as pallet_session_historical;
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
     testing::{TestXt, UintAuthorityId},
-    traits::{BlakeTwo256, ConvertInto, IdentityLookup, OpaqueKeys, Zero},
-    BuildStorage, KeyTypeId, Perbill,
+    traits::{BlakeTwo256, ConvertInto, IdentityLookup},
+    BuildStorage, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
 
 use crate as pallet_session_handler;
 
+const NULL_ARR: [u8; 32] = [0; 32];
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
+type AccountId = u64;
+type Balance = u64;
 
-pub const INIT_TIMESTAMP: u64 = 30_000;
-pub const BLOCK_TIME: u64 = 1000;
-const NULL_ARR: [u8; 32] = [0; 32];
-
-pub const KEY_ID_A: KeyTypeId = KeyTypeId([4; 4]);
-pub const KEY_ID_B: KeyTypeId = KeyTypeId([9; 4]);
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
   pub enum Test
@@ -56,22 +50,14 @@ frame_support::construct_runtime!(
     Timestamp: pallet_timestamp,
     Relayer: pallet_relayer,
     SessionHandler: pallet_session_handler,
+    Staking: pallet_staking_extension,
     FrameStaking: pallet_staking,
     Session: pallet_session,
     Historical: pallet_session_historical,
     BagsList: pallet_bags_list,
+    Programs: pallet_programs,
   }
 );
-
-thread_local! {
-    pub static FORCE_SESSION_END: RefCell<bool> = RefCell::new(false);
-    pub static SESSION_LENGTH: RefCell<u64> = RefCell::new(2);
-    pub static SESSION_CHANGED: RefCell<bool> = RefCell::new(false);
-
-
-}
-type AccountId = u64;
-type Balance = u64;
 
 parameter_types! {
   pub const BlockHashCount: u64 = 250;
@@ -136,39 +122,6 @@ impl pallet_balances::Config for Test {
     type WeightInfo = ();
 }
 
-#[derive(Debug, Clone, codec::Encode, codec::Decode, PartialEq, Eq)]
-pub struct PreUpgradeMockSessionKeys {
-    pub a: [u8; 32],
-    pub b: [u8; 64],
-}
-
-impl OpaqueKeys for PreUpgradeMockSessionKeys {
-    type KeyTypeIdProviders = ();
-
-    fn key_ids() -> &'static [KeyTypeId] {
-        &[KEY_ID_A, KEY_ID_B]
-    }
-
-    fn get_raw(&self, i: KeyTypeId) -> &[u8] {
-        match i {
-            i if i == KEY_ID_A => &self.a[..],
-            i if i == KEY_ID_B => &self.b[..],
-            _ => &[],
-        }
-    }
-}
-
-pub struct MockSessionManager;
-impl pallet_session::SessionManager<u64> for MockSessionManager {
-    fn end_session(_: sp_staking::SessionIndex) {}
-
-    fn start_session(_: sp_staking::SessionIndex) {}
-
-    fn new_session(idx: sp_staking::SessionIndex) -> Option<Vec<u64>> {
-        Some(vec![])
-    }
-}
-
 pub struct OtherSessionHandler;
 impl OneSessionHandler<AccountId> for OtherSessionHandler {
     type Key = UintAuthorityId;
@@ -180,13 +133,11 @@ impl OneSessionHandler<AccountId> for OtherSessionHandler {
     {
     }
 
-    fn on_new_session<'a, I: 'a>(_changed: bool, _validators: I, _queued_validators: I)
+    fn on_new_session<'a, I: 'a>(_: bool, _: I, _: I)
     where
         I: Iterator<Item = (&'a AccountId, Self::Key)>,
         AccountId: 'a,
     {
-        // let authorities = validators.map(|(_account, k)| (k, 1)).collect::<Vec<_>>();
-        // let next_authorities = queued_validators.map(|(_account, k)| (k, 1)).collect::<Vec<_>>();
     }
 
     fn on_disabled(_validator_index: u32) {}
@@ -308,29 +259,35 @@ impl pallet_staking::Config for Test {
     type WeightInfo = ();
 }
 
-pub struct TestShouldEndSession;
-impl ShouldEndSession<u64> for TestShouldEndSession {
-    fn should_end_session(now: u64) -> bool {
-        let l = SESSION_LENGTH.with(|l| *l.borrow());
-        now % l == 0
-            || FORCE_SESSION_END.with(|l| {
-                let r = *l.borrow();
-                *l.borrow_mut() = false;
-                r
-            })
-    }
-}
-
 impl pallet_session::Config for Test {
     type Keys = UintAuthorityId;
     type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
     type RuntimeEvent = RuntimeEvent;
     type SessionHandler = (OtherSessionHandler,);
     type SessionManager = pallet_session::historical::NoteHistoricalRoot<Test, FrameStaking>;
-    type ShouldEndSession = TestShouldEndSession;
+    type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
     type ValidatorId = AccountId;
     type ValidatorIdOf = ConvertInto;
     type WeightInfo = ();
+}
+
+impl pallet_session::historical::Config for Test {
+    type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
+    type FullIdentificationOf = pallet_staking::ExposureOf<Test>;
+}
+
+parameter_types! {
+  pub const MaxEndpointLength: u32 = 3;
+}
+impl pallet_staking_extension::Config for Test {
+    type Currency = Balances;
+    type MaxEndpointLength = MaxEndpointLength;
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
+}
+
+parameter_types! {
+  pub const UncleGenerations: u64 = 0;
 }
 
 /// Author of block is always 11
@@ -349,79 +306,56 @@ impl pallet_authorship::Config for Test {
     type FindAuthor = Author11;
 }
 
-impl pallet_session::historical::Config for Test {
-    type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
-    type FullIdentificationOf = pallet_staking::ExposureOf<Test>;
+parameter_types! {
+  pub const MaxBytecodeLength: u32 = 3;
+  pub const ProgramDepositPerByte: u32 = 5;
+  pub const MaxOwnedPrograms: u32 = 5;
+}
+
+impl pallet_programs::Config for Test {
+    type Currency = Balances;
+    type MaxBytecodeLength = MaxBytecodeLength;
+    type ProgramDepositPerByte = ProgramDepositPerByte;
+    type MaxOwnedPrograms = MaxOwnedPrograms;
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
 }
 
 parameter_types! {
-    pub const SigningPartySize: usize = 2;
-    pub const MaxProgramHashes: u32 = 5u32;
-  }
-  
-  impl pallet_relayer::Config for Test {
-      type RuntimeEvent = RuntimeEvent;
-      type SigningPartySize = SigningPartySize;
-      type MaxProgramHashes = MaxProgramHashes;
-      type WeightInfo = ();
-  }
+  pub const SigningPartySize: usize = 2;
+  pub const MaxProgramHashes: u32 = 5u32;
+}
+
+impl pallet_relayer::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type SigningPartySize = SigningPartySize;
+    type MaxProgramHashes = MaxProgramHashes;
+    type WeightInfo = ();
+}
 
 parameter_types! {
-  pub const MaxEndpointLength: u32 = 3;
   pub const ProactiveRefreshChecks: u32 = 3;
+  pub const MaxProactiveRefreshes: u32 = 2;
 }
 impl pallet_session_handler::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type ProactiveRefreshChecks = ProactiveRefreshChecks;
+    type MaxProactiveRefreshes = MaxProactiveRefreshes;
     type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
-    let pallet_balances = pallet_balances::GenesisConfig::<Test> {
-        balances: vec![(1, 100), (2, 100), (3, 100), (4, 100)],
-    };
-    let pallet_session_handler = pallet_session_handler::GenesisConfig::<Test> {
+    let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
+        // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL))
+        threshold_servers: vec![(5, (7, NULL_ARR, vec![20])), (6, (8, NULL_ARR, vec![40]))],
+        // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
+        signing_groups: vec![(0, vec![1]), (1, vec![2])],
         proactive_refresh_data: (vec![], vec![]),
     };
 
-    pallet_balances.assimilate_storage(&mut t).unwrap();
-    pallet_session_handler.assimilate_storage(&mut t).unwrap();
+    pallet_staking_extension.assimilate_storage(&mut t).unwrap();
 
     t.into()
-}
-
-pub(crate) fn run_to_block(n: BlockNumber) {
-    FrameStaking::on_finalize(System::block_number());
-    for b in (System::block_number() + 1)..=n {
-        System::set_block_number(b);
-        Session::on_initialize(b);
-        <FrameStaking as Hooks<u64>>::on_initialize(b);
-        Timestamp::set_timestamp(System::block_number() * BLOCK_TIME + INIT_TIMESTAMP);
-        if b != n {
-            FrameStaking::on_finalize(System::block_number());
-        }
-    }
-}
-
-pub(crate) fn start_session(session_index: SessionIndex) {
-    let end: u64 = if Offset::get().is_zero() {
-        (session_index as u64) * Period::get()
-    } else {
-        Offset::get() + (session_index.saturating_sub(1) as u64) * Period::get()
-    };
-    run_to_block(end);
-    // session must have progressed properly.
-    // assert_eq!(
-    //     Session::current_index(),
-    //     session_index,
-    //     "current session index = {}, expected = {}",
-    //     Session::current_index(),
-    //     session_index,
-    // );
-}
-
-pub(crate) fn start_active_era(era_index: EraIndex) {
-    start_session(era_index * <SessionsPerEra as Get<u32>>::get());
 }
