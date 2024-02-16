@@ -246,3 +246,45 @@ fn tests_new_session_handler() {
         assert_eq!(second_signing_group(), vec![3, 5]);
     });
 }
+
+#[test]
+fn validator_to_subgroup_is_populated_correctly() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob, charlie) = (1, 2, 3);
+
+        // At genesis, we have Alice and Bob in subgroups 1 and 2, respectively, so we expect them
+        // to each be assigned into a different subgroup
+        let subgroup = Staking::validator_to_subgroup(alice);
+        assert!(subgroup == Some(0));
+
+        let subgroup = Staking::validator_to_subgroup(bob);
+        assert!(subgroup == Some(1));
+
+        // We're going to add a new authority in our next session, we expect that our new validator
+        // will also be in the expected subgroup
+        assert_ok!(Staking::new_session_handler(&[alice, bob, charlie]));
+        let subgroup = Staking::validator_to_subgroup(alice);
+        assert!(subgroup == Some(0));
+
+        let subgroup = Staking::validator_to_subgroup(bob);
+        assert!(subgroup == Some(1));
+
+        let subgroup = Staking::validator_to_subgroup(charlie);
+        assert!(subgroup == Some(0));
+
+        // If we remove an existing validator on a session change, we expect their subgroup info to
+        // be cleared.
+        //
+        // Note that Charlie doesn't get moved from their subgroup to rebalance since they were
+        // previously in the validator set.
+        assert_ok!(Staking::new_session_handler(&[alice, charlie]));
+        let subgroup = Staking::validator_to_subgroup(alice);
+        assert!(subgroup == Some(0));
+
+        let subgroup = Staking::validator_to_subgroup(bob);
+        assert!(subgroup == None);
+
+        let subgroup = Staking::validator_to_subgroup(charlie);
+        assert!(subgroup == Some(0));
+    })
+}

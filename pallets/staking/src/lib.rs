@@ -149,6 +149,12 @@ pub mod pallet {
         OptionQuery,
     >;
 
+    /// Mapping between a validator and their assigned subgroup.
+    #[pallet::storage]
+    #[pallet::getter(fn validator_to_subgroup)]
+    pub type ValidatorToSubgroup<T: Config> =
+        StorageMap<_, Identity, T::ValidatorId, SubgroupId, OptionQuery>;
+
     /// Tracks wether the validator's kvdb is synced
     #[pallet::storage]
     #[pallet::getter(fn is_validator_synced)]
@@ -204,6 +210,7 @@ pub mod pallet {
                 SigningGroups::<T>::insert(group_id, validator_ids);
                 for validator_id in validator_ids {
                     IsValidatorSynced::<T>::insert(validator_id, true);
+                    ValidatorToSubgroup::<T>::insert(&validator_id, group_id);
                 }
             }
             let refresh_info = RefreshInfo {
@@ -415,6 +422,15 @@ pub mod pallet {
                 curr_validators_set[signing_group] =
                     pallet_staking_extension::Pallet::<T>::signing_groups(signing_group as u8)
                         .ok_or(Error::<T>::SigningGroupError)?;
+
+                // There's no easy way for us to get the difference between the old and new
+                // validator sets, so we take the naive approach and just clear everybody's signing
+                // group.
+                //
+                // We'll fill this out again later once we have the full, new, validator set.
+                for validator in curr_validators_set[signing_group].iter() {
+                    ValidatorToSubgroup::<T>::remove(&validator);
+                }
             }
 
             // Replace existing validators into the same subgroups
@@ -431,6 +447,7 @@ pub mod pallet {
                     unplaced_validators_set.push(new_validator.clone());
                 }
             }
+
             // Evenly distribute new validators.
             while let Some(curr) = unplaced_validators_set.pop() {
                 let mut min_sg_len = u64::MAX;
@@ -446,14 +463,23 @@ pub mod pallet {
             }
 
             // Update the new validator set
-            for (sg, vs) in new_validators_set.iter().enumerate() {
-                pallet_staking_extension::SigningGroups::<T>::remove(sg as u8);
-                pallet_staking_extension::SigningGroups::<T>::insert(sg as u8, vs);
+            for (subgroup, validator_set) in new_validators_set.iter().enumerate() {
+                let subgroup = subgroup as u8;
+
+                // TODO (Nando): One place where this is still a Vec
+                SigningGroups::<T>::remove(subgroup);
+                SigningGroups::<T>::insert(subgroup, validator_set);
+
+                for validator in validator_set.iter() {
+                    ValidatorToSubgroup::<T>::insert(&validator, subgroup);
+                }
             }
+
             Self::deposit_event(Event::ValidatorSubgroupsRotated(
                 curr_validators_set.clone(),
                 new_validators_set.clone(),
             ));
+
             frame_system::Pallet::<T>::register_extra_weight_unchecked(
                 <T as pallet::Config>::WeightInfo::new_session_handler_helper(
                     curr_validators_set.len() as u32,
@@ -461,6 +487,7 @@ pub mod pallet {
                 ),
                 DispatchClass::Mandatory,
             );
+
             Ok(())
         }
     }
