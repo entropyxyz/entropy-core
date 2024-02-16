@@ -723,7 +723,7 @@ parameter_types! {
       type ProactiveRefreshChecks = ProactiveRefreshChecks;
       type MaxProactiveRefreshes = MaxProactiveRefreshes;
       type RuntimeEvent = RuntimeEvent;
-      type WeightInfo = ();
+      type WeightInfo = weights::pallet_session_handler::WeightInfo<Runtime>;
   }
 
 parameter_types! {

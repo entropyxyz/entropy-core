@@ -51,6 +51,7 @@ pub mod pallet_recovery;
 pub mod pallet_relayer;
 pub mod pallet_scheduler;
 pub mod pallet_session;
+pub mod pallet_session_handler;
 pub mod pallet_staking;
 pub mod pallet_staking_extension;
 pub mod pallet_sudo;

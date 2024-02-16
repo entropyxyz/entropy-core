@@ -197,7 +197,6 @@ pub mod pallet {
         ),
     }
 
-
     impl<T: Config> Pallet<T> {
         pub fn new_session_handler(
             validators: &[<T as pallet_session::Config>::ValidatorId],
@@ -273,8 +272,7 @@ pub mod pallet {
         }
 
         pub fn partition_network_for_proactive_refresh() -> Result<(), DispatchError> {
-
-           let accounts = pallet_relayer::pallet::Registered::<T>::iter();
+            let accounts = pallet_relayer::pallet::Registered::<T>::iter();
             // get all accounts
             // go through the to max checks accounts pulling out any prior index
             // max checks or max proactice refreshes hit first
