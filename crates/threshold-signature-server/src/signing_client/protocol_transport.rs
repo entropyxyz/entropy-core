@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Handling of websocket connections used for protocol messages
 use axum::extract::ws::WebSocket;
 pub use entropy_protocol::protocol_transport::SubscribeMessage;
 use entropy_protocol::{
