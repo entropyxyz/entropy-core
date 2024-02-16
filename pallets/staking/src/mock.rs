@@ -181,7 +181,6 @@ impl pallet_session::SessionManager<u64> for MockSessionManager {
         } else {
             validators = vec![]
         }
-        let _ = Staking::new_session_handler(&validators);
         Some(validators)
     }
 }

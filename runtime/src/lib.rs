@@ -593,7 +593,7 @@ impl pallet_session::Config for Runtime {
     type NextSessionRotation = Babe;
     type RuntimeEvent = RuntimeEvent;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
-    type SessionManager = pallet_staking_extension::SessionManager<
+    type SessionManager = pallet_session_handler::SessionManager<
         pallet_session::historical::NoteHistoricalRoot<Self, Staking>,
         Runtime,
     >;
@@ -714,6 +714,17 @@ impl pallet_staking_extension::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
 }
+
+parameter_types! {
+    pub const ProactiveRefreshChecks: u32 = 100;
+    pub const MaxProactiveRefreshes: u32 = 10;
+  }
+  impl pallet_session_handler::Config for Runtime {
+      type ProactiveRefreshChecks = ProactiveRefreshChecks;
+      type MaxProactiveRefreshes = MaxProactiveRefreshes;
+      type RuntimeEvent = RuntimeEvent;
+      type WeightInfo = ();
+  }
 
 parameter_types! {
     // phase durations. 1/4 of the last session for each.
@@ -1477,6 +1488,7 @@ construct_runtime!(
     TransactionPause: pallet_transaction_pause = 54,
     FreeTx: pallet_free_tx = 55,
     Propagation: pallet_propagation = 56,
+    SessionHandler: pallet_session_handler = 57,
 
 
   }
@@ -1549,6 +1561,7 @@ mod benches {
       [pallet_elections_phragmen, Elections]
       [pallet_free_tx, FreeTx]
       [pallet_staking_extension, StakingExtension]
+      [pallet_session_handler, SessionHandler]
       [pallet_grandpa, Grandpa]
       [pallet_im_online, ImOnline]
       [pallet_identity, Identity]

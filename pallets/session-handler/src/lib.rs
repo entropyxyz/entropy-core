@@ -176,25 +176,6 @@ pub mod pallet {
         (<T as frame_system::Config>::AccountId, X25519PublicKey, TssServerURL),
     );
 
-    #[pallet::genesis_config]
-    #[derive(DefaultNoBound)]
-    pub struct GenesisConfig<T: Config> {
-        /// validator info and accounts to take part in proactive refresh
-        pub proactive_refresh_data: (Vec<ValidatorInfo>, Vec<Vec<u8>>),
-        #[serde(skip)]
-        pub _config: sp_std::marker::PhantomData<T>,
-    }
-
-    #[pallet::genesis_build]
-    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
-        fn build(&self) {
-            let refresh_info = RefreshInfo {
-                validators_info: self.proactive_refresh_data.0.clone(),
-                proactive_refresh_keys: self.proactive_refresh_data.1.clone(),
-            };
-            ProactiveRefresh::<T>::put(refresh_info);
-        }
-    }
     // Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {

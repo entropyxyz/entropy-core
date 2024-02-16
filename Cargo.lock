@@ -2903,6 +2903,7 @@ dependencies = [
  "pallet-scheduler",
  "pallet-session",
  "pallet-session-benchmarking",
+ "pallet-session-handler",
  "pallet-slashing",
  "pallet-staking",
  "pallet-staking-extension",
