@@ -87,7 +87,7 @@ pub async fn proactive_refresh(
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     validate_proactive_refresh(&api, &rpc, &app_state.kv_store, &ocw_data).await?;
 
-    let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
+    let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer.account_id())
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, subgroup)

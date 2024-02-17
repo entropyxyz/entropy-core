@@ -294,7 +294,7 @@ async fn setup_dkg(
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
 
-    let (subgroup, stash_address) = get_subgroup(&api, rpc, &signer).await?;
+    let (subgroup, stash_address) = get_subgroup(&api, rpc, &signer.account_id()).await?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, rpc, subgroup).await?;
 
     let block_hash = rpc
@@ -385,7 +385,7 @@ pub async fn receive_key(
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
-    let (subgroup, _stash_address) = get_subgroup(&api, &rpc, &signer).await?;
+    let (subgroup, _stash_address) = get_subgroup(&api, &rpc, &signer.account_id()).await?;
     let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, subgroup).await?;
 
     let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
@@ -613,7 +613,7 @@ pub async fn recover_key(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     signing_address: String,
 ) -> Result<(), UserErr> {
-    let (subgroup, stash_address) = get_subgroup(api, rpc, signer).await?;
+    let (subgroup, stash_address) = get_subgroup(api, rpc, signer.account_id()).await?;
     let key_server_info = get_random_server_info(api, rpc, subgroup, stash_address)
         .await
         .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;

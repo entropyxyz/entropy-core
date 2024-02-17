@@ -39,12 +39,11 @@ use subxt::{
 pub async fn get_subgroup(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    threshold_account_id: &AccountId32,
 ) -> Result<(u8, AccountId32), UserErr> {
-    let threshold_address = signer.account_id();
     let block_hash = rpc.chain_get_block_hash(None).await?;
     let stash_address_query =
-        entropy::storage().staking_extension().threshold_to_stash(threshold_address);
+        entropy::storage().staking_extension().threshold_to_stash(threshold_account_id);
     let stash_address = query_chain(api, rpc, stash_address_query, block_hash)
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Stash Fetch Error"))?;
