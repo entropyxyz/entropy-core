@@ -96,14 +96,9 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
                 Ok(get_subgroup(&api, &rpc, &signer).await.expect("Failed to get subgroup."));
         }
         let (subgroup, validator_stash) = my_subgroup.expect("Failed to get subgroup.");
-        let key_server_info = get_random_server_info(
-            &api,
-            &rpc,
-            subgroup.expect("failed to get subgroup"),
-            validator_stash,
-        )
-        .await
-        .expect("Issue getting registered keys from chain.");
+        let key_server_info = get_random_server_info(&api, &rpc, subgroup, validator_stash)
+            .await
+            .expect("Issue getting registered keys from chain.");
         let ip_address =
             String::from_utf8(key_server_info.endpoint).expect("failed to parse IP address.");
         let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
@@ -322,9 +317,9 @@ pub async fn check_in_subgroup(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     signing_address: AccountId32,
 ) -> Result<(), ValidatorErr> {
+    // TODO (Nando): I think we can improve this
     let (subgroup, _) = get_subgroup(api, rpc, signer).await?;
-    let my_subgroup = subgroup.ok_or_else(|| ValidatorErr::SubgroupError("Subgroup Error"))?;
-    let addresses_in_subgroup = return_all_addresses_of_subgroup(api, rpc, my_subgroup).await?;
+    let addresses_in_subgroup = return_all_addresses_of_subgroup(api, rpc, subgroup).await?;
     let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
         .map_err(|_| ValidatorErr::StringError("Account Conversion"))?;
     let stash_address_query =

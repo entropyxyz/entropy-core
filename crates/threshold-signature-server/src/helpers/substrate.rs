@@ -21,7 +21,7 @@ use crate::{
     user::UserErr,
 };
 use anyhow::anyhow;
-use entropy_shared::{MORTALITY_BLOCKS, SIGNING_PARTY_SIZE};
+use entropy_shared::MORTALITY_BLOCKS;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     blocks::ExtrinsicEvents,
@@ -34,12 +34,13 @@ use subxt::{
 };
 
 /// gets the subgroup of the working validator
+///
+/// TODO(Nando): We shouldn't return the stash address from here
 pub async fn get_subgroup(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) -> Result<(Option<u8>, AccountId32), UserErr> {
-    let mut subgroup: Option<u8> = None;
+) -> Result<(u8, AccountId32), UserErr> {
     let threshold_address = signer.account_id();
     let block_hash = rpc.chain_get_block_hash(None).await?;
     let stash_address_query =
@@ -47,18 +48,13 @@ pub async fn get_subgroup(
     let stash_address = query_chain(api, rpc, stash_address_query, block_hash)
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Stash Fetch Error"))?;
-    for i in 0..SIGNING_PARTY_SIZE {
-        let signing_group_addresses_query =
-            entropy::storage().staking_extension().signing_groups(i as u8);
-        let signing_group_addresses =
-            query_chain(api, rpc, signing_group_addresses_query, block_hash)
-                .await?
-                .ok_or_else(|| UserErr::ChainFetch("Subgroup Error"))?;
-        if signing_group_addresses.contains(&stash_address) {
-            subgroup = Some(i as u8);
-            break;
-        }
-    }
+
+    let subgroup_query =
+        entropy::storage().staking_extension().validator_to_subgroup(&stash_address);
+    let subgroup = query_chain(api, rpc, subgroup_query, block_hash)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Subgroup Error"))?;
+
     Ok((subgroup, stash_address))
 }
 

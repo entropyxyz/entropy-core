@@ -90,8 +90,7 @@ pub async fn proactive_refresh(
     let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-    let my_subgroup = subgroup.ok_or_else(|| ProtocolErr::SubgroupError("Subgroup Error"))?;
-    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, my_subgroup)
+    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, subgroup)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
 
