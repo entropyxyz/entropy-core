@@ -22,11 +22,12 @@ At the moment this project **does not** adhere to
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
--  Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
+- Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
+- Add direct query for a validator's subgroup ([#642](https://github.com/entropyxyz/entropy-core/pull/642))
 
 ### Changed
- - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
-  - Add proactive refresh keys on-chain ([#629](https://github.com/entropyxyz/entropy-core/pull/629))
+- Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
+- Add proactive refresh keys on-chain ([#629](https://github.com/entropyxyz/entropy-core/pull/629))
 
 ## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-24
 
