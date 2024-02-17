@@ -37,7 +37,7 @@ use crate::{
     get_signer,
     helpers::{
         launch::FORBIDDEN_KEYS,
-        substrate::{get_subgroup, query_chain, submit_transaction},
+        substrate::{get_stash_address, get_subgroup, query_chain, submit_transaction},
     },
     validation::{check_stale, SignedMessage},
     validator::errors::ValidatorErr,
@@ -94,7 +94,10 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
                 .await
                 .expect("Failed to get subgroup."));
         }
-        let (subgroup, validator_stash) = my_subgroup.expect("Failed to get subgroup.");
+        let subgroup = my_subgroup.expect("Failed to get subgroup.");
+        let validator_stash = get_stash_address(&api, &rpc, &signer.account_id())
+            .await
+            .expect("Failed to get threshold server's stash address.");
         let key_server_info = get_random_server_info(&api, &rpc, subgroup, validator_stash)
             .await
             .expect("Issue getting registered keys from chain.");
@@ -319,8 +322,8 @@ pub async fn check_in_subgroup(
     let signing_address = SubxtAccountId32::from_str(&signing_address.to_ss58check())
         .map_err(|_| ValidatorErr::StringError("Account Conversion"))?;
 
-    let (stash_subgroup, _) = get_subgroup(api, rpc, &signing_address).await?;
-    let (signer_subgroup, _) = get_subgroup(api, rpc, &signer.account_id()).await?;
+    let stash_subgroup = get_subgroup(api, rpc, &signing_address).await?;
+    let signer_subgroup = get_subgroup(api, rpc, &signer.account_id()).await?;
 
     if stash_subgroup != signer_subgroup {
         return Err(ValidatorErr::NotInSubgroup);

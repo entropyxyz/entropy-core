@@ -38,7 +38,7 @@ pub async fn get_subgroup(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     threshold_account_id: &AccountId32,
-) -> Result<(u8, AccountId32), UserErr> {
+) -> Result<u8, UserErr> {
     let block_hash = rpc.chain_get_block_hash(None).await?;
     let stash_address = get_stash_address(api, rpc, &threshold_account_id).await?;
 
@@ -48,7 +48,7 @@ pub async fn get_subgroup(
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Subgroup Error"))?;
 
-    Ok((subgroup, stash_address))
+    Ok(subgroup)
 }
 
 /// Given a threshold server's account ID, return its corresponding stash (validator) address.
