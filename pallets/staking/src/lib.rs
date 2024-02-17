@@ -149,7 +149,7 @@ pub mod pallet {
         OptionQuery,
     >;
 
-    /// Mapping between a validator and their assigned subgroup.
+    /// Mapping between a validator and their assigned subgroup for the given session.
     #[pallet::storage]
     #[pallet::getter(fn validator_to_subgroup)]
     pub type ValidatorToSubgroup<T: Config> =
