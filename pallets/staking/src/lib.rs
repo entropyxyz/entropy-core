@@ -466,7 +466,6 @@ pub mod pallet {
             for (subgroup, validator_set) in new_validators_set.iter().enumerate() {
                 let subgroup = subgroup as u8;
 
-                // TODO (Nando): One place where this is still a Vec
                 SigningGroups::<T>::remove(subgroup);
                 SigningGroups::<T>::insert(subgroup, validator_set);
 
