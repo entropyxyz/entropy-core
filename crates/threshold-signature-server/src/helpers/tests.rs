@@ -243,17 +243,17 @@ async fn test_get_signing_group() {
 
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let result_alice = get_subgroup(&api, &rpc, &signer_alice).await.unwrap().0;
-    assert_eq!(result_alice, Some(0));
+    let result_alice = get_subgroup(&api, &rpc, &signer_alice.account_id()).await.unwrap();
+    assert_eq!(result_alice, 0);
 
     let p_bob = <sr25519::Pair as Pair>::from_string(DEFAULT_BOB_MNEMONIC, None).unwrap();
     let signer_bob = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_bob);
-    let result_bob = get_subgroup(&api, &rpc, &signer_bob).await.unwrap().0;
-    assert_eq!(result_bob, Some(1));
+    let result_bob = get_subgroup(&api, &rpc, &signer_bob.account_id()).await.unwrap();
+    assert_eq!(result_bob, 1);
 
     let p_charlie = <sr25519::Pair as Pair>::from_string("//Charlie//stash", None).unwrap();
     let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
-    let result_charlie = get_subgroup(&api, &rpc, &signer_charlie).await;
+    let result_charlie = get_subgroup(&api, &rpc, &signer_charlie.account_id()).await;
     assert!(result_charlie.is_err());
 
     clean_tests();

@@ -41,7 +41,7 @@ use crate::{
             ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
             DEFAULT_MNEMONIC, FORBIDDEN_KEYS,
         },
-        substrate::{get_subgroup, query_chain},
+        substrate::{get_stash_address, get_subgroup, query_chain},
         tests::{create_clients, initialize_test_logger},
     },
     validation::{
@@ -252,7 +252,7 @@ async fn test_get_and_store_values() {
 
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let my_subgroup = get_subgroup(&api, &rpc, &signer_alice).await.unwrap().0.unwrap();
+    let my_subgroup = get_subgroup(&api, &rpc, &signer_alice.account_id()).await.unwrap();
     let server_info =
         get_random_server_info(&api, &rpc, my_subgroup, signer_alice.account_id().clone())
             .await
@@ -318,17 +318,17 @@ async fn test_get_random_server_info() {
 
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let (my_subgroup, validator_address) = get_subgroup(&api, &rpc, &signer_alice).await.unwrap();
+    let my_subgroup = get_subgroup(&api, &rpc, &signer_alice.account_id()).await.unwrap();
+    let validator_address =
+        get_stash_address(&api, &rpc, &signer_alice.account_id()).await.unwrap();
 
-    let result =
-        get_random_server_info(&api, &rpc, my_subgroup.unwrap(), signer_alice.account_id().clone())
-            .await
-            .unwrap();
+    let result = get_random_server_info(&api, &rpc, my_subgroup, signer_alice.account_id().clone())
+        .await
+        .unwrap();
     assert_eq!("127.0.0.1:3001".as_bytes().to_vec(), result.endpoint);
     // Returns error here because no other validators in subgroup
-    let error = get_random_server_info(&api, &rpc, my_subgroup.unwrap(), validator_address)
-        .await
-        .unwrap_err();
+    let error =
+        get_random_server_info(&api, &rpc, my_subgroup, validator_address).await.unwrap_err();
     assert_eq!(error.to_string(), ValidatorErr::SubgroupError("Index out of bounds").to_string());
 
     clean_tests();
