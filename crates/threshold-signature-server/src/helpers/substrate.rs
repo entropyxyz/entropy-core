@@ -40,7 +40,7 @@ pub async fn get_subgroup(
     threshold_account_id: &AccountId32,
 ) -> Result<u8, UserErr> {
     let block_hash = rpc.chain_get_block_hash(None).await?;
-    let stash_address = get_stash_address(api, rpc, &threshold_account_id).await?;
+    let stash_address = get_stash_address(api, rpc, threshold_account_id).await?;
 
     let subgroup_query =
         entropy::storage().staking_extension().validator_to_subgroup(&stash_address);

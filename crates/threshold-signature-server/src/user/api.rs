@@ -294,8 +294,8 @@ async fn setup_dkg(
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
 
-    let subgroup = get_subgroup(&api, rpc, &signer.account_id()).await?;
-    let stash_address = get_stash_address(&api, rpc, &signer.account_id()).await?;
+    let subgroup = get_subgroup(&api, rpc, signer.account_id()).await?;
+    let stash_address = get_stash_address(&api, rpc, signer.account_id()).await?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, rpc, subgroup).await?;
 
     let block_hash = rpc
@@ -386,7 +386,7 @@ pub async fn receive_key(
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
-    let subgroup = get_subgroup(&api, &rpc, &signer.account_id()).await?;
+    let subgroup = get_subgroup(&api, &rpc, signer.account_id()).await?;
     let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, subgroup).await?;
 
     let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())

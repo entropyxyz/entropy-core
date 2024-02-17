@@ -210,7 +210,7 @@ pub mod pallet {
                 SigningGroups::<T>::insert(group_id, validator_ids);
                 for validator_id in validator_ids {
                     IsValidatorSynced::<T>::insert(validator_id, true);
-                    ValidatorToSubgroup::<T>::insert(&validator_id, group_id);
+                    ValidatorToSubgroup::<T>::insert(validator_id, group_id);
                 }
             }
             let refresh_info = RefreshInfo {
@@ -429,7 +429,7 @@ pub mod pallet {
                 //
                 // We'll fill this out again later once we have the full, new, validator set.
                 for validator in curr_validators_set[signing_group].iter() {
-                    ValidatorToSubgroup::<T>::remove(&validator);
+                    ValidatorToSubgroup::<T>::remove(validator);
                 }
             }
 
@@ -470,7 +470,7 @@ pub mod pallet {
                 SigningGroups::<T>::insert(subgroup, validator_set);
 
                 for validator in validator_set.iter() {
-                    ValidatorToSubgroup::<T>::insert(&validator, subgroup);
+                    ValidatorToSubgroup::<T>::insert(validator, subgroup);
                 }
             }
 

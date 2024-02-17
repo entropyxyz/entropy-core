@@ -86,16 +86,16 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
             panic!("threshold account needs balance: {:?}", signer.account_id());
         }
         // if not in subgroup retry until you are
-        let mut my_subgroup = get_subgroup(&api, &rpc, &signer.account_id()).await;
+        let mut my_subgroup = get_subgroup(&api, &rpc, signer.account_id()).await;
         while my_subgroup.is_err() {
             tracing::warn!("The signing account is not in the validator set, retrying sync");
             thread::sleep(sleep_time);
-            my_subgroup = Ok(get_subgroup(&api, &rpc, &signer.account_id())
+            my_subgroup = Ok(get_subgroup(&api, &rpc, signer.account_id())
                 .await
                 .expect("Failed to get subgroup."));
         }
         let subgroup = my_subgroup.expect("Failed to get subgroup.");
-        let validator_stash = get_stash_address(&api, &rpc, &signer.account_id())
+        let validator_stash = get_stash_address(&api, &rpc, signer.account_id())
             .await
             .expect("Failed to get threshold server's stash address.");
         let key_server_info = get_random_server_info(&api, &rpc, subgroup, validator_stash)
@@ -323,7 +323,7 @@ pub async fn check_in_subgroup(
         .map_err(|_| ValidatorErr::StringError("Account Conversion"))?;
 
     let stash_subgroup = get_subgroup(api, rpc, &signing_address).await?;
-    let signer_subgroup = get_subgroup(api, rpc, &signer.account_id()).await?;
+    let signer_subgroup = get_subgroup(api, rpc, signer.account_id()).await?;
 
     if stash_subgroup != signer_subgroup {
         return Err(ValidatorErr::NotInSubgroup);
