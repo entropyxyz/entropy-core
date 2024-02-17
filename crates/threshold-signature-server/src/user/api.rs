@@ -68,7 +68,7 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{do_signing, Hasher},
         substrate::{
-            get_program, get_registered_details, get_subgroup, query_chain,
+            get_program, get_registered_details, get_stash_address, get_subgroup, query_chain,
             return_all_addresses_of_subgroup, submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg, send_key},
@@ -294,7 +294,8 @@ async fn setup_dkg(
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
 
-    let (subgroup, stash_address) = get_subgroup(&api, rpc, &signer.account_id()).await?;
+    let (subgroup, _) = get_subgroup(&api, rpc, &signer.account_id()).await?;
+    let stash_address = get_stash_address(&api, rpc, &signer.account_id()).await?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, rpc, subgroup).await?;
 
     let block_hash = rpc
