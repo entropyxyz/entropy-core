@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Tracks which validators we are connected to for a particular protocol execution
 #![allow(dead_code)]
 
 use std::collections::HashMap;

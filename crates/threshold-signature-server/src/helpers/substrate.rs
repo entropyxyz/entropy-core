@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Utilities for interacting with the Entropy blockchain
 use crate::{
     chain_api::{
         entropy::{self, runtime_types::pallet_relayer::pallet::RegisteredInfo},

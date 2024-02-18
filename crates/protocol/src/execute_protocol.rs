@@ -80,7 +80,7 @@ async fn execute_protocol_generic<Res: ProtocolResult>(
         // Send out broadcasts
         let destinations = session.broadcast_destinations();
         if let Some(destinations) = destinations {
-            // TODO: this can happen in a spawned task
+            // TODO (#641): this can happen in a spawned task
             let message = session.make_broadcast(&mut OsRng)?;
             for destination in destinations.iter() {
                 tx.send(ProtocolMessage::new(&my_id, destination, message.clone()))?;
@@ -91,7 +91,7 @@ async fn execute_protocol_generic<Res: ProtocolResult>(
         let destinations = session.direct_message_destinations();
         if let Some(destinations) = destinations {
             for destination in destinations.iter() {
-                // TODO: this can happen in a spawned task.
+                // TODO (#641): this can happen in a spawned task.
                 // The artefact will be sent back to the host task
                 // to be added to the accumulator.
                 let (message, artifact) = session.make_direct_message(&mut OsRng, destination)?;
@@ -103,7 +103,7 @@ async fn execute_protocol_generic<Res: ProtocolResult>(
         }
 
         for preprocessed in cached_messages {
-            // TODO: this may happen in a spawned task.
+            // TODO (#641): this may happen in a spawned task.
             let processed = session.process_message(preprocessed)?;
 
             // This will happen in a host task.
@@ -120,7 +120,7 @@ async fn execute_protocol_generic<Res: ProtocolResult>(
                 session.preprocess_message(&mut accum, &message.from, message.payload)?;
 
             if let Some(preprocessed) = preprocessed {
-                // TODO: this may happen in a spawned task.
+                // TODO (#641): this may happen in a spawned task.
                 let result = session.process_message(preprocessed)?;
 
                 // This will happen in a host task.

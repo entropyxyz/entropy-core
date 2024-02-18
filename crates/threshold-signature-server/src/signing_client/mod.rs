@@ -36,10 +36,7 @@ pub use self::{errors::*, listener::Listener, protocol_execution::ProtocolMessag
 /// to for a particular protcol execution (Signing or DKG).
 #[derive(Default, Debug, Clone)]
 pub struct ListenerState {
-    /// Mapping of identifiers for the protocol run to [Listener]s.
-    /// In the case of DKG, the identifier is the signature request account
-    /// In the case of signing, the identifier is the message id from
-    /// [crate::helpers::signing::create_unique_tx_id]
+    /// Mapping of [SessionId]s for the protocol run to [Listener]s.
     pub listeners: Arc<Mutex<HashMap<SessionId, Listener>>>,
 }
 

@@ -37,10 +37,9 @@
 //! [crate::user::api::sign_tx()]
 //!
 //! Called by a user to submit a transaction to sign (the new way of doing signing). Takes a
-//! [`UserTransactionRequest`](crate::user::api::UserTransactionRequest) encryted in a
-//! `SignedMessage`.
+//! [UserSignatureRequest] encrypted in a [SignedMessage](crate::validation::SignedMessage).
 //!
-//! The response is chunked response stream. If the `UserTransactionRequest` could be processed, a
+//! The response is chunked response stream. If the `UserSignatureRequest` could be processed, a
 //! success response header is sent.  Then the signing protocol runs. When the it finishes, a single
 //! message will be sent on the response stream with the result.
 //!
@@ -83,7 +82,7 @@
 //! threshold server when joining to get the key-shares from a member of their sub-group.
 //! - [`/version`](crate::node_info::api::version()) - Get - get the node version info
 //! - [`/heathlz`](crate::health::api::healthz()) - Get - get if the node is running
-//! - [`/hashes`](crate::node_info::api::heahes()) - Get - get the hashes supported by the node
+//! - [`/hashes`](crate::node_info::api::hashes()) - Get - get the hashes supported by the node
 
 //! ### For testing / development
 //!
@@ -103,7 +102,7 @@
 //! ## Pieces Launched
 //!
 //! - Axum server - Includes global state and mutex locked IPs
-//! - [kvdb](kvdb) - Encrypted key-value database for storing key-shares and other data, build using
+//! - [kvdb](entropy_kvdb) - Encrypted key-value database for storing key-shares and other data, build using
 //! [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
 pub mod chain_api;

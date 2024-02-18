@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Wrappers around functions to run dkg and signing protocols for JS
+//! Wrappers around functions to run DKG and signing protocols for JS
 use js_sys::Error;
 use sp_core::sr25519;
 use subxt::utils::AccountId32;

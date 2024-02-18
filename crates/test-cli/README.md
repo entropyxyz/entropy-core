@@ -9,7 +9,7 @@ nodes and two TSS servers.
 
 This could be either:
 
-- A [devnet deployment](https://github.com/entropyxyz/meta/wiki/New-Entropy-network-deployment-runbook), in
+- A [network deployment](https://github.com/entropyxyz/meta/wiki/New-Entropy-network-deployment-runbook), in
 which case you need to specify the endpoint URI. This can be done either by setting the
 `ENTROPY_DEVNET` environment variable or using the `--chain-endpoint` or `-c` command line argument.
 - A [local deployment with docker compose](https://github.com/entropyxyz/meta/wiki/Local-devnet).
