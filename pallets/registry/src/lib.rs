@@ -224,6 +224,9 @@ pub mod pallet {
         NoProgramSet,
         TooManyModifiableKeys,
         MismatchedVerifyingKeyLength,
+
+        /// The validator is not part of a registration or signing committee.
+        NotACommitteeMember,
     }
 
     #[pallet::call]
@@ -512,7 +515,10 @@ pub mod pallet {
                 pallet_staking_extension::Pallet::<T>::threshold_to_stash(&reporter_tss_account)
                     .ok_or(Error::<T>::NoThresholdKey)?;
 
-            assert!(Self::is_in_committe(reporter_validator_account, registration_block_number)?);
+            ensure!(
+                Self::is_in_committe(reporter_validator_account, registration_block_number)?,
+                Error::<T>::NotACommitteeMember
+            );
 
             // Next we'll check that the alleged offender is also part of the committee
             let offending_peer_validator_account =
@@ -521,10 +527,10 @@ pub mod pallet {
                 )
                 .ok_or(Error::<T>::NoThresholdKey)?;
 
-            assert!(Self::is_in_committe(
-                offending_peer_validator_account,
-                registration_block_number
-            )?);
+            ensure!(
+                Self::is_in_committe(offending_peer_validator_account, registration_block_number)?,
+                Error::<T>::NotACommitteeMember
+            );
 
             // Now we want to note the offence down, but we don't do anything about here.
             //
