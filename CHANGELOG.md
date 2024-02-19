@@ -25,6 +25,7 @@ At the moment this project **does not** adhere to
 -  Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
 
 ### Changed
+- Change test-cli default access mode and update readme for recent changes ([#643](https://github.com/entropyxyz/entropy-core/pull/643))
  - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
   - Add proactive refresh keys on-chain ([#629](https://github.com/entropyxyz/entropy-core/pull/629))
 
