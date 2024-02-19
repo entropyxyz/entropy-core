@@ -56,16 +56,17 @@ seed, private key and account ID associated with a name you choose.
 Note that the signature request account must be funded for this to work. On the local setup you can
 use one of the [pre-endowed accounts](https://github.com/entropyxyz/entropy-core/blob/master/node/cli/src/endowed_accounts.rs).
 
-`cargo run -p test-cli -- register Alice Bob`
+Example of registering in permissioned access mode with a program given as a binary file:
 
-By default, this will register with public access mode, and use a test program.
+`cargo run -p test-cli -- register Alice Bob permissioned my-program.wasm`
 
-For private access mode, with a given program binary file:
+Example of registering in private access mode, with a program given as a hash of an existing
+program:
 
-`cargo run -p test-cli -- register Alice Bob private my-program.wasm`
+`cargo run -p test-cli -- register Alice Bob private my-program.wasm 3b3993c957ed9342cbb011eb9029c53fb253345114eff7da5951e98a41ba5ad5`
 
-When registering with private access mode a keyshare file will be written to the directory where you
-run the command.
+When registering with private access mode a keyshare file will be written to the current working
+directory.
 
 ### Sign
 
@@ -78,12 +79,13 @@ string:
 
 `cargo run -p test-cli -- sign Alice 'My message to sign' deadbeef1234`
 
-### Update program
+### Update programs
 
-The `update-program` command is used to change the program associated with a registered Entropy
+The `update-programs` command is used to change the programs associated with a registered Entropy
 account. It takes the 'account name' of the signature request account, and the program modification
-account, as well as the path to a .wasm file with the new program:
+account, and a list of programs to evaluate when signing. Programs may be given as either the path
+to a .wasm binary file or hashes of existing programs.
 
-`cargo run -p test-cli -- update-program Alice Bob my-new-program.wasm`
+`cargo run -p test-cli -- update-programs Alice Bob my-new-program.wasm`
 
 Note that the program modification account must be funded for this to work.
