@@ -110,6 +110,7 @@ pub mod pallet {
         pub key_visibility: KeyVisibility,
         pub verifying_key: Option<VerifyingKey>,
         pub version_number: u8,
+        pub block_number: BlockNumberFor<T>,
     }
 
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo)]
@@ -282,6 +283,7 @@ pub mod pallet {
                     key_visibility,
                     verifying_key: None,
                     version_number: T::KeyVersionNumber::get(),
+                    block_number: <frame_system::Pallet<T>>::block_number(),
                 },
             );
             Self::deposit_event(Event::SignalRegister(sig_req_account));
@@ -487,9 +489,56 @@ pub mod pallet {
                 .into())
             }
         }
+
+        // TODO (Nando): Real weight
+        #[pallet::call_index(4)]
+        #[pallet::weight({
+            <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
+        })]
+        pub fn report_unstable_peer(
+            origin: OriginFor<T>,
+            sig_req_account: T::AccountId,
+            offending_peer_tss_account: T::AccountId,
+        ) -> DispatchResultWithPostInfo {
+            let reporter_tss_account = ensure_signed(origin)?;
+
+            let registration_block_number =
+                Self::registering(&sig_req_account).ok_or(Error::<T>::NotRegistering)?.block_number;
+
+            // First, we check that the reporting validator is part of the expected committee
+
+            // TODO: Is this the correct error type? Should be something like: "Not validator?"
+            let reporter_validator_account =
+                pallet_staking_extension::Pallet::<T>::threshold_to_stash(&reporter_tss_account)
+                    .ok_or(Error::<T>::NoThresholdKey)?;
+
+            assert!(Self::is_in_committe(reporter_validator_account, registration_block_number)?);
+
+            // Next we'll check that the alleged offender is also part of the committee
+            let offending_peer_validator_account =
+                pallet_staking_extension::Pallet::<T>::threshold_to_stash(
+                    &offending_peer_tss_account,
+                )
+                .ok_or(Error::<T>::NoThresholdKey)?;
+
+            assert!(Self::is_in_committe(
+                offending_peer_validator_account,
+                registration_block_number
+            )?);
+
+            // Now we want to note the offence down, but we don't do anything about here.
+            //
+            // This would get offloaded elsewhere, probably the offences pallet. This should then
+            // tally up votes at the end of the session and take actions appropriately
+            //
+            // Should we do this here, or offload this to the Offences pallet?
+
+            todo!()
+        }
     }
 
     impl<T: Config> Pallet<T> {
+        // TODO (Nando): This second parameter is unused, remove it
         #[allow(clippy::type_complexity)]
         pub fn get_validator_info() -> Result<(Vec<ServerInfo<T::AccountId>>, u32), Error<T>> {
             let mut validators_info: Vec<ServerInfo<T::AccountId>> = vec![];
@@ -534,6 +583,21 @@ pub mod pallet {
                 }
             };
             Ok((address.clone(), i))
+        }
+
+        /// Check if the given validator was part of the signing committee for the given block
+        /// height.
+        pub fn is_in_committe(
+            validator: T::ValidatorId,
+            block_number: BlockNumberFor<T>,
+        ) -> Result<bool, Error<T>> {
+            let signing_group =
+                pallet_staking_extension::Pallet::<T>::validator_to_subgroup(&validator)
+                    .ok_or(Error::<T>::NoThresholdKey)?;
+
+            let expected_validator = Self::get_validator_rotation(signing_group, block_number)?.0;
+
+            Ok(expected_validator == validator)
         }
     }
 
