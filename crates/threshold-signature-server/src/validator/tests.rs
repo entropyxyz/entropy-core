@@ -183,7 +183,7 @@ async fn test_sync_kvdb() {
 
     assert_eq!(result_3.status(), 500);
     // fails on lookup for stash key
-    assert_eq!(result_3.text().await.unwrap(), "Chain Fetch: Stash Fetch Error");
+    assert_eq!(result_3.text().await.unwrap(), "User Error: Chain Fetch: Stash Fetch Error");
 
     keys.keys = vec![FORBIDDEN_KEYS[0].to_string()];
     let enc_forbidden =
