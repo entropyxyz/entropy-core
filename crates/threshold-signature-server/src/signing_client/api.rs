@@ -49,7 +49,9 @@ use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        substrate::{get_registered_details, get_subgroup, return_all_addresses_of_subgroup},
+        substrate::{
+            get_registered_details, get_subgroup, query_chain, return_all_addresses_of_subgroup,
+        },
         user::{check_in_registration_group, send_key},
         validator::get_signer,
     },
@@ -103,11 +105,13 @@ pub async fn proactive_refresh(
             .map_err(|e| ProtocolErr::UserError(e.to_string()))?
             .key_visibility
             .0;
+
+        // Check key visibility and don't do proactive refresh if it is private as this would require the user to be online
         if key_visibility != KeyVisibility::Public && key_visibility != KeyVisibility::Permissioned
         {
             return Ok(StatusCode::ACCEPTED);
         }
-        // TODO: check key visibility don't do private (requires user to be online)
+
         // key should always exist, figure out how to handle
         let exists_result = app_state.kv_store.kv().exists(&key).await?;
         if exists_result {
@@ -253,16 +257,10 @@ pub async fn validate_proactive_refresh(
         return Err(ProtocolErr::RepeatedData);
     }
 
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or_else(|| ProtocolErr::OptionUnwrapError("Error getting block hash".to_string()))?;
     let proactive_info_query = entropy::storage().staking_extension().proactive_refresh();
-    let proactive_info =
-        api.storage().at(block_hash).fetch(&proactive_info_query).await?.ok_or_else(|| {
-            ProtocolErr::OptionUnwrapError("Error getting Proactive Refresh data".to_string())
-        })?;
-
+    let proactive_info = query_chain(api, rpc, proactive_info_query, None)
+        .await?
+        .ok_or_else(|| ProtocolErr::ChainFetch("Error getting Proactive Refresh data"))?;
     let mut hasher_chain_data = Blake2s256::new();
     hasher_chain_data.update(ocw_data.encode());
     let chain_data_hash = hasher_chain_data.finalize();

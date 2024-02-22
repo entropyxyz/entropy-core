@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Utilities relating to the user
 use std::time::Duration;
 
 use entropy_programs_runtime::Runtime;
@@ -35,7 +36,7 @@ use crate::{
     chain_api::{
         entropy, entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, EntropyConfig,
     },
-    helpers::substrate::get_program,
+    helpers::substrate::{get_program, query_chain},
     signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
     user::{api::UserRegistrationInfo, errors::UserErr},
     validation::{derive_static_secret, SignedMessage},
@@ -122,19 +123,13 @@ pub async fn send_key(
             .position(|address| *address == *stash_address)
             .ok_or_else(|| UserErr::OptionUnwrapError("Validator not in subgroup".to_string()))?,
     );
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
+    let block_hash = rpc.chain_get_block_hash(None).await?;
 
     for validator in addresses_in_subgroup {
         let server_info_query = entropy::storage().staking_extension().threshold_servers(validator);
-        let server_info = api
-            .storage()
-            .at(block_hash)
-            .fetch(&server_info_query)
+        let server_info = query_chain(api, rpc, server_info_query, block_hash)
             .await?
-            .ok_or_else(|| UserErr::OptionUnwrapError("Server Info Fetch Error".to_string()))?;
+            .ok_or_else(|| UserErr::ChainFetch("Server Info Fetch Error"))?;
         let signed_message = SignedMessage::new(
             signer.signer(),
             &Bytes(serde_json::to_vec(&user_registration_info.clone())?),

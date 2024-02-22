@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! For private access mode - run the protocol on the client side (the user's device)
+
 #[cfg(feature = "wasm")]
 pub mod wasm;
 use futures::{future, Future};

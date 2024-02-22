@@ -98,7 +98,9 @@ use crate::{
             DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::Hasher,
-        substrate::{get_subgroup, return_all_addresses_of_subgroup},
+        substrate::{
+            get_subgroup, query_chain, return_all_addresses_of_subgroup, submit_transaction,
+        },
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
             remove_program, run_to_block, setup_client, spawn_testing_validators,
@@ -141,10 +143,15 @@ async fn test_sign_tx_no_chain() {
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_hash =
-        store_program(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_hash = store_program(
+        &entropy_api,
+        &rpc,
+        &two.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -226,7 +233,7 @@ async fn test_sign_tx_no_chain() {
     for res in test_user_res_not_registered {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Not Registering error: Register Onchain first"
+            "Chain Fetch: Not Registering error: Register Onchain first"
         );
     }
 
@@ -396,7 +403,7 @@ async fn test_program_with_config() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let program_hash =
-        store_program(&entropy_api, &two.pair(), TEST_BASIC_TRANSACTION.to_owned(), vec![])
+        store_program(&entropy_api, &rpc, &two.pair(), TEST_BASIC_TRANSACTION.to_owned(), vec![])
             .await
             .unwrap();
 
@@ -492,10 +499,15 @@ async fn test_fail_signing_group() {
         },
     ];
 
-    let program_hash =
-        store_program(&entropy_api, &eve.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_hash = store_program(
+        &entropy_api,
+        &rpc,
+        &eve.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
 
     update_programs(
         &entropy_api,
@@ -574,10 +586,15 @@ async fn test_store_share() {
         .unwrap();
 
     let original_key_shard = response_key.text().await.unwrap();
-    let program_hash =
-        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_hash = store_program(
+        &api,
+        &rpc,
+        &program_manager.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
 
     let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let validators_info = vec![
@@ -597,6 +614,7 @@ async fn test_store_share() {
 
     put_register_request_on_chain(
         &api,
+        &rpc,
         &alice,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
@@ -618,11 +636,11 @@ async fn test_store_share() {
 
     // Wait until user is confirmed as registered
     let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
-    let registered_query = entropy::storage().relayer().registered(alice_account_id);
     for _ in 0..10 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
-        let block_hash = rpc.chain_get_block_hash(None).await.unwrap().unwrap();
-        let query_registered_status = api.storage().at(block_hash).fetch(&registered_query).await;
+        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
+        let registered_query = entropy::storage().relayer().registered(alice_account_id.clone());
+        let query_registered_status = query_chain(&api, &rpc, registered_query, block_hash).await;
         if query_registered_status.unwrap().is_some() {
             break;
         }
@@ -666,6 +684,7 @@ async fn test_store_share() {
     block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     put_register_request_on_chain(
         &api,
+        &rpc,
         &alice_program,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
@@ -792,13 +811,19 @@ async fn test_send_and_receive_keys() {
     assert_eq!(response_already_in_storage.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(response_already_in_storage.text().await.unwrap(), "User already registered");
 
-    let program_hash =
-        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_hash = store_program(
+        &api,
+        &rpc,
+        &program_manager.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
 
     put_register_request_on_chain(
         &api,
+        &rpc,
         &alice.clone(),
         alice.to_account_id().into(),
         KeyVisibility::Public,
@@ -856,6 +881,7 @@ async fn test_recover_key() {
 
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     sig_req_keyring: &Sr25519Keyring,
     program_modification_account: subxtAccountId32,
     key_visibility: KeyVisibility,
@@ -869,17 +895,7 @@ pub async fn put_register_request_on_chain(
         Static(key_visibility),
         program_instance,
     );
-
-    api.tx()
-        .sign_and_submit_then_watch_default(&registering_tx, &sig_req_account)
-        .await
-        .unwrap()
-        .wait_for_in_block()
-        .await
-        .unwrap()
-        .wait_for_success()
-        .await
-        .unwrap();
+    submit_transaction(api, rpc, &sig_req_account, &registering_tx, None).await.unwrap();
 }
 
 #[tokio::test]
@@ -898,10 +914,15 @@ async fn test_sign_tx_user_participates() {
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_hash =
-        store_program(&entropy_api, &two.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_hash = store_program(
+        &entropy_api,
+        &rpc,
+        &two.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
 
     update_programs(
         &entropy_api,
@@ -982,7 +1003,7 @@ async fn test_sign_tx_user_participates() {
     for res in test_user_res_not_registered {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Not Registering error: Register Onchain first"
+            "Chain Fetch: Not Registering error: Register Onchain first"
         );
     }
 
@@ -1168,10 +1189,15 @@ async fn test_register_with_private_key_visibility() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_hash =
-        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_hash = store_program(
+        &api,
+        &rpc,
+        &program_manager.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
@@ -1180,6 +1206,7 @@ async fn test_register_with_private_key_visibility() {
 
     put_register_request_on_chain(
         &api,
+        &rpc,
         &one,
         program_modification_account.to_account_id().into(),
         KeyVisibility::Private(x25519_public_key),
@@ -1244,7 +1271,7 @@ async fn test_compute_hash() {
 
     let mut runtime = Runtime::default();
     let program_hash =
-        store_program(&api, &one.pair(), TEST_PROGRAM_CUSTOM_HASH.to_owned(), vec![])
+        store_program(&api, &rpc, &one.pair(), TEST_PROGRAM_CUSTOM_HASH.to_owned(), vec![])
             .await
             .unwrap();
 
@@ -1315,10 +1342,15 @@ async fn test_fail_infinite_program() {
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_hash =
-        store_program(&entropy_api, &two.pair(), TEST_INFINITE_LOOP_BYTECODE.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_hash = store_program(
+        &entropy_api,
+        &rpc,
+        &two.pair(),
+        TEST_INFINITE_LOOP_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
 
     update_programs(
         &entropy_api,
@@ -1388,13 +1420,19 @@ async fn test_mutiple_confirm_done() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
-    let program_hash =
-        store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_hash = store_program(
+        &api,
+        &rpc,
+        &program_manager.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
 
     put_register_request_on_chain(
         &api,
+        &rpc,
         &alice,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
@@ -1404,6 +1442,7 @@ async fn test_mutiple_confirm_done() {
 
     put_register_request_on_chain(
         &api,
+        &rpc,
         &bob,
         alice_program.to_account_id().into(),
         KeyVisibility::Public,
@@ -1413,10 +1452,18 @@ async fn test_mutiple_confirm_done() {
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
 
-    confirm_registered(&api, alice.to_account_id().into(), 0u8, &signer_alice, vec![0u8], 0u32)
-        .await
-        .unwrap();
-    confirm_registered(&api, bob.to_account_id().into(), 0u8, &signer_alice, vec![0u8], 1u32)
+    confirm_registered(
+        &api,
+        &rpc,
+        alice.to_account_id().into(),
+        0u8,
+        &signer_alice,
+        vec![0u8],
+        0u32,
+    )
+    .await
+    .unwrap();
+    confirm_registered(&api, &rpc, bob.to_account_id().into(), 0u8, &signer_alice, vec![0u8], 1u32)
         .await
         .unwrap();
     check_has_confirmation(&api, &rpc, &alice.pair()).await;
