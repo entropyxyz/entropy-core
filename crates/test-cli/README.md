@@ -2,7 +2,8 @@
 
 This is a simple CLI for testing Entropy.
 
-Note that this client has no secure private key storage and it only intended for use with test networks. For a fully featured command line client see [entropyxyz/cli](https://github.com/entropyxyz/cli).
+Note that this client has no secure private key storage and is only intended for use with test
+networks. For a fully featured command line client see [entropyxyz/cli](https://github.com/entropyxyz/cli).
 
 ## Requirements
 
@@ -55,7 +56,7 @@ You can also display help for a specific command:
 ### Status
 
 To see if you have access to a successfully configured deployment you can try the `status` command
-which will list the currently registered entropy accounts:
+which will list the currently registered entropy accounts and stored programs:
 
 `cargo run -p test-cli -- status`
 
@@ -86,7 +87,7 @@ simplest 'vanilla' access mode.
 For example, to register with `//Alice` as the signature request account and `//Bob` as the program
 modification account, in permissioned access mode, using the `example_noop` program:
 
-`cargo run -p test-cli -- register Alice Bob permissioned ./example_noop.wasm`
+`cargo run -p test-cli -- register Alice Bob permissioned ./crates/testing-utils/example_noop.wasm`
 
 Example of registering in private access mode, with a program given as a hash of an existing
 program:
@@ -95,6 +96,10 @@ program:
 
 When registering with private access mode, a keyshare file will be written to the directory where you
 run the command. You must make subsequent `sign` commands in the same directory.
+
+Once you have successfully registered you can run the `status` command again and you should see the
+account you registered. The 'verifying key' field is the public secp256k1 key of the distributed
+keypair used to sign messages from the Entropy account.
 
 ### Sign
 
@@ -107,10 +112,19 @@ string:
 
 `cargo run -p test-cli -- sign Alice 'My message to sign' deadbeef1234`
 
+If signing is successful, a [`RecoverableSignature`](https://docs.rs/synedrion/latest/synedrion/struct.RecoverableSignature.html)
+object will be displayed containing the 64 byte secp256k1 signature encoded as hex, as well as a [`RecoveryId`](https://docs.rs/synedrion/latest/synedrion/ecdsa/struct.RecoveryId.html).
+
 ### Store program
 
 As we saw above the `register` command can store a program when you register. If you just want to store
 a program you can use the `store-program` command.
+
+You need to give the account which will store the program, and the path to a program binary file you
+wish to store, for example:
+
+`cargo run -p test-cli -- store-program Alice
+./crates/testing-utils/example_barebones_with_auxilary.wasm`
 
 ### Update programs
 
