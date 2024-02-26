@@ -151,21 +151,22 @@ enum CliCommand {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum, Default)]
 enum Visibility {
-    /// Anyone can submit a signature request (default)
-    #[default]
-    Public,
-    /// Only the user who registers can submit a signature request
+    /// Only the user who registers can submit a signature request, and the user holds a keyshare
+    /// themselves
     Private,
-    /// The program defines who may submit a signature request
+    /// Only the user who registers can submit a signature request (default)
+    #[default]
     Permissioned,
+    /// Anyone can submit a signature request
+    Public,
 }
 
 impl From<KeyVisibility> for Visibility {
     fn from(key_visibility: KeyVisibility) -> Self {
         match key_visibility {
-            KeyVisibility::Public => Visibility::Public,
             KeyVisibility::Private(_) => Visibility::Private,
             KeyVisibility::Permissioned => Visibility::Permissioned,
+            KeyVisibility::Public => Visibility::Public,
         }
     }
 }
