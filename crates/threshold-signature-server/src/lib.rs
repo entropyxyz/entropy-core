@@ -83,12 +83,22 @@
 //! ### For other instances of the threshold server
 //!
 //! - [`/user/receive_key`](receive_key) - recieve a keyshare from another threshold server in the
-//!   same signing subgroup. Takes a [UserRegistrationInfo] wrapped in a
-//!   [crate::validation::SignedMessage].
-//! - [`/ws`](crate::signing_client::api::ws_handler()) - Websocket server for signing protocol
+//!   same signing subgroup during registration or proactive refresh.
+//!
+//!   Takes a [UserRegistrationInfo] containing the users account ID and associated keyshare, wrapped
+//!   in a [crate::validation::SignedMessage].
+//!
+//! - [`/ws`](crate::signing_client::api::ws_handler()) - Websocket server for signing and DKG protocol
 //! messages. This is opened by other threshold servers when the signing procotol is initiated.
+//!
 //! - [`/validator/sync_kvdb`](crate::validator::api::sync_kvdb()) - POST - Called by another
 //! threshold server when joining to get the key-shares from a member of their sub-group.
+//!
+//!   Takes a list of users account IDs for which shares are requested, wrapped in a
+//!   [crate::validation::SignedMessage].
+//!   Responds with a list of [crate::validation::SignedMessage]s each containing a serialized
+//!   [synedrion::KeyShare].
+//!
 //! - [`/version`](crate::node_info::api::version()) - Get - get the node version info
 //! - [`/heathlz`](crate::health::api::healthz()) - Get - get if the node is running
 //! - [`/hashes`](crate::node_info::api::hashes()) - Get - get the hashes supported by the node
