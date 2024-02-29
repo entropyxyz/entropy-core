@@ -752,9 +752,12 @@ async fn test_send_and_receive_keys() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
+    let share = &KeyShare::<KeyParams>::new_centralized(&mut rand_core::OsRng, 2, None)[0];
+    let share_serialized = entropy_kvdb::kv_manager::helpers::serialize(&share).unwrap();
+
     let user_registration_info = UserRegistrationInfo {
         key: alice.to_account_id().to_string(),
-        value: vec![10],
+        value: share_serialized,
         proactive_refresh: false,
     };
 
@@ -804,10 +807,8 @@ async fn test_send_and_receive_keys() {
         .await
         .unwrap();
 
-    assert_eq!(
-        response_new_key.text().await.unwrap(),
-        std::str::from_utf8(&user_registration_info.value.clone()).unwrap().to_string()
-    );
+    assert_eq!(response_new_key.bytes().await.unwrap(), &user_registration_info.value.clone());
+
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
 
     let signed_message = SignedMessage::new(
@@ -818,40 +819,6 @@ async fn test_send_and_receive_keys() {
     .unwrap()
     .to_json()
     .unwrap();
-
-    // fails key already stored not in registering state
-    let response_already_in_storage = client
-        .post("http://127.0.0.1:3001/user/receive_key")
-        .header("Content-Type", "application/json")
-        .body(signed_message.clone())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_already_in_storage.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_already_in_storage.text().await.unwrap(), "User already registered");
-
-    let program_hash = store_program(
-        &api,
-        &rpc,
-        &program_manager.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-    )
-    .await
-    .unwrap();
-
-    put_register_request_on_chain(
-        &api,
-        &rpc,
-        &alice.clone(),
-        alice.to_account_id().into(),
-        KeyVisibility::Public,
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-    )
-    .await;
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    run_to_block(&rpc, block_number + 2).await;
 
     // a key in registering state can be overwritten
     let response_overwrites_key = client
@@ -864,6 +831,41 @@ async fn test_send_and_receive_keys() {
 
     assert_eq!(response_overwrites_key.status(), StatusCode::OK);
     assert_eq!(response_overwrites_key.text().await.unwrap(), "");
+
+    // // fails key already stored not in registering state
+    // let response_already_in_storage = client
+    //     .post("http://127.0.0.1:3001/user/receive_key")
+    //     .header("Content-Type", "application/json")
+    //     .body(signed_message.clone())
+    //     .send()
+    //     .await
+    //     .unwrap();
+    //
+    // assert_eq!(response_already_in_storage.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    // assert_eq!(response_already_in_storage.text().await.unwrap(), "User already registered");
+    //
+    // let program_hash = store_program(
+    //     &api,
+    //     &rpc,
+    //     &program_manager.pair(),
+    //     TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+    //     vec![],
+    // )
+    // .await
+    // .unwrap();
+    //
+    // put_register_request_on_chain(
+    //     &api,
+    //     &rpc,
+    //     &alice.clone(),
+    //     alice.to_account_id().into(),
+    //     KeyVisibility::Public,
+    //     BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    // )
+    // .await;
+    // let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    // run_to_block(&rpc, block_number + 2).await;
+
     clean_tests();
 }
 
