@@ -145,6 +145,8 @@ pub enum UserErr {
     ForbiddenKey,
     #[error("No existing keyshare found for this user")]
     UserDoesNotExist,
+    #[error("The remote TSS server rejected the keyshare: {0}")]
+    KeyShareRejected(String),
 }
 
 impl IntoResponse for UserErr {
