@@ -30,6 +30,7 @@ use tokio::sync::oneshot::error::RecvError;
 use crate::{
     chain_api::entropy,
     signing_client::{ProtocolErr, SubscribeErr},
+    validator::errors::ValidatorErr,
 };
 
 /// Errors related to parsing and evaulating programs.
@@ -141,6 +142,10 @@ pub enum UserErr {
     Anyhow(#[from] anyhow::Error),
     #[error("Chain Fetch: {0}")]
     ChainFetch(&'static str),
+    #[error("The given key is forbidden")]
+    ForbiddenKey,
+    #[error("No existing keyshare found for this user")]
+    UserDoesNotExist,
 }
 
 impl IntoResponse for UserErr {

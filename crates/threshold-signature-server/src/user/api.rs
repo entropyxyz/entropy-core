@@ -32,8 +32,8 @@ use entropy_kvdb::kv_manager::{
     KvManager,
 };
 use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureRequest};
-use entropy_protocol::SigningSessionInfo;
 use entropy_protocol::ValidatorInfo;
+use entropy_protocol::{KeyParams, SigningSessionInfo};
 use entropy_shared::{
     types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey,
     MAX_INSTRUCTIONS_PER_PROGRAM, SIGNING_PARTY_SIZE,
@@ -54,6 +54,7 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, MultiAddress},
     Config, OnlineClient,
 };
+use synedrion::KeyShare;
 use tracing::instrument;
 use zeroize::Zeroize;
 
@@ -76,7 +77,7 @@ use crate::{
     },
     signing_client::{ListenerState, ProtocolErr},
     validation::{check_stale, SignedMessage},
-    validator::api::get_and_store_values,
+    validator::api::{check_forbidden_key, get_and_store_values},
     AppState, Configuration,
 };
 
@@ -407,28 +408,45 @@ pub async fn receive_key(
         return Err(UserErr::NotInSubgroup);
     }
 
+    check_forbidden_key(&user_registration_info.key).map_err(|_| UserErr::ForbiddenKey)?;
+
+    let already_exists =
+        app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
+
     if user_registration_info.proactive_refresh {
+        if !already_exists {
+            return Err(UserErr::UserDoesNotExist);
+        }
         // TODO validate that an active proactive refresh is happening
         app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
     } else {
-        // delete key if user in registering phase
-        let exists_result =
-            app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
-        if exists_result {
-            let registration_details = is_registering(
-                &api,
-                &rpc,
-                &SubxtAccountId32::from_str(&user_registration_info.key)
-                    .map_err(|_| UserErr::StringError("Account Conversion"))?,
-            )
-            .await?;
-            if registration_details {
+        let registering = is_registering(
+            &api,
+            &rpc,
+            &SubxtAccountId32::from_str(&user_registration_info.key)
+                .map_err(|_| UserErr::StringError("Account Conversion"))?,
+        )
+        .await?;
+
+        if already_exists {
+            if registering {
+                // Delete key if user in registering phase
                 app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
             } else {
                 return Err(UserErr::AlreadyRegistered);
             }
+        } else if !registering {
+            return Err(UserErr::NotRegistering("Provided key not from a registering user"));
         }
     }
+
+    // TODO now get the block number and check that the author of the message should be in the current DKG or proactive refresh committee
+
+    // Check this is a valid keyshare
+    let _: KeyShare<KeyParams> =
+        entropy_kvdb::kv_manager::helpers::deserialize(&user_registration_info.value)
+            .ok_or_else(|| UserErr::InputValidation("Failed to load KeyShare"))?;
+
     let reservation =
         app_state.kv_store.kv().reserve_key(user_registration_info.key.to_string()).await?;
     app_state.kv_store.kv().put(reservation, user_registration_info.value).await?;
