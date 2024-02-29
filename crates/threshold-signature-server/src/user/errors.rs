@@ -30,7 +30,6 @@ use tokio::sync::oneshot::error::RecvError;
 use crate::{
     chain_api::entropy,
     signing_client::{ProtocolErr, SubscribeErr},
-    validator::errors::ValidatorErr,
 };
 
 /// Errors related to parsing and evaulating programs.
