@@ -758,6 +758,26 @@ async fn test_send_and_receive_keys() {
         proactive_refresh: false,
     };
 
+    let program_hash = store_program(
+        &api,
+        &rpc,
+        &program_manager.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+    )
+    .await
+    .unwrap();
+
+    put_register_request_on_chain(
+        &api,
+        &rpc,
+        &alice.clone(),
+        alice.to_account_id().into(),
+        KeyVisibility::Public,
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await;
+
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
     let client = reqwest::Client::new();
