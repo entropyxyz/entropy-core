@@ -110,7 +110,10 @@ use crate::{
     new_user,
     r#unsafe::api::UnsafeQuery,
     signing_client::ListenerState,
-    user::api::{confirm_registered, recover_key, UserRegistrationInfo, UserSignatureRequest},
+    user::{
+        api::{confirm_registered, recover_key, UserRegistrationInfo, UserSignatureRequest},
+        UserErr,
+    },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
 };
@@ -755,12 +758,36 @@ async fn test_send_and_receive_keys() {
     let share = &KeyShare::<KeyParams>::new_centralized(&mut rand_core::OsRng, 2, None)[0];
     let share_serialized = entropy_kvdb::kv_manager::helpers::serialize(&share).unwrap();
 
-    let user_registration_info = UserRegistrationInfo {
+    let mut user_registration_info = UserRegistrationInfo {
         key: alice.to_account_id().to_string(),
         value: share_serialized,
         proactive_refresh: false,
     };
 
+    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
+    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+
+    // First try sending a keyshare for a user who is not registering - should fail
+    let result = send_key(
+        &api,
+        &rpc,
+        &alice.to_account_id().into(),
+        &mut vec![ALICE_STASH_ADDRESS.clone(), alice.to_account_id().into()],
+        user_registration_info.clone(),
+        &signer_alice,
+    )
+    .await;
+
+    if let Err(UserErr::KeyShareRejected(error_message)) = result {
+        assert_eq!(
+            error_message,
+            "Not Registering error: Provided account ID not from a registering user".to_string()
+        );
+    } else {
+        panic!("Should give not registering error");
+    }
+
+    // The happy path - the user is in a registering state - should succeed
     let program_hash = store_program(
         &api,
         &rpc,
@@ -781,9 +808,6 @@ async fn test_send_and_receive_keys() {
     )
     .await;
 
-    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
-    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let client = reqwest::Client::new();
     // sends key to alice validator, while filtering out own key
     send_key(
         &api,
@@ -798,6 +822,7 @@ async fn test_send_and_receive_keys() {
 
     let get_query = UnsafeQuery::new(user_registration_info.key.clone(), vec![]).to_json();
 
+    let client = reqwest::Client::new();
     // check alice has new key
     let response_new_key = client
         .post("http://127.0.0.1:3001/unsafe/get")
@@ -809,6 +834,7 @@ async fn test_send_and_receive_keys() {
 
     assert_eq!(response_new_key.bytes().await.unwrap(), &user_registration_info.value.clone());
 
+    // A keyshare can be overwritten when the user is still in a registering state
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
 
     let signed_message = SignedMessage::new(
@@ -820,7 +846,6 @@ async fn test_send_and_receive_keys() {
     .to_json()
     .unwrap();
 
-    // a key in registering state can be overwritten
     let response_overwrites_key = client
         .post("http://127.0.0.1:3001/user/receive_key")
         .header("Content-Type", "application/json")
@@ -832,39 +857,31 @@ async fn test_send_and_receive_keys() {
     assert_eq!(response_overwrites_key.status(), StatusCode::OK);
     assert_eq!(response_overwrites_key.text().await.unwrap(), "");
 
-    // // fails key already stored not in registering state
-    // let response_already_in_storage = client
-    //     .post("http://127.0.0.1:3001/user/receive_key")
-    //     .header("Content-Type", "application/json")
-    //     .body(signed_message.clone())
-    //     .send()
-    //     .await
-    //     .unwrap();
-    //
-    // assert_eq!(response_already_in_storage.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    // assert_eq!(response_already_in_storage.text().await.unwrap(), "User already registered");
-    //
-    // let program_hash = store_program(
-    //     &api,
-    //     &rpc,
-    //     &program_manager.pair(),
-    //     TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-    //     vec![],
-    // )
-    // .await
-    // .unwrap();
-    //
-    // put_register_request_on_chain(
-    //     &api,
-    //     &rpc,
-    //     &alice.clone(),
-    //     alice.to_account_id().into(),
-    //     KeyVisibility::Public,
-    //     BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-    // )
-    // .await;
-    // let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    // run_to_block(&rpc, block_number + 2).await;
+    // Try sending a badly formed keyshare - should fail
+    user_registration_info.value = b"This will not deserialize to KeyShare<KeyParams>".to_vec();
+
+    let signed_message = SignedMessage::new(
+        signer_alice.signer(),
+        &Bytes(serde_json::to_vec(&user_registration_info.clone()).unwrap()),
+        &server_public_key,
+    )
+    .unwrap()
+    .to_json()
+    .unwrap();
+
+    let response_overwrites_key = client
+        .post("http://127.0.0.1:3001/user/receive_key")
+        .header("Content-Type", "application/json")
+        .body(signed_message.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_overwrites_key.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(
+        response_overwrites_key.text().await.unwrap(),
+        "Input Validation error: Failed to load KeyShare"
+    );
 
     clean_tests();
 }

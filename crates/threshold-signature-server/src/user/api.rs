@@ -436,13 +436,13 @@ pub async fn receive_key(
                 return Err(UserErr::AlreadyRegistered);
             }
         } else if !registering {
-            return Err(UserErr::NotRegistering("Provided key not from a registering user"));
+            return Err(UserErr::NotRegistering("Provided account ID not from a registering user"));
         }
     }
 
     // TODO now get the block number and check that the author of the message should be in the current DKG or proactive refresh committee
 
-    // Check this is a valid keyshare
+    // Check this is a well-formed keyshare
     let _: KeyShare<KeyParams> =
         entropy_kvdb::kv_manager::helpers::deserialize(&user_registration_info.value)
             .ok_or_else(|| UserErr::InputValidation("Failed to load KeyShare"))?;
