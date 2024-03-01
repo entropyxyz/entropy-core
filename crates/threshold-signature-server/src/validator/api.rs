@@ -46,17 +46,19 @@ use crate::{
     AppState,
 };
 
-/// A set of signature request account IDs for which keyshares are requested, given as ss58 encoded
+/// A set of signature request account IDs for which keyshares are requested, given as SS58 encoded
 /// strings.
-/// This is the HTTP request body to `/validator/sync_kvdb`
+///
+/// This is the HTTP request body to `/validator/sync_kvdb`.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Keys {
     pub keys: Vec<String>,
     pub timestamp: SystemTime,
 }
 
-/// A set of encrypted keyshares
-/// This is the HTTP response body to `/validator/sync_kvdb`
+/// A set of encrypted keyshares.
+///
+/// This is the HTTP response body to `/validator/sync_kvdb`.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Values {
     pub values: Vec<SignedMessage>,
