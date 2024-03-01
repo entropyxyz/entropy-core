@@ -222,6 +222,7 @@ pub mod pallet {
         NoThresholdKey,
         InvalidValidatorId,
         SigningGroupError,
+        TssAccountAlreadyExists,
     }
 
     #[pallet::event]
@@ -293,6 +294,11 @@ pub mod pallet {
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
+            ensure!(
+                !ThresholdToStash::<T>::contains_key(&tss_account),
+                Error::<T>::TssAccountAlreadyExists
+            );
+
             let new_server_info: ServerInfo<T::AccountId> =
                 ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
                     if let Some(server_info) = maybe_server_info {
@@ -355,6 +361,11 @@ pub mod pallet {
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
+
+            ensure!(
+                !ThresholdToStash::<T>::contains_key(&tss_account),
+                Error::<T>::TssAccountAlreadyExists
+            );
 
             ThresholdServers::<T>::insert(
                 &validator_id,

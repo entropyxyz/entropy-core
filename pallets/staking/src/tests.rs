@@ -79,6 +79,23 @@ fn it_takes_in_an_endpoint() {
             ),
             Error::<Test>::NotController
         );
+
+        // Attempt to call validate with a TSS account which already exists
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(2),
+            100u64,
+            pallet_staking::RewardDestination::Account(2),
+        ));
+        assert_noop!(
+            Staking::validate(
+                RuntimeOrigin::signed(2),
+                pallet_staking::ValidatorPrefs::default(),
+                vec![20],
+                3,
+                NULL_ARR
+            ),
+            Error::<Test>::TssAccountAlreadyExists
+        );
     });
 }
 
@@ -131,6 +148,25 @@ fn it_changes_threshold_account() {
         assert_noop!(
             Staking::change_threshold_accounts(RuntimeOrigin::signed(4), 5, NULL_ARR),
             Error::<Test>::NotController
+        );
+
+        // Check that we cannot change to a TSS account which already exists
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(2),
+            100u64,
+            pallet_staking::RewardDestination::Account(2),
+        ));
+        assert_ok!(Staking::validate(
+            RuntimeOrigin::signed(2),
+            pallet_staking::ValidatorPrefs::default(),
+            vec![20],
+            5,
+            NULL_ARR
+        ));
+
+        assert_noop!(
+            Staking::change_threshold_accounts(RuntimeOrigin::signed(1), 5, NULL_ARR),
+            Error::<Test>::TssAccountAlreadyExists
         );
     });
 }
