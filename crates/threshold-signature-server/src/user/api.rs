@@ -125,7 +125,9 @@ pub async fn sign_tx(
 {
     let signer = get_signer(&app_state.kv_store).await?;
 
+    let api = get_api(&app_state.configuration.endpoint).await?;
     let request_author = SubxtAccountId32(*signed_msg.account_id().as_ref());
+    request_limit_check(&api, &app_state.kv_store, request_author.to_string()).await?;
 
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
@@ -137,7 +139,6 @@ pub async fn sign_tx(
     let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&decrypted_message)?;
     check_stale(user_sig_req.timestamp)?;
 
-    let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let user_details =
         get_registered_details(&api, &rpc, &user_sig_req.signature_request_account).await?;
@@ -217,6 +218,7 @@ pub async fn sign_tx(
     // Do the signing protocol in another task, so we can already respond
     tokio::spawn(async move {
         let signing_protocol_output = do_signing(
+            &api,
             user_sig_req,
             message_hash_hex,
             &app_state,
@@ -628,5 +630,27 @@ pub async fn recover_key(
     get_and_store_values(vec![signing_address], kv_store, ip_address, 1, false, &recip_key, signer)
         .await
         .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
+    Ok(())
+}
+
+/// Checks the request limit
+pub async fn request_limit_check(
+    api: &OnlineClient<EntropyConfig>,
+    kv_store: &KvManager,
+    signing_address: String,
+) -> Result<(), UserErr> {
+    // get current request check
+    // checks request limit onchain
+    // evaluate wether check has exceeded limit
+    Ok(())
+}
+
+pub async fn increment_or_wipe_request_limit(
+    api: &OnlineClient<EntropyConfig>,
+    kv_store: &KvManager,
+    signing_address: String,
+) -> Result<(), UserErr> {
+    // getss reuquest check from chain
+    // increments it or wipes it if from an old block
     Ok(())
 }
