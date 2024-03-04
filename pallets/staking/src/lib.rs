@@ -289,15 +289,15 @@ pub mod pallet {
             tss_account: T::AccountId,
             x25519_public_key: X25519PublicKey,
         ) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-            let stash = Self::get_stash(&who)?;
-            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)
-                .or(Err(Error::<T>::InvalidValidatorId))?;
-
             ensure!(
                 !ThresholdToStash::<T>::contains_key(&tss_account),
                 Error::<T>::TssAccountAlreadyExists
             );
+
+            let who = ensure_signed(origin)?;
+            let stash = Self::get_stash(&who)?;
+            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)
+                .or(Err(Error::<T>::InvalidValidatorId))?;
 
             let new_server_info: ServerInfo<T::AccountId> =
                 ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
