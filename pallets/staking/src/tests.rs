@@ -74,11 +74,29 @@ fn it_takes_in_an_endpoint() {
                 RuntimeOrigin::signed(4),
                 pallet_staking::ValidatorPrefs::default(),
                 vec![20, 20],
-                3,
+                5,
                 NULL_ARR
             ),
             Error::<Test>::NotController
         );
+    });
+}
+
+#[test]
+fn it_will_not_allow_validator_to_use_existing_tss_account() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(1),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+        assert_ok!(Staking::validate(
+            RuntimeOrigin::signed(1),
+            pallet_staking::ValidatorPrefs::default(),
+            vec![20],
+            3,
+            NULL_ARR
+        ));
 
         // Attempt to call validate with a TSS account which already exists
         assert_ok!(FrameStaking::bond(
@@ -149,6 +167,43 @@ fn it_changes_threshold_account() {
             Staking::change_threshold_accounts(RuntimeOrigin::signed(4), 5, NULL_ARR),
             Error::<Test>::NotController
         );
+
+        // Check that we cannot change to a TSS account which already exists
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(2),
+            100u64,
+            pallet_staking::RewardDestination::Account(2),
+        ));
+        assert_ok!(Staking::validate(
+            RuntimeOrigin::signed(2),
+            pallet_staking::ValidatorPrefs::default(),
+            vec![20],
+            5,
+            NULL_ARR
+        ));
+
+        assert_noop!(
+            Staking::change_threshold_accounts(RuntimeOrigin::signed(1), 5, NULL_ARR),
+            Error::<Test>::TssAccountAlreadyExists
+        );
+    });
+}
+
+#[test]
+fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(1),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+        assert_ok!(Staking::validate(
+            RuntimeOrigin::signed(1),
+            pallet_staking::ValidatorPrefs::default(),
+            vec![20],
+            3,
+            NULL_ARR
+        ));
 
         // Check that we cannot change to a TSS account which already exists
         assert_ok!(FrameStaking::bond(
