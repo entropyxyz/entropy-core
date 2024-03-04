@@ -20,11 +20,12 @@ At the moment this project **does not** adhere to
   `StakingExtensionConfigproactive_refresh_data` and takes a tuple of `Vec`. Both should be empty at
   genesis for production.
 - In [#631](https://github.com/entropyxyz/entropy-core/pull/631), the `config_interface` field of `ProgramInfo` was renamed to `interface_description` to be more semantically accurate. This field will now be used to describe program interfaces, including the auxilary and configuration interfaces of the program.
+- In [#658](https://github.com/entropyxyz/entropy-core/pull/658), `RegisteredInfo` and `RegisteredInfo` now contain `version_number`
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
 -  Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
-
+- Add version number to registered ([#658](https://github.com/entropyxyz/entropy-core/pull/658))
 ### Changed
 - Change test-cli default access mode and update readme for recent changes ([#643](https://github.com/entropyxyz/entropy-core/pull/643))
  - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
