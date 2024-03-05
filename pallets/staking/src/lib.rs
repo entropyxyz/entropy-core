@@ -340,26 +340,27 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Wraps's substrate validate but forces threshold key and endpoint
-        /// `endpoint`: nodes's endpoint
-        /// `threshold_account`: nodes's threshold account
+        /// Wrap's Substrate's `staking_pallet::validate()` extrinsic, but enforces that
+        /// information about a validator's threshold server is provided.
+        ///
+        /// Note that - just like the original `validate()` extrinsic - the effects of this are
+        /// only applied in the following era.
         #[pallet::call_index(3)]
         #[pallet::weight(<T as Config>::WeightInfo::validate())]
         pub fn validate(
             origin: OriginFor<T>,
             prefs: ValidatorPrefs,
-            endpoint: Vec<u8>,
-            tss_account: T::AccountId,
-            x25519_public_key: X25519PublicKey,
+            server_info: ServerInfo<T::AccountId>,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
+
             ensure!(
-                endpoint.len() as u32 <= T::MaxEndpointLength::get(),
+                server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
             );
 
             ensure!(
-                !ThresholdToStash::<T>::contains_key(&tss_account),
+                !ThresholdToStash::<T>::contains_key(&server_info.tss_account),
                 Error::<T>::TssAccountAlreadyExists
             );
 
@@ -368,17 +369,15 @@ pub mod pallet {
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
-            ThresholdServers::<T>::insert(
-                &validator_id,
-                ServerInfo {
-                    tss_account: tss_account.clone(),
-                    x25519_public_key,
-                    endpoint: endpoint.clone(),
-                },
-            );
-            ThresholdToStash::<T>::insert(&tss_account, validator_id);
+            ThresholdServers::<T>::insert(&validator_id, server_info.clone());
+            ThresholdToStash::<T>::insert(&server_info.tss_account, validator_id);
 
-            Self::deposit_event(Event::NodeInfoChanged(who, endpoint, tss_account));
+            Self::deposit_event(Event::NodeInfoChanged(
+                who,
+                server_info.endpoint,
+                server_info.tss_account,
+            ));
+
             Ok(())
         }
 
