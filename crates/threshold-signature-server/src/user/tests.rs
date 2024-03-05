@@ -110,7 +110,10 @@ use crate::{
     new_user,
     r#unsafe::api::UnsafeQuery,
     signing_client::ListenerState,
-    user::api::{confirm_registered, recover_key, UserRegistrationInfo, UserSignatureRequest},
+    user::api::{
+        confirm_registered, get_current_subgroup_signers, increment_or_wipe_request_limit,
+        recover_key, UserRegistrationInfo, UserSignatureRequest,
+    },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
 };
@@ -1468,6 +1471,25 @@ async fn test_mutiple_confirm_done() {
         .unwrap();
     check_has_confirmation(&api, &rpc, &alice.pair()).await;
     check_has_confirmation(&api, &rpc, &bob.pair()).await;
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_increment_or_wipe_request_limit() {
+    initialize_test_logger().await;
+    clean_tests();
+    let alice = AccountKeyring::Alice;
+    let substrate_context = test_context_stationary().await;
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let kv_store = load_kv_store(&None, None).await;
+    increment_or_wipe_request_limit(&api, &rpc, &kv_store, alice.to_account_id().to_string())
+        .await
+        .unwrap();
+    increment_or_wipe_request_limit(&api, &rpc, &kv_store, alice.to_account_id().to_string())
+        .await
+        .unwrap();
     clean_tests();
 }
 

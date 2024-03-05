@@ -80,6 +80,8 @@ use crate::{
     AppState, Configuration,
 };
 
+pub const REQUESTKEYHEADER: &str = "REQUESTS";
+
 /// Represents an unparsed, transaction request coming from the client.
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
@@ -219,6 +221,7 @@ pub async fn sign_tx(
     tokio::spawn(async move {
         let signing_protocol_output = do_signing(
             &api,
+            &rpc,
             user_sig_req,
             message_hash_hex,
             &app_state,
@@ -639,18 +642,77 @@ pub async fn request_limit_check(
     kv_store: &KvManager,
     signing_address: String,
 ) -> Result<(), UserErr> {
+    // TODO move onchain
+    let request_limit = 20;
+
     // get current request check
     // checks request limit onchain
     // evaluate wether check has exceeded limit
     Ok(())
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Encode, Decode)]
+pub struct RequestLimitStorage {
+    block_number: u32,
+    request_amount: u32,
+}
+/// Increments or restarts request count if a new block has been created
 pub async fn increment_or_wipe_request_limit(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_store: &KvManager,
     signing_address: String,
 ) -> Result<(), UserErr> {
+    // TODO move onchain
+    let request_limit = 20;
     // getss reuquest check from chain
-    // increments it or wipes it if from an old block
+
+    let key = format!("{REQUESTKEYHEADER}_{signing_address}");
+    let block_number = rpc
+        .chain_get_header(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
+        .number;
+
+    if kv_store.kv().exists(&key.to_string()).await? {
+        let serialized_request_amount = kv_store.kv().get(&key).await?;
+        let request_info: RequestLimitStorage =
+            RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
+        
+        // Previous block wipe request amount to new block
+        if request_info.block_number != block_number {
+            kv_store.kv().delete(&key).await?;
+            let reservation = kv_store.kv().reserve_key(key.to_string()).await?;
+            kv_store
+                .kv()
+                .put(reservation, RequestLimitStorage { block_number, request_amount: 1 }.encode())
+                .await?;
+            return Ok(());
+        }
+
+        // same block incrememnt request amount
+        if request_info.request_amount <= request_limit {
+            kv_store.kv().delete(&key).await?;
+            let reservation = kv_store.kv().reserve_key(key.to_string()).await?;
+            kv_store
+                .kv()
+                .put(
+                    reservation,
+                    RequestLimitStorage {
+                        block_number,
+                        request_amount: request_info.request_amount + 1,
+                    }
+                    .encode(),
+                )
+                .await?;
+        }
+    } else {
+        let reservation = kv_store.kv().reserve_key(key.to_string()).await?;
+        kv_store
+            .kv()
+            .put(reservation, RequestLimitStorage { block_number, request_amount: 1 }.encode())
+            .await?;
+    }
+
     Ok(())
 }

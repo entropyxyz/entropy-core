@@ -19,7 +19,7 @@ use std::time::Duration;
 use entropy_protocol::{RecoverableSignature, SessionId, SigningSessionInfo};
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
 use sp_core::Pair;
-use subxt::{utils::AccountId32, OnlineClient};
+use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 use tokio::time::timeout;
 
 use crate::{
@@ -40,6 +40,7 @@ use crate::{
 #[tracing::instrument(skip(app_state), level = tracing::Level::DEBUG)]
 pub async fn do_signing(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     user_signature_request: UserSignatureRequest,
     sig_hash: String,
     app_state: &AppState,
@@ -110,10 +111,12 @@ pub async fn do_signing(
         signing_service.execute_sign(&sign_context, channels, signer, tss_accounts).await?;
     increment_or_wipe_request_limit(
         &api,
+        &rpc,
         kv_manager,
         info.signing_session_info.account_id.to_string(),
     )
-    .await;
+    .await
+    .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
 
     Ok(result)
 }
