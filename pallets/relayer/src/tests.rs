@@ -200,7 +200,7 @@ fn it_confirms_registers_a_user() {
                 verifying_key: expected_verifying_key,
                 programs_data: programs_info.clone(),
                 program_modification_account: 2,
-                version_number: 1
+                version_number: 1,
             }
         );
     });
