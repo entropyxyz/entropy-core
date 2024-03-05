@@ -180,7 +180,7 @@ fn it_confirms_registers_a_user() {
             key_visibility: KeyVisibility::Private([0; 32]),
             verifying_key: Some(expected_verifying_key.clone()),
             program_modification_account: 2,
-            version_number: 1u8,
+            version_number: 1,
         };
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
