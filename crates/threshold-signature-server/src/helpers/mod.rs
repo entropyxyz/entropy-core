@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Helper modules for various components of the TSS server
 pub mod launch;
 pub mod logger;
 pub mod signing;

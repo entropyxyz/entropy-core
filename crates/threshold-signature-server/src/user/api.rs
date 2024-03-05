@@ -113,7 +113,7 @@ pub struct UserRegistrationInfo {
 
 /// Called by a user to initiate the signing process for a message
 ///
-/// Takes an encrypted [SignedMessage] containing a JSON serialized [UserTransactionRequest]
+/// Takes an encrypted [SignedMessage] containing a JSON serialized [UserSignatureRequest]
 #[tracing::instrument(
     skip_all,
     fields(signing_address = %signed_msg.account_id())

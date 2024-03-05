@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! An encrypted key-value store used for storing keyshares and other private data
 pub mod encrypted_sled;
 pub mod kv_manager;
 use std::{fs, path::PathBuf};

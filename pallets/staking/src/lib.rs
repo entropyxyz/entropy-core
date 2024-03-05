@@ -229,6 +229,7 @@ pub mod pallet {
         NoThresholdKey,
         InvalidValidatorId,
         SigningGroupError,
+        TssAccountAlreadyExists,
     }
 
     #[pallet::event]
@@ -295,6 +296,11 @@ pub mod pallet {
             tss_account: T::AccountId,
             x25519_public_key: X25519PublicKey,
         ) -> DispatchResult {
+            ensure!(
+                !ThresholdToStash::<T>::contains_key(&tss_account),
+                Error::<T>::TssAccountAlreadyExists
+            );
+
             let who = ensure_signed(origin)?;
             let stash = Self::get_stash(&who)?;
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)
@@ -358,6 +364,12 @@ pub mod pallet {
                 endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
             );
+
+            ensure!(
+                !ThresholdToStash::<T>::contains_key(&tss_account),
+                Error::<T>::TssAccountAlreadyExists
+            );
+
             let stash = Self::get_stash(&who)?;
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)

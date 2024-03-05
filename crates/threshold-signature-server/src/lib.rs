@@ -37,20 +37,28 @@
 //! [crate::user::api::sign_tx()]
 //!
 //! Called by a user to submit a transaction to sign (the new way of doing signing). Takes a
-//! [`UserTransactionRequest`](crate::user::api::UserTransactionRequest) encryted in a
-//! `SignedMessage`.
+//! [UserSignatureRequest] encrypted in a [SignedMessage](crate::validation::SignedMessage).
 //!
-//! The response is chunked response stream. If the `UserTransactionRequest` could be processed, a
+//! The response is chunked response stream. If the `UserSignatureRequest` could be processed, a
 //! success response header is sent.  Then the signing protocol runs. When the it finishes, a single
 //! message will be sent on the response stream with the result.
 //!
 //! If everything went well, the message will be a JSON object with a signle property "Ok"
-//! containing a base64 encoded signature, for example:
+//! containing an array which contains two strings.
 //!
-//! `{"Ok":"BnJRjRUw9+trW36bK7S2KglY+TG5rGn1e3FKQlJYvx+jai7wG5Z0BWPFGYPxAwB5yROUOnucuzXoG7TrI7QNIAE="}`
+//! For example:
 //!
-//! Otherwise, the message will be a JSON object with a signle property "Err" containing an error
-//! message, for example:
+//! `{"Ok":["t7Mcxfdigds3RoT6OO/P+uMFE+XigRjUpn72E1cRU4Q2u7cVxZlsNRYhnahA+DvSNHBddj0HRz5u/XPlJT9QOQE=","32d7c0bfd90b546993d1ad51c542e1fc9dd1706c7bca395c8bd7f9642ae842400769488404dabd25d438cf08785a6750f95e7489245b8760af115f450d5f0a83"]}`
+//!
+//! The first string is a base64 encoded signature produced by the signing protocol. This is a 65
+//! byte signature, the final byte of which is a
+//! [recovery ID](https://docs.rs/synedrion/latest/synedrion/ecdsa/struct.RecoveryId.html).
+//!
+//! The second string is a hex encoded sr25519 signature of the signature made by the TSS server,
+//! which can be used to authenticate that this response really came from this TSS server.
+//!
+//! In case signing was not successfull, the message will be a JSON object with a signle property "Err"
+//! containing an error message, for example:
 //!
 //! `{"Err":"reqwest event error: Invalid status code: 500 Internal Server Error"}`
 //!
@@ -75,15 +83,25 @@
 //! ### For other instances of the threshold server
 //!
 //! - [`/user/receive_key`](receive_key) - recieve a keyshare from another threshold server in the
-//!   same signing subgroup. Takes a [UserRegistrationInfo] wrapped in a
-//!   [crate::validation::SignedMessage].
-//! - [`/ws`](crate::signing_client::api::ws_handler()) - Websocket server for signing protocol
+//!   same signing subgroup during registration or proactive refresh.
+//!
+//!   Takes a [UserRegistrationInfo] containing the users account ID and associated keyshare, wrapped
+//!   in a [crate::validation::SignedMessage].
+//!
+//! - [`/ws`](crate::signing_client::api::ws_handler()) - Websocket server for signing and DKG protocol
 //! messages. This is opened by other threshold servers when the signing procotol is initiated.
+//!
 //! - [`/validator/sync_kvdb`](crate::validator::api::sync_kvdb()) - POST - Called by another
 //! threshold server when joining to get the key-shares from a member of their sub-group.
+//!
+//!   Takes a list of users account IDs for which shares are requested, wrapped in a
+//!   [crate::validation::SignedMessage].
+//!   Responds with a list of [crate::validation::SignedMessage]s each containing a serialized
+//!   [synedrion::KeyShare].
+//!
 //! - [`/version`](crate::node_info::api::version()) - Get - get the node version info
 //! - [`/heathlz`](crate::health::api::healthz()) - Get - get if the node is running
-//! - [`/hashes`](crate::node_info::api::heahes()) - Get - get the hashes supported by the node
+//! - [`/hashes`](crate::node_info::api::hashes()) - Get - get the hashes supported by the node
 
 //! ### For testing / development
 //!
@@ -103,7 +121,7 @@
 //! ## Pieces Launched
 //!
 //! - Axum server - Includes global state and mutex locked IPs
-//! - [kvdb](kvdb) - Encrypted key-value database for storing key-shares and other data, build using
+//! - [kvdb](entropy_kvdb) - Encrypted key-value database for storing key-shares and other data, build using
 //! [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
 pub mod chain_api;

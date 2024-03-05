@@ -13,17 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! # User
-//!
-//! ## Overview
-//!
-//! Add a user to the network. Allows a user to send shards to nodes and have them store it.
-//! User's substrate account acts as key value.
-//!
-//! ## Routes
-//!
-//! - `/user/new` - POST - Takes in a key and value for user
-//! - `/user/tx` - POST - Submit a transaction to be signed
+//! Functionality and HTTP endpoints relating to user interaction
 #![allow(dead_code)]
 #![allow(unused_imports)]
 pub mod api;

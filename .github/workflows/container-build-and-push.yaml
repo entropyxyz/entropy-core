@@ -103,7 +103,7 @@ jobs:
         if: inputs.docker_build_arg_package == 'entropy'
         run: |
           ${{ steps.artifacts.outputs.dir }}/${{ inputs.docker_build_arg_package }}_${{ inputs.git_ref_basename }}_linux_amd64 \
-            build-spec --chain testnet --raw \
+            build-spec --chain testnet \
               > ${{ steps.artifacts.outputs.dir }}/${{ inputs.docker_build_arg_package }}-chain-spec-${{ inputs.git_ref_basename }}-${{ github.sha }}.json
       - name: Upload ${{ inputs.docker_build_arg_package }} binary artifact
         uses: actions/upload-artifact@v3

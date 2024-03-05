@@ -88,7 +88,7 @@ enum CliCommand {
         /// a '.json' extension, it will be read and used as the configuration for that program.
         ///
         /// If the path to a wasm file is given, and there is a file with the same name with a
-        /// '.config-interface' extension, it will be stored as that program's configuration
+        /// '.interface-description' extension, it will be stored as that program's configuration
         /// interface. If no such file exists, it is assumed the program has no configuration
         /// interface.
         programs: Vec<String>,
@@ -129,7 +129,7 @@ enum CliCommand {
         /// a '.json' extension, it will be read and used as the configuration for that program.
         ///
         /// If the path to a wasm file is given, and there is a file with the same name with a
-        /// '.config-interface' extension, it will be stored as that program's configuration
+        /// '.interface-description' extension, it will be stored as that program's configuration
         /// interface. If no such file exists, it is assumed the program has no configuration
         /// interface.
         programs: Vec<String>,
@@ -151,21 +151,22 @@ enum CliCommand {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum, Default)]
 enum Visibility {
-    /// Anyone can submit a signature request (default)
-    #[default]
-    Public,
-    /// Only the user who registers can submit a signature request
+    /// Only the user who registers can submit a signature request, and the user holds a keyshare
+    /// themselves
     Private,
-    /// The program defines who may submit a signature request
+    /// Only the user who registers can submit a signature request (default)
+    #[default]
     Permissioned,
+    /// Anyone can submit a signature request
+    Public,
 }
 
 impl From<KeyVisibility> for Visibility {
     fn from(key_visibility: KeyVisibility) -> Self {
         match key_visibility {
-            KeyVisibility::Public => Visibility::Public,
             KeyVisibility::Private(_) => Visibility::Private,
             KeyVisibility::Permissioned => Visibility::Permissioned,
+            KeyVisibility::Public => Visibility::Public,
         }
     }
 }
@@ -391,7 +392,7 @@ async fn run_command() -> anyhow::Result<String> {
                         program_info.deployer,
                         program_info.ref_counter,
                         program_info.bytecode.len(),
-                        !program_info.configuration_interface.is_empty(),
+                        !program_info.interface_description.is_empty(),
                     );
                 }
             }
@@ -485,11 +486,11 @@ impl Program {
     ) -> anyhow::Result<Self> {
         let program_bytecode = fs::read(&filename)?;
 
-        // If there is a file with the same name with the '.config-interface' extension, read it
-        let configuration_interface = {
-            let mut configuration_interface_file = PathBuf::from(&filename);
-            configuration_interface_file.set_extension("config-interface");
-            fs::read(&configuration_interface_file).unwrap_or_default()
+        // If there is a file with the same name with the '.interface-description' extension, read it
+        let interface_description = {
+            let mut interface_description_file = PathBuf::from(&filename);
+            interface_description_file.set_extension("interface-description");
+            fs::read(&interface_description_file).unwrap_or_default()
         };
 
         // If there is a file with the same name with the '.json' extension, read it
@@ -500,12 +501,12 @@ impl Program {
         };
 
         ensure!(
-            (configuration_interface.is_empty() && configuration.is_empty())
-                || (!configuration_interface.is_empty() && !configuration.is_empty()),
-            "If giving a configuration interface you must also give a configuration"
+            (interface_description.is_empty() && configuration.is_empty())
+                || (!interface_description.is_empty() && !configuration.is_empty()),
+            "If giving an interface description you must also give a configuration"
         );
 
-        match store_program(api, rpc, keypair, program_bytecode.clone(), configuration_interface)
+        match store_program(api, rpc, keypair, program_bytecode.clone(), interface_description)
             .await
         {
             Ok(hash) => Ok(Self::new(hash, configuration)),

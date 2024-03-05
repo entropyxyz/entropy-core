@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Utiliities for executing the signing protocol
 use std::time::Duration;
 
 use entropy_protocol::{RecoverableSignature, SessionId, SigningSessionInfo};

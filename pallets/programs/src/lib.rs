@@ -94,8 +94,8 @@ pub mod pallet {
     pub struct ProgramInfo<AccountId> {
         /// The bytecode of the program.
         pub bytecode: Vec<u8>,
-        /// The type definition of the program
-        pub configuration_interface: Vec<u8>,
+        /// An interface description for the program (config, auxilary data, etc)
+        pub interface_description: Vec<u8>,
         /// Deployer of the program
         pub deployer: AccountId,
         /// Accounts that use this program
@@ -103,7 +103,7 @@ pub mod pallet {
     }
 
     /// Stores the program info for a given program hash.
-    /// A program hash is a combination of the bytecode and configuration_interface
+    /// A program hash is a combination of the bytecode and interface_description
     #[pallet::storage]
     #[pallet::getter(fn programs)]
     pub type Programs<T: Config> =
@@ -132,7 +132,7 @@ pub mod pallet {
             program_hash: T::Hash,
 
             /// The new program type definition
-            configuration_interface: Vec<u8>,
+            interface_description: Vec<u8>,
         },
         /// The bytecode of a program was removed.
         ProgramRemoved {
@@ -162,7 +162,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Sets the program and uses hash of program and configuration_interface as key.
+        /// Sets the program and uses hash of program and interface_description as key.
         ///
         /// Note that the caller becomes the deployer account.
         #[pallet::call_index(0)]
@@ -170,14 +170,14 @@ pub mod pallet {
         pub fn set_program(
             origin: OriginFor<T>,
             new_program: Vec<u8>,
-            configuration_interface: Vec<u8>,
+            interface_description: Vec<u8>,
         ) -> DispatchResult {
             let deployer = ensure_signed(origin)?;
             let mut hash_input = vec![];
             hash_input.extend(&new_program);
-            hash_input.extend(&configuration_interface);
+            hash_input.extend(&interface_description);
             let program_hash = T::Hashing::hash(&hash_input);
-            let new_program_length = new_program.len() + configuration_interface.len();
+            let new_program_length = new_program.len() + interface_description.len();
             ensure!(
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
                 Error::<T>::ProgramLengthExceeded
@@ -190,7 +190,7 @@ pub mod pallet {
                 program_hash,
                 &ProgramInfo {
                     bytecode: new_program.clone(),
-                    configuration_interface: configuration_interface.clone(),
+                    interface_description: interface_description.clone(),
                     deployer: deployer.clone(),
                     ref_counter: 0u128,
                 },
@@ -207,7 +207,7 @@ pub mod pallet {
             Self::deposit_event(Event::ProgramCreated {
                 deployer,
                 program_hash,
-                configuration_interface,
+                interface_description,
             });
             Ok(())
         }
@@ -228,7 +228,7 @@ pub mod pallet {
             ensure!(old_program_info.ref_counter == 0, Error::<T>::ProgramInUse);
             Self::unreserve_program_deposit(
                 &old_program_info.deployer,
-                old_program_info.bytecode.len() + old_program_info.configuration_interface.len(),
+                old_program_info.bytecode.len() + old_program_info.interface_description.len(),
             );
             let mut owned_programs_length = 0;
             OwnedPrograms::<T>::try_mutate(

@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Pre-endowed accounts used for the development network
 use entropy_runtime::AccountId;
 use sp_core::sr25519;
 
