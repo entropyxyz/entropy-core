@@ -20,7 +20,7 @@ At the moment this project **does not** adhere to
   `StakingExtensionConfigproactive_refresh_data` and takes a tuple of `Vec`. Both should be empty at
   genesis for production.
 - In [#631](https://github.com/entropyxyz/entropy-core/pull/631), the `config_interface` field of `ProgramInfo` was renamed to `interface_description` to be more semantically accurate. This field will now be used to describe program interfaces, including the auxilary and configuration interfaces of the program.
-- In [#658](https://github.com/entropyxyz/entropy-core/pull/658), `RegisteredInfo` and `RegisteringDetails` now contain `version_number`
+- In [#658](https://github.com/entropyxyz/entropy-core/pull/658), `RegisteredInfo` and `RegisteringDetails` now contain `version_number`. As well `KeyVersionNumber` was added as a config parameter to the `Relayer` pallet
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
