@@ -364,10 +364,11 @@ pub mod pallet {
                 Error::<T>::TssAccountAlreadyExists
             );
 
-            let stash = Self::get_stash(&who)?;
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
-            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)
-                .or(Err(Error::<T>::InvalidValidatorId))?;
+
+            let stash = Self::get_stash(&who)?;
+            let validator_id =
+                T::ValidatorId::try_from(stash).or(Err(Error::<T>::InvalidValidatorId))?;
 
             ThresholdServers::<T>::insert(&validator_id, server_info.clone());
             ThresholdToStash::<T>::insert(&server_info.tss_account, validator_id);
