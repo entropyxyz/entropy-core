@@ -252,7 +252,7 @@ fn it_changes_a_program_pointer() {
             verifying_key: expected_verifying_key,
             programs_data: programs_info,
             program_modification_account: 2,
-            version_number: 1u8,
+            version_number: 1,
         };
 
         Registered::<Test>::insert(1, &registered_info);
