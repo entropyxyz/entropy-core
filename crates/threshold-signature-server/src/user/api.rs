@@ -445,7 +445,7 @@ pub async fn receive_key(
     // Check this is a well-formed keyshare
     let _: KeyShare<KeyParams> =
         entropy_kvdb::kv_manager::helpers::deserialize(&user_registration_info.value)
-            .ok_or_else(|| UserErr::InputValidation("Failed to load KeyShare"))?;
+            .ok_or_else(|| UserErr::InputValidation("Not a valid keyshare"))?;
 
     let reservation =
         app_state.kv_store.kv().reserve_key(user_registration_info.key.to_string()).await?;

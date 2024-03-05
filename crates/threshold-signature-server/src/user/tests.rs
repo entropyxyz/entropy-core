@@ -880,7 +880,7 @@ async fn test_send_and_receive_keys() {
     assert_eq!(response_overwrites_key.status(), StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(
         response_overwrites_key.text().await.unwrap(),
-        "Input Validation error: Failed to load KeyShare"
+        "Input Validation error: Not a valid keyshare"
     );
 
     clean_tests();
