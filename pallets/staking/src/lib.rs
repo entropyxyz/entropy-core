@@ -111,43 +111,37 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    /// Stores the relationship between
-    /// a validator's stash account and their threshold server's sr25519 and x25519 keys.
+    /// Stores the relationship between a validator's stash account and the information about their
+    /// threshold server.
     ///
-    /// Clients query this via state or `stakingExtension_getKeys` RPC and uses
-    /// the x25519 pub key in noninteractive ECDH for authenticating/encrypting distribute TSS
-    /// shares over HTTP.
+    /// # Note
+    ///
+    /// This mapping doesn't only include information about validators in the active set, but also
+    /// information about validator candidates (i.e, those _might_ be part of the active set in the
+    /// following era).
     #[pallet::storage]
     #[pallet::getter(fn threshold_server)]
-    pub type ThresholdServers<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        <T as pallet_session::Config>::ValidatorId,
-        ServerInfo<T::AccountId>,
-        OptionQuery,
-    >;
+    pub type ThresholdServers<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::ValidatorId, ServerInfo<T::AccountId>, OptionQuery>;
 
+    /// A mapping between a threshold server's Account ID and its corresponding validator's stash
+    /// account (i.e the reverse of [ThresholdServers]).
+    ///
+    /// # Note
+    ///
+    /// This mapping doesn't only include information about validators in the active set, but also
+    /// information about validator candidates (i.e, those _might_ be part of the active set in the
+    /// following era).
     #[pallet::storage]
     #[pallet::getter(fn threshold_to_stash)]
-    pub type ThresholdToStash<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        T::AccountId,
-        <T as pallet_session::Config>::ValidatorId,
-        OptionQuery,
-    >;
+    pub type ThresholdToStash<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, T::ValidatorId, OptionQuery>;
 
-    /// Stores the relationship between a signing group (u8) and its member's (validator's)
-    /// threshold server's account.
+    /// Keeps track of all the validators in a particular subgroup.
     #[pallet::storage]
     #[pallet::getter(fn signing_groups)]
-    pub type SigningGroups<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        SubgroupId,
-        Vec<<T as pallet_session::Config>::ValidatorId>,
-        OptionQuery,
-    >;
+    pub type SigningGroups<T: Config> =
+        StorageMap<_, Blake2_128Concat, SubgroupId, Vec<T::ValidatorId>, OptionQuery>;
 
     /// Tracks wether the validator's kvdb is synced
     #[pallet::storage]
