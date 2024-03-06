@@ -23,12 +23,16 @@ At the moment this project **does not** adhere to
   `ProgramInfo` was renamed to `interface_description` to be more semantically accurate. This field
   will now be used to describe program interfaces, including the auxilary and configuration
   interfaces of the program.
+- In [#658](https://github.com/entropyxyz/entropy-core/pull/658), `RegisteredInfo` and
+  `RegisteringDetails` now contain `version_number`. As well `KeyVersionNumber` was added as a
+  config parameter to the `Relayer` pallet.
 - In [#659](https://github.com/entropyxyz/entropy-core/pull/659), the Staking Extension pallet's
   `validate` extrinsic changed to take a `ServerInfo` struct instead of individual fields.
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
 -  Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
+- Add version number to registered ([#658](https://github.com/entropyxyz/entropy-core/pull/658))
 
 ### Changed
 - Change test-cli default access mode and update readme for recent changes ([#643](https://github.com/entropyxyz/entropy-core/pull/643))
