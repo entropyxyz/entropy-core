@@ -400,6 +400,7 @@ fn validator_to_subgroup_does_not_populate_candidates() {
         let endpoint = vec![0];
         let tss_account = alice;
         let x25519_public_key = NULL_ARR;
+        let server_info = ServerInfo { tss_account, x25519_public_key, endpoint };
 
         // We use `charlie` here since they are not a validator at genesis
         assert_ok!(FrameStaking::bond(
@@ -411,9 +412,7 @@ fn validator_to_subgroup_does_not_populate_candidates() {
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(charlie),
             pallet_staking::ValidatorPrefs::default(),
-            endpoint,
-            tss_account,
-            x25519_public_key,
+            server_info,
         ));
 
         // We expect that validator candidates will be included in the list of threshold servers
