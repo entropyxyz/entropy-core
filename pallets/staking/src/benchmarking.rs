@@ -79,13 +79,14 @@ fn prep_bond_and_validate<T: Config>(
         reward_destination,
     ));
 
+    let server_info =
+        ServerInfo { tss_account: threshold, x25519_public_key, endpoint: vec![20, 20] };
+
     if validate_also {
         assert_ok!(<Staking<T>>::validate(
             RawOrigin::Signed(bonder).into(),
             ValidatorPrefs::default(),
-            vec![20, 20],
-            threshold,
-            x25519_public_key
+            server_info,
         ));
     }
 }
@@ -96,6 +97,7 @@ benchmarks! {
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
     let x25519_public_key = NULL_ARR;
+
     prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
 
 
@@ -155,10 +157,15 @@ benchmarks! {
     let x25519_public_key: [u8; 32] = NULL_ARR;
     prep_bond_and_validate::<T>(false, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
 
-    let validator_preferance = ValidatorPrefs::default();
+    let validator_preference = ValidatorPrefs::default();
 
+    let server_info = ServerInfo {
+        tss_account: threshold.clone(),
+        x25519_public_key: NULL_ARR,
+        endpoint: vec![20],
+    };
 
-  }:  _(RawOrigin::Signed(bonder.clone()), validator_preferance, vec![20], threshold.clone(), NULL_ARR)
+  }:  _(RawOrigin::Signed(bonder.clone()), validator_preference, server_info)
   verify {
     assert_last_event::<T>(Event::<T>::NodeInfoChanged(bonder,  vec![20], threshold).into());
   }

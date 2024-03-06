@@ -84,6 +84,8 @@ pub mod pallet {
         type SigningPartySize: Get<usize>;
         /// Max amount of programs associated for one account
         type MaxProgramHashes: Get<u32>;
+        /// Current Version Number of keyshares
+        type KeyVersionNumber: Get<u8>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
@@ -104,6 +106,7 @@ pub mod pallet {
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub key_visibility: KeyVisibility,
         pub verifying_key: Option<BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>>,
+        pub version_number: u8,
     }
 
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo)]
@@ -114,6 +117,7 @@ pub mod pallet {
         pub verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub program_modification_account: T::AccountId,
+        pub version_number: u8,
     }
 
     #[pallet::genesis_config]
@@ -141,6 +145,7 @@ pub mod pallet {
                         verifying_key: BoundedVec::default(),
                         programs_data: BoundedVec::default(),
                         program_modification_account: account_info.0.clone(),
+                        version_number: T::KeyVersionNumber::get(),
                     },
                 );
             }
@@ -265,6 +270,7 @@ pub mod pallet {
                     programs_data: programs_data.clone(),
                     key_visibility,
                     verifying_key: None,
+                    version_number: T::KeyVersionNumber::get(),
                 },
             );
             Self::deposit_event(Event::SignalRegister(sig_req_account));
@@ -423,6 +429,7 @@ pub mod pallet {
                         verifying_key,
                         programs_data: registering_info.programs_data,
                         program_modification_account: registering_info.program_modification_account,
+                        version_number: registering_info.version_number,
                     },
                 );
                 Registering::<T>::remove(&sig_req_account);
