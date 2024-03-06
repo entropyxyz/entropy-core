@@ -389,9 +389,11 @@ pub mod pallet {
                 Error::<T>::AlreadyConfirmed
             );
 
+            // Every active validator is expected to be assigned a subgroup. If they haven't it
+            // means they're probably still in the candiate stage.
             let validator_subgroup =
                 pallet_staking_extension::Pallet::<T>::validator_to_subgroup(&validator_stash)
-                    .expect("Every validator is expected to be assigned a subgroup.");
+                    .ok_or(Error::<T>::SigningGroupError)?;
             ensure!(validator_subgroup == signing_subgroup, Error::<T>::NotInSigningGroup);
 
             // if no one has sent in a verifying key yet, use current
