@@ -113,6 +113,13 @@ pub struct UserRegistrationInfo {
     pub proactive_refresh: bool,
 }
 
+/// Type that gets stored for request limit checks
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Encode, Decode)]
+pub struct RequestLimitStorage {
+    block_number: u32,
+    request_amount: u32,
+}
+
 /// Called by a user to initiate the signing process for a message
 ///
 /// Takes an encrypted [SignedMessage] containing a JSON serialized [UserSignatureRequest]
@@ -128,8 +135,9 @@ pub async fn sign_tx(
     let signer = get_signer(&app_state.kv_store).await?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
+    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let request_author = SubxtAccountId32(*signed_msg.account_id().as_ref());
-    request_limit_check(&api, &app_state.kv_store, request_author.to_string()).await?;
+    request_limit_check(&api, &rpc, &app_state.kv_store, request_author.to_string()).await?;
 
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
@@ -141,7 +149,6 @@ pub async fn sign_tx(
     let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&decrypted_message)?;
     check_stale(user_sig_req.timestamp)?;
 
-    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let user_details =
         get_registered_details(&api, &rpc, &user_sig_req.signature_request_account).await?;
 
@@ -639,6 +646,7 @@ pub async fn recover_key(
 /// Checks the request limit
 pub async fn request_limit_check(
     api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_store: &KvManager,
     signing_address: String,
 ) -> Result<(), UserErr> {
@@ -646,16 +654,26 @@ pub async fn request_limit_check(
     let request_limit = 20;
 
     // get current request check
-    // checks request limit onchain
-    // evaluate wether check has exceeded limit
+    let key = request_limit_key(signing_address);
+    let block_number = rpc
+        .chain_get_header(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
+        .number;
+
+    if kv_store.kv().exists(&key.to_string()).await? {
+        let serialized_request_amount = kv_store.kv().get(&key).await?;
+        let request_info: RequestLimitStorage =
+            RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
+        if request_info.block_number == block_number && request_info.request_amount >= request_limit
+        {
+            return Err(UserErr::TooManyRequests);
+        }
+    }
+
     Ok(())
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Encode, Decode)]
-pub struct RequestLimitStorage {
-    block_number: u32,
-    request_amount: u32,
-}
 /// Increments or restarts request count if a new block has been created
 pub async fn increment_or_wipe_request_limit(
     api: &OnlineClient<EntropyConfig>,
@@ -667,7 +685,7 @@ pub async fn increment_or_wipe_request_limit(
     let request_limit = 20;
     // getss reuquest check from chain
 
-    let key = format!("{REQUESTKEYHEADER}_{signing_address}");
+    let key = request_limit_key(signing_address);
     let block_number = rpc
         .chain_get_header(None)
         .await?
@@ -678,7 +696,7 @@ pub async fn increment_or_wipe_request_limit(
         let serialized_request_amount = kv_store.kv().get(&key).await?;
         let request_info: RequestLimitStorage =
             RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
-        
+
         // Previous block wipe request amount to new block
         if request_info.block_number != block_number {
             kv_store.kv().delete(&key).await?;
@@ -715,4 +733,9 @@ pub async fn increment_or_wipe_request_limit(
     }
 
     Ok(())
+}
+
+/// Creates the key for a request limit check
+pub fn request_limit_key(signing_address: String) -> String {
+    format!("{REQUESTKEYHEADER}_{signing_address}")
 }

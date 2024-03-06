@@ -112,7 +112,7 @@ use crate::{
     signing_client::ListenerState,
     user::api::{
         confirm_registered, get_current_subgroup_signers, increment_or_wipe_request_limit,
-        recover_key, UserRegistrationInfo, UserSignatureRequest,
+        recover_key, request_limit_check, UserRegistrationInfo, UserSignatureRequest,
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
@@ -1484,12 +1484,21 @@ async fn test_increment_or_wipe_request_limit() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let kv_store = load_kv_store(&None, None).await;
-    increment_or_wipe_request_limit(&api, &rpc, &kv_store, alice.to_account_id().to_string())
-        .await
-        .unwrap();
-    increment_or_wipe_request_limit(&api, &rpc, &kv_store, alice.to_account_id().to_string())
-        .await
-        .unwrap();
+    // no error
+    request_limit_check(&api, &rpc, &kv_store, alice.to_account_id().to_string()).await.unwrap();
+
+    for _ in 0..21 {
+        increment_or_wipe_request_limit(&api, &rpc, &kv_store, alice.to_account_id().to_string())
+            .await
+            .unwrap();
+    }
+    // should now fail
+    let err_too_many_requests =
+        request_limit_check(&api, &rpc, &kv_store, alice.to_account_id().to_string())
+            .await
+            .map_err(|e| e.to_string());
+    assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
+
     clean_tests();
 }
 

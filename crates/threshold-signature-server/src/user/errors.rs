@@ -141,7 +141,7 @@ pub enum UserErr {
     Anyhow(#[from] anyhow::Error),
     #[error("Chain Fetch: {0}")]
     ChainFetch(&'static str),
-    #[error("Too many requests - wait a block.")]
+    #[error("Too many requests - wait a block")]
     TooManyRequests,
 }
 
