@@ -44,6 +44,7 @@ pub mod pallet_indices;
 pub mod pallet_membership;
 pub mod pallet_multisig;
 pub mod pallet_nomination_pools;
+pub mod pallet_parameters;
 pub mod pallet_preimage;
 pub mod pallet_programs;
 pub mod pallet_proxy;

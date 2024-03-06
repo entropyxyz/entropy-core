@@ -1431,8 +1431,7 @@ impl pallet_parameters::Config for Runtime {
         EnsureRoot<AccountId>,
         pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>,
     >;
-    // TODO fix
-    type WeightInfo = ();
+    type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
 }
 
 construct_runtime!(

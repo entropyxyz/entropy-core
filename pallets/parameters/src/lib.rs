@@ -90,7 +90,7 @@ pub mod module {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
-        #[pallet::weight(T::WeightInfo::pause_transaction())]
+        #[pallet::weight(T::WeightInfo::change_request_limit())]
         #[transactional]
         pub fn change_request_limit(origin: OriginFor<T>, request_limit: u32) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
