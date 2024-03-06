@@ -379,3 +379,35 @@ fn validator_to_subgroup_is_populated_correctly() {
         assert!(subgroup == Some(0));
     })
 }
+
+#[test]
+fn validator_to_subgroup_does_not_populate_candidates() {
+    new_test_ext().execute_with(|| {
+        let (alice, _bob, charlie) = (1, 2, 3);
+
+        let endpoint = vec![0];
+        let tss_account = alice;
+        let x25519_public_key = NULL_ARR;
+
+        // We use `charlie` here since they are not a validator at genesis
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(charlie),
+            100,
+            pallet_staking::RewardDestination::Account(charlie),
+        ));
+
+        assert_ok!(Staking::validate(
+            RuntimeOrigin::signed(charlie),
+            pallet_staking::ValidatorPrefs::default(),
+            endpoint,
+            tss_account,
+            x25519_public_key,
+        ));
+
+        // We expect that validator candiates will be included in the list of threshold servers
+        assert!(matches!(Staking::threshold_server(charlie), Some(_)));
+
+        // We don't expect candidates to be assigned a subgroup
+        assert!(matches!(Staking::validator_to_subgroup(charlie), None));
+    })
+}
