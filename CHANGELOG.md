@@ -23,7 +23,7 @@ At the moment this project **does not** adhere to
   `ProgramInfo` was renamed to `interface_description` to be more semantically accurate. This field
   will now be used to describe program interfaces, including the auxilary and configuration
   interfaces of the program.
-- In [#XXX](https://github.com/entropyxyz/entropy-core/pull/XXX), the Staking Extension pallet's
+- In [#659](https://github.com/entropyxyz/entropy-core/pull/659), the Staking Extension pallet's
   `validate` extrinsic changed to take a `ServerInfo` struct instead of individual fields.
 
 ### Added
@@ -35,7 +35,7 @@ At the moment this project **does not** adhere to
  - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
   - Add proactive refresh keys on-chain ([#629](https://github.com/entropyxyz/entropy-core/pull/629))
 -  Disallow using existing TSS account IDs in Staking pallet #657 ([#657](https://github.com/entropyxyz/entropy-core/pull/657))
-- Clean ups around Staking Extension's `validate()` extrinsic ([#XXX](https://github.com/entropyxyz/entropy-core/pull/XXX))
+- Clean ups around Staking Extension's `validate()` extrinsic ([#659](https://github.com/entropyxyz/entropy-core/pull/659))
 
 ## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-24
 
