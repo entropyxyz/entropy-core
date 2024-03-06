@@ -138,6 +138,9 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, T::AccountId, T::ValidatorId, OptionQuery>;
 
     /// Keeps track of all the validators in a particular subgroup.
+    ///
+    /// Only active validators (so not candiates) should be assigned a subgroup and be included in
+    /// this mapping.
     #[pallet::storage]
     #[pallet::getter(fn signing_groups)]
     pub type SigningGroups<T: Config> =
