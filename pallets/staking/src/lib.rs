@@ -151,7 +151,7 @@ pub mod pallet {
 
     /// Mapping between a validator and their assigned subgroup for the given session.
     ///
-    /// Only active validators (so not candiates) should be assigned a subgroup and be included in
+    /// Only active validators (so not candidates) should be assigned a subgroup and be included in
     /// this mapping.
     #[pallet::storage]
     #[pallet::getter(fn validator_to_subgroup)]

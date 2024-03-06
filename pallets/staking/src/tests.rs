@@ -404,7 +404,7 @@ fn validator_to_subgroup_does_not_populate_candidates() {
             x25519_public_key,
         ));
 
-        // We expect that validator candiates will be included in the list of threshold servers
+        // We expect that validator candidates will be included in the list of threshold servers
         assert!(matches!(Staking::threshold_server(charlie), Some(_)));
 
         // We don't expect candidates to be assigned a subgroup

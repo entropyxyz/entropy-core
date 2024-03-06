@@ -390,7 +390,7 @@ pub mod pallet {
             );
 
             // Every active validator is expected to be assigned a subgroup. If they haven't it
-            // means they're probably still in the candiate stage.
+            // means they're probably still in the candidate stage.
             let validator_subgroup =
                 pallet_staking_extension::Pallet::<T>::validator_to_subgroup(&validator_stash)
                     .ok_or(Error::<T>::SigningGroupError)?;
