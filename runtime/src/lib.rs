@@ -1425,6 +1425,16 @@ impl pallet_propagation::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
 }
 
+impl pallet_parameters::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type UpdateOrigin = EitherOfDiverse<
+        EnsureRoot<AccountId>,
+        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>,
+    >;
+    // TODO fix
+    type WeightInfo = ();
+}
+
 construct_runtime!(
   pub enum Runtime
   {
@@ -1477,6 +1487,7 @@ construct_runtime!(
     TransactionPause: pallet_transaction_pause = 54,
     FreeTx: pallet_free_tx = 55,
     Propagation: pallet_propagation = 56,
+    Parameters: pallet_parameters = 57,
 
 
   }
@@ -1558,6 +1569,7 @@ mod benches {
       [pallet_multisig, Multisig]
       [pallet_offences, OffencesBench::<Runtime>]
       [pallet_preimage, Preimage]
+      [pallet_parameters, Parameters]
       [pallet_proxy, Proxy]
       [pallet_recovery, Recovery]
       [pallet_relayer, Relayer]

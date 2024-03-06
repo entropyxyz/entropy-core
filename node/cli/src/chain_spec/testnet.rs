@@ -19,8 +19,9 @@ use crate::endowed_accounts::endowed_accounts_dev;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-    IndicesConfig, MaxNominations, RuntimeGenesisConfig, SessionConfig, StakerStatus,
-    StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
+    IndicesConfig, MaxNominations, ParametersConfig, RuntimeGenesisConfig, SessionConfig,
+    StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::X25519PublicKey as TssX25519PublicKey;
@@ -453,6 +454,7 @@ pub fn testnet_genesis_config(
         technical_membership: Default::default(),
         treasury: Default::default(),
         relayer: Default::default(),
+        parameters: ParametersConfig { request_limit: 20, ..Default::default() },
         vesting: Default::default(),
         transaction_storage: Default::default(),
         transaction_payment: Default::default(),

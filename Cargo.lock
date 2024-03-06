@@ -2893,6 +2893,7 @@ dependencies = [
  "pallet-nomination-pools-runtime-api",
  "pallet-offences",
  "pallet-offences-benchmarking",
+ "pallet-parameters",
  "pallet-preimage",
  "pallet-programs",
  "pallet-propagation",
@@ -7027,6 +7028,21 @@ dependencies = [
  "scale-info",
  "sp-runtime 28.0.0",
  "sp-staking",
+ "sp-std 12.0.0",
+]
+
+[[package]]
+name = "pallet-parameters"
+version = "0.0.10"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 25.0.0",
+ "sp-io 27.0.0",
+ "sp-runtime 28.0.0",
  "sp-std 12.0.0",
 ]
 

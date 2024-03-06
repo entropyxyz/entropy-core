@@ -1,0 +1,34 @@
+[package]
+name      ="pallet-parameters"
+version   ='0.0.10'
+authors   =['Entropy Cryptography <engineering@entropy.xyz>']
+homepage  ='https://entropy.xyz/'
+license   ='AGPL-3.0-or-later'
+repository='https://github.com/entropyxyz/entropy-core'
+edition   ='2021'
+publish   =false
+
+[dependencies]
+codec     ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
+scale-info={ version="2.1", default-features=false, features=["derive"] }
+
+frame-benchmarking={ version="25.0.0", default-features=false, optional=true }
+frame-support     ={ version="25.0.0", default-features=false }
+frame-system      ={ version="25.0.0", default-features=false }
+sp-runtime        ={ version="28.0.0", default-features=false }
+sp-std            ={ version="12.0.0", default-features=false }
+
+[dev-dependencies]
+sp-core={ version="25.0.0" }
+sp-io  ={ version="27.0.0" }
+
+[features]
+default=["std"]
+runtime-benchmarks=[
+  'frame-benchmarking',
+  'frame-support/runtime-benchmarks',
+  'frame-system/runtime-benchmarks',
+]
+std=["frame-support/std", "frame-system/std", "scale-info/std", "sp-runtime/std", "sp-std/std"]
+
+try-runtime=["frame-support/try-runtime"]
