@@ -50,7 +50,8 @@ use crate::{
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         substrate::{
-            get_registered_details, get_subgroup, query_chain, return_all_addresses_of_subgroup,
+            get_registered_details, get_stash_address, get_subgroup, query_chain,
+            return_all_addresses_of_subgroup,
         },
         user::{check_in_registration_group, send_key},
         validator::get_signer,
@@ -87,11 +88,15 @@ pub async fn proactive_refresh(
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     validate_proactive_refresh(&api, &rpc, &app_state.kv_store, &ocw_data).await?;
 
-    let (subgroup, stash_address) = get_subgroup(&api, &rpc, &signer)
+    let subgroup = get_subgroup(&api, &rpc, signer.account_id())
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-    let my_subgroup = subgroup.ok_or_else(|| ProtocolErr::SubgroupError("Subgroup Error"))?;
-    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, my_subgroup)
+
+    let stash_address = get_stash_address(&api, &rpc, signer.account_id())
+        .await
+        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+
+    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, subgroup)
         .await
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
 

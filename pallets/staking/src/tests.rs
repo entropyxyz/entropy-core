@@ -48,36 +48,43 @@ fn it_takes_in_an_endpoint() {
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
+
+        let server_info =
+            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
-            vec![20],
-            3,
-            NULL_ARR
+            server_info,
         ));
+
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(1).unwrap();
         assert_eq!(endpoint, vec![20]);
         assert_eq!(tss_account, 3);
         assert_eq!(Staking::threshold_to_stash(3).unwrap(), 1);
+
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20, 20, 20, 20],
+        };
         assert_noop!(
             Staking::validate(
                 RuntimeOrigin::signed(4),
                 pallet_staking::ValidatorPrefs::default(),
-                vec![20, 20, 20, 20],
-                3,
-                NULL_ARR
+                server_info,
             ),
             Error::<Test>::EndpointTooLong
         );
+
+        let server_info =
+            ServerInfo { tss_account: 5, x25519_public_key: NULL_ARR, endpoint: vec![20, 20] };
         assert_noop!(
             Staking::validate(
                 RuntimeOrigin::signed(4),
                 pallet_staking::ValidatorPrefs::default(),
-                vec![20, 20],
-                5,
-                NULL_ARR
+                server_info
             ),
-            Error::<Test>::NotController
+            pallet_staking::Error::<Test>::NotController
         );
     });
 }
@@ -90,12 +97,13 @@ fn it_will_not_allow_validator_to_use_existing_tss_account() {
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
+
+        let server_info =
+            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
-            vec![20],
-            3,
-            NULL_ARR
+            server_info.clone(),
         ));
 
         // Attempt to call validate with a TSS account which already exists
@@ -108,9 +116,7 @@ fn it_will_not_allow_validator_to_use_existing_tss_account() {
             Staking::validate(
                 RuntimeOrigin::signed(2),
                 pallet_staking::ValidatorPrefs::default(),
-                vec![20],
-                3,
-                NULL_ARR
+                server_info,
             ),
             Error::<Test>::TssAccountAlreadyExists
         );
@@ -125,12 +131,13 @@ fn it_changes_endpoint() {
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
+
+        let server_info =
+            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
-            vec![20],
-            3,
-            NULL_ARR
+            server_info,
         ));
 
         assert_ok!(Staking::change_endpoint(RuntimeOrigin::signed(1), vec![30]));
@@ -151,12 +158,13 @@ fn it_changes_threshold_account() {
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
+
+        let server_info =
+            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
-            vec![20],
-            3,
-            NULL_ARR
+            server_info,
         ));
 
         assert_ok!(Staking::change_threshold_accounts(RuntimeOrigin::signed(1), 4, NULL_ARR));
@@ -174,12 +182,13 @@ fn it_changes_threshold_account() {
             100u64,
             pallet_staking::RewardDestination::Account(2),
         ));
+
+        let server_info =
+            ServerInfo { tss_account: 5, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
-            vec![20],
-            5,
-            NULL_ARR
+            server_info,
         ));
 
         assert_noop!(
@@ -197,12 +206,13 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
+
+        let server_info =
+            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
-            vec![20],
-            3,
-            NULL_ARR
+            server_info,
         ));
 
         // Check that we cannot change to a TSS account which already exists
@@ -211,12 +221,13 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             100u64,
             pallet_staking::RewardDestination::Account(2),
         ));
+
+        let server_info =
+            ServerInfo { tss_account: 5, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
-            vec![20],
-            5,
-            NULL_ARR
+            server_info,
         ));
 
         assert_noop!(
@@ -235,12 +246,13 @@ fn it_deletes_when_no_bond_left() {
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
+
+        let server_info =
+            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
-            vec![20],
-            3,
-            NULL_ARR
+            server_info,
         ));
 
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
@@ -336,4 +348,77 @@ fn tests_new_session_handler() {
         assert_eq!(first_signing_group(), vec![1, 2, 4]);
         assert_eq!(second_signing_group(), vec![3, 5]);
     });
+}
+
+#[test]
+fn validator_to_subgroup_is_populated_correctly() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob, charlie) = (1, 2, 3);
+
+        // At genesis, we have Alice and Bob in subgroups 1 and 2, respectively, so we expect them
+        // to each be assigned into a different subgroup
+        let subgroup = Staking::validator_to_subgroup(alice);
+        assert!(subgroup == Some(0));
+
+        let subgroup = Staking::validator_to_subgroup(bob);
+        assert!(subgroup == Some(1));
+
+        // We're going to add a new authority in our next session, we expect that our new validator
+        // will also be in the expected subgroup
+        assert_ok!(Staking::new_session_handler(&[alice, bob, charlie]));
+        let subgroup = Staking::validator_to_subgroup(alice);
+        assert!(subgroup == Some(0));
+
+        let subgroup = Staking::validator_to_subgroup(bob);
+        assert!(subgroup == Some(1));
+
+        let subgroup = Staking::validator_to_subgroup(charlie);
+        assert!(subgroup == Some(0));
+
+        // If we remove an existing validator on a session change, we expect their subgroup info to
+        // be cleared.
+        //
+        // Note that Charlie doesn't get moved from their subgroup to rebalance since they were
+        // previously in the validator set.
+        assert_ok!(Staking::new_session_handler(&[alice, charlie]));
+        let subgroup = Staking::validator_to_subgroup(alice);
+        assert!(subgroup == Some(0));
+
+        let subgroup = Staking::validator_to_subgroup(bob);
+        assert!(subgroup == None);
+
+        let subgroup = Staking::validator_to_subgroup(charlie);
+        assert!(subgroup == Some(0));
+    })
+}
+
+#[test]
+fn validator_to_subgroup_does_not_populate_candidates() {
+    new_test_ext().execute_with(|| {
+        let (alice, _bob, charlie) = (1, 2, 3);
+
+        let endpoint = vec![0];
+        let tss_account = alice;
+        let x25519_public_key = NULL_ARR;
+        let server_info = ServerInfo { tss_account, x25519_public_key, endpoint };
+
+        // We use `charlie` here since they are not a validator at genesis
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(charlie),
+            100,
+            pallet_staking::RewardDestination::Account(charlie),
+        ));
+
+        assert_ok!(Staking::validate(
+            RuntimeOrigin::signed(charlie),
+            pallet_staking::ValidatorPrefs::default(),
+            server_info,
+        ));
+
+        // We expect that validator candidates will be included in the list of threshold servers
+        assert!(matches!(Staking::threshold_server(charlie), Some(_)));
+
+        // We don't expect candidates to be assigned a subgroup
+        assert!(matches!(Staking::validator_to_subgroup(charlie), None));
+    })
 }

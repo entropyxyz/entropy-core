@@ -111,43 +111,49 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    /// Stores the relationship between
-    /// a validator's stash account and their threshold server's sr25519 and x25519 keys.
+    /// Stores the relationship between a validator's stash account and the information about their
+    /// threshold server.
     ///
-    /// Clients query this via state or `stakingExtension_getKeys` RPC and uses
-    /// the x25519 pub key in noninteractive ECDH for authenticating/encrypting distribute TSS
-    /// shares over HTTP.
+    /// # Note
+    ///
+    /// This mapping doesn't only include information about validators in the active set, but also
+    /// information about validator candidates (i.e, those _might_ be part of the active set in the
+    /// following era).
     #[pallet::storage]
     #[pallet::getter(fn threshold_server)]
-    pub type ThresholdServers<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        <T as pallet_session::Config>::ValidatorId,
-        ServerInfo<T::AccountId>,
-        OptionQuery,
-    >;
+    pub type ThresholdServers<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::ValidatorId, ServerInfo<T::AccountId>, OptionQuery>;
 
+    /// A mapping between a threshold server's Account ID and its corresponding validator's stash
+    /// account (i.e the reverse of [ThresholdServers]).
+    ///
+    /// # Note
+    ///
+    /// This mapping doesn't only include information about validators in the active set, but also
+    /// information about validator candidates (i.e, those _might_ be part of the active set in the
+    /// following era).
     #[pallet::storage]
     #[pallet::getter(fn threshold_to_stash)]
-    pub type ThresholdToStash<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        T::AccountId,
-        <T as pallet_session::Config>::ValidatorId,
-        OptionQuery,
-    >;
+    pub type ThresholdToStash<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, T::ValidatorId, OptionQuery>;
 
-    /// Stores the relationship between a signing group (u8) and its member's (validator's)
-    /// threshold server's account.
+    /// Keeps track of all the validators in a particular subgroup.
+    ///
+    /// Only active validators (so not candiates) should be assigned a subgroup and be included in
+    /// this mapping.
     #[pallet::storage]
     #[pallet::getter(fn signing_groups)]
-    pub type SigningGroups<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        SubgroupId,
-        Vec<<T as pallet_session::Config>::ValidatorId>,
-        OptionQuery,
-    >;
+    pub type SigningGroups<T: Config> =
+        StorageMap<_, Blake2_128Concat, SubgroupId, Vec<T::ValidatorId>, OptionQuery>;
+
+    /// Mapping between a validator and their assigned subgroup for the given session.
+    ///
+    /// Only active validators (so not candidates) should be assigned a subgroup and be included in
+    /// this mapping.
+    #[pallet::storage]
+    #[pallet::getter(fn validator_to_subgroup)]
+    pub type ValidatorToSubgroup<T: Config> =
+        StorageMap<_, Identity, T::ValidatorId, SubgroupId, OptionQuery>;
 
     /// Tracks wether the validator's kvdb is synced
     #[pallet::storage]
@@ -204,6 +210,7 @@ pub mod pallet {
                 SigningGroups::<T>::insert(group_id, validator_ids);
                 for validator_id in validator_ids {
                     IsValidatorSynced::<T>::insert(validator_id, true);
+                    ValidatorToSubgroup::<T>::insert(validator_id, group_id);
                 }
             }
             let refresh_info = RefreshInfo {
@@ -340,45 +347,45 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Wraps's substrate validate but forces threshold key and endpoint
-        /// `endpoint`: nodes's endpoint
-        /// `threshold_account`: nodes's threshold account
+        /// Wrap's Substrate's `staking_pallet::validate()` extrinsic, but enforces that
+        /// information about a validator's threshold server is provided.
+        ///
+        /// Note that - just like the original `validate()` extrinsic - the effects of this are
+        /// only applied in the following era.
         #[pallet::call_index(3)]
         #[pallet::weight(<T as Config>::WeightInfo::validate())]
         pub fn validate(
             origin: OriginFor<T>,
             prefs: ValidatorPrefs,
-            endpoint: Vec<u8>,
-            tss_account: T::AccountId,
-            x25519_public_key: X25519PublicKey,
+            server_info: ServerInfo<T::AccountId>,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
+
             ensure!(
-                endpoint.len() as u32 <= T::MaxEndpointLength::get(),
+                server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
             );
 
             ensure!(
-                !ThresholdToStash::<T>::contains_key(&tss_account),
+                !ThresholdToStash::<T>::contains_key(&server_info.tss_account),
                 Error::<T>::TssAccountAlreadyExists
             );
 
-            let stash = Self::get_stash(&who)?;
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
-            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)
-                .or(Err(Error::<T>::InvalidValidatorId))?;
 
-            ThresholdServers::<T>::insert(
-                &validator_id,
-                ServerInfo {
-                    tss_account: tss_account.clone(),
-                    x25519_public_key,
-                    endpoint: endpoint.clone(),
-                },
-            );
-            ThresholdToStash::<T>::insert(&tss_account, validator_id);
+            let stash = Self::get_stash(&who)?;
+            let validator_id =
+                T::ValidatorId::try_from(stash).or(Err(Error::<T>::InvalidValidatorId))?;
 
-            Self::deposit_event(Event::NodeInfoChanged(who, endpoint, tss_account));
+            ThresholdServers::<T>::insert(&validator_id, server_info.clone());
+            ThresholdToStash::<T>::insert(&server_info.tss_account, validator_id);
+
+            Self::deposit_event(Event::NodeInfoChanged(
+                who,
+                server_info.endpoint,
+                server_info.tss_account,
+            ));
+
             Ok(())
         }
 
@@ -427,6 +434,15 @@ pub mod pallet {
                 curr_validators_set[signing_group] =
                     pallet_staking_extension::Pallet::<T>::signing_groups(signing_group as u8)
                         .ok_or(Error::<T>::SigningGroupError)?;
+
+                // There's no easy way for us to get the difference between the old and new
+                // validator sets, so we take the naive approach and just clear everybody's signing
+                // group.
+                //
+                // We'll fill this out again later once we have the full, new, validator set.
+                for validator in curr_validators_set[signing_group].iter() {
+                    ValidatorToSubgroup::<T>::remove(validator);
+                }
             }
 
             // Replace existing validators into the same subgroups
@@ -443,6 +459,7 @@ pub mod pallet {
                     unplaced_validators_set.push(new_validator.clone());
                 }
             }
+
             // Evenly distribute new validators.
             while let Some(curr) = unplaced_validators_set.pop() {
                 let mut min_sg_len = u64::MAX;
@@ -458,14 +475,22 @@ pub mod pallet {
             }
 
             // Update the new validator set
-            for (sg, vs) in new_validators_set.iter().enumerate() {
-                pallet_staking_extension::SigningGroups::<T>::remove(sg as u8);
-                pallet_staking_extension::SigningGroups::<T>::insert(sg as u8, vs);
+            for (subgroup, validator_set) in new_validators_set.iter().enumerate() {
+                let subgroup = subgroup as u8;
+
+                SigningGroups::<T>::remove(subgroup);
+                SigningGroups::<T>::insert(subgroup, validator_set);
+
+                for validator in validator_set.iter() {
+                    ValidatorToSubgroup::<T>::insert(validator, subgroup);
+                }
             }
+
             Self::deposit_event(Event::ValidatorSubgroupsRotated(
                 curr_validators_set.clone(),
                 new_validators_set.clone(),
             ));
+
             frame_system::Pallet::<T>::register_extra_weight_unchecked(
                 <T as pallet::Config>::WeightInfo::new_session_handler_helper(
                     curr_validators_set.len() as u32,
@@ -473,6 +498,7 @@ pub mod pallet {
                 ),
                 DispatchClass::Mandatory,
             );
+
             Ok(())
         }
     }
