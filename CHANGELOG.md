@@ -38,6 +38,7 @@ At the moment this project **does not** adhere to
 - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
 - Add proactive refresh keys on-chain ([#629](https://github.com/entropyxyz/entropy-core/pull/629))
 - Change test-cli default access mode and update readme for recent changes ([#643](https://github.com/entropyxyz/entropy-core/pull/643))
+- Add additional checks to TSS server's `/user/receive_key` endpoint ([#655](https://github.com/entropyxyz/entropy-core/pull/655))
 - Disallow using existing TSS account IDs in Staking pallet ([#657](https://github.com/entropyxyz/entropy-core/pull/657))
 - Clean ups around Staking Extension's `validate()` extrinsic ([#659](https://github.com/entropyxyz/entropy-core/pull/659))
 

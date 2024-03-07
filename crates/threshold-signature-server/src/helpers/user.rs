@@ -23,6 +23,7 @@ use entropy_protocol::{
 };
 use entropy_shared::{HashingAlgorithm, KeyVisibility, SETUP_TIMEOUT_SECONDS};
 
+use reqwest::StatusCode;
 use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::{Digest as Sha256Digest, Sha256};
 use sha3::{Digest as Sha3Digest, Keccak256, Sha3_256};
@@ -139,12 +140,16 @@ pub async fn send_key(
         let url = format!("http://{}/user/receive_key", String::from_utf8(server_info.endpoint)?);
         let client = reqwest::Client::new();
 
-        let _ = client
+        let response = client
             .post(url)
             .header("Content-Type", "application/json")
             .body(serde_json::to_string(&signed_message)?)
             .send()
             .await?;
+
+        if response.status() != StatusCode::OK {
+            return Err(UserErr::KeyShareRejected(response.text().await.unwrap_or_default()));
+        }
     }
     Ok(())
 }
