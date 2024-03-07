@@ -544,7 +544,6 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        // TODO (Nando): This second parameter is unused, remove it
         #[allow(clippy::type_complexity)]
         pub fn get_validator_info() -> Result<(Vec<ServerInfo<T::AccountId>>, u32), Error<T>> {
             let mut validators_info: Vec<ServerInfo<T::AccountId>> = vec![];
