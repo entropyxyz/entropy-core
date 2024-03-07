@@ -68,7 +68,7 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{do_signing, Hasher},
         substrate::{
-            get_program, get_registered_details, get_subgroup, query_chain,
+            get_program, get_registered_details, get_stash_address, get_subgroup, query_chain,
             return_all_addresses_of_subgroup, submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg, send_key},
@@ -294,10 +294,9 @@ async fn setup_dkg(
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
 
-    let (subgroup, stash_address) = get_subgroup(&api, rpc, &signer).await?;
-    let my_subgroup = subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    let mut addresses_in_subgroup =
-        return_all_addresses_of_subgroup(&api, rpc, my_subgroup).await?;
+    let subgroup = get_subgroup(&api, rpc, signer.account_id()).await?;
+    let stash_address = get_stash_address(&api, rpc, signer.account_id()).await?;
+    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, rpc, subgroup).await?;
 
     let block_hash = rpc
         .chain_get_block_hash(None)
@@ -353,7 +352,7 @@ async fn setup_dkg(
             &api,
             rpc,
             sig_request_address,
-            my_subgroup,
+            subgroup,
             &signer,
             key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec(),
             nonce + i as u32,
@@ -387,11 +386,8 @@ pub async fn receive_key(
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
-    let my_subgroup = get_subgroup(&api, &rpc, &signer)
-        .await?
-        .0
-        .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, my_subgroup).await?;
+    let subgroup = get_subgroup(&api, &rpc, signer.account_id()).await?;
+    let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, subgroup).await?;
 
     let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
         .map_err(|_| UserErr::StringError("Account Conversion"))?;
@@ -618,9 +614,9 @@ pub async fn recover_key(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     signing_address: String,
 ) -> Result<(), UserErr> {
-    let (my_subgroup, stash_address) = get_subgroup(api, rpc, signer).await?;
-    let unwrapped_subgroup = my_subgroup.ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-    let key_server_info = get_random_server_info(api, rpc, unwrapped_subgroup, stash_address)
+    let subgroup = get_subgroup(api, rpc, signer.account_id()).await?;
+    let stash_address = get_stash_address(api, rpc, signer.account_id()).await?;
+    let key_server_info = get_random_server_info(api, rpc, subgroup, stash_address)
         .await
         .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
     let ip_address = String::from_utf8(key_server_info.endpoint)?;

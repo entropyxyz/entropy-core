@@ -202,7 +202,7 @@ async fn test_proactive_refresh_validation_fail() {
     ];
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    let mut ocw_message = OcwMessageProactiveRefresh {
+    let ocw_message = OcwMessageProactiveRefresh {
         validators_info,
         proactive_refresh_keys: vec![dave.to_account_id().encode(), eve.to_account_id().encode()],
     };
