@@ -110,8 +110,8 @@ pub async fn do_signing(
     let result =
         signing_service.execute_sign(&sign_context, channels, signer, tss_accounts).await?;
     increment_or_wipe_request_limit(
-        &api,
-        &rpc,
+        api,
+        rpc,
         kv_manager,
         info.signing_session_info.account_id.to_string(),
     )

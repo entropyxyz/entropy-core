@@ -116,8 +116,8 @@ pub struct UserRegistrationInfo {
 /// Type that gets stored for request limit checks
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Encode, Decode)]
 pub struct RequestLimitStorage {
-    block_number: u32,
-    request_amount: u32,
+    pub block_number: u32,
+    pub request_amount: u32,
 }
 
 /// Called by a user to initiate the signing process for a message
@@ -650,10 +650,11 @@ pub async fn request_limit_check(
     kv_store: &KvManager,
     signing_address: String,
 ) -> Result<(), UserErr> {
-    // TODO move onchain
-    let request_limit = 20;
+    let request_limit_query = entropy::storage().parameters().request_limit();
+    let request_limit = query_chain(api, rpc, request_limit_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Failed to get request limit"))?;
 
-    // get current request check
     let key = request_limit_key(signing_address);
     let block_number = rpc
         .chain_get_header(None)
@@ -681,9 +682,10 @@ pub async fn increment_or_wipe_request_limit(
     kv_store: &KvManager,
     signing_address: String,
 ) -> Result<(), UserErr> {
-    // TODO move onchain
-    let request_limit = 20;
-    // getss reuquest check from chain
+    let request_limit_query = entropy::storage().parameters().request_limit();
+    let request_limit = query_chain(api, rpc, request_limit_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Failed to get request limit"))?;
 
     let key = request_limit_key(signing_address);
     let block_number = rpc
