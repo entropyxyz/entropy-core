@@ -145,7 +145,7 @@ fn it_confirms_registers_a_user() {
 
         assert_noop!(
             Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 3, BoundedVec::default()),
-            Error::<Test>::InvalidSubgroup
+            Error::<Test>::NotInSigningGroup
         );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
@@ -180,6 +180,7 @@ fn it_confirms_registers_a_user() {
             key_visibility: KeyVisibility::Private([0; 32]),
             verifying_key: Some(expected_verifying_key.clone()),
             program_modification_account: 2,
+            version_number: 1,
         };
 
         assert_eq!(Relayer::registering(1), Some(registering_info));
@@ -198,7 +199,8 @@ fn it_confirms_registers_a_user() {
                 key_visibility: KeyVisibility::Private([0; 32]),
                 verifying_key: expected_verifying_key,
                 programs_data: programs_info.clone(),
-                program_modification_account: 2
+                program_modification_account: 2,
+                version_number: 1,
             }
         );
     });
@@ -250,6 +252,7 @@ fn it_changes_a_program_pointer() {
             verifying_key: expected_verifying_key,
             programs_data: programs_info,
             program_modification_account: 2,
+            version_number: 1,
         };
 
         Registered::<Test>::insert(1, &registered_info);

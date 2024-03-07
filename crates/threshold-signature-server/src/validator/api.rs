@@ -37,21 +37,26 @@ use crate::{
     get_signer,
     helpers::{
         launch::FORBIDDEN_KEYS,
-        substrate::{
-            get_subgroup, query_chain, return_all_addresses_of_subgroup, submit_transaction,
-        },
+        substrate::{get_stash_address, get_subgroup, query_chain, submit_transaction},
     },
     validation::{check_stale, SignedMessage},
     validator::errors::ValidatorErr,
     AppState,
 };
 
+/// A set of signature request account IDs for which keyshares are requested, given as SS58 encoded
+/// strings.
+///
+/// This is the HTTP request body to `/validator/sync_kvdb`.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Keys {
     pub keys: Vec<String>,
     pub timestamp: SystemTime,
 }
 
+/// A set of encrypted keyshares.
+///
+/// This is the HTTP response body to `/validator/sync_kvdb`.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Values {
     pub values: Vec<SignedMessage>,
@@ -88,22 +93,21 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
             panic!("threshold account needs balance: {:?}", signer.account_id());
         }
         // if not in subgroup retry until you are
-        let mut my_subgroup = get_subgroup(&api, &rpc, &signer).await;
+        let mut my_subgroup = get_subgroup(&api, &rpc, signer.account_id()).await;
         while my_subgroup.is_err() {
             tracing::warn!("The signing account is not in the validator set, retrying sync");
             thread::sleep(sleep_time);
-            my_subgroup =
-                Ok(get_subgroup(&api, &rpc, &signer).await.expect("Failed to get subgroup."));
+            my_subgroup = Ok(get_subgroup(&api, &rpc, signer.account_id())
+                .await
+                .expect("Failed to get subgroup."));
         }
-        let (subgroup, validator_stash) = my_subgroup.expect("Failed to get subgroup.");
-        let key_server_info = get_random_server_info(
-            &api,
-            &rpc,
-            subgroup.expect("failed to get subgroup"),
-            validator_stash,
-        )
-        .await
-        .expect("Issue getting registered keys from chain.");
+        let subgroup = my_subgroup.expect("Failed to get subgroup.");
+        let validator_stash = get_stash_address(&api, &rpc, signer.account_id())
+            .await
+            .expect("Failed to get threshold server's stash address.");
+        let key_server_info = get_random_server_info(&api, &rpc, subgroup, validator_stash)
+            .await
+            .expect("Issue getting registered keys from chain.");
         let ip_address =
             String::from_utf8(key_server_info.endpoint).expect("failed to parse IP address.");
         let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
@@ -143,7 +147,7 @@ pub async fn sync_kvdb(
     let decrypted_message = signed_msg.decrypt(signer.signer())?;
     let keys: Keys = serde_json::from_slice(&decrypted_message)?;
     check_stale(keys.timestamp)?;
-    check_in_subgroup(&api, &rpc, &signer, signing_address).await?;
+    check_in_subgroup(&api, &rpc, &signer, &signing_address).await?;
 
     let mut values: Vec<SignedMessage> = vec![];
     for key in keys.keys {
@@ -320,22 +324,17 @@ pub async fn check_in_subgroup(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-    signing_address: AccountId32,
+    signing_address: &AccountId32,
 ) -> Result<(), ValidatorErr> {
-    let (subgroup, _) = get_subgroup(api, rpc, signer).await?;
-    let my_subgroup = subgroup.ok_or_else(|| ValidatorErr::SubgroupError("Subgroup Error"))?;
-    let addresses_in_subgroup = return_all_addresses_of_subgroup(api, rpc, my_subgroup).await?;
-    let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
+    let signing_address = SubxtAccountId32::from_str(&signing_address.to_ss58check())
         .map_err(|_| ValidatorErr::StringError("Account Conversion"))?;
-    let stash_address_query =
-        entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
-    let stash_address = query_chain(api, rpc, stash_address_query, None)
-        .await?
-        .ok_or_else(|| ValidatorErr::ChainFetch("Stash Fetch Error"))?;
 
-    let in_subgroup = addresses_in_subgroup.contains(&stash_address);
-    if !in_subgroup {
+    let stash_subgroup = get_subgroup(api, rpc, &signing_address).await?;
+    let signer_subgroup = get_subgroup(api, rpc, signer.account_id()).await?;
+
+    if stash_subgroup != signer_subgroup {
         return Err(ValidatorErr::NotInSubgroup);
     }
+
     Ok(())
 }

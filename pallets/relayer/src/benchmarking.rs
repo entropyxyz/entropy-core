@@ -110,7 +110,8 @@ benchmarks! {
         confirmations: vec![],
         programs_data: programs_info,
         key_visibility: KeyVisibility::Public,
-        verifying_key: Some(BoundedVec::default())
+        verifying_key: Some(BoundedVec::default()),
+        version_number: T::KeyVersionNumber::get()
     });
   }: _(RawOrigin::Signed(sig_req_account.clone()))
   verify {
@@ -149,6 +150,7 @@ benchmarks! {
             programs_data: programs_info,
             verifying_key: BoundedVec::default(),
             key_visibility: KeyVisibility::Public,
+            version_number: T::KeyVersionNumber::get()
         },
     );
   }: _(RawOrigin::Signed(sig_req_account.clone()), sig_req_account.clone(), new_programs_info.clone())
@@ -181,7 +183,8 @@ benchmarks! {
         confirmations: vec![],
         programs_data: programs_info,
         key_visibility: KeyVisibility::Public,
-        verifying_key: None
+        verifying_key: None,
+        version_number: T::KeyVersionNumber::get()
     });
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
@@ -217,7 +220,8 @@ benchmarks! {
         confirmations: confirmation,
         programs_data: programs_info,
         key_visibility: KeyVisibility::Public,
-        verifying_key: Some(BoundedVec::default())
+        verifying_key: Some(BoundedVec::default()),
+        version_number: T::KeyVersionNumber::get()
     });
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
@@ -252,7 +256,8 @@ confirm_register_registered {
         confirmations: confirmation,
         programs_data: programs_info,
         key_visibility: KeyVisibility::Public,
-        verifying_key: None
+        verifying_key: None,
+        version_number: T::KeyVersionNumber::get()
     });
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
