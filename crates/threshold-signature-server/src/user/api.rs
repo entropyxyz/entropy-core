@@ -440,7 +440,8 @@ pub async fn receive_key(
         }
     }
 
-    // TODO now get the block number and check that the author of the message should be in the current DKG or proactive refresh committee
+    // TODO #652 now get the block number and check that the author of the message should be in the
+    // current DKG or proactive refresh committee
 
     // Check this is a well-formed keyshare
     let _: KeyShare<KeyParams> =
