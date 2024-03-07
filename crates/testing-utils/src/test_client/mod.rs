@@ -39,7 +39,7 @@ use entropy_tss::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
         entropy::runtime_types::{
             pallet_programs::pallet::ProgramInfo,
-            pallet_relayer::pallet::{ProgramInstance, RegisteredInfo},
+            pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
         },
         EntropyConfig,
     },
@@ -82,7 +82,7 @@ pub async fn register(
     // Check if user is already registered
     let account_id32: AccountId32 = signature_request_keypair.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
-    let registered_query = entropy::storage().relayer().registered(account_id.clone());
+    let registered_query = entropy::storage().registry().registered(account_id.clone());
 
     let query_registered_status = query_chain(api, rpc, registered_query, None).await;
     if let Some(registered_status) = query_registered_status? {
@@ -120,7 +120,7 @@ pub async fn register(
 
     // Wait until user is confirmed as registered
     for _ in 0..50 {
-        let registered_query = entropy::storage().relayer().registered(account_id.clone());
+        let registered_query = entropy::storage().registry().registered(account_id.clone());
         let query_registered_status = query_chain(api, rpc, registered_query, None).await;
         if let Some(registered_status) = query_registered_status? {
             return Ok((registered_status, keyshare_option));
@@ -281,7 +281,7 @@ pub async fn update_programs(
     program_instance: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<()> {
     let update_pointer_tx = entropy::tx()
-        .relayer()
+        .registry()
         .change_program_instance(signature_request_account.public().into(), program_instance);
     let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer_pair.clone());
     submit_transaction(entropy_api, rpc, &deployer, &update_pointer_tx, None).await?;
@@ -341,7 +341,7 @@ pub async fn put_register_request_on_chain(
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
 
     let registering_tx =
-        entropy::tx().relayer().register(deployer, Static(key_visibility), program_instance);
+        entropy::tx().registry().register(deployer, Static(key_visibility), program_instance);
 
     submit_transaction(api, rpc, &signature_request_pair_signer, &registering_tx, None).await?;
     Ok(())
@@ -361,7 +361,7 @@ pub async fn check_verifying_key(
     let registered_status = {
         let account_id32: AccountId32 = public_key.into();
         let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
-        let registered_query = entropy::storage().relayer().registered(account_id);
+        let registered_query = entropy::storage().registry().registered(account_id);
         let query_registered_status = query_chain(api, rpc, registered_query, None).await;
         query_registered_status?.ok_or(anyhow!("User not registered"))?
     };

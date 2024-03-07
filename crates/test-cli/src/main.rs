@@ -28,7 +28,7 @@ use colored::Colorize;
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::{
-            bounded_collections::bounded_vec::BoundedVec, pallet_relayer::pallet::ProgramInstance,
+            bounded_collections::bounded_vec::BoundedVec, pallet_registry::pallet::ProgramInstance,
         },
         EntropyConfig,
     },

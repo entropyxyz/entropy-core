@@ -220,7 +220,7 @@ pub fn development_genesis_config(
         grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        relayer: RelayerConfig {
+        registry: RelayerConfig {
             registered_accounts: vec![
                 (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
                 (

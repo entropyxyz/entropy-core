@@ -1173,7 +1173,7 @@ where
             frame_system::CheckWeight::<Runtime>::new(),
             pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
             pallet_free_tx::ValidateElectricityPayment::<Runtime>::new(),
-            pallet_relayer::ValidateConfirmRegistered::<Runtime>::new(),
+            pallet_registry::ValidateConfirmRegistered::<Runtime>::new(),
         );
         let raw_payload = SignedPayload::new(call, extra)
             .map_err(|e| {
@@ -1380,12 +1380,12 @@ parameter_types! {
   pub const KeyVersionNumber: u8 = 1;
 }
 
-impl pallet_relayer::Config for Runtime {
+impl pallet_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
     type MaxProgramHashes = MaxProgramHashes;
     type KeyVersionNumber = KeyVersionNumber;
-    type WeightInfo = weights::pallet_relayer::WeightInfo<Runtime>;
+    type WeightInfo = weights::pallet_registry::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1473,7 +1473,7 @@ construct_runtime!(
     NominationPools: pallet_nomination_pools = 50,
 
     // custom pallets
-    Relayer: pallet_relayer = 51,
+    Relayer: pallet_registry = 51,
     Slashing: pallet_slashing = 52,
     Programs: pallet_programs = 53,
     TransactionPause: pallet_transaction_pause = 54,
@@ -1509,7 +1509,7 @@ pub type SignedExtra = (
     frame_system::CheckWeight<Runtime>,
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
     pallet_free_tx::ValidateElectricityPayment<Runtime>,
-    pallet_relayer::ValidateConfirmRegistered<Runtime>,
+    pallet_registry::ValidateConfirmRegistered<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
@@ -1562,7 +1562,7 @@ mod benches {
       [pallet_preimage, Preimage]
       [pallet_proxy, Proxy]
       [pallet_recovery, Recovery]
-      [pallet_relayer, Relayer]
+      [pallet_registry, Relayer]
       [pallet_scheduler, Scheduler]
       [pallet_sudo, Sudo]
       [pallet_session, SessionBench::<Runtime>]

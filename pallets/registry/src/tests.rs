@@ -22,13 +22,13 @@ use frame_support::{
     BoundedVec,
 };
 use pallet_programs::ProgramInfo;
-use pallet_relayer::Call as RelayerCall;
+use pallet_registry::Call as RelayerCall;
 use sp_runtime::{
     traits::{Hash, SignedExtension},
     transaction_validity::{TransactionValidity, ValidTransaction},
 };
 
-use crate as pallet_relayer;
+use crate as pallet_registry;
 use crate::{
     mock::*, Error, ProgramInstance, Registered, RegisteredInfo, RegisteringDetails,
     ValidateConfirmRegistered,

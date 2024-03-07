@@ -202,8 +202,8 @@ pub async fn check_if_confirmation(
     key: &sr25519::Pair,
 ) {
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
-    let registering_query = entropy::storage().relayer().registering(signer.account_id());
-    let registered_query = entropy::storage().relayer().registered(signer.account_id());
+    let registering_query = entropy::storage().registry().registering(signer.account_id());
+    let registered_query = entropy::storage().registry().registered(signer.account_id());
     let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
     let is_registering = query_chain(api, rpc, registering_query, block_hash).await;
     // cleared from is_registering state
@@ -220,7 +220,7 @@ pub async fn check_has_confirmation(
     key: &sr25519::Pair,
 ) {
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
-    let registering_query = entropy::storage().relayer().registering(signer.account_id());
+    let registering_query = entropy::storage().registry().registering(signer.account_id());
     // cleared from is_registering state
     let is_registering = query_chain(api, rpc, registering_query, None).await.unwrap();
     assert_eq!(is_registering.unwrap().confirmations.len(), 1);

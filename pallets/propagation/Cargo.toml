@@ -28,7 +28,7 @@ sp-runtime           ={ version="28.0.0", default-features=false }
 sp-staking           ={ version="23.0.0", default-features=false }
 
 entropy-shared          ={ path="../../crates/shared", default-features=false, features=["wasm-no-std"] }
-pallet-relayer          ={ version="0.0.10", path="../relayer", default-features=false }
+pallet-registry          ={ version="0.0.10", path="../registry", default-features=false }
 pallet-programs         ={ version="0.0.10", path="../programs", default-features=false }
 pallet-staking-extension={ version="0.0.10", path="../staking", default-features=false }
 
@@ -64,7 +64,7 @@ std=[
   'pallet-babe/std',
   'pallet-balances/std',
   'pallet-programs/std',
-  'pallet-relayer/std',
+  'pallet-registry/std',
   'pallet-staking-extension/std',
 ]
 try-runtime=['frame-support/try-runtime']

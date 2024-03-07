@@ -35,7 +35,7 @@ sp-npos-elections              ={ version="23.0.0", default-features=false }
 sp-tracing                     ={ version="14.0.0", default-features=false }
 
 pallet-staking-extension={ version="0.0.10", path="../staking", default-features=false }
-pallet-relayer          ={ version="0.0.10", path="../relayer", default-features=false }
+pallet-registry          ={ version="0.0.10", path="../registry", default-features=false }
 
 [features]
 default=["std"]
@@ -49,7 +49,7 @@ std=[
   "frame-system/std",
   "log/std",
   "pallet-balances/std",
-  "pallet-relayer/std",
+  "pallet-registry/std",
   "pallet-staking-extension/std",
   "pallet-staking/std",
   "scale-info/std",

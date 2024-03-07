@@ -49,7 +49,7 @@ frame_support::construct_runtime!(
     Balances: pallet_balances,
     Timestamp: pallet_timestamp,
     Authorship: pallet_authorship,
-    Relayer: pallet_relayer,
+    Relayer: pallet_registry,
     Programs: pallet_programs,
     Propagation: pallet_propagation,
     Staking: pallet_staking_extension,
@@ -314,7 +314,7 @@ parameter_types! {
   pub const KeyVersionNumber: u8 = 1;
 }
 
-impl pallet_relayer::Config for Test {
+impl pallet_registry::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
     type MaxProgramHashes = MaxProgramHashes;

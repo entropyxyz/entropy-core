@@ -60,7 +60,7 @@ use zeroize::Zeroize;
 use super::{ParsedUserInputPartyInfo, ProgramError, UserErr, UserInputPartyInfo};
 use crate::{
     chain_api::{
-        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
+        entropy::{self, runtime_types::pallet_registry::pallet::RegisteringDetails},
         get_api, get_rpc, EntropyConfig,
     },
     get_random_server_info,
@@ -446,7 +446,7 @@ pub async fn get_registering_user_details(
     who: &<EntropyConfig as Config>::AccountId,
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> Result<RegisteringDetails, UserErr> {
-    let registering_info_query = entropy::storage().relayer().registering(who);
+    let registering_info_query = entropy::storage().registry().registering(who);
     let register_info = query_chain(api, rpc, registering_info_query, None)
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Register Onchain first"))?;
@@ -459,7 +459,7 @@ pub async fn is_registering(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
 ) -> Result<bool, UserErr> {
-    let registering_info_query = entropy::storage().relayer().registering(who);
+    let registering_info_query = entropy::storage().registry().registering(who);
     let register_info = query_chain(api, rpc, registering_info_query, None).await?;
 
     Ok(register_info.is_some())
@@ -479,7 +479,7 @@ pub async fn confirm_registered(
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
-    let registration_tx = entropy::tx().relayer().confirm_register(
+    let registration_tx = entropy::tx().registry().confirm_register(
         who,
         subgroup,
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
@@ -592,7 +592,7 @@ pub async fn validate_new_user(
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
 
-    let verifying_data_query = entropy::storage().relayer().dkg(chain_data.block_number);
+    let verifying_data_query = entropy::storage().registry().dkg(chain_data.block_number);
     let verifying_data = query_chain(api, rpc, verifying_data_query, None).await?;
     hasher_verifying_data.update(verifying_data.encode());
 
