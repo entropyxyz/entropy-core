@@ -47,7 +47,7 @@ pub mod pallet_preimage;
 pub mod pallet_programs;
 pub mod pallet_proxy;
 pub mod pallet_recovery;
-pub mod pallet_relayer;
+pub mod pallet_registry;
 pub mod pallet_scheduler;
 pub mod pallet_session;
 pub mod pallet_staking;

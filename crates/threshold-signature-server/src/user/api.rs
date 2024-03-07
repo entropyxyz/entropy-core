@@ -32,8 +32,8 @@ use entropy_kvdb::kv_manager::{
     KvManager,
 };
 use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureRequest};
-use entropy_protocol::SigningSessionInfo;
 use entropy_protocol::ValidatorInfo;
+use entropy_protocol::{KeyParams, SigningSessionInfo};
 use entropy_shared::{
     types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey,
     MAX_INSTRUCTIONS_PER_PROGRAM, SIGNING_PARTY_SIZE,
@@ -54,13 +54,14 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, MultiAddress},
     Config, OnlineClient,
 };
+use synedrion::KeyShare;
 use tracing::instrument;
 use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, ProgramError, UserErr, UserInputPartyInfo};
 use crate::{
     chain_api::{
-        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteringDetails},
+        entropy::{self, runtime_types::pallet_registry::pallet::RegisteringDetails},
         get_api, get_rpc, EntropyConfig,
     },
     get_random_server_info,
@@ -76,7 +77,7 @@ use crate::{
     },
     signing_client::{ListenerState, ProtocolErr},
     validation::{check_stale, SignedMessage},
-    validator::api::get_and_store_values,
+    validator::api::{check_forbidden_key, get_and_store_values},
     AppState, Configuration,
 };
 
@@ -383,6 +384,14 @@ pub async fn receive_key(
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
     let user_registration_info: UserRegistrationInfo = serde_json::from_slice(&decrypted_message)?;
+
+    check_forbidden_key(&user_registration_info.key).map_err(|_| UserErr::ForbiddenKey)?;
+
+    // Check this is a well-formed keyshare
+    let _: KeyShare<KeyParams> =
+        entropy_kvdb::kv_manager::helpers::deserialize(&user_registration_info.value)
+            .ok_or_else(|| UserErr::InputValidation("Not a valid keyshare"))?;
+
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
@@ -403,28 +412,39 @@ pub async fn receive_key(
         return Err(UserErr::NotInSubgroup);
     }
 
+    let already_exists =
+        app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
+
     if user_registration_info.proactive_refresh {
+        if !already_exists {
+            return Err(UserErr::UserDoesNotExist);
+        }
         // TODO validate that an active proactive refresh is happening
         app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
     } else {
-        // delete key if user in registering phase
-        let exists_result =
-            app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
-        if exists_result {
-            let registration_details = is_registering(
-                &api,
-                &rpc,
-                &SubxtAccountId32::from_str(&user_registration_info.key)
-                    .map_err(|_| UserErr::StringError("Account Conversion"))?,
-            )
-            .await?;
-            if registration_details {
+        let registering = is_registering(
+            &api,
+            &rpc,
+            &SubxtAccountId32::from_str(&user_registration_info.key)
+                .map_err(|_| UserErr::StringError("Account Conversion"))?,
+        )
+        .await?;
+
+        if already_exists {
+            if registering {
+                // Delete key if user in registering phase
                 app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
             } else {
                 return Err(UserErr::AlreadyRegistered);
             }
+        } else if !registering {
+            return Err(UserErr::NotRegistering("Provided account ID not from a registering user"));
         }
     }
+
+    // TODO #652 now get the block number and check that the author of the message should be in the
+    // current DKG or proactive refresh committee
+
     let reservation =
         app_state.kv_store.kv().reserve_key(user_registration_info.key.to_string()).await?;
     app_state.kv_store.kv().put(reservation, user_registration_info.value).await?;
@@ -442,7 +462,7 @@ pub async fn get_registering_user_details(
     who: &<EntropyConfig as Config>::AccountId,
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> Result<RegisteringDetails, UserErr> {
-    let registering_info_query = entropy::storage().relayer().registering(who);
+    let registering_info_query = entropy::storage().registry().registering(who);
     let register_info = query_chain(api, rpc, registering_info_query, None)
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Register Onchain first"))?;
@@ -455,7 +475,7 @@ pub async fn is_registering(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     who: &<EntropyConfig as Config>::AccountId,
 ) -> Result<bool, UserErr> {
-    let registering_info_query = entropy::storage().relayer().registering(who);
+    let registering_info_query = entropy::storage().registry().registering(who);
     let register_info = query_chain(api, rpc, registering_info_query, None).await?;
 
     Ok(register_info.is_some())
@@ -475,7 +495,7 @@ pub async fn confirm_registered(
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
-    let registration_tx = entropy::tx().relayer().confirm_register(
+    let registration_tx = entropy::tx().registry().confirm_register(
         who,
         subgroup,
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
@@ -588,7 +608,7 @@ pub async fn validate_new_user(
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
 
-    let verifying_data_query = entropy::storage().relayer().dkg(chain_data.block_number);
+    let verifying_data_query = entropy::storage().registry().dkg(chain_data.block_number);
     let verifying_data = query_chain(api, rpc, verifying_data_query, None).await?;
     hasher_verifying_data.update(verifying_data.encode());
 

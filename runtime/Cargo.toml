@@ -100,7 +100,7 @@ pallet-vesting                               ={ version="25.0.0", default-featur
 # Entropy Pallets
 pallet-programs         ={ version='0.0.10', path='../pallets/programs', default-features=false }
 pallet-propagation      ={ version='0.0.10', path='../pallets/propagation', default-features=false }
-pallet-relayer          ={ version='0.0.10', path='../pallets/relayer', default-features=false }
+pallet-registry         ={ version='0.0.10', path='../pallets/registry', default-features=false }
 pallet-slashing         ={ version='0.0.10', path='../pallets/slashing', default-features=false }
 pallet-staking-extension={ version='0.0.10', path='../pallets/staking', default-features=false }
 pallet-transaction-pause={ version='0.0.10', path='../pallets/transaction-pause', default-features=false }
@@ -150,7 +150,7 @@ std=[
   "pallet-proxy/std",
   "pallet-recovery/std",
   "pallet-referenda/std",
-  "pallet-relayer/std",
+  "pallet-registry/std",
   "pallet-scheduler/std",
   "pallet-session/std",
   "pallet-slashing/std",
@@ -217,7 +217,7 @@ runtime-benchmarks=[
   "pallet-proxy/runtime-benchmarks",
   "pallet-recovery/runtime-benchmarks",
   "pallet-referenda/runtime-benchmarks",
-  "pallet-relayer/runtime-benchmarks",
+  "pallet-registry/runtime-benchmarks",
   "pallet-scheduler/runtime-benchmarks",
   "pallet-session-benchmarking/runtime-benchmarks",
   "pallet-staking-extension/runtime-benchmarks",

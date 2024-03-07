@@ -32,7 +32,7 @@ use sp_runtime::{
 };
 use sp_staking::{EraIndex, SessionIndex};
 
-use crate as pallet_relayer;
+use crate as pallet_registry;
 
 const NULL_ARR: [u8; 32] = [0; 32];
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -48,7 +48,7 @@ frame_support::construct_runtime!(
     Balances: pallet_balances,
     Authorship: pallet_authorship,
     Timestamp: pallet_timestamp,
-    Relayer: pallet_relayer,
+    Registry: pallet_registry,
     Staking: pallet_staking_extension,
     FrameStaking: pallet_staking,
     Session: pallet_session,
@@ -311,7 +311,7 @@ parameter_types! {
   pub const KeyVersionNumber: u8 = 1;
 }
 
-impl pallet_relayer::Config for Test {
+impl pallet_registry::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
     type MaxProgramHashes = MaxProgramHashes;
