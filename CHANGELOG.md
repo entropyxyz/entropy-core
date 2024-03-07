@@ -30,6 +30,8 @@ At the moment this project **does not** adhere to
   `validate` extrinsic changed to take a `ServerInfo` struct instead of individual fields.
 - In [#661](https://github.com/entropyxyz/entropy-core/pull/661), the Relayer pallet was renamed to
   the Registry pallet as this better describes the purpose of the pallet.
+- In [#662](https://github.com/entropyxyz/entropy-core/pull/662), the Free Transaction pallet was
+  removed.
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
@@ -44,6 +46,9 @@ At the moment this project **does not** adhere to
 - Disallow using existing TSS account IDs in Staking pallet ([#657](https://github.com/entropyxyz/entropy-core/pull/657))
 - Clean ups around Staking Extension's `validate()` extrinsic ([#659](https://github.com/entropyxyz/entropy-core/pull/659))
 - Rename `pallet_relayer` to `pallet_registry` ([#661](https://github.com/entropyxyz/entropy-core/pull/661))
+
+### Removed
+- Remove `pallet-free-tx` ([#662](https://github.com/entropyxyz/entropy-core/pull/662))
 
 ## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-24
 

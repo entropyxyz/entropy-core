@@ -98,7 +98,6 @@ pallet-utility                               ={ version="25.0.0", default-featur
 pallet-vesting                               ={ version="25.0.0", default-features=false }
 
 # Entropy Pallets
-pallet-free-tx          ={ version='0.0.10', path='../pallets/free-tx', default-features=false }
 pallet-programs         ={ version='0.0.10', path='../pallets/programs', default-features=false }
 pallet-propagation      ={ version='0.0.10', path='../pallets/propagation', default-features=false }
 pallet-registry         ={ version='0.0.10', path='../pallets/registry', default-features=false }
@@ -135,7 +134,6 @@ std=[
   "pallet-democracy/std",
   "pallet-election-provider-multi-phase/std",
   "pallet-elections-phragmen/std",
-  "pallet-free-tx/std",
   "pallet-grandpa/std",
   "pallet-identity/std",
   "pallet-im-online/std",
@@ -205,7 +203,6 @@ runtime-benchmarks=[
   "pallet-election-provider-multi-phase/runtime-benchmarks",
   "pallet-election-provider-support-benchmarking/runtime-benchmarks",
   "pallet-elections-phragmen/runtime-benchmarks",
-  "pallet-free-tx/runtime-benchmarks",
   "pallet-grandpa/runtime-benchmarks",
   "pallet-identity/runtime-benchmarks",
   "pallet-identity/runtime-benchmarks",
@@ -251,7 +248,6 @@ try-runtime=[
   "pallet-democracy/try-runtime",
   "pallet-election-provider-multi-phase/try-runtime",
   "pallet-elections-phragmen/try-runtime",
-  "pallet-free-tx/try-runtime",
   "pallet-grandpa/try-runtime",
   "pallet-identity/try-runtime",
   "pallet-im-online/try-runtime",
