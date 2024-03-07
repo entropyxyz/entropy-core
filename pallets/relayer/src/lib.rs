@@ -395,13 +395,13 @@ pub mod pallet {
                 Error::<T>::AlreadyConfirmed
             );
 
-            let signing_subgroup_addresses =
-                pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
-                    .ok_or(Error::<T>::InvalidSubgroup)?;
-            ensure!(
-                signing_subgroup_addresses.contains(&validator_stash),
-                Error::<T>::NotInSigningGroup
-            );
+            // Every active validator is expected to be assigned a subgroup. If they haven't it
+            // means they're probably still in the candidate stage.
+            let validator_subgroup =
+                pallet_staking_extension::Pallet::<T>::validator_to_subgroup(&validator_stash)
+                    .ok_or(Error::<T>::SigningGroupError)?;
+            ensure!(validator_subgroup == signing_subgroup, Error::<T>::NotInSigningGroup);
+
             // if no one has sent in a verifying key yet, use current
             if registering_info.verifying_key.is_none() {
                 registering_info.verifying_key = Some(verifying_key.clone());

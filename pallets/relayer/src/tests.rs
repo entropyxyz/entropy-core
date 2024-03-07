@@ -145,7 +145,7 @@ fn it_confirms_registers_a_user() {
 
         assert_noop!(
             Relayer::confirm_register(RuntimeOrigin::signed(1), 1, 3, BoundedVec::default()),
-            Error::<Test>::InvalidSubgroup
+            Error::<Test>::NotInSigningGroup
         );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);

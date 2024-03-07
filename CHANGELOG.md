@@ -31,14 +31,14 @@ At the moment this project **does not** adhere to
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
--  Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
-- Add version number to registered ([#658](https://github.com/entropyxyz/entropy-core/pull/658))
+- Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
+- Add direct query for a validator's subgroup ([#642](https://github.com/entropyxyz/entropy-core/pull/642))
 
 ### Changed
+- Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
+- Add proactive refresh keys on-chain ([#629](https://github.com/entropyxyz/entropy-core/pull/629))
 - Change test-cli default access mode and update readme for recent changes ([#643](https://github.com/entropyxyz/entropy-core/pull/643))
- - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
-  - Add proactive refresh keys on-chain ([#629](https://github.com/entropyxyz/entropy-core/pull/629))
--  Disallow using existing TSS account IDs in Staking pallet #657 ([#657](https://github.com/entropyxyz/entropy-core/pull/657))
+- Disallow using existing TSS account IDs in Staking pallet ([#657](https://github.com/entropyxyz/entropy-core/pull/657))
 - Clean ups around Staking Extension's `validate()` extrinsic ([#659](https://github.com/entropyxyz/entropy-core/pull/659))
 
 ## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-24
