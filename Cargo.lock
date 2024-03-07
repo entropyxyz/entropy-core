@@ -2703,7 +2703,6 @@ dependencies = [
  "log",
  "pallet-asset-conversion-tx-payment",
  "pallet-balances",
- "pallet-free-tx",
  "pallet-im-online",
  "pallet-relayer",
  "pallet-staking-extension",
@@ -2881,7 +2880,6 @@ dependencies = [
  "pallet-election-provider-multi-phase",
  "pallet-election-provider-support-benchmarking",
  "pallet-elections-phragmen",
- "pallet-free-tx",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -6788,35 +6786,6 @@ dependencies = [
  "sp-runtime 28.0.0",
  "sp-staking",
  "sp-std 12.0.0",
-]
-
-[[package]]
-name = "pallet-free-tx"
-version = "0.0.10"
-dependencies = [
- "frame-benchmarking",
- "frame-election-provider-support",
- "frame-support",
- "frame-system",
- "log",
- "pallet-authorship",
- "pallet-bags-list",
- "pallet-balances",
- "pallet-relayer",
- "pallet-session",
- "pallet-staking",
- "pallet-staking-extension",
- "pallet-staking-reward-curve",
- "pallet-timestamp",
- "parity-scale-codec",
- "scale-info",
- "sp-core 25.0.0",
- "sp-io 27.0.0",
- "sp-npos-elections",
- "sp-runtime 28.0.0",
- "sp-staking",
- "sp-std 12.0.0",
- "sp-tracing 14.0.0",
 ]
 
 [[package]]
