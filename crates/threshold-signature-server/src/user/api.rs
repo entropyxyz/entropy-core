@@ -385,6 +385,14 @@ pub async fn receive_key(
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
     let user_registration_info: UserRegistrationInfo = serde_json::from_slice(&decrypted_message)?;
+
+    check_forbidden_key(&user_registration_info.key).map_err(|_| UserErr::ForbiddenKey)?;
+
+    // Check this is a well-formed keyshare
+    let _: KeyShare<KeyParams> =
+        entropy_kvdb::kv_manager::helpers::deserialize(&user_registration_info.value)
+            .ok_or_else(|| UserErr::InputValidation("Not a valid keyshare"))?;
+
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
@@ -407,8 +415,6 @@ pub async fn receive_key(
     if !addresses_in_subgroup.contains(&stash_address) {
         return Err(UserErr::NotInSubgroup);
     }
-
-    check_forbidden_key(&user_registration_info.key).map_err(|_| UserErr::ForbiddenKey)?;
 
     let already_exists =
         app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
@@ -442,11 +448,6 @@ pub async fn receive_key(
 
     // TODO #652 now get the block number and check that the author of the message should be in the
     // current DKG or proactive refresh committee
-
-    // Check this is a well-formed keyshare
-    let _: KeyShare<KeyParams> =
-        entropy_kvdb::kv_manager::helpers::deserialize(&user_registration_info.value)
-            .ok_or_else(|| UserErr::InputValidation("Not a valid keyshare"))?;
 
     let reservation =
         app_state.kv_store.kv().reserve_key(user_registration_info.key.to_string()).await?;
