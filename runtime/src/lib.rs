@@ -1477,8 +1477,7 @@ construct_runtime!(
     Slashing: pallet_slashing = 52,
     Programs: pallet_programs = 53,
     TransactionPause: pallet_transaction_pause = 54,
-    FreeTx: pallet_free_tx = 55,
-    Propagation: pallet_propagation = 56,
+    Propagation: pallet_propagation = 55,
 
 
   }
