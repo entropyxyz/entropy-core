@@ -62,14 +62,14 @@ pub trait WeightInfo {
 /// Weights for pallet_registry using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	/// Storage: `Relayer::Registered` (r:1 w:0)
-	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Registering` (r:1 w:1)
-	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registered` (r:1 w:0)
+	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registering` (r:1 w:1)
+	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Programs::Programs` (r:1 w:1)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Dkg` (r:1 w:1)
-	/// Proof: `Relayer::Dkg` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Dkg` (r:1 w:1)
+	/// Proof: `Registry::Dkg` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `p` is `[1, 5]`.
 	fn register(p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
@@ -83,8 +83,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
-	/// Storage: `Relayer::Registering` (r:1 w:1)
-	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registering` (r:1 w:1)
+	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Programs::Programs` (r:1 w:1)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `p` is `[1, 5]`.
@@ -100,8 +100,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	}
 	/// Storage: `Programs::Programs` (r:2 w:2)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Registered` (r:1 w:1)
-	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registered` (r:1 w:1)
+	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `n` is `[1, 5]`.
 	/// The range of component `o` is `[1, 5]`.
 	fn change_program_instance(n: u32, _o: u32, ) -> Weight {
@@ -118,8 +118,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Registering` (r:1 w:1)
-	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registering` (r:1 w:1)
+	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
 	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 2]`.
@@ -135,8 +135,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Registering` (r:1 w:1)
-	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registering` (r:1 w:1)
+	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
 	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 2]`.
@@ -154,12 +154,12 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Registering` (r:1 w:1)
-	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registering` (r:1 w:1)
+	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
 	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Registered` (r:0 w:1)
-	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registered` (r:0 w:1)
+	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 2]`.
 	fn confirm_register_registered(_c: u32, ) -> Weight {
 		// Proof Size summary in bytes:
@@ -175,14 +175,14 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-	/// Storage: `Relayer::Registered` (r:1 w:0)
-	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Registering` (r:1 w:1)
-	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registered` (r:1 w:0)
+	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registering` (r:1 w:1)
+	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Programs::Programs` (r:1 w:1)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Dkg` (r:1 w:1)
-	/// Proof: `Relayer::Dkg` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Dkg` (r:1 w:1)
+	/// Proof: `Registry::Dkg` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `p` is `[1, 5]`.
 	fn register(p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
@@ -196,8 +196,8 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(4))
 			.saturating_add(RocksDbWeight::get().writes(3))
 	}
-	/// Storage: `Relayer::Registering` (r:1 w:1)
-	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registering` (r:1 w:1)
+	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Programs::Programs` (r:1 w:1)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `p` is `[1, 5]`.
@@ -213,8 +213,8 @@ impl WeightInfo for () {
 	}
 	/// Storage: `Programs::Programs` (r:2 w:2)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Registered` (r:1 w:1)
-	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registered` (r:1 w:1)
+	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `n` is `[1, 5]`.
 	/// The range of component `o` is `[1, 5]`.
 	fn change_program_instance(n: u32, _o: u32, ) -> Weight {
@@ -231,8 +231,8 @@ impl WeightInfo for () {
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Registering` (r:1 w:1)
-	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registering` (r:1 w:1)
+	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
 	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 2]`.
@@ -248,8 +248,8 @@ impl WeightInfo for () {
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Registering` (r:1 w:1)
-	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registering` (r:1 w:1)
+	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
 	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 2]`.
@@ -267,12 +267,12 @@ impl WeightInfo for () {
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Registering` (r:1 w:1)
-	/// Proof: `Relayer::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registering` (r:1 w:1)
+	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
 	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Relayer::Registered` (r:0 w:1)
-	/// Proof: `Relayer::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::Registered` (r:0 w:1)
+	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 2]`.
 	fn confirm_register_registered(_c: u32, ) -> Weight {
 		// Proof Size summary in bytes:

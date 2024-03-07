@@ -23,7 +23,7 @@
 //! The succesful execution of a program indicates to validators on the network that they should
 //! sign a given message.
 //!
-//! Programs are initially registered through the Relayer pallet's `register` extrinsic.
+//! Programs are initially registered through the Registry pallet's `register` extrinsic.
 //!
 //! ## Interface
 //!

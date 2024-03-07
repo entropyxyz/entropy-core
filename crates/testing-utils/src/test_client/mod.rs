@@ -295,7 +295,7 @@ pub async fn get_accounts(
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
     let keys = Vec::<()>::new();
-    let storage_address = subxt::dynamic::storage("Relayer", "Registered", keys);
+    let storage_address = subxt::dynamic::storage("Registry", "Registered", keys);
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut accounts = Vec::new();
     while let Some(Ok((storage_key, account))) = iter.next().await {

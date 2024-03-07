@@ -49,7 +49,7 @@ frame_support::construct_runtime!(
     Balances: pallet_balances,
     Timestamp: pallet_timestamp,
     Authorship: pallet_authorship,
-    Relayer: pallet_registry,
+    Registry: pallet_registry,
     Programs: pallet_programs,
     Propagation: pallet_propagation,
     Staking: pallet_staking_extension,

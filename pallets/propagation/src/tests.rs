@@ -93,13 +93,13 @@ fn knows_how_to_mock_several_http_calls() {
             program_config: vec![],
         }])
         .unwrap();
-        assert_ok!(Relayer::register(
+        assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2,
             KeyVisibility::Public,
             programs_info.clone(),
         ));
-        assert_ok!(Relayer::register(
+        assert_ok!(Registry::register(
             RuntimeOrigin::signed(2),
             3,
             KeyVisibility::Public,
@@ -108,9 +108,9 @@ fn knows_how_to_mock_several_http_calls() {
         // full send
         Propagation::post_dkg(4).unwrap();
         // test pruning
-        assert_eq!(Relayer::dkg(3).len(), 2);
+        assert_eq!(Registry::dkg(3).len(), 2);
         Propagation::on_initialize(5);
-        assert_eq!(Relayer::dkg(3).len(), 0);
+        assert_eq!(Registry::dkg(3).len(), 0);
 
         Propagation::post_proactive_refresh(6).unwrap();
         let ocw_message = RefreshInfo {

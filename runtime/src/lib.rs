@@ -1473,7 +1473,7 @@ construct_runtime!(
     NominationPools: pallet_nomination_pools = 50,
 
     // custom pallets
-    Relayer: pallet_registry = 51,
+    Registry: pallet_registry = 51,
     Slashing: pallet_slashing = 52,
     Programs: pallet_programs = 53,
     TransactionPause: pallet_transaction_pause = 54,
@@ -1562,7 +1562,7 @@ mod benches {
       [pallet_preimage, Preimage]
       [pallet_proxy, Proxy]
       [pallet_recovery, Recovery]
-      [pallet_registry, Relayer]
+      [pallet_registry, Registry]
       [pallet_scheduler, Scheduler]
       [pallet_sudo, Sudo]
       [pallet_session, SessionBench::<Runtime>]
