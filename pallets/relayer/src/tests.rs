@@ -381,7 +381,7 @@ fn it_doesnt_allow_double_registering() {
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2,
-            KeyVisibility::Permissioned,
+            KeyVisibility::Public,
             programs_info.clone(),
         ));
 
@@ -390,7 +390,7 @@ fn it_doesnt_allow_double_registering() {
             Relayer::register(
                 RuntimeOrigin::signed(1),
                 2,
-                KeyVisibility::Permissioned,
+                KeyVisibility::Public,
                 programs_info
             ),
             Error::<Test>::AlreadySubmitted
@@ -414,7 +414,7 @@ fn it_fails_no_program() {
             Relayer::register(
                 RuntimeOrigin::signed(1),
                 2,
-                KeyVisibility::Permissioned,
+                KeyVisibility::Public,
                 programs_info
             ),
             Error::<Test>::NoProgramSet
@@ -429,7 +429,7 @@ fn it_fails_empty_program_list() {
             Relayer::register(
                 RuntimeOrigin::signed(1),
                 2,
-                KeyVisibility::Permissioned,
+                KeyVisibility::Public,
                 BoundedVec::try_from(vec![]).unwrap(),
             ),
             Error::<Test>::NoProgramSet
@@ -463,7 +463,7 @@ fn it_tests_prune_registration() {
         assert_ok!(Relayer::register(
             RuntimeOrigin::signed(1),
             2,
-            KeyVisibility::Permissioned,
+            KeyVisibility::Public,
             programs_info,
         ));
         assert_eq!(

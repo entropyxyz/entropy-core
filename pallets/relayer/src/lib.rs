@@ -135,7 +135,6 @@ pub mod pallet {
                     1 => KeyVisibility::Private(
                         account_info.2.expect("Private key visibility needs x25519 public key"),
                     ),
-                    2 => KeyVisibility::Permissioned,
                     _ => KeyVisibility::Public,
                 };
                 Registered::<T>::insert(

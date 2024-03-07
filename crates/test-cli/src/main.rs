@@ -151,13 +151,10 @@ enum CliCommand {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum, Default)]
 enum Visibility {
-    /// Only the user who registers can submit a signature request, and the user holds a keyshare
-    /// themselves
+    /// User ho;ds keyshare
     Private,
-    /// Only the user who registers can submit a signature request (default)
+    /// User does not holds keyshare
     #[default]
-    Permissioned,
-    /// Anyone can submit a signature request
     Public,
 }
 
@@ -165,7 +162,6 @@ impl From<KeyVisibility> for Visibility {
     fn from(key_visibility: KeyVisibility) -> Self {
         match key_visibility {
             KeyVisibility::Private(_) => Visibility::Private,
-            KeyVisibility::Permissioned => Visibility::Permissioned,
             KeyVisibility::Public => Visibility::Public,
         }
     }
@@ -219,7 +215,6 @@ async fn run_command() -> anyhow::Result<String> {
             println!("Program account: {}", program_keypair.public());
 
             let key_visibility_converted = match key_visibility {
-                Visibility::Permissioned => KeyVisibility::Permissioned,
                 Visibility::Private => {
                     let x25519_secret = derive_static_secret(&signature_request_keypair);
                     let x25519_public = x25519_dalek::PublicKey::from(&x25519_secret);

@@ -112,40 +112,47 @@ pub async fn proactive_refresh(
             .0;
 
         // Check key visibility and don't do proactive refresh if it is private as this would require the user to be online
-        if key_visibility != KeyVisibility::Public && key_visibility != KeyVisibility::Permissioned
-        {
-            return Ok(StatusCode::ACCEPTED);
-        }
+        if key_visibility == KeyVisibility::Public {
+            // key should always exist, figure out how to handle
+            let exists_result = app_state.kv_store.kv().exists(&key).await?;
+            if exists_result {
+                let old_key_share = app_state.kv_store.kv().get(&key).await?;
+                let deserialized_old_key: KeyShare<KeyParams> = deserialize(&old_key_share)
+                    .ok_or_else(|| {
+                        ProtocolErr::Deserialization("Failed to load KeyShare".into())
+                    })?;
 
-        // key should always exist, figure out how to handle
-        let exists_result = app_state.kv_store.kv().exists(&key).await?;
-        if exists_result {
-            let old_key_share = app_state.kv_store.kv().get(&key).await?;
-            let deserialized_old_key: KeyShare<KeyParams> = deserialize(&old_key_share)
-                .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
+                let new_key_share = do_proactive_refresh(
+                    &ocw_data.validators_info,
+                    &signer,
+                    &app_state.listener_state,
+                    sig_request_account,
+                    deserialized_old_key,
+                )
+                .await?;
+                let serialized_key_share = key_serialize(&new_key_share)
+                    .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
+                let new_key_info = UserRegistrationInfo {
+                    key: key.to_string(),
+                    value: serialized_key_share,
+                    proactive_refresh: true,
+                };
 
-            let new_key_share = do_proactive_refresh(
-                &ocw_data.validators_info,
-                &signer,
-                &app_state.listener_state,
-                sig_request_account,
-                deserialized_old_key,
-            )
-            .await?;
-            let serialized_key_share = key_serialize(&new_key_share)
-                .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
-            let new_key_info = UserRegistrationInfo {
-                key: key.to_string(),
-                value: serialized_key_share,
-                proactive_refresh: true,
-            };
-
-            app_state.kv_store.kv().delete(&new_key_info.key).await?;
-            let reservation = app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
-            app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
-            send_key(&api, &rpc, &stash_address, &mut addresses_in_subgroup, new_key_info, &signer)
+                app_state.kv_store.kv().delete(&new_key_info.key).await?;
+                let reservation =
+                    app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
+                app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
+                send_key(
+                    &api,
+                    &rpc,
+                    &stash_address,
+                    &mut addresses_in_subgroup,
+                    new_key_info,
+                    &signer,
+                )
                 .await
                 .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+            }
         }
     }
     // TODO: Tell chain refresh is done?
