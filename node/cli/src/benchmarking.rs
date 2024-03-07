@@ -147,7 +147,6 @@ pub fn create_benchmark_extrinsic(
         frame_system::CheckNonce::<runtime::Runtime>::from(nonce),
         frame_system::CheckWeight::<runtime::Runtime>::new(),
         pallet_transaction_payment::ChargeTransactionPayment::<runtime::Runtime>::from(0),
-        pallet_free_tx::ValidateElectricityPayment::<runtime::Runtime>::new(),
         pallet_relayer::ValidateConfirmRegistered::<runtime::Runtime>::new(),
     );
 
