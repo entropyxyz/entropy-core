@@ -5,7 +5,7 @@ repeat=2
 entropyOutput=./runtime/src/weights/
 entropyChain=dev
 pallets=(
-  pallet_relayer
+  pallet_registry
 )
 licenseHeader=.maintain/AGPL-3.0-header.txt
 
