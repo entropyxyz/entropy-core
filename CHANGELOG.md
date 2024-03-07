@@ -28,11 +28,13 @@ At the moment this project **does not** adhere to
   config parameter to the `Relayer` pallet.
 - In [#659](https://github.com/entropyxyz/entropy-core/pull/659), the Staking Extension pallet's
   `validate` extrinsic changed to take a `ServerInfo` struct instead of individual fields.
+- In [#660](https://github.com/entropyxyz/entropy-core/pull/660), if too many request are sent for signing by a user in a block the TSS will reject them. As well a parameter config was added to the chainspec 
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
 - Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
 - Add direct query for a validator's subgroup ([#642](https://github.com/entropyxyz/entropy-core/pull/642))
+- Request limit check ([#660](https://github.com/entropyxyz/entropy-core/pull/660))
 
 ### Changed
 - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
