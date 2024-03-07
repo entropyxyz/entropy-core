@@ -16,6 +16,20 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+//! # Programs Parameters
+//!
+//! ## Overview
+//!
+//! A pallet to manage parameters by the threshold servers
+//! by being held onchain we can make sure they are in consensus and goverened by the chain
+//!
+//! ## Interface
+//!
+//! ### Dispatchable Functions
+//!
+//! #### Public
+//!
+//! `change_request_limit` - Allows governance to change the request limit.
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
