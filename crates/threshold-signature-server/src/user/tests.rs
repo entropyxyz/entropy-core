@@ -38,7 +38,7 @@ use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec as OtherBoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance as OtherProgramInstance,
+        entropy::runtime_types::pallet_registry::pallet::ProgramInstance as OtherProgramInstance,
     },
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
@@ -88,7 +88,7 @@ use super::UserInputPartyInfo;
 use crate::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, get_api, get_rpc,
+        entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
         EntropyConfig,
     },
     get_signer,
@@ -642,7 +642,7 @@ async fn test_store_share() {
     for _ in 0..10 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
-        let registered_query = entropy::storage().relayer().registered(alice_account_id.clone());
+        let registered_query = entropy::storage().registry().registered(alice_account_id.clone());
         let query_registered_status = query_chain(&api, &rpc, registered_query, block_hash).await;
         if query_registered_status.unwrap().is_some() {
             break;
@@ -985,7 +985,7 @@ pub async fn put_register_request_on_chain(
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
-    let registering_tx = entropy::tx().relayer().register(
+    let registering_tx = entropy::tx().registry().register(
         program_modification_account,
         Static(key_visibility),
         program_instance,

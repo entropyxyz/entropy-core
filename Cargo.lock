@@ -2705,7 +2705,7 @@ dependencies = [
  "pallet-balances",
  "pallet-free-tx",
  "pallet-im-online",
- "pallet-relayer",
+ "pallet-registry",
  "pallet-staking-extension",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
@@ -2899,7 +2899,7 @@ dependencies = [
  "pallet-proxy",
  "pallet-recovery",
  "pallet-referenda",
- "pallet-relayer",
+ "pallet-registry",
  "pallet-scheduler",
  "pallet-session",
  "pallet-session-benchmarking",
@@ -6802,7 +6802,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-bags-list",
  "pallet-balances",
- "pallet-relayer",
+ "pallet-registry",
  "pallet-session",
  "pallet-staking",
  "pallet-staking-extension",
@@ -7083,7 +7083,7 @@ dependencies = [
  "pallet-bags-list",
  "pallet-balances",
  "pallet-programs",
- "pallet-relayer",
+ "pallet-registry",
  "pallet-session",
  "pallet-staking",
  "pallet-staking-extension",
@@ -7154,7 +7154,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-relayer"
+name = "pallet-registry"
 version = "0.0.10"
 dependencies = [
  "entropy-shared",

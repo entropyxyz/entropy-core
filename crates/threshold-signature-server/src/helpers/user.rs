@@ -35,7 +35,7 @@ use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{
-        entropy, entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, EntropyConfig,
+        entropy, entropy::runtime_types::pallet_registry::pallet::ProgramInstance, EntropyConfig,
     },
     helpers::substrate::{get_program, query_chain},
     signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
