@@ -1172,7 +1172,6 @@ where
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
             pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
-            pallet_free_tx::ValidateElectricityPayment::<Runtime>::new(),
             pallet_relayer::ValidateConfirmRegistered::<Runtime>::new(),
         );
         let raw_payload = SignedPayload::new(call, extra)
@@ -1413,16 +1412,6 @@ impl pallet_transaction_pause::Config for Runtime {
     type WeightInfo = weights::pallet_transaction_pause::WeightInfo<Runtime>;
 }
 
-impl pallet_free_tx::Config for Runtime {
-    type RuntimeCall = RuntimeCall;
-    type RuntimeEvent = RuntimeEvent;
-    type UpdateOrigin = EitherOfDiverse<
-        EnsureRoot<AccountId>,
-        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>,
-    >;
-    type WeightInfo = weights::pallet_free_tx::WeightInfo<Runtime>;
-}
-
 impl pallet_propagation::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
 }
@@ -1507,7 +1496,6 @@ pub type SignedExtra = (
     frame_system::CheckNonce<Runtime>,
     frame_system::CheckWeight<Runtime>,
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
-    pallet_free_tx::ValidateElectricityPayment<Runtime>,
     pallet_relayer::ValidateConfirmRegistered<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
@@ -1548,7 +1536,6 @@ mod benches {
       [pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
       [frame_election_provider_support, EPSBench::<Runtime>]
       [pallet_elections_phragmen, Elections]
-      [pallet_free_tx, FreeTx]
       [pallet_staking_extension, StakingExtension]
       [pallet_grandpa, Grandpa]
       [pallet_im_online, ImOnline]
