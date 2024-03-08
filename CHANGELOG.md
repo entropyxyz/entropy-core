@@ -28,7 +28,9 @@ At the moment this project **does not** adhere to
   config parameter to the `Relayer` pallet.
 - In [#659](https://github.com/entropyxyz/entropy-core/pull/659), the Staking Extension pallet's
   `validate` extrinsic changed to take a `ServerInfo` struct instead of individual fields.
-- In [#660](https://github.com/entropyxyz/entropy-core/pull/660), if too many request are sent for signing by a user in a block the TSS will reject them. As well a parameter config was added to the chainspec 
+- In [#660](https://github.com/entropyxyz/entropy-core/pull/660), if too many request are sent 
+  for signing by a user in a block the TSS will reject them. As well a parameter config was 
+  added to the chainspec 
 - In [#661](https://github.com/entropyxyz/entropy-core/pull/661), the Relayer pallet was renamed to
   the Registry pallet as this better describes the purpose of the pallet.
 - In [#662](https://github.com/entropyxyz/entropy-core/pull/662), the Free Transaction pallet was
