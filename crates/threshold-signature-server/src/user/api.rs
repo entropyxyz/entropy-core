@@ -138,7 +138,14 @@ pub async fn sign_tx(
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let request_author = SubxtAccountId32(*signed_msg.account_id().as_ref());
-    request_limit_check(&api, &rpc, &app_state.kv_store, request_author.to_string()).await?;
+
+    let request_limit_query = entropy::storage().parameters().request_limit();
+    let request_limit = query_chain(&api, &rpc, request_limit_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Failed to get request limit"))?;
+
+    request_limit_check(&rpc, &app_state.kv_store, request_author.to_string(), request_limit)
+        .await?;
 
     if !signed_msg.verify() {
         return Err(UserErr::InvalidSignature("Invalid signature."));
@@ -228,13 +235,13 @@ pub async fn sign_tx(
     // Do the signing protocol in another task, so we can already respond
     tokio::spawn(async move {
         let signing_protocol_output = do_signing(
-            &api,
             &rpc,
             user_sig_req,
             message_hash_hex,
             &app_state,
             signing_session_id,
             user_details.key_visibility.0,
+            request_limit,
         )
         .await
         .map(|signature| {
@@ -661,16 +668,11 @@ pub async fn recover_key(
 
 /// Checks the request limit
 pub async fn request_limit_check(
-    api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_store: &KvManager,
     signing_address: String,
+    request_limit: u32,
 ) -> Result<(), UserErr> {
-    let request_limit_query = entropy::storage().parameters().request_limit();
-    let request_limit = query_chain(api, rpc, request_limit_query, None)
-        .await?
-        .ok_or_else(|| UserErr::ChainFetch("Failed to get request limit"))?;
-
     let key = request_limit_key(signing_address);
     let block_number = rpc
         .chain_get_header(None)
@@ -693,16 +695,11 @@ pub async fn request_limit_check(
 
 /// Increments or restarts request count if a new block has been created
 pub async fn increment_or_wipe_request_limit(
-    api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_store: &KvManager,
     signing_address: String,
+    request_limit: u32,
 ) -> Result<(), UserErr> {
-    let request_limit_query = entropy::storage().parameters().request_limit();
-    let request_limit = query_chain(api, rpc, request_limit_query, None)
-        .await?
-        .ok_or_else(|| UserErr::ChainFetch("Failed to get request limit"))?;
-
     let key = request_limit_key(signing_address);
     let block_number = rpc
         .chain_get_header(None)

@@ -1643,13 +1643,18 @@ async fn test_increment_or_wipe_request_limit() {
 
     // run up the request check to one less then max (to check integration)
     for _ in 0..request_limit {
-        increment_or_wipe_request_limit(&api, &rpc, &kv_store, alice.to_account_id().to_string())
-            .await
-            .unwrap();
+        increment_or_wipe_request_limit(
+            &rpc,
+            &kv_store,
+            alice.to_account_id().to_string(),
+            request_limit,
+        )
+        .await
+        .unwrap();
     }
     // should now fail
     let err_too_many_requests =
-        request_limit_check(&api, &rpc, &kv_store, alice.to_account_id().to_string())
+        request_limit_check(&rpc, &kv_store, alice.to_account_id().to_string(), request_limit)
             .await
             .map_err(|e| e.to_string());
     assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
