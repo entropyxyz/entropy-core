@@ -17,8 +17,13 @@
 //!
 //! ## Overview
 //!
-//! A pallet to manage parameters by the threshold servers
-//! by being held onchain we can make sure they are in consensus and goverened by the chain
+//! A pallet to manage parameters by the threshold servers.
+//!
+//! By storing parameters onchain we can make sure all threshold servers are in consensus to what
+//! the parameter values should be.
+//!
+//! Additionally, this gives the ability for on-chain governance to decide on what the values should
+//! be.
 //!
 //! ## Interface
 //!
