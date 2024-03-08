@@ -79,7 +79,6 @@ async fn integration_test_sign_eth_tx() {
 
     let transaction_request = create_unsigned_eth_tx(verifying_key);
 
-    dbg!(&transaction_request);
     let message = transaction_request.rlp_unsigned().to_vec();
 
     let message_hash = Hasher::keccak(&message);
@@ -139,9 +138,7 @@ fn recoverable_signature_to_ethers_signature(
     recoverable_signature: RecoverableSignature,
 ) -> ethers::core::types::Signature {
     let recovery_id_u64: u64 = recoverable_signature.recovery_id.to_byte().into();
-    println!("{:?}", recovery_id_u64);
     let v: u64 = 27 + recovery_id_u64;
-    println!("{:?}", v);
     let r = U256::from_big_endian(&recoverable_signature.signature.r().to_bytes());
     let s = U256::from_big_endian(&recoverable_signature.signature.s().to_bytes());
 
