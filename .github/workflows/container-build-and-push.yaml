@@ -35,7 +35,7 @@ on:
 jobs:
   build:
     name: Build and upload ${{ inputs.docker_build_arg_package }} binary
-    runs-on: ubuntu-22.04
+    runs-on: core-build-runner
     steps:
       - uses: actions/checkout@v4
       - name: Docker meta
