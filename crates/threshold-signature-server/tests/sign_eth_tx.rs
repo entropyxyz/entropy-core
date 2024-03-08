@@ -32,7 +32,10 @@ use entropy_tss::{
 use ethers::core::{
     abi::ethabi::ethereum_types::{H160, H256},
     types::{RecoveryMessage, Transaction, TransactionRequest, U256},
-    utils::rlp::{Decodable, Rlp},
+    utils::{
+        public_key_to_address,
+        rlp::{Decodable, Rlp},
+    },
 };
 use serial_test::serial;
 use sp_core::crypto::Ss58Codec;
@@ -108,7 +111,7 @@ async fn integration_test_sign_eth_tx() {
     // Check the signature
     let recovered_eth_address =
         ethers_signature.recover(RecoveryMessage::Hash(H256(message_hash))).unwrap();
-    assert_eq!(recovered_eth_address, verifying_key_to_h160(verifying_key));
+    assert_eq!(recovered_eth_address, public_key_to_address(&verifying_key));
 
     let signed_transaction_bytes = transaction_request.rlp_signed(&ethers_signature);
     let rlp = Rlp::new(&signed_transaction_bytes);
@@ -122,15 +125,7 @@ async fn integration_test_sign_eth_tx() {
 
     // Verify the signed Transaction
     let recovered_eth_address = transaction.recover_from().unwrap();
-    assert_eq!(recovered_eth_address, verifying_key_to_h160(verifying_key));
-}
-
-/// Convert a k256::ecdsa::VerifyingKey to an Ethereum address
-fn verifying_key_to_h160(verifying_key: VerifyingKey) -> H160 {
-    let encoded_point = verifying_key.to_encoded_point(true);
-    let hashed_public_key = Hasher::keccak(encoded_point.as_bytes());
-    let truncated_hash: [u8; 20] = hashed_public_key[12..].try_into().unwrap();
-    H160(truncated_hash)
+    assert_eq!(recovered_eth_address, public_key_to_address(&verifying_key));
 }
 
 /// Convert a k256 Signature and RecoveryId to an ethers Signature
@@ -147,7 +142,7 @@ fn recoverable_signature_to_ethers_signature(
 
 /// Create a mock Ethereum transaction request
 fn create_unsigned_eth_tx(verifying_key: VerifyingKey) -> TransactionRequest {
-    let from = verifying_key_to_h160(verifying_key);
+    let from = public_key_to_address(&verifying_key);
     let to = H160::from_str("772b9a9e8aa1c9db861c6611a82d251db4fac990").unwrap();
     TransactionRequest::pay(to, 1000).from(from)
 }
