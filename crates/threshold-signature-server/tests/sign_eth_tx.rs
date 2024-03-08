@@ -30,8 +30,8 @@ use entropy_tss::{
     common::Hasher,
 };
 use ethers::core::{
-    abi::ethabi::ethereum_types::H160,
-    types::{Transaction, TransactionRequest, U256},
+    abi::ethabi::ethereum_types::{H160, H256},
+    types::{RecoveryMessage, Transaction, TransactionRequest, U256},
     utils::rlp::{Decodable, Rlp},
 };
 use serial_test::serial;
@@ -78,6 +78,8 @@ async fn integration_test_sign_eth_tx() {
     let verifying_key = keyshare_option.clone().unwrap().verifying_key();
 
     let transaction_request = create_unsigned_eth_tx(verifying_key);
+
+    dbg!(&transaction_request);
     let message = transaction_request.rlp_unsigned().to_vec();
 
     let message_hash = Hasher::keccak(&message);
@@ -103,13 +105,28 @@ async fn integration_test_sign_eth_tx() {
     assert_eq!(verifying_key, recovery_key_from_sig);
 
     let ethers_signature = recoverable_signature_to_ethers_signature(recoverable_signature);
+
+    // Check the signature
+    let recovered_eth_address =
+        ethers_signature.recover(RecoveryMessage::Hash(H256(message_hash))).unwrap();
+    assert_eq!(recovered_eth_address, verifying_key_to_h160(verifying_key));
+
     let signed_transaction_bytes = transaction_request.rlp_signed(&ethers_signature);
     let rlp = Rlp::new(&signed_transaction_bytes);
     let transaction = Transaction::decode(&rlp).unwrap();
+
+    // To be sure that the message we are verifying, matches the message that we signed, convert
+    // Transaction back into transaction request
+    let back_into_transaction_request: TransactionRequest = (&transaction).into();
+    // Check that the hashes match
+    assert_eq!(message_hash, Hasher::keccak(&back_into_transaction_request.rlp()));
+
+    // Verify the signed Transaction
     let recovered_eth_address = transaction.recover_from().unwrap();
     assert_eq!(recovered_eth_address, verifying_key_to_h160(verifying_key));
 }
 
+/// Convert a k256::ecdsa::VerifyingKey to an Ethereum address
 fn verifying_key_to_h160(verifying_key: VerifyingKey) -> H160 {
     let encoded_point = verifying_key.to_encoded_point(true);
     let hashed_public_key = Hasher::keccak(encoded_point.as_bytes());
@@ -117,17 +134,21 @@ fn verifying_key_to_h160(verifying_key: VerifyingKey) -> H160 {
     H160(truncated_hash)
 }
 
+/// Convert a k256 Signature and RecoveryId to an ethers Signature
 fn recoverable_signature_to_ethers_signature(
     recoverable_signature: RecoverableSignature,
 ) -> ethers::core::types::Signature {
     let recovery_id_u64: u64 = recoverable_signature.recovery_id.to_byte().into();
+    println!("{:?}", recovery_id_u64);
     let v: u64 = 27 + recovery_id_u64;
+    println!("{:?}", v);
     let r = U256::from_big_endian(&recoverable_signature.signature.r().to_bytes());
     let s = U256::from_big_endian(&recoverable_signature.signature.s().to_bytes());
 
     ethers::core::types::Signature { r, s, v }
 }
 
+/// Create a mock Ethereum transaction request
 fn create_unsigned_eth_tx(verifying_key: VerifyingKey) -> TransactionRequest {
     let from = verifying_key_to_h160(verifying_key);
     let to = H160::from_str("772b9a9e8aa1c9db861c6611a82d251db4fac990").unwrap();
