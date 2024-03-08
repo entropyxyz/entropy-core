@@ -110,10 +110,13 @@ use crate::{
     new_user,
     r#unsafe::api::UnsafeQuery,
     signing_client::ListenerState,
-    user::{api::{
-        confirm_registered, get_current_subgroup_signers, increment_or_wipe_request_limit,
-        recover_key, request_limit_check, request_limit_key, RequestLimitStorage,
-        UserRegistrationInfo, UserSignatureRequest,}, UserErr}
+    user::{
+        api::{
+            confirm_registered, get_current_subgroup_signers, increment_or_wipe_request_limit,
+            recover_key, request_limit_check, request_limit_key, RequestLimitStorage,
+            UserRegistrationInfo, UserSignatureRequest,
+        },
+        UserErr,
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,

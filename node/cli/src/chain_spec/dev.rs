@@ -18,9 +18,9 @@ use crate::endowed_accounts::endowed_accounts_dev;
 
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
-    BalancesConfig, CouncilConfig, DemocracyConfig, ParametersConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-    IndicesConfig, MaxNominations, RegistryConfig, RuntimeGenesisConfig, SessionConfig,
-    StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
+    BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
+    IndicesConfig, MaxNominations, ParametersConfig, RegistryConfig, RuntimeGenesisConfig,
+    SessionConfig, StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
