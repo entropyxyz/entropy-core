@@ -32,7 +32,6 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 benchmarks! {
   change_request_limit {
     let origin = T::UpdateOrigin::try_successful_origin().unwrap();
-
   }: {
     assert_ok!(
       <Parameters<T>>::change_request_limit(origin, 15)
