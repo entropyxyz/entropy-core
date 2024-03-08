@@ -141,6 +141,12 @@ pub enum UserErr {
     Anyhow(#[from] anyhow::Error),
     #[error("Chain Fetch: {0}")]
     ChainFetch(&'static str),
+    #[error("The given key is forbidden")]
+    ForbiddenKey,
+    #[error("No existing keyshare found for this user")]
+    UserDoesNotExist,
+    #[error("The remote TSS server rejected the keyshare: {0}")]
+    KeyShareRejected(String),
 }
 
 impl IntoResponse for UserErr {

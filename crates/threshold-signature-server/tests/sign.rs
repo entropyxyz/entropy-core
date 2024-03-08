@@ -17,7 +17,7 @@ use entropy_kvdb::clean_tests;
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance,
+        entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
