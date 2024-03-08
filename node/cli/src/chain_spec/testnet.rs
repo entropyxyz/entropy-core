@@ -453,7 +453,7 @@ pub fn testnet_genesis_config(
         grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        relayer: Default::default(),
+        registry: Default::default(),
         parameters: ParametersConfig { request_limit: 20, ..Default::default() },
         vesting: Default::default(),
         transaction_storage: Default::default(),

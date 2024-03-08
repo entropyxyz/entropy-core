@@ -23,6 +23,7 @@ use entropy_protocol::{
 };
 use entropy_shared::{HashingAlgorithm, KeyVisibility, SETUP_TIMEOUT_SECONDS};
 
+use reqwest::StatusCode;
 use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::{Digest as Sha256Digest, Sha256};
 use sha3::{Digest as Sha3Digest, Keccak256, Sha3_256};
@@ -34,7 +35,7 @@ use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{
-        entropy, entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, EntropyConfig,
+        entropy, entropy::runtime_types::pallet_registry::pallet::ProgramInstance, EntropyConfig,
     },
     helpers::substrate::{get_program, query_chain},
     signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
@@ -139,12 +140,16 @@ pub async fn send_key(
         let url = format!("http://{}/user/receive_key", String::from_utf8(server_info.endpoint)?);
         let client = reqwest::Client::new();
 
-        let _ = client
+        let response = client
             .post(url)
             .header("Content-Type", "application/json")
             .body(serde_json::to_string(&signed_message)?)
             .send()
             .await?;
+
+        if response.status() != StatusCode::OK {
+            return Err(UserErr::KeyShareRejected(response.text().await.unwrap_or_default()));
+        }
     }
     Ok(())
 }

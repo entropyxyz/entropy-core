@@ -29,6 +29,10 @@ At the moment this project **does not** adhere to
 - In [#659](https://github.com/entropyxyz/entropy-core/pull/659), the Staking Extension pallet's
   `validate` extrinsic changed to take a `ServerInfo` struct instead of individual fields.
 - In [#660](https://github.com/entropyxyz/entropy-core/pull/660), if too many request are sent for signing by a user in a block the TSS will reject them. As well a parameter config was added to the chainspec 
+- In [#661](https://github.com/entropyxyz/entropy-core/pull/661), the Relayer pallet was renamed to
+  the Registry pallet as this better describes the purpose of the pallet.
+- In [#662](https://github.com/entropyxyz/entropy-core/pull/662), the Free Transaction pallet was
+  removed.
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
@@ -40,8 +44,13 @@ At the moment this project **does not** adhere to
 - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
 - Add proactive refresh keys on-chain ([#629](https://github.com/entropyxyz/entropy-core/pull/629))
 - Change test-cli default access mode and update readme for recent changes ([#643](https://github.com/entropyxyz/entropy-core/pull/643))
+- Add additional checks to TSS server's `/user/receive_key` endpoint ([#655](https://github.com/entropyxyz/entropy-core/pull/655))
 - Disallow using existing TSS account IDs in Staking pallet ([#657](https://github.com/entropyxyz/entropy-core/pull/657))
 - Clean ups around Staking Extension's `validate()` extrinsic ([#659](https://github.com/entropyxyz/entropy-core/pull/659))
+- Rename `pallet_relayer` to `pallet_registry` ([#661](https://github.com/entropyxyz/entropy-core/pull/661))
+
+### Removed
+- Remove `pallet-free-tx` ([#662](https://github.com/entropyxyz/entropy-core/pull/662))
 
 ## [0.0.10](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.9...release/v0.0.10) - 2024-01-24
 

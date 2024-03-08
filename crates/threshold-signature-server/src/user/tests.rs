@@ -38,7 +38,7 @@ use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec as OtherBoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance as OtherProgramInstance,
+        entropy::runtime_types::pallet_registry::pallet::ProgramInstance as OtherProgramInstance,
     },
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
@@ -88,7 +88,7 @@ use super::UserInputPartyInfo;
 use crate::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance, get_api, get_rpc,
+        entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
         EntropyConfig,
     },
     get_signer,
@@ -110,10 +110,10 @@ use crate::{
     new_user,
     r#unsafe::api::UnsafeQuery,
     signing_client::ListenerState,
-    user::api::{
+    user::{api::{
         confirm_registered, get_current_subgroup_signers, increment_or_wipe_request_limit,
         recover_key, request_limit_check, request_limit_key, RequestLimitStorage,
-        UserRegistrationInfo, UserSignatureRequest,
+        UserRegistrationInfo, UserSignatureRequest,}, UserErr}
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
     validator::api::get_random_server_info,
@@ -698,7 +698,7 @@ async fn test_store_share() {
     for _ in 0..10 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
-        let registered_query = entropy::storage().relayer().registered(alice_account_id.clone());
+        let registered_query = entropy::storage().registry().registered(alice_account_id.clone());
         let query_registered_status = query_chain(&api, &rpc, registered_query, block_hash).await;
         if query_registered_status.unwrap().is_some() {
             break;
@@ -811,17 +811,22 @@ async fn test_send_and_receive_keys() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
+    let share = {
+        let share = &KeyShare::<KeyParams>::new_centralized(&mut rand_core::OsRng, 2, None)[0];
+        entropy_kvdb::kv_manager::helpers::serialize(&share).unwrap()
+    };
+
     let user_registration_info = UserRegistrationInfo {
         key: alice.to_account_id().to_string(),
-        value: vec![10],
+        value: share.clone(),
         proactive_refresh: false,
     };
 
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let client = reqwest::Client::new();
-    // sends key to alice validator, while filtering out own key
-    send_key(
+
+    // First try sending a keyshare for a user who is not registering - should fail
+    let result = send_key(
         &api,
         &rpc,
         &alice.to_account_id().into(),
@@ -829,47 +834,18 @@ async fn test_send_and_receive_keys() {
         user_registration_info.clone(),
         &signer_alice,
     )
-    .await
-    .unwrap();
+    .await;
 
-    let get_query = UnsafeQuery::new(user_registration_info.key.clone(), vec![]).to_json();
+    if let Err(UserErr::KeyShareRejected(error_message)) = result {
+        assert_eq!(
+            error_message,
+            "Not Registering error: Provided account ID not from a registering user".to_string()
+        );
+    } else {
+        panic!("Should give not registering error");
+    }
 
-    // check alice has new key
-    let response_new_key = client
-        .post("http://127.0.0.1:3001/unsafe/get")
-        .header("Content-Type", "application/json")
-        .body(get_query.clone())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(
-        response_new_key.text().await.unwrap(),
-        std::str::from_utf8(&user_registration_info.value.clone()).unwrap().to_string()
-    );
-    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
-
-    let signed_message = SignedMessage::new(
-        signer_alice.signer(),
-        &Bytes(serde_json::to_vec(&user_registration_info.clone()).unwrap()),
-        &server_public_key,
-    )
-    .unwrap()
-    .to_json()
-    .unwrap();
-
-    // fails key already stored not in registering state
-    let response_already_in_storage = client
-        .post("http://127.0.0.1:3001/user/receive_key")
-        .header("Content-Type", "application/json")
-        .body(signed_message.clone())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_already_in_storage.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_already_in_storage.text().await.unwrap(), "User already registered");
-
+    // The happy path - the user is in a registering state - should succeed
     let program_hash = store_program(
         &api,
         &rpc,
@@ -889,10 +865,56 @@ async fn test_send_and_receive_keys() {
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    run_to_block(&rpc, block_number + 2).await;
 
-    // a key in registering state can be overwritten
+    // sends key to alice validator, while filtering out own key
+    send_key(
+        &api,
+        &rpc,
+        &alice.to_account_id().into(),
+        &mut vec![ALICE_STASH_ADDRESS.clone(), alice.to_account_id().into()],
+        user_registration_info.clone(),
+        &signer_alice,
+    )
+    .await
+    .unwrap();
+
+    let get_query = UnsafeQuery::new(user_registration_info.key.clone(), vec![]).to_json();
+
+    let client = reqwest::Client::new();
+    // check alice has new key
+    let response_new_key = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_new_key.bytes().await.unwrap(), &user_registration_info.value.clone());
+
+    // A keyshare can be overwritten when the user is still in a registering state
+    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
+
+    let some_other_share = {
+        let share = &KeyShare::<KeyParams>::new_centralized(&mut rand_core::OsRng, 2, None)[0];
+        entropy_kvdb::kv_manager::helpers::serialize(&share).unwrap()
+    };
+
+    let user_registration_info_overwrite = UserRegistrationInfo {
+        key: alice.to_account_id().to_string(),
+        value: some_other_share.clone(),
+        proactive_refresh: false,
+    };
+
+    let signed_message = SignedMessage::new(
+        signer_alice.signer(),
+        &Bytes(serde_json::to_vec(&user_registration_info_overwrite).unwrap()),
+        &server_public_key,
+    )
+    .unwrap()
+    .to_json()
+    .unwrap();
+
     let response_overwrites_key = client
         .post("http://127.0.0.1:3001/user/receive_key")
         .header("Content-Type", "application/json")
@@ -903,6 +925,76 @@ async fn test_send_and_receive_keys() {
 
     assert_eq!(response_overwrites_key.status(), StatusCode::OK);
     assert_eq!(response_overwrites_key.text().await.unwrap(), "");
+
+    // Check that the key has been successfully overwritten
+    let get_query = UnsafeQuery::new(user_registration_info.key.clone(), vec![]).to_json();
+    let response_new_key = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_new_key.bytes().await.unwrap(), &some_other_share);
+
+    // Try writing a 'forbidden key' - should fail
+    let user_registration_info_forbidden = UserRegistrationInfo {
+        key: "MNEMONIC".to_string(),
+        value: share.clone(),
+        proactive_refresh: false,
+    };
+
+    let signed_message = SignedMessage::new(
+        signer_alice.signer(),
+        &Bytes(serde_json::to_vec(&user_registration_info_forbidden).unwrap()),
+        &server_public_key,
+    )
+    .unwrap()
+    .to_json()
+    .unwrap();
+
+    let response_overwrites_key = client
+        .post("http://127.0.0.1:3001/user/receive_key")
+        .header("Content-Type", "application/json")
+        .body(signed_message.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_overwrites_key.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_overwrites_key.text().await.unwrap(), "The given key is forbidden");
+
+    // Try sending a badly formed keyshare - should fail
+    let user_registration_info_bad_keyshare = UserRegistrationInfo {
+        key: alice.to_account_id().to_string(),
+        value: b"This will not deserialize to KeyShare<KeyParams>".to_vec(),
+        proactive_refresh: false,
+    };
+
+    let signed_message = SignedMessage::new(
+        signer_alice.signer(),
+        &Bytes(serde_json::to_vec(&user_registration_info_bad_keyshare).unwrap()),
+        &server_public_key,
+    )
+    .unwrap()
+    .to_json()
+    .unwrap();
+
+    let response_overwrites_key = client
+        .post("http://127.0.0.1:3001/user/receive_key")
+        .header("Content-Type", "application/json")
+        .body(signed_message.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_overwrites_key.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(
+        response_overwrites_key.text().await.unwrap(),
+        "Input Validation error: Not a valid keyshare"
+    );
+
     clean_tests();
 }
 
@@ -949,7 +1041,7 @@ pub async fn put_register_request_on_chain(
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
-    let registering_tx = entropy::tx().relayer().register(
+    let registering_tx = entropy::tx().registry().register(
         program_modification_account,
         Static(key_visibility),
         program_instance,

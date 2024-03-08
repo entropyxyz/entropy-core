@@ -29,7 +29,7 @@ use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_relayer::pallet::ProgramInstance,
+        entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
@@ -61,7 +61,7 @@ use x25519_dalek::PublicKey;
 
 use entropy_tss::{
     chain_api::{
-        entropy::{self, runtime_types::pallet_relayer::pallet::RegisteredInfo},
+        entropy::{self, runtime_types::pallet_registry::pallet::RegisteredInfo},
         get_api, get_rpc, EntropyConfig,
     },
     common::{
@@ -397,7 +397,7 @@ async fn wait_for_register_confirmation(
 ) -> RegisteredInfo {
     let account_id: <EntropyConfig as Config>::AccountId = account_id.into();
     for _ in 0..30 {
-        let registered_query = entropy::storage().relayer().registered(account_id.clone());
+        let registered_query = entropy::storage().registry().registered(account_id.clone());
         let query_registered_status = query_chain(&api, &rpc, registered_query, None).await;
         if let Some(user_info) = query_registered_status.unwrap() {
             return user_info;

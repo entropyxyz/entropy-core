@@ -143,6 +143,12 @@ pub enum UserErr {
     ChainFetch(&'static str),
     #[error("Too many requests - wait a block")]
     TooManyRequests,
+    #[error("The given key is forbidden")]
+    ForbiddenKey,
+    #[error("No existing keyshare found for this user")]
+    UserDoesNotExist,
+    #[error("The remote TSS server rejected the keyshare: {0}")]
+    KeyShareRejected(String),
 }
 
 impl IntoResponse for UserErr {

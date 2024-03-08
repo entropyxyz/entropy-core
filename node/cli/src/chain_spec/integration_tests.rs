@@ -20,8 +20,8 @@ use codec::Encode;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-    IndicesConfig, MaxNominations, ParametersConfig, RelayerConfig, RuntimeGenesisConfig,
-    SessionConfig, StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
+    IndicesConfig, MaxNominations, ParametersConfig, RegistryConfig, RuntimeGenesisConfig, SessionConfig,
+    StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
@@ -239,7 +239,7 @@ pub fn integration_tests_genesis_config(
         grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        relayer: RelayerConfig {
+        registry: RegistryConfig {
             registered_accounts: vec![
                 (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
                 (

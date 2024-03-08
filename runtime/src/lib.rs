@@ -1172,8 +1172,7 @@ where
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
             pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
-            pallet_free_tx::ValidateElectricityPayment::<Runtime>::new(),
-            pallet_relayer::ValidateConfirmRegistered::<Runtime>::new(),
+            pallet_registry::ValidateConfirmRegistered::<Runtime>::new(),
         );
         let raw_payload = SignedPayload::new(call, extra)
             .map_err(|e| {
@@ -1380,12 +1379,12 @@ parameter_types! {
   pub const KeyVersionNumber: u8 = 1;
 }
 
-impl pallet_relayer::Config for Runtime {
+impl pallet_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type SigningPartySize = SigningPartySize;
     type MaxProgramHashes = MaxProgramHashes;
     type KeyVersionNumber = KeyVersionNumber;
-    type WeightInfo = weights::pallet_relayer::WeightInfo<Runtime>;
+    type WeightInfo = weights::pallet_registry::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1411,16 +1410,6 @@ impl pallet_transaction_pause::Config for Runtime {
         pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>,
     >;
     type WeightInfo = weights::pallet_transaction_pause::WeightInfo<Runtime>;
-}
-
-impl pallet_free_tx::Config for Runtime {
-    type RuntimeCall = RuntimeCall;
-    type RuntimeEvent = RuntimeEvent;
-    type UpdateOrigin = EitherOfDiverse<
-        EnsureRoot<AccountId>,
-        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>,
-    >;
-    type WeightInfo = weights::pallet_free_tx::WeightInfo<Runtime>;
 }
 
 impl pallet_propagation::Config for Runtime {
@@ -1482,15 +1471,12 @@ construct_runtime!(
     NominationPools: pallet_nomination_pools = 50,
 
     // custom pallets
-    Relayer: pallet_relayer = 51,
+    Registry: pallet_registry = 51,
     Slashing: pallet_slashing = 52,
     Programs: pallet_programs = 53,
     TransactionPause: pallet_transaction_pause = 54,
-    FreeTx: pallet_free_tx = 55,
-    Propagation: pallet_propagation = 56,
-    Parameters: pallet_parameters = 57,
-
-
+    Propagation: pallet_propagation = 55,
+    Parameters: pallet_parameters = 56,
   }
 );
 
@@ -1518,8 +1504,7 @@ pub type SignedExtra = (
     frame_system::CheckNonce<Runtime>,
     frame_system::CheckWeight<Runtime>,
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
-    pallet_free_tx::ValidateElectricityPayment<Runtime>,
-    pallet_relayer::ValidateConfirmRegistered<Runtime>,
+    pallet_registry::ValidateConfirmRegistered<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
@@ -1559,7 +1544,6 @@ mod benches {
       [pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
       [frame_election_provider_support, EPSBench::<Runtime>]
       [pallet_elections_phragmen, Elections]
-      [pallet_free_tx, FreeTx]
       [pallet_staking_extension, StakingExtension]
       [pallet_grandpa, Grandpa]
       [pallet_im_online, ImOnline]
@@ -1573,7 +1557,7 @@ mod benches {
       [pallet_parameters, Parameters]
       [pallet_proxy, Proxy]
       [pallet_recovery, Recovery]
-      [pallet_relayer, Relayer]
+      [pallet_registry, Registry]
       [pallet_scheduler, Scheduler]
       [pallet_sudo, Sudo]
       [pallet_session, SessionBench::<Runtime>]

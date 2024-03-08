@@ -31,7 +31,7 @@ use sp_std::{vec, vec::Vec};
 
 use super::*;
 #[allow(unused)]
-use crate::Pallet as Relayer;
+use crate::Pallet as Registry;
 
 type MaxValidators<T> =  <<T as pallet_staking::Config>::BenchmarkingConfig as pallet_staking::BenchmarkingConfig>::MaxValidators;
 const SEED: u32 = 0;
@@ -267,4 +267,4 @@ confirm_register_registered {
   }
 }
 
-impl_benchmark_test_suite!(Relayer, crate::mock::new_test_ext(), crate::mock::Test);
+impl_benchmark_test_suite!(Registry, crate::mock::new_test_ext(), crate::mock::Test);
