@@ -14,8 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use frame_benchmarking::benchmarks;
-use frame_support::assert_ok;
-use frame_system::EventRecord;
+use frame_system::{EventRecord, RawOrigin};
 
 use super::*;
 #[allow(unused)]
@@ -31,12 +30,7 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 
 benchmarks! {
   change_request_limit {
-    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
-  }: {
-    assert_ok!(
-      <Parameters<T>>::change_request_limit(origin, 15)
-    );
-  }
+  }: _(RawOrigin::Root, 15)
   verify {
     assert_last_event::<T>(Event::RequestLimitChanged{ request_limit: 15}.into());
   }

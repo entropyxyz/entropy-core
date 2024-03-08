@@ -57,9 +57,6 @@ pub mod module {
     pub trait Config: frame_system::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        /// The origin which may set filter.
-        type UpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
-
         /// Weight information for the extrinsics in this module.
         type WeightInfo: WeightInfo;
     }
@@ -104,7 +101,7 @@ pub mod module {
         #[pallet::weight(T::WeightInfo::change_request_limit())]
         #[transactional]
         pub fn change_request_limit(origin: OriginFor<T>, request_limit: u32) -> DispatchResult {
-            T::UpdateOrigin::ensure_origin(origin)?;
+            ensure_root(origin)?;
             RequestLimit::<T>::put(request_limit);
             Self::deposit_event(Event::RequestLimitChanged { request_limit });
             Ok(())

@@ -1418,10 +1418,6 @@ impl pallet_propagation::Config for Runtime {
 
 impl pallet_parameters::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type UpdateOrigin = EitherOfDiverse<
-        EnsureRoot<AccountId>,
-        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>,
-    >;
     type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
 }
 

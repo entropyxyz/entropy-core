@@ -26,12 +26,13 @@ use super::*;
 #[test]
 fn request_limit_changed() {
     ExtBuilder.build().execute_with(|| {
-        assert_eq!(Parameters::request_limit(), 5, "Inital request limit set");
+        assert_eq!(Parameters::request_limit(), 0, "Inital request limit set");
 
-        assert_ok!(Parameters::change_request_limit(RuntimeOrigin::signed(1), 10));
+        assert_ok!(Parameters::change_request_limit(RuntimeOrigin::root(), 10));
 
         assert_eq!(Parameters::request_limit(), 10, "Inital request limit changed");
 
-        assert_noop!(Parameters::change_request_limit(RuntimeOrigin::signed(2), 15), BadOrigin);
+        // Fails not root
+        assert_noop!(Parameters::change_request_limit(RuntimeOrigin::signed(2), 15), BadOrigin,);
     });
 }

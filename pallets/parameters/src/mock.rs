@@ -21,7 +21,6 @@ use frame_support::{
     construct_runtime, ord_parameter_types, parameter_types,
     traits::{ConstU64, Everything},
 };
-use frame_system::EnsureSignedBy;
 use sp_core::H256;
 use sp_runtime::{traits::IdentityLookup, BuildStorage};
 
@@ -67,7 +66,6 @@ parameter_types! {
 
 impl Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type UpdateOrigin = EnsureSignedBy<One, AccountId>;
     type WeightInfo = ();
 }
 
@@ -91,10 +89,6 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
     pub fn build(self) -> sp_io::TestExternalities {
-        let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
-        let pallet_parameters =
-            pallet_parameters::GenesisConfig::<Runtime> { request_limit: 5, ..Default::default() };
-        pallet_parameters.assimilate_storage(&mut t).unwrap();
-        t.into()
+        frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap().into()
     }
 }
