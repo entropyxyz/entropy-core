@@ -69,6 +69,8 @@ pub mod pallet {
     pub use crate::weights::WeightInfo;
 
     const VERIFICATION_KEY_LENGTH: u32 = 33;
+    /// Max modifiable keys allowed for a program modification account
+    const MAX_MODIFIABLE_KEYS: u32 = 25;
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
     pub trait Config:
@@ -90,7 +92,7 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
     pub type ProgramPointers<Hash, MaxProgramHashes> = BoundedVec<Hash, MaxProgramHashes>;
-
+    pub type VerifyingKey = BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>;
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct ProgramInstance<T: Config> {
@@ -105,7 +107,7 @@ pub mod pallet {
         pub confirmations: Vec<u8>,
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub key_visibility: KeyVisibility,
-        pub verifying_key: Option<BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>>,
+        pub verifying_key: Option<VerifyingKey>,
         pub version_number: u8,
     }
 
@@ -113,8 +115,6 @@ pub mod pallet {
     #[scale_info(skip_type_params(T))]
     pub struct RegisteredInfo<T: Config> {
         pub key_visibility: KeyVisibility,
-        // TODO better type
-        pub verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub program_modification_account: T::AccountId,
         pub version_number: u8,
@@ -138,10 +138,9 @@ pub mod pallet {
                     _ => KeyVisibility::Public,
                 };
                 Registered::<T>::insert(
-                    account_info.0.clone(),
+                    BoundedVec::default(),
                     RegisteredInfo {
                         key_visibility,
-                        verifying_key: BoundedVec::default(),
                         programs_data: BoundedVec::default(),
                         program_modification_account: account_info.0.clone(),
                         version_number: T::KeyVersionNumber::get(),
@@ -168,7 +167,17 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn registered)]
     pub type Registered<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, RegisteredInfo<T>, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn modifiable_keys)]
+    pub type ModifiableKeys<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        BoundedVec<VerifyingKey, ConstU32<MAX_MODIFIABLE_KEYS>>,
+        ValueQuery,
+    >;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -209,6 +218,7 @@ pub mod pallet {
         NotAuthorized,
         ProgramDoesNotExist,
         NoProgramSet,
+        TooManyModifiableKeys,
     }
 
     #[pallet::call]
@@ -232,8 +242,6 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let sig_req_account = ensure_signed(origin)?;
 
-            // Ensure account isn't already registered or has existing programs
-            ensure!(!Registered::<T>::contains_key(&sig_req_account), Error::<T>::AlreadySubmitted);
             ensure!(
                 !Registering::<T>::contains_key(&sig_req_account),
                 Error::<T>::AlreadySubmitted
@@ -308,7 +316,7 @@ pub mod pallet {
          })]
         pub fn change_program_instance(
             origin: OriginFor<T>,
-            sig_request_account: T::AccountId,
+            verifying_key: VerifyingKey,
             new_program_instance: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -329,7 +337,7 @@ pub mod pallet {
             }
             let mut old_programs_length = 0;
             let programs_data =
-                Registered::<T>::try_mutate(&sig_request_account, |maybe_registered_details| {
+                Registered::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
                     if let Some(registerd_details) = maybe_registered_details {
                         ensure!(
                             who == registerd_details.program_modification_account,
@@ -421,11 +429,19 @@ pub mod pallet {
                     )
                     .into());
                 }
+                ModifiableKeys::<T>::try_mutate(
+                    &registering_info.program_modification_account,
+                    |verifying_keys| -> Result<(), DispatchError> {
+                        verifying_keys
+                            .try_push(verifying_key.clone())
+                            .map_err(|_| Error::<T>::TooManyModifiableKeys)?;
+                        Ok(())
+                    },
+                )?;
                 Registered::<T>::insert(
-                    &sig_req_account,
+                    &verifying_key,
                     RegisteredInfo {
                         key_visibility: registering_info.key_visibility,
-                        verifying_key,
                         programs_data: registering_info.programs_data,
                         program_modification_account: registering_info.program_modification_account,
                         version_number: registering_info.version_number,
