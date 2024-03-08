@@ -1635,11 +1635,14 @@ async fn test_increment_or_wipe_request_limit() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let kv_store = load_kv_store(&None, None).await;
-    // no error
-    request_limit_check(&rpc, &kv_store, alice.to_account_id().to_string()).await.unwrap();
 
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit = query_chain(&api, &rpc, request_limit_query, None).await.unwrap().unwrap();
+
+    // no error
+    request_limit_check(&rpc, &kv_store, alice.to_account_id().to_string(), request_limit)
+        .await
+        .unwrap();
 
     // run up the request check to one less then max (to check integration)
     for _ in 0..request_limit {
