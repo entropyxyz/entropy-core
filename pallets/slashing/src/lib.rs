@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+
 //! # Slashing Pallet
 //!
 //!
@@ -31,170 +32,185 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+use frame_support::{
+    dispatch::DispatchResult,
+    pallet_prelude::*,
+    sp_runtime::{Perbill, RuntimeDebug},
+    traits::{ValidatorSet, ValidatorSetWithIdentification},
+};
+use frame_system::pallet_prelude::*;
+use sp_application_crypto::RuntimeAppPublic;
+use sp_runtime::{sp_std::str, traits::Convert};
+use sp_staking::{
+    offence::{Kind, Offence, ReportOffence},
+    SessionIndex,
+};
+use sp_std::vec;
+use sp_std::vec::Vec;
+
 #[frame_support::pallet]
 pub mod pallet {
-    use frame_support::{
-        dispatch::DispatchResult,
-        pallet_prelude::*,
-        sp_runtime::{Perbill, RuntimeDebug},
-        traits::{ValidatorSet, ValidatorSetWithIdentification},
-    };
-    use frame_system::pallet_prelude::*;
-    use sp_application_crypto::RuntimeAppPublic;
-    use sp_runtime::{sp_std::str, traits::Convert};
-    use sp_staking::{
-        offence::{Kind, Offence, ReportOffence},
-        SessionIndex,
-    };
-    use sp_std::vec;
-    use sp_std::vec::Vec;
+    use super::*;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
         type AuthorityId: Member
             + Parameter
             + RuntimeAppPublic
             + Ord
             + MaybeSerializeDeserialize
             + MaxEncodedLen;
+
+        /// The number of reports it takes before a validator gets slashed.
+        ///
+        /// This is a simple counter for now, but we could do something more elaborate in the
+        /// future. For example, making sure that a certain percentage of the validator set also
+        /// reported this peer.
+        type ReportThreshold: Get<u32>;
+
         /// A type that gives us the ability to submit unresponsiveness offence reports.
-        type ReportBad: ReportOffence<
+        type ReportUnresponsiveness: ReportOffence<
             Self::AccountId,
-            IdentificationTuple<Self>,
-            TuxAngry<IdentificationTuple<Self>>,
+            Self::AccountId,
+            UnresponsivenessOffence<Self::AccountId>,
         >;
-        type ValidatorIdOf: Convert<Self::AccountId, Option<ValidatorId<Self>>>;
-
-        /// A type for retrieving the validators supposed to be online in a session.
-        type ValidatorSet: ValidatorSetWithIdentification<Self::AccountId>;
-        type MinValidators: Get<u32>;
     }
-
-    /// A type for representing the validator id in a session.
-    pub type ValidatorId<T> = <<T as Config>::ValidatorSet as ValidatorSet<
-        <T as frame_system::Config>::AccountId,
-    >>::ValidatorId;
-
-    /// A tuple of (ValidatorId, Identification) where `Identification` is the full identification
-    /// of `ValidatorId`.
-    pub type IdentificationTuple<T> = (
-        ValidatorId<T>,
-        <<T as Config>::ValidatorSet as ValidatorSetWithIdentification<
-            <T as frame_system::Config>::AccountId,
-        >>::Identification,
-    );
 
     #[pallet::pallet]
     pub struct Pallet<T>(_);
 
+    /// Keeps track of all the failed registrations that a validator has been involved in.
+    ///
+    /// If enough of these are tallied up over the course of a session the validator will get kicked
+    /// out of the active set.
+    #[pallet::storage]
+    pub type FailedRegistrations<T: Config> =
+        StorageMap<_, Identity, T::AccountId, u32, ValueQuery>;
+
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// A custom offence has been logged. [who, offenders]
-        Offence(T::AccountId, Vec<T::AccountId>),
+        /// A report about an unstable peer has been submitted and taken note of ([who, offender]).
+        NoteReport(T::AccountId, T::AccountId),
+
+        // The following peers have been reported as unresponsive in this session.
+        UnresponsivenessOffence(Vec<T::AccountId>),
     }
 
-    // Dispatchable functions allows users to interact with the pallet and invoke state changes.
-    // These functions materialize as "extrinsics", which are often compared to transactions.
-    // Dispatchable functions must be annotated with a weight and must return a DispatchResult.
     #[pallet::call]
+    impl<T: Config> Pallet<T> {}
+
     impl<T: Config> Pallet<T> {
-        /// A helper to trigger an offence.
+        /// Notes down when a peer was reported.
         ///
-        /// # Note
-        ///
-        /// This is only used for demo purposes and should be removed before launch.
-        #[pallet::call_index(0)]
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1).ref_time())]
-        pub fn demo_offence(
-            origin: OriginFor<T>,
-            reporter: T::AccountId,
-            offenders: Vec<T::AccountId>,
-        ) -> DispatchResult {
-            ensure_root(origin)?;
-            Self::do_offence(reporter, offenders)?;
+        /// If a peer is reported enough times in a session it will end up getting kicked from the
+        /// validator set.
+        pub fn note_report(who: T::AccountId, offender: T::AccountId) -> DispatchResult {
+            FailedRegistrations::<T>::mutate(&offender, |report_count| {
+                report_count.saturating_add(1)
+            });
+
+            Self::deposit_event(Event::NoteReport(who, offender));
+
             Ok(())
         }
     }
+}
 
-    impl<T: Config> Pallet<T> {
-        pub fn do_offence(
-            who: T::AccountId,
-            offender_addresses: Vec<T::AccountId>,
-        ) -> DispatchResult {
-            let offenders = offender_addresses
-				.clone()
-				.into_iter()
-				.filter_map(T::ValidatorIdOf::convert)
-				.filter_map(|id| {
-					<T::ValidatorSet as ValidatorSetWithIdentification<T::AccountId>>::IdentificationOf::convert(
-				id.clone()
-			).map(|full_id| (id, full_id))
-				})
-				.collect::<Vec<IdentificationTuple<T>>>();
+/// An offence that is filed if a validator was unresponsive during their protocol
+/// responsibilies (i.e registration and signing).
+#[derive(RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Clone, PartialEq, Eq))]
+pub struct UnresponsivenessOffence<Offender> {
+    /// The current session index in which we report the unresponsive validators.
+    ///
+    /// It acts as a time measure for unresponsiveness reports and effectively will always
+    /// point at the end of the session.
+    pub session_index: SessionIndex,
+    /// The size of the validator set in current session/era.
+    pub validator_set_count: u32,
+    /// Authorities that were unresponsive during the current era.
+    pub offenders: Vec<Offender>,
+}
 
-            let session_index = T::ValidatorSet::session_index();
-            let current_validators = T::ValidatorSet::validators();
-            let validator_set_count = current_validators.len() as u32;
-            if validator_set_count.saturating_sub(offender_addresses.len() as u32)
-                <= T::MinValidators::get()
-            {
-                log::info!("Min validators not slashed: {:?}", offenders);
-            } else {
-                log::info!("session_index: {:?}", session_index);
-                log::info!("offenders: {:?}", offenders);
+impl<Offender: Clone> Offence<Offender> for UnresponsivenessOffence<Offender> {
+    type TimeSlot = SessionIndex;
 
-                let offence = TuxAngry { session_index, validator_set_count, offenders };
+    const ID: Kind = *b"unresponsivepeer";
 
-                log::info!("offence: {:?}", offence);
-                if let Err(e) = T::ReportBad::report_offence(vec![who.clone()], offence) {
-                    log::error!("error: {:?}", e);
-                };
-            }
-            Self::deposit_event(Event::Offence(who, offender_addresses));
-            Ok(())
-        }
+    fn offenders(&self) -> Vec<Offender> {
+        self.offenders.clone()
     }
 
-    /// An offence that is filed if a validator didn't send a heartbeat message.
-    #[derive(RuntimeDebug)]
-    #[cfg_attr(feature = "std", derive(Clone, PartialEq, Eq))]
-    pub struct TuxAngry<Offender> {
-        /// The current session index in which we report the unresponsive validators.
-        ///
-        /// It acts as a time measure for unresponsiveness reports and effectively will always
-        /// point at the end of the session.
-        pub session_index: SessionIndex,
-        /// The size of the validator set in current session/era.
-        pub validator_set_count: u32,
-        /// Authorities that were unresponsive during the current era.
-        pub offenders: Vec<Offender>,
+    fn session_index(&self) -> SessionIndex {
+        self.session_index
     }
 
-    impl<Offender: Clone> Offence<Offender> for TuxAngry<Offender> {
-        type TimeSlot = SessionIndex;
+    fn validator_set_count(&self) -> u32 {
+        self.validator_set_count
+    }
 
-        const ID: Kind = *b"tux-really-angry";
+    fn time_slot(&self) -> Self::TimeSlot {
+        self.session_index
+    }
 
-        fn offenders(&self) -> Vec<Offender> {
-            self.offenders.clone()
+    fn slash_fraction(&self, _offenders_count: u32) -> Perbill {
+        Perbill::from_perthousand(0)
+    }
+}
+
+impl<T: Config> sp_runtime::BoundToRuntimeAppPublic for Pallet<T> {
+    type Public = T::AuthorityId;
+}
+
+impl<T: Config> frame_support::traits::OneSessionHandler<T::AccountId> for Pallet<T> {
+    type Key = T::AuthorityId;
+
+    fn on_genesis_session<'a, I: 'a>(_validators: I)
+    where
+        I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
+    {
+        // No work for us to do on genesis
+    }
+
+    fn on_new_session<'a, I: 'a>(_changed: bool, _validators: I, _queued_validators: I)
+    where
+        I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
+    {
+        // We set the reports for this upcoming session.
+        //
+        // Might be an expensive operation, but let's go with it for now.
+        let _ = FailedRegistrations::<T>::drain();
+    }
+
+    fn on_before_session_ending() {
+        let offenders = FailedRegistrations::<T>::iter()
+            .filter(|report| report.1 >= T::ReportThreshold::get())
+            .map(|report| report.0)
+            .collect::<Vec<_>>();
+
+        // let session_index = T::ValidatorSet::session_index();
+        // let keys = Keys::<T>::get();
+        // let current_validators = T::ValidatorSet::validators();
+        let session_index = 0;
+        let validator_set_count = 0;
+
+        let reporters = vec![];
+        let offence = UnresponsivenessOffence {
+            session_index,
+            validator_set_count,
+            offenders: offenders.clone(),
+        };
+        if let Err(e) = T::ReportUnresponsiveness::report_offence(reporters, offence) {
+            sp_runtime::print(e);
         }
 
-        fn session_index(&self) -> SessionIndex {
-            self.session_index
-        }
+        Self::deposit_event(Event::UnresponsivenessOffence(offenders));
+    }
 
-        fn validator_set_count(&self) -> u32 {
-            self.validator_set_count
-        }
-
-        fn time_slot(&self) -> Self::TimeSlot {
-            self.session_index
-        }
-
-        fn slash_fraction(&self, _offenders_count: u32) -> Perbill {
-            Perbill::from_perthousand(0)
-        }
+    fn on_disabled(_i: u32) {
+        // Not really sure what we'd do here, so let's ignore it
     }
 }

@@ -266,30 +266,6 @@ impl pallet_balances::Config for Test {
     type WeightInfo = ();
 }
 
-impl pallet_session::historical::Config for Test {
-    type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
-    type FullIdentificationOf = pallet_staking::ExposureOf<Self>;
-}
-
-type IdentificationTuple = (u64, pallet_staking::Exposure<u64, Balance>);
-type Offence = crate::TuxAngry<IdentificationTuple>;
-
-thread_local! {
-  pub static OFFENCES: RefCell<Vec<(Vec<u64>, Offence)>> = RefCell::new(vec![]);
-}
-
-pub struct OffenceHandler;
-impl ReportOffence<u64, IdentificationTuple, Offence> for OffenceHandler {
-    fn report_offence(reporters: Vec<u64>, offence: Offence) -> Result<(), OffenceError> {
-        OFFENCES.with(|l| l.borrow_mut().push((reporters, offence)));
-        Ok(())
-    }
-
-    fn is_known_offence(_offenders: &[IdentificationTuple], _time_slot: &SessionIndex) -> bool {
-        false
-    }
-}
-
 parameter_types! {
   pub const MinimumPeriod: u64 = 3;
 }
@@ -301,17 +277,44 @@ impl pallet_timestamp::Config for Test {
     type WeightInfo = ();
 }
 
+impl pallet_session::historical::Config for Test {
+    type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
+    type FullIdentificationOf = pallet_staking::ExposureOf<Self>;
+}
+
+type Offence = crate::UnresponsivenessOffence<AccountId>;
+
 parameter_types! {
-  pub const MinValidators: u32 = 3;
+    pub static Offences: Vec<Offence> = vec![];
+}
+
+/// A mock offence report handler.
+pub struct OffenceHandler;
+impl ReportOffence<AccountId, AccountId, Offence> for OffenceHandler {
+    fn report_offence(_reporters: Vec<u64>, offence: Offence) -> Result<(), OffenceError> {
+        Offences::mutate(|l| l.push(offence));
+        Ok(())
+    }
+
+    fn is_known_offence(_offenders: &[AccountId], _time_slot: &SessionIndex) -> bool {
+        false
+    }
+}
+
+parameter_types! {
+  // pub const MinValidators: u32 = 3;
+  pub const ReportThreshold: u32 = 5;
 }
 
 impl pallet_slashing::Config for Test {
-    type AuthorityId = UintAuthorityId;
-    type MinValidators = MinValidators;
-    type ReportBad = OffenceHandler;
     type RuntimeEvent = RuntimeEvent;
-    type ValidatorIdOf = ConvertInto;
-    type ValidatorSet = Historical;
+    type AuthorityId = UintAuthorityId;
+    type ReportThreshold = ReportThreshold;
+    type ReportUnresponsiveness = OffenceHandler;
+
+    // type MinValidators = MinValidators;
+    // type ValidatorIdOf = ConvertInto;
+    // type ValidatorSet = Historical;
 }
 
 // Build genesis storage according to the mock runtime.
