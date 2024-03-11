@@ -22,8 +22,6 @@ sp-std            ={ version="12.0.0", default-features=false }
 sp-core={ version="25.0.0" }
 sp-io  ={ version="27.0.0" }
 
-pallet-programs={ version="0.0.10", default-features=false, path="../programs" }
-
 [features]
 default=["std"]
 runtime-benchmarks=[
@@ -34,9 +32,9 @@ runtime-benchmarks=[
 std=[
   "frame-support/std",
   "frame-system/std",
-  "pallet-programs/std",
   "scale-info/std",
   "sp-runtime/std",
   "sp-std/std",
+  'frame-benchmarking/std',
 ]
 try-runtime=["frame-support/try-runtime"]
