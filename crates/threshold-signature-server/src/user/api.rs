@@ -115,7 +115,7 @@ pub struct UserRegistrationInfo {
 }
 
 /// Type that gets stored for request limit checks
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Encode, Decode)]
 pub struct RequestLimitStorage {
     pub block_number: u32,
     pub request_amount: u32,
