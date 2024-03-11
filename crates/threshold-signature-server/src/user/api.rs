@@ -752,5 +752,5 @@ pub async fn increment_or_wipe_request_limit(
 
 /// Creates the key for a request limit check
 pub fn request_limit_key(signing_address: String) -> String {
-    format!("{REQUESTKEYHEADER}_{signing_address}")
+    format!("{REQUEST_KEY_HEADER}_{signing_address}")
 }

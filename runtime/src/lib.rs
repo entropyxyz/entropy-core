@@ -1418,6 +1418,7 @@ impl pallet_propagation::Config for Runtime {
 
 impl pallet_parameters::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
 }
 

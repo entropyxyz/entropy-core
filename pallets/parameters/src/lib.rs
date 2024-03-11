@@ -33,7 +33,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use frame_support::{pallet_prelude::*, transactional};
+use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 use sp_runtime::DispatchResult;
 
@@ -58,6 +58,9 @@ pub mod module {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
+        /// The origin which may set filter.
+        type UpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Weight information for the extrinsics in this module.
         type WeightInfo: WeightInfo;
@@ -88,7 +91,7 @@ pub mod module {
         RequestLimitChanged { request_limit: u32 },
     }
 
-    /// The request limit amount
+    /// The request limit a user can ask to a specific set of TSS in a block
     #[pallet::storage]
     #[pallet::getter(fn request_limit)]
     pub type RequestLimit<T: Config> = StorageValue<_, u32, ValueQuery>;
@@ -102,7 +105,7 @@ pub mod module {
         #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::change_request_limit())]
         pub fn change_request_limit(origin: OriginFor<T>, request_limit: u32) -> DispatchResult {
-            ensure_root(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
             RequestLimit::<T>::put(request_limit);
             Self::deposit_event(Event::RequestLimitChanged { request_limit });
             Ok(())

@@ -21,6 +21,7 @@ use frame_support::{
     construct_runtime, ord_parameter_types, parameter_types,
     traits::{ConstU64, Everything},
 };
+use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{traits::IdentityLookup, BuildStorage};
 
@@ -66,6 +67,7 @@ parameter_types! {
 
 impl Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
 }
 
