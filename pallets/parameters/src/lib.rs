@@ -104,7 +104,6 @@ pub mod module {
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::change_request_limit())]
-        #[transactional]
         pub fn change_request_limit(origin: OriginFor<T>, request_limit: u32) -> DispatchResult {
             ensure_root(origin)?;
             RequestLimit::<T>::put(request_limit);
