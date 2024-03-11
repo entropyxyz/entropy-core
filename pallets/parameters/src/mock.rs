@@ -18,7 +18,7 @@
 #![cfg(test)]
 
 use frame_support::{
-    construct_runtime, ord_parameter_types, parameter_types,
+    construct_runtime, ord_parameter_types,
     traits::{ConstU64, Everything},
 };
 use frame_system::EnsureRoot;
