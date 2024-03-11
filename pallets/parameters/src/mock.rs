@@ -61,10 +61,6 @@ ord_parameter_types! {
   pub const One: AccountId = 1;
 }
 
-parameter_types! {
-  pub const RequestLimit: u32 = 5;
-}
-
 impl Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureRoot<AccountId>;
