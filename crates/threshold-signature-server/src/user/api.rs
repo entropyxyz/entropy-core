@@ -81,7 +81,7 @@ use crate::{
     AppState, Configuration,
 };
 
-pub const REQUESTKEYHEADER: &str = "REQUESTS";
+pub const REQUEST_KEY_HEADER: &str = "REQUESTS";
 
 /// Represents an unparsed, transaction request coming from the client.
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
