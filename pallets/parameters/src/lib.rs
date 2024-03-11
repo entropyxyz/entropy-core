@@ -30,9 +30,6 @@
 //! ### Dispatchable Functions
 //!
 //! `change_request_limit` - Allows governance to change the request limit.
-//!
-//! #### Public
-//!
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
