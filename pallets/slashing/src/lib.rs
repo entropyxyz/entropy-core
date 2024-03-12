@@ -214,9 +214,9 @@ impl<T: Config> frame_support::traits::OneSessionHandler<T::AccountId> for Palle
                     ValidatorIdOf::convert(account_id)
             })
             .filter_map(|validator_id| {
-                <T::ValidatorSet as ValidatorSetWithIdentification<T::AccountId>>::
+                dbg!(<T::ValidatorSet as ValidatorSetWithIdentification<T::AccountId>>::
                     IdentificationOf::convert(validator_id.clone()
-                )
+                ))
                 .map(|full_id| (validator_id, full_id))
             })
             .collect::<Vec<IdentificationTuple<T>>>();

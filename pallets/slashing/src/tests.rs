@@ -31,6 +31,42 @@ fn can_note_report() {
     })
 }
 
+#[test]
+fn offence_report_submitted_if_above_threshold() {
+    new_test_ext().execute_with(|| {
+        let (alice, mallory) = (1, 2);
+
+        // A peer was reported, but not enough to for an offence to be filed
+        for _ in 0..<Test as Config>::ReportThreshold::get() - 1 {
+            assert_ok!(Slashing::note_report(alice, mallory));
+        }
+
+        assert_eq!(
+            Slashing::failed_registrations(mallory),
+            <Test as Config>::ReportThreshold::get() - 1
+        );
+
+        // New session, the reports should be reset for our peer, and no offences should've been
+        // filed
+        Session::rotate_session();
+        assert_eq!(Slashing::failed_registrations(mallory), 0);
+        assert!(Offences::get().len() == 0);
+
+        // Now our peer has been reported enough times to get an Offence filed
+        for _ in 0..<Test as Config>::ReportThreshold::get() {
+            assert_ok!(Slashing::note_report(alice, mallory));
+        }
+
+        // New session, reports should have been reset and we should see the offence report for
+        // Mallory
+        Session::rotate_session();
+        assert_eq!(Slashing::failed_registrations(mallory), 0);
+        assert!(Offences::get().len() == 1);
+
+        panic!("test end");
+    })
+}
+
 //
 // #[test]
 // fn slash_fraction_works() {
