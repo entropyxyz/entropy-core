@@ -13,9 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use frame_support::{assert_err, assert_ok};
-use sp_runtime::Perbill;
-use sp_staking::offence::Offence;
+use frame_support::assert_ok;
 
 use super::*;
 use crate::mock::*;
