@@ -1416,6 +1416,12 @@ impl pallet_propagation::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
 }
 
+impl pallet_parameters::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type UpdateOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
+}
+
 construct_runtime!(
   pub enum Runtime
   {
@@ -1467,8 +1473,7 @@ construct_runtime!(
     Programs: pallet_programs = 53,
     TransactionPause: pallet_transaction_pause = 54,
     Propagation: pallet_propagation = 55,
-
-
+    Parameters: pallet_parameters = 56,
   }
 );
 
@@ -1546,6 +1551,7 @@ mod benches {
       [pallet_multisig, Multisig]
       [pallet_offences, OffencesBench::<Runtime>]
       [pallet_preimage, Preimage]
+      [pallet_parameters, Parameters]
       [pallet_proxy, Proxy]
       [pallet_recovery, Recovery]
       [pallet_registry, Registry]

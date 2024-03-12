@@ -19,8 +19,8 @@ use crate::endowed_accounts::endowed_accounts_dev;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-    IndicesConfig, MaxNominations, RegistryConfig, RuntimeGenesisConfig, SessionConfig,
-    StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
+    IndicesConfig, MaxNominations, ParametersConfig, RegistryConfig, RuntimeGenesisConfig,
+    SessionConfig, StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
@@ -231,6 +231,7 @@ pub fn development_genesis_config(
                 (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 2, None),
             ],
         },
+        parameters: ParametersConfig { request_limit: 20, ..Default::default() },
         vesting: Default::default(),
         transaction_storage: Default::default(),
         transaction_payment: Default::default(),

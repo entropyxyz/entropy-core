@@ -141,6 +141,8 @@ pub enum UserErr {
     Anyhow(#[from] anyhow::Error),
     #[error("Chain Fetch: {0}")]
     ChainFetch(&'static str),
+    #[error("Too many requests - wait a block")]
+    TooManyRequests,
     #[error("The given key is forbidden")]
     ForbiddenKey,
     #[error("No existing keyshare found for this user")]

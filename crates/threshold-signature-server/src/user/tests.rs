@@ -58,7 +58,7 @@ use futures::{
 };
 use hex_literal::hex;
 use more_asserts as ma;
-use parity_scale_codec::Encode;
+use parity_scale_codec::{Decode, DecodeAll, Encode};
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
 use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
@@ -111,7 +111,11 @@ use crate::{
     r#unsafe::api::UnsafeQuery,
     signing_client::ListenerState,
     user::{
-        api::{confirm_registered, recover_key, UserRegistrationInfo, UserSignatureRequest},
+        api::{
+            confirm_registered, get_current_subgroup_signers, increment_or_wipe_request_limit,
+            recover_key, request_limit_check, request_limit_key, RequestLimitStorage,
+            UserRegistrationInfo, UserSignatureRequest,
+        },
         UserErr,
     },
     validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
@@ -220,7 +224,25 @@ async fn test_sign_tx_no_chain() {
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
     verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
+    let mock_client = reqwest::Client::new();
+    // check request limiter increases
+    let unsafe_get =
+        UnsafeQuery::new(request_limit_key(signature_request_account.to_string()), vec![])
+            .to_json();
 
+    // check get key before registration to see if key gets replaced
+    let get_response = mock_client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(unsafe_get.clone())
+        .send()
+        .await
+        .unwrap();
+    let serialized_request_amount = get_response.text().await.unwrap();
+
+    let request_info: RequestLimitStorage =
+        RequestLimitStorage::decode(&mut serialized_request_amount.as_ref()).unwrap();
+    assert_eq!(request_info.request_amount, 1);
     generic_msg.timestamp = SystemTime::now();
     generic_msg.validators_info = generic_msg.validators_info.into_iter().rev().collect::<Vec<_>>();
     let test_user_res_order =
@@ -277,7 +299,7 @@ async fn test_sign_tx_no_chain() {
     });
 
     generic_msg.timestamp = SystemTime::now();
-    generic_msg.signature_request_account = signature_request_account;
+    generic_msg.signature_request_account = signature_request_account.clone();
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
         generic_msg.clone(),
@@ -339,7 +361,6 @@ async fn test_sign_tx_no_chain() {
         assert_eq!(res.unwrap().text().await.unwrap(), "Auxilary data is mismatched");
     }
 
-    let mock_client = reqwest::Client::new();
     // fails verification tests
     // wrong key for wrong validator
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
@@ -386,6 +407,44 @@ async fn test_sign_tx_no_chain() {
     assert_eq!(failed_sign.status(), 500);
     assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
 
+    let request_limit_query = entropy::storage().parameters().request_limit();
+    let request_limit =
+        query_chain(&entropy_api, &rpc, request_limit_query, None).await.unwrap().unwrap();
+
+    // test request limit reached
+
+    // gets current blocknumber, potential race condition run to block + 1
+    // to reset block and give us 6 seconds to hit rate limit
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    run_to_block(&rpc, block_number + 1).await;
+    let unsafe_put = UnsafeQuery::new(
+        request_limit_key(signature_request_account.to_string()),
+        RequestLimitStorage { request_amount: request_limit + 1, block_number: block_number + 1 }
+            .encode(),
+    )
+    .to_json();
+
+    let _ = mock_client
+        .post("http://127.0.0.1:3001/unsafe/put")
+        .header("Content-Type", "application/json")
+        .body(unsafe_put.clone())
+        .send()
+        .await
+        .unwrap();
+    let _ = mock_client
+        .post("http://127.0.0.1:3002/unsafe/put")
+        .header("Content-Type", "application/json")
+        .body(unsafe_put.clone())
+        .send()
+        .await
+        .unwrap();
+
+    let test_user_failed_request_limit =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    for res in test_user_failed_request_limit {
+        assert_eq!(res.unwrap().text().await.unwrap(), "Too many requests - wait a block");
+    }
     clean_tests();
 }
 
@@ -1563,6 +1622,46 @@ async fn test_mutiple_confirm_done() {
         .unwrap();
     check_has_confirmation(&api, &rpc, &alice.pair()).await;
     check_has_confirmation(&api, &rpc, &bob.pair()).await;
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_increment_or_wipe_request_limit() {
+    initialize_test_logger().await;
+    clean_tests();
+    let alice = AccountKeyring::Alice;
+    let substrate_context = test_context_stationary().await;
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let kv_store = load_kv_store(&None, None).await;
+
+    let request_limit_query = entropy::storage().parameters().request_limit();
+    let request_limit = query_chain(&api, &rpc, request_limit_query, None).await.unwrap().unwrap();
+
+    // no error
+    assert!(request_limit_check(&rpc, &kv_store, alice.to_account_id().to_string(), request_limit)
+        .await
+        .is_ok());
+
+    // run up the request check to one less then max (to check integration)
+    for _ in 0..request_limit {
+        increment_or_wipe_request_limit(
+            &rpc,
+            &kv_store,
+            alice.to_account_id().to_string(),
+            request_limit,
+        )
+        .await
+        .unwrap();
+    }
+    // should now fail
+    let err_too_many_requests =
+        request_limit_check(&rpc, &kv_store, alice.to_account_id().to_string(), request_limit)
+            .await
+            .map_err(|e| e.to_string());
+    assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
+
     clean_tests();
 }
 
