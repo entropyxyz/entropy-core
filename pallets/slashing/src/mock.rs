@@ -51,9 +51,6 @@ frame_support::construct_runtime!(
     Slashing: pallet_slashing,
     Session: pallet_session,
     Historical: pallet_session_historical,
-    Timestamp: pallet_timestamp,
-    Staking: pallet_staking,
-    BagsList: pallet_bags_list,
   }
 );
 type AccountId = u64;
@@ -138,91 +135,6 @@ where
 {
     type Extrinsic = TestXt<RuntimeCall, ()>;
     type OverarchingCall = RuntimeCall;
-}
-
-pallet_staking_reward_curve::build! {
-  const REWARD_CURVE: PiecewiseLinear<'static> = curve!(
-    min_inflation: 0_025_000u64,
-    max_inflation: 0_100_000,
-    ideal_stake: 0_500_000,
-    falloff: 0_050_000,
-    max_piece_count: 40,
-    test_precision: 0_005_000,
-  );
-}
-
-parameter_types! {
-  pub const SessionsPerEra: SessionIndex = 3;
-  pub const BondingDuration: EraIndex = 3;
-  pub const SlashDeferDuration: EraIndex = 0;
-  pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
-  pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(16);
-  pub static MaxNominations: u32 = 16;
-}
-
-const THRESHOLDS: [sp_npos_elections::VoteWeight; 9] =
-    [10, 20, 30, 40, 50, 60, 1_000, 2_000, 10_000];
-
-parameter_types! {
-  pub static BagThresholds: &'static [sp_npos_elections::VoteWeight] = &THRESHOLDS;
-}
-
-impl pallet_bags_list::Config for Test {
-    type BagThresholds = BagThresholds;
-    type RuntimeEvent = RuntimeEvent;
-    type Score = VoteWeight;
-    type ScoreProvider = Staking;
-    type WeightInfo = ();
-}
-
-parameter_types! {
-    pub static ElectionsBounds: ElectionBounds = ElectionBoundsBuilder::default().build();
-}
-
-pub struct OnChainSeqPhragmen;
-impl onchain::Config for OnChainSeqPhragmen {
-    type DataProvider = Staking;
-    type MaxWinners = ConstU32<100>;
-    type Solver = SequentialPhragmen<AccountId, Perbill>;
-    type System = Test;
-    type Bounds = ElectionsBounds;
-    type WeightInfo = ();
-}
-
-pub struct StakingBenchmarkingConfig;
-impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
-    type MaxNominators = ConstU32<1000>;
-    type MaxValidators = ConstU32<1000>;
-}
-
-impl pallet_staking::Config for Test {
-    type AdminOrigin = frame_system::EnsureRoot<Self::AccountId>;
-    type BenchmarkingConfig = StakingBenchmarkingConfig;
-    type BondingDuration = BondingDuration;
-    type Currency = Balances;
-    type CurrencyBalance = Balance;
-    type CurrencyToVote = ();
-    type ElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
-    type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
-    type EventListeners = ();
-    type GenesisElectionProvider = Self::ElectionProvider;
-    type HistoryDepth = ConstU32<84>;
-    type MaxNominatorRewardedPerValidator = ConstU32<64>;
-    type MaxUnlockingChunks = ConstU32<32>;
-    type NextNewSession = Session;
-    type NominationsQuota = pallet_staking::FixedNominationsQuota<16>;
-    type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
-    type Reward = ();
-    type RewardRemainder = ();
-    type RuntimeEvent = RuntimeEvent;
-    type SessionInterface = Self;
-    type SessionsPerEra = SessionsPerEra;
-    type Slash = ();
-    type SlashDeferDuration = SlashDeferDuration;
-    type TargetList = pallet_staking::UseValidatorsMap<Self>;
-    type UnixTime = pallet_timestamp::Pallet<Test>;
-    type VoterList = BagsList;
-    type WeightInfo = ();
 }
 
 parameter_types! {
