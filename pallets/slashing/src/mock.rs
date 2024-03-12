@@ -18,7 +18,7 @@ use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
 use sp_core::H256;
 use sp_runtime::{
-    testing::{TestXt, UintAuthorityId},
+    testing::UintAuthorityId,
     traits::{BlakeTwo256, ConvertInto, IdentityLookup},
     BuildStorage,
 };
@@ -77,6 +77,27 @@ impl system::Config for Test {
 }
 
 parameter_types! {
+  pub const ExistentialDeposit: Balance = 1;
+}
+
+impl pallet_balances::Config for Test {
+    type AccountStore = System;
+    type Balance = Balance;
+    type DustRemoval = ();
+    type ExistentialDeposit = ExistentialDeposit;
+    type FreezeIdentifier = ();
+    type MaxFreezes = ();
+    type MaxHolds = ();
+    type MaxLocks = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
+    type WeightInfo = ();
+}
+
+parameter_types! {
   pub const Period: u64 = 1;
   pub const Offset: u64 = 0;
 }
@@ -116,35 +137,6 @@ impl pallet_session::Config for Test {
     type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
     type ValidatorId = AccountId;
     type ValidatorIdOf = ConvertInto;
-    type WeightInfo = ();
-}
-
-impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where
-    RuntimeCall: From<C>,
-{
-    type Extrinsic = TestXt<RuntimeCall, ()>;
-    type OverarchingCall = RuntimeCall;
-}
-
-parameter_types! {
-  pub const ExistentialDeposit: Balance = 1;
-}
-
-impl pallet_balances::Config for Test {
-    type AccountStore = System;
-    type Balance = Balance;
-    type DustRemoval = ();
-    type ExistentialDeposit = ExistentialDeposit;
-    type FreezeIdentifier = ();
-    type MaxFreezes = ();
-    type MaxHolds = ();
-    type MaxLocks = ();
-    type MaxReserves = ();
-    type ReserveIdentifier = [u8; 8];
-    type RuntimeEvent = RuntimeEvent;
-    type RuntimeHoldReason = RuntimeHoldReason;
-    type RuntimeFreezeReason = RuntimeFreezeReason;
     type WeightInfo = ();
 }
 
