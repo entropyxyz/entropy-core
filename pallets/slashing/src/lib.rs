@@ -230,11 +230,13 @@ impl<T: Config> frame_support::traits::OneSessionHandler<T::AccountId> for Palle
             validator_set_count,
             offenders: offenders.clone(),
         };
-        if let Err(e) = T::ReportUnresponsiveness::report_offence(reporters, offence) {
-            sp_runtime::print(e);
-        }
 
-        Self::deposit_event(Event::UnresponsivenessOffence(offenders));
+        if !offenders.is_empty() {
+            if let Err(e) = T::ReportUnresponsiveness::report_offence(reporters, offence) {
+                sp_runtime::print(e);
+            }
+            Self::deposit_event(Event::UnresponsivenessOffence(offenders));
+        }
     }
 
     fn on_disabled(_i: u32) {
