@@ -13,34 +13,25 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::cell::RefCell;
-
-use frame_election_provider_support::{
-    bounds::{ElectionBounds, ElectionBoundsBuilder},
-    onchain, SequentialPhragmen, VoteWeight,
-};
-use frame_support::{
-    parameter_types,
-    traits::{ConstU32, OneSessionHandler},
-};
+use frame_support::parameter_types;
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
 use sp_core::H256;
 use sp_runtime::{
-    curve::PiecewiseLinear,
     testing::{TestXt, UintAuthorityId},
     traits::{BlakeTwo256, ConvertInto, IdentityLookup},
-    BuildStorage, Perbill,
+    BuildStorage,
 };
 use sp_staking::{
     offence::{OffenceError, ReportOffence},
-    EraIndex, SessionIndex,
+    SessionIndex,
 };
 
 use crate as pallet_slashing;
 
 type Block = frame_system::mocking::MockBlock<Test>;
 type Balance = u64;
+type AccountId = u64;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -53,7 +44,6 @@ frame_support::construct_runtime!(
     Historical: pallet_session_historical,
   }
 );
-type AccountId = u64;
 
 parameter_types! {
   pub const BlockHashCount: u64 = 250;
@@ -158,23 +148,11 @@ impl pallet_balances::Config for Test {
     type WeightInfo = ();
 }
 
-parameter_types! {
-  pub const MinimumPeriod: u64 = 3;
-}
-
-impl pallet_timestamp::Config for Test {
-    type MinimumPeriod = MinimumPeriod;
-    type Moment = u64;
-    type OnTimestampSet = ();
-    type WeightInfo = ();
-}
-
 impl pallet_session::historical::Config for Test {
-    type FullIdentification = u64; // pallet_staking::Exposure<AccountId, Balance>;
-    type FullIdentificationOf = ConvertInto; // pallet_staking::ExposureOf<Self>;
+    type FullIdentification = u64;
+    type FullIdentificationOf = ConvertInto;
 }
 
-// type IdentificationTuple = (u64, pallet_staking::Exposure<u64, Balance>);
 type IdentificationTuple = (u64, u64);
 type Offence = crate::UnresponsivenessOffence<IdentificationTuple>;
 
