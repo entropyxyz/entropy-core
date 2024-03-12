@@ -214,9 +214,9 @@ impl<T: Config> frame_support::traits::OneSessionHandler<T::AccountId> for Palle
                     ValidatorIdOf::convert(account_id)
             })
             .filter_map(|validator_id| {
-                dbg!(<T::ValidatorSet as ValidatorSetWithIdentification<T::AccountId>>::
+                <T::ValidatorSet as ValidatorSetWithIdentification<T::AccountId>>::
                     IdentificationOf::convert(validator_id.clone()
-                ))
+                )
                 .map(|full_id| (validator_id, full_id))
             })
             .collect::<Vec<IdentificationTuple<T>>>();
@@ -224,6 +224,9 @@ impl<T: Config> frame_support::traits::OneSessionHandler<T::AccountId> for Palle
         let session_index = T::ValidatorSet::session_index();
         let validator_set_count = T::ValidatorSet::validators().len() as u32;
 
+        // We don't keep track of the reporters since we don't reward them for the report.
+        // Depending on the direction we take with offence reporting we might want to change this
+        // in the future.
         let reporters = vec![];
         let offence = UnresponsivenessOffence {
             session_index,
