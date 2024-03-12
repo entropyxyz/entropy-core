@@ -258,11 +258,12 @@ impl pallet_timestamp::Config for Test {
 }
 
 impl pallet_session::historical::Config for Test {
-    type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
-    type FullIdentificationOf = pallet_staking::ExposureOf<Self>;
+    type FullIdentification = u64; // pallet_staking::Exposure<AccountId, Balance>;
+    type FullIdentificationOf = ConvertInto; // pallet_staking::ExposureOf<Self>;
 }
 
-type IdentificationTuple = (u64, pallet_staking::Exposure<u64, Balance>);
+// type IdentificationTuple = (u64, pallet_staking::Exposure<u64, Balance>);
+type IdentificationTuple = (u64, u64);
 type Offence = crate::UnresponsivenessOffence<IdentificationTuple>;
 
 parameter_types! {
