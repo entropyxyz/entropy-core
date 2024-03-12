@@ -13,12 +13,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// use frame_support::{assert_err, assert_ok};
-// use sp_runtime::Perbill;
-// use sp_staking::offence::Offence;
-//
-// use super::*;
-// use crate::mock::*;
+use frame_support::{assert_err, assert_ok};
+use sp_runtime::Perbill;
+use sp_staking::offence::Offence;
+
+use super::*;
+use crate::mock::*;
+
+#[test]
+fn can_note_report() {
+    new_test_ext().execute_with(|| {
+        let (alice, mallory) = (1, 2);
+
+        assert_eq!(Slashing::failed_registrations(mallory), 0);
+        assert_ok!(Slashing::note_report(alice, mallory));
+        assert_eq!(Slashing::failed_registrations(mallory), 1);
+    })
+}
+
 //
 // #[test]
 // fn slash_fraction_works() {

@@ -106,6 +106,7 @@ pub mod pallet {
     /// If enough of these are tallied up over the course of a session the validator will get kicked
     /// out of the active set.
     #[pallet::storage]
+    #[pallet::getter(fn failed_registrations)]
     pub type FailedRegistrations<T: Config> =
         StorageMap<_, Identity, T::AccountId, u32, ValueQuery>;
 
@@ -129,7 +130,7 @@ pub mod pallet {
         /// validator set.
         pub fn note_report(who: T::AccountId, offender: T::AccountId) -> DispatchResult {
             FailedRegistrations::<T>::mutate(&offender, |report_count| {
-                report_count.saturating_add(1)
+                *report_count = report_count.saturating_add(1)
             });
 
             Self::deposit_event(Event::NoteReport(who, offender));
