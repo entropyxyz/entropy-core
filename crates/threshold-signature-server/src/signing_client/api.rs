@@ -105,11 +105,12 @@ pub async fn proactive_refresh(
         let sig_request_account_sp_core =
             AccountId32::from_str(&key).map_err(ProtocolErr::StringError)?;
         let sig_request_account = SubxtAccountId32(*sig_request_account_sp_core.as_ref());
-        let key_visibility = get_registered_details(&api, &rpc, &sig_request_account.clone())
+        let key_visibility = get_registered_details(&api, &rpc, encoded_key.clone())
             .await
             .map_err(|e| ProtocolErr::UserError(e.to_string()))?
             .key_visibility
             .0;
+        //TODO fix for verifying key
 
         // Check key visibility and don't do proactive refresh if it is private as this would require the user to be online
         if key_visibility == KeyVisibility::Public {
