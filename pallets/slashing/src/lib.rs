@@ -202,7 +202,7 @@ impl<T: Config> frame_support::traits::OneSessionHandler<T::AccountId> for Palle
         // We reset the reports for this upcoming session.
         //
         // Might be an expensive operation, but let's go with it for now.
-        let _ = FailedRegistrations::<T>::drain();
+        let _ = FailedRegistrations::<T>::clear(u32::MAX, None);
     }
 
     fn on_before_session_ending() {
