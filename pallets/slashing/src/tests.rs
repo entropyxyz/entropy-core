@@ -37,14 +37,11 @@ fn offence_report_submitted_if_above_threshold() {
         let (alice, mallory) = (1, 2);
 
         // A peer was reported, but not enough to for an offence to be filed
-        for _ in 0..<Test as Config>::ReportThreshold::get() - 1 {
+        let below_threshold = <Test as Config>::ReportThreshold::get() - 1;
+        for _ in 0..below_threshold {
             assert_ok!(Slashing::note_report(alice, mallory));
         }
-
-        assert_eq!(
-            Slashing::failed_registrations(mallory),
-            <Test as Config>::ReportThreshold::get() - 1
-        );
+        assert_eq!(Slashing::failed_registrations(mallory), below_threshold);
 
         // New session, the reports should be reset for our peer, and no offences should've been
         // filed
@@ -53,7 +50,8 @@ fn offence_report_submitted_if_above_threshold() {
         assert!(Offences::get().len() == 0);
 
         // Now our peer has been reported enough times to get an Offence filed
-        for _ in 0..<Test as Config>::ReportThreshold::get() {
+        let above_threshold = <Test as Config>::ReportThreshold::get();
+        for _ in 0..above_threshold {
             assert_ok!(Slashing::note_report(alice, mallory));
         }
 
@@ -61,9 +59,12 @@ fn offence_report_submitted_if_above_threshold() {
         // Mallory
         Session::rotate_session();
         assert_eq!(Slashing::failed_registrations(mallory), 0);
-        assert!(Offences::get().len() == 1);
 
-        panic!("test end");
+        let offences = Offences::get();
+        assert!(offences.len() == 1);
+
+        let offenders = &offences[0].offenders;
+        assert!(offenders[0] == (mallory, mallory));
     })
 }
 
