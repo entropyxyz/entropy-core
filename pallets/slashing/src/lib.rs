@@ -48,6 +48,20 @@ use sp_staking::{
 use sp_std::vec;
 use sp_std::vec::Vec;
 
+/// A type for representing the validator id in a session.
+pub type ValidatorId<T> = <<T as Config>::ValidatorSet as ValidatorSet<
+    <T as frame_system::Config>::AccountId,
+>>::ValidatorId;
+
+/// A tuple of (ValidatorId, Identification) where `Identification` is the full identification of
+/// `ValidatorId`.
+pub type IdentificationTuple<T> = (
+    ValidatorId<T>,
+    <<T as Config>::ValidatorSet as ValidatorSetWithIdentification<
+        <T as frame_system::Config>::AccountId,
+    >>::Identification,
+);
+
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
@@ -73,9 +87,15 @@ pub mod pallet {
         /// A type that gives us the ability to submit unresponsiveness offence reports.
         type ReportUnresponsiveness: ReportOffence<
             Self::AccountId,
-            Self::AccountId,
-            UnresponsivenessOffence<Self::AccountId>,
+            IdentificationTuple<Self>,
+            UnresponsivenessOffence<IdentificationTuple<Self>>,
         >;
+
+        /// A type which represents the current validator set.
+        ///
+        /// We use an identifiable varianant in order to be compatible with the Offences pallet's
+        /// reporting traits.
+        type ValidatorSet: ValidatorSetWithIdentification<Self::AccountId>;
     }
 
     #[pallet::pallet]
@@ -96,7 +116,7 @@ pub mod pallet {
         NoteReport(T::AccountId, T::AccountId),
 
         // The following peers have been reported as unresponsive in this session.
-        UnresponsivenessOffence(Vec<T::AccountId>),
+        UnresponsivenessOffence(Vec<IdentificationTuple<T>>),
     }
 
     #[pallet::call]
@@ -179,7 +199,7 @@ impl<T: Config> frame_support::traits::OneSessionHandler<T::AccountId> for Palle
     where
         I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
     {
-        // We set the reports for this upcoming session.
+        // We reset the reports for this upcoming session.
         //
         // Might be an expensive operation, but let's go with it for now.
         let _ = FailedRegistrations::<T>::drain();
@@ -189,13 +209,20 @@ impl<T: Config> frame_support::traits::OneSessionHandler<T::AccountId> for Palle
         let offenders = FailedRegistrations::<T>::iter()
             .filter(|report| report.1 >= T::ReportThreshold::get())
             .map(|report| report.0)
-            .collect::<Vec<_>>();
+            .filter_map(|account_id| {
+                <T::ValidatorSet as frame_support::traits::ValidatorSet<T::AccountId>>::
+                    ValidatorIdOf::convert(account_id)
+            })
+            .filter_map(|validator_id| {
+                <T::ValidatorSet as ValidatorSetWithIdentification<T::AccountId>>::
+                    IdentificationOf::convert(validator_id.clone()
+                )
+                .map(|full_id| (validator_id, full_id))
+            })
+            .collect::<Vec<IdentificationTuple<T>>>();
 
-        // let session_index = T::ValidatorSet::session_index();
-        // let keys = Keys::<T>::get();
-        // let current_validators = T::ValidatorSet::validators();
-        let session_index = 0;
-        let validator_set_count = 0;
+        let session_index = T::ValidatorSet::session_index();
+        let validator_set_count = T::ValidatorSet::validators().len() as u32;
 
         let reporters = vec![];
         let offence = UnresponsivenessOffence {

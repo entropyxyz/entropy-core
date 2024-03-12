@@ -282,7 +282,8 @@ impl pallet_session::historical::Config for Test {
     type FullIdentificationOf = pallet_staking::ExposureOf<Self>;
 }
 
-type Offence = crate::UnresponsivenessOffence<AccountId>;
+type IdentificationTuple = (u64, pallet_staking::Exposure<u64, Balance>);
+type Offence = crate::UnresponsivenessOffence<IdentificationTuple>;
 
 parameter_types! {
     pub static Offences: Vec<Offence> = vec![];
@@ -290,13 +291,13 @@ parameter_types! {
 
 /// A mock offence report handler.
 pub struct OffenceHandler;
-impl ReportOffence<AccountId, AccountId, Offence> for OffenceHandler {
+impl ReportOffence<AccountId, IdentificationTuple, Offence> for OffenceHandler {
     fn report_offence(_reporters: Vec<u64>, offence: Offence) -> Result<(), OffenceError> {
         Offences::mutate(|l| l.push(offence));
         Ok(())
     }
 
-    fn is_known_offence(_offenders: &[AccountId], _time_slot: &SessionIndex) -> bool {
+    fn is_known_offence(_offenders: &[IdentificationTuple], _time_slot: &SessionIndex) -> bool {
         false
     }
 }
@@ -310,11 +311,11 @@ impl pallet_slashing::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type AuthorityId = UintAuthorityId;
     type ReportThreshold = ReportThreshold;
+    type ValidatorSet = Historical;
     type ReportUnresponsiveness = OffenceHandler;
 
     // type MinValidators = MinValidators;
     // type ValidatorIdOf = ConvertInto;
-    // type ValidatorSet = Historical;
 }
 
 // Build genesis storage according to the mock runtime.

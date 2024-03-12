@@ -1361,16 +1361,19 @@ impl pallet_nomination_pools::Config for Runtime {
 }
 
 parameter_types! {
-  pub const MinValidators: u32 = 10;
+  // pub const MinValidators: u32 = 10;
+  pub const ReportThreshold: u32 = 5;
 }
 
 impl pallet_slashing::Config for Runtime {
     type AuthorityId = pallet_babe::AuthorityId;
-    type MinValidators = MinValidators;
-    type ReportBad = Offences;
+    type ReportThreshold = ReportThreshold;
+    type ReportUnresponsiveness = Offences;
     type RuntimeEvent = RuntimeEvent;
-    type ValidatorIdOf = pallet_staking::StashOf<Self>;
     type ValidatorSet = Historical;
+
+    // type MinValidators = MinValidators;
+    // type ValidatorIdOf = pallet_staking::StashOf<Self>;
 }
 
 parameter_types! {
