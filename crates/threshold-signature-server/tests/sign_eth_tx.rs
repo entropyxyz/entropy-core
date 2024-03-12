@@ -29,7 +29,7 @@ use entropy_tss::{
     chain_api::{get_api, get_rpc},
     common::Hasher,
 };
-use ethers::core::{
+use ethers_core::{
     abi::ethabi::ethereum_types::{H160, H256},
     types::{RecoveryMessage, Transaction, TransactionRequest, U256},
     utils::{
@@ -40,8 +40,9 @@ use ethers::core::{
 use serial_test::serial;
 use sp_core::crypto::Ss58Codec;
 use sp_keyring::AccountKeyring;
-use std::str::FromStr;
 use synedrion::k256::ecdsa::VerifyingKey;
+
+const GOERLI_CHAIN_ID: u64 = 5;
 
 #[tokio::test]
 #[serial]
@@ -131,18 +132,18 @@ async fn integration_test_sign_eth_tx() {
 /// Convert a k256 Signature and RecoveryId to an ethers Signature
 fn recoverable_signature_to_ethers_signature(
     recoverable_signature: RecoverableSignature,
-) -> ethers::core::types::Signature {
+) -> ethers_core::types::Signature {
     let recovery_id_u64: u64 = recoverable_signature.recovery_id.to_byte().into();
     let v: u64 = 27 + recovery_id_u64;
     let r = U256::from_big_endian(&recoverable_signature.signature.r().to_bytes());
     let s = U256::from_big_endian(&recoverable_signature.signature.s().to_bytes());
 
-    ethers::core::types::Signature { r, s, v }
+    ethers_core::types::Signature { r, s, v }
 }
 
 /// Create a mock Ethereum transaction request
 fn create_unsigned_eth_tx(verifying_key: VerifyingKey) -> TransactionRequest {
     let from = public_key_to_address(&verifying_key);
-    let to = H160::from_str("772b9a9e8aa1c9db861c6611a82d251db4fac990").unwrap();
-    TransactionRequest::pay(to, 1000).from(from)
+    let to = H160::zero();
+    TransactionRequest::pay(to, 1000).from(from).chain_id(GOERLI_CHAIN_ID)
 }
