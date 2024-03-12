@@ -89,63 +89,43 @@ impl system::Config for Test {
     type Version = ();
 }
 
-impl sp_runtime::BoundToRuntimeAppPublic for TestSessionHandler {
-    type Public = UintAuthorityId;
-}
-
-pub struct TestSessionHandler;
-impl pallet_session::SessionHandler<AccountId> for TestSessionHandler {
-    const KEY_TYPE_IDS: &'static [sp_runtime::KeyTypeId] = &[];
-
-    fn on_genesis_session<Ks: sp_runtime::traits::OpaqueKeys>(_validators: &[(AccountId, Ks)]) {}
-
-    fn on_new_session<Ks: sp_runtime::traits::OpaqueKeys>(
-        _: bool,
-        _: &[(AccountId, Ks)],
-        _: &[(AccountId, Ks)],
-    ) {
-    }
-
-    fn on_disabled(_: u32) {}
-}
-
-impl OneSessionHandler<AccountId> for TestSessionHandler {
-    type Key = UintAuthorityId;
-
-    fn on_genesis_session<'a, I: 'a>(_: I)
-    where
-        I: Iterator<Item = (&'a AccountId, Self::Key)>,
-        AccountId: 'a,
-    {
-    }
-
-    fn on_new_session<'a, I: 'a>(_: bool, _: I, _: I)
-    where
-        I: Iterator<Item = (&'a AccountId, Self::Key)>,
-        AccountId: 'a,
-    {
-    }
-
-    fn on_disabled(_validator_index: u32) {}
-}
-
 parameter_types! {
   pub const Period: u64 = 1;
   pub const Offset: u64 = 0;
 }
 
-sp_runtime::impl_opaque_keys! {
-  pub struct SessionKeys {
-    pub foo: TestSessionHandler,
-  }
+parameter_types! {
+    pub static Validators: Option<Vec<u64>> = Some(vec![
+        1,
+        2,
+        3,
+    ]);
+}
+pub struct TestSessionManager;
+impl pallet_session::SessionManager<u64> for TestSessionManager {
+    fn new_session(_new_index: SessionIndex) -> Option<Vec<u64>> {
+        Validators::mutate(|l| l.take())
+    }
+    fn end_session(_: SessionIndex) {}
+    fn start_session(_: SessionIndex) {}
+}
+
+impl pallet_session::historical::SessionManager<u64, u64> for TestSessionManager {
+    fn new_session(_new_index: SessionIndex) -> Option<Vec<(u64, u64)>> {
+        Validators::mutate(|l| {
+            l.take().map(|validators| validators.iter().map(|v| (*v, *v)).collect())
+        })
+    }
+    fn end_session(_: SessionIndex) {}
+    fn start_session(_: SessionIndex) {}
 }
 
 impl pallet_session::Config for Test {
-    type Keys = SessionKeys;
+    type Keys = UintAuthorityId;
     type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
     type RuntimeEvent = RuntimeEvent;
-    type SessionHandler = (TestSessionHandler,);
-    type SessionManager = ();
+    type SessionHandler = (Slashing,);
+    type SessionManager = TestSessionManager; // TODO (Nando): Use HistoricalSessionManager?
     type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
     type ValidatorId = AccountId;
     type ValidatorIdOf = ConvertInto;
@@ -322,7 +302,7 @@ impl pallet_slashing::Config for Test {
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut storage = system::GenesisConfig::<Test>::default().build_storage().unwrap();
     let _ = pallet_session::GenesisConfig::<Test> {
-        keys: (0..5).map(|id| (id, id, SessionKeys { foo: id.into() })).collect(),
+        keys: (0..5).map(|id| (id, id, UintAuthorityId(id))).collect(),
     }
     .assimilate_storage(&mut storage);
     sp_io::TestExternalities::from(storage)
