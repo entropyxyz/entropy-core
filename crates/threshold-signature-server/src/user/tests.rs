@@ -1640,9 +1640,9 @@ async fn test_increment_or_wipe_request_limit() {
     let request_limit = query_chain(&api, &rpc, request_limit_query, None).await.unwrap().unwrap();
 
     // no error
-    request_limit_check(&rpc, &kv_store, alice.to_account_id().to_string(), request_limit)
+    assert!(request_limit_check(&rpc, &kv_store, alice.to_account_id().to_string(), request_limit)
         .await
-        .unwrap();
+        .is_ok());
 
     // run up the request check to one less then max (to check integration)
     for _ in 0..request_limit {
