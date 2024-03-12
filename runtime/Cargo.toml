@@ -104,6 +104,7 @@ pallet-registry         ={ version='0.0.10', path='../pallets/registry', default
 pallet-slashing         ={ version='0.0.10', path='../pallets/slashing', default-features=false }
 pallet-staking-extension={ version='0.0.10', path='../pallets/staking', default-features=false }
 pallet-transaction-pause={ version='0.0.10', path='../pallets/transaction-pause', default-features=false }
+pallet-parameters       ={ version='0.0.10', path='../pallets/parameters', default-features=false }
 
 entropy-shared={ path="../crates/shared", default-features=false, features=["wasm-no-std"] }
 
@@ -145,6 +146,7 @@ std=[
   "pallet-nomination-pools/std",
   "pallet-offences/std",
   "pallet-preimage/std",
+  "pallet-parameters/std",
   "pallet-programs/std",
   "pallet-propagation/std",
   "pallet-proxy/std",
@@ -212,6 +214,7 @@ runtime-benchmarks=[
   "pallet-multisig/runtime-benchmarks",
   "pallet-nomination-pools-benchmarking/runtime-benchmarks",
   "pallet-offences-benchmarking/runtime-benchmarks",
+  "pallet-parameters/runtime-benchmarks",
   "pallet-preimage/runtime-benchmarks",
   "pallet-programs/runtime-benchmarks",
   "pallet-proxy/runtime-benchmarks",
@@ -259,6 +262,7 @@ try-runtime=[
   "pallet-preimage/try-runtime",
   "pallet-propagation/try-runtime",
   "pallet-proxy/try-runtime",
+  "pallet-parameters/try-runtime",
   "pallet-recovery/try-runtime",
   "pallet-referenda/try-runtime",
   "pallet-scheduler/try-runtime",
