@@ -380,12 +380,12 @@ pub async fn get_verifying_key(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     account_id: SubxtAccountId32,
 ) -> anyhow::Result<VerifyingKey> {
-    let account_id: <EntropyConfig as Config>::AccountId = account_id.into();
+    let account_id: <EntropyConfig as Config>::AccountId = account_id;
     let registered_query = entropy::storage().registry().registered(account_id);
     let query_registered = query_chain(api, rpc, registered_query, None).await;
     let registered_info = query_registered?.ok_or(anyhow!("User not registered"))?;
 
-    let encoded_point = EncodedPoint::<Secp256k1>::from_bytes(&registered_info.verifying_key.0)?;
+    let encoded_point = EncodedPoint::<Secp256k1>::from_bytes(registered_info.verifying_key.0)?;
     Ok(VerifyingKey::from_encoded_point(&encoded_point)?)
 }
 
