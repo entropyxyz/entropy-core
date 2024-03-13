@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Simple test client
+pub mod ethereum;
 pub use crate::chain_api::{get_api, get_rpc};
 pub use entropy_protocol::{
     sign_and_encrypt::{derive_static_secret, SignedMessage},
@@ -55,7 +56,11 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, Static, H256},
     Config, OnlineClient,
 };
-use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
+use synedrion::k256::{
+    ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
+    elliptic_curve::sec1::EncodedPoint,
+    Secp256k1,
+};
 
 /// Register an account.
 ///
@@ -367,6 +372,21 @@ pub async fn check_verifying_key(
     };
 
     Ok(ensure!(registered_status.verifying_key.0 == verifying_key_serialized))
+}
+
+/// Given an Account ID, get the verifying key of the associated Entropy account
+pub async fn get_verifying_key(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    account_id: SubxtAccountId32,
+) -> anyhow::Result<VerifyingKey> {
+    let account_id: <EntropyConfig as Config>::AccountId = account_id.into();
+    let registered_query = entropy::storage().registry().registered(account_id);
+    let query_registered = query_chain(api, rpc, registered_query, None).await;
+    let registered_info = query_registered?.ok_or(anyhow!("User not registered"))?;
+
+    let encoded_point = EncodedPoint::<Secp256k1>::from_bytes(&registered_info.verifying_key.0)?;
+    Ok(VerifyingKey::from_encoded_point(&encoded_point)?)
 }
 
 /// Get the commitee of tss servers who will perform DKG for a given block number

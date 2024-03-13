@@ -34,15 +34,16 @@ use entropy_testing_utils::{
     },
     constants::TEST_PROGRAM_WASM_BYTECODE,
     test_client::{
-        derive_static_secret, get_accounts, get_api, get_programs, get_rpc, register, sign,
-        store_program, update_programs, KeyParams, KeyShare, KeyVisibility,
+        derive_static_secret, ethereum::TestEthereumTransaction, get_accounts, get_api,
+        get_programs, get_rpc, get_verifying_key, register, sign, store_program, update_programs,
+        KeyParams, KeyShare, KeyVisibility,
     },
 };
 use sp_core::{crypto::AccountId32, sr25519, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    utils::{AccountId32 as SubxtAccountId32, H256},
+    utils::{AccountId32 as SubxtAccountId32, H160, H256},
     OnlineClient,
 };
 
@@ -108,6 +109,24 @@ enum CliCommand {
         signature_request_account: Option<String>,
         /// The message to be signed
         message: String,
+        /// Optional auxiliary data passed to the program, given as hex
+        auxilary_data: Option<String>,
+    },
+    /// Ask the network to sign an Ethereum transaction
+    SignTx {
+        /// A name from which to generate a keypair, eg: "Alice"
+        ///
+        /// Optionally may be preceeded with "//", eg: "//Alice"
+        user_account_name: String,
+        /// An Ethereum address to send funds to
+        to: H160,
+        /// The account ID you wish to sign with, if different from `user_account_name` (e.g if
+        /// using public access mode).
+        ///
+        /// This may be given as a hex public key, SS58 account ID, or a name from which to generate
+        /// a keypair (e.g `//Alice`)
+        #[arg(short, long)]
+        signature_request_account: Option<String>,
         /// Optional auxiliary data passed to the program, given as hex
         auxilary_data: Option<String>,
     },
@@ -287,6 +306,64 @@ async fn run_command() -> anyhow::Result<String> {
             )
             .await?;
             Ok(format!("Message signed: {:?}", recoverable_signature))
+        },
+        CliCommand::SignTx { user_account_name, signature_request_account, to, auxilary_data } => {
+            let user_keypair: sr25519::Pair = SeedString::new(user_account_name).try_into()?;
+            println!("User account: {}", user_keypair.public());
+
+            if let Ok(provider_url) = std::env::var("ETHEREUM_PROVIDER_URL") {
+                let auxilary_data =
+                    if let Some(data) = auxilary_data { Some(hex::decode(data)?) } else { None };
+
+                let signature_request_account = match signature_request_account {
+                    Some(s) => {
+                        let account = parse_account_id(&s)?;
+                        println!("Signature request account: {}", account);
+                        Some(account)
+                    },
+                    None => None,
+                };
+
+                // If we have a keyshare file for this account, get it
+                let private_keyshare = KeyShareFile::new(user_keypair.public()).read().ok();
+
+                let account =
+                    signature_request_account.clone().unwrap_or(user_keypair.public().into());
+                let verifying_key = get_verifying_key(&api, &rpc, account).await?;
+                println!(
+                    "Verifying key: {}",
+                    hex::encode(verifying_key.to_encoded_point(true).as_bytes())
+                );
+
+                // TODO
+                let value = 100.into();
+                let nonce = 4.into();
+
+                let transaction =
+                    TestEthereumTransaction::new(&provider_url, verifying_key, to, value, nonce)
+                        .await?;
+                let message = transaction.serialize();
+
+                let recoverable_signature = sign(
+                    &api,
+                    &rpc,
+                    user_keypair,
+                    signature_request_account,
+                    message,
+                    private_keyshare,
+                    auxilary_data,
+                )
+                .await?;
+
+                println!("Message signed");
+
+                match transaction.submit_eth_transaction(recoverable_signature).await? {
+                    Some(receipt) => Ok(format!("Receipt {:?}", receipt)),
+                    _ => Err(anyhow::anyhow!("No transaction receipt")),
+                }
+            } else {
+                Err(anyhow::anyhow!("Environment variable ETHEREUM_PROVIDER_URL must be set"))
+            }
         },
         CliCommand::StoreProgram { deployer_name, program_file, program_interface_file } => {
             let keypair: sr25519::Pair = SeedString::new(deployer_name).try_into()?;
