@@ -41,7 +41,16 @@ use tokio::sync::OnceCell;
 
 use crate::{
     app,
-    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
+    chain_api::{
+        entropy::{
+            self,
+            runtime_types::{
+                bounded_collections::bounded_vec::BoundedVec,
+                pallet_registry::pallet::ProgramInstance,
+            },
+        },
+        get_api, get_rpc, EntropyConfig,
+    },
     get_signer,
     helpers::{
         launch::{
@@ -200,16 +209,16 @@ pub async fn check_if_confirmation(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     key: &sr25519::Pair,
+    verfiying_key: Vec<u8>,
 ) {
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
     let registering_query = entropy::storage().registry().registering(signer.account_id());
-    let registered_query = entropy::storage().registry().registered(signer.account_id());
+    let registered_query = entropy::storage().registry().registered(BoundedVec(verfiying_key));
     let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
     let is_registering = query_chain(api, rpc, registering_query, block_hash).await;
     // cleared from is_registering state
     assert!(is_registering.unwrap().is_none());
     let is_registered = query_chain(api, rpc, registered_query, block_hash).await.unwrap();
-    assert_eq!(is_registered.as_ref().unwrap().verifying_key.0.len(), 33usize);
     assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
 }
 

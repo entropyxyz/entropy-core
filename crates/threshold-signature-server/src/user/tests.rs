@@ -42,6 +42,7 @@ use entropy_testing_utils::{
     },
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
+        DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY, DEFAULT_VERIFYING_KEY_NOT_REGISTERED,
         PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION,
         TEST_INFINITE_LOOP_BYTECODE, TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE,
         TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
@@ -176,7 +177,7 @@ async fn test_sign_tx_no_chain() {
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let signature_request_account = subxtAccountId32(one.pair().public().0);
     let session_id = SessionId::Sign(SigningSessionInfo {
-        account_id: signature_request_account.clone(),
+        signature_verifying_key: DEFAULT_VERIFYING_KEY,
         message_hash,
         request_author: signature_request_account.clone(),
     });
@@ -190,7 +191,7 @@ async fn test_sign_tx_no_chain() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_request_account: signature_request_account.clone(),
+        signature_verifying_key: DEFAULT_VERIFYING_KEY,
     };
 
     let validator_ips_and_keys = vec![
@@ -209,7 +210,7 @@ async fn test_sign_tx_no_chain() {
     update_programs(
         &entropy_api,
         &rpc,
-        &one.pair(),
+        DEFAULT_VERIFYING_KEY,
         &one.pair(),
         OtherBoundedVec(vec![
             OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
@@ -251,7 +252,7 @@ async fn test_sign_tx_no_chain() {
     verify_signature(test_user_res_order, message_hash, keyshare_option.clone()).await;
 
     generic_msg.timestamp = SystemTime::now();
-    generic_msg.signature_request_account = subxtAccountId32(two.pair().public().0);
+    generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
 
@@ -299,7 +300,7 @@ async fn test_sign_tx_no_chain() {
     });
 
     generic_msg.timestamp = SystemTime::now();
-    generic_msg.signature_request_account = signature_request_account.clone();
+    generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY.to_vec();
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
         generic_msg.clone(),
@@ -496,7 +497,7 @@ async fn test_program_with_config() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_request_account: subxtAccountId32(one.pair().public().0),
+        signature_verifying_key: DEFAULT_VERIFYING_KEY,
     };
 
     let validator_ips_and_keys = vec![
@@ -515,7 +516,7 @@ async fn test_program_with_config() {
     update_programs(
         &entropy_api,
         &rpc,
-        &one.pair(),
+        DEFAULT_VERIFYING_KEY,
         &one.pair(),
         OtherBoundedVec(vec![
             OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
@@ -574,7 +575,7 @@ async fn test_fail_signing_group() {
     update_programs(
         &entropy_api,
         &rpc,
-        &dave.pair(),
+        DEFAULT_VERIFYING_KEY,
         &dave.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
@@ -590,7 +591,7 @@ async fn test_fail_signing_group() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_request_account: subxtAccountId32(dave.pair().public().0),
+        signature_verifying_key: DEFAULT_VERIFYING_KEY,
     };
 
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
@@ -698,14 +699,15 @@ async fn test_store_share() {
 
     // Wait until user is confirmed as registered
     let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
+    // TODO wait for registered event
     for _ in 0..10 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
-        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
-        let registered_query = entropy::storage().registry().registered(alice_account_id.clone());
-        let query_registered_status = query_chain(&api, &rpc, registered_query, block_hash).await;
-        if query_registered_status.unwrap().is_some() {
-            break;
-        }
+        // let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
+        // let registered_query = entropy::storage().registry().registered(alice_account_id.clone());
+        // let query_registered_status = query_chain(&api, &rpc, registered_query, block_hash).await;
+        // if query_registered_status.unwrap().is_some() {
+        //     break;
+        // }
     }
 
     // check alice has new key
@@ -782,7 +784,7 @@ async fn test_store_share() {
         "Invalid Signer: Invalid Signer in Signing group"
     );
 
-    check_if_confirmation(&api, &rpc, &alice.pair()).await;
+    check_if_confirmation(&api, &rpc, &alice.pair(), DEFAULT_VERIFYING_KEY).await;
     // TODO check if key is in other subgroup member
     clean_tests();
 }
@@ -1081,7 +1083,7 @@ async fn test_sign_tx_user_participates() {
     update_programs(
         &entropy_api,
         &rpc,
-        &one.pair(),
+        DEFAULT_VERIFYING_KEY,
         &one.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
@@ -1109,7 +1111,7 @@ async fn test_sign_tx_user_participates() {
 
     let signature_request_account = subxtAccountId32(one.pair().public().0);
     let session_id = SessionId::Sign(SigningSessionInfo {
-        account_id: signature_request_account.clone(),
+        signature_verifying_key: DEFAULT_VERIFYING_KEY,
         message_hash: message_should_succeed_hash,
         request_author: signature_request_account.clone(),
     });
@@ -1120,7 +1122,7 @@ async fn test_sign_tx_user_participates() {
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_request_account: signature_request_account.clone(),
+        signature_verifying_key: DEFAULT_VERIFYING_KEY,
     };
 
     let validator_ips_and_keys = vec![
@@ -1148,7 +1150,7 @@ async fn test_sign_tx_user_participates() {
         .await;
 
     generic_msg.timestamp = SystemTime::now();
-    generic_msg.signature_request_account = subxtAccountId32(two.pair().public().0);
+    generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
 
     // test failing cases
     let test_user_res_not_registered =
@@ -1162,7 +1164,7 @@ async fn test_sign_tx_user_participates() {
     }
 
     generic_msg.timestamp = SystemTime::now();
-    generic_msg.signature_request_account = signature_request_account;
+    generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY.to_vec();
     let mut generic_msg_bad_validators = generic_msg.clone();
     generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
 
@@ -1509,7 +1511,7 @@ async fn test_fail_infinite_program() {
     update_programs(
         &entropy_api,
         &rpc,
-        &one.pair(),
+        DAVE_VERIFYING_KEY.to_vec(),
         &one.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
@@ -1541,7 +1543,7 @@ async fn test_fail_infinite_program() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_request_account: subxtAccountId32(one.pair().public().0),
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
 
     let validator_ips_and_keys = vec![

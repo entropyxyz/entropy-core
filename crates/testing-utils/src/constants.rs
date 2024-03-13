@@ -41,6 +41,10 @@ lazy_static! {
         .try_into()
         .unwrap(),
     ];
+    pub static ref DEFAULT_VERIFYING_KEY_NOT_REGISTERED: Vec<u8> = [10].into();
+    pub static ref DAVE_VERIFYING_KEY: Vec<u8> = [1].into();
+    pub static ref EVE_VERIFYING_KEY: Vec<u8> = [2].into();
+    pub static ref FERDIE_VERIFYING_KEY: Vec<u8> = [3].into();
 }
 
 /// The following constants are values used for integration testing specific to the
@@ -57,3 +61,4 @@ pub const PREIMAGE_SHOULD_SUCCEED: &[u8] = "asdfasdfasdfasdf".as_bytes();
 pub const PREIMAGE_SHOULD_FAIL: &[u8] = "asdf".as_bytes();
 pub const AUXILARY_DATA_SHOULD_SUCCEED: &[u8] = "fdsafdsa".as_bytes();
 pub const AUXILARY_DATA_SHOULD_FAIL: Option<&[u8]> = None;
+pub const DEFAULT_VERIFYING_KEY: Vec<u8> = vec![];

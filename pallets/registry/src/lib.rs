@@ -125,7 +125,7 @@ pub mod pallet {
     #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub registered_accounts: Vec<(T::AccountId, u8, Option<[u8; 32]>)>,
+        pub registered_accounts: Vec<(T::AccountId, u8, Option<[u8; 32]>, VerifyingKey)>,
     }
 
     #[pallet::genesis_build]
@@ -139,7 +139,7 @@ pub mod pallet {
                     _ => KeyVisibility::Public,
                 };
                 Registered::<T>::insert(
-                    BoundedVec::default(),
+                    account_info.3.clone(),
                     RegisteredInfo {
                         key_visibility,
                         programs_data: BoundedVec::default(),
