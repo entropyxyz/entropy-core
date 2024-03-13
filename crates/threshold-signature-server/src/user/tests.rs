@@ -460,7 +460,7 @@ async fn test_program_with_config() {
 
     let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(signing_address.clone()), false).await;
+        spawn_testing_validators(Some(String::from_utf8(DAVE_VERIFYING_KEY.to_vec()).unwrap().clone()), false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -497,7 +497,7 @@ async fn test_program_with_config() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_verifying_key: DEFAULT_VERIFYING_KEY,
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
 
     let validator_ips_and_keys = vec![
@@ -516,7 +516,7 @@ async fn test_program_with_config() {
     update_programs(
         &entropy_api,
         &rpc,
-        DEFAULT_VERIFYING_KEY,
+        DAVE_VERIFYING_KEY.to_vec(),
         &one.pair(),
         OtherBoundedVec(vec![
             OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
