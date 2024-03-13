@@ -65,3 +65,46 @@ fn offence_report_submitted_if_above_threshold() {
         assert!(offenders[0] == (mallory, mallory));
     })
 }
+
+#[test]
+fn reported_validator_is_disabled() {
+    new_test_ext().execute_with(|| {
+        let (alice, mallory) = (1, 2);
+
+        // Our peer has been reported enough times to get an Offence filed
+        let above_threshold = <Test as Config>::ReportThreshold::get();
+        for _ in 0..above_threshold {
+            assert_ok!(Slashing::note_report(alice, mallory));
+        }
+
+        // New session, we should see the offence report for Mallory
+        Session::rotate_session();
+
+        // let now = System::block_number().max(1);
+        // System::set_block_number(now + 1);
+
+        let offences = Offences::get();
+        assert!(offences.len() == 1);
+
+        let offenders = &offences[0].offenders;
+        assert!(offenders[0] == (mallory, mallory));
+
+        // We should now see Mallory kicked from the validator set
+        let _ = <Test as Config>::ValidatorSet::validators().iter().inspect(|id| {
+            dbg!(id);
+            ()
+        });
+        dbg!(<Test as Config>::ValidatorSet::validators().len());
+
+        let validator_index = match Session::validators().iter().position(|v| *v == mallory) {
+            Some(index) => dbg!(index) as u32,
+            None => 0, // TODO (Nando): Don't just return `0` here
+        };
+
+        use frame_support::traits::DisabledValidators;
+        dbg!(Session::disabled_validators());
+        dbg!(Session::is_disabled(validator_index));
+
+        panic!("test end");
+    })
+}
