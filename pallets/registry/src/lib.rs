@@ -93,7 +93,7 @@ pub mod pallet {
     }
     pub type ProgramPointers<Hash, MaxProgramHashes> = BoundedVec<Hash, MaxProgramHashes>;
     pub type VerifyingKey = BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>;
-    
+
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct ProgramInstance<T: Config> {
