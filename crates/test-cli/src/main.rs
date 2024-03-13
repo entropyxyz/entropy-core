@@ -336,12 +336,10 @@ async fn run_command() -> anyhow::Result<String> {
                 );
 
                 // TODO
-                let value = 100.into();
-                let nonce = 4.into();
+                let value = 200.into();
 
                 let transaction =
-                    TestEthereumTransaction::new(&provider_url, verifying_key, to, value, nonce)
-                        .await?;
+                    TestEthereumTransaction::new(&provider_url, verifying_key, to, value).await?;
                 let message = transaction.serialize();
 
                 let recoverable_signature = sign(

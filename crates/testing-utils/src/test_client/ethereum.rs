@@ -65,12 +65,12 @@ impl TestEthereumTransaction {
         verifying_key: VerifyingKey,
         to: H160,
         value: U256,
-        nonce: U256,
     ) -> anyhow::Result<Self> {
         let from = public_key_to_address(&verifying_key);
 
         let provider = Provider::<Http>::try_from(provider_url)?;
         let chain_id = provider.get_chainid().await?.as_u64();
+        let nonce = provider.get_transaction_count(from, None).await?;
 
         Ok(Self {
             provider,
@@ -78,8 +78,8 @@ impl TestEthereumTransaction {
                 .from(from)
                 .to(to)
                 .value(value)
-                .gas_price(2000000000)
-                .gas(60000)
+                .gas_price(2140000000)
+                .gas(90000)
                 .chain_id(chain_id)
                 .nonce(nonce)
                 .data(b"Signed on Entropy"),
