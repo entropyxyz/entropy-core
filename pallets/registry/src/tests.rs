@@ -201,6 +201,7 @@ fn it_confirms_registers_a_user() {
             verifying_key: Some(expected_verifying_key.clone()),
             program_modification_account: 2,
             version_number: 1,
+            block_number: 0,
         };
 
         assert_eq!(Registry::registering(1), Some(registering_info));
