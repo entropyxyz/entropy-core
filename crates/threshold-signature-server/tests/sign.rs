@@ -20,8 +20,8 @@ use entropy_testing_utils::{
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
     constants::{
-        AUXILARY_DATA_SHOULD_SUCCEED, DEFAULT_VERIFYING_KEY, PREIMAGE_SHOULD_SUCCEED,
-        TEST_PROGRAM_WASM_BYTECODE,
+        AUXILARY_DATA_SHOULD_SUCCEED, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY, EVE_VERIFYING_KEY,
+        FERDIE_VERIFYING_KEY, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
     },
     substrate_context::test_context_stationary,
     test_client,
@@ -48,7 +48,7 @@ async fn integration_test_sign_public() {
 
     let signing_address = pre_registered_public_user.to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(signing_address.clone()), false).await;
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -105,7 +105,7 @@ async fn integration_test_sign_permissioned() {
 
     let signing_address = pre_registered_user.to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(signing_address.clone()), false).await;
+        spawn_testing_validators(Some(FERDIE_VERIFYING_KEY.to_vec()), false).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -181,7 +181,7 @@ async fn integration_test_sign_private() {
 
     let signing_address = pre_registered_user.to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(signing_address.clone()), true).await;
+        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();

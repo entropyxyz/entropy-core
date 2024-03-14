@@ -102,15 +102,11 @@ pub async fn proactive_refresh(
 
     for encoded_key in ocw_data.proactive_refresh_keys {
         let key = hex::encode(&encoded_key);
-        let sig_request_account_sp_core =
-            AccountId32::from_str(&key).map_err(ProtocolErr::StringError)?;
-        let sig_request_account = SubxtAccountId32(*sig_request_account_sp_core.as_ref());
         let key_visibility = get_registered_details(&api, &rpc, encoded_key.clone())
             .await
             .map_err(|e| ProtocolErr::UserError(e.to_string()))?
             .key_visibility
             .0;
-        //TODO fix for verifying key
 
         // Check key visibility and don't do proactive refresh if it is private as this would require the user to be online
         if key_visibility == KeyVisibility::Public {
@@ -127,14 +123,14 @@ pub async fn proactive_refresh(
                     &ocw_data.validators_info,
                     &signer,
                     &app_state.listener_state,
-                    sig_request_account,
+                    encoded_key,
                     deserialized_old_key,
                 )
                 .await?;
                 let serialized_key_share = key_serialize(&new_key_share)
                     .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
                 let new_key_info = UserRegistrationInfo {
-                    key: key.to_string(),
+                    key,
                     value: serialized_key_share,
                     proactive_refresh: true,
                 };
@@ -178,20 +174,20 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
 
 #[tracing::instrument(
     skip_all,
-    fields(validators_info, sig_request_account, my_subgroup),
+    fields(validators_info, verifying_key, my_subgroup),
     level = tracing::Level::DEBUG
 )]
 pub async fn do_proactive_refresh(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     state: &ListenerState,
-    sig_request_account: SubxtAccountId32,
+    verifying_key: Vec<u8>,
     old_key: KeyShare<KeyParams>,
 ) -> Result<KeyShare<KeyParams>, ProtocolErr> {
     tracing::debug!("Preparing to perform proactive refresh");
     tracing::debug!("Signing with {:?}", &signer.signer().public());
 
-    let session_id = SessionId::ProactiveRefresh(sig_request_account);
+    let session_id = SessionId::ProactiveRefresh(verifying_key);
     let account_id = SubxtAccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];

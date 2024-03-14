@@ -65,9 +65,7 @@ impl<'a> ThresholdSigningService<'a> {
         let key_share_vec = self
             .kv_manager
             .kv()
-            .get(&String::from_utf8(
-                sign_init.signing_session_info.signature_verifying_key.clone(),
-            )?)
+            .get(&hex::encode(sign_init.signing_session_info.signature_verifying_key.clone()))
             .await?;
         let key_share: KeyShare<KeyParams> =
             entropy_kvdb::kv_manager::helpers::deserialize(&key_share_vec)

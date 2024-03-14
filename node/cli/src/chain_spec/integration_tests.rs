@@ -205,8 +205,8 @@ pub fn integration_tests_genesis_config(
                     },
                 ],
                 vec![
-                    get_account_id_from_seed::<sr25519::Public>("Dave").encode(),
-                    get_account_id_from_seed::<sr25519::Public>("Eve").encode(),
+                    vec![1],
+                    vec![2],
                 ],
             ),
         },

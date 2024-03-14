@@ -156,7 +156,7 @@ pub enum SessionId {
     /// A distributed key generation protocol session for registering
     Dkg(AccountId32),
     /// A proactive refresh session
-    ProactiveRefresh(AccountId32),
+    ProactiveRefresh(Vec<u8>),
     /// A signing session
     Sign(SigningSessionInfo),
 }
@@ -180,8 +180,8 @@ impl Hash for SessionId {
             SessionId::Dkg(account_id) => {
                 account_id.0.hash(state);
             },
-            SessionId::ProactiveRefresh(account_id) => {
-                account_id.0.hash(state);
+            SessionId::ProactiveRefresh(signature_verifying_key) => {
+                signature_verifying_key.hash(state);
             },
             SessionId::Sign(signing_session_info) => {
                 signing_session_info.signature_verifying_key.hash(state);

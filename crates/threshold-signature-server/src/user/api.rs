@@ -151,7 +151,7 @@ pub async fn sign_tx(
         signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
 
     let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&decrypted_message)?;
-    let string_veryfying_key = String::from_utf8(user_sig_req.signature_verifying_key.clone())?;
+    let string_veryfying_key = hex::encode(user_sig_req.signature_verifying_key.clone());
 
     request_limit_check(&rpc, &app_state.kv_store, string_veryfying_key.clone(), request_limit)
         .await?;
@@ -340,7 +340,7 @@ async fn setup_dkg(
         )
         .await?;
         let veryfying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
-        let string_veryfying_key = String::from_utf8(veryfying_key.clone())?;
+        let string_veryfying_key = hex::encode(veryfying_key.clone()).to_string();
         let serialized_key_share = key_serialize(&key_share)
             .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
 

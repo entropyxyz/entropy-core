@@ -60,8 +60,7 @@ async fn create_clients(
 }
 
 pub async fn spawn_testing_validators(
-    // TODO make this type a Vec<u8>
-    verifying_key: Option<String>,
+    verifying_key: Option<Vec<u8>>,
     // If this is true a keyshare for the user will be generated and returned
     extra_private_keys: bool,
 ) -> (Vec<String>, Vec<PartyId>, Option<KeyShare<KeyParams>>) {
@@ -87,13 +86,13 @@ pub async fn spawn_testing_validators(
             entropy_kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
         let validator_2_threshold_keyshare: Vec<u8> =
             entropy_kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
+        let string_veryfying_key = hex::encode(verifying_key.unwrap());
         // add key share to kvdbs
         let alice_reservation =
-            alice_kv.kv().reserve_key(verifying_key.clone().unwrap()).await.unwrap();
+            alice_kv.kv().reserve_key(string_veryfying_key.clone()).await.unwrap();
         alice_kv.kv().put(alice_reservation, validator_1_threshold_keyshare).await.unwrap();
 
-        let bob_reservation =
-            bob_kv.kv().reserve_key(verifying_key.clone().unwrap()).await.unwrap();
+        let bob_reservation = bob_kv.kv().reserve_key(string_veryfying_key.clone()).await.unwrap();
         bob_kv.kv().put(bob_reservation, validator_2_threshold_keyshare).await.unwrap();
 
         if extra_private_keys {
