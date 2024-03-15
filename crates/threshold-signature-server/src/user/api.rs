@@ -159,7 +159,7 @@ pub async fn sign_tx(
 
     let user_details =
         get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
-
+    // TODO check with peg this is good to remove
     // if user_details.key_visibility.0 != KeyVisibility::Public
     //     && user_sig_req.signature_request_account != request_author
     // {
@@ -668,17 +668,18 @@ pub async fn recover_key(
 pub async fn request_limit_check(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_store: &KvManager,
-    signing_address: String,
+    veryfying_key: String,
     request_limit: u32,
 ) -> Result<(), UserErr> {
-    let key = request_limit_key(signing_address);
+    let key = request_limit_key(veryfying_key);
     let block_number = rpc
         .chain_get_header(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
+    let result = kv_store.kv().exists(&key).await?;
 
-    if kv_store.kv().exists(&key.to_string()).await? {
+    if kv_store.kv().exists(&key).await? {
         let serialized_request_amount = kv_store.kv().get(&key).await?;
         let request_info: RequestLimitStorage =
             RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
@@ -695,17 +696,17 @@ pub async fn request_limit_check(
 pub async fn increment_or_wipe_request_limit(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_store: &KvManager,
-    signing_address: String,
+    veryfying_key: String,
     request_limit: u32,
 ) -> Result<(), UserErr> {
-    let key = request_limit_key(signing_address);
+    let key = request_limit_key(veryfying_key);
     let block_number = rpc
         .chain_get_header(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
-    if kv_store.kv().exists(&key.to_string()).await? {
+    if kv_store.kv().exists(&key).await? {
         let serialized_request_amount = kv_store.kv().get(&key).await?;
         let request_info: RequestLimitStorage =
             RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
@@ -713,7 +714,7 @@ pub async fn increment_or_wipe_request_limit(
         // Previous block wipe request amount to new block
         if request_info.block_number != block_number {
             kv_store.kv().delete(&key).await?;
-            let reservation = kv_store.kv().reserve_key(key.to_string()).await?;
+            let reservation = kv_store.kv().reserve_key(key).await?;
             kv_store
                 .kv()
                 .put(reservation, RequestLimitStorage { block_number, request_amount: 1 }.encode())
@@ -724,7 +725,7 @@ pub async fn increment_or_wipe_request_limit(
         // same block incrememnt request amount
         if request_info.request_amount <= request_limit {
             kv_store.kv().delete(&key).await?;
-            let reservation = kv_store.kv().reserve_key(key.to_string()).await?;
+            let reservation = kv_store.kv().reserve_key(key).await?;
             kv_store
                 .kv()
                 .put(
@@ -738,7 +739,7 @@ pub async fn increment_or_wipe_request_limit(
                 .await?;
         }
     } else {
-        let reservation = kv_store.kv().reserve_key(key.to_string()).await?;
+        let reservation = kv_store.kv().reserve_key(key).await?;
         kv_store
             .kv()
             .put(reservation, RequestLimitStorage { block_number, request_amount: 1 }.encode())

@@ -177,7 +177,7 @@ async fn test_sign_tx_no_chain() {
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let signature_request_account = subxtAccountId32(one.pair().public().0);
     let session_id = SessionId::Sign(SigningSessionInfo {
-        signature_verifying_key: DEFAULT_VERIFYING_KEY,
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
         message_hash,
         request_author: signature_request_account.clone(),
     });
@@ -191,7 +191,7 @@ async fn test_sign_tx_no_chain() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_verifying_key: DEFAULT_VERIFYING_KEY,
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
 
     let validator_ips_and_keys = vec![
@@ -210,7 +210,7 @@ async fn test_sign_tx_no_chain() {
     update_programs(
         &entropy_api,
         &rpc,
-        DEFAULT_VERIFYING_KEY,
+        DAVE_VERIFYING_KEY.to_vec(),
         &one.pair(),
         OtherBoundedVec(vec![
             OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
@@ -228,7 +228,7 @@ async fn test_sign_tx_no_chain() {
     let mock_client = reqwest::Client::new();
     // check request limiter increases
     let unsafe_get =
-        UnsafeQuery::new(request_limit_key(signature_request_account.to_string()), vec![])
+        UnsafeQuery::new(request_limit_key(hex::encode(DAVE_VERIFYING_KEY.to_vec())), vec![])
             .to_json();
 
     // check get key before registration to see if key gets replaced
@@ -300,7 +300,7 @@ async fn test_sign_tx_no_chain() {
     });
 
     generic_msg.timestamp = SystemTime::now();
-    generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY.to_vec();
+    generic_msg.signature_verifying_key = DAVE_VERIFYING_KEY.to_vec().to_vec();
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
         generic_msg.clone(),
@@ -419,7 +419,7 @@ async fn test_sign_tx_no_chain() {
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     run_to_block(&rpc, block_number + 1).await;
     let unsafe_put = UnsafeQuery::new(
-        request_limit_key(signature_request_account.to_string()),
+        request_limit_key(hex::encode(DAVE_VERIFYING_KEY.to_vec())),
         RequestLimitStorage { request_amount: request_limit + 1, block_number: block_number + 1 }
             .encode(),
     )
@@ -1649,26 +1649,35 @@ async fn test_increment_or_wipe_request_limit() {
     let request_limit = query_chain(&api, &rpc, request_limit_query, None).await.unwrap().unwrap();
 
     // no error
-    assert!(request_limit_check(&rpc, &kv_store, alice.to_account_id().to_string(), request_limit)
-        .await
-        .is_ok());
+    assert!(request_limit_check(
+        &rpc,
+        &kv_store,
+        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        request_limit
+    )
+    .await
+    .is_ok());
 
     // run up the request check to one less then max (to check integration)
     for _ in 0..request_limit {
         increment_or_wipe_request_limit(
             &rpc,
             &kv_store,
-            alice.to_account_id().to_string(),
+            hex::encode(DAVE_VERIFYING_KEY.to_vec()),
             request_limit,
         )
         .await
         .unwrap();
     }
     // should now fail
-    let err_too_many_requests =
-        request_limit_check(&rpc, &kv_store, alice.to_account_id().to_string(), request_limit)
-            .await
-            .map_err(|e| e.to_string());
+    let err_too_many_requests = request_limit_check(
+        &rpc,
+        &kv_store,
+        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        request_limit,
+    )
+    .await
+    .map_err(|e| e.to_string());
     assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
 
     clean_tests();
