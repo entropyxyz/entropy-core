@@ -38,6 +38,13 @@ jobs:
     runs-on: core-build-runner
     steps:
       - uses: actions/checkout@v4
+      # Occasionally our builds will run out of free hard disk space.
+      # This next GitHub Action purports to help clear space for runs.
+      - name: Free disk space (Ubuntu)
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          docker-images: false
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
