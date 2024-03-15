@@ -66,7 +66,7 @@ async fn integration_test_sign_public() {
     test_client::update_programs(
         &api,
         &rpc,
-        DEFAULT_VERIFYING_KEY,
+        DEFAULT_VERIFYING_KEY.to_vec(),
         &pre_registered_public_user.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
@@ -79,7 +79,7 @@ async fn integration_test_sign_public() {
         &api,
         &rpc,
         request_author.pair(),
-        DEFAULT_VERIFYING_KEY,
+        DEFAULT_VERIFYING_KEY.to_vec(),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         None,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
@@ -123,7 +123,7 @@ async fn integration_test_sign_permissioned() {
     test_client::update_programs(
         &api,
         &rpc,
-        DEFAULT_VERIFYING_KEY,
+        DEFAULT_VERIFYING_KEY.to_vec(),
         &pre_registered_user.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
@@ -136,7 +136,7 @@ async fn integration_test_sign_permissioned() {
         &api,
         &rpc,
         pre_registered_user.pair(),
-        DEFAULT_VERIFYING_KEY,
+        DEFAULT_VERIFYING_KEY.to_vec(),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         None,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
@@ -158,7 +158,7 @@ async fn integration_test_sign_permissioned() {
         &api,
         &rpc,
         request_author_who_is_not_owner.pair(),
-        DEFAULT_VERIFYING_KEY,
+        DEFAULT_VERIFYING_KEY.to_vec(),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         None,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
@@ -199,7 +199,7 @@ async fn integration_test_sign_private() {
     test_client::update_programs(
         &api,
         &rpc,
-        DEFAULT_VERIFYING_KEY,
+        DEFAULT_VERIFYING_KEY.to_vec(),
         &pre_registered_user.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
@@ -212,7 +212,7 @@ async fn integration_test_sign_private() {
         &api,
         &rpc,
         pre_registered_user.pair(),
-        DEFAULT_VERIFYING_KEY,
+        DEFAULT_VERIFYING_KEY.to_vec(),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         keyshare_option.clone(),
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
@@ -235,7 +235,7 @@ async fn integration_test_sign_private() {
         &api,
         &rpc,
         request_author_who_is_not_owner.pair(),
-        DEFAULT_VERIFYING_KEY,
+        DEFAULT_VERIFYING_KEY.to_vec(),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         keyshare_option.clone(),
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),

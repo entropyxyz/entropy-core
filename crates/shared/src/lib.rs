@@ -42,3 +42,6 @@ pub const MAX_INSTRUCTIONS_PER_PROGRAM: u64 = 100_000;
 
 /// Blocks a transaction is valid for
 pub const MORTALITY_BLOCKS: u64 = 32;
+
+/// Size of the verification key
+pub const VERIFICATION_KEY_LENGTH: u32 = 33;

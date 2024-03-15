@@ -23,6 +23,7 @@ use entropy_runtime::{
     SessionConfig, StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeConfig,
 };
+use entropy_shared::VERIFICATION_KEY_LENGTH;
 use entropy_runtime::{AccountId, Balance};
 use grandpa_primitives::AuthorityId as GrandpaId;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -226,19 +227,19 @@ pub fn development_genesis_config(
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
                     0,
                     None,
-                    BoundedVec::try_from(vec![1]).unwrap(),
+                    BoundedVec::try_from(vec![1; VERIFICATION_KEY_LENGTH as usize]).unwrap()
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Eve"),
                     1,
                     Some(crate::chain_spec::tss_x25519_public_key::EVE),
-                    BoundedVec::try_from(vec![2]).unwrap(),
+                    BoundedVec::try_from(vec![2; VERIFICATION_KEY_LENGTH as usize]).unwrap()
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Ferdie"),
                     2,
                     None,
-                    BoundedVec::try_from(vec![3]).unwrap(),
+                    BoundedVec::try_from(vec![3; VERIFICATION_KEY_LENGTH as usize]).unwrap()
                 ),
             ],
         },

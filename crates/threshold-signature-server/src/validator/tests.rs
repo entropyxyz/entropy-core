@@ -65,9 +65,9 @@ async fn test_get_all_keys() {
     let mut result_4 = get_all_keys(&api, &rpc).await.unwrap();
 
     let mut expected_results = vec![
-        "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL",
-        "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy",
-        "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw",
+        "010101010101010101010101010101010101010101010101010101010101010101",
+        "020202020202020202020202020202020202020202020202020202020202020202",
+        "030303030303030303030303030303030303030303030303030303030303030303",
     ];
     result.sort();
     expected_results.sort();
@@ -90,9 +90,9 @@ async fn test_sync_kvdb() {
 
     let _ctx = test_context_stationary().await;
     let addrs = vec![
-        "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
-        "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
-        "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
+        "010101010101010101010101010101010101010101010101010101010101010101".to_string(),
+        "020202020202020202020202020202020202020202020202020202020202020202".to_string(),
+        "030303030303030303030303030303030303030303030303030303030303030303".to_string(),
     ];
 
     let b_usr_sk = mnemonic_to_pair(
@@ -259,9 +259,9 @@ async fn test_get_and_store_values() {
             .unwrap();
     let recip_key = x25519_dalek::PublicKey::from(server_info.x25519_public_key);
     let keys = vec![
-        "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
-        "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
-        "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
+        "010101010101010101010101010101010101010101010101010101010101010101".to_string(),
+        "020202020202020202020202020202020202020202020202020202020202020202".to_string(),
+        "030303030303030303030303030303030303030303030303030303030303030303".to_string(),
     ];
     let port_0 = 3002;
     let port_1 = 3003;
@@ -387,9 +387,9 @@ async fn test_sync_validator() {
     let rpc = get_rpc(&ctx.ws_url).await.unwrap();
     let values = vec![vec![10], vec![11], vec![12]];
     let keys = vec![
-        "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
-        "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
-        "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
+        "010101010101010101010101010101010101010101010101010101010101010101".to_string(),
+        "020202020202020202020202020202020202020202020202020202020202020202".to_string(),
+        "030303030303030303030303030303030303030303030303030303030303030303".to_string(),
     ];
     let (alice_axum, _) = create_clients(
         "alice".to_string(),

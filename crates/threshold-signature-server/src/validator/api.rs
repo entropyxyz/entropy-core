@@ -178,11 +178,9 @@ pub async fn get_all_keys(
     while let Some(Ok((key, _account))) = iter.next().await {
         let new_key = hex::encode(key);
         let len = new_key.len();
-        let final_key = &new_key[len - 64..];
+        let final_key = &new_key[len - 66..];
         // checks address is valid
-        let address: AccountId32 = AccountId32::from_str(final_key)
-            .map_err(|_| ValidatorErr::AddressConversionError("Invalid Address".to_string()))?;
-        addresses.push(address.to_string())
+        addresses.push(final_key.to_string())
     }
     Ok(addresses)
 }

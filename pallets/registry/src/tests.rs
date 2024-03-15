@@ -31,7 +31,7 @@ use sp_runtime::{
 use crate as pallet_registry;
 use crate::{
     mock::*, Error, ProgramInstance, Registered, RegisteredInfo, RegisteringDetails,
-    ValidateConfirmRegistered,
+    ValidateConfirmRegistered, VERIFICATION_KEY_LENGTH,
 };
 
 #[test]
@@ -106,16 +106,27 @@ fn it_registers_a_user() {
 #[test]
 fn it_confirms_registers_a_user() {
     new_test_ext().execute_with(|| {
-        let expected_verifying_key = BoundedVec::default();
+        let expected_verifying_key =
+            BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
         assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
+            Registry::confirm_register(
+                RuntimeOrigin::signed(1),
+                1,
+                0,
+                expected_verifying_key.clone()
+            ),
             Error::<Test>::NoThresholdKey
         );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
 
         assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
+            Registry::confirm_register(
+                RuntimeOrigin::signed(1),
+                1,
+                0,
+                expected_verifying_key.clone()
+            ),
             Error::<Test>::NotRegistering
         );
 
@@ -142,16 +153,25 @@ fn it_confirms_registers_a_user() {
             KeyVisibility::Private([0; 32]),
             programs_info.clone(),
         ));
-
         assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(1), 1, 3, BoundedVec::default()),
+            Registry::confirm_register(
+                RuntimeOrigin::signed(1),
+                1,
+                3,
+                expected_verifying_key.clone()
+            ),
             Error::<Test>::NotInSigningGroup
         );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
 
         assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(2), 1, 0, BoundedVec::default()),
+            Registry::confirm_register(
+                RuntimeOrigin::signed(2),
+                1,
+                0,
+                expected_verifying_key.clone()
+            ),
             Error::<Test>::NotInSigningGroup
         );
 
@@ -328,8 +348,11 @@ fn it_fails_on_non_matching_verifying_keys() {
             },
         );
 
-        let expected_verifying_key = BoundedVec::default();
-        let unexpected_verifying_key = vec![10];
+        let expected_verifying_key =
+            BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
+        let unexpected_verifying_key =
+            BoundedVec::try_from(vec![1; VERIFICATION_KEY_LENGTH as usize]).unwrap();
+
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
@@ -574,7 +597,8 @@ fn it_provides_free_txs_confirm_done_fails_3() {
             },
         );
 
-        let expected_verifying_key = BoundedVec::default();
+        let expected_verifying_key =
+            BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,

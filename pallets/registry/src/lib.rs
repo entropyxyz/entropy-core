@@ -53,7 +53,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
+    use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE, VERIFICATION_KEY_LENGTH};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, Pays},
         pallet_prelude::*,
@@ -67,8 +67,6 @@ pub mod pallet {
     use sp_std::{fmt::Debug, vec::Vec};
 
     pub use crate::weights::WeightInfo;
-
-    const VERIFICATION_KEY_LENGTH: u32 = 33;
     /// Max modifiable keys allowed for a program modification account
     const MAX_MODIFIABLE_KEYS: u32 = 25;
     /// Configure the pallet by specifying the parameters and types on which it depends.
@@ -132,6 +130,7 @@ pub mod pallet {
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             for account_info in &self.registered_accounts {
+                assert!(account_info.3.clone().len() as u32 == VERIFICATION_KEY_LENGTH);
                 let key_visibility = match account_info.1 {
                     1 => KeyVisibility::Private(
                         account_info.2.expect("Private key visibility needs x25519 public key"),
@@ -220,6 +219,7 @@ pub mod pallet {
         ProgramDoesNotExist,
         NoProgramSet,
         TooManyModifiableKeys,
+        VerifyingKeyLength,
     }
 
     #[pallet::call]
@@ -391,6 +391,10 @@ pub mod pallet {
             verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
         ) -> DispatchResultWithPostInfo {
             let ts_server_account = ensure_signed(origin)?;
+            ensure!(
+                verifying_key.len() as u32 == VERIFICATION_KEY_LENGTH,
+                Error::<T>::VerifyingKeyLength
+            );
             let validator_stash =
                 pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
                     .ok_or(Error::<T>::NoThresholdKey)?;

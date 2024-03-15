@@ -632,12 +632,12 @@ async fn test_store_share() {
 
     let cxt = test_context_stationary().await;
     let (_validator_ips, _validator_ids, _) =
-        spawn_testing_validators(Some(DEFAULT_VERIFYING_KEY), false).await;
+        spawn_testing_validators(Some(DEFAULT_VERIFYING_KEY.to_vec()), false).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
     let client = reqwest::Client::new();
-    let get_query = UnsafeQuery::new(hex::encode(DEFAULT_VERIFYING_KEY), vec![]).to_json();
+    let get_query = UnsafeQuery::new(hex::encode(DEFAULT_VERIFYING_KEY.to_vec()), vec![]).to_json();
 
     // check get key before registration to see if key gets replaced
     let response_key = client
@@ -784,7 +784,7 @@ async fn test_store_share() {
         "Invalid Signer: Invalid Signer in Signing group"
     );
 
-    check_if_confirmation(&api, &rpc, &alice.pair(), DEFAULT_VERIFYING_KEY).await;
+    check_if_confirmation(&api, &rpc, &alice.pair(), DEFAULT_VERIFYING_KEY.to_vec()).await;
     // TODO check if key is in other subgroup member
     clean_tests();
 }
@@ -1118,7 +1118,7 @@ async fn test_sign_tx_user_participates() {
 
     let signature_request_account = subxtAccountId32(one.pair().public().0);
     let session_id = SessionId::Sign(SigningSessionInfo {
-        signature_verifying_key: DEFAULT_VERIFYING_KEY,
+        signature_verifying_key: veryfying_key,
         message_hash: message_should_succeed_hash,
         request_author: signature_request_account.clone(),
     });
@@ -1621,14 +1621,22 @@ async fn test_mutiple_confirm_done() {
         alice.to_account_id().into(),
         0u8,
         &signer_alice,
-        vec![0u8],
+        DEFAULT_VERIFYING_KEY.to_vec(),
         0u32,
     )
     .await
     .unwrap();
-    confirm_registered(&api, &rpc, bob.to_account_id().into(), 0u8, &signer_alice, vec![0u8], 1u32)
-        .await
-        .unwrap();
+    confirm_registered(
+        &api,
+        &rpc,
+        bob.to_account_id().into(),
+        0u8,
+        &signer_alice,
+        DEFAULT_VERIFYING_KEY.to_vec(),
+        1u32,
+    )
+    .await
+    .unwrap();
     check_has_confirmation(&api, &rpc, &alice.pair()).await;
     check_has_confirmation(&api, &rpc, &bob.pair()).await;
     clean_tests();
