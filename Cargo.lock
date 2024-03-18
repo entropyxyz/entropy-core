@@ -2691,6 +2691,7 @@ dependencies = [
  "clap_complete",
  "entropy-runtime",
  "entropy-shared",
+ "entropy-testing-utils",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "frame-system",

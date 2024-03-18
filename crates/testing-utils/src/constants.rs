@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use entropy_shared::VERIFICATION_KEY_LENGTH;
 use hex_literal::hex;
 use subxt::utils::AccountId32;
-use entropy_shared::VERIFICATION_KEY_LENGTH;
 
 lazy_static! {
     pub static ref ALICE_STASH_ADDRESS: AccountId32 = hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
@@ -44,7 +44,7 @@ lazy_static! {
     ];
     pub static ref DEFAULT_VERIFYING_KEY_NOT_REGISTERED: Vec<u8> = vec![10; VERIFICATION_KEY_LENGTH as usize];
     pub static ref DAVE_VERIFYING_KEY: Vec<u8> = vec![1; VERIFICATION_KEY_LENGTH as usize];
-    pub static ref EVE_VERIFYING_KEY: Vec<u8> = vec![2; VERIFICATION_KEY_LENGTH as usize];
+    pub static ref EVE_VERIFYING_KEY: Vec<u8> = vec![2, 78, 59, 129, 175, 156, 34, 52, 202, 208, 157, 103, 156, 230, 3, 94, 209, 57, 35, 71, 206, 100, 206, 64, 95, 93, 205, 54, 34, 138, 37, 222, 110];
     pub static ref FERDIE_VERIFYING_KEY: Vec<u8> = vec![3; VERIFICATION_KEY_LENGTH as usize];
     pub static ref DEFAULT_VERIFYING_KEY: Vec<u8> = vec![0; VERIFICATION_KEY_LENGTH as usize];
 }

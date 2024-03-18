@@ -45,7 +45,7 @@ async fn test_proactive_refresh() {
 
     let signing_address = eve.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, users_keyshare_option) =
-        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true).await;
+        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true, false).await;
 
     let client = reqwest::Client::new();
     let converted_key_share = serialize(&users_keyshare_option.unwrap()).unwrap();

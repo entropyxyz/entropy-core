@@ -93,6 +93,7 @@ pallet-transaction-payment-rpc    ={ version="27.0.0" }
 # Entropy Dependencies
 entropy-runtime         ={ version="0.0.10", path="../../runtime" }
 entropy-shared          ={ path="../../crates/shared", default-features=false, features=["wasm-no-std"] }
+entropy-testing-utils   ={ path="../../crates/testing-utils", default-features=false }
 pallet-registry         ={ version="0.0.10", path="../../pallets/registry" }
 pallet-staking-extension={ version="0.0.10", path="../../pallets/staking" }
 
