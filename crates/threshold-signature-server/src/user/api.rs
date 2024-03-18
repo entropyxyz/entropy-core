@@ -344,9 +344,6 @@ async fn setup_dkg(
         let serialized_key_share = key_serialize(&key_share)
             .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
-        if app_state.kv_store.kv().exists(&string_veryfying_key).await? {
-            app_state.kv_store.kv().delete(&string_veryfying_key).await?;
-        }
         let reservation = app_state.kv_store.kv().reserve_key(string_veryfying_key.clone()).await?;
         app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
 

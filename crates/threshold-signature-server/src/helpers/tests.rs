@@ -241,8 +241,7 @@ pub async fn check_if_confirmation(
     // cleared from is_registering state
     assert!(is_registering.unwrap().is_none());
     let is_registered = query_chain(api, rpc, registered_query, block_hash).await.unwrap();
-    // TODO fix this by getting the right veryfying key from listening for event
-    // assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
+    assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
 }
 
 /// Verify that an account got one confirmation.

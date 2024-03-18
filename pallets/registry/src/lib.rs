@@ -186,10 +186,10 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// An account has signaled to be registered. [signature request account]
         SignalRegister(T::AccountId),
-        /// An account has been registered. [who, signing_group]
-        AccountRegistering(T::AccountId, u8),
-        /// An account has been registered. \[who\]
-        AccountRegistered(T::AccountId),
+        /// An account has been registered. [who, signing_group, verifying_key]
+        AccountRegistering(T::AccountId, u8, VerifyingKey),
+        /// An account has been registered. \[who, verifying_key]
+        AccountRegistered(T::AccountId, VerifyingKey),
         /// An account registration has failed
         FailedRegistration(T::AccountId),
         /// An account cancelled their registration
@@ -457,7 +457,7 @@ pub mod pallet {
                 let weight =
                     <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
 
-                Self::deposit_event(Event::AccountRegistered(sig_req_account));
+                Self::deposit_event(Event::AccountRegistered(sig_req_account, verifying_key));
                 Ok(Some(weight).into())
             } else {
                 // If verifying key does not match for everyone, registration failed
@@ -473,7 +473,7 @@ pub mod pallet {
                 }
                 registering_info.confirmations.push(signing_subgroup);
                 Registering::<T>::insert(&sig_req_account, registering_info);
-                Self::deposit_event(Event::AccountRegistering(sig_req_account, signing_subgroup));
+                Self::deposit_event(Event::AccountRegistering(sig_req_account, signing_subgroup, registering_info_verifying_key));
                 Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(
                     confirmation_length,
                 ))

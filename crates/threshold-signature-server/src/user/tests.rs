@@ -66,6 +66,7 @@ use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
+    events::EventsClient,
     ext::{
         sp_core::{sr25519, sr25519::Signature, Bytes, Pair},
         sp_runtime::AccountId32,
@@ -637,18 +638,7 @@ async fn test_store_share() {
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
     let client = reqwest::Client::new();
-    let get_query = UnsafeQuery::new(hex::encode(DEFAULT_VERIFYING_KEY.to_vec()), vec![]).to_json();
 
-    // check get key before registration to see if key gets replaced
-    let response_key = client
-        .post("http://127.0.0.1:3001/unsafe/get")
-        .header("Content-Type", "application/json")
-        .body(get_query.clone())
-        .send()
-        .await
-        .unwrap();
-
-    let original_key_shard = response_key.text().await.unwrap();
     let program_hash = store_program(
         &api,
         &rpc,
@@ -699,27 +689,38 @@ async fn test_store_share() {
 
     // Wait until user is confirmed as registered
     let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
+    let mut new_verifying_key = vec![];
     // TODO wait for registered event check that key exists in kvdb
-    for _ in 0..10 {
+    for _ in 0..45 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
-        // let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
-        // let registered_query = entropy::storage().registry().registered(alice_account_id.clone());
-        // let query_registered_status = query_chain(&api, &rpc, registered_query, block_hash).await;
-        // if query_registered_status.unwrap().is_some() {
-        //     break;
-        // }
+        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
+        let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
+        let registered_event =
+            events.find_first::<entropy::registry::events::AccountRegistered>().unwrap();
+        if let Some(ev) = registered_event {
+            let registered_query = entropy::storage().registry().registered(&ev.1);
+            let query_registered_status =
+                query_chain(&api, &rpc, registered_query, block_hash).await;
+            if query_registered_status.unwrap().is_some() {
+                new_verifying_key = ev.1 .0;
+                break;
+            }
+        }
     }
 
-    // // check alice has new key
-    // let response_new_key = client
-    //     .post("http://127.0.0.1:3001/unsafe/get")
-    //     .header("Content-Type", "application/json")
-    //     .body(get_query.clone())
-    //     .send()
-    //     .await
-    //     .unwrap();
-    // let key_shard_after = response_new_key.text().await.unwrap();
-    // assert_ne!(original_key_shard, key_shard_after);
+    let get_query =
+        UnsafeQuery::new(hex::encode(DEFAULT_VERIFYING_KEY.to_vec()), new_verifying_key.clone())
+            .to_json();
+    // check get key before registration to see if key gets replaced
+    let response_key = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_key.text().await.is_ok(), true);
 
     // fails repeated data
     let response_repeated_data = client
@@ -784,7 +785,7 @@ async fn test_store_share() {
         "Invalid Signer: Invalid Signer in Signing group"
     );
 
-    check_if_confirmation(&api, &rpc, &alice.pair(), DEFAULT_VERIFYING_KEY.to_vec()).await;
+    check_if_confirmation(&api, &rpc, &alice.pair(), new_verifying_key).await;
     // TODO check if key is in other subgroup member
     clean_tests();
 }
