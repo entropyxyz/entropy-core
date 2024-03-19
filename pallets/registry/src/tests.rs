@@ -709,3 +709,143 @@ fn it_provides_free_txs_confirm_done_fails_5() {
         assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
     });
 }
+
+#[test]
+fn cannot_report_outside_of_validator_set() {
+    new_test_ext().execute_with(|| {
+        // These mappings come from the mock GenesisConfig
+        let (_alice_validator, alice_tss) = (5, 7);
+        let (_bob_validator, bob_tss) = (6, 8);
+        let (_charlie_validator, charlie_tss) = (1, 3);
+
+        let (_not_validator, not_tss) = (33, 33);
+
+        // This is going to be our signature request account
+        let charlie = 99;
+
+        // Setup our test
+        //
+        // This requires getting Charlie into a registering state
+        let empty_program = vec![];
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
+            program_pointer: program_hash,
+            program_config: vec![],
+        }])
+        .unwrap();
+
+        let registering_info = RegisteringDetails::<Test> {
+            confirmations: vec![0],
+            programs_data: programs_info.clone(),
+            key_visibility: KeyVisibility::Private([0; 32]),
+            verifying_key: None,
+            program_modification_account: 2,
+            version_number: 1,
+            block_number: 1,
+        };
+        crate::Registering::insert(charlie, registering_info);
+
+        // A TSS which doesn't have a `ValidatorId` cannot report another peer
+        assert_noop!(
+            Registry::report_unstable_peer(RuntimeOrigin::signed(not_tss), charlie, bob_tss),
+            Error::<Test>::NoThresholdKey
+        );
+
+        // A validator which isn't part of the signing committee cannot report another peer
+        assert_noop!(
+            Registry::report_unstable_peer(RuntimeOrigin::signed(charlie_tss), charlie, bob_tss),
+            Error::<Test>::NotACommitteeMember
+        );
+
+        // An offender that does not have a `ValidatorId` cannot be reported
+        assert_noop!(
+            Registry::report_unstable_peer(RuntimeOrigin::signed(alice_tss), charlie, not_tss),
+            Error::<Test>::NoThresholdKey
+        );
+
+        // An offender which isn't part of the signing committee cannot be reported
+        assert_noop!(
+            Registry::report_unstable_peer(RuntimeOrigin::signed(alice_tss), charlie, charlie_tss),
+            Error::<Test>::NotACommitteeMember
+        );
+    })
+}
+
+#[test]
+fn can_report_unstable_peer() {
+    new_test_ext().execute_with(|| {
+        // These mappings come from the mock GenesisConfig
+        let (alice_validator, alice_tss) = (5, 7);
+        let (bob_validator, bob_tss) = (6, 8);
+
+        // This is going to be our signature request account
+        let charlie = 99;
+
+        // No report can be submitted if the signature request account isn't in the registration
+        // process
+        assert_noop!(
+            Registry::report_unstable_peer(RuntimeOrigin::signed(alice_tss), charlie, bob_tss),
+            Error::<Test>::NotRegistering
+        );
+
+        // Setup our test
+        //
+        // This requires getting Charlie into a registering state
+        System::set_block_number(System::block_number() + 1);
+
+        let empty_program = vec![];
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
+            program_pointer: program_hash,
+            program_config: vec![],
+        }])
+        .unwrap();
+
+        pallet_programs::Programs::<Test>::insert(
+            program_hash,
+            ProgramInfo {
+                bytecode: empty_program.clone(),
+                interface_description: empty_program.clone(),
+                deployer: 1,
+                ref_counter: 0,
+            },
+        );
+
+        assert_ok!(Registry::register(
+            RuntimeOrigin::signed(charlie),
+            charlie as <Test as frame_system::Config>::AccountId,
+            KeyVisibility::Public,
+            programs_info,
+        ));
+
+        // If we don't manually increase the providers here we can't bond the accounts.
+        //
+        // See here: https://substrate.stackexchange.com/questions/9225/moduleerror-badstate/9228#9228
+        <frame_system::Pallet<Test>>::inc_providers(&alice_tss);
+        <frame_system::Pallet<Test>>::inc_providers(&bob_tss);
+
+        // TODO (Nando): Not sure if this is the correct account to use though, we maybe need to
+        // rework the `get_stash` function to account for the deprecation of controller accounts
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(alice_tss),
+            100u64,
+            pallet_staking::RewardDestination::Account(alice_validator),
+        ));
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(bob_tss),
+            100u64,
+            pallet_staking::RewardDestination::Account(bob_validator),
+        ));
+
+        // A report can be submitted if all the above conditions are met
+        assert_ok!(Registry::report_unstable_peer(
+            RuntimeOrigin::signed(alice_tss),
+            charlie,
+            bob_tss
+        ));
+
+        // TODO (Nando): Again, unclear this this is the correct account to use...
+        assert_eq!(<pallet_slashing::Pallet<Test>>::failed_registrations(bob_tss), 1);
+    })
+}
