@@ -28,6 +28,7 @@ sp-std            ={ version="12.0.0", default-features=false }
 
 entropy-shared          ={ path="../../crates/shared", features=["wasm-no-std"], default-features=false }
 pallet-programs         ={ version="0.0.10", path="../programs", default-features=false }
+pallet-slashing         ={ version="0.0.10", path="../slashing", default-features=false }
 pallet-staking-extension={ version="0.0.10", path="../staking", default-features=false }
 
 [dev-dependencies]
@@ -53,6 +54,7 @@ std=[
   'log/std',
   'pallet-balances/std',
   'pallet-programs/std',
+  'pallet-slashing/std',
   'pallet-staking-extension/std',
   'scale-info/std',
 ]

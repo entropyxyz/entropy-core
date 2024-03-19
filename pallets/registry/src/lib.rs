@@ -79,6 +79,7 @@ pub mod pallet {
         + pallet_authorship::Config
         + pallet_staking_extension::Config
         + pallet_programs::Config
+        + pallet_slashing::Config
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -208,7 +209,6 @@ pub mod pallet {
     #[pallet::error]
     pub enum Error<T> {
         AlreadySubmitted,
-        NoThresholdKey,
         NotRegistering,
         NotRegistered,
         InvalidSubgroup,
@@ -224,6 +224,9 @@ pub mod pallet {
         NoProgramSet,
         TooManyModifiableKeys,
         MismatchedVerifyingKeyLength,
+
+        /// The given Threshold `AccountId` does not have a corresponding `ValidatorId`.
+        NoThresholdKey,
 
         /// The validator is not part of a registration or signing committee.
         NotACommitteeMember,
@@ -502,25 +505,23 @@ pub mod pallet {
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
             offending_peer_tss_account: T::AccountId,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             let reporter_tss_account = ensure_signed(origin)?;
 
             let registration_block_number =
                 Self::registering(&sig_req_account).ok_or(Error::<T>::NotRegistering)?.block_number;
 
             // First, we check that the reporting validator is part of the expected committee
-
-            // TODO: Is this the correct error type? Should be something like: "Not validator?"
             let reporter_validator_account =
                 pallet_staking_extension::Pallet::<T>::threshold_to_stash(&reporter_tss_account)
                     .ok_or(Error::<T>::NoThresholdKey)?;
 
             ensure!(
-                Self::is_in_committe(reporter_validator_account, registration_block_number)?,
+                Self::is_in_committe(&reporter_validator_account, registration_block_number)?,
                 Error::<T>::NotACommitteeMember
             );
 
-            // Next we'll check that the alleged offender is also part of the committee
+            // Next, we'll check that the alleged offender is also part of the committee
             let offending_peer_validator_account =
                 pallet_staking_extension::Pallet::<T>::threshold_to_stash(
                     &offending_peer_tss_account,
@@ -528,18 +529,30 @@ pub mod pallet {
                 .ok_or(Error::<T>::NoThresholdKey)?;
 
             ensure!(
-                Self::is_in_committe(offending_peer_validator_account, registration_block_number)?,
+                Self::is_in_committe(&offending_peer_validator_account, registration_block_number)?,
                 Error::<T>::NotACommitteeMember
             );
 
-            // Now we want to note the offence down, but we don't do anything about here.
+            // We do a bit of a weird conversion here since we want the validator's underlying
+            // `AccountId` for the reporting mechanism, not their `ValidatorId`.
             //
-            // This would get offloaded elsewhere, probably the offences pallet. This should then
-            // tally up votes at the end of the session and take actions appropriately
-            //
-            // Should we do this here, or offload this to the Offences pallet?
+            // The Session pallet should have this configured to be the same thing.
+            let reporter_validator_account =
+                pallet_staking_extension::Pallet::<T>::get_stash(&reporter_tss_account)
+                    .map_err(|_| Error::<T>::NoThresholdKey)?;
 
-            todo!()
+            let offending_peer_validator_account =
+                pallet_staking_extension::Pallet::<T>::get_stash(&offending_peer_tss_account)
+                    .map_err(|_| Error::<T>::NoThresholdKey)?;
+
+            // We don't actually take any action here, we offload the reporting to the Slashing
+            // pallet.
+            pallet_slashing::Pallet::<T>::note_report(
+                reporter_validator_account,
+                offending_peer_validator_account,
+            )?;
+
+            Ok(())
         }
     }
 
@@ -593,16 +606,16 @@ pub mod pallet {
         /// Check if the given validator was part of the signing committee for the given block
         /// height.
         pub fn is_in_committe(
-            validator: T::ValidatorId,
+            validator: &T::ValidatorId,
             block_number: BlockNumberFor<T>,
         ) -> Result<bool, Error<T>> {
             let signing_group =
-                pallet_staking_extension::Pallet::<T>::validator_to_subgroup(&validator)
+                pallet_staking_extension::Pallet::<T>::validator_to_subgroup(validator)
                     .ok_or(Error::<T>::NoThresholdKey)?;
 
             let expected_validator = Self::get_validator_rotation(signing_group, block_number)?.0;
 
-            Ok(expected_validator == validator)
+            Ok(expected_validator == *validator)
         }
     }
 
