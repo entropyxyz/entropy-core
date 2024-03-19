@@ -690,7 +690,7 @@ async fn test_store_share() {
     // Wait until user is confirmed as registered
     let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
     let mut new_verifying_key = vec![];
-    // TODO wait for registered event check that key exists in kvdb
+    // wait for registered event check that key exists in kvdb
     for _ in 0..45 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
@@ -709,8 +709,7 @@ async fn test_store_share() {
     }
 
     let get_query =
-        UnsafeQuery::new(hex::encode(DEFAULT_VERIFYING_KEY.to_vec()), new_verifying_key.clone())
-            .to_json();
+        UnsafeQuery::new(hex::encode(new_verifying_key.to_vec()), [].to_vec()).to_json();
     // check get key before registration to see if key gets replaced
     let response_key = client
         .post("http://127.0.0.1:3001/unsafe/get")
@@ -719,9 +718,10 @@ async fn test_store_share() {
         .send()
         .await
         .unwrap();
-
-    // TODO: test valid keyshare
-    assert_eq!(response_key.text().await.is_ok(), true);
+    // check to make sure keyshare is correct
+    let key_share: KeyShare<KeyParams> =
+        entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
+    assert_eq(key_share.is_ok(), true);
 
     // fails repeated data
     let response_repeated_data = client

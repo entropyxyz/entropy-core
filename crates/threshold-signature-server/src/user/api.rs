@@ -159,12 +159,6 @@ pub async fn sign_tx(
 
     let user_details =
         get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
-    // TODO check with peg this is good to remove
-    // if user_details.key_visibility.0 != KeyVisibility::Public
-    //     && user_sig_req.signature_request_account != request_author
-    // {
-    //     return Err(UserErr::AuthorizationError);
-    // }
 
     let message = hex::decode(&user_sig_req.message)?;
 
