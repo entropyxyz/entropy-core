@@ -268,8 +268,6 @@ pub mod pallet {
                 Error::<T>::EndpointTooLong
             );
 
-            pallet_staking::Pallet::<T>::ledger(StakingAccount::Stash(who.clone()))
-                .map_err(|_| Error::<T>::NoBond)?;
             let ledger = pallet_staking::Pallet::<T>::ledger(StakingAccount::Stash(who.clone()))
                 .map_err(|_| Error::<T>::NoBond)?;
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
