@@ -28,7 +28,6 @@ use entropy_testing_utils::{
     tss_server_process::spawn_testing_validators,
 };
 use serial_test::serial;
-use sp_core::crypto::Ss58Codec;
 use sp_keyring::AccountKeyring;
 use synedrion::k256::ecdsa::VerifyingKey;
 

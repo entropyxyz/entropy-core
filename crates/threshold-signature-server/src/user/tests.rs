@@ -145,7 +145,6 @@ async fn test_sign_tx_no_chain() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
     let substrate_context = test_context_stationary().await;
@@ -459,7 +458,6 @@ async fn test_program_with_config() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec().clone()), false, false).await;
     let substrate_context = test_context_stationary().await;
@@ -629,8 +627,6 @@ async fn test_store_share() {
     let alice_program = AccountKeyring::Charlie;
     let program_manager = AccountKeyring::Dave;
 
-    let signing_address = alice.to_account_id().to_ss58check();
-
     let cxt = test_context_stationary().await;
     let (_validator_ips, _validator_ids, _) =
         spawn_testing_validators(Some(DEFAULT_VERIFYING_KEY.to_vec()), false, false).await;
@@ -687,8 +683,6 @@ async fn test_store_share() {
 
     assert_eq!(user_registration_response.text().await.unwrap(), "");
 
-    // Wait until user is confirmed as registered
-    let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
     let mut new_verifying_key = vec![];
     // wait for registered event check that key exists in kvdb
     for _ in 0..45 {
@@ -1065,7 +1059,6 @@ async fn test_sign_tx_user_participates() {
     let one = AccountKeyring::Eve;
     let two = AccountKeyring::Two;
 
-    let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, users_keyshare_option) =
         spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true, true).await;
     let substrate_context = test_context_stationary().await;
@@ -1500,7 +1493,6 @@ async fn test_fail_infinite_program() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, _) =
         spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
     let substrate_context = test_context_stationary().await;
@@ -1649,7 +1641,6 @@ async fn test_mutiple_confirm_done() {
 async fn test_increment_or_wipe_request_limit() {
     initialize_test_logger().await;
     clean_tests();
-    let alice = AccountKeyring::Alice;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();

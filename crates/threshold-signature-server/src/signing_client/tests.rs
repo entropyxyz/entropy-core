@@ -31,7 +31,6 @@ use entropy_testing_utils::{
 use futures::future::join_all;
 use parity_scale_codec::Encode;
 use serial_test::serial;
-use sp_core::crypto::Ss58Codec;
 use sp_keyring::AccountKeyring;
 
 #[tokio::test]
@@ -39,11 +38,8 @@ use sp_keyring::AccountKeyring;
 async fn test_proactive_refresh() {
     initialize_test_logger().await;
     clean_tests();
-    let eve = AccountKeyring::Eve;
-    let dave = AccountKeyring::Dave;
     let _cxt = test_node_process_testing_state(false).await;
 
-    let signing_address = eve.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, users_keyshare_option) =
         spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true, false).await;
 
