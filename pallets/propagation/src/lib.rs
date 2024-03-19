@@ -128,7 +128,7 @@ pub mod pallet {
 
             // check response code
             if response.code != 200 {
-                log::error!("Unexpected status code: {}", response.code);
+                log::warn!("Unexpected status code: {}", response.code);
                 return Err(http::Error::Unknown);
             }
             let _res_body = response.body().collect::<Vec<u8>>();
