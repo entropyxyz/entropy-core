@@ -33,7 +33,7 @@ use entropy_testing_utils::{
     },
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
-        TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+        TSS_ACCOUNTS, X25519_PUBLIC_KEYS, EVE_VERIFYING_KEY
     },
     substrate_context::test_context_stationary,
     test_client::{put_register_request_on_chain, store_program, update_programs},
@@ -44,17 +44,15 @@ use futures::future::{self};
 use parity_scale_codec::Encode;
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
-use sp_core::crypto::{AccountId32, Pair, Ss58Codec};
+use sp_core::crypto::{AccountId32, Pair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{
-    thread,
-    time::{Duration, SystemTime},
+    time::{SystemTime},
 };
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     events::EventsClient,
     ext::sp_core::{sr25519::Signature, Bytes},
-    utils::AccountId32 as SubxtAccountId32,
     Config, OnlineClient,
 };
 use synedrion::KeyShare;
@@ -62,7 +60,7 @@ use x25519_dalek::PublicKey;
 
 use entropy_tss::{
     chain_api::{
-        entropy::{self, runtime_types::pallet_registry::pallet::RegisteredInfo},
+        entropy::{self},
         get_api, get_rpc, EntropyConfig,
     },
     common::{
@@ -80,7 +78,6 @@ async fn test_wasm_sign_tx_user_participates() {
     let one = AccountKeyring::Eve;
     let dave = AccountKeyring::Dave;
 
-    let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, users_keyshare_option) =
         spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true, true).await;
     let substrate_context = test_context_stationary().await;
@@ -106,7 +103,7 @@ async fn test_wasm_sign_tx_user_participates() {
     update_programs(
         &entropy_api,
         &rpc,
-        verifying_key,
+        verifying_key.clone(),
         &one.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
@@ -290,14 +287,14 @@ async fn test_wasm_register_with_private_key_visibility() {
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
 
-    let (registered_info, verifying_key) =
+    let verifying_key =
         wait_for_register_confirmation(one.to_account_id(), api, rpc).await;
 
     let user_keyshare: KeyShare<KeyParams> = serde_json::from_str(&user_keyshare_json).unwrap();
     let user_verifying_key =
         user_keyshare.verifying_key().to_encoded_point(true).as_bytes().to_vec();
 
-    assert_eq!(user_verifying_key, registered_info.0);
+    assert_eq!(user_verifying_key, verifying_key);
 
     clean_tests();
 }
@@ -402,7 +399,7 @@ async fn wait_for_register_confirmation(
     account_id: AccountId32,
     api: OnlineClient<EntropyConfig>,
     rpc: LegacyRpcMethods<EntropyConfig>,
-) -> RegisteredInfo {
+) -> Vec<u8> {
     let account_id: <EntropyConfig as Config>::AccountId = account_id.into();
     for _ in 0..50 {
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
@@ -412,11 +409,11 @@ async fn wait_for_register_confirmation(
         if let Some(ev) = registered_event {
             let registered_query = entropy::storage().registry().registered(&ev.1);
             let registered_status =
-                query_chain(api, rpc, registered_query, block_hash).await.unwrap();
+                query_chain(&api, &rpc, registered_query, block_hash).await.unwrap();
             if registered_status.is_some() {
                 // check if the event belongs to this user
                 if ev.0 == account_id {
-                    return Ok(registered_status.unwrap(), ev.1 .0);
+                    return ev.1.0;
                 }
             }
         }
