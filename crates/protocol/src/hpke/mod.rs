@@ -58,7 +58,7 @@ pub struct HpkeMessage {
 impl HpkeMessage {
     /// New single shot message, with optional sender authentication
     pub fn new(
-        msg: &Vec<u8>,
+        msg: &[u8],
         recipient: &HpkePublicKey,
         private_key_authenticated_sender: Option<&HpkePrivateKey>,
     ) -> Result<Self, HpkeError> {
@@ -72,7 +72,7 @@ impl HpkeMessage {
         let aad = [];
 
         let (enc, ct) =
-            hpke.seal(&recipient, &info, &aad, msg, None, None, private_key_authenticated_sender)?;
+            hpke.seal(recipient, &info, &aad, msg, None, None, private_key_authenticated_sender)?;
 
         Ok(Self { ct: Bytes(ct), enc: Bytes(enc), receiver: None })
     }
@@ -97,7 +97,7 @@ impl HpkeMessage {
     /// A new message, containing an ephemeral public key with which we want the recieve a response
     /// The ephemeral private key is returned together with the [HpkeMessage]
     pub fn new_with_receiver(
-        msg: &Vec<u8>,
+        msg: &[u8],
         recipient: &HpkePublicKey,
         private_key_authenticated_sender: Option<&HpkePrivateKey>,
     ) -> Result<(Self, HpkePrivateKey), HpkeError> {
