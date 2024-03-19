@@ -668,7 +668,6 @@ pub async fn request_limit_check(
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
-    let result = kv_store.kv().exists(&key).await?;
 
     if kv_store.kv().exists(&key).await? {
         let serialized_request_amount = kv_store.kv().get(&key).await?;

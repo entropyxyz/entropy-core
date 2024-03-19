@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{str::FromStr, time::Duration};
+use std::time::Duration;
 
 use axum::{
     body::Bytes,
@@ -37,7 +37,7 @@ use entropy_kvdb::kv_manager::{
 };
 use entropy_shared::{KeyVisibility, OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
-use sp_core::{crypto::AccountId32, Pair};
+use sp_core::Pair;
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, OnlineClient,

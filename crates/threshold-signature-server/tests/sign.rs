@@ -20,8 +20,8 @@ use entropy_testing_utils::{
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
     constants::{
-        AUXILARY_DATA_SHOULD_SUCCEED, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY, EVE_VERIFYING_KEY,
-        FERDIE_VERIFYING_KEY, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
+        AUXILARY_DATA_SHOULD_SUCCEED, DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY,
+        PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
     },
     substrate_context::test_context_stationary,
     test_client,
@@ -30,7 +30,6 @@ use entropy_testing_utils::{
 use serial_test::serial;
 use sp_core::crypto::Ss58Codec;
 use sp_keyring::AccountKeyring;
-use subxt::utils::AccountId32 as SubxtAccountId32;
 use synedrion::k256::ecdsa::VerifyingKey;
 
 use entropy_tss::{
@@ -46,7 +45,6 @@ async fn integration_test_sign_public() {
     let request_author = AccountKeyring::One;
     let deployer = AccountKeyring::Eve;
 
-    let signing_address = pre_registered_public_user.to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
     let substrate_context = test_context_stationary().await;
@@ -103,7 +101,6 @@ async fn integration_test_sign_private() {
     let pre_registered_user = AccountKeyring::Eve;
     let deployer = AccountKeyring::Dave;
 
-    let signing_address = pre_registered_user.to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true, true).await;
     let substrate_context = test_context_stationary().await;

@@ -719,9 +719,9 @@ async fn test_store_share() {
         .await
         .unwrap();
     // check to make sure keyshare is correct
-    let key_share: KeyShare<KeyParams> =
+    let key_share: Option<KeyShare<KeyParams>> =
         entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
-    assert_eq(key_share.is_ok(), true);
+    assert_eq!(key_share.is_some(), true);
 
     // fails repeated data
     let response_repeated_data = client

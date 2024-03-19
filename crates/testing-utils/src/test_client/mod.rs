@@ -24,8 +24,7 @@ pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 pub use synedrion::KeyShare;
 
 use std::{
-    thread,
-    time::{Duration, SystemTime},
+    time::{SystemTime},
 };
 
 use anyhow::{anyhow, ensure};
@@ -48,7 +47,7 @@ use entropy_tss::{
 };
 use futures::future;
 use parity_scale_codec::Decode;
-use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
+use sp_core::{sr25519, Bytes, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     tx::PairSigner,

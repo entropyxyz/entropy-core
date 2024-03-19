@@ -23,13 +23,7 @@ use std::{net::TcpListener, time::Duration};
 use crate::{
     app,
     chain_api::{
-        entropy::{
-            self,
-            runtime_types::{
-                bounded_collections::bounded_vec::BoundedVec,
-                pallet_registry::pallet::ProgramInstance,
-            },
-        },
+        entropy::{self, runtime_types::bounded_collections::bounded_vec::BoundedVec},
         get_api, get_rpc, EntropyConfig,
     },
     get_signer,
