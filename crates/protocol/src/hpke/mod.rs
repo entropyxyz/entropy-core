@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Encryption using Hybrid Public Key Encryption [RFC 9180](https://www.rfc-editor.org/rfc/rfc9180)
-use hpke_rs::{prelude::HpkeMode, Hpke, HpkeError, HpkePrivateKey, HpkePublicKey};
+use hpke_rs::{prelude::HpkeMode, Hpke};
+pub use hpke_rs::{HpkeError, HpkePrivateKey, HpkePublicKey};
 use hpke_rs_crypto::types::{AeadAlgorithm, KdfAlgorithm, KemAlgorithm};
 use hpke_rs_rust_crypto::HpkeRustCrypto;
 use serde::{Deserialize, Serialize};
@@ -59,13 +60,14 @@ impl HpkeMessage {
     pub fn new(
         msg: &Vec<u8>,
         recipient: &HpkePublicKey,
-        private_key: Option<&HpkePrivateKey>,
+        private_key_authenticated_sender: Option<&HpkePrivateKey>,
     ) -> Result<Self, HpkeError> {
         let mut hpke = get_hpke();
         let info = [];
         let aad = [];
 
-        let (enc, ct) = hpke.seal(&recipient, &info, &aad, msg, None, None, private_key)?;
+        let (enc, ct) =
+            hpke.seal(&recipient, &info, &aad, msg, None, None, private_key_authenticated_sender)?;
 
         Ok(Self { ct: Bytes(ct), enc: Bytes(enc), receiver: None })
     }
@@ -95,10 +97,10 @@ impl HpkeMessage {
     pub fn new_with_receiver(
         msg: &Vec<u8>,
         recipient: &HpkePublicKey,
-        private_key: Option<&HpkePrivateKey>,
+        private_key_authenticated_sender: Option<&HpkePrivateKey>,
     ) -> Result<(Self, HpkePrivateKey), HpkeError> {
         let (response_private_key, response_public_key) = generate_key_pair(None)?;
-        let hpke_message = Self::new(msg, recipient, private_key)?;
+        let hpke_message = Self::new(msg, recipient, private_key_authenticated_sender)?;
 
         Ok((
             Self {
