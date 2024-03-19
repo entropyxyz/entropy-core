@@ -331,13 +331,13 @@ pub mod pallet {
             let mut old_programs_length = 0;
             let programs_data =
                 Registered::<T>::try_mutate(&sig_request_account, |maybe_registered_details| {
-                    if let Some(registerd_details) = maybe_registered_details {
+                    if let Some(registered_details) = maybe_registered_details {
                         ensure!(
-                            who == registerd_details.program_modification_account,
+                            who == registered_details.program_modification_account,
                             Error::<T>::NotAuthorized
                         );
                         // decrement ref counter of not used programs
-                        for program_instance in &registerd_details.programs_data {
+                        for program_instance in &registered_details.programs_data {
                             pallet_programs::Programs::<T>::mutate(
                                 program_instance.program_pointer,
                                 |maybe_program_info| {
@@ -348,8 +348,8 @@ pub mod pallet {
                                 },
                             );
                         }
-                        old_programs_length = registerd_details.programs_data.len();
-                        registerd_details.programs_data = new_program_instance.clone();
+                        old_programs_length = registered_details.programs_data.len();
+                        registered_details.programs_data = new_program_instance.clone();
                         Ok(new_program_instance)
                     } else {
                         Err(Error::<T>::NotRegistered)
