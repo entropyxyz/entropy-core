@@ -18,7 +18,6 @@ use std::{
     fmt::{self, Display},
     fs,
     path::PathBuf,
-    str::FromStr,
     time::Instant,
 };
 
@@ -38,7 +37,7 @@ use entropy_testing_utils::{
         store_program, update_programs, KeyParams, KeyShare, KeyVisibility,
     },
 };
-use sp_core::{crypto::AccountId32, sr25519, Hasher, Pair};
+use sp_core::{sr25519, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -486,23 +485,5 @@ impl Program {
                 }
             },
         }
-    }
-}
-
-/// Parse an account ID from a user provided string.
-///
-/// This may be given as a hex public key, SS58 account ID, or a name from which to generate
-/// a keypair (e.g `//Alice`)
-fn parse_account_id(input: &str) -> anyhow::Result<SubxtAccountId32> {
-    ensure!(!input.is_empty(), "Cannot parse emptry string as account ID");
-
-    // We use sp-core's AccountId32 here because it will parse account IDs given as either hex or
-    // ss58
-    match AccountId32::from_str(input) {
-        Ok(account_id) => Ok(SubxtAccountId32(*account_id.as_ref())),
-        Err(_) => {
-            let keypair: sr25519::Pair = SeedString::new(input.to_string()).try_into()?;
-            Ok(SubxtAccountId32(keypair.public().0))
-        },
     }
 }

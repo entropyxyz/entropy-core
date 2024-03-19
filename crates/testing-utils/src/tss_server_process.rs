@@ -18,10 +18,6 @@ use std::{net::TcpListener, time::Duration};
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use entropy_protocol::{KeyParams, PartyId};
-use rand_core::OsRng;
-use subxt::utils::AccountId32 as SubxtAccountId32;
-use synedrion::{KeyShare, ecdsa::SigningKey};
-use hex_literal::hex;
 use entropy_tss::{
     app,
     get_signer,
@@ -29,6 +25,10 @@ use entropy_tss::{
     // signing_client::ListenerState,
     AppState,
 };
+use hex_literal::hex;
+use rand_core::OsRng;
+use subxt::utils::AccountId32 as SubxtAccountId32;
+use synedrion::{ecdsa::SigningKey, KeyShare};
 
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
@@ -82,8 +82,8 @@ pub async fn spawn_testing_validators(
 
     let user_keyshare_option = if passed_verifying_key.is_some() {
         let number_of_shares = if extra_private_keys { 3 } else { 2 };
-          // creates a deterministic keyshare if requiered
-          let signing_key = if deterministic_key_share {
+        // creates a deterministic keyshare if requiered
+        let signing_key = if deterministic_key_share {
             Some(
                 SigningKey::from_bytes(
                     &hex!("4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318")
@@ -104,17 +104,16 @@ pub async fn spawn_testing_validators(
             entropy_kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
         let validator_2_threshold_keyshare: Vec<u8> =
             entropy_kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
-         
+
         // uses the deterministic verifying key if requested
-         let verifying_key = if deterministic_key_share {
-            hex::encode(shares[0].verifying_key().to_encoded_point(true).as_bytes().to_vec())
+        let verifying_key = if deterministic_key_share {
+            hex::encode(shares[0].verifying_key().to_encoded_point(true).as_bytes())
         } else {
             hex::encode(passed_verifying_key.unwrap())
         };
 
         // add key share to kvdbs
-        let alice_reservation =
-            alice_kv.kv().reserve_key(verifying_key.clone()).await.unwrap();
+        let alice_reservation = alice_kv.kv().reserve_key(verifying_key.clone()).await.unwrap();
         alice_kv.kv().put(alice_reservation, validator_1_threshold_keyshare).await.unwrap();
 
         let bob_reservation = bob_kv.kv().reserve_key(verifying_key.clone()).await.unwrap();

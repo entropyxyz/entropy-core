@@ -23,16 +23,13 @@ use entropy_shared::HashingAlgorithm;
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 pub use synedrion::KeyShare;
 
-use std::{
-    time::{SystemTime},
-};
+use std::time::SystemTime;
 
 use anyhow::{anyhow, ensure};
 use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     RecoverableSignature, ValidatorInfo,
 };
-use sp_core::crypto::AccountId32;
 use entropy_tss::{
     chain_api::{
         entropy,
@@ -48,12 +45,14 @@ use entropy_tss::{
 };
 use futures::future;
 use parity_scale_codec::Decode;
+use sp_core::crypto::AccountId32;
 use sp_core::{sr25519, Bytes, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
+    events::EventsClient,
     tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static, H256},
-    Config, OnlineClient, events::EventsClient
+    Config, OnlineClient,
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 
@@ -119,11 +118,12 @@ pub async fn register(
         if let Some(ev) = registered_event {
             let registered_query = entropy::storage().registry().registered(&ev.1);
             let registered_status =
-            query_chain(&api, &rpc, registered_query, block_hash).await.unwrap();
+                query_chain(api, rpc, registered_query, block_hash).await.unwrap();
             if registered_status.is_some() {
                 // check if the event belongs to this user
                 if ev.0 == account_id {
-                    return Ok((registered_status.unwrap(), keyshare_option));                }
+                    return Ok((registered_status.unwrap(), keyshare_option));
+                }
             }
         }
         std::thread::sleep(std::time::Duration::from_millis(1000));
@@ -357,9 +357,9 @@ pub async fn check_verifying_key(
 
     // Get the verifying key associated with this account, if it exist return ok
     let registered_query =
-            entropy::storage().registry().registered(BoundedVec(verifying_key_serialized));
-        let query_registered_status = query_chain(api, rpc, registered_query, None).await;
-        query_registered_status?.ok_or(anyhow!("User not registered"))?;
+        entropy::storage().registry().registered(BoundedVec(verifying_key_serialized));
+    let query_registered_status = query_chain(api, rpc, registered_query, None).await;
+    query_registered_status?.ok_or(anyhow!("User not registered"))?;
     Ok(())
 }
 

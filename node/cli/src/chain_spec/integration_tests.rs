@@ -16,7 +16,6 @@
 use crate::chain_spec::get_account_id_from_seed;
 use crate::endowed_accounts::endowed_accounts_dev;
 
-use codec::Encode;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
@@ -25,7 +24,6 @@ use entropy_runtime::{
     TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
-use entropy_shared::VERIFICATION_KEY_LENGTH;
 use entropy_testing_utils::constants::{
     DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
 };

@@ -24,7 +24,6 @@ use entropy_runtime::{
     TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
-use entropy_shared::VERIFICATION_KEY_LENGTH;
 use entropy_testing_utils::constants::{
     DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
 };
