@@ -32,8 +32,8 @@ use entropy_testing_utils::{
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
     constants::{
-        AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
-        TSS_ACCOUNTS, X25519_PUBLIC_KEYS, EVE_VERIFYING_KEY
+        AUXILARY_DATA_SHOULD_SUCCEED, EVE_VERIFYING_KEY, PREIMAGE_SHOULD_SUCCEED,
+        TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::test_context_stationary,
     test_client::{put_register_request_on_chain, store_program, update_programs},
@@ -46,9 +46,7 @@ use serde::{Deserialize, Serialize};
 use serial_test::serial;
 use sp_core::crypto::{AccountId32, Pair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use std::{
-    time::{SystemTime},
-};
+use std::time::SystemTime;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     events::EventsClient,
@@ -287,8 +285,7 @@ async fn test_wasm_register_with_private_key_visibility() {
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
 
-    let verifying_key =
-        wait_for_register_confirmation(one.to_account_id(), api, rpc).await;
+    let verifying_key = wait_for_register_confirmation(one.to_account_id(), api, rpc).await;
 
     let user_keyshare: KeyShare<KeyParams> = serde_json::from_str(&user_keyshare_json).unwrap();
     let user_verifying_key =
@@ -413,7 +410,7 @@ async fn wait_for_register_confirmation(
             if registered_status.is_some() {
                 // check if the event belongs to this user
                 if ev.0 == account_id {
-                    return ev.1.0;
+                    return ev.1 .0;
                 }
             }
         }
