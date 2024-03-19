@@ -696,8 +696,10 @@ async fn test_store_share() {
             let query_registered_status =
                 query_chain(&api, &rpc, registered_query, block_hash).await;
             if query_registered_status.unwrap().is_some() {
-                new_verifying_key = ev.1 .0;
-                break;
+                if ev.0 == alice.to_account_id().into() {
+                    new_verifying_key = ev.1 .0;
+                    break;
+                }
             }
         }
     }

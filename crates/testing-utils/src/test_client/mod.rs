@@ -32,6 +32,7 @@ use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     RecoverableSignature, ValidatorInfo,
 };
+use sp_core::crypto::AccountId32;
 use entropy_tss::{
     chain_api::{
         entropy,
@@ -52,7 +53,7 @@ use subxt::{
     backend::legacy::LegacyRpcMethods,
     tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static, H256},
-    Config, OnlineClient,
+    Config, OnlineClient, events::EventsClient
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 
@@ -78,17 +79,6 @@ pub async fn register(
     key_visibility: KeyVisibility,
     programs_data: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<(RegisteredInfo, Option<KeyShare<KeyParams>>)> {
-    // TODO: Have peg check if should check veryfying key or nah
-    // // Check if user is already registered
-    // let account_id32: AccountId32 = signature_request_keypair.public().into();
-    // let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
-    // let registered_query = entropy::storage().registry().registered(account_id.clone());
-
-    // let query_registered_status = query_chain(api, rpc, registered_query, None).await;
-    // if let Some(registered_status) = query_registered_status? {
-    //     return Err(anyhow!("Already registered {:?}", registered_status));
-    // }
-
     // Send register transaction
     put_register_request_on_chain(
         api,
@@ -118,16 +108,26 @@ pub async fn register(
         _ => None,
     };
 
-    // Wait until user is confirmed as registered
-    // TODO: make this an event listener for registered
-    // for _ in 0..50 {
-    //     let registered_query = entropy::storage().registry().registered(account_id.clone());
-    //     let query_registered_status = query_chain(api, rpc, registered_query, None).await;
-    //     if let Some(registered_status) = query_registered_status? {
-    //         return Ok((registered_status, keyshare_option));
-    //     }
-    //     thread::sleep(Duration::from_millis(1000));
-    // }
+    let account_id32: AccountId32 = signature_request_keypair.public().into();
+    let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
+
+    for _ in 0..50 {
+        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
+        let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
+        let registered_event =
+            events.find_first::<entropy::registry::events::AccountRegistered>().unwrap();
+        if let Some(ev) = registered_event {
+            let registered_query = entropy::storage().registry().registered(&ev.1);
+            let registered_status =
+            query_chain(&api, &rpc, registered_query, block_hash).await.unwrap();
+            if registered_status.is_some() {
+                // check if the event belongs to this user
+                if ev.0 == account_id {
+                    return Ok((registered_status.unwrap(), keyshare_option));                }
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+    }
     Err(anyhow!("Timed out waiting for register confirmation"))
 }
 
@@ -355,13 +355,11 @@ pub async fn check_verifying_key(
 ) -> anyhow::Result<()> {
     let verifying_key_serialized = verifying_key.to_encoded_point(true).as_bytes().to_vec();
 
-    // Get the verifying key associated with this account, if it exist return okentropy::tx().registry().change_program_instance
-    let registered_status = {
-        let registered_query =
+    // Get the verifying key associated with this account, if it exist return ok
+    let registered_query =
             entropy::storage().registry().registered(BoundedVec(verifying_key_serialized));
         let query_registered_status = query_chain(api, rpc, registered_query, None).await;
-        query_registered_status?.ok_or(anyhow!("User not registered"))?
-    };
+        query_registered_status?.ok_or(anyhow!("User not registered"))?;
     Ok(())
 }
 
