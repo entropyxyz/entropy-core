@@ -22,9 +22,9 @@ use serde::{Deserialize, Serialize};
 use sp_core::Bytes;
 
 /// Configure Hpke
-fn get_hpke() -> Hpke<HpkeRustCrypto> {
+fn get_hpke(hpke_mode: HpkeMode) -> Hpke<HpkeRustCrypto> {
     Hpke::<HpkeRustCrypto>::new(
-        HpkeMode::Base,
+        hpke_mode,
         KemAlgorithm::DhKem25519,
         KdfAlgorithm::HkdfSha256,
         AeadAlgorithm::ChaCha20Poly1305,
@@ -35,7 +35,7 @@ fn get_hpke() -> Hpke<HpkeRustCrypto> {
 pub fn generate_key_pair(
     input_key_material: Option<&[u8]>,
 ) -> Result<(HpkePrivateKey, HpkePublicKey), HpkeError> {
-    let mut hpke = get_hpke();
+    let mut hpke = get_hpke(HpkeMode::Base);
 
     let keypair = match input_key_material {
         Some(ikm) => hpke.derive_key_pair(ikm)?,
@@ -62,7 +62,12 @@ impl HpkeMessage {
         recipient: &HpkePublicKey,
         private_key_authenticated_sender: Option<&HpkePrivateKey>,
     ) -> Result<Self, HpkeError> {
-        let mut hpke = get_hpke();
+        let mut hpke = get_hpke(if private_key_authenticated_sender.is_some() {
+            HpkeMode::Auth
+        } else {
+            HpkeMode::Base
+        });
+
         let info = [];
         let aad = [];
 
@@ -78,18 +83,15 @@ impl HpkeMessage {
         sk: &HpkePrivateKey,
         public_key_authenticated_sender: Option<&HpkePublicKey>,
     ) -> Result<Vec<u8>, HpkeError> {
+        let hpke = get_hpke(if public_key_authenticated_sender.is_some() {
+            HpkeMode::Auth
+        } else {
+            HpkeMode::Base
+        });
+
         let info = [];
         let aad = [];
-        get_hpke().open(
-            &self.enc,
-            sk,
-            &info,
-            &aad,
-            &self.ct,
-            None,
-            None,
-            public_key_authenticated_sender,
-        )
+        hpke.open(&self.enc, sk, &info, &aad, &self.ct, None, None, public_key_authenticated_sender)
     }
 
     /// A new message, containing an ephemeral public key with which we want the recieve a response
