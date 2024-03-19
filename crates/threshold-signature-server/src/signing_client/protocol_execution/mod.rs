@@ -20,7 +20,7 @@ mod context;
 use entropy_kvdb::kv_manager::KvManager;
 pub use entropy_protocol::{
     execute_protocol::{execute_signing_protocol, Channels},
-    KeyParams, ProtocolMessage, RecoverableSignature,
+    KeyParams, ProtocolMessage, RecoverableSignature, SessionId,
 };
 use sp_core::sr25519;
 use subxt::utils::AccountId32;
@@ -81,6 +81,7 @@ impl<'a> ThresholdSigningService<'a> {
     )]
     pub async fn execute_sign(
         &self,
+        session_id: SessionId,
         ctx: &SignContext,
         channels: Channels,
         threshold_signer: &sr25519::Pair,
@@ -89,6 +90,7 @@ impl<'a> ThresholdSigningService<'a> {
         tracing::trace!("Signing context {ctx:?}");
 
         let rsig = execute_signing_protocol(
+            session_id,
             channels,
             &ctx.key_share,
             &ctx.sign_init.signing_session_info.message_hash,
