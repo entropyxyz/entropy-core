@@ -61,6 +61,7 @@ impl HpkeMessage {
         msg: &[u8],
         recipient: &HpkePublicKey,
         private_key_authenticated_sender: Option<&HpkePrivateKey>,
+        associated_data: &[u8],
     ) -> Result<Self, HpkeError> {
         let mut hpke = get_hpke(if private_key_authenticated_sender.is_some() {
             HpkeMode::Auth
@@ -68,11 +69,15 @@ impl HpkeMessage {
             HpkeMode::Base
         });
 
-        let info = [];
-        let aad = [];
-
-        let (enc, ct) =
-            hpke.seal(recipient, &info, &aad, msg, None, None, private_key_authenticated_sender)?;
+        let (enc, ct) = hpke.seal(
+            recipient,
+            &[],
+            associated_data,
+            msg,
+            None,
+            None,
+            private_key_authenticated_sender,
+        )?;
 
         Ok(Self { ct: Bytes(ct), enc: Bytes(enc), receiver: None })
     }
@@ -82,6 +87,7 @@ impl HpkeMessage {
         &self,
         sk: &HpkePrivateKey,
         public_key_authenticated_sender: Option<&HpkePublicKey>,
+        associated_data: &[u8],
     ) -> Result<Vec<u8>, HpkeError> {
         let hpke = get_hpke(if public_key_authenticated_sender.is_some() {
             HpkeMode::Auth
@@ -89,9 +95,16 @@ impl HpkeMessage {
             HpkeMode::Base
         });
 
-        let info = [];
-        let aad = [];
-        hpke.open(&self.enc, sk, &info, &aad, &self.ct, None, None, public_key_authenticated_sender)
+        hpke.open(
+            &self.enc,
+            sk,
+            &[],
+            associated_data,
+            &self.ct,
+            None,
+            None,
+            public_key_authenticated_sender,
+        )
     }
 
     /// A new message, containing an ephemeral public key with which we want the recieve a response
@@ -100,9 +113,11 @@ impl HpkeMessage {
         msg: &[u8],
         recipient: &HpkePublicKey,
         private_key_authenticated_sender: Option<&HpkePrivateKey>,
+        associated_data: &[u8],
     ) -> Result<(Self, HpkePrivateKey), HpkeError> {
         let (response_private_key, response_public_key) = generate_key_pair(None)?;
-        let hpke_message = Self::new(msg, recipient, private_key_authenticated_sender)?;
+        let hpke_message =
+            Self::new(msg, recipient, private_key_authenticated_sender, associated_data)?;
 
         Ok((
             Self {
@@ -126,8 +141,10 @@ mod tests {
         // Alice, the sender, doesn't have a keypair
         let (bob_sk, bob_pk) = generate_key_pair(None).unwrap();
 
-        let ciphertext = HpkeMessage::new(&plaintext, &bob_pk, None).unwrap();
-        let decrypted_plain_text = ciphertext.decrypt(&bob_sk, None).unwrap();
+        let aad = b"Some additional context";
+
+        let ciphertext = HpkeMessage::new(&plaintext, &bob_pk, None, aad).unwrap();
+        let decrypted_plain_text = ciphertext.decrypt(&bob_sk, None, aad).unwrap();
 
         assert_eq!(decrypted_plain_text, plaintext);
         assert_ne!(ciphertext.ct.0, plaintext);
@@ -140,8 +157,10 @@ mod tests {
         let (alice_sk, alice_pk) = generate_key_pair(None).unwrap();
         let (bob_sk, bob_pk) = generate_key_pair(None).unwrap();
 
-        let ciphertext = HpkeMessage::new(&plaintext, &bob_pk, Some(&alice_sk)).unwrap();
-        let decrypted_plain_text = ciphertext.decrypt(&bob_sk, Some(&alice_pk)).unwrap();
+        let aad = b"Some additional context";
+
+        let ciphertext = HpkeMessage::new(&plaintext, &bob_pk, Some(&alice_sk), aad).unwrap();
+        let decrypted_plain_text = ciphertext.decrypt(&bob_sk, Some(&alice_pk), aad).unwrap();
 
         assert_eq!(decrypted_plain_text, plaintext);
         assert_ne!(ciphertext.ct.0, plaintext);
@@ -154,10 +173,12 @@ mod tests {
 
         let (bob_sk, bob_pk) = generate_key_pair(None).unwrap();
 
-        let (ciphertext_request, response_secret_key) =
-            HpkeMessage::new_with_receiver(&plaintext_request, &bob_pk, None).unwrap();
+        let aad = b"Some additional context";
 
-        let decrypted_request = ciphertext_request.decrypt(&bob_sk, None).unwrap();
+        let (ciphertext_request, response_secret_key) =
+            HpkeMessage::new_with_receiver(&plaintext_request, &bob_pk, None, aad).unwrap();
+
+        let decrypted_request = ciphertext_request.decrypt(&bob_sk, None, aad).unwrap();
 
         assert_eq!(decrypted_request, plaintext_request);
         assert_ne!(ciphertext_request.ct.0, plaintext_request);
@@ -166,10 +187,12 @@ mod tests {
             &plaintext_response,
             &HpkePublicKey::new(ciphertext_request.receiver.unwrap().try_into().unwrap()),
             None,
+            aad,
         )
         .unwrap();
 
-        let decrypted_response = ciphertext_response.decrypt(&response_secret_key, None).unwrap();
+        let decrypted_response =
+            ciphertext_response.decrypt(&response_secret_key, None, aad).unwrap();
 
         assert_eq!(decrypted_response, plaintext_response);
         assert_ne!(ciphertext_response.ct.0, plaintext_response);
@@ -183,10 +206,13 @@ mod tests {
         let (alice_sk, alice_pk) = generate_key_pair(None).unwrap();
         let (bob_sk, bob_pk) = generate_key_pair(None).unwrap();
 
-        let (ciphertext_request, response_secret_key) =
-            HpkeMessage::new_with_receiver(&plaintext_request, &bob_pk, Some(&alice_sk)).unwrap();
+        let aad = b"Some additional context";
 
-        let decrypted_request = ciphertext_request.decrypt(&bob_sk, Some(&alice_pk)).unwrap();
+        let (ciphertext_request, response_secret_key) =
+            HpkeMessage::new_with_receiver(&plaintext_request, &bob_pk, Some(&alice_sk), aad)
+                .unwrap();
+
+        let decrypted_request = ciphertext_request.decrypt(&bob_sk, Some(&alice_pk), aad).unwrap();
 
         assert_eq!(decrypted_request, plaintext_request);
         assert_ne!(ciphertext_request.ct.0, plaintext_request);
@@ -195,10 +221,12 @@ mod tests {
             &plaintext_response,
             &HpkePublicKey::new(ciphertext_request.receiver.unwrap().try_into().unwrap()),
             None,
+            aad,
         )
         .unwrap();
 
-        let decrypted_response = ciphertext_response.decrypt(&response_secret_key, None).unwrap();
+        let decrypted_response =
+            ciphertext_response.decrypt(&response_secret_key, None, aad).unwrap();
 
         assert_eq!(decrypted_response, plaintext_response);
         assert_ne!(ciphertext_response.ct.0, plaintext_response);
