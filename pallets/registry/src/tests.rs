@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use codec::Encode;
-use entropy_shared::KeyVisibility;
+use entropy_shared::{KeyVisibility, VERIFICATION_KEY_LENGTH};
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
@@ -31,7 +31,7 @@ use sp_runtime::{
 use crate as pallet_registry;
 use crate::{
     mock::*, Error, ProgramInstance, Registered, RegisteredInfo, RegisteringDetails,
-    ValidateConfirmRegistered, VERIFICATION_KEY_LENGTH,
+    ValidateConfirmRegistered,
 };
 
 #[test]

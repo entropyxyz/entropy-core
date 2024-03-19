@@ -473,7 +473,11 @@ pub mod pallet {
                 }
                 registering_info.confirmations.push(signing_subgroup);
                 Registering::<T>::insert(&sig_req_account, registering_info);
-                Self::deposit_event(Event::AccountRegistering(sig_req_account, signing_subgroup, registering_info_verifying_key));
+                Self::deposit_event(Event::AccountRegistering(
+                    sig_req_account,
+                    signing_subgroup,
+                    registering_info_verifying_key,
+                ));
                 Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(
                     confirmation_length,
                 ))
