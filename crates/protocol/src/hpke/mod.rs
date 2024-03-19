@@ -62,8 +62,8 @@ impl HpkeMessage {
         private_key: Option<&HpkePrivateKey>,
     ) -> Result<Self, HpkeError> {
         let mut hpke = get_hpke();
-        let info = Vec::new();
-        let aad = Vec::new();
+        let info = [];
+        let aad = [];
 
         let (enc, ct) = hpke.seal(&recipient, &info, &aad, msg, None, None, private_key)?;
 
@@ -76,8 +76,8 @@ impl HpkeMessage {
         sk: &HpkePrivateKey,
         public_key_authenticated_sender: Option<&HpkePublicKey>,
     ) -> Result<Vec<u8>, HpkeError> {
-        let info = Vec::new();
-        let aad = Vec::new();
+        let info = [];
+        let aad = [];
         get_hpke().open(
             &self.enc,
             sk,
