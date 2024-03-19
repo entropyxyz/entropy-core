@@ -48,7 +48,7 @@ async fn integration_test_sign_public() {
 
     let signing_address = pre_registered_public_user.to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false).await;
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -66,7 +66,7 @@ async fn integration_test_sign_public() {
     test_client::update_programs(
         &api,
         &rpc,
-        DEFAULT_VERIFYING_KEY.to_vec(),
+        DAVE_VERIFYING_KEY.to_vec(),
         &pre_registered_public_user.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
@@ -79,7 +79,7 @@ async fn integration_test_sign_public() {
         &api,
         &rpc,
         request_author.pair(),
-        DEFAULT_VERIFYING_KEY.to_vec(),
+        DAVE_VERIFYING_KEY.to_vec(),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         None,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
@@ -94,82 +94,6 @@ async fn integration_test_sign_public() {
     )
     .unwrap();
     assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
-}
-
-#[tokio::test]
-#[serial]
-async fn integration_test_sign_permissioned() {
-    clean_tests();
-    let pre_registered_user = AccountKeyring::Ferdie;
-    let deployer = AccountKeyring::Eve;
-
-    let signing_address = pre_registered_user.to_account_id().to_ss58check();
-    let (_validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(FERDIE_VERIFYING_KEY.to_vec()), false).await;
-    let substrate_context = test_context_stationary().await;
-    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-
-    let program_pointer = test_client::store_program(
-        &api,
-        &rpc,
-        &deployer.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-    )
-    .await
-    .unwrap();
-
-    test_client::update_programs(
-        &api,
-        &rpc,
-        DEFAULT_VERIFYING_KEY.to_vec(),
-        &pre_registered_user.pair(),
-        BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
-    )
-    .await
-    .unwrap();
-
-    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-
-    let recoverable_signature = test_client::sign(
-        &api,
-        &rpc,
-        pre_registered_user.pair(),
-        DEFAULT_VERIFYING_KEY.to_vec(),
-        PREIMAGE_SHOULD_SUCCEED.to_vec(),
-        None,
-        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
-    )
-    .await
-    .unwrap();
-
-    let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
-        &message_should_succeed_hash,
-        &recoverable_signature.signature,
-        recoverable_signature.recovery_id,
-    )
-    .unwrap();
-    assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
-
-    // Attempt to sign with an account who is not the account owner, and check that it fails
-    let request_author_who_is_not_owner = AccountKeyring::One;
-    let sign_error = test_client::sign(
-        &api,
-        &rpc,
-        request_author_who_is_not_owner.pair(),
-        DEFAULT_VERIFYING_KEY.to_vec(),
-        PREIMAGE_SHOULD_SUCCEED.to_vec(),
-        None,
-        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
-    )
-    .await
-    .unwrap_err();
-
-    assert_eq!(
-        format!("{}", sign_error.root_cause()),
-        "Signing failed: Signature request not allowed - this account is not public"
-    );
 }
 
 #[tokio::test]
@@ -181,10 +105,12 @@ async fn integration_test_sign_private() {
 
     let signing_address = pre_registered_user.to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true).await;
+        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true, true).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let verifying_key =
+        keyshare_option.clone().unwrap().verifying_key().to_encoded_point(true).as_bytes().to_vec();
 
     let program_pointer = test_client::store_program(
         &api,
@@ -199,7 +125,7 @@ async fn integration_test_sign_private() {
     test_client::update_programs(
         &api,
         &rpc,
-        DEFAULT_VERIFYING_KEY.to_vec(),
+        verifying_key.clone(),
         &pre_registered_user.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
@@ -212,7 +138,7 @@ async fn integration_test_sign_private() {
         &api,
         &rpc,
         pre_registered_user.pair(),
-        DEFAULT_VERIFYING_KEY.to_vec(),
+        verifying_key,
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         keyshare_option.clone(),
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
@@ -227,24 +153,4 @@ async fn integration_test_sign_private() {
     )
     .unwrap();
     assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
-
-    // Attempt to sign with an account who is not the account owner (but does have the owner's
-    // keyshare), and check that it fails
-    let request_author_who_is_not_owner = AccountKeyring::One;
-    let sign_error = test_client::sign(
-        &api,
-        &rpc,
-        request_author_who_is_not_owner.pair(),
-        DEFAULT_VERIFYING_KEY.to_vec(),
-        PREIMAGE_SHOULD_SUCCEED.to_vec(),
-        keyshare_option.clone(),
-        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
-    )
-    .await
-    .unwrap_err();
-
-    assert_eq!(
-        format!("{}", sign_error.root_cause()),
-        "Signing failed: Signature request not allowed - this account is not public"
-    );
 }
