@@ -16,6 +16,7 @@
 //! Protocol execution and transport logic for the Entropy signing and DKG protocols
 pub mod errors;
 pub mod execute_protocol;
+pub mod hpke;
 mod protocol_message;
 pub mod protocol_transport;
 pub mod sign_and_encrypt;
