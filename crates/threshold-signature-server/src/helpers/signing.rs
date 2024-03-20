@@ -41,7 +41,6 @@ use crate::{
 pub async fn do_signing(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     user_signature_request: UserSignatureRequest,
-    sig_hash: String,
     app_state: &AppState,
     signing_session_info: SigningSessionInfo,
     key_visibility: KeyVisibility,
@@ -108,7 +107,7 @@ pub async fn do_signing(
     };
 
     let result = signing_service
-        .execute_sign(session_id, &sign_context, channels, signer, tss_accounts)
+        .execute_sign(session_id, &sign_context.key_share, channels, signer, tss_accounts)
         .await?;
     increment_or_wipe_request_limit(
         rpc,
