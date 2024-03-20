@@ -95,10 +95,15 @@ impl HpkeMessage {
             HpkeMode::Base
         });
 
+        let info = match &self.receiver {
+            Some(public_key) => public_key.as_ref(),
+            None => &[],
+        };
+
         hpke.open(
             &self.enc,
             sk,
-            &[],
+            info,
             associated_data,
             &self.ct,
             None,
@@ -116,13 +121,28 @@ impl HpkeMessage {
         associated_data: &[u8],
     ) -> Result<(Self, HpkePrivateKey), HpkeError> {
         let (response_private_key, response_public_key) = generate_key_pair(None)?;
-        let hpke_message =
-            Self::new(msg, recipient, private_key_authenticated_sender, associated_data)?;
+        let info = response_public_key.as_slice();
+
+        let mut hpke = get_hpke(if private_key_authenticated_sender.is_some() {
+            HpkeMode::Auth
+        } else {
+            HpkeMode::Base
+        });
+
+        let (enc, ct) = hpke.seal(
+            recipient,
+            info,
+            associated_data,
+            msg,
+            None,
+            None,
+            private_key_authenticated_sender,
+        )?;
 
         Ok((
             Self {
-                ct: hpke_message.ct,
-                enc: hpke_message.enc,
+                ct: Bytes(ct),
+                enc: Bytes(enc),
                 receiver: Some(response_public_key.as_slice().try_into().unwrap()),
             },
             response_private_key,
