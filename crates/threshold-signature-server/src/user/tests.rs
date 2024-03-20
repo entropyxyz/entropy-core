@@ -690,15 +690,17 @@ async fn test_store_share() {
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
         let registered_event =
-            events.find_first::<entropy::registry::events::AccountRegistered>().unwrap();
-        if let Some(ev) = registered_event {
-            let registered_query = entropy::storage().registry().registered(&ev.1);
-            let query_registered_status =
-                query_chain(&api, &rpc, registered_query, block_hash).await;
-            if query_registered_status.unwrap().is_some() {
-                if ev.0 == alice.to_account_id().into() {
-                    new_verifying_key = ev.1 .0;
-                    break;
+            events.find::<entropy::registry::events::AccountRegistered>();
+        for event in registered_event {
+            if let Ok(ev) = event {
+                let registered_query = entropy::storage().registry().registered(&ev.1);
+                let query_registered_status =
+                    query_chain(&api, &rpc, registered_query, block_hash).await;
+                if query_registered_status.unwrap().is_some() {
+                    if ev.0 == alice.to_account_id().into() {
+                        new_verifying_key = ev.1 .0;
+                        break;
+                    }
                 }
             }
         }
