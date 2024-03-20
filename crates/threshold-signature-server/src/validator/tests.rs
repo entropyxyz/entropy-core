@@ -294,7 +294,7 @@ async fn test_get_and_store_values() {
         "127.0.0.1:3002".to_string(),
         9,
         false,
-        &recip_key,
+        recip_key,
         &signer_charlie,
     )
     .await;
