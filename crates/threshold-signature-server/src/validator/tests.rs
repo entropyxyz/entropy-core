@@ -257,7 +257,7 @@ async fn test_get_and_store_values() {
         get_random_server_info(&api, &rpc, my_subgroup, signer_alice.account_id().clone())
             .await
             .unwrap();
-    let recip_key = x25519_dalek::PublicKey::from(server_info.x25519_public_key);
+    let recip_key = server_info.x25519_public_key;
     let keys = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
         "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
