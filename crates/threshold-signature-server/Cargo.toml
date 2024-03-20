@@ -81,6 +81,7 @@ template-barebones   ={ git="https://github.com/entropyxyz/programs.git", tag="v
 lazy_static          ="1.4.0"
 entropy-protocol     ={ path="../protocol", features=["unsafe"] }
 blake3               ="1.5.0"
+ethers-core          ="2.0.14"
 
 [build-dependencies]
 vergen={ version="8.0.0", features=["build", "git", "gitcl"] }
