@@ -195,6 +195,7 @@ impl Hash for SessionId {
 }
 
 impl SessionId {
+    /// Take the hash of the session ID - used as uniqueness in the protocol
     pub fn blake2(&self) -> Result<Vec<u8>, ProtocolExecutionErr> {
         let mut hasher = Blake2s256::new();
         hasher.update(bincode::serialize(self)?);
