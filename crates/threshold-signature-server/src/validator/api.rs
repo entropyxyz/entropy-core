@@ -15,7 +15,7 @@
 
 use axum::{extract::State, Json};
 use entropy_kvdb::kv_manager::KvManager;
-use entropy_shared::MIN_BALANCE;
+use entropy_shared::{X25519PublicKey, MIN_BALANCE};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::{AccountId32, Ss58Codec};
@@ -27,7 +27,6 @@ use subxt::{
     utils::AccountId32 as SubxtAccountId32,
     OnlineClient,
 };
-use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{
@@ -39,7 +38,7 @@ use crate::{
         launch::FORBIDDEN_KEYS,
         substrate::{get_stash_address, get_subgroup, query_chain, submit_transaction},
     },
-    validation::{check_stale, SignedMessage},
+    validation::{check_stale, EncryptedMessage},
     validator::errors::ValidatorErr,
     AppState,
 };
@@ -59,7 +58,7 @@ pub struct Keys {
 /// This is the HTTP response body to `/validator/sync_kvdb`.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Values {
-    pub values: Vec<SignedMessage>,
+    pub values: Vec<EncryptedMessage>,
 }
 
 // TODO: find a proper batch size
@@ -110,7 +109,6 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
             .expect("Issue getting registered keys from chain.");
         let ip_address =
             String::from_utf8(key_server_info.endpoint).expect("failed to parse IP address.");
-        let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
         let all_keys = get_all_keys(&api, &rpc).await.expect("failed to get all keys.");
         get_and_store_values(
             all_keys,
@@ -118,7 +116,7 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
             ip_address,
             BATHC_SIZE_FOR_KEY_VALUE_GET,
             dev,
-            &recip_key,
+            key_server_info.x25519_public_key,
             &signer,
         )
         .await
@@ -130,31 +128,41 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
 }
 
 /// Endpoint to allow a new node to sync their kvdb with a member of their subgroup
-#[tracing::instrument(skip_all, fields(signing_address = %signed_msg.account_id()))]
+#[tracing::instrument(skip_all, fields(signing_address = %encrypted_msg.account_id()))]
 pub async fn sync_kvdb(
     State(app_state): State<AppState>,
-    Json(signed_msg): Json<SignedMessage>,
+    Json(encrypted_msg): Json<EncryptedMessage>,
 ) -> Result<Json<Values>, ValidatorErr> {
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
-    let signing_address = signed_msg.account_id();
-    if !signed_msg.verify() {
-        return Err(ValidatorErr::InvalidSignature("Invalid signature."));
-    }
-    let sender = PublicKey::from(signed_msg.sender().to_bytes());
+    let sender_account_id = SubxtAccountId32(encrypted_msg.sender.into());
+
+    let sender_encryption_pk = {
+        let block_hash = rpc.chain_get_block_hash(None).await?;
+        let threshold_address_query =
+            entropy::storage().staking_extension().threshold_servers(sender_account_id);
+        let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
+            .await?
+            .ok_or_else(|| ValidatorErr::ChainFetch("Cannot find sender public key"))?;
+        server_info.x25519_public_key
+    };
+
     let signer = get_signer(&app_state.kv_store).await?;
-    let decrypted_message = signed_msg.decrypt(signer.signer())?;
+    let decrypted_message = encrypted_msg.decrypt(signer.signer(), sender_encryption_pk, &[])?;
     let keys: Keys = serde_json::from_slice(&decrypted_message)?;
     check_stale(keys.timestamp)?;
+
+    let signing_address = encrypted_msg.account_id();
     check_in_subgroup(&api, &rpc, &signer, &signing_address).await?;
 
-    let mut values: Vec<SignedMessage> = vec![];
+    let mut values: Vec<EncryptedMessage> = vec![];
     for key in keys.keys {
         check_forbidden_key(&key)?;
         let result = app_state.kv_store.kv().get(&key).await?;
-        let reencrypted_key_result = SignedMessage::new(signer.signer(), &Bytes(result), &sender)
-            .map_err(|e| ValidatorErr::Encryption(e.to_string()))?;
+        let reencrypted_key_result =
+            EncryptedMessage::new(signer.signer(), &Bytes(result), sender_encryption_pk, &[])
+                .map_err(|e| ValidatorErr::Encryption(e.to_string()))?;
         values.push(reencrypted_key_result)
     }
     Ok(Json(Values { values }))
@@ -226,14 +234,14 @@ pub async fn get_random_server_info(
     Ok(server_info)
 }
 
-/// from keys of registered account get their corresponding entropy threshold keys
+/// From keys of registered accounts get their corresponding entropy threshold keys
 pub async fn get_and_store_values(
     all_keys: Vec<String>,
     kv: &KvManager,
     url: String,
     batch_size: usize,
     dev: bool,
-    recip: &x25519_dalek::PublicKey,
+    recip: X25519PublicKey,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
 ) -> Result<(), ValidatorErr> {
     let mut keys_stored = 0;
@@ -244,9 +252,13 @@ pub async fn get_and_store_values(
         }
         let remaining_keys = all_keys[keys_stored..(keys_to_send_slice)].to_vec();
         let keys_to_send = Keys { keys: remaining_keys.clone(), timestamp: SystemTime::now() };
-        let enc_keys =
-            SignedMessage::new(signer.signer(), &Bytes(serde_json::to_vec(&keys_to_send)?), recip)
-                .map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
+        let enc_keys = EncryptedMessage::new(
+            signer.signer(),
+            &Bytes(serde_json::to_vec(&keys_to_send)?),
+            recip,
+            &[],
+        )
+        .map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
         let client = reqwest::Client::new();
         let formatted_url = format!("http://{url}/validator/sync_kvdb");
         let result = client
@@ -273,7 +285,7 @@ pub async fn get_and_store_values(
 
             let reservation = kv.kv().reserve_key(remaining_keys[i].clone()).await?;
             let key = encrypted_key
-                .decrypt(signer.signer())
+                .decrypt(signer.signer(), recip, &[])
                 .map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
             kv.kv().put(reservation, key).await?;
             keys_stored += 1

@@ -18,7 +18,8 @@
 use super::{generate_key_pair, HpkeError, HpkeMessage, HpkePrivateKey, HpkePublicKey};
 use blake2::{Blake2s256, Digest};
 use entropy_shared::X25519PublicKey;
-use sp_core::{sr25519, Pair};
+use serde::{Deserialize, Serialize};
+use sp_core::{crypto::AccountId32, sr25519, Pair};
 use zeroize::Zeroize;
 
 /// Given a sr25519 secret signing key, derive an x25519 keypair
@@ -33,68 +34,66 @@ pub fn derive_hpke_keypair(
     Ok(keypair)
 }
 
-pub struct HpkeUsingSr25519(HpkeMessage);
+/// Encrypted wire message
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct EncryptedMessage {
+    hpke_message: HpkeMessage,
+    pub sender: sr25519::Public,
+}
 
-impl HpkeUsingSr25519 {
-    /// New single shot message, with optional sender authentication
+impl EncryptedMessage {
+    /// New single shot message
     pub fn new(
+        sender: &sr25519::Pair,
         msg: &[u8],
         recipient: X25519PublicKey,
-        private_key_authenticated_sender: Option<&sr25519::Pair>,
         associated_data: &[u8],
     ) -> Result<Self, HpkeError> {
-        let private_key_authenticated_sender = match private_key_authenticated_sender {
-            Some(sk) => {
-                let (sk, _pk) = derive_hpke_keypair(sk)?;
-                Some(sk)
-            },
-            None => None,
-        };
-        Ok(HpkeUsingSr25519(HpkeMessage::new(
-            msg,
-            &HpkePublicKey::new(recipient.to_vec()),
-            private_key_authenticated_sender.as_ref(),
-            associated_data,
-        )?))
+        let (sk, _pk) = derive_hpke_keypair(sender)?;
+        Ok(Self {
+            hpke_message: HpkeMessage::new(
+                msg,
+                &HpkePublicKey::new(recipient.to_vec()),
+                Some(&sk),
+                associated_data,
+            )?,
+            sender: sender.public(),
+        })
     }
 
-    /// Decrypt an incoming message, with optional sender authentication
+    /// Decrypt an incoming message
     pub fn decrypt(
         &self,
         sk: &sr25519::Pair,
-        public_key_authenticated_sender: Option<&X25519PublicKey>,
+        remote_public_key: X25519PublicKey,
         associated_data: &[u8],
     ) -> Result<Vec<u8>, HpkeError> {
         let (sk, _pk) = derive_hpke_keypair(sk)?;
-        self.0.decrypt(
-            &sk,
-            public_key_authenticated_sender.map(|pk| HpkePublicKey::new(pk.to_vec())).as_ref(),
-            associated_data,
-        )
+        let remote_public_key = HpkePublicKey::new(remote_public_key.to_vec());
+        self.hpke_message.decrypt(&sk, Some(&remote_public_key), associated_data)
     }
 
     /// A new message, containing an ephemeral public key with which we want the recieve a response
     /// The ephemeral private key is returned together with the [HpkeMessage]
     pub fn new_with_receiver(
+        sender: &sr25519::Pair,
         msg: &[u8],
         recipient: &X25519PublicKey,
-        private_key_authenticated_sender: Option<&sr25519::Pair>,
         associated_data: &[u8],
     ) -> Result<(Self, HpkePrivateKey), HpkeError> {
-        let private_key_authenticated_sender = match private_key_authenticated_sender {
-            Some(sk) => {
-                let (sk, _pk) = derive_hpke_keypair(sk)?;
-                Some(sk)
-            },
-            None => None,
-        };
-        let (inner, response_sk) = HpkeMessage::new_with_receiver(
+        let (sk, _pk) = derive_hpke_keypair(sender)?;
+        let (hpke_message, response_sk) = HpkeMessage::new_with_receiver(
             msg,
             &HpkePublicKey::new(recipient.to_vec()),
-            private_key_authenticated_sender.as_ref(),
+            Some(&sk),
             associated_data,
         )?;
 
-        Ok((HpkeUsingSr25519(inner), response_sk))
+        Ok((Self { hpke_message, sender: sender.public() }, response_sk))
+    }
+
+    /// Returns the AccountId32 of the message signer.
+    pub fn account_id(&self) -> AccountId32 {
+        AccountId32::new(self.sender.into())
     }
 }

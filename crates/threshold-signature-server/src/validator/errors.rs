@@ -45,8 +45,6 @@ pub enum ValidatorErr {
     Encryption(String),
     #[error("Forbidden Key")]
     ForbiddenKey,
-    #[error("Invalid Signature: {0}")]
-    InvalidSignature(&'static str),
     #[error("Subgroup error: {0}")]
     SubgroupError(&'static str),
     #[error("Account unable to be deserialized: {0}")]
@@ -63,6 +61,16 @@ pub enum ValidatorErr {
     Anyhow(#[from] anyhow::Error),
     #[error("Chain Fetch: {0}")]
     ChainFetch(&'static str),
+    #[error("Encryption: {0}")]
+    Hpke(entropy_protocol::hpke::HpkeError),
+}
+
+// Needed because for some reason HpkeError doesn't have the required traits to derive this with
+// thiserror
+impl From<entropy_protocol::hpke::HpkeError> for ValidatorErr {
+    fn from(hpke_error: entropy_protocol::hpke::HpkeError) -> ValidatorErr {
+        ValidatorErr::Hpke(hpke_error)
+    }
 }
 
 impl IntoResponse for ValidatorErr {

@@ -16,8 +16,12 @@
 use std::time::{Duration, SystemTime};
 
 use bip39::Mnemonic;
-pub use entropy_protocol::sign_and_encrypt::{
-    derive_static_secret, SignedMessage, SignedMessageErr,
+pub use entropy_protocol::{
+    hpke::{
+        with_sr25519::{derive_hpke_keypair, EncryptedMessage},
+        HpkeError,
+    },
+    sign_and_encrypt::{derive_static_secret, SignedMessage, SignedMessageErr},
 };
 use rand_core::{OsRng, RngCore};
 use subxt::ext::sp_core::{sr25519, Pair};
