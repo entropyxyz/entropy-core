@@ -63,6 +63,7 @@ pub async fn spawn_testing_validators(
     passed_verifying_key: Option<Vec<u8>>,
     // If this is true a keyshare for the user will be generated and returned
     extra_private_keys: bool,
+    // If true keyshare and verifying key is deterministic
     deterministic_key_share: bool,
 ) -> (Vec<String>, Vec<PartyId>, Option<KeyShare<KeyParams>>) {
     // spawn threshold servers

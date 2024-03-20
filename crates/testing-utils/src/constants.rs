@@ -44,6 +44,7 @@ lazy_static! {
     ];
     pub static ref DEFAULT_VERIFYING_KEY_NOT_REGISTERED: Vec<u8> = vec![10; VERIFICATION_KEY_LENGTH as usize];
     pub static ref DAVE_VERIFYING_KEY: Vec<u8> = vec![1; VERIFICATION_KEY_LENGTH as usize];
+    // this key is associated with a constant key share generation in spawn_testing_validators
     pub static ref EVE_VERIFYING_KEY: Vec<u8> = vec![2, 78, 59, 129, 175, 156, 34, 52, 202, 208, 157, 103, 156, 230, 3, 94, 209, 57, 35, 71, 206, 100, 206, 64, 95, 93, 205, 54, 34, 138, 37, 222, 110];
     pub static ref FERDIE_VERIFYING_KEY: Vec<u8> = vec![3; VERIFICATION_KEY_LENGTH as usize];
     pub static ref DEFAULT_VERIFYING_KEY: Vec<u8> = vec![0; VERIFICATION_KEY_LENGTH as usize];
