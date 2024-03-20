@@ -20,7 +20,7 @@ use entropy_testing_utils::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
-    constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
+    constants::{AUXILARY_DATA_SHOULD_SUCCEED, FERDIE_VERIFYING_KEY, TEST_PROGRAM_WASM_BYTECODE},
     substrate_context::test_context_stationary,
     test_client,
     tss_server_process::spawn_testing_validators,
@@ -38,7 +38,6 @@ use ethers_core::{
     },
 };
 use serial_test::serial;
-use sp_core::crypto::Ss58Codec;
 use sp_keyring::AccountKeyring;
 use synedrion::k256::ecdsa::VerifyingKey;
 
@@ -51,9 +50,8 @@ async fn integration_test_sign_eth_tx() {
     let pre_registered_user = AccountKeyring::Ferdie;
     let deployer = AccountKeyring::Eve;
 
-    let signing_address = pre_registered_user.to_account_id().to_ss58check();
     let (_validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(signing_address.clone()), false).await;
+        spawn_testing_validators(Some(FERDIE_VERIFYING_KEY.to_vec()), false, false).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -71,7 +69,7 @@ async fn integration_test_sign_eth_tx() {
     test_client::update_programs(
         &api,
         &rpc,
-        &pre_registered_user.pair(),
+        FERDIE_VERIFYING_KEY.to_vec(),
         &pre_registered_user.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
@@ -91,7 +89,7 @@ async fn integration_test_sign_eth_tx() {
         &api,
         &rpc,
         pre_registered_user.pair(),
-        None,
+        FERDIE_VERIFYING_KEY.to_vec(),
         message,
         None,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
