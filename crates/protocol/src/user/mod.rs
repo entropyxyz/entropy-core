@@ -46,10 +46,10 @@ pub async fn user_participates_in_signing_protocol(
     user_signing_keypair: &sr25519::Pair,
     message_hash: [u8; 32],
 ) -> Result<RecoverableSignature, UserRunningProtocolErr> {
-    let veryfying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
+    let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
 
     let session_id = SessionId::Sign(SigningSessionInfo {
-        signature_verifying_key: veryfying_key,
+        signature_verifying_key: verifying_key,
         message_hash,
         request_author: AccountId32(user_signing_keypair.public().0),
     });
