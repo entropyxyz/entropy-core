@@ -168,6 +168,9 @@ mod tests {
 
         assert_eq!(decrypted_plain_text, plaintext);
         assert_ne!(ciphertext.ct.0, plaintext);
+
+        let (mallory_sk, _mallory_pk) = generate_key_pair(None).unwrap();
+        assert!(ciphertext.decrypt(&mallory_sk, None, aad).is_err());
     }
 
     #[test]
@@ -184,6 +187,9 @@ mod tests {
 
         assert_eq!(decrypted_plain_text, plaintext);
         assert_ne!(ciphertext.ct.0, plaintext);
+
+        let (mallory_sk, _mallory_pk) = generate_key_pair(None).unwrap();
+        assert!(ciphertext.decrypt(&mallory_sk, Some(&alice_pk), aad).is_err());
     }
 
     #[test]
