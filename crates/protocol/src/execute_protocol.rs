@@ -162,7 +162,7 @@ pub async fn execute_signing_protocol(
 
     let pair = PairWrapper(threshold_pair.clone());
 
-    let shared_randomness = session_id.blake2();
+    let shared_randomness = session_id.blake2()?;
 
     let session = make_interactive_signing_session(
         &mut OsRng,
@@ -195,7 +195,7 @@ pub async fn execute_dkg(
 
     let pair = PairWrapper(threshold_pair.clone());
 
-    let shared_randomness = session_id.blake2();
+    let shared_randomness = session_id.blake2()?;
 
     let session = make_key_gen_session(&mut OsRng, &shared_randomness, pair, &party_ids)
         .map_err(ProtocolExecutionErr::SessionCreation)?;
@@ -224,7 +224,7 @@ pub async fn execute_proactive_refresh(
 
     let pair = PairWrapper(threshold_pair.clone());
 
-    let shared_randomness = session_id.blake2();
+    let shared_randomness = session_id.blake2()?;
 
     let session = make_key_refresh_session(&mut OsRng, &shared_randomness, pair, &party_ids)
         .map_err(ProtocolExecutionErr::SessionCreation)?;
