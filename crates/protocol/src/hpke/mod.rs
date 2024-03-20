@@ -21,6 +21,8 @@ use hpke_rs_rust_crypto::HpkeRustCrypto;
 use serde::{Deserialize, Serialize};
 use sp_core::Bytes;
 
+pub mod with_sr25519;
+
 /// Configure Hpke
 fn get_hpke(hpke_mode: HpkeMode) -> Hpke<HpkeRustCrypto> {
     Hpke::<HpkeRustCrypto>::new(
