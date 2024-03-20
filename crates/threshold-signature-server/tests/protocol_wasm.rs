@@ -401,18 +401,15 @@ async fn wait_for_register_confirmation(
     for _ in 0..50 {
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
-        let registered_event =
-            events.find_first::<entropy::registry::events::AccountRegistered>();
-        for event in registered_event {
-            if let Ok(ev) = event {
-                let registered_query = entropy::storage().registry().registered(&ev.1);
-                let registered_status =
-                    query_chain(&api, &rpc, registered_query, block_hash).await.unwrap();
-                if registered_status.is_some() {
-                    // check if the event belongs to this user
-                    if ev.0 == account_id {
-                        return ev.1 .0;
-                    }
+        let registered_event = events.find_first::<entropy::registry::events::AccountRegistered>();
+        for event in registered_event.flatten() {
+            let registered_query = entropy::storage().registry().registered(&event.1);
+            let registered_status =
+                query_chain(&api, &rpc, registered_query, block_hash).await.unwrap();
+            if registered_status.is_some() {
+                // check if the event belongs to this user
+                if event.0 == account_id {
+                    return event.1 .0;
                 }
             }
         }
