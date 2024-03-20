@@ -401,7 +401,7 @@ async fn wait_for_register_confirmation(
     for _ in 0..50 {
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
-        let registered_event = events.find_first::<entropy::registry::events::AccountRegistered>();
+        let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
         for event in registered_event.flatten() {
             let registered_query = entropy::storage().registry().registered(&event.1);
             let registered_status =
