@@ -536,14 +536,16 @@ pub mod pallet {
             // We do a bit of a weird conversion here since we want the validator's underlying
             // `AccountId` for the reporting mechanism, not their `ValidatorId`.
             //
-            // The Session pallet should have this configured to be the same thing.
-            let reporter_validator_account =
-                pallet_staking_extension::Pallet::<T>::get_stash(&reporter_tss_account)
-                    .map_err(|_| Error::<T>::NoThresholdKey)?;
+            // The Session pallet should have this configured to be the same thing, but we can't
+            // prove that to the compiler.
+            let encoded_validator_id = T::ValidatorId::encode(&reporter_validator_account);
+            let reporter_validator_account = T::AccountId::decode(&mut &encoded_validator_id[..])
+                .expect("A `ValidatorId` should be equivalent to an `AccountId`.");
 
+            let encoded_validator_id = T::ValidatorId::encode(&offending_peer_validator_account);
             let offending_peer_validator_account =
-                pallet_staking_extension::Pallet::<T>::get_stash(&offending_peer_tss_account)
-                    .map_err(|_| Error::<T>::NoThresholdKey)?;
+                T::AccountId::decode(&mut &encoded_validator_id[..])
+                    .expect("A `ValidatorId` should be equivalent to an `AccountId`.");
 
             // We don't actually take any action here, we offload the reporting to the Slashing
             // pallet.

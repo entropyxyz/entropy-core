@@ -775,7 +775,7 @@ fn cannot_report_outside_of_validator_set() {
 fn can_report_unstable_peer() {
     new_test_ext().execute_with(|| {
         // These mappings come from the mock GenesisConfig
-        let (alice_validator, alice_tss) = (5, 7);
+        let (_alice_validator, alice_tss) = (5, 7);
         let (bob_validator, bob_tss) = (6, 8);
 
         // This is going to be our signature request account
@@ -818,34 +818,14 @@ fn can_report_unstable_peer() {
             programs_info,
         ));
 
-        // If we don't manually increase the providers here we can't bond the accounts.
-        //
-        // See here: https://substrate.stackexchange.com/questions/9225/moduleerror-badstate/9228#9228
-        <frame_system::Pallet<Test>>::inc_providers(&alice_tss);
-        <frame_system::Pallet<Test>>::inc_providers(&bob_tss);
-
-        // TODO (Nando): Not sure if this is the correct account to use though, we maybe need to
-        // rework the `get_stash` function to account for the deprecation of controller accounts
-        assert_ok!(FrameStaking::bond(
-            RuntimeOrigin::signed(alice_tss),
-            100u64,
-            pallet_staking::RewardDestination::Account(alice_validator),
-        ));
-
-        assert_ok!(FrameStaking::bond(
-            RuntimeOrigin::signed(bob_tss),
-            100u64,
-            pallet_staking::RewardDestination::Account(bob_validator),
-        ));
-
-        // A report can be submitted if all the above conditions are met
+        // The TSS accounts are used for reports. We expect the accompanying validator to be
+        // reported though.
         assert_ok!(Registry::report_unstable_peer(
             RuntimeOrigin::signed(alice_tss),
             charlie,
             bob_tss
         ));
 
-        // TODO (Nando): Again, unclear this this is the correct account to use...
-        assert_eq!(<pallet_slashing::Pallet<Test>>::failed_registrations(bob_tss), 1);
+        assert_eq!(<pallet_slashing::Pallet<Test>>::failed_registrations(bob_validator), 1);
     })
 }
