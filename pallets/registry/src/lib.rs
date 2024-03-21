@@ -220,7 +220,7 @@ pub mod pallet {
         ProgramDoesNotExist,
         NoProgramSet,
         TooManyModifiableKeys,
-        VerifyingKeyLength,
+        MismatchedVerifyingKeyLength,
     }
 
     #[pallet::call]
