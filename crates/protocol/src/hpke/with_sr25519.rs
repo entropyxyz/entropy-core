@@ -23,6 +23,14 @@ use sp_core::{crypto::AccountId32, sr25519, Pair};
 use zeroize::Zeroize;
 
 /// Given a sr25519 secret signing key, derive an x25519 keypair
+pub fn derive_x25519_public_key(sk: &sr25519::Pair) -> Result<X25519PublicKey, HpkeError> {
+    let (_, hpke_public_key) = derive_hpke_keypair(sk)?;
+    let mut x25519_public_key: [u8; 32] = [0; 32];
+    x25519_public_key.copy_from_slice(hpke_public_key.as_slice());
+    Ok(x25519_public_key)
+}
+
+/// Given a sr25519 secret signing key, derive an x25519 keypair
 pub fn derive_hpke_keypair(
     sk: &sr25519::Pair,
 ) -> Result<(HpkePrivateKey, HpkePublicKey), HpkeError> {
