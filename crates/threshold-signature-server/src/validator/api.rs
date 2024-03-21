@@ -15,7 +15,7 @@
 
 use axum::{extract::State, Json};
 use entropy_kvdb::kv_manager::KvManager;
-use entropy_shared::MIN_BALANCE;
+use entropy_shared::{MIN_BALANCE, VERIFICATION_KEY_LENGTH};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::{AccountId32, Ss58Codec};
@@ -178,7 +178,7 @@ pub async fn get_all_keys(
     while let Some(Ok((key, _account))) = iter.next().await {
         let new_key = hex::encode(key);
         let len = new_key.len();
-        let final_key = &new_key[len - 66..];
+        let final_key = &new_key[len - (VERIFICATION_KEY_LENGTH as usize * 2)..];
         // checks address is valid
         addresses.push(final_key.to_string())
     }

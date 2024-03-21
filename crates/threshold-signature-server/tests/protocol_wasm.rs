@@ -403,10 +403,10 @@ async fn wait_for_register_confirmation(
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
         let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
         for event in registered_event.flatten() {
-            let registered_query = entropy::storage().registry().registered(&event.1);
-            let registered_status =
-                query_chain(&api, &rpc, registered_query, block_hash).await.unwrap();
             if registered_status.is_some() {
+                let registered_query = entropy::storage().registry().registered(&event.1);
+                let registered_status =
+                    query_chain(&api, &rpc, registered_query, block_hash).await.unwrap();
                 // check if the event belongs to this user
                 if event.0 == account_id {
                     return event.1 .0;
