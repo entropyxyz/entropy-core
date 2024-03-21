@@ -394,7 +394,7 @@ pub mod pallet {
             let ts_server_account = ensure_signed(origin)?;
             ensure!(
                 verifying_key.len() as u32 == VERIFICATION_KEY_LENGTH,
-                Error::<T>::VerifyingKeyLength
+                Error::<T>::MismatchedVerifyingKeyLength
             );
             let validator_stash =
                 pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
