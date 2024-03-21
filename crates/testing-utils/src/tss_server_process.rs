@@ -15,6 +15,7 @@
 
 use std::{net::TcpListener, time::Duration};
 
+use crate::constants::DETERMINISTIC_KEY_SHARE;
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use entropy_protocol::{KeyParams, PartyId};
@@ -25,7 +26,6 @@ use entropy_tss::{
     // signing_client::ListenerState,
     AppState,
 };
-use hex_literal::hex;
 use rand_core::OsRng;
 use subxt::utils::AccountId32 as SubxtAccountId32;
 use synedrion::{ecdsa::SigningKey, KeyShare};
@@ -85,13 +85,7 @@ pub async fn spawn_testing_validators(
         let number_of_shares = if extra_private_keys { 3 } else { 2 };
         // creates a deterministic keyshare if requiered
         let signing_key = if deterministic_key_share {
-            Some(
-                SigningKey::from_bytes(
-                    &hex!("4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318")
-                        .into(),
-                )
-                .unwrap(),
-            )
+            Some(SigningKey::from_bytes((&*DETERMINISTIC_KEY_SHARE).into()).unwrap())
         } else {
             None
         };

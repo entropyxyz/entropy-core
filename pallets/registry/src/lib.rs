@@ -130,7 +130,7 @@ pub mod pallet {
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             for account_info in &self.registered_accounts {
-                assert!(account_info.3.clone().len() as u32 == VERIFICATION_KEY_LENGTH);
+                assert!(account_info.3.len() as u32 == VERIFICATION_KEY_LENGTH);
                 let key_visibility = match account_info.1 {
                     1 => KeyVisibility::Private(
                         account_info.2.expect("Private key visibility needs x25519 public key"),
@@ -169,6 +169,7 @@ pub mod pallet {
     pub type Registered<T: Config> =
         StorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
 
+    /// Mapping of program_modification accounts to verifying keys they can controll
     #[pallet::storage]
     #[pallet::getter(fn modifiable_keys)]
     pub type ModifiableKeys<T: Config> = StorageMap<
