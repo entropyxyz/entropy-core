@@ -32,7 +32,7 @@ use crate::{
     errors::{GenericProtocolError, ProtocolExecutionErr},
     protocol_message::ProtocolMessage,
     protocol_transport::Broadcaster,
-    KeyParams, PartyId,
+    KeyParams, PartyId, SessionId,
 };
 
 pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;
@@ -148,6 +148,7 @@ async fn execute_protocol_generic<Res: ProtocolResult>(
     level = tracing::Level::DEBUG
 )]
 pub async fn execute_signing_protocol(
+    session_id: SessionId,
     chans: Channels,
     key_share: &KeyShare<KeyParams>,
     prehashed_message: &PrehashedMessage,
@@ -161,14 +162,11 @@ pub async fn execute_signing_protocol(
 
     let pair = PairWrapper(threshold_pair.clone());
 
-    // TODO (#375): this should come from whoever initiates the signing process,
-    // (or as some deterministic function, e.g. the hash of the last block mined)
-    // and be the same for all participants.
-    let shared_randomness = b"123456";
+    let shared_randomness = session_id.blake2()?;
 
     let session = make_interactive_signing_session(
         &mut OsRng,
-        shared_randomness,
+        &shared_randomness,
         pair,
         &party_ids,
         key_share,
@@ -186,6 +184,7 @@ pub async fn execute_signing_protocol(
     level = tracing::Level::DEBUG
 )]
 pub async fn execute_dkg(
+    session_id: SessionId,
     chans: Channels,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
@@ -196,12 +195,9 @@ pub async fn execute_dkg(
 
     let pair = PairWrapper(threshold_pair.clone());
 
-    // TODO (#375): this should come from whoever initiates the signing process,
-    // (or as some deterministic function, e.g. the hash of the last block mined)
-    // and be the same for all participants.
-    let shared_randomness = b"123456";
+    let shared_randomness = session_id.blake2()?;
 
-    let session = make_key_gen_session(&mut OsRng, shared_randomness, pair, &party_ids)
+    let session = make_key_gen_session(&mut OsRng, &shared_randomness, pair, &party_ids)
         .map_err(ProtocolExecutionErr::SessionCreation)?;
 
     Ok(execute_protocol_generic(chans, session).await?)
@@ -214,6 +210,7 @@ pub async fn execute_dkg(
     level = tracing::Level::DEBUG
 )]
 pub async fn execute_proactive_refresh(
+    session_id: SessionId,
     chans: Channels,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
@@ -227,12 +224,9 @@ pub async fn execute_proactive_refresh(
 
     let pair = PairWrapper(threshold_pair.clone());
 
-    // TODO (#375): this should come from whoever initiates the signing process,
-    // (or as some deterministic function, e.g. the hash of the last block mined)
-    // and be the same for all participants.
-    let shared_randomness = b"123456";
+    let shared_randomness = session_id.blake2()?;
 
-    let session = make_key_refresh_session(&mut OsRng, shared_randomness, pair, &party_ids)
+    let session = make_key_refresh_session(&mut OsRng, &shared_randomness, pair, &party_ids)
         .map_err(ProtocolExecutionErr::SessionCreation)?;
 
     let key_change = execute_protocol_generic(chans, session).await?;

@@ -98,6 +98,8 @@ pub enum ProtocolExecutionErr {
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
     #[error("Bad keyshare error {0}")]
     BadKeyShare(String),
+    #[error("Cannot serialize session ID {0}")]
+    Bincode(#[from] bincode::Error),
 }
 
 /// An error when running a protocol session on the client side

@@ -208,7 +208,6 @@ pub async fn sign_tx(
         message.as_slice(),
     )
     .await?;
-    let message_hash_hex = hex::encode(message_hash);
 
     let signing_session_id = SigningSessionInfo {
         signature_verifying_key: user_sig_req.signature_verifying_key.clone(),
@@ -228,7 +227,6 @@ pub async fn sign_tx(
         let signing_protocol_output = do_signing(
             &rpc,
             user_sig_req,
-            message_hash_hex,
             &app_state,
             signing_session_id,
             user_details.key_visibility.0,

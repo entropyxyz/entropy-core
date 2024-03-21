@@ -64,6 +64,7 @@ pub async fn user_participates_in_signing_protocol(
 
     // Execute the signing protocol
     let rsig = execute_protocol::execute_signing_protocol(
+        session_id,
         channels,
         key_share,
         &message_hash,
@@ -95,7 +96,8 @@ pub async fn user_participates_in_dkg_protocol(
     .await?;
 
     let keyshare =
-        execute_protocol::execute_dkg(channels, user_signing_keypair, tss_accounts).await?;
+        execute_protocol::execute_dkg(session_id, channels, user_signing_keypair, tss_accounts)
+            .await?;
 
     Ok(keyshare)
 }
