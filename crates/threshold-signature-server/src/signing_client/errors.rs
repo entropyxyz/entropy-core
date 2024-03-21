@@ -102,6 +102,8 @@ pub enum ProtocolErr {
     RepeatedData,
     #[error("Chain Fetch: {0}")]
     ChainFetch(&'static str),
+    #[error("The session ID is not for a signing session")]
+    BadSessionId,
 }
 
 impl IntoResponse for ProtocolErr {

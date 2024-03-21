@@ -227,7 +227,8 @@ pub async fn do_proactive_refresh(
         Channels(broadcast_out, rx_from_others)
     };
     let result =
-        execute_proactive_refresh(channels, signer.signer(), tss_accounts, old_key).await?;
+        execute_proactive_refresh(session_id, channels, signer.signer(), tss_accounts, old_key)
+            .await?;
     Ok(result)
 }
 

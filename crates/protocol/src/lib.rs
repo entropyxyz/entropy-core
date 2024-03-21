@@ -27,7 +27,9 @@ use std::{
     hash::{Hash, Hasher},
 };
 
+use blake2::{Blake2s256, Digest};
 use entropy_shared::X25519PublicKey;
+use errors::ProtocolExecutionErr;
 pub use protocol_message::ProtocolMessage;
 use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair};
@@ -189,5 +191,14 @@ impl Hash for SessionId {
                 signing_session_info.request_author.0.hash(state);
             },
         }
+    }
+}
+
+impl SessionId {
+    /// Take the hash of the session ID - used as uniqueness in the protocol
+    pub fn blake2(&self) -> Result<Vec<u8>, ProtocolExecutionErr> {
+        let mut hasher = Blake2s256::new();
+        hasher.update(bincode::serialize(self)?);
+        Ok(hasher.finalize().to_vec())
     }
 }
