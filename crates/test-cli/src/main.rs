@@ -146,7 +146,7 @@ enum CliCommand {
 enum Visibility {
     /// User ho;ds keyshare
     Private,
-    /// User does not holds keyshare
+    /// User does not hold a keyshare
     #[default]
     Public,
 }
