@@ -95,7 +95,7 @@ pub mod pallet {
             log::warn!("propagation::post::messages: {:?}", &messages);
             let converted_block_number: u32 =
                 BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
-            let (servers_info, _i) =
+            let servers_info =
                 pallet_registry::Pallet::<T>::get_validator_info().unwrap_or_default();
             let validators_info = servers_info
                 .iter()
