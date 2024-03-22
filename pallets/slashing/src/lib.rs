@@ -17,10 +17,17 @@
 
 //! # Slashing Pallet
 //!
-//!
 //! ## Overview
 //!
-//! Allows for customizable slashes to occur on chain
+//! The Slashing pallet is responsible for tracking misbehaviour from validators and, if required,
+//! triggering offence reporting (a.k.a slashing).
+//!
+//! The pallet doesn't concern itself with the specific details of why a validator was reported.
+//! Instead it offers a place for already verified reports to be tracked.
+//!
+//! For example, the Registry pallet may determine that a validator misbehaved during registration,
+//! at which point it can call the Slashing pallet to deal with any actual slashing.
+
 pub use pallet::*;
 
 #[cfg(test)]
@@ -67,6 +74,7 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
+        /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// The identifier type for an authority.
