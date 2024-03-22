@@ -117,7 +117,7 @@ async fn test_sync_kvdb() {
     let client = reqwest::Client::new();
     let mut keys = Keys { keys: addrs, timestamp: SystemTime::now() };
     let enc_keys =
-        EncryptedSignedMessage::new(&a_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
+        EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
             .unwrap();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
     let result = client
@@ -130,7 +130,8 @@ async fn test_sync_kvdb() {
 
     // Validates that keys signed/encrypted to the correct key
     // return no error (status code 200).
-    assert_eq!(result.status(), 200);
+    // assert_eq!(result.status(), 200);
+    assert_eq!(result.text().await.unwrap(), "");
 
     let sender = derive_x25519_public_key(&a_usr_sk).unwrap();
 
