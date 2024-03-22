@@ -13,13 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! HpkeMessage, but using sr25519 secret keys to generate encryption keypair
+//! HpkeMessage, but using sr25519 secret keys to generate encryption keypair and adding a sr25519
+//! signature
 
 use super::{generate_key_pair, HpkeError, HpkeMessage, HpkePrivateKey, HpkePublicKey};
 use blake2::{Blake2s256, Digest};
 use entropy_shared::X25519PublicKey;
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::AccountId32, sr25519, Pair};
+use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
+use thiserror::Error;
 use zeroize::Zeroize;
 
 /// Given a sr25519 secret signing key, derive an x25519 keypair
@@ -44,28 +46,55 @@ pub fn derive_hpke_keypair(
 
 /// Encrypted wire message
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct EncryptedMessage {
+pub struct EncryptedSignedMessage {
     hpke_message: HpkeMessage,
-    pub sender: sr25519::Public,
 }
 
-impl EncryptedMessage {
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct SignedMessage {
+    pub message: Bytes,
+    pub sender: sr25519::Public,
+    pub signature: sr25519::Signature,
+    pub receiver_x25519: Option<X25519PublicKey>,
+}
+
+impl SignedMessage {
+    fn new(
+        message: Vec<u8>,
+        secret_key: &sr25519::Pair,
+        receiver_x25519: Option<X25519PublicKey>,
+    ) -> Self {
+        let signature = secret_key.sign(&message);
+        Self { message: Bytes(message), sender: secret_key.public(), signature, receiver_x25519 }
+    }
+
+    fn verify(&self) -> bool {
+        <sr25519::Pair as Pair>::verify(&self.signature, &self.message.0, &self.sender)
+    }
+
+    /// Returns the AccountId32 of the message signer.
+    pub fn account_id(&self) -> AccountId32 {
+        AccountId32::new(self.sender.into())
+    }
+}
+
+impl EncryptedSignedMessage {
     /// New single shot message
     pub fn new(
+        message: Vec<u8>,
         sender: &sr25519::Pair,
-        msg: &[u8],
-        recipient: X25519PublicKey,
+        recipient: &X25519PublicKey,
         associated_data: &[u8],
-    ) -> Result<Self, HpkeError> {
-        let (sk, _pk) = derive_hpke_keypair(sender)?;
+    ) -> Result<Self, EncryptedSignedMessageErr> {
+        let signed_message = SignedMessage::new(message, sender, None);
+        let serialized_signed_message = serde_json::to_vec(&signed_message).unwrap();
+
         Ok(Self {
             hpke_message: HpkeMessage::new(
-                msg,
+                &serialized_signed_message,
                 &HpkePublicKey::new(recipient.to_vec()),
-                Some(&sk),
                 associated_data,
             )?,
-            sender: sender.public(),
         })
     }
 
@@ -73,35 +102,129 @@ impl EncryptedMessage {
     pub fn decrypt(
         &self,
         sk: &sr25519::Pair,
-        remote_public_key: X25519PublicKey,
         associated_data: &[u8],
-    ) -> Result<Vec<u8>, HpkeError> {
+    ) -> Result<SignedMessage, EncryptedSignedMessageErr> {
         let (sk, _pk) = derive_hpke_keypair(sk)?;
-        let remote_public_key = HpkePublicKey::new(remote_public_key.to_vec());
-        self.hpke_message.decrypt(&sk, Some(&remote_public_key), associated_data)
+        let plaintext = self.hpke_message.decrypt(&sk, associated_data)?;
+        let signed_message: SignedMessage = serde_json::from_slice(&plaintext).unwrap();
+        if !signed_message.verify() {
+            return Err(EncryptedSignedMessageErr::BadSignature);
+        };
+        Ok(signed_message)
     }
 
     /// A new message, containing an ephemeral public key with which we want the recieve a response
     /// The ephemeral private key is returned together with the [HpkeMessage]
     pub fn new_with_receiver(
+        message: Vec<u8>,
         sender: &sr25519::Pair,
-        msg: &[u8],
         recipient: &X25519PublicKey,
         associated_data: &[u8],
-    ) -> Result<(Self, HpkePrivateKey), HpkeError> {
-        let (sk, _pk) = derive_hpke_keypair(sender)?;
-        let (hpke_message, response_sk) = HpkeMessage::new_with_receiver(
-            msg,
-            &HpkePublicKey::new(recipient.to_vec()),
-            Some(&sk),
-            associated_data,
-        )?;
+    ) -> Result<(Self, sr25519::Pair), EncryptedSignedMessageErr> {
+        let (response_secret_key, _) = sr25519::Pair::generate();
+        let response_public_key = derive_x25519_public_key(&response_secret_key)?;
 
-        Ok((Self { hpke_message, sender: sender.public() }, response_sk))
+        let signed_message = SignedMessage::new(message, sender, Some(response_public_key));
+        let serialized_signed_message = serde_json::to_vec(&signed_message).unwrap();
+
+        Ok((
+            Self {
+                hpke_message: HpkeMessage::new(
+                    &serialized_signed_message,
+                    &HpkePublicKey::new(recipient.to_vec()),
+                    associated_data,
+                )?,
+            },
+            response_secret_key,
+        ))
+    }
+}
+
+/// An error related to an [EncryptedSignedMessage]
+#[derive(Debug, Error)]
+pub enum EncryptedSignedMessageErr {
+    #[error("Hpke: {0}")]
+    Hpke(HpkeError),
+    #[error("Cannot verify signature")]
+    BadSignature,
+    #[error("JSON serialization error: {0}")]
+    Json(#[from] serde_json::Error),
+}
+
+// Needed because for some reason HpkeError doesn't have the required traits to derive this with
+// thiserror
+impl From<HpkeError> for EncryptedSignedMessageErr {
+    fn from(hpke_error: HpkeError) -> EncryptedSignedMessageErr {
+        EncryptedSignedMessageErr::Hpke(hpke_error)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sp_keyring::sr25519::Keyring;
+
+    #[test]
+    fn test_encrypt() {
+        let plaintext = b"Its nice to be important but its more important to be nice".to_vec();
+
+        let alice = Keyring::Alice.pair();
+        let bob = Keyring::Bob.pair();
+
+        let bob_x25519_pk = derive_x25519_public_key(&bob).unwrap();
+
+        let aad = b"Some additional context";
+
+        let ciphertext =
+            EncryptedSignedMessage::new(plaintext.clone(), &alice, &bob_x25519_pk, aad).unwrap();
+
+        let decrypted_signed_message = ciphertext.decrypt(&bob, aad).unwrap();
+
+        assert_eq!(decrypted_signed_message.message, Bytes(plaintext.clone()));
+        assert_ne!(ciphertext.hpke_message.ct.0, plaintext);
+
+        assert!(ciphertext.decrypt(&Keyring::Eve.pair(), aad).is_err());
     }
 
-    /// Returns the AccountId32 of the message signer.
-    pub fn account_id(&self) -> AccountId32 {
-        AccountId32::new(self.sender.into())
+    #[test]
+    fn test_encrypt_with_receiver() {
+        let plaintext = b"Its nice to be important but its more important to be nice".to_vec();
+
+        let alice = Keyring::Alice.pair();
+        let bob = Keyring::Bob.pair();
+
+        let bob_x25519_pk = derive_x25519_public_key(&bob).unwrap();
+
+        let aad = b"Some additional context";
+
+        let (ciphertext, receiver_secret_key) = EncryptedSignedMessage::new_with_receiver(
+            plaintext.clone(),
+            &alice,
+            &bob_x25519_pk,
+            aad,
+        )
+        .unwrap();
+
+        let decrypted_signed_message = ciphertext.decrypt(&bob, aad).unwrap();
+
+        assert_eq!(decrypted_signed_message.message, Bytes(plaintext.clone()));
+        assert_ne!(ciphertext.hpke_message.ct.0, plaintext);
+        assert!(ciphertext.decrypt(&Keyring::Eve.pair(), aad).is_err());
+
+        // Now make a response using the public key from the request
+        let ciphertext_response = EncryptedSignedMessage::new(
+            plaintext.clone(),
+            &bob,
+            &decrypted_signed_message.receiver_x25519.unwrap(),
+            aad,
+        )
+        .unwrap();
+
+        let decrypted_signed_message_response =
+            ciphertext_response.decrypt(&receiver_secret_key, aad).unwrap();
+
+        assert_eq!(decrypted_signed_message_response.message, Bytes(plaintext.clone()));
+        assert_ne!(ciphertext_response.hpke_message.ct.0, plaintext);
+        assert!(ciphertext_response.decrypt(&Keyring::Eve.pair(), aad).is_err());
     }
 }
