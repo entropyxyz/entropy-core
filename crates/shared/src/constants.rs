@@ -1,6 +1,7 @@
 use hex_literal::hex;
 use lazy_static::lazy_static;
 use scale_info::prelude::vec;
+use scale_info::prelude::vec::Vec;
 
 lazy_static! {
     pub static ref DEFAULT_VERIFYING_KEY_NOT_REGISTERED: Vec<u8> = vec![10; VERIFICATION_KEY_LENGTH as usize];
