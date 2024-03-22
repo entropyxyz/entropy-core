@@ -94,6 +94,11 @@ async fn test_sync_kvdb() {
         "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
     ];
 
+    let a_usr_sk = mnemonic_to_pair(
+        &Mnemonic::parse_in_normalized(Language::English, DEFAULT_ALICE_MNEMONIC).unwrap(),
+    )
+    .unwrap();
+
     let b_usr_sk = mnemonic_to_pair(
         &Mnemonic::parse_in_normalized(Language::English, DEFAULT_BOB_MNEMONIC).unwrap(),
     )
@@ -112,7 +117,7 @@ async fn test_sync_kvdb() {
     let client = reqwest::Client::new();
     let mut keys = Keys { keys: addrs, timestamp: SystemTime::now() };
     let enc_keys =
-        EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
+        EncryptedSignedMessage::new(&a_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
             .unwrap();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
     let result = client
@@ -126,11 +131,6 @@ async fn test_sync_kvdb() {
     // Validates that keys signed/encrypted to the correct key
     // return no error (status code 200).
     assert_eq!(result.status(), 200);
-
-    let a_usr_sk = mnemonic_to_pair(
-        &Mnemonic::parse_in_normalized(Language::English, DEFAULT_ALICE_MNEMONIC).unwrap(),
-    )
-    .unwrap();
 
     let sender = derive_x25519_public_key(&a_usr_sk).unwrap();
 
