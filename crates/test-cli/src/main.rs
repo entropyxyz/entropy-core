@@ -240,7 +240,7 @@ async fn run_command() -> anyhow::Result<String> {
 
             Ok(format!("{:?}", registered_info))
         },
-        CliCommand::Sign { user_account_name, signature_verfiying_key, message, auxilary_data } => {
+        CliCommand::Sign { user_account_name, signature_verifying_key, message, auxilary_data } => {
             let user_keypair: sr25519::Pair = SeedString::new(user_account_name).try_into()?;
             println!("User account: {}", user_keypair.public());
 
@@ -254,7 +254,7 @@ async fn run_command() -> anyhow::Result<String> {
                 &api,
                 &rpc,
                 user_keypair,
-                signature_verfiying_key,
+                signature_verifying_key,
                 message.as_bytes().to_vec(),
                 private_keyshare,
                 auxilary_data,
@@ -279,7 +279,7 @@ async fn run_command() -> anyhow::Result<String> {
             let hash = store_program(&api, &rpc, &keypair, program, program_interface).await?;
             Ok(format!("Program stored {hash}"))
         },
-        CliCommand::UpdatePrograms { signature_verfiying_key, program_account_name, programs } => {
+        CliCommand::UpdatePrograms { signature_verifying_key, program_account_name, programs } => {
             let program_keypair: sr25519::Pair =
                 SeedString::new(program_account_name).try_into()?;
             println!("Program account: {}", program_keypair.public());
@@ -294,7 +294,7 @@ async fn run_command() -> anyhow::Result<String> {
             update_programs(
                 &api,
                 &rpc,
-                signature_verfiying_key,
+                signature_verifying_key,
                 &program_keypair,
                 BoundedVec(programs_info),
             )
