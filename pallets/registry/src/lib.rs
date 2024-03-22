@@ -67,8 +67,10 @@ pub mod pallet {
     use sp_std::{fmt::Debug, vec::Vec};
 
     pub use crate::weights::WeightInfo;
+
     /// Max modifiable keys allowed for a program modification account
     const MAX_MODIFIABLE_KEYS: u32 = 25;
+    
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
     pub trait Config:
