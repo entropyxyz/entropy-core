@@ -18,8 +18,8 @@ use std::time::{Duration, SystemTime};
 use bip39::Mnemonic;
 pub use entropy_protocol::{
     hpke::{
-        with_sr25519::{derive_hpke_keypair, derive_x25519_public_key, EncryptedMessage},
-        HpkeError,
+        derive_x25519_public_key, EncryptedSignedMessage, EncryptedSignedMessageErr,
+        SignedMessage as NewSignedMessage,
     },
     sign_and_encrypt::{derive_static_secret, SignedMessage, SignedMessageErr},
 };

@@ -658,18 +658,9 @@ pub async fn recover_key(
     let key_server_info = get_random_server_info(api, rpc, subgroup, stash_address)
         .await
         .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
-    let ip_address = String::from_utf8(key_server_info.endpoint)?;
-    get_and_store_values(
-        vec![signing_address],
-        kv_store,
-        ip_address,
-        1,
-        false,
-        key_server_info.x25519_public_key,
-        signer,
-    )
-    .await
-    .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
+    get_and_store_values(vec![signing_address], kv_store, 1, false, key_server_info, signer)
+        .await
+        .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
     Ok(())
 }
 

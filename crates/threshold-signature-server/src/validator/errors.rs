@@ -61,16 +61,10 @@ pub enum ValidatorErr {
     Anyhow(#[from] anyhow::Error),
     #[error("Chain Fetch: {0}")]
     ChainFetch(&'static str),
-    #[error("Encryption: {0}")]
-    Hpke(entropy_protocol::hpke::HpkeError),
-}
-
-// Needed because for some reason HpkeError doesn't have the required traits to derive this with
-// thiserror
-impl From<entropy_protocol::hpke::HpkeError> for ValidatorErr {
-    fn from(hpke_error: entropy_protocol::hpke::HpkeError) -> ValidatorErr {
-        ValidatorErr::Hpke(hpke_error)
-    }
+    #[error("Encryption or authentication: {0}")]
+    Hpke(#[from] entropy_protocol::hpke::EncryptedSignedMessageErr),
+    #[error("Message is not from expected author")]
+    Authentication,
 }
 
 impl IntoResponse for ValidatorErr {

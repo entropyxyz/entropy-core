@@ -43,7 +43,8 @@ use crate::{
         tests::{create_clients, initialize_test_logger},
     },
     validation::{
-        derive_x25519_public_key, mnemonic_to_pair, new_mnemonic, EncryptedMessage, TIME_BUFFER,
+        derive_x25519_public_key, mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage,
+        TIME_BUFFER,
     },
     validator::errors::ValidatorErr,
 };
@@ -111,7 +112,8 @@ async fn test_sync_kvdb() {
     let client = reqwest::Client::new();
     let mut keys = Keys { keys: addrs, timestamp: SystemTime::now() };
     let enc_keys =
-        EncryptedMessage::new(&b_usr_sk, &serde_json::to_vec(&keys).unwrap(), recip, &[]).unwrap();
+        EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
+            .unwrap();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
     let result = client
         .post(formatted_url.clone())
@@ -133,7 +135,8 @@ async fn test_sync_kvdb() {
     let sender = derive_x25519_public_key(&a_usr_sk).unwrap();
 
     let enc_keys_failed_decrypt =
-        EncryptedMessage::new(&b_usr_sk, &serde_json::to_vec(&keys).unwrap(), sender, &[]).unwrap();
+        EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &sender, &[])
+            .unwrap();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
     let result_2 = client
         .post(formatted_url.clone())
@@ -150,7 +153,8 @@ async fn test_sync_kvdb() {
     );
 
     let enc_keys =
-        EncryptedMessage::new(&a_usr_sk, &serde_json::to_vec(&keys).unwrap(), recip, &[]).unwrap();
+        EncryptedSignedMessage::new(&a_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
+            .unwrap();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
     let result_3 = client
         .post(formatted_url.clone())
@@ -166,9 +170,13 @@ async fn test_sync_kvdb() {
     // check random key fails not in subgroup
     let random_usr_sk = mnemonic_to_pair(&new_mnemonic().unwrap()).unwrap();
 
-    let enc_keys =
-        EncryptedMessage::new(&random_usr_sk, &serde_json::to_vec(&keys).unwrap(), recip, &[])
-            .unwrap();
+    let enc_keys = EncryptedSignedMessage::new(
+        &random_usr_sk,
+        serde_json::to_vec(&keys).unwrap(),
+        &recip,
+        &[],
+    )
+    .unwrap();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
     let result_3 = client
         .post(formatted_url.clone())
@@ -184,7 +192,8 @@ async fn test_sync_kvdb() {
 
     keys.keys = vec![FORBIDDEN_KEYS[0].to_string()];
     let enc_forbidden =
-        EncryptedMessage::new(&b_usr_sk, &serde_json::to_vec(&keys).unwrap(), recip, &[]).unwrap();
+        EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
+            .unwrap();
     let result_4 = client
         .post(formatted_url.clone())
         .header("Content-Type", "application/json")
@@ -198,7 +207,8 @@ async fn test_sync_kvdb() {
 
     keys.timestamp = keys.timestamp.checked_sub(TIME_BUFFER).unwrap();
     let enc_stale =
-        EncryptedMessage::new(&b_usr_sk, &serde_json::to_vec(&keys).unwrap(), recip, &[]).unwrap();
+        EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
+            .unwrap();
     let result_5 = client
         .post(formatted_url.clone())
         .header("Content-Type", "application/json")
@@ -251,11 +261,10 @@ async fn test_get_and_store_values() {
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
     let my_subgroup = get_subgroup(&api, &rpc, &signer_alice.account_id()).await.unwrap();
-    let server_info =
+    let recip_server_info =
         get_random_server_info(&api, &rpc, my_subgroup, signer_alice.account_id().clone())
             .await
             .unwrap();
-    let recip_key = server_info.x25519_public_key;
     let keys = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
         "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
@@ -286,16 +295,9 @@ async fn test_get_and_store_values() {
     });
     let p_charlie = <sr25519::Pair as Pair>::from_string(DEFAULT_CHARLIE_MNEMONIC, None).unwrap();
     let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
-    let _result = get_and_store_values(
-        keys.clone(),
-        &bob_kv,
-        "127.0.0.1:3002".to_string(),
-        9,
-        false,
-        recip_key,
-        &signer_charlie,
-    )
-    .await;
+    let _result =
+        get_and_store_values(keys.clone(), &bob_kv, 9, false, recip_server_info, &signer_charlie)
+            .await;
     for (i, key) in keys.iter().enumerate() {
         tracing::info!("!! -> -> RECEIVED KEY at IDX {i} of value {key:?}");
         let val = bob_kv.kv().get(key).await;
