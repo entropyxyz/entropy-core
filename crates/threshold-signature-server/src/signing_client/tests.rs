@@ -114,7 +114,11 @@ async fn test_proactive_refresh() {
         // alice tries to send a key to herself thinking she is charlie so encrypts it to charlie
         // this can be fixed in other ways but this way probably has the least side effects
         if i == 0 {
-            assert_eq!(res.unwrap().text().await.unwrap(), "User Error: The remote TSS server rejected the keyshare: Validation error: ChaCha20 decryption error: aead::Error");
+            assert_eq!(
+                res.unwrap().text().await.unwrap(),
+                "User Error: The remote TSS server rejected the keyshare: Validation error: ChaCha20 \
+                decryption error: aead::Error"
+            );
         } else {
             assert_eq!(res.unwrap().text().await.unwrap(), "");
         }

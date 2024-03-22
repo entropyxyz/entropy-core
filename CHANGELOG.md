@@ -53,7 +53,7 @@ At the moment this project **does not** adhere to
 - Disallow using existing TSS account IDs in Staking pallet ([#657](https://github.com/entropyxyz/entropy-core/pull/657))
 - Clean ups around Staking Extension's `validate()` extrinsic ([#659](https://github.com/entropyxyz/entropy-core/pull/659))
 - Rename `pallet_relayer` to `pallet_registry` ([#661](https://github.com/entropyxyz/entropy-core/pull/661))
-- Remove permissioned ([#666](https://github.com/entropyxyz/entropy-core/pull/666))
+- Remove permissioned access type ([#666](https://github.com/entropyxyz/entropy-core/pull/666))
 - Use SessionID in shared randomness ([#676](https://github.com/entropyxyz/entropy-core/pull/676))
 
 ### Removed

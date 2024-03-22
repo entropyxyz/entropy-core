@@ -221,7 +221,7 @@ pub async fn check_if_confirmation(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     key: &sr25519::Pair,
-    verfiying_key: Vec<u8>,
+    verifying_key: Vec<u8>,
 ) {
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
     let registering_query = entropy::storage().registry().registering(signer.account_id());

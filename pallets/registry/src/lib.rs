@@ -169,7 +169,7 @@ pub mod pallet {
     pub type Registered<T: Config> =
         StorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
 
-    /// Mapping of program_modification accounts to verifying keys they can controll
+    /// Mapping of program_modification accounts to verifying keys they can control
     #[pallet::storage]
     #[pallet::getter(fn modifiable_keys)]
     pub type ModifiableKeys<T: Config> = StorageMap<

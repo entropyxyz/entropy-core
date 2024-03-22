@@ -100,7 +100,7 @@ enum CliCommand {
         user_account_name: String,
         /// The verifying key of the account to sign with
         #[arg(short, long)]
-        signature_verfiying_key: Vec<u8>,
+        signature_verifying_key: Vec<u8>,
         /// The message to be signed
         message: String,
         /// Optional auxiliary data passed to the program, given as hex
@@ -109,7 +109,7 @@ enum CliCommand {
     /// Update the program for a particular account
     UpdatePrograms {
         /// The verifying key of the account to update their programs
-        signature_verfiying_key: Vec<u8>,
+        signature_verifying_key: Vec<u8>,
         /// A name from which to generate a program modification keypair, eg: "Bob"
         ///
         /// Optionally may be preceeded with "//", eg: "//Bob"
@@ -144,7 +144,7 @@ enum CliCommand {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum, Default)]
 enum Visibility {
-    /// User ho;ds keyshare
+    /// User holds keyshare
     Private,
     /// User does not hold a keyshare
     #[default]
