@@ -15,12 +15,13 @@
 
 use entropy_kvdb::clean_tests;
 use entropy_protocol::RecoverableSignature;
+use entropy_shared::FERDIE_VERIFYING_KEY;
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
-    constants::{AUXILARY_DATA_SHOULD_SUCCEED, FERDIE_VERIFYING_KEY, TEST_PROGRAM_WASM_BYTECODE},
+    constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     substrate_context::test_context_stationary,
     test_client,
     tss_server_process::spawn_testing_validators,

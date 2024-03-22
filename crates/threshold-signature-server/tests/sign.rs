@@ -14,14 +14,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use entropy_kvdb::clean_tests;
+use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY};
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
     constants::{
-        AUXILARY_DATA_SHOULD_SUCCEED, DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY,
-        PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
+        AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
     },
     substrate_context::test_context_stationary,
     test_client,

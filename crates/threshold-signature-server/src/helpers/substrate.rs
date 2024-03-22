@@ -106,9 +106,9 @@ pub async fn get_program(
 pub async fn get_registered_details(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    verfiying_key: Vec<u8>,
+    verifying_key: Vec<u8>,
 ) -> Result<RegisteredInfo, UserErr> {
-    let registered_info_query = entropy::storage().registry().registered(BoundedVec(verfiying_key));
+    let registered_info_query = entropy::storage().registry().registered(BoundedVec(verifying_key));
     let result = query_chain(api, rpc, registered_info_query, None)
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Not Registering error: Register Onchain first"))?;

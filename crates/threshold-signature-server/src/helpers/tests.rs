@@ -44,10 +44,8 @@ use entropy_kvdb::{
     clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager,
 };
 use entropy_protocol::{KeyParams, PartyId};
-use entropy_shared::KeyVisibility;
-use entropy_testing_utils::{
-    constants::DETERMINISTIC_KEY_SHARE, substrate_context::testing_context,
-};
+use entropy_shared::{KeyVisibility, DETERMINISTIC_KEY_SHARE};
+use entropy_testing_utils::substrate_context::testing_context;
 use rand_core::OsRng;
 use serial_test::serial;
 use subxt::{
@@ -225,7 +223,7 @@ pub async fn check_if_confirmation(
 ) {
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
     let registering_query = entropy::storage().registry().registering(signer.account_id());
-    let registered_query = entropy::storage().registry().registered(BoundedVec(verfiying_key));
+    let registered_query = entropy::storage().registry().registered(BoundedVec(verifying_key));
     let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
     let is_registering = query_chain(api, rpc, registering_query, block_hash).await;
     // cleared from is_registering state

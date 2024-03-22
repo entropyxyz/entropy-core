@@ -34,7 +34,10 @@ use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, PartyId, SessionId, SigningSessionInfo, ValidatorInfo,
 };
-use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
+use entropy_shared::{
+    HashingAlgorithm, KeyVisibility, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY,
+    DEFAULT_VERIFYING_KEY_NOT_REGISTERED, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
+};
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec as OtherBoundedVec,
@@ -42,10 +45,9 @@ use entropy_testing_utils::{
     },
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
-        DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY, DEFAULT_VERIFYING_KEY_NOT_REGISTERED,
-        EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY, PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED,
-        TEST_BASIC_TRANSACTION, TEST_INFINITE_LOOP_BYTECODE, TEST_PROGRAM_CUSTOM_HASH,
-        TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+        PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION,
+        TEST_INFINITE_LOOP_BYTECODE, TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE,
+        TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, testing_context,
