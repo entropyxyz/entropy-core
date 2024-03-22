@@ -81,8 +81,8 @@ impl SignedMessage {
 impl EncryptedSignedMessage {
     /// New single shot message
     pub fn new(
-        message: Vec<u8>,
         sender: &sr25519::Pair,
+        message: Vec<u8>,
         recipient: &X25519PublicKey,
         associated_data: &[u8],
     ) -> Result<Self, EncryptedSignedMessageErr> {
@@ -116,8 +116,8 @@ impl EncryptedSignedMessage {
     /// A new message, containing an ephemeral public key with which we want the recieve a response
     /// The ephemeral private key is returned together with the [HpkeMessage]
     pub fn new_with_receiver(
-        message: Vec<u8>,
         sender: &sr25519::Pair,
+        message: Vec<u8>,
         recipient: &X25519PublicKey,
         associated_data: &[u8],
     ) -> Result<(Self, sr25519::Pair), EncryptedSignedMessageErr> {
@@ -176,7 +176,7 @@ mod tests {
         let aad = b"Some additional context";
 
         let ciphertext =
-            EncryptedSignedMessage::new(plaintext.clone(), &alice, &bob_x25519_pk, aad).unwrap();
+            EncryptedSignedMessage::new(&alice, plaintext.clone(), &bob_x25519_pk, aad).unwrap();
 
         let decrypted_signed_message = ciphertext.decrypt(&bob, aad).unwrap();
 
@@ -198,8 +198,8 @@ mod tests {
         let aad = b"Some additional context";
 
         let (ciphertext, receiver_secret_key) = EncryptedSignedMessage::new_with_receiver(
-            plaintext.clone(),
             &alice,
+            plaintext.clone(),
             &bob_x25519_pk,
             aad,
         )
@@ -213,8 +213,8 @@ mod tests {
 
         // Now make a response using the public key from the request
         let ciphertext_response = EncryptedSignedMessage::new(
-            plaintext.clone(),
             &bob,
+            plaintext.clone(),
             &decrypted_signed_message.receiver_x25519.unwrap(),
             aad,
         )

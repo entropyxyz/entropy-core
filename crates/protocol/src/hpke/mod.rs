@@ -15,13 +15,17 @@
 
 //! Encryption using Hybrid Public Key Encryption [RFC 9180](https://www.rfc-editor.org/rfc/rfc9180)
 use hpke_rs::{prelude::HpkeMode, Hpke};
-pub use hpke_rs::{HpkeError, HpkePrivateKey, HpkePublicKey};
+use hpke_rs::{HpkeError, HpkePrivateKey, HpkePublicKey};
 use hpke_rs_crypto::types::{AeadAlgorithm, KdfAlgorithm, KemAlgorithm};
 use hpke_rs_rust_crypto::HpkeRustCrypto;
 use serde::{Deserialize, Serialize};
 use sp_core::Bytes;
 
-pub mod with_sr25519;
+mod with_sr25519;
+
+pub use with_sr25519::{
+    derive_x25519_public_key, EncryptedSignedMessage, EncryptedSignedMessageErr, SignedMessage,
+};
 
 /// Configure Hpke
 fn get_hpke() -> Hpke<HpkeRustCrypto> {
