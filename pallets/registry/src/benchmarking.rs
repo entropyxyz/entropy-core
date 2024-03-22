@@ -190,7 +190,7 @@ benchmarks! {
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
   }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::try_from(vec![3; VERIFICATION_KEY_LENGTH as usize]).unwrap())
   verify {
-    assert_last_event::<T>(Event::<T>::AccountRegistering(sig_req_account, 0, BoundedVec::try_from(vec![3; VERIFICATION_KEY_LENGTH as usize]).unwrap()).into());
+    assert_last_event::<T>(Event::<T>::RecievedConfirmation(sig_req_account, 0, BoundedVec::try_from(vec![3; VERIFICATION_KEY_LENGTH as usize]).unwrap()).into());
   }
 
   confirm_register_failed_registering {

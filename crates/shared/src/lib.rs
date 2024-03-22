@@ -18,30 +18,7 @@
 //! i.e. messages sent from one to the other and structs contained in those messages
 //!
 //! This helps ensures those structs are synced among clients and nodes.
+pub use constants::*;
 pub use types::*;
-
+pub mod constants;
 pub mod types;
-
-pub const SIGNING_PARTY_SIZE: usize = 2;
-
-// min balance 12 decimal chain = 0.1
-pub const MIN_BALANCE: u128 = 10000000000;
-
-// 6 seconds a block this is one day
-/// The amount of blocks before a tx request is pruned from the kvdb
-pub const PRUNE_BLOCK: u32 = 14400;
-
-/// Timeout for validators to wait for other validators to join protocol committees
-pub const SETUP_TIMEOUT_SECONDS: u64 = 20;
-
-/// The amount of proactive refreshes we do per session
-pub const REFRESHES_PER_SESSION: u32 = 10;
-
-/// Max instructions per wasm program
-pub const MAX_INSTRUCTIONS_PER_PROGRAM: u64 = 100_000;
-
-/// Blocks a transaction is valid for
-pub const MORTALITY_BLOCKS: u64 = 32;
-
-/// Size of the verification key
-pub const VERIFICATION_KEY_LENGTH: u32 = 33;

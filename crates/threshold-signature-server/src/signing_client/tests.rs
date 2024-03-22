@@ -23,9 +23,12 @@ use crate::{
     r#unsafe::api::UnsafeQuery,
 };
 use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
-use entropy_shared::OcwMessageProactiveRefresh;
+use entropy_shared::{
+    constants::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY},
+    OcwMessageProactiveRefresh,
+};
 use entropy_testing_utils::{
-    constants::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
+    constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     substrate_context::{test_context_stationary, test_node_process_testing_state},
 };
 use futures::future::join_all;

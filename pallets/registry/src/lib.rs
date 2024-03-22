@@ -188,7 +188,7 @@ pub mod pallet {
         /// An account has signaled to be registered. [signature request account]
         SignalRegister(T::AccountId),
         /// An account has been registered. [who, signing_group, verifying_key]
-        AccountRegistering(T::AccountId, u8, VerifyingKey),
+        RecievedConfirmation(T::AccountId, u8, VerifyingKey),
         /// An account has been registered. \[who, verifying_key]
         AccountRegistered(T::AccountId, VerifyingKey),
         /// An account registration has failed
@@ -474,7 +474,7 @@ pub mod pallet {
                 }
                 registering_info.confirmations.push(signing_subgroup);
                 Registering::<T>::insert(&sig_req_account, registering_info);
-                Self::deposit_event(Event::AccountRegistering(
+                Self::deposit_event(Event::RecievedConfirmation(
                     sig_req_account,
                     signing_subgroup,
                     registering_info_verifying_key,

@@ -15,8 +15,10 @@ serde_derive="1.0.147"
 strum       ="0.25.0"
 strum_macros="0.25.3"
 
-sp-runtime={ version="28.0.0", default-features=false, optional=true }
-sp-std    ={ version="12.0.0", default-features=false }
+sp-runtime ={ version="28.0.0", default-features=false, optional=true }
+sp-std     ={ version="12.0.0", default-features=false }
+lazy_static="1.4.0"
+hex-literal="0.3.4"
 
 [features]
 default    =["std"]

@@ -13,7 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use entropy_shared::VERIFICATION_KEY_LENGTH;
 use hex_literal::hex;
 use subxt::utils::AccountId32;
 
@@ -42,14 +41,6 @@ lazy_static! {
         .try_into()
         .unwrap(),
     ];
-    pub static ref DEFAULT_VERIFYING_KEY_NOT_REGISTERED: Vec<u8> = vec![10; VERIFICATION_KEY_LENGTH as usize];
-    pub static ref DAVE_VERIFYING_KEY: Vec<u8> = vec![1; VERIFICATION_KEY_LENGTH as usize];
-    // this key is associated with a constant key share generation in spawn_testing_validators
-    pub static ref EVE_VERIFYING_KEY: Vec<u8> = vec![2, 78, 59, 129, 175, 156, 34, 52, 202, 208, 157, 103, 156, 230, 3, 94, 209, 57, 35, 71, 206, 100, 206, 64, 95, 93, 205, 54, 34, 138, 37, 222, 110];
-    pub static ref FERDIE_VERIFYING_KEY: Vec<u8> = vec![3; VERIFICATION_KEY_LENGTH as usize];
-    pub static ref DEFAULT_VERIFYING_KEY: Vec<u8> = vec![0; VERIFICATION_KEY_LENGTH as usize];
-    // key used to create a deterministic key share
-    pub static ref DETERMINISTIC_KEY_SHARE: [u8; 32] =  hex!("4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318");
 }
 
 /// The following constants are values used for integration testing specific to the

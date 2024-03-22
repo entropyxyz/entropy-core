@@ -24,9 +24,7 @@ use entropy_runtime::{
     TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
-use entropy_testing_utils::constants::{
-    DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
-};
+use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY};
 use grandpa_primitives::AuthorityId as GrandpaId;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;

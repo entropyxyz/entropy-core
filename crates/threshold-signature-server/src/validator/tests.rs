@@ -17,12 +17,9 @@ use std::{net::TcpListener, time::SystemTime};
 
 use bip39::{Language, Mnemonic};
 use entropy_kvdb::clean_tests;
-use entropy_shared::MIN_BALANCE;
+use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY, MIN_BALANCE};
 use entropy_testing_utils::{
-    constants::{
-        ALICE_STASH_ADDRESS, DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
-        RANDOM_ACCOUNT,
-    },
+    constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, testing_context,
     },

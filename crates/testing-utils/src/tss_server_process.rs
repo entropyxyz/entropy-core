@@ -13,12 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{net::TcpListener, time::Duration};
-
-use crate::constants::DETERMINISTIC_KEY_SHARE;
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use entropy_protocol::{KeyParams, PartyId};
+use entropy_shared::DETERMINISTIC_KEY_SHARE;
 use entropy_tss::{
     app,
     get_signer,
@@ -27,6 +25,7 @@ use entropy_tss::{
     AppState,
 };
 use rand_core::OsRng;
+use std::{net::TcpListener, time::Duration};
 use subxt::utils::AccountId32 as SubxtAccountId32;
 use synedrion::{ecdsa::SigningKey, KeyShare};
 
