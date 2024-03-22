@@ -202,8 +202,10 @@ impl<T: Config> frame_support::traits::OneSessionHandler<T::AccountId> for Palle
     {
         // We reset the reports for this upcoming session.
         //
-        // Might be an expensive operation, but let's go with it for now.
-        let _ = FailedRegistrations::<T>::clear(u32::MAX, None);
+        // We don't expect more than 1000 validators on the network, so this operation shouldn't be
+        // prohibitively expensive.
+        let limit = 1_000;
+        let _ = FailedRegistrations::<T>::clear(limit, None);
     }
 
     fn on_before_session_ending() {
