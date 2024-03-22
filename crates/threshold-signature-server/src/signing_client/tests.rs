@@ -23,7 +23,10 @@ use crate::{
     r#unsafe::api::UnsafeQuery,
 };
 use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
-use entropy_shared::OcwMessageProactiveRefresh;
+use entropy_shared::{
+    constants::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY},
+    OcwMessageProactiveRefresh,
+};
 use entropy_testing_utils::{
     constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     substrate_context::{test_context_stationary, test_node_process_testing_state},
@@ -31,7 +34,6 @@ use entropy_testing_utils::{
 use futures::future::join_all;
 use parity_scale_codec::Encode;
 use serial_test::serial;
-use sp_core::crypto::Ss58Codec;
 use sp_keyring::AccountKeyring;
 
 #[tokio::test]
@@ -39,19 +41,17 @@ use sp_keyring::AccountKeyring;
 async fn test_proactive_refresh() {
     initialize_test_logger().await;
     clean_tests();
-    let eve = AccountKeyring::Eve;
-    let dave = AccountKeyring::Dave;
     let _cxt = test_node_process_testing_state(false).await;
 
-    let signing_address = eve.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, users_keyshare_option) =
-        spawn_testing_validators(Some(signing_address.clone()), true).await;
+        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true, false).await;
 
     let client = reqwest::Client::new();
     let converted_key_share = serialize(&users_keyshare_option.unwrap()).unwrap();
-    let get_query_eve = UnsafeQuery::new(eve.to_account_id().to_string(), vec![]).to_json();
+    let get_query_eve = UnsafeQuery::new(hex::encode(EVE_VERIFYING_KEY.to_vec()), vec![]).to_json();
     let get_query_dave =
-        UnsafeQuery::new(dave.to_account_id().to_string(), converted_key_share.clone()).to_json();
+        UnsafeQuery::new(hex::encode(DAVE_VERIFYING_KEY.to_vec()), converted_key_share.clone())
+            .to_json();
 
     // check get key before proactive refresh
     let key_before_result_eve = client
@@ -96,7 +96,7 @@ async fn test_proactive_refresh() {
 
     let mut ocw_message = OcwMessageProactiveRefresh {
         validators_info,
-        proactive_refresh_keys: vec![dave.to_account_id().encode(), eve.to_account_id().encode()],
+        proactive_refresh_keys: vec![DAVE_VERIFYING_KEY.to_vec(), EVE_VERIFYING_KEY.to_vec()],
     };
 
     let test_fail_incorrect_data =
@@ -109,8 +109,19 @@ async fn test_proactive_refresh() {
     let test_user_res =
         submit_transaction_requests(validator_ips.clone(), ocw_message.clone()).await;
 
-    for res in test_user_res {
-        assert_eq!(res.unwrap().text().await.unwrap(), "");
+    for (i, res) in test_user_res.into_iter().enumerate() {
+        // this is hacky but needed, since we only spin up 2 validators but 3 are in the subgroup
+        // alice tries to send a key to herself thinking she is charlie so encrypts it to charlie
+        // this can be fixed in other ways but this way probably has the least side effects
+        if i == 0 {
+            assert_eq!(
+                res.unwrap().text().await.unwrap(),
+                "User Error: The remote TSS server rejected the keyshare: Validation error: ChaCha20 \
+                decryption error: aead::Error"
+            );
+        } else {
+            assert_eq!(res.unwrap().text().await.unwrap(), "");
+        }
     }
     // check get key before proactive refresh
     let key_after_result_eve = client

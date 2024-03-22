@@ -17,7 +17,7 @@ use std::{net::TcpListener, time::SystemTime};
 
 use bip39::{Language, Mnemonic};
 use entropy_kvdb::clean_tests;
-use entropy_shared::MIN_BALANCE;
+use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY, MIN_BALANCE};
 use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
     substrate_context::{
@@ -41,7 +41,7 @@ use crate::{
             ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
             DEFAULT_MNEMONIC, FORBIDDEN_KEYS,
         },
-        substrate::{get_stash_address, get_subgroup, query_chain},
+        substrate::{get_registered_details, get_stash_address, get_subgroup, query_chain},
         tests::{create_clients, initialize_test_logger},
     },
     validation::{
@@ -65,9 +65,9 @@ async fn test_get_all_keys() {
     let mut result_4 = get_all_keys(&api, &rpc).await.unwrap();
 
     let mut expected_results = vec![
-        "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL",
-        "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy",
-        "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw",
+        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        hex::encode(EVE_VERIFYING_KEY.to_vec()),
+        hex::encode(FERDIE_VERIFYING_KEY.to_vec()),
     ];
     result.sort();
     expected_results.sort();
@@ -90,9 +90,9 @@ async fn test_sync_kvdb() {
 
     let _ctx = test_context_stationary().await;
     let addrs = vec![
-        "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
-        "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
-        "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
+        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        hex::encode(EVE_VERIFYING_KEY.to_vec()),
+        hex::encode(FERDIE_VERIFYING_KEY.to_vec()),
     ];
 
     let b_usr_sk = mnemonic_to_pair(
@@ -259,9 +259,9 @@ async fn test_get_and_store_values() {
             .unwrap();
     let recip_key = x25519_dalek::PublicKey::from(server_info.x25519_public_key);
     let keys = vec![
-        "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
-        "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
-        "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
+        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        hex::encode(EVE_VERIFYING_KEY.to_vec()),
+        hex::encode(FERDIE_VERIFYING_KEY.to_vec()),
     ];
     let port_0 = 3002;
     let port_1 = 3003;
@@ -387,10 +387,16 @@ async fn test_sync_validator() {
     let rpc = get_rpc(&ctx.ws_url).await.unwrap();
     let values = vec![vec![10], vec![11], vec![12]];
     let keys = vec![
-        "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
-        "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
-        "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw".to_string(),
+        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        hex::encode(EVE_VERIFYING_KEY.to_vec()),
+        hex::encode(FERDIE_VERIFYING_KEY.to_vec()),
     ];
+
+    // sanity check to make sure keys are right size and can get info from chain
+    assert_eq!(
+        get_registered_details(&api, &rpc, hex::decode(keys[0].clone()).unwrap()).await.is_ok(),
+        true
+    );
     let (alice_axum, _) = create_clients(
         "alice".to_string(),
         values.clone(),

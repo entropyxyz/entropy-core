@@ -34,7 +34,10 @@ use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, PartyId, SessionId, SigningSessionInfo, ValidatorInfo,
 };
-use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
+use entropy_shared::{
+    HashingAlgorithm, KeyVisibility, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY,
+    DEFAULT_VERIFYING_KEY_NOT_REGISTERED, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
+};
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec as OtherBoundedVec,
@@ -65,6 +68,7 @@ use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
+    events::EventsClient,
     ext::{
         sp_core::{sr25519, sr25519::Signature, Bytes, Pair},
         sp_runtime::AccountId32,
@@ -143,9 +147,8 @@ async fn test_sign_tx_no_chain() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(signing_address.clone()), false).await;
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -176,7 +179,7 @@ async fn test_sign_tx_no_chain() {
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let signature_request_account = subxtAccountId32(one.pair().public().0);
     let session_id = SessionId::Sign(SigningSessionInfo {
-        account_id: signature_request_account.clone(),
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
         message_hash,
         request_author: signature_request_account.clone(),
     });
@@ -190,7 +193,7 @@ async fn test_sign_tx_no_chain() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_request_account: signature_request_account.clone(),
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
 
     let validator_ips_and_keys = vec![
@@ -209,7 +212,7 @@ async fn test_sign_tx_no_chain() {
     update_programs(
         &entropy_api,
         &rpc,
-        &one.pair(),
+        DAVE_VERIFYING_KEY.to_vec(),
         &one.pair(),
         OtherBoundedVec(vec![
             OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
@@ -227,7 +230,7 @@ async fn test_sign_tx_no_chain() {
     let mock_client = reqwest::Client::new();
     // check request limiter increases
     let unsafe_get =
-        UnsafeQuery::new(request_limit_key(signature_request_account.to_string()), vec![])
+        UnsafeQuery::new(request_limit_key(hex::encode(DAVE_VERIFYING_KEY.to_vec())), vec![])
             .to_json();
 
     // check get key before registration to see if key gets replaced
@@ -251,7 +254,7 @@ async fn test_sign_tx_no_chain() {
     verify_signature(test_user_res_order, message_hash, keyshare_option.clone()).await;
 
     generic_msg.timestamp = SystemTime::now();
-    generic_msg.signature_request_account = subxtAccountId32(two.pair().public().0);
+    generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
 
@@ -299,7 +302,7 @@ async fn test_sign_tx_no_chain() {
     });
 
     generic_msg.timestamp = SystemTime::now();
-    generic_msg.signature_request_account = signature_request_account.clone();
+    generic_msg.signature_verifying_key = DAVE_VERIFYING_KEY.to_vec().to_vec();
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
         generic_msg.clone(),
@@ -418,7 +421,7 @@ async fn test_sign_tx_no_chain() {
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     run_to_block(&rpc, block_number + 1).await;
     let unsafe_put = UnsafeQuery::new(
-        request_limit_key(signature_request_account.to_string()),
+        request_limit_key(hex::encode(DAVE_VERIFYING_KEY.to_vec())),
         RequestLimitStorage { request_amount: request_limit + 1, block_number: block_number + 1 }
             .encode(),
     )
@@ -457,9 +460,8 @@ async fn test_program_with_config() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(signing_address.clone()), false).await;
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec().clone()), false, false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -496,7 +498,7 @@ async fn test_program_with_config() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_request_account: subxtAccountId32(one.pair().public().0),
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
 
     let validator_ips_and_keys = vec![
@@ -515,7 +517,7 @@ async fn test_program_with_config() {
     update_programs(
         &entropy_api,
         &rpc,
-        &one.pair(),
+        DAVE_VERIFYING_KEY.to_vec(),
         &one.pair(),
         OtherBoundedVec(vec![
             OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
@@ -541,7 +543,7 @@ async fn test_fail_signing_group() {
 
     let dave = AccountKeyring::Dave;
     let eve = AccountKeyring::Eve;
-    let _ = spawn_testing_validators(None, false).await;
+    let _ = spawn_testing_validators(None, false, false).await;
 
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -574,7 +576,7 @@ async fn test_fail_signing_group() {
     update_programs(
         &entropy_api,
         &rpc,
-        &dave.pair(),
+        DAVE_VERIFYING_KEY.to_vec(),
         &dave.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
@@ -590,7 +592,7 @@ async fn test_fail_signing_group() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_request_account: subxtAccountId32(dave.pair().public().0),
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
 
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
@@ -627,27 +629,14 @@ async fn test_store_share() {
     let alice_program = AccountKeyring::Charlie;
     let program_manager = AccountKeyring::Dave;
 
-    let signing_address = alice.to_account_id().to_ss58check();
-
     let cxt = test_context_stationary().await;
     let (_validator_ips, _validator_ids, _) =
-        spawn_testing_validators(Some(signing_address.clone()), false).await;
+        spawn_testing_validators(Some(DEFAULT_VERIFYING_KEY.to_vec()), false, false).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
     let client = reqwest::Client::new();
-    let get_query = UnsafeQuery::new(signing_address, vec![]).to_json();
 
-    // check get key before registration to see if key gets replaced
-    let response_key = client
-        .post("http://127.0.0.1:3001/unsafe/get")
-        .header("Content-Type", "application/json")
-        .body(get_query.clone())
-        .send()
-        .await
-        .unwrap();
-
-    let original_key_shard = response_key.text().await.unwrap();
     let program_hash = store_program(
         &api,
         &rpc,
@@ -696,28 +685,40 @@ async fn test_store_share() {
 
     assert_eq!(user_registration_response.text().await.unwrap(), "");
 
-    // Wait until user is confirmed as registered
-    let alice_account_id: <EntropyConfig as Config>::AccountId = alice.to_account_id().into();
-    for _ in 0..10 {
+    let mut new_verifying_key = vec![];
+    // wait for registered event check that key exists in kvdb
+    for _ in 0..45 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
-        let registered_query = entropy::storage().registry().registered(alice_account_id.clone());
-        let query_registered_status = query_chain(&api, &rpc, registered_query, block_hash).await;
-        if query_registered_status.unwrap().is_some() {
-            break;
+        let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
+        let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
+        for event in registered_event.flatten() {
+            let registered_query = entropy::storage().registry().registered(&event.1);
+            let query_registered_status =
+                query_chain(&api, &rpc, registered_query, block_hash).await;
+            if query_registered_status.unwrap().is_some() {
+                if event.0 == alice.to_account_id().into() {
+                    new_verifying_key = event.1 .0;
+                    break;
+                }
+            }
         }
     }
 
-    // check alice has new key
-    let response_new_key = client
+    let get_query =
+        UnsafeQuery::new(hex::encode(new_verifying_key.to_vec()), [].to_vec()).to_json();
+    // check get key before registration to see if key gets replaced
+    let response_key = client
         .post("http://127.0.0.1:3001/unsafe/get")
         .header("Content-Type", "application/json")
         .body(get_query.clone())
         .send()
         .await
         .unwrap();
-    let key_shard_after = response_new_key.text().await.unwrap();
-    assert_ne!(original_key_shard, key_shard_after);
+    // check to make sure keyshare is correct
+    let key_share: Option<KeyShare<KeyParams>> =
+        entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
+    assert_eq!(key_share.is_some(), true);
 
     // fails repeated data
     let response_repeated_data = client
@@ -782,7 +783,7 @@ async fn test_store_share() {
         "Invalid Signer: Invalid Signer in Signing group"
     );
 
-    check_if_confirmation(&api, &rpc, &alice.pair()).await;
+    check_if_confirmation(&api, &rpc, &alice.pair(), new_verifying_key).await;
     // TODO check if key is in other subgroup member
     clean_tests();
 }
@@ -1061,12 +1062,18 @@ async fn test_sign_tx_user_participates() {
     let one = AccountKeyring::Eve;
     let two = AccountKeyring::Two;
 
-    let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, users_keyshare_option) =
-        spawn_testing_validators(Some(signing_address.clone()), true).await;
+        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true, true).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let verifying_key = users_keyshare_option
+        .clone()
+        .unwrap()
+        .verifying_key()
+        .to_encoded_point(true)
+        .as_bytes()
+        .to_vec();
 
     let program_hash = store_program(
         &entropy_api,
@@ -1081,7 +1088,7 @@ async fn test_sign_tx_user_participates() {
     update_programs(
         &entropy_api,
         &rpc,
-        &one.pair(),
+        verifying_key.clone(),
         &one.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
@@ -1109,7 +1116,7 @@ async fn test_sign_tx_user_participates() {
 
     let signature_request_account = subxtAccountId32(one.pair().public().0);
     let session_id = SessionId::Sign(SigningSessionInfo {
-        account_id: signature_request_account.clone(),
+        signature_verifying_key: verifying_key.clone(),
         message_hash: message_should_succeed_hash,
         request_author: signature_request_account.clone(),
     });
@@ -1120,7 +1127,7 @@ async fn test_sign_tx_user_participates() {
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_request_account: signature_request_account.clone(),
+        signature_verifying_key: verifying_key.clone(),
     };
 
     let validator_ips_and_keys = vec![
@@ -1148,7 +1155,7 @@ async fn test_sign_tx_user_participates() {
         .await;
 
     generic_msg.timestamp = SystemTime::now();
-    generic_msg.signature_request_account = subxtAccountId32(two.pair().public().0);
+    generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
 
     // test failing cases
     let test_user_res_not_registered =
@@ -1162,7 +1169,7 @@ async fn test_sign_tx_user_participates() {
     }
 
     generic_msg.timestamp = SystemTime::now();
-    generic_msg.signature_request_account = signature_request_account;
+    generic_msg.signature_verifying_key = verifying_key;
     let mut generic_msg_bad_validators = generic_msg.clone();
     generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
 
@@ -1338,7 +1345,7 @@ async fn test_register_with_private_key_visibility() {
     let program_manager = AccountKeyring::Dave;
 
     let (validator_ips, _validator_ids, _users_keyshare_option) =
-        spawn_testing_validators(None, false).await;
+        spawn_testing_validators(None, false, false).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -1489,9 +1496,8 @@ async fn test_fail_infinite_program() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let signing_address = one.to_account_id().to_ss58check();
     let (validator_ips, _validator_ids, _) =
-        spawn_testing_validators(Some(signing_address.clone()), false).await;
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -1509,7 +1515,7 @@ async fn test_fail_infinite_program() {
     update_programs(
         &entropy_api,
         &rpc,
-        &one.pair(),
+        DAVE_VERIFYING_KEY.to_vec(),
         &one.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
@@ -1541,7 +1547,7 @@ async fn test_fail_infinite_program() {
         validators_info,
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_request_account: subxtAccountId32(one.pair().public().0),
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
 
     let validator_ips_and_keys = vec![
@@ -1612,14 +1618,22 @@ async fn test_mutiple_confirm_done() {
         alice.to_account_id().into(),
         0u8,
         &signer_alice,
-        vec![0u8],
+        DEFAULT_VERIFYING_KEY.to_vec(),
         0u32,
     )
     .await
     .unwrap();
-    confirm_registered(&api, &rpc, bob.to_account_id().into(), 0u8, &signer_alice, vec![0u8], 1u32)
-        .await
-        .unwrap();
+    confirm_registered(
+        &api,
+        &rpc,
+        bob.to_account_id().into(),
+        0u8,
+        &signer_alice,
+        DEFAULT_VERIFYING_KEY.to_vec(),
+        1u32,
+    )
+    .await
+    .unwrap();
     check_has_confirmation(&api, &rpc, &alice.pair()).await;
     check_has_confirmation(&api, &rpc, &bob.pair()).await;
     clean_tests();
@@ -1630,7 +1644,6 @@ async fn test_mutiple_confirm_done() {
 async fn test_increment_or_wipe_request_limit() {
     initialize_test_logger().await;
     clean_tests();
-    let alice = AccountKeyring::Alice;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -1640,26 +1653,35 @@ async fn test_increment_or_wipe_request_limit() {
     let request_limit = query_chain(&api, &rpc, request_limit_query, None).await.unwrap().unwrap();
 
     // no error
-    assert!(request_limit_check(&rpc, &kv_store, alice.to_account_id().to_string(), request_limit)
-        .await
-        .is_ok());
+    assert!(request_limit_check(
+        &rpc,
+        &kv_store,
+        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        request_limit
+    )
+    .await
+    .is_ok());
 
     // run up the request check to one less then max (to check integration)
     for _ in 0..request_limit {
         increment_or_wipe_request_limit(
             &rpc,
             &kv_store,
-            alice.to_account_id().to_string(),
+            hex::encode(DAVE_VERIFYING_KEY.to_vec()),
             request_limit,
         )
         .await
         .unwrap();
     }
     // should now fail
-    let err_too_many_requests =
-        request_limit_check(&rpc, &kv_store, alice.to_account_id().to_string(), request_limit)
-            .await
-            .map_err(|e| e.to_string());
+    let err_too_many_requests = request_limit_check(
+        &rpc,
+        &kv_store,
+        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        request_limit,
+    )
+    .await
+    .map_err(|e| e.to_string());
     assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
 
     clean_tests();

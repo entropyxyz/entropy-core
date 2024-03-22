@@ -2967,6 +2967,8 @@ dependencies = [
 name = "entropy-shared"
 version = "0.1.0"
 dependencies = [
+ "hex-literal",
+ "lazy_static",
  "parity-scale-codec",
  "scale-info",
  "serde",

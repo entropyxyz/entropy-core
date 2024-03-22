@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use codec::Encode;
-use entropy_shared::KeyVisibility;
+use entropy_shared::{KeyVisibility, VERIFICATION_KEY_LENGTH};
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
@@ -106,16 +106,27 @@ fn it_registers_a_user() {
 #[test]
 fn it_confirms_registers_a_user() {
     new_test_ext().execute_with(|| {
-        let expected_verifying_key = BoundedVec::default();
+        let expected_verifying_key =
+            BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
         assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
+            Registry::confirm_register(
+                RuntimeOrigin::signed(1),
+                1,
+                0,
+                expected_verifying_key.clone()
+            ),
             Error::<Test>::NoThresholdKey
         );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
 
         assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(1), 1, 0, BoundedVec::default()),
+            Registry::confirm_register(
+                RuntimeOrigin::signed(1),
+                1,
+                0,
+                expected_verifying_key.clone()
+            ),
             Error::<Test>::NotRegistering
         );
 
@@ -142,20 +153,29 @@ fn it_confirms_registers_a_user() {
             KeyVisibility::Private([0; 32]),
             programs_info.clone(),
         ));
-
         assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(1), 1, 3, BoundedVec::default()),
+            Registry::confirm_register(
+                RuntimeOrigin::signed(1),
+                1,
+                3,
+                expected_verifying_key.clone()
+            ),
             Error::<Test>::NotInSigningGroup
         );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
 
         assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(2), 1, 0, BoundedVec::default()),
+            Registry::confirm_register(
+                RuntimeOrigin::signed(2),
+                1,
+                0,
+                expected_verifying_key.clone()
+            ),
             Error::<Test>::NotInSigningGroup
         );
 
-        assert!(Registry::registered(1).is_none());
+        assert!(Registry::registered(expected_verifying_key.clone()).is_none());
 
         assert_ok!(Registry::confirm_register(
             RuntimeOrigin::signed(1),
@@ -194,14 +214,18 @@ fn it_confirms_registers_a_user() {
 
         assert_eq!(Registry::registering(1), None);
         assert_eq!(
-            Registry::registered(1).unwrap(),
+            Registry::registered(expected_verifying_key.clone()).unwrap(),
             RegisteredInfo {
                 key_visibility: KeyVisibility::Private([0; 32]),
-                verifying_key: expected_verifying_key,
                 programs_data: programs_info.clone(),
                 program_modification_account: 2,
                 version_number: 1,
             }
+        );
+        assert_eq!(
+            Registry::modifiable_keys(2),
+            vec![expected_verifying_key],
+            "list of modifable keys exist"
         );
     });
 }
@@ -249,22 +273,21 @@ fn it_changes_a_program_pointer() {
 
         let mut registered_info = RegisteredInfo {
             key_visibility: KeyVisibility::Public,
-            verifying_key: expected_verifying_key,
             programs_data: programs_info,
             program_modification_account: 2,
             version_number: 1,
         };
 
-        Registered::<Test>::insert(1, &registered_info);
-        assert_eq!(Registry::registered(1).unwrap(), registered_info);
+        Registered::<Test>::insert(expected_verifying_key.clone(), &registered_info);
+        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
 
         assert_ok!(Registry::change_program_instance(
             RuntimeOrigin::signed(2),
-            1,
+            expected_verifying_key.clone(),
             new_programs_info.clone(),
         ));
         registered_info.programs_data = new_programs_info;
-        assert_eq!(Registry::registered(1).unwrap(), registered_info);
+        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
         assert_eq!(
             pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
             0,
@@ -287,7 +310,7 @@ fn it_changes_a_program_pointer() {
         assert_noop!(
             Registry::change_program_instance(
                 RuntimeOrigin::signed(2),
-                1,
+                expected_verifying_key.clone(),
                 unregistered_programs_info.clone(),
             ),
             Error::<Test>::NoProgramSet
@@ -296,7 +319,7 @@ fn it_changes_a_program_pointer() {
         assert_noop!(
             Registry::change_program_instance(
                 RuntimeOrigin::signed(2),
-                1,
+                expected_verifying_key.clone(),
                 BoundedVec::try_from(vec![]).unwrap(),
             ),
             Error::<Test>::NoProgramSet
@@ -325,8 +348,11 @@ fn it_fails_on_non_matching_verifying_keys() {
             },
         );
 
-        let expected_verifying_key = BoundedVec::default();
-        let unexpected_verifying_key = vec![10];
+        let expected_verifying_key =
+            BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
+        let unexpected_verifying_key =
+            BoundedVec::try_from(vec![1; VERIFICATION_KEY_LENGTH as usize]).unwrap();
+
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
@@ -340,7 +366,7 @@ fn it_fails_on_non_matching_verifying_keys() {
             RuntimeOrigin::signed(1),
             1,
             0,
-            expected_verifying_key
+            expected_verifying_key.clone()
         ));
 
         // uses different verifying key
@@ -353,7 +379,7 @@ fn it_fails_on_non_matching_verifying_keys() {
 
         // not registered or registering
         assert_eq!(Registry::registering(1), None);
-        assert_eq!(Registry::registered(1), None);
+        assert_eq!(Registry::registered(expected_verifying_key.clone()), None);
     })
 }
 #[test]
@@ -381,18 +407,13 @@ fn it_doesnt_allow_double_registering() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2,
-            KeyVisibility::Permissioned,
+            KeyVisibility::Public,
             programs_info.clone(),
         ));
 
         // error if they try to submit another request, even with a different program key
         assert_noop!(
-            Registry::register(
-                RuntimeOrigin::signed(1),
-                2,
-                KeyVisibility::Permissioned,
-                programs_info
-            ),
+            Registry::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, programs_info),
             Error::<Test>::AlreadySubmitted
         );
     });
@@ -411,12 +432,7 @@ fn it_fails_no_program() {
         .unwrap();
 
         assert_noop!(
-            Registry::register(
-                RuntimeOrigin::signed(1),
-                2,
-                KeyVisibility::Permissioned,
-                programs_info
-            ),
+            Registry::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, programs_info),
             Error::<Test>::NoProgramSet
         );
     });
@@ -429,7 +445,7 @@ fn it_fails_empty_program_list() {
             Registry::register(
                 RuntimeOrigin::signed(1),
                 2,
-                KeyVisibility::Permissioned,
+                KeyVisibility::Public,
                 BoundedVec::try_from(vec![]).unwrap(),
             ),
             Error::<Test>::NoProgramSet
@@ -463,7 +479,7 @@ fn it_tests_prune_registration() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2,
-            KeyVisibility::Permissioned,
+            KeyVisibility::Public,
             programs_info,
         ));
         assert_eq!(
@@ -581,7 +597,8 @@ fn it_provides_free_txs_confirm_done_fails_3() {
             },
         );
 
-        let expected_verifying_key = BoundedVec::default();
+        let expected_verifying_key =
+            BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,

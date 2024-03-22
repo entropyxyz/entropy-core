@@ -74,8 +74,8 @@ pub async fn do_signing(
     // the listener
     let user_details_option = if let KeyVisibility::Private(user_x25519_public_key) = key_visibility
     {
-        tss_accounts.push(info.signing_session_info.account_id.clone());
-        Some((info.signing_session_info.account_id.clone(), user_x25519_public_key))
+        tss_accounts.push(info.signing_session_info.request_author.clone());
+        Some((info.signing_session_info.request_author.clone(), user_x25519_public_key))
     } else {
         None
     };
@@ -112,7 +112,7 @@ pub async fn do_signing(
     increment_or_wipe_request_limit(
         rpc,
         kv_manager,
-        info.signing_session_info.account_id.to_string(),
+        hex::encode(info.signing_session_info.signature_verifying_key),
         request_limit,
     )
     .await

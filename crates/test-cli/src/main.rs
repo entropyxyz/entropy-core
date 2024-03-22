@@ -18,7 +18,6 @@ use std::{
     fmt::{self, Display},
     fs,
     path::PathBuf,
-    str::FromStr,
     time::Instant,
 };
 
@@ -38,7 +37,7 @@ use entropy_testing_utils::{
         store_program, update_programs, KeyParams, KeyShare, KeyVisibility,
     },
 };
-use sp_core::{crypto::AccountId32, sr25519, Hasher, Pair};
+use sp_core::{sr25519, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -99,13 +98,9 @@ enum CliCommand {
         ///
         /// Optionally may be preceeded with "//", eg: "//Alice"
         user_account_name: String,
-        /// The account ID you wish to sign with, if different from `user_account_name` (e.g if
-        /// using public access mode).
-        ///
-        /// This may be given as a hex public key, SS58 account ID, or a name from which to generate
-        /// a keypair (e.g `//Alice`)
+        /// The verifying key of the account to sign with
         #[arg(short, long)]
-        signature_request_account: Option<String>,
+        signature_verifying_key: Vec<u8>,
         /// The message to be signed
         message: String,
         /// Optional auxiliary data passed to the program, given as hex
@@ -113,10 +108,8 @@ enum CliCommand {
     },
     /// Update the program for a particular account
     UpdatePrograms {
-        /// A name from which to generate a signature request keypair, eg: "Alice"
-        ///
-        /// Optionally may be preceeded with "//", eg: "//Alice"
-        signature_request_account_name: String,
+        /// The verifying key of the account to update their programs
+        signature_verifying_key: Vec<u8>,
         /// A name from which to generate a program modification keypair, eg: "Bob"
         ///
         /// Optionally may be preceeded with "//", eg: "//Bob"
@@ -151,13 +144,10 @@ enum CliCommand {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum, Default)]
 enum Visibility {
-    /// Only the user who registers can submit a signature request, and the user holds a keyshare
-    /// themselves
+    /// User holds keyshare
     Private,
-    /// Only the user who registers can submit a signature request (default)
+    /// User does not hold a keyshare
     #[default]
-    Permissioned,
-    /// Anyone can submit a signature request
     Public,
 }
 
@@ -165,7 +155,6 @@ impl From<KeyVisibility> for Visibility {
     fn from(key_visibility: KeyVisibility) -> Self {
         match key_visibility {
             KeyVisibility::Private(_) => Visibility::Private,
-            KeyVisibility::Permissioned => Visibility::Permissioned,
             KeyVisibility::Public => Visibility::Public,
         }
     }
@@ -219,7 +208,6 @@ async fn run_command() -> anyhow::Result<String> {
             println!("Program account: {}", program_keypair.public());
 
             let key_visibility_converted = match key_visibility {
-                Visibility::Permissioned => KeyVisibility::Permissioned,
                 Visibility::Private => {
                     let x25519_secret = derive_static_secret(&signature_request_keypair);
                     let x25519_public = x25519_dalek::PublicKey::from(&x25519_secret);
@@ -252,26 +240,12 @@ async fn run_command() -> anyhow::Result<String> {
 
             Ok(format!("{:?}", registered_info))
         },
-        CliCommand::Sign {
-            user_account_name,
-            signature_request_account,
-            message,
-            auxilary_data,
-        } => {
+        CliCommand::Sign { user_account_name, signature_verifying_key, message, auxilary_data } => {
             let user_keypair: sr25519::Pair = SeedString::new(user_account_name).try_into()?;
             println!("User account: {}", user_keypair.public());
 
             let auxilary_data =
                 if let Some(data) = auxilary_data { Some(hex::decode(data)?) } else { None };
-
-            let signature_request_account = match signature_request_account {
-                Some(s) => {
-                    let account = parse_account_id(&s)?;
-                    println!("Signature request account: {}", account);
-                    Some(account)
-                },
-                None => None,
-            };
 
             // If we have a keyshare file for this account, get it
             let private_keyshare = KeyShareFile::new(user_keypair.public()).read().ok();
@@ -280,7 +254,7 @@ async fn run_command() -> anyhow::Result<String> {
                 &api,
                 &rpc,
                 user_keypair,
-                signature_request_account,
+                signature_verifying_key,
                 message.as_bytes().to_vec(),
                 private_keyshare,
                 auxilary_data,
@@ -305,15 +279,7 @@ async fn run_command() -> anyhow::Result<String> {
             let hash = store_program(&api, &rpc, &keypair, program, program_interface).await?;
             Ok(format!("Program stored {hash}"))
         },
-        CliCommand::UpdatePrograms {
-            signature_request_account_name,
-            program_account_name,
-            programs,
-        } => {
-            let signature_request_keypair: sr25519::Pair =
-                SeedString::new(signature_request_account_name).try_into()?;
-            println!("Signature request account: {}", signature_request_keypair.public());
-
+        CliCommand::UpdatePrograms { signature_verifying_key, program_account_name, programs } => {
             let program_keypair: sr25519::Pair =
                 SeedString::new(program_account_name).try_into()?;
             println!("Program account: {}", program_keypair.public());
@@ -328,7 +294,7 @@ async fn run_command() -> anyhow::Result<String> {
             update_programs(
                 &api,
                 &rpc,
-                &signature_request_keypair,
+                signature_verifying_key,
                 &program_keypair,
                 BoundedVec(programs_info),
             )
@@ -352,10 +318,9 @@ async fn run_command() -> anyhow::Result<String> {
                 for (account_id, info) in accounts {
                     let visibility: Visibility = info.key_visibility.0.into();
                     println!(
-                        "{} {:<12} {} {}",
-                        format!("{}", account_id).green(),
+                        "{} {:<12} {}",
+                        format!("{:?}", account_id.to_vec()).green(),
                         format!("{}", visibility).purple(),
-                        format!("{:<66}", hex::encode(info.verifying_key.0)).cyan(),
                         format!(
                             "{:?}",
                             info.programs_data
@@ -520,23 +485,5 @@ impl Program {
                 }
             },
         }
-    }
-}
-
-/// Parse an account ID from a user provided string.
-///
-/// This may be given as a hex public key, SS58 account ID, or a name from which to generate
-/// a keypair (e.g `//Alice`)
-fn parse_account_id(input: &str) -> anyhow::Result<SubxtAccountId32> {
-    ensure!(!input.is_empty(), "Cannot parse emptry string as account ID");
-
-    // We use sp-core's AccountId32 here because it will parse account IDs given as either hex or
-    // ss58
-    match AccountId32::from_str(input) {
-        Ok(account_id) => Ok(SubxtAccountId32(*account_id.as_ref())),
-        Err(_) => {
-            let keypair: sr25519::Pair = SeedString::new(input.to_string()).try_into()?;
-            Ok(SubxtAccountId32(keypair.public().0))
-        },
     }
 }

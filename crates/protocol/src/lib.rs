@@ -158,7 +158,7 @@ pub enum SessionId {
     /// A distributed key generation protocol session for registering
     Dkg(AccountId32),
     /// A proactive refresh session
-    ProactiveRefresh(AccountId32),
+    ProactiveRefresh(Vec<u8>),
     /// A signing session
     Sign(SigningSessionInfo),
 }
@@ -167,7 +167,7 @@ pub enum SessionId {
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct SigningSessionInfo {
     /// The signature request account ID
-    pub account_id: AccountId32,
+    pub signature_verifying_key: Vec<u8>,
     /// Hash of the message to be signed
     pub message_hash: [u8; 32],
     /// Account ID of the request author (in public access mode this may differ from the signature
@@ -182,11 +182,11 @@ impl Hash for SessionId {
             SessionId::Dkg(account_id) => {
                 account_id.0.hash(state);
             },
-            SessionId::ProactiveRefresh(account_id) => {
-                account_id.0.hash(state);
+            SessionId::ProactiveRefresh(signature_verifying_key) => {
+                signature_verifying_key.hash(state);
             },
             SessionId::Sign(signing_session_info) => {
-                signing_session_info.account_id.0.hash(state);
+                signing_session_info.signature_verifying_key.hash(state);
                 signing_session_info.message_hash.hash(state);
                 signing_session_info.request_author.0.hash(state);
             },

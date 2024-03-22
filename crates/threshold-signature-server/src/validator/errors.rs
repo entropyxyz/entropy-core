@@ -55,8 +55,6 @@ pub enum ValidatorErr {
     NotInSubgroup,
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
-    #[error("Invalid length for converting address")]
-    AddressConversionError(String),
     #[error("Encryption or signing error: {0}")]
     Json(#[from] entropy_protocol::sign_and_encrypt::SignedMessageErr),
     #[error("anyhow error: {0}")]

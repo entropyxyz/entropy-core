@@ -24,13 +24,14 @@ use entropy_runtime::{
     TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
+use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY};
 use grandpa_primitives::AuthorityId as GrandpaId;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::sr25519;
-use sp_runtime::Perbill;
+use sp_runtime::{BoundedVec, Perbill};
 
 /// The configuration used for development.
 ///
@@ -222,13 +223,24 @@ pub fn development_genesis_config(
         treasury: Default::default(),
         registry: RegistryConfig {
             registered_accounts: vec![
-                (get_account_id_from_seed::<sr25519::Public>("Dave"), 0, None),
+                (
+                    get_account_id_from_seed::<sr25519::Public>("Dave"),
+                    0,
+                    None,
+                    BoundedVec::try_from(DAVE_VERIFYING_KEY.to_vec()).unwrap(),
+                ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Eve"),
                     1,
                     Some(crate::chain_spec::tss_x25519_public_key::EVE),
+                    BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
-                (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 2, None),
+                (
+                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+                    2,
+                    None,
+                    BoundedVec::try_from(FERDIE_VERIFYING_KEY.to_vec()).unwrap(),
+                ),
             ],
         },
         parameters: ParametersConfig { request_limit: 20, ..Default::default() },
