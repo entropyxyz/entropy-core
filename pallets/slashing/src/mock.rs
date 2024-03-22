@@ -133,7 +133,7 @@ impl pallet_session::Config for Test {
     type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
     type RuntimeEvent = RuntimeEvent;
     type SessionHandler = (Slashing,);
-    type SessionManager = TestSessionManager; // TODO (Nando): Use HistoricalSessionManager?
+    type SessionManager = TestSessionManager;
     type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
     type ValidatorId = AccountId;
     type ValidatorIdOf = ConvertInto;
@@ -166,7 +166,6 @@ impl ReportOffence<AccountId, IdentificationTuple, Offence> for OffenceHandler {
 }
 
 parameter_types! {
-  // pub const MinValidators: u32 = 3;
   pub const ReportThreshold: u32 = 5;
 }
 
@@ -176,17 +175,19 @@ impl pallet_slashing::Config for Test {
     type ReportThreshold = ReportThreshold;
     type ValidatorSet = Historical;
     type ReportUnresponsiveness = OffenceHandler;
-
-    // type MinValidators = MinValidators;
-    // type ValidatorIdOf = ConvertInto;
 }
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut storage = system::GenesisConfig::<Test>::default().build_storage().unwrap();
-    let _ = pallet_session::GenesisConfig::<Test> {
-        keys: (0..5).map(|id| (id, id, UintAuthorityId(id))).collect(),
-    }
-    .assimilate_storage(&mut storage);
+
+    let num_validators = Validators::get().unwrap().len() as u64;
+    let session_genesis = pallet_session::GenesisConfig::<Test> {
+        // (AccountId, ValidatorId, SessionKey)
+        keys: (0..=num_validators).map(|id| (id, id, UintAuthorityId(id))).collect(),
+    };
+
+    let _ = session_genesis.assimilate_storage(&mut storage);
+
     sp_io::TestExternalities::from(storage)
 }
