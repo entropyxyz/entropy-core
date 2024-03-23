@@ -35,9 +35,10 @@ At the moment this project **does not** adhere to
   the Registry pallet as this better describes the purpose of the pallet.
 - In [#662](https://github.com/entropyxyz/entropy-core/pull/662), the Free Transaction pallet was
   removed.
-- In [#666](https://github.com/entropyxyz/entropy-core/pull/666), Permissioned access type was removed
-  to be handled by a program. Also in `registered` `sig_request_key` as the key for the struct was
-  replaced by `verifying_key`. This means `verifying_key` was removed from the `registered` struct.
+- In [#666](https://github.com/entropyxyz/entropy-core/pull/666), Permissioned access type was
+  removed to be handled by a program. Also in `registered` `sig_request_key` as the key for the
+  struct was replaced by `verifying_key`. This means `verifying_key` was removed from the
+  `registered` struct.
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
