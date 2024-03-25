@@ -545,7 +545,7 @@ pub mod pallet {
 
         /// Check if the given validator was part of the signing committee for the given block
         /// height.
-        pub fn is_in_committe(
+        pub fn is_in_committee(
             validator: &T::ValidatorId,
             block_number: BlockNumberFor<T>,
         ) -> Result<bool, Error<T>> {
