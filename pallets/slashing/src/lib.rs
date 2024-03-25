@@ -101,7 +101,7 @@ pub mod pallet {
 
         /// A type which represents the current validator set.
         ///
-        /// We use an identifiable varianant in order to be compatible with the Offences pallet's
+        /// We use an identifiable variant in order to be compatible with the Offences pallet's
         /// reporting traits.
         type ValidatorSet: ValidatorSetWithIdentification<Self::AccountId>;
     }
