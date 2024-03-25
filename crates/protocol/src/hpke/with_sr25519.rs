@@ -19,6 +19,7 @@
 use super::{generate_key_pair, HpkeError, HpkeMessage, HpkePrivateKey, HpkePublicKey};
 use blake2::{Blake2s256, Digest};
 use entropy_shared::X25519PublicKey;
+use rand_core::{OsRng, RngCore};
 use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
 use thiserror::Error;
@@ -121,7 +122,11 @@ impl EncryptedSignedMessage {
         recipient: &X25519PublicKey,
         associated_data: &[u8],
     ) -> Result<(Self, sr25519::Pair), EncryptedSignedMessageErr> {
-        let (response_secret_key, _) = sr25519::Pair::generate();
+        let response_secret_key = {
+            let mut seed: [u8; 32] = [0; 32];
+            OsRng.fill_bytes(seed.as_mut());
+            sr25519::Pair::from_seed(&seed)
+        };
         let response_public_key = derive_x25519_public_key(&response_secret_key)?;
 
         let signed_message = SignedMessage::new(message, sender, Some(response_public_key));
