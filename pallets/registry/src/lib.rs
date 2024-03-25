@@ -508,9 +508,9 @@ pub mod pallet {
             // Round 3: (C, D)
             // Round 4: (A, E)
             for i in 0..SIGNING_PARTY_SIZE {
-                let tuple = Self::get_validator_rotation(i as u8, block_number)?;
+                let validator_address = Self::get_validator_rotation(i as u8, block_number)?;
                 let validator_info =
-                    pallet_staking_extension::Pallet::<T>::threshold_server(&tuple)
+                    pallet_staking_extension::Pallet::<T>::threshold_server(&validator_address)
                         .ok_or(Error::<T>::IpAddressError)?;
                 validators_info.push(validator_info);
             }
