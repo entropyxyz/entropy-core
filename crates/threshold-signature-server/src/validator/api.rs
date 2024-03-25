@@ -156,7 +156,7 @@ pub async fn sync_kvdb(
         check_forbidden_key(&key)?;
         let result = app_state.kv_store.kv().get(&key).await?;
         let reencrypted_key_result =
-            EncryptedSignedMessage::new(&signer.signer(), result, &sender_encryption_pk, &[])
+            EncryptedSignedMessage::new(signer.signer(), result, &sender_encryption_pk, &[])
                 .map_err(|e| ValidatorErr::Encryption(e.to_string()))?;
         values.push(reencrypted_key_result)
     }
