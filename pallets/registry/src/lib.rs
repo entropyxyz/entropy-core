@@ -495,8 +495,6 @@ pub mod pallet {
             let mut validators_info: Vec<ServerInfo<T::AccountId>> = vec![];
             let block_number = <frame_system::Pallet<T>>::block_number();
 
-            // TODO: JA simple hacky way to do this, need better algorithim for this.
-            //
             // This gets the first address from each signing group, and then walks through the rest
             // of the signing group in order as rounds proceed.
             //
