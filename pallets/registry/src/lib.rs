@@ -545,6 +545,12 @@ pub mod pallet {
 
         /// Check if the given validator was part of the registration committee for the given block
         /// height.
+        ///
+        /// # Note
+        ///
+        /// This function only works for checking if a validator should be in the committe in the
+        /// **current** session. Any queries against a block that happened in a previous session may
+        /// yield incorrect results.
         pub fn is_in_committee(
             validator: &T::ValidatorId,
             block_number: BlockNumberFor<T>,
