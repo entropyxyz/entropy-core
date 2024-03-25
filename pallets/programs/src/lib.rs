@@ -85,6 +85,30 @@ pub mod pallet {
     type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as SystemConfig>::AccountId>>::Balance;
 
+    #[pallet::genesis_config]
+    #[derive(frame_support::DefaultNoBound)]
+    pub struct GenesisConfig<T: Config> {
+        #[allow(clippy::type_complexity)]
+        pub inital_programs: Vec<(T::Hash, Vec<u8>, Vec<u8>, T::AccountId, u128)>,
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
+        fn build(&self) {
+            for program_info in &self.inital_programs {
+                Programs::<T>::insert(
+                    program_info.0.clone(),
+                    ProgramInfo {
+                        bytecode: program_info.1.clone(),
+                        interface_description: program_info.2.clone(),
+                        deployer: program_info.3.clone(),
+                        ref_counter: program_info.4.clone(),
+                    },
+                );
+            }
+        }
+    }
+
     #[pallet::pallet]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);

@@ -19,12 +19,12 @@ use crate::endowed_accounts::endowed_accounts_dev;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-    IndicesConfig, MaxNominations, ParametersConfig, RuntimeGenesisConfig, SessionConfig,
-    StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
+    IndicesConfig, MaxNominations, ParametersConfig, ProgramsConfig, RuntimeGenesisConfig,
+    SessionConfig, StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
-use entropy_shared::X25519PublicKey as TssX25519PublicKey;
+use entropy_shared::{X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_HASH, DEVICE_KEY_PROXY};
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -442,7 +442,7 @@ pub fn testnet_genesis_config(
                 .collect(),
             phantom: Default::default(),
         },
-        sudo: SudoConfig { key: Some(root_key) },
+        sudo: SudoConfig { key: Some(root_key.clone()) },
         babe: BabeConfig {
             authorities: vec![],
             epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
@@ -459,5 +459,14 @@ pub fn testnet_genesis_config(
         transaction_storage: Default::default(),
         transaction_payment: Default::default(),
         nomination_pools: Default::default(),
+        programs: ProgramsConfig {
+            inital_programs: vec![(
+                *DEVICE_KEY_HASH,
+                DEVICE_KEY_PROXY.to_vec(),
+                vec![],
+                root_key,
+                10,
+            )],
+        },
     }
 }

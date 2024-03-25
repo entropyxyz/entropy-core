@@ -1,5 +1,6 @@
 use hex_literal::hex;
 use lazy_static::lazy_static;
+use sp_core::H256;
 use sp_std::vec;
 use sp_std::vec::Vec;
 
@@ -12,6 +13,8 @@ lazy_static! {
     pub static ref DEFAULT_VERIFYING_KEY: Vec<u8> = vec![0; VERIFICATION_KEY_LENGTH as usize];
     // key used to create a deterministic key share taken from here https://docs.rs/k256/latest/k256/ecdsa/index.html
     pub static ref DETERMINISTIC_KEY_SHARE: [u8; 32] =  hex!("4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318");
+    // hash used to find DEVICE_KEY_PROXY onchain
+    pub static ref DEVICE_KEY_HASH: H256 =  H256::zero();
 }
 
 pub const SIGNING_PARTY_SIZE: usize = 2;
@@ -37,3 +40,6 @@ pub const MORTALITY_BLOCKS: u64 = 32;
 
 /// Size of the verification key
 pub const VERIFICATION_KEY_LENGTH: u32 = 33;
+
+/// `device_key_proxy.wasm` from the `programs` repo.
+pub const DEVICE_KEY_PROXY: &[u8] = include_bytes!("../device_key_proxy.wasm");

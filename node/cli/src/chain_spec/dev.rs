@@ -19,12 +19,14 @@ use crate::endowed_accounts::endowed_accounts_dev;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-    IndicesConfig, MaxNominations, ParametersConfig, RegistryConfig, RuntimeGenesisConfig,
-    SessionConfig, StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig,
+    IndicesConfig, MaxNominations, ParametersConfig, ProgramsConfig, RegistryConfig,
+    RuntimeGenesisConfig, SessionConfig, StakerStatus, StakingConfig, StakingExtensionConfig,
+    SudoConfig, SystemConfig, TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
-use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY};
+use entropy_shared::{
+    DAVE_VERIFYING_KEY, DEVICE_KEY_HASH, DEVICE_KEY_PROXY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
+};
 use grandpa_primitives::AuthorityId as GrandpaId;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
@@ -210,7 +212,7 @@ pub fn development_genesis_config(
                 .collect(),
             phantom: Default::default(),
         },
-        sudo: SudoConfig { key: Some(root_key) },
+        sudo: SudoConfig { key: Some(root_key.clone()) },
         babe: BabeConfig {
             authorities: vec![],
             epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
@@ -248,5 +250,14 @@ pub fn development_genesis_config(
         transaction_storage: Default::default(),
         transaction_payment: Default::default(),
         nomination_pools: Default::default(),
+        programs: ProgramsConfig {
+            inital_programs: vec![(
+                *DEVICE_KEY_HASH,
+                DEVICE_KEY_PROXY.to_vec(),
+                vec![],
+                root_key,
+                10,
+            )],
+        },
     }
 }
