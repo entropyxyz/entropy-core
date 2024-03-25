@@ -543,7 +543,7 @@ pub mod pallet {
             Ok(address.clone())
         }
 
-        /// Check if the given validator was part of the signing committee for the given block
+        /// Check if the given validator was part of the registration committee for the given block
         /// height.
         pub fn is_in_committee(
             validator: &T::ValidatorId,
