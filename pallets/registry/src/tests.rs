@@ -69,6 +69,42 @@ fn it_tests_get_validator_rotation() {
 }
 
 #[test]
+fn registration_committee_selection_works() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob) = (1, 2);
+
+        // In genesis we have Alice and Bob assigned to signing groups 1 and 2, respectively, where
+        // subgroup 1 has two members and subgroup 2 has three members.
+        //
+        // As such, we expect Alice to be part of a signing committee on every two blocks and Bob to
+        // be part of a signing committee every three blocks.
+        for block_number in 0..25 {
+            let block_number = block_number as u64;
+
+            if block_number % 2 == 0 {
+                assert!(Registry::is_in_committee(&alice, block_number).unwrap());
+            } else {
+                assert!(!Registry::is_in_committee(&alice, block_number).unwrap());
+            }
+
+            if block_number % 3 == 0 {
+                assert!(Registry::is_in_committee(&bob, block_number).unwrap());
+            } else {
+                assert!(!Registry::is_in_committee(&bob, block_number).unwrap());
+            }
+        }
+    })
+}
+
+#[test]
+fn non_authority_cannot_be_part_of_registration_committee() {
+    new_test_ext().execute_with(|| {
+        let not_an_authority = 99;
+        assert!(Registry::is_in_committee(&not_an_authority, 0).is_err());
+    });
+}
+
+#[test]
 fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
