@@ -97,12 +97,12 @@ pub mod pallet {
         fn build(&self) {
             for program_info in &self.inital_programs {
                 Programs::<T>::insert(
-                    program_info.0.clone(),
+                    program_info.0,
                     ProgramInfo {
                         bytecode: program_info.1.clone(),
                         interface_description: program_info.2.clone(),
                         deployer: program_info.3.clone(),
-                        ref_counter: program_info.4.clone(),
+                        ref_counter: program_info.4,
                     },
                 );
             }

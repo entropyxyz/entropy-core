@@ -3069,6 +3069,7 @@ dependencies = [
  "rand_core 0.6.4",
  "reqwest",
  "reqwest-eventsource",
+ "schnorrkel 0.9.1",
  "serde",
  "serde_derive",
  "serde_json",
