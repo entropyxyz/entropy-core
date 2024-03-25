@@ -130,8 +130,7 @@ async fn test_sync_kvdb() {
 
     // Validates that keys signed/encrypted to the correct key
     // return no error (status code 200).
-    // assert_eq!(result.status(), 200);
-    assert_eq!(result.text().await.unwrap(), "");
+    assert_eq!(result.status(), 200);
 
     let sender = derive_x25519_public_key(&a_usr_sk).unwrap();
 
@@ -150,7 +149,7 @@ async fn test_sync_kvdb() {
     assert_eq!(result_2.status(), 500);
     assert_eq!(
         result_2.text().await.unwrap(),
-        "Encryption or signing error: ChaCha20 decryption error: aead::Error"
+        "Encryption or authentication: Hpke: HPKE Error: OpenError"
     );
 
     let enc_keys =

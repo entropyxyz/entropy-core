@@ -141,9 +141,10 @@ pub async fn sync_kvdb(
     check_in_subgroup(&api, &rpc, &signer, &signing_address).await?;
 
     let sender_encryption_pk = {
+        let sender_stash_address = get_stash_address(&api, &rpc, &sender_account_id).await?;
         let block_hash = rpc.chain_get_block_hash(None).await?;
         let threshold_address_query =
-            entropy::storage().staking_extension().threshold_servers(sender_account_id);
+            entropy::storage().staking_extension().threshold_servers(sender_stash_address);
         let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
             .await?
             .ok_or_else(|| ValidatorErr::ChainFetch("Cannot find sender public key"))?;
