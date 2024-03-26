@@ -55,6 +55,7 @@ use hex_literal::hex;
 use more_asserts as ma;
 use parity_scale_codec::{Decode, DecodeAll, Encode};
 use rand_core::OsRng;
+use schemars::{schema_for, JsonSchema};
 use schnorrkel::{signing_context, Keypair as Sr25519Keypair, Signature as Sr25519Signature};
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
@@ -1565,30 +1566,30 @@ async fn test_fail_infinite_program() {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Encode, Decode)]
-pub struct ConfigJson {
-    /// base64-encoded compressed point (33-byte) ECDSA public keys, (eg. "A572dqoue5OywY/48dtytQimL9WO0dpSObaFbAxoEWW9")
-    pub ecdsa_public_keys: Option<Vec<String>>,
-    pub sr25519_public_keys: Option<Vec<String>>,
-    pub ed25519_public_keys: Option<Vec<String>>,
-}
-
-/// JSON representation of the auxiliary data
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct AuxDataJson {
-    /// "ecdsa", "ed25519", "sr25519"
-    pub public_key_type: String,
-    /// base64-encoded public key
-    pub public_key: String,
-    /// base64-encoded signature
-    pub signature: String,
-}
-
 #[tokio::test]
 #[serial]
 async fn test_device_key_proxy() {
     initialize_test_logger().await;
     clean_tests();
+    /// JSON-deserializable struct that will be used to derive the program-JSON interface.
+    /// Note how this uses JSON-native types only.
+    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
+    pub struct UserConfig {
+        /// base64-encoded compressed point (33-byte) ECDSA public keys, (eg. "A572dqoue5OywY/48dtytQimL9WO0dpSObaFbAxoEWW9")
+        pub ecdsa_public_keys: Option<Vec<String>>,
+        pub sr25519_public_keys: Option<Vec<String>>,
+        pub ed25519_public_keys: Option<Vec<String>>,
+    }
+    /// JSON representation of the auxiliary data
+    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+    pub struct AuxData {
+        /// "ecdsa", "ed25519", "sr25519"
+        pub public_key_type: String,
+        /// base64-encoded public key
+        pub public_key: String,
+        /// base64-encoded signature
+        pub signature: String,
+    }
 
     let one = AccountKeyring::Dave;
 
@@ -1600,11 +1601,20 @@ async fn test_device_key_proxy() {
     let keypair = Sr25519Keypair::generate();
     let public_key = base64::encode(keypair.public);
     // TODO pull down from chain
-    let device_key_user_config = ConfigJson {
+    let device_key_user_config = UserConfig {
         ecdsa_public_keys: None,
         sr25519_public_keys: Some(vec![public_key.clone()]),
         ed25519_public_keys: None,
     };
+    // check to make sure config data stored properly
+    let program_query = entropy::storage().programs().programs(*DEVICE_KEY_HASH);
+    let program_data = query_chain(&entropy_api, &rpc, program_query, None).await.unwrap().unwrap();
+    let schema_config_device_key_proxy = schema_for!(UserConfig);
+
+    assert_eq!(
+        serde_json::to_vec(&schema_config_device_key_proxy).unwrap(),
+        program_data.interface_description
+    );
     update_programs(
         &entropy_api,
         &rpc,
@@ -1634,7 +1644,7 @@ async fn test_device_key_proxy() {
 
     let sr25519_signature: Sr25519Signature = keypair.sign(context.bytes(PREIMAGE_SHOULD_SUCCEED));
 
-    let aux_data_json_sr25519 = AuxDataJson {
+    let aux_data_json_sr25519 = AuxData {
         public_key_type: "sr25519".to_string(),
         public_key,
         signature: base64::encode(sr25519_signature.to_bytes()),

@@ -96,6 +96,11 @@ pub mod pallet {
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             for program_info in &self.inital_programs {
+                assert!(
+                    program_info.1.clone().len() as u32 + program_info.2.clone().len() as u32
+                        <= T::MaxBytecodeLength::get(),
+                    "bytecode and config data too long"
+                );
                 Programs::<T>::insert(
                     program_info.0,
                     ProgramInfo {

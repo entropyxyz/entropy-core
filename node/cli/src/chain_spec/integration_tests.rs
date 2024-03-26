@@ -25,7 +25,8 @@ use entropy_runtime::{
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
-    DAVE_VERIFYING_KEY, DEVICE_KEY_HASH, DEVICE_KEY_PROXY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
+    DAVE_VERIFYING_KEY, DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH, DEVICE_KEY_PROXY,
+    EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -269,7 +270,7 @@ pub fn integration_tests_genesis_config(
             inital_programs: vec![(
                 *DEVICE_KEY_HASH,
                 DEVICE_KEY_PROXY.to_vec(),
-                vec![],
+                (*DEVICE_KEY_CONFIG_TYPE.clone()).to_vec(),
                 root_key,
                 10,
             )],

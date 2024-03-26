@@ -24,7 +24,10 @@ use entropy_runtime::{
     TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
-use entropy_shared::{X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_HASH, DEVICE_KEY_PROXY};
+use entropy_shared::{
+    X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH,
+    DEVICE_KEY_PROXY,
+};
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -463,7 +466,7 @@ pub fn testnet_genesis_config(
             inital_programs: vec![(
                 *DEVICE_KEY_HASH,
                 DEVICE_KEY_PROXY.to_vec(),
-                vec![],
+                (*DEVICE_KEY_CONFIG_TYPE.clone()).to_vec(),
                 root_key,
                 10,
             )],
