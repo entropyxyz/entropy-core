@@ -44,7 +44,7 @@ At the moment this project **does not** adhere to
 - Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
 - Add direct query for a validator's subgroup ([#642](https://github.com/entropyxyz/entropy-core/pull/642))
 - Request limit check ([#660](https://github.com/entropyxyz/entropy-core/pull/660))
-
+- Add device key program to initial chianstate ([#680](https://github.com/entropyxyz/entropy-core/pull/660))
 ### Changed
 - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
 - Add proactive refresh keys on-chain ([#629](https://github.com/entropyxyz/entropy-core/pull/629))
