@@ -13,45 +13,55 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use frame_support::{assert_err, assert_ok};
-use sp_runtime::Perbill;
-use sp_staking::offence::Offence;
+use frame_support::assert_ok;
 
 use super::*;
 use crate::mock::*;
 
 #[test]
-fn slash_fraction_works() {
+fn can_note_report() {
     new_test_ext().execute_with(|| {
-        let offence = TuxAngry { session_index: 0, validator_set_count: 50, offenders: vec![()] };
-        assert_eq!(offence.slash_fraction(1), Perbill::from_perthousand(0));
-    });
+        let (alice, mallory) = (1, 2);
+
+        assert_eq!(Slashing::failed_registrations(mallory), 0);
+        assert_ok!(Slashing::note_report(alice, mallory));
+        assert_eq!(Slashing::failed_registrations(mallory), 1);
+    })
 }
 
 #[test]
-fn offence_test() {
+fn offence_report_submitted_if_above_threshold() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Staking::force_new_era_always(RuntimeOrigin::root()));
-        assert!(Session::validators().contains(&1));
+        let (alice, mallory) = (1, 2);
 
-        // slash would cause min validators to drop below min validators no offence
-        assert_ok!(Slashing::demo_offence(RuntimeOrigin::root(), 1, vec![1u64, 2u64]));
-        let mut offences = OFFENCES.with(|l| l.replace(vec![]));
-        assert_eq!(offences.len(), 0);
+        // A peer was reported, but not enough to for an offence to be filed
+        let below_threshold = <Test as Config>::ReportThreshold::get() - 1;
+        for _ in 0..below_threshold {
+            assert_ok!(Slashing::note_report(alice, mallory));
+        }
+        assert_eq!(Slashing::failed_registrations(mallory), below_threshold);
 
-        // causes offence
-        assert_ok!(Slashing::demo_offence(RuntimeOrigin::root(), 1, vec![1u64]));
-        offences = OFFENCES.with(|l| l.replace(vec![]));
-        assert_eq!(offences.len(), 1);
-    });
-}
+        // New session, the reports should be reset for our peer, and no offences should've been
+        // filed
+        Session::rotate_session();
+        assert_eq!(Slashing::failed_registrations(mallory), 0);
+        assert!(Offences::get().len() == 0);
 
-#[test]
-fn signed_origin_cannot_initiate_demo_offence() {
-    new_test_ext().execute_with(|| {
-        assert_err!(
-            Slashing::demo_offence(RuntimeOrigin::signed(1), 1, vec![1u64, 2u64]),
-            sp_runtime::DispatchError::BadOrigin
-        );
+        // Now our peer has been reported enough times to get an Offence filed
+        let above_threshold = <Test as Config>::ReportThreshold::get();
+        for _ in 0..above_threshold {
+            assert_ok!(Slashing::note_report(alice, mallory));
+        }
+
+        // New session, reports should have been reset and we should see the offence report for
+        // Mallory
+        Session::rotate_session();
+        assert_eq!(Slashing::failed_registrations(mallory), 0);
+
+        let offences = Offences::get();
+        assert!(offences.len() == 1);
+
+        let offenders = &offences[0].offenders;
+        assert!(offenders[0] == (mallory, mallory));
     })
 }
