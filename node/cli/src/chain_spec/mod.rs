@@ -88,30 +88,38 @@ pub mod tss_account_id {
 pub mod tss_x25519_public_key {
     /// The `DEFAULT_ALICE_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
+    /// Derived using:
+    /// entropy_protocol::hpke::with_sr25519::derive_x25519_public_key(&Keyring::Alice.pair()).unwrap();
     pub const ALICE: [u8; 32] = [
-        10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124, 195, 141, 148,
-        249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247, 58, 34,
+        16, 111, 127, 91, 129, 204, 17, 200, 174, 180, 197, 116, 151, 176, 43, 99, 41, 1, 85, 15,
+        97, 198, 204, 158, 146, 160, 225, 77, 93, 160, 9, 63,
     ];
 
     /// The `DEFAULT_BOB_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
+    /// Derived using:
+    /// entropy_protocol::hpke::with_sr25519::derive_x25519_public_key(&Keyring::Bob.pair()).unwrap();
     pub const BOB: [u8; 32] = [
-        225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245, 89, 36, 170, 169,
-        181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136, 102, 10,
+        14, 178, 119, 7, 68, 36, 76, 17, 46, 164, 28, 108, 235, 70, 235, 246, 242, 37, 17, 128,
+        197, 129, 232, 161, 83, 27, 145, 116, 210, 180, 189, 125,
     ];
 
     /// The `DEFAULT_CHARLIE_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "lake carry still awful point mention bike category tornado plate brass lock"
+    /// Derived using:
+    /// entropy_protocol::hpke::with_sr25519::derive_x25519_public_key(&Keyring::Charlie.pair()).unwrap();
     pub const CHARLIE: [u8; 32] = [
-        245, 222, 99, 201, 89, 227, 119, 236, 142, 217, 74, 171, 58, 162, 140, 165, 7, 104, 210,
-        36, 196, 227, 208, 254, 175, 100, 226, 50, 239, 84, 141, 13,
+        189, 240, 147, 172, 74, 199, 140, 82, 199, 207, 212, 207, 248, 181, 161, 75, 217, 90, 199,
+        139, 76, 5, 0, 115, 167, 209, 27, 96, 137, 5, 233, 49,
     ];
 
     /// Not sure what mnemonic is used to derive the following public key.
     /// Mnemonic: "????"
+    /// Derived using:
+    /// entropy_protocol::hpke::with_sr25519::derive_x25519_public_key(&Keyring::Eve.pair()).unwrap();
     pub const EVE: [u8; 32] = [
-        28, 63, 144, 84, 78, 147, 195, 214, 190, 234, 111, 101, 117, 133, 9, 198, 96, 96, 76, 140,
-        152, 251, 255, 28, 167, 38, 157, 185, 192, 42, 201, 82,
+        234, 31, 157, 40, 100, 147, 43, 251, 97, 18, 175, 238, 137, 120, 160, 255, 24, 226, 2, 247,
+        212, 46, 227, 47, 252, 202, 231, 146, 168, 165, 19, 18,
     ];
 }
 
