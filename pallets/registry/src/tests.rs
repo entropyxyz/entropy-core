@@ -82,7 +82,8 @@ fn it_registers_a_user() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                interface_description: empty_program.clone(),
+                config_description: empty_program.clone(),
+                aux_description: empty_program.clone(),
                 deployer: 1,
                 ref_counter: 0,
             },
@@ -141,7 +142,8 @@ fn it_confirms_registers_a_user() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                interface_description: empty_program.clone(),
+                config_description: empty_program.clone(),
+                aux_description: empty_program.clone(),
                 deployer: 1,
                 ref_counter: 0,
             },
@@ -245,7 +247,8 @@ fn it_changes_a_program_pointer() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                interface_description: empty_program.clone(),
+                config_description: empty_program.clone(),
+                aux_description: empty_program.clone(),
                 deployer: 1,
                 ref_counter: 1,
             },
@@ -263,7 +266,8 @@ fn it_changes_a_program_pointer() {
             new_program_hash,
             ProgramInfo {
                 bytecode: new_program,
-                interface_description: empty_program.clone(),
+                config_description: empty_program.clone(),
+                aux_description: empty_program.clone(),
                 deployer: 1,
                 ref_counter: 1,
             },
@@ -342,7 +346,8 @@ fn it_fails_on_non_matching_verifying_keys() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                interface_description: empty_program.clone(),
+                config_description: empty_program.clone(),
+                aux_description: empty_program.clone(),
                 deployer: 1,
                 ref_counter: 0,
             },
@@ -398,7 +403,8 @@ fn it_doesnt_allow_double_registering() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                interface_description: empty_program.clone(),
+                config_description: empty_program.clone(),
+                aux_description: empty_program.clone(),
                 deployer: 1,
                 ref_counter: 0,
             },
@@ -468,7 +474,8 @@ fn it_tests_prune_registration() {
             program_hash,
             ProgramInfo {
                 bytecode: inital_program.clone(),
-                interface_description: inital_program.clone(),
+                config_description: inital_program.clone(),
+                aux_description: inital_program.clone(),
                 deployer: 1,
                 ref_counter: 1,
             },
@@ -512,7 +519,8 @@ fn it_provides_free_txs_confirm_done() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                interface_description: empty_program.clone(),
+                config_description: empty_program.clone(),
+                aux_description: empty_program.clone(),
                 deployer: 1,
                 ref_counter: 0,
             },
@@ -591,7 +599,8 @@ fn it_provides_free_txs_confirm_done_fails_3() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                interface_description: empty_program.clone(),
+                config_description: empty_program.clone(),
+                aux_description: empty_program.clone(),
                 deployer: 1,
                 ref_counter: 0,
             },
@@ -641,7 +650,8 @@ fn it_provides_free_txs_confirm_done_fails_4() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                interface_description: empty_program.clone(),
+                config_description: empty_program.clone(),
+                aux_description: empty_program.clone(),
                 deployer: 1,
                 ref_counter: 0,
             },
@@ -683,7 +693,8 @@ fn it_provides_free_txs_confirm_done_fails_5() {
             program_hash,
             ProgramInfo {
                 bytecode: empty_program.clone(),
-                interface_description: empty_program.clone(),
+                config_description: empty_program.clone(),
+                aux_description: empty_program.clone(),
                 deployer: 1,
                 ref_counter: 0,
             },
