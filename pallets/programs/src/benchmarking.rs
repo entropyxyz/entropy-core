@@ -42,10 +42,12 @@ benchmarks! {
 
   set_program {
     let program = vec![10];
-    let interface_description = vec![11];
+    let config_description = vec![11];
+    let aux_description = vec![12];
     let mut hash_input: Vec<u8> = vec![];
     hash_input.extend(&program);
-    hash_input.extend(&interface_description);
+    hash_input.extend(&config_description);
+    hash_input.extend(&aux_description);
 
     let program_hash = T::Hashing::hash(&hash_input);
     let deployer: T::AccountId = whitelisted_caller();
@@ -54,13 +56,14 @@ benchmarks! {
     let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
     let _ = CurrencyOf::<T>::make_free_balance_be(&deployer, value);
 
-  }: _(RawOrigin::Signed(deployer.clone()), program.clone(), interface_description.clone())
+  }: _(RawOrigin::Signed(deployer.clone()), program.clone(), config_description.clone(), aux_description.clone())
   verify {
     assert_last_event::<T>(
         Event::<T>::ProgramCreated {
             deployer,
             program_hash,
-            interface_description
+            config_description,
+            aux_description
         }.into()
     );
   }
@@ -68,10 +71,12 @@ benchmarks! {
   remove_program {
     let p in 0..T::MaxOwnedPrograms::get();
     let program = vec![10];
-    let interface_description = vec![11];
+    let config_description = vec![11];
+    let aux_description = vec![12];
     let mut hash_input: Vec<u8> = vec![];
     hash_input.extend(&program);
-    hash_input.extend(&interface_description);
+    hash_input.extend(&config_description);
+    hash_input.extend(&aux_description);
 
     let program_hash = T::Hashing::hash(&hash_input);
     let random_program = vec![11];
@@ -80,7 +85,7 @@ benchmarks! {
 
     let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
     let _ = CurrencyOf::<T>::make_free_balance_be(&deployer, value);
-    <Programs<T>>::insert(program_hash.clone(), ProgramInfo {bytecode: program, interface_description, deployer: deployer.clone(), ref_counter: 0u128});
+    <Programs<T>>::insert(program_hash.clone(), ProgramInfo {bytecode: program, config_description, aux_description, deployer: deployer.clone(), ref_counter: 0u128});
     let mut program_hashes = vec![random_hash.clone(); p as usize];
     // remove one to make room for the targetted removal program hash
     program_hashes.pop();
