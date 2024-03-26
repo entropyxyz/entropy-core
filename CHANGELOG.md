@@ -46,6 +46,7 @@ At the moment this project **does not** adhere to
 - Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
 - Add direct query for a validator's subgroup ([#642](https://github.com/entropyxyz/entropy-core/pull/642))
 - Request limit check ([#660](https://github.com/entropyxyz/entropy-core/pull/660))
+- Note unresponsiveness reports in Slashing pallet ([#679](https://github.com/entropyxyz/entropy-core/pull/679))
 - Add aux data to program info ([#681](https://github.com/entropyxyz/entropy-core/pull/681))
 
 ### Changed
