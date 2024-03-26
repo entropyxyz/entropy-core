@@ -135,8 +135,10 @@ enum CliCommand {
         deployer_name: String,
         /// The path to a .wasm file containing the program (defaults to a test program)
         program_file: Option<PathBuf>,
-        /// The path to a file containing the program configuration interface (defaults to empty)
-        program_interface_file: Option<PathBuf>,
+        /// The path to a file containing the program config interface (defaults to empty)
+        config_interface_file: Option<PathBuf>,
+        /// The path to a file containing the program aux interface (defaults to empty)
+        aux_data_interface_file: Option<PathBuf>,
     },
     /// Display a list of registered Entropy accounts
     Status,
@@ -262,7 +264,12 @@ async fn run_command() -> anyhow::Result<String> {
             .await?;
             Ok(format!("Message signed: {:?}", recoverable_signature))
         },
-        CliCommand::StoreProgram { deployer_name, program_file, program_interface_file } => {
+        CliCommand::StoreProgram {
+            deployer_name,
+            program_file,
+            config_interface_file,
+            aux_data_interface_file,
+        } => {
             let keypair: sr25519::Pair = SeedString::new(deployer_name).try_into()?;
             println!("Storing program using account: {}", keypair.public());
 
@@ -271,12 +278,19 @@ async fn run_command() -> anyhow::Result<String> {
                 None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 
-            let program_interface = match program_interface_file {
+            let config_interface = match config_interface_file {
                 Some(file_name) => fs::read(file_name)?,
                 None => vec![],
             };
 
-            let hash = store_program(&api, &rpc, &keypair, program, program_interface).await?;
+            let aux_data_interface = match aux_data_interface_file {
+                Some(file_name) => fs::read(file_name)?,
+                None => vec![],
+            };
+
+            let hash =
+                store_program(&api, &rpc, &keypair, program, config_interface, aux_data_interface)
+                    .await?;
             Ok(format!("Program stored {hash}"))
         },
         CliCommand::UpdatePrograms { signature_verifying_key, program_account_name, programs } => {
@@ -352,12 +366,13 @@ async fn run_command() -> anyhow::Result<String> {
                 );
                 for (hash, program_info) in programs {
                     println!(
-                        "{} {} {:>11} {:>14} {}",
+                        "{} {} {:>11} {:>14} {} {}",
                         hash,
                         program_info.deployer,
                         program_info.ref_counter,
                         program_info.bytecode.len(),
-                        !program_info.interface_description.is_empty(),
+                        !program_info.config_description.is_empty(),
+                        !program_info.aux_description.is_empty(),
                     );
                 }
             }
@@ -458,8 +473,8 @@ impl Program {
             fs::read(&config_description_file).unwrap_or_default()
         };
 
-           // If there is a file with the same name with the '.aux-description' extension, read it
-           let aux_description = {
+        // If there is a file with the same name with the '.aux-description' extension, read it
+        let aux_description = {
             let mut aux_description_file = PathBuf::from(&filename);
             aux_description_file.set_extension("aux-description");
             fs::read(&aux_description_file).unwrap_or_default()
@@ -478,8 +493,15 @@ impl Program {
             "If giving an interface description you must also give a configuration"
         );
 
-        match store_program(api, rpc, keypair, program_bytecode.clone(), config_description, aux_description)
-            .await
+        match store_program(
+            api,
+            rpc,
+            keypair,
+            program_bytecode.clone(),
+            config_description,
+            aux_description,
+        )
+        .await
         {
             Ok(hash) => Ok(Self::new(hash, configuration)),
             Err(error) => {
