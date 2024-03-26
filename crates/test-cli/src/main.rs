@@ -451,11 +451,18 @@ impl Program {
     ) -> anyhow::Result<Self> {
         let program_bytecode = fs::read(&filename)?;
 
-        // If there is a file with the same name with the '.interface-description' extension, read it
-        let interface_description = {
-            let mut interface_description_file = PathBuf::from(&filename);
-            interface_description_file.set_extension("interface-description");
-            fs::read(&interface_description_file).unwrap_or_default()
+        // If there is a file with the same name with the '.config-description' extension, read it
+        let config_description = {
+            let mut config_description_file = PathBuf::from(&filename);
+            config_description_file.set_extension("config-description");
+            fs::read(&config_description_file).unwrap_or_default()
+        };
+
+           // If there is a file with the same name with the '.aux-description' extension, read it
+           let aux_description = {
+            let mut aux_description_file = PathBuf::from(&filename);
+            aux_description_file.set_extension("aux-description");
+            fs::read(&aux_description_file).unwrap_or_default()
         };
 
         // If there is a file with the same name with the '.json' extension, read it
@@ -466,12 +473,12 @@ impl Program {
         };
 
         ensure!(
-            (interface_description.is_empty() && configuration.is_empty())
-                || (!interface_description.is_empty() && !configuration.is_empty()),
+            (config_description.is_empty() && configuration.is_empty())
+                || (!config_description.is_empty() && !configuration.is_empty()),
             "If giving an interface description you must also give a configuration"
         );
 
-        match store_program(api, rpc, keypair, program_bytecode.clone(), interface_description)
+        match store_program(api, rpc, keypair, program_bytecode.clone(), config_description, aux_description)
             .await
         {
             Ok(hash) => Ok(Self::new(hash, configuration)),

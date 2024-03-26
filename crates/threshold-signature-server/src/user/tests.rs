@@ -159,6 +159,7 @@ async fn test_sign_tx_no_chain() {
         &two.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
+        vec![],
     )
     .await
     .unwrap();
@@ -466,10 +467,16 @@ async fn test_program_with_config() {
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_hash =
-        store_program(&entropy_api, &rpc, &two.pair(), TEST_BASIC_TRANSACTION.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_hash = store_program(
+        &entropy_api,
+        &rpc,
+        &two.pair(),
+        TEST_BASIC_TRANSACTION.to_owned(),
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -569,6 +576,7 @@ async fn test_fail_signing_group() {
         &eve.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
+        vec![],
     )
     .await
     .unwrap();
@@ -642,6 +650,7 @@ async fn test_store_share() {
         &rpc,
         &program_manager.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
         vec![],
     )
     .await
@@ -855,6 +864,7 @@ async fn test_send_and_receive_keys() {
         &rpc,
         &program_manager.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
         vec![],
     )
     .await
@@ -1080,6 +1090,7 @@ async fn test_sign_tx_user_participates() {
         &rpc,
         &two.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
         vec![],
     )
     .await
@@ -1356,6 +1367,7 @@ async fn test_register_with_private_key_visibility() {
         &program_manager.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
+        vec![],
     )
     .await
     .unwrap();
@@ -1432,7 +1444,7 @@ async fn test_compute_hash() {
 
     let mut runtime = Runtime::default();
     let program_hash =
-        store_program(&api, &rpc, &one.pair(), TEST_PROGRAM_CUSTOM_HASH.to_owned(), vec![])
+        store_program(&api, &rpc, &one.pair(), TEST_PROGRAM_CUSTOM_HASH.to_owned(), vec![], vec![])
             .await
             .unwrap();
 
@@ -1507,6 +1519,7 @@ async fn test_fail_infinite_program() {
         &rpc,
         &two.pair(),
         TEST_INFINITE_LOOP_BYTECODE.to_owned(),
+        vec![],
         vec![],
     )
     .await
@@ -1585,6 +1598,7 @@ async fn test_mutiple_confirm_done() {
         &rpc,
         &program_manager.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
         vec![],
     )
     .await
