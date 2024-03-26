@@ -39,32 +39,68 @@ fn it_tests_get_validator_rotation() {
     new_test_ext().execute_with(|| {
         let result_1 = Registry::get_validator_rotation(0, 0).unwrap();
         let result_2 = Registry::get_validator_rotation(1, 0).unwrap();
-        assert_eq!(result_1.0, 1);
-        assert_eq!(result_2.0, 2);
+        assert_eq!(result_1, 1);
+        assert_eq!(result_2, 2);
 
         let result_3 = Registry::get_validator_rotation(0, 1).unwrap();
         let result_4 = Registry::get_validator_rotation(1, 1).unwrap();
-        assert_eq!(result_3.0, 5);
-        assert_eq!(result_4.0, 6);
+        assert_eq!(result_3, 5);
+        assert_eq!(result_4, 6);
 
         let result_5 = Registry::get_validator_rotation(0, 100).unwrap();
         let result_6 = Registry::get_validator_rotation(1, 100).unwrap();
-        assert_eq!(result_5.0, 1);
-        assert_eq!(result_6.0, 6);
+        assert_eq!(result_5, 1);
+        assert_eq!(result_6, 6);
 
         let result_7 = Registry::get_validator_rotation(0, 101).unwrap();
         let result_8 = Registry::get_validator_rotation(1, 101).unwrap();
-        assert_eq!(result_7.0, 5);
-        assert_eq!(result_8.0, 7);
+        assert_eq!(result_7, 5);
+        assert_eq!(result_8, 7);
 
         pallet_staking_extension::IsValidatorSynced::<Test>::insert(7, false);
 
         let result_9 = Registry::get_validator_rotation(1, 101).unwrap();
-        assert_eq!(result_9.0, 6);
+        assert_eq!(result_9, 6);
 
         // really big number does not crash
         let result_10 = Registry::get_validator_rotation(0, 1000000000000000000).unwrap();
-        assert_eq!(result_10.0, 1);
+        assert_eq!(result_10, 1);
+    });
+}
+
+#[test]
+fn registration_committee_selection_works() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob) = (1, 2);
+
+        // In genesis we have Alice and Bob assigned to signing groups 1 and 2, respectively, where
+        // subgroup 1 has two members and subgroup 2 has three members.
+        //
+        // As such, we expect Alice to be part of a signing committee on every two blocks and Bob to
+        // be part of a signing committee every three blocks.
+        for block_number in 0..25 {
+            let block_number = block_number as u64;
+
+            if block_number % 2 == 0 {
+                assert!(Registry::is_in_committee(&alice, block_number).unwrap());
+            } else {
+                assert!(!Registry::is_in_committee(&alice, block_number).unwrap());
+            }
+
+            if block_number % 3 == 0 {
+                assert!(Registry::is_in_committee(&bob, block_number).unwrap());
+            } else {
+                assert!(!Registry::is_in_committee(&bob, block_number).unwrap());
+            }
+        }
+    })
+}
+
+#[test]
+fn non_authority_cannot_be_part_of_registration_committee() {
+    new_test_ext().execute_with(|| {
+        let not_an_authority = 99;
+        assert!(Registry::is_in_committee(&not_an_authority, 0).is_err());
     });
 }
 
