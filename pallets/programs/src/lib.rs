@@ -94,9 +94,9 @@ pub mod pallet {
     pub struct ProgramInfo<AccountId> {
         /// The bytecode of the program.
         pub bytecode: Vec<u8>,
-        /// An interface description for the program config
+        /// An interface description for the program config following https://json-schema.org/ spec
         pub config_description: Vec<u8>,
-        /// An interface description for the program aux data
+        /// An interface description for the program aux data following https://json-schema.org/ spec
         pub aux_description: Vec<u8>,
         /// Deployer of the program
         pub deployer: AccountId,
@@ -163,6 +163,8 @@ pub mod pallet {
         TooManyProgramsOwned,
         /// Program is being used by an account
         ProgramInUse,
+        /// Arithmitic overflow error
+        StorageOverflow,
     }
 
     #[pallet::call]
@@ -184,8 +186,12 @@ pub mod pallet {
             hash_input.extend(&config_description);
             hash_input.extend(&aux_description);
             let program_hash = T::Hashing::hash(&hash_input);
-            let new_program_length =
-                new_program.len() + config_description.len() + aux_description.len();
+            let new_program_length = new_program
+                .len()
+                .checked_add(config_description.len())
+                .ok_or(Error::<T>::StorageOverflow)?
+                .checked_add(aux_description.len())
+                .ok_or(Error::<T>::StorageOverflow)?;
             ensure!(
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
                 Error::<T>::ProgramLengthExceeded
