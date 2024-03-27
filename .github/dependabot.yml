@@ -4,9 +4,14 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    # Let's get all patch updates grouped in a single PR to minimize spam.
+    groups:
+      update-types:
+          - patch
     # Ignore any Substrate major updates
     #
-    # Automated Substrate releases cause Dependabot PR spam, so these must be updated manually when required.
+    # Automated Substrate releases cause Dependabot PR spam, so these must be updated manually when
+    # required.
     ignore:
       - dependency-name: "frame-*"
         update-types: [ "version-update:semver-major" ]
