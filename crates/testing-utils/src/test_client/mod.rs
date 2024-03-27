@@ -16,7 +16,7 @@
 //! Simple test client
 pub use crate::chain_api::{get_api, get_rpc};
 pub use entropy_protocol::{
-    sign_and_encrypt::{derive_static_secret, SignedMessage},
+    hpke::{derive_x25519_static_secret, EncryptedSignedMessage},
     KeyParams,
 };
 use entropy_shared::HashingAlgorithm;
@@ -174,21 +174,20 @@ pub async fn sign(
     let submit_transaction_requests = validators_info
         .iter()
         .map(|validator_info| async {
-            let validator_public_key: x25519_dalek::PublicKey =
-                validator_info.x25519_public_key.into();
-            let signed_message = SignedMessage::new(
+            let encrypted_message = EncryptedSignedMessage::new(
                 &user_keypair,
-                &Bytes(signature_request_vec.clone()),
-                &validator_public_key,
+                signature_request_vec.clone(),
+                &validator_info.x25519_public_key,
+                &[],
             )?;
-            let signed_message_json = signed_message.to_json()?;
+            let message_json = serde_json::to_string(&encrypted_message)?;
 
             let url = format!("http://{}/user/sign_tx", validator_info.ip_address);
 
             let res = client
                 .post(url)
                 .header("Content-Type", "application/json")
-                .body(signed_message_json)
+                .body(message_json)
                 .send()
                 .await;
             Ok::<_, anyhow::Error>(res)
