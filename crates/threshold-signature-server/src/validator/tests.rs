@@ -106,11 +106,12 @@ async fn test_sync_kvdb() {
     let port = 3001;
     let (bob_axum, _) =
         create_clients("bob".to_string(), values, addrs.clone(), &Some(ValidatorName::Bob)).await;
-    let listener_bob = TcpListener::bind(format!("0.0.0.0:{port}")).unwrap();
 
-    tokio::spawn(async move {
-        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
-    });
+    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}"))
+        .await
+        .expect("Unable to bind to given server address.");
+    axum::serve(listener_bob, bob_axum).await.unwrap();
+
     let client = reqwest::Client::new();
     let mut keys = Keys { keys: addrs, timestamp: SystemTime::now() };
     let enc_keys =

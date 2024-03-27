@@ -25,7 +25,7 @@ use entropy_tss::{
     AppState,
 };
 use rand_core::OsRng;
-use std::{net::TcpListener, time::Duration};
+use std::time::Duration;
 use subxt::utils::AccountId32 as SubxtAccountId32;
 use synedrion::{ecdsa::SigningKey, KeyShare};
 
@@ -122,14 +122,18 @@ pub async fn spawn_testing_validators(
         None
     };
 
-    let listener_alice = TcpListener::bind(format!("0.0.0.0:{}", ports[0])).unwrap();
-    let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", ports[1])).unwrap();
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_alice).unwrap().serve(alice_axum).await.unwrap();
+        let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
+            .await
+            .expect("Unable to bind to given server address.");
+        axum::serve(listener_alice, alice_axum).await.unwrap();
     });
 
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
+        let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[1]))
+            .await
+            .expect("Unable to bind to given server address.");
+        axum::serve(listener_bob, bob_axum).await.unwrap();
     });
 
     tokio::time::sleep(Duration::from_secs(1)).await;
