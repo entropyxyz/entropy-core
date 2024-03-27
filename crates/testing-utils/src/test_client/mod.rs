@@ -48,7 +48,7 @@ use entropy_tss::{
 };
 use futures::future;
 use parity_scale_codec::Decode;
-use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
+use sp_core::{crypto::AccountId32, sr25519, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     tx::PairSigner,
