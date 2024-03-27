@@ -86,10 +86,13 @@ pub mod tss_account_id {
 /// The X25519 public key used by the Threshold Signature Scheme servers (TSS) to encrypt messages
 /// between TSS servers.
 pub mod tss_x25519_public_key {
-    /// The `DEFAULT_ALICE_MNEMONIC` is used to derive the public key.
+    /// The `DEFAULT_ALICE_MNEMONIC` is used to derive the public key (in `entropy_tss::helpers::launch`).
     /// Mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
     /// Derived using:
-    /// entropy_protocol::hpke::with_sr25519::derive_x25519_public_key(&Keyring::Alice.pair()).unwrap();
+    /// ```
+    /// let (alice, _) = sp_core::sr25519::Pair::from_phrase(DEFAULT_ALICE_MNEMONIC, None).unwrap();
+    /// entropy_protocol::hpke::with_sr25519::derive_x25519_public_key(&alice).unwrap()
+    /// ```
     pub const ALICE: [u8; 32] = [
         16, 111, 127, 91, 129, 204, 17, 200, 174, 180, 197, 116, 151, 176, 43, 99, 41, 1, 85, 15,
         97, 198, 204, 158, 146, 160, 225, 77, 93, 160, 9, 63,
@@ -98,6 +101,10 @@ pub mod tss_x25519_public_key {
     /// The `DEFAULT_BOB_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
     /// Derived using:
+    /// ```
+    /// let (bob, _) = sp_core::sr25519::Pair::from_phrase(DEFAULT_BOB_MNEMONIC, None).unwrap();
+    /// entropy_protocol::hpke::with_sr25519::derive_x25519_public_key(&bob).unwrap()
+    /// ```
     /// entropy_protocol::hpke::with_sr25519::derive_x25519_public_key(&Keyring::Bob.pair()).unwrap();
     pub const BOB: [u8; 32] = [
         14, 178, 119, 7, 68, 36, 76, 17, 46, 164, 28, 108, 235, 70, 235, 246, 242, 37, 17, 128,
@@ -107,7 +114,10 @@ pub mod tss_x25519_public_key {
     /// The `DEFAULT_CHARLIE_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "lake carry still awful point mention bike category tornado plate brass lock"
     /// Derived using:
-    /// entropy_protocol::hpke::with_sr25519::derive_x25519_public_key(&Keyring::Charlie.pair()).unwrap();
+    /// ```
+    /// let (charlie, _) = sp_core::sr25519::Pair::from_phrase(DEFAULT_CHARLIE_MNEMONIC, None).unwrap();
+    /// entropy_protocol::hpke::with_sr25519::derive_x25519_public_key(&charlie).unwrap()
+    /// ```
     pub const CHARLIE: [u8; 32] = [
         189, 240, 147, 172, 74, 199, 140, 82, 199, 207, 212, 207, 248, 181, 161, 75, 217, 90, 199,
         139, 76, 5, 0, 115, 167, 209, 27, 96, 137, 5, 233, 49,
@@ -116,7 +126,10 @@ pub mod tss_x25519_public_key {
     /// Not sure what mnemonic is used to derive the following public key.
     /// Mnemonic: "????"
     /// Derived using:
-    /// entropy_protocol::hpke::with_sr25519::derive_x25519_public_key(&Keyring::Eve.pair()).unwrap();
+    /// ```
+    /// let eve = sp_keyring::sr25519::Keyring::Eve.pair();
+    /// entropy_protocol::hpke::with_sr25519::derive_x25519_public_key(&eve).unwrap()
+    /// ```
     pub const EVE: [u8; 32] = [
         234, 31, 157, 40, 100, 147, 43, 251, 97, 18, 175, 238, 137, 120, 160, 255, 24, 226, 2, 247,
         212, 46, 227, 47, 252, 202, 231, 146, 168, 165, 19, 18,
