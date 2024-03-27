@@ -278,6 +278,11 @@ fn it_deletes_when_no_bond_left() {
         let record = EventRecord { phase: Phase::Initialization, event, topics: vec![] };
 
         assert!(!System::events().contains(&record));
+        // make sure the frame staking pallet emits the right event
+        System::assert_last_event(RuntimeEvent::FrameStaking(pallet_staking::Event::Withdrawn {
+            stash: 2,
+            amount: 50,
+        }));
 
         lock = Balances::locks(2);
         assert_eq!(lock[0].amount, 50);
