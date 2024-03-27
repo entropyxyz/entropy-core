@@ -36,8 +36,8 @@ use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::{
-            ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
-            DEFAULT_MNEMONIC, FORBIDDEN_KEYS,
+            ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC,
+            FORBIDDEN_KEYS,
         },
         substrate::{get_stash_address, get_subgroup, query_chain},
         tests::{create_clients, initialize_test_logger},
@@ -260,11 +260,16 @@ async fn test_get_and_store_values() {
 
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let my_subgroup = get_subgroup(&api, &rpc, &signer_alice.account_id()).await.unwrap();
-    let recip_server_info =
-        get_random_server_info(&api, &rpc, my_subgroup, signer_alice.account_id().clone())
-            .await
-            .unwrap();
+
+    let mut recip_server_info = {
+        let alice_stash_address =
+            get_stash_address(&api, &rpc, &signer_alice.account_id()).await.unwrap();
+        let server_info_query =
+            entropy::storage().staking_extension().threshold_servers(alice_stash_address);
+        query_chain(&api, &rpc, server_info_query, None).await.unwrap().unwrap()
+    };
+    recip_server_info.endpoint = b"127.0.0.1:3002".to_vec();
+
     let keys = vec![
         "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL".to_string(),
         "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy".to_string(),
@@ -293,11 +298,13 @@ async fn test_get_and_store_values() {
     tokio::spawn(async move {
         axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
     });
-    let p_charlie = <sr25519::Pair as Pair>::from_string(DEFAULT_CHARLIE_MNEMONIC, None).unwrap();
-    let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
-    let _result =
-        get_and_store_values(keys.clone(), &bob_kv, 9, false, recip_server_info, &signer_charlie)
-            .await;
+
+    // We are 'being' bob (using bob's kv), but we authenticate as alice, because otherwise we will
+    // fail the subgroup check. We can't properly test this function because we don't have two tss
+    // servers in the same subgroup with only two subgroups.
+    get_and_store_values(keys.clone(), &bob_kv, 9, false, recip_server_info, &signer_alice)
+        .await
+        .unwrap();
     for (i, key) in keys.iter().enumerate() {
         tracing::info!("!! -> -> RECEIVED KEY at IDX {i} of value {key:?}");
         let val = bob_kv.kv().get(key).await;

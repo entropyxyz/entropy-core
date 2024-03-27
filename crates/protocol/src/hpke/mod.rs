@@ -60,7 +60,7 @@ pub struct HpkeMessage {
 }
 
 impl HpkeMessage {
-    /// New single shot message, with optional sender authentication
+    /// New single shot message
     pub fn new(
         msg: &[u8],
         recipient: &HpkePublicKey,
@@ -73,7 +73,7 @@ impl HpkeMessage {
         Ok(Self { ct: Bytes(ct), enc: Bytes(enc) })
     }
 
-    /// Decrypt an incoming message, with optional sender authentication
+    /// Decrypt an incoming message
     pub fn decrypt(
         &self,
         sk: &HpkePrivateKey,
