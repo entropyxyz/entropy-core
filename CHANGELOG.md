@@ -35,17 +35,21 @@ At the moment this project **does not** adhere to
   the Registry pallet as this better describes the purpose of the pallet.
 - In [#662](https://github.com/entropyxyz/entropy-core/pull/662), the Free Transaction pallet was
   removed.
-- In [#666](https://github.com/entropyxyz/entropy-core/pull/666), Permissioned access type was removed 
-  to be handled by a program. Also in `registered` `sig_request_key` as the key for the struct was 
-  replaced by `verifying_key`. This means `verifying_key` was removed from the `registered` struct.
-- In [#681](https://github.com/entropyxyz/entropy-core/pull/666) `program_interface` in `program_data` of the `Programs` 
-  pallet has been split into `config_description` and `aux_description`
+- In [#666](https://github.com/entropyxyz/entropy-core/pull/666), Permissioned access type was
+  removed to be handled by a program. Also in `registered` `sig_request_key` as the key for the
+  struct was replaced by `verifying_key`. This means `verifying_key` was removed from the
+  `registered` struct.
+- In [#678](https://github.com/entropyxyz/entropy-core/pull/678), the Registry pallet's
+  `get_validator_info()` public method stopped returning the validator index
+- In [#681](https://github.com/entropyxyz/entropy-core/pull/666) `program_interface` in 
+  `program_data` of the `Programs` pallet has been split into `config_description` and `aux_description`
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
 - Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
 - Add direct query for a validator's subgroup ([#642](https://github.com/entropyxyz/entropy-core/pull/642))
 - Request limit check ([#660](https://github.com/entropyxyz/entropy-core/pull/660))
+- Add helper for checking if a validator is in the signing committee ([#678](https://github.com/entropyxyz/entropy-core/pull/678))
 - Note unresponsiveness reports in Slashing pallet ([#679](https://github.com/entropyxyz/entropy-core/pull/679))
 - Add aux data to program info ([#681](https://github.com/entropyxyz/entropy-core/pull/681))
 
