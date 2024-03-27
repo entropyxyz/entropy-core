@@ -30,8 +30,8 @@ tokio  ={ version="1.36", features=["macros", "fs", "rt-multi-thread", "io-util"
 
 # HTTP
 reqwest    ={ version="0.11", features=["json", "stream"] }
-axum       ={ version="0.6.18", features=["ws"] }
-axum-macros="0.3.7"
+axum       ={ version="0.7.5", features=["ws"] }
+axum-macros="0.4.1"
 
 # Substrate
 subxt             ={ version="0.32.1" }
@@ -50,7 +50,7 @@ entropy-programs-runtime={ git="https://github.com/entropyxyz/programs.git", tag
 tracing                 ="0.1.37"
 tracing-subscriber      ={ version="0.3.17", features=["env-filter", "json"] }
 tracing-loki            ="0.2"
-tower-http              ={ version="0.3.4", features=["trace", "cors"] }
+tower-http              ={ version="0.5.2", features=["trace", "cors"] }
 tracing-bunyan-formatter="0.3.9"
 uuid                    ={ version="1.5.0", features=["v4"] }
 
