@@ -6,7 +6,11 @@ updates:
       interval: "daily"
     # Let's get all patch updates grouped in a single PR to minimize spam.
     groups:
-      update-types: "patch"
+      # This is the name for our group
+      patch-dependencies:
+        applies-to: version-updates
+        update-types:
+          - "patch"
     # Ignore any Substrate major updates
     #
     # Automated Substrate releases cause Dependabot PR spam, so these must be updated manually when
