@@ -382,7 +382,7 @@ async fn test_sign_tx_no_chain() {
     assert_eq!(failed_res.status(), 500);
     assert_eq!(
         failed_res.text().await.unwrap(),
-        "Validation error: ChaCha20 decryption error: aead::Error"
+        "Encryption or signing error: Hpke: HPKE Error: OpenError"
     );
 
     // TODO replace this with something similar
