@@ -560,29 +560,37 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         #[allow(clippy::type_complexity)]
-        pub fn get_validator_info() -> Result<(Vec<ServerInfo<T::AccountId>>, u32), Error<T>> {
+        pub fn get_validator_info() -> Result<Vec<ServerInfo<T::AccountId>>, Error<T>> {
             let mut validators_info: Vec<ServerInfo<T::AccountId>> = vec![];
             let block_number = <frame_system::Pallet<T>>::block_number();
 
-            // TODO: JA simple hacky way to do this, get the first address from each signing group
-            // need good algorithim for this
-            let mut l: u32 = 0;
+            // This gets the first address from each signing group, and then walks through the rest
+            // of the signing group in order as rounds proceed.
+            //
+            // For example, if we have the following signing groups:
+            // Group 1: A, B, C
+            // Group 2: D, E
+            //
+            // Then the committee selection would look like this:
+            // Round 1: (A, D)
+            // Round 2: (B, E),
+            // Round 3: (C, D)
+            // Round 4: (A, E)
             for i in 0..SIGNING_PARTY_SIZE {
-                let tuple = Self::get_validator_rotation(i as u8, block_number)?;
-                l = tuple.1;
+                let validator_address = Self::get_validator_rotation(i as u8, block_number)?;
                 let validator_info =
-                    pallet_staking_extension::Pallet::<T>::threshold_server(&tuple.0)
+                    pallet_staking_extension::Pallet::<T>::threshold_server(&validator_address)
                         .ok_or(Error::<T>::IpAddressError)?;
                 validators_info.push(validator_info);
             }
-            Ok((validators_info, l))
+
+            Ok(validators_info)
         }
 
         pub fn get_validator_rotation(
             signing_group: u8,
             block_number: BlockNumberFor<T>,
-        ) -> Result<(<T as pallet_session::Config>::ValidatorId, u32), Error<T>> {
-            let mut i: u32 = 0;
+        ) -> Result<<T as pallet_session::Config>::ValidatorId, Error<T>> {
             let mut addresses =
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_group)
                     .ok_or(Error::<T>::SigningGroupError)?;
@@ -596,13 +604,33 @@ pub mod pallet {
                     pallet_staking_extension::Pallet::<T>::is_validator_synced(address);
                 if !address_state {
                     addresses.remove(selection as usize);
-                    i += 1;
                 } else {
-                    i += 1;
                     break address;
                 }
             };
-            Ok((address.clone(), i))
+
+            Ok(address.clone())
+        }
+
+        /// Check if the given validator was part of the registration committee for the given block
+        /// height.
+        ///
+        /// # Note
+        ///
+        /// This function only works for checking if a validator should be in the committe in the
+        /// **current** session. Any queries against a block that happened in a previous session may
+        /// yield incorrect results.
+        pub fn is_in_committee(
+            validator: &T::ValidatorId,
+            block_number: BlockNumberFor<T>,
+        ) -> Result<bool, Error<T>> {
+            let signing_group =
+                pallet_staking_extension::Pallet::<T>::validator_to_subgroup(validator)
+                    .ok_or(Error::<T>::NoThresholdKey)?;
+
+            let expected_validator = Self::get_validator_rotation(signing_group, block_number)?;
+
+            Ok(expected_validator == *validator)
         }
 
         /// Check if the given validator was part of the signing committee for the given block
