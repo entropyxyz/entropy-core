@@ -61,7 +61,7 @@ use crate::{
         Listener, ListenerState, ProtocolErr,
     },
     user::api::UserRegistrationInfo,
-    validation::derive_static_secret,
+    validation::derive_x25519_static_secret,
     AppState,
 };
 
@@ -211,7 +211,7 @@ pub async fn do_proactive_refresh(
         .lock()
         .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
         .insert(session_id.clone(), listener);
-    let x25519_secret_key = derive_static_secret(signer.signer());
+    let x25519_secret_key = derive_x25519_static_secret(signer.signer());
 
     open_protocol_connections(
         &converted_validator_info,

@@ -27,11 +27,10 @@ use reqwest::StatusCode;
 use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::{Digest as Sha256Digest, Sha256};
 use sha3::{Digest as Sha3Digest, Keccak256, Sha3_256};
-use sp_core::{sr25519, Bytes, Pair};
+use sp_core::{sr25519, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32, OnlineClient};
 use synedrion::KeyShare;
 use tokio::time::timeout;
-use x25519_dalek::PublicKey;
 
 use crate::{
     chain_api::{
@@ -40,7 +39,7 @@ use crate::{
     helpers::substrate::{get_program, query_chain},
     signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
     user::{api::UserRegistrationInfo, errors::UserErr},
-    validation::{derive_static_secret, SignedMessage},
+    validation::{derive_x25519_static_secret, EncryptedSignedMessage},
 };
 /// complete the dkg process for a new user
 pub async fn do_dkg(
@@ -89,7 +88,7 @@ pub async fn do_dkg(
         .map_err(|_| UserErr::SessionError("Error getting lock".to_string()))?
         .insert(session_id.clone(), listener);
 
-    let x25519_secret_key = derive_static_secret(signer.signer());
+    let x25519_secret_key = derive_x25519_static_secret(signer.signer());
     open_protocol_connections(
         &converted_validator_info,
         &session_id,
@@ -131,10 +130,11 @@ pub async fn send_key(
         let server_info = query_chain(api, rpc, server_info_query, block_hash)
             .await?
             .ok_or_else(|| UserErr::ChainFetch("Server Info Fetch Error"))?;
-        let signed_message = SignedMessage::new(
+        let encrypted_message = EncryptedSignedMessage::new(
             signer.signer(),
-            &Bytes(serde_json::to_vec(&user_registration_info.clone())?),
-            &PublicKey::from(server_info.x25519_public_key),
+            serde_json::to_vec(&user_registration_info.clone())?,
+            &server_info.x25519_public_key,
+            &[],
         )?;
         // encrypt and sign info
         let url = format!("http://{}/user/receive_key", String::from_utf8(server_info.endpoint)?);
@@ -143,7 +143,7 @@ pub async fn send_key(
         let response = client
             .post(url)
             .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&signed_message)?)
+            .body(serde_json::to_string(&encrypted_message)?)
             .send()
             .await?;
 

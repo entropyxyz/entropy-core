@@ -76,7 +76,7 @@ use crate::{
         validator::get_signer,
     },
     signing_client::{ListenerState, ProtocolErr},
-    validation::{check_stale, SignedMessage},
+    validation::{check_stale, EncryptedSignedMessage},
     validator::api::{check_forbidden_key, get_and_store_values},
     AppState, Configuration,
 };
@@ -123,22 +123,25 @@ pub struct RequestLimitStorage {
 
 /// Called by a user to initiate the signing process for a message
 ///
-/// Takes an encrypted [SignedMessage] containing a JSON serialized [UserSignatureRequest]
-#[tracing::instrument(
-    skip_all,
-    fields(signing_address = %signed_msg.account_id())
-)]
+/// Takes an [EncryptedSignedMessage] containing a JSON serialized [UserSignatureRequest]
+// TODO
+// #[tracing::instrument(
+//     skip_all,
+//     fields(signing_address = %signed_msg.account_id())
+// )]
 pub async fn sign_tx(
     State(app_state): State<AppState>,
-    Json(signed_msg): Json<SignedMessage>,
+    Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, StreamBody<impl Stream<Item = Result<String, serde_json::Error>>>), UserErr>
 {
     let signer = get_signer(&app_state.kv_store).await?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-    let request_author = SubxtAccountId32(*signed_msg.account_id().as_ref());
 
+    let signed_message = encrypted_msg.decrypt(signer.signer(), &[])?;
+
+    let request_author = SubxtAccountId32(*signed_message.account_id().as_ref());
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit = query_chain(&api, &rpc, request_limit_query, None)
         .await?
@@ -147,14 +150,7 @@ pub async fn sign_tx(
     request_limit_check(&rpc, &app_state.kv_store, request_author.to_string(), request_limit)
         .await?;
 
-    if !signed_msg.verify() {
-        return Err(UserErr::InvalidSignature("Invalid signature."));
-    }
-
-    let decrypted_message =
-        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
-
-    let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&decrypted_message)?;
+    let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&signed_message.message.0)?;
     check_stale(user_sig_req.timestamp)?;
 
     let user_details =
@@ -386,23 +382,21 @@ async fn setup_dkg(
 /// signing subgroup.
 ///
 /// Takes a [UserRegistrationInfo] wrapped in a [SignedMessage].
-#[tracing::instrument(
-    skip_all,
-    fields(signing_address = %signed_msg.account_id())
-)]
+// TODO
+// #[tracing::instrument(
+//     skip_all,
+//     fields(signing_address = %signed_msg.account_id())
+// )]
 pub async fn receive_key(
     State(app_state): State<AppState>,
-    Json(signed_msg): Json<SignedMessage>,
+    Json(encrypted_message): Json<EncryptedSignedMessage>,
 ) -> Result<StatusCode, UserErr> {
-    let signing_address = signed_msg.account_id();
-    if !signed_msg.verify() {
-        return Err(UserErr::InvalidSignature("Invalid signature."));
-    }
     let signer = get_signer(&app_state.kv_store).await?;
-    let decrypted_message =
-        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+    let signed_message = encrypted_message.decrypt(signer.signer(), &[])?;
+    let signing_address = signed_message.account_id();
 
-    let user_registration_info: UserRegistrationInfo = serde_json::from_slice(&decrypted_message)?;
+    let user_registration_info: UserRegistrationInfo =
+        serde_json::from_slice(&signed_message.message.0)?;
 
     check_forbidden_key(&user_registration_info.key).map_err(|_| UserErr::ForbiddenKey)?;
 

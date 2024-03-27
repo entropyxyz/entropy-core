@@ -24,7 +24,8 @@ use sp_core::Bytes;
 mod with_sr25519;
 
 pub use with_sr25519::{
-    derive_x25519_public_key, EncryptedSignedMessage, EncryptedSignedMessageErr, SignedMessage,
+    derive_x25519_public_key, derive_x25519_static_secret, EncryptedSignedMessage,
+    EncryptedSignedMessageErr, SignedMessage,
 };
 
 /// Configure Hpke

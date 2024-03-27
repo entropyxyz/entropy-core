@@ -16,16 +16,18 @@
 //! HpkeMessage, but using sr25519 secret keys to generate encryption keypair and adding a sr25519
 //! signature
 
-use super::{generate_key_pair, HpkeError, HpkeMessage, HpkePrivateKey, HpkePublicKey};
+use super::{HpkeError, HpkeMessage, HpkePrivateKey, HpkePublicKey};
 use blake2::{Blake2s256, Digest};
 use entropy_shared::X25519PublicKey;
+use hpke_rs::HpkeKeyPair;
 use rand_core::{OsRng, RngCore};
 use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
 use thiserror::Error;
+use x25519_dalek::StaticSecret;
 use zeroize::Zeroize;
 
-/// Given a sr25519 secret signing key, derive an x25519 keypair
+/// Given a sr25519 secret signing key, derive an x25519 public key
 pub fn derive_x25519_public_key(sk: &sr25519::Pair) -> Result<X25519PublicKey, HpkeError> {
     let (_, hpke_public_key) = derive_hpke_keypair(sk)?;
     let mut x25519_public_key: [u8; 32] = [0; 32];
@@ -33,15 +35,27 @@ pub fn derive_x25519_public_key(sk: &sr25519::Pair) -> Result<X25519PublicKey, H
     Ok(x25519_public_key)
 }
 
+/// Given a sr25519 secret signing key, derive an x25519 secret key
+pub fn derive_x25519_static_secret(sk: &sr25519::Pair) -> StaticSecret {
+    let mut hasher = Blake2s256::new();
+    hasher.update(&sk.to_raw_vec());
+    let mut hash = hasher.finalize();
+
+    let mut buffer: [u8; 32] = [0; 32];
+    buffer.copy_from_slice(&hash);
+    hash.zeroize();
+    StaticSecret::from(buffer)
+}
+
 /// Given a sr25519 secret signing key, derive an x25519 keypair
 pub fn derive_hpke_keypair(
     sk: &sr25519::Pair,
 ) -> Result<(HpkePrivateKey, HpkePublicKey), HpkeError> {
-    let mut hasher = Blake2s256::new();
-    hasher.update(&sk.to_raw_vec());
-    let mut hash = hasher.finalize();
-    let keypair = generate_key_pair(Some(&hash))?;
-    hash.zeroize();
+    let static_secret = derive_x25519_static_secret(sk);
+    let x25519_public_key = x25519_dalek::PublicKey::from(&static_secret);
+    let keypair =
+        HpkeKeyPair::new(static_secret.to_bytes().to_vec(), x25519_public_key.to_bytes().to_vec())
+            .into_keys();
     Ok(keypair)
 }
 

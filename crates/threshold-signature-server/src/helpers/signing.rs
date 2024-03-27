@@ -32,7 +32,7 @@ use crate::{
         Listener, ProtocolErr,
     },
     user::api::{increment_or_wipe_request_limit, UserSignatureRequest},
-    validation::derive_static_secret,
+    validation::derive_x25519_static_secret,
     AppState,
 };
 
@@ -58,7 +58,7 @@ pub async fn do_signing(
         get_signer(kv_manager).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     let signer = pair_signer.signer();
 
-    let x25519_secret_key = derive_static_secret(signer);
+    let x25519_secret_key = derive_x25519_static_secret(signer);
 
     let account_id = AccountId32(signer.public().0);
 
