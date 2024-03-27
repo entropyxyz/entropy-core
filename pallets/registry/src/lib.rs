@@ -643,7 +643,7 @@ pub mod pallet {
                 pallet_staking_extension::Pallet::<T>::validator_to_subgroup(validator)
                     .ok_or(Error::<T>::NoThresholdKey)?;
 
-            let expected_validator = Self::get_validator_rotation(signing_group, block_number)?.0;
+            let expected_validator = Self::get_validator_rotation(signing_group, block_number)?;
 
             Ok(expected_validator == *validator)
         }
