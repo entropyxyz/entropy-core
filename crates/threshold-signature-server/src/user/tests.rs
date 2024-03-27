@@ -1302,7 +1302,7 @@ async fn test_sign_tx_user_participates() {
     assert_eq!(failed_res.status(), 500);
     assert_eq!(
         failed_res.text().await.unwrap(),
-        "Validation error: ChaCha20 decryption error: aead::Error"
+        "Encryption or signing error: Hpke: HPKE Error: OpenError"
     );
 
     // let sig: [u8; 64] = [0; 64];
