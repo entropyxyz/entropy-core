@@ -149,6 +149,8 @@ pub enum UserErr {
     UserDoesNotExist,
     #[error("The remote TSS server rejected the keyshare: {0}")]
     KeyShareRejected(String),
+    #[error("Custom hash choice out of bounds")]
+    CustomHashOutOfBounds,
 }
 
 impl IntoResponse for UserErr {
