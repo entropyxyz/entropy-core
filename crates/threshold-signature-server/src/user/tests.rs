@@ -118,7 +118,9 @@ use crate::{
         },
         UserErr,
     },
-    validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage},
+    validation::{
+        derive_x25519_static_secret, mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage,
+    },
     validator::api::get_random_server_info,
 };
 
@@ -271,7 +273,7 @@ async fn test_sign_tx_no_chain() {
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         let ferdie_pair = AccountKeyring::Ferdie.pair();
-        let ferdie_x25519_sk = derive_static_secret(&ferdie_pair);
+        let ferdie_x25519_sk = derive_x25519_static_secret(&ferdie_pair);
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
@@ -1198,7 +1200,7 @@ async fn test_sign_tx_user_participates() {
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         let ferdie_pair = AccountKeyring::Ferdie.pair();
-        let ferdie_x25519_sk = derive_static_secret(&ferdie_pair);
+        let ferdie_x25519_sk = derive_x25519_static_secret(&ferdie_pair);
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
@@ -1360,7 +1362,7 @@ async fn test_register_with_private_key_visibility() {
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-    let one_x25519_sk = derive_static_secret(&one.pair());
+    let one_x25519_sk = derive_x25519_static_secret(&one.pair());
     let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
 
     put_register_request_on_chain(
