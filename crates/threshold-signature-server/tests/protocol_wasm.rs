@@ -24,7 +24,10 @@ mod helpers;
 
 use axum::http::StatusCode;
 use entropy_kvdb::clean_tests;
-use entropy_protocol::{KeyParams, ValidatorInfo};
+use entropy_protocol::{
+    hpke::{derive_x25519_static_secret, EncryptedSignedMessage},
+    KeyParams, ValidatorInfo,
+};
 use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg};
 use entropy_testing_utils::{
     chain_api::{
@@ -64,10 +67,7 @@ use entropy_tss::{
         entropy::{self, runtime_types::pallet_registry::pallet::RegisteredInfo},
         get_api, get_rpc, EntropyConfig,
     },
-    common::{
-        validation::{derive_static_secret, SignedMessage},
-        Hasher, UserSignatureRequest,
-    },
+    common::{Hasher, UserSignatureRequest},
     helpers::substrate::query_chain,
 };
 
@@ -143,18 +143,17 @@ async fn test_wasm_sign_tx_user_participates() {
                 validator_urls_and_keys
                     .iter()
                     .map(|validator_tuple| async {
-                        let server_public_key = PublicKey::from(validator_tuple.1);
-                        let signed_message = SignedMessage::new(
+                        let encryped_message = EncryptedSignedMessage::new(
                             &keyring.pair(),
-                            &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-                            &server_public_key,
+                            serde_json::to_vec(&generic_msg.clone()).unwrap(),
+                            &validator_tuple.1,
                         )
                         .unwrap();
                         let url = format!("http://{}/user/sign_tx", validator_tuple.0.clone());
                         mock_client
                             .post(url)
                             .header("Content-Type", "application/json")
-                            .body(serde_json::to_string(&signed_message).unwrap())
+                            .body(serde_json::to_string(&encryped_message).unwrap())
                             .send()
                             .await
                     })
@@ -226,7 +225,7 @@ async fn test_wasm_register_with_private_key_visibility() {
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-    let one_x25519_sk = derive_static_secret(&one.pair());
+    let one_x25519_sk = derive_x25519_static_secret(&one.pair());
     let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
 
     put_register_request_on_chain(
