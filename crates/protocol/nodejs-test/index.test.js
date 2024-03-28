@@ -14,7 +14,7 @@ test('Convert Uint8Array to and from hex', function (t) {
 test('Encrypt, decrypt with X25519Chacha20Poly1305', function (t) {
   t.plan(7)
 
-  const { generateSigningKey, publicKeyFromSecret, encryptAndSign, decryptAndVerify } = protocol.X25519Chacha20Poly1305
+  const { generateSigningKey, publicKeyFromSecret, encryptAndSign, decryptAndVerify } = protocol.Hpke
 
   const aliceSk = generateSigningKey()
   const alicePk = publicKeyFromSecret(aliceSk)
