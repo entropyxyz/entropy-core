@@ -276,7 +276,11 @@ async fn test_wasm_register_with_private_key_visibility() {
             .post("http://127.0.0.1:3002/user/new")
             .body(onchain_user_request.clone().encode())
             .send(),
-        spawn_user_participates_in_dkg_protocol(validators_info.clone(), one.pair().to_raw_vec()),
+        spawn_user_participates_in_dkg_protocol(
+            validators_info.clone(),
+            one.pair().to_raw_vec(),
+            block_number,
+        ),
     )
     .await;
 
@@ -307,6 +311,7 @@ struct UserParticipatesInSigningProtocolArgs {
 struct UserParticipatesInDkgProtocolArgs {
     user_sig_req_secret_key: Vec<u8>,
     validators_info: Vec<ValidatorInfoParsed>,
+    block_number: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -347,6 +352,7 @@ async fn spawn_user_participates_in_signing_protocol(
 async fn spawn_user_participates_in_dkg_protocol(
     validators_info: Vec<ValidatorInfo>,
     user_sig_req_secret_key: Vec<u8>,
+    block_number: u32,
 ) -> String {
     let args = UserParticipatesInDkgProtocolArgs {
         user_sig_req_secret_key,
@@ -358,6 +364,7 @@ async fn spawn_user_participates_in_dkg_protocol(
                 tss_account: *validator_info.tss_account.as_ref(),
             })
             .collect(),
+        block_number,
     };
     let json_params = serde_json::to_string(&args).unwrap();
 
