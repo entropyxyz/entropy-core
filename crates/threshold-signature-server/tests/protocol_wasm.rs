@@ -54,10 +54,8 @@ use std::{
     time::{Duration, SystemTime},
 };
 use subxt::{
-    backend::legacy::LegacyRpcMethods,
-    ext::sp_core::{sr25519::Signature, Bytes},
-    utils::AccountId32 as SubxtAccountId32,
-    Config, OnlineClient,
+    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519::Signature,
+    utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
 };
 use synedrion::KeyShare;
 use x25519_dalek::PublicKey;
@@ -147,6 +145,7 @@ async fn test_wasm_sign_tx_user_participates() {
                             &keyring.pair(),
                             serde_json::to_vec(&generic_msg.clone()).unwrap(),
                             &validator_tuple.1,
+                            &[],
                         )
                         .unwrap();
                         let url = format!("http://{}/user/sign_tx", validator_tuple.0.clone());
