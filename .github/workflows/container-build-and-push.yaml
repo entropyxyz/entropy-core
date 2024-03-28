@@ -113,7 +113,7 @@ jobs:
             build-spec --chain testnet \
               > ${{ steps.artifacts.outputs.dir }}/${{ inputs.docker_build_arg_package }}-chain-spec-${{ inputs.git_ref_basename }}-${{ github.sha }}.json
       - name: Upload ${{ inputs.docker_build_arg_package }} binary artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.docker_build_arg_package}}_${{ inputs.git_ref_basename }}
           path: ${{ steps.artifacts.outputs.dir }}/${{ inputs.docker_build_arg_package }}*
