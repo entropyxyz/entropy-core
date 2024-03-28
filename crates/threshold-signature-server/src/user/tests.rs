@@ -1410,7 +1410,7 @@ async fn test_register_with_private_key_visibility() {
             .post("http://127.0.0.1:3002/user/new")
             .body(onchain_user_request.clone().encode())
             .send(),
-        user_participates_in_dkg_protocol(validators_info.clone(), &one.pair()),
+        user_participates_in_dkg_protocol(validators_info.clone(), &one.pair(), block_number),
     )
     .await;
 
