@@ -369,7 +369,7 @@ async fn setup_dkg(
 /// HTTP POST endpoint to recieve a keyshare from another threshold server in the same
 /// signing subgroup.
 ///
-/// Takes a [UserRegistrationInfo] wrapped in a [SignedMessage].
+/// Takes a [UserRegistrationInfo] wrapped in an [EncryptedSignedMessage].
 // TODO
 // #[tracing::instrument(
 //     skip_all,
