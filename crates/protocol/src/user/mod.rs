@@ -83,10 +83,11 @@ pub async fn user_participates_in_signing_protocol(
 pub async fn user_participates_in_dkg_protocol(
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
+    block_number: u32,
 ) -> Result<KeyShare<KeyParams>, UserRunningProtocolErr> {
     // Make WS connections to the given set of TSS servers
-    let sig_req_account: AccountId32 = user_signing_keypair.public().0.into();
-    let session_id = SessionId::Dkg(sig_req_account);
+    let user: AccountId32 = user_signing_keypair.public().0.into();
+    let session_id = SessionId::Dkg { user, block_number };
     let (channels, tss_accounts) = user_connects_to_validators(
         open_ws_connection,
         &session_id,
