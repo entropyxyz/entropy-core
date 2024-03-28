@@ -30,7 +30,7 @@ use subxt::ext::sp_core::{
     sr25519, Pair,
 };
 
-use crate::validation::{derive_x25519_public_key, mnemonic_to_pair, new_mnemonic};
+use crate::validation::{derive_x25519_static_secret, mnemonic_to_pair, new_mnemonic};
 
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
@@ -191,17 +191,19 @@ pub async fn setup_mnemonic(
 
         let phrase = mnemonic.to_string();
         let pair = mnemonic_to_pair(&mnemonic).expect("Issue deriving Mnemonic");
-        let dh_public = derive_x25519_public_key(&pair).expect("Cannot derive X25519 keypair");
 
-        // let ss_reservation = kv
-        //     .kv()
-        //     .reserve_key(FORBIDDEN_KEYS[1].to_string())
-        //     .await
-        //     .expect("Issue reserving ss key");
-        // kv.kv()
-        //     .put(ss_reservation, static_secret.to_bytes().to_vec())
-        //     .await
-        //     .expect("failed to update secret share");
+        let static_secret = derive_x25519_static_secret(&pair);
+        let dh_public = x25519_dalek::PublicKey::from(&static_secret);
+
+        let ss_reservation = kv
+            .kv()
+            .reserve_key(FORBIDDEN_KEYS[1].to_string())
+            .await
+            .expect("Issue reserving ss key");
+        kv.kv()
+            .put(ss_reservation, static_secret.to_bytes().to_vec())
+            .await
+            .expect("failed to update secret share");
 
         let dh_reservation = kv
             .kv()
@@ -209,7 +211,7 @@ pub async fn setup_mnemonic(
             .await
             .expect("Issue reserving DH key");
 
-        let converted_dh_public = dh_public.to_vec();
+        let converted_dh_public = dh_public.to_bytes().to_vec();
         kv.kv()
             .put(dh_reservation, converted_dh_public.clone())
             .await
