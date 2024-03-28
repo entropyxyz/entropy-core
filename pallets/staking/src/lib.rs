@@ -340,8 +340,8 @@ pub mod pallet {
                 let server_info =
                     ThresholdServers::<T>::take(&validator_id).ok_or(Error::<T>::NoThresholdKey)?;
                 ThresholdToStash::<T>::remove(&server_info.tss_account);
+                Self::deposit_event(Event::NodeInfoRemoved(controller));
             }
-            Self::deposit_event(Event::NodeInfoRemoved(controller));
             Ok(().into())
         }
 

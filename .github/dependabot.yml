@@ -1,0 +1,32 @@
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    # Let's get all patch updates grouped in a single PR to minimize spam.
+    groups:
+      # This is the name for our group
+      patch-dependencies:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+    # Ignore any Substrate major updates
+    #
+    # Automated Substrate releases cause Dependabot PR spam, so these must be updated manually when
+    # required.
+    ignore:
+      - dependency-name: "frame-*"
+        update-types: [ "version-update:semver-major" ]
+      - dependency-name: "pallet-*"
+        update-types: [ "version-update:semver-major" ]
+      - dependency-name: "sc-*"
+        update-types: [ "version-update:semver-major" ]
+      - dependency-name: "sp-*"
+        update-types: [ "version-update:semver-major" ]
+      - dependency-name: "substrate-*"
+        update-types: [ "version-update:semver-major" ]
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: daily
