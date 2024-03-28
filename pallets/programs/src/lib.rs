@@ -158,6 +158,8 @@ pub mod pallet {
         TooManyProgramsOwned,
         /// Program is being used by an account
         ProgramInUse,
+        /// Arithmitic overflow error
+        StorageOverflow,
     }
 
     #[pallet::call]
@@ -177,7 +179,11 @@ pub mod pallet {
             hash_input.extend(&new_program);
             hash_input.extend(&interface_description);
             let program_hash = T::Hashing::hash(&hash_input);
-            let new_program_length = new_program.len() + interface_description.len();
+            let new_program_length = new_program
+                .len()
+                .checked_add(interface_description.len())
+                .ok_or(Error::<T>::StorageOverflow)?;
+
             ensure!(
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
                 Error::<T>::ProgramLengthExceeded
