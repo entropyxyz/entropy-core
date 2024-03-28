@@ -103,14 +103,14 @@ async fn test_sync_kvdb() {
     let recip = PublicKey::from(&b_usr_ss);
     let values = vec![vec![10], vec![11], vec![12]];
 
-    let port = 3001;
+    let port = 3007;
     let (bob_axum, _) =
         create_clients("bob".to_string(), values, addrs.clone(), &Some(ValidatorName::Bob)).await;
 
+    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}"))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}"))
-            .await
-            .expect("Unable to bind to given server address.");
         axum::serve(listener_bob, bob_axum).await.unwrap();
     });
 
@@ -281,16 +281,17 @@ async fn test_get_and_store_values() {
     let (bob_axum, bob_kv) =
         create_clients("bob".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
 
+    let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{port_0}"))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{port_0}"))
-            .await
-            .expect("Unable to bind to given server address.");
         axum::serve(listener_alice, alice_axum).await.unwrap();
     });
+
+    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{port_1}"))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{port_1}"))
-            .await
-            .expect("Unable to bind to given server address.");
         axum::serve(listener_bob, bob_axum).await.unwrap();
     });
 
@@ -413,10 +414,10 @@ async fn test_sync_validator() {
     )
     .await;
 
+    let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:3001"))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:3001"))
-            .await
-            .expect("Unable to bind to given server address.");
         axum::serve(listener_alice, alice_axum).await.unwrap();
     });
 
@@ -429,10 +430,10 @@ async fn test_sync_validator() {
     )
     .await;
 
+    let listener_charlie = tokio::net::TcpListener::bind(format!("0.0.0.0:3002"))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        let listener_charlie = tokio::net::TcpListener::bind(format!("0.0.0.0:3002"))
-            .await
-            .expect("Unable to bind to given server address.");
         axum::serve(listener_charlie, charlie_axum).await.unwrap();
     });
 

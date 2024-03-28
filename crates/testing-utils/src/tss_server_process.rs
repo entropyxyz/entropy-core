@@ -122,17 +122,17 @@ pub async fn spawn_testing_validators(
         None
     };
 
+    let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
-            .await
-            .expect("Unable to bind to given server address.");
         axum::serve(listener_alice, alice_axum).await.unwrap();
     });
 
+    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[1]))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[1]))
-            .await
-            .expect("Unable to bind to given server address.");
         axum::serve(listener_bob, bob_axum).await.unwrap();
     });
 
