@@ -19,6 +19,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use entropy_protocol::sign_and_encrypt::EncryptedSignedMessageErr;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -53,14 +54,12 @@ pub enum ValidatorErr {
     NotInSubgroup,
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
-    #[error("Encryption or signing error: {0}")]
-    Json(#[from] entropy_protocol::sign_and_encrypt::SignedMessageErr),
     #[error("anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
     #[error("Chain Fetch: {0}")]
     ChainFetch(&'static str),
     #[error("Encryption or authentication: {0}")]
-    Hpke(#[from] entropy_protocol::hpke::EncryptedSignedMessageErr),
+    Hpke(#[from] EncryptedSignedMessageErr),
     #[error("Message is not from expected author")]
     Authentication,
 }

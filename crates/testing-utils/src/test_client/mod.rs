@@ -16,7 +16,7 @@
 //! Simple test client
 pub use crate::chain_api::{get_api, get_rpc};
 pub use entropy_protocol::{
-    hpke::{derive_x25519_static_secret, EncryptedSignedMessage},
+    sign_and_encrypt::{derive_x25519_static_secret, EncryptedSignedMessage},
     KeyParams,
 };
 use entropy_shared::HashingAlgorithm;

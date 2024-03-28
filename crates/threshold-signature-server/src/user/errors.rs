@@ -23,7 +23,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use entropy_programs_runtime::RuntimeError as ProgramRuntimeError;
-use entropy_protocol::errors::ProtocolExecutionErr;
+use entropy_protocol::{errors::ProtocolExecutionErr, sign_and_encrypt::EncryptedSignedMessageErr};
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
@@ -148,7 +148,7 @@ pub enum UserErr {
     #[error("The remote TSS server rejected the keyshare: {0}")]
     KeyShareRejected(String),
     #[error("Encryption or signing error: {0}")]
-    EncryptionOrAuthentication(#[from] entropy_protocol::hpke::EncryptedSignedMessageErr),
+    EncryptionOrAuthentication(#[from] EncryptedSignedMessageErr),
 }
 
 impl IntoResponse for UserErr {
