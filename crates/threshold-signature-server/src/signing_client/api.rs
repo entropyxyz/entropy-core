@@ -125,6 +125,7 @@ pub async fn proactive_refresh(
                     &app_state.listener_state,
                     encoded_key,
                     deserialized_old_key,
+                    ocw_data.block_number,
                 )
                 .await?;
                 let serialized_key_share = key_serialize(&new_key_share)
@@ -183,11 +184,12 @@ pub async fn do_proactive_refresh(
     state: &ListenerState,
     verifying_key: Vec<u8>,
     old_key: KeyShare<KeyParams>,
+    block_number: u32,
 ) -> Result<KeyShare<KeyParams>, ProtocolErr> {
     tracing::debug!("Preparing to perform proactive refresh");
     tracing::debug!("Signing with {:?}", &signer.signer().public());
 
-    let session_id = SessionId::ProactiveRefresh(verifying_key);
+    let session_id = SessionId::ProactiveRefresh { verifying_key, block_number };
     let account_id = SubxtAccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];

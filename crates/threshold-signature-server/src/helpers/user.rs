@@ -49,8 +49,9 @@ pub async fn do_dkg(
     state: &ListenerState,
     sig_request_account: AccountId32,
     key_visibility: KeyVisibility,
+    block_number: u32,
 ) -> Result<KeyShare<KeyParams>, UserErr> {
-    let session_id = SessionId::Dkg(sig_request_account.clone());
+    let session_id = SessionId::Dkg { user: sig_request_account.clone(), block_number };
     let account_id = AccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
