@@ -65,15 +65,20 @@ pub struct EncryptedSignedMessage {
     hpke_message: HpkeMessage,
 }
 
+/// A plaintext signed message
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SignedMessage {
     pub message: Bytes,
+    /// The message authors signing public key
     pub sender: sr25519::Public,
-    pub signature: sr25519::Signature,
+    signature: sr25519::Signature,
+    /// An optional ephemeral x25519 public key to be used when sending a response to this message
     pub receiver_x25519: Option<X25519PublicKey>,
 }
 
 impl SignedMessage {
+    /// Create and sign a new message. This is not public as it is expected that this
+    /// will only be created internally by [EncryptedSignedMessage]
     fn new(
         message: Vec<u8>,
         secret_key: &sr25519::Pair,
@@ -83,6 +88,8 @@ impl SignedMessage {
         Self { message: Bytes(message), sender: secret_key.public(), signature, receiver_x25519 }
     }
 
+    /// Verify the signature - this is called internally when decrypting an [EncryptedSignedMessage]
+    /// so there should be no reason to call it again - hence it is not public
     fn verify(&self) -> bool {
         <sr25519::Pair as Pair>::verify(&self.signature, &self.message.0, &self.sender)
     }
@@ -94,7 +101,7 @@ impl SignedMessage {
 }
 
 impl EncryptedSignedMessage {
-    /// New single shot message
+    /// Sign and encrypt a message
     pub fn new(
         sender: &sr25519::Pair,
         message: Vec<u8>,
@@ -156,6 +163,34 @@ impl EncryptedSignedMessage {
             },
             response_secret_key,
         ))
+    }
+
+    /// Allows creating an EncryptedSignedMessage with a given signature.
+    /// This is used in testing to ensure that giving a message with a bad signature will fail. It
+    /// should not be used in production.
+    #[cfg(feature = "unsafe")]
+    pub fn new_with_given_signature(
+        sender: &sr25519::Pair,
+        message: Vec<u8>,
+        recipient: &X25519PublicKey,
+        associated_data: &[u8],
+        signature: sr25519::Signature,
+    ) -> Result<Self, EncryptedSignedMessageErr> {
+        let signed_message = SignedMessage {
+            message: Bytes(message),
+            sender: sender.public(),
+            signature,
+            receiver_x25519: None,
+        };
+        let serialized_signed_message = serde_json::to_vec(&signed_message).unwrap();
+
+        Ok(Self {
+            hpke_message: HpkeMessage::new(
+                &serialized_signed_message,
+                &HpkePublicKey::new(recipient.to_vec()),
+                associated_data,
+            )?,
+        })
     }
 }
 
