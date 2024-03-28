@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{str::FromStr, time::Duration};
+use std::time::Duration;
 
 use axum::{
     body::Bytes,
@@ -37,7 +37,7 @@ use entropy_kvdb::kv_manager::{
 };
 use entropy_shared::{KeyVisibility, OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
-use sp_core::{crypto::AccountId32, Pair};
+use sp_core::Pair;
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, OnlineClient,
@@ -102,50 +102,54 @@ pub async fn proactive_refresh(
 
     for encoded_key in ocw_data.proactive_refresh_keys {
         let key = hex::encode(&encoded_key);
-        let sig_request_account_sp_core =
-            AccountId32::from_str(&key).map_err(ProtocolErr::StringError)?;
-        let sig_request_account = SubxtAccountId32(*sig_request_account_sp_core.as_ref());
-        let key_visibility = get_registered_details(&api, &rpc, &sig_request_account.clone())
+        let key_visibility = get_registered_details(&api, &rpc, encoded_key.clone())
             .await
             .map_err(|e| ProtocolErr::UserError(e.to_string()))?
             .key_visibility
             .0;
 
         // Check key visibility and don't do proactive refresh if it is private as this would require the user to be online
-        if key_visibility != KeyVisibility::Public && key_visibility != KeyVisibility::Permissioned
-        {
-            return Ok(StatusCode::ACCEPTED);
-        }
+        if key_visibility == KeyVisibility::Public {
+            // key should always exist, figure out how to handle
+            let exists_result = app_state.kv_store.kv().exists(&key).await?;
+            if exists_result {
+                let old_key_share = app_state.kv_store.kv().get(&key).await?;
+                let deserialized_old_key: KeyShare<KeyParams> = deserialize(&old_key_share)
+                    .ok_or_else(|| {
+                        ProtocolErr::Deserialization("Failed to load KeyShare".into())
+                    })?;
 
-        // key should always exist, figure out how to handle
-        let exists_result = app_state.kv_store.kv().exists(&key).await?;
-        if exists_result {
-            let old_key_share = app_state.kv_store.kv().get(&key).await?;
-            let deserialized_old_key: KeyShare<KeyParams> = deserialize(&old_key_share)
-                .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
+                let new_key_share = do_proactive_refresh(
+                    &ocw_data.validators_info,
+                    &signer,
+                    &app_state.listener_state,
+                    encoded_key,
+                    deserialized_old_key,
+                )
+                .await?;
+                let serialized_key_share = key_serialize(&new_key_share)
+                    .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
+                let new_key_info = UserRegistrationInfo {
+                    key,
+                    value: serialized_key_share,
+                    proactive_refresh: true,
+                };
 
-            let new_key_share = do_proactive_refresh(
-                &ocw_data.validators_info,
-                &signer,
-                &app_state.listener_state,
-                sig_request_account,
-                deserialized_old_key,
-            )
-            .await?;
-            let serialized_key_share = key_serialize(&new_key_share)
-                .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
-            let new_key_info = UserRegistrationInfo {
-                key: key.to_string(),
-                value: serialized_key_share,
-                proactive_refresh: true,
-            };
-
-            app_state.kv_store.kv().delete(&new_key_info.key).await?;
-            let reservation = app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
-            app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
-            send_key(&api, &rpc, &stash_address, &mut addresses_in_subgroup, new_key_info, &signer)
+                app_state.kv_store.kv().delete(&new_key_info.key).await?;
+                let reservation =
+                    app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
+                app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
+                send_key(
+                    &api,
+                    &rpc,
+                    &stash_address,
+                    &mut addresses_in_subgroup,
+                    new_key_info,
+                    &signer,
+                )
                 .await
                 .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+            }
         }
     }
     // TODO: Tell chain refresh is done?
@@ -170,20 +174,20 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
 
 #[tracing::instrument(
     skip_all,
-    fields(validators_info, sig_request_account, my_subgroup),
+    fields(validators_info, verifying_key, my_subgroup),
     level = tracing::Level::DEBUG
 )]
 pub async fn do_proactive_refresh(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     state: &ListenerState,
-    sig_request_account: SubxtAccountId32,
+    verifying_key: Vec<u8>,
     old_key: KeyShare<KeyParams>,
 ) -> Result<KeyShare<KeyParams>, ProtocolErr> {
     tracing::debug!("Preparing to perform proactive refresh");
     tracing::debug!("Signing with {:?}", &signer.signer().public());
 
-    let session_id = SessionId::ProactiveRefresh(sig_request_account);
+    let session_id = SessionId::ProactiveRefresh(verifying_key);
     let account_id = SubxtAccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
@@ -227,7 +231,8 @@ pub async fn do_proactive_refresh(
         Channels(broadcast_out, rx_from_others)
     };
     let result =
-        execute_proactive_refresh(channels, signer.signer(), tss_accounts, old_key).await?;
+        execute_proactive_refresh(session_id, channels, signer.signer(), tss_accounts, old_key)
+            .await?;
     Ok(result)
 }
 

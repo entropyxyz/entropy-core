@@ -53,7 +53,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
+    use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE, VERIFICATION_KEY_LENGTH};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, Pays},
         pallet_prelude::*,
@@ -68,7 +68,9 @@ pub mod pallet {
 
     pub use crate::weights::WeightInfo;
 
-    const VERIFICATION_KEY_LENGTH: u32 = 33;
+    /// Max modifiable keys allowed for a program modification account
+    const MAX_MODIFIABLE_KEYS: u32 = 25;
+
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
     pub trait Config:
@@ -90,6 +92,7 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
     pub type ProgramPointers<Hash, MaxProgramHashes> = BoundedVec<Hash, MaxProgramHashes>;
+    pub type VerifyingKey = BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>;
 
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo)]
     #[scale_info(skip_type_params(T))]
@@ -105,7 +108,7 @@ pub mod pallet {
         pub confirmations: Vec<u8>,
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub key_visibility: KeyVisibility,
-        pub verifying_key: Option<BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>>,
+        pub verifying_key: Option<VerifyingKey>,
         pub version_number: u8,
     }
 
@@ -113,8 +116,6 @@ pub mod pallet {
     #[scale_info(skip_type_params(T))]
     pub struct RegisteredInfo<T: Config> {
         pub key_visibility: KeyVisibility,
-        // TODO better type
-        pub verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub program_modification_account: T::AccountId,
         pub version_number: u8,
@@ -124,25 +125,24 @@ pub mod pallet {
     #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub registered_accounts: Vec<(T::AccountId, u8, Option<[u8; 32]>)>,
+        pub registered_accounts: Vec<(T::AccountId, u8, Option<[u8; 32]>, VerifyingKey)>,
     }
 
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             for account_info in &self.registered_accounts {
+                assert!(account_info.3.len() as u32 == VERIFICATION_KEY_LENGTH);
                 let key_visibility = match account_info.1 {
                     1 => KeyVisibility::Private(
                         account_info.2.expect("Private key visibility needs x25519 public key"),
                     ),
-                    2 => KeyVisibility::Permissioned,
                     _ => KeyVisibility::Public,
                 };
                 Registered::<T>::insert(
-                    account_info.0.clone(),
+                    account_info.3.clone(),
                     RegisteredInfo {
                         key_visibility,
-                        verifying_key: BoundedVec::default(),
                         programs_data: BoundedVec::default(),
                         program_modification_account: account_info.0.clone(),
                         version_number: T::KeyVersionNumber::get(),
@@ -169,7 +169,18 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn registered)]
     pub type Registered<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, RegisteredInfo<T>, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
+
+    /// Mapping of program_modification accounts to verifying keys they can control
+    #[pallet::storage]
+    #[pallet::getter(fn modifiable_keys)]
+    pub type ModifiableKeys<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        BoundedVec<VerifyingKey, ConstU32<MAX_MODIFIABLE_KEYS>>,
+        ValueQuery,
+    >;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -178,10 +189,10 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// An account has signaled to be registered. [signature request account]
         SignalRegister(T::AccountId),
-        /// An account has been registered. [who, signing_group]
-        AccountRegistering(T::AccountId, u8),
-        /// An account has been registered. \[who\]
-        AccountRegistered(T::AccountId),
+        /// An account has been registered. [who, signing_group, verifying_key]
+        RecievedConfirmation(T::AccountId, u8, VerifyingKey),
+        /// An account has been registered. \[who, verifying_key]
+        AccountRegistered(T::AccountId, VerifyingKey),
         /// An account registration has failed
         FailedRegistration(T::AccountId),
         /// An account cancelled their registration
@@ -210,6 +221,8 @@ pub mod pallet {
         NotAuthorized,
         ProgramDoesNotExist,
         NoProgramSet,
+        TooManyModifiableKeys,
+        MismatchedVerifyingKeyLength,
     }
 
     #[pallet::call]
@@ -233,8 +246,6 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let sig_req_account = ensure_signed(origin)?;
 
-            // Ensure account isn't already registered or has existing programs
-            ensure!(!Registered::<T>::contains_key(&sig_req_account), Error::<T>::AlreadySubmitted);
             ensure!(
                 !Registering::<T>::contains_key(&sig_req_account),
                 Error::<T>::AlreadySubmitted
@@ -309,7 +320,7 @@ pub mod pallet {
          })]
         pub fn change_program_instance(
             origin: OriginFor<T>,
-            sig_request_account: T::AccountId,
+            verifying_key: VerifyingKey,
             new_program_instance: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -330,14 +341,14 @@ pub mod pallet {
             }
             let mut old_programs_length = 0;
             let programs_data =
-                Registered::<T>::try_mutate(&sig_request_account, |maybe_registered_details| {
-                    if let Some(registerd_details) = maybe_registered_details {
+                Registered::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
+                    if let Some(registered_details) = maybe_registered_details {
                         ensure!(
-                            who == registerd_details.program_modification_account,
+                            who == registered_details.program_modification_account,
                             Error::<T>::NotAuthorized
                         );
                         // decrement ref counter of not used programs
-                        for program_instance in &registerd_details.programs_data {
+                        for program_instance in &registered_details.programs_data {
                             pallet_programs::Programs::<T>::mutate(
                                 program_instance.program_pointer,
                                 |maybe_program_info| {
@@ -348,8 +359,8 @@ pub mod pallet {
                                 },
                             );
                         }
-                        old_programs_length = registerd_details.programs_data.len();
-                        registerd_details.programs_data = new_program_instance.clone();
+                        old_programs_length = registered_details.programs_data.len();
+                        registered_details.programs_data = new_program_instance.clone();
                         Ok(new_program_instance)
                     } else {
                         Err(Error::<T>::NotRegistered)
@@ -383,6 +394,10 @@ pub mod pallet {
             verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
         ) -> DispatchResultWithPostInfo {
             let ts_server_account = ensure_signed(origin)?;
+            ensure!(
+                verifying_key.len() as u32 == VERIFICATION_KEY_LENGTH,
+                Error::<T>::MismatchedVerifyingKeyLength
+            );
             let validator_stash =
                 pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
                     .ok_or(Error::<T>::NoThresholdKey)?;
@@ -422,11 +437,19 @@ pub mod pallet {
                     )
                     .into());
                 }
+                ModifiableKeys::<T>::try_mutate(
+                    &registering_info.program_modification_account,
+                    |verifying_keys| -> Result<(), DispatchError> {
+                        verifying_keys
+                            .try_push(verifying_key.clone())
+                            .map_err(|_| Error::<T>::TooManyModifiableKeys)?;
+                        Ok(())
+                    },
+                )?;
                 Registered::<T>::insert(
-                    &sig_req_account,
+                    &verifying_key,
                     RegisteredInfo {
                         key_visibility: registering_info.key_visibility,
-                        verifying_key,
                         programs_data: registering_info.programs_data,
                         program_modification_account: registering_info.program_modification_account,
                         version_number: registering_info.version_number,
@@ -437,7 +460,7 @@ pub mod pallet {
                 let weight =
                     <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
 
-                Self::deposit_event(Event::AccountRegistered(sig_req_account));
+                Self::deposit_event(Event::AccountRegistered(sig_req_account, verifying_key));
                 Ok(Some(weight).into())
             } else {
                 // If verifying key does not match for everyone, registration failed
@@ -453,7 +476,11 @@ pub mod pallet {
                 }
                 registering_info.confirmations.push(signing_subgroup);
                 Registering::<T>::insert(&sig_req_account, registering_info);
-                Self::deposit_event(Event::AccountRegistering(sig_req_account, signing_subgroup));
+                Self::deposit_event(Event::RecievedConfirmation(
+                    sig_req_account,
+                    signing_subgroup,
+                    registering_info_verifying_key,
+                ));
                 Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(
                     confirmation_length,
                 ))
@@ -464,29 +491,37 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         #[allow(clippy::type_complexity)]
-        pub fn get_validator_info() -> Result<(Vec<ServerInfo<T::AccountId>>, u32), Error<T>> {
+        pub fn get_validator_info() -> Result<Vec<ServerInfo<T::AccountId>>, Error<T>> {
             let mut validators_info: Vec<ServerInfo<T::AccountId>> = vec![];
             let block_number = <frame_system::Pallet<T>>::block_number();
 
-            // TODO: JA simple hacky way to do this, get the first address from each signing group
-            // need good algorithim for this
-            let mut l: u32 = 0;
+            // This gets the first address from each signing group, and then walks through the rest
+            // of the signing group in order as rounds proceed.
+            //
+            // For example, if we have the following signing groups:
+            // Group 1: A, B, C
+            // Group 2: D, E
+            //
+            // Then the committee selection would look like this:
+            // Round 1: (A, D)
+            // Round 2: (B, E),
+            // Round 3: (C, D)
+            // Round 4: (A, E)
             for i in 0..SIGNING_PARTY_SIZE {
-                let tuple = Self::get_validator_rotation(i as u8, block_number)?;
-                l = tuple.1;
+                let validator_address = Self::get_validator_rotation(i as u8, block_number)?;
                 let validator_info =
-                    pallet_staking_extension::Pallet::<T>::threshold_server(&tuple.0)
+                    pallet_staking_extension::Pallet::<T>::threshold_server(&validator_address)
                         .ok_or(Error::<T>::IpAddressError)?;
                 validators_info.push(validator_info);
             }
-            Ok((validators_info, l))
+
+            Ok(validators_info)
         }
 
         pub fn get_validator_rotation(
             signing_group: u8,
             block_number: BlockNumberFor<T>,
-        ) -> Result<(<T as pallet_session::Config>::ValidatorId, u32), Error<T>> {
-            let mut i: u32 = 0;
+        ) -> Result<<T as pallet_session::Config>::ValidatorId, Error<T>> {
             let mut addresses =
                 pallet_staking_extension::Pallet::<T>::signing_groups(signing_group)
                     .ok_or(Error::<T>::SigningGroupError)?;
@@ -500,13 +535,33 @@ pub mod pallet {
                     pallet_staking_extension::Pallet::<T>::is_validator_synced(address);
                 if !address_state {
                     addresses.remove(selection as usize);
-                    i += 1;
                 } else {
-                    i += 1;
                     break address;
                 }
             };
-            Ok((address.clone(), i))
+
+            Ok(address.clone())
+        }
+
+        /// Check if the given validator was part of the registration committee for the given block
+        /// height.
+        ///
+        /// # Note
+        ///
+        /// This function only works for checking if a validator should be in the committe in the
+        /// **current** session. Any queries against a block that happened in a previous session may
+        /// yield incorrect results.
+        pub fn is_in_committee(
+            validator: &T::ValidatorId,
+            block_number: BlockNumberFor<T>,
+        ) -> Result<bool, Error<T>> {
+            let signing_group =
+                pallet_staking_extension::Pallet::<T>::validator_to_subgroup(validator)
+                    .ok_or(Error::<T>::NoThresholdKey)?;
+
+            let expected_validator = Self::get_validator_rotation(signing_group, block_number)?;
+
+            Ok(expected_validator == *validator)
         }
     }
 

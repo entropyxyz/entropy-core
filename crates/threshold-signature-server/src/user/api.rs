@@ -97,9 +97,8 @@ pub struct UserSignatureRequest {
     pub timestamp: SystemTime,
     /// Hashing algorithm to be used for signing
     pub hash: HashingAlgorithm,
-    /// The associated signature request account. Only in public access mode may this differ from
-    /// the account used to sign the request
-    pub signature_request_account: SubxtAccountId32,
+    /// The veryfying key for the signature requested
+    pub signature_verifying_key: Vec<u8>,
 }
 
 /// Type for validators to send user key's back and forth
@@ -147,20 +146,16 @@ pub async fn sign_tx(
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Failed to get request limit"))?;
 
-    request_limit_check(&rpc, &app_state.kv_store, request_author.to_string(), request_limit)
+    let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&signed_message.message.0)?;
+
+    let string_verifying_key = hex::encode(user_sig_req.signature_verifying_key.clone());
+    request_limit_check(&rpc, &app_state.kv_store, string_verifying_key.clone(), request_limit)
         .await?;
 
-    let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&signed_message.message.0)?;
     check_stale(user_sig_req.timestamp)?;
 
     let user_details =
-        get_registered_details(&api, &rpc, &user_sig_req.signature_request_account).await?;
-
-    if user_details.key_visibility.0 != KeyVisibility::Public
-        && user_sig_req.signature_request_account != request_author
-    {
-        return Err(UserErr::AuthorizationError);
-    }
+        get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
 
     let message = hex::decode(&user_sig_req.message)?;
 
@@ -210,20 +205,16 @@ pub async fn sign_tx(
         message.as_slice(),
     )
     .await?;
-    let message_hash_hex = hex::encode(message_hash);
 
     let signing_session_id = SigningSessionInfo {
-        account_id: user_sig_req.signature_request_account.clone(),
+        signature_verifying_key: user_sig_req.signature_verifying_key.clone(),
         message_hash,
         request_author,
     };
 
-    let signature_request_account_ss58 =
-        AccountId32::new(user_sig_req.signature_request_account.0).to_ss58check();
-    let has_key = check_for_key(&signature_request_account_ss58, &app_state.kv_store).await?;
+    let has_key = check_for_key(&string_verifying_key, &app_state.kv_store).await?;
     if !has_key {
-        recover_key(&api, &rpc, &app_state.kv_store, &signer, signature_request_account_ss58)
-            .await?
+        recover_key(&api, &rpc, &app_state.kv_store, &signer, string_verifying_key).await?
     }
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
@@ -233,7 +224,6 @@ pub async fn sign_tx(
         let signing_protocol_output = do_signing(
             &rpc,
             user_sig_req,
-            message_hash_hex,
             &app_state,
             signing_session_id,
             user_details.key_visibility.0,
@@ -338,18 +328,16 @@ async fn setup_dkg(
             *user_details.key_visibility,
         )
         .await?;
+        let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
+        let string_verifying_key = hex::encode(verifying_key.clone()).to_string();
         let serialized_key_share = key_serialize(&key_share)
             .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
-        if app_state.kv_store.kv().exists(&sig_request_address.to_string()).await? {
-            app_state.kv_store.kv().delete(&sig_request_address.to_string()).await?;
-        }
-        let reservation =
-            app_state.kv_store.kv().reserve_key(sig_request_address.to_string()).await?;
+        let reservation = app_state.kv_store.kv().reserve_key(string_verifying_key.clone()).await?;
         app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
 
         let user_registration_info = UserRegistrationInfo {
-            key: sig_request_address.to_string(),
+            key: string_verifying_key,
             value: serialized_key_share,
             proactive_refresh: false,
         };
@@ -370,7 +358,7 @@ async fn setup_dkg(
             sig_request_address,
             subgroup,
             &signer,
-            key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec(),
+            verifying_key,
             nonce + i as u32,
         )
         .await?;
@@ -645,14 +633,14 @@ pub async fn recover_key(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_store: &KvManager,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-    signing_address: String,
+    verifying_key: String,
 ) -> Result<(), UserErr> {
     let subgroup = get_subgroup(api, rpc, signer.account_id()).await?;
     let stash_address = get_stash_address(api, rpc, signer.account_id()).await?;
     let key_server_info = get_random_server_info(api, rpc, subgroup, stash_address)
         .await
         .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
-    get_and_store_values(vec![signing_address], kv_store, 1, false, key_server_info, signer)
+    get_and_store_values(vec![verifying_key], kv_store, 1, false, key_server_info, signer)
         .await
         .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
     Ok(())
@@ -662,17 +650,17 @@ pub async fn recover_key(
 pub async fn request_limit_check(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_store: &KvManager,
-    signing_address: String,
+    verifying_key: String,
     request_limit: u32,
 ) -> Result<(), UserErr> {
-    let key = request_limit_key(signing_address);
+    let key = request_limit_key(verifying_key);
     let block_number = rpc
         .chain_get_header(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
-    if kv_store.kv().exists(&key.to_string()).await? {
+    if kv_store.kv().exists(&key).await? {
         let serialized_request_amount = kv_store.kv().get(&key).await?;
         let request_info: RequestLimitStorage =
             RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
@@ -689,17 +677,17 @@ pub async fn request_limit_check(
 pub async fn increment_or_wipe_request_limit(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_store: &KvManager,
-    signing_address: String,
+    verifying_key: String,
     request_limit: u32,
 ) -> Result<(), UserErr> {
-    let key = request_limit_key(signing_address);
+    let key = request_limit_key(verifying_key);
     let block_number = rpc
         .chain_get_header(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
-    if kv_store.kv().exists(&key.to_string()).await? {
+    if kv_store.kv().exists(&key).await? {
         let serialized_request_amount = kv_store.kv().get(&key).await?;
         let request_info: RequestLimitStorage =
             RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
@@ -707,7 +695,7 @@ pub async fn increment_or_wipe_request_limit(
         // Previous block wipe request amount to new block
         if request_info.block_number != block_number {
             kv_store.kv().delete(&key).await?;
-            let reservation = kv_store.kv().reserve_key(key.to_string()).await?;
+            let reservation = kv_store.kv().reserve_key(key).await?;
             kv_store
                 .kv()
                 .put(reservation, RequestLimitStorage { block_number, request_amount: 1 }.encode())
@@ -718,7 +706,7 @@ pub async fn increment_or_wipe_request_limit(
         // same block incrememnt request amount
         if request_info.request_amount <= request_limit {
             kv_store.kv().delete(&key).await?;
-            let reservation = kv_store.kv().reserve_key(key.to_string()).await?;
+            let reservation = kv_store.kv().reserve_key(key).await?;
             kv_store
                 .kv()
                 .put(
@@ -732,7 +720,7 @@ pub async fn increment_or_wipe_request_limit(
                 .await?;
         }
     } else {
-        let reservation = kv_store.kv().reserve_key(key.to_string()).await?;
+        let reservation = kv_store.kv().reserve_key(key).await?;
         kv_store
             .kv()
             .put(reservation, RequestLimitStorage { block_number, request_amount: 1 }.encode())

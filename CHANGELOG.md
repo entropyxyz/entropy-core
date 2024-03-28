@@ -28,19 +28,27 @@ At the moment this project **does not** adhere to
   config parameter to the `Relayer` pallet.
 - In [#659](https://github.com/entropyxyz/entropy-core/pull/659), the Staking Extension pallet's
   `validate` extrinsic changed to take a `ServerInfo` struct instead of individual fields.
-- In [#660](https://github.com/entropyxyz/entropy-core/pull/660), if too many request are sent 
-  for signing by a user in a block the TSS will reject them. As well a parameter config was 
-  added to the chainspec 
+- In [#660](https://github.com/entropyxyz/entropy-core/pull/660), if too many request are sent
+  for signing by a user in a block the TSS will reject them. As well a parameter config was
+  added to the chainspec
 - In [#661](https://github.com/entropyxyz/entropy-core/pull/661), the Relayer pallet was renamed to
   the Registry pallet as this better describes the purpose of the pallet.
 - In [#662](https://github.com/entropyxyz/entropy-core/pull/662), the Free Transaction pallet was
   removed.
+- In [#666](https://github.com/entropyxyz/entropy-core/pull/666), Permissioned access type was
+  removed to be handled by a program. Also in `registered` `sig_request_key` as the key for the
+  struct was replaced by `verifying_key`. This means `verifying_key` was removed from the
+  `registered` struct.
+- In [#678](https://github.com/entropyxyz/entropy-core/pull/678), the Registry pallet's
+  `get_validator_info()` public method stopped returning the validator index
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
 - Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
 - Add direct query for a validator's subgroup ([#642](https://github.com/entropyxyz/entropy-core/pull/642))
 - Request limit check ([#660](https://github.com/entropyxyz/entropy-core/pull/660))
+- Add helper for checking if a validator is in the signing committee ([#678](https://github.com/entropyxyz/entropy-core/pull/678))
+- Note unresponsiveness reports in Slashing pallet ([#679](https://github.com/entropyxyz/entropy-core/pull/679))
 
 ### Changed
 - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
@@ -50,6 +58,8 @@ At the moment this project **does not** adhere to
 - Disallow using existing TSS account IDs in Staking pallet ([#657](https://github.com/entropyxyz/entropy-core/pull/657))
 - Clean ups around Staking Extension's `validate()` extrinsic ([#659](https://github.com/entropyxyz/entropy-core/pull/659))
 - Rename `pallet_relayer` to `pallet_registry` ([#661](https://github.com/entropyxyz/entropy-core/pull/661))
+- Remove permissioned access type ([#666](https://github.com/entropyxyz/entropy-core/pull/666))
+- Use SessionID in shared randomness ([#676](https://github.com/entropyxyz/entropy-core/pull/676))
 
 ### Removed
 - Remove `pallet-free-tx` ([#662](https://github.com/entropyxyz/entropy-core/pull/662))

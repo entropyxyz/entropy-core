@@ -16,7 +16,13 @@
 //! Utilities for interacting with the Entropy blockchain
 use crate::{
     chain_api::{
-        entropy::{self, runtime_types::pallet_registry::pallet::RegisteredInfo},
+        entropy::{
+            self,
+            runtime_types::{
+                bounded_collections::bounded_vec::BoundedVec,
+                pallet_registry::pallet::RegisteredInfo,
+            },
+        },
         EntropyConfig,
     },
     user::UserErr,
@@ -100,9 +106,9 @@ pub async fn get_program(
 pub async fn get_registered_details(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    who: &<EntropyConfig as Config>::AccountId,
+    verifying_key: Vec<u8>,
 ) -> Result<RegisteredInfo, UserErr> {
-    let registered_info_query = entropy::storage().registry().registered(who);
+    let registered_info_query = entropy::storage().registry().registered(BoundedVec(verifying_key));
     let result = query_chain(api, rpc, registered_info_query, None)
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Not Registering error: Register Onchain first"))?;

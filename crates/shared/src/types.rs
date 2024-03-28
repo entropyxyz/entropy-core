@@ -33,16 +33,14 @@ pub type X25519PublicKey = [u8; 32];
 type BlockNumber = u32;
 
 /// Defines an application's accessibility
-/// Public -> Anyone can request a signature
-/// Permissioned -> Only permissioned users can request a signature
-/// Private -> Requires the keyshare holder to participate in the threshold signing process
+/// Public -> User does not hold a keyshare
+/// Private -> User holds keyshare
 #[cfg_attr(not(feature = "wasm-no-std"), derive(Debug))]
 #[cfg_attr(feature = "wasm-no-std", derive(RuntimeDebug))]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
 pub enum KeyVisibility {
     Public,
-    Permissioned,
     Private(X25519PublicKey),
 }
 

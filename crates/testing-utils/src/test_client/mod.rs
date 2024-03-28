@@ -23,10 +23,7 @@ use entropy_shared::HashingAlgorithm;
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 pub use synedrion::KeyShare;
 
-use std::{
-    thread,
-    time::{Duration, SystemTime},
-};
+use std::time::SystemTime;
 
 use anyhow::{anyhow, ensure};
 use entropy_protocol::{
@@ -51,6 +48,7 @@ use parity_scale_codec::Decode;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
+    events::EventsClient,
     tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static, H256},
     Config, OnlineClient,
@@ -79,16 +77,6 @@ pub async fn register(
     key_visibility: KeyVisibility,
     programs_data: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<(RegisteredInfo, Option<KeyShare<KeyParams>>)> {
-    // Check if user is already registered
-    let account_id32: AccountId32 = signature_request_keypair.public().into();
-    let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
-    let registered_query = entropy::storage().registry().registered(account_id.clone());
-
-    let query_registered_status = query_chain(api, rpc, registered_query, None).await;
-    if let Some(registered_status) = query_registered_status? {
-        return Err(anyhow!("Already registered {:?}", registered_status));
-    }
-
     // Send register transaction
     put_register_request_on_chain(
         api,
@@ -118,14 +106,25 @@ pub async fn register(
         _ => None,
     };
 
-    // Wait until user is confirmed as registered
+    let account_id32: AccountId32 = signature_request_keypair.public().into();
+    let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
+
     for _ in 0..50 {
-        let registered_query = entropy::storage().registry().registered(account_id.clone());
-        let query_registered_status = query_chain(api, rpc, registered_query, None).await;
-        if let Some(registered_status) = query_registered_status? {
-            return Ok((registered_status, keyshare_option));
+        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
+        let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
+        let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
+        for event in registered_event.flatten() {
+            if event.0 == account_id {
+                let registered_query = entropy::storage().registry().registered(&event.1);
+                let registered_status =
+                    query_chain(api, rpc, registered_query, block_hash).await.unwrap();
+                if registered_status.is_some() {
+                    // check if the event belongs to this user
+                    return Ok((registered_status.unwrap(), keyshare_option));
+                }
+            }
         }
-        thread::sleep(Duration::from_millis(1000));
+        std::thread::sleep(std::time::Duration::from_millis(1000));
     }
     Err(anyhow!("Timed out waiting for register confirmation"))
 }
@@ -135,7 +134,7 @@ pub async fn register(
     skip_all,
     fields(
         user_account = ?user_keypair.public(),
-        signature_request_account,
+        signature_verifying_key,
         message,
         private,
         auxilary_data,
@@ -145,7 +144,7 @@ pub async fn sign(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     user_keypair: sr25519::Pair,
-    signature_request_account: Option<SubxtAccountId32>,
+    signature_verifying_key: Vec<u8>,
     message: Vec<u8>,
     private: Option<KeyShare<KeyParams>>,
     auxilary_data: Option<Vec<u8>>,
@@ -154,8 +153,6 @@ pub async fn sign(
     let message_hash_hex = hex::encode(message_hash);
     let validators_info = get_current_subgroup_signers(api, rpc, &message_hash_hex).await?;
     tracing::debug!("Validators info {:?}", validators_info);
-    let signature_request_account =
-        signature_request_account.unwrap_or(SubxtAccountId32(user_keypair.public().0));
 
     let signature_request = UserSignatureRequest {
         message: hex::encode(message),
@@ -163,7 +160,7 @@ pub async fn sign(
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_request_account,
+        signature_verifying_key,
     };
 
     let signature_request_vec = serde_json::to_vec(&signature_request)?;
@@ -275,13 +272,13 @@ pub async fn store_program(
 pub async fn update_programs(
     entropy_api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    signature_request_account: &sr25519::Pair,
+    verifying_key: Vec<u8>,
     deployer_pair: &sr25519::Pair,
     program_instance: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<()> {
     let update_pointer_tx = entropy::tx()
         .registry()
-        .change_program_instance(signature_request_account.public().into(), program_instance);
+        .change_program_instance(BoundedVec(verifying_key), program_instance);
     let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer_pair.clone());
     submit_transaction(entropy_api, rpc, &deployer, &update_pointer_tx, None).await?;
     Ok(())
@@ -290,7 +287,7 @@ pub async fn update_programs(
 pub async fn get_accounts(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> anyhow::Result<Vec<(SubxtAccountId32, RegisteredInfo)>> {
+) -> anyhow::Result<Vec<([u8; 32], RegisteredInfo)>> {
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
     let keys = Vec::<()>::new();
@@ -301,7 +298,7 @@ pub async fn get_accounts(
         let decoded = account.into_encoded();
         let registered_info = RegisteredInfo::decode(&mut decoded.as_ref())?;
         let key: [u8; 32] = storage_key[storage_key.len() - 32..].try_into()?;
-        accounts.push((SubxtAccountId32(key), registered_info))
+        accounts.push((key, registered_info))
     }
     Ok(accounts)
 }
@@ -351,21 +348,16 @@ pub async fn put_register_request_on_chain(
 pub async fn check_verifying_key(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    public_key: sr25519::Public,
     verifying_key: VerifyingKey,
 ) -> anyhow::Result<()> {
     let verifying_key_serialized = verifying_key.to_encoded_point(true).as_bytes().to_vec();
 
-    // Get the verifying key associated with this account
-    let registered_status = {
-        let account_id32: AccountId32 = public_key.into();
-        let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
-        let registered_query = entropy::storage().registry().registered(account_id);
-        let query_registered_status = query_chain(api, rpc, registered_query, None).await;
-        query_registered_status?.ok_or(anyhow!("User not registered"))?
-    };
-
-    Ok(ensure!(registered_status.verifying_key.0 == verifying_key_serialized))
+    // Get the verifying key associated with this account, if it exist return ok
+    let registered_query =
+        entropy::storage().registry().registered(BoundedVec(verifying_key_serialized));
+    let query_registered_status = query_chain(api, rpc, registered_query, None).await;
+    query_registered_status?.ok_or(anyhow!("User not registered"))?;
+    Ok(())
 }
 
 /// Get the commitee of tss servers who will perform DKG for a given block number

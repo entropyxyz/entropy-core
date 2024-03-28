@@ -41,7 +41,6 @@ use crate::{
 pub async fn do_signing(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     user_signature_request: UserSignatureRequest,
-    sig_hash: String,
     app_state: &AppState,
     signing_session_info: SigningSessionInfo,
     key_visibility: KeyVisibility,
@@ -75,8 +74,8 @@ pub async fn do_signing(
     // the listener
     let user_details_option = if let KeyVisibility::Private(user_x25519_public_key) = key_visibility
     {
-        tss_accounts.push(info.signing_session_info.account_id.clone());
-        Some((info.signing_session_info.account_id.clone(), user_x25519_public_key))
+        tss_accounts.push(info.signing_session_info.request_author.clone());
+        Some((info.signing_session_info.request_author.clone(), user_x25519_public_key))
     } else {
         None
     };
@@ -107,12 +106,13 @@ pub async fn do_signing(
         Channels(broadcast_out, rx_from_others)
     };
 
-    let result =
-        signing_service.execute_sign(&sign_context, channels, signer, tss_accounts).await?;
+    let result = signing_service
+        .execute_sign(session_id, &sign_context.key_share, channels, signer, tss_accounts)
+        .await?;
     increment_or_wipe_request_limit(
         rpc,
         kv_manager,
-        info.signing_session_info.account_id.to_string(),
+        hex::encode(info.signing_session_info.signature_verifying_key),
         request_limit,
     )
     .await
