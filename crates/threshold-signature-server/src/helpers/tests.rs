@@ -85,10 +85,10 @@ pub async fn setup_client() -> KvManager {
     let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
     let app = app(app_state).into_make_service();
 
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:3001"))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:3001"))
-            .await
-            .expect("Unable to bind to given server address.");
         axum::serve(listener, app).await.unwrap();
     });
 

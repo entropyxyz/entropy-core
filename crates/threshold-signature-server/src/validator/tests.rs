@@ -103,7 +103,7 @@ async fn test_sync_kvdb() {
     let recip = PublicKey::from(&b_usr_ss);
     let values = vec![vec![10], vec![11], vec![12]];
 
-    let port = 3007;
+    let port = 3001;
     let (bob_axum, _) =
         create_clients("bob".to_string(), values, addrs.clone(), &Some(ValidatorName::Bob)).await;
 
