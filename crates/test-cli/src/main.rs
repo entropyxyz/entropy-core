@@ -363,6 +363,7 @@ async fn run_command() -> anyhow::Result<String> {
                     "Times used:".purple(),
                     "Size in bytes:".cyan(),
                     "Configurable?".yellow(),
+                    "Has auxiliary?".yellow(),
                 );
                 for (hash, program_info) in programs {
                     println!(
