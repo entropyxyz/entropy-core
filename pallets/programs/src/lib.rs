@@ -94,10 +94,18 @@ pub mod pallet {
     pub struct ProgramInfo<AccountId> {
         /// The bytecode of the program.
         pub bytecode: Vec<u8>,
-        /// An interface description for the program config following https://json-schema.org/ spec
-        pub config_description: Vec<u8>,
-        /// An interface description for the program aux data following https://json-schema.org/ spec
-        pub aux_description: Vec<u8>,
+        /// The schema for the Program's configuration parameters.
+        ///
+        /// While this isn't strictly enforced, it is recommended to follow something like
+        /// [JSON Schema](https://json-schema.org/) in order to simplify the life of off-chain
+        /// actors.
+        pub configuration_schema: Vec<u8>,
+        /// The schema for the Program's auxiliary data.
+        ///
+        /// While this isn't strictly enforced, it is recommended to follow something like
+        /// [JSON Schema](https://json-schema.org/) in order to simplify the life of off-chain
+        /// actors.
+        pub auxiliary_data_schema: Vec<u8>,
         /// Deployer of the program
         pub deployer: AccountId,
         /// Accounts that use this program
@@ -133,11 +141,11 @@ pub mod pallet {
             /// The new program hash.
             program_hash: T::Hash,
 
-            /// The new program config definition
-            config_description: Vec<u8>,
+            /// The new program configuration schema.
+            configuration_schema: Vec<u8>,
 
-            /// The new program aux definition
-            aux_description: Vec<u8>,
+            /// The new program auxiliary data schema.
+           auxiliary_data_schema: Vec<u8>,
         },
         /// The bytecode of a program was removed.
         ProgramRemoved {
@@ -163,8 +171,8 @@ pub mod pallet {
         TooManyProgramsOwned,
         /// Program is being used by an account
         ProgramInUse,
-        /// Arithmitic overflow error
-        StorageOverflow,
+        /// Arithmetic overflow error
+        ArithmeticError,
     }
 
     #[pallet::call]

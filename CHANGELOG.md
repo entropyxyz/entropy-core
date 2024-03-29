@@ -41,7 +41,7 @@ At the moment this project **does not** adhere to
   `registered` struct.
 - In [#678](https://github.com/entropyxyz/entropy-core/pull/678), the Registry pallet's
   `get_validator_info()` public method stopped returning the validator index
-- In [#681](https://github.com/entropyxyz/entropy-core/pull/666) `program_interface` in 
+- In [#681](https://github.com/entropyxyz/entropy-core/pull/681) `program_interface` in 
   `program_data` of the `Programs` pallet has been split into `config_description` and `aux_description`
 
 ### Added
