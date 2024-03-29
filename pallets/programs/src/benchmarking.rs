@@ -42,12 +42,12 @@ benchmarks! {
 
   set_program {
     let program = vec![10];
-    let config_description = vec![11];
-    let aux_description = vec![12];
+    let configuration_schema = vec![11];
+    let auxiliary_data_schema = vec![12];
     let mut hash_input: Vec<u8> = vec![];
     hash_input.extend(&program);
-    hash_input.extend(&config_description);
-    hash_input.extend(&aux_description);
+    hash_input.extend(&configuration_schema);
+    hash_input.extend(&auxiliary_data_schema);
 
     let program_hash = T::Hashing::hash(&hash_input);
     let deployer: T::AccountId = whitelisted_caller();
@@ -56,14 +56,14 @@ benchmarks! {
     let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
     let _ = CurrencyOf::<T>::make_free_balance_be(&deployer, value);
 
-  }: _(RawOrigin::Signed(deployer.clone()), program.clone(), config_description.clone(), aux_description.clone())
+  }: _(RawOrigin::Signed(deployer.clone()), program.clone(), configuration_schema.clone(), auxiliary_data_schema.clone())
   verify {
     assert_last_event::<T>(
         Event::<T>::ProgramCreated {
             deployer,
             program_hash,
-            config_description,
-            aux_description
+            configuration_schema,
+            auxiliary_data_schema
         }.into()
     );
   }
@@ -71,12 +71,12 @@ benchmarks! {
   remove_program {
     let p in 0..T::MaxOwnedPrograms::get();
     let program = vec![10];
-    let config_description = vec![11];
-    let aux_description = vec![12];
+    let configuration_schema = vec![11];
+    let auxiliary_data_schema = vec![12];
     let mut hash_input: Vec<u8> = vec![];
     hash_input.extend(&program);
-    hash_input.extend(&config_description);
-    hash_input.extend(&aux_description);
+    hash_input.extend(&configuration_schema);
+    hash_input.extend(&auxiliary_data_schema);
 
     let program_hash = T::Hashing::hash(&hash_input);
     let random_program = vec![11];
@@ -85,7 +85,7 @@ benchmarks! {
 
     let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
     let _ = CurrencyOf::<T>::make_free_balance_be(&deployer, value);
-    <Programs<T>>::insert(program_hash.clone(), ProgramInfo {bytecode: program, config_description, aux_description, deployer: deployer.clone(), ref_counter: 0u128});
+    <Programs<T>>::insert(program_hash.clone(), ProgramInfo {bytecode: program, configuration_schema, auxiliary_data_schema, deployer: deployer.clone(), ref_counter: 0u128});
     let mut program_hashes = vec![random_hash.clone(); p as usize];
     // remove one to make room for the targetted removal program hash
     program_hashes.pop();
