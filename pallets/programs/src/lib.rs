@@ -159,7 +159,7 @@ pub mod pallet {
         /// Program is being used by an account
         ProgramInUse,
         /// Arithmitic overflow error
-        StorageOverflow,
+        ArithmeticError,
     }
 
     #[pallet::call]
@@ -182,7 +182,7 @@ pub mod pallet {
             let new_program_length = new_program
                 .len()
                 .checked_add(interface_description.len())
-                .ok_or(Error::<T>::StorageOverflow)?;
+                .ok_or(Error::<T>::ArithmeticError)?;
 
             ensure!(
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
