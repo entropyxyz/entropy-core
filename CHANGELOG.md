@@ -42,7 +42,7 @@ At the moment this project **does not** adhere to
 - In [#678](https://github.com/entropyxyz/entropy-core/pull/678), the Registry pallet's
   `get_validator_info()` public method stopped returning the validator index
 - In [#681](https://github.com/entropyxyz/entropy-core/pull/681) `program_interface` in 
-  `program_data` of the `Programs` pallet has been split into `config_description` and `aux_description`
+  `program_data` of the `Programs` pallet has been split into `configuration_schema` and `auxiliary_data_schema`
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))

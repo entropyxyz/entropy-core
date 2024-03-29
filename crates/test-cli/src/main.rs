@@ -475,10 +475,10 @@ impl Program {
         };
 
         // If there is a file with the same name with the '.aux-description' extension, read it
-        let aux_description = {
-            let mut aux_description_file = PathBuf::from(&filename);
-            aux_description_file.set_extension("aux-description");
-            fs::read(&aux_description_file).unwrap_or_default()
+        let auxiliary_data_schema = {
+            let mut auxiliary_data_schema_file = PathBuf::from(&filename);
+            auxiliary_data_schema_file.set_extension("aux-description");
+            fs::read(&auxiliary_data_schema_file).unwrap_or_default()
         };
 
         // If there is a file with the same name with the '.json' extension, read it
@@ -500,7 +500,7 @@ impl Program {
             keypair,
             program_bytecode.clone(),
             config_description,
-            aux_description,
+            auxiliary_data_schema,
         )
         .await
         {
