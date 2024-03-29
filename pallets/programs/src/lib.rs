@@ -113,7 +113,7 @@ pub mod pallet {
     }
 
     /// Stores the program info for a given program hash.
-    /// A program hash is a combination of the bytecode and config_description
+    /// A program hash is a combination of the bytecode and configuration_schema and auxiliary_data_schema
     #[pallet::storage]
     #[pallet::getter(fn programs)]
     pub type Programs<T: Config> =
@@ -145,7 +145,7 @@ pub mod pallet {
             configuration_schema: Vec<u8>,
 
             /// The new program auxiliary data schema.
-           auxiliary_data_schema: Vec<u8>,
+            auxiliary_data_schema: Vec<u8>,
         },
         /// The bytecode of a program was removed.
         ProgramRemoved {
@@ -185,21 +185,21 @@ pub mod pallet {
         pub fn set_program(
             origin: OriginFor<T>,
             new_program: Vec<u8>,
-            config_description: Vec<u8>,
-            aux_description: Vec<u8>,
+            configuration_schema: Vec<u8>,
+            auxiliary_data_schema: Vec<u8>,
         ) -> DispatchResult {
             let deployer = ensure_signed(origin)?;
             let mut hash_input = vec![];
             hash_input.extend(&new_program);
-            hash_input.extend(&config_description);
-            hash_input.extend(&aux_description);
+            hash_input.extend(&configuration_schema);
+            hash_input.extend(&auxiliary_data_schema);
             let program_hash = T::Hashing::hash(&hash_input);
             let new_program_length = new_program
                 .len()
-                .checked_add(config_description.len())
-                .ok_or(Error::<T>::StorageOverflow)?
-                .checked_add(aux_description.len())
-                .ok_or(Error::<T>::StorageOverflow)?;
+                .checked_add(configuration_schema.len())
+                .ok_or(Error::<T>::ArithmeticError)?
+                .checked_add(auxiliary_data_schema.len())
+                .ok_or(Error::<T>::ArithmeticError)?;
             ensure!(
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
                 Error::<T>::ProgramLengthExceeded
@@ -212,8 +212,8 @@ pub mod pallet {
                 program_hash,
                 &ProgramInfo {
                     bytecode: new_program.clone(),
-                    config_description: config_description.clone(),
-                    aux_description: aux_description.clone(),
+                    configuration_schema: configuration_schema.clone(),
+                    auxiliary_data_schema: auxiliary_data_schema.clone(),
                     deployer: deployer.clone(),
                     ref_counter: 0u128,
                 },
@@ -230,8 +230,8 @@ pub mod pallet {
             Self::deposit_event(Event::ProgramCreated {
                 deployer,
                 program_hash,
-                config_description,
-                aux_description,
+                configuration_schema,
+                auxiliary_data_schema,
             });
             Ok(())
         }
@@ -253,8 +253,8 @@ pub mod pallet {
             Self::unreserve_program_deposit(
                 &old_program_info.deployer,
                 old_program_info.bytecode.len()
-                    + old_program_info.config_description.len()
-                    + old_program_info.aux_description.len(),
+                    + old_program_info.configuration_schema.len()
+                    + old_program_info.auxiliary_data_schema.len(),
             );
             let mut owned_programs_length = 0;
             OwnedPrograms::<T>::try_mutate(
