@@ -282,7 +282,7 @@ pub async fn validate_proactive_refresh(
     let mut hasher_chain_data = Blake2s256::new();
     let ocw_data_refresh_info = RefreshInfo {
         proactive_refresh_keys: ocw_data.proactive_refresh_keys.clone(),
-        validators_info: ocw_data.validators_info.clone().into_iter().map(|i| Static(i)).collect(),
+        validators_info: ocw_data.validators_info.clone().into_iter().map(Static).collect(),
     };
     hasher_chain_data.update(ocw_data_refresh_info.encode());
     let chain_data_hash = hasher_chain_data.finalize();
