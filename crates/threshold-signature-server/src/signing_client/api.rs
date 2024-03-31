@@ -39,14 +39,20 @@ use entropy_shared::{KeyVisibility, OcwMessageProactiveRefresh, SETUP_TIMEOUT_SE
 use parity_scale_codec::Decode;
 use sp_core::Pair;
 use subxt::{
-    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
-    utils::AccountId32 as SubxtAccountId32, OnlineClient,
+    backend::legacy::LegacyRpcMethods,
+    ext::sp_core::sr25519,
+    tx::PairSigner,
+    utils::{AccountId32 as SubxtAccountId32, Static},
+    OnlineClient,
 };
 use synedrion::KeyShare;
 use tokio::time::timeout;
 
 use crate::{
-    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
+    chain_api::{
+        entropy::{self, runtime_types::pallet_staking_extension::pallet::RefreshInfo},
+        get_api, get_rpc, EntropyConfig,
+    },
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         substrate::{
@@ -274,7 +280,11 @@ pub async fn validate_proactive_refresh(
         .await?
         .ok_or_else(|| ProtocolErr::ChainFetch("Error getting Proactive Refresh data"))?;
     let mut hasher_chain_data = Blake2s256::new();
-    hasher_chain_data.update(ocw_data.encode());
+    let ocw_data_refresh_info = RefreshInfo {
+        proactive_refresh_keys: ocw_data.proactive_refresh_keys.clone(),
+        validators_info: ocw_data.validators_info.clone().into_iter().map(|i| Static(i)).collect(),
+    };
+    hasher_chain_data.update(ocw_data_refresh_info.encode());
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
     hasher_verifying_data.update(proactive_info.encode());
