@@ -36,3 +36,20 @@ fn request_limit_changed() {
         assert_noop!(Parameters::change_request_limit(RuntimeOrigin::signed(2), 15), BadOrigin,);
     });
 }
+
+#[test]
+fn max_instructions_per_programs_changed() {
+    ExtBuilder.build().execute_with(|| {
+        assert_eq!(Parameters::max_instructions_per_programs(), 0, "Inital request limit set");
+
+        assert_ok!(Parameters::change_max_instructions_per_programs(RuntimeOrigin::root(), 10));
+
+        assert_eq!(Parameters::max_instructions_per_programs(), 10, "Inital request limit changed");
+
+        // Fails not root
+        assert_noop!(
+            Parameters::change_max_instructions_per_programs(RuntimeOrigin::signed(2), 15),
+            BadOrigin,
+        );
+    });
+}
