@@ -388,30 +388,29 @@ async fn test_sign_tx_no_chain() {
         "Encryption or signing error: Hpke: HPKE Error: OpenError"
     );
 
-    // TODO replace this with something similar
-    // let sig: [u8; 64] = [0; 64];
-    // let slice: [u8; 32] = [0; 32];
-    // let nonce: [u8; 12] = [0; 12];
-    //
-    // let user_input_bad = SignedMessage::new_test(
-    //     Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-    //     sr25519::Signature::from_raw(sig),
-    //     AccountKeyring::Eve.pair().public().into(),
-    //     slice,
-    //     slice,
-    //     nonce,
-    // );
-    //
-    // let failed_sign = mock_client
-    //     .post("http://127.0.0.1:3001/user/sign_tx")
-    //     .header("Content-Type", "application/json")
-    //     .body(serde_json::to_string(&user_input_bad).unwrap())
-    //     .send()
-    //     .await
-    //     .unwrap();
-    //
-    // assert_eq!(failed_sign.status(), 500);
-    // assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+    let sig: [u8; 64] = [0; 64];
+    let user_input_bad = EncryptedSignedMessage::new_with_given_signature(
+        &one.pair(),
+        serde_json::to_vec(&generic_msg.clone()).unwrap(),
+        &X25519_PUBLIC_KEYS[0],
+        &[],
+        sr25519::Signature::from_raw(sig),
+    )
+    .unwrap();
+
+    let failed_sign = mock_client
+        .post("http://127.0.0.1:3001/user/sign_tx")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&user_input_bad).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(failed_sign.status(), 500);
+    assert_eq!(
+        failed_sign.text().await.unwrap(),
+        "Encryption or signing error: Cannot verify signature"
+    );
 
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit =
@@ -1314,29 +1313,29 @@ async fn test_sign_tx_user_participates() {
         "Encryption or signing error: Hpke: HPKE Error: OpenError"
     );
 
-    // let sig: [u8; 64] = [0; 64];
-    // let slice: [u8; 32] = [0; 32];
-    // let nonce: [u8; 12] = [0; 12];
-    //
-    // let user_input_bad = SignedMessage::new_test(
-    //     Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-    //     sr25519::Signature::from_raw(sig),
-    //     one.pair().public().into(),
-    //     slice,
-    //     slice,
-    //     nonce,
-    // );
-    //
-    // let failed_sign = mock_client
-    //     .post("http://127.0.0.1:3001/user/sign_tx")
-    //     .header("Content-Type", "application/json")
-    //     .body(serde_json::to_string(&user_input_bad).unwrap())
-    //     .send()
-    //     .await
-    //     .unwrap();
-    //
-    // assert_eq!(failed_sign.status(), 500);
-    // assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+    let sig: [u8; 64] = [0; 64];
+    let user_input_bad = EncryptedSignedMessage::new_with_given_signature(
+        &one.pair(),
+        serde_json::to_vec(&generic_msg.clone()).unwrap(),
+        &X25519_PUBLIC_KEYS[0],
+        &[],
+        sr25519::Signature::from_raw(sig),
+    )
+    .unwrap();
+
+    let failed_sign = mock_client
+        .post("http://127.0.0.1:3001/user/sign_tx")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&user_input_bad).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(failed_sign.status(), 500);
+    assert_eq!(
+        failed_sign.text().await.unwrap(),
+        "Encryption or signing error: Cannot verify signature"
+    );
 
     clean_tests();
 }
