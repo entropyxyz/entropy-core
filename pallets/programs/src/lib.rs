@@ -89,7 +89,7 @@ pub mod pallet {
     #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub inital_programs: Vec<(T::Hash, Vec<u8>, Vec<u8>, T::AccountId, u128)>,
+        pub inital_programs: Vec<(T::Hash, Vec<u8>, Vec<u8>, Vec<u8>, T::AccountId, u128)>,
     }
 
     #[pallet::genesis_build]
@@ -105,9 +105,10 @@ pub mod pallet {
                     program_info.0,
                     ProgramInfo {
                         bytecode: program_info.1.clone(),
-                        interface_description: program_info.2.clone(),
-                        deployer: program_info.3.clone(),
-                        ref_counter: program_info.4,
+                        configuration_schema: program_info.2.clone(),
+                        auxiliary_data_schema: program_info.3.clone(),
+                        deployer: program_info.4.clone(),
+                        ref_counter: program_info.5,
                     },
                 );
             }

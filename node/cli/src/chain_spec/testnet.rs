@@ -25,8 +25,8 @@ use entropy_runtime::{
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
-    X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH,
-    DEVICE_KEY_PROXY,
+    X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE,
+    DEVICE_KEY_HASH, DEVICE_KEY_PROXY,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
@@ -467,6 +467,7 @@ pub fn testnet_genesis_config(
                 *DEVICE_KEY_HASH,
                 DEVICE_KEY_PROXY.to_vec(),
                 (*DEVICE_KEY_CONFIG_TYPE.clone()).to_vec(),
+                (*DEVICE_KEY_AUX_DATA_TYPE.clone()).to_vec(),
                 root_key,
                 10,
             )],

@@ -1612,7 +1612,7 @@ async fn test_device_key_proxy() {
         pub ed25519_public_keys: Option<Vec<String>>,
     }
     /// JSON representation of the auxiliary data
-    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
     pub struct AuxData {
         /// "ecdsa", "ed25519", "sr25519"
         pub public_key_type: String,
@@ -1641,10 +1641,17 @@ async fn test_device_key_proxy() {
     let program_query = entropy::storage().programs().programs(*DEVICE_KEY_HASH);
     let program_data = query_chain(&entropy_api, &rpc, program_query, None).await.unwrap().unwrap();
     let schema_config_device_key_proxy = schema_for!(UserConfig);
+    let schema_aux_data_device_key_proxy = schema_for!(AuxData);
 
     assert_eq!(
         serde_json::to_vec(&schema_config_device_key_proxy).unwrap(),
-        program_data.interface_description
+        program_data.configuration_schema,
+        "configuration interface recoverable through schemers"
+    );
+    assert_eq!(
+        serde_json::to_vec(&schema_aux_data_device_key_proxy).unwrap(),
+        program_data.auxiliary_data_schema,
+        "aux data interface recoverable through schemers"
     );
     update_programs(
         &entropy_api,
