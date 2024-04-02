@@ -12,7 +12,7 @@ test('Convert Uint8Array to and from hex', function (t) {
 })
 
 test('Encrypt, decrypt with HPKE', function (t) {
-  t.plan(1)
+  t.plan(2)
 
   const { generateSigningKey, publicKeyFromSecret, encryptAndSign, decryptAndVerify } = protocol.Hpke
 
@@ -32,8 +32,14 @@ test('Encrypt, decrypt with HPKE', function (t) {
   // Check the original plaintext equals the decrypted plaintext.
   t.true(protocol.constantTimeEq(decryptedPlaintext, plaintext))
 
-  // const mallorySk = generateSigningKey()
+  const mallorySk = generateSigningKey()
 
   // Malloy cannot decrypt the message.
-  // t.throws(decryptAndVerify(mallorySk, encryptedAndSignedMessage), /OpenError/)
+  let failed
+  try {
+      decryptAndVerify(mallorySk, encryptedAndSignedMessage)
+  } catch (e) {
+      failed = true
+  }
+  t.true(failed)
 })
