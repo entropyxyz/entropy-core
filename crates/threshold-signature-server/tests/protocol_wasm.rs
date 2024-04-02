@@ -91,6 +91,7 @@ async fn test_wasm_sign_tx_user_participates() {
         &dave.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
+        vec![],
     )
     .await
     .unwrap();
@@ -218,10 +219,16 @@ async fn test_wasm_register_with_private_key_visibility() {
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-    let program_pointer =
-        store_program(&api, &rpc, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_pointer = store_program(
+        &api,
+        &rpc,
+        &dave.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
