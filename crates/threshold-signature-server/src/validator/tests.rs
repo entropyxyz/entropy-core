@@ -220,30 +220,29 @@ async fn test_sync_kvdb() {
     assert_eq!(result_5.status(), 500);
     assert_eq!(result_5.text().await.unwrap(), "Validation Error: Message is too old");
 
-    // TODO something similar with EncryptedMessage
-    // let sig: [u8; 64] = [0; 64];
-    // let slice: [u8; 32] = [0; 32];
-    // let nonce: [u8; 12] = [0; 12];
-    //
-    // let user_input_bad = SignedMessage::new_test(
-    //     Bytes(serde_json::to_vec(&keys.clone()).unwrap()),
-    //     sr25519::Signature::from_raw(sig),
-    //     AccountKeyring::Eve.pair().public().into(),
-    //     slice,
-    //     slice,
-    //     nonce,
-    // );
-    //
-    // let failed_sign = client
-    //     .post(formatted_url.clone())
-    //     .header("Content-Type", "application/json")
-    //     .body(serde_json::to_string(&user_input_bad).unwrap())
-    //     .send()
-    //     .await
-    //     .unwrap();
-    //
-    // assert_eq!(failed_sign.status(), 500);
-    // assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+    let sig: [u8; 64] = [0; 64];
+    let user_input_bad = EncryptedSignedMessage::new_with_given_signature(
+        &b_usr_sk,
+        serde_json::to_vec(&keys.clone()).unwrap(),
+        &recip,
+        &[],
+        sr25519::Signature::from_raw(sig),
+    )
+    .unwrap();
+
+    let failed_sign = client
+        .post(formatted_url.clone())
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&user_input_bad).unwrap())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(failed_sign.status(), 500);
+    assert_eq!(
+        failed_sign.text().await.unwrap(),
+        "Encryption or authentication: Cannot verify signature"
+    );
 
     clean_tests();
 }
