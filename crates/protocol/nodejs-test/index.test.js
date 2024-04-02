@@ -12,7 +12,7 @@ test('Convert Uint8Array to and from hex', function (t) {
 })
 
 test('Encrypt, decrypt with HPKE', function (t) {
-  t.plan(2)
+  t.plan(1)
 
   const { generateSigningKey, publicKeyFromSecret, encryptAndSign, decryptAndVerify } = protocol.Hpke
 
