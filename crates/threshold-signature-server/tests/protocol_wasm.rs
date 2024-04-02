@@ -25,7 +25,7 @@ mod helpers;
 use axum::http::StatusCode;
 use entropy_kvdb::clean_tests;
 use entropy_protocol::{
-    hpke::{derive_x25519_static_secret, EncryptedSignedMessage},
+    sign_and_encrypt::{derive_x25519_static_secret, EncryptedSignedMessage},
     KeyParams, ValidatorInfo,
 };
 use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg, EVE_VERIFYING_KEY};
@@ -52,7 +52,7 @@ use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::time::SystemTime;
 use subxt::{
     backend::legacy::LegacyRpcMethods, events::EventsClient, ext::sp_core::sr25519::Signature,
-    utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
+    Config, OnlineClient,
 };
 use synedrion::KeyShare;
 use x25519_dalek::PublicKey;
@@ -63,7 +63,6 @@ use entropy_tss::{
         get_api, get_rpc, EntropyConfig,
     },
     common::{Hasher, UserSignatureRequest},
-    helpers::substrate::query_chain,
 };
 
 /// Test demonstrating signing a message with private key visibility on wasm
