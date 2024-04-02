@@ -63,6 +63,7 @@ async fn integration_test_sign_eth_tx() {
         &deployer.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
+        vec![],
     )
     .await
     .unwrap();
