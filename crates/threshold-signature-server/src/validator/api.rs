@@ -122,7 +122,7 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
 }
 
 /// Endpoint to allow a new node to sync their kvdb with a member of their subgroup
-// TODO #[tracing::instrument(skip_all)]
+#[tracing::instrument(skip_all, fields(signing_address))]
 pub async fn sync_kvdb(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
@@ -133,6 +133,7 @@ pub async fn sync_kvdb(
     let signer = get_signer(&app_state.kv_store).await?;
     let decrypted_message = encrypted_msg.decrypt(signer.signer(), &[])?;
 
+    tracing::Span::current().record("signing_address", decrypted_message.account_id().to_string());
     let sender_account_id = SubxtAccountId32(decrypted_message.sender.into());
     let keys: Keys = serde_json::from_slice(&decrypted_message.message)?;
     check_stale(keys.timestamp)?;
