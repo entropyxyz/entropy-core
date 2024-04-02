@@ -707,6 +707,8 @@ async fn test_store_share() {
             }
         }
     }
+    // Check that the timeout was not reached
+    assert!(new_verifying_key.len() > 0);
 
     let get_query =
         UnsafeQuery::new(hex::encode(new_verifying_key.to_vec()), [].to_vec()).to_json();
