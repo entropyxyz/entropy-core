@@ -41,8 +41,13 @@ At the moment this project **does not** adhere to
   `registered` struct.
 - In [#678](https://github.com/entropyxyz/entropy-core/pull/678), the Registry pallet's
   `get_validator_info()` public method stopped returning the validator index
-- In [#681](https://github.com/entropyxyz/entropy-core/pull/681) `program_interface` in 
+- In [#681](https://github.com/entropyxyz/entropy-core/pull/681) `program_interface` in
   `program_data` of the `Programs` pallet has been split into `configuration_schema` and `auxiliary_data_schema`
+- In 'Add HPKE implementation' [#674](https://github.com/entropyxyz/entropy-core/pull/674)
+  `entropy-protocol`'s `SignedMessage` has been replaced by `EncryptedSignedMessage` which has some
+  small API differences, `derive_static_secret` is renamed `derive_x25519_static_secret`, and in the
+  `entropy-protocol` JS module, the subclass dealing with encryption has been renamed from
+  `X25519Chacha20Poly1305` to `Hpke`. The JS API is otherwise the same as before.
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
@@ -52,6 +57,7 @@ At the moment this project **does not** adhere to
 - Add helper for checking if a validator is in the signing committee ([#678](https://github.com/entropyxyz/entropy-core/pull/678))
 - Note unresponsiveness reports in Slashing pallet ([#679](https://github.com/entropyxyz/entropy-core/pull/679))
 - Add aux data to program info ([#681](https://github.com/entropyxyz/entropy-core/pull/681))
+- Add HPKE implementation ([#674](https://github.com/entropyxyz/entropy-core/pull/674))
 
 ### Changed
 - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
