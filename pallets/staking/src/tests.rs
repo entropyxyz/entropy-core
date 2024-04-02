@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{mock::*, tests::RuntimeEvent, Error, ServerInfo, ThresholdToStash};
+use crate::{mock::*, tests::RuntimeEvent, Error, IsValidatorSynced, ServerInfo, ThresholdToStash};
 use frame_support::{assert_noop, assert_ok};
 use frame_system::{EventRecord, Phase};
 use pallet_session::SessionManager;
@@ -254,6 +254,7 @@ fn it_deletes_when_no_bond_left() {
             pallet_staking::ValidatorPrefs::default(),
             server_info,
         ));
+        IsValidatorSynced::<Test>::insert(2, true);
 
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
         assert_eq!(endpoint, vec![20]);
@@ -287,6 +288,8 @@ fn it_deletes_when_no_bond_left() {
         lock = Balances::locks(2);
         assert_eq!(lock[0].amount, 50);
         assert_eq!(lock.len(), 1);
+        // validator still synced
+        assert_eq!(Staking::is_validator_synced(2), true);
 
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
         assert_eq!(endpoint, vec![20]);
@@ -303,6 +306,8 @@ fn it_deletes_when_no_bond_left() {
         assert_eq!(lock.len(), 0);
         assert_eq!(Staking::threshold_server(2), None);
         assert_eq!(Staking::threshold_to_stash(3), None);
+        // validator no longer synced
+        assert_eq!(Staking::is_validator_synced(2), false);
     });
 }
 

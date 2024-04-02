@@ -151,9 +151,9 @@ pub async fn sign_tx(
         .await?;
 
     check_stale(user_sig_req.timestamp)?;
-
     let user_details =
         get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
+    check_hash_pointer_out_of_bounds(&user_sig_req.hash, user_details.programs_data.0.len())?;
 
     let message = hex::decode(&user_sig_req.message)?;
 
@@ -728,4 +728,19 @@ pub async fn increment_or_wipe_request_limit(
 /// Creates the key for a request limit check
 pub fn request_limit_key(signing_address: String) -> String {
     format!("{REQUEST_KEY_HEADER}_{signing_address}")
+}
+
+pub fn check_hash_pointer_out_of_bounds(
+    hashing_algorithm: &HashingAlgorithm,
+    program_info_len: usize,
+) -> Result<(), UserErr> {
+    match hashing_algorithm {
+        HashingAlgorithm::Custom(i) => {
+            if i >= &program_info_len {
+                return Err(UserErr::CustomHashOutOfBounds);
+            }
+            Ok(())
+        },
+        _ => Ok(()),
+    }
 }

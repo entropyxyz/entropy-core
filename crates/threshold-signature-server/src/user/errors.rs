@@ -149,6 +149,8 @@ pub enum UserErr {
     KeyShareRejected(String),
     #[error("Encryption or signing error: {0}")]
     EncryptionOrAuthentication(#[from] EncryptedSignedMessageErr),
+    #[error("Custom hash choice out of bounds")]
+    CustomHashOutOfBounds,
 }
 
 impl IntoResponse for UserErr {
