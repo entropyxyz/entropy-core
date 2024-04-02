@@ -155,7 +155,7 @@ pub mod pallet {
     pub type ValidatorToSubgroup<T: Config> =
         StorageMap<_, Identity, T::ValidatorId, SubgroupId, OptionQuery>;
 
-    /// Tracks wether the validator's kvdb is synced
+    /// Tracks wether the validator's kvdb is synced using a stash key as an identifier
     #[pallet::storage]
     #[pallet::getter(fn is_validator_synced)]
     pub type IsValidatorSynced<T: Config> = StorageMap<
@@ -340,8 +340,9 @@ pub mod pallet {
                 let server_info =
                     ThresholdServers::<T>::take(&validator_id).ok_or(Error::<T>::NoThresholdKey)?;
                 ThresholdToStash::<T>::remove(&server_info.tss_account);
+                IsValidatorSynced::<T>::remove(&validator_id);
+                Self::deposit_event(Event::NodeInfoRemoved(controller));
             }
-            Self::deposit_event(Event::NodeInfoRemoved(controller));
             Ok(().into())
         }
 

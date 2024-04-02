@@ -118,9 +118,9 @@ use crate::{
     signing_client::ListenerState,
     user::{
         api::{
-            confirm_registered, get_current_subgroup_signers, increment_or_wipe_request_limit,
-            recover_key, request_limit_check, request_limit_key, RequestLimitStorage,
-            UserRegistrationInfo, UserSignatureRequest,
+            check_hash_pointer_out_of_bounds, confirm_registered, get_current_subgroup_signers,
+            increment_or_wipe_request_limit, recover_key, request_limit_check, request_limit_key,
+            RequestLimitStorage, UserRegistrationInfo, UserSignatureRequest,
         },
         UserErr,
     },
@@ -160,6 +160,7 @@ async fn test_sign_tx_no_chain() {
         &rpc,
         &two.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
         vec![],
     )
     .await
@@ -366,6 +367,15 @@ async fn test_sign_tx_no_chain() {
         assert_eq!(res.unwrap().text().await.unwrap(), "Auxilary data is mismatched");
     }
 
+    generic_msg.timestamp = SystemTime::now();
+    generic_msg.hash = HashingAlgorithm::Custom(3);
+    let test_user_custom_hash_out_of_bounds =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
+
+    for res in test_user_custom_hash_out_of_bounds {
+        assert_eq!(res.unwrap().text().await.unwrap(), "Custom hash choice out of bounds");
+    }
+
     // fails verification tests
     // wrong key for wrong validator
     let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
@@ -468,10 +478,16 @@ async fn test_program_with_config() {
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_hash =
-        store_program(&entropy_api, &rpc, &two.pair(), TEST_BASIC_TRANSACTION.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_hash = store_program(
+        &entropy_api,
+        &rpc,
+        &two.pair(),
+        TEST_BASIC_TRANSACTION.to_owned(),
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
 
     let validators_info = vec![
         ValidatorInfo {
@@ -571,6 +587,7 @@ async fn test_fail_signing_group() {
         &eve.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
+        vec![],
     )
     .await
     .unwrap();
@@ -644,6 +661,7 @@ async fn test_store_share() {
         &rpc,
         &program_manager.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
         vec![],
     )
     .await
@@ -857,6 +875,7 @@ async fn test_send_and_receive_keys() {
         &rpc,
         &program_manager.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
         vec![],
     )
     .await
@@ -1082,6 +1101,7 @@ async fn test_sign_tx_user_participates() {
         &rpc,
         &two.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
         vec![],
     )
     .await
@@ -1358,6 +1378,7 @@ async fn test_register_with_private_key_visibility() {
         &program_manager.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
+        vec![],
     )
     .await
     .unwrap();
@@ -1434,7 +1455,7 @@ async fn test_compute_hash() {
 
     let mut runtime = Runtime::default();
     let program_hash =
-        store_program(&api, &rpc, &one.pair(), TEST_PROGRAM_CUSTOM_HASH.to_owned(), vec![])
+        store_program(&api, &rpc, &one.pair(), TEST_PROGRAM_CUSTOM_HASH.to_owned(), vec![], vec![])
             .await
             .unwrap();
 
@@ -1451,6 +1472,15 @@ async fn test_compute_hash() {
     // custom hash program uses blake 3 to hash
     let expected_hash = blake3::hash(PREIMAGE_SHOULD_SUCCEED).as_bytes().to_vec();
     assert_eq!(message_hash.to_vec(), expected_hash);
+}
+
+#[tokio::test]
+async fn test_check_hash_pointer_out_of_bounds() {
+    assert!(check_hash_pointer_out_of_bounds(&HashingAlgorithm::Custom(2), 5).is_ok());
+    assert_eq!(
+        check_hash_pointer_out_of_bounds(&HashingAlgorithm::Custom(5), 5).unwrap_err().to_string(),
+        "Custom hash choice out of bounds".to_string()
+    );
 }
 
 pub async fn verify_signature(
@@ -1509,6 +1539,7 @@ async fn test_fail_infinite_program() {
         &rpc,
         &two.pair(),
         TEST_INFINITE_LOOP_BYTECODE.to_owned(),
+        vec![],
         vec![],
     )
     .await
@@ -1693,6 +1724,7 @@ async fn test_mutiple_confirm_done() {
         &rpc,
         &program_manager.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
         vec![],
     )
     .await

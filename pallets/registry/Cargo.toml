@@ -14,14 +14,14 @@ targets=['x86_64-unknown-linux-gnu']
 [dependencies]
 codec     ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
 scale-info={ version="2.1", default-features=false, features=["derive"] }
-log       ={ version="0.4.0", default-features=false }
+log       ={ version="0.4.21", default-features=false }
 
 frame-benchmarking={ version="25.0.0", default-features=false, optional=true }
 frame-support     ={ version="25.0.0", default-features=false }
 frame-system      ={ version="25.0.0", default-features=false }
 pallet-authorship ={ version="25.0.0", default-features=false }
 pallet-session    ={ version="25.0.0", default-features=false }
-pallet-staking    ={ version="25.0.0", default-features=false }
+pallet-staking    ={ version="25.0.1", default-features=false }
 sp-core           ={ version="25.0.0", default-features=false }
 sp-runtime        ={ version="28.0.0", default-features=false }
 sp-std            ={ version="12.0.0", default-features=false }

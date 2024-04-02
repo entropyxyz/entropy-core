@@ -13,10 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::{mock::*, tests::RuntimeEvent, Error, IsValidatorSynced, ServerInfo, ThresholdToStash};
 use frame_support::{assert_noop, assert_ok};
+use frame_system::{EventRecord, Phase};
 use pallet_session::SessionManager;
-
-use crate::{mock::*, Error, ServerInfo, ThresholdToStash};
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
@@ -254,6 +254,7 @@ fn it_deletes_when_no_bond_left() {
             pallet_staking::ValidatorPrefs::default(),
             server_info,
         ));
+        IsValidatorSynced::<Test>::insert(2, true);
 
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
         assert_eq!(endpoint, vec![20]);
@@ -273,10 +274,22 @@ fn it_deletes_when_no_bond_left() {
         MockSessionManager::new_session(0);
 
         assert_ok!(Staking::withdraw_unbonded(RuntimeOrigin::signed(2), 0,));
+        // make sure event does not fire when node info not removed
+        let event = RuntimeEvent::Staking(crate::Event::NodeInfoRemoved(2));
+        let record = EventRecord { phase: Phase::Initialization, event, topics: vec![] };
+
+        assert!(!System::events().contains(&record));
+        // make sure the frame staking pallet emits the right event
+        System::assert_last_event(RuntimeEvent::FrameStaking(pallet_staking::Event::Withdrawn {
+            stash: 2,
+            amount: 50,
+        }));
 
         lock = Balances::locks(2);
         assert_eq!(lock[0].amount, 50);
         assert_eq!(lock.len(), 1);
+        // validator still synced
+        assert_eq!(Staking::is_validator_synced(2), true);
 
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
         assert_eq!(endpoint, vec![20]);
@@ -286,10 +299,15 @@ fn it_deletes_when_no_bond_left() {
         assert_ok!(FrameStaking::unbond(RuntimeOrigin::signed(2), 50u64,));
 
         assert_ok!(Staking::withdraw_unbonded(RuntimeOrigin::signed(2), 0,));
+        // make sure node info removed event happens
+        System::assert_last_event(RuntimeEvent::Staking(crate::Event::NodeInfoRemoved(2)));
+
         lock = Balances::locks(2);
         assert_eq!(lock.len(), 0);
         assert_eq!(Staking::threshold_server(2), None);
         assert_eq!(Staking::threshold_to_stash(3), None);
+        // validator no longer synced
+        assert_eq!(Staking::is_validator_synced(2), false);
     });
 }
 

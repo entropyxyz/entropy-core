@@ -123,8 +123,18 @@ pub mod pallet {
     pub struct ProgramInfo<AccountId> {
         /// The bytecode of the program.
         pub bytecode: Vec<u8>,
-        /// An interface description for the program (config, auxilary data, etc)
-        pub interface_description: Vec<u8>,
+        /// The schema for the Program's configuration parameters.
+        ///
+        /// While this isn't strictly enforced, it is recommended to follow something like
+        /// [JSON Schema](https://json-schema.org/) in order to simplify the life of off-chain
+        /// actors.
+        pub configuration_schema: Vec<u8>,
+        /// The schema for the Program's auxiliary data.
+        ///
+        /// While this isn't strictly enforced, it is recommended to follow something like
+        /// [JSON Schema](https://json-schema.org/) in order to simplify the life of off-chain
+        /// actors.
+        pub auxiliary_data_schema: Vec<u8>,
         /// Deployer of the program
         pub deployer: AccountId,
         /// Accounts that use this program
@@ -132,7 +142,7 @@ pub mod pallet {
     }
 
     /// Stores the program info for a given program hash.
-    /// A program hash is a combination of the bytecode and interface_description
+    /// A program hash is a combination of the bytecode and configuration_schema and auxiliary_data_schema
     #[pallet::storage]
     #[pallet::getter(fn programs)]
     pub type Programs<T: Config> =
@@ -160,8 +170,11 @@ pub mod pallet {
             /// The new program hash.
             program_hash: T::Hash,
 
-            /// The new program type definition
-            interface_description: Vec<u8>,
+            /// The new program configuration schema.
+            configuration_schema: Vec<u8>,
+
+            /// The new program auxiliary data schema.
+            auxiliary_data_schema: Vec<u8>,
         },
         /// The bytecode of a program was removed.
         ProgramRemoved {
@@ -187,11 +200,13 @@ pub mod pallet {
         TooManyProgramsOwned,
         /// Program is being used by an account
         ProgramInUse,
+        /// Arithmetic overflow error
+        ArithmeticError,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Sets the program and uses hash of program and interface_description as key.
+        /// Sets the program and uses hash of program config and aux description as key.
         ///
         /// Note that the caller becomes the deployer account.
         #[pallet::call_index(0)]
@@ -199,14 +214,21 @@ pub mod pallet {
         pub fn set_program(
             origin: OriginFor<T>,
             new_program: Vec<u8>,
-            interface_description: Vec<u8>,
+            configuration_schema: Vec<u8>,
+            auxiliary_data_schema: Vec<u8>,
         ) -> DispatchResult {
             let deployer = ensure_signed(origin)?;
             let mut hash_input = vec![];
             hash_input.extend(&new_program);
-            hash_input.extend(&interface_description);
+            hash_input.extend(&configuration_schema);
+            hash_input.extend(&auxiliary_data_schema);
             let program_hash = T::Hashing::hash(&hash_input);
-            let new_program_length = new_program.len() + interface_description.len();
+            let new_program_length = new_program
+                .len()
+                .checked_add(configuration_schema.len())
+                .ok_or(Error::<T>::ArithmeticError)?
+                .checked_add(auxiliary_data_schema.len())
+                .ok_or(Error::<T>::ArithmeticError)?;
             ensure!(
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
                 Error::<T>::ProgramLengthExceeded
@@ -219,7 +241,8 @@ pub mod pallet {
                 program_hash,
                 &ProgramInfo {
                     bytecode: new_program.clone(),
-                    interface_description: interface_description.clone(),
+                    configuration_schema: configuration_schema.clone(),
+                    auxiliary_data_schema: auxiliary_data_schema.clone(),
                     deployer: deployer.clone(),
                     ref_counter: 0u128,
                 },
@@ -236,7 +259,8 @@ pub mod pallet {
             Self::deposit_event(Event::ProgramCreated {
                 deployer,
                 program_hash,
-                interface_description,
+                configuration_schema,
+                auxiliary_data_schema,
             });
             Ok(())
         }
@@ -257,7 +281,9 @@ pub mod pallet {
             ensure!(old_program_info.ref_counter == 0, Error::<T>::ProgramInUse);
             Self::unreserve_program_deposit(
                 &old_program_info.deployer,
-                old_program_info.bytecode.len() + old_program_info.interface_description.len(),
+                old_program_info.bytecode.len()
+                    + old_program_info.configuration_schema.len()
+                    + old_program_info.auxiliary_data_schema.len(),
             );
             let mut owned_programs_length = 0;
             OwnedPrograms::<T>::try_mutate(

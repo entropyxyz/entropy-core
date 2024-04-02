@@ -135,8 +135,10 @@ enum CliCommand {
         deployer_name: String,
         /// The path to a .wasm file containing the program (defaults to a test program)
         program_file: Option<PathBuf>,
-        /// The path to a file containing the program configuration interface (defaults to empty)
-        program_interface_file: Option<PathBuf>,
+        /// The path to a file containing the program config interface (defaults to empty)
+        config_interface_file: Option<PathBuf>,
+        /// The path to a file containing the program aux interface (defaults to empty)
+        aux_data_interface_file: Option<PathBuf>,
     },
     /// Display a list of registered Entropy accounts
     Status,
@@ -262,7 +264,12 @@ async fn run_command() -> anyhow::Result<String> {
             .await?;
             Ok(format!("Message signed: {:?}", recoverable_signature))
         },
-        CliCommand::StoreProgram { deployer_name, program_file, program_interface_file } => {
+        CliCommand::StoreProgram {
+            deployer_name,
+            program_file,
+            config_interface_file,
+            aux_data_interface_file,
+        } => {
             let keypair: sr25519::Pair = SeedString::new(deployer_name).try_into()?;
             println!("Storing program using account: {}", keypair.public());
 
@@ -271,12 +278,19 @@ async fn run_command() -> anyhow::Result<String> {
                 None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
             };
 
-            let program_interface = match program_interface_file {
+            let config_interface = match config_interface_file {
                 Some(file_name) => fs::read(file_name)?,
                 None => vec![],
             };
 
-            let hash = store_program(&api, &rpc, &keypair, program, program_interface).await?;
+            let aux_data_interface = match aux_data_interface_file {
+                Some(file_name) => fs::read(file_name)?,
+                None => vec![],
+            };
+
+            let hash =
+                store_program(&api, &rpc, &keypair, program, config_interface, aux_data_interface)
+                    .await?;
             Ok(format!("Program stored {hash}"))
         },
         CliCommand::UpdatePrograms { signature_verifying_key, program_account_name, programs } => {
@@ -343,21 +357,23 @@ async fn run_command() -> anyhow::Result<String> {
 
             if !programs.is_empty() {
                 println!(
-                    "{:<11} {:<48} {:<11} {:<14} {}",
+                    "{:<11} {:<48} {:<11} {:<14} {} {}",
                     "Hash".blue(),
                     "Stored by:".green(),
                     "Times used:".purple(),
                     "Size in bytes:".cyan(),
                     "Configurable?".yellow(),
+                    "Has auxiliary?".yellow(),
                 );
                 for (hash, program_info) in programs {
                     println!(
-                        "{} {} {:>11} {:>14} {}",
+                        "{} {} {:>11} {:>14} {} {}",
                         hash,
                         program_info.deployer,
                         program_info.ref_counter,
                         program_info.bytecode.len(),
-                        !program_info.interface_description.is_empty(),
+                        !program_info.configuration_schema.is_empty(),
+                        !program_info.auxiliary_data_schema.is_empty(),
                     );
                 }
             }
@@ -451,11 +467,18 @@ impl Program {
     ) -> anyhow::Result<Self> {
         let program_bytecode = fs::read(&filename)?;
 
-        // If there is a file with the same name with the '.interface-description' extension, read it
-        let interface_description = {
-            let mut interface_description_file = PathBuf::from(&filename);
-            interface_description_file.set_extension("interface-description");
-            fs::read(&interface_description_file).unwrap_or_default()
+        // If there is a file with the same name with the '.config-description' extension, read it
+        let config_description = {
+            let mut config_description_file = PathBuf::from(&filename);
+            config_description_file.set_extension("config-description");
+            fs::read(&config_description_file).unwrap_or_default()
+        };
+
+        // If there is a file with the same name with the '.aux-description' extension, read it
+        let auxiliary_data_schema = {
+            let mut auxiliary_data_schema_file = PathBuf::from(&filename);
+            auxiliary_data_schema_file.set_extension("aux-description");
+            fs::read(&auxiliary_data_schema_file).unwrap_or_default()
         };
 
         // If there is a file with the same name with the '.json' extension, read it
@@ -466,13 +489,20 @@ impl Program {
         };
 
         ensure!(
-            (interface_description.is_empty() && configuration.is_empty())
-                || (!interface_description.is_empty() && !configuration.is_empty()),
+            (config_description.is_empty() && configuration.is_empty())
+                || (!config_description.is_empty() && !configuration.is_empty()),
             "If giving an interface description you must also give a configuration"
         );
 
-        match store_program(api, rpc, keypair, program_bytecode.clone(), interface_description)
-            .await
+        match store_program(
+            api,
+            rpc,
+            keypair,
+            program_bytecode.clone(),
+            config_description,
+            auxiliary_data_schema,
+        )
+        .await
         {
             Ok(hash) => Ok(Self::new(hash, configuration)),
             Err(error) => {
