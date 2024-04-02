@@ -123,11 +123,7 @@ pub struct RequestLimitStorage {
 /// Called by a user to initiate the signing process for a message
 ///
 /// Takes an [EncryptedSignedMessage] containing a JSON serialized [UserSignatureRequest]
-// TODO
-// #[tracing::instrument(
-//     skip_all,
-//     fields(signing_address = %signed_msg.account_id())
-// )]
+#[tracing::instrument(skip_all, fields(request_author))]
 pub async fn sign_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
@@ -141,6 +137,8 @@ pub async fn sign_tx(
     let signed_message = encrypted_msg.decrypt(signer.signer(), &[])?;
 
     let request_author = SubxtAccountId32(*signed_message.account_id().as_ref());
+    tracing::Span::current().record("request_author", signed_message.account_id().to_string());
+
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit = query_chain(&api, &rpc, request_limit_query, None)
         .await?
@@ -370,11 +368,7 @@ async fn setup_dkg(
 /// signing subgroup.
 ///
 /// Takes a [UserRegistrationInfo] wrapped in an [EncryptedSignedMessage].
-// TODO
-// #[tracing::instrument(
-//     skip_all,
-//     fields(signing_address = %signed_msg.account_id())
-// )]
+#[tracing::instrument(skip_all, fields(signing_address))]
 pub async fn receive_key(
     State(app_state): State<AppState>,
     Json(encrypted_message): Json<EncryptedSignedMessage>,
@@ -382,6 +376,7 @@ pub async fn receive_key(
     let signer = get_signer(&app_state.kv_store).await?;
     let signed_message = encrypted_message.decrypt(signer.signer(), &[])?;
     let signing_address = signed_message.account_id();
+    tracing::Span::current().record("signing_address", signing_address.to_string());
 
     let user_registration_info: UserRegistrationInfo =
         serde_json::from_slice(&signed_message.message.0)?;
