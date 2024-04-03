@@ -59,9 +59,6 @@ vercel-install-api-docs :: vercel-rustup rust
 			/vercel/.cargo/bin/cargo-fmt \
 		# Let's make things even smaller by making it possible to build
 		# the `libstd` stuff ourselves.
-		export PATH="${PATH}:${HOME}/.cargo/bin" rustup update \
-			&& rustup toolchain install nightly-2023-06-15-x86_64-unknown-linux-gnu \
-			&& rustup component add rust-src --toolchain nightly-2023-06-15-x86_64-unknown-linux-gnu
 		# Install build dependencies required for Amazon Linux 2, the
 		# base of the Vercel build image. See:
 		# https://vercel.com/docs/concepts/deployments/build-image
@@ -75,11 +72,6 @@ vercel-install-api-docs :: vercel-rustup rust
 # The Vercel project's `buildCommand` is defined here.
 vercel-build-api-docs ::
 		export PATH="${PATH}:${HOME}/.cargo/bin" \
-			&& rustup target add wasm32-unknown-unknown \
-				--toolchain nightly-2023-06-15-x86_64-unknown-linux-gnu \
-			&& cargo +nightly-2023-06-15-x86_64-unknown-linux-gnu doc \
+			&& cargo doc \
 				--profile vercel --no-deps \
-				--target x86_64-unknown-linux-gnu \
-				-Z build-std=std,panic_abort \
-				-Z build-std-features=panic_immediate_abort \
 			&& mv /vercel/path0/target/doc/index.html /vercel/path0/target/x86_64-unknown-linux-gnu/doc/
