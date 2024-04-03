@@ -156,9 +156,9 @@ pub struct ValidatorInfo {
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub enum SessionId {
     /// A distributed key generation protocol session for registering
-    Dkg(AccountId32),
+    Dkg { user: AccountId32, block_number: u32 },
     /// A proactive refresh session
-    ProactiveRefresh(Vec<u8>),
+    ProactiveRefresh { verifying_key: Vec<u8>, block_number: u32 },
     /// A signing session
     Sign(SigningSessionInfo),
 }
@@ -179,11 +179,13 @@ pub struct SigningSessionInfo {
 impl Hash for SessionId {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
-            SessionId::Dkg(account_id) => {
-                account_id.0.hash(state);
+            SessionId::Dkg { user, block_number } => {
+                user.0.hash(state);
+                block_number.hash(state);
             },
-            SessionId::ProactiveRefresh(signature_verifying_key) => {
-                signature_verifying_key.hash(state);
+            SessionId::ProactiveRefresh { verifying_key, block_number } => {
+                verifying_key.hash(state);
+                block_number.hash(state);
             },
             SessionId::Sign(signing_session_info) => {
                 signing_session_info.signature_verifying_key.hash(state);

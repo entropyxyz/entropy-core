@@ -97,6 +97,7 @@ async fn test_proactive_refresh() {
     let mut ocw_message = OcwMessageProactiveRefresh {
         validators_info,
         proactive_refresh_keys: vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
+        block_number: 0,
     };
 
     let test_fail_incorrect_data =
@@ -216,6 +217,7 @@ async fn test_proactive_refresh_validation_fail() {
     let ocw_message = OcwMessageProactiveRefresh {
         validators_info,
         proactive_refresh_keys: vec![dave.to_account_id().encode(), eve.to_account_id().encode()],
+        block_number,
     };
     run_to_block(&rpc, block_number).await;
 

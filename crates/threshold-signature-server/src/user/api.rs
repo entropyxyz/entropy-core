@@ -334,6 +334,7 @@ async fn setup_dkg(
             &app_state.listener_state,
             sig_request_address.clone(),
             *user_details.key_visibility,
+            data.block_number,
         )
         .await?;
         let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
