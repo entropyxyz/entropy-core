@@ -52,6 +52,7 @@ use core::marker::PhantomData;
 /// Weight functions needed for pallet_transaction_pause.
 pub trait WeightInfo {
 	fn change_request_limit() -> Weight;
+	fn max_instructions_per_programs() -> Weight;
 }
 
 /// Weights for pallet_transaction_pause using the Substrate node and recommended hardware.
@@ -68,6 +69,17 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	/// Storage: `Parameters::MaxInstructionsPerPrograms` (r:0 w:1)
+	/// Proof: `Parameters::MaxInstructionsPerPrograms` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn max_instructions_per_programs() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 3_000_000 picoseconds.
+		Weight::from_parts(4_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }
 
 // For backwards compatibility and tests
@@ -80,6 +92,17 @@ impl WeightInfo for () {
 		//  Estimated: `0`
 		// Minimum execution time: 5_000_000 picoseconds.
 		Weight::from_parts(6_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			.saturating_add(RocksDbWeight::get().writes(1))
+	}
+	/// Storage: `Parameters::MaxInstructionsPerPrograms` (r:0 w:1)
+	/// Proof: `Parameters::MaxInstructionsPerPrograms` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn max_instructions_per_programs() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 3_000_000 picoseconds.
+		Weight::from_parts(4_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
