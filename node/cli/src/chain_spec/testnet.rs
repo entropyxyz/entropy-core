@@ -24,7 +24,7 @@ use entropy_runtime::{
     TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
-use entropy_shared::{X25519PublicKey as TssX25519PublicKey, MAX_INSTRUCTIONS_PER_PROGRAM};
+use entropy_shared::{X25519PublicKey as TssX25519PublicKey, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM};
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -456,7 +456,7 @@ pub fn testnet_genesis_config(
         registry: Default::default(),
         parameters: ParametersConfig {
             request_limit: 20,
-            max_instructions_per_programs: MAX_INSTRUCTIONS_PER_PROGRAM,
+            max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             ..Default::default()
         },
         vesting: Default::default(),

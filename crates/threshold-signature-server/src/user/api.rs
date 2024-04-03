@@ -35,8 +35,7 @@ use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureReques
 use entropy_protocol::ValidatorInfo;
 use entropy_protocol::{KeyParams, SigningSessionInfo};
 use entropy_shared::{
-    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey,
-    MAX_INSTRUCTIONS_PER_PROGRAM, SIGNING_PARTY_SIZE,
+    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE,
 };
 use futures::{
     channel::mpsc,

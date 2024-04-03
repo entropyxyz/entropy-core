@@ -25,7 +25,8 @@ use entropy_runtime::{
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
-    DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY, MAX_INSTRUCTIONS_PER_PROGRAM,
+    DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
+    INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -247,7 +248,7 @@ pub fn development_genesis_config(
         },
         parameters: ParametersConfig {
             request_limit: 20,
-            max_instructions_per_programs: MAX_INSTRUCTIONS_PER_PROGRAM,
+            max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             ..Default::default()
         },
         vesting: Default::default(),
