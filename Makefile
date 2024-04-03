@@ -74,4 +74,5 @@ vercel-build-api-docs ::
 		export PATH="${PATH}:${HOME}/.cargo/bin" \
 			&& cargo doc \
 				--profile vercel --no-deps \
+			&& mkdir /vercel/path0/target/x86_64-unknown-linux-gnu/doc/ \
 			&& mv /vercel/path0/target/doc/index.html /vercel/path0/target/x86_64-unknown-linux-gnu/doc/
