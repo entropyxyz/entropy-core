@@ -73,5 +73,5 @@ vercel-install-api-docs :: vercel-rustup rust
 vercel-build-api-docs ::
 		export PATH="${PATH}:${HOME}/.cargo/bin" \
 			&& cargo doc --no-deps \
-			&& mkdir /vercel/path0/target/x86_64-unknown-linux-gnu/doc/ \
+			&& mkdir -p /vercel/path0/target/x86_64-unknown-linux-gnu/doc/ \
 			&& mv /vercel/path0/target/doc/index.html /vercel/path0/target/x86_64-unknown-linux-gnu/doc/
