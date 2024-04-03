@@ -96,7 +96,7 @@ async fn test_proactive_refresh() {
 
     let mut ocw_message = OcwMessageProactiveRefresh {
         validators_info,
-        proactive_refresh_keys: vec![DAVE_VERIFYING_KEY.to_vec(), EVE_VERIFYING_KEY.to_vec()],
+        proactive_refresh_keys: vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
         block_number: 0,
     };
 
