@@ -87,6 +87,7 @@ pub struct OcwMessageDkg {
     sp_runtime::Deserialize,
 )]
 pub struct OcwMessageProactiveRefresh {
+    pub block_number: BlockNumber,
     /// Information of the validators to participate
     pub validators_info: Vec<ValidatorInfo>,
     /// Accounts to take part in the proactive refresh

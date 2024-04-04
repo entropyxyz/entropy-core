@@ -41,5 +41,16 @@ benchmarks! {
     assert_last_event::<T>(Event::RequestLimitChanged{ request_limit: 15}.into());
   }
 
+  max_instructions_per_programs {
+    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
+  }: {
+    assert_ok!(
+      <Parameters<T>>::change_max_instructions_per_programs(origin, 15)
+    );
+  }
+  verify {
+    assert_last_event::<T>(Event::MaxInstructionsPerProgramsChanged{ max_instructions_per_programs: 15}.into());
+  }
+
   impl_benchmark_test_suite!(Parameters, crate::mock::ExtBuilder::default().build(), crate::mock::Runtime);
 }

@@ -35,8 +35,7 @@ use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureReques
 use entropy_protocol::ValidatorInfo;
 use entropy_protocol::{KeyParams, SigningSessionInfo};
 use entropy_shared::{
-    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey,
-    MAX_INSTRUCTIONS_PER_PROGRAM, SIGNING_PARTY_SIZE,
+    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE,
 };
 use futures::{
     channel::mpsc,
@@ -171,8 +170,14 @@ pub async fn sign_tx(
     } else {
         auxilary_data_vec = vec![None; user_details.programs_data.0.len()];
     }
+    // gets fuel from chain
+    let max_instructions_per_programs_query =
+        entropy::storage().parameters().max_instructions_per_programs();
+    let fuel = query_chain(&api, &rpc, max_instructions_per_programs_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Max instructions per program error"))?;
 
-    let mut runtime = Runtime::new(ProgramConfig { fuel: MAX_INSTRUCTIONS_PER_PROGRAM });
+    let mut runtime = Runtime::new(ProgramConfig { fuel });
 
     for (i, program_info) in user_details.programs_data.0.iter().enumerate() {
         let program = get_program(&api, &rpc, &program_info.program_pointer).await?;
@@ -324,6 +329,7 @@ async fn setup_dkg(
             &app_state.listener_state,
             sig_request_address.clone(),
             *user_details.key_visibility,
+            data.block_number,
         )
         .await?;
         let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();

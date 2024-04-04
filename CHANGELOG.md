@@ -58,6 +58,7 @@ At the moment this project **does not** adhere to
 - Note unresponsiveness reports in Slashing pallet ([#679](https://github.com/entropyxyz/entropy-core/pull/679))
 - Add aux data to program info ([#681](https://github.com/entropyxyz/entropy-core/pull/681))
 - Add HPKE implementation ([#674](https://github.com/entropyxyz/entropy-core/pull/674))
+- Add max instructions parameters onchain ([#703](https://github.com/entropyxyz/entropy-core/pull/681))
 
 ### Changed
 - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))

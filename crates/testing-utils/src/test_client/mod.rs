@@ -95,12 +95,17 @@ pub async fn register(
                 .chain_get_header(None)
                 .await?
                 .ok_or(anyhow!("Cannot get current block number"))?
-                .number;
+                .number
+                + 1;
 
-            let validators_info = get_dkg_committee(api, rpc, block_number + 1).await?;
+            let validators_info = get_dkg_committee(api, rpc, block_number).await?;
             Some(
-                user_participates_in_dkg_protocol(validators_info, &signature_request_keypair)
-                    .await?,
+                user_participates_in_dkg_protocol(
+                    validators_info,
+                    &signature_request_keypair,
+                    block_number,
+                )
+                .await?,
             )
         },
         _ => None,
