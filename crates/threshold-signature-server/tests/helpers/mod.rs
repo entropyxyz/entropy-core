@@ -38,7 +38,7 @@ pub async fn verify_signature(
         let signing_result: Result<(String, Signature), String> =
             serde_json::from_slice(&chunk).unwrap();
         assert_eq!(signing_result.clone().unwrap().0.len(), 88);
-        let mut decoded_sig = base64::decode(signing_result.clone().unwrap().0).unwrap();
+        let mut decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
         let recovery_digit = decoded_sig.pop().unwrap();
         let signature = k256Signature::from_slice(&decoded_sig).unwrap();
         let recover_id = RecoveryId::from_byte(recovery_digit).unwrap();
@@ -53,7 +53,7 @@ pub async fn verify_signature(
         let sk = <sr25519::Pair as Pair>::from_string(mnemonic, None).unwrap();
         let sig_recovery = <sr25519::Pair as Pair>::verify(
             &signing_result.clone().unwrap().1,
-            base64::decode(signing_result.unwrap().0).unwrap(),
+            BASE64_STANDARD.decode(signing_result.unwrap().0).unwrap(),
             &sr25519::Public(sk.public().0),
         );
         assert!(sig_recovery);

@@ -23,6 +23,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use base64::prelude::*;
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
 use entropy_kvdb::kv_manager::{
@@ -235,7 +236,7 @@ pub async fn sign_tx(
         .await
         .map(|signature| {
             (
-                base64::encode(signature.to_rsv_bytes()),
+                BASE64_STANDARD.encode(signature.to_rsv_bytes()),
                 signer.signer().sign(&signature.to_rsv_bytes()),
             )
         })
