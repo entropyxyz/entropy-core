@@ -15,6 +15,7 @@
 
 //! Simple test client
 pub use crate::chain_api::{get_api, get_rpc};
+use base64::prelude::{Engine, BASE64_STANDARD};
 pub use entropy_protocol::{
     sign_and_encrypt::{derive_x25519_static_secret, EncryptedSignedMessage},
     KeyParams,
@@ -224,7 +225,7 @@ pub async fn sign(
         let (signature_base64, signature_of_signature) =
             signing_result.map_err(|err| anyhow!(err))?;
         tracing::debug!("Signature: {}", signature_base64);
-        let mut decoded_sig = base64::decode(signature_base64)?;
+        let mut decoded_sig = BASE64_STANDARD.decode(signature_base64)?;
 
         // Verify the response signature from the TSS client
         ensure!(

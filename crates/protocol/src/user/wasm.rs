@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Wrappers around functions to run DKG and signing protocols for JS
+use base64::prelude::{Engine, BASE64_STANDARD};
 use js_sys::Error;
 use sp_core::sr25519;
 use subxt::utils::AccountId32;
@@ -67,7 +68,7 @@ pub async fn run_signing_protocol(
     .await
     .map_err(|err| Error::new(&format!("{}", err)))?;
 
-    Ok(base64::encode(signature.to_rsv_bytes()))
+    Ok(BASE64_STANDARD.encode(signature.to_rsv_bytes()))
 }
 
 #[wasm_bindgen]
