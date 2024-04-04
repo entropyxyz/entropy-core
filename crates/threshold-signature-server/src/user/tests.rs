@@ -1579,7 +1579,7 @@ async fn test_device_key_proxy() {
     assert_eq!(
         serde_json::to_vec(&schema_config_device_key_proxy).unwrap(),
         program_data.configuration_schema,
-        "configuration interface recoverable through schemers"
+        "configuration interface recoverable through schemars"
     );
     assert_eq!(
         serde_json::to_vec(&schema_aux_data_device_key_proxy).unwrap(),
