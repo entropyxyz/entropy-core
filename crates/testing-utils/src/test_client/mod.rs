@@ -15,7 +15,7 @@
 
 //! Simple test client
 pub use crate::chain_api::{get_api, get_rpc};
-use base64::prelude::*;
+use base64::prelude::{Engine, BASE64_STANDARD};
 pub use entropy_protocol::{
     sign_and_encrypt::{derive_x25519_static_secret, EncryptedSignedMessage},
     KeyParams,

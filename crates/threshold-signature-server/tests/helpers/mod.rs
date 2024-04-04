@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Helper functions for integration tests
-use base64::prelude::*;
+use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::KeyParams;
 use entropy_tss::launch::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC};
 use subxt::ext::sp_core::{sr25519, sr25519::Signature, Pair};

@@ -23,7 +23,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use base64::prelude::*;
+use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
 use entropy_kvdb::kv_manager::{

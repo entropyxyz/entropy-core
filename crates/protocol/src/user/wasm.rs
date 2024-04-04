@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Wrappers around functions to run DKG and signing protocols for JS
-use base64::prelude::*;
+use base64::prelude::{Engine, BASE64_STANDARD};
 use js_sys::Error;
 use sp_core::sr25519;
 use subxt::utils::AccountId32;
