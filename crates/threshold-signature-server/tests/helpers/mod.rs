@@ -14,14 +14,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Helper functions for integration tests
+use base64::prelude::*;
 use entropy_protocol::KeyParams;
 use entropy_tss::launch::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC};
+use subxt::ext::sp_core::{sr25519, sr25519::Signature, Pair};
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     KeyShare,
 };
-
-use subxt::ext::sp_core::{sr25519, sr25519::Signature, Pair};
 
 /// Verfiy a signature in a response from `/user/sign_tx`
 pub async fn verify_signature(
