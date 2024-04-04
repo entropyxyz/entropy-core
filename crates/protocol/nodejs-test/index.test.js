@@ -35,11 +35,11 @@ test('Encrypt, decrypt with HPKE', function (t) {
   const mallorySk = generateSigningKey()
 
   // Malloy cannot decrypt the message.
-  let failed
+  let error
   try {
       decryptAndVerify(mallorySk, encryptedAndSignedMessage)
   } catch (e) {
-      failed = true
+      error = e.toString()
   }
-  t.true(failed)
+  t.equals(error, 'Error: Hpke: HPKE Error: OpenError')
 })
