@@ -26,7 +26,8 @@ use entropy_runtime::{
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
     DAVE_VERIFYING_KEY, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH,
-    DEVICE_KEY_PROXY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM
+    DEVICE_KEY_PROXY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
+    INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;

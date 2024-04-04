@@ -26,7 +26,7 @@ use entropy_runtime::{
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
     X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE,
-    DEVICE_KEY_HASH, DEVICE_KEY_PROXY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM
+    DEVICE_KEY_HASH, DEVICE_KEY_PROXY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
