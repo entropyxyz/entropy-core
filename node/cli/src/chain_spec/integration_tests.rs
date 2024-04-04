@@ -24,7 +24,10 @@ use entropy_runtime::{
     TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
-use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY};
+use entropy_shared::{
+    DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
+    INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+};
 use grandpa_primitives::AuthorityId as GrandpaId;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
@@ -258,7 +261,11 @@ pub fn integration_tests_genesis_config(
                 ),
             ],
         },
-        parameters: ParametersConfig { request_limit: 20, ..Default::default() },
+        parameters: ParametersConfig {
+            request_limit: 20,
+            max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+            ..Default::default()
+        },
         vesting: Default::default(),
         transaction_storage: Default::default(),
         transaction_payment: Default::default(),

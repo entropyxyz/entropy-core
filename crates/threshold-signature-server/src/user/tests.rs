@@ -122,7 +122,9 @@ use crate::{
         },
         UserErr,
     },
-    validation::{derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage},
+    validation::{
+        derive_x25519_static_secret, mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage,
+    },
     validator::api::get_random_server_info,
 };
 
@@ -275,7 +277,7 @@ async fn test_sign_tx_no_chain() {
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         let ferdie_pair = AccountKeyring::Ferdie.pair();
-        let ferdie_x25519_sk = derive_static_secret(&ferdie_pair);
+        let ferdie_x25519_sk = derive_x25519_static_secret(&ferdie_pair);
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
@@ -376,11 +378,11 @@ async fn test_sign_tx_no_chain() {
 
     // fails verification tests
     // wrong key for wrong validator
-    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
-    let failed_signed_message = SignedMessage::new(
+    let failed_signed_message = EncryptedSignedMessage::new(
         &one.pair(),
-        &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-        &server_public_key,
+        serde_json::to_vec(&generic_msg.clone()).unwrap(),
+        &X25519_PUBLIC_KEYS[1],
+        &[],
     )
     .unwrap();
     let failed_res = mock_client
@@ -393,21 +395,18 @@ async fn test_sign_tx_no_chain() {
     assert_eq!(failed_res.status(), 500);
     assert_eq!(
         failed_res.text().await.unwrap(),
-        "Validation error: ChaCha20 decryption error: aead::Error"
+        "Encryption or signing error: Hpke: HPKE Error: OpenError"
     );
 
     let sig: [u8; 64] = [0; 64];
-    let slice: [u8; 32] = [0; 32];
-    let nonce: [u8; 12] = [0; 12];
-
-    let user_input_bad = SignedMessage::new_test(
-        Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+    let user_input_bad = EncryptedSignedMessage::new_with_given_signature(
+        &one.pair(),
+        serde_json::to_vec(&generic_msg.clone()).unwrap(),
+        &X25519_PUBLIC_KEYS[0],
+        &[],
         sr25519::Signature::from_raw(sig),
-        AccountKeyring::Eve.pair().public().into(),
-        slice,
-        slice,
-        nonce,
-    );
+    )
+    .unwrap();
 
     let failed_sign = mock_client
         .post("http://127.0.0.1:3001/user/sign_tx")
@@ -418,7 +417,10 @@ async fn test_sign_tx_no_chain() {
         .unwrap();
 
     assert_eq!(failed_sign.status(), 500);
-    assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+    assert_eq!(
+        failed_sign.text().await.unwrap(),
+        "Encryption or signing error: Cannot verify signature"
+    );
 
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit =
@@ -612,11 +614,11 @@ async fn test_fail_signing_group() {
         signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
 
-    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
-    let signed_message = SignedMessage::new(
+    let signed_message = EncryptedSignedMessage::new(
         &dave.pair(),
-        &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-        &server_public_key,
+        serde_json::to_vec(&generic_msg.clone()).unwrap(),
+        &X25519_PUBLIC_KEYS[0],
+        &[],
     )
     .unwrap();
 
@@ -722,6 +724,8 @@ async fn test_store_share() {
             }
         }
     }
+    // Check that the timeout was not reached
+    assert!(new_verifying_key.len() > 0);
 
     let get_query =
         UnsafeQuery::new(hex::encode(new_verifying_key.to_vec()), [].to_vec()).to_json();
@@ -916,8 +920,6 @@ async fn test_send_and_receive_keys() {
     assert_eq!(response_new_key.bytes().await.unwrap(), &user_registration_info.value.clone());
 
     // A keyshare can be overwritten when the user is still in a registering state
-    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[0]);
-
     let some_other_share = {
         let share = &KeyShare::<KeyParams>::new_centralized(&mut rand_core::OsRng, 2, None)[0];
         entropy_kvdb::kv_manager::helpers::serialize(&share).unwrap()
@@ -929,13 +931,15 @@ async fn test_send_and_receive_keys() {
         proactive_refresh: false,
     };
 
-    let signed_message = SignedMessage::new(
-        signer_alice.signer(),
-        &Bytes(serde_json::to_vec(&user_registration_info_overwrite).unwrap()),
-        &server_public_key,
+    let signed_message = serde_json::to_string(
+        &EncryptedSignedMessage::new(
+            signer_alice.signer(),
+            serde_json::to_vec(&user_registration_info_overwrite).unwrap(),
+            &X25519_PUBLIC_KEYS[0],
+            &[],
+        )
+        .unwrap(),
     )
-    .unwrap()
-    .to_json()
     .unwrap();
 
     let response_overwrites_key = client
@@ -968,13 +972,15 @@ async fn test_send_and_receive_keys() {
         proactive_refresh: false,
     };
 
-    let signed_message = SignedMessage::new(
-        signer_alice.signer(),
-        &Bytes(serde_json::to_vec(&user_registration_info_forbidden).unwrap()),
-        &server_public_key,
+    let signed_message = serde_json::to_string(
+        &EncryptedSignedMessage::new(
+            signer_alice.signer(),
+            serde_json::to_vec(&user_registration_info_forbidden).unwrap(),
+            &X25519_PUBLIC_KEYS[0],
+            &[],
+        )
+        .unwrap(),
     )
-    .unwrap()
-    .to_json()
     .unwrap();
 
     let response_overwrites_key = client
@@ -995,13 +1001,15 @@ async fn test_send_and_receive_keys() {
         proactive_refresh: false,
     };
 
-    let signed_message = SignedMessage::new(
-        signer_alice.signer(),
-        &Bytes(serde_json::to_vec(&user_registration_info_bad_keyshare).unwrap()),
-        &server_public_key,
+    let signed_message = serde_json::to_string(
+        &EncryptedSignedMessage::new(
+            signer_alice.signer(),
+            serde_json::to_vec(&user_registration_info_bad_keyshare).unwrap(),
+            &X25519_PUBLIC_KEYS[0],
+            &[],
+        )
+        .unwrap(),
     )
-    .unwrap()
-    .to_json()
     .unwrap();
 
     let response_overwrites_key = client
@@ -1220,7 +1228,7 @@ async fn test_sign_tx_user_participates() {
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         let ferdie_pair = AccountKeyring::Ferdie.pair();
-        let ferdie_x25519_sk = derive_static_secret(&ferdie_pair);
+        let ferdie_x25519_sk = derive_x25519_static_secret(&ferdie_pair);
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
@@ -1305,11 +1313,11 @@ async fn test_sign_tx_user_participates() {
     let mock_client = reqwest::Client::new();
     // fails verification tests
     // wrong key for wrong validator
-    let server_public_key = PublicKey::from(X25519_PUBLIC_KEYS[1]);
-    let failed_signed_message = SignedMessage::new(
+    let failed_signed_message = EncryptedSignedMessage::new(
         &one.pair(),
-        &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-        &server_public_key,
+        serde_json::to_vec(&generic_msg.clone()).unwrap(),
+        &X25519_PUBLIC_KEYS[1],
+        &[],
     )
     .unwrap();
     let failed_res = mock_client
@@ -1322,21 +1330,18 @@ async fn test_sign_tx_user_participates() {
     assert_eq!(failed_res.status(), 500);
     assert_eq!(
         failed_res.text().await.unwrap(),
-        "Validation error: ChaCha20 decryption error: aead::Error"
+        "Encryption or signing error: Hpke: HPKE Error: OpenError"
     );
 
     let sig: [u8; 64] = [0; 64];
-    let slice: [u8; 32] = [0; 32];
-    let nonce: [u8; 12] = [0; 12];
-
-    let user_input_bad = SignedMessage::new_test(
-        Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
+    let user_input_bad = EncryptedSignedMessage::new_with_given_signature(
+        &one.pair(),
+        serde_json::to_vec(&generic_msg.clone()).unwrap(),
+        &X25519_PUBLIC_KEYS[0],
+        &[],
         sr25519::Signature::from_raw(sig),
-        one.pair().public().into(),
-        slice,
-        slice,
-        nonce,
-    );
+    )
+    .unwrap();
 
     let failed_sign = mock_client
         .post("http://127.0.0.1:3001/user/sign_tx")
@@ -1347,7 +1352,10 @@ async fn test_sign_tx_user_participates() {
         .unwrap();
 
     assert_eq!(failed_sign.status(), 500);
-    assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+    assert_eq!(
+        failed_sign.text().await.unwrap(),
+        "Encryption or signing error: Cannot verify signature"
+    );
 
     clean_tests();
 }
@@ -1383,7 +1391,7 @@ async fn test_register_with_private_key_visibility() {
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-    let one_x25519_sk = derive_static_secret(&one.pair());
+    let one_x25519_sk = derive_x25519_static_secret(&one.pair());
     let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
 
     put_register_request_on_chain(
@@ -1729,11 +1737,11 @@ pub async fn submit_transaction_requests(
         validator_urls_and_keys
             .iter()
             .map(|validator_tuple| async {
-                let server_public_key = PublicKey::from(validator_tuple.1);
-                let signed_message = SignedMessage::new(
+                let signed_message = EncryptedSignedMessage::new(
                     &keyring.pair(),
-                    &Bytes(serde_json::to_vec(&signature_request.clone()).unwrap()),
-                    &server_public_key,
+                    serde_json::to_vec(&signature_request.clone()).unwrap(),
+                    &validator_tuple.1,
+                    &[],
                 )
                 .unwrap();
                 let url = format!("http://{}/user/sign_tx", validator_tuple.0.clone());

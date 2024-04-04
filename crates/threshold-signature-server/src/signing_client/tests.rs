@@ -117,8 +117,8 @@ async fn test_proactive_refresh() {
         if i == 0 {
             assert_eq!(
                 res.unwrap().text().await.unwrap(),
-                "User Error: The remote TSS server rejected the keyshare: Validation error: ChaCha20 \
-                decryption error: aead::Error"
+                "User Error: The remote TSS server rejected the keyshare: Encryption or signing \
+                error: Hpke: HPKE Error: OpenError"
             );
         } else {
             assert_eq!(res.unwrap().text().await.unwrap(), "");

@@ -13,13 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use entropy_protocol::sign_and_encrypt::SignedMessageErr;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ValidationErr {
-    #[error("Encryption or signing error: {0}")]
-    Json(#[from] SignedMessageErr),
     #[error("Secret String failure: {0:?}")]
     SecretString(&'static str),
     #[error("Message is too old")]

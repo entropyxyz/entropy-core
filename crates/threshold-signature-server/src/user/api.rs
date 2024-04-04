@@ -35,8 +35,7 @@ use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureReques
 use entropy_protocol::ValidatorInfo;
 use entropy_protocol::{KeyParams, SigningSessionInfo};
 use entropy_shared::{
-    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey,
-    MAX_INSTRUCTIONS_PER_PROGRAM, SIGNING_PARTY_SIZE,
+    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE,
 };
 use futures::{
     channel::mpsc,
@@ -76,7 +75,7 @@ use crate::{
         validator::get_signer,
     },
     signing_client::{ListenerState, ProtocolErr},
-    validation::{check_stale, SignedMessage},
+    validation::{check_stale, EncryptedSignedMessage},
     validator::api::{check_forbidden_key, get_and_store_values},
     AppState, Configuration,
 };
@@ -122,39 +121,34 @@ pub struct RequestLimitStorage {
 
 /// Called by a user to initiate the signing process for a message
 ///
-/// Takes an encrypted [SignedMessage] containing a JSON serialized [UserSignatureRequest]
-#[tracing::instrument(
-    skip_all,
-    fields(signing_address = %signed_msg.account_id())
-)]
+/// Takes an [EncryptedSignedMessage] containing a JSON serialized [UserSignatureRequest]
+#[tracing::instrument(skip_all, fields(request_author))]
 pub async fn sign_tx(
     State(app_state): State<AppState>,
-    Json(signed_msg): Json<SignedMessage>,
+    Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, StreamBody<impl Stream<Item = Result<String, serde_json::Error>>>), UserErr>
 {
     let signer = get_signer(&app_state.kv_store).await?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-    let request_author = SubxtAccountId32(*signed_msg.account_id().as_ref());
+
+    let signed_message = encrypted_msg.decrypt(signer.signer(), &[])?;
+
+    let request_author = SubxtAccountId32(*signed_message.account_id().as_ref());
+    tracing::Span::current().record("request_author", signed_message.account_id().to_string());
 
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit = query_chain(&api, &rpc, request_limit_query, None)
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Failed to get request limit"))?;
 
-    if !signed_msg.verify() {
-        return Err(UserErr::InvalidSignature("Invalid signature."));
-    }
+    let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&signed_message.message.0)?;
 
-    let decrypted_message =
-        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
-
-    let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&decrypted_message)?;
     let string_verifying_key = hex::encode(user_sig_req.signature_verifying_key.clone());
-
     request_limit_check(&rpc, &app_state.kv_store, string_verifying_key.clone(), request_limit)
         .await?;
+
     check_stale(user_sig_req.timestamp)?;
     let user_details =
         get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
@@ -176,8 +170,14 @@ pub async fn sign_tx(
     } else {
         auxilary_data_vec = vec![None; user_details.programs_data.0.len()];
     }
+    // gets fuel from chain
+    let max_instructions_per_programs_query =
+        entropy::storage().parameters().max_instructions_per_programs();
+    let fuel = query_chain(&api, &rpc, max_instructions_per_programs_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Max instructions per program error"))?;
 
-    let mut runtime = Runtime::new(ProgramConfig { fuel: MAX_INSTRUCTIONS_PER_PROGRAM });
+    let mut runtime = Runtime::new(ProgramConfig { fuel });
 
     for (i, program_info) in user_details.programs_data.0.iter().enumerate() {
         let program = get_program(&api, &rpc, &program_info.program_pointer).await?;
@@ -373,24 +373,19 @@ async fn setup_dkg(
 /// HTTP POST endpoint to recieve a keyshare from another threshold server in the same
 /// signing subgroup.
 ///
-/// Takes a [UserRegistrationInfo] wrapped in a [SignedMessage].
-#[tracing::instrument(
-    skip_all,
-    fields(signing_address = %signed_msg.account_id())
-)]
+/// Takes a [UserRegistrationInfo] wrapped in an [EncryptedSignedMessage].
+#[tracing::instrument(skip_all, fields(signing_address))]
 pub async fn receive_key(
     State(app_state): State<AppState>,
-    Json(signed_msg): Json<SignedMessage>,
+    Json(encrypted_message): Json<EncryptedSignedMessage>,
 ) -> Result<StatusCode, UserErr> {
-    let signing_address = signed_msg.account_id();
-    if !signed_msg.verify() {
-        return Err(UserErr::InvalidSignature("Invalid signature."));
-    }
     let signer = get_signer(&app_state.kv_store).await?;
-    let decrypted_message =
-        signed_msg.decrypt(signer.signer()).map_err(|e| UserErr::Decryption(e.to_string()))?;
+    let signed_message = encrypted_message.decrypt(signer.signer(), &[])?;
+    let signing_address = signed_message.account_id();
+    tracing::Span::current().record("signing_address", signing_address.to_string());
 
-    let user_registration_info: UserRegistrationInfo = serde_json::from_slice(&decrypted_message)?;
+    let user_registration_info: UserRegistrationInfo =
+        serde_json::from_slice(&signed_message.message.0)?;
 
     check_forbidden_key(&user_registration_info.key).map_err(|_| UserErr::ForbiddenKey)?;
 
@@ -646,9 +641,7 @@ pub async fn recover_key(
     let key_server_info = get_random_server_info(api, rpc, subgroup, stash_address)
         .await
         .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
-    let ip_address = String::from_utf8(key_server_info.endpoint)?;
-    let recip_key = x25519_dalek::PublicKey::from(key_server_info.x25519_public_key);
-    get_and_store_values(vec![verifying_key], kv_store, ip_address, 1, false, &recip_key, signer)
+    get_and_store_values(vec![verifying_key], kv_store, 1, false, key_server_info, signer)
         .await
         .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
     Ok(())
