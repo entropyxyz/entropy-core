@@ -139,7 +139,7 @@ jobs:
             resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
-            - run: cargo doc --no-deps --all-features
+            - run: cargo doc --no-deps
 
 parameters:
     crates:
