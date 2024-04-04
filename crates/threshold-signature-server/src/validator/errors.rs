@@ -19,6 +19,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use entropy_protocol::sign_and_encrypt::EncryptedSignedMessageErr;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -45,8 +46,6 @@ pub enum ValidatorErr {
     Encryption(String),
     #[error("Forbidden Key")]
     ForbiddenKey,
-    #[error("Invalid Signature: {0}")]
-    InvalidSignature(&'static str),
     #[error("Subgroup error: {0}")]
     SubgroupError(&'static str),
     #[error("Account unable to be deserialized: {0}")]
@@ -55,12 +54,14 @@ pub enum ValidatorErr {
     NotInSubgroup,
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
-    #[error("Encryption or signing error: {0}")]
-    Json(#[from] entropy_protocol::sign_and_encrypt::SignedMessageErr),
     #[error("anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
     #[error("Chain Fetch: {0}")]
     ChainFetch(&'static str),
+    #[error("Encryption or authentication: {0}")]
+    Hpke(#[from] EncryptedSignedMessageErr),
+    #[error("Message is not from expected author")]
+    Authentication,
 }
 
 impl IntoResponse for ValidatorErr {

@@ -52,7 +52,7 @@ tracing-subscriber      ={ version="0.3.18", features=["env-filter", "json"] }
 tracing-loki            ="0.2"
 tower-http              ={ version="0.3.4", features=["trace", "cors"] }
 tracing-bunyan-formatter="0.3.9"
-uuid                    ={ version="1.5.0", features=["v4"] }
+uuid                    ={ version="1.8.0", features=["v4"] }
 
 # Misc
 tokio-tungstenite="0.19.0"

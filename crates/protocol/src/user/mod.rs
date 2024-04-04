@@ -34,7 +34,7 @@ use crate::{
         noise::noise_handshake_initiator, open_ws_connection, ws_to_channels, Broadcaster,
         SubscribeMessage, ThreadSafeWsConnection, WsChannels,
     },
-    sign_and_encrypt::derive_static_secret,
+    sign_and_encrypt::derive_x25519_static_secret,
     KeyParams, PartyId, RecoverableSignature, SessionId, SigningSessionInfo, ValidatorInfo,
 };
 
@@ -83,10 +83,11 @@ pub async fn user_participates_in_signing_protocol(
 pub async fn user_participates_in_dkg_protocol(
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
+    block_number: u32,
 ) -> Result<KeyShare<KeyParams>, UserRunningProtocolErr> {
     // Make WS connections to the given set of TSS servers
-    let sig_req_account: AccountId32 = user_signing_keypair.public().0.into();
-    let session_id = SessionId::Dkg(sig_req_account);
+    let user: AccountId32 = user_signing_keypair.public().0.into();
+    let session_id = SessionId::Dkg { user, block_number };
     let (channels, tss_accounts) = user_connects_to_validators(
         open_ws_connection,
         &session_id,
@@ -114,7 +115,7 @@ where
     Fut: Future<Output = Result<W, UserRunningProtocolErr>>,
     W: ThreadSafeWsConnection,
 {
-    let x25519_private_key = derive_static_secret(user_signing_keypair);
+    let x25519_private_key = derive_x25519_static_secret(user_signing_keypair);
     // Set up channels for communication between the protocol and the other parties
     let (tx, _rx) = broadcast::channel(1000);
     let (tx_to_others, rx_to_others) = mpsc::channel(1000);

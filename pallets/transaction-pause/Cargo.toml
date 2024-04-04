@@ -19,7 +19,7 @@ sp-runtime        ={ version="28.0.0", default-features=false }
 sp-std            ={ version="12.0.0", default-features=false }
 
 [dev-dependencies]
-smallvec="1.4.1"
+smallvec="1.13.2"
 
 pallet-balances={ version="25.0.0" }
 sp-core        ={ version="25.0.0" }
