@@ -151,6 +151,8 @@ pub enum UserErr {
     KeyShareRejected(String),
     #[error("Custom hash choice out of bounds")]
     CustomHashOutOfBounds,
+    #[error("Error creating sr25519 keypair from seed: {0}")]
+    SpCoreSecretString(#[from] sp_core::crypto::SecretStringError),
 }
 
 impl IntoResponse for UserErr {
