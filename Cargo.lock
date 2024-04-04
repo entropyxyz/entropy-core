@@ -2846,7 +2846,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "axum",
- "base64 0.13.1",
+ "base64 0.21.2",
  "bincode",
  "blake2 0.10.6",
  "entropy-shared",
@@ -3005,7 +3005,7 @@ version = "0.0.10"
 dependencies = [
  "anyhow",
  "axum",
- "base64 0.13.1",
+ "base64 0.21.2",
  "blake2 0.10.6",
  "entropy-kvdb",
  "entropy-protocol",
@@ -3046,7 +3046,7 @@ dependencies = [
  "async-trait",
  "axum",
  "axum-macros",
- "base64 0.13.1",
+ "base64 0.21.2",
  "bincode",
  "bip39",
  "blake2 0.10.6",

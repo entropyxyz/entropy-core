@@ -38,7 +38,7 @@ generic-array   ="0.14.6"
 entropy-protocol={ path="../protocol" }
 reqwest         ={ version="0.11", features=["json", "stream"] }
 sha3            ="0.10.8"
-base64          ="0.13.0"
+base64          ="0.21.2"
 synedrion       ="0.1"
 hex             ="0.4.3"
 
