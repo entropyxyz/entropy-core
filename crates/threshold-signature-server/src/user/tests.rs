@@ -166,19 +166,6 @@ async fn test_sign_tx_no_chain() {
     .await
     .unwrap();
 
-    let validators_info = vec![
-        ValidatorInfo {
-            ip_address: "localhost:3001".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[0],
-            tss_account: TSS_ACCOUNTS[0].clone(),
-        },
-        ValidatorInfo {
-            ip_address: "127.0.0.1:3002".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[1],
-            tss_account: TSS_ACCOUNTS[1].clone(),
-        },
-    ];
-
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let signature_request_account = subxtAccountId32(one.pair().public().0);
     let session_id = SessionId::Sign(SigningSessionInfo {
@@ -187,22 +174,8 @@ async fn test_sign_tx_no_chain() {
         request_author: signature_request_account.clone(),
     });
 
-    let mut generic_msg = UserSignatureRequest {
-        message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
-        auxilary_data: Some(vec![
-            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
-            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
-        ]),
-        validators_info,
-        timestamp: SystemTime::now(),
-        hash: HashingAlgorithm::Keccak,
-        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
-    };
-
-    let validator_ips_and_keys = vec![
-        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
-        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
-    ];
+    let (_validators_info, mut generic_msg, validator_ips_and_keys) =
+        get_sign_tx_data(validator_ips, hex::encode(PREIMAGE_SHOULD_SUCCEED));
 
     generic_msg.timestamp = SystemTime::now();
     // test points to no program
@@ -375,6 +348,26 @@ async fn test_sign_tx_no_chain() {
     for res in test_user_custom_hash_out_of_bounds {
         assert_eq!(res.unwrap().text().await.unwrap(), "Custom hash choice out of bounds");
     }
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_sign_tx_no_chain_fail() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let one = AccountKeyring::Dave;
+
+    let (validator_ips, _validator_ids, _keyshare_option) =
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let mock_client = reqwest::Client::new();
+
+    let (_validators_info, generic_msg, validator_ips_and_keys) =
+        get_sign_tx_data(validator_ips, hex::encode(PREIMAGE_SHOULD_SUCCEED));
 
     // fails verification tests
     // wrong key for wrong validator
@@ -489,40 +482,13 @@ async fn test_program_with_config() {
     .await
     .unwrap();
 
-    let validators_info = vec![
-        ValidatorInfo {
-            ip_address: "localhost:3001".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[0],
-            tss_account: TSS_ACCOUNTS[0].clone(),
-        },
-        ValidatorInfo {
-            ip_address: "127.0.0.1:3002".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[1],
-            tss_account: TSS_ACCOUNTS[1].clone(),
-        },
-    ];
-
     // this message is an ethereum tx rlp encoded with a proper allow listed address
     let message = "0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080";
 
     let message_hash = Hasher::keccak(message.as_bytes());
+    let (_validators_info, mut generic_msg, validator_ips_and_keys) =
+        get_sign_tx_data(validator_ips, hex::encode(message));
 
-    let mut generic_msg = UserSignatureRequest {
-        message: hex::encode(message).to_string(),
-        auxilary_data: Some(vec![
-            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
-            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
-        ]),
-        validators_info,
-        timestamp: SystemTime::now(),
-        hash: HashingAlgorithm::Keccak,
-        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
-    };
-
-    let validator_ips_and_keys = vec![
-        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
-        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
-    ];
     let config = r#"
         {
             "allowlisted_addresses": [
@@ -561,25 +527,11 @@ async fn test_fail_signing_group() {
 
     let dave = AccountKeyring::Dave;
     let eve = AccountKeyring::Eve;
-    let _ = spawn_testing_validators(None, false, false).await;
+    let (validator_ips, _, _) = spawn_testing_validators(None, false, false).await;
 
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-
-    let validators_info = vec![
-        ValidatorInfo {
-            ip_address: "127.0.0.1:3001".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[0],
-            tss_account: hex!["a664add5dfaca1dd560b949b5699b5f0c3c1df3a2ea77ceb0eeb4f77cc3ade04"]
-                .into(),
-        },
-        ValidatorInfo {
-            ip_address: "127.0.0.1:3002".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[1],
-            tss_account: TSS_ACCOUNTS[1].clone(),
-        },
-    ];
 
     let program_hash = store_program(
         &entropy_api,
@@ -605,14 +557,10 @@ async fn test_fail_signing_group() {
     .await
     .unwrap();
 
-    let generic_msg = UserSignatureRequest {
-        message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
-        auxilary_data: Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]),
-        validators_info,
-        timestamp: SystemTime::now(),
-        hash: HashingAlgorithm::Keccak,
-        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
-    };
+    let (_, mut generic_msg, _validator_ips_and_keys) =
+        get_sign_tx_data(validator_ips, hex::encode(PREIMAGE_SHOULD_SUCCEED));
+    generic_msg.validators_info[0].tss_account =
+        hex!["a664add5dfaca1dd560b949b5699b5f0c3c1df3a2ea77ceb0eeb4f77cc3ade04"].into();
 
     let signed_message = EncryptedSignedMessage::new(
         &dave.pair(),
@@ -1126,19 +1074,6 @@ async fn test_sign_tx_user_participates() {
     .await
     .unwrap();
 
-    let validators_info = vec![
-        ValidatorInfo {
-            ip_address: "127.0.0.1:3001".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[0],
-            tss_account: TSS_ACCOUNTS[0].clone(),
-        },
-        ValidatorInfo {
-            ip_address: "127.0.0.1:3002".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[1],
-            tss_account: TSS_ACCOUNTS[1].clone(),
-        },
-    ];
-
     let encoded_transaction_request: String = hex::encode(PREIMAGE_SHOULD_SUCCEED);
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
@@ -1149,20 +1084,10 @@ async fn test_sign_tx_user_participates() {
         request_author: signature_request_account.clone(),
     });
 
-    let mut generic_msg = UserSignatureRequest {
-        message: encoded_transaction_request.clone(),
-        auxilary_data: Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]),
-        validators_info: validators_info.clone(),
-        timestamp: SystemTime::now(),
-        hash: HashingAlgorithm::Keccak,
-        signature_verifying_key: verifying_key.clone(),
-    };
-
-    let validator_ips_and_keys = vec![
-        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
-        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
-    ];
-    generic_msg.timestamp = SystemTime::now();
+    let (validators_info, mut generic_msg, validator_ips_and_keys) =
+        get_sign_tx_data(validator_ips, encoded_transaction_request);
+    generic_msg.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
+    generic_msg.signature_verifying_key = verifying_key.clone();
 
     // Submit transaction requests, and connect and participate in signing
     let (test_user_res, sig_result) = future::join(
@@ -1755,4 +1680,40 @@ pub async fn submit_transaction_requests(
             .collect::<Vec<_>>(),
     )
     .await
+}
+
+pub fn get_sign_tx_data(
+    validator_ips: Vec<String>,
+    message: String,
+) -> (Vec<ValidatorInfo>, UserSignatureRequest, Vec<(String, [u8; 32])>) {
+    let validators_info = vec![
+        ValidatorInfo {
+            ip_address: "localhost:3001".to_string(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone(),
+        },
+        ValidatorInfo {
+            ip_address: "127.0.0.1:3002".to_string(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone(),
+        },
+    ];
+    let generic_msg = UserSignatureRequest {
+        message,
+        auxilary_data: Some(vec![
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
+        ]),
+        validators_info: validators_info.clone(),
+        timestamp: SystemTime::now(),
+        hash: HashingAlgorithm::Keccak,
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
+    };
+
+    let validator_ips_and_keys = vec![
+        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
+        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
+    ];
+
+    (validators_info, generic_msg, validator_ips_and_keys)
 }
