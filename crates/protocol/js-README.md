@@ -7,7 +7,7 @@ side when using private access mode.
 
 Exposed to JS:
 
-- [`X25519Chacha20Poly1305`](#X25519Chacha20Poly1305) - for signing and encrypting / decrypting
+- [`Hpke`](#Hpke) - for signing and encrypting / decrypting
 - [`runDkgProtocol`](#registering-in-private-access-mode) - for registering in private access mode
 - [`runSigningProtocol`](#signing-in-private-access-mode) - for signing in private access mode
 - `ValidatorInfo` - details of a TSS node
@@ -19,29 +19,29 @@ Helpers:
 - `fromHex` - convert a hex-encoded `string` to a Uint8Array, ignoring `0x` prefix
 - `constantTimeEq` - compare 2 `Uint8Array`s in constant time
 
-## `X25519Chacha20Poly1305`
+## `Hpke`
 
-This is used for communicating with TSS servers and bundles together chacha20poly1305 encryption,
-X25519 key agreement and sr25519 signing.
+This is used for communicating with TSS servers and uses [Hybrid Public Key Encryption](https://www.rfc-editor.org/rfc/rfc9180)
+based on chacha20poly1305 with X25519 key agreement, as well as sr25519 signing.
 
-### `X25519Chacha20Poly1305.publicKeyFromSecret`
+### `Hpke.publicKeyFromSecret`
 
 Given an sr25519 secret key, derive an X25519 DH keypair and return the public key as a 32 bytes
 `Uint8Array`.
 
-### `X25519Chacha20Poly1305.encryptAndSign`
+### `Hpke.encryptAndSign`
 
 Encrypt and sign a message. Takes an sr25519 secret key, a payload to encrypt, and the recipient's
-public x25519 key, all given as `Uint8Array`s. Returns an encrypted `SignedMessage` as a JSON
+public x25519 key, all given as `Uint8Array`s. Returns an `EncryptedSignedMessage` as a JSON
 serialized string.
 
-### `X25519Chacha20Poly1305.decryptAndVerify`
+### `Hpke.decryptAndVerify`
 
-Decrypt and verify a `SignedMessage`. Takes an sr25519 secret key given as a `Uint8Array`, and a JSON
-serialized `SignedMessage` containing the encrypted payload. On successful decryption and signature
-verification it will return the decrypted payload as a `Uint8Array`.
+Decrypt and verify an `EncryptedSignedMessage`. Takes an sr25519 secret key given as a `Uint8Array`,
+and a JSON serialized `SignedMessage` containing the encrypted payload. On successful decryption
+and signature verification it will return the decrypted payload as a `Uint8Array`.
 
-### `X25519Chacha20Poly1305.generateSigningKey`
+### `Hpke.generateSigningKey`
 
 Generates a secret sr25519 signing key and returns it as a Uint8Array. This is really only exposed
 for testing purposes, as you can also use Polkadot-JS to generate sr25519 keypairs.

@@ -33,7 +33,7 @@ use entropy_testing_utils::{
     },
     constants::TEST_PROGRAM_WASM_BYTECODE,
     test_client::{
-        derive_static_secret, get_accounts, get_api, get_programs, get_rpc, register, sign,
+        derive_x25519_static_secret, get_accounts, get_api, get_programs, get_rpc, register, sign,
         store_program, update_programs, KeyParams, KeyShare, KeyVisibility,
     },
 };
@@ -211,7 +211,7 @@ async fn run_command() -> anyhow::Result<String> {
 
             let key_visibility_converted = match key_visibility {
                 Visibility::Private => {
-                    let x25519_secret = derive_static_secret(&signature_request_keypair);
+                    let x25519_secret = derive_x25519_static_secret(&signature_request_keypair);
                     let x25519_public = x25519_dalek::PublicKey::from(&x25519_secret);
                     KeyVisibility::Private(x25519_public.to_bytes())
                 },

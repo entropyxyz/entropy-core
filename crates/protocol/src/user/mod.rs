@@ -34,7 +34,7 @@ use crate::{
         noise::noise_handshake_initiator, open_ws_connection, ws_to_channels, Broadcaster,
         SubscribeMessage, ThreadSafeWsConnection, WsChannels,
     },
-    sign_and_encrypt::derive_static_secret,
+    sign_and_encrypt::derive_x25519_static_secret,
     KeyParams, PartyId, RecoverableSignature, SessionId, SigningSessionInfo, ValidatorInfo,
 };
 
@@ -115,7 +115,7 @@ where
     Fut: Future<Output = Result<W, UserRunningProtocolErr>>,
     W: ThreadSafeWsConnection,
 {
-    let x25519_private_key = derive_static_secret(user_signing_keypair);
+    let x25519_private_key = derive_x25519_static_secret(user_signing_keypair);
     // Set up channels for communication between the protocol and the other parties
     let (tx, _rx) = broadcast::channel(1000);
     let (tx_to_others, rx_to_others) = mpsc::channel(1000);

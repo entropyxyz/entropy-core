@@ -34,7 +34,7 @@ use super::ProtocolErr;
 use crate::{
     get_signer,
     signing_client::{SessionId, SubscribeErr},
-    validation::derive_static_secret,
+    validation::derive_x25519_static_secret,
     AppState, ListenerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
 
@@ -112,7 +112,7 @@ pub async fn open_protocol_connections(
 /// Handle an incoming websocket connection
 pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
     let signer = get_signer(&app_state.kv_store).await.map_err(|_| WsError::SignerFromAppState)?;
-    let x25519_secret_key = derive_static_secret(signer.signer());
+    let x25519_secret_key = derive_x25519_static_secret(signer.signer());
 
     let (mut encrypted_connection, serialized_signed_message) =
         noise_handshake_responder(socket, &x25519_secret_key)
