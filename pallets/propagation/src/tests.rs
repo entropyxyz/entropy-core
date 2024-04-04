@@ -65,9 +65,9 @@ fn knows_how_to_mock_several_http_calls() {
             sent: true,
             response: Some([].to_vec()),
             body: [
-                4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 20, 16, 116, 101, 115, 116, 20, 16, 116, 101, 115, 116, 8, 16, 1, 0,
-                0, 0, 16, 2, 0, 0, 0,
+                5, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 16, 116, 101, 115, 116, 20, 16, 116, 101, 115, 116,
+                8, 16, 1, 0, 0, 0, 16, 2, 0, 0, 0,
             ]
             .to_vec(),
             ..Default::default()
@@ -82,7 +82,8 @@ fn knows_how_to_mock_several_http_calls() {
             <Test as frame_system::Config>::Hash::default(),
             ProgramInfo {
                 bytecode: vec![],
-                interface_description: vec![],
+                configuration_schema: vec![],
+                auxiliary_data_schema: vec![],
                 deployer: 1,
                 ref_counter: 0,
             },

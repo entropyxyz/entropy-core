@@ -26,9 +26,7 @@ use entropy_testing_utils::{
 };
 use serial_test::serial;
 use sp_core::{sr25519, Pair};
-use sp_keyring::AccountKeyring;
-use subxt::{ext::sp_core::Bytes, tx::PairSigner};
-use x25519_dalek::PublicKey;
+use subxt::tx::PairSigner;
 
 use super::api::{
     check_balance_for_fees, get_all_keys, get_and_store_values, get_random_server_info,
@@ -38,14 +36,15 @@ use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::{
-            ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
-            DEFAULT_MNEMONIC, FORBIDDEN_KEYS,
+            ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC,
+            FORBIDDEN_KEYS,
         },
         substrate::{get_registered_details, get_stash_address, get_subgroup, query_chain},
         tests::{create_clients, initialize_test_logger},
     },
     validation::{
-        derive_static_secret, mnemonic_to_pair, new_mnemonic, SignedMessage, TIME_BUFFER,
+        derive_x25519_public_key, mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage,
+        TIME_BUFFER,
     },
     validator::errors::ValidatorErr,
 };
@@ -95,12 +94,16 @@ async fn test_sync_kvdb() {
         hex::encode(FERDIE_VERIFYING_KEY.to_vec()),
     ];
 
+    let a_usr_sk = mnemonic_to_pair(
+        &Mnemonic::parse_in_normalized(Language::English, DEFAULT_ALICE_MNEMONIC).unwrap(),
+    )
+    .unwrap();
+
     let b_usr_sk = mnemonic_to_pair(
         &Mnemonic::parse_in_normalized(Language::English, DEFAULT_BOB_MNEMONIC).unwrap(),
     )
     .unwrap();
-    let b_usr_ss = derive_static_secret(&b_usr_sk);
-    let recip = PublicKey::from(&b_usr_ss);
+    let recip = derive_x25519_public_key(&b_usr_sk).unwrap();
     let values = vec![vec![10], vec![11], vec![12]];
 
     let port = 3001;
@@ -117,7 +120,8 @@ async fn test_sync_kvdb() {
     let client = reqwest::Client::new();
     let mut keys = Keys { keys: addrs, timestamp: SystemTime::now() };
     let enc_keys =
-        SignedMessage::new(&b_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip).unwrap();
+        EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
+            .unwrap();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
     let result = client
         .post(formatted_url.clone())
@@ -131,15 +135,11 @@ async fn test_sync_kvdb() {
     // return no error (status code 200).
     assert_eq!(result.status(), 200);
 
-    let a_usr_sk = mnemonic_to_pair(
-        &Mnemonic::parse_in_normalized(Language::English, DEFAULT_ALICE_MNEMONIC).unwrap(),
-    )
-    .unwrap();
-    let a_usr_ss = derive_static_secret(&a_usr_sk);
-    let sender = PublicKey::from(&a_usr_ss);
+    let sender = derive_x25519_public_key(&a_usr_sk).unwrap();
 
     let enc_keys_failed_decrypt =
-        SignedMessage::new(&b_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &sender).unwrap();
+        EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &sender, &[])
+            .unwrap();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
     let result_2 = client
         .post(formatted_url.clone())
@@ -152,11 +152,12 @@ async fn test_sync_kvdb() {
     assert_eq!(result_2.status(), 500);
     assert_eq!(
         result_2.text().await.unwrap(),
-        "Encryption or signing error: ChaCha20 decryption error: aead::Error"
+        "Encryption or authentication: Hpke: HPKE Error: OpenError"
     );
 
     let enc_keys =
-        SignedMessage::new(&a_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip).unwrap();
+        EncryptedSignedMessage::new(&a_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
+            .unwrap();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
     let result_3 = client
         .post(formatted_url.clone())
@@ -172,9 +173,13 @@ async fn test_sync_kvdb() {
     // check random key fails not in subgroup
     let random_usr_sk = mnemonic_to_pair(&new_mnemonic().unwrap()).unwrap();
 
-    let enc_keys =
-        SignedMessage::new(&random_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip)
-            .unwrap();
+    let enc_keys = EncryptedSignedMessage::new(
+        &random_usr_sk,
+        serde_json::to_vec(&keys).unwrap(),
+        &recip,
+        &[],
+    )
+    .unwrap();
     let formatted_url = format!("http://127.0.0.1:{port}/validator/sync_kvdb");
     let result_3 = client
         .post(formatted_url.clone())
@@ -190,7 +195,8 @@ async fn test_sync_kvdb() {
 
     keys.keys = vec![FORBIDDEN_KEYS[0].to_string()];
     let enc_forbidden =
-        SignedMessage::new(&b_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip).unwrap();
+        EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
+            .unwrap();
     let result_4 = client
         .post(formatted_url.clone())
         .header("Content-Type", "application/json")
@@ -204,7 +210,8 @@ async fn test_sync_kvdb() {
 
     keys.timestamp = keys.timestamp.checked_sub(TIME_BUFFER).unwrap();
     let enc_stale =
-        SignedMessage::new(&b_usr_sk, &Bytes(serde_json::to_vec(&keys).unwrap()), &recip).unwrap();
+        EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
+            .unwrap();
     let result_5 = client
         .post(formatted_url.clone())
         .header("Content-Type", "application/json")
@@ -217,17 +224,14 @@ async fn test_sync_kvdb() {
     assert_eq!(result_5.text().await.unwrap(), "Validation Error: Message is too old");
 
     let sig: [u8; 64] = [0; 64];
-    let slice: [u8; 32] = [0; 32];
-    let nonce: [u8; 12] = [0; 12];
-
-    let user_input_bad = SignedMessage::new_test(
-        Bytes(serde_json::to_vec(&keys.clone()).unwrap()),
+    let user_input_bad = EncryptedSignedMessage::new_with_given_signature(
+        &b_usr_sk,
+        serde_json::to_vec(&keys.clone()).unwrap(),
+        &recip,
+        &[],
         sr25519::Signature::from_raw(sig),
-        AccountKeyring::Eve.pair().public().into(),
-        slice,
-        slice,
-        nonce,
-    );
+    )
+    .unwrap();
 
     let failed_sign = client
         .post(formatted_url.clone())
@@ -238,7 +242,10 @@ async fn test_sync_kvdb() {
         .unwrap();
 
     assert_eq!(failed_sign.status(), 500);
-    assert_eq!(failed_sign.text().await.unwrap(), "Invalid Signature: Invalid signature.");
+    assert_eq!(
+        failed_sign.text().await.unwrap(),
+        "Encryption or authentication: Cannot verify signature"
+    );
 
     clean_tests();
 }
@@ -255,12 +262,16 @@ async fn test_get_and_store_values() {
 
     let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
     let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    let my_subgroup = get_subgroup(&api, &rpc, &signer_alice.account_id()).await.unwrap();
-    let server_info =
-        get_random_server_info(&api, &rpc, my_subgroup, signer_alice.account_id().clone())
-            .await
-            .unwrap();
-    let recip_key = x25519_dalek::PublicKey::from(server_info.x25519_public_key);
+
+    let mut recip_server_info = {
+        let alice_stash_address =
+            get_stash_address(&api, &rpc, &signer_alice.account_id()).await.unwrap();
+        let server_info_query =
+            entropy::storage().staking_extension().threshold_servers(alice_stash_address);
+        query_chain(&api, &rpc, server_info_query, None).await.unwrap().unwrap()
+    };
+    recip_server_info.endpoint = b"127.0.0.1:3002".to_vec();
+
     let keys = vec![
         hex::encode(DAVE_VERIFYING_KEY.to_vec()),
         hex::encode(EVE_VERIFYING_KEY.to_vec()),
@@ -295,18 +306,12 @@ async fn test_get_and_store_values() {
         axum::serve(listener_bob, bob_axum).await.unwrap();
     });
 
-    let p_charlie = <sr25519::Pair as Pair>::from_string(DEFAULT_CHARLIE_MNEMONIC, None).unwrap();
-    let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
-    let _result = get_and_store_values(
-        keys.clone(),
-        &bob_kv,
-        "127.0.0.1:3002".to_string(),
-        9,
-        false,
-        &recip_key,
-        &signer_charlie,
-    )
-    .await;
+    // We are 'being' bob (using bob's kv), but we authenticate as alice, because otherwise we will
+    // fail the subgroup check. We can't properly test this function because we don't have two tss
+    // servers in the same subgroup with only two subgroups.
+    get_and_store_values(keys.clone(), &bob_kv, 9, false, recip_server_info, &signer_alice)
+        .await
+        .unwrap();
     for (i, key) in keys.iter().enumerate() {
         tracing::info!("!! -> -> RECEIVED KEY at IDX {i} of value {key:?}");
         let val = bob_kv.kv().get(key).await;

@@ -1,20 +1,20 @@
-//! Wasm bindings to the [SignedMessage] API, as well as some helper functions
-use super::{derive_static_secret, SignedMessage};
+//! Wasm bindings to the [EncryptedSignedMessage] API, as well as some helper functions
+use super::{derive_x25519_static_secret, EncryptedSignedMessage};
 use js_sys::Error;
 use schnorrkel::{MiniSecretKey, SecretKey};
-use sp_core::{sr25519, Bytes};
+use sp_core::sr25519;
 use wasm_bindgen::prelude::*;
 use x25519_dalek::PublicKey;
 
 const HEX_PREFIX: [u8; 2] = [48, 120];
 
-/// Functions for creating and using 'SignedMessage's which use chacha20poly1305
-/// encryption, x25519 key agreement and sr25519 signing.
+/// Functions for creating and using `EncryptedSignedMessage`s which use HPKE for chacha20poly1305
+/// encryption and x25519 key agreement and sr25519 for signing.
 #[wasm_bindgen]
-pub struct X25519Chacha20Poly1305 {}
+pub struct Hpke {}
 
 #[wasm_bindgen]
-impl X25519Chacha20Poly1305 {
+impl Hpke {
     /// Generates a Ristretto Schnorr secret key.
     /// This method is used for testing, applications that implement this
     /// library should rely on user provided keys generated from substrate
@@ -34,11 +34,11 @@ impl X25519Chacha20Poly1305 {
     #[wasm_bindgen(js_name = publicKeyFromSecret)]
     pub fn public_key_from_secret(secret_key: Vec<u8>) -> Result<Vec<u8>, Error> {
         let pair = sr25519_keypair_from_secret_key(secret_key)?;
-        let x25519_secret = derive_static_secret(&pair);
+        let x25519_secret = derive_x25519_static_secret(&pair);
         Ok(PublicKey::from(&x25519_secret).as_bytes().to_vec())
     }
 
-    /// Encrypts, signs, and serializes a SignedMessage to JSON.
+    /// Encrypts, signs, and serializes an `EncryptedSignedMessage` to JSON.
     #[wasm_bindgen(js_name = encryptAndSign)]
     pub fn encrypt_and_sign(
         sr25519_secret_key: Vec<u8>,
@@ -51,33 +51,33 @@ impl X25519Chacha20Poly1305 {
             }
             let mut raw_pk: [u8; 32] = [0; 32];
             raw_pk.copy_from_slice(&recipient_public_x25519_key[0..32]);
-            PublicKey::from(raw_pk)
+            raw_pk
         };
-
-        let message_bytes = Bytes(message);
 
         let pair = sr25519_keypair_from_secret_key(sr25519_secret_key)?;
 
-        let signed_message = SignedMessage::new(&pair, &message_bytes, &recipient_pk)
+        let encrypted_message = EncryptedSignedMessage::new(&pair, message, &recipient_pk, &[])
             .map_err(|err| Error::new(&err.to_string()))?;
 
-        Ok(signed_message.to_json().map_err(|err| Error::new(&err.to_string()))?)
+        Ok(serde_json::to_string(&encrypted_message).map_err(|err| Error::new(&err.to_string()))?)
     }
 
-    /// Deserializes, verifies and decrypts a json encoded `SignedMessage`.
+    /// Deserializes, verifies and decrypts a json encoded `EncryptedSignedMessage`.
     /// Returns the plaintext.
     #[wasm_bindgen(js_name = decryptAndVerify)]
     pub fn decrypt_and_verify(secret_key: Vec<u8>, message: String) -> Result<Vec<u8>, Error> {
-        let signed_message: SignedMessage =
+        let encrypted_message: EncryptedSignedMessage =
             serde_json::from_str(message.as_str()).map_err(|err| Error::new(&err.to_string()))?;
-
-        if !signed_message.verify() {
-            return Err(Error::new("Failed to verify signature"));
-        }
 
         let pair = sr25519_keypair_from_secret_key(secret_key)?;
 
-        Ok(signed_message.decrypt(&pair).map_err(|err| Error::new(&err.to_string()))?)
+        let signed_message =
+            encrypted_message.decrypt(&pair, &[]).map_err(|err| Error::new(&err.to_string()))?;
+
+        // TODO here we keep the API as it was before - but really this is bad because there is no
+        // way for the called to check the public key of the signer - we should be returning that as
+        // well
+        Ok(signed_message.message.0)
     }
 }
 

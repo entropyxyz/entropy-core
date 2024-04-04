@@ -24,7 +24,10 @@ mod helpers;
 
 use axum::http::StatusCode;
 use entropy_kvdb::clean_tests;
-use entropy_protocol::{KeyParams, ValidatorInfo};
+use entropy_protocol::{
+    sign_and_encrypt::{derive_x25519_static_secret, EncryptedSignedMessage},
+    KeyParams, ValidatorInfo,
+};
 use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg, EVE_VERIFYING_KEY};
 use entropy_testing_utils::{
     chain_api::{
@@ -48,9 +51,7 @@ use sp_core::crypto::{AccountId32, Pair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::time::SystemTime;
 use subxt::{
-    backend::legacy::LegacyRpcMethods,
-    events::EventsClient,
-    ext::sp_core::{sr25519::Signature, Bytes},
+    backend::legacy::LegacyRpcMethods, events::EventsClient, ext::sp_core::sr25519::Signature,
     Config, OnlineClient,
 };
 use synedrion::KeyShare;
@@ -61,10 +62,7 @@ use entropy_tss::{
         entropy::{self},
         get_api, get_rpc, EntropyConfig,
     },
-    common::{
-        validation::{derive_static_secret, SignedMessage},
-        Hasher, UserSignatureRequest,
-    },
+    common::{Hasher, UserSignatureRequest},
 };
 
 /// Test demonstrating signing a message with private key visibility on wasm
@@ -92,6 +90,7 @@ async fn test_wasm_sign_tx_user_participates() {
         &rpc,
         &dave.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
         vec![],
     )
     .await
@@ -144,18 +143,18 @@ async fn test_wasm_sign_tx_user_participates() {
                 validator_urls_and_keys
                     .iter()
                     .map(|validator_tuple| async {
-                        let server_public_key = PublicKey::from(validator_tuple.1);
-                        let signed_message = SignedMessage::new(
+                        let encryped_message = EncryptedSignedMessage::new(
                             &keyring.pair(),
-                            &Bytes(serde_json::to_vec(&generic_msg.clone()).unwrap()),
-                            &server_public_key,
+                            serde_json::to_vec(&generic_msg.clone()).unwrap(),
+                            &validator_tuple.1,
+                            &[],
                         )
                         .unwrap();
                         let url = format!("http://{}/user/sign_tx", validator_tuple.0.clone());
                         mock_client
                             .post(url)
                             .header("Content-Type", "application/json")
-                            .body(serde_json::to_string(&signed_message).unwrap())
+                            .body(serde_json::to_string(&encryped_message).unwrap())
                             .send()
                             .await
                     })
@@ -220,14 +219,20 @@ async fn test_wasm_register_with_private_key_visibility() {
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-    let program_pointer =
-        store_program(&api, &rpc, &dave.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
-            .await
-            .unwrap();
+    let program_pointer = store_program(
+        &api,
+        &rpc,
+        &dave.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-    let one_x25519_sk = derive_static_secret(&one.pair());
+    let one_x25519_sk = derive_x25519_static_secret(&one.pair());
     let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
 
     put_register_request_on_chain(
@@ -276,7 +281,11 @@ async fn test_wasm_register_with_private_key_visibility() {
             .post("http://127.0.0.1:3002/user/new")
             .body(onchain_user_request.clone().encode())
             .send(),
-        spawn_user_participates_in_dkg_protocol(validators_info.clone(), one.pair().to_raw_vec()),
+        spawn_user_participates_in_dkg_protocol(
+            validators_info.clone(),
+            one.pair().to_raw_vec(),
+            block_number,
+        ),
     )
     .await;
 
@@ -307,6 +316,7 @@ struct UserParticipatesInSigningProtocolArgs {
 struct UserParticipatesInDkgProtocolArgs {
     user_sig_req_secret_key: Vec<u8>,
     validators_info: Vec<ValidatorInfoParsed>,
+    block_number: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -347,6 +357,7 @@ async fn spawn_user_participates_in_signing_protocol(
 async fn spawn_user_participates_in_dkg_protocol(
     validators_info: Vec<ValidatorInfo>,
     user_sig_req_secret_key: Vec<u8>,
+    block_number: u32,
 ) -> String {
     let args = UserParticipatesInDkgProtocolArgs {
         user_sig_req_secret_key,
@@ -358,6 +369,7 @@ async fn spawn_user_participates_in_dkg_protocol(
                 tss_account: *validator_info.tss_account.as_ref(),
             })
             .collect(),
+        block_number,
     };
     let json_params = serde_json::to_string(&args).unwrap();
 

@@ -138,7 +138,7 @@ pub mod pallet {
             Ok(())
         }
 
-        pub fn post_proactive_refresh(_block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
+        pub fn post_proactive_refresh(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let refresh_info = pallet_staking_extension::Pallet::<T>::proactive_refresh();
             if refresh_info.validators_info.is_empty() {
                 return Ok(());
@@ -151,7 +151,12 @@ pub mod pallet {
             let url = str::from_utf8(&from_local)
                 .unwrap_or("http://localhost:3001/signer/proactive_refresh");
 
+            let converted_block_number: u32 =
+                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
+
             let req_body = OcwMessageProactiveRefresh {
+                // subtract 1 from blocknumber since the request is from the last block
+                block_number: converted_block_number.saturating_sub(1),
                 validators_info: refresh_info.validators_info,
                 proactive_refresh_keys: refresh_info.proactive_refresh_keys,
             };

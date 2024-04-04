@@ -26,6 +26,10 @@ use subxt::{
     substitute_type(
         path = "entropy_shared::types::KeyVisibility",
         with = "::subxt::utils::Static<::entropy_shared::KeyVisibility>",
+    ),
+    substitute_type(
+        path = "entropy_shared::types::ValidatorInfo",
+        with = "::subxt::utils::Static<::entropy_shared::ValidatorInfo>",
     )
 )]
 pub mod entropy {}

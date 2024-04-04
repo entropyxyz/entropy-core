@@ -15,8 +15,9 @@
 
 //! Simple test client
 pub use crate::chain_api::{get_api, get_rpc};
+use base64::prelude::{Engine, BASE64_STANDARD};
 pub use entropy_protocol::{
-    sign_and_encrypt::{derive_static_secret, SignedMessage},
+    sign_and_encrypt::{derive_x25519_static_secret, EncryptedSignedMessage},
     KeyParams,
 };
 use entropy_shared::HashingAlgorithm;
@@ -45,8 +46,7 @@ use entropy_tss::{
 };
 use futures::future;
 use parity_scale_codec::Decode;
-use sp_core::crypto::AccountId32;
-use sp_core::{sr25519, Bytes, Pair};
+use sp_core::{crypto::AccountId32, sr25519, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     events::EventsClient,
@@ -96,12 +96,17 @@ pub async fn register(
                 .chain_get_header(None)
                 .await?
                 .ok_or(anyhow!("Cannot get current block number"))?
-                .number;
+                .number
+                + 1;
 
-            let validators_info = get_dkg_committee(api, rpc, block_number + 1).await?;
+            let validators_info = get_dkg_committee(api, rpc, block_number).await?;
             Some(
-                user_participates_in_dkg_protocol(validators_info, &signature_request_keypair)
-                    .await?,
+                user_participates_in_dkg_protocol(
+                    validators_info,
+                    &signature_request_keypair,
+                    block_number,
+                )
+                .await?,
             )
         },
         _ => None,
@@ -172,21 +177,20 @@ pub async fn sign(
     let submit_transaction_requests = validators_info
         .iter()
         .map(|validator_info| async {
-            let validator_public_key: x25519_dalek::PublicKey =
-                validator_info.x25519_public_key.into();
-            let signed_message = SignedMessage::new(
+            let encrypted_message = EncryptedSignedMessage::new(
                 &user_keypair,
-                &Bytes(signature_request_vec.clone()),
-                &validator_public_key,
+                signature_request_vec.clone(),
+                &validator_info.x25519_public_key,
+                &[],
             )?;
-            let signed_message_json = signed_message.to_json()?;
+            let message_json = serde_json::to_string(&encrypted_message)?;
 
             let url = format!("http://{}/user/sign_tx", validator_info.ip_address);
 
             let res = client
                 .post(url)
                 .header("Content-Type", "application/json")
-                .body(signed_message_json)
+                .body(message_json)
                 .send()
                 .await;
             Ok::<_, anyhow::Error>(res)
@@ -221,7 +225,7 @@ pub async fn sign(
         let (signature_base64, signature_of_signature) =
             signing_result.map_err(|err| anyhow!(err))?;
         tracing::debug!("Signature: {}", signature_base64);
-        let mut decoded_sig = base64::decode(signature_base64)?;
+        let mut decoded_sig = BASE64_STANDARD.decode(signature_base64)?;
 
         // Verify the response signature from the TSS client
         ensure!(
@@ -261,8 +265,13 @@ pub async fn store_program(
     deployer_pair: &sr25519::Pair,
     program: Vec<u8>,
     configuration_interface: Vec<u8>,
+    auxiliary_data_interface: Vec<u8>,
 ) -> anyhow::Result<<EntropyConfig as Config>::Hash> {
-    let update_program_tx = entropy::tx().programs().set_program(program, configuration_interface);
+    let update_program_tx = entropy::tx().programs().set_program(
+        program,
+        configuration_interface,
+        auxiliary_data_interface,
+    );
     let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer_pair.clone());
 
     let in_block = submit_transaction(api, rpc, &deployer, &update_program_tx, None).await?;

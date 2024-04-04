@@ -96,7 +96,8 @@ async fn test_proactive_refresh() {
 
     let mut ocw_message = OcwMessageProactiveRefresh {
         validators_info,
-        proactive_refresh_keys: vec![DAVE_VERIFYING_KEY.to_vec(), EVE_VERIFYING_KEY.to_vec()],
+        proactive_refresh_keys: vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
+        block_number: 0,
     };
 
     let test_fail_incorrect_data =
@@ -116,8 +117,8 @@ async fn test_proactive_refresh() {
         if i == 0 {
             assert_eq!(
                 res.unwrap().text().await.unwrap(),
-                "User Error: The remote TSS server rejected the keyshare: Validation error: ChaCha20 \
-                decryption error: aead::Error"
+                "User Error: The remote TSS server rejected the keyshare: Encryption or signing \
+                error: Hpke: HPKE Error: OpenError"
             );
         } else {
             assert_eq!(res.unwrap().text().await.unwrap(), "");
@@ -216,6 +217,7 @@ async fn test_proactive_refresh_validation_fail() {
     let ocw_message = OcwMessageProactiveRefresh {
         validators_info,
         proactive_refresh_keys: vec![dave.to_account_id().encode(), eve.to_account_id().encode()],
+        block_number,
     };
     run_to_block(&rpc, block_number).await;
 

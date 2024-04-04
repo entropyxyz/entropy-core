@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Wrappers around functions to run DKG and signing protocols for JS
+use base64::prelude::{Engine, BASE64_STANDARD};
 use js_sys::Error;
 use sp_core::sr25519;
 use subxt::utils::AccountId32;
@@ -28,14 +29,16 @@ use crate::KeyParams;
 pub async fn run_dkg_protocol(
     validators_info_js: ValidatorInfoArray,
     user_signing_secret_key: Vec<u8>,
+    block_number: u32,
 ) -> Result<KeyShare, Error> {
     let validators_info = parse_validator_info(validators_info_js)?;
 
     let user_signing_keypair = sr25519_keypair_from_secret_key(user_signing_secret_key)?;
 
-    let key_share = user_participates_in_dkg_protocol(validators_info, &user_signing_keypair)
-        .await
-        .map_err(|err| Error::new(&format!("{}", err)))?;
+    let key_share =
+        user_participates_in_dkg_protocol(validators_info, &user_signing_keypair, block_number)
+            .await
+            .map_err(|err| Error::new(&format!("{}", err)))?;
 
     Ok(KeyShare(key_share))
 }
@@ -65,7 +68,7 @@ pub async fn run_signing_protocol(
     .await
     .map_err(|err| Error::new(&format!("{}", err)))?;
 
-    Ok(base64::encode(signature.to_rsv_bytes()))
+    Ok(BASE64_STANDARD.encode(signature.to_rsv_bytes()))
 }
 
 #[wasm_bindgen]
