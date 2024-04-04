@@ -156,21 +156,21 @@ parameters:
         type: boolean
 version: 2.1
 workflows:
-    # lint:
-    #     jobs:
-    #         - fmt-lint-all
-    # test:
-    #     jobs:
-    #         - node-benchmark
-    # build:
-    #     jobs:
-    #         - node-test
-    #     when:
-    #         or:
-    #             - << pipeline.parameters.node >>
-    #             - << pipeline.parameters.pallets >>
-    #             - << pipeline.parameters.runtime >>
-    #             - pipeline.parameters.crates
+    lint:
+        jobs:
+            - fmt-lint-all
+    test:
+        jobs:
+            - node-benchmark
+    build:
+        jobs:
+            - node-test
+        when:
+            or:
+                - << pipeline.parameters.node >>
+                - << pipeline.parameters.pallets >>
+                - << pipeline.parameters.runtime >>
+                - pipeline.parameters.crates
     documentation:
         jobs:
             - check-doc-build
