@@ -19,46 +19,14 @@ mod hpke;
 #[cfg(feature = "wasm")]
 pub mod wasm;
 
-use blake2::{Blake2s256, Digest};
 use entropy_shared::X25519PublicKey;
 use hpke::HpkeMessage;
-use hpke_rs::{HpkeError, HpkeKeyPair, HpkePrivateKey, HpkePublicKey};
-use rand_core::{OsRng, RngCore};
+use hpke_rs::{HpkeError, HpkePrivateKey, HpkePublicKey};
+use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Bytes, Pair};
 use thiserror::Error;
 use x25519_dalek::StaticSecret;
-use zeroize::Zeroize;
-
-/// Given a sr25519 secret signing key, derive an x25519 public key
-pub fn derive_x25519_public_key(sk: &sr25519::Pair) -> Result<X25519PublicKey, HpkeError> {
-    let (_, hpke_public_key) = derive_hpke_keypair(sk)?;
-    let mut x25519_public_key: [u8; 32] = [0; 32];
-    x25519_public_key.copy_from_slice(hpke_public_key.as_slice());
-    Ok(x25519_public_key)
-}
-
-/// Given a sr25519 secret signing key, derive an x25519 secret key
-pub fn derive_x25519_static_secret(sk: &sr25519::Pair) -> StaticSecret {
-    let mut hasher = Blake2s256::new();
-    hasher.update(&sk.to_raw_vec());
-    let mut hash = hasher.finalize();
-
-    let mut buffer: [u8; 32] = [0; 32];
-    buffer.copy_from_slice(&hash);
-    hash.zeroize();
-    StaticSecret::from(buffer)
-}
-
-/// Given a sr25519 secret signing key, derive an x25519 keypair
-fn derive_hpke_keypair(sk: &sr25519::Pair) -> Result<(HpkePrivateKey, HpkePublicKey), HpkeError> {
-    let static_secret = derive_x25519_static_secret(sk);
-    let x25519_public_key = x25519_dalek::PublicKey::from(&static_secret);
-    let keypair =
-        HpkeKeyPair::new(static_secret.to_bytes().to_vec(), x25519_public_key.to_bytes().to_vec())
-            .into_keys();
-    Ok(keypair)
-}
 
 /// Encrypted wire message
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -124,11 +92,11 @@ impl EncryptedSignedMessage {
     /// Decrypt an incoming message
     pub fn decrypt(
         &self,
-        sk: &sr25519::Pair,
+        x25519_sk: &StaticSecret,
         associated_data: &[u8],
     ) -> Result<SignedMessage, EncryptedSignedMessageErr> {
-        let (sk, _pk) = derive_hpke_keypair(sk)?;
-        let plaintext = self.hpke_message.decrypt(&sk, associated_data)?;
+        let hpke_sk = HpkePrivateKey::new(x25519_sk.to_bytes().to_vec());
+        let plaintext = self.hpke_message.decrypt(&hpke_sk, associated_data)?;
         let signed_message: SignedMessage = serde_json::from_slice(&plaintext).unwrap();
         if !signed_message.verify() {
             return Err(EncryptedSignedMessageErr::BadSignature);
@@ -143,15 +111,12 @@ impl EncryptedSignedMessage {
         message: Vec<u8>,
         recipient: &X25519PublicKey,
         associated_data: &[u8],
-    ) -> Result<(Self, sr25519::Pair), EncryptedSignedMessageErr> {
-        let response_secret_key = {
-            let mut seed: [u8; 32] = [0; 32];
-            OsRng.fill_bytes(seed.as_mut());
-            sr25519::Pair::from_seed(&seed)
-        };
-        let response_public_key = derive_x25519_public_key(&response_secret_key)?;
+    ) -> Result<(Self, StaticSecret), EncryptedSignedMessageErr> {
+        let response_secret_key = StaticSecret::random_from_rng(OsRng);
+        let response_public_key = x25519_dalek::PublicKey::from(&response_secret_key);
 
-        let signed_message = SignedMessage::new(message, sender, Some(response_public_key));
+        let signed_message =
+            SignedMessage::new(message, sender, Some(response_public_key.to_bytes()));
         let serialized_signed_message = serde_json::to_vec(&signed_message).unwrap();
 
         Ok((
@@ -223,22 +188,23 @@ mod tests {
     fn test_encrypt() {
         let plaintext = b"Its nice to be important but its more important to be nice".to_vec();
 
-        let alice = Keyring::Alice.pair();
-        let bob = Keyring::Bob.pair();
-
-        let bob_x25519_pk = derive_x25519_public_key(&bob).unwrap();
+        let alice_sr25519 = Keyring::Alice.pair();
+        let bob_x25519_sk = StaticSecret::random_from_rng(OsRng);
+        let bob_x25519_pk = x25519_dalek::PublicKey::from(&bob_x25519_sk).to_bytes();
 
         let aad = b"Some additional context";
 
         let ciphertext =
-            EncryptedSignedMessage::new(&alice, plaintext.clone(), &bob_x25519_pk, aad).unwrap();
+            EncryptedSignedMessage::new(&alice_sr25519, plaintext.clone(), &bob_x25519_pk, aad)
+                .unwrap();
 
-        let decrypted_signed_message = ciphertext.decrypt(&bob, aad).unwrap();
+        let decrypted_signed_message = ciphertext.decrypt(&bob_x25519_sk, aad).unwrap();
 
         assert_eq!(decrypted_signed_message.message, Bytes(plaintext.clone()));
         assert_ne!(ciphertext.hpke_message.ciphertext.0, plaintext);
 
-        assert!(ciphertext.decrypt(&Keyring::Eve.pair(), aad).is_err());
+        let mallory = StaticSecret::random_from_rng(OsRng);
+        assert!(ciphertext.decrypt(&mallory, aad).is_err());
     }
 
     #[test]
@@ -248,7 +214,8 @@ mod tests {
         let alice = Keyring::Alice.pair();
         let bob = Keyring::Bob.pair();
 
-        let bob_x25519_pk = derive_x25519_public_key(&bob).unwrap();
+        let bob_x25519_sk = StaticSecret::random_from_rng(OsRng);
+        let bob_x25519_pk = x25519_dalek::PublicKey::from(&bob_x25519_sk).to_bytes();
 
         let aad = b"Some additional context";
 
@@ -260,11 +227,12 @@ mod tests {
         )
         .unwrap();
 
-        let decrypted_signed_message = ciphertext.decrypt(&bob, aad).unwrap();
+        let decrypted_signed_message = ciphertext.decrypt(&bob_x25519_sk, aad).unwrap();
 
         assert_eq!(decrypted_signed_message.message, Bytes(plaintext.clone()));
         assert_ne!(ciphertext.hpke_message.ciphertext.0, plaintext);
-        assert!(ciphertext.decrypt(&Keyring::Eve.pair(), aad).is_err());
+        let mallory = StaticSecret::random_from_rng(OsRng);
+        assert!(ciphertext.decrypt(&mallory, aad).is_err());
 
         // Now make a response using the public key from the request
         let ciphertext_response = EncryptedSignedMessage::new(
@@ -280,6 +248,7 @@ mod tests {
 
         assert_eq!(decrypted_signed_message_response.message, Bytes(plaintext.clone()));
         assert_ne!(ciphertext_response.hpke_message.ciphertext.0, plaintext);
-        assert!(ciphertext_response.decrypt(&Keyring::Eve.pair(), aad).is_err());
+        let mallory = StaticSecret::random_from_rng(OsRng);
+        assert!(ciphertext_response.decrypt(&mallory, aad).is_err());
     }
 }
