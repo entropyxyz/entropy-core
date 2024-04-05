@@ -16,7 +16,7 @@
 use std::{str::FromStr, sync::Arc, time::SystemTime};
 
 use axum::{
-    body::{Bytes, StreamBody},
+    body::{Body, Bytes},
     extract::State,
     http::StatusCode,
     response::IntoResponse,
@@ -127,8 +127,7 @@ pub struct RequestLimitStorage {
 pub async fn sign_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
-) -> Result<(StatusCode, StreamBody<impl Stream<Item = Result<String, serde_json::Error>>>), UserErr>
-{
+) -> Result<(StatusCode, Body), UserErr> {
     let signer = get_signer(&app_state.kv_store).await?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
@@ -249,7 +248,7 @@ pub async fn sign_tx(
     });
 
     // This indicates that the signing protocol is starting successfully
-    Ok((StatusCode::OK, StreamBody::new(response_rx)))
+    Ok((StatusCode::OK, Body::from_stream(response_rx)))
 }
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.

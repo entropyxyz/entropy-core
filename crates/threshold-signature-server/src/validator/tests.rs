@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{net::TcpListener, time::SystemTime};
+use std::time::SystemTime;
 
 use bip39::{Language, Mnemonic};
 use entropy_kvdb::clean_tests;
@@ -109,11 +109,14 @@ async fn test_sync_kvdb() {
     let port = 3001;
     let (bob_axum, _) =
         create_clients("bob".to_string(), values, addrs.clone(), &Some(ValidatorName::Bob)).await;
-    let listener_bob = TcpListener::bind(format!("0.0.0.0:{port}")).unwrap();
 
+    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}"))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
+        axum::serve(listener_bob, bob_axum).await.unwrap();
     });
+
     let client = reqwest::Client::new();
     let mut keys = Keys { keys: addrs, timestamp: SystemTime::now() };
     let enc_keys =
@@ -288,14 +291,19 @@ async fn test_get_and_store_values() {
 
     let (bob_axum, bob_kv) =
         create_clients("bob".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
-    let listener_alice = TcpListener::bind(format!("0.0.0.0:{port_0}")).unwrap();
-    let listener_bob = TcpListener::bind(format!("0.0.0.0:{port_1}")).unwrap();
 
+    let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{port_0}"))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_alice).unwrap().serve(alice_axum).await.unwrap();
+        axum::serve(listener_alice, alice_axum).await.unwrap();
     });
+
+    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{port_1}"))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
+        axum::serve(listener_bob, bob_axum).await.unwrap();
     });
 
     // We are 'being' bob (using bob's kv), but we authenticate as alice, because otherwise we will
@@ -410,10 +418,12 @@ async fn test_sync_validator() {
         &Some(ValidatorName::Alice),
     )
     .await;
-    let listener_alice = TcpListener::bind("0.0.0.0:3001".to_string()).unwrap();
 
+    let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:3001"))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_alice).unwrap().serve(alice_axum).await.unwrap();
+        axum::serve(listener_alice, alice_axum).await.unwrap();
     });
 
     // adds only 1 key and 1 value to see if others get filled and no error from already having values (also gets overwritten)
@@ -424,10 +434,12 @@ async fn test_sync_validator() {
         &Some(ValidatorName::Charlie),
     )
     .await;
-    let listener_charlie = TcpListener::bind("0.0.0.0:3002".to_string()).unwrap();
 
+    let listener_charlie = tokio::net::TcpListener::bind(format!("0.0.0.0:3002"))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_charlie).unwrap().serve(charlie_axum).await.unwrap();
+        axum::serve(listener_charlie, charlie_axum).await.unwrap();
     });
 
     sync_validator(true, false, "ws://127.0.0.1:9944", &charlie_kv).await;
