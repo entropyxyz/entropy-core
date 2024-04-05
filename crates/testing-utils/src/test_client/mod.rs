@@ -15,10 +15,7 @@
 
 //! Simple test client
 pub use crate::chain_api::{get_api, get_rpc};
-pub use entropy_protocol::{
-    sign_and_encrypt::{derive_x25519_static_secret, EncryptedSignedMessage},
-    KeyParams,
-};
+pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 use entropy_shared::HashingAlgorithm;
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 pub use synedrion::KeyShare;
@@ -54,6 +51,7 @@ use subxt::{
     Config, OnlineClient,
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
+use x25519_dalek::StaticSecret;
 
 /// Register an account.
 ///
@@ -76,6 +74,7 @@ pub async fn register(
     program_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
     programs_data: BoundedVec<ProgramInstance>,
+    x25519_secret_key: Option<StaticSecret>,
 ) -> anyhow::Result<(RegisteredInfo, Option<KeyShare<KeyParams>>)> {
     // Send register transaction
     put_register_request_on_chain(
@@ -91,6 +90,10 @@ pub async fn register(
     // If registering with private key visibility, participate in the DKG protocol
     let keyshare_option = match key_visibility {
         KeyVisibility::Private(_x25519_pk) => {
+            let x25519_secret_key = x25519_secret_key
+                .ok_or(anyhow!("In private mode, an x25519 secret key must be given"))?;
+            // TODO ensure!(the public key matches that from key_visibility)
+
             let block_number = rpc
                 .chain_get_header(None)
                 .await?
@@ -103,6 +106,7 @@ pub async fn register(
                 user_participates_in_dkg_protocol(
                     validators_info,
                     &signature_request_keypair,
+                    x25519_secret_key,
                     block_number,
                 )
                 .await?,
@@ -151,7 +155,7 @@ pub async fn sign(
     user_keypair: sr25519::Pair,
     signature_verifying_key: Vec<u8>,
     message: Vec<u8>,
-    private: Option<KeyShare<KeyParams>>,
+    private: Option<(KeyShare<KeyParams>, StaticSecret)>,
     auxilary_data: Option<Vec<u8>>,
 ) -> anyhow::Result<RecoverableSignature> {
     let message_hash = Hasher::keccak(&message);
@@ -197,13 +201,14 @@ pub async fn sign(
         .collect::<Vec<_>>();
 
     // If we have a keyshare, connect to TSS servers
-    let results = if let Some(keyshare) = private {
+    let results = if let Some((keyshare, x25519_secret_key)) = private {
         let (validator_results, _own_result) = future::join(
             future::try_join_all(submit_transaction_requests),
             user_participates_in_signing_protocol(
                 &keyshare,
                 validators_info_clone,
                 &user_keypair,
+                x25519_secret_key,
                 message_hash,
             ),
         )
