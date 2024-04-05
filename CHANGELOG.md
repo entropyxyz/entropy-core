@@ -12,15 +12,15 @@ At the moment this project **does not** adhere to
 ## [0.0.11](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...release/v0.0.11) - 2024-04-XX
 
 ### Breaking Changes
-- In 'Public Access Mode' [#623](https://github.com/entropyxyz/entropy-core/pull/623) the
+- In [#623](https://github.com/entropyxyz/entropy-core/pull/623), 'Public Access Mode', the
   `UserSignatureRequest` given when requesting a signature with the 'sign_tx' http endpoint must now
   contain an additional field, `signature_request_account: AccountId32`. In private and permissioned
   modes, this must be identical to the account used to sign the `SignedMessage` containing the
   signature request. In public access mode this may be an Entropy account owned by someone else.
-- In 'Add proactive refresh keys on-chain' [#629](https://github.com/entropyxyz/entropy-core/pull/629) the
-  `StakingExtensionConfig::proactive_refresh_validators` field used by the chain spec is now
-  `StakingExtensionConfig::proactive_refresh_data` and takes a tuple of `Vec`. Both should be empty at
-  genesis for production.
+- In [#629](https://github.com/entropyxyz/entropy-core/pull/629), 'Add proactive refresh keys on-chain',
+  the `StakingExtensionConfig::proactive_refresh_validators` field used by the chain spec is now
+  `StakingExtensionConfig::proactive_refresh_data` and takes a tuple of `Vec`. Both should be empty
+  at genesis for production.
 - In [#631](https://github.com/entropyxyz/entropy-core/pull/631), the `config_interface` field of
   `ProgramInfo` was renamed to `interface_description` to be more semantically accurate. This field
   will now be used to describe program interfaces, including the auxilary and configuration
@@ -50,10 +50,10 @@ At the moment this project **does not** adhere to
 - In [#681](https://github.com/entropyxyz/entropy-core/pull/681) `program_interface` in
   `program_data` of the `Programs` pallet has been split into `configuration_schema` and
   `auxiliary_data_schema`
-- In 'Add HPKE implementation' [#674](https://github.com/entropyxyz/entropy-core/pull/674)
+- In [#674](https://github.com/entropyxyz/entropy-core/pull/674), 'Add HPKE implementation',
   `entropy-protocol`'s `SignedMessage` has been replaced by `EncryptedSignedMessage` which has some
   small API differences: `derive_static_secret` was renamed to `derive_x25519_static_secret`, and in
-  the `entropy-protocol` JS module, the subclass dealing with encryption has been renamed from
+  the `entropy-protocol` JS module the subclass dealing with encryption has been renamed from
   `X25519Chacha20Poly1305` to `Hpke`. The JS API is otherwise the same as before.
 - In [#703](https://github.com/entropyxyz/entropy-core/pull/703) a new genesis config parameter for
   the Parameters pallet was added, `max_instructions_per_program`.
