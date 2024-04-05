@@ -1545,19 +1545,19 @@ async fn test_device_key_proxy() {
         pub sr25519_public_keys: Option<Vec<String>>,
         pub ed25519_public_keys: Option<Vec<String>>,
     }
-/// JSON representation of the auxiliary data
-#[cfg_attr(feature = "std", derive(schemars::JsonSchema))]
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct AuxData {
-    /// "ecdsa", "ed25519", "sr25519"
-    pub public_key_type: String,
-    /// base64-encoded public key
-    pub public_key: String,
-    /// base64-encoded signature
-    pub signature: String,
-    /// The context for the signature only needed in sr25519 signature type
-    pub context: String,
-}
+    /// JSON representation of the auxiliary data
+    #[cfg_attr(feature = "std", derive(schemars::JsonSchema))]
+    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+    pub struct AuxData {
+        /// "ecdsa", "ed25519", "sr25519"
+        pub public_key_type: String,
+        /// base64-encoded public key
+        pub public_key: String,
+        /// base64-encoded signature
+        pub signature: String,
+        /// The context for the signature only needed in sr25519 signature type
+        pub context: String,
+    }
 
     let one = AccountKeyring::Dave;
 
