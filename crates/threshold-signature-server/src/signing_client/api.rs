@@ -233,7 +233,7 @@ pub async fn do_proactive_refresh(
         &session_id,
         signer.signer(),
         state,
-        &x25519_secret_key,
+        x25519_secret_key,
     )
     .await?;
     let channels = {

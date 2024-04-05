@@ -238,7 +238,7 @@ pub async fn get_and_store_values(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
 ) -> Result<(), ValidatorErr> {
     let url = String::from_utf8(recip_server_info.endpoint)?;
-    let (_, x25519_secret) = get_signer_and_x25519_secret(&kv).await?;
+    let (_, x25519_secret) = get_signer_and_x25519_secret(kv).await?;
     let mut keys_stored = 0;
     while keys_stored < all_keys.len() {
         let mut keys_to_send_slice = batch_size + keys_stored;

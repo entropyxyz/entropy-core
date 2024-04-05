@@ -201,7 +201,7 @@ pub async fn setup_mnemonic(
             .expect("failed to update mnemonic");
 
         let (pair, static_secret) =
-            get_signer_and_x25519_secret(&kv).await.expect("Cannot derive keypairs");
+            get_signer_and_x25519_secret(kv).await.expect("Cannot derive keypairs");
         let x25519_public_key = x25519_dalek::PublicKey::from(&static_secret).to_bytes();
 
         let ss_reservation = kv
