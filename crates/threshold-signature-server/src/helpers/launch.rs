@@ -30,10 +30,7 @@ use subxt::ext::sp_core::{
     sr25519, Pair,
 };
 
-use crate::{
-    helpers::validator::{get_signer, get_x25519_keypair},
-    validation::new_mnemonic,
-};
+use crate::{helpers::validator::get_signer_and_x25519_secret, validation::new_mnemonic};
 
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
@@ -203,9 +200,9 @@ pub async fn setup_mnemonic(
             .await
             .expect("failed to update mnemonic");
 
-        let pair = get_signer(&kv).await.expect("Cannot derive signing keypair");
-        let (static_secret, x25519_public_key) =
-            get_x25519_keypair(&kv).await.expect("Cannot derive encryption keypair");
+        let (pair, static_secret) =
+            get_signer_and_x25519_secret(&kv).await.expect("Cannot derive keypairs");
+        let x25519_public_key = x25519_dalek::PublicKey::from(&static_secret).to_bytes();
 
         let ss_reservation = kv
             .kv()

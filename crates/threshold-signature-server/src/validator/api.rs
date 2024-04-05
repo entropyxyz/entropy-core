@@ -30,7 +30,7 @@ use crate::{
         entropy::{self, runtime_types::pallet_staking_extension::pallet::ServerInfo},
         get_api, get_rpc, EntropyConfig,
     },
-    get_signer,
+    get_signer, get_signer_and_x25519_secret,
     helpers::{
         launch::FORBIDDEN_KEYS,
         substrate::{get_stash_address, get_subgroup, query_chain, submit_transaction},
@@ -130,8 +130,8 @@ pub async fn sync_kvdb(
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
-    let signer = get_signer(&app_state.kv_store).await?;
-    let decrypted_message = encrypted_msg.decrypt(signer.signer(), &[])?;
+    let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+    let decrypted_message = encrypted_msg.decrypt(&x25519_secret_key, &[])?;
 
     tracing::Span::current().record("signing_address", decrypted_message.account_id().to_string());
     let sender_account_id = SubxtAccountId32(decrypted_message.sender.into());
@@ -238,6 +238,7 @@ pub async fn get_and_store_values(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
 ) -> Result<(), ValidatorErr> {
     let url = String::from_utf8(recip_server_info.endpoint)?;
+    let (_, x25519_secret) = get_signer_and_x25519_secret(&kv).await?;
     let mut keys_stored = 0;
     while keys_stored < all_keys.len() {
         let mut keys_to_send_slice = batch_size + keys_stored;
@@ -280,7 +281,7 @@ pub async fn get_and_store_values(
             let reservation = kv.kv().reserve_key(remaining_keys[i].clone()).await?;
             let key = {
                 let signed_message = encrypted_key
-                    .decrypt(signer.signer(), &[])
+                    .decrypt(&x25519_secret, &[])
                     .map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
                 if signed_message.sender.0 != recip_server_info.tss_account.0 {
                     return Err(ValidatorErr::Authentication);

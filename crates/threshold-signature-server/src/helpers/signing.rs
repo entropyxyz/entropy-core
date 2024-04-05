@@ -24,7 +24,7 @@ use tokio::time::timeout;
 
 use crate::{
     chain_api::EntropyConfig,
-    get_signer,
+    get_signer_and_x25519_secret,
     sign_init::SignInit,
     signing_client::{
         protocol_execution::{Channels, ThresholdSigningService},
@@ -32,7 +32,6 @@ use crate::{
         Listener, ProtocolErr,
     },
     user::api::{increment_or_wipe_request_limit, UserSignatureRequest},
-    validation::derive_x25519_static_secret,
     AppState,
 };
 
@@ -53,11 +52,10 @@ pub async fn do_signing(
 
     let info = SignInit::new(user_signature_request.clone(), signing_session_info.clone());
     let signing_service = ThresholdSigningService::new(state, kv_manager);
-    let pair_signer =
-        get_signer(kv_manager).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    let (pair_signer, x25519_secret_key) = get_signer_and_x25519_secret(kv_manager)
+        .await
+        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     let signer = pair_signer.signer();
-
-    let x25519_secret_key = derive_x25519_static_secret(signer);
 
     let account_id = AccountId32(signer.public().0);
 
