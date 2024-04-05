@@ -9,7 +9,7 @@ Our blockchain node is written with [Substrate](https://substrate.io/) using [Su
 ## Documentation
 
 If you want to build the API documentation for Entropy, you can run `cargo doc --no-deps --open`. If
-you're looking for high level documentation you can find it [here](https://entropy-docs.vercel.app).
+There is also [high level documentation for Entropy available here](https://entropy-docs.vercel.app).
 
 ## Getting Started
 
