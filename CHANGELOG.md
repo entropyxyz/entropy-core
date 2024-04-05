@@ -56,6 +56,7 @@ At the moment this project **does not** adhere to
 - Request limit check ([#660](https://github.com/entropyxyz/entropy-core/pull/660))
 - Add helper for checking if a validator is in the signing committee ([#678](https://github.com/entropyxyz/entropy-core/pull/678))
 - Note unresponsiveness reports in Slashing pallet ([#679](https://github.com/entropyxyz/entropy-core/pull/679))
+- Add device key program to initial chianstate ([#680](https://github.com/entropyxyz/entropy-core/pull/660))
 - Add aux data to program info ([#681](https://github.com/entropyxyz/entropy-core/pull/681))
 - Add HPKE implementation ([#674](https://github.com/entropyxyz/entropy-core/pull/674))
 - Add max instructions parameters onchain ([#703](https://github.com/entropyxyz/entropy-core/pull/681))

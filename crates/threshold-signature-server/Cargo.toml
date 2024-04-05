@@ -82,6 +82,8 @@ lazy_static          ="1.4.0"
 entropy-protocol     ={ path="../protocol", features=["unsafe"] }
 blake3               ="1.5.1"
 ethers-core          ="2.0.14"
+schnorrkel           ={ version="0.9.1", default-features=false, features=["std"] }
+schemars             ={ version="0.8.16" }
 
 [build-dependencies]
 vergen={ version="8.0.0", features=["build", "git", "gitcl"] }
