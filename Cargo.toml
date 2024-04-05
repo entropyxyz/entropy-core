@@ -1,11 +1,3 @@
 [workspace]
 resolver="2"
 members =['crates/*', 'node/*', 'pallets/*', 'runtime']
-
-[profile.vercel]
-inherits     ='release'
-panic        ='abort'
-strip        =true
-opt-level    ='z'
-lto          =true
-codegen-units=1
