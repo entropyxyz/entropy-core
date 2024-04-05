@@ -19,7 +19,7 @@ At the moment this project **does not** adhere to
   signature request. In public access mode this may be an Entropy account owned by someone else.
 - In 'Add proactive refresh keys on-chain' [#629](https://github.com/entropyxyz/entropy-core/pull/629) the
   `StakingExtensionConfig::proactive_refresh_validators` field used by the chain spec is now
-  `StakingExtensionConfigproactive_refresh_data` and takes a tuple of `Vec`. Both should be empty at
+  `StakingExtensionConfig::proactive_refresh_data` and takes a tuple of `Vec`. Both should be empty at
   genesis for production.
 - In [#631](https://github.com/entropyxyz/entropy-core/pull/631), the `config_interface` field of
   `ProgramInfo` was renamed to `interface_description` to be more semantically accurate. This field
