@@ -8,8 +8,8 @@ Our blockchain node is written with [Substrate](https://substrate.io/) using [Su
 
 ## Documentation
 
-- [API documentation](https://docs-api-entropy-core.vercel.app/entropy)
-- [High level documentation for Entropy](https://entropy-docs.vercel.app)
+You can build the API documentation for Entropy by invoking `cargo doc --no-deps --open`.
+There is also [high level documentation for Entropy available here](https://entropy-docs.vercel.app).
 
 ## Getting Started
 

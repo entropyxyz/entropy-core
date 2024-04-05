@@ -13,14 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{
-    env, fs,
-    path::PathBuf,
-    str::FromStr,
-    sync::Arc,
-    time::{Duration, SystemTime},
-};
-
 use axum::http::StatusCode;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
@@ -37,7 +29,7 @@ use entropy_protocol::{
 };
 use entropy_shared::{
     HashingAlgorithm, KeyVisibility, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY,
-    DEFAULT_VERIFYING_KEY_NOT_REGISTERED, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
+    DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
 };
 use entropy_testing_utils::{
     chain_api::{
@@ -63,10 +55,20 @@ use futures::{
 use hex_literal::hex;
 use more_asserts as ma;
 use parity_scale_codec::{Decode, DecodeAll, Encode};
+use rand_core::OsRng;
+use schemars::{schema_for, JsonSchema};
+use schnorrkel::{signing_context, Keypair as Sr25519Keypair, Signature as Sr25519Signature};
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
 use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
+use std::{
+    env, fs,
+    path::PathBuf,
+    str::FromStr,
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     events::EventsClient,
@@ -1527,6 +1529,119 @@ async fn test_fail_infinite_program() {
     for res in test_infinite_loop {
         assert_eq!(res.unwrap().text().await.unwrap(), "Runtime error: OutOfFuel");
     }
+}
+
+#[tokio::test]
+#[serial]
+async fn test_device_key_proxy() {
+    initialize_test_logger().await;
+    clean_tests();
+    /// JSON-deserializable struct that will be used to derive the program-JSON interface.
+    /// Note how this uses JSON-native types only.
+    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
+    pub struct UserConfig {
+        /// base64-encoded compressed point (33-byte) ECDSA public keys, (eg. "A572dqoue5OywY/48dtytQimL9WO0dpSObaFbAxoEWW9")
+        pub ecdsa_public_keys: Option<Vec<String>>,
+        pub sr25519_public_keys: Option<Vec<String>>,
+        pub ed25519_public_keys: Option<Vec<String>>,
+    }
+    /// JSON representation of the auxiliary data
+    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
+    pub struct AuxData {
+        /// "ecdsa", "ed25519", "sr25519"
+        pub public_key_type: String,
+        /// base64-encoded public key
+        pub public_key: String,
+        /// base64-encoded signature
+        pub signature: String,
+    }
+
+    let one = AccountKeyring::Dave;
+
+    let (validator_ips, _validator_ids, keyshare_option) =
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let keypair = Sr25519Keypair::generate();
+    let public_key = base64::encode(keypair.public);
+
+    let device_key_user_config = UserConfig {
+        ecdsa_public_keys: None,
+        sr25519_public_keys: Some(vec![public_key.clone()]),
+        ed25519_public_keys: None,
+    };
+    // check to make sure config data stored properly
+    let program_query = entropy::storage().programs().programs(*DEVICE_KEY_HASH);
+    let program_data = query_chain(&entropy_api, &rpc, program_query, None).await.unwrap().unwrap();
+    let schema_config_device_key_proxy = schema_for!(UserConfig);
+    let schema_aux_data_device_key_proxy = schema_for!(AuxData);
+
+    assert_eq!(
+        serde_json::to_vec(&schema_config_device_key_proxy).unwrap(),
+        program_data.configuration_schema,
+        "configuration interface recoverable through schemars"
+    );
+    assert_eq!(
+        serde_json::to_vec(&schema_aux_data_device_key_proxy).unwrap(),
+        program_data.auxiliary_data_schema,
+        "aux data interface recoverable through schemers"
+    );
+    update_programs(
+        &entropy_api,
+        &rpc,
+        DAVE_VERIFYING_KEY.to_vec(),
+        &one.pair(),
+        OtherBoundedVec(vec![OtherProgramInstance {
+            program_pointer: *DEVICE_KEY_HASH,
+            program_config: serde_json::to_vec(&device_key_user_config).unwrap(),
+        }]),
+    )
+    .await
+    .unwrap();
+
+    let validators_info = vec![
+        ValidatorInfo {
+            ip_address: "localhost:3001".to_string(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone(),
+        },
+        ValidatorInfo {
+            ip_address: "127.0.0.1:3002".to_string(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone(),
+        },
+    ];
+    let context = signing_context(b"");
+
+    let sr25519_signature: Sr25519Signature = keypair.sign(context.bytes(PREIMAGE_SHOULD_SUCCEED));
+
+    let aux_data_json_sr25519 = AuxData {
+        public_key_type: "sr25519".to_string(),
+        public_key,
+        signature: base64::encode(sr25519_signature.to_bytes()),
+    };
+    let mut generic_msg = UserSignatureRequest {
+        message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        auxilary_data: Some(vec![Some(hex::encode(
+            &serde_json::to_string(&aux_data_json_sr25519.clone()).unwrap(),
+        ))]),
+        validators_info,
+        timestamp: SystemTime::now(),
+        hash: HashingAlgorithm::Keccak,
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
+    };
+
+    let validator_ips_and_keys = vec![
+        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
+        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
+    ];
+
+    generic_msg.timestamp = SystemTime::now();
+    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let test_user_res =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+    verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
 }
 
 #[tokio::test]

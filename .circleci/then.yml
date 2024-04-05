@@ -133,6 +133,13 @@ jobs:
             - install-dependencies-and-checkout
             - build
             - release
+    check-doc-build:
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: xlarge
+        steps:
+            - install-dependencies-and-checkout
+            - run: cargo doc --no-deps
 
 parameters:
     crates:
@@ -164,3 +171,6 @@ workflows:
                 - << pipeline.parameters.pallets >>
                 - << pipeline.parameters.runtime >>
                 - pipeline.parameters.crates
+    documentation:
+        jobs:
+            - check-doc-build
