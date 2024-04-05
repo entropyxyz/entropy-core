@@ -1554,6 +1554,8 @@ async fn test_device_key_proxy() {
         pub public_key: String,
         /// base64-encoded signature
         pub signature: String,
+        /// The context for the signature
+        pub context: String,
     }
 
     let one = AccountKeyring::Dave;
@@ -1620,6 +1622,7 @@ async fn test_device_key_proxy() {
         public_key_type: "sr25519".to_string(),
         public_key,
         signature: base64::encode(sr25519_signature.to_bytes()),
+        context: "".to_string(),
     };
     let mut generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
