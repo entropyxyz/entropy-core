@@ -1546,7 +1546,8 @@ async fn test_device_key_proxy() {
         pub ed25519_public_keys: Option<Vec<String>>,
     }
     /// JSON representation of the auxiliary data
-    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
+    #[cfg_attr(feature = "std", derive(schemars::JsonSchema))]
+    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
     pub struct AuxData {
         /// "ecdsa", "ed25519", "sr25519"
         pub public_key_type: String,
@@ -1554,6 +1555,8 @@ async fn test_device_key_proxy() {
         pub public_key: String,
         /// base64-encoded signature
         pub signature: String,
+        /// The context for the signature only needed in sr25519 signature type
+        pub context: String,
     }
 
     let one = AccountKeyring::Dave;
@@ -1564,7 +1567,7 @@ async fn test_device_key_proxy() {
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let keypair = Sr25519Keypair::generate();
-    let public_key = base64::encode(keypair.public);
+    let public_key = BASE64_STANDARD.encode(keypair.public);
 
     let device_key_user_config = UserConfig {
         ecdsa_public_keys: None,
@@ -1619,7 +1622,8 @@ async fn test_device_key_proxy() {
     let aux_data_json_sr25519 = AuxData {
         public_key_type: "sr25519".to_string(),
         public_key,
-        signature: base64::encode(sr25519_signature.to_bytes()),
+        signature: BASE64_STANDARD.encode(sr25519_signature.to_bytes()),
+        context: "".to_string(),
     };
     let mut generic_msg = UserSignatureRequest {
         message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
