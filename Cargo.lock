@@ -166,7 +166,7 @@ version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fcb51a0695d8f838b1ee009b3fbf66bda078cd64590202a864a8f3e8c4315c47"
 dependencies = [
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
  "once_cell",
  "version_check",
 ]
@@ -178,7 +178,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c99f64d1e06488f620f932677e24bc6e2897582980441ae90a671415bd7ec2f"
 dependencies = [
  "cfg-if",
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
  "once_cell",
  "version_check",
 ]
@@ -1596,7 +1596,7 @@ version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d7d6ab3c3a2282db210df5f02c4dab6e0a7057af0fb7ebd4070f30fe05c0ddb"
 dependencies = [
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
  "once_cell",
  "proc-macro-hack",
  "tiny-keccak",
@@ -2804,7 +2804,7 @@ name = "entropy-programs-core"
 version = "0.1.0"
 source = "git+https://github.com/entropyxyz/programs.git?tag=v0.7.0#eaa9fbc560bbbdfbadf712fff1bf68acce26c128"
 dependencies = [
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
  "serde",
  "wit-bindgen",
  "witgen",
@@ -2815,7 +2815,7 @@ name = "entropy-programs-core"
 version = "0.1.0"
 source = "git+https://github.com/entropyxyz/programs.git?tag=v0.8.0#12e6b655c9af3aa1eecb6dea7f70a6ed1d43d0de"
 dependencies = [
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
  "serde",
  "wit-bindgen",
  "witgen",
@@ -2843,7 +2843,7 @@ dependencies = [
  "entropy-shared",
  "futures",
  "generic-array 0.14.7",
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
  "gloo-net",
  "hex",
  "hpke-rs",
@@ -3012,7 +3012,7 @@ dependencies = [
  "parity-scale-codec",
  "project-root",
  "rand_core 0.6.4",
- "reqwest 0.12.2",
+ "reqwest 0.12.3",
  "serde",
  "serde_json",
  "sha3",
@@ -3061,7 +3061,7 @@ dependencies = [
  "parity-scale-codec",
  "project-root",
  "rand_core 0.6.4",
- "reqwest 0.12.2",
+ "reqwest 0.12.3",
  "reqwest-eventsource",
  "schemars",
  "schnorrkel 0.9.1",
@@ -4016,9 +4016,9 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.2.12"
+version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "190092ea657667030ac6a35e305e62fc4dd69fd98ac98631e5d3a2b1575a12b5"
+checksum = "a06fddc2749e0528d2813f95e050e87e52c8cbbae56223b9babf73b3e53b0cc6"
 dependencies = [
  "cfg-if",
  "js-sys",
@@ -4877,7 +4877,7 @@ dependencies = [
  "socket2 0.5.5",
  "widestring",
  "windows-sys 0.48.0",
- "winreg",
+ "winreg 0.50.0",
 ]
 
 [[package]]
@@ -5313,7 +5313,7 @@ dependencies = [
  "bytes",
  "futures",
  "futures-timer",
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
  "instant",
  "libp2p-allow-block-list",
  "libp2p-connection-limits",
@@ -8659,7 +8659,7 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
 ]
 
 [[package]]
@@ -8785,7 +8785,7 @@ version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b033d837a7cf162d7993aded9304e30a83213c648b6e389db233191f891e5c2b"
 dependencies = [
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
  "redox_syscall 0.2.16",
  "thiserror",
 ]
@@ -8903,7 +8903,7 @@ dependencies = [
  "once_cell",
  "percent-encoding",
  "pin-project-lite 0.2.13",
- "rustls-pemfile",
+ "rustls-pemfile 1.0.3",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -8918,16 +8918,16 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
- "winreg",
+ "winreg 0.50.0",
 ]
 
 [[package]]
 name = "reqwest"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d66674f2b6fb864665eea7a3c1ac4e3dfacd2fda83cf6f935a612e01b0e3338"
+checksum = "3e6cc1e89e689536eb5aeede61520e874df5a4707df811cd5da4aa5fbb2aae19"
 dependencies = [
- "base64 0.21.2",
+ "base64 0.22.0",
  "bytes",
  "encoding_rs",
  "futures-core",
@@ -8947,7 +8947,7 @@ dependencies = [
  "once_cell",
  "percent-encoding",
  "pin-project-lite 0.2.13",
- "rustls-pemfile",
+ "rustls-pemfile 2.1.2",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -8962,7 +8962,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
- "winreg",
+ "winreg 0.52.0",
 ]
 
 [[package]]
@@ -9034,7 +9034,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb0205304757e5d899b9c2e448b867ffd03ae7f988002e47cd24954391394d0b"
 dependencies = [
  "cc",
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
  "libc",
  "spin 0.9.8",
  "untrusted 0.9.0",
@@ -9255,7 +9255,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9aace74cb666635c918e9c12bc0d348266037aa8eb599b5cba565709a8dff00"
 dependencies = [
  "openssl-probe",
- "rustls-pemfile",
+ "rustls-pemfile 1.0.3",
  "schannel",
  "security-framework",
 ]
@@ -9268,6 +9268,22 @@ checksum = "2d3987094b1d07b653b7dfdc3f70ce9a1da9c51ac18c1b06b662e4f9a0e9f4b2"
 dependencies = [
  "base64 0.21.2",
 ]
+
+[[package]]
+name = "rustls-pemfile"
+version = "2.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29993a25686778eb88d4189742cd713c9bce943bc54251a33509dc63cbacf73d"
+dependencies = [
+ "base64 0.22.0",
+ "rustls-pki-types",
+]
+
+[[package]]
+name = "rustls-pki-types"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecd36cc4259e3e4514335c4a138c6b43171a8d61d8f5c9348f9fc7529416f247"
 
 [[package]]
 name = "rustls-webpki"
@@ -12690,7 +12706,7 @@ dependencies = [
  "either",
  "frame-metadata 16.0.0",
  "futures",
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
  "hex",
  "impl-serde",
  "jsonrpsee 0.20.2",
@@ -12720,7 +12736,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98f5a534c8d475919e9c845d51fc2316da4fcadd04fe17552d932d2106de930e"
 dependencies = [
  "frame-metadata 16.0.0",
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
  "heck 0.4.1",
  "hex",
  "jsonrpsee 0.20.2",
@@ -12743,7 +12759,7 @@ dependencies = [
  "futures",
  "futures-timer",
  "futures-util",
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
  "instant",
  "js-sys",
  "send_wrapper 0.6.0",
@@ -13831,7 +13847,7 @@ version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a183cf7feeba97b4dd1c0d46788634f6221d87fa961b305bed08c851829efcc0"
 dependencies = [
- "getrandom 0.2.12",
+ "getrandom 0.2.13",
 ]
 
 [[package]]
@@ -15347,6 +15363,16 @@ name = "winreg"
 version = "0.50.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "524e57b2c537c0f9b1e69f1965311ec12182b4122e45035b1508cd24d2adadb1"
+dependencies = [
+ "cfg-if",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "winreg"
+version = "0.52.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a277a57398d4bfa075df44f501a17cfdf8542d224f0d36095a2adc7aee4ef0a5"
 dependencies = [
  "cfg-if",
  "windows-sys 0.48.0",
