@@ -28,16 +28,25 @@ use crate::KeyParams;
 pub async fn run_dkg_protocol(
     validators_info_js: ValidatorInfoArray,
     user_signing_secret_key: Vec<u8>,
+    user_x25519_secret_key: Vec<u8>,
     block_number: u32,
 ) -> Result<KeyShare, Error> {
     let validators_info = parse_validator_info(validators_info_js)?;
 
     let user_signing_keypair = sr25519_keypair_from_secret_key(user_signing_secret_key)?;
 
-    let key_share =
-        user_participates_in_dkg_protocol(validators_info, &user_signing_keypair, block_number)
-            .await
-            .map_err(|err| Error::new(&format!("{}", err)))?;
+    let x25519_secret: [u8; 32] = user_x25519_secret_key
+        .try_into()
+        .map_err(|_| Error::new("x25519 secret key must be 32 bytes"))?;
+
+    let key_share = user_participates_in_dkg_protocol(
+        validators_info,
+        &user_signing_keypair,
+        x25519_secret.into(),
+        block_number,
+    )
+    .await
+    .map_err(|err| Error::new(&format!("{}", err)))?;
 
     Ok(KeyShare(key_share))
 }
@@ -50,6 +59,7 @@ pub async fn run_signing_protocol(
     message_hash: Vec<u8>,
     validators_info_js: ValidatorInfoArray,
     user_signing_secret_key: Vec<u8>,
+    user_x25519_secret_key: Vec<u8>,
 ) -> Result<String, Error> {
     let validators_info = parse_validator_info(validators_info_js)?;
 
@@ -58,10 +68,15 @@ pub async fn run_signing_protocol(
 
     let user_signing_keypair = sr25519_keypair_from_secret_key(user_signing_secret_key)?;
 
+    let x25519_secret: [u8; 32] = user_x25519_secret_key
+        .try_into()
+        .map_err(|_| Error::new("x25519 secret key must be 32 bytes"))?;
+
     let signature = user_participates_in_signing_protocol(
         &key_share.0,
         validators_info,
         &user_signing_keypair,
+        x25519_secret.into(),
         message_hash,
     )
     .await

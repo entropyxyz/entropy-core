@@ -1,10 +1,9 @@
 //! Wasm bindings to the [EncryptedSignedMessage] API, as well as some helper functions
-use super::{derive_x25519_static_secret, EncryptedSignedMessage};
+use super::EncryptedSignedMessage;
 use js_sys::Error;
 use schnorrkel::{MiniSecretKey, SecretKey};
 use sp_core::sr25519;
 use wasm_bindgen::prelude::*;
-use x25519_dalek::PublicKey;
 
 const HEX_PREFIX: [u8; 2] = [48, 120];
 
@@ -29,14 +28,14 @@ impl Hpke {
         Ok(sk.to_bytes().to_vec())
     }
 
-    /// Derives a public DH key from a static DH secret.
-    /// secret_key must be 64 bytes in length or an error will be returned.
-    #[wasm_bindgen(js_name = publicKeyFromSecret)]
-    pub fn public_key_from_secret(secret_key: Vec<u8>) -> Result<Vec<u8>, Error> {
-        let pair = sr25519_keypair_from_secret_key(secret_key)?;
-        let x25519_secret = derive_x25519_static_secret(&pair);
-        Ok(PublicKey::from(&x25519_secret).as_bytes().to_vec())
-    }
+    // /// Derives a public DH key from a static DH secret.
+    // /// secret_key must be 64 bytes in length or an error will be returned.
+    // #[wasm_bindgen(js_name = publicKeyFromSecret)]
+    // pub fn public_key_from_secret(secret_key: Vec<u8>) -> Result<Vec<u8>, Error> {
+    //     let pair = sr25519_keypair_from_secret_key(secret_key)?;
+    //     let x25519_secret = derive_x25519_static_secret(&pair);
+    //     Ok(PublicKey::from(&x25519_secret).as_bytes().to_vec())
+    // }
 
     /// Encrypts, signs, and serializes an `EncryptedSignedMessage` to JSON.
     #[wasm_bindgen(js_name = encryptAndSign)]
@@ -69,10 +68,12 @@ impl Hpke {
         let encrypted_message: EncryptedSignedMessage =
             serde_json::from_str(message.as_str()).map_err(|err| Error::new(&err.to_string()))?;
 
-        let pair = sr25519_keypair_from_secret_key(secret_key)?;
+        let secret_key: [u8; 32] =
+            secret_key.try_into().map_err(|_| Error::new("X25519 secret key must be 32 bytes"))?;
 
-        let signed_message =
-            encrypted_message.decrypt(&pair, &[]).map_err(|err| Error::new(&err.to_string()))?;
+        let signed_message = encrypted_message
+            .decrypt(&secret_key.into(), &[])
+            .map_err(|err| Error::new(&err.to_string()))?;
 
         // TODO here we keep the API as it was before - but really this is bad because there is no
         // way for the called to check the public key of the signer - we should be returning that as

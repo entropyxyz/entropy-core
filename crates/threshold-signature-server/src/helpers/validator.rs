@@ -38,9 +38,9 @@ pub async fn get_signer(
 ) -> Result<PairSigner<EntropyConfig, sr25519::Pair>, UserErr> {
     let hkdf = get_hkdf(kv).await?;
 
-    let mut sr25519_seed = [0u8; 64];
-    hkdf.expand(KDF_SR25519, &mut sr25519_seed).expect("Cannot get 64 byte output from sha256");
-    let pair = sr25519::Pair::from_seed_slice(&sr25519_seed)?;
+    let mut sr25519_seed = [0u8; 32];
+    hkdf.expand(KDF_SR25519, &mut sr25519_seed).expect("Cannot get 32 byte output from sha256");
+    let pair = sr25519::Pair::from_seed(&sr25519_seed);
     sr25519_seed.zeroize();
     Ok(PairSigner::<EntropyConfig, sr25519::Pair>::new(pair))
 }
@@ -57,9 +57,9 @@ pub async fn get_signer_and_x25519_secret(
     let static_secret = StaticSecret::from(secret);
     secret.zeroize();
 
-    let mut sr25519_seed = [0u8; 64];
-    hkdf.expand(KDF_SR25519, &mut sr25519_seed).expect("Cannot get 64 byte output from sha256");
-    let pair = sr25519::Pair::from_seed_slice(&sr25519_seed)?;
+    let mut sr25519_seed = [0u8; 32];
+    hkdf.expand(KDF_SR25519, &mut sr25519_seed).expect("Cannot get 32 byte output from sha256");
+    let pair = sr25519::Pair::from_seed(&sr25519_seed);
     sr25519_seed.zeroize();
 
     Ok((PairSigner::<EntropyConfig, sr25519::Pair>::new(pair), static_secret))
@@ -91,9 +91,9 @@ pub fn get_signer_and_x25519_secret_from_mnemonic(
     let static_secret = StaticSecret::from(secret);
     secret.zeroize();
 
-    let mut sr25519_seed = [0u8; 64];
-    hkdf.expand(KDF_SR25519, &mut sr25519_seed).expect("Cannot get 64 byte output from sha256");
-    let pair = sr25519::Pair::from_seed_slice(&sr25519_seed)?;
+    let mut sr25519_seed = [0u8; 32];
+    hkdf.expand(KDF_SR25519, &mut sr25519_seed).expect("Cannot get 32 byte output from sha256");
+    let pair = sr25519::Pair::from_seed(&sr25519_seed);
     sr25519_seed.zeroize();
 
     Ok((PairSigner::<EntropyConfig, sr25519::Pair>::new(pair), static_secret))
