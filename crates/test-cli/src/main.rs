@@ -33,17 +33,18 @@ use entropy_testing_utils::{
     },
     constants::TEST_PROGRAM_WASM_BYTECODE,
     test_client::{
-        derive_x25519_static_secret, get_accounts, get_api, get_programs, get_rpc, register, sign,
-        store_program, update_programs, KeyParams, KeyShare, KeyVisibility,
+        get_accounts, get_api, get_programs, get_rpc, register, sign, store_program,
+        update_programs, KeyParams, KeyShare, KeyVisibility,
     },
 };
-use sp_core::{sr25519, Hasher, Pair};
+use sp_core::{sr25519, DeriveJunction, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     utils::{AccountId32 as SubxtAccountId32, H256},
     OnlineClient,
 };
+use x25519_dalek::StaticSecret;
 
 #[derive(Parser, Debug, Clone)]
 #[clap(
@@ -209,13 +210,13 @@ async fn run_command() -> anyhow::Result<String> {
             let program_account = SubxtAccountId32(program_keypair.public().0);
             println!("Program account: {}", program_keypair.public());
 
-            let key_visibility_converted = match key_visibility {
+            let (key_visibility_converted, x25519_secret) = match key_visibility {
                 Visibility::Private => {
                     let x25519_secret = derive_x25519_static_secret(&signature_request_keypair);
                     let x25519_public = x25519_dalek::PublicKey::from(&x25519_secret);
-                    KeyVisibility::Private(x25519_public.to_bytes())
+                    (KeyVisibility::Private(x25519_public.to_bytes()), Some(x25519_secret))
                 },
-                Visibility::Public => KeyVisibility::Public,
+                Visibility::Public => (KeyVisibility::Public, None),
             };
             let mut programs_info = vec![];
 
@@ -232,6 +233,7 @@ async fn run_command() -> anyhow::Result<String> {
                 program_account,
                 key_visibility_converted,
                 BoundedVec(programs_info),
+                x25519_secret,
             )
             .await?;
 
@@ -252,13 +254,18 @@ async fn run_command() -> anyhow::Result<String> {
             // If we have a keyshare file for this account, get it
             let private_keyshare = KeyShareFile::new(user_keypair.public()).read().ok();
 
+            let private_details = private_keyshare.map(|keyshare| {
+                let x25519_secret = derive_x25519_static_secret(&user_keypair);
+                (keyshare, x25519_secret)
+            });
+
             let recoverable_signature = sign(
                 &api,
                 &rpc,
                 user_keypair,
                 signature_verifying_key,
                 message.as_bytes().to_vec(),
-                private_keyshare,
+                private_details,
                 auxilary_data,
             )
             .await?;
@@ -516,4 +523,15 @@ impl Program {
             },
         }
     }
+}
+
+/// Derive a x25519 secret from a sr25519 pair. In production we should not do this,
+/// but for this test-cli which anyway uses insecure keypairs it is convenient
+fn derive_x25519_static_secret(sr25519_pair: &sr25519::Pair) -> StaticSecret {
+    let (derived_sr25519_pair, _) = sr25519_pair
+        .derive([DeriveJunction::hard(b"x25519")].into_iter(), None)
+        .expect("Cannot derive keypair");
+    let mut secret: [u8; 32] = [0; 32];
+    secret.copy_from_slice(&derived_sr25519_pair.to_raw_vec());
+    secret.into()
 }
