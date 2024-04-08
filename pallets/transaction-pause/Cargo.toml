@@ -10,7 +10,7 @@ publish   =false
 
 [dependencies]
 codec     ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
-scale-info={ version="2.1", default-features=false, features=["derive"] }
+scale-info={ version="2.11", default-features=false, features=["derive"] }
 
 frame-benchmarking={ version="25.0.0", default-features=false, optional=true }
 frame-support     ={ version="25.0.0", default-features=false }
