@@ -1,6 +1,6 @@
 [package]
 name      ='entropy'
-version   ='0.0.10'
+version   ='0.0.11'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -91,10 +91,10 @@ pallet-transaction-payment        ={ version="25.0.0" }
 pallet-transaction-payment-rpc    ={ version="27.0.0" }
 
 # Entropy Dependencies
-entropy-runtime         ={ version="0.0.10", path="../../runtime" }
+entropy-runtime         ={ version="0.0.11", path="../../runtime" }
 entropy-shared          ={ path="../../crates/shared", default-features=false, features=["wasm-no-std"] }
-pallet-registry         ={ version="0.0.10", path="../../pallets/registry" }
-pallet-staking-extension={ version="0.0.10", path="../../pallets/staking" }
+pallet-registry         ={ version="0.0.11", path="../../pallets/registry" }
+pallet-staking-extension={ version="0.0.11", path="../../pallets/staking" }
 
 [build-dependencies]
 clap         ={ version="4.2.5", optional=true }
