@@ -75,3 +75,26 @@ async fn get_hkdf(kv: &KvManager) -> Result<Hkdf<Sha256>, UserErr> {
 
     Ok(Hkdf::<Sha256>::new(None, &mnemonic.to_seed("")))
 }
+
+/// For testing where we sometimes don't have access to the kvdb, derive directly from the mnemnic
+#[cfg(test)]
+pub fn get_signer_and_x25519_secret_from_mnemonic(
+    mnemonic: &str,
+) -> Result<(PairSigner<EntropyConfig, sr25519::Pair>, StaticSecret), UserErr> {
+    let mnemonic = Mnemonic::parse_in_normalized(Language::English, mnemonic)
+        .map_err(|e| UserErr::Mnemonic(e.to_string()))?;
+
+    let hkdf = Hkdf::<Sha256>::new(None, &mnemonic.to_seed(""));
+
+    let mut secret = [0u8; 32];
+    hkdf.expand(KDF_X25519, &mut secret).expect("Cannot get 32 byte output from sha256");
+    let static_secret = StaticSecret::from(secret);
+    secret.zeroize();
+
+    let mut sr25519_seed = [0u8; 64];
+    hkdf.expand(KDF_SR25519, &mut sr25519_seed).expect("Cannot get 64 byte output from sha256");
+    let pair = sr25519::Pair::from_seed_slice(&sr25519_seed)?;
+    sr25519_seed.zeroize();
+
+    Ok((PairSigner::<EntropyConfig, sr25519::Pair>::new(pair), static_secret))
+}

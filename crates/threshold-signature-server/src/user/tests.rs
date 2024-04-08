@@ -45,9 +45,9 @@ use entropy_testing_utils::{
     },
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
-        PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION,
-        TEST_INFINITE_LOOP_BYTECODE, TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE,
-        TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+        EVE_X25519_SECRET_KEY, FERDIE_X25519_SECRET_KEY, PREIMAGE_SHOULD_FAIL,
+        PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION, TEST_INFINITE_LOOP_BYTECODE,
+        TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, testing_context,
@@ -122,9 +122,7 @@ use crate::{
         },
         UserErr,
     },
-    validation::{
-        derive_x25519_static_secret, mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage,
-    },
+    validation::{mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage},
     validator::api::get_random_server_info,
 };
 
@@ -277,7 +275,6 @@ async fn test_sign_tx_no_chain() {
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         let ferdie_pair = AccountKeyring::Ferdie.pair();
-        let ferdie_x25519_sk = derive_x25519_static_secret(&ferdie_pair);
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
@@ -286,7 +283,7 @@ async fn test_sign_tx_no_chain() {
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
             ws_stream,
-            &ferdie_x25519_sk,
+            &FERDIE_X25519_SECRET_KEY.into(),
             validator_ip_and_key.1,
             subscribe_message_vec,
         )
@@ -1171,6 +1168,7 @@ async fn test_sign_tx_user_participates() {
             &users_keyshare_option.clone().unwrap(),
             validators_info.clone(),
             &one.pair(),
+            EVE_X25519_SECRET_KEY.into(),
             message_should_succeed_hash,
         ),
     )
@@ -1228,7 +1226,6 @@ async fn test_sign_tx_user_participates() {
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         let ferdie_pair = AccountKeyring::Ferdie.pair();
-        let ferdie_x25519_sk = derive_x25519_static_secret(&ferdie_pair);
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
@@ -1237,7 +1234,7 @@ async fn test_sign_tx_user_participates() {
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
             ws_stream,
-            &ferdie_x25519_sk,
+            &FERDIE_X25519_SECRET_KEY.into(),
             validator_ip_and_key.1,
             subscribe_message_vec,
         )
@@ -1391,7 +1388,7 @@ async fn test_register_with_private_key_visibility() {
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-    let one_x25519_sk = derive_x25519_static_secret(&one.pair());
+    let one_x25519_sk = StaticSecret::random_from_rng(rand_core::OsRng);
     let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
 
     put_register_request_on_chain(
@@ -1439,7 +1436,12 @@ async fn test_register_with_private_key_visibility() {
             .post("http://127.0.0.1:3002/user/new")
             .body(onchain_user_request.clone().encode())
             .send(),
-        user_participates_in_dkg_protocol(validators_info.clone(), &one.pair(), block_number),
+        user_participates_in_dkg_protocol(
+            validators_info.clone(),
+            &one.pair(),
+            one_x25519_sk,
+            block_number,
+        ),
     )
     .await;
 

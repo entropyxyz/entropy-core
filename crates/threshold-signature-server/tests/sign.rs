@@ -106,8 +106,8 @@ async fn integration_test_sign_private() {
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-    let verifying_key =
-        keyshare_option.clone().unwrap().verifying_key().to_encoded_point(true).as_bytes().to_vec();
+    let keyshare = keyshare_option.unwrap();
+    let verifying_key = keyshare.clone().verifying_key().to_encoded_point(true).as_bytes().to_vec();
 
     let program_pointer = test_client::store_program(
         &api,
@@ -132,13 +132,16 @@ async fn integration_test_sign_private() {
 
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
+    // TODO
+    let x25519_secret: [u8; 32] = [0; 32];
+
     let recoverable_signature = test_client::sign(
         &api,
         &rpc,
         pre_registered_user.pair(),
         verifying_key,
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
-        keyshare_option.clone(),
+        Some((keyshare.clone(), x25519_secret.into())),
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
     )
     .await
@@ -150,5 +153,5 @@ async fn integration_test_sign_private() {
         recoverable_signature.recovery_id,
     )
     .unwrap();
-    assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
+    assert_eq!(keyshare.verifying_key(), recovery_key_from_sig);
 }

@@ -41,11 +41,9 @@ use crate::{
         },
         substrate::{get_registered_details, get_stash_address, get_subgroup, query_chain},
         tests::{create_clients, initialize_test_logger},
+        validator::get_signer_and_x25519_secret_from_mnemonic,
     },
-    validation::{
-        derive_x25519_public_key, mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage,
-        TIME_BUFFER,
-    },
+    validation::{mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage, TIME_BUFFER},
     validator::errors::ValidatorErr,
 };
 
@@ -103,7 +101,11 @@ async fn test_sync_kvdb() {
         &Mnemonic::parse_in_normalized(Language::English, DEFAULT_BOB_MNEMONIC).unwrap(),
     )
     .unwrap();
-    let recip = derive_x25519_public_key(&b_usr_sk).unwrap();
+
+    let (_, bob_x25519_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(DEFAULT_BOB_MNEMONIC).unwrap();
+    let recip = x25519_dalek::PublicKey::from(&bob_x25519_secret).to_bytes();
+
     let values = vec![vec![10], vec![11], vec![12]];
 
     let port = 3001;
@@ -132,7 +134,9 @@ async fn test_sync_kvdb() {
     // return no error (status code 200).
     assert_eq!(result.status(), 200);
 
-    let sender = derive_x25519_public_key(&a_usr_sk).unwrap();
+    let (_, alice_x25519_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(DEFAULT_ALICE_MNEMONIC).unwrap();
+    let sender = x25519_dalek::PublicKey::from(&alice_x25519_secret).to_bytes();
 
     let enc_keys_failed_decrypt =
         EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &sender, &[])

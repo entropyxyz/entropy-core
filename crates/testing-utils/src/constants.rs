@@ -43,6 +43,15 @@ lazy_static! {
     ];
 }
 
+pub const EVE_X25519_SECRET_KEY: [u8; 32] = [
+    58, 47, 10, 154, 181, 71, 222, 205, 42, 186, 181, 1, 55, 107, 46, 200, 226, 62, 42, 137, 142,
+    3, 101, 208, 129, 168, 22, 236, 116, 159, 8, 55,
+];
+pub const FERDIE_X25519_SECRET_KEY: [u8; 32] = [
+    5, 221, 127, 62, 254, 131, 37, 194, 88, 126, 130, 15, 97, 249, 170, 40, 201, 135, 77, 213, 55,
+    87, 243, 127, 175, 77, 251, 75, 157, 119, 41, 180,
+];
+
 /// The following constants are values used for integration testing specific to the
 /// `example_barebones_with_auxilary.wasm` from the `programs` repo.
 pub const TEST_PROGRAM_WASM_BYTECODE: &[u8] =
