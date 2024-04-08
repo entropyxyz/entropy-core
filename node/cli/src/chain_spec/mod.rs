@@ -89,19 +89,20 @@ pub mod tss_x25519_public_key {
     /// The `DEFAULT_ALICE_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
     pub const ALICE: [u8; 32] = [
-        10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124, 195, 141, 148,
-        249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247, 58, 34,
+        8, 22, 19, 230, 107, 217, 249, 190, 14, 142, 155, 252, 156, 229, 120, 11, 180, 35, 83, 245,
+        222, 11, 153, 201, 162, 29, 153, 13, 123, 126, 128, 32,
     ];
 
     /// The `DEFAULT_BOB_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
     pub const BOB: [u8; 32] = [
-        225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245, 89, 36, 170, 169,
-        181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136, 102, 10,
+        196, 53, 98, 10, 160, 169, 139, 48, 194, 230, 69, 64, 165, 48, 133, 110, 38, 64, 184, 113,
+        255, 201, 253, 212, 217, 21, 252, 57, 253, 78, 0, 56,
     ];
 
     /// The `DEFAULT_CHARLIE_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "lake carry still awful point mention bike category tornado plate brass lock"
+    /// TODO
     pub const CHARLIE: [u8; 32] = [
         245, 222, 99, 201, 89, 227, 119, 236, 142, 217, 74, 171, 58, 162, 140, 165, 7, 104, 210,
         36, 196, 227, 208, 254, 175, 100, 226, 50, 239, 84, 141, 13,
