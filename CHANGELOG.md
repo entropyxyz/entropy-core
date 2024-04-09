@@ -9,6 +9,9 @@ At the moment this project **does not** adhere to
 
 ## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.11...master)
 
+### Added 
+- Update subxt to 0.34.0 ([#722](https://github.com/entropyxyz/entropy-core/pull/722))
+
 ## [0.0.11](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...release/v0.0.11) - 2024-04-XX
 
 ### Breaking Changes
