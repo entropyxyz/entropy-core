@@ -845,8 +845,7 @@ async fn test_send_and_receive_keys() {
         proactive_refresh: false,
     };
 
-    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
-    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+    let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
 
     // First try sending a keyshare for a user who is not registering - should fail
     let result = send_key(
@@ -1049,8 +1048,10 @@ async fn test_recover_key() {
         .send()
         .await
         .unwrap();
-    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_CHARLIE_MNEMONIC, None).unwrap();
-    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+
+    let (signer_alice, _) =
+        get_signer_and_x25519_secret_from_mnemonic(DEFAULT_CHARLIE_MNEMONIC).unwrap();
+
     recover_key(&api, &rpc, &bob_kv, &signer_alice, unsafe_query.key.clone()).await.unwrap();
 
     let value = bob_kv.kv().get(&unsafe_query.key).await.unwrap();
@@ -1649,8 +1650,8 @@ async fn test_mutiple_confirm_done() {
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
-    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
-    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+
+    let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
 
     confirm_registered(
         &api,
