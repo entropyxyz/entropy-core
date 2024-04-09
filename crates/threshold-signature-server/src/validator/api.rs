@@ -285,7 +285,7 @@ pub async fn get_and_store_values(
             let reservation = kv.kv().reserve_key(remaining_keys[i].clone()).await?;
             let key = {
                 let signed_message = encrypted_key
-                    .decrypt(&x25519_secret, &[])
+                    .decrypt(x25519_secret, &[])
                     .map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
                 if signed_message.sender.0 != recip_server_info.tss_account.0 {
                     return Err(ValidatorErr::Authentication);
