@@ -261,7 +261,7 @@ async fn test_wasm_register_with_private_key_visibility() {
                 tss_account: TSS_ACCOUNTS[i].clone().encode(),
             })
             .collect();
-        OcwMessageDkg { sig_request_accounts: vec![one.encode()], block_number, validators_info }
+        OcwMessageDkg { sig_request_accounts: vec![one.public().encode()], block_number, validators_info }
     };
 
     let client = reqwest::Client::new();
