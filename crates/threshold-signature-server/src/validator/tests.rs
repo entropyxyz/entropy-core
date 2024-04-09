@@ -255,7 +255,8 @@ async fn test_get_and_store_values() {
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 
-    let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
+    let (signer_alice, x25519_alice) =
+        get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
 
     let mut recip_server_info = {
         let alice_stash_address =
@@ -298,9 +299,17 @@ async fn test_get_and_store_values() {
     // We are 'being' bob (using bob's kv), but we authenticate as alice, because otherwise we will
     // fail the subgroup check. We can't properly test this function because we don't have two tss
     // servers in the same subgroup with only two subgroups.
-    get_and_store_values(keys.clone(), &bob_kv, 9, false, recip_server_info, &signer_alice)
-        .await
-        .unwrap();
+    get_and_store_values(
+        keys.clone(),
+        &bob_kv,
+        9,
+        false,
+        recip_server_info,
+        &signer_alice,
+        &x25519_alice,
+    )
+    .await
+    .unwrap();
     for (i, key) in keys.iter().enumerate() {
         tracing::info!("!! -> -> RECEIVED KEY at IDX {i} of value {key:?}");
         let val = bob_kv.kv().get(key).await;

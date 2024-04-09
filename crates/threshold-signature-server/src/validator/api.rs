@@ -24,13 +24,14 @@ use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, OnlineClient,
 };
+use x25519_dalek::StaticSecret;
 
 use crate::{
     chain_api::{
         entropy::{self, runtime_types::pallet_staking_extension::pallet::ServerInfo},
         get_api, get_rpc, EntropyConfig,
     },
-    get_signer, get_signer_and_x25519_secret,
+    get_signer_and_x25519_secret,
     helpers::{
         launch::FORBIDDEN_KEYS,
         substrate::{get_stash_address, get_subgroup, query_chain, submit_transaction},
@@ -81,7 +82,9 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
                 thread::sleep(sleep_time);
             }
         }
-        let signer = get_signer(kv_store).await.expect("Issue acquiring threshold signer key");
+        let (signer, x25519_secret) = get_signer_and_x25519_secret(kv_store)
+            .await
+            .expect("Issue acquiring threshold keypairs");
         let has_fee_balance = check_balance_for_fees(&api, &rpc, signer.account_id(), MIN_BALANCE)
             .await
             .expect("Issue checking chain for signer balance");
@@ -112,6 +115,7 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
             dev,
             key_server_info,
             &signer,
+            &x25519_secret,
         )
         .await
         .expect("failed to get and store all values");
@@ -235,10 +239,10 @@ pub async fn get_and_store_values(
     batch_size: usize,
     dev: bool,
     recip_server_info: ServerInfo<subxt::utils::AccountId32>,
-    _signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    x25519_secret: &StaticSecret,
 ) -> Result<(), ValidatorErr> {
     let url = String::from_utf8(recip_server_info.endpoint)?;
-    let (signer, x25519_secret) = get_signer_and_x25519_secret(kv).await?;
     let mut keys_stored = 0;
     while keys_stored < all_keys.len() {
         let mut keys_to_send_slice = batch_size + keys_stored;

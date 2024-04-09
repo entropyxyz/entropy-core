@@ -218,7 +218,8 @@ pub async fn sign_tx(
 
     let has_key = check_for_key(&string_verifying_key, &app_state.kv_store).await?;
     if !has_key {
-        recover_key(&api, &rpc, &app_state.kv_store, &signer, string_verifying_key).await?
+        recover_key(&api, &rpc, &app_state.kv_store, &signer, &x25519_secret, string_verifying_key)
+            .await?
     }
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
@@ -627,16 +628,19 @@ pub async fn validate_new_user(
     Ok(())
 }
 
+/// Check if a given key is present in the given key-value store
 pub async fn check_for_key(account: &str, kv: &KvManager) -> Result<bool, UserErr> {
     let exists_result = kv.kv().exists(account).await?;
     Ok(exists_result)
 }
 
+/// Get and store a keyshare associated with a given verifying key
 pub async fn recover_key(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_store: &KvManager,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    x25519_secret: &StaticSecret,
     verifying_key: String,
 ) -> Result<(), UserErr> {
     let subgroup = get_subgroup(api, rpc, signer.account_id()).await?;
@@ -644,9 +648,17 @@ pub async fn recover_key(
     let key_server_info = get_random_server_info(api, rpc, subgroup, stash_address)
         .await
         .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
-    get_and_store_values(vec![verifying_key], kv_store, 1, false, key_server_info, signer)
-        .await
-        .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
+    get_and_store_values(
+        vec![verifying_key],
+        kv_store,
+        1,
+        false,
+        key_server_info,
+        signer,
+        x25519_secret,
+    )
+    .await
+    .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
     Ok(())
 }
 

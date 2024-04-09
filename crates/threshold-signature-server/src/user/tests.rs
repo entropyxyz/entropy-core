@@ -1050,10 +1050,12 @@ async fn test_recover_key() {
         .await
         .unwrap();
 
-    let (signer_alice, _) =
+    let (signer_alice, x25519_alice) =
         get_signer_and_x25519_secret_from_mnemonic(DEFAULT_CHARLIE_MNEMONIC).unwrap();
 
-    recover_key(&api, &rpc, &bob_kv, &signer_alice, unsafe_query.key.clone()).await.unwrap();
+    recover_key(&api, &rpc, &bob_kv, &signer_alice, &x25519_alice, unsafe_query.key.clone())
+        .await
+        .unwrap();
 
     let value = bob_kv.kv().get(&unsafe_query.key).await.unwrap();
     assert_eq!(value, unsafe_query.value);
