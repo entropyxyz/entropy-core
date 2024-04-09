@@ -11,7 +11,7 @@ edition   ='2021'
 entropy-testing-utils={ path="../testing-utils" }
 clap                 ={ version="4.4.6", features=["derive"] }
 colored              ="2.0.4"
-subxt                ="0.34.0" 
+subxt                ="0.34.0"
 sp-core              ="28.0.0"
 anyhow               ="1.0.81"
 tokio                ={ version="1.16", features=["macros", "rt-multi-thread", "io-util", "process"] }
