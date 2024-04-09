@@ -37,12 +37,7 @@ pub async fn get_signer(
     kv: &KvManager,
 ) -> Result<PairSigner<EntropyConfig, sr25519::Pair>, UserErr> {
     let hkdf = get_hkdf(kv).await?;
-
-    let mut sr25519_seed = [0u8; 32];
-    hkdf.expand(KDF_SR25519, &mut sr25519_seed).expect("Cannot get 32 byte output from sha256");
-    let pair = sr25519::Pair::from_seed(&sr25519_seed);
-    sr25519_seed.zeroize();
-    Ok(PairSigner::<EntropyConfig, sr25519::Pair>::new(pair))
+    get_signer_from_hkdf(&hkdf)
 }
 
 /// Get the PairSigner as above, and also the x25519 encryption keypair for
@@ -51,29 +46,9 @@ pub async fn get_signer_and_x25519_secret(
     kv: &KvManager,
 ) -> Result<(PairSigner<EntropyConfig, sr25519::Pair>, StaticSecret), UserErr> {
     let hkdf = get_hkdf(kv).await?;
-
-    let mut secret = [0u8; 32];
-    hkdf.expand(KDF_X25519, &mut secret).expect("Cannot get 32 byte output from sha256");
-    let static_secret = StaticSecret::from(secret);
-    secret.zeroize();
-
-    let mut sr25519_seed = [0u8; 32];
-    hkdf.expand(KDF_SR25519, &mut sr25519_seed).expect("Cannot get 32 byte output from sha256");
-    let pair = sr25519::Pair::from_seed(&sr25519_seed);
-    sr25519_seed.zeroize();
-
-    Ok((PairSigner::<EntropyConfig, sr25519::Pair>::new(pair), static_secret))
-}
-
-/// Get the key derivation struct to derive secret keys from a mnemonic stored in the KVDB
-async fn get_hkdf(kv: &KvManager) -> Result<Hkdf<Sha256>, UserErr> {
-    let _ = kv.kv().exists("MNEMONIC").await?;
-    let raw_m = kv.kv().get("MNEMONIC").await?;
-    let secret = core::str::from_utf8(&raw_m)?;
-    let mnemonic = Mnemonic::parse_in_normalized(Language::English, secret)
-        .map_err(|e| UserErr::Mnemonic(e.to_string()))?;
-
-    Ok(Hkdf::<Sha256>::new(None, &mnemonic.to_seed("")))
+    let pair_signer = get_signer_from_hkdf(&hkdf)?;
+    let static_secret = get_x25519_secret_from_hkdf(&hkdf)?;
+    Ok((pair_signer, static_secret))
 }
 
 /// For testing where we sometimes don't have access to the kvdb, derive directly from the mnemnic
@@ -81,20 +56,43 @@ async fn get_hkdf(kv: &KvManager) -> Result<Hkdf<Sha256>, UserErr> {
 pub fn get_signer_and_x25519_secret_from_mnemonic(
     mnemonic: &str,
 ) -> Result<(PairSigner<EntropyConfig, sr25519::Pair>, StaticSecret), UserErr> {
+    let hkdf = get_hkdf_from_mnemonic(mnemonic)?;
+    let pair_signer = get_signer_from_hkdf(&hkdf)?;
+    let static_secret = get_x25519_secret_from_hkdf(&hkdf)?;
+    Ok((pair_signer, static_secret))
+}
+
+/// Get the key derivation struct to derive secret keys from a mnemonic stored in the KVDB
+async fn get_hkdf(kv: &KvManager) -> Result<Hkdf<Sha256>, UserErr> {
+    let _ = kv.kv().exists("MNEMONIC").await?;
+    let raw_m = kv.kv().get("MNEMONIC").await?;
+    let secret = core::str::from_utf8(&raw_m)?;
+    get_hkdf_from_mnemonic(secret)
+}
+
+/// Given a mnemonic, setup hkdf
+fn get_hkdf_from_mnemonic(mnemonic: &str) -> Result<Hkdf<Sha256>, UserErr> {
     let mnemonic = Mnemonic::parse_in_normalized(Language::English, mnemonic)
         .map_err(|e| UserErr::Mnemonic(e.to_string()))?;
+    Ok(Hkdf::<Sha256>::new(None, &mnemonic.to_seed("")))
+}
 
-    let hkdf = Hkdf::<Sha256>::new(None, &mnemonic.to_seed(""));
-
-    let mut secret = [0u8; 32];
-    hkdf.expand(KDF_X25519, &mut secret).expect("Cannot get 32 byte output from sha256");
-    let static_secret = StaticSecret::from(secret);
-    secret.zeroize();
-
+fn get_signer_from_hkdf(
+    hkdf: &Hkdf<Sha256>,
+) -> Result<PairSigner<EntropyConfig, sr25519::Pair>, UserErr> {
     let mut sr25519_seed = [0u8; 32];
+    //TODO
     hkdf.expand(KDF_SR25519, &mut sr25519_seed).expect("Cannot get 32 byte output from sha256");
     let pair = sr25519::Pair::from_seed(&sr25519_seed);
     sr25519_seed.zeroize();
 
-    Ok((PairSigner::<EntropyConfig, sr25519::Pair>::new(pair), static_secret))
+    Ok(PairSigner::<EntropyConfig, sr25519::Pair>::new(pair))
+}
+
+fn get_x25519_secret_from_hkdf(hkdf: &Hkdf<Sha256>) -> Result<StaticSecret, UserErr> {
+    let mut secret = [0u8; 32];
+    hkdf.expand(KDF_X25519, &mut secret).expect("Cannot get 32 byte output from sha256");
+    let static_secret = StaticSecret::from(secret);
+    secret.zeroize();
+    Ok(static_secret)
 }
