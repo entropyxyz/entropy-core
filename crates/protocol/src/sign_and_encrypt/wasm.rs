@@ -1,11 +1,40 @@
 //! Wasm bindings to the [EncryptedSignedMessage] API, as well as some helper functions
 use super::EncryptedSignedMessage;
 use js_sys::Error;
+use rand_core::OsRng;
 use schnorrkel::{MiniSecretKey, SecretKey};
 use sp_core::sr25519;
 use wasm_bindgen::prelude::*;
+use x25519_dalek::StaticSecret;
 
 const HEX_PREFIX: [u8; 2] = [48, 120];
+
+#[wasm_bindgen]
+pub struct X25519Keypair {
+    secret_key: StaticSecret,
+    public_key: x25519_dalek::PublicKey,
+}
+
+#[wasm_bindgen]
+impl X25519Keypair {
+    /// Generate an x25519 encryption keypair
+    #[wasm_bindgen(js_name = generate)]
+    pub fn generate() -> Result<X25519Keypair, Error> {
+        let secret_key = StaticSecret::random_from_rng(OsRng);
+        let public_key = x25519_dalek::PublicKey::from(&secret_key);
+        Ok(X25519Keypair { secret_key, public_key })
+    }
+
+    #[wasm_bindgen(js_name = secretKey)]
+    pub fn secret_key(&self) -> Vec<u8> {
+        self.secret_key.as_bytes().to_vec()
+    }
+
+    #[wasm_bindgen(js_name = publicKey)]
+    pub fn public_key(&self) -> Vec<u8> {
+        self.public_key.as_bytes().to_vec()
+    }
+}
 
 /// Functions for creating and using `EncryptedSignedMessage`s which use HPKE for chacha20poly1305
 /// encryption and x25519 key agreement and sr25519 for signing.
@@ -27,15 +56,6 @@ impl Hpke {
             SecretKey::from_bytes(&secret_key_array).map_err(|err| Error::new(&err.to_string()))?;
         Ok(sk.to_bytes().to_vec())
     }
-
-    // /// Derives a public DH key from a static DH secret.
-    // /// secret_key must be 64 bytes in length or an error will be returned.
-    // #[wasm_bindgen(js_name = publicKeyFromSecret)]
-    // pub fn public_key_from_secret(secret_key: Vec<u8>) -> Result<Vec<u8>, Error> {
-    //     let pair = sr25519_keypair_from_secret_key(secret_key)?;
-    //     let x25519_secret = derive_x25519_static_secret(&pair);
-    //     Ok(PublicKey::from(&x25519_secret).as_bytes().to_vec())
-    // }
 
     /// Encrypts, signs, and serializes an `EncryptedSignedMessage` to JSON.
     #[wasm_bindgen(js_name = encryptAndSign)]
