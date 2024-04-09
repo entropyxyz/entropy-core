@@ -110,6 +110,7 @@ use crate::{
             remove_program, run_to_block, setup_client, spawn_testing_validators,
         },
         user::{compute_hash, send_key},
+        validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     new_user,
     r#unsafe::api::UnsafeQuery,
