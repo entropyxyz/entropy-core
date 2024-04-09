@@ -15,7 +15,7 @@
 
 //! Helper functions for integration tests
 use entropy_protocol::KeyParams;
-use entropy_tss::launch::{DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC};
+use entropy_testing_utils::constants::TSS_ACCOUNTS;
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     KeyShare,
@@ -49,12 +49,11 @@ pub async fn verify_signature(
         )
         .unwrap();
         assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
-        let mnemonic = if i == 0 { DEFAULT_MNEMONIC } else { DEFAULT_BOB_MNEMONIC };
-        let sk = <sr25519::Pair as Pair>::from_string(mnemonic, None).unwrap();
+
         let sig_recovery = <sr25519::Pair as Pair>::verify(
             &signing_result.clone().unwrap().1,
             base64::decode(signing_result.unwrap().0).unwrap(),
-            &sr25519::Public(sk.public().0),
+            &sr25519::Public(TSS_ACCOUNTS[i].0),
         );
         assert!(sig_recovery);
         i += 1;

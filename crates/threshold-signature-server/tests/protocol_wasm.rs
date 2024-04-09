@@ -282,14 +282,14 @@ async fn test_wasm_register_with_private_key_visibility() {
         spawn_user_participates_in_dkg_protocol(
             validators_info.clone(),
             one.pair().to_raw_vec(),
-            EVE_X25519_SECRET_KEY.to_vec(),
+            one_x25519_sk.as_bytes().to_vec(),
             block_number,
         ),
     )
     .await;
 
     let response = new_user_response_result.unwrap();
-    // assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.text().await.unwrap(), "");
 
     let verifying_key = wait_for_register_confirmation(one.to_account_id(), api, rpc).await;
