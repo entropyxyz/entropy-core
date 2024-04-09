@@ -73,7 +73,7 @@ pub mod tss_account_id {
     /// The `DEFAULT_CHARLIE_MNEMONIC` is used to derive the following `AccountId`.
     /// Mnemonic: "lake carry still awful point mention bike category tornado plate brass lock"
     pub static ref CHARLIE: sp_runtime::AccountId32  =
-            super::hex!["14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611"].into();
+            super::hex!["946140d3d5ddb980c74ffa1bb64353b5523d2d77cdf3dc617fd63de9d3b66338"].into();
 
     /// Not sure what mnemonic is used to derive the following `AccountId`.
     /// Mnemonic: "????"
@@ -102,10 +102,9 @@ pub mod tss_x25519_public_key {
 
     /// The `DEFAULT_CHARLIE_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "lake carry still awful point mention bike category tornado plate brass lock"
-    /// TODO
     pub const CHARLIE: [u8; 32] = [
-        245, 222, 99, 201, 89, 227, 119, 236, 142, 217, 74, 171, 58, 162, 140, 165, 7, 104, 210,
-        36, 196, 227, 208, 254, 175, 100, 226, 50, 239, 84, 141, 13,
+        131, 8, 162, 77, 237, 245, 226, 179, 250, 79, 121, 250, 174, 181, 227, 122, 205, 181, 188,
+        4, 37, 87, 150, 250, 210, 151, 203, 137, 188, 134, 124, 108,
     ];
 
     /// Not sure what mnemonic is used to derive the following public key.
