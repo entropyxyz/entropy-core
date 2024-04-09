@@ -63,12 +63,12 @@ pub mod tss_account_id {
     /// The `DEFAULT_ALICE_MNEMONIC` is used to derive the following `AccountId`.
     /// Mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
     pub static ref ALICE: sp_runtime::AccountId32 =
-            super::hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"].into();
+            super::hex!["306bdb49cbbe7104e3621abab3c9d31698b159f48dafe567abb7ea5d872ed329"].into();
 
     /// The `DEFAULT_BOB_MNEMONIC` is used to derive the following `AccountId`.
     /// Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
     pub static ref BOB: sp_runtime::AccountId32  =
-            super::hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"].into();
+            super::hex!["2cbc68e8bf0fbc1c28c282d1263fc9d29267dc12a1044fb730e8b65abc37524c"].into();
 
     /// The `DEFAULT_CHARLIE_MNEMONIC` is used to derive the following `AccountId`.
     /// Mnemonic: "lake carry still awful point mention bike category tornado plate brass lock"
