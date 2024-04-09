@@ -35,7 +35,7 @@ use subxt::{
     config::PolkadotExtrinsicParamsBuilder as Params,
     ext::sp_core::sr25519,
     storage::address::{StorageAddress, Yes},
-    tx::{PairSigner, TxPayload},
+    tx::{PairSigner, TxPayload, TxStatus},
     utils::{AccountId32, H256},
     Config, OnlineClient,
 };
@@ -138,9 +138,28 @@ pub async fn submit_transaction<Call: TxPayload>(
 
     let latest_block = api.blocks().at_latest().await?;
     let tx_params = Params::new().mortal(latest_block.header(), MORTALITY_BLOCKS).build();
-    let tx = api.tx().create_signed_with_nonce(call, signer, nonce.into(), tx_params)?;
-    let result = tx.submit_and_watch().await?.wait_for_in_block().await?.wait_for_success().await?;
-    Ok(result)
+    let mut tx = api
+        .tx()
+        .create_signed_with_nonce(call, signer, nonce.into(), tx_params)?
+        .submit_and_watch()
+        .await?;
+
+    while let Some(status) = tx.next().await {
+        match status? {
+            TxStatus::InBestBlock(tx_in_block) | TxStatus::InFinalizedBlock(tx_in_block) => {
+                return Ok(tx_in_block.wait_for_success().await?);
+            },
+            TxStatus::Error { message }
+            | TxStatus::Invalid { message }
+            | TxStatus::Dropped { message } => {
+                // Handle any errors:
+                return Err(anyhow!("Error submitting tx: {message}"));
+            },
+            // Continue otherwise:
+            _ => continue,
+        };
+    }
+    Err(anyhow!("Error getting event"))
 }
 
 /// Gets data from the Entropy chain

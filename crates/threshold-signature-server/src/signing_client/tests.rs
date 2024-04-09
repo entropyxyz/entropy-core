@@ -151,8 +151,8 @@ async fn test_proactive_refresh() {
     assert_ne!(converted_key_share, serialize(&key_after_dave).unwrap());
 
     let alice = AccountKeyring::Alice;
-    ocw_message.validators_info[0].tss_account = alice.encode();
-    ocw_message.validators_info[1].tss_account = alice.encode();
+    ocw_message.validators_info[0].tss_account = alice.public().encode();
+    ocw_message.validators_info[1].tss_account = alice.public().encode();
 
     let test_user_res_not_in_group =
         submit_transaction_requests(validator_ips.clone(), ocw_message.clone()).await;
