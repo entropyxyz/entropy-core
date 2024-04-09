@@ -273,9 +273,6 @@ async fn test_wasm_register_with_private_key_visibility() {
         })
         .collect();
 
-    let sk: StaticSecret = EVE_X25519_SECRET_KEY.into();
-    println!("EVE {:?}", PublicKey::from(&sk).to_bytes());
-
     // Call the `user/new` endpoint, and connect and participate in the protocol
     let (new_user_response_result, user_keyshare_json) = future::join(
         client

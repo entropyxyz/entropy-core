@@ -21,7 +21,8 @@ use entropy_testing_utils::{
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
     constants::{
-        AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
+        AUXILARY_DATA_SHOULD_SUCCEED, EVE_X25519_SECRET_KEY, PREIMAGE_SHOULD_SUCCEED,
+        TEST_PROGRAM_WASM_BYTECODE,
     },
     substrate_context::test_context_stationary,
     test_client,
@@ -132,16 +133,13 @@ async fn integration_test_sign_private() {
 
     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
-    // TODO
-    let x25519_secret: [u8; 32] = [0; 32];
-
     let recoverable_signature = test_client::sign(
         &api,
         &rpc,
         pre_registered_user.pair(),
         verifying_key,
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
-        Some((keyshare.clone(), x25519_secret.into())),
+        Some((keyshare.clone(), EVE_X25519_SECRET_KEY.into())),
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
     )
     .await
