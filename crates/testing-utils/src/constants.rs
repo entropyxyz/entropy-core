@@ -24,8 +24,8 @@ lazy_static! {
     pub static ref BOB_STASH_ADDRESS: AccountId32 =
         hex!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into(); // subkey inspect //Bob//stash
     pub static ref TSS_ACCOUNTS: Vec<AccountId32> = vec![
-        hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"].into(),
-        hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"].into()
+        hex!["306bdb49cbbe7104e3621abab3c9d31698b159f48dafe567abb7ea5d872ed329"].into(),
+        hex!["2cbc68e8bf0fbc1c28c282d1263fc9d29267dc12a1044fb730e8b65abc37524c"].into()
     ];
     pub static ref X25519_PUBLIC_KEYS: Vec<[u8; 32]> = vec![
         vec![
