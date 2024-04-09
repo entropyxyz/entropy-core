@@ -7,18 +7,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...master)
+## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.11...master)
+
+## [0.0.11](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...release/v0.0.11) - 2024-04-XX
 
 ### Breaking Changes
-- In 'Public Access Mode' [#623](https://github.com/entropyxyz/entropy-core/pull/623) the
+- In [#623](https://github.com/entropyxyz/entropy-core/pull/623), 'Public Access Mode', the
   `UserSignatureRequest` given when requesting a signature with the 'sign_tx' http endpoint must now
   contain an additional field, `signature_request_account: AccountId32`. In private and permissioned
   modes, this must be identical to the account used to sign the `SignedMessage` containing the
   signature request. In public access mode this may be an Entropy account owned by someone else.
-- In 'Add proactive refresh keys on-chain' [#629](https://github.com/entropyxyz/entropy-core/pull/629) the
-  `StakingExtensionConfig::proactive_refresh_validators` field used by the chain spec is now
-  `StakingExtensionConfigproactive_refresh_data` and takes a tuple of `Vec`. Both should be empty at
-  genesis for production.
+- In [#629](https://github.com/entropyxyz/entropy-core/pull/629), 'Add proactive refresh keys on-chain',
+  the `StakingExtensionConfig::proactive_refresh_validators` field used by the chain spec is now
+  `StakingExtensionConfig::proactive_refresh_data` and takes a tuple of `Vec`. Both should be empty
+  at genesis for production.
 - In [#631](https://github.com/entropyxyz/entropy-core/pull/631), the `config_interface` field of
   `ProgramInfo` was renamed to `interface_description` to be more semantically accurate. This field
   will now be used to describe program interfaces, including the auxilary and configuration
@@ -29,8 +31,8 @@ At the moment this project **does not** adhere to
 - In [#659](https://github.com/entropyxyz/entropy-core/pull/659), the Staking Extension pallet's
   `validate` extrinsic changed to take a `ServerInfo` struct instead of individual fields.
 - In [#660](https://github.com/entropyxyz/entropy-core/pull/660), if too many request are sent
-  for signing by a user in a block the TSS will reject them. As well a parameter config was
-  added to the chainspec
+  for signing by a user in a block the TSS will reject them. The chainspec now has an added field
+  for the new Parameters pallet, which itself has a `request_limit` field.
 - In [#661](https://github.com/entropyxyz/entropy-core/pull/661), the Relayer pallet was renamed to
   the Registry pallet as this better describes the purpose of the pallet.
 - In [#662](https://github.com/entropyxyz/entropy-core/pull/662), the Free Transaction pallet was
@@ -41,29 +43,39 @@ At the moment this project **does not** adhere to
   `registered` struct.
 - In [#678](https://github.com/entropyxyz/entropy-core/pull/678), the Registry pallet's
   `get_validator_info()` public method stopped returning the validator index
+- In [#680](https://github.com/entropyxyz/entropy-core/pull/680), a new genesis config entry was
+  added for the Programs pallet. This entry, `initial_programs`, is a list of tuples which contains
+  information (`hash`, `bytecode`, `config`, `auxiliary data`) about what programs to have on chain
+  during genesis.
 - In [#681](https://github.com/entropyxyz/entropy-core/pull/681) `program_interface` in
-  `program_data` of the `Programs` pallet has been split into `configuration_schema` and `auxiliary_data_schema`
-- In 'Add HPKE implementation' [#674](https://github.com/entropyxyz/entropy-core/pull/674)
+  `program_data` of the `Programs` pallet has been split into `configuration_schema` and
+  `auxiliary_data_schema`
+- In [#674](https://github.com/entropyxyz/entropy-core/pull/674), 'Add HPKE implementation',
   `entropy-protocol`'s `SignedMessage` has been replaced by `EncryptedSignedMessage` which has some
-  small API differences, `derive_static_secret` is renamed `derive_x25519_static_secret`, and in the
-  `entropy-protocol` JS module, the subclass dealing with encryption has been renamed from
+  small API differences: `derive_static_secret` was renamed to `derive_x25519_static_secret`, and in
+  the `entropy-protocol` JS module the subclass dealing with encryption has been renamed from
   `X25519Chacha20Poly1305` to `Hpke`. The JS API is otherwise the same as before.
+- In [#703](https://github.com/entropyxyz/entropy-core/pull/703) a new genesis config parameter for
+  the Parameters pallet was added, `max_instructions_per_program`.
 
 ### Added
 - Add ValidatorSubgroupRotated event ([#618](https://github.com/entropyxyz/entropy-core/pull/618))
+- Public access mode ([#623](https://github.com/entropyxyz/entropy-core/pull/623))
 - Emit events on TSS server errors ([#625](https://github.com/entropyxyz/entropy-core/pull/625))
 - Add direct query for a validator's subgroup ([#642](https://github.com/entropyxyz/entropy-core/pull/642))
+- Add version number to registered ([#658](https://github.com/entropyxyz/entropy-core/pull/658))
 - Request limit check ([#660](https://github.com/entropyxyz/entropy-core/pull/660))
 - Add helper for checking if a validator is in the signing committee ([#678](https://github.com/entropyxyz/entropy-core/pull/678))
 - Note unresponsiveness reports in Slashing pallet ([#679](https://github.com/entropyxyz/entropy-core/pull/679))
-- Add device key program to initial chianstate ([#680](https://github.com/entropyxyz/entropy-core/pull/660))
+- Add device key program to initial chainstate ([#680](https://github.com/entropyxyz/entropy-core/pull/680))
 - Add aux data to program info ([#681](https://github.com/entropyxyz/entropy-core/pull/681))
 - Add HPKE implementation ([#674](https://github.com/entropyxyz/entropy-core/pull/674))
-- Add max instructions parameters onchain ([#703](https://github.com/entropyxyz/entropy-core/pull/681))
+- Add max instructions parameters onchain ([#703](https://github.com/entropyxyz/entropy-core/pull/703))
 
 ### Changed
 - Test CLI - dont send hardcoded auxiliary data by default when signing ([#614](https://github.com/entropyxyz/entropy-core/pull/614))
 - Add proactive refresh keys on-chain ([#629](https://github.com/entropyxyz/entropy-core/pull/629))
+- Rename ProgramInfo.config_interface to interface_description ([#631](https://github.com/entropyxyz/entropy-core/pull/631))
 - Change test-cli default access mode and update readme for recent changes ([#643](https://github.com/entropyxyz/entropy-core/pull/643))
 - Add additional checks to TSS server's `/user/receive_key` endpoint ([#655](https://github.com/entropyxyz/entropy-core/pull/655))
 - Disallow using existing TSS account IDs in Staking pallet ([#657](https://github.com/entropyxyz/entropy-core/pull/657))
