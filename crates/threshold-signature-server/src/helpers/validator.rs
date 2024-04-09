@@ -27,7 +27,7 @@ use zeroize::Zeroize;
 
 use crate::{chain_api::EntropyConfig, user::UserErr};
 
-const KDF_SR25519: &[u8] = b"ssr25519-threshold-account";
+const KDF_SR25519: &[u8] = b"sr25519-threshold-account";
 const KDF_X25519: &[u8] = b"X25519-keypair";
 
 /// Returns PairSigner for this nodes threshold server.
