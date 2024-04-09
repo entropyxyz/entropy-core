@@ -35,6 +35,7 @@ use crate::{
         logger::Instrumentation,
         logger::Logger,
         substrate::{get_subgroup, query_chain, submit_transaction},
+        validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     signing_client::ListenerState,
     AppState,
@@ -262,13 +263,11 @@ async fn test_get_signing_group() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
-    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
-    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+    let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
     let result_alice = get_subgroup(&api, &rpc, &signer_alice.account_id()).await.unwrap();
     assert_eq!(result_alice, 0);
 
-    let p_bob = <sr25519::Pair as Pair>::from_string(DEFAULT_BOB_MNEMONIC, None).unwrap();
-    let signer_bob = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_bob);
+    let (signer_bob, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_BOB_MNEMONIC).unwrap();
     let result_bob = get_subgroup(&api, &rpc, &signer_bob.account_id()).await.unwrap();
     assert_eq!(result_bob, 1);
 

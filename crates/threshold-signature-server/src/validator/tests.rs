@@ -15,7 +15,6 @@
 
 use std::{net::TcpListener, time::SystemTime};
 
-use bip39::{Language, Mnemonic};
 use entropy_kvdb::clean_tests;
 use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY, MIN_BALANCE};
 use entropy_testing_utils::{
@@ -92,19 +91,14 @@ async fn test_sync_kvdb() {
         hex::encode(FERDIE_VERIFYING_KEY.to_vec()),
     ];
 
-    let a_usr_sk = mnemonic_to_pair(
-        &Mnemonic::parse_in_normalized(Language::English, DEFAULT_ALICE_MNEMONIC).unwrap(),
-    )
-    .unwrap();
+    let (a_signer, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_ALICE_MNEMONIC).unwrap();
 
-    let b_usr_sk = mnemonic_to_pair(
-        &Mnemonic::parse_in_normalized(Language::English, DEFAULT_BOB_MNEMONIC).unwrap(),
-    )
-    .unwrap();
-
-    let (_, bob_x25519_secret) =
+    let (b_signer, bob_x25519_secret) =
         get_signer_and_x25519_secret_from_mnemonic(DEFAULT_BOB_MNEMONIC).unwrap();
     let recip = x25519_dalek::PublicKey::from(&bob_x25519_secret).to_bytes();
+
+    let a_usr_sk = a_signer.signer();
+    let b_usr_sk = b_signer.signer();
 
     let values = vec![vec![10], vec![11], vec![12]];
 
@@ -261,8 +255,7 @@ async fn test_get_and_store_values() {
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 
-    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
-    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+    let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
 
     let mut recip_server_info = {
         let alice_stash_address =
@@ -326,8 +319,7 @@ async fn test_get_random_server_info() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
-    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
-    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+    let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
     let my_subgroup = get_subgroup(&api, &rpc, &signer_alice.account_id()).await.unwrap();
     let validator_address =
         get_stash_address(&api, &rpc, &signer_alice.account_id()).await.unwrap();
