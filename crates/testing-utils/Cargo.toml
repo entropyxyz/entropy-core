@@ -9,7 +9,7 @@ edition   ='2021'
 publish   =false
 
 [dependencies]
-subxt             ={ version="0.34.0" }
+subxt             ="0.34.0" 
 sp-keyring        ="31.0.0"
 project-root      ="0.2.2"
 sp-core           ={ version="28.0.0", default-features=false }
