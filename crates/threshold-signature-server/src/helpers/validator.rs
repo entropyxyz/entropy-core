@@ -91,7 +91,7 @@ fn get_signer_from_hkdf(
 
 fn get_x25519_secret_from_hkdf(hkdf: &Hkdf<Sha256>) -> Result<StaticSecret, UserErr> {
     let mut secret = [0u8; 32];
-    hkdf.expand(KDF_X25519, &mut secret).expect("Cannot get 32 byte output from sha256");
+    hkdf.expand(KDF_X25519, &mut secret)?;
     let static_secret = StaticSecret::from(secret);
     secret.zeroize();
     Ok(static_secret)
