@@ -13,15 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::chain_spec::get_account_id_from_seed;
+use crate::chain_spec::{get_account_id_from_seed, ChainSpec};
 use crate::endowed_accounts::endowed_accounts_dev;
 
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-    IndicesConfig, MaxNominations, ParametersConfig, ProgramsConfig, RuntimeGenesisConfig,
-    SessionConfig, StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig,
+    IndicesConfig, MaxNominations, ParametersConfig, ProgramsConfig, SessionConfig, StakerStatus,
+    StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
@@ -154,32 +153,26 @@ pub fn testnet_initial_authorities(
 /// This configuration matches the same setup as the `testnet`, with the exception that is uses
 /// two well-known accounts (Alice and Bob) as the authorities.
 pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
-    crate::chain_spec::ChainSpec::from_genesis(
-        "Entropy Testnet Local",
-        "entropy_testnet_local",
-        ChainType::Live,
-        || {
-            testnet_genesis_config(
-                testnet_local_initial_authorities(),
-                vec![],
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
-                testnet_local_initial_tss_servers(),
-            )
-        },
-        vec![],
-        Some(
+    ChainSpec::builder(wasm_binary_unwrap(), Default::default())
+        .with_name("Entropy Testnet Local")
+        .with_id("entropy_testnet_local")
+        .with_chain_type(ChainType::Live)
+        .with_genesis_config_patch(testnet_genesis_config(
+            testnet_local_initial_authorities(),
+            vec![],
+            get_account_id_from_seed::<sr25519::Public>("Alice"),
+            testnet_local_initial_tss_servers(),
+        ))
+        .with_protocol_id(crate::chain_spec::DEFAULT_PROTOCOL_ID)
+        .with_properties(crate::chain_spec::entropy_properties())
+        .with_telemetry_endpoints(
             TelemetryEndpoints::new(vec![(
                 crate::chain_spec::STAGING_TELEMETRY_URL.to_string(),
                 0,
             )])
             .expect("Staging telemetry url is valid; qed"),
-        ),
-        Some(crate::chain_spec::DEFAULT_PROTOCOL_ID),
-        None,
-        Some(crate::chain_spec::entropy_properties()),
-        Default::default(),
-        wasm_binary_unwrap(),
-    )
+        )
+        .build()
 }
 
 pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
@@ -265,32 +258,26 @@ pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, T
 ///  - Update all the accounts here using keys you control, or
 ///  - Run the `testnet-local` config, which uses well-known keys
 pub fn testnet_config() -> crate::chain_spec::ChainSpec {
-    crate::chain_spec::ChainSpec::from_genesis(
-        "Entropy Testnet",
-        "entropy_testnet",
-        ChainType::Live,
-        || {
-            testnet_genesis_config(
-                testnet_initial_authorities(),
-                vec![],
-                hex!["b848e84ef81dfeabef80caed10d7d34cc10e98e71fd00c5777b81177a510d871"].into(),
-                testnet_initial_tss_servers(),
-            )
-        },
-        vec![],
-        Some(
+    ChainSpec::builder(wasm_binary_unwrap(), Default::default())
+        .with_name("Entropy Testnet")
+        .with_id("entropy_testnet")
+        .with_chain_type(ChainType::Live)
+        .with_genesis_config_patch(testnet_genesis_config(
+            testnet_initial_authorities(),
+            vec![],
+            hex!["b848e84ef81dfeabef80caed10d7d34cc10e98e71fd00c5777b81177a510d871"].into(),
+            testnet_initial_tss_servers(),
+        ))
+        .with_protocol_id(crate::chain_spec::DEFAULT_PROTOCOL_ID)
+        .with_properties(crate::chain_spec::entropy_properties())
+        .with_telemetry_endpoints(
             TelemetryEndpoints::new(vec![(
                 crate::chain_spec::STAGING_TELEMETRY_URL.to_string(),
                 0,
             )])
             .expect("Staging telemetry url is valid; qed"),
-        ),
-        Some(crate::chain_spec::DEFAULT_PROTOCOL_ID),
-        None,
-        Some(crate::chain_spec::entropy_properties()),
-        Default::default(),
-        wasm_binary_unwrap(),
-    )
+        )
+        .build()
 }
 
 pub fn testnet_genesis_config(
@@ -305,7 +292,7 @@ pub fn testnet_genesis_config(
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
     initial_tss_servers: Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)>,
-) -> RuntimeGenesisConfig {
+) -> serde_json::Value {
     assert!(
         initial_authorities.len() == initial_tss_servers.len(),
         "Each validator node needs to have an accompanying threshold server."
@@ -367,13 +354,13 @@ pub fn testnet_genesis_config(
     const STASH: Balance = ENDOWMENT / 1000;
     const SIGNING_GROUPS: usize = 2;
 
-    RuntimeGenesisConfig {
-        system: SystemConfig { ..Default::default() },
-        balances: BalancesConfig {
+    serde_json::json!( {
+        "system": SystemConfig { ..Default::default() },
+        "balances": BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
         },
-        indices: IndicesConfig { indices: vec![] },
-        session: SessionConfig {
+        "indices": IndicesConfig { indices: vec![] },
+        "session": SessionConfig {
             keys: initial_authorities
                 .iter()
                 .map(|x| {
@@ -397,7 +384,7 @@ pub fn testnet_genesis_config(
                 })
                 .collect::<Vec<_>>(),
         },
-        staking: StakingConfig {
+        "staking": StakingConfig {
             validator_count: initial_authorities.len() as u32,
             minimum_validator_count: 0,
             // For our initial testnet deployment we make it so that the validator stash accounts
@@ -409,7 +396,7 @@ pub fn testnet_genesis_config(
             stakers,
             ..Default::default()
         },
-        staking_extension: StakingExtensionConfig {
+        "stakingExtension": StakingExtensionConfig {
             threshold_servers: initial_authorities
                 .iter()
                 .zip(initial_tss_servers.iter())
@@ -429,8 +416,8 @@ pub fn testnet_genesis_config(
                 .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),
         },
-        democracy: DemocracyConfig::default(),
-        elections: ElectionsConfig {
+        "democracy": DemocracyConfig::default(),
+        "elections": ElectionsConfig {
             members: endowed_accounts
                 .iter()
                 .take((num_endowed_accounts + 1) / 3)
@@ -438,8 +425,8 @@ pub fn testnet_genesis_config(
                 .map(|member| (member, STASH))
                 .collect(),
         },
-        council: CouncilConfig::default(),
-        technical_committee: TechnicalCommitteeConfig {
+        "council": CouncilConfig::default(),
+        "technicalCommittee": TechnicalCommitteeConfig {
             members: endowed_accounts
                 .iter()
                 .take((num_endowed_accounts + 1) / 3)
@@ -447,28 +434,21 @@ pub fn testnet_genesis_config(
                 .collect(),
             phantom: Default::default(),
         },
-        sudo: SudoConfig { key: Some(root_key.clone()) },
-        babe: BabeConfig {
+        "sudo": SudoConfig { key: Some(root_key.clone()) },
+        "babe": BabeConfig {
             authorities: vec![],
             epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
             ..Default::default()
         },
-        im_online: ImOnlineConfig { keys: vec![] },
-        authority_discovery: AuthorityDiscoveryConfig { keys: vec![], ..Default::default() },
-        grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
-        technical_membership: Default::default(),
-        treasury: Default::default(),
-        registry: Default::default(),
-        parameters: ParametersConfig {
+        "imOnline": ImOnlineConfig { keys: vec![] },
+        "authorityDiscovery": AuthorityDiscoveryConfig { keys: vec![], ..Default::default() },
+        "grandpa": GrandpaConfig { authorities: vec![], ..Default::default() },
+        "parameters": ParametersConfig {
             request_limit: 20,
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             ..Default::default()
         },
-        vesting: Default::default(),
-        transaction_storage: Default::default(),
-        transaction_payment: Default::default(),
-        nomination_pools: Default::default(),
-        programs: ProgramsConfig {
+        "programs": ProgramsConfig {
             inital_programs: vec![(
                 *DEVICE_KEY_HASH,
                 DEVICE_KEY_PROXY.to_vec(),
@@ -478,5 +458,5 @@ pub fn testnet_genesis_config(
                 10,
             )],
         },
-    }
+    })
 }

@@ -111,7 +111,12 @@ pub struct FullDeps<C, P, SC, B> {
 
 /// Instantiate all Full RPC extensions.
 pub fn create_full<C, P, SC, B>(
-    FullDeps { client, pool, select_chain, chain_spec, deny_unsafe, babe, grandpa, backend } : FullDeps<C, P, SC, B>,
+    FullDeps { client, pool, select_chain, chain_spec, deny_unsafe, babe, grandpa, .. }: FullDeps<
+        C,
+        P,
+        SC,
+        B,
+    >,
 ) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
 where
     C: ProvideRuntimeApi<Block>

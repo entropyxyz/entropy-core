@@ -19,9 +19,9 @@ use crate::endowed_accounts::endowed_accounts_dev;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
     BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-    IndicesConfig, MaxNominations, ParametersConfig, ProgramsConfig, RegistryConfig,
-    RuntimeGenesisConfig, SessionConfig, StakerStatus, StakingConfig, StakingExtensionConfig,
-    SudoConfig, SystemConfig, TechnicalCommitteeConfig, WASM_BINARY,
+    IndicesConfig, MaxNominations, ParametersConfig, ProgramsConfig, RegistryConfig, SessionConfig,
+    StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
@@ -41,30 +41,7 @@ use sp_runtime::{BoundedVec, Perbill};
 ///
 /// Since Entropy requires at least two signing groups to work properly we spin up this network with
 /// two validators, Alice and Bob.
-pub fn development_config() -> crate::chain_spec::ChainSpec {
-    // crate::chain_spec::ChainSpec::from_genesis(
-    //     "Development",
-    //     "dev",
-    //     ChainType::Development,
-    //     || {
-    //         development_genesis_config(
-    //             vec![
-    //                 crate::chain_spec::authority_keys_from_seed("Alice"),
-    //                 crate::chain_spec::authority_keys_from_seed("Bob"),
-    //             ],
-    //             vec![],
-    //             get_account_id_from_seed::<sr25519::Public>("Alice"),
-    //             vec!["127.0.0.1:3001", "127.0.0.1:3002"],
-    //         )
-    //     },
-    //     vec![],
-    //     None,
-    //     None,
-    //     None,
-    //     None,
-    //     Default::default(),
-    //     wasm_binary_unwrap(),
-    // )
+pub fn development_config() -> ChainSpec {
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Development")
         .with_id("dev")
@@ -87,27 +64,6 @@ pub fn development_config() -> crate::chain_spec::ChainSpec {
 /// Since Entropy requires at least two signing groups to work properly we spin up this network with
 /// two validators, Alice and Bob.
 pub fn devnet_local_config() -> crate::chain_spec::ChainSpec {
-    // "Devnet Local",
-    // "devnet_local",
-    // ChainType::Development,
-    // || {
-    //     development_genesis_config(
-    // vec![
-    //     crate::chain_spec::authority_keys_from_seed("Alice"),
-    //     crate::chain_spec::authority_keys_from_seed("Bob"),
-    // ],
-    // vec![],
-    // get_account_id_from_seed::<sr25519::Public>("Alice"),
-    // vec!["alice-tss-server:3001", "bob-tss-server:3002"],
-    //     )
-    // },
-    // vec![],
-    // None,
-    // None,
-    // None,
-    // None,
-    // Default::default(),
-    // wasm_binary_unwrap(),
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Devnet Local")
         .with_id("devnet_local")
@@ -196,7 +152,7 @@ pub fn development_genesis_config(
             minimum_validator_count: 0,
             invulnerables: vec![],
             slash_reward_fraction: Perbill::from_percent(10),
-            stakers: stakers,
+            stakers,
             ..Default::default()
         },
         "stakingExtension": StakingExtensionConfig {
@@ -251,8 +207,6 @@ pub fn development_genesis_config(
         "imOnline": ImOnlineConfig { keys: vec![] },
         "authorityDiscovery": AuthorityDiscoveryConfig { keys: vec![], ..Default::default() },
         "grandpa": GrandpaConfig  { authorities: vec![], ..Default::default() },
-        // "technical_membership": Default::default(),
-        // "treasury": Default::default(),
         "registry": RegistryConfig {
             registered_accounts: vec![
                 (
@@ -280,10 +234,6 @@ pub fn development_genesis_config(
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             ..Default::default()
         },
-        // "vesting": Default::default(),
-        // "transaction_storage": Default::default(),
-        // "transaction_payment": Default::default(),
-        // "nomination_pools": Default::default(),
         "programs": ProgramsConfig {
             inital_programs: vec![(
                 *DEVICE_KEY_HASH,
