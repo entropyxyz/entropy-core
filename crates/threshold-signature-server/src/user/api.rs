@@ -16,13 +16,14 @@
 use std::{str::FromStr, sync::Arc, time::SystemTime};
 
 use axum::{
-    body::{Bytes, StreamBody},
+    body::{Body, Bytes},
     extract::State,
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
+use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
 use entropy_kvdb::kv_manager::{
@@ -127,8 +128,7 @@ pub struct RequestLimitStorage {
 pub async fn sign_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
-) -> Result<(StatusCode, StreamBody<impl Stream<Item = Result<String, serde_json::Error>>>), UserErr>
-{
+) -> Result<(StatusCode, Body), UserErr> {
     let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
@@ -237,7 +237,7 @@ pub async fn sign_tx(
         .await
         .map(|signature| {
             (
-                base64::encode(signature.to_rsv_bytes()),
+                BASE64_STANDARD.encode(signature.to_rsv_bytes()),
                 signer.signer().sign(&signature.to_rsv_bytes()),
             )
         })
@@ -250,7 +250,7 @@ pub async fn sign_tx(
     });
 
     // This indicates that the signing protocol is starting successfully
-    Ok((StatusCode::OK, StreamBody::new(response_rx)))
+    Ok((StatusCode::OK, Body::from_stream(response_rx)))
 }
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.

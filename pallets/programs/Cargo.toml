@@ -1,6 +1,6 @@
 [package]
 name      ='pallet-programs'
-version   ='0.0.10'
+version   ='0.0.11'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -13,7 +13,7 @@ targets=['x86_64-unknown-linux-gnu']
 
 [dependencies]
 codec     ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
-scale-info={ version="2.1", default-features=false, features=["derive"] }
+scale-info={ version="2.11", default-features=false, features=["derive"] }
 log       ={ version="0.4.21", default-features=false }
 
 frame-benchmarking={ version="25.0.0", default-features=false, optional=true }

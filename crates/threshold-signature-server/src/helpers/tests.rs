@@ -18,7 +18,7 @@
 // only compile when testing
 #![cfg(test)]
 
-use std::{net::TcpListener, time::Duration};
+use std::time::Duration;
 
 use crate::{
     app,
@@ -85,11 +85,14 @@ pub async fn setup_client() -> KvManager {
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
     let app = app(app_state).into_make_service();
-    let listener = TcpListener::bind("0.0.0.0:3001").unwrap();
 
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:3001"))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener).unwrap().serve(app).await.unwrap();
+        axum::serve(listener, app).await.unwrap();
     });
+
     kv_store
 }
 
@@ -184,14 +187,18 @@ pub async fn spawn_testing_validators(
         None
     };
 
-    let listener_alice = TcpListener::bind(format!("0.0.0.0:{}", ports[0])).unwrap();
-    let listener_bob = TcpListener::bind(format!("0.0.0.0:{}", ports[1])).unwrap();
+    let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_alice).unwrap().serve(alice_axum).await.unwrap();
+        axum::serve(listener_alice, alice_axum).await.unwrap();
     });
 
+    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[1]))
+        .await
+        .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
-        axum::Server::from_tcp(listener_bob).unwrap().serve(bob_axum).await.unwrap();
+        axum::serve(listener_bob, bob_axum).await.unwrap();
     });
 
     tokio::time::sleep(Duration::from_secs(1)).await;

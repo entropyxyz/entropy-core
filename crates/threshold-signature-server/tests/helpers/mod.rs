@@ -14,14 +14,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Helper functions for integration tests
+use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::KeyParams;
 use entropy_testing_utils::constants::TSS_ACCOUNTS;
+use subxt::ext::sp_core::{sr25519, sr25519::Signature, Pair};
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     KeyShare,
 };
-
-use subxt::ext::sp_core::{sr25519, sr25519::Signature, Pair};
 
 /// Verfiy a signature in a response from `/user/sign_tx`
 pub async fn verify_signature(
@@ -38,7 +38,7 @@ pub async fn verify_signature(
         let signing_result: Result<(String, Signature), String> =
             serde_json::from_slice(&chunk).unwrap();
         assert_eq!(signing_result.clone().unwrap().0.len(), 88);
-        let mut decoded_sig = base64::decode(signing_result.clone().unwrap().0).unwrap();
+        let mut decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
         let recovery_digit = decoded_sig.pop().unwrap();
         let signature = k256Signature::from_slice(&decoded_sig).unwrap();
         let recover_id = RecoveryId::from_byte(recovery_digit).unwrap();
@@ -52,7 +52,7 @@ pub async fn verify_signature(
 
         let sig_recovery = <sr25519::Pair as Pair>::verify(
             &signing_result.clone().unwrap().1,
-            base64::decode(signing_result.unwrap().0).unwrap(),
+            BASE64_STANDARD.decode(signing_result.unwrap().0).unwrap(),
             &sr25519::Public(TSS_ACCOUNTS[i].0),
         );
         assert!(sig_recovery);

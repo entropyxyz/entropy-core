@@ -1,6 +1,6 @@
 [package]
 name      ='entropy-runtime'
-version   ='0.0.10'
+version   ='0.0.11'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -21,7 +21,7 @@ codec={ package="parity-scale-codec", version="3.6.3", default-features=false, f
 ] }
 hex-literal={ version="0.3.4", optional=true }
 log={ version="0.4.21", default-features=false }
-scale-info={ version="2.1", default-features=false, features=["derive"] }
+scale-info={ version="2.11", default-features=false, features=["derive"] }
 static_assertions="1.1.0"
 
 # Substrate Primitives
@@ -98,13 +98,13 @@ pallet-utility                               ={ version="25.0.0", default-featur
 pallet-vesting                               ={ version="25.0.0", default-features=false }
 
 # Entropy Pallets
-pallet-programs         ={ version='0.0.10', path='../pallets/programs', default-features=false }
-pallet-propagation      ={ version='0.0.10', path='../pallets/propagation', default-features=false }
-pallet-registry         ={ version='0.0.10', path='../pallets/registry', default-features=false }
-pallet-slashing         ={ version='0.0.10', path='../pallets/slashing', default-features=false }
-pallet-staking-extension={ version='0.0.10', path='../pallets/staking', default-features=false }
-pallet-transaction-pause={ version='0.0.10', path='../pallets/transaction-pause', default-features=false }
-pallet-parameters       ={ version='0.0.10', path='../pallets/parameters', default-features=false }
+pallet-programs         ={ version='0.0.11', path='../pallets/programs', default-features=false }
+pallet-propagation      ={ version='0.0.11', path='../pallets/propagation', default-features=false }
+pallet-registry         ={ version='0.0.11', path='../pallets/registry', default-features=false }
+pallet-slashing         ={ version='0.0.11', path='../pallets/slashing', default-features=false }
+pallet-staking-extension={ version='0.0.11', path='../pallets/staking', default-features=false }
+pallet-transaction-pause={ version='0.0.11', path='../pallets/transaction-pause', default-features=false }
+pallet-parameters       ={ version='0.0.11', path='../pallets/parameters', default-features=false }
 
 entropy-shared={ path="../crates/shared", default-features=false, features=["wasm-no-std"] }
 
