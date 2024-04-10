@@ -24,7 +24,7 @@ entropy-kvdb      ={ path="../kvdb", default-features=false }
 entropy-tss       ={ path="../threshold-signature-server" }
 
 # For test client
-anyhow          ="1.0.81"
+anyhow          ="1.0.82"
 blake2          ="0.10.4"
 futures         ="0.3"
 num             ="0.4.0"
