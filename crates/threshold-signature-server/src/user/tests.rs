@@ -629,8 +629,11 @@ async fn test_store_share() {
             tss_account: TSS_ACCOUNTS[1].clone().encode(),
         },
     ];
-    let mut onchain_user_request =
-        OcwMessageDkg { sig_request_accounts: vec![alice.encode()], block_number, validators_info };
+    let mut onchain_user_request = OcwMessageDkg {
+        sig_request_accounts: vec![alice.public().encode()],
+        block_number,
+        validators_info,
+    };
 
     put_register_request_on_chain(
         &api,
@@ -1348,7 +1351,11 @@ async fn test_register_with_private_key_visibility() {
                 tss_account: TSS_ACCOUNTS[i].clone().encode(),
             })
             .collect();
-        OcwMessageDkg { sig_request_accounts: vec![one.encode()], block_number, validators_info }
+        OcwMessageDkg {
+            sig_request_accounts: vec![one.public().encode()],
+            block_number,
+            validators_info,
+        }
     };
 
     let client = reqwest::Client::new();
