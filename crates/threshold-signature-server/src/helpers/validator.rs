@@ -31,9 +31,9 @@ use crate::{chain_api::EntropyConfig, user::UserErr};
 const KDF_SR25519: &[u8] = b"sr25519-threshold-account";
 const KDF_X25519: &[u8] = b"X25519-keypair";
 
-/// Returns PairSigner for this nodes threshold server.
+/// Returns a PairSigner for this node's threshold server.
 /// The PairSigner is stored as an encrypted mnemonic in the kvdb and
-/// is used for PKE and to submit extrensics on chain.
+/// is used to sign encrypted messages and to submit extrinsics on chain.
 pub async fn get_signer(
     kv: &KvManager,
 ) -> Result<PairSigner<EntropyConfig, sr25519::Pair>, UserErr> {
@@ -78,6 +78,7 @@ fn get_hkdf_from_mnemonic(mnemonic: &str) -> Result<Hkdf<Sha256>, UserErr> {
     Ok(Hkdf::<Sha256>::new(None, &mnemonic.to_seed("")))
 }
 
+/// Derive signing keypair
 fn get_signer_from_hkdf(
     hkdf: &Hkdf<Sha256>,
 ) -> Result<PairSigner<EntropyConfig, sr25519::Pair>, UserErr> {
@@ -89,6 +90,7 @@ fn get_signer_from_hkdf(
     Ok(PairSigner::<EntropyConfig, sr25519::Pair>::new(pair))
 }
 
+/// Derive x25519 secret
 fn get_x25519_secret_from_hkdf(hkdf: &Hkdf<Sha256>) -> Result<StaticSecret, UserErr> {
     let mut secret = [0u8; 32];
     hkdf.expand(KDF_X25519, &mut secret)?;
