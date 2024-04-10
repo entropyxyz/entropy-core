@@ -36,9 +36,9 @@ test('Encrypt, decrypt with HPKE', function (t) {
   // Malloy cannot decrypt the message.
   let error
   try {
-      decryptAndVerify(malloryX25519Keypair.secretKey(), encryptedAndSignedMessage)
+    decryptAndVerify(malloryX25519Keypair.secretKey(), encryptedAndSignedMessage)
   } catch (e) {
-      error = e.toString()
+    error = e.toString()
   }
   t.equals(error, 'Error: Hpke: HPKE Error: OpenError')
 })
