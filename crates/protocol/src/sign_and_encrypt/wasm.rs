@@ -9,33 +9,6 @@ use x25519_dalek::StaticSecret;
 
 const HEX_PREFIX: [u8; 2] = [48, 120];
 
-#[wasm_bindgen]
-pub struct X25519Keypair {
-    secret_key: StaticSecret,
-    public_key: x25519_dalek::PublicKey,
-}
-
-#[wasm_bindgen]
-impl X25519Keypair {
-    /// Generate an x25519 encryption keypair
-    #[wasm_bindgen(js_name = generate)]
-    pub fn generate() -> Result<X25519Keypair, Error> {
-        let secret_key = StaticSecret::random_from_rng(OsRng);
-        let public_key = x25519_dalek::PublicKey::from(&secret_key);
-        Ok(X25519Keypair { secret_key, public_key })
-    }
-
-    #[wasm_bindgen(js_name = secretKey)]
-    pub fn secret_key(&self) -> Vec<u8> {
-        self.secret_key.as_bytes().to_vec()
-    }
-
-    #[wasm_bindgen(js_name = publicKey)]
-    pub fn public_key(&self) -> Vec<u8> {
-        self.public_key.as_bytes().to_vec()
-    }
-}
-
 /// Functions for creating and using `EncryptedSignedMessage`s which use HPKE for chacha20poly1305
 /// encryption and x25519 key agreement and sr25519 for signing.
 #[wasm_bindgen]
@@ -58,6 +31,7 @@ impl Hpke {
     }
 
     /// Encrypts, signs, and serializes an `EncryptedSignedMessage` to JSON.
+    /// Takes a secret sr25519 siging key.
     #[wasm_bindgen(js_name = encryptAndSign)]
     pub fn encrypt_and_sign(
         sr25519_secret_key: Vec<u8>,
@@ -82,14 +56,19 @@ impl Hpke {
     }
 
     /// Deserializes, verifies and decrypts a json encoded `EncryptedSignedMessage`.
+    /// Takes a x25519 secret encryption key.
     /// Returns the plaintext.
     #[wasm_bindgen(js_name = decryptAndVerify)]
-    pub fn decrypt_and_verify(secret_key: Vec<u8>, message: String) -> Result<Vec<u8>, Error> {
+    pub fn decrypt_and_verify(
+        x25519_secret_key: Vec<u8>,
+        message: String,
+    ) -> Result<Vec<u8>, Error> {
         let encrypted_message: EncryptedSignedMessage =
             serde_json::from_str(message.as_str()).map_err(|err| Error::new(&err.to_string()))?;
 
-        let secret_key: [u8; 32] =
-            secret_key.try_into().map_err(|_| Error::new("X25519 secret key must be 32 bytes"))?;
+        let secret_key: [u8; 32] = x25519_secret_key
+            .try_into()
+            .map_err(|_| Error::new("X25519 secret key must be 32 bytes"))?;
 
         let signed_message = encrypted_message
             .decrypt(&secret_key.into(), &[])
@@ -99,6 +78,47 @@ impl Hpke {
         // way for the called to check the public key of the signer - we should be returning that as
         // well
         Ok(signed_message.message.0)
+    }
+}
+
+/// An x25519 encryption keypair
+#[wasm_bindgen]
+pub struct X25519Keypair {
+    secret_key: StaticSecret,
+    public_key: x25519_dalek::PublicKey,
+}
+
+#[wasm_bindgen]
+impl X25519Keypair {
+    /// Constructor to randomly generate an x25519 encryption keypair
+    #[wasm_bindgen(js_name = generate)]
+    pub fn generate() -> Result<X25519Keypair, Error> {
+        let secret_key = StaticSecret::random_from_rng(OsRng);
+        let public_key = x25519_dalek::PublicKey::from(&secret_key);
+        Ok(X25519Keypair { secret_key, public_key })
+    }
+
+    /// Constructor to create a keypair from a given secret key
+    #[wasm_bindgen(js_name = fromSecretKey)]
+    pub fn from_secret_key(secret_key: Vec<u8>) -> Result<X25519Keypair, Error> {
+        let secret_key: [u8; 32] =
+            secret_key.try_into().map_err(|_| Error::new("X25519 secret key must be 32 bytes"))?;
+
+        let secret_key: StaticSecret = secret_key.into();
+        let public_key = x25519_dalek::PublicKey::from(&secret_key);
+        Ok(X25519Keypair { secret_key, public_key })
+    }
+
+    /// Getter for the secret key
+    #[wasm_bindgen(js_name = secretKey)]
+    pub fn secret_key(&self) -> Vec<u8> {
+        self.secret_key.as_bytes().to_vec()
+    }
+
+    /// Getter for the public key
+    #[wasm_bindgen(js_name = publicKey)]
+    pub fn public_key(&self) -> Vec<u8> {
+        self.public_key.as_bytes().to_vec()
     }
 }
 
