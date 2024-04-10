@@ -2610,7 +2610,7 @@ dependencies = [
  "blake2 0.10.6",
  "entropy-shared",
  "futures",
- "generic-array 1.0.0",
+ "generic-array 0.14.7",
  "getrandom 0.2.13",
  "gloo-net",
  "hex",
@@ -2772,7 +2772,7 @@ dependencies = [
  "entropy-shared",
  "entropy-tss",
  "futures",
- "generic-array 1.0.0",
+ "generic-array 0.14.7",
  "hex",
  "hex-literal",
  "lazy_static",
@@ -3794,15 +3794,6 @@ dependencies = [
  "typenum",
  "version_check",
  "zeroize",
-]
-
-[[package]]
-name = "generic-array"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe739944a5406424e080edccb6add95685130b9f160d5407c639c7df0c5836b0"
-dependencies = [
- "typenum",
 ]
 
 [[package]]
