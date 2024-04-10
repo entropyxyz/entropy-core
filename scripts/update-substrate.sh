@@ -12,7 +12,7 @@ psvm -v $version -p ./pallets/registry
 psvm -v $version -p ./pallets/slashing
 psvm -v $version -p ./pallets/staking
 psvm -v $version -p ./pallets/transaction-pause
-psvm -v $version -p ./crates/shared
 
-# Amazing but not perfect will miss some packages, below are a list of missed packages
+# Some packages that are not part of substrate need to be updated manually sometimes 
+# Below is a list
 # /node/cli - jsonrpsee

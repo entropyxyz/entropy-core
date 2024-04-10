@@ -106,38 +106,38 @@ pub struct FullDeps<C, P, SC, B> {
     /// GRANDPA specific dependencies.
     pub grandpa: GrandpaDeps<B>,
     /// Backend used by the node.
-	pub backend: Arc<B>,
+    pub backend: Arc<B>,
 }
 
 /// Instantiate all Full RPC extensions.
 pub fn create_full<C, P, SC, B>(
-	FullDeps { client, pool, select_chain, chain_spec, deny_unsafe, babe, grandpa, backend } : FullDeps<C, P, SC, B>,
+    FullDeps { client, pool, select_chain, chain_spec, deny_unsafe, babe, grandpa, backend } : FullDeps<C, P, SC, B>,
 ) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
 where
-	C: ProvideRuntimeApi<Block>
+    C: ProvideRuntimeApi<Block>
         + sc_client_api::BlockBackend<Block>
-		+ HeaderBackend<Block>
-		+ AuxStore
-		+ HeaderMetadata<Block, Error = BlockChainError>
-		+ Send
-		+ Sync
-		+ 'static,
-	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
-	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
-	C::Api: BabeApi<Block>,
-	C::Api: BlockBuilder<Block>,
-	P: TransactionPool + Sync + Send + 'static,
-	SC: SelectChain<Block> + 'static,
-	B: sc_client_api::Backend<Block> + Send + Sync + 'static,
-	B::State: sc_client_api::StateBackend<sp_runtime::traits::HashingFor<Block>>,
+        + HeaderBackend<Block>
+        + AuxStore
+        + HeaderMetadata<Block, Error = BlockChainError>
+        + Send
+        + Sync
+        + 'static,
+    C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
+    C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
+    C::Api: BabeApi<Block>,
+    C::Api: BlockBuilder<Block>,
+    P: TransactionPool + Sync + Send + 'static,
+    SC: SelectChain<Block> + 'static,
+    B: sc_client_api::Backend<Block> + Send + Sync + 'static,
+    B::State: sc_client_api::StateBackend<sp_runtime::traits::HashingFor<Block>>,
 {
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
     use sc_consensus_babe_rpc::{Babe, BabeApiServer};
     use sc_consensus_grandpa_rpc::{Grandpa, GrandpaApiServer};
     use sc_rpc::dev::{Dev, DevApiServer};
+    use sc_rpc_spec_v2::chain_spec::{ChainSpec, ChainSpecApiServer};
     use sc_sync_state_rpc::{SyncState, SyncStateApiServer};
     use substrate_frame_rpc_system::{System, SystemApiServer};
-	use sc_rpc_spec_v2::chain_spec::{ChainSpec, ChainSpecApiServer};
 
     let mut io = RpcModule::new(());
 
@@ -151,10 +151,10 @@ where
     } = grandpa;
 
     let chain_name = chain_spec.name().to_string();
-	let genesis_hash = client.hash(0).ok().flatten().expect("Genesis block exists; qed");
-	let properties = chain_spec.properties();
+    let genesis_hash = client.hash(0).ok().flatten().expect("Genesis block exists; qed");
+    let properties = chain_spec.properties();
 
-	io.merge(ChainSpec::new(chain_name, genesis_hash, properties).into_rpc())?;
+    io.merge(ChainSpec::new(chain_name, genesis_hash, properties).into_rpc())?;
     io.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
     // Making synchronous calls in light client freezes the browser currently,
     // more context: https://github.com/paritytech/substrate/pull/3480
