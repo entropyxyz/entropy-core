@@ -153,6 +153,14 @@ pub enum UserErr {
     CustomHashOutOfBounds,
     #[error("Error creating sr25519 keypair from seed: {0}")]
     SpCoreSecretString(#[from] sp_core::crypto::SecretStringError),
+    #[error("Cannot get output from hasher in HKDF {0}")]
+    Hkdf(hkdf::InvalidLength),
+}
+
+impl From<hkdf::InvalidLength> for UserErr {
+    fn from(invalid_length: hkdf::InvalidLength) -> UserErr {
+        UserErr::Hkdf(invalid_length)
+    }
 }
 
 impl IntoResponse for UserErr {

@@ -90,10 +90,16 @@ pub async fn register(
 
     // If registering with private key visibility, participate in the DKG protocol
     let keyshare_option = match key_visibility {
-        KeyVisibility::Private(_x25519_pk) => {
+        KeyVisibility::Private(x25519_public_key) => {
             let x25519_secret_key = x25519_secret_key
                 .ok_or(anyhow!("In private mode, an x25519 secret key must be given"))?;
-            // TODO ensure!(the public key matches that from key_visibility)
+
+            let x25519_public_key_check =
+                x25519_dalek::PublicKey::from(&x25519_secret_key).to_bytes();
+            ensure!(
+                x25519_public_key_check == x25519_public_key,
+                "Given x25519 secret key does not match that from key visibility"
+            );
 
             let block_number = rpc
                 .chain_get_header(None)

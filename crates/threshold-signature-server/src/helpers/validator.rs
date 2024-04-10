@@ -27,6 +27,7 @@ use zeroize::Zeroize;
 
 use crate::{chain_api::EntropyConfig, user::UserErr};
 
+/// Constants used in the derivation path
 const KDF_SR25519: &[u8] = b"sr25519-threshold-account";
 const KDF_X25519: &[u8] = b"X25519-keypair";
 
@@ -81,8 +82,7 @@ fn get_signer_from_hkdf(
     hkdf: &Hkdf<Sha256>,
 ) -> Result<PairSigner<EntropyConfig, sr25519::Pair>, UserErr> {
     let mut sr25519_seed = [0u8; 32];
-    //TODO
-    hkdf.expand(KDF_SR25519, &mut sr25519_seed).expect("Cannot get 32 byte output from sha256");
+    hkdf.expand(KDF_SR25519, &mut sr25519_seed)?;
     let pair = sr25519::Pair::from_seed(&sr25519_seed);
     sr25519_seed.zeroize();
 
