@@ -2655,6 +2655,7 @@ dependencies = [
  "sp-block-builder",
  "sp-consensus-babe",
  "sp-core 29.0.0",
+ "sp-genesis-builder",
  "sp-inherents",
  "sp-io 31.0.0",
  "sp-keyring 32.0.0",

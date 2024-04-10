@@ -21,7 +21,7 @@ use entropy_runtime::{
     BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
     IndicesConfig, MaxNominations, ParametersConfig, ProgramsConfig, RegistryConfig,
     RuntimeGenesisConfig, SessionConfig, StakerStatus, StakingConfig, StakingExtensionConfig,
-    SudoConfig, SystemConfig, TechnicalCommitteeConfig,
+    SudoConfig, SystemConfig, TechnicalCommitteeConfig, WASM_BINARY,
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
@@ -42,29 +42,43 @@ use sp_runtime::{BoundedVec, Perbill};
 /// Since Entropy requires at least two signing groups to work properly we spin up this network with
 /// two validators, Alice and Bob.
 pub fn development_config() -> crate::chain_spec::ChainSpec {
-    crate::chain_spec::ChainSpec::from_genesis(
-        "Development",
-        "dev",
-        ChainType::Development,
-        || {
-            development_genesis_config(
-                vec![
-                    crate::chain_spec::authority_keys_from_seed("Alice"),
-                    crate::chain_spec::authority_keys_from_seed("Bob"),
-                ],
-                vec![],
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
-                vec!["127.0.0.1:3001", "127.0.0.1:3002"],
-            )
-        },
-        vec![],
-        None,
-        None,
-        None,
-        None,
-        Default::default(),
-        wasm_binary_unwrap(),
-    )
+    // crate::chain_spec::ChainSpec::from_genesis(
+    //     "Development",
+    //     "dev",
+    //     ChainType::Development,
+    //     || {
+    //         development_genesis_config(
+    //             vec![
+    //                 crate::chain_spec::authority_keys_from_seed("Alice"),
+    //                 crate::chain_spec::authority_keys_from_seed("Bob"),
+    //             ],
+    //             vec![],
+    //             get_account_id_from_seed::<sr25519::Public>("Alice"),
+    //             vec!["127.0.0.1:3001", "127.0.0.1:3002"],
+    //         )
+    //     },
+    //     vec![],
+    //     None,
+    //     None,
+    //     None,
+    //     None,
+    //     Default::default(),
+    //     wasm_binary_unwrap(),
+    // )
+    ChainSpec::builder(wasm_binary_unwrap(), Default::default())
+        .with_name("Development")
+        .with_id("dev")
+        .with_chain_type(ChainType::Development)
+        .with_genesis_config_patch(development_genesis_config(
+            vec![
+                crate::chain_spec::authority_keys_from_seed("Alice"),
+                crate::chain_spec::authority_keys_from_seed("Bob"),
+            ],
+            vec![],
+            get_account_id_from_seed::<sr25519::Public>("Alice"),
+            vec!["127.0.0.1:3001", "127.0.0.1:3002"],
+        ))
+        .build()
 }
 
 /// The configuration used for a local development network spun up with the `docker-compose` setup
@@ -73,29 +87,41 @@ pub fn development_config() -> crate::chain_spec::ChainSpec {
 /// Since Entropy requires at least two signing groups to work properly we spin up this network with
 /// two validators, Alice and Bob.
 pub fn devnet_local_config() -> crate::chain_spec::ChainSpec {
-    crate::chain_spec::ChainSpec::from_genesis(
-        "Devnet Local",
-        "devnet_local",
-        ChainType::Development,
-        || {
-            development_genesis_config(
-                vec![
-                    crate::chain_spec::authority_keys_from_seed("Alice"),
-                    crate::chain_spec::authority_keys_from_seed("Bob"),
-                ],
-                vec![],
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
-                vec!["alice-tss-server:3001", "bob-tss-server:3002"],
-            )
-        },
-        vec![],
-        None,
-        None,
-        None,
-        None,
-        Default::default(),
-        wasm_binary_unwrap(),
-    )
+    // "Devnet Local",
+    // "devnet_local",
+    // ChainType::Development,
+    // || {
+    //     development_genesis_config(
+    // vec![
+    //     crate::chain_spec::authority_keys_from_seed("Alice"),
+    //     crate::chain_spec::authority_keys_from_seed("Bob"),
+    // ],
+    // vec![],
+    // get_account_id_from_seed::<sr25519::Public>("Alice"),
+    // vec!["alice-tss-server:3001", "bob-tss-server:3002"],
+    //     )
+    // },
+    // vec![],
+    // None,
+    // None,
+    // None,
+    // None,
+    // Default::default(),
+    // wasm_binary_unwrap(),
+    ChainSpec::builder(wasm_binary_unwrap(), Default::default())
+        .with_name("Devnet Local")
+        .with_id("devnet_local")
+        .with_chain_type(ChainType::Development)
+        .with_genesis_config_patch(development_genesis_config(
+            vec![
+                crate::chain_spec::authority_keys_from_seed("Alice"),
+                crate::chain_spec::authority_keys_from_seed("Bob"),
+            ],
+            vec![],
+            get_account_id_from_seed::<sr25519::Public>("Alice"),
+            vec!["alice-tss-server:3001", "bob-tss-server:3002"],
+        ))
+        .build()
 }
 
 pub fn development_genesis_config(
@@ -110,7 +136,7 @@ pub fn development_genesis_config(
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
     threshold_server_endpoints: Vec<&str>,
-) -> RuntimeGenesisConfig {
+) -> serde_json::Value {
     let mut endowed_accounts = endowed_accounts_dev();
     // endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
@@ -142,13 +168,13 @@ pub fn development_genesis_config(
     const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 1000;
 
-    RuntimeGenesisConfig {
-        system: SystemConfig { ..Default::default() },
-        balances: BalancesConfig {
+    serde_json::json!({
+        "system": SystemConfig { ..Default::default() },
+        "balances": BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
         },
-        indices: IndicesConfig { indices: vec![] },
-        session: SessionConfig {
+        "indices": IndicesConfig { indices: vec![] },
+        "session": SessionConfig {
             keys: initial_authorities
                 .iter()
                 .map(|x| {
@@ -165,15 +191,15 @@ pub fn development_genesis_config(
                 })
                 .collect::<Vec<_>>(),
         },
-        staking: StakingConfig {
+        "staking": StakingConfig {
             validator_count: initial_authorities.len() as u32,
             minimum_validator_count: 0,
             invulnerables: vec![],
             slash_reward_fraction: Perbill::from_percent(10),
-            stakers,
+            stakers: stakers,
             ..Default::default()
         },
-        staking_extension: StakingExtensionConfig {
+        "stakingExtension": StakingExtensionConfig {
             threshold_servers: vec![
                 (
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
@@ -198,8 +224,8 @@ pub fn development_genesis_config(
             ],
             proactive_refresh_data: (vec![], vec![]),
         },
-        democracy: DemocracyConfig::default(),
-        elections: ElectionsConfig {
+        "democracy": DemocracyConfig::default(),
+        "elections": ElectionsConfig {
             members: endowed_accounts
                 .iter()
                 .take((num_endowed_accounts + 1) / 2)
@@ -207,8 +233,8 @@ pub fn development_genesis_config(
                 .map(|member| (member, STASH))
                 .collect(),
         },
-        council: CouncilConfig::default(),
-        technical_committee: TechnicalCommitteeConfig {
+        "council": CouncilConfig::default(),
+        "technicalCommittee": TechnicalCommitteeConfig  {
             members: endowed_accounts
                 .iter()
                 .take((num_endowed_accounts + 1) / 2)
@@ -216,18 +242,18 @@ pub fn development_genesis_config(
                 .collect(),
             phantom: Default::default(),
         },
-        sudo: SudoConfig { key: Some(root_key.clone()) },
-        babe: BabeConfig {
+        "sudo": SudoConfig { key: Some(root_key.clone()) },
+        "babe": BabeConfig {
             authorities: vec![],
             epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
             ..Default::default()
         },
-        im_online: ImOnlineConfig { keys: vec![] },
-        authority_discovery: AuthorityDiscoveryConfig { keys: vec![], ..Default::default() },
-        grandpa: GrandpaConfig { authorities: vec![], ..Default::default() },
-        technical_membership: Default::default(),
-        treasury: Default::default(),
-        registry: RegistryConfig {
+        "imOnline": ImOnlineConfig { keys: vec![] },
+        "authorityDiscovery": AuthorityDiscoveryConfig { keys: vec![], ..Default::default() },
+        "grandpa": GrandpaConfig  { authorities: vec![], ..Default::default() },
+        // "technical_membership": Default::default(),
+        // "treasury": Default::default(),
+        "registry": RegistryConfig {
             registered_accounts: vec![
                 (
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
@@ -249,16 +275,16 @@ pub fn development_genesis_config(
                 ),
             ],
         },
-        parameters: ParametersConfig {
+        "parameters": ParametersConfig {
             request_limit: 20,
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             ..Default::default()
         },
-        vesting: Default::default(),
-        transaction_storage: Default::default(),
-        transaction_payment: Default::default(),
-        nomination_pools: Default::default(),
-        programs: ProgramsConfig {
+        // "vesting": Default::default(),
+        // "transaction_storage": Default::default(),
+        // "transaction_payment": Default::default(),
+        // "nomination_pools": Default::default(),
+        "programs": ProgramsConfig {
             inital_programs: vec![(
                 *DEVICE_KEY_HASH,
                 DEVICE_KEY_PROXY.to_vec(),
@@ -268,5 +294,5 @@ pub fn development_genesis_config(
                 10,
             )],
         },
-    }
+    })
 }

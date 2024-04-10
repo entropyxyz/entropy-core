@@ -373,52 +373,6 @@ pub fn new_full_base(
     let enable_grandpa = !config.disable_grandpa;
     let prometheus_registry = config.prometheus_registry().cloned();
 
-    // let (rpc_extensions_builder, rpc_setup) = {
-    //     let (_, grandpa_link, _) = &import_setup;
-
-    //     let justification_stream = grandpa_link.justification_stream();
-    //     let shared_authority_set = grandpa_link.shared_authority_set().clone();
-    //     let shared_voter_state = grandpa::SharedVoterState::empty();
-    //     let shared_voter_state2 = shared_voter_state.clone();
-
-    //     let finality_proof_provider = grandpa::FinalityProofProvider::new_for_service(
-    //         backend.clone(),
-    //         Some(shared_authority_set.clone()),
-    //     );
-
-    //     let client = client.clone();
-    //     let pool = transaction_pool.clone();
-    //     let select_chain = select_chain.clone();
-    //     let keystore = keystore_container.keystore();
-    //     let chain_spec = config.chain_spec.cloned_box();
-
-    //     let _rpc_backend = backend.clone();
-    //     let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
-    //         let deps = crate::rpc::FullDeps {
-    //             client: client.clone(),
-    //             pool: pool.clone(),
-    //             select_chain: select_chain.clone(),
-    //             chain_spec: chain_spec.cloned_box(),
-    //             deny_unsafe,
-    //             babe: crate::rpc::BabeDeps {
-    //                 keystore: keystore.clone(),
-    //                 babe_worker_handle: babe_worker_handle.clone(),
-    //             },
-    //             grandpa: crate::rpc::GrandpaDeps {
-    //                 shared_voter_state: shared_voter_state.clone(),
-    //                 shared_authority_set: shared_authority_set.clone(),
-    //                 justification_stream: justification_stream.clone(),
-    //                 subscription_executor,
-    //                 finality_provider: finality_proof_provider.clone(),
-    //             },
-    //         };
-
-    //         crate::rpc::create_full(deps).map_err(Into::into)
-    //     };
-
-    //     (rpc_extensions_builder, shared_voter_state2)
-    // };
-
     let rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
         config,
         backend,
