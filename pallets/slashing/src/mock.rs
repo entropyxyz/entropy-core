@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use frame_support::parameter_types;
+use frame_support::{derive_impl, parameter_types};
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
 use sp_core::H256;
@@ -50,6 +50,7 @@ parameter_types! {
   pub const SS58Prefix: u8 = 42;
 }
 
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl system::Config for Test {
     type AccountData = pallet_balances::AccountData<u64>;
     type AccountId = u64;
@@ -87,7 +88,7 @@ impl pallet_balances::Config for Test {
     type ExistentialDeposit = ExistentialDeposit;
     type FreezeIdentifier = ();
     type MaxFreezes = ();
-    type MaxHolds = ();
+
     type MaxLocks = ();
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];

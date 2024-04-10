@@ -21,7 +21,7 @@
 #![cfg(test)]
 
 use frame_support::{
-    construct_runtime, ord_parameter_types, parameter_types,
+    construct_runtime, derive_impl, ord_parameter_types, parameter_types,
     traits::{ConstU128, ConstU64, Everything},
 };
 use frame_system::EnsureSignedBy;
@@ -38,6 +38,7 @@ mod transaction_pause {
     pub use super::super::*;
 }
 
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Runtime {
     type AccountData = pallet_balances::AccountData<Balance>;
     type AccountId = AccountId;
@@ -71,7 +72,7 @@ impl pallet_balances::Config for Runtime {
     type ExistentialDeposit = ConstU128<10>;
     type FreezeIdentifier = ();
     type MaxFreezes = ();
-    type MaxHolds = ();
+
     type MaxLocks = ();
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
