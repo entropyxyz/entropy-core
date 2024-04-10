@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::chain_spec::get_account_id_from_seed;
+use crate::chain_spec::{get_account_id_from_seed, ChainSpec};
 use crate::endowed_accounts::endowed_accounts_dev;
 
 use entropy_runtime::{
@@ -63,6 +63,7 @@ pub fn development_config() -> crate::chain_spec::ChainSpec {
         None,
         None,
         Default::default(),
+        wasm_binary_unwrap(),
     )
 }
 
@@ -93,6 +94,7 @@ pub fn devnet_local_config() -> crate::chain_spec::ChainSpec {
         None,
         None,
         Default::default(),
+        wasm_binary_unwrap(),
     )
 }
 
@@ -141,7 +143,7 @@ pub fn development_genesis_config(
     const STASH: Balance = ENDOWMENT / 1000;
 
     RuntimeGenesisConfig {
-        system: SystemConfig { code: wasm_binary_unwrap().to_vec(), ..Default::default() },
+        system: SystemConfig { ..Default::default() },
         balances: BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
         },

@@ -178,6 +178,7 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
         None,
         Some(crate::chain_spec::entropy_properties()),
         Default::default(),
+        wasm_binary_unwrap(),
     )
 }
 
@@ -288,6 +289,7 @@ pub fn testnet_config() -> crate::chain_spec::ChainSpec {
         None,
         Some(crate::chain_spec::entropy_properties()),
         Default::default(),
+        wasm_binary_unwrap(),
     )
 }
 
@@ -366,7 +368,7 @@ pub fn testnet_genesis_config(
     const SIGNING_GROUPS: usize = 2;
 
     RuntimeGenesisConfig {
-        system: SystemConfig { code: wasm_binary_unwrap().to_vec(), ..Default::default() },
+        system: SystemConfig { ..Default::default() },
         balances: BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
         },

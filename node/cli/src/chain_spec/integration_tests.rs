@@ -64,6 +64,7 @@ pub fn integration_tests_config() -> crate::chain_spec::ChainSpec {
         None,
         None,
         Default::default(),
+        wasm_binary_unwrap(),
     )
 }
 
@@ -112,7 +113,7 @@ pub fn integration_tests_genesis_config(
     const STASH: Balance = ENDOWMENT / 1000;
 
     RuntimeGenesisConfig {
-        system: SystemConfig { code: wasm_binary_unwrap().to_vec(), ..Default::default() },
+        system: SystemConfig { ..Default::default() },
         balances: BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
         },
