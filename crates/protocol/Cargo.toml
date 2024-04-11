@@ -47,6 +47,7 @@ schnorrkel          ={ version="0.11.4", default-features=false, features=["std"
 
 [dev-dependencies]
 sp-keyring="31.0.0"
+anyhow    ="1.0.82"
 
 [features]
 default=["server"]
