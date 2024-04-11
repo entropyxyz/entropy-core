@@ -56,7 +56,7 @@ sc-rpc                  ={ version="26.0.0" }
 sc-rpc-api              ={ version="0.30.0" }
 sc-service              ={ version="0.32.0" }
 sc-storage-monitor      ={ version="0.13.0" }
-sc-sync-state-rpc       ={ version="0.31.0" }
+sc-sync-state-rpc       ={ version="0.38.0" }
 sc-sysinfo              ={ version="24.0.0" }
 sc-telemetry            ={ version="12.0.0" }
 sc-transaction-pool     ={ version="25.0.0" }
