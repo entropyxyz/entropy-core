@@ -38,13 +38,16 @@ struct ValidatorSecretInfo {
 async fn test_sign() {
     let num_parties = 2;
 
+    let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
+    let signature_verifying_key =
+        keyshares[0].verifying_key().to_encoded_point(true).as_bytes().to_vec();
+    let message_hash = [0u8; 32];
     let session_id = SessionId::Sign(SigningSessionInfo {
-        signature_verifying_key, //Vec<u8>,
-        message_hash,            //[u8; 32],
-        request_author,          //AccountId32,
+        signature_verifying_key,
+        message_hash,
+        request_author: AccountId32([0u8; 32]),
     });
 
-    let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
     let mut validator_secrets = Vec::new();
     let mut validators_info = Vec::new();
     for i in 0..num_parties {
