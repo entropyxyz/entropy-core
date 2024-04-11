@@ -54,7 +54,7 @@ impl Listener {
         let (tx, _rx) = broadcast::channel(1000);
         let (tx_to_others, rx_to_others) = mpsc::channel(1000);
 
-        // Create our set of validators we want too connect to - excluding ourself
+        // Create our set of validators we want to connect to - excluding ourself
         let mut validators = HashMap::new();
 
         for validator in validators_info {
@@ -97,14 +97,4 @@ impl Listener {
 pub enum ListenerErr {
     #[error("invalid party ID: {0}")]
     InvalidPartyId(String),
-    // #[error("Lock Error: {0}")]
-    // LockError(String),
-    // #[error("Invalid Signature: {0}")]
-    // InvalidSignature(&'static str),
-    // #[error("Validation error: {0}")]
-    // Decryption(String),
-    // #[error("Serialization/Deserialization error: {0}")]
-    // Serialization(#[from] bincode::Error),
-    // #[error("User Error: {0}")]
-    // UserError(String),
 }

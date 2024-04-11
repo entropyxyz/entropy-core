@@ -16,10 +16,10 @@ use sp_core::{sr25519, Pair};
 use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use subxt::utils::AccountId32;
-use synedrion::KeyShare;
+use synedrion::{ecdsa::VerifyingKey, KeyShare};
 use tokio::{
     net::{TcpListener, TcpStream},
     time::timeout,
@@ -27,6 +27,7 @@ use tokio::{
 use tokio_tungstenite::connect_async;
 use x25519_dalek::StaticSecret;
 
+/// Details of an individual party
 struct ValidatorSecretInfo {
     keyshare: KeyShare<KeyParams>,
     pair: sr25519::Pair,
@@ -38,13 +39,14 @@ struct ValidatorSecretInfo {
 async fn test_sign() {
     let num_parties = 2;
 
+    let now = Instant::now();
     let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
-    println!("got shares");
-    let signature_verifying_key =
-        keyshares[0].verifying_key().to_encoded_point(true).as_bytes().to_vec();
+    println!("Did centralized keyshare generation in {:?}", now.elapsed());
+
+    let verifying_key = keyshares[0].verifying_key();
     let message_hash = [0u8; 32];
     let session_id = SessionId::Sign(SigningSessionInfo {
-        signature_verifying_key,
+        signature_verifying_key: verifying_key.to_encoded_point(true).as_bytes().to_vec(),
         message_hash,
         request_author: AccountId32([0u8; 32]),
     });
@@ -52,20 +54,24 @@ async fn test_sign() {
     let mut validator_secrets = Vec::new();
     let mut validators_info = Vec::new();
     for i in 0..num_parties {
+        // Start a TCP listener and get its socket address
         let socket = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = socket.local_addr().unwrap();
         println!("Listening on: {}", addr);
 
+        // Generate signing and encrytion keys
         let (pair, _) = sr25519::Pair::generate();
         let tss_account = AccountId32(pair.public().0);
         let x25519_secret_key = StaticSecret::random_from_rng(OsRng);
         let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret_key).to_bytes();
+
         validator_secrets.push(ValidatorSecretInfo {
             keyshare: keyshares[i].clone(),
             pair,
             x25519_secret_key,
             socket,
         });
+        // Public contact information that all parties know
         validators_info.push(ValidatorInfo {
             tss_account,
             x25519_public_key,
@@ -73,16 +79,14 @@ async fn test_sign() {
         })
     }
 
-    // for i in 0..num_parties {
-    //     let secret = validator_secrets.pop().unwrap();
-    //     let validators_info_clone = validators_info.clone();
-    //     let session_id_clone = session_id.clone();
-
+    let now = Instant::now();
     let results = future::join_all(
         validator_secrets
             .into_iter()
             .map(|secret| async {
-                let r = server(
+                println!("Starting protocol");
+                let now_individual = Instant::now();
+                let result = server(
                     secret.socket,
                     validators_info.clone(),
                     secret.pair,
@@ -91,14 +95,24 @@ async fn test_sign() {
                     secret.keyshare,
                 )
                 .await;
-                r
+                println!("Finished protocol {:?}", now_individual.elapsed());
+                result
             })
             .collect::<Vec<_>>(),
     )
     .await;
+    println!("Time taken to get all results: {:?}", now.elapsed());
 
+    // Check signatures
     for res in results {
-        println!("{:?}", res);
+        let recoverable_signature = res.unwrap();
+        let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+            &message_hash,
+            &recoverable_signature.signature,
+            recoverable_signature.recovery_id,
+        )
+        .unwrap();
+        assert_eq!(verifying_key, recovery_key_from_sig);
     }
 }
 
@@ -137,8 +151,9 @@ pub async fn server(
     open_protocol_connections(&validators_info, &session_id, &pair, &x25519_secret_key, &state)
         .await?;
 
+    // Wait for other parties to connect
     let channels = {
-        let ready = timeout(Duration::from_secs(20), rx_ready).await?;
+        let ready = timeout(Duration::from_secs(10), rx_ready).await?;
         let broadcast_out = ready??;
         Channels(broadcast_out, rx_from_others)
     };
@@ -152,6 +167,8 @@ pub async fn server(
     let tss_accounts: Vec<AccountId32> =
         validators_info.iter().map(|validator_info| validator_info.tss_account.clone()).collect();
 
+    let now = Instant::now();
+    println!("Starting signing protocol");
     let rsig = execute_signing_protocol(
         session_id,
         channels,
@@ -161,6 +178,7 @@ pub async fn server(
         tss_accounts,
     )
     .await?;
+    println!("Finished signing protocol {:?}", now.elapsed());
 
     let (signature, recovery_id) = rsig.to_backend();
     Ok(RecoverableSignature { signature, recovery_id })
@@ -242,6 +260,7 @@ fn get_ws_channels(
     let ws_channels = listener.subscribe(tss_account)?;
 
     if ws_channels.is_final {
+        println!("is final");
         let listener = listeners.pop().ok_or(anyhow::anyhow!("No listener"))?;
         // all subscribed, wake up the waiting listener to execute the protocol
         let (tx, broadcaster) = listener.into_broadcaster();
