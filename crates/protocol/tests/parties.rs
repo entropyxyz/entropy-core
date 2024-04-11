@@ -7,7 +7,7 @@ use entropy_protocol::{
         noise::{noise_handshake_initiator, noise_handshake_responder},
         ws_to_channels, SubscribeMessage, WsChannels,
     },
-    KeyParams, PartyId, SessionId, SigningSessionInfo, ValidatorInfo,
+    KeyParams, PartyId, RecoverableSignature, SessionId, SigningSessionInfo, ValidatorInfo,
 };
 use entropy_shared::X25519PublicKey;
 use futures::future;
@@ -39,6 +39,7 @@ async fn test_sign() {
     let num_parties = 2;
 
     let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
+    println!("got shares");
     let signature_verifying_key =
         keyshares[0].verifying_key().to_encoded_point(true).as_bytes().to_vec();
     let message_hash = [0u8; 32];
@@ -72,26 +73,33 @@ async fn test_sign() {
         })
     }
 
-    for i in 0..num_parties {
-        let secret = validator_secrets.pop().unwrap();
-        let validators_info_clone = validators_info.clone();
-        let session_id_clone = session_id.clone();
-        tokio::spawn(async move {
-            server(
-                secret.socket,
-                validators_info_clone,
-                secret.pair,
-                secret.x25519_secret_key,
-                session_id_clone,
-                &secret.keyshare,
-            )
-            .await
-            .unwrap();
-        });
+    // for i in 0..num_parties {
+    //     let secret = validator_secrets.pop().unwrap();
+    //     let validators_info_clone = validators_info.clone();
+    //     let session_id_clone = session_id.clone();
+
+    let results = future::join_all(
+        validator_secrets
+            .into_iter()
+            .map(|secret| async {
+                let r = server(
+                    secret.socket,
+                    validators_info.clone(),
+                    secret.pair,
+                    secret.x25519_secret_key,
+                    session_id.clone(),
+                    secret.keyshare,
+                )
+                .await;
+                r
+            })
+            .collect::<Vec<_>>(),
+    )
+    .await;
+
+    for res in results {
+        println!("{:?}", res);
     }
-    //session_id
-    //
-    //validators_info
 }
 
 #[derive(Clone)]
@@ -106,8 +114,8 @@ pub async fn server(
     pair: sr25519::Pair,
     x25519_secret_key: StaticSecret,
     session_id: SessionId,
-    keyshare: &KeyShare<KeyParams>,
-) -> anyhow::Result<()> {
+    keyshare: KeyShare<KeyParams>,
+) -> anyhow::Result<RecoverableSignature> {
     let account_id = AccountId32(pair.public().0);
     let (rx_ready, rx_from_others, listener) =
         Listener::new(validators_info.clone(), &account_id, None);
@@ -147,7 +155,7 @@ pub async fn server(
     let rsig = execute_signing_protocol(
         session_id,
         channels,
-        keyshare,
+        &keyshare,
         &message_hash,
         &pair,
         tss_accounts,
@@ -155,8 +163,7 @@ pub async fn server(
     .await?;
 
     let (signature, recovery_id) = rsig.to_backend();
-    // Ok(RecoverableSignature { signature, recovery_id })
-    Ok(())
+    Ok(RecoverableSignature { signature, recovery_id })
 }
 
 async fn handle_connection(
