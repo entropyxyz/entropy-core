@@ -1,6 +1,5 @@
 # `entropy-protocol`
 
-
 Protocol execution and transport logic for the Entropy signing, DKG, and proactive refresh
 protocols.
 
