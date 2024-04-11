@@ -27,4 +27,5 @@ If you have issues when re-running these tests following changes, remove `nodejs
 before re-running `yarn`.
 
 For instructions on running entropy-tss integration test using JS bindings to the user private mode
-signing and DKG functions, see [`../threshold-signature-server/README.md`]
+signing and DKG functions, see
+[`../threshold-signature-server/README.md`](../threshold-signature-server/README.md)
