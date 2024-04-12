@@ -44,6 +44,7 @@ commands:
                   source "$HOME/.cargo/env"
                   rustup update stable
                   rustup target add wasm32-unknown-unknown
+                  rustup component add rust-src
     install-wasm-pack:
         steps:
             - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
