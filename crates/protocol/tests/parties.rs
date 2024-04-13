@@ -138,6 +138,7 @@ pub async fn server(
         x25519_secret_key: x25519_secret_key.clone(),
     };
 
+    // Handle each connection in a separate task
     let state_clone = state.clone();
     tokio::spawn(async move {
         while let Ok((stream, addr)) = socket.accept().await {
@@ -189,8 +190,6 @@ async fn handle_connection(
     raw_stream: TcpStream,
     addr: SocketAddr,
 ) -> anyhow::Result<()> {
-    println!("Incoming TCP connection from: {}", addr);
-
     let ws_stream = tokio_tungstenite::accept_async(raw_stream)
         .await
         .expect("Error during the websocket handshake occurred");
@@ -239,11 +238,9 @@ async fn handle_initial_incoming_ws_message(
 
     if !msg.verify()? {
         return Err(anyhow::anyhow!("Invalid signature"));
-        // return Err(SubscribeErr::InvalidSignature("Invalid signature."));
     }
 
     let ws_channels = get_ws_channels(&msg.session_id, &msg.account_id(), &state)?;
-
     Ok((ws_channels, PartyId::new(msg.account_id())))
 }
 
@@ -280,7 +277,7 @@ async fn open_protocol_connections(
     let connect_to_validators = validators_info
         .iter()
         .filter(|validator_info| {
-            // Decide whether to initiate a connection by comparing accound ids
+            // Decide whether to initiate a connection by comparing account IDs
             // otherwise, we wait for them to connect to us
             signer.public().0 > validator_info.tss_account.0
         })
@@ -327,6 +324,5 @@ async fn open_protocol_connections(
         .collect::<Vec<_>>();
 
     future::try_join_all(connect_to_validators).await?;
-
     Ok(())
 }
