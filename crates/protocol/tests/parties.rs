@@ -14,7 +14,6 @@ use futures::future;
 use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
 use std::{
-    net::SocketAddr,
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
@@ -39,9 +38,7 @@ struct ValidatorSecretInfo {
 async fn test_sign() {
     let num_parties = 2;
 
-    let now = Instant::now();
     let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
-    println!("Did centralized keyshare generation in {:?}", now.elapsed());
 
     let verifying_key = keyshares[0].verifying_key();
     let message_hash = [0u8; 32];
@@ -57,7 +54,6 @@ async fn test_sign() {
         // Start a TCP listener and get its socket address
         let socket = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = socket.local_addr().unwrap();
-        println!("Listening on: {}", addr);
 
         // Generate signing and encrytion keys
         let (pair, _) = sr25519::Pair::generate();
@@ -84,7 +80,6 @@ async fn test_sign() {
         validator_secrets
             .into_iter()
             .map(|secret| async {
-                println!("Starting protocol");
                 let now_individual = Instant::now();
                 let result = server(
                     secret.socket,
@@ -101,7 +96,7 @@ async fn test_sign() {
             .collect::<Vec<_>>(),
     )
     .await;
-    println!("Time taken to get all results: {:?}", now.elapsed());
+    println!("{} parties - Time taken to get all results: {:?}", num_parties, now.elapsed());
 
     // Check signatures
     for res in results {
@@ -141,10 +136,10 @@ pub async fn server(
     // Handle each connection in a separate task
     let state_clone = state.clone();
     tokio::spawn(async move {
-        while let Ok((stream, addr)) = socket.accept().await {
+        while let Ok((stream, _address)) = socket.accept().await {
             let state_clone2 = state_clone.clone();
             tokio::spawn(async move {
-                handle_connection(state_clone2, stream, addr).await.unwrap();
+                handle_connection(state_clone2, stream).await.unwrap();
             });
         }
     });
@@ -168,8 +163,6 @@ pub async fn server(
     let tss_accounts: Vec<AccountId32> =
         validators_info.iter().map(|validator_info| validator_info.tss_account.clone()).collect();
 
-    let now = Instant::now();
-    println!("Starting signing protocol");
     let rsig = execute_signing_protocol(
         session_id,
         channels,
@@ -179,21 +172,15 @@ pub async fn server(
         tss_accounts,
     )
     .await?;
-    println!("Finished signing protocol {:?}", now.elapsed());
 
     let (signature, recovery_id) = rsig.to_backend();
     Ok(RecoverableSignature { signature, recovery_id })
 }
 
-async fn handle_connection(
-    state: ServerState,
-    raw_stream: TcpStream,
-    addr: SocketAddr,
-) -> anyhow::Result<()> {
+async fn handle_connection(state: ServerState, raw_stream: TcpStream) -> anyhow::Result<()> {
     let ws_stream = tokio_tungstenite::accept_async(raw_stream)
         .await
         .expect("Error during the websocket handshake occurred");
-    println!("WebSocket connection established: {}", addr);
 
     let (mut encrypted_connection, serialized_signed_message) =
         noise_handshake_responder(ws_stream, &state.x25519_secret_key)
@@ -257,7 +244,6 @@ fn get_ws_channels(
     let ws_channels = listener.subscribe(tss_account)?;
 
     if ws_channels.is_final {
-        println!("is final");
         let listener = listeners.pop().ok_or(anyhow::anyhow!("No listener"))?;
         // all subscribed, wake up the waiting listener to execute the protocol
         let (tx, broadcaster) = listener.into_broadcaster();
