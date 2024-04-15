@@ -41,7 +41,7 @@ sp-staking            ={ version="27.0.0", default-features=false }
 sp-std                ={ version="14.0.0", default-features=false }
 sp-storage            ={ version="20.0.0", default-features=false, optional=true }
 sp-transaction-pool   ={ version="27.0.0", default-features=false }
-sp-version            ={ version="30.0.0", default-features=false }
+sp-version            ={ version="33.0.0", default-features=false }
 sp-genesis-builder    ={ version="0.8.0", default-features=false }
 
 # FRAME Dependencies
