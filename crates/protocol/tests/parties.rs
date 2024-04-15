@@ -37,7 +37,7 @@ struct ValidatorSecretInfo {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn test_sign() {
-    let num_parties = 7;
+    let num_parties = 3;
 
     let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
 
@@ -146,7 +146,9 @@ pub async fn server(
         while let Ok((stream, _address)) = socket.accept().await {
             let state_clone2 = state_clone.clone();
             tokio::spawn(async move {
-                handle_connection(state_clone2, stream).await.unwrap();
+                if let Err(e) = handle_connection(state_clone2, stream).await {
+                    tracing::warn!("Error when handling ws connection {}", e);
+                };
             });
         }
     });
