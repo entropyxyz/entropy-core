@@ -8,6 +8,7 @@ side when using private access mode.
 Exposed to JS:
 
 - [`Hpke`](#Hpke) - for signing and encrypting / decrypting
+- [`X25519Keypair`](#X25519Keypair) - for creating encryption keypairs
 - [`runDkgProtocol`](#registering-in-private-access-mode) - for registering in private access mode
 - [`runSigningProtocol`](#signing-in-private-access-mode) - for signing in private access mode
 - `ValidatorInfo` - details of a TSS node
@@ -37,7 +38,7 @@ serialized string.
 
 ### `Hpke.decryptAndVerify`
 
-Decrypt and verify an `EncryptedSignedMessage`. Takes an sr25519 secret key given as a `Uint8Array`,
+Decrypt and verify an `EncryptedSignedMessage`. Takes an x25519 secret key given as a `Uint8Array`,
 and a JSON serialized `SignedMessage` containing the encrypted payload. On successful decryption
 and signature verification it will return the decrypted payload as a `Uint8Array`.
 
@@ -45,6 +46,26 @@ and signature verification it will return the decrypted payload as a `Uint8Array
 
 Generates a secret sr25519 signing key and returns it as a Uint8Array. This is really only exposed
 for testing purposes, as you can also use Polkadot-JS to generate sr25519 keypairs.
+
+## `X25519Keypair`
+
+### `X25519Keypair.generate`
+
+Constructor to randomly generate an `X25519Keypair`.
+
+### `X25519Keypair.fromSecretKey`
+
+Constructor to create an `X25519Keypair` from a secret key given as a 32 byte `Uint8Array`.
+
+### `X25519Keypair.secretKey`
+
+Returns the secret key as a `Uint8Array`. Note that this is a getter method, not a public property
+of the object.
+
+### `X25519Keypair.publicKey`
+
+Returns the public key as a `Uint8Array`. Note that this is a getter method, not a public property
+of the object.
 
 ## Registering in private access mode
 
@@ -89,7 +110,7 @@ same as the those used in a `UserSignatureRequest`.
 making the `user/sign_tx` http requests, for example by using
 `Promise.all`. `runSigningProtocol` also takes the user's `KeyShare`
 as an argument, as well as the message hash, and the user's private
-sr25519 signing key.
+sr25519 signing key and x25519 encryption key.
 
 `runSigningProtocol` returns a promise which if successful will resolve
 to an ECDSA signature with recovery bit, encoded as a base64 string.

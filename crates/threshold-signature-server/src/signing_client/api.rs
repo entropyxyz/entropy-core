@@ -47,6 +47,7 @@ use subxt::{
 };
 use synedrion::KeyShare;
 use tokio::time::timeout;
+use x25519_dalek::StaticSecret;
 
 use crate::{
     chain_api::{
@@ -60,14 +61,13 @@ use crate::{
             return_all_addresses_of_subgroup,
         },
         user::{check_in_registration_group, send_key},
-        validator::get_signer,
+        validator::get_signer_and_x25519_secret,
     },
     signing_client::{
         protocol_transport::{handle_socket, open_protocol_connections},
         Listener, ListenerState, ProtocolErr,
     },
     user::api::UserRegistrationInfo,
-    validation::derive_x25519_static_secret,
     AppState,
 };
 
@@ -88,8 +88,10 @@ pub async fn proactive_refresh(
     let ocw_data = OcwMessageProactiveRefresh::decode(&mut encoded_data.as_ref())?;
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-    let signer =
-        get_signer(&app_state.kv_store).await.map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store)
+        .await
+        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+
     check_in_registration_group(&ocw_data.validators_info, signer.account_id())
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     validate_proactive_refresh(&api, &rpc, &app_state.kv_store, &ocw_data).await?;
@@ -128,6 +130,7 @@ pub async fn proactive_refresh(
                 let new_key_share = do_proactive_refresh(
                     &ocw_data.validators_info,
                     &signer,
+                    &x25519_secret_key,
                     &app_state.listener_state,
                     encoded_key,
                     deserialized_old_key,
@@ -187,6 +190,7 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
 pub async fn do_proactive_refresh(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    x25519_secret_key: &StaticSecret,
     state: &ListenerState,
     verifying_key: Vec<u8>,
     old_key: KeyShare<KeyParams>,
@@ -223,14 +227,13 @@ pub async fn do_proactive_refresh(
         .lock()
         .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
         .insert(session_id.clone(), listener);
-    let x25519_secret_key = derive_x25519_static_secret(signer.signer());
 
     open_protocol_connections(
         &converted_validator_info,
         &session_id,
         signer.signer(),
         state,
-        &x25519_secret_key,
+        x25519_secret_key,
     )
     .await?;
     let channels = {

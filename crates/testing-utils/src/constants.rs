@@ -24,24 +24,36 @@ lazy_static! {
     pub static ref BOB_STASH_ADDRESS: AccountId32 =
         hex!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into(); // subkey inspect //Bob//stash
     pub static ref TSS_ACCOUNTS: Vec<AccountId32> = vec![
-        hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"].into(),
-        hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"].into()
+        hex!["306bdb49cbbe7104e3621abab3c9d31698b159f48dafe567abb7ea5d872ed329"].into(),
+        hex!["2cbc68e8bf0fbc1c28c282d1263fc9d29267dc12a1044fb730e8b65abc37524c"].into()
     ];
     pub static ref X25519_PUBLIC_KEYS: Vec<[u8; 32]> = vec![
         vec![
-            10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124, 195, 141,
-            148, 249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247, 58, 34,
+            8, 22, 19, 230, 107, 217, 249, 190, 14, 142, 155, 252, 156, 229, 120, 11, 180, 35, 83, 245,
+            222, 11, 153, 201, 162, 29, 153, 13, 123, 126, 128, 32,
         ]
         .try_into()
         .unwrap(),
         vec![
-            225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245, 89, 36, 170, 169,
-            181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136, 102, 10,
+            196, 53, 98, 10, 160, 169, 139, 48, 194, 230, 69, 64, 165, 48, 133, 110, 38, 64, 184, 113,
+            255, 201, 253, 212, 217, 21, 252, 57, 253, 78, 0, 56,
         ]
         .try_into()
         .unwrap(),
     ];
 }
+
+/// This is a random secret key for Eve. The corresponding public key is in the development
+/// chainspec as Eve is a pre-registered private user
+pub const EVE_X25519_SECRET_KEY: [u8; 32] = [
+    58, 47, 10, 154, 181, 71, 222, 205, 42, 186, 181, 1, 55, 107, 46, 200, 226, 62, 42, 137, 142,
+    3, 101, 208, 129, 168, 22, 236, 116, 159, 8, 55,
+];
+/// This is a random secret key for Ferdie used in some negative tests
+pub const FERDIE_X25519_SECRET_KEY: [u8; 32] = [
+    5, 221, 127, 62, 254, 131, 37, 194, 88, 126, 130, 15, 97, 249, 170, 40, 201, 135, 77, 213, 55,
+    87, 243, 127, 175, 77, 251, 75, 157, 119, 41, 180,
+];
 
 /// The following constants are values used for integration testing specific to the
 /// `example_barebones_with_auxilary.wasm` from the `programs` repo.

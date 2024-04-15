@@ -15,7 +15,6 @@
 
 use std::time::SystemTime;
 
-use bip39::{Language, Mnemonic};
 use entropy_kvdb::clean_tests;
 use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY, MIN_BALANCE};
 use entropy_testing_utils::{
@@ -41,11 +40,9 @@ use crate::{
         },
         substrate::{get_registered_details, get_stash_address, get_subgroup, query_chain},
         tests::{create_clients, initialize_test_logger},
+        validator::get_signer_and_x25519_secret_from_mnemonic,
     },
-    validation::{
-        derive_x25519_public_key, mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage,
-        TIME_BUFFER,
-    },
+    validation::{mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage, TIME_BUFFER},
     validator::errors::ValidatorErr,
 };
 
@@ -94,16 +91,15 @@ async fn test_sync_kvdb() {
         hex::encode(FERDIE_VERIFYING_KEY.to_vec()),
     ];
 
-    let a_usr_sk = mnemonic_to_pair(
-        &Mnemonic::parse_in_normalized(Language::English, DEFAULT_ALICE_MNEMONIC).unwrap(),
-    )
-    .unwrap();
+    let (a_signer, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_ALICE_MNEMONIC).unwrap();
 
-    let b_usr_sk = mnemonic_to_pair(
-        &Mnemonic::parse_in_normalized(Language::English, DEFAULT_BOB_MNEMONIC).unwrap(),
-    )
-    .unwrap();
-    let recip = derive_x25519_public_key(&b_usr_sk).unwrap();
+    let (b_signer, bob_x25519_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(DEFAULT_BOB_MNEMONIC).unwrap();
+    let recip = x25519_dalek::PublicKey::from(&bob_x25519_secret).to_bytes();
+
+    let a_usr_sk = a_signer.signer();
+    let b_usr_sk = b_signer.signer();
+
     let values = vec![vec![10], vec![11], vec![12]];
 
     let port = 3001;
@@ -135,7 +131,9 @@ async fn test_sync_kvdb() {
     // return no error (status code 200).
     assert_eq!(result.status(), 200);
 
-    let sender = derive_x25519_public_key(&a_usr_sk).unwrap();
+    let (_, alice_x25519_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(DEFAULT_ALICE_MNEMONIC).unwrap();
+    let sender = x25519_dalek::PublicKey::from(&alice_x25519_secret).to_bytes();
 
     let enc_keys_failed_decrypt =
         EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &sender, &[])
@@ -260,8 +258,8 @@ async fn test_get_and_store_values() {
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 
-    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
-    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+    let (signer_alice, x25519_alice) =
+        get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
 
     let mut recip_server_info = {
         let alice_stash_address =
@@ -309,9 +307,17 @@ async fn test_get_and_store_values() {
     // We are 'being' bob (using bob's kv), but we authenticate as alice, because otherwise we will
     // fail the subgroup check. We can't properly test this function because we don't have two tss
     // servers in the same subgroup with only two subgroups.
-    get_and_store_values(keys.clone(), &bob_kv, 9, false, recip_server_info, &signer_alice)
-        .await
-        .unwrap();
+    get_and_store_values(
+        keys.clone(),
+        &bob_kv,
+        9,
+        false,
+        recip_server_info,
+        &signer_alice,
+        &x25519_alice,
+    )
+    .await
+    .unwrap();
     for (i, key) in keys.iter().enumerate() {
         tracing::info!("!! -> -> RECEIVED KEY at IDX {i} of value {key:?}");
         let val = bob_kv.kv().get(key).await;
@@ -330,8 +336,7 @@ async fn test_get_random_server_info() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
-    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
-    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+    let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
     let my_subgroup = get_subgroup(&api, &rpc, &signer_alice.account_id()).await.unwrap();
     let validator_address =
         get_stash_address(&api, &rpc, &signer_alice.account_id()).await.unwrap();

@@ -30,7 +30,7 @@ use subxt::ext::sp_core::{
     sr25519, Pair,
 };
 
-use crate::validation::{derive_x25519_static_secret, mnemonic_to_pair, new_mnemonic};
+use crate::{helpers::validator::get_signer_and_x25519_secret, validation::new_mnemonic};
 
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
@@ -189,11 +189,20 @@ pub async fn setup_mnemonic(
         }
         .expect("Issue creating Mnemonic");
 
-        let phrase = mnemonic.to_string();
-        let pair = mnemonic_to_pair(&mnemonic).expect("Issue deriving Mnemonic");
+        // Update the value in the kvdb
+        let reservation = kv
+            .kv()
+            .reserve_key(FORBIDDEN_KEYS[0].to_string())
+            .await
+            .expect("Issue reserving mnemonic");
+        kv.kv()
+            .put(reservation, mnemonic.to_string().as_bytes().to_vec())
+            .await
+            .expect("failed to update mnemonic");
 
-        let static_secret = derive_x25519_static_secret(&pair);
-        let dh_public = x25519_dalek::PublicKey::from(&static_secret);
+        let (pair, static_secret) =
+            get_signer_and_x25519_secret(kv).await.expect("Cannot derive keypairs");
+        let x25519_public_key = x25519_dalek::PublicKey::from(&static_secret).to_bytes();
 
         let ss_reservation = kv
             .kv()
@@ -211,30 +220,15 @@ pub async fn setup_mnemonic(
             .await
             .expect("Issue reserving DH key");
 
-        let converted_dh_public = dh_public.to_bytes().to_vec();
-        kv.kv()
-            .put(dh_reservation, converted_dh_public.clone())
-            .await
-            .expect("failed to update dh");
+        kv.kv().put(dh_reservation, x25519_public_key.to_vec()).await.expect("failed to update dh");
 
-        let formatted_dh_public = format!("{converted_dh_public:?}").replace('"', "");
+        let formatted_dh_public = format!("{x25519_public_key:?}").replace('"', "");
         fs::write(".entropy/public_key", formatted_dh_public)
             .expect("Failed to write public key file");
 
-        let id = AccountId32::new(pair.public().0);
+        let id = AccountId32::new(pair.signer().public().0);
 
         fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
-
-        // Update the value in the kvdb
-        let reservation = kv
-            .kv()
-            .reserve_key(FORBIDDEN_KEYS[0].to_string())
-            .await
-            .expect("Issue reserving mnemonic");
-        kv.kv()
-            .put(reservation, phrase.as_bytes().to_vec())
-            .await
-            .expect("failed to update mnemonic");
 
         tracing::debug!("Starting process with account ID: `{id}`");
     }
