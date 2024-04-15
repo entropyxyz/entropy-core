@@ -27,7 +27,7 @@ use axum::{
 use blake2::{Blake2s256, Digest};
 use entropy_protocol::{
     execute_protocol::{execute_proactive_refresh, Channels},
-    KeyParams, SessionId, ValidatorInfo,
+    KeyParams, Listener, SessionId, ValidatorInfo,
 };
 use parity_scale_codec::Encode;
 
@@ -64,7 +64,7 @@ use crate::{
     },
     signing_client::{
         protocol_transport::{handle_socket, open_protocol_connections},
-        Listener, ListenerState, ProtocolErr,
+        ListenerState, ProtocolErr,
     },
     user::api::UserRegistrationInfo,
     validation::derive_x25519_static_secret,

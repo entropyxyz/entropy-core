@@ -151,6 +151,8 @@ pub enum UserErr {
     EncryptionOrAuthentication(#[from] EncryptedSignedMessageErr),
     #[error("Custom hash choice out of bounds")]
     CustomHashOutOfBounds,
+    #[error("Listener: {0}")]
+    Listener(#[from] entropy_protocol::errors::ListenerErr),
 }
 
 impl IntoResponse for UserErr {

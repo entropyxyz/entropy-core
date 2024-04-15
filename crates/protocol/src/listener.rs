@@ -14,17 +14,16 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Tracks which validators we are connected to for a particular protocol execution
-// #![allow(dead_code)]
 
 use std::collections::HashMap;
 
 use crate::{
+    errors::ListenerErr,
     protocol_transport::{Broadcaster, WsChannels},
     ProtocolMessage, ValidatorInfo,
 };
 use entropy_shared::X25519PublicKey;
 use subxt::utils::AccountId32;
-use thiserror::Error;
 use tokio::sync::{broadcast, mpsc, oneshot};
 
 pub type ListenerResult = Result<Broadcaster, ListenerErr>;
@@ -91,10 +90,4 @@ impl Listener {
     pub fn into_broadcaster(self) -> (oneshot::Sender<ListenerResult>, Broadcaster) {
         (self.tx_ready, Broadcaster(self.tx))
     }
-}
-
-#[derive(Debug, Error)]
-pub enum ListenerErr {
-    #[error("invalid party ID: {0}")]
-    InvalidPartyId(String),
 }

@@ -104,6 +104,8 @@ pub enum ProtocolErr {
     ChainFetch(&'static str),
     #[error("The session ID is not for a signing session")]
     BadSessionId,
+    #[error("Listener: {0}")]
+    Listener(#[from] entropy_protocol::errors::ListenerErr),
 }
 
 impl IntoResponse for ProtocolErr {
@@ -131,6 +133,8 @@ pub enum SubscribeErr {
     Serialization(#[from] bincode::Error),
     #[error("User Error: {0}")]
     UserError(String),
+    #[error("Listener: {0}")]
+    Listener(#[from] entropy_protocol::errors::ListenerErr),
 }
 
 impl IntoResponse for SubscribeErr {

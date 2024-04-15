@@ -1,13 +1,13 @@
 use anyhow::anyhow;
 use entropy_protocol::{
     execute_protocol::{execute_signing_protocol, Channels},
-    listener::Listener,
     protocol_transport::{
         errors::WsError,
         noise::{noise_handshake_initiator, noise_handshake_responder},
         ws_to_channels, SubscribeMessage, WsChannels,
     },
-    KeyParams, PartyId, RecoverableSignature, SessionId, SigningSessionInfo, ValidatorInfo,
+    KeyParams, Listener, PartyId, RecoverableSignature, SessionId, SigningSessionInfo,
+    ValidatorInfo,
 };
 use entropy_shared::X25519PublicKey;
 use futures::future;

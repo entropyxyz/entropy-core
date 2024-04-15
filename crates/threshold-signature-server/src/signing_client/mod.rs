@@ -16,7 +16,6 @@
 //! Communicate with other threshold servers and carry out the signing and DKG protocols
 pub mod api;
 mod errors;
-pub(crate) mod listener;
 pub(crate) mod protocol_execution;
 pub(crate) mod protocol_transport;
 
@@ -28,9 +27,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use entropy_protocol::SessionId;
+use entropy_protocol::{Listener, SessionId};
 
-pub use self::{errors::*, listener::Listener, protocol_execution::ProtocolMessage};
+pub use self::{errors::*, protocol_execution::ProtocolMessage};
 
 /// The state used when setting up protocol connections to track who we are expecting to connect
 /// to for a particular protcol execution (Signing or DKG).
