@@ -5,9 +5,9 @@ protocols.
 
 For explanations of the JS bindings see [`./js-README.md`](./js-README.md)
 
-## Compiling for wasm:
+## Compiling on wasm:
 
-To check that things compile correctly for wasm:
+To check that things compile correctly on wasm:
 
 ```bash
 make build-nodejs
