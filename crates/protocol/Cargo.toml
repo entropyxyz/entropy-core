@@ -49,6 +49,7 @@ schnorrkel          ={ version="0.11.4", default-features=false, features=["std"
 sp-keyring="31.0.0"
 anyhow    ="1.0.82"
 criterion ={ version="0.5.1", features=["async_tokio"] }
+num_cpus  ="1.16.0"
 
 [features]
 default=["server"]

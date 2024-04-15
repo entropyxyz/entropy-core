@@ -1,9 +1,8 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use entropy_protocol::{KeyParams, SessionId, SigningSessionInfo, ValidatorInfo};
 use futures::future;
 use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
-use std::time::Instant;
 use subxt::utils::AccountId32;
 use synedrion::{ecdsa::VerifyingKey, KeyShare};
 use tokio::{net::TcpListener, sync::oneshot};
@@ -12,16 +11,22 @@ use x25519_dalek::StaticSecret;
 mod helpers;
 use helpers::server;
 
+/// Benchmark for the signing protocol
 pub fn criterion_benchmark(c: &mut Criterion) {
     let runtime =
         tokio::runtime::Builder::new_multi_thread().worker_threads(8).enable_all().build().unwrap();
 
-    let num_parties = 3;
-    let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
+    let mut group = c.benchmark_group("Signing protocol");
+    for num_parties in 2..num_cpus::get() + 1 {
+        let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
 
-    let mut group = c.benchmark_group("3 parties");
-    group.sample_size(10);
-    group.bench_function("test sign", |b| b.to_async(&runtime).iter(|| test_sign(&keyshares)));
+        group.sample_size(10);
+        group.bench_with_input(
+            BenchmarkId::from_parameter(num_parties),
+            &num_parties,
+            |b, &_num_parties| b.to_async(&runtime).iter(|| test_sign(&keyshares)),
+        );
+    }
     group.finish();
 }
 
@@ -76,7 +81,6 @@ async fn test_sign(keyshares: &[KeyShare<KeyParams>]) {
     }
 
     // Spawn tasks for each party
-    let now = Instant::now();
     let mut results_rx = Vec::new();
     for _ in 0..num_parties {
         // Channel used to return the resulting signature
@@ -86,7 +90,6 @@ async fn test_sign(keyshares: &[KeyShare<KeyParams>]) {
         let validators_info_clone = validators_info.clone();
         let session_id_clone = session_id.clone();
         tokio::spawn(async move {
-            let now_individual = Instant::now();
             let result = server(
                 secret.socket,
                 validators_info_clone,
@@ -96,22 +99,20 @@ async fn test_sign(keyshares: &[KeyShare<KeyParams>]) {
                 secret.keyshare,
             )
             .await;
-            println!("Individual party finished protocol {:?}", now_individual.elapsed());
-            tx.send(result).unwrap();
+            if !tx.is_closed() {
+                tx.send(result).unwrap();
+            }
         });
     }
-    let results = future::join_all(results_rx).await;
-    println!("{} parties - Time taken to get all results: {:?}", num_parties, now.elapsed());
+    let (result, _, _) = future::select_all(results_rx).await;
 
-    // Check signatures
-    for res in results {
-        let recoverable_signature = res.unwrap().unwrap();
-        let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
-            &message_hash,
-            &recoverable_signature.signature,
-            recoverable_signature.recovery_id,
-        )
-        .unwrap();
-        assert_eq!(verifying_key, recovery_key_from_sig);
-    }
+    // Check signature
+    let recoverable_signature = result.unwrap().unwrap();
+    let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+        &message_hash,
+        &recoverable_signature.signature,
+        recoverable_signature.recovery_id,
+    )
+    .unwrap();
+    assert_eq!(verifying_key, recovery_key_from_sig);
 }
