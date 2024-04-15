@@ -43,13 +43,12 @@ use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_babe::{self, SlotProportion};
 use sc_executor::NativeElseWasmExecutor;
 use sc_network::{event::Event, NetworkEventStream, NetworkService};
-use sc_network_sync::warp::WarpSyncParams;
-use sc_network_sync::SyncingService;
+use sc_network_sync::{strategy::warp::WarpSyncParams, SyncingService};
 use sc_offchain::OffchainDb;
 use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
-use sp_api::offchain::DbExternalities;
+use sp_core::offchain::DbExternalities;
 use sp_runtime::traits::Block as BlockT;
 
 use crate::cli::Cli;
@@ -213,8 +212,8 @@ pub fn new_partial(
         let select_chain = select_chain.clone();
         let keystore = keystore_container.keystore();
         let chain_spec = config.chain_spec.cloned_box();
+        let backend = backend.clone();
 
-        let _rpc_backend = backend.clone();
         let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
@@ -233,6 +232,7 @@ pub fn new_partial(
                     subscription_executor,
                     finality_provider: finality_proof_provider.clone(),
                 },
+                backend: backend.clone(),
             };
 
             crate::rpc::create_full(deps).map_err(Into::into)
@@ -301,13 +301,11 @@ pub fn new_full_base(
     let auth_disc_publish_non_global_ips = config.network.allow_non_globals_in_dht;
     let mut net_config = sc_network::config::FullNetworkConfiguration::new(&config.network);
 
-    let grandpa_protocol_name = grandpa::protocol_standard_name(
-        &client.block_hash(0).ok().flatten().expect("Genesis block exists; qed"),
-        &config.chain_spec,
-    );
-    net_config.add_notification_protocol(grandpa::grandpa_peers_set_config(
-        grandpa_protocol_name.clone(),
-    ));
+    let genesis_hash = client.block_hash(0).ok().flatten().expect("Genesis block exists; qed");
+    let grandpa_protocol_name = grandpa::protocol_standard_name(&genesis_hash, &config.chain_spec);
+    let (grandpa_protocol_config, grandpa_notification_service) =
+        grandpa::grandpa_peers_set_config(grandpa_protocol_name.clone());
+    net_config.add_notification_protocol(grandpa_protocol_config);
 
     let warp_sync = Arc::new(grandpa::warp_proof::NetworkProvider::new(
         backend.clone(),
@@ -392,10 +390,15 @@ pub fn new_full_base(
 
     if let Some(hwbench) = hwbench {
         sc_sysinfo::print_hwbench(&hwbench);
-        if !SUBSTRATE_REFERENCE_HARDWARE.check_hardware(&hwbench) && role.is_authority() {
-            log::warn!(
-                "⚠️  The hardware does not meet the minimal requirements for role 'Authority'."
-            );
+        match SUBSTRATE_REFERENCE_HARDWARE.check_hardware(&hwbench) {
+            Err(err) if role.is_authority() => {
+                log::warn!(
+				"⚠️  The hardware does not meet the minimal requirements {} for role 'Authority' find out more at:\n\
+				https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot#reference-hardware",
+				err
+			);
+            },
+            _ => {},
         }
 
         if let Some(ref mut telemetry) = telemetry {
@@ -529,6 +532,7 @@ pub fn new_full_base(
             telemetry: telemetry.as_ref().map(|x| x.handle()),
             voting_rule: grandpa::VotingRulesBuilder::default().build(),
             prometheus_registry: prometheus_registry.clone(),
+            notification_service: grandpa_notification_service,
             shared_voter_state,
             offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool.clone()),
         };
@@ -559,13 +563,14 @@ pub fn new_full(config: Configuration, cli: Cli) -> Result<TaskManager, ServiceE
     let task_manager =
         new_full_base(config, cli.no_hardware_benchmarks, |_, _| (), cli.tss_server_endpoint)
             .map(|NewFullBase { task_manager, .. }| task_manager)?;
-
-    sc_storage_monitor::StorageMonitorService::try_spawn(
-        cli.storage_monitor,
-        database_source,
-        &task_manager.spawn_essential_handle(),
-    )
-    .map_err(|e| ServiceError::Application(e.into()))?;
+    if let Some(path) = database_source.path() {
+        sc_storage_monitor::StorageMonitorService::try_spawn(
+            cli.storage_monitor,
+            path.to_path_buf(),
+            &task_manager.spawn_essential_handle(),
+        )
+        .map_err(|e| ServiceError::Application(e.into()))?;
+    }
 
     Ok(task_manager)
 }
