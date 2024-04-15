@@ -47,7 +47,7 @@ sp-genesis-builder    ={ version="0.8.0", default-features=false }
 # FRAME Dependencies
 frame-benchmarking             ={ version="29.0.0", default-features=false, optional=true }
 frame-election-provider-support={ version="29.0.0", default-features=false }
-frame-executive                ={ version="29.0.0", default-features=false }
+frame-executive                ={ version="32.0.0", default-features=false }
 frame-support                  ={ version="29.0.0", default-features=false }
 frame-system                   ={ version="29.0.0", default-features=false }
 frame-system-benchmarking      ={ version="29.0.0", default-features=false, optional=true }
