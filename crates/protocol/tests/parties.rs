@@ -21,6 +21,7 @@ use subxt::utils::AccountId32;
 use synedrion::{ecdsa::VerifyingKey, KeyShare};
 use tokio::{
     net::{TcpListener, TcpStream},
+    sync::oneshot,
     time::timeout,
 };
 use tokio_tungstenite::connect_async;
@@ -34,9 +35,9 @@ struct ValidatorSecretInfo {
     socket: TcpListener,
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn test_sign() {
-    let num_parties = 2;
+    let num_parties = 7;
 
     let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
 
@@ -48,6 +49,7 @@ async fn test_sign() {
         request_author: AccountId32([0u8; 32]),
     });
 
+    // Prepare information about each node
     let mut validator_secrets = Vec::new();
     let mut validators_info = Vec::new();
     for i in 0..num_parties {
@@ -75,32 +77,37 @@ async fn test_sign() {
         })
     }
 
+    // Spawn tasks for each party
     let now = Instant::now();
-    let results = future::join_all(
-        validator_secrets
-            .into_iter()
-            .map(|secret| async {
-                let now_individual = Instant::now();
-                let result = server(
-                    secret.socket,
-                    validators_info.clone(),
-                    secret.pair,
-                    secret.x25519_secret_key,
-                    session_id.clone(),
-                    secret.keyshare,
-                )
-                .await;
-                println!("Finished protocol {:?}", now_individual.elapsed());
-                result
-            })
-            .collect::<Vec<_>>(),
-    )
-    .await;
+    let mut results_rx = Vec::new();
+    for _ in 0..num_parties {
+        // Channel used to return the resulting signature
+        let (tx, rx) = oneshot::channel();
+        results_rx.push(rx);
+        let secret = validator_secrets.pop().unwrap();
+        let validators_info_clone = validators_info.clone();
+        let session_id_clone = session_id.clone();
+        tokio::spawn(async move {
+            let now_individual = Instant::now();
+            let result = server(
+                secret.socket,
+                validators_info_clone,
+                secret.pair,
+                secret.x25519_secret_key,
+                session_id_clone,
+                secret.keyshare,
+            )
+            .await;
+            println!("Individual party finished protocol {:?}", now_individual.elapsed());
+            tx.send(result).unwrap();
+        });
+    }
+    let results = future::join_all(results_rx).await;
     println!("{} parties - Time taken to get all results: {:?}", num_parties, now.elapsed());
 
     // Check signatures
     for res in results {
-        let recoverable_signature = res.unwrap();
+        let recoverable_signature = res.unwrap().unwrap();
         let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
             &message_hash,
             &recoverable_signature.signature,
@@ -178,18 +185,12 @@ pub async fn server(
 }
 
 async fn handle_connection(state: ServerState, raw_stream: TcpStream) -> anyhow::Result<()> {
-    let ws_stream = tokio_tungstenite::accept_async(raw_stream)
-        .await
-        .expect("Error during the websocket handshake occurred");
+    let ws_stream = tokio_tungstenite::accept_async(raw_stream).await?;
 
     let (mut encrypted_connection, serialized_signed_message) =
-        noise_handshake_responder(ws_stream, &state.x25519_secret_key)
-            .await
-            .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
+        noise_handshake_responder(ws_stream, &state.x25519_secret_key).await?;
 
-    let remote_public_key = encrypted_connection
-        .remote_public_key()
-        .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
+    let remote_public_key = encrypted_connection.remote_public_key()?;
 
     let (subscribe_response, ws_channels_option) = match handle_initial_incoming_ws_message(
         serialized_signed_message,
@@ -203,10 +204,7 @@ async fn handle_connection(state: ServerState, raw_stream: TcpStream) -> anyhow:
     };
     // Send them a response as to whether we are happy with their subscribe message
     let subscribe_response_vec = bincode::serialize(&subscribe_response)?;
-    encrypted_connection
-        .send(subscribe_response_vec)
-        .await
-        .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
+    encrypted_connection.send(subscribe_response_vec).await?;
 
     // If it was successful, proceed with relaying signing protocol messages
     let (ws_channels, remote_party_id) = ws_channels_option.ok_or(WsError::BadSubscribeMessage)?;
