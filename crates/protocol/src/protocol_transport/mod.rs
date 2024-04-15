@@ -121,6 +121,7 @@ impl WsConnection for tokio_tungstenite::WebSocketStream<MaybeTlsStream<tokio::n
     }
 }
 
+// Currently only used in benchmarks - entropy-tss uses the MaybeTlsStream wrapper
 #[cfg(feature = "server")]
 #[async_trait]
 impl WsConnection for tokio_tungstenite::WebSocketStream<tokio::net::TcpStream> {

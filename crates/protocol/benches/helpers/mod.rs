@@ -1,3 +1,19 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+//! A simple protocol server, like a mini version of entropy-tss, for benchmarking
 use anyhow::{anyhow, ensure};
 use entropy_protocol::{
     execute_protocol::{execute_signing_protocol, Channels},
@@ -98,6 +114,7 @@ pub async fn server(
     Ok(RecoverableSignature { signature, recovery_id })
 }
 
+/// Handle an incoming websocket connection
 async fn handle_connection(state: ServerState, raw_stream: TcpStream) -> anyhow::Result<()> {
     let ws_stream = tokio_tungstenite::accept_async(raw_stream).await?;
 
@@ -126,7 +143,7 @@ async fn handle_connection(state: ServerState, raw_stream: TcpStream) -> anyhow:
     Ok(())
 }
 
-/// Handle a subscribe message
+/// Handle a subscribe message (first message sent by the initiator of the connection)
 async fn handle_initial_incoming_ws_message(
     serialized_subscribe_message: Vec<u8>,
     _remote_public_key: X25519PublicKey,
@@ -161,7 +178,7 @@ fn get_ws_channels(
     Ok(ws_channels)
 }
 
-/// Set up websocket connections to other members of the signing committee
+/// Set up outgoing websocket connections to other parties
 async fn open_protocol_connections(
     validators_info: &[ValidatorInfo],
     session_id: &SessionId,
