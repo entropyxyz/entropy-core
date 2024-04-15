@@ -1,6 +1,8 @@
+#!/bin/bash
+#
 # This script uses psvm to update substrate repos
 # It uses psvm repo https://github.com/paritytech/psvm
-#!/bin/bash
+
 version="1.7.0"
 
 psvm -v $version -p ./runtime
