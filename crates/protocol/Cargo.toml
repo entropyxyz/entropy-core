@@ -48,6 +48,7 @@ schnorrkel          ={ version="0.11.4", default-features=false, features=["std"
 [dev-dependencies]
 sp-keyring="31.0.0"
 anyhow    ="1.0.82"
+criterion ={ version="0.5.1", features=["async_tokio"] }
 
 [features]
 default=["server"]
@@ -80,3 +81,7 @@ wasm-test=["wasm"]
 
 [lib]
 crate-type=["cdylib", "rlib"]
+
+[[bench]]
+name   ="protocol_parties"
+harness=false

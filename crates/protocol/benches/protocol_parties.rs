@@ -34,8 +34,31 @@ struct ValidatorSecretInfo {
     x25519_secret_key: StaticSecret,
     socket: TcpListener,
 }
+use criterion::{criterion_group, criterion_main, Criterion};
+pub fn criterion_benchmark(c: &mut Criterion) {
+    let runtime =
+        tokio::runtime::Builder::new_multi_thread().worker_threads(8).enable_all().build().unwrap();
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+    let mut group = c.benchmark_group("happy path");
+    group.sample_size(10);
+    group.bench_function("fib 20", |b| b.to_async(&runtime).iter(|| test_sign()));
+    group.finish();
+}
+
+// fn from_elem(c: &mut Criterion) {
+//     let size: usize = 1024;
+//
+//     c.bench_with_input(BenchmarkId::new("input_example", size), &size, |b, &s| {
+//         // Insert a call to `to_async` to convert the bencher to async mode.
+//         // The timing loops are the same as with the normal bencher.
+//         b.to_async(FuturesExecutor).iter(|| test_sign());
+//     });
+// }
+
+criterion_group!(benches, criterion_benchmark);
+criterion_main!(benches);
+
+// #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn test_sign() {
     let num_parties = 3;
 
