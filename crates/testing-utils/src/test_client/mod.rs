@@ -42,7 +42,6 @@ use entropy_tss::{
     helpers::substrate::{query_chain, submit_transaction},
 };
 use futures::future;
-use parity_scale_codec::Decode;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -312,15 +311,12 @@ pub async fn get_accounts(
 ) -> anyhow::Result<Vec<([u8; 32], RegisteredInfo)>> {
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
-    let keys = Vec::<()>::new();
-    let storage_address = subxt::dynamic::storage("Registry", "Registered", keys);
+    let storage_address = entropy::storage().registry().registered_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut accounts = Vec::new();
-    while let Some(Ok((storage_key, account))) = iter.next().await {
-        let decoded = account.into_encoded();
-        let registered_info = RegisteredInfo::decode(&mut decoded.as_ref())?;
-        let key: [u8; 32] = storage_key[storage_key.len() - 32..].try_into()?;
-        accounts.push((key, registered_info))
+    while let Some(Ok(kv)) = iter.next().await {
+        let key: [u8; 32] = kv.key_bytes[kv.key_bytes.len() - 32..].try_into()?;
+        accounts.push((key, kv.value))
     }
     Ok(accounts)
 }
@@ -332,16 +328,13 @@ pub async fn get_programs(
 ) -> anyhow::Result<Vec<(H256, ProgramInfo<<EntropyConfig as Config>::AccountId>)>> {
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
-    let keys = Vec::<()>::new();
-    let storage_address = subxt::dynamic::storage("Programs", "Programs", keys);
+
+    let storage_address = entropy::storage().programs().programs_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut programs = Vec::new();
-    while let Some(Ok((storage_key, program))) = iter.next().await {
-        let decoded = program.into_encoded();
-        let program_info: ProgramInfo<<EntropyConfig as Config>::AccountId> =
-            ProgramInfo::decode(&mut decoded.as_ref())?;
-        let hash: [u8; 32] = storage_key[storage_key.len() - 32..].try_into()?;
-        programs.push((H256(hash), program_info));
+    while let Some(Ok(kv)) = iter.next().await {
+        let hash: [u8; 32] = kv.key_bytes[kv.key_bytes.len() - 32..].try_into()?;
+        programs.push((H256(hash), kv.value));
     }
     Ok(programs)
 }

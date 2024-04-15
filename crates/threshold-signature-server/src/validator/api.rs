@@ -180,11 +180,10 @@ pub async fn get_all_keys(
         .await?
         .ok_or_else(|| ValidatorErr::OptionUnwrapError("Error getting block hash"))?;
     // query the registered mapping in the registry pallet
-    let keys = Vec::<()>::new();
-    let storage_address = subxt::dynamic::storage("Registry", "Registered", keys);
+    let storage_address = entropy::storage().registry().registered_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
-    while let Some(Ok((key, _account))) = iter.next().await {
-        let new_key = hex::encode(key);
+    while let Some(Ok(kv)) = iter.next().await {
+        let new_key = hex::encode(kv.key_bytes);
         let len = new_key.len();
         let final_key = &new_key[len - (VERIFICATION_KEY_LENGTH as usize * 2)..];
         // checks address is valid
