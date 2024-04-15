@@ -7093,7 +7093,7 @@ dependencies = [
  "pallet-staking-reward-curve",
  "pallet-timestamp",
  "parity-scale-codec",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "scale-info",
  "sp-application-crypto 31.0.0",
  "sp-core 29.0.0",
