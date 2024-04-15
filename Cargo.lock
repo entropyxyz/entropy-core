@@ -638,9 +638,9 @@ checksum = "fbb36e985947064623dbd357f727af08ffd077f93d696782f3c56365fa2e2799"
 
 [[package]]
 name = "async-trait"
-version = "0.1.76"
+version = "0.1.80"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "531b97fb4cd3dfdce92c35dedbfdc1f0b9d8091c8ca943d6dae340ef5012d514"
+checksum = "c6fa2087f2753a7da8cc1c0dbfcf89579dd57458e36769de5ac750b4671737ca"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2610,7 +2610,6 @@ dependencies = [
  "blake2 0.10.6",
  "entropy-shared",
  "futures",
- "generic-array 0.14.7",
  "getrandom 0.2.13",
  "gloo-net",
  "hex",
@@ -2772,7 +2771,6 @@ dependencies = [
  "entropy-shared",
  "entropy-tss",
  "futures",
- "generic-array 0.14.7",
  "hex",
  "hex-literal",
  "lazy_static",
@@ -8605,12 +8603,10 @@ dependencies = [
  "system-configuration",
  "tokio",
  "tokio-native-tls",
- "tokio-util",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-streams",
  "web-sys",
  "winreg 0.50.0",
 ]
@@ -8661,9 +8657,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest-eventsource"
-version = "0.4.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f03f570355882dd8d15acc3a313841e6e90eddbc76a93c748fd82cc13ba9f51"
+checksum = "632c55746dbb44275691640e7b40c907c16a2dc1a5842aa98aaec90da6ec6bde"
 dependencies = [
  "eventsource-stream",
  "futures-core",
@@ -8671,7 +8667,7 @@ dependencies = [
  "mime",
  "nom",
  "pin-project-lite 0.2.13",
- "reqwest 0.11.24",
+ "reqwest 0.12.3",
  "thiserror",
 ]
 
