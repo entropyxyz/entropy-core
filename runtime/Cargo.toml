@@ -83,7 +83,7 @@ pallet-preimage                              ={ version="29.0.0", default-featur
 pallet-proxy                                 ={ version="29.0.0", default-features=false }
 pallet-recovery                              ={ version="29.0.0", default-features=false }
 pallet-referenda                             ={ version="29.0.0", default-features=false }
-pallet-scheduler                             ={ version="30.0.0", default-features=false }
+pallet-scheduler                             ={ version="33.0.0", default-features=false }
 pallet-session-benchmarking                  ={ version="29.0.0", default-features=false, optional=true }
 pallet-session                               ={ version="29.0.0", default-features=false, features=["historical"] }
 pallet-staking                               ={ version="29.0.0", default-features=false }
