@@ -18,9 +18,9 @@ use crate::endowed_accounts::endowed_accounts_dev;
 
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
-    BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-    IndicesConfig, MaxNominations, ParametersConfig, ProgramsConfig, SessionConfig, StakerStatus,
-    StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
+    BalancesConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig, IndicesConfig, MaxNominations,
+    ParametersConfig, ProgramsConfig, SessionConfig, StakerStatus, StakingConfig,
+    StakingExtensionConfig, SudoConfig, TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
@@ -355,7 +355,7 @@ pub fn testnet_genesis_config(
     const SIGNING_GROUPS: usize = 2;
 
     serde_json::json!( {
-        "system": SystemConfig { ..Default::default() },
+
         "balances": BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
         },
@@ -416,7 +416,6 @@ pub fn testnet_genesis_config(
                 .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),
         },
-        "democracy": DemocracyConfig::default(),
         "elections": ElectionsConfig {
             members: endowed_accounts
                 .iter()
@@ -425,7 +424,6 @@ pub fn testnet_genesis_config(
                 .map(|member| (member, STASH))
                 .collect(),
         },
-        "council": CouncilConfig::default(),
         "technicalCommittee": TechnicalCommitteeConfig {
             members: endowed_accounts
                 .iter()

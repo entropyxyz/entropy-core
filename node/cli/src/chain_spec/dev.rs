@@ -18,10 +18,9 @@ use crate::endowed_accounts::endowed_accounts_dev;
 
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
-    BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-    IndicesConfig, MaxNominations, ParametersConfig, ProgramsConfig, RegistryConfig, SessionConfig,
-    StakerStatus, StakingConfig, StakingExtensionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig,
+    BalancesConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig, IndicesConfig, MaxNominations,
+    ParametersConfig, ProgramsConfig, RegistryConfig, SessionConfig, StakerStatus, StakingConfig,
+    StakingExtensionConfig, SudoConfig, TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
@@ -125,7 +124,6 @@ pub fn development_genesis_config(
     const STASH: Balance = ENDOWMENT / 1000;
 
     serde_json::json!({
-        "system": SystemConfig { ..Default::default() },
         "balances": BalancesConfig {
             balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
         },
@@ -180,7 +178,6 @@ pub fn development_genesis_config(
             ],
             proactive_refresh_data: (vec![], vec![]),
         },
-        "democracy": DemocracyConfig::default(),
         "elections": ElectionsConfig {
             members: endowed_accounts
                 .iter()
@@ -189,7 +186,6 @@ pub fn development_genesis_config(
                 .map(|member| (member, STASH))
                 .collect(),
         },
-        "council": CouncilConfig::default(),
         "technicalCommittee": TechnicalCommitteeConfig  {
             members: endowed_accounts
                 .iter()
