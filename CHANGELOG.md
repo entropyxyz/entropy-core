@@ -9,7 +9,22 @@ At the moment this project **does not** adhere to
 
 ## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.11...master)
 
-### Added 
+### Breaking Changes
+
+- In [#709](https://github.com/entropyxyz/entropy-core/pull/709) 'Derive the threshold account
+  keypair and x25519 keypair from mnemonic using HKDF' the JS `entropy-protocol` bindings have
+  changed. `Hpke.DecryptAndVerify` now takes a secret x25519 encryption key rather than a secret
+  sr25519 signing key. The `runDkgProtocol` and `runSigningProtocol` functions now both take a
+  secret x25519 key as an additional argument, since these are no longer derived from the given
+  signing secret key. Similarly in the rust API, `EncryptedSignedMessage` no longer derives x25519
+  keypairs internally and so the decrypt method now takes a x25519 secret key. Also, the method by
+  which keypairs are derived from a mnemonic has changed, which means existing validators x25119
+  and sr25519 keypairs will be different what they were before.
+
+### Added
+
+### Changed
+- Derive the threshold account keypair and x25519 keypair from mnemonic using HKDF ([#709](https://github.com/entropyxyz/entropy-core/pull/709))
 
 ## [0.0.11](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...release/v0.0.11) - 2024-04-XX
 
@@ -85,6 +100,7 @@ At the moment this project **does not** adhere to
 - Rename `pallet_relayer` to `pallet_registry` ([#661](https://github.com/entropyxyz/entropy-core/pull/661))
 - Remove permissioned access type ([#666](https://github.com/entropyxyz/entropy-core/pull/666))
 - Use SessionID in shared randomness ([#676](https://github.com/entropyxyz/entropy-core/pull/676))
+- Derive the threshold account keypair and x25519 keypair from mnemonic using HKDF
 
 ### Removed
 - Remove `pallet-free-tx` ([#662](https://github.com/entropyxyz/entropy-core/pull/662))

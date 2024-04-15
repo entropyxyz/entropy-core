@@ -26,6 +26,7 @@ use tokio::spawn;
 use tokio::sync::{broadcast, mpsc};
 #[cfg(feature = "wasm")]
 use wasm_bindgen_futures::spawn_local as spawn;
+use x25519_dalek::StaticSecret;
 
 use crate::{
     errors::UserRunningProtocolErr,
@@ -34,7 +35,6 @@ use crate::{
         noise::noise_handshake_initiator, open_ws_connection, ws_to_channels, Broadcaster,
         SubscribeMessage, ThreadSafeWsConnection, WsChannels,
     },
-    sign_and_encrypt::derive_x25519_static_secret,
     KeyParams, PartyId, RecoverableSignature, SessionId, SigningSessionInfo, ValidatorInfo,
 };
 
@@ -44,6 +44,7 @@ pub async fn user_participates_in_signing_protocol(
     key_share: &KeyShare<KeyParams>,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
+    user_x25519_private_key: StaticSecret,
     message_hash: [u8; 32],
 ) -> Result<RecoverableSignature, UserRunningProtocolErr> {
     let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
@@ -59,6 +60,7 @@ pub async fn user_participates_in_signing_protocol(
         &session_id,
         validators_info,
         user_signing_keypair,
+        user_x25519_private_key,
     )
     .await?;
 
@@ -83,6 +85,7 @@ pub async fn user_participates_in_signing_protocol(
 pub async fn user_participates_in_dkg_protocol(
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
+    user_x25519_private_key: StaticSecret,
     block_number: u32,
 ) -> Result<KeyShare<KeyParams>, UserRunningProtocolErr> {
     // Make WS connections to the given set of TSS servers
@@ -93,6 +96,7 @@ pub async fn user_participates_in_dkg_protocol(
         &session_id,
         validators_info,
         user_signing_keypair,
+        user_x25519_private_key,
     )
     .await?;
 
@@ -109,13 +113,13 @@ async fn user_connects_to_validators<F, Fut, W>(
     session_id: &SessionId,
     validators_info: Vec<ValidatorInfo>,
     user_signing_keypair: &sr25519::Pair,
+    user_x25519_private_key: StaticSecret,
 ) -> Result<(Channels, Vec<AccountId32>), UserRunningProtocolErr>
 where
     F: Fn(String) -> Fut,
     Fut: Future<Output = Result<W, UserRunningProtocolErr>>,
     W: ThreadSafeWsConnection,
 {
-    let x25519_private_key = derive_x25519_static_secret(user_signing_keypair);
     // Set up channels for communication between the protocol and the other parties
     let (tx, _rx) = broadcast::channel(1000);
     let (tx_to_others, rx_to_others) = mpsc::channel(1000);
@@ -138,7 +142,7 @@ where
 
             let mut encrypted_connection = noise_handshake_initiator(
                 ws_stream,
-                &x25519_private_key,
+                &user_x25519_private_key,
                 validator_info.x25519_public_key,
                 subscribe_message_vec,
             )

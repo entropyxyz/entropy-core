@@ -14,32 +14,31 @@ test('Convert Uint8Array to and from hex', function (t) {
 test('Encrypt, decrypt with HPKE', function (t) {
   t.plan(2)
 
-  const { generateSigningKey, publicKeyFromSecret, encryptAndSign, decryptAndVerify } = protocol.Hpke
+  const { generateSigningKey, encryptAndSign, decryptAndVerify } = protocol.Hpke
 
   const aliceSk = generateSigningKey()
 
-  const bobSk = generateSigningKey()
-  const bobPk = publicKeyFromSecret(bobSk)
+  const bobX25519Keypair = protocol.X25519Keypair.generate()
 
   const plaintext = new Uint8Array(32)
 
   // Alice encrypts and signs the message to bob.
-  const encryptedAndSignedMessage = encryptAndSign(aliceSk, plaintext, bobPk)
+  const encryptedAndSignedMessage = encryptAndSign(aliceSk, plaintext, bobX25519Keypair.publicKey())
 
   // Bob decrypts the message.
-  const decryptedPlaintext = decryptAndVerify(bobSk, encryptedAndSignedMessage)
+  const decryptedPlaintext = decryptAndVerify(bobX25519Keypair.secretKey(), encryptedAndSignedMessage)
 
   // Check the original plaintext equals the decrypted plaintext.
   t.true(protocol.constantTimeEq(decryptedPlaintext, plaintext))
 
-  const mallorySk = generateSigningKey()
+  const malloryX25519Keypair = protocol.X25519Keypair.generate()
 
   // Malloy cannot decrypt the message.
   let error
   try {
-      decryptAndVerify(mallorySk, encryptedAndSignedMessage)
+    decryptAndVerify(malloryX25519Keypair.secretKey(), encryptedAndSignedMessage)
   } catch (e) {
-      error = e.toString()
+    error = e.toString()
   }
   t.equals(error, 'Error: Hpke: HPKE Error: OpenError')
 })
