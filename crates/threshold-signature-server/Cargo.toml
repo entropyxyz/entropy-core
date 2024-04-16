@@ -74,7 +74,7 @@ hkdf             ="0.12.4"
 [dev-dependencies]
 entropy-testing-utils={ path="../testing-utils" }
 serial_test          ="0.8.0"
-hex-literal          ="0.3.4"
+hex-literal          ="0.4.1"
 project-root         ="0.2.2"
 sp-keyring           ="31.0.0"
 more-asserts         ="0.3.1"
