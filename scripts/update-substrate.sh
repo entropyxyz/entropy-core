@@ -3,17 +3,20 @@
 # This script uses psvm to update substrate repos
 # It uses psvm repo https://github.com/paritytech/psvm
 
-version="1.7.0"
+# Takes first arugment as version i.e ./scripts/update-substrate.sh 1.7.0
+version=$1
+dir=(
+  runtime
+  node/cli
+  pallets/*
+)
 
-psvm -v $version -p ./runtime
-psvm -v $version -p ./node/cli
-psvm -v $version -p ./pallets/parameters
-psvm -v $version -p ./pallets/programs
-psvm -v $version -p ./pallets/propagation
-psvm -v $version -p ./pallets/registry
-psvm -v $version -p ./pallets/slashing
-psvm -v $version -p ./pallets/staking
-psvm -v $version -p ./pallets/transaction-pause
+for d in ${dir[@]}
+do
+	psvm -v $version -p "$d"
+
+done
+
 
 # Some packages that are not part of substrate need to be updated manually sometimes 
 # Below is a list
