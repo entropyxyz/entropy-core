@@ -303,7 +303,7 @@ dependencies = [
  "itertools 0.10.5",
  "num-bigint",
  "num-traits",
- "paste 1.0.14",
+ "paste",
  "rustc_version",
  "zeroize",
 ]
@@ -450,12 +450,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "assert_matches"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
-
-[[package]]
 name = "async-channel"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -592,28 +586,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-stream"
-version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd56dd203fef61ac097dd65721a419ddccb106b2d2b70ba60a6b529f03961a51"
-dependencies = [
- "async-stream-impl",
- "futures-core",
- "pin-project-lite 0.2.14",
-]
-
-[[package]]
-name = "async-stream-impl"
-version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16e62a023e7c117e27523144c5d2459f4397fcc3cab0085af8e2224f643a0193"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.59",
-]
-
-[[package]]
 name = "async-task"
 version = "4.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -728,18 +700,6 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
-]
-
-[[package]]
-name = "axum-macros"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00c055ee2d014ae5981ce1016374e8213682aa14d9bf40e48ab48b5f3ef20eaa"
-dependencies = [
- "heck 0.4.1",
- "proc-macro2",
- "quote",
- "syn 2.0.59",
 ]
 
 [[package]]
@@ -2576,7 +2536,6 @@ dependencies = [
  "frame-try-runtime",
  "hex-literal",
  "log",
- "pallet-assets",
  "pallet-authority-discovery",
  "pallet-authorship",
  "pallet-babe",
@@ -2584,7 +2543,6 @@ dependencies = [
  "pallet-balances",
  "pallet-bounties",
  "pallet-collective",
- "pallet-conviction-voting",
  "pallet-democracy",
  "pallet-election-provider-multi-phase",
  "pallet-election-provider-support-benchmarking",
@@ -2597,7 +2555,6 @@ dependencies = [
  "pallet-multisig",
  "pallet-nomination-pools",
  "pallet-nomination-pools-benchmarking",
- "pallet-nomination-pools-runtime-api",
  "pallet-offences",
  "pallet-offences-benchmarking",
  "pallet-parameters",
@@ -2606,7 +2563,6 @@ dependencies = [
  "pallet-propagation",
  "pallet-proxy",
  "pallet-recovery",
- "pallet-referenda",
  "pallet-registry",
  "pallet-scheduler",
  "pallet-session",
@@ -2635,7 +2591,6 @@ dependencies = [
  "sp-genesis-builder",
  "sp-inherents",
  "sp-io 31.0.0",
- "sp-keyring 32.0.0",
  "sp-npos-elections",
  "sp-offchain",
  "sp-runtime 32.0.0",
@@ -2715,7 +2670,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.18",
- "which 6.0.1",
  "x25519-dalek 2.0.1",
  "zeroize",
 ]
@@ -2725,10 +2679,7 @@ name = "entropy-tss"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-stream",
- "async-trait",
  "axum",
- "axum-macros",
  "base64 0.22.0",
  "bincode",
  "bip39",
@@ -3190,7 +3141,7 @@ dependencies = [
  "linregress",
  "log",
  "parity-scale-codec",
- "paste 1.0.14",
+ "paste",
  "scale-info",
  "serde",
  "sp-api",
@@ -3366,7 +3317,7 @@ dependencies = [
  "log",
  "macro_magic",
  "parity-scale-codec",
- "paste 1.0.14",
+ "paste",
  "scale-info",
  "serde",
  "serde_json",
@@ -5492,24 +5443,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lite-json"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0460d985423a026b4d9b828a7c6eed1bcf606f476322f3f9b507529686a61715"
-dependencies = [
- "lite-parser",
-]
-
-[[package]]
-name = "lite-parser"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c50092e40e0ccd1bf2015a10333fde0502ff95b832b0895dc1ca0d7ac6c52f6"
-dependencies = [
- "paste 0.1.18",
-]
-
-[[package]]
 name = "lock_api"
 version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6090,7 +6023,7 @@ checksum = "0ede8a08c71ad5a95cdd0e4e52facd37190977039a4704eb82a283f713747d34"
 dependencies = [
  "anyhow",
  "byteorder",
- "paste 1.0.14",
+ "paste",
  "thiserror",
 ]
 
@@ -6477,23 +6410,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-assets"
-version = "30.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46728a98a910af13f6a77033dd053456650773bb7adc71e0ba845bff7e31b33e"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-core 29.0.0",
- "sp-runtime 32.0.0",
- "sp-std 14.0.0",
-]
-
-[[package]]
 name = "pallet-authority-discovery"
 version = "29.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6622,24 +6538,6 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-core 29.0.0",
- "sp-io 31.0.0",
- "sp-runtime 32.0.0",
- "sp-std 14.0.0",
-]
-
-[[package]]
-name = "pallet-conviction-voting"
-version = "29.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aee3a8b6fcde893f862993f9d45eb0fcd492dde0967fd56ef78d79fc7b53dc0"
-dependencies = [
- "assert_matches",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "scale-info",
- "serde",
  "sp-io 31.0.0",
  "sp-runtime 32.0.0",
  "sp-std 14.0.0",
@@ -6881,18 +6779,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-nomination-pools-runtime-api"
-version = "24.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5b35e6c471a669437b987ff02e11e2283412c9ebaeec5334dec3f73bcea652"
-dependencies = [
- "pallet-nomination-pools",
- "parity-scale-codec",
- "sp-api",
- "sp-std 14.0.0",
-]
-
-[[package]]
 name = "pallet-offences"
 version = "28.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6972,7 +6858,6 @@ dependencies = [
 name = "pallet-programs"
 version = "0.0.11"
 dependencies = [
- "entropy-shared",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -6996,7 +6881,6 @@ dependencies = [
  "frame-election-provider-support",
  "frame-support",
  "frame-system",
- "lite-json",
  "log",
  "pallet-authorship",
  "pallet-babe",
@@ -7048,26 +6932,6 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "scale-info",
- "sp-io 31.0.0",
- "sp-runtime 32.0.0",
- "sp-std 14.0.0",
-]
-
-[[package]]
-name = "pallet-referenda"
-version = "29.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da850889e7101b63cadb980b7f39df67feb6d63bc6092769b9b708e9eb596db1"
-dependencies = [
- "assert_matches",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-arithmetic 24.0.0",
  "sp-io 31.0.0",
  "sp-runtime 32.0.0",
  "sp-std 14.0.0",
@@ -7595,28 +7459,9 @@ dependencies = [
 
 [[package]]
 name = "paste"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45ca20c77d80be666aef2b45486da86238fabe33e38306bd3118fe4af33fa880"
-dependencies = [
- "paste-impl",
- "proc-macro-hack",
-]
-
-[[package]]
-name = "paste"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
-
-[[package]]
-name = "paste-impl"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d95a7db200b97ef370c8e6de0088252f7e0dfff7d047a28528e47456c0fc98b6"
-dependencies = [
- "proc-macro-hack",
-]
 
 [[package]]
 name = "pbkdf2"
@@ -8062,12 +7907,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "proc-macro-hack"
-version = "0.5.20+deprecated"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc375e1527247fe1a97d8b7156678dfe7c1af2fc075c9a4db3690ecd2a148068"
-
-[[package]]
 name = "proc-macro-warning"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8185,7 +8024,7 @@ dependencies = [
  "regex",
  "syn 1.0.109",
  "tempfile",
- "which 4.4.2",
+ "which",
 ]
 
 [[package]]
@@ -10695,7 +10534,7 @@ dependencies = [
  "approx",
  "num-complex",
  "num-traits",
- "paste 1.0.14",
+ "paste",
  "wide",
 ]
 
@@ -11182,7 +11021,7 @@ dependencies = [
  "merlin",
  "parity-scale-codec",
  "parking_lot 0.12.1",
- "paste 1.0.14",
+ "paste",
  "primitive-types",
  "rand",
  "scale-info",
@@ -11229,7 +11068,7 @@ dependencies = [
  "parity-bip39",
  "parity-scale-codec",
  "parking_lot 0.12.1",
- "paste 1.0.14",
+ "paste",
  "primitive-types",
  "rand",
  "scale-info",
@@ -11543,7 +11382,7 @@ dependencies = [
  "impl-trait-for-tuples",
  "log",
  "parity-scale-codec",
- "paste 1.0.14",
+ "paste",
  "rand",
  "scale-info",
  "serde",
@@ -11568,7 +11407,7 @@ dependencies = [
  "impl-trait-for-tuples",
  "log",
  "parity-scale-codec",
- "paste 1.0.14",
+ "paste",
  "rand",
  "scale-info",
  "serde",
@@ -13668,7 +13507,7 @@ dependencies = [
  "downcast-rs",
  "libm",
  "num-traits",
- "paste 1.0.14",
+ "paste",
 ]
 
 [[package]]
@@ -13745,7 +13584,7 @@ dependencies = [
  "log",
  "object 0.30.4",
  "once_cell",
- "paste 1.0.14",
+ "paste",
  "psm",
  "rayon",
  "serde",
@@ -13777,7 +13616,7 @@ dependencies = [
  "log",
  "object 0.31.1",
  "once_cell",
- "paste 1.0.14",
+ "paste",
  "psm",
  "rayon",
  "serde",
@@ -14119,7 +13958,7 @@ dependencies = [
  "mach",
  "memfd",
  "memoffset 0.8.0",
- "paste 1.0.14",
+ "paste",
  "rand",
  "rustix 0.36.17",
  "wasmtime-asm-macros 8.0.1",
@@ -14144,7 +13983,7 @@ dependencies = [
  "mach",
  "memfd",
  "memoffset 0.9.1",
- "paste 1.0.14",
+ "paste",
  "rand",
  "rustix 0.38.32",
  "sptr",
@@ -14282,18 +14121,6 @@ dependencies = [
  "home",
  "once_cell",
  "rustix 0.38.32",
-]
-
-[[package]]
-name = "which"
-version = "6.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8211e4f58a2b2805adfbefbc07bab82958fc91e3836339b1ab7ae32465dce0d7"
-dependencies = [
- "either",
- "home",
- "rustix 0.38.32",
- "winsafe",
 ]
 
 [[package]]
@@ -14639,12 +14466,6 @@ dependencies = [
  "cfg-if",
  "windows-sys 0.48.0",
 ]
-
-[[package]]
-name = "winsafe"
-version = "0.0.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d135d17ab770252ad95e9a872d365cf3090e3be864a34ab46f48555993efc904"
 
 [[package]]
 name = "wit-bindgen"
