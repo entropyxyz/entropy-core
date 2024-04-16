@@ -1,0 +1,49 @@
+name: New IT Request
+description: Make a request of the IT team
+title: "[HELP DESK]: "
+projects: ["entropyxyz/28"]
+labels: ""
+assignees: ""
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Hello! What do you need?
+  - type: textarea
+    id: request
+    attributes:
+      label: What is the request?
+      description: e.g. New Onboarding, changed account permissions, etc
+      placeholder: I would like...
+      value: "A request of you!"
+    validations:
+      required: true
+  - type: text
+    id: context
+    attributes:
+      label: Further Context
+      description: Any additional details or links we should know?
+      placeholder: Some additional context would be...
+      value: "Additional info"
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: What is the priority of your request?
+      options:
+        - low (Default)
+        - medium
+        - high
+ - type: input
+    id: deadline
+    attributes:
+      label: Due date
+      description: When do you need this done by?
+      placeholder: eg. 2024-05-15
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: |
+        Thank you! You can view the status of the request on our project board:
+          [IT Helpdesk](https://github.com/orgs/entropyxyz/projects/28/views/1)
