@@ -11,21 +11,21 @@ updates:
         applies-to: version-updates
         update-types:
           - "patch"
-    # Ignore any Substrate major updates
+    # Ignore any Substrate major or minor updates.
     #
     # Automated Substrate releases cause Dependabot PR spam, so these must be updated manually when
     # required.
     ignore:
       - dependency-name: "frame-*"
-        update-types: [ "version-update:semver-major" ]
+        versions: "*"
       - dependency-name: "pallet-*"
-        update-types: [ "version-update:semver-major" ]
+        versions: "*"
       - dependency-name: "sc-*"
-        update-types: [ "version-update:semver-major" ]
+        versions: "*"
       - dependency-name: "sp-*"
-        update-types: [ "version-update:semver-major" ]
+        versions: "*"
       - dependency-name: "substrate-*"
-        update-types: [ "version-update:semver-major" ]
+        versions: "*"
   - package-ecosystem: github-actions
     directory: '/'
     schedule:
