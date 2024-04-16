@@ -29,8 +29,8 @@ futures="0.3"
 tokio  ={ version="1.36", features=["macros", "fs", "rt-multi-thread", "io-util", "process", "sync"] }
 
 # HTTP
-reqwest    ={ version="0.12.3", features=["json", "stream"] }
-axum       ={ version="0.7.5", features=["ws"] }
+reqwest={ version="0.12.3", features=["json", "stream"] }
+axum   ={ version="0.7.5", features=["ws"] }
 
 # Substrate
 subxt             ="0.35.3"
