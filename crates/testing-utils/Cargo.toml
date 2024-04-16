@@ -9,10 +9,10 @@ edition   ='2021'
 publish   =false
 
 [dependencies]
-subxt             ="0.34.0"
-sp-keyring        ="31.0.0"
+subxt             ="0.35.3"
+sp-keyring        ="34.0.0"
 project-root      ="0.2.2"
-sp-core           ={ version="28.0.0", default-features=false }
+sp-core           ={ version="31.0.0", default-features=false }
 which             ="6.0.1"
 parity-scale-codec="3.6.9"
 lazy_static       ="1.4.0"

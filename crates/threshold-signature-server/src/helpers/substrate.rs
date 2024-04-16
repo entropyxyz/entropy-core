@@ -137,12 +137,9 @@ pub async fn submit_transaction<Call: TxPayload>(
     };
 
     let latest_block = api.blocks().at_latest().await?;
-    let tx_params = Params::new().mortal(latest_block.header(), MORTALITY_BLOCKS).build();
-    let mut tx = api
-        .tx()
-        .create_signed_with_nonce(call, signer, nonce.into(), tx_params)?
-        .submit_and_watch()
-        .await?;
+    let tx_params =
+        Params::new().mortal(latest_block.header(), MORTALITY_BLOCKS).nonce(nonce.into()).build();
+    let mut tx = api.tx().create_signed(call, signer, tx_params).await?.submit_and_watch().await?;
 
     while let Some(status) = tx.next().await {
         match status? {
