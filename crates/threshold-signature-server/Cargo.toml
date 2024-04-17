@@ -22,7 +22,7 @@ hex                ="*"
 reqwest-eventsource="0.6"
 serde_derive       ="1.0.147"
 synedrion          ="0.1"
-strum              ="0.25.0"
+strum              ="0.26.2"
 
 # Async
 futures="0.3"
