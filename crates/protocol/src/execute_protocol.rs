@@ -26,7 +26,7 @@ use synedrion::{
     signature::{self, hazmat::RandomizedPrehashSigner},
     KeyShare, ProtocolResult, RecoverableSignature,
 };
-use tokio::sync::mpsc;
+use tokio::sync::mpsc::{self, unbounded_channel};
 
 use crate::{
     errors::{GenericProtocolError, ProtocolExecutionErr},
@@ -109,22 +109,33 @@ async fn execute_protocol_generic<Res: ProtocolResult>(
             // This will happen in a host task.
             accum.add_processed_message(processed)??;
         }
-
+        let (mut process_tx, process_rx) = unbounded_channel();
         while !session.can_finalize(&accum)? {
-            let message = rx.recv().await.ok_or_else(|| {
-                GenericProtocolError::IncomingStream(format!("{:?}", session.current_round()))
-            })?;
+            tokio::select! {
+                // Incoming message from remote peer
+                maybe_message = rx.recv() => {
+                    let message = maybe_message.ok_or_else(|| {
+                        GenericProtocolError::IncomingStream(format!("{:?}", session.current_round()))
+                    })?;
 
-            // Perform quick checks before proceeding with the verification.
-            let preprocessed =
-                session.preprocess_message(&mut accum, &message.from, message.payload)?;
+                    // Perform quick checks before proceeding with the verification.
+                    let preprocessed =
+                        session.preprocess_message(&mut accum, &message.from, message.payload)?;
 
-            if let Some(preprocessed) = preprocessed {
-                // TODO (#641): this may happen in a spawned task.
-                let result = session.process_message(preprocessed)?;
+                    if let Some(preprocessed) = preprocessed {
+                        tokio::spawn(async move {
+                            let result = session.process_message(preprocessed).unwrap();
+                            process_tx.send(result);
+                        });
 
-                // This will happen in a host task.
-                accum.add_processed_message(result)??;
+                    }
+                }
+                maybe_result = process_rx.recv() => {
+                    if let Some(result) = maybe_result {
+                        // This will happen in a host task.
+                        accum.add_processed_message(result)??;
+                    }
+                }
             }
         }
 
