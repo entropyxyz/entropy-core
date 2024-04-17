@@ -63,17 +63,17 @@ pub mod tss_account_id {
     /// The `DEFAULT_ALICE_MNEMONIC` is used to derive the following `AccountId`.
     /// Mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
     pub static ref ALICE: sp_runtime::AccountId32 =
-            super::hex!["e0543c102def9f6ef0e8b8ffa31aa259167a9391566929fd718a1ccdaabdb876"].into();
+            super::hex!["306bdb49cbbe7104e3621abab3c9d31698b159f48dafe567abb7ea5d872ed329"].into();
 
     /// The `DEFAULT_BOB_MNEMONIC` is used to derive the following `AccountId`.
     /// Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
     pub static ref BOB: sp_runtime::AccountId32  =
-            super::hex!["2a8200850770290c7ea3b50a8ff64c6761c882ff8393dc95fccb5d1475eff17f"].into();
+            super::hex!["2cbc68e8bf0fbc1c28c282d1263fc9d29267dc12a1044fb730e8b65abc37524c"].into();
 
     /// The `DEFAULT_CHARLIE_MNEMONIC` is used to derive the following `AccountId`.
     /// Mnemonic: "lake carry still awful point mention bike category tornado plate brass lock"
     pub static ref CHARLIE: sp_runtime::AccountId32  =
-            super::hex!["14d223daeec68671f07298c66c9458980a48bb89fb8a85d5df31131acad8d611"].into();
+            super::hex!["946140d3d5ddb980c74ffa1bb64353b5523d2d77cdf3dc617fd63de9d3b66338"].into();
 
     /// Not sure what mnemonic is used to derive the following `AccountId`.
     /// Mnemonic: "????"
@@ -89,29 +89,29 @@ pub mod tss_x25519_public_key {
     /// The `DEFAULT_ALICE_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "alarm mutual concert decrease hurry invest culture survey diagram crash snap click"
     pub const ALICE: [u8; 32] = [
-        10, 192, 41, 240, 184, 83, 178, 59, 237, 101, 45, 109, 13, 230, 155, 124, 195, 141, 148,
-        249, 55, 50, 238, 252, 133, 181, 134, 30, 144, 247, 58, 34,
+        8, 22, 19, 230, 107, 217, 249, 190, 14, 142, 155, 252, 156, 229, 120, 11, 180, 35, 83, 245,
+        222, 11, 153, 201, 162, 29, 153, 13, 123, 126, 128, 32,
     ];
 
     /// The `DEFAULT_BOB_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
     pub const BOB: [u8; 32] = [
-        225, 48, 135, 211, 227, 213, 170, 21, 1, 189, 118, 158, 255, 87, 245, 89, 36, 170, 169,
-        181, 68, 201, 210, 178, 237, 247, 101, 80, 153, 136, 102, 10,
+        196, 53, 98, 10, 160, 169, 139, 48, 194, 230, 69, 64, 165, 48, 133, 110, 38, 64, 184, 113,
+        255, 201, 253, 212, 217, 21, 252, 57, 253, 78, 0, 56,
     ];
 
     /// The `DEFAULT_CHARLIE_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "lake carry still awful point mention bike category tornado plate brass lock"
     pub const CHARLIE: [u8; 32] = [
-        245, 222, 99, 201, 89, 227, 119, 236, 142, 217, 74, 171, 58, 162, 140, 165, 7, 104, 210,
-        36, 196, 227, 208, 254, 175, 100, 226, 50, 239, 84, 141, 13,
+        131, 8, 162, 77, 237, 245, 226, 179, 250, 79, 121, 250, 174, 181, 227, 122, 205, 181, 188,
+        4, 37, 87, 150, 250, 210, 151, 203, 137, 188, 134, 124, 108,
     ];
 
-    /// Not sure what mnemonic is used to derive the following public key.
-    /// Mnemonic: "????"
+    /// Eve is not a TSS node but a pre-registered user. Her corresponding secret key is in
+    /// `entropy_testing_utils::constants`
     pub const EVE: [u8; 32] = [
-        28, 63, 144, 84, 78, 147, 195, 214, 190, 234, 111, 101, 117, 133, 9, 198, 96, 96, 76, 140,
-        152, 251, 255, 28, 167, 38, 157, 185, 192, 42, 201, 82,
+        142, 113, 91, 59, 177, 104, 208, 23, 219, 170, 47, 145, 200, 139, 188, 28, 14, 199, 116,
+        86, 193, 144, 10, 18, 74, 157, 138, 202, 115, 99, 229, 55,
     ];
 }
 

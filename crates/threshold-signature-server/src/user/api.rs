@@ -56,6 +56,7 @@ use subxt::{
 };
 use synedrion::KeyShare;
 use tracing::instrument;
+use x25519_dalek::StaticSecret;
 use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, ProgramError, UserErr, UserInputPartyInfo};
@@ -73,7 +74,7 @@ use crate::{
             return_all_addresses_of_subgroup, submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg, send_key},
-        validator::get_signer,
+        validator::{get_signer, get_signer_and_x25519_secret},
     },
     signing_client::{ListenerState, ProtocolErr},
     validation::{check_stale, EncryptedSignedMessage},
@@ -128,12 +129,12 @@ pub async fn sign_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, Body), UserErr> {
-    let signer = get_signer(&app_state.kv_store).await?;
+    let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
-    let signed_message = encrypted_msg.decrypt(signer.signer(), &[])?;
+    let signed_message = encrypted_msg.decrypt(&x25519_secret, &[])?;
 
     let request_author = SubxtAccountId32(*signed_message.account_id().as_ref());
     tracing::Span::current().record("request_author", signed_message.account_id().to_string());
@@ -217,7 +218,8 @@ pub async fn sign_tx(
 
     let has_key = check_for_key(&string_verifying_key, &app_state.kv_store).await?;
     if !has_key {
-        recover_key(&api, &rpc, &app_state.kv_store, &signer, string_verifying_key).await?
+        recover_key(&api, &rpc, &app_state.kv_store, &signer, &x25519_secret, string_verifying_key)
+            .await?
     }
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
@@ -270,13 +272,13 @@ pub async fn new_user(
     }
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-    let signer = get_signer(&app_state.kv_store).await?;
+    let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
     check_in_registration_group(&data.validators_info, signer.account_id())?;
     validate_new_user(&data, &api, &rpc, &app_state.kv_store).await?;
 
     // Do the DKG protocol in another task, so we can already respond
     tokio::spawn(async move {
-        if let Err(err) = setup_dkg(api, &rpc, signer, data, app_state).await {
+        if let Err(err) = setup_dkg(api, &rpc, signer, &x25519_secret_key, data, app_state).await {
             // TODO here we would check the error and if it relates to a misbehaving node,
             // use the slashing mechanism
             tracing::error!("User registration failed {:?}", err);
@@ -298,6 +300,7 @@ async fn setup_dkg(
     api: OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: PairSigner<EntropyConfig, sr25519::Pair>,
+    x25519_secret_key: &StaticSecret,
     data: OcwMessageDkg,
     app_state: AppState,
 ) -> Result<(), UserErr> {
@@ -326,6 +329,7 @@ async fn setup_dkg(
         let key_share = do_dkg(
             &data.validators_info,
             &signer,
+            x25519_secret_key,
             &app_state.listener_state,
             sig_request_address.clone(),
             *user_details.key_visibility,
@@ -379,8 +383,8 @@ pub async fn receive_key(
     State(app_state): State<AppState>,
     Json(encrypted_message): Json<EncryptedSignedMessage>,
 ) -> Result<StatusCode, UserErr> {
-    let signer = get_signer(&app_state.kv_store).await?;
-    let signed_message = encrypted_message.decrypt(signer.signer(), &[])?;
+    let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+    let signed_message = encrypted_message.decrypt(&x25519_secret_key, &[])?;
     let signing_address = signed_message.account_id();
     tracing::Span::current().record("signing_address", signing_address.to_string());
 
@@ -624,16 +628,19 @@ pub async fn validate_new_user(
     Ok(())
 }
 
+/// Check if a given key is present in the given key-value store
 pub async fn check_for_key(account: &str, kv: &KvManager) -> Result<bool, UserErr> {
     let exists_result = kv.kv().exists(account).await?;
     Ok(exists_result)
 }
 
+/// Get and store a keyshare associated with a given verifying key
 pub async fn recover_key(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_store: &KvManager,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    x25519_secret: &StaticSecret,
     verifying_key: String,
 ) -> Result<(), UserErr> {
     let subgroup = get_subgroup(api, rpc, signer.account_id()).await?;
@@ -641,9 +648,17 @@ pub async fn recover_key(
     let key_server_info = get_random_server_info(api, rpc, subgroup, stash_address)
         .await
         .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
-    get_and_store_values(vec![verifying_key], kv_store, 1, false, key_server_info, signer)
-        .await
-        .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
+    get_and_store_values(
+        vec![verifying_key],
+        kv_store,
+        1,
+        false,
+        key_server_info,
+        signer,
+        x25519_secret,
+    )
+    .await
+    .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
     Ok(())
 }
 

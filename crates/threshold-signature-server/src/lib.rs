@@ -159,7 +159,10 @@ use crate::{
     validator::api::sync_kvdb,
 };
 pub use crate::{
-    helpers::{launch, validator::get_signer},
+    helpers::{
+        launch,
+        validator::{get_signer, get_signer_and_x25519_secret},
+    },
     validator::api::sync_validator,
 };
 

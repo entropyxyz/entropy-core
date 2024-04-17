@@ -45,6 +45,7 @@ use frame_election_provider_support::{
 use frame_support::{
     construct_runtime,
     dispatch::DispatchClass,
+    genesis_builder_helper::{build_config, create_default_config},
     pallet_prelude::Get,
     parameter_types,
     sp_runtime::RuntimeDebug,
@@ -79,7 +80,7 @@ use pallet_election_provider_multi_phase::{GeometricDepositBase, SolutionAccurac
 use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
-use pallet_identity::simple::IdentityInfo;
+use pallet_identity::legacy::IdentityInfo;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_session::historical as pallet_session_historical;
 #[cfg(any(feature = "std", test))]
@@ -348,6 +349,7 @@ impl frame_system::Config for Runtime {
     type PalletInfo = PalletInfo;
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
+    type RuntimeTask = RuntimeTask;
     type RuntimeOrigin = RuntimeOrigin;
     type SS58Prefix = SS58Prefix;
     type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
@@ -525,7 +527,6 @@ impl pallet_balances::Config for Runtime {
     type ExistentialDeposit = ExistentialDeposit;
     type FreezeIdentifier = RuntimeFreezeReason;
     type MaxFreezes = ConstU32<8>;
-    type MaxHolds = ConstU32<2>;
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
@@ -628,6 +629,7 @@ parameter_types! {
   pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
   pub OffchainRepeat: BlockNumber = 5;
   pub HistoryDepth: u32 = 84;
+  pub const MaxExposurePageSize: u32 = 512;
 }
 
 pub struct OnChainSeqPhragmen;
@@ -686,8 +688,9 @@ impl pallet_staking::Config for Runtime {
     type GenesisElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
     type HistoryDepth = HistoryDepth;
     type NominationsQuota = pallet_staking::FixedNominationsQuota<{ MaxNominations::get() }>;
-    type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
     type MaxUnlockingChunks = ConstU32<32>;
+    type MaxExposurePageSize = MaxExposurePageSize;
+    type MaxControllersInDeprecationBatch = ConstU32<5314>;
     type NextNewSession = Session;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
     // send the slashed funds to the treasury.
@@ -813,7 +816,6 @@ impl Get<Option<BalancingConfig>> for OffchainRandomBalancing {
 impl pallet_election_provider_multi_phase::Config for Runtime {
     type BenchmarkingConfig = ElectionProviderBenchmarkConfig;
     type BetterSignedThreshold = ();
-    type BetterUnsignedThreshold = BetterUnsignedThreshold;
     type ElectionBounds = ElectionBounds;
     type Currency = Balances;
     // nothing to do upon rewards
@@ -1243,21 +1245,27 @@ parameter_types! {
   pub const MaxSubAccounts: u32 = 100;
   pub const MaxAdditionalFields: u32 = 100;
   pub const MaxRegistrars: u32 = 20;
+  pub const ByteDeposit: Balance = deposit(0, 1);
 }
 
 impl pallet_identity::Config for Runtime {
     type BasicDeposit = BasicDeposit;
     type Currency = Balances;
     type IdentityInformation = IdentityInfo<MaxAdditionalFields>;
-    type FieldDeposit = FieldDeposit;
     type ForceOrigin = EnsureRootOrHalfCouncil;
-    type MaxAdditionalFields = MaxAdditionalFields;
     type MaxRegistrars = MaxRegistrars;
     type MaxSubAccounts = MaxSubAccounts;
     type RegistrarOrigin = EnsureRootOrHalfCouncil;
     type RuntimeEvent = RuntimeEvent;
     type Slashed = Treasury;
     type SubAccountDeposit = SubAccountDeposit;
+    type ByteDeposit = ByteDeposit;
+    type OffchainSignature = Signature;
+    type SigningPublicKey = <Signature as Verify>::Signer;
+    type UsernameAuthorityOrigin = EnsureRoot<Self::AccountId>;
+    type PendingUsernameExpiration = ConstU32<{ 7 * DAYS }>;
+    type MaxSuffixLength = ConstU32<7>;
+    type MaxUsernameLength = ConstU32<32>;
     type WeightInfo = weights::pallet_identity::WeightInfo<Runtime>;
 }
 
@@ -1292,6 +1300,7 @@ impl pallet_vesting::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
     type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
+    type BlockNumberProvider = System;
 
     // `VestingInfo` encode length is 36bytes. 28 schedules gets encoded as 1009 bytes, which is the
     // highest number of schedules that encodes less than 2^10.
@@ -1307,6 +1316,7 @@ impl pallet_transaction_storage::Config for Runtime {
         ConstU32<{ pallet_transaction_storage::DEFAULT_MAX_TRANSACTION_SIZE }>;
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
+    type RuntimeHoldReason = RuntimeHoldReason;
     type WeightInfo = weights::pallet_transaction_storage::WeightInfo<Runtime>;
 }
 
@@ -1732,6 +1742,15 @@ impl_runtime_apis! {
     }
   }
 
+  impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
+    fn create_default_config() -> Vec<u8> {
+        create_default_config::<RuntimeGenesisConfig>()
+    }
+
+    fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
+        build_config::<RuntimeGenesisConfig>(config)
+    }
+}
 
 
   impl pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<

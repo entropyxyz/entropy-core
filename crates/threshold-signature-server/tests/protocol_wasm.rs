@@ -24,10 +24,7 @@ mod helpers;
 
 use axum::http::StatusCode;
 use entropy_kvdb::clean_tests;
-use entropy_protocol::{
-    sign_and_encrypt::{derive_x25519_static_secret, EncryptedSignedMessage},
-    KeyParams, ValidatorInfo,
-};
+use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams, ValidatorInfo};
 use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg, EVE_VERIFYING_KEY};
 use entropy_testing_utils::{
     chain_api::{
@@ -35,8 +32,8 @@ use entropy_testing_utils::{
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
     constants::{
-        AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
-        TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+        AUXILARY_DATA_SHOULD_SUCCEED, EVE_X25519_SECRET_KEY, PREIMAGE_SHOULD_SUCCEED,
+        TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::test_context_stationary,
     test_client::{put_register_request_on_chain, store_program, update_programs},
@@ -55,7 +52,7 @@ use subxt::{
     Config, OnlineClient,
 };
 use synedrion::KeyShare;
-use x25519_dalek::PublicKey;
+use x25519_dalek::{PublicKey, StaticSecret};
 
 use entropy_tss::{
     chain_api::{
@@ -176,6 +173,7 @@ async fn test_wasm_sign_tx_user_participates() {
             &message_should_succeed_hash,
             validators_info.clone(),
             one.pair().to_raw_vec(),
+            EVE_X25519_SECRET_KEY.to_vec(),
         ),
     )
     .await;
@@ -232,7 +230,7 @@ async fn test_wasm_register_with_private_key_visibility() {
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-    let one_x25519_sk = derive_x25519_static_secret(&one.pair());
+    let one_x25519_sk = StaticSecret::random_from_rng(rand_core::OsRng);
     let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
 
     put_register_request_on_chain(
@@ -288,6 +286,7 @@ async fn test_wasm_register_with_private_key_visibility() {
         spawn_user_participates_in_dkg_protocol(
             validators_info.clone(),
             one.pair().to_raw_vec(),
+            one_x25519_sk.as_bytes().to_vec(),
             block_number,
         ),
     )
@@ -311,6 +310,7 @@ async fn test_wasm_register_with_private_key_visibility() {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct UserParticipatesInSigningProtocolArgs {
     user_sig_req_secret_key: Vec<u8>,
+    user_x25519_secret_key: Vec<u8>,
     message_hash: Vec<u8>,
     key_share: String,
     validators_info: Vec<ValidatorInfoParsed>,
@@ -319,6 +319,7 @@ struct UserParticipatesInSigningProtocolArgs {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct UserParticipatesInDkgProtocolArgs {
     user_sig_req_secret_key: Vec<u8>,
+    user_x25519_secret_key: Vec<u8>,
     validators_info: Vec<ValidatorInfoParsed>,
     block_number: u32,
 }
@@ -337,10 +338,12 @@ async fn spawn_user_participates_in_signing_protocol(
     message_hash: &[u8; 32],
     validators_info: Vec<ValidatorInfo>,
     user_sig_req_secret_key: Vec<u8>,
+    user_x25519_secret_key: Vec<u8>,
 ) -> String {
     let args = UserParticipatesInSigningProtocolArgs {
         message_hash: message_hash.to_vec(),
         user_sig_req_secret_key,
+        user_x25519_secret_key,
         validators_info: validators_info
             .into_iter()
             .map(|validator_info| ValidatorInfoParsed {
@@ -361,10 +364,12 @@ async fn spawn_user_participates_in_signing_protocol(
 async fn spawn_user_participates_in_dkg_protocol(
     validators_info: Vec<ValidatorInfo>,
     user_sig_req_secret_key: Vec<u8>,
+    user_x25519_secret_key: Vec<u8>,
     block_number: u32,
 ) -> String {
     let args = UserParticipatesInDkgProtocolArgs {
         user_sig_req_secret_key,
+        user_x25519_secret_key,
         validators_info: validators_info
             .into_iter()
             .map(|validator_info| ValidatorInfoParsed {

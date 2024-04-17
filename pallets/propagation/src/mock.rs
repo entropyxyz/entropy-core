@@ -18,7 +18,7 @@ use frame_election_provider_support::{
     onchain, SequentialPhragmen, VoteWeight,
 };
 use frame_support::{
-    parameter_types,
+    derive_impl, parameter_types,
     traits::{ConstU32, FindAuthor, OneSessionHandler},
 };
 use frame_system as system;
@@ -65,6 +65,7 @@ parameter_types! {
   pub const SS58Prefix: u8 = 42;
 }
 
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl system::Config for Test {
     type AccountData = pallet_balances::AccountData<Balance>;
     type AccountId = u64;
@@ -74,6 +75,7 @@ impl system::Config for Test {
     type BlockLength = ();
     type BlockWeights = ();
     type DbWeight = ();
+    type RuntimeTask = RuntimeTask;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type Lookup = IdentityLookup<Self::AccountId>;
@@ -113,7 +115,7 @@ impl pallet_balances::Config for Test {
     type ExistentialDeposit = ExistentialDeposit;
     type FreezeIdentifier = ();
     type MaxFreezes = ();
-    type MaxHolds = ();
+
     type MaxLocks = MaxLocks;
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
@@ -185,7 +187,7 @@ pallet_staking_reward_curve::build! {
 }
 parameter_types! {
   pub const RewardCurve: &'static sp_runtime::curve::PiecewiseLinear<'static> = &REWARD_CURVE;
-  pub const MaxNominatorRewardedPerValidator: u32 = 64;
+
   pub const MaxKeys: u32 = 10_000;
   pub const MaxPeerInHeartbeats: u32 = 10_000;
   pub const MaxPeerDataEncodingSize: u32 = 1_000;
@@ -243,7 +245,8 @@ impl pallet_staking::Config for Test {
     type EventListeners = ();
     type GenesisElectionProvider = Self::ElectionProvider;
     type HistoryDepth = ConstU32<84>;
-    type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
+    type MaxExposurePageSize = ConstU32<64>;
+    type MaxControllersInDeprecationBatch = ConstU32<100>;
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
     type NominationsQuota = pallet_staking::FixedNominationsQuota<16>;

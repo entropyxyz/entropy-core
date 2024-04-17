@@ -24,13 +24,14 @@ use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, OnlineClient,
 };
+use x25519_dalek::StaticSecret;
 
 use crate::{
     chain_api::{
         entropy::{self, runtime_types::pallet_staking_extension::pallet::ServerInfo},
         get_api, get_rpc, EntropyConfig,
     },
-    get_signer,
+    get_signer_and_x25519_secret,
     helpers::{
         launch::FORBIDDEN_KEYS,
         substrate::{get_stash_address, get_subgroup, query_chain, submit_transaction},
@@ -81,7 +82,9 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
                 thread::sleep(sleep_time);
             }
         }
-        let signer = get_signer(kv_store).await.expect("Issue acquiring threshold signer key");
+        let (signer, x25519_secret) = get_signer_and_x25519_secret(kv_store)
+            .await
+            .expect("Issue acquiring threshold keypairs");
         let has_fee_balance = check_balance_for_fees(&api, &rpc, signer.account_id(), MIN_BALANCE)
             .await
             .expect("Issue checking chain for signer balance");
@@ -112,6 +115,7 @@ pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &Kv
             dev,
             key_server_info,
             &signer,
+            &x25519_secret,
         )
         .await
         .expect("failed to get and store all values");
@@ -130,8 +134,8 @@ pub async fn sync_kvdb(
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
-    let signer = get_signer(&app_state.kv_store).await?;
-    let decrypted_message = encrypted_msg.decrypt(signer.signer(), &[])?;
+    let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+    let decrypted_message = encrypted_msg.decrypt(&x25519_secret_key, &[])?;
 
     tracing::Span::current().record("signing_address", decrypted_message.account_id().to_string());
     let sender_account_id = SubxtAccountId32(decrypted_message.sender.into());
@@ -176,11 +180,10 @@ pub async fn get_all_keys(
         .await?
         .ok_or_else(|| ValidatorErr::OptionUnwrapError("Error getting block hash"))?;
     // query the registered mapping in the registry pallet
-    let keys = Vec::<()>::new();
-    let storage_address = subxt::dynamic::storage("Registry", "Registered", keys);
+    let storage_address = entropy::storage().registry().registered_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
-    while let Some(Ok((key, _account))) = iter.next().await {
-        let new_key = hex::encode(key);
+    while let Some(Ok(kv)) = iter.next().await {
+        let new_key = hex::encode(kv.key_bytes);
         let len = new_key.len();
         let final_key = &new_key[len - (VERIFICATION_KEY_LENGTH as usize * 2)..];
         // checks address is valid
@@ -236,6 +239,7 @@ pub async fn get_and_store_values(
     dev: bool,
     recip_server_info: ServerInfo<subxt::utils::AccountId32>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    x25519_secret: &StaticSecret,
 ) -> Result<(), ValidatorErr> {
     let url = String::from_utf8(recip_server_info.endpoint)?;
     let mut keys_stored = 0;
@@ -280,7 +284,7 @@ pub async fn get_and_store_values(
             let reservation = kv.kv().reserve_key(remaining_keys[i].clone()).await?;
             let key = {
                 let signed_message = encrypted_key
-                    .decrypt(signer.signer(), &[])
+                    .decrypt(x25519_secret, &[])
                     .map_err(|e| ValidatorErr::Decryption(e.to_string()))?;
                 if signed_message.sender.0 != recip_server_info.tss_account.0 {
                     return Err(ValidatorErr::Authentication);

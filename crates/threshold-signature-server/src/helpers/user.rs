@@ -31,6 +31,7 @@ use sp_core::{sr25519, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32, OnlineClient};
 use synedrion::KeyShare;
 use tokio::time::timeout;
+use x25519_dalek::StaticSecret;
 
 use crate::{
     chain_api::{
@@ -39,12 +40,13 @@ use crate::{
     helpers::substrate::{get_program, query_chain},
     signing_client::{protocol_transport::open_protocol_connections, ListenerState},
     user::{api::UserRegistrationInfo, errors::UserErr},
-    validation::{derive_x25519_static_secret, EncryptedSignedMessage},
+    validation::EncryptedSignedMessage,
 };
 /// complete the dkg process for a new user
 pub async fn do_dkg(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    x25519_secret_key: &StaticSecret,
     state: &ListenerState,
     sig_request_account: AccountId32,
     key_visibility: KeyVisibility,
@@ -89,13 +91,12 @@ pub async fn do_dkg(
         .map_err(|_| UserErr::SessionError("Error getting lock".to_string()))?
         .insert(session_id.clone(), listener);
 
-    let x25519_secret_key = derive_x25519_static_secret(signer.signer());
     open_protocol_connections(
         &converted_validator_info,
         &session_id,
         signer.signer(),
         state,
-        &x25519_secret_key,
+        x25519_secret_key,
     )
     .await?;
     let channels = {

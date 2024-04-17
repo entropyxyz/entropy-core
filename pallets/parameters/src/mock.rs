@@ -18,7 +18,7 @@
 #![cfg(test)]
 
 use frame_support::{
-    construct_runtime, ord_parameter_types,
+    construct_runtime, derive_impl, ord_parameter_types,
     traits::{ConstU64, Everything},
 };
 use frame_system::EnsureRoot;
@@ -31,6 +31,7 @@ pub type AccountId = u128;
 
 use crate as pallet_parameters;
 
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Runtime {
     type AccountData = ();
     type AccountId = AccountId;

@@ -16,10 +16,7 @@
 //! Simple test client
 pub use crate::chain_api::{get_api, get_rpc};
 use base64::prelude::{Engine, BASE64_STANDARD};
-pub use entropy_protocol::{
-    sign_and_encrypt::{derive_x25519_static_secret, EncryptedSignedMessage},
-    KeyParams,
-};
+pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 use entropy_shared::HashingAlgorithm;
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 pub use synedrion::KeyShare;
@@ -45,7 +42,6 @@ use entropy_tss::{
     helpers::substrate::{query_chain, submit_transaction},
 };
 use futures::future;
-use parity_scale_codec::Decode;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -55,6 +51,7 @@ use subxt::{
     Config, OnlineClient,
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
+use x25519_dalek::StaticSecret;
 
 /// Register an account.
 ///
@@ -77,6 +74,7 @@ pub async fn register(
     program_account: SubxtAccountId32,
     key_visibility: KeyVisibility,
     programs_data: BoundedVec<ProgramInstance>,
+    x25519_secret_key: Option<StaticSecret>,
 ) -> anyhow::Result<(RegisteredInfo, Option<KeyShare<KeyParams>>)> {
     // Send register transaction
     put_register_request_on_chain(
@@ -91,7 +89,17 @@ pub async fn register(
 
     // If registering with private key visibility, participate in the DKG protocol
     let keyshare_option = match key_visibility {
-        KeyVisibility::Private(_x25519_pk) => {
+        KeyVisibility::Private(x25519_public_key) => {
+            let x25519_secret_key = x25519_secret_key
+                .ok_or(anyhow!("In private mode, an x25519 secret key must be given"))?;
+
+            let x25519_public_key_check =
+                x25519_dalek::PublicKey::from(&x25519_secret_key).to_bytes();
+            ensure!(
+                x25519_public_key_check == x25519_public_key,
+                "Given x25519 secret key does not match that from key visibility"
+            );
+
             let block_number = rpc
                 .chain_get_header(None)
                 .await?
@@ -104,6 +112,7 @@ pub async fn register(
                 user_participates_in_dkg_protocol(
                     validators_info,
                     &signature_request_keypair,
+                    x25519_secret_key,
                     block_number,
                 )
                 .await?,
@@ -152,7 +161,7 @@ pub async fn sign(
     user_keypair: sr25519::Pair,
     signature_verifying_key: Vec<u8>,
     message: Vec<u8>,
-    private: Option<KeyShare<KeyParams>>,
+    private: Option<(KeyShare<KeyParams>, StaticSecret)>,
     auxilary_data: Option<Vec<u8>>,
 ) -> anyhow::Result<RecoverableSignature> {
     let message_hash = Hasher::keccak(&message);
@@ -198,13 +207,14 @@ pub async fn sign(
         .collect::<Vec<_>>();
 
     // If we have a keyshare, connect to TSS servers
-    let results = if let Some(keyshare) = private {
+    let results = if let Some((keyshare, x25519_secret_key)) = private {
         let (validator_results, _own_result) = future::join(
             future::try_join_all(submit_transaction_requests),
             user_participates_in_signing_protocol(
                 &keyshare,
                 validators_info_clone,
                 &user_keypair,
+                x25519_secret_key,
                 message_hash,
             ),
         )
@@ -301,15 +311,12 @@ pub async fn get_accounts(
 ) -> anyhow::Result<Vec<([u8; 32], RegisteredInfo)>> {
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
-    let keys = Vec::<()>::new();
-    let storage_address = subxt::dynamic::storage("Registry", "Registered", keys);
+    let storage_address = entropy::storage().registry().registered_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut accounts = Vec::new();
-    while let Some(Ok((storage_key, account))) = iter.next().await {
-        let decoded = account.into_encoded();
-        let registered_info = RegisteredInfo::decode(&mut decoded.as_ref())?;
-        let key: [u8; 32] = storage_key[storage_key.len() - 32..].try_into()?;
-        accounts.push((key, registered_info))
+    while let Some(Ok(kv)) = iter.next().await {
+        let key: [u8; 32] = kv.key_bytes[kv.key_bytes.len() - 32..].try_into()?;
+        accounts.push((key, kv.value))
     }
     Ok(accounts)
 }
@@ -321,16 +328,13 @@ pub async fn get_programs(
 ) -> anyhow::Result<Vec<(H256, ProgramInfo<<EntropyConfig as Config>::AccountId>)>> {
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
-    let keys = Vec::<()>::new();
-    let storage_address = subxt::dynamic::storage("Programs", "Programs", keys);
+
+    let storage_address = entropy::storage().programs().programs_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut programs = Vec::new();
-    while let Some(Ok((storage_key, program))) = iter.next().await {
-        let decoded = program.into_encoded();
-        let program_info: ProgramInfo<<EntropyConfig as Config>::AccountId> =
-            ProgramInfo::decode(&mut decoded.as_ref())?;
-        let hash: [u8; 32] = storage_key[storage_key.len() - 32..].try_into()?;
-        programs.push((H256(hash), program_info));
+    while let Some(Ok(kv)) = iter.next().await {
+        let hash: [u8; 32] = kv.key_bytes[kv.key_bytes.len() - 32..].try_into()?;
+        programs.push((H256(hash), kv.value));
     }
     Ok(programs)
 }
