@@ -15,6 +15,8 @@
 
 //! A wrapper for the threshold signing library to handle sending and receiving messages.
 
+use std::sync::{Arc, Mutex};
+
 use rand_core::{CryptoRngCore, OsRng};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
@@ -62,7 +64,7 @@ impl RandomizedPrehashSigner<sr25519::Signature> for PairWrapper {
     }
 }
 
-async fn execute_protocol_generic<Res: ProtocolResult>(
+async fn execute_protocol_generic<Res: ProtocolResult + 'static>(
     mut chans: Channels,
     session: Session<Res, sr25519::Signature, PairWrapper, PartyId>,
 ) -> Result<Res::Success, GenericProtocolError<Res>> {
@@ -109,45 +111,63 @@ async fn execute_protocol_generic<Res: ProtocolResult>(
             // This will happen in a host task.
             accum.add_processed_message(processed)??;
         }
-        let (mut process_tx, process_rx) = unbounded_channel();
-        while !session.can_finalize(&accum)? {
+
+        let (process_tx, mut process_rx) = unbounded_channel();
+        let current_round = session.current_round();
+        let session_arc = Arc::new(Mutex::new(session));
+
+        loop {
+            {
+                let session = session_arc.lock().unwrap();
+                if session.can_finalize(&accum)? {
+                    break;
+                }
+            }
             tokio::select! {
                 // Incoming message from remote peer
                 maybe_message = rx.recv() => {
                     let message = maybe_message.ok_or_else(|| {
-                        GenericProtocolError::IncomingStream(format!("{:?}", session.current_round()))
+                        GenericProtocolError::IncomingStream(format!("{:?}", current_round))
                     })?;
 
-                    // Perform quick checks before proceeding with the verification.
-                    let preprocessed =
-                        session.preprocess_message(&mut accum, &message.from, message.payload)?;
+                    let preprocessed={
+                        let session = session_arc.lock().unwrap();
 
+                        // Perform quick checks before proceeding with the verification.
+                        session.preprocess_message(&mut accum, &message.from, message.payload)?
+                    };
                     if let Some(preprocessed) = preprocessed {
+                        let session_clone = session_arc.clone();
+                        let tx_clone = process_tx.clone();
                         tokio::spawn(async move {
+                            let session = session_clone.lock().unwrap();
                             let result = session.process_message(preprocessed).unwrap();
-                            process_tx.send(result);
+                            tx_clone.send(result).unwrap();
                         });
 
                     }
                 }
                 maybe_result = process_rx.recv() => {
                     if let Some(result) = maybe_result {
-                        // This will happen in a host task.
                         accum.add_processed_message(result)??;
                     }
                 }
             }
         }
-
-        match session.finalize_round(&mut OsRng, accum)? {
-            FinalizeOutcome::Success(res) => break Ok(res),
-            FinalizeOutcome::AnotherRound {
-                session: new_session,
-                cached_messages: new_cached_messages,
-            } => {
-                session = new_session;
-                cached_messages = new_cached_messages;
-            },
+        if let Ok(session_inner) = Arc::try_unwrap(session_arc) {
+            let session_inner = session_inner.into_inner().unwrap();
+            match session_inner.finalize_round(&mut OsRng, accum)? {
+                FinalizeOutcome::Success(res) => break Ok(res),
+                FinalizeOutcome::AnotherRound {
+                    session: new_session,
+                    cached_messages: new_cached_messages,
+                } => {
+                    session = new_session;
+                    cached_messages = new_cached_messages;
+                },
+            }
+        } else {
+            panic!("Cannot get session out of Arc");
         }
     }
 }
