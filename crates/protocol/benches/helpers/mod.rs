@@ -196,7 +196,7 @@ async fn open_protocol_connections(
         .map(|validator_info| async move {
             // Open a ws connection
             let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
-            let (ws_stream, _response) = connect_async(ws_endpoint).await?;
+            let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
             // Send a SubscribeMessage in the payload of the final handshake message
             let subscribe_message_vec =
@@ -208,17 +208,19 @@ async fn open_protocol_connections(
                 validator_info.x25519_public_key,
                 subscribe_message_vec,
             )
-            .await?;
+            .await
+            .unwrap();
 
             // Check the response as to whether they accepted our SubscribeMessage
-            let response_message = encrypted_connection.recv().await?;
+            let response_message = encrypted_connection.recv().await.unwrap();
             let subscribe_response: Result<(), String> = bincode::deserialize(&response_message)?;
             if let Err(error_message) = subscribe_response {
                 return Err(anyhow!(error_message));
             }
 
             // Setup channels
-            let ws_channels = get_ws_channels(session_id, &validator_info.tss_account, state)?;
+            let ws_channels =
+                get_ws_channels(session_id, &validator_info.tss_account, state).unwrap();
 
             let remote_party_id = PartyId::new(validator_info.tss_account.clone());
 
