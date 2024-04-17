@@ -112,6 +112,7 @@ async fn execute_protocol_generic<Res: ProtocolResult + 'static>(
             accum.add_processed_message(processed)??;
         }
 
+        // Channel for receiving results of processing messages
         let (process_tx, mut process_rx) = unbounded_channel();
         let current_round = session.current_round();
         let session_arc = Arc::new(Mutex::new(session));
@@ -130,9 +131,8 @@ async fn execute_protocol_generic<Res: ProtocolResult + 'static>(
                         GenericProtocolError::IncomingStream(format!("{:?}", current_round))
                     })?;
 
-                    let preprocessed={
+                    let preprocessed = {
                         let session = session_arc.lock().unwrap();
-
                         // Perform quick checks before proceeding with the verification.
                         session.preprocess_message(&mut accum, &message.from, message.payload)?
                     };
@@ -144,9 +144,9 @@ async fn execute_protocol_generic<Res: ProtocolResult + 'static>(
                             let result = session.process_message(preprocessed).unwrap();
                             tx_clone.send(result).unwrap();
                         });
-
                     }
                 }
+                // Result from processing a message
                 maybe_result = process_rx.recv() => {
                     if let Some(result) = maybe_result {
                         accum.add_processed_message(result)??;
@@ -154,6 +154,8 @@ async fn execute_protocol_generic<Res: ProtocolResult + 'static>(
                 }
             }
         }
+
+        // Get session back out of Arc and Mutex
         if let Ok(session_inner) = Arc::try_unwrap(session_arc) {
             let session_inner = session_inner.into_inner().unwrap();
             match session_inner.finalize_round(&mut OsRng, accum)? {
