@@ -16,12 +16,17 @@
 //! Pre-endowed accounts used for the development network
 use crate::chain_spec::get_account_id_from_seed;
 use entropy_runtime::AccountId;
+use project_root::get_project_root;
 use sp_core::{crypto::Ss58Codec, sr25519};
 use std::{fs::File, io::Read};
 
 pub fn endowed_accounts_dev() -> Vec<AccountId> {
     // handle user submitted file for tokens
-    let mut file = File::open("testnet_accounts.json").expect("file should open read only");
+    let mut file = File::open(format!(
+        "{}/testnet-accounts.json",
+        get_project_root().expect("Error getting project root").to_string_lossy()
+    ))
+    .expect("file should open read only");
     let mut data = String::new();
     file.read_to_string(&mut data).expect("Unable to read file");
     let accounts: Vec<String> = serde_json::from_str(&data).expect("JSON parse error");

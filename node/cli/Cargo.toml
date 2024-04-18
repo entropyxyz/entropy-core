@@ -92,6 +92,7 @@ entropy-runtime         ={ version="0.0.11", path="../../runtime" }
 entropy-shared          ={ path="../../crates/shared", default-features=false, features=["wasm-no-std"] }
 pallet-registry         ={ version="0.0.11", path="../../pallets/registry" }
 pallet-staking-extension={ version="0.0.11", path="../../pallets/staking" }
+project-root            ="0.2.2"
 
 [build-dependencies]
 clap={ version="4.2.5", optional=true }
