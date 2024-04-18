@@ -14,13 +14,19 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Pre-endowed accounts used for the development network
-use entropy_runtime::AccountId;
-use sp_core::sr25519;
-
 use crate::chain_spec::get_account_id_from_seed;
+use entropy_runtime::AccountId;
+use sp_core::{crypto::Ss58Codec, sr25519};
+use std::{fs::File, io::Read};
 
 pub fn endowed_accounts_dev() -> Vec<AccountId> {
-    vec![
+    // handle user submitted file for tokens
+    let mut file = File::open("testnet_accounts.json").expect("file should open read only");
+    let mut data = String::new();
+    file.read_to_string(&mut data).expect("Unable to read file");
+    let accounts: Vec<String> = serde_json::from_str(&data).expect("JSON parse error");
+
+    let mut inital_accounts = vec![
         get_account_id_from_seed::<sr25519::Public>("Alice"),
         get_account_id_from_seed::<sr25519::Public>("Bob"),
         get_account_id_from_seed::<sr25519::Public>("Charlie"),
@@ -40,5 +46,12 @@ pub fn endowed_accounts_dev() -> Vec<AccountId> {
         crate::chain_spec::tss_account_id::ALICE.clone(),
         crate::chain_spec::tss_account_id::BOB.clone(),
         crate::chain_spec::tss_account_id::CHARLIE.clone(),
-    ]
+    ];
+
+    for address in accounts {
+        inital_accounts
+            .push(AccountId::from_string(&address).expect("failed to convert a testnet_address"))
+    }
+
+    inital_accounts
 }
