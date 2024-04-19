@@ -65,7 +65,7 @@ async fn integration_test_sign_public() {
     test_client::update_programs(
         &api,
         &rpc,
-        DAVE_VERIFYING_KEY.to_vec(),
+        DAVE_VERIFYING_KEY.to_vec().try_into().unwrap(),
         &pre_registered_public_user.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
@@ -78,7 +78,7 @@ async fn integration_test_sign_public() {
         &api,
         &rpc,
         request_author.pair(),
-        DAVE_VERIFYING_KEY.to_vec(),
+        DAVE_VERIFYING_KEY.to_vec().try_into().unwrap(),
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         None,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
@@ -108,7 +108,8 @@ async fn integration_test_sign_private() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let keyshare = keyshare_option.unwrap();
-    let verifying_key = keyshare.clone().verifying_key().to_encoded_point(true).as_bytes().to_vec();
+    let verifying_key: [u8; 33] =
+        keyshare.clone().verifying_key().to_encoded_point(true).as_bytes().try_into().unwrap();
 
     let program_pointer = test_client::store_program(
         &api,

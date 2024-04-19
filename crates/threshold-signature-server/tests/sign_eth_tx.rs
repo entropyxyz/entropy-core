@@ -71,7 +71,7 @@ async fn integration_test_sign_eth_tx() {
     test_client::update_programs(
         &api,
         &rpc,
-        FERDIE_VERIFYING_KEY.to_vec(),
+        FERDIE_VERIFYING_KEY.to_vec().try_into().unwrap(),
         &pre_registered_user.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
@@ -91,7 +91,7 @@ async fn integration_test_sign_eth_tx() {
         &api,
         &rpc,
         pre_registered_user.pair(),
-        FERDIE_VERIFYING_KEY.to_vec(),
+        FERDIE_VERIFYING_KEY.to_vec().try_into().unwrap(),
         message,
         None,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
