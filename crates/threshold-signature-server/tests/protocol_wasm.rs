@@ -96,7 +96,7 @@ async fn test_wasm_sign_tx_user_participates() {
     update_programs(
         &entropy_api,
         &rpc,
-        verifying_key.clone(),
+        verifying_key.clone().try_into().unwrap(),
         &one.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
