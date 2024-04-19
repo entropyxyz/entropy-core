@@ -21,7 +21,7 @@ use std::{
     time::Instant,
 };
 
-use anyhow::ensure;
+use anyhow::{anyhow, ensure};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use entropy_testing_utils::{
@@ -34,7 +34,7 @@ use entropy_testing_utils::{
     constants::TEST_PROGRAM_WASM_BYTECODE,
     test_client::{
         get_accounts, get_api, get_programs, get_rpc, register, sign, store_program,
-        update_programs, KeyParams, KeyShare, KeyVisibility,
+        update_programs, KeyParams, KeyShare, KeyVisibility, VERIFYING_KEY_LENGTH,
     },
 };
 use sp_core::{sr25519, DeriveJunction, Hasher, Pair};
@@ -99,9 +99,8 @@ enum CliCommand {
         ///
         /// Optionally may be preceeded with "//", eg: "//Alice"
         user_account_name: String,
-        /// The verifying key of the account to sign with
-        #[arg(short, long)]
-        signature_verifying_key: Vec<u8>,
+        /// The verifying key of the account to sign with, given as hex
+        signature_verifying_key: String,
         /// The message to be signed
         message: String,
         /// Optional auxiliary data passed to the program, given as hex
@@ -109,8 +108,8 @@ enum CliCommand {
     },
     /// Update the program for a particular account
     UpdatePrograms {
-        /// The verifying key of the account to update their programs
-        signature_verifying_key: Vec<u8>,
+        /// The verifying key of the account to update their programs, given as hex
+        signature_verifying_key: String,
         /// A name from which to generate a program modification keypair, eg: "Bob"
         ///
         /// Optionally may be preceeded with "//", eg: "//Bob"
@@ -259,6 +258,11 @@ async fn run_command() -> anyhow::Result<String> {
                 (keyshare, x25519_secret)
             });
 
+            let signature_verifying_key: [u8; VERIFYING_KEY_LENGTH] =
+                hex::decode(signature_verifying_key)?
+                    .try_into()
+                    .map_err(|_| anyhow!("Verifying key must be 33 bytes"))?;
+
             let recoverable_signature = sign(
                 &api,
                 &rpc,
@@ -312,14 +316,12 @@ async fn run_command() -> anyhow::Result<String> {
                 );
             }
 
-            update_programs(
-                &api,
-                &rpc,
-                signature_verifying_key,
-                &program_keypair,
-                BoundedVec(programs_info),
-            )
-            .await?;
+            let verifying_key: [u8; VERIFYING_KEY_LENGTH] = hex::decode(signature_verifying_key)?
+                .try_into()
+                .map_err(|_| anyhow!("Verifying key must be 33 bytes"))?;
+
+            update_programs(&api, &rpc, verifying_key, &program_keypair, BoundedVec(programs_info))
+                .await?;
 
             Ok("Programs updated".to_string())
         },
@@ -331,16 +333,15 @@ async fn run_command() -> anyhow::Result<String> {
             );
             if !accounts.is_empty() {
                 println!(
-                    "{:<48} {:<12} {:<66} Programs:",
-                    "Signature request account ID:".green(),
+                    "{:<64} {:<12} Programs:",
+                    "Verfying key:".green(),
                     "Visibility:".purple(),
-                    "Verifying key: ".cyan(),
                 );
                 for (account_id, info) in accounts {
                     let visibility: Visibility = info.key_visibility.0.into();
                     println!(
                         "{} {:<12} {}",
-                        format!("{:?}", account_id.to_vec()).green(),
+                        hex::encode(account_id).green(),
                         format!("{}", visibility).purple(),
                         format!(
                             "{:?}",
