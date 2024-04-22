@@ -65,7 +65,7 @@ async fn integration_test_sign_public() {
     test_client::update_programs(
         &api,
         &rpc,
-        DAVE_VERIFYING_KEY.to_vec().try_into().unwrap(),
+        DAVE_VERIFYING_KEY,
         &pre_registered_public_user.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
@@ -78,7 +78,7 @@ async fn integration_test_sign_public() {
         &api,
         &rpc,
         request_author.pair(),
-        DAVE_VERIFYING_KEY.to_vec().try_into().unwrap(),
+        DAVE_VERIFYING_KEY,
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         None,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),

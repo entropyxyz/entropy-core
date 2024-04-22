@@ -34,7 +34,7 @@ use entropy_testing_utils::{
     constants::TEST_PROGRAM_WASM_BYTECODE,
     test_client::{
         get_accounts, get_api, get_programs, get_rpc, register, sign, store_program,
-        update_programs, KeyParams, KeyShare, KeyVisibility, VERIFYING_KEY_LENGTH,
+        update_programs, KeyParams, KeyShare, KeyVisibility, VERIFICATION_KEY_LENGTH,
     },
 };
 use sp_core::{sr25519, DeriveJunction, Hasher, Pair};
@@ -258,7 +258,7 @@ async fn run_command() -> anyhow::Result<String> {
                 (keyshare, x25519_secret)
             });
 
-            let signature_verifying_key: [u8; VERIFYING_KEY_LENGTH] =
+            let signature_verifying_key: [u8; VERIFICATION_KEY_LENGTH] =
                 hex::decode(signature_verifying_key)?
                     .try_into()
                     .map_err(|_| anyhow!("Verifying key must be 33 bytes"))?;
@@ -316,9 +316,10 @@ async fn run_command() -> anyhow::Result<String> {
                 );
             }
 
-            let verifying_key: [u8; VERIFYING_KEY_LENGTH] = hex::decode(signature_verifying_key)?
-                .try_into()
-                .map_err(|_| anyhow!("Verifying key must be 33 bytes"))?;
+            let verifying_key: [u8; VERIFICATION_KEY_LENGTH] =
+                hex::decode(signature_verifying_key)?
+                    .try_into()
+                    .map_err(|_| anyhow!("Verifying key must be 33 bytes"))?;
 
             update_programs(&api, &rpc, verifying_key, &program_keypair, BoundedVec(programs_info))
                 .await?;

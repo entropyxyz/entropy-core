@@ -4,13 +4,18 @@ use sp_core::H256;
 use sp_std::vec;
 use sp_std::vec::Vec;
 
+pub const DEFAULT_VERIFYING_KEY_NOT_REGISTERED: [u8; VERIFICATION_KEY_LENGTH] =
+    [10; VERIFICATION_KEY_LENGTH];
+pub const DAVE_VERIFYING_KEY: [u8; VERIFICATION_KEY_LENGTH] = [1; VERIFICATION_KEY_LENGTH];
+// this key is associated with a constant key share generation from DETERMINISTIC_KEY_SHARE
+pub const EVE_VERIFYING_KEY: [u8; VERIFICATION_KEY_LENGTH] = [
+    2, 78, 59, 129, 175, 156, 34, 52, 202, 208, 157, 103, 156, 230, 3, 94, 209, 57, 35, 71, 206,
+    100, 206, 64, 95, 93, 205, 54, 34, 138, 37, 222, 110,
+];
+pub const FERDIE_VERIFYING_KEY: [u8; VERIFICATION_KEY_LENGTH] = [3; VERIFICATION_KEY_LENGTH];
+pub const DEFAULT_VERIFYING_KEY: [u8; VERIFICATION_KEY_LENGTH] = [0; VERIFICATION_KEY_LENGTH];
+
 lazy_static! {
-    pub static ref DEFAULT_VERIFYING_KEY_NOT_REGISTERED: Vec<u8> = vec![10; VERIFICATION_KEY_LENGTH as usize];
-    pub static ref DAVE_VERIFYING_KEY: Vec<u8> = vec![1; VERIFICATION_KEY_LENGTH as usize];
-    // this key is associated with a constant key share generation from DETERMINISTIC_KEY_SHARE
-    pub static ref EVE_VERIFYING_KEY: Vec<u8> = vec![2, 78, 59, 129, 175, 156, 34, 52, 202, 208, 157, 103, 156, 230, 3, 94, 209, 57, 35, 71, 206, 100, 206, 64, 95, 93, 205, 54, 34, 138, 37, 222, 110];
-    pub static ref FERDIE_VERIFYING_KEY: Vec<u8> = vec![3; VERIFICATION_KEY_LENGTH as usize];
-    pub static ref DEFAULT_VERIFYING_KEY: Vec<u8> = vec![0; VERIFICATION_KEY_LENGTH as usize];
     // key used to create a deterministic key share taken from here https://docs.rs/k256/latest/k256/ecdsa/index.html
     pub static ref DETERMINISTIC_KEY_SHARE: [u8; 32] =  hex!("4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318");
     // hash used to find DEVICE_KEY_PROXY onchain
@@ -43,7 +48,7 @@ pub const INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM: u64 = 100_000_000;
 pub const MORTALITY_BLOCKS: u64 = 32;
 
 /// Size of the verification key
-pub const VERIFICATION_KEY_LENGTH: u32 = 33;
+pub const VERIFICATION_KEY_LENGTH: usize = 33;
 
 /// `device_key_proxy.wasm` from the `programs` repo.
 pub const DEVICE_KEY_PROXY: &[u8] = include_bytes!("../device_key_proxy.wasm");
