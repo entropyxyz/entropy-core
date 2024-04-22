@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use entropy_protocol::{KeyParams, SessionId, SigningSessionInfo, ValidatorInfo};
 use futures::future;
 use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
+use std::time::Instant;
 use subxt::utils::AccountId32;
 use synedrion::{ecdsa::VerifyingKey, KeyShare};
 use tokio::{net::TcpListener, sync::oneshot};
@@ -26,39 +26,22 @@ use x25519_dalek::StaticSecret;
 mod helpers;
 use helpers::server;
 
-/// Benchmark for the signing protocol
-pub fn criterion_benchmark(c: &mut Criterion) {
-    let runtime =
-        tokio::runtime::Builder::new_multi_thread().worker_threads(8).enable_all().build().unwrap();
+#[test]
+fn test_sign() {
+    let cpus = num_cpus::get();
 
-    let mut group = c.benchmark_group("Signing protocol");
-    for num_parties in 2..num_cpus::get() + 1 {
-        let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
-
-        group.sample_size(10);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(num_parties),
-            &num_parties,
-            |b, &_num_parties| b.to_async(&runtime).iter(|| test_sign(&keyshares)),
-        );
-    }
-    group.finish();
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(cpus)
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            test_sign_with_parties(cpus).await;
+        })
 }
 
-criterion_group!(benches, criterion_benchmark);
-criterion_main!(benches);
-
-/// Details of an individual party
-struct ValidatorSecretInfo {
-    keyshare: KeyShare<KeyParams>,
-    pair: sr25519::Pair,
-    x25519_secret_key: StaticSecret,
-    socket: TcpListener,
-}
-
-async fn test_sign(keyshares: &[KeyShare<KeyParams>]) {
-    let num_parties = keyshares.len();
-
+async fn test_sign_with_parties(num_parties: usize) {
+    let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
     let verifying_key = keyshares[0].verifying_key();
     let message_hash = [0u8; 32];
     let session_id = SessionId::Sign(SigningSessionInfo {
@@ -95,6 +78,7 @@ async fn test_sign(keyshares: &[KeyShare<KeyParams>]) {
         })
     }
 
+    let now = Instant::now();
     // Spawn tasks for each party
     let mut results_rx = Vec::new();
     for _ in 0..num_parties {
@@ -120,6 +104,7 @@ async fn test_sign(keyshares: &[KeyShare<KeyParams>]) {
         });
     }
     let (result, _, _) = future::select_all(results_rx).await;
+    println!("Got first signing result with {} parties in {:?}", num_parties, now.elapsed());
 
     // Check signature
     let recoverable_signature = result.unwrap().unwrap();
@@ -130,4 +115,12 @@ async fn test_sign(keyshares: &[KeyShare<KeyParams>]) {
     )
     .unwrap();
     assert_eq!(verifying_key, recovery_key_from_sig);
+}
+
+/// Details of an individual party
+struct ValidatorSecretInfo {
+    keyshare: KeyShare<KeyParams>,
+    pair: sr25519::Pair,
+    x25519_secret_key: StaticSecret,
+    socket: TcpListener,
 }
