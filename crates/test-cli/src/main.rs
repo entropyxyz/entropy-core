@@ -334,7 +334,7 @@ async fn run_command() -> anyhow::Result<String> {
             if !accounts.is_empty() {
                 println!(
                     "{:<64} {:<12} Programs:",
-                    "Verfying key:".green(),
+                    "Verifying key:".green(),
                     "Visibility:".purple(),
                 );
                 for (account_id, info) in accounts {
