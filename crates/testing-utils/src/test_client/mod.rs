@@ -20,8 +20,7 @@ pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 use entropy_shared::HashingAlgorithm;
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 pub use synedrion::KeyShare;
-
-use std::time::SystemTime;
+pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
 
 use anyhow::{anyhow, ensure};
 use entropy_protocol::{
@@ -43,6 +42,7 @@ use entropy_tss::{
 };
 use futures::future;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
+use std::time::SystemTime;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     events::EventsClient,
@@ -159,7 +159,7 @@ pub async fn sign(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     user_keypair: sr25519::Pair,
-    signature_verifying_key: Vec<u8>,
+    signature_verifying_key: [u8; VERIFYING_KEY_LENGTH],
     message: Vec<u8>,
     private: Option<(KeyShare<KeyParams>, StaticSecret)>,
     auxilary_data: Option<Vec<u8>>,
@@ -175,7 +175,7 @@ pub async fn sign(
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_verifying_key,
+        signature_verifying_key: signature_verifying_key.to_vec(),
     };
 
     let signature_request_vec = serde_json::to_vec(&signature_request)?;
@@ -293,13 +293,13 @@ pub async fn store_program(
 pub async fn update_programs(
     entropy_api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    verifying_key: Vec<u8>,
+    verifying_key: [u8; VERIFYING_KEY_LENGTH],
     deployer_pair: &sr25519::Pair,
     program_instance: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<()> {
     let update_pointer_tx = entropy::tx()
         .registry()
-        .change_program_instance(BoundedVec(verifying_key), program_instance);
+        .change_program_instance(BoundedVec(verifying_key.to_vec()), program_instance);
     let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer_pair.clone());
     submit_transaction(entropy_api, rpc, &deployer, &update_pointer_tx, None).await?;
     Ok(())
@@ -308,14 +308,15 @@ pub async fn update_programs(
 pub async fn get_accounts(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> anyhow::Result<Vec<([u8; 32], RegisteredInfo)>> {
+) -> anyhow::Result<Vec<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo)>> {
     let block_hash =
         rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
     let storage_address = entropy::storage().registry().registered_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut accounts = Vec::new();
     while let Some(Ok(kv)) = iter.next().await {
-        let key: [u8; 32] = kv.key_bytes[kv.key_bytes.len() - 32..].try_into()?;
+        let key: [u8; VERIFYING_KEY_LENGTH] =
+            kv.key_bytes[kv.key_bytes.len() - VERIFYING_KEY_LENGTH..].try_into()?;
         accounts.push((key, kv.value))
     }
     Ok(accounts)
