@@ -35,6 +35,7 @@ exceptions=[
   { allow=["AGPL-3.0"], name="entropy-shared" },
   { allow=["AGPL-3.0"], name="entropy-test-cli" },
   { allow=["AGPL-3.0"], name="entropy-tss" },
+  { allow=["AGPL-3.0"], name="entropy-tss-client-common" },
 
   # Other Entropy crates
   { allow=["AGPL-3.0"], name="entropy-programs-core" },
