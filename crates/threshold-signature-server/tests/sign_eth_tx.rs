@@ -26,10 +26,8 @@ use entropy_testing_utils::{
     test_client,
     tss_server_process::spawn_testing_validators,
 };
-use entropy_tss::{
-    chain_api::{get_api, get_rpc},
-    common::Hasher,
-};
+use entropy_tss::chain_api::{get_api, get_rpc};
+use entropy_tss_client_common::Hasher;
 use ethers_core::{
     abi::ethabi::ethereum_types::{H160, H256},
     types::{RecoveryMessage, Transaction, TransactionRequest, U256},

@@ -48,6 +48,7 @@ use entropy_testing_utils::{
     },
     test_client::{store_program, update_programs},
 };
+use entropy_tss_client_common::user::get_current_subgroup_signers;
 use futures::{
     future::{self, join_all},
     join, Future, SinkExt, StreamExt,
@@ -120,9 +121,9 @@ use crate::{
     signing_client::ListenerState,
     user::{
         api::{
-            check_hash_pointer_out_of_bounds, confirm_registered, get_current_subgroup_signers,
-            increment_or_wipe_request_limit, recover_key, request_limit_check, request_limit_key,
-            RequestLimitStorage, UserRegistrationInfo, UserSignatureRequest,
+            check_hash_pointer_out_of_bounds, confirm_registered, increment_or_wipe_request_limit,
+            recover_key, request_limit_check, request_limit_key, RequestLimitStorage,
+            UserRegistrationInfo, UserSignatureRequest,
         },
         UserErr,
     },

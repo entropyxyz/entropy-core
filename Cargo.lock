@@ -2650,6 +2650,7 @@ dependencies = [
  "entropy-protocol",
  "entropy-shared",
  "entropy-tss",
+ "entropy-tss-client-common",
  "futures",
  "hex",
  "hex-literal",

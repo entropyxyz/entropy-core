@@ -28,14 +28,11 @@ use entropy_testing_utils::{
     test_client,
     tss_server_process::spawn_testing_validators,
 };
+use entropy_tss::chain_api::{get_api, get_rpc};
+use entropy_tss_client_common::Hasher;
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
 use synedrion::k256::ecdsa::VerifyingKey;
-
-use entropy_tss::{
-    chain_api::{get_api, get_rpc},
-    common::Hasher,
-};
 
 #[tokio::test]
 #[serial]

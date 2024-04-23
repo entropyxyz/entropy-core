@@ -37,8 +37,11 @@ use entropy_tss::{
         },
         EntropyConfig,
     },
-    common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
     helpers::substrate::{query_chain, submit_transaction},
+};
+use entropy_tss_client_common::{
+    user::{get_current_subgroup_signers, UserSignatureRequest},
+    Hasher,
 };
 use futures::future;
 use sp_core::{crypto::AccountId32, sr25519, Pair};

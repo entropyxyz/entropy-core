@@ -38,7 +38,6 @@ use entropy_protocol::{KeyParams, SigningSessionInfo};
 use entropy_shared::{
     types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE,
 };
-use entropy_tss_client_common::user::{get_current_subgroup_signers, UserSignatureRequest};
 use futures::{
     channel::mpsc,
     future::{join_all, FutureExt},
@@ -83,6 +82,7 @@ use crate::{
     AppState, Configuration,
 };
 
+pub use entropy_tss_client_common::user::{get_current_subgroup_signers, UserSignatureRequest};
 pub const REQUEST_KEY_HEADER: &str = "REQUESTS";
 
 /// Type for validators to send user key's back and forth
