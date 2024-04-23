@@ -29,7 +29,7 @@ pub fn endowed_accounts_dev() -> Vec<AccountId> {
     .expect("file should open read only");
     let mut data = String::new();
     file.read_to_string(&mut data).expect("Unable to read file");
-    let accounts: Vec<String> = serde_json::from_str(&data).expect("JSON parse error");
+    let externally_endowed_accounts: Vec<String> = serde_json::from_str(&data).expect("JSON parse error");
 
     let mut inital_accounts = vec![
         get_account_id_from_seed::<sr25519::Public>("Alice"),

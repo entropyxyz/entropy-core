@@ -22,7 +22,6 @@ At the moment this project **does not** adhere to
   and sr25519 keypairs will be different what they were before.
 
 ### Added
-- Add testnet account json ([#769](https://github.com/entropyxyz/entropy-core/pull/769))
 
 ### Changed
 - Derive the threshold account keypair and x25519 keypair from mnemonic using HKDF ([#709](https://github.com/entropyxyz/entropy-core/pull/709))
