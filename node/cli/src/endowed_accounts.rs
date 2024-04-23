@@ -22,14 +22,16 @@ use std::{fs::File, io::Read};
 
 pub fn endowed_accounts_dev() -> Vec<AccountId> {
     // handle user submitted file for tokens
-    let mut file = File::open(format!(
-        "{}/testnet-accounts.json",
-        get_project_root().expect("Error getting project root").to_string_lossy()
-    ))
-    .expect("file should open read only");
+    let mut file = File::open(
+        get_project_root()
+            .expect("Error getting project root")
+            .join("node/cli/src/chain_spec/testnet-accounts.json"),
+    )
+    .expect("unable to open testnet-accounts.json");
     let mut data = String::new();
     file.read_to_string(&mut data).expect("Unable to read file");
-    let externally_endowed_accounts: Vec<String> = serde_json::from_str(&data).expect("JSON parse error");
+    let externally_endowed_accounts: Vec<String> =
+        serde_json::from_str(&data).expect("JSON parse error");
 
     let mut inital_accounts = vec![
         get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -53,9 +55,12 @@ pub fn endowed_accounts_dev() -> Vec<AccountId> {
         crate::chain_spec::tss_account_id::CHARLIE.clone(),
     ];
 
-    for address in accounts {
-        inital_accounts
-            .push(AccountId::from_string(&address).expect("failed to convert a testnet_address"))
+    for address in externally_endowed_accounts {
+        inital_accounts.push(
+            AccountId::from_string(&address).unwrap_or_else(|_| {
+                panic!("failed to convert a testnet_address address: {}", address)
+            }),
+        )
     }
 
     inital_accounts
