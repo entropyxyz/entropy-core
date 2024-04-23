@@ -39,6 +39,7 @@ use entropy_testing_utils::{
     test_client::{put_register_request_on_chain, store_program, update_programs},
     tss_server_process::spawn_testing_validators,
 };
+use entropy_tss_client_common::{user::UserSignatureRequest, Hasher};
 use futures::future::join_all;
 use futures::future::{self};
 use parity_scale_codec::Encode;
@@ -54,12 +55,9 @@ use subxt::{
 use synedrion::KeyShare;
 use x25519_dalek::{PublicKey, StaticSecret};
 
-use entropy_tss::{
-    chain_api::{
-        entropy::{self},
-        get_api, get_rpc, EntropyConfig,
-    },
-    common::{Hasher, UserSignatureRequest},
+use entropy_tss::chain_api::{
+    entropy::{self},
+    get_api, get_rpc, EntropyConfig,
 };
 
 /// Test demonstrating signing a message with private key visibility on wasm
