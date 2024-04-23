@@ -16,8 +16,8 @@
 #[macro_use]
 extern crate lazy_static;
 
-pub use entropy_tss::chain_api;
 pub mod constants;
+pub use chain_api;
 mod node_proc;
 pub mod substrate_context;
 pub mod test_client;

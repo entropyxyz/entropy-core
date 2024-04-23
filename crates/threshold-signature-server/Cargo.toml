@@ -44,6 +44,7 @@ entropy-protocol={ path="../protocol", features=["server"] }
 
 # Programs
 entropy-programs-runtime={ git="https://github.com/entropyxyz/programs.git", tag="v0.8.0" }
+chain-api               ={ path="../chain-api" }
 
 # Logging
 tracing                 ="0.1.37"

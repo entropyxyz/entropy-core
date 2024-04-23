@@ -23,6 +23,15 @@ use entropy_protocol::{
 };
 use entropy_shared::{HashingAlgorithm, KeyVisibility, SETUP_TIMEOUT_SECONDS};
 
+use crate::{
+    helpers::substrate::{get_program, query_chain},
+    signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
+    user::{api::UserRegistrationInfo, errors::UserErr},
+    validation::EncryptedSignedMessage,
+};
+use chain_api::{
+    entropy, entropy::runtime_types::pallet_registry::pallet::ProgramInstance, EntropyConfig,
+};
 use reqwest::StatusCode;
 use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::{Digest as Sha256Digest, Sha256};
@@ -32,16 +41,6 @@ use subxt::{backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId3
 use synedrion::KeyShare;
 use tokio::time::timeout;
 use x25519_dalek::StaticSecret;
-
-use crate::{
-    chain_api::{
-        entropy, entropy::runtime_types::pallet_registry::pallet::ProgramInstance, EntropyConfig,
-    },
-    helpers::substrate::{get_program, query_chain},
-    signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
-    user::{api::UserRegistrationInfo, errors::UserErr},
-    validation::EncryptedSignedMessage,
-};
 /// complete the dkg process for a new user
 pub async fn do_dkg(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,

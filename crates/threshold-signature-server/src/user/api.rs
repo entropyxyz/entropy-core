@@ -49,6 +49,7 @@ use serde::{Deserialize, Serialize};
 use sp_core::crypto::AccountId32;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
+    config::DefaultExtrinsicParamsBuilder,
     ext::sp_core::{crypto::Ss58Codec, sr25519, sr25519::Signature, Pair},
     tx::{PairSigner, Signer},
     utils::{AccountId32 as SubxtAccountId32, MultiAddress},
@@ -61,10 +62,6 @@ use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, ProgramError, UserErr, UserInputPartyInfo};
 use crate::{
-    chain_api::{
-        entropy::{self, runtime_types::pallet_registry::pallet::RegisteringDetails},
-        get_api, get_rpc, EntropyConfig,
-    },
     get_random_server_info,
     helpers::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
@@ -80,6 +77,10 @@ use crate::{
     validation::{check_stale, EncryptedSignedMessage},
     validator::api::{check_forbidden_key, get_and_store_values},
     AppState, Configuration,
+};
+use chain_api::{
+    entropy::{self, runtime_types::pallet_registry::pallet::RegisteringDetails},
+    get_api, get_rpc, EntropyConfig,
 };
 
 pub const REQUEST_KEY_HEADER: &str = "REQUESTS";

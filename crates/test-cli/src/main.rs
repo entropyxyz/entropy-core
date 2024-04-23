@@ -22,15 +22,16 @@ use std::{
 };
 
 use anyhow::{anyhow, ensure};
+use chain_api::{
+    entropy::runtime_types::{
+        bounded_collections::bounded_vec::BoundedVec, pallet_registry::pallet::ProgramInstance,
+    },
+    EntropyConfig,
+};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
+
 use entropy_testing_utils::{
-    chain_api::{
-        entropy::runtime_types::{
-            bounded_collections::bounded_vec::BoundedVec, pallet_registry::pallet::ProgramInstance,
-        },
-        EntropyConfig,
-    },
     constants::TEST_PROGRAM_WASM_BYTECODE,
     test_client::{
         get_accounts, get_api, get_programs, get_rpc, register, sign, store_program,

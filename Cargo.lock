@@ -1195,6 +1195,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "chain-api"
+version = "0.1.0"
+dependencies = [
+ "entropy-shared",
+ "parity-scale-codec",
+ "subxt",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1957,6 +1966,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashmap"
+version = "5.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "978747c1d849a7d2ee5e8adc0159961c48fb7e5db2f06af6723b80123bb53856"
+dependencies = [
+ "cfg-if",
+ "hashbrown 0.14.3",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core 0.9.9",
+]
+
+[[package]]
 name = "data-encoding"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2615,6 +2637,7 @@ version = "0.0.1"
 dependencies = [
  "anyhow",
  "bincode",
+ "chain-api",
  "clap",
  "colored",
  "entropy-testing-utils",
@@ -2634,6 +2657,7 @@ dependencies = [
  "axum",
  "base64 0.22.0",
  "blake2 0.10.6",
+ "chain-api",
  "entropy-kvdb",
  "entropy-protocol",
  "entropy-shared",
@@ -2674,6 +2698,7 @@ dependencies = [
  "blake2 0.10.6",
  "blake3",
  "bytes",
+ "chain-api",
  "clap",
  "entropy-kvdb",
  "entropy-programs-runtime",

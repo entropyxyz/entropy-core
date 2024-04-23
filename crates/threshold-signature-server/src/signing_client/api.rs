@@ -31,6 +31,27 @@ use entropy_protocol::{
 };
 use parity_scale_codec::Encode;
 
+use crate::{
+    helpers::{
+        launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
+        substrate::{
+            get_registered_details, get_stash_address, get_subgroup, query_chain,
+            return_all_addresses_of_subgroup,
+        },
+        user::{check_in_registration_group, send_key},
+        validator::get_signer_and_x25519_secret,
+    },
+    signing_client::{
+        protocol_transport::{handle_socket, open_protocol_connections},
+        Listener, ListenerState, ProtocolErr,
+    },
+    user::api::UserRegistrationInfo,
+    AppState,
+};
+use chain_api::{
+    entropy::{self, runtime_types::pallet_staking_extension::pallet::RefreshInfo},
+    get_api, get_rpc, EntropyConfig,
+};
 use entropy_kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
     KvManager,
@@ -48,28 +69,6 @@ use subxt::{
 use synedrion::KeyShare;
 use tokio::time::timeout;
 use x25519_dalek::StaticSecret;
-
-use crate::{
-    chain_api::{
-        entropy::{self, runtime_types::pallet_staking_extension::pallet::RefreshInfo},
-        get_api, get_rpc, EntropyConfig,
-    },
-    helpers::{
-        launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        substrate::{
-            get_registered_details, get_stash_address, get_subgroup, query_chain,
-            return_all_addresses_of_subgroup,
-        },
-        user::{check_in_registration_group, send_key},
-        validator::get_signer_and_x25519_secret,
-    },
-    signing_client::{
-        protocol_transport::{handle_socket, open_protocol_connections},
-        Listener, ListenerState, ProtocolErr,
-    },
-    user::api::UserRegistrationInfo,
-    AppState,
-};
 
 pub const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
 

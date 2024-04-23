@@ -17,20 +17,17 @@
 
 use std::{io::Cursor, string::FromUtf8Error};
 
+use crate::signing_client::{ProtocolErr, SubscribeErr};
 use axum::{
     body,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use chain_api::entropy;
 use entropy_programs_runtime::RuntimeError as ProgramRuntimeError;
 use entropy_protocol::{errors::ProtocolExecutionErr, sign_and_encrypt::EncryptedSignedMessageErr};
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
-
-use crate::{
-    chain_api::entropy,
-    signing_client::{ProtocolErr, SubscribeErr},
-};
 
 /// Errors related to parsing and evaulating programs.
 #[derive(Error, Debug, PartialEq)]

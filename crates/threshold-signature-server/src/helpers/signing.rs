@@ -16,6 +16,7 @@
 //! Utiliities for executing the signing protocol
 use std::time::Duration;
 
+use chain_api::EntropyConfig;
 use entropy_protocol::{RecoverableSignature, SessionId, SigningSessionInfo};
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
 use sp_core::Pair;
@@ -23,7 +24,6 @@ use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32};
 use tokio::time::timeout;
 
 use crate::{
-    chain_api::EntropyConfig,
     get_signer_and_x25519_secret,
     sign_init::SignInit,
     signing_client::{

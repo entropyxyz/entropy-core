@@ -14,20 +14,17 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Utilities for interacting with the Entropy blockchain
-use crate::{
-    chain_api::{
-        entropy::{
-            self,
-            runtime_types::{
-                bounded_collections::bounded_vec::BoundedVec,
-                pallet_registry::pallet::RegisteredInfo,
-            },
-        },
-        EntropyConfig,
-    },
-    user::UserErr,
-};
+use crate::user::UserErr;
 use anyhow::anyhow;
+use chain_api::{
+    entropy::{
+        self,
+        runtime_types::{
+            bounded_collections::bounded_vec::BoundedVec, pallet_registry::pallet::RegisteredInfo,
+        },
+    },
+    EntropyConfig,
+};
 use entropy_shared::MORTALITY_BLOCKS;
 use subxt::{
     backend::legacy::LegacyRpcMethods,

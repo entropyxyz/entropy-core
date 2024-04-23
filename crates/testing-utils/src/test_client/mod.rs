@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Simple test client
-pub use crate::chain_api::{get_api, get_rpc};
 use base64::prelude::{Engine, BASE64_STANDARD};
+pub use chain_api::{get_api, get_rpc};
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 use entropy_shared::HashingAlgorithm;
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
@@ -23,20 +23,20 @@ pub use synedrion::KeyShare;
 pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
 
 use anyhow::{anyhow, ensure};
+use chain_api::{
+    entropy,
+    entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+    entropy::runtime_types::{
+        pallet_programs::pallet::ProgramInfo,
+        pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
+    },
+    EntropyConfig,
+};
 use entropy_protocol::{
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     RecoverableSignature, ValidatorInfo,
 };
 use entropy_tss::{
-    chain_api::{
-        entropy,
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::{
-            pallet_programs::pallet::ProgramInfo,
-            pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
-        },
-        EntropyConfig,
-    },
     common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
     helpers::substrate::{query_chain, submit_transaction},
 };

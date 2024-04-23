@@ -124,7 +124,6 @@
 //! - [kvdb](entropy_kvdb) - Encrypted key-value database for storing key-shares and other data, build using
 //! [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
-pub mod chain_api;
 pub mod common;
 pub(crate) mod health;
 pub mod helpers;
@@ -135,19 +134,6 @@ pub(crate) mod r#unsafe;
 pub(crate) mod user;
 pub mod validation;
 pub(crate) mod validator;
-
-use axum::{
-    http::Method,
-    routing::{get, post},
-    Router,
-};
-use entropy_kvdb::kv_manager::KvManager;
-use tower_http::{
-    cors::{Any, CorsLayer},
-    trace::{self, TraceLayer},
-};
-use tracing::Level;
-use validator::api::get_random_server_info;
 
 use crate::{
     health::api::healthz,
@@ -165,6 +151,19 @@ pub use crate::{
     },
     validator::api::sync_validator,
 };
+use axum::{
+    http::Method,
+    routing::{get, post},
+    Router,
+};
+pub use chain_api;
+use entropy_kvdb::kv_manager::KvManager;
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::{self, TraceLayer},
+};
+use tracing::Level;
+use validator::api::get_random_server_info;
 
 #[derive(Clone)]
 pub struct AppState {

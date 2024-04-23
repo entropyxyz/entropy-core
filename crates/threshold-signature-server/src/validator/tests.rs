@@ -32,7 +32,6 @@ use super::api::{
     sync_validator, tell_chain_syncing_is_done, Keys,
 };
 use crate::{
-    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::{
             ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC,
@@ -45,6 +44,7 @@ use crate::{
     validation::{mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage, TIME_BUFFER},
     validator::errors::ValidatorErr,
 };
+use chain_api::{entropy, get_api, get_rpc, EntropyConfig};
 
 #[tokio::test]
 async fn test_get_all_keys() {

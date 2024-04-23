@@ -14,6 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use axum::{extract::State, Json};
+use chain_api::{
+    entropy::{self, runtime_types::pallet_staking_extension::pallet::ServerInfo},
+    get_api, get_rpc, EntropyConfig,
+};
 use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::{MIN_BALANCE, VERIFICATION_KEY_LENGTH};
 use reqwest;
@@ -27,10 +31,6 @@ use subxt::{
 use x25519_dalek::StaticSecret;
 
 use crate::{
-    chain_api::{
-        entropy::{self, runtime_types::pallet_staking_extension::pallet::ServerInfo},
-        get_api, get_rpc, EntropyConfig,
-    },
     get_signer_and_x25519_secret,
     helpers::{
         launch::FORBIDDEN_KEYS,

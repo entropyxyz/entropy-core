@@ -14,7 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Utilites relating to [crate::validator]
+use crate::user::UserErr;
 use bip39::{Language, Mnemonic};
+use chain_api::EntropyConfig;
 use entropy_kvdb::kv_manager::KvManager;
 use hkdf::Hkdf;
 use sha2::Sha256;
@@ -24,8 +26,6 @@ use subxt::{
 };
 use x25519_dalek::StaticSecret;
 use zeroize::Zeroize;
-
-use crate::{chain_api::EntropyConfig, user::UserErr};
 
 /// Constants used in the derivation path
 const KDF_SR25519: &[u8] = b"sr25519-threshold-account";

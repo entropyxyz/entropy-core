@@ -15,13 +15,13 @@
 
 use super::api::validate_proactive_refresh;
 use crate::{
-    chain_api::{get_api, get_rpc},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         tests::{initialize_test_logger, run_to_block, setup_client, spawn_testing_validators},
     },
     r#unsafe::api::UnsafeQuery,
 };
+use chain_api::{get_api, get_rpc};
 use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
 use entropy_shared::{
     constants::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY},

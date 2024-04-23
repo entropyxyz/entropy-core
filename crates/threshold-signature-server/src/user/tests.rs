@@ -16,6 +16,13 @@
 use axum::http::StatusCode;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
+use chain_api::{
+    custom_params, entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+    entropy::runtime_types::entropy_runtime::RuntimeCall,
+    entropy::runtime_types::pallet_balances::pallet::Call as BalancesCall,
+    entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
+    EntropyConfig,
+};
 use entropy_kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
@@ -31,11 +38,8 @@ use entropy_shared::{
     HashingAlgorithm, KeyVisibility, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY,
     DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
 };
+
 use entropy_testing_utils::{
-    chain_api::{
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec as OtherBoundedVec,
-        entropy::runtime_types::pallet_registry::pallet::ProgramInstance as OtherProgramInstance,
-    },
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
         EVE_X25519_SECRET_KEY, FERDIE_X25519_SECRET_KEY, PREIMAGE_SHOULD_FAIL,
@@ -192,9 +196,9 @@ async fn test_sign_tx_no_chain() {
         &rpc,
         DAVE_VERIFYING_KEY,
         &one.pair(),
-        OtherBoundedVec(vec![
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+        BoundedVec(vec![
+            ProgramInstance { program_pointer: program_hash, program_config: vec![] },
+            ProgramInstance { program_pointer: program_hash, program_config: vec![] },
         ]),
     )
     .await
@@ -504,9 +508,9 @@ async fn test_program_with_config() {
         &rpc,
         DAVE_VERIFYING_KEY,
         &one.pair(),
-        OtherBoundedVec(vec![
-            OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
-            OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
+        BoundedVec(vec![
+            ProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
+            ProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
         ]),
     )
     .await
@@ -550,10 +554,7 @@ async fn test_fail_signing_group() {
         &rpc,
         DAVE_VERIFYING_KEY,
         &dave.pair(),
-        OtherBoundedVec(vec![OtherProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await
     .unwrap();
@@ -1073,10 +1074,7 @@ async fn test_sign_tx_user_participates() {
         &rpc,
         verifying_key.clone().try_into().unwrap(),
         &one.pair(),
-        OtherBoundedVec(vec![OtherProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await
     .unwrap();
@@ -1495,10 +1493,7 @@ async fn test_fail_infinite_program() {
         &rpc,
         DAVE_VERIFYING_KEY,
         &one.pair(),
-        OtherBoundedVec(vec![OtherProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }]),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await
     .unwrap();
@@ -1606,7 +1601,7 @@ async fn test_device_key_proxy() {
         &rpc,
         DAVE_VERIFYING_KEY,
         &one.pair(),
-        OtherBoundedVec(vec![OtherProgramInstance {
+        BoundedVec(vec![ProgramInstance {
             program_pointer: *DEVICE_KEY_HASH,
             program_config: serde_json::to_vec(&device_key_user_config).unwrap(),
         }]),
@@ -1781,6 +1776,75 @@ async fn test_increment_or_wipe_request_limit() {
     assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
 
     clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_confirm_done_free() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let alice = AccountKeyring::Alice;
+    let bob = AccountKeyring::Bob;
+
+    let alice_program = AccountKeyring::Charlie;
+    let program_manager = AccountKeyring::Dave;
+
+    // let cxt = test_context_stationary().await;
+    // let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    // let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
+    // let program_hash =
+    //     store_program(&api, &program_manager.pair(), TEST_PROGRAM_WASM_BYTECODE.to_owned(), vec![])
+    //         .await
+    //         .unwrap();
+
+    // put_register_request_on_chain(
+    //     &api,
+    //     &alice_program,
+    //     alice_program.to_account_id().into(),
+    //     KeyVisibility::Public,
+    //     BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    // )
+    // .await;
+
+    // let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
+    // let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+
+    // // drain account of balance
+    // let call = RuntimeCall::Balances(BalancesCall::force_set_balance {
+    //     who: (*signer_alice.account_id()).clone().into(),
+    //     new_free: 0u128,
+    // });
+    // let drain_tx = entropy::tx().sudo().sudo(call);
+
+    // let signature_request_pair_signer =
+    //     PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(alice.into());
+
+    // let tx_config = DefaultExtrinsicParamsBuilder::new();
+    // api.tx()
+    //     .sign_and_submit_then_watch(&drain_tx, &signature_request_pair_signer, custom_params(tx_config))
+    //     .await
+    //     .unwrap()
+    //     .wait_for_in_block()
+    //     .await
+    //     .unwrap()
+    //     .wait_for_success()
+    //     .await
+    //     .unwrap();
+
+    // confirm_registered(
+    //     &api,
+    //     alice_program.to_account_id().into(),
+    //     0u8,
+    //     &signer_alice,
+    //     vec![0u8],
+    //     0u32,
+    // )
+    // .await
+    // .unwrap();
+    // check_has_confirmation(&api, &rpc, &alice_program.pair()).await;
+    // clean_tests();
 }
 
 pub async fn submit_transaction_requests(

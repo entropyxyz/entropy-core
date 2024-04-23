@@ -21,12 +21,7 @@
 use std::time::Duration;
 
 use crate::{
-    app,
-    chain_api::{
-        entropy::{self, runtime_types::bounded_collections::bounded_vec::BoundedVec},
-        get_api, get_rpc, EntropyConfig,
-    },
-    get_signer,
+    app, get_signer,
     helpers::{
         launch::{
             setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName,
@@ -41,6 +36,10 @@ use crate::{
     AppState,
 };
 use axum::{routing::IntoMakeService, Router};
+use chain_api::{
+    entropy::{self, runtime_types::bounded_collections::bounded_vec::BoundedVec},
+    get_api, get_rpc, EntropyConfig,
+};
 use entropy_kvdb::{
     clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager,
 };
