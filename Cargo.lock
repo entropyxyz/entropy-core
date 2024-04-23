@@ -2365,6 +2365,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
  "parity-scale-codec",
+ "project-root",
  "rand",
  "sc-authority-discovery",
  "sc-basic-authorship",
