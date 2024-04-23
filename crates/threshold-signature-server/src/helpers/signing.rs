@@ -14,10 +14,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Utiliities for executing the signing protocol
+pub use entropy_tss_client_common::Hasher;
 use std::time::Duration;
 
 use entropy_protocol::{RecoverableSignature, SessionId, SigningSessionInfo};
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
+use entropy_tss_client_common::user::UserSignatureRequest;
 use sp_core::Pair;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32};
 use tokio::time::timeout;
@@ -31,7 +33,7 @@ use crate::{
         protocol_transport::open_protocol_connections,
         Listener, ProtocolErr,
     },
-    user::api::{increment_or_wipe_request_limit, UserSignatureRequest},
+    user::api::increment_or_wipe_request_limit,
     AppState,
 };
 
@@ -117,21 +119,4 @@ pub async fn do_signing(
     .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
 
     Ok(result)
-}
-
-/// Produces a specific hash on a given message
-pub struct Hasher;
-
-impl Hasher {
-    /// Produces the Keccak256 hash on a given message.
-    ///
-    /// In practice, if `data` is an RLP-serialized Ethereum transaction, this should produce the
-    /// corrosponding .
-    pub fn keccak(data: &[u8]) -> [u8; 32] {
-        use sha3::{Digest, Keccak256};
-
-        let mut keccak = Keccak256::new();
-        keccak.update(data);
-        keccak.finalize().into()
-    }
 }

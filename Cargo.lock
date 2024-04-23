@@ -1957,6 +1957,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashmap"
+version = "5.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "978747c1d849a7d2ee5e8adc0159961c48fb7e5db2f06af6723b80123bb53856"
+dependencies = [
+ "cfg-if",
+ "hashbrown 0.14.3",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core 0.9.9",
+]
+
+[[package]]
 name = "data-encoding"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2679,6 +2692,7 @@ dependencies = [
  "entropy-protocol",
  "entropy-shared",
  "entropy-testing-utils",
+ "entropy-tss-client-common",
  "ethers-core",
  "futures",
  "hex",
@@ -2721,6 +2735,21 @@ dependencies = [
  "vergen",
  "x25519-dalek 2.0.1",
  "zeroize",
+]
+
+[[package]]
+name = "entropy-tss-client-common"
+version = "0.0.1"
+dependencies = [
+ "entropy-protocol",
+ "entropy-shared",
+ "futures",
+ "num",
+ "serde",
+ "sha3",
+ "sp-core 31.0.0",
+ "subxt",
+ "thiserror",
 ]
 
 [[package]]

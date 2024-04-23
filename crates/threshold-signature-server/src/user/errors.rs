@@ -155,6 +155,10 @@ pub enum UserErr {
     SpCoreSecretString(#[from] sp_core::crypto::SecretStringError),
     #[error("Cannot get output from hasher in HKDF {0}")]
     Hkdf(hkdf::InvalidLength),
+    #[error("Substrate: {0}")]
+    SubstrateClient(#[from] entropy_tss_client_common::substrate::SubstrateError),
+    #[error("Cannot get subgroup signers: {0}")]
+    SubgroupGet(#[from] entropy_tss_client_common::user::SubgroupGetError),
 }
 
 impl From<hkdf::InvalidLength> for UserErr {

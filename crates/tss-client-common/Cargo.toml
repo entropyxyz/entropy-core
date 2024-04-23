@@ -1,0 +1,24 @@
+[package]
+name = "entropy-tss-client-common"
+version = "0.0.1"
+edition = "2021"
+authors    =['Entropy Cryptography <engineering@entropy.xyz>']
+homepage   ='https://entropy.xyz/'
+description='Common functionality needed by both entropy-tss and entropy-client'
+license    ='AGPL-3.0-or-later'
+repository ='https://github.com/entropyxyz/entropy-core'
+
+[dependencies]
+sha3             ="0.10.8"
+entropy-protocol={ path="../protocol", default-features = false}
+serde              ={ version="1.0", default-features=false, features=["derive"] }
+entropy-shared  ={ path="../shared", default-features = false}
+subxt             ="0.35.3"
+num              ="0.4.0"
+thiserror          ="1.0.59"
+futures="0.3"
+sp-core            ={ version="31.0.0", default-features=false, features=["full_crypto", "serde"] }
+
+[features]
+default    =["std"]
+std        =["entropy-shared/std"]

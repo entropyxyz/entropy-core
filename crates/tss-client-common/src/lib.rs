@@ -12,10 +12,23 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+pub mod chain_api;
+pub mod substrate;
+pub mod user;
 
-//! Re-exports of things needed for a client for integration tests
-pub use crate::{
-    helpers::signing::Hasher,
-    user::api::{get_current_subgroup_signers, UserSignatureRequest},
-    validation,
-};
+/// Produces a specific hash on a given message
+pub struct Hasher;
+
+impl Hasher {
+    /// Produces the Keccak256 hash on a given message.
+    ///
+    /// In practice, if `data` is an RLP-serialized Ethereum transaction, this should produce the
+    /// corrosponding .
+    pub fn keccak(data: &[u8]) -> [u8; 32] {
+        use sha3::{Digest, Keccak256};
+
+        let mut keccak = Keccak256::new();
+        keccak.update(data);
+        keccak.finalize().into()
+    }
+}
