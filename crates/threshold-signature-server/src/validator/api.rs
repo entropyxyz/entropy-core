@@ -67,8 +67,8 @@ pub const BATHC_SIZE_FOR_KEY_VALUE_GET: usize = 10;
 /// - finding a server in their subgroup that is synced
 /// - getting all shards from said validator
 #[tracing::instrument(skip(kv_store))]
-pub async fn sync_validator(sync: bool, dev: bool, endpoint: &str, kv_store: &KvManager) {
-    if sync {
+pub async fn sync_validator(no_sync: bool, dev: bool, endpoint: &str, kv_store: &KvManager) {
+    if !no_sync {
         let api = get_api(endpoint).await.expect("Issue acquiring chain API");
         let rpc = get_rpc(endpoint).await.expect("Issue acquiring chain RPC");
         let mut is_syncing = true;
