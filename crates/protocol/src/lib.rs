@@ -21,7 +21,7 @@ pub mod protocol_transport;
 pub mod sign_and_encrypt;
 pub mod user;
 
-pub use entropy_tss_client_common::ValidatorInfo;
+pub use entropy_shared::user::ValidatorInfo;
 pub use protocol_message::ProtocolMessage;
 
 extern crate alloc;

@@ -22,24 +22,10 @@ entropy-shared           ={ path="../shared" }
 entropy-kvdb             ={ path="../kvdb", default-features=false }
 entropy-tss              ={ path="../threshold-signature-server" }
 entropy-tss-client-common={ path="../tss-client-common" }
-
-# For test client
-anyhow          ="1.0.82"
-blake2          ="0.10.4"
-futures         ="0.3"
-num             ="0.4.0"
-rand_core       ="0.6.4"
-serde           ={ version="1.0", default-features=false, features=["derive"] }
-serde_json      ="1.0"
-thiserror       ="1.0.59"
-x25519-dalek    ={ version="2.0.1", features=["static_secrets"] }
-zeroize         ="1.5.7"
-entropy-protocol={ path="../protocol" }
-reqwest         ={ version="0.12.4", features=["json", "stream"] }
-sha3            ="0.10.8"
-base64          ="0.22.0"
-synedrion       ="0.1"
-hex             ="0.4.3"
+entropy-protocol         ={ path="../protocol" }
+synedrion                ="0.1"
+hex                      ="0.4.3"
+rand_core                ="0.6.4"
 
 # Logging
 tracing           ="0.1.37"

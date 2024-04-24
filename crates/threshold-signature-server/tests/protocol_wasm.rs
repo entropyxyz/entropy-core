@@ -36,10 +36,13 @@ use entropy_testing_utils::{
         TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::test_context_stationary,
-    test_client::{put_register_request_on_chain, store_program, update_programs},
     tss_server_process::spawn_testing_validators,
 };
-use entropy_tss_client_common::{user::UserSignatureRequest, Hasher};
+use entropy_tss_client_common::{
+    client::{put_register_request_on_chain, store_program, update_programs},
+    user::UserSignatureRequest,
+    Hasher,
+};
 use futures::future::join_all;
 use futures::future::{self};
 use parity_scale_codec::Encode;

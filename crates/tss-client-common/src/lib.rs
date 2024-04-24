@@ -15,17 +15,11 @@
 pub mod chain_api;
 pub mod substrate;
 pub mod user;
-use entropy_shared::X25519PublicKey;
-use serde::{Deserialize, Serialize};
-use subxt::utils::AccountId32;
 
-/// Details of a TSS server
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
-pub struct ValidatorInfo {
-    pub x25519_public_key: X25519PublicKey,
-    pub ip_address: String,
-    pub tss_account: AccountId32,
-}
+#[cfg(feature = "client")]
+pub mod client;
+
+use sha3::{Digest, Keccak256};
 
 /// Produces a specific hash on a given message
 pub struct Hasher;
@@ -36,8 +30,6 @@ impl Hasher {
     /// In practice, if `data` is an RLP-serialized Ethereum transaction, this should produce the
     /// corrosponding .
     pub fn keccak(data: &[u8]) -> [u8; 32] {
-        use sha3::{Digest, Keccak256};
-
         let mut keccak = Keccak256::new();
         keccak.update(data);
         keccak.finalize().into()

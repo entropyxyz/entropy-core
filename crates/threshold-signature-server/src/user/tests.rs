@@ -46,9 +46,11 @@ use entropy_testing_utils::{
         test_context_stationary, test_node_process_testing_state, testing_context,
         SubstrateTestingContext,
     },
-    test_client::{store_program, update_programs},
 };
-use entropy_tss_client_common::user::get_current_subgroup_signers;
+use entropy_tss_client_common::{
+    client::{store_program, update_programs},
+    user::get_current_subgroup_signers,
+};
 use futures::{
     future::{self, join_all},
     join, Future, SinkExt, StreamExt,

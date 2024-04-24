@@ -13,21 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Simple test client
+//! Simple client for Entropy.
+//! Used in integration tests and for the test-cli
 pub use crate::chain_api::{get_api, get_rpc};
-use base64::prelude::{Engine, BASE64_STANDARD};
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
-use entropy_shared::HashingAlgorithm;
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 pub use synedrion::KeyShare;
-pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
 
-use anyhow::{anyhow, ensure};
-use entropy_protocol::{
-    user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
-    RecoverableSignature, ValidatorInfo,
-};
-use entropy_tss::{
+use crate::{
     chain_api::{
         entropy,
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
@@ -37,12 +30,17 @@ use entropy_tss::{
         },
         EntropyConfig,
     },
-    helpers::substrate::{query_chain, submit_transaction},
-};
-use entropy_tss_client_common::{
+    substrate::{query_chain, submit_transaction},
     user::{get_current_subgroup_signers, UserSignatureRequest},
     Hasher,
 };
+use anyhow::{anyhow, ensure};
+use base64::prelude::{Engine, BASE64_STANDARD};
+use entropy_protocol::{
+    user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
+    RecoverableSignature, ValidatorInfo,
+};
+use entropy_shared::HashingAlgorithm;
 use futures::future;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use std::time::SystemTime;
@@ -55,6 +53,8 @@ use subxt::{
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 use x25519_dalek::StaticSecret;
+
+pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
 
 /// Register an account.
 ///

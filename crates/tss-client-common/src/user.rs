@@ -15,9 +15,8 @@
 use crate::{
     chain_api::{entropy, EntropyConfig},
     substrate::query_chain,
-    ValidatorInfo,
 };
-use entropy_shared::{HashingAlgorithm, SIGNING_PARTY_SIZE};
+use entropy_shared::{user::ValidatorInfo, HashingAlgorithm, SIGNING_PARTY_SIZE};
 use futures::future::join_all;
 use num::{BigInt, Num, ToPrimitive};
 use serde::{Deserialize, Serialize};

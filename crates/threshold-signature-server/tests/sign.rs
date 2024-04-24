@@ -25,11 +25,10 @@ use entropy_testing_utils::{
         TEST_PROGRAM_WASM_BYTECODE,
     },
     substrate_context::test_context_stationary,
-    test_client,
     tss_server_process::spawn_testing_validators,
 };
 use entropy_tss::chain_api::{get_api, get_rpc};
-use entropy_tss_client_common::Hasher;
+use entropy_tss_client_common::{client as test_client, Hasher};
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
 use synedrion::k256::ecdsa::VerifyingKey;

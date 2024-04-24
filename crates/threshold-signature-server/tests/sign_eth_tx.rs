@@ -23,11 +23,10 @@ use entropy_testing_utils::{
     },
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     substrate_context::test_context_stationary,
-    test_client,
     tss_server_process::spawn_testing_validators,
 };
 use entropy_tss::chain_api::{get_api, get_rpc};
-use entropy_tss_client_common::Hasher;
+use entropy_tss_client_common::{client as test_client, Hasher};
 use ethers_core::{
     abi::ethabi::ethereum_types::{H160, H256},
     types::{RecoveryMessage, Transaction, TransactionRequest, U256},

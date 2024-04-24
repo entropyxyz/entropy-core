@@ -17,8 +17,38 @@ num           ="0.4.0"
 thiserror     ="1.0.59"
 futures       ="0.3"
 sp-core       ={ version="31.0.0", default-features=false, features=["full_crypto", "serde"] }
+tracing       ="0.1.37"
+
+# For test client
+anyhow          ={ version="1.0.82", optional=true }
+blake2          ={ version="0.10.4", optional=true }
+rand_core       ={ version="0.6.4", optional=true }
+serde_json      ={ version="1.0", optional=true }
+x25519-dalek    ={ version="2.0.1", features=["static_secrets"], optional=true }
+entropy-protocol={ path="../protocol", optional=true }
+reqwest         ={ version="0.12.4", features=["json", "stream"], optional=true }
+base64          ={ version="0.22.0", optional=true }
+synedrion       ={ version="0.1", optional=true }
+hex             ={ version="0.4.3", optional=true }
 
 [features]
 default=["native"]
-native =["entropy-shared/std", "subxt/native", "subxt/substrate-compat"]
-wasm   =["entropy-shared/wasm", "subxt/web"]
+native=[
+  "entropy-shared/std",
+  "entropy-shared/user-native",
+  "subxt/native",
+  "subxt/substrate-compat",
+]
+wasm=["entropy-shared/wasm", "entropy-shared/user-wasm", "subxt/web"]
+client=[
+  "dep:anyhow",
+  "dep:blake2",
+  "dep:rand_core",
+  "dep:serde_json",
+  "dep:x25519-dalek",
+  "dep:entropy-protocol",
+  "dep:reqwest",
+  "dep:base64",
+  "dep:synedrion",
+  "dep:hex",
+]
