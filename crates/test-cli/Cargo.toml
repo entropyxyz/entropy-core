@@ -8,7 +8,8 @@ repository='https://github.com/entropyxyz/entropy-core'
 edition   ='2021'
 
 [dependencies]
-entropy-testing-utils={ path="../testing-utils" }
+entropy-tss-client-common = { path="../tss-client-common", features = ["client"]}
+entropy-testing-utils = { path="../testing-utils"}
 clap                 ={ version="4.4.6", features=["derive"] }
 colored              ="2.0.4"
 subxt                ="0.35.3"

@@ -2631,6 +2631,7 @@ dependencies = [
  "clap",
  "colored",
  "entropy-testing-utils",
+ "entropy-tss-client-common",
  "hex",
  "sp-core 31.0.0",
  "sp-runtime 32.0.0",

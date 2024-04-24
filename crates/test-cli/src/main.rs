@@ -24,15 +24,15 @@ use std::{
 use anyhow::{anyhow, ensure};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use entropy_testing_utils::{
+use entropy_testing_utils::constants::TEST_PROGRAM_WASM_BYTECODE;
+use entropy_tss_client_common::{
     chain_api::{
         entropy::runtime_types::{
             bounded_collections::bounded_vec::BoundedVec, pallet_registry::pallet::ProgramInstance,
         },
         EntropyConfig,
     },
-    constants::TEST_PROGRAM_WASM_BYTECODE,
-    test_client::{
+    client::{
         get_accounts, get_api, get_programs, get_rpc, register, sign, store_program,
         update_programs, KeyParams, KeyShare, KeyVisibility, VERIFYING_KEY_LENGTH,
     },
