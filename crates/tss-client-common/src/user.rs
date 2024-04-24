@@ -15,8 +15,8 @@
 use crate::{
     chain_api::{entropy, EntropyConfig},
     substrate::query_chain,
+    ValidatorInfo,
 };
-use entropy_protocol::ValidatorInfo;
 use entropy_shared::{HashingAlgorithm, SIGNING_PARTY_SIZE};
 use futures::future::join_all;
 use num::{BigInt, Num, ToPrimitive};
@@ -91,6 +91,7 @@ pub async fn get_current_subgroup_signers(
     Ok(subgroup_signers)
 }
 
+/// An error on getting the current subgroup signers
 #[derive(Debug, Error)]
 pub enum SubgroupGetError {
     #[error("Generic Substrate error: {0}")]

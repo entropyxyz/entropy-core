@@ -2493,6 +2493,7 @@ dependencies = [
  "bincode",
  "blake2 0.10.6",
  "entropy-shared",
+ "entropy-tss-client-common",
  "futures",
  "getrandom 0.2.14",
  "gloo-net",
@@ -2742,7 +2743,6 @@ dependencies = [
 name = "entropy-tss-client-common"
 version = "0.0.1"
 dependencies = [
- "entropy-protocol",
  "entropy-shared",
  "futures",
  "num",
