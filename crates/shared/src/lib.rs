@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(any(feature = "std", feature = "user-wasm")), no_std)]
 //! Types that is shared by clients and substrate nodes,
 //! i.e. messages sent from one to the other and structs contained in those messages
 //!
@@ -23,5 +23,5 @@ pub use types::*;
 pub mod constants;
 pub mod types;
 
-#[cfg(any(feature = "user-native", feature = "user-web"))]
+#[cfg(any(feature = "user-native", feature = "user-wasm"))]
 pub mod user;
