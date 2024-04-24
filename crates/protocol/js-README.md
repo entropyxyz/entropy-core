@@ -20,6 +20,19 @@ Helpers:
 - `fromHex` - convert a hex-encoded `string` to a Uint8Array, ignoring `0x` prefix
 - `constantTimeEq` - compare 2 `Uint8Array`s in constant time
 
+## A note on using this on NodeJS
+
+The private mode functions `runDkgProtocol` and `runSigningProtocol` expect to have access to
+the browser websockets API, which is not present on NodeJS. If you want to use these functions on
+NodeJS you must have the dependency [`ws`](https://www.npmjs.com/package/ws) as a property of the
+`global` object like so:
+
+```js
+Object.assign(global, { WebSocket: require('ws') })
+```
+
+This is tested in CI with `ws` version `^8.14.2`.
+
 ## `Hpke`
 
 This is used for communicating with TSS servers and uses [Hybrid Public Key Encryption](https://www.rfc-editor.org/rfc/rfc9180)
