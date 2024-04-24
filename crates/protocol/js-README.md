@@ -23,7 +23,7 @@ Helpers:
 ## A note on using this on NodeJS
 
 The private mode functions `runDkgProtocol` and `runSigningProtocol` expect to have access to
-the browser websockets API, which on NodeJS is not present. If you want to use these functions on
+the browser websockets API, which is not present on NodeJS. If you want to use these functions on
 NodeJS you must have the dependency [`ws`](https://www.npmjs.com/package/ws) as a property of the
 `global` object like so:
 
