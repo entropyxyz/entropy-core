@@ -14,13 +14,26 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Pre-endowed accounts used for the development network
-use entropy_runtime::AccountId;
-use sp_core::sr25519;
-
 use crate::chain_spec::get_account_id_from_seed;
+use entropy_runtime::AccountId;
+use project_root::get_project_root;
+use sp_core::{crypto::Ss58Codec, sr25519};
+use std::{fs::File, io::Read};
 
 pub fn endowed_accounts_dev() -> Vec<AccountId> {
-    vec![
+    // handle user submitted file for tokens
+    let mut file = File::open(
+        get_project_root()
+            .expect("Error getting project root")
+            .join("node/cli/src/chain_spec/testnet-accounts.json"),
+    )
+    .expect("unable to open testnet-accounts.json");
+    let mut data = String::new();
+    file.read_to_string(&mut data).expect("Unable to read file");
+    let externally_endowed_accounts: Vec<String> =
+        serde_json::from_str(&data).expect("JSON parse error");
+
+    let mut inital_accounts = vec![
         get_account_id_from_seed::<sr25519::Public>("Alice"),
         get_account_id_from_seed::<sr25519::Public>("Bob"),
         get_account_id_from_seed::<sr25519::Public>("Charlie"),
@@ -40,5 +53,15 @@ pub fn endowed_accounts_dev() -> Vec<AccountId> {
         crate::chain_spec::tss_account_id::ALICE.clone(),
         crate::chain_spec::tss_account_id::BOB.clone(),
         crate::chain_spec::tss_account_id::CHARLIE.clone(),
-    ]
+    ];
+
+    for address in externally_endowed_accounts {
+        inital_accounts.push(
+            AccountId::from_string(&address).unwrap_or_else(|_| {
+                panic!("failed to convert a testnet_address address: {}", address)
+            }),
+        )
+    }
+
+    inital_accounts
 }

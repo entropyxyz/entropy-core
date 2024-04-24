@@ -13,6 +13,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #![allow(dead_code)]
+use super::constants::VERIFICATION_KEY_LENGTH;
 #[cfg(not(feature = "wasm"))]
 use codec::alloc::vec::Vec;
 use codec::{Decode, Encode, MaxEncodedLen};
@@ -106,3 +107,6 @@ pub enum HashingAlgorithm {
     Keccak,
     Custom(usize),
 }
+
+/// A compressed, serialized [synedrion::ecdsa::VerifyingKey<k256::Secp256k1>]
+pub type EncodedVerifyingKey = [u8; VERIFICATION_KEY_LENGTH as usize];

@@ -22,7 +22,6 @@ clap            ={ version="4.0.9", features=["derive"], optional=true }
 codec           ={ package="parity-scale-codec", version="3.0.0" }
 futures         ="0.3.30"
 hex-literal     ="0.4.1"
-jsonrpc-core    ='18.0.0'
 jsonrpsee       ={ version="0.20.3", features=["server"] }
 lazy_static     ={ version="1.4.0", features=["spin_no_std"] }
 log             ="0.4.21"
@@ -30,12 +29,10 @@ pallet-im-online={ version="28.0.0" }
 rand            ="0.8.5"
 serde           ={ version="1.0.198", features=["derive"] }
 serde_json      ='1.0.116'
-structopt       ='0.3.8'
 
 # Substrate Client
 
 grandpa                 ={ version="0.20.0", package="sc-consensus-grandpa" }
-node-inspect            ={ version="0.13.0", package="staging-node-inspect", optional=true }
 sc-authority-discovery  ={ version="0.35.0" }
 sc-basic-authorship     ={ version="0.35.0" }
 sc-chain-spec           ={ version="28.0.0" }
@@ -87,23 +84,22 @@ frame-system                ={ version="29.0.0" }
 frame-system-rpc-runtime-api={ version="27.0.0" }
 
 # Substrate Pallets
-pallet-asset-conversion-tx-payment={ version="11.0.0" }
-pallet-transaction-payment        ={ version="29.0.0" }
-pallet-transaction-payment-rpc    ={ version="31.0.0" }
+pallet-transaction-payment    ={ version="29.0.0" }
+pallet-transaction-payment-rpc={ version="31.0.0" }
 
 # Entropy Dependencies
 entropy-runtime         ={ version="0.0.11", path="../../runtime" }
 entropy-shared          ={ path="../../crates/shared", default-features=false, features=["wasm-no-std"] }
 pallet-registry         ={ version="0.0.11", path="../../pallets/registry" }
 pallet-staking-extension={ version="0.0.11", path="../../pallets/staking" }
+project-root            ="0.2.2"
 
 [build-dependencies]
-clap         ={ version="4.2.5", optional=true }
-clap_complete={ version="4.5", optional=true }
+clap={ version="4.2.5", optional=true }
 
 pallet-balances             ={ version="29.0.0" }
 substrate-build-script-utils={ version="11.0.0" }
-try-runtime-cli             ={ version="0.39.0" }
+try-runtime-cli             ={ version="0.42.0" }
 
 [dev-dependencies]
 tempfile  ="3.1.0"
@@ -111,14 +107,7 @@ sp-tracing={ version="16.0.0" }
 
 [features]
 default=["cli"]
-cli=[
-  "clap",
-  "clap_complete",
-  "frame-benchmarking-cli",
-  "node-inspect",
-  "sc-cli",
-  "sc-service/rocksdb",
-]
+cli=["clap", "frame-benchmarking-cli", "sc-cli", "sc-service/rocksdb"]
 runtime-benchmarks=[
   "entropy-runtime/runtime-benchmarks",
   "frame-benchmarking-cli/runtime-benchmarks",

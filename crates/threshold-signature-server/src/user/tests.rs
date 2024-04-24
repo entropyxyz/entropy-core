@@ -190,7 +190,7 @@ async fn test_sign_tx_no_chain() {
     update_programs(
         &entropy_api,
         &rpc,
-        DAVE_VERIFYING_KEY.to_vec(),
+        DAVE_VERIFYING_KEY,
         &one.pair(),
         OtherBoundedVec(vec![
             OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
@@ -502,7 +502,7 @@ async fn test_program_with_config() {
     update_programs(
         &entropy_api,
         &rpc,
-        DAVE_VERIFYING_KEY.to_vec(),
+        DAVE_VERIFYING_KEY,
         &one.pair(),
         OtherBoundedVec(vec![
             OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
@@ -548,7 +548,7 @@ async fn test_fail_signing_group() {
     update_programs(
         &entropy_api,
         &rpc,
-        DAVE_VERIFYING_KEY.to_vec(),
+        DAVE_VERIFYING_KEY,
         &dave.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
@@ -1071,7 +1071,7 @@ async fn test_sign_tx_user_participates() {
     update_programs(
         &entropy_api,
         &rpc,
-        verifying_key.clone(),
+        verifying_key.clone().try_into().unwrap(),
         &one.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
@@ -1493,7 +1493,7 @@ async fn test_fail_infinite_program() {
     update_programs(
         &entropy_api,
         &rpc,
-        DAVE_VERIFYING_KEY.to_vec(),
+        DAVE_VERIFYING_KEY,
         &one.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
@@ -1604,7 +1604,7 @@ async fn test_device_key_proxy() {
     update_programs(
         &entropy_api,
         &rpc,
-        DAVE_VERIFYING_KEY.to_vec(),
+        DAVE_VERIFYING_KEY,
         &one.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: *DEVICE_KEY_HASH,
