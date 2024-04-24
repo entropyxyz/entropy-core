@@ -27,7 +27,7 @@ mod helpers;
 use helpers::server;
 
 #[test]
-fn test_sign() {
+fn signing_protocol_with_time_logged() {
     let cpus = num_cpus::get();
 
     tokio::runtime::Builder::new_multi_thread()
