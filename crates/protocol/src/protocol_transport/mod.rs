@@ -121,6 +121,30 @@ impl WsConnection for tokio_tungstenite::WebSocketStream<MaybeTlsStream<tokio::n
     }
 }
 
+// Currently only used in benchmarks - entropy-tss uses the MaybeTlsStream wrapper
+#[cfg(feature = "server")]
+#[async_trait]
+impl WsConnection for tokio_tungstenite::WebSocketStream<tokio::net::TcpStream> {
+    async fn recv(&mut self) -> Result<Vec<u8>, WsError> {
+        if let tungstenite::Message::Binary(msg) = self
+            .next()
+            .await
+            .ok_or(WsError::ConnectionClosed)?
+            .map_err(|e| WsError::ConnectionError(e.to_string()))?
+        {
+            Ok(msg)
+        } else {
+            Err(WsError::UnexpectedMessageType)
+        }
+    }
+
+    async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError> {
+        SinkExt::send(&mut self, tungstenite::Message::Binary(msg))
+            .await
+            .map_err(|_| WsError::ConnectionClosed)
+    }
+}
+
 /// Send protocol messages over websocket, and websocket messages to protocol
 pub async fn ws_to_channels<T: WsConnection>(
     mut connection: EncryptedWsConnection<T>,

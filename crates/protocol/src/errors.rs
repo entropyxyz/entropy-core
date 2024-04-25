@@ -118,3 +118,9 @@ pub enum UserRunningProtocolErr {
     #[error("Connection Error: {0}")]
     Connection(String),
 }
+
+#[derive(Debug, Error)]
+pub enum ListenerErr {
+    #[error("invalid party ID: {0}")]
+    InvalidPartyId(String),
+}

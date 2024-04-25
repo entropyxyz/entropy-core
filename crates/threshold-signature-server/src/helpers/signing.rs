@@ -16,7 +16,7 @@
 //! Utiliities for executing the signing protocol
 use std::time::Duration;
 
-use entropy_protocol::{RecoverableSignature, SessionId, SigningSessionInfo};
+use entropy_protocol::{Listener, RecoverableSignature, SessionId, SigningSessionInfo};
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
 use sp_core::Pair;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32};
@@ -29,7 +29,7 @@ use crate::{
     signing_client::{
         protocol_execution::{Channels, ThresholdSigningService},
         protocol_transport::open_protocol_connections,
-        Listener, ProtocolErr,
+        ProtocolErr,
     },
     user::api::{increment_or_wipe_request_limit, UserSignatureRequest},
     AppState,

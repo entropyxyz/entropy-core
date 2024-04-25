@@ -14,11 +14,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Tracks which validators we are connected to for a particular protocol execution
-#![allow(dead_code)]
 
 use std::collections::HashMap;
 
-use entropy_protocol::{
+use crate::{
+    errors::ListenerErr,
     protocol_transport::{Broadcaster, WsChannels},
     ProtocolMessage, ValidatorInfo,
 };
@@ -26,9 +26,7 @@ use entropy_shared::X25519PublicKey;
 use subxt::utils::AccountId32;
 use tokio::sync::{broadcast, mpsc, oneshot};
 
-use crate::signing_client::SubscribeErr;
-
-pub type ListenerResult = Result<Broadcaster, SubscribeErr>;
+pub type ListenerResult = Result<Broadcaster, ListenerErr>;
 
 /// Tracks which validators we are connected to for a particular protocol execution
 /// and sets up channels for exchaning protocol messages
@@ -46,7 +44,7 @@ pub struct Listener {
 }
 
 impl Listener {
-    pub(crate) fn new(
+    pub fn new(
         validators_info: Vec<ValidatorInfo>,
         my_id: &AccountId32,
         user_participates: Option<(AccountId32, X25519PublicKey)>,
@@ -55,7 +53,7 @@ impl Listener {
         let (tx, _rx) = broadcast::channel(1000);
         let (tx_to_others, rx_to_others) = mpsc::channel(1000);
 
-        // Create our set of validators we want too connect to - excluding ourself
+        // Create our set of validators we want to connect to - excluding ourself
         let mut validators = HashMap::new();
 
         for validator in validators_info {
@@ -76,23 +74,20 @@ impl Listener {
 
     /// Check that the given account is in the signing group, and if so return channels to the
     /// protocol
-    pub(crate) fn subscribe(
-        &mut self,
-        account_id: &AccountId32,
-    ) -> Result<WsChannels, SubscribeErr> {
+    pub fn subscribe(&mut self, account_id: &AccountId32) -> Result<WsChannels, ListenerErr> {
         if self.validators.remove(&account_id.0).is_some() {
             let broadcast = self.tx.subscribe();
             let tx = self.tx_to_others.clone();
             Ok(WsChannels { broadcast, tx, is_final: self.validators.is_empty() })
         } else {
-            Err(SubscribeErr::InvalidPartyId(
+            Err(ListenerErr::InvalidPartyId(
                 "Validator is not expected for this message".to_string(),
             ))
         }
     }
 
     /// When all connections are set up, convert to a broadcaster and proceed with the protocol
-    pub(crate) fn into_broadcaster(self) -> (oneshot::Sender<ListenerResult>, Broadcaster) {
+    pub fn into_broadcaster(self) -> (oneshot::Sender<ListenerResult>, Broadcaster) {
         (self.tx_ready, Broadcaster(self.tx))
     }
 }
