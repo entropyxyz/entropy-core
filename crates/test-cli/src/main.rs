@@ -299,9 +299,16 @@ async fn run_command() -> anyhow::Result<String> {
                 None => vec![],
             };
 
-            let hash =
-                store_program(&api, &rpc, &keypair, program, config_interface, aux_data_interface)
-                    .await?;
+            let hash = store_program(
+                &api,
+                &rpc,
+                &keypair,
+                program,
+                config_interface,
+                aux_data_interface,
+                vec![],
+            )
+            .await?;
             Ok(format!("Program stored {hash}"))
         },
         CliCommand::UpdatePrograms { signature_verifying_key, program_account_name, programs } => {
@@ -509,6 +516,7 @@ impl Program {
             program_bytecode.clone(),
             config_description,
             auxiliary_data_schema,
+            vec![],
         )
         .await
         {

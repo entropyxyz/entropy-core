@@ -29,11 +29,13 @@ fn set_program() {
         let program_2 = vec![12u8, 13u8];
         let configuration_schema = vec![14u8];
         let auxiliary_data_schema = vec![15u8];
+        let oracle_data_pointer = vec![16u8];
         let too_long = vec![1u8, 2u8, 3u8, 4u8, 5u8];
         let mut hash_input: Vec<u8> = vec![];
         hash_input.extend(&program);
         hash_input.extend(&configuration_schema);
         hash_input.extend(&auxiliary_data_schema);
+        hash_input.extend(&oracle_data_pointer);
 
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&hash_input);
         // can't pay deposit
@@ -42,7 +44,8 @@ fn set_program() {
                 RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
                 program.clone(),
                 configuration_schema.clone(),
-                auxiliary_data_schema.clone()
+                auxiliary_data_schema.clone(),
+                oracle_data_pointer.clone()
             ),
             BalancesError::<Test>::InsufficientBalance
         );
@@ -53,12 +56,14 @@ fn set_program() {
             RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
             program.clone(),
             configuration_schema.clone(),
-            auxiliary_data_schema.clone()
+            auxiliary_data_schema.clone(),
+            oracle_data_pointer.clone()
         ));
         let program_result = ProgramInfo {
             bytecode: program.clone(),
             configuration_schema: configuration_schema.clone(),
             auxiliary_data_schema: auxiliary_data_schema.clone(),
+            oracle_data_pointer: oracle_data_pointer.clone(),
             deployer: PROGRAM_MODIFICATION_ACCOUNT,
             ref_counter: 0u128,
         };
@@ -73,7 +78,7 @@ fn set_program() {
             "Program gets set to owner"
         );
         // deposit taken
-        assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 80, "Deposit charged");
+        assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 75, "Deposit charged");
 
         // program is already set
         assert_noop!(
@@ -82,6 +87,7 @@ fn set_program() {
                 program.clone(),
                 configuration_schema.clone(),
                 auxiliary_data_schema.clone(),
+                oracle_data_pointer.clone(),
             ),
             Error::<Test>::ProgramAlreadySet
         );
@@ -93,6 +99,7 @@ fn set_program() {
                 program_2.clone(),
                 configuration_schema.clone(),
                 auxiliary_data_schema.clone(),
+                oracle_data_pointer.clone(),
             ),
             Error::<Test>::TooManyProgramsOwned
         );
@@ -103,6 +110,7 @@ fn set_program() {
                 too_long,
                 configuration_schema,
                 auxiliary_data_schema.clone(),
+                oracle_data_pointer.clone(),
             ),
             Error::<Test>::ProgramLengthExceeded
         );
@@ -115,10 +123,12 @@ fn remove_program() {
         let program = vec![10u8, 11u8];
         let configuration_schema = vec![14u8];
         let auxiliary_data_schema = vec![15u8];
+        let oracle_data_pointer = vec![16u8];
         let mut hash_input: Vec<u8> = vec![];
         hash_input.extend(&program);
         hash_input.extend(&configuration_schema);
         hash_input.extend(&auxiliary_data_schema);
+        hash_input.extend(&oracle_data_pointer);
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&hash_input);
 
         // no program
@@ -137,6 +147,7 @@ fn remove_program() {
             program.clone(),
             configuration_schema.clone(),
             auxiliary_data_schema.clone(),
+            oracle_data_pointer.clone()
         ));
         assert_eq!(
             ProgramsPallet::owned_programs(PROGRAM_MODIFICATION_ACCOUNT),
@@ -154,7 +165,7 @@ fn remove_program() {
             PROGRAM_MODIFICATION_ACCOUNT,
             "Program modification account gets set"
         );
-        assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 80, "Deposit charged");
+        assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 75, "Deposit charged");
 
         // not authorized
         assert_noop!(
@@ -184,6 +195,7 @@ fn remove_program_fails_ref_count() {
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&program);
         let configuration_schema = vec![14u8];
         let auxiliary_data_schema = vec![15u8];
+        let oracle_data_pointer = vec![16u8];
 
         Programs::<Test>::insert(
             program_hash,
@@ -191,6 +203,7 @@ fn remove_program_fails_ref_count() {
                 bytecode: program,
                 configuration_schema,
                 auxiliary_data_schema,
+                oracle_data_pointer,
                 deployer: PROGRAM_MODIFICATION_ACCOUNT,
                 ref_counter: 1u128,
             },
