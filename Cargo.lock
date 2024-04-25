@@ -2466,8 +2466,7 @@ dependencies = [
 [[package]]
 name = "entropy-programs-core"
 version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f93d8587c74e613c10343e643bcef69b9c71a03eef8910e8105fc6d589ae2fbb"
+source = "git+https://github.com/entropyxyz/programs.git?branch=add-oracle-data-to-runtime#2e0996cb3576de5b594ee8fc49aeba9792bf39ab"
 dependencies = [
  "getrandom 0.2.14",
  "serde",
@@ -2477,9 +2476,8 @@ dependencies = [
 
 [[package]]
 name = "entropy-programs-runtime"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "692bd11f0a2f6ca8f80873796c72db5dce38c144e4707f7ea59435d618d688e0"
+version = "0.1.0"
+source = "git+https://github.com/entropyxyz/programs.git?branch=add-oracle-data-to-runtime#2e0996cb3576de5b594ee8fc49aeba9792bf39ab"
 dependencies = [
  "entropy-programs-core 0.9.0",
  "thiserror",
