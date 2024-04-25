@@ -28,6 +28,7 @@ services:
       - "0.0.0.0:3001"
       - "--chain-endpoint"
       - "ws://alice-chain-node:9944"
+      - "--no-sync"
 
   # In a local devnet setup, for now, this is "Alice's chain."
   alice-chain-node:
@@ -64,6 +65,7 @@ services:
       - "0.0.0.0:3002"
       - "--chain-endpoint"
       - "ws://bob-chain-node:9944"
+      - "--no-sync"
 
   # "Bob's chain node."
   bob-chain-node:
