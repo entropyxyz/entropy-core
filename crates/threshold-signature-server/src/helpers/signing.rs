@@ -14,12 +14,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Utiliities for executing the signing protocol
-pub use entropy_tss_client_common::Hasher;
+pub use entropy_client::Hasher;
 use std::time::Duration;
 
+use entropy_client::user::UserSignatureRequest;
 use entropy_protocol::{RecoverableSignature, SessionId, SigningSessionInfo};
 use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
-use entropy_tss_client_common::user::UserSignatureRequest;
 use sp_core::Pair;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32};
 use tokio::time::timeout;

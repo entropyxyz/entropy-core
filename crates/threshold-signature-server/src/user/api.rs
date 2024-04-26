@@ -82,7 +82,7 @@ use crate::{
     AppState, Configuration,
 };
 
-pub use entropy_tss_client_common::user::{get_current_subgroup_signers, UserSignatureRequest};
+pub use entropy_client::user::{get_current_subgroup_signers, UserSignatureRequest};
 pub const REQUEST_KEY_HEADER: &str = "REQUESTS";
 
 /// Type for validators to send user key's back and forth

@@ -63,7 +63,7 @@ pub enum ValidatorErr {
     #[error("Message is not from expected author")]
     Authentication,
     #[error("Substrate: {0}")]
-    SubstrateClient(#[from] entropy_tss_client_common::substrate::SubstrateError),
+    SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
 }
 
 impl IntoResponse for ValidatorErr {

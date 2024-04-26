@@ -105,7 +105,7 @@ pub enum ProtocolErr {
     #[error("The session ID is not for a signing session")]
     BadSessionId,
     #[error("Substrate: {0}")]
-    SubstrateClient(#[from] entropy_tss_client_common::substrate::SubstrateError),
+    SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
 }
 
 impl IntoResponse for ProtocolErr {

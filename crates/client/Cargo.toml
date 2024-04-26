@@ -1,10 +1,10 @@
 [package]
-name       ="entropy-tss-client-common"
+name       ="entropy-client"
 version    ="0.0.1"
 edition    ="2021"
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
-description='Common functionality needed by both entropy-tss and an entropy client'
+description='A simple client for the Entropy chain node and Entropy TSS server'
 license    ='AGPL-3.0-or-later'
 repository ='https://github.com/entropyxyz/entropy-core'
 
@@ -19,7 +19,7 @@ futures       ="0.3"
 sp-core       ={ version="31.0.0", default-features=false, features=["full_crypto", "serde"] }
 tracing       ="0.1.37"
 
-# For test client
+# Only present when the "client" feature is active
 anyhow          ={ version="1.0.82", optional=true }
 blake2          ={ version="0.10.4", optional=true }
 rand_core       ={ version="0.6.4", optional=true }

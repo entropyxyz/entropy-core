@@ -124,7 +124,7 @@
 //! - [kvdb](entropy_kvdb) - Encrypted key-value database for storing key-shares and other data, build using
 //! [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
-pub use entropy_tss_client_common::chain_api;
+pub use entropy_client::chain_api;
 pub(crate) mod health;
 pub mod helpers;
 pub(crate) mod node_info;

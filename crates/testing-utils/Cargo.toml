@@ -9,23 +9,22 @@ edition   ='2021'
 publish   =false
 
 [dependencies]
-subxt                    ="0.35.3"
-sp-keyring               ="34.0.0"
-project-root             ="0.2.2"
-sp-core                  ={ version="31.0.0", default-features=false }
-parity-scale-codec       ="3.6.9"
-lazy_static              ="1.4.0"
-hex-literal              ="0.4.1"
-tokio                    ={ version="1.36", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
-axum                     ={ version="0.7.5" }
-entropy-shared           ={ path="../shared" }
-entropy-kvdb             ={ path="../kvdb", default-features=false }
-entropy-tss              ={ path="../threshold-signature-server" }
-entropy-tss-client-common={ path="../tss-client-common" }
-entropy-protocol         ={ path="../protocol" }
-synedrion                ="0.1"
-hex                      ="0.4.3"
-rand_core                ="0.6.4"
+subxt             ="0.35.3"
+sp-keyring        ="34.0.0"
+project-root      ="0.2.2"
+sp-core           ={ version="31.0.0", default-features=false }
+parity-scale-codec="3.6.9"
+lazy_static       ="1.4.0"
+hex-literal       ="0.4.1"
+tokio             ={ version="1.36", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
+axum              ={ version="0.7.5" }
+entropy-shared    ={ path="../shared" }
+entropy-kvdb      ={ path="../kvdb", default-features=false }
+entropy-tss       ={ path="../threshold-signature-server" }
+entropy-protocol  ={ path="../protocol" }
+synedrion         ="0.1"
+hex               ="0.4.3"
+rand_core         ="0.6.4"
 
 # Logging
 tracing           ="0.1.37"

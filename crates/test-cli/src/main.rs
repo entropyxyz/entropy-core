@@ -24,8 +24,7 @@ use std::{
 use anyhow::{anyhow, ensure};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use entropy_testing_utils::constants::TEST_PROGRAM_WASM_BYTECODE;
-use entropy_tss_client_common::{
+use entropy_client::{
     chain_api::{
         entropy::runtime_types::{
             bounded_collections::bounded_vec::BoundedVec, pallet_registry::pallet::ProgramInstance,
@@ -37,6 +36,7 @@ use entropy_tss_client_common::{
         update_programs, KeyParams, KeyShare, KeyVisibility, VERIFYING_KEY_LENGTH,
     },
 };
+use entropy_testing_utils::constants::TEST_PROGRAM_WASM_BYTECODE;
 use sp_core::{sr25519, DeriveJunction, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use subxt::{

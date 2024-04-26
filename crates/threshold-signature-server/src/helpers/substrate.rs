@@ -27,7 +27,7 @@ use crate::{
     },
     user::UserErr,
 };
-pub use entropy_tss_client_common::substrate::{query_chain, submit_transaction};
+pub use entropy_client::substrate::{query_chain, submit_transaction};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, Config, OnlineClient};
 
 /// Return the subgroup that a particular threshold server belongs to.

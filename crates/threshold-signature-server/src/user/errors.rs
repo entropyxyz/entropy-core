@@ -156,9 +156,9 @@ pub enum UserErr {
     #[error("Cannot get output from hasher in HKDF {0}")]
     Hkdf(hkdf::InvalidLength),
     #[error("Substrate: {0}")]
-    SubstrateClient(#[from] entropy_tss_client_common::substrate::SubstrateError),
+    SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
     #[error("Cannot get subgroup signers: {0}")]
-    SubgroupGet(#[from] entropy_tss_client_common::user::SubgroupGetError),
+    SubgroupGet(#[from] entropy_client::user::SubgroupGetError),
 }
 
 impl From<hkdf::InvalidLength> for UserErr {
