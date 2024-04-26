@@ -12,15 +12,21 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-//! A client for the Entropy chain node and Entropy TSS Server.
-//! Since the TSS server communicates with the chain node, this is also a dependency of entropy-tss.
-pub mod chain_api;
-pub mod substrate;
-pub mod user;
-pub mod util;
-pub use util::Hasher;
+//! Utilities
 
-#[cfg(feature = "client")]
-pub mod client;
-#[cfg(feature = "client")]
-pub use client::*;
+use sha3::{Digest, Keccak256};
+
+/// Produces a specific hash on a given message
+pub struct Hasher;
+
+impl Hasher {
+    /// Produces the Keccak256 hash on a given message.
+    ///
+    /// In practice, if `data` is an RLP-serialized Ethereum transaction, this should produce the
+    /// corrosponding .
+    pub fn keccak(data: &[u8]) -> [u8; 32] {
+        let mut keccak = Keccak256::new();
+        keccak.update(data);
+        keccak.finalize().into()
+    }
+}
