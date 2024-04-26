@@ -354,6 +354,13 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     };
 
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
-
+    // let stakers = vec![1, 2];
+    // pallet_session::GenesisConfig::<Test> {
+		// 	keys: stakers
+		// 		.into_iter()
+		// 		.map(|(id, ..)| (id, id, SessionKeys { other: id.into() }))
+		// 		.collect(),
+		// }
+		// .assimilate_storage(&mut t).unwrap();
     t.into()
 }

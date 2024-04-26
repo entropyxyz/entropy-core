@@ -23,6 +23,7 @@ use frame_support::{
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
+use pallet_staking::StakerStatus;
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
@@ -361,5 +362,11 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     };
 
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
+
+    let stakers = vec![1, 2];
+    let keys: Vec<_> = stakers.iter().cloned().map(|i| (i, i, UintAuthorityId(i).into())).collect();
+
+    pallet_session::GenesisConfig::<Test> { keys }.assimilate_storage(&mut t).unwrap();
+
     t.into()
 }
