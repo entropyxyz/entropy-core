@@ -86,7 +86,6 @@ pub struct OcwMessageProactiveRefresh {
 }
 
 /// 256-bit hashing algorithms for deriving the point to be signed.
-///
 #[cfg_attr(any(feature = "wasm", feature = "std"), derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "std", derive(EnumIter))]
 #[derive(Clone, Debug, Eq, PartialEq)]
