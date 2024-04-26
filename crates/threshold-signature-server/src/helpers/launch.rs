@@ -114,8 +114,8 @@ pub async fn load_kv_store(
 #[command(about, version)]
 pub struct StartupArgs {
     /// Wether to sync the keystore.
-    #[arg(short = 's', long = "sync")]
-    pub sync: bool,
+    #[arg(short = 's', long = "no-sync")]
+    pub no_sync: bool,
     /// Use the developer key Bob.
     #[arg(short = 'b', long = "bob")]
     pub bob: bool,

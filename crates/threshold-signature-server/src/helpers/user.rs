@@ -19,7 +19,7 @@ use std::time::Duration;
 use entropy_programs_runtime::Runtime;
 use entropy_protocol::{
     execute_protocol::{execute_dkg, Channels},
-    KeyParams, SessionId, ValidatorInfo,
+    KeyParams, Listener, SessionId, ValidatorInfo,
 };
 use entropy_shared::{HashingAlgorithm, KeyVisibility, SETUP_TIMEOUT_SECONDS};
 
@@ -38,7 +38,7 @@ use crate::{
         entropy, entropy::runtime_types::pallet_registry::pallet::ProgramInstance, EntropyConfig,
     },
     helpers::substrate::{get_program, query_chain},
-    signing_client::{protocol_transport::open_protocol_connections, Listener, ListenerState},
+    signing_client::{protocol_transport::open_protocol_connections, ListenerState},
     user::{api::UserRegistrationInfo, errors::UserErr},
     validation::EncryptedSignedMessage,
 };

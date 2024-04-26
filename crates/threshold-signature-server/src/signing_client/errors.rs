@@ -106,6 +106,8 @@ pub enum ProtocolErr {
     BadSessionId,
     #[error("Substrate: {0}")]
     SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
+    #[error("Listener: {0}")]
+    Listener(#[from] entropy_protocol::errors::ListenerErr),
 }
 
 impl IntoResponse for ProtocolErr {
@@ -133,6 +135,8 @@ pub enum SubscribeErr {
     Serialization(#[from] bincode::Error),
     #[error("User Error: {0}")]
     UserError(String),
+    #[error("Listener: {0}")]
+    Listener(#[from] entropy_protocol::errors::ListenerErr),
 }
 
 impl IntoResponse for SubscribeErr {

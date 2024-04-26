@@ -16,12 +16,14 @@
 //! Protocol execution and transport logic for the Entropy signing and DKG protocols
 pub mod errors;
 pub mod execute_protocol;
+mod listener;
 mod protocol_message;
 pub mod protocol_transport;
 pub mod sign_and_encrypt;
 pub mod user;
 
 pub use entropy_shared::user::ValidatorInfo;
+pub use listener::Listener;
 pub use protocol_message::ProtocolMessage;
 
 extern crate alloc;

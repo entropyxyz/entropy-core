@@ -151,6 +151,8 @@ pub enum UserErr {
     EncryptionOrAuthentication(#[from] EncryptedSignedMessageErr),
     #[error("Custom hash choice out of bounds")]
     CustomHashOutOfBounds,
+    #[error("Listener: {0}")]
+    Listener(#[from] entropy_protocol::errors::ListenerErr),
     #[error("Error creating sr25519 keypair from seed: {0}")]
     SpCoreSecretString(#[from] sp_core::crypto::SecretStringError),
     #[error("Cannot get output from hasher in HKDF {0}")]

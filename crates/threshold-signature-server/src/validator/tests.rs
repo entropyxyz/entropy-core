@@ -447,7 +447,7 @@ async fn test_sync_validator() {
         axum::serve(listener_charlie, charlie_axum).await.unwrap();
     });
 
-    sync_validator(true, false, "ws://127.0.0.1:9944", &charlie_kv).await;
+    sync_validator(false, false, "ws://127.0.0.1:9944", &charlie_kv).await;
 
     for (i, key) in keys.iter().enumerate() {
         let val = charlie_kv.kv().get(key).await;
