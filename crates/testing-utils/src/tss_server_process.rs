@@ -18,10 +18,8 @@ use entropy_kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use entropy_protocol::{KeyParams, PartyId};
 use entropy_shared::DETERMINISTIC_KEY_SHARE;
 use entropy_tss::{
-    app,
-    get_signer,
+    app, get_signer,
     launch::{setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName},
-    // signing_client::ListenerState,
     AppState,
 };
 use rand_core::OsRng;
