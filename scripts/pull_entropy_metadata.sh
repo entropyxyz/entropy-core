@@ -1,2 +1,2 @@
 #!/bin/bash
-subxt metadata -f bytes > ./crates/threshold-signature-server/entropy_metadata.scale
+subxt metadata -f bytes > ./crates/client/entropy_metadata.scale
