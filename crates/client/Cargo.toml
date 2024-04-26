@@ -4,7 +4,7 @@ version    ="0.0.1"
 edition    ="2021"
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
-description='Common functionality needed by both entropy-tss and an entropy client'
+description='A client for the Entropy chain node and Entropy TSS server'
 license    ='AGPL-3.0-or-later'
 repository ='https://github.com/entropyxyz/entropy-core'
 
