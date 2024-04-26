@@ -32,7 +32,7 @@ synedrion       ={ version="0.1", optional=true }
 hex             ={ version="0.4.3", optional=true }
 
 [features]
-default=["native"]
+default=["native", "client"]
 native=[
   "entropy-shared/std",
   "entropy-shared/user-native",
@@ -40,6 +40,8 @@ native=[
   "subxt/substrate-compat",
 ]
 wasm=["entropy-shared/wasm", "entropy-shared/user-wasm", "subxt/web"]
+# This adds full client functionality. It is behind a feature flag because it is not needed by
+# entropy-tss
 client=[
   "dep:anyhow",
   "dep:blake2",

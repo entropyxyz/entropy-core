@@ -12,6 +12,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//! For interacting with the substrate chain node
 use crate::chain_api::EntropyConfig;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -110,6 +111,7 @@ where
     Ok(result)
 }
 
+/// Error relating to submitting an extrinsic or querying the chain
 #[derive(Debug, Error)]
 pub enum SubstrateError {
     #[error("Cannot get block hash")]
