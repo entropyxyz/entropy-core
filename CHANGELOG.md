@@ -22,6 +22,7 @@ At the moment this project **does not** adhere to
   and sr25519 keypairs will be different what they were before.
 
 ### Added
+- Make common crate for TSS and test client ([#775](https://github.com/entropyxyz/entropy-core/pull/775))
 
 ### Changed
 - Derive the threshold account keypair and x25519 keypair from mnemonic using HKDF ([#709](https://github.com/entropyxyz/entropy-core/pull/709))
