@@ -105,7 +105,7 @@ pub mod pallet {
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
         pub program_modification_account: T::AccountId,
-        pub confirmations: Vec<u8>,
+        pub confirmations: Vec<T::AccountId>,
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub key_visibility: KeyVisibility,
         pub verifying_key: Option<VerifyingKey>,
@@ -189,8 +189,8 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// An account has signaled to be registered. [signature request account]
         SignalRegister(T::AccountId),
-        /// An account has been registered. [who, signing_group, verifying_key]
-        RecievedConfirmation(T::AccountId, u8, VerifyingKey),
+        /// An account has been registered. [who, verifying_key]
+        RecievedConfirmation(T::AccountId, VerifyingKey),
         /// An account has been registered. \[who, verifying_key]
         AccountRegistered(T::AccountId, VerifyingKey),
         /// An account registration has failed
@@ -210,9 +210,7 @@ pub mod pallet {
         NoThresholdKey,
         NotRegistering,
         NotRegistered,
-        InvalidSubgroup,
         AlreadyConfirmed,
-        NotInSigningGroup,
         IpAddressError,
         SigningGroupError,
         NoSyncedValidators,
@@ -223,6 +221,7 @@ pub mod pallet {
         NoProgramSet,
         TooManyModifiableKeys,
         MismatchedVerifyingKeyLength,
+        NotValidator,
     }
 
     #[pallet::call]
@@ -390,7 +389,6 @@ pub mod pallet {
         pub fn confirm_register(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
-            signing_subgroup: u8,
             verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
         ) -> DispatchResultWithPostInfo {
             let ts_server_account = ensure_signed(origin)?;
@@ -404,9 +402,12 @@ pub mod pallet {
 
             let mut registering_info =
                 Self::registering(&sig_req_account).ok_or(Error::<T>::NotRegistering)?;
+
+            let mut validators = pallet_session::Pallet::<T>::validators();
+            ensure!(validators.contains(&validator_stash), Error::<T>::NotValidator);
             let confirmation_length = registering_info.confirmations.len() as u32;
             ensure!(
-                !registering_info.confirmations.contains(&signing_subgroup),
+                !registering_info.confirmations.contains(&ts_server_account),
                 Error::<T>::AlreadyConfirmed
             );
 
@@ -467,11 +468,10 @@ pub mod pallet {
                     )
                     .into());
                 }
-                registering_info.confirmations.push(signing_subgroup);
+                registering_info.confirmations.push(ts_server_account);
                 Registering::<T>::insert(&sig_req_account, registering_info);
                 Self::deposit_event(Event::RecievedConfirmation(
                     sig_req_account,
-                    signing_subgroup,
                     registering_info_verifying_key,
                 ));
                 Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(
@@ -563,9 +563,7 @@ pub mod pallet {
             _info: &DispatchInfoOf<Self::Call>,
             _len: usize,
         ) -> TransactionValidity {
-            if let Some(Call::confirm_register { sig_req_account, signing_subgroup, .. }) =
-                call.is_sub_type()
-            {
+            if let Some(Call::confirm_register { sig_req_account, .. }) = call.is_sub_type() {
                 let validator_stash =
                     pallet_staking_extension::Pallet::<T>::threshold_to_stash(who)
                         .ok_or(InvalidTransaction::Custom(1))?;
@@ -573,9 +571,12 @@ pub mod pallet {
                 let registering_info =
                     Registering::<T>::get(sig_req_account).ok_or(InvalidTransaction::Custom(2))?;
                 ensure!(
-                    !registering_info.confirmations.contains(signing_subgroup),
+                    !registering_info.confirmations.contains(who),
                     InvalidTransaction::Custom(3)
                 );
+                //TODO make sure validator
+                let mut validators = pallet_session::Pallet::<T>::validators();
+                ensure!(validators.contains(&validator_stash), InvalidTransaction::Custom(4));
             }
             Ok(ValidTransaction::default())
         }
