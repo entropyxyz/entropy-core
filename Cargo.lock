@@ -2358,7 +2358,7 @@ dependencies = [
 
 [[package]]
 name = "entropy"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "clap",
  "entropy-runtime",
@@ -2529,7 +2529,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-runtime"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -6969,7 +6969,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-parameters"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "frame-benchmarking",
  "frame-support 29.0.2",
@@ -7002,7 +7002,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-programs"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "frame-benchmarking",
  "frame-support 29.0.2",
@@ -7020,7 +7020,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-propagation"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7085,7 +7085,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-registry"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7174,7 +7174,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-slashing"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -7224,7 +7224,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-extension"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7321,7 +7321,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-transaction-pause"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "frame-benchmarking",
  "frame-support 29.0.2",

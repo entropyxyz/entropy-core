@@ -1,6 +1,6 @@
 [package]
 name       ='entropy'
-version    ='0.0.11'
+version    ='0.0.12'
 description="Entropy substrate node"
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
@@ -89,12 +89,12 @@ pallet-transaction-payment    ={ version="29.0.0" }
 pallet-transaction-payment-rpc={ version="31.0.0" }
 
 # Entropy Dependencies
-entropy-runtime={ version="0.0.11", path="../../runtime" }
+entropy-runtime={ version="0.0.12", path="../../runtime" }
 entropy-shared={ version="0.0.12", path="../../crates/shared", default-features=false, features=[
   "wasm-no-std",
 ] }
-pallet-registry={ version="0.0.11", path="../../pallets/registry" }
-pallet-staking-extension={ version="0.0.11", path="../../pallets/staking" }
+pallet-registry={ version="0.0.12", path="../../pallets/registry" }
+pallet-staking-extension={ version="0.0.12", path="../../pallets/staking" }
 project-root="0.2.2"
 
 [build-dependencies]

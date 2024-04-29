@@ -69,7 +69,7 @@ sha2             ="0.10.8"
 hkdf             ="0.12.4"
 
 [dev-dependencies]
-entropy-testing-utils={ path="../testing-utils" }
+entropy-testing-utils={ version="0.0.12", path="../testing-utils" }
 serial_test          ="3.1.0"
 hex-literal          ="0.4.1"
 project-root         ="0.2.2"
@@ -77,7 +77,7 @@ sp-keyring           ="34.0.0"
 more-asserts         ="0.3.1"
 template-barebones   ={ git="https://github.com/entropyxyz/programs.git", tag="v0.7.0" }
 lazy_static          ="1.4.0"
-entropy-protocol     ={ path="../protocol", features=["unsafe"] }
+entropy-protocol     ={ version="0.0.12", path="../protocol", features=["unsafe"] }
 blake3               ="1.5.1"
 ethers-core          ="2.0.14"
 schnorrkel           ={ version="0.11.4", default-features=false, features=["std"] }
