@@ -1,11 +1,12 @@
 [package]
-name      ="entropy-test-cli"
-version   ='0.0.1'
-authors   =['Entropy Cryptography <engineering@entropy.xyz>']
-homepage  ='https://entropy.xyz/'
-license   ='AGPL-3.0-or-later'
-repository='https://github.com/entropyxyz/entropy-core'
-edition   ='2021'
+name       ="entropy-test-cli"
+description="Simple command line interface client for testing Entropy"
+version    ='0.0.12'
+authors    =['Entropy Cryptography <engineering@entropy.xyz>']
+homepage   ='https://entropy.xyz/'
+license    ='AGPL-3.0-or-later'
+repository ='https://github.com/entropyxyz/entropy-core'
+edition    ='2021'
 
 [dependencies]
 entropy-testing-utils={ path="../testing-utils" }

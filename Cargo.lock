@@ -2433,7 +2433,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-kvdb"
-version = "0.1.0"
+version = "0.0.12"
 dependencies = [
  "bincode",
  "chacha20poly1305 0.9.1",
@@ -2489,7 +2489,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-protocol"
-version = "0.1.0"
+version = "0.0.12"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2612,7 +2612,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-shared"
-version = "0.1.0"
+version = "0.0.12"
 dependencies = [
  "hex-literal",
  "lazy_static",
@@ -2629,7 +2629,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-test-cli"
-version = "0.0.1"
+version = "0.0.12"
 dependencies = [
  "anyhow",
  "bincode",
@@ -2646,7 +2646,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-testing-utils"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "anyhow",
  "axum",
@@ -2682,7 +2682,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-tss"
-version = "0.1.0"
+version = "0.0.12"
 dependencies = [
  "anyhow",
  "axum",
