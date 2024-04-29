@@ -152,6 +152,7 @@ fn paused_transaction_filter_work() {
                 new_program: vec![],
                 configuration_schema: vec![],
                 auxiliary_data_schema: vec![],
+                oracle_data_pointer: vec![],
             });
         assert!(!PausedTransactionFilter::<Runtime>::contains(BALANCE_TRANSFER));
         assert!(!PausedTransactionFilter::<Runtime>::contains(whitelist_address_call));

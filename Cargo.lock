@@ -2466,9 +2466,9 @@ dependencies = [
 
 [[package]]
 name = "entropy-programs-core"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f93d8587c74e613c10343e643bcef69b9c71a03eef8910e8105fc6d589ae2fbb"
+checksum = "c5b5d04ed1473cf2ddf65364adfa473f4f4127132525342e85ca15adf97f2cb9"
 dependencies = [
  "getrandom 0.2.14",
  "serde",
@@ -2478,11 +2478,11 @@ dependencies = [
 
 [[package]]
 name = "entropy-programs-runtime"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "692bd11f0a2f6ca8f80873796c72db5dce38c144e4707f7ea59435d618d688e0"
+checksum = "6a50c0e3e7224af04d8bebc6994f7428796de5f88861c89291644f2a85a44d3c"
 dependencies = [
- "entropy-programs-core 0.9.0",
+ "entropy-programs-core 0.10.0",
  "thiserror",
  "wasmtime 12.0.2",
 ]

@@ -108,6 +108,7 @@ pub mod pallet {
                         configuration_schema: program_info.2.clone(),
                         auxiliary_data_schema: program_info.3.clone(),
                         deployer: program_info.4.clone(),
+                        oracle_data_pointer: vec![],
                         ref_counter: program_info.5,
                     },
                 );
@@ -136,6 +137,8 @@ pub mod pallet {
         /// [JSON Schema](https://json-schema.org/) in order to simplify the life of off-chain
         /// actors.
         pub auxiliary_data_schema: Vec<u8>,
+        /// The location of the oracle data needed for this program
+        pub oracle_data_pointer: Vec<u8>,
         /// Deployer of the program
         pub deployer: AccountId,
         /// Accounts that use this program
@@ -176,6 +179,9 @@ pub mod pallet {
 
             /// The new program auxiliary data schema.
             auxiliary_data_schema: Vec<u8>,
+
+            /// The oracle data location needed for the program
+            oracle_data_pointer: Vec<u8>,
         },
         /// The bytecode of a program was removed.
         ProgramRemoved {
@@ -217,18 +223,22 @@ pub mod pallet {
             new_program: Vec<u8>,
             configuration_schema: Vec<u8>,
             auxiliary_data_schema: Vec<u8>,
+            oracle_data_pointer: Vec<u8>,
         ) -> DispatchResult {
             let deployer = ensure_signed(origin)?;
             let mut hash_input = vec![];
             hash_input.extend(&new_program);
             hash_input.extend(&configuration_schema);
             hash_input.extend(&auxiliary_data_schema);
+            hash_input.extend(&oracle_data_pointer);
             let program_hash = T::Hashing::hash(&hash_input);
             let new_program_length = new_program
                 .len()
                 .checked_add(configuration_schema.len())
                 .ok_or(Error::<T>::ArithmeticError)?
                 .checked_add(auxiliary_data_schema.len())
+                .ok_or(Error::<T>::ArithmeticError)?
+                .checked_add(oracle_data_pointer.len())
                 .ok_or(Error::<T>::ArithmeticError)?;
             ensure!(
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
@@ -244,6 +254,7 @@ pub mod pallet {
                     bytecode: new_program.clone(),
                     configuration_schema: configuration_schema.clone(),
                     auxiliary_data_schema: auxiliary_data_schema.clone(),
+                    oracle_data_pointer: oracle_data_pointer.clone(),
                     deployer: deployer.clone(),
                     ref_counter: 0u128,
                 },
@@ -262,6 +273,7 @@ pub mod pallet {
                 program_hash,
                 configuration_schema,
                 auxiliary_data_schema,
+                oracle_data_pointer,
             });
             Ok(())
         }
@@ -284,7 +296,8 @@ pub mod pallet {
                 &old_program_info.deployer,
                 old_program_info.bytecode.len()
                     + old_program_info.configuration_schema.len()
-                    + old_program_info.auxiliary_data_schema.len(),
+                    + old_program_info.auxiliary_data_schema.len()
+                    + old_program_info.oracle_data_pointer.len(),
             );
             let mut owned_programs_length = 0;
             OwnedPrograms::<T>::try_mutate(
