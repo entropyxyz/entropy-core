@@ -179,37 +179,6 @@ benchmarks! {
   verify {
     assert_last_event::<T>(Event::<T>::ValidatorSyncStatus(validator_id_res,  true).into());
   }
-
-  new_session_handler_helper {
-    let c in 0 .. MaxValidators::<T>::get();
-    let n in 0 .. MaxValidators::<T>::get();
-    let current_validators = create_validators::<T>(c, SEED);
-    let new_validators = create_validators::<T>(n, SEED_2);
-    let _ =Staking::<T>::new_session_handler(&current_validators);
-    let mut current_subgroups: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> = vec![];
-    for signing_group in 0..SIGNING_PARTY_SIZE {
-      let current_subgroup = SigningGroups::<T>::get(signing_group as u8).unwrap();
-      current_subgroups.push(current_subgroup)
-    };
-}: {
-    let _ = Staking::<T>::new_session_handler(&new_validators);
-} verify {
-    let one_current_validator = &SigningGroups::<T>::get(0).unwrap();
-    if n == 0 {
-        if !one_current_validator.is_empty() {
-            assert!(!new_validators.contains(&one_current_validator[0]));
-        }
-    } else {
-      let mut new_subgroups: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> = vec![];
-      for signing_group in 0..SIGNING_PARTY_SIZE {
-        let new_subgroup = SigningGroups::<T>::get(signing_group as u8).unwrap();
-        new_subgroups.push(new_subgroup)
-      };
-        assert_last_event::<T>(Event::<T>::ValidatorSubgroupsRotated(current_subgroups,  new_subgroups).into());
-        assert!(new_validators.contains(&one_current_validator[0]));
-    }
-}
-
 }
 
 impl_benchmark_test_suite!(Staking, crate::mock::new_test_ext(), crate::mock::Test);
