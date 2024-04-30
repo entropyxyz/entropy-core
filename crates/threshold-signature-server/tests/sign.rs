@@ -59,6 +59,7 @@ async fn integration_test_sign_public() {
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
         vec![],
+        vec![],
     )
     .await
     .unwrap();
@@ -117,6 +118,7 @@ async fn integration_test_sign_private() {
         &rpc,
         &deployer.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
         vec![],
         vec![],
     )

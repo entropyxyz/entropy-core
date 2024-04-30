@@ -84,6 +84,7 @@ fn knows_how_to_mock_several_http_calls() {
                 bytecode: vec![],
                 configuration_schema: vec![],
                 auxiliary_data_schema: vec![],
+                oracle_data_pointer: vec![],
                 deployer: 1,
                 ref_counter: 0,
             },

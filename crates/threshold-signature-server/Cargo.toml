@@ -43,7 +43,7 @@ entropy-kvdb    ={ path="../kvdb", default-features=false }
 entropy-protocol={ path="../protocol", features=["server"] }
 
 # Programs
-entropy-programs-runtime="0.9.0"
+entropy-programs-runtime="0.10.0"
 
 # Logging
 tracing                 ="0.1.37"
@@ -70,7 +70,7 @@ hkdf             ="0.12.4"
 
 [dev-dependencies]
 entropy-testing-utils={ path="../testing-utils" }
-serial_test          ="3.1.0"
+serial_test          ="3.1.1"
 hex-literal          ="0.4.1"
 project-root         ="0.2.2"
 sp-keyring           ="34.0.0"
@@ -81,7 +81,7 @@ entropy-protocol     ={ path="../protocol", features=["unsafe"] }
 blake3               ="1.5.1"
 ethers-core          ="2.0.14"
 schnorrkel           ={ version="0.11.4", default-features=false, features=["std"] }
-schemars             ={ version="0.8.16" }
+schemars             ={ version="0.8.17" }
 
 [build-dependencies]
 vergen={ version="8.0.0", features=["build", "git", "gitcl"] }

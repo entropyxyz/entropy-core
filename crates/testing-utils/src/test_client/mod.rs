@@ -276,11 +276,13 @@ pub async fn store_program(
     program: Vec<u8>,
     configuration_interface: Vec<u8>,
     auxiliary_data_interface: Vec<u8>,
+    oracle_data_pointer: Vec<u8>,
 ) -> anyhow::Result<<EntropyConfig as Config>::Hash> {
     let update_program_tx = entropy::tx().programs().set_program(
         program,
         configuration_interface,
         auxiliary_data_interface,
+        oracle_data_pointer,
     );
     let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer_pair.clone());
 
