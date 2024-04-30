@@ -161,7 +161,6 @@ pub mod pallet {
     #[derive(DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         pub threshold_servers: Vec<ThresholdServersConfig<T>>,
-        pub signing_groups: Vec<(u8, Vec<<T as pallet_session::Config>::ValidatorId>)>,
         /// validator info and accounts to take part in proactive refresh
         pub proactive_refresh_data: (Vec<ValidatorInfo>, Vec<Vec<u8>>),
     }
@@ -184,13 +183,9 @@ pub mod pallet {
 
                 ThresholdServers::<T>::insert(validator_stash, server_info.clone());
                 ThresholdToStash::<T>::insert(&server_info.tss_account, validator_stash);
+                IsValidatorSynced::<T>::insert(validator_stash, true);
             }
 
-            for (group_id, validator_ids) in &self.signing_groups {
-                for validator_id in validator_ids {
-                    IsValidatorSynced::<T>::insert(validator_id, true);
-                }
-            }
             let refresh_info = RefreshInfo {
                 validators_info: self.proactive_refresh_data.0.clone(),
                 proactive_refresh_keys: self.proactive_refresh_data.1.clone(),

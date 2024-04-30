@@ -169,16 +169,6 @@ pub fn integration_tests_genesis_config(
                     ),
                 ),
             ],
-            signing_groups: vec![
-                (
-                    0,
-                    vec![
-                        get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                        get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    ],
-                ),
-                (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
-            ],
             proactive_refresh_data: (
                 vec![
                     entropy_shared::ValidatorInfo {
