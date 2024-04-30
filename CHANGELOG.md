@@ -20,11 +20,13 @@ At the moment this project **does not** adhere to
   keypairs internally and so the decrypt method now takes a x25519 secret key. Also, the method by
   which keypairs are derived from a mnemonic has changed, which means existing validators x25119
   and sr25519 keypairs will be different what they were before.
+- In [#792](https://github.com/entropyxyz/entropy-core/pull/792) All Subgroup refrences have been removed.
 
 ### Added
 
 ### Changed
 - Derive the threshold account keypair and x25519 keypair from mnemonic using HKDF ([#709](https://github.com/entropyxyz/entropy-core/pull/709))
+- Remove Subgroups ([#792](https://github.com/entropyxyz/entropy-core/pull/792))
 
 ## [0.0.11](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...release/v0.0.11) - 2024-04-XX
 
