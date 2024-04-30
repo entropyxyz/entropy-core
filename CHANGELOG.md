@@ -9,8 +9,14 @@ At the moment this project **does not** adhere to
 
 ## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.11...master)
 
+## [0.0.12](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.11...release/v0.0.12) - 2024-05-30
+
 ### Breaking Changes
 
+- [#788](https://github.com/entropyxyz/entropy-core/pull/788) 'Integrate oracle to programs' the
+  `programs::set_program` extrinsic now takes an additional argument `oracle_data_pointer` of type
+  `Vec<u8>` (`Uint8Array` on JS). Since oracles are not completely implemented this should be
+  passed an empty vector/array.
 - In [#709](https://github.com/entropyxyz/entropy-core/pull/709) 'Derive the threshold account
   keypair and x25519 keypair from mnemonic using HKDF' the JS `entropy-protocol` bindings have
   changed. `Hpke.DecryptAndVerify` now takes a secret x25519 encryption key rather than a secret
@@ -22,9 +28,12 @@ At the moment this project **does not** adhere to
   and sr25519 keypairs will be different what they were before.
 
 ### Added
+- Add testnet account JSON ([#769](https://github.com/entropyxyz/entropy-core/pull/769))
 
 ### Changed
 - Derive the threshold account keypair and x25519 keypair from mnemonic using HKDF ([#709](https://github.com/entropyxyz/entropy-core/pull/709))
+- TSS servers sync by default ([#784](https://github.com/entropyxyz/entropy-core/pull/784))
+- Improve test-cli following removal of permissioned mode ([#770](https://github.com/entropyxyz/entropy-core/pull/770))
 
 ## [0.0.11](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...release/v0.0.11) - 2024-04-XX
 
