@@ -23,7 +23,6 @@ use entropy_protocol::{
 };
 use entropy_shared::{HashingAlgorithm, KeyVisibility, SETUP_TIMEOUT_SECONDS};
 
-use reqwest::StatusCode;
 use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::{Digest as Sha256Digest, Sha256};
 use sha3::{Digest as Sha3Digest, Keccak256, Sha3_256};
@@ -34,13 +33,10 @@ use tokio::time::timeout;
 use x25519_dalek::StaticSecret;
 
 use crate::{
-    chain_api::{
-        entropy, entropy::runtime_types::pallet_registry::pallet::ProgramInstance, EntropyConfig,
-    },
-    helpers::substrate::{get_program, query_chain},
+    chain_api::{entropy::runtime_types::pallet_registry::pallet::ProgramInstance, EntropyConfig},
+    helpers::substrate::get_program,
     signing_client::{protocol_transport::open_protocol_connections, ListenerState},
-    user::{api::UserRegistrationInfo, errors::UserErr},
-    validation::EncryptedSignedMessage,
+    user::errors::UserErr,
 };
 /// complete the dkg process for a new user
 pub async fn do_dkg(

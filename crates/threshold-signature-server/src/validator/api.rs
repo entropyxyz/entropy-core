@@ -13,45 +13,27 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use axum::{extract::State, Json};
-use entropy_kvdb::kv_manager::KvManager;
-use entropy_shared::{MIN_BALANCE, VERIFICATION_KEY_LENGTH};
-use reqwest;
-use serde::{Deserialize, Serialize};
-use sp_core::crypto::{AccountId32, Ss58Codec};
-use std::{str::FromStr, thread, time::Duration, time::SystemTime};
-use subxt::{
-    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
-    utils::AccountId32 as SubxtAccountId32, OnlineClient,
-};
-use x25519_dalek::StaticSecret;
-
 use crate::{
     chain_api::{
-        entropy::{self, runtime_types::pallet_staking_extension::pallet::ServerInfo},
-        get_api, get_rpc, EntropyConfig,
+        entropy::{self},
+        EntropyConfig,
     },
-    get_signer_and_x25519_secret,
-    helpers::{
-        launch::FORBIDDEN_KEYS,
-        substrate::{get_stash_address, query_chain, submit_transaction},
-    },
-    validation::{check_stale, EncryptedSignedMessage},
+    helpers::{launch::FORBIDDEN_KEYS, substrate::query_chain},
     validator::errors::ValidatorErr,
-    AppState,
 };
-
-// TODO: find a proper batch size
-pub const BATHC_SIZE_FOR_KEY_VALUE_GET: usize = 10;
+use std::str::FromStr;
+use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 
 /// Validation for if an account can cover tx fees for a tx
 pub async fn check_balance_for_fees(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    address: &subxt::utils::AccountId32,
+    address: String,
     min_balance: u128,
 ) -> Result<bool, ValidatorErr> {
-    let balance_query = entropy::storage().system().account(address);
+    let balance_query = entropy::storage()
+        .system()
+        .account(AccountId32::from_str(&address).expect("Error converting address"));
     let account_info = query_chain(api, rpc, balance_query, None)
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Account does not exist, add balance"))?;

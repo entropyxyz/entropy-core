@@ -54,17 +54,17 @@ async fn test_check_balance_for_fees() {
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
     let result =
-        check_balance_for_fees(&api, &rpc, &ALICE_STASH_ADDRESS, MIN_BALANCE).await.unwrap();
+        check_balance_for_fees(&api, &rpc, ALICE_STASH_ADDRESS.to_string(), MIN_BALANCE).await.unwrap();
 
     assert!(result);
 
     let result_2 =
-        check_balance_for_fees(&api, &rpc, &ALICE_STASH_ADDRESS, 10000000000000000000000u128)
+        check_balance_for_fees(&api, &rpc, ALICE_STASH_ADDRESS.to_string(), 10000000000000000000000u128)
             .await
             .unwrap();
     assert!(!result_2);
 
-    let _ = check_balance_for_fees(&api, &rpc, &RANDOM_ACCOUNT, MIN_BALANCE).await.unwrap();
+    let _ = check_balance_for_fees(&api, &rpc, RANDOM_ACCOUNT.to_string(), MIN_BALANCE).await.unwrap();
     clean_tests();
 }
 

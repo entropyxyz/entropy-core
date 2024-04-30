@@ -184,11 +184,6 @@ pub async fn sign_tx(
         let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
         runtime.evaluate(&program, &signature_request, Some(&program_info.program_config))?;
     }
-    // We decided to do Keccak for subgroup selection for frontend compatability
-    let message_hash_keccak =
-        compute_hash(&api, &rpc, &HashingAlgorithm::Keccak, &mut runtime, &[], message.as_slice())
-            .await?;
-    let message_hash_keccak_hex = hex::encode(message_hash_keccak);
 
     let signers = get_signers_from_chain(&api, &rpc).await?;
     // // Use the validator info from chain as we can be sure it is in the correct order and the
@@ -211,7 +206,7 @@ pub async fn sign_tx(
         request_author,
     };
 
-    let has_key = check_for_key(&string_verifying_key, &app_state.kv_store).await?;
+    let _has_key = check_for_key(&string_verifying_key, &app_state.kv_store).await?;
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 
@@ -297,8 +292,6 @@ async fn setup_dkg(
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
 
-    let stash_address = get_stash_address(&api, rpc, signer.account_id()).await?;
-
     let block_hash = rpc
         .chain_get_block_hash(None)
         .await?
@@ -373,13 +366,6 @@ pub async fn receive_key(
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-
-    let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
-        .map_err(|_| UserErr::StringError("Account Conversion"))?;
-
-    // check message is from the person sending the message (get stash key from threshold key)
-    let stash_address_query =
-        entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
 
     let already_exists =
         app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;

@@ -108,7 +108,7 @@ pub async fn register(
                 .number
                 + 1;
 
-            let validators_info = get_dkg_committee(api, rpc, block_number).await?;
+            let validators_info = get_dkg_committee(api, rpc).await?;
             Some(
                 user_participates_in_dkg_protocol(
                     validators_info,
@@ -166,7 +166,6 @@ pub async fn sign(
     auxilary_data: Option<Vec<u8>>,
 ) -> anyhow::Result<RecoverableSignature> {
     let message_hash = Hasher::keccak(&message);
-    let message_hash_hex = hex::encode(message_hash);
     let validators_info = get_signers_from_chain(&api, &rpc).await?;
     tracing::debug!("Validators info {:?}", validators_info);
 
@@ -381,13 +380,12 @@ pub async fn check_verifying_key(
 async fn get_dkg_committee(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    block_number: u32,
 ) -> anyhow::Result<Vec<ValidatorInfo>> {
     let mut validators_info: Vec<ValidatorInfo> = vec![];
     let all_validators_query = entropy::storage().session().validators();
     let all_validators = query_chain(api, rpc, all_validators_query, None)
-    .await?
-    .ok_or(anyhow!("Stash Fetch Error"))?;
+        .await?
+        .ok_or(anyhow!("Stash Fetch Error"))?;
 
     for validator in all_validators {
         let threshold_address_query =

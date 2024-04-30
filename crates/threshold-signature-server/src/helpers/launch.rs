@@ -165,7 +165,7 @@ pub struct StartupArgs {
 pub async fn setup_mnemonic(
     kv: &KvManager,
     validator_name: &Option<ValidatorName>,
-) -> Result<(), KvError> {
+) -> Result<String, KvError> {
     // Check if a mnemonic exists in the kvdb.
     let exists_result = kv.kv().exists(FORBIDDEN_KEYS[0]).await.expect("issue querying DB");
     if !exists_result {
@@ -231,8 +231,17 @@ pub async fn setup_mnemonic(
         fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
 
         tracing::debug!("Starting process with account ID: `{id}`");
+        return Ok(id.to_ss58check());
+    } else {
+        let mnemonic = kv.kv().get(FORBIDDEN_KEYS[0]).await.expect("Issue getting mnemonic");
+        let pair = <sr25519::Pair as Pair>::from_phrase(
+            &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
+            None,
+        )
+        .expect("Issue converting mnemonic to pair");
+        let id = AccountId32::new(pair.0.public().into());
+        return Ok(id.to_ss58check());
     }
-    Ok(())
 }
 
 pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {

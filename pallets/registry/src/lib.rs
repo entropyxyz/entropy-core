@@ -403,7 +403,7 @@ pub mod pallet {
             let mut registering_info =
                 Self::registering(&sig_req_account).ok_or(Error::<T>::NotRegistering)?;
 
-            let mut validators = pallet_session::Pallet::<T>::validators();
+            let validators = pallet_session::Pallet::<T>::validators();
             ensure!(validators.contains(&validator_stash), Error::<T>::NotValidator);
             let confirmation_length = registering_info.confirmations.len() as u32;
             ensure!(
@@ -486,7 +486,7 @@ pub mod pallet {
         #[allow(clippy::type_complexity)]
         pub fn get_validators_info() -> Result<Vec<ServerInfo<T::AccountId>>, Error<T>> {
             let mut validators_info: Vec<ServerInfo<T::AccountId>> = vec![];
-            let mut validators = pallet_session::Pallet::<T>::validators();
+            let validators = pallet_session::Pallet::<T>::validators();
 
             for validator_address in validators {
                 let validator_info =
@@ -574,8 +574,8 @@ pub mod pallet {
                     !registering_info.confirmations.contains(who),
                     InvalidTransaction::Custom(3)
                 );
-                //TODO make sure validator
-                let mut validators = pallet_session::Pallet::<T>::validators();
+
+                let validators = pallet_session::Pallet::<T>::validators();
                 ensure!(validators.contains(&validator_stash), InvalidTransaction::Custom(4));
             }
             Ok(ValidTransaction::default())

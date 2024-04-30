@@ -134,7 +134,7 @@ pub(crate) mod signing_client;
 pub(crate) mod r#unsafe;
 pub mod user;
 pub mod validation;
-pub(crate) mod validator;
+pub mod validator;
 
 use axum::{
     http::Method,
