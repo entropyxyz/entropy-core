@@ -166,7 +166,7 @@ pub async fn sign(
     auxilary_data: Option<Vec<u8>>,
 ) -> anyhow::Result<RecoverableSignature> {
     let message_hash = Hasher::keccak(&message);
-    let validators_info = get_signers_from_chain(&api, &rpc).await?;
+    let validators_info = get_signers_from_chain(api, rpc).await?;
     tracing::debug!("Validators info {:?}", validators_info);
 
     let signature_request = UserSignatureRequest {

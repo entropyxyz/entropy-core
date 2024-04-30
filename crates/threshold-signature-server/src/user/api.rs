@@ -472,7 +472,6 @@ pub async fn get_signers_from_chain(
         let handle: tokio::task::JoinHandle<Result<ValidatorInfo, UserErr>> = tokio::task::spawn({
             let api = api.clone();
             let rpc = rpc.clone();
-            let block_hash = block_hash.clone();
             async move {
                 let threshold_address_query =
                     entropy::storage().staking_extension().threshold_servers(validator);

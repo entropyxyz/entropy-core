@@ -14,23 +14,16 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use entropy_kvdb::clean_tests;
-use entropy_shared::{MIN_BALANCE};
+use entropy_shared::MIN_BALANCE;
 use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
-    substrate_context::{
-        testing_context,
-    },
+    substrate_context::testing_context,
 };
 
 use super::api::{check_balance_for_fees, check_forbidden_key};
 use crate::{
     chain_api::{get_api, get_rpc},
-    helpers::{
-        launch::{
-            FORBIDDEN_KEYS,
-        },
-        tests::{initialize_test_logger},
-    },
+    helpers::{launch::FORBIDDEN_KEYS, tests::initialize_test_logger},
     validator::errors::ValidatorErr,
 };
 
@@ -44,18 +37,24 @@ async fn test_check_balance_for_fees() {
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
-    let result =
-        check_balance_for_fees(&api, &rpc, ALICE_STASH_ADDRESS.to_string(), MIN_BALANCE).await.unwrap();
+    let result = check_balance_for_fees(&api, &rpc, ALICE_STASH_ADDRESS.to_string(), MIN_BALANCE)
+        .await
+        .unwrap();
 
     assert!(result);
 
-    let result_2 =
-        check_balance_for_fees(&api, &rpc, ALICE_STASH_ADDRESS.to_string(), 10000000000000000000000u128)
-            .await
-            .unwrap();
+    let result_2 = check_balance_for_fees(
+        &api,
+        &rpc,
+        ALICE_STASH_ADDRESS.to_string(),
+        10000000000000000000000u128,
+    )
+    .await
+    .unwrap();
     assert!(!result_2);
 
-    let _ = check_balance_for_fees(&api, &rpc, RANDOM_ACCOUNT.to_string(), MIN_BALANCE).await.unwrap();
+    let _ =
+        check_balance_for_fees(&api, &rpc, RANDOM_ACCOUNT.to_string(), MIN_BALANCE).await.unwrap();
     clean_tests();
 }
 

@@ -231,7 +231,7 @@ pub async fn setup_mnemonic(
         fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
 
         tracing::debug!("Starting process with account ID: `{id}`");
-        return Ok(id.to_ss58check());
+        Ok(id.to_ss58check())
     } else {
         let mnemonic = kv.kv().get(FORBIDDEN_KEYS[0]).await.expect("Issue getting mnemonic");
         let pair = <sr25519::Pair as Pair>::from_phrase(
@@ -240,7 +240,7 @@ pub async fn setup_mnemonic(
         )
         .expect("Issue converting mnemonic to pair");
         let id = AccountId32::new(pair.0.public().into());
-        return Ok(id.to_ss58check());
+        Ok(id.to_ss58check())
     }
 }
 
