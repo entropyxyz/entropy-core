@@ -57,7 +57,7 @@ use crate::{
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         substrate::{get_registered_details, get_stash_address, query_chain},
-        user::{check_in_registration_group, send_key},
+        user::{check_in_registration_group},
         validator::get_signer_and_x25519_secret,
     },
     signing_client::{
@@ -134,15 +134,6 @@ pub async fn proactive_refresh(
                 let reservation =
                     app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
                 app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
-                //     send_key(
-                //         &api,
-                //         &rpc,
-                //         &stash_address,
-                //         new_key_info,
-                //         &signer,
-                //     )
-                //     .await
-                //     .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
             }
         }
     }

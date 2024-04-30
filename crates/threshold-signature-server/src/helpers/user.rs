@@ -110,52 +110,6 @@ pub async fn do_dkg(
     Ok(result)
 }
 
-/// Send's user key share to other members of signing subgroup
-pub async fn send_key(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    stash_address: &AccountId32,
-    addresses_in_subgroup: &mut Vec<AccountId32>,
-    user_registration_info: UserRegistrationInfo,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) -> Result<(), UserErr> {
-    addresses_in_subgroup.remove(
-        addresses_in_subgroup
-            .iter()
-            .position(|address| *address == *stash_address)
-            .ok_or_else(|| UserErr::OptionUnwrapError("Validator not in subgroup".to_string()))?,
-    );
-    let block_hash = rpc.chain_get_block_hash(None).await?;
-
-    for validator in addresses_in_subgroup {
-        let server_info_query = entropy::storage().staking_extension().threshold_servers(validator);
-        let server_info = query_chain(api, rpc, server_info_query, block_hash)
-            .await?
-            .ok_or_else(|| UserErr::ChainFetch("Server Info Fetch Error"))?;
-        let encrypted_message = EncryptedSignedMessage::new(
-            signer.signer(),
-            serde_json::to_vec(&user_registration_info.clone())?,
-            &server_info.x25519_public_key,
-            &[],
-        )?;
-        // encrypt and sign info
-        let url = format!("http://{}/user/receive_key", String::from_utf8(server_info.endpoint)?);
-        let client = reqwest::Client::new();
-
-        let response = client
-            .post(url)
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&encrypted_message)?)
-            .send()
-            .await?;
-
-        if response.status() != StatusCode::OK {
-            return Err(UserErr::KeyShareRejected(response.text().await.unwrap_or_default()));
-        }
-    }
-    Ok(())
-}
-
 /// Checks if a validator is in the current selected registration committee
 pub fn check_in_registration_group(
     validators_info: &[entropy_shared::ValidatorInfo],
