@@ -34,7 +34,7 @@ use crate::{
         },
         logger::Instrumentation,
         logger::Logger,
-        substrate::{get_subgroup, query_chain, submit_transaction},
+        substrate::{query_chain, submit_transaction},
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     signing_client::ListenerState,
@@ -258,30 +258,4 @@ pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32)
     while current_block < block_run {
         current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     }
-}
-
-#[tokio::test]
-#[serial]
-async fn test_get_signing_group() {
-    initialize_test_logger().await;
-    clean_tests();
-    let cxt = testing_context().await;
-    setup_client().await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
-
-    let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
-    let result_alice = get_subgroup(&api, &rpc, &signer_alice.account_id()).await.unwrap();
-    assert_eq!(result_alice, 0);
-
-    let (signer_bob, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_BOB_MNEMONIC).unwrap();
-    let result_bob = get_subgroup(&api, &rpc, &signer_bob.account_id()).await.unwrap();
-    assert_eq!(result_bob, 1);
-
-    let p_charlie = <sr25519::Pair as Pair>::from_string("//Charlie//stash", None).unwrap();
-    let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
-    let result_charlie = get_subgroup(&api, &rpc, &signer_charlie.account_id()).await;
-    assert!(result_charlie.is_err());
-
-    clean_tests();
 }

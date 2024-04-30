@@ -23,7 +23,7 @@ use entropy_tss::{
         load_kv_store, setup_latest_block_number, setup_mnemonic, setup_only, Configuration,
         StartupArgs, ValidatorName,
     },
-    sync_validator, AppState,
+    AppState,
 };
 
 #[tokio::main]
@@ -59,7 +59,7 @@ async fn main() {
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
 
     // Below deals with syncing the kvdb
-    sync_validator(args.no_sync, args.dev, &configuration.endpoint, &kv_store).await;
+    // sync_validator(args.no_sync, args.dev, &configuration.endpoint, &kv_store).await;
     let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
 
     if args.setup_only {

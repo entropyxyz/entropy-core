@@ -56,10 +56,7 @@ use crate::{
     },
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        substrate::{
-            get_registered_details, get_stash_address, get_subgroup, query_chain,
-            return_all_addresses_of_subgroup,
-        },
+        substrate::{get_registered_details, get_stash_address, query_chain},
         user::{check_in_registration_group, send_key},
         validator::get_signer_and_x25519_secret,
     },
@@ -95,18 +92,6 @@ pub async fn proactive_refresh(
     check_in_registration_group(&ocw_data.validators_info, signer.account_id())
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     validate_proactive_refresh(&api, &rpc, &app_state.kv_store, &ocw_data).await?;
-
-    let subgroup = get_subgroup(&api, &rpc, signer.account_id())
-        .await
-        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-
-    let stash_address = get_stash_address(&api, &rpc, signer.account_id())
-        .await
-        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-
-    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, subgroup)
-        .await
-        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
 
     for encoded_key in ocw_data.proactive_refresh_keys {
         let key = hex::encode(&encoded_key);
@@ -149,16 +134,15 @@ pub async fn proactive_refresh(
                 let reservation =
                     app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
                 app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
-                send_key(
-                    &api,
-                    &rpc,
-                    &stash_address,
-                    &mut addresses_in_subgroup,
-                    new_key_info,
-                    &signer,
-                )
-                .await
-                .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+                //     send_key(
+                //         &api,
+                //         &rpc,
+                //         &stash_address,
+                //         new_key_info,
+                //         &signer,
+                //     )
+                //     .await
+                //     .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
             }
         }
     }

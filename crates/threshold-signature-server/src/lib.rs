@@ -132,7 +132,7 @@ pub(crate) mod node_info;
 pub(crate) mod sign_init;
 pub(crate) mod signing_client;
 pub(crate) mod r#unsafe;
-pub(crate) mod user;
+pub mod user;
 pub mod validation;
 pub(crate) mod validator;
 
@@ -147,8 +147,11 @@ use tower_http::{
     trace::{self, TraceLayer},
 };
 use tracing::Level;
-use validator::api::get_random_server_info;
 
+pub use crate::helpers::{
+    launch,
+    validator::{get_signer, get_signer_and_x25519_secret},
+};
 use crate::{
     health::api::healthz,
     launch::Configuration,
@@ -156,14 +159,6 @@ use crate::{
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     signing_client::{api::*, ListenerState},
     user::api::*,
-    validator::api::sync_kvdb,
-};
-pub use crate::{
-    helpers::{
-        launch,
-        validator::{get_signer, get_signer_and_x25519_secret},
-    },
-    validator::api::sync_validator,
 };
 
 #[derive(Clone)]
@@ -185,7 +180,6 @@ pub fn app(app_state: AppState) -> Router {
         .route("/user/new", post(new_user))
         .route("/user/receive_key", post(receive_key))
         .route("/signer/proactive_refresh", post(proactive_refresh))
-        .route("/validator/sync_kvdb", post(sync_kvdb))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
         .route("/hashes", get(hashes))

@@ -110,20 +110,6 @@ async fn test_proactive_refresh() {
     let test_user_res =
         submit_transaction_requests(validator_ips.clone(), ocw_message.clone()).await;
 
-    for (i, res) in test_user_res.into_iter().enumerate() {
-        // this is hacky but needed, since we only spin up 2 validators but 3 are in the subgroup
-        // alice tries to send a key to herself thinking she is charlie so encrypts it to charlie
-        // this can be fixed in other ways but this way probably has the least side effects
-        if i == 0 {
-            assert_eq!(
-                res.unwrap().text().await.unwrap(),
-                "User Error: The remote TSS server rejected the keyshare: Encryption or signing \
-                error: Hpke: HPKE Error: OpenError"
-            );
-        } else {
-            assert_eq!(res.unwrap().text().await.unwrap(), "");
-        }
-    }
     // check get key before proactive refresh
     let key_after_result_eve = client
         .post("http://127.0.0.1:3001/unsafe/get")

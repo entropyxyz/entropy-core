@@ -37,8 +37,9 @@ use entropy_tss::{
         },
         EntropyConfig,
     },
-    common::{get_current_subgroup_signers, Hasher, UserSignatureRequest},
+    common::{Hasher, UserSignatureRequest},
     helpers::substrate::{query_chain, submit_transaction},
+    user::api::get_signers_from_chain,
 };
 use futures::future;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
@@ -166,7 +167,7 @@ pub async fn sign(
 ) -> anyhow::Result<RecoverableSignature> {
     let message_hash = Hasher::keccak(&message);
     let message_hash_hex = hex::encode(message_hash);
-    let validators_info = get_current_subgroup_signers(api, rpc, &message_hash_hex).await?;
+    let validators_info = get_signers_from_chain(&api, &rpc).await?;
     tracing::debug!("Validators info {:?}", validators_info);
 
     let signature_request = UserSignatureRequest {
@@ -383,12 +384,16 @@ async fn get_dkg_committee(
     block_number: u32,
 ) -> anyhow::Result<Vec<ValidatorInfo>> {
     let mut validators_info: Vec<ValidatorInfo> = vec![];
+    let all_validators_query = entropy::storage().session().validators();
+    let all_validators = query_chain(api, rpc, all_validators_query, None)
+    .await?
+    .ok_or(anyhow!("Stash Fetch Error"))?;
 
-    for i in 0..SIGNING_PARTY_SIZE {
-        let account_id = select_validator_from_subgroup(api, rpc, i as u8, block_number).await?;
+    for validator in all_validators {
+        // let account_id = select_validator_from_subgroup(api, rpc, i as u8, block_number).await?;
 
         let threshold_address_query =
-            entropy::storage().staking_extension().threshold_servers(account_id);
+            entropy::storage().staking_extension().threshold_servers(validator);
         let server_info = query_chain(api, rpc, threshold_address_query, None)
             .await?
             .ok_or(anyhow!("Stash Fetch Error"))?;
@@ -402,33 +407,33 @@ async fn get_dkg_committee(
     Ok(validators_info)
 }
 
-/// For a given subgroup ID, choose a validator using a block number, omitting validators who are
-/// not synced
-async fn select_validator_from_subgroup(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    signing_group: u8,
-    block_number: u32,
-) -> anyhow::Result<SubxtAccountId32> {
-    let subgroup_info_query = entropy::storage().staking_extension().signing_groups(signing_group);
-    let mut subgroup_addresses = query_chain(api, rpc, subgroup_info_query, None)
-        .await?
-        .ok_or(anyhow!("Subgroup Fetch Error"))?;
+// /// For a given subgroup ID, choose a validator using a block number, omitting validators who are
+// /// not synced
+// async fn select_validator_from_subgroup(
+//     api: &OnlineClient<EntropyConfig>,
+//     rpc: &LegacyRpcMethods<EntropyConfig>,
+//     signing_group: u8,
+//     block_number: u32,
+// ) -> anyhow::Result<SubxtAccountId32> {
+//     let subgroup_info_query = entropy::storage().staking_extension().signing_groups(signing_group);
+//     let mut subgroup_addresses = query_chain(api, rpc, subgroup_info_query, None)
+//         .await?
+//         .ok_or(anyhow!("Subgroup Fetch Error"))?;
 
-    let address = loop {
-        ensure!(!subgroup_addresses.is_empty(), "No synced validators");
-        let selection: u32 = block_number % subgroup_addresses.len() as u32;
-        let address = &subgroup_addresses[selection as usize];
-        let is_validator_syned_query =
-            entropy::storage().staking_extension().is_validator_synced(address);
-        let is_synced = query_chain(api, rpc, is_validator_syned_query, None)
-            .await?
-            .ok_or(anyhow!("Cannot query whether validator is synced"))?;
-        if !is_synced {
-            subgroup_addresses.remove(selection as usize);
-        } else {
-            break address;
-        }
-    };
-    Ok(address.clone())
-}
+//     let address = loop {
+//         ensure!(!subgroup_addresses.is_empty(), "No synced validators");
+//         let selection: u32 = block_number % subgroup_addresses.len() as u32;
+//         let address = &subgroup_addresses[selection as usize];
+//         let is_validator_syned_query =
+//             entropy::storage().staking_extension().is_validator_synced(address);
+//         let is_synced = query_chain(api, rpc, is_validator_syned_query, None)
+//             .await?
+//             .ok_or(anyhow!("Cannot query whether validator is synced"))?;
+//         if !is_synced {
+//             subgroup_addresses.remove(selection as usize);
+//         } else {
+//             break address;
+//         }
+//     };
+//     Ok(address.clone())
+// }

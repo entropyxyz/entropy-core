@@ -65,20 +65,18 @@ use crate::{
         entropy::{self, runtime_types::pallet_registry::pallet::RegisteringDetails},
         get_api, get_rpc, EntropyConfig,
     },
-    get_random_server_info,
     helpers::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{do_signing, Hasher},
         substrate::{
-            get_program, get_registered_details, get_stash_address, get_subgroup, query_chain,
-            return_all_addresses_of_subgroup, submit_transaction,
+            get_program, get_registered_details, get_stash_address, query_chain, submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg, send_key},
         validator::{get_signer, get_signer_and_x25519_secret},
     },
     signing_client::{ListenerState, ProtocolErr},
     validation::{check_stale, EncryptedSignedMessage},
-    validator::api::{check_forbidden_key, get_and_store_values},
+    validator::api::check_forbidden_key,
     AppState, Configuration,
 };
 
@@ -192,13 +190,13 @@ pub async fn sign_tx(
             .await?;
     let message_hash_keccak_hex = hex::encode(message_hash_keccak);
 
-    let subgroup_signers =
-        get_current_subgroup_signers(&api, &rpc, &message_hash_keccak_hex).await?;
-    check_signing_group(&subgroup_signers, &user_sig_req.validators_info, signer.account_id())?;
-
-    // Use the validator info from chain as we can be sure it is in the correct order and the
-    // details are correct
-    user_sig_req.validators_info = subgroup_signers;
+    // let subgroup_signers =
+    //     get_current_subgroup_signers(&api, &rpc, &message_hash_keccak_hex).await?;
+    // check_signing_group(&subgroup_signers, &user_sig_req.validators_info, signer.account_id())?;
+    let signers = get_signers_from_chain(&api, &rpc).await?;
+    // // Use the validator info from chain as we can be sure it is in the correct order and the
+    // // details are correct
+    user_sig_req.validators_info = signers;
 
     let message_hash = compute_hash(
         &api,
@@ -217,10 +215,10 @@ pub async fn sign_tx(
     };
 
     let has_key = check_for_key(&string_verifying_key, &app_state.kv_store).await?;
-    if !has_key {
-        recover_key(&api, &rpc, &app_state.kv_store, &signer, &x25519_secret, string_verifying_key)
-            .await?
-    }
+    // if !has_key {
+    //     recover_key(&api, &rpc, &app_state.kv_store, &signer, &x25519_secret, string_verifying_key)
+    //         .await?
+    // }
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 
@@ -306,9 +304,7 @@ async fn setup_dkg(
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
 
-    let subgroup = get_subgroup(&api, rpc, signer.account_id()).await?;
     let stash_address = get_stash_address(&api, rpc, signer.account_id()).await?;
-    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, rpc, subgroup).await?;
 
     let block_hash = rpc
         .chain_get_block_hash(None)
@@ -349,22 +345,20 @@ async fn setup_dkg(
             value: serialized_key_share,
             proactive_refresh: false,
         };
-        send_key(
-            &api,
-            rpc,
-            &stash_address,
-            &mut addresses_in_subgroup,
-            user_registration_info,
-            &signer,
-        )
-        .await?;
+        // send_key(
+        //     &api,
+        //     rpc,
+        //     &stash_address,
+        //     user_registration_info,
+        //     &signer,
+        // )
+        // .await?;
 
         // TODO: Error handling really complex needs to be thought about.
         confirm_registered(
             &api,
             rpc,
             sig_request_address,
-            subgroup,
             &signer,
             verifying_key,
             nonce + i as u32,
@@ -401,9 +395,6 @@ pub async fn receive_key(
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
-    let subgroup = get_subgroup(&api, &rpc, signer.account_id()).await?;
-    let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, subgroup).await?;
-
     let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
         .map_err(|_| UserErr::StringError("Account Conversion"))?;
 
@@ -413,10 +404,6 @@ pub async fn receive_key(
     let stash_address = query_chain(&api, &rpc, stash_address_query, None)
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Stash Fetch Error"))?;
-
-    if !addresses_in_subgroup.contains(&stash_address) {
-        return Err(UserErr::NotInSubgroup);
-    }
 
     let already_exists =
         app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
@@ -492,7 +479,6 @@ pub async fn confirm_registered(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     who: SubxtAccountId32,
-    subgroup: u8,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     verifying_key: Vec<u8>,
     nonce: u32,
@@ -503,59 +489,109 @@ pub async fn confirm_registered(
     // or other method under sign_and_*
     let registration_tx = entropy::tx().registry().confirm_register(
         who,
-        subgroup,
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
     );
     submit_transaction(api, rpc, signer, &registration_tx, Some(nonce)).await?;
     Ok(())
 }
-/// Gets the current signing committee
-/// The signing committee is composed as the validators at the index into each subgroup
-/// Where the index is computed as the user's sighash as an integer modulo the number of subgroups
-pub async fn get_current_subgroup_signers(
+
+pub async fn get_signers_from_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    sig_hash: &str,
 ) -> Result<Vec<ValidatorInfo>, UserErr> {
-    let mut subgroup_signers = vec![];
-    let number = Arc::new(BigInt::from_str_radix(sig_hash, 16)?);
+    let all_validators_query = entropy::storage().session().validators();
+    let all_validators = query_chain(api, rpc, all_validators_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Get all validators error"))?;
     let block_hash = rpc.chain_get_block_hash(None).await?;
+    let mut all_signers = vec![];
 
-    let futures = (0..SIGNING_PARTY_SIZE)
-        .map(|i| {
-            let owned_number = Arc::clone(&number);
-            async move {
-                let subgroup_info_query =
-                    entropy::storage().staking_extension().signing_groups(i as u8);
-                let subgroup_info = query_chain(api, rpc, subgroup_info_query, block_hash)
-                    .await?
-                    .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
-
-                let index_of_signer_big = &*owned_number % subgroup_info.len();
-                let index_of_signer =
-                    index_of_signer_big.to_usize().ok_or(UserErr::Usize("Usize error"))?;
-
-                let threshold_address_query = entropy::storage()
-                    .staking_extension()
-                    .threshold_servers(subgroup_info[index_of_signer].clone());
-                let server_info = query_chain(api, rpc, threshold_address_query, block_hash)
-                    .await?
-                    .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
-
-                Ok::<_, UserErr>(ValidatorInfo {
-                    x25519_public_key: server_info.x25519_public_key,
-                    ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
-                    tss_account: server_info.tss_account,
-                })
-            }
-        })
-        .collect::<Vec<_>>();
-    let results = join_all(futures).await;
-    for result in results.into_iter() {
-        subgroup_signers.push(result?);
+    // TODO thread this for speed
+    for validator in all_validators {
+        let threshold_address_query =
+            entropy::storage().staking_extension().threshold_servers(validator);
+        let server_info = query_chain(api, rpc, threshold_address_query, block_hash)
+            .await?
+            .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
+        let validator_info = ValidatorInfo {
+            x25519_public_key: server_info.x25519_public_key,
+            ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
+            tss_account: server_info.tss_account,
+        };
+        all_signers.push(validator_info)
     }
-    Ok(subgroup_signers)
+    // let validators = Arc::new(all_validators.clone());
+    // let validators_clone = Arc::clone(&validators);
+    // let futures = (0..all_validators.len())
+    //     .map(|i| async move {
+    //         let owned_validators = Arc::clone(&validators_clone);
+    //         let threshold_address_query =
+    //             entropy::storage().staking_extension().threshold_servers(owned_validators[i].clone());
+    //         let server_info = query_chain(api, rpc, threshold_address_query, block_hash)
+    //             .await?
+    //             .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
+
+    //         Ok::<_, UserErr>(ValidatorInfo {
+    //             x25519_public_key: server_info.x25519_public_key,
+    //             ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
+    //             tss_account: server_info.tss_account,
+    //         })
+    //     })
+    //     .collect::<Vec<_>>();
+    // let results = join_all(futures).await;
+    // let mut all_signers = vec![];
+    // for result in results.into_iter() {
+    //     all_signers.push(result?);
+    // }
+    Ok(all_signers)
 }
+// /// Gets the current signing committee
+// /// The signing committee is composed as the validators at the index into each subgroup
+// /// Where the index is computed as the user's sighash as an integer modulo the number of subgroups
+// pub async fn get_current_subgroup_signers(
+//     api: &OnlineClient<EntropyConfig>,
+//     rpc: &LegacyRpcMethods<EntropyConfig>,
+//     sig_hash: &str,
+// ) -> Result<Vec<ValidatorInfo>, UserErr> {
+//     let mut subgroup_signers = vec![];
+//     let number = Arc::new(BigInt::from_str_radix(sig_hash, 16)?);
+//     let block_hash = rpc.chain_get_block_hash(None).await?;
+
+//     let futures = (0..SIGNING_PARTY_SIZE)
+//         .map(|i| {
+//             let owned_number = Arc::clone(&number);
+//             async move {
+//                 let subgroup_info_query =
+//                     entropy::storage().staking_extension().signing_groups(i as u8);
+//                 let subgroup_info = query_chain(api, rpc, subgroup_info_query, block_hash)
+//                     .await?
+//                     .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
+
+//                 let index_of_signer_big = &*owned_number % subgroup_info.len();
+//                 let index_of_signer =
+//                     index_of_signer_big.to_usize().ok_or(UserErr::Usize("Usize error"))?;
+
+//                 let threshold_address_query = entropy::storage()
+//                     .staking_extension()
+//                     .threshold_servers(subgroup_info[index_of_signer].clone());
+//                 let server_info = query_chain(api, rpc, threshold_address_query, block_hash)
+//                     .await?
+//                     .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
+
+//                 Ok::<_, UserErr>(ValidatorInfo {
+//                     x25519_public_key: server_info.x25519_public_key,
+//                     ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
+//                     tss_account: server_info.tss_account,
+//                 })
+//             }
+//         })
+//         .collect::<Vec<_>>();
+//     let results = join_all(futures).await;
+//     for result in results.into_iter() {
+//         subgroup_signers.push(result?);
+//     }
+//     Ok(subgroup_signers)
+// }
 
 /// Checks if a validator is in the current selected signing committee
 pub fn check_signing_group(
@@ -634,33 +670,32 @@ pub async fn check_for_key(account: &str, kv: &KvManager) -> Result<bool, UserEr
     Ok(exists_result)
 }
 
-/// Get and store a keyshare associated with a given verifying key
-pub async fn recover_key(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    kv_store: &KvManager,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-    x25519_secret: &StaticSecret,
-    verifying_key: String,
-) -> Result<(), UserErr> {
-    let subgroup = get_subgroup(api, rpc, signer.account_id()).await?;
-    let stash_address = get_stash_address(api, rpc, signer.account_id()).await?;
-    let key_server_info = get_random_server_info(api, rpc, subgroup, stash_address)
-        .await
-        .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
-    get_and_store_values(
-        vec![verifying_key],
-        kv_store,
-        1,
-        false,
-        key_server_info,
-        signer,
-        x25519_secret,
-    )
-    .await
-    .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
-    Ok(())
-}
+// /// Get and store a keyshare associated with a given verifying key
+// pub async fn recover_key(
+//     api: &OnlineClient<EntropyConfig>,
+//     rpc: &LegacyRpcMethods<EntropyConfig>,
+//     kv_store: &KvManager,
+//     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+//     x25519_secret: &StaticSecret,
+//     verifying_key: String,
+// ) -> Result<(), UserErr> {
+//     let stash_address = get_stash_address(api, rpc, signer.account_id()).await?;
+//     let key_server_info = get_random_server_info(api, rpc, stash_address)
+//         .await
+//         .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
+//     get_and_store_values(
+//         vec![verifying_key],
+//         kv_store,
+//         1,
+//         false,
+//         key_server_info,
+//         signer,
+//         x25519_secret,
+//     )
+//     .await
+//     .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
+//     Ok(())
+// }
 
 /// Checks the request limit
 pub async fn request_limit_check(
