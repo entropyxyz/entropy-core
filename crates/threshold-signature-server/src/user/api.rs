@@ -489,48 +489,35 @@ pub async fn get_signers_from_chain(
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Get all validators error"))?;
     let block_hash = rpc.chain_get_block_hash(None).await?;
-    let mut all_signers = vec![];
+    let mut handles = Vec::new();
 
-    // TODO thread this for speed
     for validator in all_validators {
-        let threshold_address_query =
-            entropy::storage().staking_extension().threshold_servers(validator);
-        let server_info = query_chain(api, rpc, threshold_address_query, block_hash)
-            .await?
-            .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
-        let validator_info = ValidatorInfo {
-            x25519_public_key: server_info.x25519_public_key,
-            ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
-            tss_account: server_info.tss_account,
-        };
-        all_signers.push(validator_info)
+        let handle: tokio::task::JoinHandle<Result<ValidatorInfo, UserErr>> = tokio::task::spawn({
+            let api = api.clone();
+            let rpc = rpc.clone();
+            let block_hash = block_hash.clone();
+            async move {
+                let threshold_address_query =
+                    entropy::storage().staking_extension().threshold_servers(validator);
+                let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
+                    .await?
+                    .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
+                Ok(ValidatorInfo {
+                    x25519_public_key: server_info.x25519_public_key,
+                    ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
+                    tss_account: server_info.tss_account,
+                })
+            }
+        });
+        handles.push(handle);
     }
-    // let validators = Arc::new(all_validators.clone());
-    // let validators_clone = Arc::clone(&validators);
-    // let futures = (0..all_validators.len())
-    //     .map(|i| async move {
-    //         let owned_validators = Arc::clone(&validators_clone);
-    //         let threshold_address_query =
-    //             entropy::storage().staking_extension().threshold_servers(owned_validators[i].clone());
-    //         let server_info = query_chain(api, rpc, threshold_address_query, block_hash)
-    //             .await?
-    //             .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
+    let mut all_signers: Vec<ValidatorInfo> = vec![];
+    for handle in handles {
+        all_signers.push(handle.await.unwrap().unwrap());
+    }
 
-    //         Ok::<_, UserErr>(ValidatorInfo {
-    //             x25519_public_key: server_info.x25519_public_key,
-    //             ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
-    //             tss_account: server_info.tss_account,
-    //         })
-    //     })
-    //     .collect::<Vec<_>>();
-    // let results = join_all(futures).await;
-    // let mut all_signers = vec![];
-    // for result in results.into_iter() {
-    //     all_signers.push(result?);
-    // }
     Ok(all_signers)
 }
-
 
 /// Validates new user endpoint
 /// Checks the chain for validity of data and block number of data matches current block
@@ -585,7 +572,6 @@ pub async fn check_for_key(account: &str, kv: &KvManager) -> Result<bool, UserEr
     let exists_result = kv.kv().exists(account).await?;
     Ok(exists_result)
 }
-
 
 /// Checks the request limit
 pub async fn request_limit_check(

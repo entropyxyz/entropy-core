@@ -110,7 +110,7 @@ use crate::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
             remove_program, run_to_block, setup_client, spawn_testing_validators,
         },
-        user::{compute_hash},
+        user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     new_user,

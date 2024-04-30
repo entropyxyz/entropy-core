@@ -57,7 +57,7 @@ use crate::{
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         substrate::{get_registered_details, get_stash_address, query_chain},
-        user::{check_in_registration_group},
+        user::check_in_registration_group,
         validator::get_signer_and_x25519_secret,
     },
     signing_client::{
