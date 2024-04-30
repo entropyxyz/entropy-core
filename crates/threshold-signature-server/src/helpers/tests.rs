@@ -24,31 +24,28 @@ use crate::{
     app,
     chain_api::{
         entropy::{self, runtime_types::bounded_collections::bounded_vec::BoundedVec},
-        get_api, get_rpc, EntropyConfig,
+        EntropyConfig,
     },
     get_signer,
     helpers::{
         launch::{
             setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName,
-            DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            DEFAULT_ENDPOINT,
         },
         logger::Instrumentation,
         logger::Logger,
         substrate::{query_chain, submit_transaction},
-        validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     signing_client::ListenerState,
     AppState,
 };
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{
-    clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager,
+    encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager,
 };
 use entropy_protocol::{KeyParams, PartyId};
 use entropy_shared::{KeyVisibility, DETERMINISTIC_KEY_SHARE};
-use entropy_testing_utils::substrate_context::testing_context;
 use rand_core::OsRng;
-use serial_test::serial;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519, Pair},

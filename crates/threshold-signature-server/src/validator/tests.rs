@@ -13,33 +13,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::time::SystemTime;
-
 use entropy_kvdb::clean_tests;
-use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY, MIN_BALANCE};
+use entropy_shared::{MIN_BALANCE};
 use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
     substrate_context::{
-        test_context_stationary, test_node_process_testing_state, testing_context,
+        testing_context,
     },
 };
-use serial_test::serial;
-use sp_core::{sr25519, Pair};
-use subxt::tx::PairSigner;
 
 use super::api::{check_balance_for_fees, check_forbidden_key};
 use crate::{
-    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
+    chain_api::{get_api, get_rpc},
     helpers::{
         launch::{
-            ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_MNEMONIC,
             FORBIDDEN_KEYS,
         },
-        substrate::{get_registered_details, get_stash_address, query_chain},
-        tests::{create_clients, initialize_test_logger},
-        validator::get_signer_and_x25519_secret_from_mnemonic,
+        tests::{initialize_test_logger},
     },
-    validation::{mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage, TIME_BUFFER},
     validator::errors::ValidatorErr,
 };
 
