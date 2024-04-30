@@ -333,12 +333,6 @@ async fn setup_dkg(
         let reservation = app_state.kv_store.kv().reserve_key(string_verifying_key.clone()).await?;
         app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
 
-        let user_registration_info = UserRegistrationInfo {
-            key: string_verifying_key,
-            value: serialized_key_share,
-            proactive_refresh: false,
-        };
-
         // TODO: Error handling really complex needs to be thought about.
         confirm_registered(
             &api,
@@ -362,7 +356,7 @@ pub async fn receive_key(
     State(app_state): State<AppState>,
     Json(encrypted_message): Json<EncryptedSignedMessage>,
 ) -> Result<StatusCode, UserErr> {
-    let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+    let (_signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
     let signed_message = encrypted_message.decrypt(&x25519_secret_key, &[])?;
     let signing_address = signed_message.account_id();
     tracing::Span::current().record("signing_address", signing_address.to_string());
@@ -386,9 +380,6 @@ pub async fn receive_key(
     // check message is from the person sending the message (get stash key from threshold key)
     let stash_address_query =
         entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
-    let stash_address = query_chain(&api, &rpc, stash_address_query, None)
-        .await?
-        .ok_or_else(|| UserErr::ChainFetch("Stash Fetch Error"))?;
 
     let already_exists =
         app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
@@ -513,7 +504,7 @@ pub async fn get_signers_from_chain(
     }
     let mut all_signers: Vec<ValidatorInfo> = vec![];
     for handle in handles {
-        all_signers.push(handle.await.unwrap().unwrap());
+        all_signers.push(handle.await??);
     }
 
     Ok(all_signers)

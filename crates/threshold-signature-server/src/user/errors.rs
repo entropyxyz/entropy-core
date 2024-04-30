@@ -157,6 +157,8 @@ pub enum UserErr {
     SpCoreSecretString(#[from] sp_core::crypto::SecretStringError),
     #[error("Cannot get output from hasher in HKDF {0}")]
     Hkdf(hkdf::InvalidLength),
+    #[error("Error Joining threads: {0}")]
+    JoinError(#[from] tokio::task::JoinError),
 }
 
 impl From<hkdf::InvalidLength> for UserErr {
