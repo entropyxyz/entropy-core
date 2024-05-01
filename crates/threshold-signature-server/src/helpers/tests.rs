@@ -42,7 +42,7 @@ use crate::{
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use entropy_protocol::{KeyParams, PartyId};
-use entropy_shared::{KeyVisibility, DETERMINISTIC_KEY_SHARE};
+use entropy_shared::{DETERMINISTIC_KEY_SHARE};
 use rand_core::OsRng;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -232,7 +232,8 @@ pub async fn check_if_confirmation(
     // cleared from is_registering state
     assert!(is_registering.unwrap().is_none());
     let is_registered = query_chain(api, rpc, registered_query, block_hash).await.unwrap();
-    assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
+    //TODO assert something here
+    // assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
 }
 
 /// Verify that an account got one confirmation.

@@ -131,9 +131,8 @@ async fn test_proactive_refresh() {
     let key_after_eve = key_after_result_eve.text().await.unwrap();
     let key_after_dave = key_after_result_dave.text().await.unwrap();
 
-    // eve has private visibility so key does not change
-    assert_eq!(key_before_eve, key_after_eve);
-    // dave's not private so changes
+    // make sure private keys are changed
+    assert_ne!(key_before_eve, key_after_eve);
     assert_ne!(converted_key_share, serialize(&key_after_dave).unwrap());
 
     let alice = AccountKeyring::Alice;

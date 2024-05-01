@@ -47,7 +47,6 @@ impl Listener {
     pub fn new(
         validators_info: Vec<ValidatorInfo>,
         my_id: &AccountId32,
-        user_participates: Option<(AccountId32, X25519PublicKey)>,
     ) -> (oneshot::Receiver<ListenerResult>, mpsc::Receiver<ProtocolMessage>, Self) {
         let (tx_ready, rx_ready) = oneshot::channel();
         let (tx, _rx) = broadcast::channel(1000);
@@ -61,12 +60,7 @@ impl Listener {
                 validators.insert(validator.tss_account.0, validator.x25519_public_key);
             }
         }
-
-        // If visibility is private, also expect the user to connect
-        if let Some((user_id, user_x25519_pk)) = user_participates {
-            validators.insert(user_id.0, user_x25519_pk);
-        }
-
+        
         {
             (rx_ready, rx_to_others, Self { tx, tx_to_others, tx_ready, validators })
         }

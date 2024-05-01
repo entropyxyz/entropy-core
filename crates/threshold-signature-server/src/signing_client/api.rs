@@ -35,7 +35,7 @@ use entropy_kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
     KvManager,
 };
-use entropy_shared::{KeyVisibility, OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::{OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
 use sp_core::Pair;
 use subxt::{
@@ -95,14 +95,6 @@ pub async fn proactive_refresh(
 
     for encoded_key in ocw_data.proactive_refresh_keys {
         let key = hex::encode(&encoded_key);
-        let key_visibility = get_registered_details(&api, &rpc, encoded_key.clone())
-            .await
-            .map_err(|e| ProtocolErr::UserError(e.to_string()))?
-            .key_visibility
-            .0;
-
-        // Check key visibility and don't do proactive refresh if it is private as this would require the user to be online
-        if key_visibility == KeyVisibility::Public {
             // key should always exist, figure out how to handle
             let exists_result = app_state.kv_store.kv().exists(&key).await?;
             if exists_result {
@@ -135,7 +127,6 @@ pub async fn proactive_refresh(
                     app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
                 app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
             }
-        }
     }
     // TODO: Tell chain refresh is done?
     Ok(StatusCode::OK)
@@ -196,7 +187,7 @@ pub async fn do_proactive_refresh(
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(converted_validator_info.clone(), &account_id, None);
+        Listener::new(converted_validator_info.clone(), &account_id);
     state
         .listeners
         .lock()

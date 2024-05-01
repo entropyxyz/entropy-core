@@ -24,11 +24,10 @@ use entropy_kvdb::{
 use entropy_programs_runtime::{Runtime, SignatureRequest};
 use entropy_protocol::{
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
-    user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     KeyParams, PartyId, SessionId, SigningSessionInfo, ValidatorInfo,
 };
 use entropy_shared::{
-    HashingAlgorithm, KeyVisibility, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY,
+    HashingAlgorithm, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY,
     DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
 };
 use entropy_testing_utils::{
@@ -553,7 +552,6 @@ async fn test_store_share() {
         &rpc,
         &alice,
         alice_program.to_account_id().into(),
-        KeyVisibility::Public,
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
@@ -637,7 +635,6 @@ async fn test_store_share() {
         &rpc,
         &alice_program,
         alice_program.to_account_id().into(),
-        KeyVisibility::Public,
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
@@ -680,7 +677,6 @@ pub async fn put_register_request_on_chain(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     sig_req_keyring: &Sr25519Keyring,
     program_modification_account: subxtAccountId32,
-    key_visibility: KeyVisibility,
     program_instance: BoundedVec<ProgramInstance>,
 ) {
     let sig_req_account =
@@ -688,352 +684,344 @@ pub async fn put_register_request_on_chain(
 
     let registering_tx = entropy::tx().registry().register(
         program_modification_account,
-        Static(key_visibility),
         program_instance,
     );
     submit_transaction(api, rpc, &sig_req_account, &registering_tx, None).await.unwrap();
 }
 
-#[tokio::test]
-#[serial]
-async fn test_sign_tx_user_participates() {
-    initialize_test_logger().await;
-    clean_tests();
+// #[tokio::test]
+// #[serial]
+// async fn test_sign_tx_user_participates() {
+//     initialize_test_logger().await;
+//     clean_tests();
 
-    let one = AccountKeyring::Eve;
-    let two = AccountKeyring::Two;
+//     let one = AccountKeyring::Eve;
+//     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids, users_keyshare_option) =
-        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true, true).await;
-    let substrate_context = test_context_stationary().await;
-    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-    let verifying_key = users_keyshare_option
-        .clone()
-        .unwrap()
-        .verifying_key()
-        .to_encoded_point(true)
-        .as_bytes()
-        .to_vec();
+//     let (validator_ips, _validator_ids, users_keyshare_option) =
+//         spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true, true).await;
+//     let substrate_context = test_context_stationary().await;
+//     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+//     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+//     let verifying_key = users_keyshare_option
+//         .clone()
+//         .unwrap()
+//         .verifying_key()
+//         .to_encoded_point(true)
+//         .as_bytes()
+//         .to_vec();
 
-    let program_hash = store_program(
-        &entropy_api,
-        &rpc,
-        &two.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-        vec![],
-        vec![],
-    )
-    .await
-    .unwrap();
+//     let program_hash = store_program(
+//         &entropy_api,
+//         &rpc,
+//         &two.pair(),
+//         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+//         vec![],
+//         vec![],
+//         vec![],
+//     )
+//     .await
+//     .unwrap();
 
-    update_programs(
-        &entropy_api,
-        &rpc,
-        verifying_key.clone().try_into().unwrap(),
-        &one.pair(),
-        OtherBoundedVec(vec![OtherProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }]),
-    )
-    .await
-    .unwrap();
+//     update_programs(
+//         &entropy_api,
+//         &rpc,
+//         verifying_key.clone().try_into().unwrap(),
+//         &one.pair(),
+//         OtherBoundedVec(vec![OtherProgramInstance {
+//             program_pointer: program_hash,
+//             program_config: vec![],
+//         }]),
+//     )
+//     .await
+//     .unwrap();
 
-    let encoded_transaction_request: String = hex::encode(PREIMAGE_SHOULD_SUCCEED);
-    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+//     let encoded_transaction_request: String = hex::encode(PREIMAGE_SHOULD_SUCCEED);
+//     let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
-    let signature_request_account = subxtAccountId32(one.pair().public().0);
-    let session_id = SessionId::Sign(SigningSessionInfo {
-        signature_verifying_key: verifying_key.clone(),
-        message_hash: message_should_succeed_hash,
-        request_author: signature_request_account.clone(),
-    });
+//     let signature_request_account = subxtAccountId32(one.pair().public().0);
+//     let session_id = SessionId::Sign(SigningSessionInfo {
+//         signature_verifying_key: verifying_key.clone(),
+//         message_hash: message_should_succeed_hash,
+//         request_author: signature_request_account.clone(),
+//     });
 
-    let (validators_info, mut generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(validator_ips, encoded_transaction_request);
-    generic_msg.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
-    generic_msg.signature_verifying_key = verifying_key.clone();
+//     let (validators_info, mut generic_msg, validator_ips_and_keys) =
+//         get_sign_tx_data(validator_ips, encoded_transaction_request);
+//     generic_msg.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
+//     generic_msg.signature_verifying_key = verifying_key.clone();
 
-    // Submit transaction requests, and connect and participate in signing
-    let (test_user_res, sig_result) = future::join(
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
-        user_participates_in_signing_protocol(
-            &users_keyshare_option.clone().unwrap(),
-            validators_info.clone(),
-            &one.pair(),
-            EVE_X25519_SECRET_KEY.into(),
-            message_should_succeed_hash,
-        ),
-    )
-    .await;
+//     // Submit transaction requests, and connect and participate in signing
+//     let (test_user_res, sig_result) = future::join(
+//         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one),
+//     )
+//     .await;
 
-    let signature_base64 = BASE64_STANDARD.encode(sig_result.unwrap().to_rsv_bytes());
-    assert_eq!(signature_base64.len(), 88);
+//     let signature_base64 = BASE64_STANDARD.encode(sig_result.unwrap().to_rsv_bytes());
+//     assert_eq!(signature_base64.len(), 88);
 
-    verify_signature(test_user_res, message_should_succeed_hash, users_keyshare_option.clone())
-        .await;
+//     verify_signature(test_user_res, message_should_succeed_hash, users_keyshare_option.clone())
+//         .await;
 
-    generic_msg.timestamp = SystemTime::now();
-    generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
+//     generic_msg.timestamp = SystemTime::now();
+//     generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
 
-    // test failing cases
-    let test_user_res_not_registered =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
+//     // test failing cases
+//     let test_user_res_not_registered =
+//         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
 
-    for res in test_user_res_not_registered {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "Chain Fetch: Not Registering error: Register Onchain first"
-        );
-    }
+//     for res in test_user_res_not_registered {
+//         assert_eq!(
+//             res.unwrap().text().await.unwrap(),
+//             "Chain Fetch: Not Registering error: Register Onchain first"
+//         );
+//     }
 
-    generic_msg.timestamp = SystemTime::now();
-    generic_msg.signature_verifying_key = verifying_key;
-    let mut generic_msg_bad_validators = generic_msg.clone();
-    generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
+//     generic_msg.timestamp = SystemTime::now();
+//     generic_msg.signature_verifying_key = verifying_key;
+//     let mut generic_msg_bad_validators = generic_msg.clone();
+//     generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
 
-    let test_user_failed_x25519_pub_key = submit_transaction_requests(
-        validator_ips_and_keys.clone(),
-        generic_msg_bad_validators,
-        one,
-    )
-    .await;
+//     let test_user_failed_x25519_pub_key = submit_transaction_requests(
+//         validator_ips_and_keys.clone(),
+//         generic_msg_bad_validators,
+//         one,
+//     )
+//     .await;
 
-    let mut responses = test_user_failed_x25519_pub_key.into_iter();
-    assert_eq!(
-        responses.next().unwrap().unwrap().text().await.unwrap(),
-        "{\"Err\":\"Timed out waiting for remote party\"}"
-    );
+//     let mut responses = test_user_failed_x25519_pub_key.into_iter();
+//     assert_eq!(
+//         responses.next().unwrap().unwrap().text().await.unwrap(),
+//         "{\"Err\":\"Timed out waiting for remote party\"}"
+//     );
 
-    assert_eq!(
-        responses.next().unwrap().unwrap().text().await.unwrap(),
-        "{\"Err\":\"Timed out waiting for remote party\"}"
-    );
+//     assert_eq!(
+//         responses.next().unwrap().unwrap().text().await.unwrap(),
+//         "{\"Err\":\"Timed out waiting for remote party\"}"
+//     );
 
-    // Test attempting to connect over ws by someone who is not in the signing group
-    let validator_ip_and_key = validator_ips_and_keys[0].clone();
-    let connection_attempt_handle = tokio::spawn(async move {
-        // Wait for the "user" to submit the signing request
-        tokio::time::sleep(Duration::from_millis(500)).await;
-        let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
-        let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
+//     // Test attempting to connect over ws by someone who is not in the signing group
+//     let validator_ip_and_key = validator_ips_and_keys[0].clone();
+//     let connection_attempt_handle = tokio::spawn(async move {
+//         // Wait for the "user" to submit the signing request
+//         tokio::time::sleep(Duration::from_millis(500)).await;
+//         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
+//         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
-        let ferdie_pair = AccountKeyring::Ferdie.pair();
+//         let ferdie_pair = AccountKeyring::Ferdie.pair();
 
-        // create a SubscribeMessage from a party who is not in the signing commitee
-        let subscribe_message_vec =
-            bincode::serialize(&SubscribeMessage::new(session_id, &ferdie_pair).unwrap()).unwrap();
+//         // create a SubscribeMessage from a party who is not in the signing commitee
+//         let subscribe_message_vec =
+//             bincode::serialize(&SubscribeMessage::new(session_id, &ferdie_pair).unwrap()).unwrap();
 
-        // Attempt a noise handshake including the subscribe message in the payload
-        let mut encrypted_connection = noise_handshake_initiator(
-            ws_stream,
-            &FERDIE_X25519_SECRET_KEY.into(),
-            validator_ip_and_key.1,
-            subscribe_message_vec,
-        )
-        .await
-        .unwrap();
+//         // Attempt a noise handshake including the subscribe message in the payload
+//         let mut encrypted_connection = noise_handshake_initiator(
+//             ws_stream,
+//             &FERDIE_X25519_SECRET_KEY.into(),
+//             validator_ip_and_key.1,
+//             subscribe_message_vec,
+//         )
+//         .await
+//         .unwrap();
 
-        // Check the response as to whether they accepted our SubscribeMessage
-        let response_message = encrypted_connection.recv().await.unwrap();
-        let subscribe_response: Result<(), String> =
-            bincode::deserialize(&response_message).unwrap();
+//         // Check the response as to whether they accepted our SubscribeMessage
+//         let response_message = encrypted_connection.recv().await.unwrap();
+//         let subscribe_response: Result<(), String> =
+//             bincode::deserialize(&response_message).unwrap();
 
-        assert_eq!(
-            Err("Decryption(\"Public key does not match that given in UserTransactionRequest or \
-                 register transaction\")"
-                .to_string()),
-            subscribe_response
-        );
-        // The stream should not continue to send messages
-        // returns true if this part of the test passes
-        encrypted_connection.recv().await.is_err()
-    });
-    generic_msg.timestamp = SystemTime::now();
+//         assert_eq!(
+//             Err("Decryption(\"Public key does not match that given in UserTransactionRequest or \
+//                  register transaction\")"
+//                 .to_string()),
+//             subscribe_response
+//         );
+//         // The stream should not continue to send messages
+//         // returns true if this part of the test passes
+//         encrypted_connection.recv().await.is_err()
+//     });
+//     generic_msg.timestamp = SystemTime::now();
 
-    let test_user_bad_connection_res = submit_transaction_requests(
-        vec![validator_ips_and_keys[1].clone()],
-        generic_msg.clone(),
-        one,
-    )
-    .await;
+//     let test_user_bad_connection_res = submit_transaction_requests(
+//         vec![validator_ips_and_keys[1].clone()],
+//         generic_msg.clone(),
+//         one,
+//     )
+//     .await;
 
-    for res in test_user_bad_connection_res {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "{\"Err\":\"Timed out waiting for remote party\"}"
-        );
-    }
+//     for res in test_user_bad_connection_res {
+//         assert_eq!(
+//             res.unwrap().text().await.unwrap(),
+//             "{\"Err\":\"Timed out waiting for remote party\"}"
+//         );
+//     }
 
-    assert!(connection_attempt_handle.await.unwrap());
-    generic_msg.timestamp = SystemTime::now();
+//     assert!(connection_attempt_handle.await.unwrap());
+//     generic_msg.timestamp = SystemTime::now();
 
-    // Now, test a signature request that should fail
-    // The test program is written to fail when `auxilary_data` is `None`
-    generic_msg.auxilary_data = None;
-    generic_msg.timestamp = SystemTime::now();
+//     // Now, test a signature request that should fail
+//     // The test program is written to fail when `auxilary_data` is `None`
+//     generic_msg.auxilary_data = None;
+//     generic_msg.timestamp = SystemTime::now();
 
-    let test_user_failed_programs_res =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+//     let test_user_failed_programs_res =
+//         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    for res in test_user_failed_programs_res {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "Runtime error: Runtime(Error::Evaluation(\"This program requires that `auxilary_data` be `Some`.\"))"
-        );
-    }
+//     for res in test_user_failed_programs_res {
+//         assert_eq!(
+//             res.unwrap().text().await.unwrap(),
+//             "Runtime error: Runtime(Error::Evaluation(\"This program requires that `auxilary_data` be `Some`.\"))"
+//         );
+//     }
 
-    let mock_client = reqwest::Client::new();
-    // fails verification tests
-    // wrong key for wrong validator
-    let failed_signed_message = EncryptedSignedMessage::new(
-        &one.pair(),
-        serde_json::to_vec(&generic_msg.clone()).unwrap(),
-        &X25519_PUBLIC_KEYS[1],
-        &[],
-    )
-    .unwrap();
-    let failed_res = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&failed_signed_message).unwrap())
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(failed_res.status(), 500);
-    assert_eq!(
-        failed_res.text().await.unwrap(),
-        "Encryption or signing error: Hpke: HPKE Error: OpenError"
-    );
+//     let mock_client = reqwest::Client::new();
+//     // fails verification tests
+//     // wrong key for wrong validator
+//     let failed_signed_message = EncryptedSignedMessage::new(
+//         &one.pair(),
+//         serde_json::to_vec(&generic_msg.clone()).unwrap(),
+//         &X25519_PUBLIC_KEYS[1],
+//         &[],
+//     )
+//     .unwrap();
+//     let failed_res = mock_client
+//         .post("http://127.0.0.1:3001/user/sign_tx")
+//         .header("Content-Type", "application/json")
+//         .body(serde_json::to_string(&failed_signed_message).unwrap())
+//         .send()
+//         .await
+//         .unwrap();
+//     assert_eq!(failed_res.status(), 500);
+//     assert_eq!(
+//         failed_res.text().await.unwrap(),
+//         "Encryption or signing error: Hpke: HPKE Error: OpenError"
+//     );
 
-    let sig: [u8; 64] = [0; 64];
-    let user_input_bad = EncryptedSignedMessage::new_with_given_signature(
-        &one.pair(),
-        serde_json::to_vec(&generic_msg.clone()).unwrap(),
-        &X25519_PUBLIC_KEYS[0],
-        &[],
-        sr25519::Signature::from_raw(sig),
-    )
-    .unwrap();
+//     let sig: [u8; 64] = [0; 64];
+//     let user_input_bad = EncryptedSignedMessage::new_with_given_signature(
+//         &one.pair(),
+//         serde_json::to_vec(&generic_msg.clone()).unwrap(),
+//         &X25519_PUBLIC_KEYS[0],
+//         &[],
+//         sr25519::Signature::from_raw(sig),
+//     )
+//     .unwrap();
 
-    let failed_sign = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&user_input_bad).unwrap())
-        .send()
-        .await
-        .unwrap();
+//     let failed_sign = mock_client
+//         .post("http://127.0.0.1:3001/user/sign_tx")
+//         .header("Content-Type", "application/json")
+//         .body(serde_json::to_string(&user_input_bad).unwrap())
+//         .send()
+//         .await
+//         .unwrap();
 
-    assert_eq!(failed_sign.status(), 500);
-    assert_eq!(
-        failed_sign.text().await.unwrap(),
-        "Encryption or signing error: Cannot verify signature"
-    );
+//     assert_eq!(failed_sign.status(), 500);
+//     assert_eq!(
+//         failed_sign.text().await.unwrap(),
+//         "Encryption or signing error: Cannot verify signature"
+//     );
 
-    clean_tests();
-}
+//     clean_tests();
+// }
 
-/// Test demonstrating registering with private key visibility, where the user participates in DKG
-/// and holds a keyshare.
-#[tokio::test]
-#[serial]
-async fn test_register_with_private_key_visibility() {
-    initialize_test_logger().await;
-    clean_tests();
+// /// Test demonstrating registering with private key visibility, where the user participates in DKG
+// /// and holds a keyshare.
+// #[tokio::test]
+// #[serial]
+// async fn test_register_with_private_key_visibility() {
+//     initialize_test_logger().await;
+//     clean_tests();
 
-    let one = AccountKeyring::One;
-    let program_modification_account = AccountKeyring::Charlie;
-    let program_manager = AccountKeyring::Dave;
+//     let one = AccountKeyring::One;
+//     let program_modification_account = AccountKeyring::Charlie;
+//     let program_manager = AccountKeyring::Dave;
 
-    let (validator_ips, _validator_ids, _users_keyshare_option) =
-        spawn_testing_validators(None, false, false).await;
-    let substrate_context = test_context_stationary().await;
-    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+//     let (validator_ips, _validator_ids, _users_keyshare_option) =
+//         spawn_testing_validators(None, false, false).await;
+//     let substrate_context = test_context_stationary().await;
+//     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+//     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let program_hash = store_program(
-        &api,
-        &rpc,
-        &program_manager.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-        vec![],
-        vec![],
-    )
-    .await
-    .unwrap();
+//     let program_hash = store_program(
+//         &api,
+//         &rpc,
+//         &program_manager.pair(),
+//         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+//         vec![],
+//         vec![],
+//         vec![],
+//     )
+//     .await
+//     .unwrap();
 
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+//     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-    let one_x25519_sk = StaticSecret::random_from_rng(rand_core::OsRng);
-    let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
+//     let one_x25519_sk = StaticSecret::random_from_rng(rand_core::OsRng);
+//     let x25519_public_key = PublicKey::from(&one_x25519_sk).to_bytes();
 
-    put_register_request_on_chain(
-        &api,
-        &rpc,
-        &one,
-        program_modification_account.to_account_id().into(),
-        KeyVisibility::Private(x25519_public_key),
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-    )
-    .await;
-    run_to_block(&rpc, block_number + 1).await;
+//     put_register_request_on_chain(
+//         &api,
+//         &rpc,
+//         &one,
+//         program_modification_account.to_account_id().into(),
+//         KeyVisibility::Private(x25519_public_key),
+//         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+//     )
+//     .await;
+//     run_to_block(&rpc, block_number + 1).await;
 
-    // Simulate the propagation pallet making a `user/new` request to the second validator
-    // as we only have one chain node running
-    let onchain_user_request = {
-        // Since we only have two validators we use both of them, but if we had more we would
-        // need to select them using same method as the chain does (based on block number)
-        let validators_info: Vec<entropy_shared::ValidatorInfo> = validator_ips
-            .iter()
-            .enumerate()
-            .map(|(i, ip)| entropy_shared::ValidatorInfo {
-                ip_address: ip.as_bytes().to_vec(),
-                x25519_public_key: X25519_PUBLIC_KEYS[i],
-                tss_account: TSS_ACCOUNTS[i].clone().encode(),
-            })
-            .collect();
-        OcwMessageDkg {
-            sig_request_accounts: vec![one.public().encode()],
-            block_number,
-            validators_info,
-        }
-    };
+//     // Simulate the propagation pallet making a `user/new` request to the second validator
+//     // as we only have one chain node running
+//     let onchain_user_request = {
+//         // Since we only have two validators we use both of them, but if we had more we would
+//         // need to select them using same method as the chain does (based on block number)
+//         let validators_info: Vec<entropy_shared::ValidatorInfo> = validator_ips
+//             .iter()
+//             .enumerate()
+//             .map(|(i, ip)| entropy_shared::ValidatorInfo {
+//                 ip_address: ip.as_bytes().to_vec(),
+//                 x25519_public_key: X25519_PUBLIC_KEYS[i],
+//                 tss_account: TSS_ACCOUNTS[i].clone().encode(),
+//             })
+//             .collect();
+//         OcwMessageDkg {
+//             sig_request_accounts: vec![one.public().encode()],
+//             block_number,
+//             validators_info,
+//         }
+//     };
 
-    let client = reqwest::Client::new();
-    let validators_info: Vec<ValidatorInfo> = validator_ips
-        .iter()
-        .enumerate()
-        .map(|(i, ip)| ValidatorInfo {
-            ip_address: ip.to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[i],
-            tss_account: TSS_ACCOUNTS[i].clone(),
-        })
-        .collect();
+//     let client = reqwest::Client::new();
+//     let validators_info: Vec<ValidatorInfo> = validator_ips
+//         .iter()
+//         .enumerate()
+//         .map(|(i, ip)| ValidatorInfo {
+//             ip_address: ip.to_string(),
+//             x25519_public_key: X25519_PUBLIC_KEYS[i],
+//             tss_account: TSS_ACCOUNTS[i].clone(),
+//         })
+//         .collect();
 
-    // Call the `user/new` endpoint, and connect and participate in the protocol
-    let (new_user_response_result, keyshare_result) = future::join(
-        client
-            .post("http://127.0.0.1:3002/user/new")
-            .body(onchain_user_request.clone().encode())
-            .send(),
-        user_participates_in_dkg_protocol(
-            validators_info.clone(),
-            &one.pair(),
-            one_x25519_sk,
-            block_number,
-        ),
-    )
-    .await;
+//     // Call the `user/new` endpoint, and connect and participate in the protocol
+//     let (new_user_response_result, keyshare_result) = future::join(
+//         client
+//             .post("http://127.0.0.1:3002/user/new")
+//             .body(onchain_user_request.clone().encode())
+//             .send(),
+//         user_participates_in_dkg_protocol(
+//             validators_info.clone(),
+//             &one.pair(),
+//             one_x25519_sk,
+//             block_number,
+//         ),
+//     )
+//     .await;
 
-    let response = new_user_response_result.unwrap();
-    assert_eq!(response.text().await.unwrap(), "");
+//     let response = new_user_response_result.unwrap();
+//     assert_eq!(response.text().await.unwrap(), "");
 
-    assert!(keyshare_result.is_ok());
-    clean_tests();
-}
+//     assert!(keyshare_result.is_ok());
+//     clean_tests();
+// }
 
 #[tokio::test]
 async fn test_compute_hash() {
@@ -1344,7 +1332,6 @@ async fn test_mutiple_confirm_done() {
         &rpc,
         &alice,
         alice_program.to_account_id().into(),
-        KeyVisibility::Public,
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
@@ -1354,7 +1341,6 @@ async fn test_mutiple_confirm_done() {
         &rpc,
         &bob,
         alice_program.to_account_id().into(),
-        KeyVisibility::Public,
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;

@@ -34,7 +34,7 @@ use entropy_testing_utils::{
     constants::TEST_PROGRAM_WASM_BYTECODE,
     test_client::{
         get_accounts, get_api, get_programs, get_rpc, register, sign, store_program,
-        update_programs, KeyParams, KeyShare, KeyVisibility, VERIFYING_KEY_LENGTH,
+        update_programs, KeyParams, KeyShare, VERIFYING_KEY_LENGTH,
     },
 };
 use sp_core::{sr25519, DeriveJunction, Hasher, Pair};
@@ -77,9 +77,6 @@ enum CliCommand {
         ///
         /// Optionally may be preceeded with "//" eg: "//Bob"
         program_account_name: String,
-        /// The access mode of the Entropy account
-        #[arg(value_enum, default_value_t = Default::default())]
-        key_visibility: Visibility,
         /// Either hex-encoded hashes of existing programs, or paths to wasm files to store.
         ///
         /// Specifying program configurations
@@ -144,30 +141,6 @@ enum CliCommand {
     Status,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum, Default)]
-enum Visibility {
-    /// User holds keyshare
-    Private,
-    /// User does not hold a keyshare
-    #[default]
-    Public,
-}
-
-impl From<KeyVisibility> for Visibility {
-    fn from(key_visibility: KeyVisibility) -> Self {
-        match key_visibility {
-            KeyVisibility::Private(_) => Visibility::Private,
-            KeyVisibility::Public => Visibility::Public,
-        }
-    }
-}
-
-impl Display for Visibility {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let now = Instant::now();
@@ -197,7 +170,6 @@ async fn run_command() -> anyhow::Result<String> {
         CliCommand::Register {
             signature_request_account_name,
             program_account_name,
-            key_visibility,
             programs,
         } => {
             let signature_request_keypair: sr25519::Pair =
@@ -209,14 +181,6 @@ async fn run_command() -> anyhow::Result<String> {
             let program_account = SubxtAccountId32(program_keypair.public().0);
             println!("Program account: {}", program_keypair.public());
 
-            let (key_visibility_converted, x25519_secret) = match key_visibility {
-                Visibility::Private => {
-                    let x25519_secret = derive_x25519_static_secret(&signature_request_keypair);
-                    let x25519_public = x25519_dalek::PublicKey::from(&x25519_secret);
-                    (KeyVisibility::Private(x25519_public.to_bytes()), Some(x25519_secret))
-                },
-                Visibility::Public => (KeyVisibility::Public, None),
-            };
             let mut programs_info = vec![];
 
             for program in programs {
@@ -225,21 +189,14 @@ async fn run_command() -> anyhow::Result<String> {
                 );
             }
 
-            let (registered_info, keyshare_option) = register(
+            let registered_info = register(
                 &api,
                 &rpc,
                 signature_request_keypair.clone(),
                 program_account,
-                key_visibility_converted,
                 BoundedVec(programs_info),
-                x25519_secret,
             )
             .await?;
-
-            // If we got a keyshare, write it to a file
-            if let Some(keyshare) = keyshare_option {
-                KeyShareFile::new(signature_request_keypair.public()).write(keyshare)?;
-            }
 
             Ok(format!("{:?}", registered_info))
         },
@@ -340,16 +297,13 @@ async fn run_command() -> anyhow::Result<String> {
             );
             if !accounts.is_empty() {
                 println!(
-                    "{:<64} {:<12} Programs:",
+                    "{:<64} Programs:",
                     "Verifying key:".green(),
-                    "Visibility:".purple(),
                 );
                 for (account_id, info) in accounts {
-                    let visibility: Visibility = info.key_visibility.0.into();
                     println!(
-                        "{} {:<12} {}",
+                        "{} {:<12}",
                         hex::encode(account_id).green(),
-                        format!("{}", visibility).purple(),
                         format!(
                             "{:?}",
                             info.programs_data

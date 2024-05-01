@@ -33,18 +33,6 @@ pub type X25519PublicKey = [u8; 32];
 /// since we don't want to pull that whole crate it just for a `u32`.
 type BlockNumber = u32;
 
-/// Defines an application's accessibility
-/// Public -> User does not hold a keyshare
-/// Private -> User holds keyshare
-#[cfg_attr(not(feature = "wasm-no-std"), derive(Debug))]
-#[cfg_attr(feature = "wasm-no-std", derive(RuntimeDebug))]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
-pub enum KeyVisibility {
-    Public,
-    Private(X25519PublicKey),
-}
-
 /// Information from the validators in signing party
 #[cfg(not(feature = "wasm"))]
 #[derive(

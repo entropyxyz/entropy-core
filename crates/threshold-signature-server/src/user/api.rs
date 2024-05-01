@@ -36,7 +36,7 @@ use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureReques
 use entropy_protocol::ValidatorInfo;
 use entropy_protocol::{KeyParams, SigningSessionInfo};
 use entropy_shared::{
-    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE,
+    HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE,
 };
 use futures::{
     channel::mpsc,
@@ -217,7 +217,6 @@ pub async fn sign_tx(
             user_sig_req,
             &app_state,
             signing_session_id,
-            user_details.key_visibility.0,
             request_limit,
         )
         .await
@@ -314,7 +313,6 @@ async fn setup_dkg(
             x25519_secret_key,
             &app_state.listener_state,
             sig_request_address.clone(),
-            *user_details.key_visibility,
             data.block_number,
         )
         .await?;

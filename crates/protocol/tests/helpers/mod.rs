@@ -60,7 +60,7 @@ pub async fn server(
 
     // Setup a single listener for tracking connnections to the other parties
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(validators_info.clone(), &account_id, None);
+        Listener::new(validators_info.clone(), &account_id);
 
     let state = ServerState {
         listener: Arc::new(Mutex::new(vec![listener])),

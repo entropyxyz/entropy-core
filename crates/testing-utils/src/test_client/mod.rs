@@ -18,13 +18,12 @@ pub use crate::chain_api::{get_api, get_rpc};
 use base64::prelude::{Engine, BASE64_STANDARD};
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 use entropy_shared::HashingAlgorithm;
-pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
+pub use entropy_shared::{SIGNING_PARTY_SIZE};
 pub use synedrion::KeyShare;
 pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
 
 use anyhow::{anyhow, ensure};
 use entropy_protocol::{
-    user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     RecoverableSignature, ValidatorInfo,
 };
 use entropy_tss::{
@@ -65,7 +64,6 @@ use x25519_dalek::StaticSecret;
     fields(
         signature_request_account = ?signature_request_keypair.public(),
         program_account,
-        key_visibility,
     )
 )]
 pub async fn register(
@@ -73,54 +71,17 @@ pub async fn register(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_keypair: sr25519::Pair,
     program_account: SubxtAccountId32,
-    key_visibility: KeyVisibility,
     programs_data: BoundedVec<ProgramInstance>,
-    x25519_secret_key: Option<StaticSecret>,
-) -> anyhow::Result<(RegisteredInfo, Option<KeyShare<KeyParams>>)> {
+) -> anyhow::Result<(RegisteredInfo)> {
     // Send register transaction
     put_register_request_on_chain(
         api,
         rpc,
         signature_request_keypair.clone(),
         program_account,
-        key_visibility,
         programs_data,
     )
     .await?;
-
-    // If registering with private key visibility, participate in the DKG protocol
-    let keyshare_option = match key_visibility {
-        KeyVisibility::Private(x25519_public_key) => {
-            let x25519_secret_key = x25519_secret_key
-                .ok_or(anyhow!("In private mode, an x25519 secret key must be given"))?;
-
-            let x25519_public_key_check =
-                x25519_dalek::PublicKey::from(&x25519_secret_key).to_bytes();
-            ensure!(
-                x25519_public_key_check == x25519_public_key,
-                "Given x25519 secret key does not match that from key visibility"
-            );
-
-            let block_number = rpc
-                .chain_get_header(None)
-                .await?
-                .ok_or(anyhow!("Cannot get current block number"))?
-                .number
-                + 1;
-
-            let validators_info = get_dkg_committee(api, rpc).await?;
-            Some(
-                user_participates_in_dkg_protocol(
-                    validators_info,
-                    &signature_request_keypair,
-                    x25519_secret_key,
-                    block_number,
-                )
-                .await?,
-            )
-        },
-        _ => None,
-    };
 
     let account_id32: AccountId32 = signature_request_keypair.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
@@ -136,7 +97,7 @@ pub async fn register(
                     query_chain(api, rpc, registered_query, block_hash).await.unwrap();
                 if registered_status.is_some() {
                     // check if the event belongs to this user
-                    return Ok((registered_status.unwrap(), keyshare_option));
+                    return Ok(registered_status.unwrap());
                 }
             }
         }
@@ -207,22 +168,7 @@ pub async fn sign(
         .collect::<Vec<_>>();
 
     // If we have a keyshare, connect to TSS servers
-    let results = if let Some((keyshare, x25519_secret_key)) = private {
-        let (validator_results, _own_result) = future::join(
-            future::try_join_all(submit_transaction_requests),
-            user_participates_in_signing_protocol(
-                &keyshare,
-                validators_info_clone,
-                &user_keypair,
-                x25519_secret_key,
-                message_hash,
-            ),
-        )
-        .await;
-        validator_results?
-    } else {
-        future::try_join_all(submit_transaction_requests).await?
-    };
+    let results = future::try_join_all(submit_transaction_requests).await?;
 
     // Get the first result
     if let Some(res) = results.into_iter().next() {
@@ -348,14 +294,13 @@ pub async fn put_register_request_on_chain(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_keypair: sr25519::Pair,
     deployer: SubxtAccountId32,
-    key_visibility: KeyVisibility,
     program_instance: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<()> {
     let signature_request_pair_signer =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
 
     let registering_tx =
-        entropy::tx().registry().register(deployer, Static(key_visibility), program_instance);
+        entropy::tx().registry().register(deployer, program_instance);
 
     submit_transaction(api, rpc, &signature_request_pair_signer, &registering_tx, None).await?;
     Ok(())
