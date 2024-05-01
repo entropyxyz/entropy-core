@@ -348,8 +348,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (2, (4, NULL_ARR, vec![11])),
             (7, (4, NULL_ARR, vec![50])),
         ],
-        // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
-        signing_groups: vec![(0, vec![1, 5]), (1, vec![2, 6, 7])],
         proactive_refresh_data: (vec![], vec![]),
     };
 

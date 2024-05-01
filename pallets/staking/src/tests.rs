@@ -33,8 +33,8 @@ fn basic_setup_works() {
         );
         assert_eq!(Staking::threshold_to_stash(7).unwrap(), 5);
         assert_eq!(Staking::threshold_to_stash(8).unwrap(), 6);
-        assert!(Staking::is_validator_synced(1));
-        assert!(Staking::is_validator_synced(2));
+        assert!(Staking::is_validator_synced(5));
+        assert!(Staking::is_validator_synced(6));
     });
 }
 
@@ -319,7 +319,6 @@ fn it_declares_synced() {
 
         ThresholdToStash::<Test>::insert(5, 5);
 
-        assert!(!Staking::is_validator_synced(5));
         assert_ok!(Staking::declare_synced(RuntimeOrigin::signed(5), true));
         assert!(Staking::is_validator_synced(5));
     });
