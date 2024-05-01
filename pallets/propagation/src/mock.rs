@@ -23,7 +23,6 @@ use frame_support::{
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
-use pallet_staking::StakerStatus;
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
@@ -356,8 +355,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (1, (3, NULL_ARR, vec![10])),
             (2, (4, NULL_ARR, vec![11])),
         ],
-        // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
-        signing_groups: vec![(0, vec![1, 5]), (1, vec![2, 6])],
         proactive_refresh_data: (vec![], vec![]),
     };
 
