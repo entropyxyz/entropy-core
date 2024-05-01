@@ -96,7 +96,7 @@ pub mod pallet {
             let converted_block_number: u32 =
                 BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
             let servers_info =
-                pallet_registry::Pallet::<T>::get_validator_info().unwrap_or_default();
+                pallet_registry::Pallet::<T>::get_validators_info().unwrap_or_default();
             let validators_info = servers_info
                 .iter()
                 .map(|server_info| ValidatorInfo {

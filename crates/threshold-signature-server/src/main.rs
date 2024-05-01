@@ -17,13 +17,16 @@ use std::{net::SocketAddr, str::FromStr};
 
 use clap::Parser;
 
+use entropy_shared::MIN_BALANCE;
 use entropy_tss::{
     app,
+    chain_api::{get_api, get_rpc},
     launch::{
         load_kv_store, setup_latest_block_number, setup_mnemonic, setup_only, Configuration,
         StartupArgs, ValidatorName,
     },
-    sync_validator, AppState,
+    validator::api::check_balance_for_fees,
+    AppState,
 };
 
 #[tokio::main]
@@ -55,16 +58,24 @@ async fn main() {
     let kv_store = load_kv_store(&validator_name, args.password_file).await;
 
     let app_state = AppState::new(configuration.clone(), kv_store.clone());
-    setup_mnemonic(&kv_store, &validator_name).await.expect("Issue creating Mnemonic");
+    let account_id =
+        setup_mnemonic(&kv_store, &validator_name).await.expect("Issue creating Mnemonic");
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
 
     // Below deals with syncing the kvdb
-    sync_validator(args.no_sync, args.dev, &configuration.endpoint, &kv_store).await;
     let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
 
     if args.setup_only {
         setup_only(&kv_store).await;
     } else {
+        let api = get_api(&app_state.configuration.endpoint).await.expect("Error getting api");
+        let rpc = get_rpc(&app_state.configuration.endpoint).await.expect("Error getting rpc");
+        let has_fee_balance = check_balance_for_fees(&api, &rpc, account_id.clone(), MIN_BALANCE)
+            .await
+            .expect("Error in check balance");
+        if !has_fee_balance {
+            panic!("threshold account needs balance: {:?}", account_id);
+        }
         let listener = tokio::net::TcpListener::bind(&addr)
             .await
             .expect("Unable to bind to given server address.");

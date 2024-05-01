@@ -47,6 +47,7 @@ async fn integration_test_sign_public() {
 
     let (_validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
+    dbg!(_validator_ids);
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();

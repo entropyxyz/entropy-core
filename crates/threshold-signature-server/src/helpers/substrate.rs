@@ -40,24 +40,6 @@ use subxt::{
     Config, OnlineClient,
 };
 
-/// Return the subgroup that a particular threshold server belongs to.
-pub async fn get_subgroup(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    threshold_account_id: &AccountId32,
-) -> Result<u8, UserErr> {
-    let block_hash = rpc.chain_get_block_hash(None).await?;
-    let stash_address = get_stash_address(api, rpc, threshold_account_id).await?;
-
-    let subgroup_query =
-        entropy::storage().staking_extension().validator_to_subgroup(&stash_address);
-    let subgroup = query_chain(api, rpc, subgroup_query, block_hash)
-        .await?
-        .ok_or_else(|| UserErr::ChainFetch("Subgroup Error"))?;
-
-    Ok(subgroup)
-}
-
 /// Given a threshold server's account ID, return its corresponding stash (validator) address.
 pub async fn get_stash_address(
     api: &OnlineClient<EntropyConfig>,
@@ -72,20 +54,6 @@ pub async fn get_stash_address(
         .ok_or_else(|| UserErr::ChainFetch("Stash Fetch Error"))?;
 
     Ok(stash_address)
-}
-
-/// Returns all the addresses of a specific subgroup
-pub async fn return_all_addresses_of_subgroup(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    subgroup: u8,
-) -> Result<Vec<AccountId32>, UserErr> {
-    let subgroup_addresses_query = entropy::storage().staking_extension().signing_groups(subgroup);
-    let subgroup_addresses = query_chain(api, rpc, subgroup_addresses_query, None)
-        .await?
-        .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-
-    Ok(subgroup_addresses)
 }
 
 /// Queries the user's program from the chain

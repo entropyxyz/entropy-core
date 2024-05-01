@@ -348,12 +348,15 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (2, (4, NULL_ARR, vec![11])),
             (7, (4, NULL_ARR, vec![50])),
         ],
-        // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
-        signing_groups: vec![(0, vec![1, 5]), (1, vec![2, 6, 7])],
         proactive_refresh_data: (vec![], vec![]),
     };
 
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
+
+    let stakers = vec![1, 2];
+    let keys: Vec<_> = stakers.iter().cloned().map(|i| (i, i, UintAuthorityId(i).into())).collect();
+
+    pallet_session::GenesisConfig::<Test> { keys }.assimilate_storage(&mut t).unwrap();
 
     t.into()
 }

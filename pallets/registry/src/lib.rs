@@ -105,7 +105,7 @@ pub mod pallet {
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
         pub program_modification_account: T::AccountId,
-        pub confirmations: Vec<u8>,
+        pub confirmations: Vec<T::AccountId>,
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub key_visibility: KeyVisibility,
         pub verifying_key: Option<VerifyingKey>,
@@ -189,8 +189,8 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// An account has signaled to be registered. [signature request account]
         SignalRegister(T::AccountId),
-        /// An account has been registered. [who, signing_group, verifying_key]
-        RecievedConfirmation(T::AccountId, u8, VerifyingKey),
+        /// An account has been registered. [who, verifying_key]
+        RecievedConfirmation(T::AccountId, VerifyingKey),
         /// An account has been registered. \[who, verifying_key]
         AccountRegistered(T::AccountId, VerifyingKey),
         /// An account registration has failed
@@ -210,9 +210,7 @@ pub mod pallet {
         NoThresholdKey,
         NotRegistering,
         NotRegistered,
-        InvalidSubgroup,
         AlreadyConfirmed,
-        NotInSigningGroup,
         IpAddressError,
         SigningGroupError,
         NoSyncedValidators,
@@ -223,6 +221,7 @@ pub mod pallet {
         NoProgramSet,
         TooManyModifiableKeys,
         MismatchedVerifyingKeyLength,
+        NotValidator,
     }
 
     #[pallet::call]
@@ -390,7 +389,6 @@ pub mod pallet {
         pub fn confirm_register(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
-            signing_subgroup: u8,
             verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
         ) -> DispatchResultWithPostInfo {
             let ts_server_account = ensure_signed(origin)?;
@@ -404,18 +402,14 @@ pub mod pallet {
 
             let mut registering_info =
                 Self::registering(&sig_req_account).ok_or(Error::<T>::NotRegistering)?;
+
+            let validators = pallet_session::Pallet::<T>::validators();
+            ensure!(validators.contains(&validator_stash), Error::<T>::NotValidator);
             let confirmation_length = registering_info.confirmations.len() as u32;
             ensure!(
-                !registering_info.confirmations.contains(&signing_subgroup),
+                !registering_info.confirmations.contains(&ts_server_account),
                 Error::<T>::AlreadyConfirmed
             );
-
-            // Every active validator is expected to be assigned a subgroup. If they haven't it
-            // means they're probably still in the candidate stage.
-            let validator_subgroup =
-                pallet_staking_extension::Pallet::<T>::validator_to_subgroup(&validator_stash)
-                    .ok_or(Error::<T>::SigningGroupError)?;
-            ensure!(validator_subgroup == signing_subgroup, Error::<T>::NotInSigningGroup);
 
             // if no one has sent in a verifying key yet, use current
             if registering_info.verifying_key.is_none() {
@@ -474,11 +468,10 @@ pub mod pallet {
                     )
                     .into());
                 }
-                registering_info.confirmations.push(signing_subgroup);
+                registering_info.confirmations.push(ts_server_account);
                 Registering::<T>::insert(&sig_req_account, registering_info);
                 Self::deposit_event(Event::RecievedConfirmation(
                     sig_req_account,
-                    signing_subgroup,
                     registering_info_verifying_key,
                 ));
                 Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(
@@ -491,24 +484,11 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         #[allow(clippy::type_complexity)]
-        pub fn get_validator_info() -> Result<Vec<ServerInfo<T::AccountId>>, Error<T>> {
+        pub fn get_validators_info() -> Result<Vec<ServerInfo<T::AccountId>>, Error<T>> {
             let mut validators_info: Vec<ServerInfo<T::AccountId>> = vec![];
-            let block_number = <frame_system::Pallet<T>>::block_number();
+            let validators = pallet_session::Pallet::<T>::validators();
 
-            // This gets the first address from each signing group, and then walks through the rest
-            // of the signing group in order as rounds proceed.
-            //
-            // For example, if we have the following signing groups:
-            // Group 1: A, B, C
-            // Group 2: D, E
-            //
-            // Then the committee selection would look like this:
-            // Round 1: (A, D)
-            // Round 2: (B, E),
-            // Round 3: (C, D)
-            // Round 4: (A, E)
-            for i in 0..SIGNING_PARTY_SIZE {
-                let validator_address = Self::get_validator_rotation(i as u8, block_number)?;
+            for validator_address in validators {
                 let validator_info =
                     pallet_staking_extension::Pallet::<T>::threshold_server(&validator_address)
                         .ok_or(Error::<T>::IpAddressError)?;
@@ -516,52 +496,6 @@ pub mod pallet {
             }
 
             Ok(validators_info)
-        }
-
-        pub fn get_validator_rotation(
-            signing_group: u8,
-            block_number: BlockNumberFor<T>,
-        ) -> Result<<T as pallet_session::Config>::ValidatorId, Error<T>> {
-            let mut addresses =
-                pallet_staking_extension::Pallet::<T>::signing_groups(signing_group)
-                    .ok_or(Error::<T>::SigningGroupError)?;
-            let converted_block_number: u32 =
-                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
-            let address = loop {
-                ensure!(!addresses.is_empty(), Error::<T>::NoSyncedValidators);
-                let selection: u32 = converted_block_number % addresses.len() as u32;
-                let address = &addresses[selection as usize];
-                let address_state =
-                    pallet_staking_extension::Pallet::<T>::is_validator_synced(address);
-                if !address_state {
-                    addresses.remove(selection as usize);
-                } else {
-                    break address;
-                }
-            };
-
-            Ok(address.clone())
-        }
-
-        /// Check if the given validator was part of the registration committee for the given block
-        /// height.
-        ///
-        /// # Note
-        ///
-        /// This function only works for checking if a validator should be in the committe in the
-        /// **current** session. Any queries against a block that happened in a previous session may
-        /// yield incorrect results.
-        pub fn is_in_committee(
-            validator: &T::ValidatorId,
-            block_number: BlockNumberFor<T>,
-        ) -> Result<bool, Error<T>> {
-            let signing_group =
-                pallet_staking_extension::Pallet::<T>::validator_to_subgroup(validator)
-                    .ok_or(Error::<T>::NoThresholdKey)?;
-
-            let expected_validator = Self::get_validator_rotation(signing_group, block_number)?;
-
-            Ok(expected_validator == *validator)
         }
     }
 
@@ -629,9 +563,7 @@ pub mod pallet {
             _info: &DispatchInfoOf<Self::Call>,
             _len: usize,
         ) -> TransactionValidity {
-            if let Some(Call::confirm_register { sig_req_account, signing_subgroup, .. }) =
-                call.is_sub_type()
-            {
+            if let Some(Call::confirm_register { sig_req_account, .. }) = call.is_sub_type() {
                 let validator_stash =
                     pallet_staking_extension::Pallet::<T>::threshold_to_stash(who)
                         .ok_or(InvalidTransaction::Custom(1))?;
@@ -639,16 +571,12 @@ pub mod pallet {
                 let registering_info =
                     Registering::<T>::get(sig_req_account).ok_or(InvalidTransaction::Custom(2))?;
                 ensure!(
-                    !registering_info.confirmations.contains(signing_subgroup),
+                    !registering_info.confirmations.contains(who),
                     InvalidTransaction::Custom(3)
                 );
-                let signing_subgroup_addresses =
-                    pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
-                        .ok_or(InvalidTransaction::Custom(4))?;
-                ensure!(
-                    signing_subgroup_addresses.contains(&validator_stash),
-                    InvalidTransaction::Custom(5)
-                );
+
+                let validators = pallet_session::Pallet::<T>::validators();
+                ensure!(validators.contains(&validator_stash), InvalidTransaction::Custom(4));
             }
             Ok(ValidTransaction::default())
         }
