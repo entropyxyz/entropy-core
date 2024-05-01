@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Benchmarking setup for pallet-propgation
-use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE as SIG_PARTIES, VERIFICATION_KEY_LENGTH};
+use entropy_shared::{SIGNING_PARTY_SIZE as SIG_PARTIES, VERIFICATION_KEY_LENGTH};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     traits::{Currency, Get},
@@ -49,7 +49,6 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 pub fn add_non_syncing_validators<T: Config>(
     sig_party_size: u32,
     syncing_validators: u32,
-    sig_party_number: u8,
 ) -> Vec<<T as pallet_session::Config>::ValidatorId> {
     let validators = create_validators::<T>(sig_party_size, SEED);
     let account = account::<T::AccountId>("ts_account", 1, SEED);
@@ -86,7 +85,7 @@ benchmarks! {
     let sig_req_account: T::AccountId = whitelisted_caller();
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
-  }: _(RawOrigin::Signed(sig_req_account.clone()), program_modification_account, KeyVisibility::Public, programs_info)
+  }: _(RawOrigin::Signed(sig_req_account.clone()), program_modification_account, programs_info)
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
     assert!(Registering::<T>::contains_key(sig_req_account));
@@ -112,7 +111,6 @@ benchmarks! {
         program_modification_account: sig_req_account.clone(),
         confirmations: vec![],
         programs_data: programs_info,
-        key_visibility: KeyVisibility::Public,
         verifying_key: Some(BoundedVec::default()),
         version_number: T::KeyVersionNumber::get()
     });
@@ -153,7 +151,6 @@ benchmarks! {
         RegisteredInfo {
             program_modification_account: sig_req_account.clone(),
             programs_data: programs_info,
-            key_visibility: KeyVisibility::Public,
             version_number: T::KeyVersionNumber::get()
         },
     );
@@ -181,7 +178,7 @@ benchmarks! {
     let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
     // add validators and a registering user
     for i in 0..SIG_PARTIES {
-        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
+        let validators = add_non_syncing_validators::<T>(sig_party_size, 0);
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
         <Validators<T>>::set(validators);
     }
@@ -190,7 +187,6 @@ benchmarks! {
         program_modification_account: sig_req_account.clone(),
         confirmations: vec![],
         programs_data: programs_info,
-        key_visibility: KeyVisibility::Public,
         verifying_key: None,
         version_number: T::KeyVersionNumber::get()
     });
@@ -222,7 +218,7 @@ benchmarks! {
     let invalid_verifying_key = BoundedVec::try_from(vec![2; VERIFICATION_KEY_LENGTH as usize]).unwrap();
     // add validators and a registering user with different verifying key
     for i in 0..SIG_PARTIES {
-        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
+        let validators = add_non_syncing_validators::<T>(sig_party_size, 0);
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
         <Validators<T>>::set(validators);
     }
@@ -234,7 +230,6 @@ benchmarks! {
         program_modification_account: sig_req_account.clone(),
         confirmations: confirmation,
         programs_data: programs_info,
-        key_visibility: KeyVisibility::Public,
         verifying_key: Some(BoundedVec::default()),
         version_number: T::KeyVersionNumber::get()
     });
@@ -265,7 +260,7 @@ confirm_register_registered {
     let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
     // add validators, a registering user and one less than all confirmations
     for i in 0..SIG_PARTIES {
-        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
+        let validators = add_non_syncing_validators::<T>(sig_party_size, 0);
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
         <Validators<T>>::set(validators);
     }
@@ -275,7 +270,6 @@ confirm_register_registered {
         program_modification_account: sig_req_account.clone(),
         confirmations: confirmation,
         programs_data: programs_info,
-        key_visibility: KeyVisibility::Public,
         verifying_key: None,
         version_number: T::KeyVersionNumber::get()
     });
