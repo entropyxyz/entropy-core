@@ -7,9 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.11...master)
+## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.12...master)
 
-## [0.0.12](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.11...release/v0.0.12) - 2024-05-30
+## [0.0.12](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.11...release/v0.0.12) - 2024-05-02
 
 ### Breaking Changes
 
@@ -29,6 +29,7 @@ At the moment this project **does not** adhere to
 
 ### Added
 - Add testnet account JSON ([#769](https://github.com/entropyxyz/entropy-core/pull/769))
+- Make common crate for TSS and test client ([#775](https://github.com/entropyxyz/entropy-core/pull/775))
 
 ### Changed
 - Derive the threshold account keypair and x25519 keypair from mnemonic using HKDF ([#709](https://github.com/entropyxyz/entropy-core/pull/709))

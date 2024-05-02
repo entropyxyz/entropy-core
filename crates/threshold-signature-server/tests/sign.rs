@@ -13,29 +13,26 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use entropy_client::{
+    chain_api::{
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+        entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
+    },
+    client as test_client, Hasher,
+};
 use entropy_kvdb::clean_tests;
 use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY};
 use entropy_testing_utils::{
-    chain_api::{
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
-    },
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, EVE_X25519_SECRET_KEY, PREIMAGE_SHOULD_SUCCEED,
         TEST_PROGRAM_WASM_BYTECODE,
     },
     substrate_context::test_context_stationary,
-    test_client,
     tss_server_process::spawn_testing_validators,
 };
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
 use synedrion::k256::ecdsa::VerifyingKey;
-
-use entropy_tss::{
-    chain_api::{get_api, get_rpc},
-    common::Hasher,
-};
 
 #[tokio::test]
 #[serial]

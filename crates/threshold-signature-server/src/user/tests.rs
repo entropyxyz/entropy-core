@@ -16,6 +16,10 @@
 use axum::http::StatusCode;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
+use entropy_client::{
+    client::{store_program, update_programs},
+    user::get_current_subgroup_signers,
+};
 use entropy_kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
@@ -46,7 +50,6 @@ use entropy_testing_utils::{
         test_context_stationary, test_node_process_testing_state, testing_context,
         SubstrateTestingContext,
     },
-    test_client::{store_program, update_programs},
 };
 use futures::{
     future::{self, join_all},
@@ -120,9 +123,9 @@ use crate::{
     signing_client::ListenerState,
     user::{
         api::{
-            check_hash_pointer_out_of_bounds, confirm_registered, get_current_subgroup_signers,
-            increment_or_wipe_request_limit, recover_key, request_limit_check, request_limit_key,
-            RequestLimitStorage, UserRegistrationInfo, UserSignatureRequest,
+            check_hash_pointer_out_of_bounds, confirm_registered, increment_or_wipe_request_limit,
+            recover_key, request_limit_check, request_limit_key, RequestLimitStorage,
+            UserRegistrationInfo, UserSignatureRequest,
         },
         UserErr,
     },

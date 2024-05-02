@@ -10,6 +10,7 @@ edition    ='2021'
 
 [dependencies]
 entropy-testing-utils={ version="0.0.12", path="../testing-utils" }
+entropy-client       ={ version="0.0.12", path="../client" }
 clap                 ={ version="4.4.6", features=["derive"] }
 colored              ="2.0.4"
 subxt                ="0.35.3"

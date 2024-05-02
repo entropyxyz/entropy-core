@@ -41,6 +41,7 @@ sp-core           ={ version="31.0.0", default-features=false }
 entropy-shared  ={ version="0.0.12", path="../shared" }
 entropy-kvdb    ={ version="0.0.12", path="../kvdb", default-features=false }
 entropy-protocol={ version="0.0.12", path="../protocol", features=["server"] }
+entropy-client  ={ version="0.0.12", path="../client", default-features=false, features=["native"] }
 
 # Programs
 entropy-programs-runtime="0.10.0"
@@ -58,7 +59,7 @@ tokio-tungstenite="0.21.0"
 bip39            ={ version="2.0.0", features=["zeroize"] }
 bincode          ="1.3.3"
 bytes            ={ version="1.6", default-features=false, features=["serde"] }
-base64           ="0.22.0"
+base64           ="0.22.1"
 clap             ={ version="4.0.29", features=["derive"] }
 num              ="0.4.2"
 snow             ="0.9.6"
@@ -81,6 +82,7 @@ entropy-protocol     ={ version="0.0.12", path="../protocol", features=["unsafe"
 blake3               ="1.5.1"
 ethers-core          ="2.0.14"
 schnorrkel           ={ version="0.11.4", default-features=false, features=["std"] }
+entropy-client       ={ path="../client", features=["full-client"] }
 schemars             ={ version="0.8.17" }
 
 [build-dependencies]

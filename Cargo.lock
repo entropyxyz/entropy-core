@@ -750,9 +750,9 @@ checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
 name = "base64"
-version = "0.22.0"
+version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9475866fec1451be56a3c2400fd081ff546538961565ccb5b7142cbd22bc7a51"
+checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "base64ct"
@@ -2432,6 +2432,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "entropy-client"
+version = "0.0.12"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "blake2 0.10.6",
+ "entropy-protocol",
+ "entropy-shared",
+ "futures",
+ "hex",
+ "num",
+ "rand_core 0.6.4",
+ "reqwest 0.12.4",
+ "serde",
+ "serde_json",
+ "sha3",
+ "sp-core 31.0.0",
+ "subxt",
+ "synedrion",
+ "thiserror",
+ "tracing",
+ "x25519-dalek 2.0.1",
+]
+
+[[package]]
 name = "entropy-kvdb"
 version = "0.0.12"
 dependencies = [
@@ -2494,7 +2519,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum",
- "base64 0.22.0",
+ "base64 0.22.1",
  "bincode",
  "blake2 0.10.6",
  "entropy-shared",
@@ -2625,6 +2650,7 @@ dependencies = [
  "sp-std 12.0.0",
  "strum 0.26.2",
  "strum_macros 0.26.2",
+ "subxt",
 ]
 
 [[package]]
@@ -2635,6 +2661,7 @@ dependencies = [
  "bincode",
  "clap",
  "colored",
+ "entropy-client",
  "entropy-testing-utils",
  "hex",
  "sp-core 31.0.0",
@@ -2648,36 +2675,24 @@ dependencies = [
 name = "entropy-testing-utils"
 version = "0.0.12"
 dependencies = [
- "anyhow",
  "axum",
- "base64 0.22.0",
- "blake2 0.10.6",
  "entropy-kvdb",
  "entropy-protocol",
  "entropy-shared",
  "entropy-tss",
- "futures",
  "hex",
  "hex-literal",
  "lazy_static",
- "num",
  "parity-scale-codec",
  "project-root",
  "rand_core 0.6.4",
- "reqwest 0.12.4",
- "serde",
- "serde_json",
- "sha3",
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
  "synedrion",
- "thiserror",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.18",
- "x25519-dalek 2.0.1",
- "zeroize",
 ]
 
 [[package]]
@@ -2686,13 +2701,14 @@ version = "0.0.12"
 dependencies = [
  "anyhow",
  "axum",
- "base64 0.22.0",
+ "base64 0.22.1",
  "bincode",
  "bip39",
  "blake2 0.10.6",
  "blake3",
  "bytes",
  "clap",
+ "entropy-client",
  "entropy-kvdb",
  "entropy-programs-runtime",
  "entropy-protocol",
@@ -8654,7 +8670,7 @@ version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "566cafdd92868e0939d3fb961bd0dc25fcfaaed179291093b3d43e6b3150ea10"
 dependencies = [
- "base64 0.22.0",
+ "base64 0.22.1",
  "bytes",
  "encoding_rs",
  "futures-core",
@@ -8982,7 +8998,7 @@ version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29993a25686778eb88d4189742cd713c9bce943bc54251a33509dc63cbacf73d"
 dependencies = [
- "base64 0.22.0",
+ "base64 0.22.1",
  "rustls-pki-types",
 ]
 
@@ -11322,9 +11338,9 @@ checksum = "cd0b0ec5f1c1ca621c432a25813d8d60c88abe6d3e08a3eb9cf37d97a0fe3d73"
 
 [[package]]
 name = "serde"
-version = "1.0.199"
+version = "1.0.200"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c9f6e76df036c77cd94996771fb40db98187f096dd0b9af39c6c6e452ba966a"
+checksum = "ddc6f9cc94d67c0e21aaf7eda3a010fd3af78ebf6e096aa6e2e13c79749cce4f"
 dependencies = [
  "serde_derive",
 ]
@@ -11340,9 +11356,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.199"
+version = "1.0.200"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11bd257a6541e141e42ca6d24ae26f7714887b47e89aa739099104c7e4d3b7fc"
+checksum = "856f046b9400cee3c8c94ed572ecdb752444c24528c035cd35882aad6f492bcb"
 dependencies = [
  "proc-macro2",
  "quote",
